@@ -1,0 +1,656 @@
+{
+ "form": {
+  "form_id": "form1",
+  "builder_version": "v2",
+  "title": "Survey: 2026 / \"edition\"",
+  "hidden_fields": [
+   "utm_source",
+   "ref",
+   "ref",
+   "constructor"
+  ],
+  "fields": [
+   {
+    "id": "s1",
+    "index": 0,
+    "type": "slide",
+    "properties": {
+     "fields": [
+      {
+       "id": "name",
+       "index": 0,
+       "type": "short_text",
+       "title": {
+        "type": "doc",
+        "content": [
+         {
+          "type": "paragraph",
+          "content": [
+           {
+            "type": "text",
+            "text": "Name "
+           },
+           {
+            "type": "answerPipe",
+            "attrs": {
+             "label": "Page 1",
+             "pipeKey": "k"
+            }
+           }
+          ]
+         }
+        ]
+       }
+      },
+      {
+       "id": "phone",
+       "index": 0,
+       "type": "phone_number",
+       "title": "Phone"
+      },
+      {
+       "id": "colours",
+       "index": 0,
+       "type": "multiple_choice",
+       "title": "Colours",
+       "properties": {
+        "allow_multiple_selection": true,
+        "choices": [
+         {
+          "id": "c1",
+          "value": "Red"
+         },
+         {
+          "id": "c2",
+          "value": ""
+         },
+         {
+          "id": "c3",
+          "value": "Blue"
+         }
+        ]
+       }
+      },
+      {
+       "id": "one",
+       "index": 0,
+       "type": "dropdown",
+       "title": "One colour",
+       "properties": {
+        "choices": [
+         {
+          "id": "c1",
+          "value": "Red"
+         },
+         {
+          "id": "c2",
+          "value": ""
+         },
+         {
+          "id": "c3",
+          "value": "Blue"
+         }
+        ]
+       }
+      },
+      {
+       "id": "yn",
+       "index": 0,
+       "type": "yes_no",
+       "title": "Agree?"
+      },
+      {
+       "id": "num",
+       "index": 0,
+       "type": "number",
+       "title": "Count"
+      },
+      {
+       "id": "rate",
+       "index": 0,
+       "type": "rating",
+       "title": "Rating"
+      },
+      {
+       "id": "when",
+       "index": 0,
+       "type": "date",
+       "title": "Date"
+      },
+      {
+       "id": "mail",
+       "index": 0,
+       "type": "email",
+       "title": "Email"
+      },
+      {
+       "id": "site",
+       "index": 0,
+       "type": "url",
+       "title": "Site"
+      },
+      {
+       "id": "file",
+       "index": 0,
+       "type": "file_upload",
+       "title": "Upload"
+      },
+      {
+       "id": "calc",
+       "index": 0,
+       "type": "calculated",
+       "title": "Total"
+      }
+     ]
+    }
+   },
+   {
+    "id": "s2",
+    "index": 1,
+    "type": "slide",
+    "properties": {
+     "fields": [
+      {
+       "id": "calcb",
+       "index": 0,
+       "type": "calculated",
+       "title": "Eligible"
+      },
+      {
+       "id": "calct",
+       "index": 0,
+       "type": "calculated",
+       "title": "Label"
+      },
+      {
+       "id": "tab",
+       "index": 0,
+       "type": "tabular_input",
+       "title": "Table"
+      },
+      {
+       "id": "ic",
+       "index": 0,
+       "type": "input_checkboxes",
+       "title": "Boxes",
+       "properties": {
+        "choices": [
+         {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "value": "Alpha"
+         },
+         {
+          "id": "22222222-2222-4222-8222-222222222222",
+          "value": "Beta"
+         }
+        ]
+       }
+      },
+      {
+       "id": "imc",
+       "index": 0,
+       "type": "input_multiple_choice",
+       "title": "Single",
+       "properties": {
+        "choices": [
+         {
+          "id": "11111111-1111-4111-8111-111111111111",
+          "value": "Alpha"
+         },
+         {
+          "id": "22222222-2222-4222-8222-222222222222",
+          "value": "Beta"
+         }
+        ]
+       }
+      },
+      {
+       "id": "rank",
+       "index": 0,
+       "type": "input_ranking",
+       "title": "Ranking"
+      },
+      {
+       "id": "untitled",
+       "index": 0,
+       "type": "short_text"
+      },
+      {
+       "id": "optscale",
+       "index": 0,
+       "type": "opinion_scale",
+       "title": "Scale"
+      },
+      {
+       "id": "plain",
+       "index": 0,
+       "type": "group",
+       "title": "Plain group"
+      },
+      {
+       "id": "kids",
+       "index": 0,
+       "type": "group",
+       "title": "Kids",
+       "properties": {
+        "repeat": {
+         "min_items": 1,
+         "max_items": 2,
+         "item_label": " Kid "
+        },
+        "fields": [
+         {
+          "id": "kname",
+          "index": 0,
+          "type": "short_text",
+          "title": "Kid name"
+         },
+         {
+          "id": "kage",
+          "index": 0,
+          "type": "number",
+          "title": "Age"
+         },
+         {
+          "id": "kcol",
+          "index": 0,
+          "type": "multiple_choice",
+          "title": "Kid colours",
+          "properties": {
+           "allow_multiple_selection": true,
+           "choices": [
+            {
+             "id": "c1",
+             "value": "Red"
+            },
+            {
+             "id": "c2",
+             "value": ""
+            },
+            {
+             "id": "c3",
+             "value": "Blue"
+            }
+           ]
+          }
+         },
+         {
+          "id": "kinfo",
+          "index": 0,
+          "type": "text",
+          "title": "ignored statement"
+         }
+        ]
+       }
+      },
+      {
+       "id": "jobs",
+       "index": 0,
+       "type": "group",
+       "title": "Jobs",
+       "properties": {
+        "repeat": {
+         "min_items": 1,
+         "max_items": 6,
+         "item_label": "Job"
+        },
+        "fields": [
+         {
+          "id": "jname",
+          "index": 0,
+          "type": "short_text",
+          "title": "Employer"
+         },
+         {
+          "id": "jyes",
+          "index": 0,
+          "type": "yes_no",
+          "title": "Current"
+         }
+        ]
+       }
+      },
+      {
+       "id": "response id",
+       "index": 0,
+       "type": "short_text",
+       "title": "Response ID"
+      },
+      {
+       "id": "txt",
+       "index": 0,
+       "type": "text",
+       "title": "A statement"
+      },
+      {
+       "id": "img",
+       "index": 0,
+       "type": "IMAGE_CONTENT",
+       "title": "Picture"
+      },
+      {
+       "id": "ref",
+       "index": 0,
+       "type": "short_text",
+       "title": "Reference",
+       "internal": true
+      },
+      {
+       "id": "tags",
+       "index": 0,
+       "type": "multiple_choice",
+       "title": "Tags",
+       "properties": {
+        "allow_multiple_selection": true,
+        "choices": [
+         {
+          "id": "c1",
+          "value": "Red"
+         },
+         {
+          "id": "c2",
+          "value": ""
+         },
+         {
+          "id": "c3",
+          "value": "Blue"
+         }
+        ]
+       },
+       "internal": true
+      },
+      {
+       "id": "blank",
+       "index": 0,
+       "type": "short_text",
+       "title": "  ",
+       "internal": true
+      }
+     ]
+    }
+   },
+   {
+    "id": "s3",
+    "index": 2,
+    "type": "slide"
+   }
+  ]
+ },
+ "responses": [
+  {
+   "response_id": "resp-1",
+   "dataOwnerIdentifier": "sita@example.org",
+   "created_at": "2026-10-01T10:00:05",
+   "hidden_fields": {
+    "utm_source": "newsletter",
+    "ref": "=SUM(1)"
+   },
+   "answers": {
+    "name": {
+     "type": "text",
+     "text": "Sita, \"the\" first\nline two"
+    },
+    "phone": {
+     "type": "phone_number",
+     "phone_number": "+31 6 1234 5678"
+    },
+    "colours": {
+     "type": "choices",
+     "choices": {
+      "values": [
+       "c1",
+       "c2",
+       "c3"
+      ],
+      "other": "Pink"
+     }
+    },
+    "one": {
+     "type": "choice",
+     "choice": {
+      "value": "c2",
+      "other": "Teal"
+     }
+    },
+    "yn": {
+     "type": "boolean",
+     "boolean": true
+    },
+    "num": {
+     "type": "number",
+     "number": 42
+    },
+    "rate": {
+     "type": "number",
+     "number": 4
+    },
+    "when": {
+     "type": "date",
+     "date": "2026-09-30"
+    },
+    "mail": {
+     "type": "email",
+     "email": "@handle@example.org"
+    },
+    "site": {
+     "type": "url",
+     "url": "-cmd|' /C calc'!A0"
+    },
+    "file": {
+     "type": "file",
+     "file_metadata": {
+      "id": "x",
+      "name": "cv.pdf"
+     }
+    },
+    "calc": {
+     "type": "number",
+     "number": 1234.5
+    },
+    "calcb": {
+     "type": "boolean",
+     "boolean": false
+    },
+    "calct": {
+     "type": "text",
+     "text": "=HYPERLINK(\"http://x\")"
+    },
+    "tab": {
+     "type": "tabular",
+     "tabular_value": [
+      [
+       "a",
+       "b"
+      ],
+      [
+       "c",
+       "d"
+      ]
+     ]
+    },
+    "ic": {
+     "type": "choices",
+     "choices": {
+      "values": [
+       "22222222-2222-4222-8222-222222222222",
+       "11111111-1111-4111-8111-111111111111"
+      ]
+     }
+    },
+    "imc": {
+     "type": "choice",
+     "choice": {
+      "value": "22222222-2222-4222-8222-222222222222"
+     }
+    },
+    "rank": {
+     "type": "choices",
+     "choices": {
+      "values": [
+       {
+        "value": "B"
+       },
+       {
+        "value": "A"
+       }
+      ]
+     }
+    },
+    "untitled": {
+     "type": "text",
+     "text": "\ttabbed"
+    },
+    "optscale": {
+     "type": "number",
+     "number": 3
+    },
+    "kids": {
+     "type": "group",
+     "items": [
+      {
+       "kname": {
+        "type": "text",
+        "text": "Anu"
+       },
+       "kage": {
+        "type": "number",
+        "number": 7
+       },
+       "kcol": {
+        "type": "choices",
+        "choices": {
+         "values": [
+          "c1",
+          "c3"
+         ]
+        }
+       }
+      },
+      {
+       "kname": {
+        "type": "text",
+        "text": "  =cmd"
+       },
+       "kage": {
+        "type": "number",
+        "number": -3
+       }
+      },
+      {
+       "kname": {
+        "type": "text",
+        "text": "third dropped"
+       }
+      }
+     ]
+    },
+    "jobs": {
+     "type": "group",
+     "items": [
+      {
+       "jname": {
+        "type": "text",
+        "text": "Acme"
+       },
+       "jyes": {
+        "type": "boolean",
+        "boolean": true
+       }
+      },
+      {
+       "jname": {
+        "type": "text",
+        "text": "Beta, Inc"
+       },
+       "jyes": {
+        "type": "boolean",
+        "boolean": false
+       }
+      }
+     ]
+    },
+    "response id": {
+     "type": "text",
+     "text": "-12.5"
+    }
+   },
+   "internal_answers": {
+    "ref": {
+     "type": "text",
+     "text": "REF-9"
+    },
+    "tags": {
+     "type": "choices",
+     "choices": {
+      "values": [
+       "c1",
+       "c3"
+      ]
+     }
+    }
+   }
+  },
+  {
+   "response_id": "resp-2",
+   "created_at": "2026-10-02T08:30:00+02:00",
+   "hidden_fields": {
+    "utm_source": 5,
+    "ref": {
+     "a": 1
+    }
+   },
+   "answers": {
+    "name": {
+     "type": "text",
+     "text": "Ram"
+    },
+    "phone": {
+     "type": "phone_number",
+     "phone_number": "-5"
+    },
+    "yn": {
+     "type": "boolean",
+     "boolean": false
+    },
+    "num": {
+     "type": "number",
+     "number": 0
+    },
+    "kids": {
+     "type": "group",
+     "items": []
+    },
+    "response id": {
+     "type": "text",
+     "text": "+1 (555) 123-4567"
+    }
+   }
+  },
+  {
+   "created_at": "2026-10-03T00:00:00Z",
+   "answers": {
+    "name": {
+     "type": "text",
+     "text": "Ünïcödé ✓"
+    },
+    "jobs": {
+     "type": "group",
+     "items": [
+      {
+       "jname": {
+        "type": "text",
+        "text": "Solo"
+       }
+      }
+     ]
+    }
+   },
+   "internal_answers": {
+    "ref": {
+     "type": "text",
+     "text": "@internal"
+    }
+   }
+  }
+ ]
+}

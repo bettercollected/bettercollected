@@ -678,3 +678,40 @@ class WebhookAuditRow(Base, BaseRow):
     form_id = S.text("form_id")
     webhook_id = S.text("webhook_id")
     __table_args__ = (Index(None, "workspace_id", "form_id", "created_at"),)
+
+
+class ResponseExportRow(Base, BaseRow):
+    __tablename__ = "response_exports"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    actor_id = S.text("actor_id")
+    status = S.text("status")
+    __table_args__ = (
+        Index(None, "workspace_id", "form_id", "created_at"),
+        Index(None, "actor_id", "form_id", "created_at"),
+        Index(None, "status", "created_at"),
+        Index(None, "form_id"),
+        # one export in flight or waiting to be fetched per requester and form:
+        # the check and the insert of a request cannot race past each other
+        Index(
+            "uq_response_exports_one_open",
+            "workspace_id",
+            "form_id",
+            "actor_id",
+            unique=True,
+            postgresql_where=text("status IN ('queued', 'running', 'ready')"),
+        ),
+    )
+
+
+class ResponseExportChunkRow(Base, BaseRow):
+    __tablename__ = "response_export_chunks"
+    export_id = S.text("export_id")
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    chunk_index = S.int("index", name="chunk_index")
+    __table_args__ = (
+        UniqueConstraint("export_id", "chunk_index"),
+        Index(None, "workspace_id", "form_id"),
+        Index(None, "form_id"),
+    )

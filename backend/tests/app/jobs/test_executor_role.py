@@ -698,6 +698,34 @@ async def test_the_probe_does_leak_with_the_search_path_and_owner_the_review_fou
     assert LEAK in message
 
 
+async def test_the_role_cannot_see_or_queue_response_export_jobs(db):
+    """The file of a large responses export is built in the backend's own worker
+    on the ``exports`` queue. A job's only argument is the export id, but the
+    executor's role runs creator code and must neither see these jobs nor queue
+    one (it could make the backend build a file for an export id it chose)."""
+    await _defer(db, "build_response_export", "exports", export_id="e1")
+    await _defer(db, "run_action", "actions", action_id="a")
+    conn = await db.connect("jobs_exec")
+    try:
+        for sql in (
+            "SELECT count(*) FROM jobs.procrastinate_jobs WHERE queue_name = 'exports'",
+            "SELECT count(*) FROM jobs.procrastinate_jobs WHERE task_name = 'build_response_export'",
+        ):
+            assert await (await conn.execute(sql)).fetchone() == (0,), sql
+        assert (
+            await conn.execute(
+                "UPDATE jobs.procrastinate_jobs SET status = 'failed' WHERE queue_name = 'exports'"
+            )
+        ).rowcount == 0
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            await conn.execute(
+                "INSERT INTO jobs.procrastinate_jobs (queue_name, task_name, args)"
+                " VALUES ('exports', 'build_response_export', '{\"export_id\": \"x\"}')"
+            )
+    finally:
+        await conn.close()
+
+
 async def test_the_role_cannot_see_read_change_cancel_or_queue_webhook_jobs(db):
     """Webhook deliveries run in the backend's own worker on the ``webhooks``
     queue (no creator code). The executor's role, which runs creator code, must

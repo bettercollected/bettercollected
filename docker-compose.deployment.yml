@@ -435,10 +435,13 @@ services:
       retries: 6
     restart: unless-stopped
 
-  # Consumes the procrastinate `default` queue (delete_user, delete_response) and the
-  # `webhooks` queue (webhook deliveries) and `emails` queue (email actions; never
-  # `actions`, the executor's) when JOBS_BACKEND routes those to Postgres; same image
-  # and env as the backend. A JOBS_QUEUES set in the environment must name all three.
+  # Consumes the procrastinate `default` queue (delete_user, delete_response), the
+  # `webhooks` queue (webhook deliveries), the `emails` queue (email actions) and the
+  # `exports` queue (the files of large response exports; never `actions`, the
+  # executor's) when JOBS_BACKEND routes those to Postgres; same image and env as the
+  # backend. A JOBS_QUEUES set in the environment must name all four. A long export shares
+  # this worker's JOBS_CONCURRENCY with the deletions; to keep them apart, run a second
+  # worker with JOBS_QUEUES=exports and give this one JOBS_QUEUES=default,webhooks,emails.
   jobs-worker:
     image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}
     command: ["/api/backend/.venv/bin/python", "-m", "backend.jobs.worker"]

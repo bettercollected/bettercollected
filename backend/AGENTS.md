@@ -1117,3 +1117,24 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
   so no address is stored. The public `flow-events` endpoint uses it (#767), per /64 for IPv6, and deletes events after
   `API_FLOW_EVENTS_RETENTION_DAYS` (395): a Mongo TTL index on `created_at`, and for Postgres a sweep on the write path
   (`FlowEventService._sweep_expired`, at most every 6 h per process, using the existing `created_at` index).
+
+## Exporting responses (stream or job, audited)
+
+`POST /workspaces/{id}/forms/{form_id}/exports` (`controllers/response_exports_router.py`, `response.export`; no
+feature switch). Docs: `docs/response-export.md`. Rules to keep:
+
+- Code in `services/response_export/`: `table.py` (columns, cells, the formula guard; the browser's old builder moved
+  here, pinned by `tests/app/response_export/test_table.py` against its recorded output), `writer.py` (CSV, or a ZIP of
+  CSVs when a repeating group exports as `rows`; one pass per table, nothing spooled to disk), `links.py` (the signed
+  link), `limits.py` (constants), `service.py`. Tables `response_exports` (the audit entry and the job state, revision
+  0027) and `response_export_chunks` (a job's encrypted file), both in `NOT_IMPORTED_TABLES`.
+- Up to `STREAM_MAX_ROWS` matching responses stream, nothing stored; above it a job (`build_response_export(export_id)`,
+  `exports` queue, served by the jobs worker; a `JOBS_QUEUES` that leaves it out strands large exports) builds **encrypted chunks** bound to workspace, form, export, index and requester. Filters of a job
+  wait sealed in `params_sealed` (never the search text in clear, and the audit `filters` keep it only as `true`).
+- Anything that deletes responses of a form must call `_forget_export_files` (`FormResponseService`,
+  `FormImportService`): stored files go at once, a running job throws its file away. A new deletion path without it
+  leaves decrypted answers in a file for up to 24 hours.
+- A run owns an export only while its claim (`attempts`) is current: store chunks with `add_chunk_if_owned` (row lock plus heartbeat) and end with `_end_owned`, never with a bare write. One live export per requester and form is a partial unique index; `admit_job` also caps jobs per workspace. `GET .../all-submissions` goes through `ResponseExportService.bulk_read` (audit and rate limit).
+- The audit entry never holds an answer, the search text or a file name made from content. Do not add one.
+- Every route re-checks `response.export`, the job and the download too; an export is its requester's alone (someone
+  else's is a 404). The export takes the responses list's filters (`ResponseListFilters`, SQL in `_list_filters`): a new list filter reaches the export by adding it to the request DTO (`models/dtos/response_export_dto.py`) and the audit summary.

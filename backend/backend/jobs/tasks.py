@@ -31,6 +31,7 @@ from backend.jobs.app import (
     ACTIONS_QUEUE,
     DEFAULT_QUEUE,
     EMAILS_QUEUE,
+    EXPORTS_QUEUE,
     WEBHOOKS_QUEUE,
     app,
 )
@@ -423,4 +424,44 @@ async def purge_email_logs(timestamp: int) -> str:
     that long even where this worker does not serve the webhooks queue (which
     has the same purge for every action type). Counts only."""
     deleted = await _container().email_action_service().purge_expired()
+    return f"{deleted} deleted"
+
+
+@app.task(
+    name="build_response_export",
+    queue=EXPORTS_QUEUE,
+)
+async def build_response_export(export_id: str) -> str:
+    """Build the file of a large responses export (docs/response-export.md).
+    The only argument is the export id: the filters sit sealed on the export
+    row, the answers are decrypted inside the job and written as encrypted
+    chunks, never queued or logged. A failed build ends the export as failed
+    (the requester asks again); a worker that died is found by
+    ``response_export_redefer``."""
+    return await _container().response_export_service().run_job(export_id)
+
+
+@app.periodic(cron="*/5 * * * *", periodic_id="response_export_redefer")
+@app.task(
+    name="response_export_redefer",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="response_export_redefer",
+)
+async def response_export_redefer(timestamp: int) -> str:
+    """Queue again exports whose job was never queued, rescue those whose
+    worker died mid-build. Counts only."""
+    counts = await _container().response_export_service().redefer_pending()
+    return f"{counts['queued']} queued, {counts['rescued']} rescued, {counts['failed']} failed"
+
+
+@app.periodic(cron="9 * * * *", periodic_id="response_export_purge")
+@app.task(
+    name="response_export_purge",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="response_export_purge",
+)
+async def response_export_purge(timestamp: int) -> str:
+    """Hourly: delete the stored files of exports that outlived their 24 hours
+    (a file is also deleted when its requester discards it or responses of the form are deleted). Counts only."""
+    deleted = await _container().response_export_service().purge_expired()
     return f"{deleted} deleted"

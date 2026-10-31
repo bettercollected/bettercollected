@@ -6,6 +6,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from common.configs.crypto import Crypto
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
+from common.services.crypto_service import crypto_service
 from dependency_injector import containers, providers
 
 from common.db import DatabaseSettings
@@ -55,6 +56,9 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceInvitationRepo,
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
+)
+from backend.app.repositories.postgres.response_exports import (
+    PostgresResponseExportRepository,
 )
 from backend.app.repositories.postgres.email_actions import (
     PostgresFormEmailActionRepository,
@@ -147,6 +151,7 @@ from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.registration.service import RegistrationService
 from backend.app.services.webhooks.service import WebhookService
+from backend.app.services.response_export.service import ResponseExportService
 from backend.app.services.email_actions.service import EmailActionService
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.app.services.sso.connection_service import SsoConnectionService
@@ -257,6 +262,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
     webhook_audit_repo: PostgresWebhookAuditRepository = providers.Singleton(
         PostgresWebhookAuditRepository, pg_sessionmaker
+    )
+    response_export_repo: PostgresResponseExportRepository = providers.Singleton(
+        PostgresResponseExportRepository, pg_sessionmaker
     )
     sso_connection_repo: PostgresSsoConnectionRepository = providers.Singleton(
         PostgresSsoConnectionRepository, pg_sessionmaker
@@ -429,6 +437,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
         registration_delivery_repo=registration_delivery_repo,
         webhook_log_repo=action_log_repo,
+        response_export_repo=response_export_repo,
     )
 
     respondent_feedback_service: RespondentFeedbackService = providers.Singleton(
@@ -460,6 +469,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
         form_response_repo=form_response_repo,
         workspace_form_repo=workspace_form_repo,
+        response_export_repo=response_export_repo,
     )
 
     form_schedular = providers.Singleton(
@@ -518,6 +528,7 @@ class AppContainer(containers.DeclarativeContainer):
         # the registration service needs this service's neighbours: looked up per call
         registration_service=LazyRepository(lambda: container.registration_service()),
         webhook_service=LazyRepository(lambda: container.webhook_service()),
+        response_export_service=LazyRepository(lambda: container.response_export_service()),
         email_action_service=LazyRepository(lambda: container.email_action_service()),
     )
 
@@ -546,6 +557,19 @@ class AppContainer(containers.DeclarativeContainer):
         form_repo=form_repo,
         form_response_service=form_response_service,
         crypto=crypto,
+        rate_limiter=rate_limiter,
+    )
+
+    # the export of a form's responses (stream or job); encrypts a job's file
+    # with the responses' own keyset
+    response_export_service: ResponseExportService = providers.Singleton(
+        ResponseExportService,
+        authorization_service=authorization_service,
+        form_response_service=form_response_service,
+        form_repo=form_repo,
+        response_repo=form_response_repo,
+        export_repo=response_export_repo,
+        crypto=providers.Object(crypto_service),
         rate_limiter=rate_limiter,
     )
 
@@ -657,6 +681,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_domain_service=workspace_domain_service,
         registration_service=registration_service,
         webhook_service=webhook_service,
+        response_export_service=response_export_service,
         email_action_service=email_action_service,
     )
 

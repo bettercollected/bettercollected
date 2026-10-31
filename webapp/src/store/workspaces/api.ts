@@ -18,6 +18,68 @@ import { OpenFormulierenExport, openFormulierenExportOf } from '@app/utils/open-
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
+export type ResponseExportStatus = 'queued' | 'running' | 'ready' | 'discarded' | 'expired' | 'erased' | 'failed' | 'cancelled' | 'streaming' | 'completed';
+
+export interface ResponseExportDto {
+    id: string;
+    formId: string;
+    kind: 'stream' | 'job';
+    status: ResponseExportStatus;
+    format: 'csv' | 'zip';
+    createdAt?: string;
+    rows?: number | null;
+    fileName?: string | null;
+    fileSize?: number | null;
+    expiresAt?: string | null;
+    downloadedAt?: string | null;
+    downloadCount?: number;
+    errorCode?: string | null;
+    downloadUrl?: string;
+    linkExpiresInSeconds?: number;
+}
+
+export interface StartResponseExportRequest {
+    workspaceId: string;
+    formId: string;
+    /** column keys; none means every column */
+    columns?: string[];
+    /** the responses list's filters, by their names */
+    submittedFrom?: string;
+    submittedTo?: string;
+    status?: string[];
+    respondent?: 'anonymous' | 'known';
+    formVersion?: number[];
+    search?: string;
+}
+
+/** What starting an export answers: the file itself, or the job to follow. */
+export type StartedResponseExport = { kind: 'file'; blob: Blob; mediaType: string } | { kind: 'job'; export: ResponseExportDto };
+
+/** A refused export or download: the server's code and, for 429, when to try again. */
+export interface ResponseExportRefusal {
+    code?: string;
+    message?: string;
+    retryAfter?: number;
+}
+
+async function refusalOf(response: Response): Promise<ResponseExportRefusal> {
+    const refusal = await response.json().catch(() => ({}));
+    const wait = Number(response.headers.get('Retry-After'));
+    return { ...(refusal && typeof refusal === 'object' ? refusal : {}), ...(Number.isFinite(wait) && wait > 0 ? { retryAfter: wait } : {}) };
+}
+
+/** Starting an export: the file (200), the job to follow (202), or the refusal's JSON. */
+async function responseExportHandler(response: Response): Promise<any> {
+    if (!response.ok) return refusalOf(response);
+    if (response.status === 202) return { kind: 'job', export: await response.json() };
+    return { kind: 'file', blob: await response.blob(), mediaType: response.headers.get('Content-Type') ?? '' };
+}
+
+/** Fetching a ready export: the file, or the refusal's JSON. */
+async function responseExportFileHandler(response: Response): Promise<any> {
+    return response.ok ? response.blob() : refusalOf(response);
+}
+
 const WORKSPACE_TAGS = 'WORKSPACE_TAG';
 const SUBMISSION_TAG = 'SUBMISSION_TAG';
 
@@ -207,12 +269,33 @@ export const workspacesApi = createApi({
                 method: 'GET'
             })
         }),
-        // The CSV download: the same responses behind response.export.
-        exportFormSubmissions: builder.query<Array<StandardFormResponseDto>, IGetFormSubmissionsQuery>({
-            query: (query) => ({
-                url: `/workspaces/${query.workspaceId}/forms/${query.formId}/all-submissions/export`,
-                method: 'GET'
+        // The export of a form's responses (response.export, docs/response-export.md):
+        // up to a few thousand responses come back as the file itself; more start a
+        // background job and answer 202 with the export to follow. A refusal keeps
+        // its JSON body (code, message) and, for 429, its Retry-After.
+        startResponseExport: builder.mutation<StartedResponseExport, StartResponseExportRequest>({
+            query: ({ workspaceId, formId, ...body }) => ({
+                url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/exports`,
+                method: 'POST',
+                body,
+                responseHandler: responseExportHandler
             })
+        }),
+        // The caller's own exports of the form that are running, ready or failed.
+        getResponseExports: builder.query<ResponseExportDto[], { workspaceId: string; formId: string }>({
+            query: ({ workspaceId, formId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/exports`, method: 'GET' })
+        }),
+        // One export; once its file is ready, a fresh signed link (valid five minutes).
+        getResponseExport: builder.query<ResponseExportDto, { workspaceId: string; formId: string; exportId: string }>({
+            query: ({ workspaceId, formId, exportId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/exports/${pathSegment(exportId)}`, method: 'GET' })
+        }),
+        // Delete a ready file now (its requester only), so a new export can start before it expires.
+        discardResponseExport: builder.mutation<null, { workspaceId: string; formId: string; exportId: string }>({
+            query: ({ workspaceId, formId, exportId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/exports/${pathSegment(exportId)}`, method: 'DELETE' })
+        }),
+        // The file of a ready export, through the link its status gave; it can be fetched again until it is deleted.
+        downloadResponseExport: builder.mutation<Blob, { downloadUrl: string }>({
+            query: ({ downloadUrl }) => ({ url: downloadUrl, method: 'GET', responseHandler: responseExportFileHandler })
         }),
         getWorkspaceSubmissions: builder.query<Page<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
             query: (query) => ({
@@ -804,7 +887,11 @@ export const {
     useLazyGetWorkspaceSubmissionByUUIDQuery,
     useRequestWorkspaceSubmissionDeletionByUUIDMutation,
     useGetFormSubmissionPathsQuery,
-    useLazyExportFormSubmissionsQuery,
+    useStartResponseExportMutation,
+    useGetResponseExportsQuery,
+    useGetResponseExportQuery,
+    useDownloadResponseExportMutation,
+    useDiscardResponseExportMutation,
     useVerifyWorkspaceDomainQuery,
     useRecheckWorkspaceDomainMutation,
     useUpdateInternalAnswersMutation,

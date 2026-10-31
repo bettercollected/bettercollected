@@ -1,7 +1,7 @@
 """The backend's job worker: ``python -m backend.jobs.worker``.
 
 Same image and configuration as the API; boots the container (the Postgres
-engine; Mongo is not used) and consumes the ``default``, ``webhooks`` and ``emails`` queues — never
+engine; Mongo is not used) and consumes the ``default``, ``webhooks``, ``emails`` and ``exports`` queues — never
 ``actions``, which belongs to the actions-executor. Concurrency is small on
 purpose (jobs are deletions).
 """
@@ -27,7 +27,7 @@ from backend.app.services.email_actions.mode import email_actions_enabled
 from backend.app.services.webhooks.mode import webhooks_enabled
 from backend.app.utils import AiohttpClient
 from backend.db.startup import check_postgres_at_startup, dispose_postgres
-from backend.jobs.app import DEFAULT_QUEUE, EMAILS_QUEUE, WEBHOOKS_QUEUE, app
+from backend.jobs.app import DEFAULT_QUEUE, EMAILS_QUEUE, EXPORTS_QUEUE, WEBHOOKS_QUEUE, app
 from common.services.crypto_service import crypto_service
 
 
@@ -63,11 +63,27 @@ def warn_if_emails_unserved(queues: list) -> bool:
     return True
 
 
+def warn_if_exports_unserved(queues: list) -> bool:
+    """``JOBS_QUEUES`` leaves out the ``exports`` queue: the file of a large
+    responses export would be queued and never built. Warns (True) at worker start."""
+    if EXPORTS_QUEUE in queues:
+        return False
+    logger.warning(
+        "this worker does not serve the '{}' queue (JOBS_QUEUES={}): large "
+        "response exports stay queued until a worker serves it. Add '{}' to "
+        "JOBS_QUEUES, here or on a worker of its own.",
+        EXPORTS_QUEUE,
+        ",".join(queues),
+        EXPORTS_QUEUE,
+    )
+    return True
+
+
 async def main() -> None:
     queues = [
         q
         for q in os.environ.get(
-            "JOBS_QUEUES", f"{DEFAULT_QUEUE},{WEBHOOKS_QUEUE},{EMAILS_QUEUE}"
+            "JOBS_QUEUES", f"{DEFAULT_QUEUE},{WEBHOOKS_QUEUE},{EMAILS_QUEUE},{EXPORTS_QUEUE}"
         ).split(",")
         if q
     ]
@@ -79,6 +95,7 @@ async def main() -> None:
     logger.info("jobs worker: queues={} concurrency={}", queues, concurrency)
     warn_if_webhooks_unserved(queues)
     warn_if_emails_unserved(queues)
+    warn_if_exports_unserved(queues)
     try:
         async with app.open_async():
             await app.run_worker_async(

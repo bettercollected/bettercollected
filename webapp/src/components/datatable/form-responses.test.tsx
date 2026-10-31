@@ -113,7 +113,12 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
             server.lastData = data;
             return { data, currentData: data, isLoading: false, isFetching: false, isError: false, refetch };
         },
-        useLazyExportFormSubmissionsQuery: () => [vi.fn(), { isLoading: false }],
+        // the export button follows its own tests (response-export-control.test.tsx)
+        useGetResponseExportsQuery: () => ({ data: [], refetch: vi.fn() }),
+        useGetResponseExportQuery: () => ({ data: undefined, refetch: vi.fn() }),
+        useStartResponseExportMutation: () => [vi.fn()],
+        useDownloadResponseExportMutation: () => [vi.fn()],
+        useDiscardResponseExportMutation: () => [vi.fn()],
         useLazyGetWorkspaceFormVersionQuery: () => [vi.fn()],
         useGetWorkspacePermissionsQuery: () => ({ data: { permissions: [] }, isLoading: false, isError: false })
     };

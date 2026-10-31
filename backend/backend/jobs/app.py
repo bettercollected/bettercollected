@@ -20,6 +20,9 @@ ACTIONS_QUEUE = "actions"
 # webhook deliveries: no creator code, run by the backend's own worker (never
 # the executor, whose database role cannot see this queue)
 WEBHOOKS_QUEUE = "webhooks"
+# the file of a large responses export: its own queue, served by the backend's
+# own worker, so a long build never waits behind (or holds up) a deletion
+EXPORTS_QUEUE = "exports"
 # email actions (mail to the form's team, a copy to the respondent): same rules
 EMAILS_QUEUE = "emails"
 JOB_NAMES = (
@@ -31,6 +34,7 @@ JOB_NAMES = (
     "revoke_google_grant",
     "register_submission",
     "deliver_webhook",
+    "build_response_export",
     "deliver_email",
 )
 SEARCH_PATH_OPTIONS = "-c search_path=jobs"

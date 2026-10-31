@@ -140,7 +140,7 @@ destination, by **host name** only, and that deleting a response here does not d
 ## Where it runs, and what it cannot reach
 
 - Job `deliver_webhook`, plus the sweep `webhooks_redefer` and the purge `purge_action_logs`, on the queue **`webhooks`** of the Postgres job queue, in the
-  backend's jobs worker (`python -m backend.jobs.worker`, which now consumes `default,webhooks,emails`; override with `JOBS_QUEUES`: if you set it, include `webhooks`, or deliveries stay queued; the worker logs a warning at start when webhooks are on and it does not serve the queue). The job's only argument is the
+  backend's jobs worker (`python -m backend.jobs.worker`, which now consumes `default,webhooks,emails,exports`; override with `JOBS_QUEUES`: if you set it, include `webhooks` (and `emails`, `exports`, the queues of email actions and large response exports), or deliveries stay queued; the worker logs a warning at start when webhooks are on and it does not serve the queue). The job's only argument is the
   delivery id.
 - The actions executor, which runs creator code, connects as `bc_jobs_exec`. Its row-level security policy limits it to `run_action` rows of the `actions`
   queue, so it cannot see, change, cancel or queue a webhook job, nor take a lock name that blocks one. `tests/app/jobs/test_executor_role.py` proves it

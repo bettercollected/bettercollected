@@ -878,6 +878,42 @@ class PostgresFormResponseRepository(RecordRepository):
     async def list_by_form_id(self, scope: ResponseScope) -> List[FormResponseDocument]:
         return await self.many(_in_scope(FormResponseRow, scope))
 
+    # -- export (services/response_export) ------------------------------------
+    @staticmethod
+    def _export_where(scope: ResponseScope, filters) -> list:
+        """The responses an export holds: those of ``scope`` that carry
+        answers (deletion-only stubs are not responses), narrowed by the list's
+        filters (``_list_filters``: plaintext columns and deletion-request
+        status only; every value is bound)."""
+        row = FormResponseRow
+        where = [
+            _in_scope(row, scope),
+            # a stub kept for a deletion request has no answers (or a null one)
+            func.coalesce(func.jsonb_typeof(row.doc["answers"]), "null") != "null",
+        ]
+        if filters is not None:
+            where.extend(_list_filters(filters))
+        return where
+
+    async def count_for_export(self, scope: ResponseScope, filters=None) -> int:
+        """How many responses an export would hold, without reading an answer."""
+        return await self.count(*self._export_where(scope, filters))
+
+    async def export_batch(
+        self,
+        scope: ResponseScope,
+        filters=None,
+        after_id: Optional[str] = None,
+        limit: int = 500,
+    ) -> List[FormResponseDocument]:
+        """The next ``limit`` responses an export holds after ``after_id``, in
+        id order (the order they were stored in): a keyset, so a response
+        deleted meanwhile is simply not met and nothing is read twice."""
+        where = self._export_where(scope, filters)
+        if after_id is not None:
+            where.append(FormResponseRow.id > after_id)
+        return await self.many(*where, order_by=(FormResponseRow.id,), limit=limit)
+
     async def list_by_response_id(self, response_id: str) -> List[FormResponseDocument]:
         return await self.many(
             FormResponseRow.response_id == response_id, order_by=(FormResponseRow.id,)

@@ -36,14 +36,15 @@ def loggable_request(method: str, path: str) -> str:
 
 
 # Routes whose body is decrypted respondent data: the staff list of a form's
-# submissions, the workspace-wide list, one submission, the bulk download and
-# export, the flow view's paths, the receipt by number, the responders list
-# (who answered) and the AI insights summary of the responses.
+# submissions, the workspace-wide list, one submission, the bulk download, the
+# exports of a form (status and file), the flow view's paths, the receipt by
+# number, the responders list (who answered) and the AI insights summary of the
+# responses.
 _RESPONSE_DATA_PATH = re.compile(
     r"/workspaces/[^/]+/(?:"
     r"(?:forms/[^/]+/)?"
-    r"(?:submissions(?:/.*)?|all-submissions(?:/export)?|submission-paths)"
-    r"|forms/[^/]+/ai/insights(?:/.*)?"
+    r"(?:submissions(?:/.*)?|all-submissions|submission-paths)"
+    r"|forms/[^/]+/(?:ai/insights|exports)(?:/.*)?"
     r"|responders(?:/.*)?"
     r")/?$"
 )
