@@ -1,6 +1,7 @@
 import React from 'react';
 
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import i18n from 'i18next';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +18,8 @@ type Item = { responseId: string; dataOwnerIdentifier: string | null; answers: a
 const server: {
     items: Item[];
     error: boolean;
+    errorBody: any;
+    cappedAt: number | null;
     pending: boolean;
     pendingPages: Set<number>;
     stale: any;
@@ -25,10 +28,54 @@ const server: {
     calls: any[];
     refetchCalls: any[];
     push: ReturnType<typeof vi.fn>;
-} = { items: [], error: false, pending: false, pendingPages: new Set(), stale: null, lastData: undefined, answered: new Map(), calls: [], refetchCalls: [], push: vi.fn() };
+} = { items: [], error: false, errorBody: undefined, cappedAt: null, pending: false, pendingPages: new Set(), stale: null, lastData: undefined, answered: new Map(), calls: [], refetchCalls: [], push: vi.fn() };
 
-// a response opens on its own page: the table navigates to it
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: (url: string) => server.push(url) }), usePathname: () => '/', useSearchParams: () => new URLSearchParams() }));
+// The URL: the list keeps page, size, sort and filters in it, so the router
+// and the search params are one small store, as in the app.
+const LIST_PATH = '/acme/dashboard/forms/form-1/responses';
+const nav = { search: '', listeners: new Set<() => void>(), listPushes: [] as string[], replaces: [] as string[] };
+const goTo = (url: string, record: string[]) => {
+    record.push(url);
+    nav.search = url.includes('?') ? url.split('?')[1] : '';
+    nav.listeners.forEach((listener) => listener());
+};
+const router = {
+    // a response opens on its own page: the table navigates to it; the list's own URL changes are the store's
+    push: (url: string) => (url.split('?')[0] === LIST_PATH ? goTo(url, nav.listPushes) : server.push(url)),
+    replace: (url: string) => (url.split('?')[0] === LIST_PATH ? goTo(url, nav.replaces) : server.push(url))
+};
+vi.mock('next/navigation', () => ({
+    useRouter: () => router,
+    usePathname: () => LIST_PATH,
+    useSearchParams: () => {
+        const [, force] = React.useState(0);
+        React.useEffect(() => {
+            const listener = () => force((tick) => tick + 1);
+            nav.listeners.add(listener);
+            return () => {
+                nav.listeners.delete(listener);
+            };
+        }, []);
+        return React.useMemo(() => new URLSearchParams(nav.search), [nav.search]);
+    }
+}));
+// a pager link follows its href through the router, as Next's does
+vi.mock('next/link', () => ({
+    default: ({ href, children, onClick, scroll, prefetch, ...rest }: any) => (
+        <a
+            href={href}
+            {...rest}
+            onClick={(event) => {
+                onClick?.(event);
+                if (event.defaultPrevented || event.ctrlKey || event.metaKey) return;
+                event.preventDefault();
+                router.push(href);
+            }}
+        >
+            {children}
+        </a>
+    )
+}));
 
 vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     const actual: any = await importOriginal();
@@ -46,12 +93,22 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
             const key = JSON.stringify(arg);
             const cached = server.answered.get(key);
             if (server.stale || server.pending || server.pendingPages.has(arg.page)) return { data: server.stale ?? server.lastData, currentData: server.stale ? undefined : cached, isLoading: false, isFetching: true, isError: false, refetch };
-            if (server.error) return { data: server.lastData, currentData: cached, isLoading: false, isFetching: false, isError: true, refetch };
-            const term = arg.dataOwnerIdentifier;
-            const items = term ? server.items.filter((item) => (item.dataOwnerIdentifier ?? '').includes(term)) : server.items;
-            // pages of `arg.size` rows, like the backend
+            if (server.error) return { data: server.lastData, currentData: cached, isLoading: false, isFetching: false, isError: true, error: server.errorBody, refetch };
+            let items = server.items;
+            if (arg.dataOwnerIdentifier) items = items.filter((item) => (item.dataOwnerIdentifier ?? '').includes(arg.dataOwnerIdentifier));
+            if (arg.respondent) items = items.filter((item) => (arg.respondent === 'anonymous' ? !item.dataOwnerIdentifier : !!item.dataOwnerIdentifier));
+            // pages of `arg.size` rows, like the backend; the keyset list also says whether the total is exact and what follows
             const pages = Math.max(1, Math.ceil(items.length / arg.size));
-            const data = { items: items.slice((arg.page - 1) * arg.size, arg.page * arg.size), total: items.length, page: arg.page, pages, size: arg.size };
+            const total = server.cappedAt !== null ? Math.min(items.length, server.cappedAt) : items.length;
+            const rows = items.slice((arg.page - 1) * arg.size, arg.page * arg.size);
+            const data = {
+                items: rows,
+                total,
+                page: arg.page,
+                pages,
+                size: arg.size,
+                ...(arg.paging === 'keyset' ? { totalExact: server.cappedAt === null || items.length <= server.cappedAt, hasNext: arg.page * arg.size < items.length, cursor: rows.length ? `cursor-${arg.page}` : undefined } : {})
+            };
             server.answered.set(key, data);
             server.lastData = data;
             return { data, currentData: data, isLoading: false, isFetching: false, isError: false, refetch };
@@ -68,6 +125,9 @@ import { setForm } from '@app/store/forms/slice';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
 import { forgetResponseList, rememberedNeighbours } from '@app/utils/response-list-memory';
+import { axeViolations } from '@app/test/axe';
+import commonEn from '../../../public/locales/en/common.json';
+import commonNl from '../../../public/locales/nl/common.json';
 
 import FormResponsesTable from './form-responses';
 
@@ -81,7 +141,15 @@ const tree = (props: any = {}) => (
         </I18nProvider>
     </ReduxProvider>
 );
-const renderTable = (props: any = {}) => render(tree(props));
+// a list opened by a link (not by Back) has no parameters in its address
+const renderTable = (props: any = {}) => {
+    nav.search = '';
+    return render(tree(props));
+};
+// the pager's links: both pagers (above and below the table) say the same
+const pagerLink = (name: string | RegExp) => screen.getAllByRole('link', { name })[0];
+const next = () => fireEvent.click(pagerLink('Next page'));
+const urlParams = () => new URLSearchParams(nav.search);
 
 const search = (text: string) => {
     fireEvent.change(screen.getByPlaceholderText('Search by responder email'), { target: { value: text } });
@@ -92,8 +160,8 @@ const search = (text: string) => {
 };
 
 const lastQuery = () => server.calls.filter((call) => !call.options?.skip).at(-1)?.arg;
-// the cache key of another page of the list last asked for
-const pageKey = (page: number) => JSON.stringify({ ...lastQuery(), page });
+// RTK Query drops the answers nobody uses any more: forget the ones for a page
+const forgetAnswers = (page: number) => [...server.answered].forEach(([key, answer]) => answer.page === page && server.answered.delete(key));
 
 describe('responses table: search and honest states', () => {
     beforeEach(() => {
@@ -101,6 +169,10 @@ describe('responses table: search and honest states', () => {
         window.matchMedia = ((query: string) => ({ matches: false, media: query, addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false, onchange: null })) as any;
         vi.useFakeTimers();
         server.error = false;
+        server.errorBody = undefined;
+        server.cappedAt = null;
+        nav.listPushes = [];
+        nav.replaces = [];
         server.pending = false;
         server.pendingPages = new Set();
         server.stale = null;
@@ -141,7 +213,7 @@ describe('responses table: search and honest states', () => {
     it('asks for the first page again whenever the search changes', () => {
         server.items = Array.from({ length: 40 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
         renderTable();
-        fireEvent.click(screen.getByLabelText(/next/i));
+        next();
         expect(lastQuery().page).toBe(2);
         search('person1');
         expect(lastQuery()).toMatchObject({ dataOwnerIdentifier: 'person1', page: 1 });
@@ -197,7 +269,7 @@ describe('responses table: search and honest states', () => {
         server.items = Array.from({ length: 40 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
         renderTable();
         server.error = true;
-        fireEvent.click(screen.getByLabelText(/next/i));
+        next();
         expect(screen.getByText('Could not load responses')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
         expect(server.refetchCalls.at(-1)).toMatchObject({ page: 2 });
@@ -229,7 +301,7 @@ describe('responses table: search and honest states', () => {
     it('a no-match search after paging starts from page 1 and clearing it lists page 1 again', () => {
         server.items = Array.from({ length: 40 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
         renderTable();
-        fireEvent.click(screen.getByLabelText(/next/i));
+        next();
         expect(lastQuery().page).toBe(2);
         search('nobody');
         expect(lastQuery()).toMatchObject({ dataOwnerIdentifier: 'nobody', page: 1 });
@@ -251,7 +323,7 @@ describe('responses table: search and honest states', () => {
         it('opens again on the page it was left on', () => {
             server.items = Array.from({ length: 40 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
             const { unmount } = renderTable();
-            fireEvent.click(screen.getByLabelText(/next/i));
+            next();
             expect(lastQuery().page).toBe(2);
             // the response's page replaces the list, then "Responses" (or the browser's Back) brings it back
             unmount();
@@ -261,14 +333,14 @@ describe('responses table: search and honest states', () => {
         });
 
         it('goes to the last page with responses when the page it was left on is now empty (its only response was deleted)', () => {
-            // 16 responses, 15 a page: page 2 holds one
-            server.items = Array.from({ length: 16 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            // 26 responses, 25 a page: page 2 holds one
+            server.items = Array.from({ length: 26 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
             const { unmount } = renderTable();
-            fireEvent.click(screen.getByLabelText(/next/i));
-            expect(screen.getByText('person15@example.com')).toBeInTheDocument();
+            next();
+            expect(screen.getByText('person25@example.com')).toBeInTheDocument();
             // its page is opened and the response deleted; "Responses" brings the list back
             unmount();
-            server.items = server.items.slice(0, 15);
+            server.items = server.items.slice(0, 25);
             server.calls = [];
             renderTable();
             expect(lastQuery()).toMatchObject({ page: 1 });
@@ -282,37 +354,37 @@ describe('responses table: search and honest states', () => {
         });
 
         it('steps back to the last page that has responses when several pages emptied', () => {
-            server.items = Array.from({ length: 46 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            server.items = Array.from({ length: 100 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
             const { unmount } = renderTable();
-            fireEvent.click(screen.getByLabelText(/next/i));
-            fireEvent.click(screen.getByLabelText(/next/i));
-            fireEvent.click(screen.getByLabelText(/next/i));
+            next();
+            next();
+            next();
             expect(lastQuery().page).toBe(4);
             unmount();
             // someone else deleted 30 of them
-            server.items = server.items.slice(0, 16);
+            server.items = server.items.slice(0, 26);
             server.calls = [];
             renderTable();
             expect(lastQuery()).toMatchObject({ page: 2 });
-            expect(screen.getByText('person15@example.com')).toBeInTheDocument();
+            expect(screen.getByText('person25@example.com')).toBeInTheDocument();
         });
 
         it("never steps back on the previous page's answer while the page asked for still loads", () => {
-            server.items = Array.from({ length: 46 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            server.items = Array.from({ length: 100 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
             renderTable();
-            fireEvent.click(screen.getByLabelText(/next/i));
-            fireEvent.click(screen.getByLabelText(/next/i));
+            next();
+            next();
             expect(lastQuery().page).toBe(3);
             // page 4 is asked for; until it answers, the hook still holds an empty earlier answer
-            server.stale = { items: [], total: 16, page: 3, pages: 2, size: 15 };
-            fireEvent.click(screen.getByLabelText(/next/i));
+            server.stale = { items: [], total: 26, page: 3, pages: 2, size: 25 };
+            next();
             expect(lastQuery().page).toBe(4);
         });
 
         it('says "No responses yet" on page 1 when every response is gone', () => {
-            server.items = Array.from({ length: 16 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            server.items = Array.from({ length: 26 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
             const { unmount } = renderTable();
-            fireEvent.click(screen.getByLabelText(/next/i));
+            next();
             unmount();
             server.items = [];
             server.calls = [];
@@ -452,10 +524,10 @@ describe('responses table: search and honest states', () => {
         });
 
         it("Retry shows the loader until the server answers, not the previous page's rows the hook still holds", () => {
-            server.items = Array.from({ length: 16 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            server.items = Array.from({ length: 26 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
             const { rerender } = renderTable();
             server.error = true;
-            fireEvent.click(screen.getByLabelText(/next/i));
+            next();
             expect(screen.getByText('Could not load responses')).toBeInTheDocument();
             server.error = false;
             server.pending = true;
@@ -465,7 +537,7 @@ describe('responses table: search and honest states', () => {
             // the server answers: page 2's row, and the loader is gone
             server.pending = false;
             rerender(tree());
-            expect(screen.getByText('person15@example.com')).toBeInTheDocument();
+            expect(screen.getByText('person25@example.com')).toBeInTheDocument();
             expect(screen.queryByRole('status', { name: 'Loading responses' })).toBeNull();
         });
     });
@@ -474,16 +546,16 @@ describe('responses table: search and honest states', () => {
         const many = (count: number) => Array.from({ length: count }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
 
         it('steps back to the last page that still has rows, keeping the pagination', () => {
-            // 31 rows: three pages of 15, 15 and 1
-            server.items = many(31);
+            // 51 rows: three pages of 25, 25 and 1
+            server.items = many(51);
             const { rerender } = renderTable();
-            fireEvent.click(screen.getByLabelText(/next/i));
-            fireEvent.click(screen.getByLabelText(/next/i));
+            next();
+            next();
             expect(lastQuery().page).toBe(3);
-            expect(screen.getByText('person30@example.com')).toBeInTheDocument();
+            expect(screen.getByText('person50@example.com')).toBeInTheDocument();
             // the last row on page 3 is deleted; page 2's earlier answer is no longer cached
-            server.items = many(30);
-            server.answered.delete(pageKey(2));
+            server.items = many(50);
+            forgetAnswers(2);
             server.pendingPages = new Set([2]);
             rerender(tree());
             expect(lastQuery().page).toBe(2);
@@ -494,15 +566,15 @@ describe('responses table: search and honest states', () => {
             server.pendingPages = new Set();
             rerender(tree());
             expect(lastQuery().page).toBe(2);
-            expect(screen.getByText('person15@example.com')).toBeInTheDocument();
-            expect(screen.getByLabelText(/next/i)).toBeInTheDocument();
+            expect(screen.getByText('person25@example.com')).toBeInTheDocument();
+            expect(pagerLink('Previous page')).toHaveAttribute('href');
             expect(screen.queryByText('No responses yet')).toBeNull();
         });
 
         it('says "No responses yet" only once the whole form has none', () => {
-            server.items = many(16);
+            server.items = many(26);
             const { rerender } = renderTable();
-            fireEvent.click(screen.getByLabelText(/next/i));
+            next();
             expect(lastQuery().page).toBe(2);
             server.items = [];
             rerender(tree());
@@ -525,21 +597,21 @@ describe('responses table: search and honest states', () => {
         });
 
         it('a failed later page stays an error instead of stepping back', () => {
-            server.items = many(16);
+            server.items = many(26);
             renderTable();
             server.error = true;
-            fireEvent.click(screen.getByLabelText(/next/i));
+            next();
             expect(screen.getByText('Could not load responses')).toBeInTheDocument();
             expect(lastQuery().page).toBe(2);
         });
 
         it('a failed refetch of a page whose last answer was empty stays an error instead of stepping back', () => {
-            server.items = many(16);
+            server.items = many(26);
             renderTable();
             // the cache still holds an empty answer for page 2 (RTK Query keeps it when its refetch fails)
-            server.answered.set(pageKey(2), { items: [], total: 16, page: 2, pages: 2, size: 15 });
+            server.answered.set(JSON.stringify({ ...lastQuery(), page: 2, cursor: 'cursor-1' }), { items: [], total: 26, page: 2, pages: 2, size: 25 });
             server.error = true;
-            fireEvent.click(screen.getByLabelText(/next/i));
+            next();
             expect(screen.getByText('Could not load responses')).toBeInTheDocument();
             expect(lastQuery().page).toBe(2);
         });
@@ -592,25 +664,25 @@ describe('responses table: search and honest states', () => {
         it('remembers previous/next only from the answer for the page shown, never the previous rows while the next page loads', () => {
             server.items = Array.from({ length: 31 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
             const { rerender } = renderTable();
-            expect(rememberedNeighbours('workspace-1', 'form-1', 'p14')).toMatchObject({ previousId: 'p13', position: 15 });
+            expect(rememberedNeighbours('workspace-1', 'form-1', 'p24')).toMatchObject({ previousId: 'p23', position: 25 });
             // page 2 is asked for: the table still shows page 1's rows, marked busy
             server.pending = true;
-            fireEvent.click(screen.getByLabelText(/next/i));
+            next();
             expect(lastQuery().page).toBe(2);
             expect(screen.getByText('person0@example.com').closest('[aria-busy="true"]')).not.toBeNull();
-            expect(rememberedNeighbours('workspace-1', 'form-1', 'p14').nextId).toBeUndefined();
+            expect(rememberedNeighbours('workspace-1', 'form-1', 'p24').nextId).toBeUndefined();
             // and it fails: page 1's ids are still not page 2
             server.pending = false;
             server.error = true;
             rerender(tree());
             expect(screen.getByText('Could not load responses')).toBeInTheDocument();
-            expect(rememberedNeighbours('workspace-1', 'form-1', 'p14').nextId).toBeUndefined();
+            expect(rememberedNeighbours('workspace-1', 'form-1', 'p24').nextId).toBeUndefined();
             // Retry answers: now page 2 is known
             server.error = false;
             fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-            expect(screen.getByText('person15@example.com')).toBeInTheDocument();
-            expect(rememberedNeighbours('workspace-1', 'form-1', 'p14')).toMatchObject({ nextId: 'p15' });
-            expect(rememberedNeighbours('workspace-1', 'form-1', 'p15')).toMatchObject({ previousId: 'p14', position: 16, total: 31 });
+            expect(screen.getByText('person25@example.com')).toBeInTheDocument();
+            expect(rememberedNeighbours('workspace-1', 'form-1', 'p24')).toMatchObject({ nextId: 'p25' });
+            expect(rememberedNeighbours('workspace-1', 'form-1', 'p25')).toMatchObject({ previousId: 'p24', position: 26, total: 31 });
         });
 
         it('remembers the order on screen (ids only) for previous/next on a response page', () => {
@@ -630,7 +702,7 @@ describe('responses table: search and honest states', () => {
             renderTable();
             const email = screen.getByText('known.a@example.com');
             expect(email.closest('[aria-hidden="true"]')).toBeNull();
-            expect(screen.getByText('Anonymous').closest('[aria-hidden="true"]')).toBeNull();
+            expect(screen.getAllByText('Anonymous').find((element) => element.tagName !== 'OPTION')!.closest('[aria-hidden="true"]')).toBeNull();
         });
 
         it('makes rows focusable and opens the response with Enter', () => {
@@ -666,6 +738,367 @@ describe('responses table: search and honest states', () => {
         it('gives the button column a header for screen readers', () => {
             renderTable();
             expect(screen.getByRole('columnheader', { name: 'Open' })).toBeInTheDocument();
+        });
+    });
+
+    describe('filters, sort and paging in the URL', () => {
+        const many = (count: number) => Array.from({ length: count }, (_, index) => item(`p${index}`, index % 2 ? `person${index}@example.com` : null, 'blue'));
+        const openAt = (query: string) => {
+            nav.search = query;
+            return render(tree());
+        };
+        const select = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+
+        it('asks the server for what the URL says', () => {
+            server.items = many(120);
+            openAt('page=2&size=50&sort=oldest&from=2026-01-05&to=2026-01-09&status=pending&who=known&version=1&cursor=tok.en');
+            const arg = lastQuery();
+            expect(arg).toMatchObject({ paging: 'keyset', page: 2, size: 50, sort_by: 'created_at', sort_order: 'ASCENDING', status: 'pending', respondent: 'known', formVersion: 1, cursor: 'tok.en' });
+            expect(arg.submittedFrom).toBe(new Date(2026, 0, 5).toISOString());
+            expect(arg.submittedTo).toBe(new Date(2026, 0, 10).toISOString());
+        });
+
+        it('shows the state in the controls', () => {
+            openAt('sort=version-high&from=2026-01-05&to=2026-01-09&status=none&who=anonymous&version=1');
+            expect(screen.getByLabelText('Submitted from')).toHaveValue('2026-01-05');
+            expect(screen.getByLabelText('Submitted until')).toHaveValue('2026-01-09');
+            expect(screen.getByLabelText('Deletion request')).toHaveValue('none');
+            expect(screen.getByLabelText('Responder')).toHaveValue('anonymous');
+            expect(screen.getByLabelText('Form version')).toHaveValue('1');
+            expect(screen.getByLabelText('Sort by')).toHaveValue('version-high');
+        });
+
+        it('opens the list, not an error, for a hand-edited or stale URL', () => {
+            openAt('page=banana&size=7&sort=drop&from=2026-02-31&cursor=%27%3B--');
+            expect(lastQuery()).toMatchObject({ page: 1, size: 25, sort_by: 'created_at', sort_order: 'DESCENDING' });
+            expect(lastQuery().cursor).toBeUndefined();
+            expect(screen.getByText('known.a@example.com')).toBeInTheDocument();
+        });
+
+        it('puts a changed filter in the URL, from page 1 and without the old cursor', () => {
+            server.items = many(120);
+            openAt('page=3&cursor=cursor-2');
+            select('Responder', 'known');
+            expect(nav.listPushes.at(-1)).toBe(`${LIST_PATH}?who=known`);
+            expect(lastQuery()).toMatchObject({ page: 1, respondent: 'known' });
+            expect(lastQuery().cursor).toBeUndefined();
+            select('Sort by', 'oldest');
+            expect(urlParams().get('sort')).toBe('oldest');
+            expect(urlParams().get('who')).toBe('known');
+        });
+
+        it('keeps each filter in the URL and clears them all with one button', () => {
+            openAt('page=2&sort=oldest');
+            fireEvent.change(screen.getByLabelText('Submitted from'), { target: { value: '2026-03-01' } });
+            select('Deletion request', 'pending');
+            select('Form version', '1');
+            expect(urlParams().get('from')).toBe('2026-03-01');
+            expect(urlParams().get('status')).toBe('pending');
+            expect(urlParams().get('version')).toBe('1');
+            fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+            // the sort stays: it is not a filter
+            expect(nav.search).toBe('sort=oldest');
+            expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
+        });
+
+        it('does not let the end date go before the start date', () => {
+            openAt('from=2026-03-10');
+            expect(screen.getByLabelText('Submitted until')).toHaveAttribute('min', '2026-03-10');
+            expect(screen.getByLabelText('Submitted from')).not.toHaveAttribute('min');
+        });
+
+        it('follows Back and Forward: the list is whatever the URL says', () => {
+            server.items = many(120);
+            renderTable();
+            select('Responder', 'known');
+            next();
+            expect(lastQuery()).toMatchObject({ page: 2, respondent: 'known' });
+            // Back, as the browser does: the URL changes under the page
+            act(() => goTo(`${LIST_PATH}?who=known`, []));
+            expect(lastQuery()).toMatchObject({ page: 1, respondent: 'known' });
+            act(() => goTo(LIST_PATH, []));
+            expect(lastQuery().respondent).toBeUndefined();
+            expect(screen.getByLabelText('Responder')).toHaveValue('');
+        });
+
+        it('never puts the responder search in the URL, and keeps it with the filters', () => {
+            renderTable();
+            search('known');
+            select('Sort by', 'oldest');
+            expect(nav.search).toBe('sort=oldest');
+            expect(nav.search).not.toContain('known');
+            expect(lastQuery()).toMatchObject({ dataOwnerIdentifier: 'known', sort_order: 'ASCENDING' });
+        });
+
+        it('a new search starts on page 1 and drops the cursor made for the old search', () => {
+            server.items = many(120);
+            openAt('page=2&cursor=cursor-1');
+            search('person');
+            expect(nav.search).toBe('');
+            expect(lastQuery()).toMatchObject({ page: 1, dataOwnerIdentifier: 'person' });
+            expect(lastQuery().cursor).toBeUndefined();
+        });
+
+        it('changes the page size from the pager and starts again on page 1', () => {
+            server.items = many(120);
+            openAt('page=3&cursor=cursor-2');
+            fireEvent.change(screen.getByLabelText('Rows per page'), { target: { value: '100' } });
+            expect(nav.search).toBe('size=100');
+            expect(lastQuery()).toMatchObject({ page: 1, size: 100 });
+        });
+
+        it('offers the three page sizes', () => {
+            renderTable();
+            const sizes = Array.from((screen.getByLabelText('Rows per page') as HTMLSelectElement).options).map((option) => option.value);
+            expect(sizes).toEqual(['25', '50', '100']);
+        });
+
+        it('offers the form versions that exist, the current one marked', () => {
+            store.dispatch(setForm({ ...store.getState().form, version: 3 } as any));
+            renderTable();
+            const options = Array.from((screen.getByLabelText('Form version') as HTMLSelectElement).options).map((option) => option.textContent);
+            expect(options).toEqual(['All versions', 'Version 3 (current)', 'Version 2', 'Version 1']);
+        });
+
+        it('restores the filters, sort and page of the list when it is opened again by a link', () => {
+            server.items = many(120);
+            const { unmount } = renderTable();
+            select('Responder', 'known');
+            next();
+            expect(nav.search).toContain('page=2');
+            unmount();
+            server.calls = [];
+            renderTable();
+            // the link had no parameters: the remembered ones are put back (once)
+            expect(nav.replaces.at(-1)).toContain('who=known');
+            expect(lastQuery()).toMatchObject({ page: 2, respondent: 'known' });
+        });
+    });
+
+    describe('the pager', () => {
+        const many = (count: number) => Array.from({ length: count }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+        const hrefOf = (name: string | RegExp) => new URL(pagerLink(name).getAttribute('href')!, 'http://x').searchParams;
+
+        it('is a labelled navigation of links with the current page marked', () => {
+            server.items = many(300);
+            nav.search = 'page=5&cursor=cursor-4';
+            render(tree());
+            const pagers = screen.getAllByRole('navigation');
+            expect(pagers.map((pager) => pager.getAttribute('aria-label'))).toEqual(['Pages of responses (above the table)', 'Pages of responses (below the table)']);
+            const bottom = within(pagers[1]);
+            expect(bottom.getByText('5', { selector: '[aria-current="page"]' })).toBeInTheDocument();
+            expect(bottom.getAllByRole('link').map((link) => link.getAttribute('aria-label'))).toEqual(['First page', 'Previous page', 'Page 3', 'Page 4', 'Page 6', 'Page 7', 'Next page', 'Last page']);
+        });
+
+        it('sends the shown page\'s cursor with the nearby pages, and none with the first and the last', () => {
+            server.items = many(300);
+            renderTable();
+            next(); // page 2, cursor-1 (the page before)
+            expect(urlParams().get('page')).toBe('2');
+            expect(urlParams().get('cursor')).toBe('cursor-1');
+            // now standing on page 2: its own cursor is what the links carry
+            expect(hrefOf('Next page').get('page')).toBe('3');
+            expect(hrefOf('Next page').get('cursor')).toBe('cursor-2');
+            expect(hrefOf('Previous page').get('page')).toBeNull(); // page 1: the default
+            expect(hrefOf('Page 4').get('cursor')).toBe('cursor-2');
+            expect(hrefOf('First page').has('cursor')).toBe(false);
+            expect(hrefOf('Last page').get('page')).toBe('12');
+            expect(hrefOf('Last page').has('cursor')).toBe(false);
+            // the filters travel with every link
+        });
+
+        it('keeps the filters and the sort in every link', () => {
+            server.items = many(300);
+            nav.search = 'sort=oldest&who=known&size=50';
+            render(tree());
+            const params = hrefOf('Next page');
+            expect(params.get('sort')).toBe('oldest');
+            expect(params.get('who')).toBe('known');
+            expect(params.get('size')).toBe('50');
+        });
+
+        it('has no previous or first link on page 1 and no next or last on the last page', () => {
+            server.items = many(60);
+            renderTable();
+            const disabled = (name: string) => screen.getAllByLabelText(name).every((element) => element.getAttribute('aria-disabled') === 'true' && !element.hasAttribute('href'));
+            expect(disabled('First page')).toBe(true);
+            expect(disabled('Previous page')).toBe(true);
+            next();
+            next();
+            expect(disabled('Next page')).toBe(true);
+            expect(disabled('Last page')).toBe(true);
+            expect(pagerLink('Previous page')).toHaveAttribute('href');
+        });
+
+        it('reaches the pages by Tab and Enter (real links, in document order)', () => {
+            server.items = many(300);
+            renderTable();
+            const links = screen.getAllByRole('link', { name: /page/i }).filter((link) => link.hasAttribute('href'));
+            // a link is a tab stop by itself: no negative tabindex
+            links.forEach((link) => expect(link.getAttribute('tabindex')).not.toBe('-1'));
+            const nextLink = pagerLink('Next page');
+            nextLink.focus();
+            expect(document.activeElement).toBe(nextLink);
+        });
+
+        it('says that the total is a cap, and offers no last page', () => {
+            server.items = many(300);
+            server.cappedAt = 100;
+            renderTable();
+            expect(screen.getByRole('status')).toHaveTextContent('Showing 1–25 of 100+');
+            const last = screen.getAllByLabelText(/Last page/)[0];
+            expect(last).toHaveAttribute('aria-disabled', 'true');
+            expect(last.getAttribute('aria-label')).toContain('not available');
+            // the other end is a sort away; next still works past the cap
+            expect(pagerLink('Next page')).toHaveAttribute('href');
+        });
+
+        it('says where it is for a list that fits on one page', () => {
+            renderTable();
+            expect(screen.getByRole('status')).toHaveTextContent('Showing 1–4 of 4');
+        });
+    });
+
+    describe('the results count and focus', () => {
+        const many = (count: number) => Array.from({ length: count }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+
+        it('is a polite, atomic live region that says which rows are shown', () => {
+            server.items = many(60);
+            renderTable();
+            const region = screen.getByRole('status');
+            expect(region).toHaveAttribute('aria-live', 'polite');
+            expect(region).toHaveAttribute('aria-atomic', 'true');
+            expect(region).toHaveTextContent('Showing 1–25 of 60');
+            next();
+            expect(region).toHaveTextContent('Showing 26–50 of 60');
+            next();
+            expect(region).toHaveTextContent('Showing 51–60 of 60');
+        });
+
+        it('groups thousands in the count', () => {
+            server.items = many(2500);
+            renderTable();
+            expect(screen.getByRole('status')).toHaveTextContent('Showing 1–25 of 2,500');
+        });
+
+        it('moves focus to the results once the page followed from the pager has arrived', () => {
+            server.items = many(60);
+            renderTable();
+            const link = pagerLink('Next page');
+            link.focus();
+            fireEvent.click(link);
+            expect(lastQuery().page).toBe(2);
+            expect(document.activeElement).toBe(screen.getByRole('region', { name: 'Responses' }));
+        });
+
+        it('leaves focus alone for a filter or a search', () => {
+            server.items = many(60);
+            renderTable();
+            const sort = screen.getByLabelText('Sort by');
+            sort.focus();
+            fireEvent.change(sort, { target: { value: 'oldest' } });
+            expect(document.activeElement).toBe(sort);
+        });
+
+        it('waits for the new page before moving focus', () => {
+            server.items = many(60);
+            renderTable();
+            server.pending = true;
+            fireEvent.click(pagerLink('Next page'));
+            expect(document.activeElement).not.toBe(screen.getByRole('region', { name: 'Responses' }));
+        });
+    });
+
+    describe('when nothing matches or the server refuses', () => {
+        it('says that no response matches the filters, with a way out, never "No responses yet"', () => {
+            server.items = [item('r1', 'a@example.com', 'blue'), item('r2', 'b@example.com', 'blue')];
+            renderTable();
+            fireEvent.change(screen.getByLabelText('Responder'), { target: { value: 'anonymous' } });
+            expect(screen.getByText('No responses match these filters')).toBeInTheDocument();
+            expect(screen.queryByText('No responses yet')).toBeNull();
+            // the filters stay on screen so they can be changed
+            expect(screen.getByLabelText('Responder')).toHaveValue('anonymous');
+            fireEvent.click(screen.getAllByRole('button', { name: 'Clear filters' }).at(-1)!);
+            expect(screen.getByText('a@example.com')).toBeInTheDocument();
+        });
+
+        it('drops a cursor the server refuses and asks again without it', () => {
+            server.items = Array.from({ length: 60 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            nav.search = 'page=2&cursor=old.cursor';
+            server.error = true;
+            server.errorBody = { status: 400, data: { code: 'invalid_cursor' } };
+            const { rerender } = render(tree());
+            expect(nav.replaces.at(-1)).toBe(`${LIST_PATH}?page=2`);
+            server.error = false;
+            rerender(tree());
+            expect(lastQuery()).toMatchObject({ page: 2 });
+            expect(lastQuery().cursor).toBeUndefined();
+            expect(screen.getByText('person25@example.com')).toBeInTheDocument();
+        });
+
+        it('says when a page is too far to open directly, and goes to the first page', () => {
+            nav.search = 'page=900';
+            server.error = true;
+            server.errorBody = { status: 400, data: { code: 'page_too_deep' } };
+            render(tree());
+            expect(screen.getByRole('alert')).toHaveTextContent('That page is too far to open directly');
+            server.error = false;
+            fireEvent.click(screen.getByRole('button', { name: 'Go to the first page' }));
+            expect(nav.search).toBe('');
+            expect(lastQuery()).toMatchObject({ page: 1 });
+        });
+    });
+
+    describe('the page scrolls as a whole', () => {
+        it('has no nested scroll area in the table', () => {
+            const { container } = renderTable();
+            expect(container.querySelector('[style*="65vh"]')).toBeNull();
+            expect(container.innerHTML).not.toContain('65vh');
+        });
+    });
+
+    describe('accessibility', () => {
+        it('has no WCAG A/AA violations in the filter bar, count, table and pager', async () => {
+            vi.useRealTimers();
+            server.items = Array.from({ length: 60 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            const { container } = renderTable();
+            expect(await axeViolations(container)).toEqual([]);
+            vi.useFakeTimers();
+        });
+
+        it('labels every filter and the sort', () => {
+            renderTable();
+            ['Submitted from', 'Submitted until', 'Responder', 'Deletion request', 'Form version', 'Sort by', 'Rows per page'].forEach((label) => expect(screen.getByLabelText(label)).toBeInTheDocument());
+            expect(screen.getByRole('search', { name: 'Filter and sort responses' })).toBeInTheDocument();
+        });
+    });
+
+    describe('Dutch', () => {
+        afterEach(async () => {
+            await i18n.changeLanguage('en');
+        });
+
+        it('has the filters, count and pager in Dutch', async () => {
+            i18n.addResourceBundle('nl', 'common', commonNl, true, true);
+            await i18n.changeLanguage('nl');
+            server.items = Array.from({ length: 60 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            renderTable();
+            expect(screen.getByLabelText('Ingediend vanaf')).toBeInTheDocument();
+            expect(screen.getByLabelText('Ingediend tot en met')).toBeInTheDocument();
+            expect(screen.getByLabelText('Verwijderverzoek')).toBeInTheDocument();
+            expect(screen.getByLabelText('Formulierversie')).toBeInTheDocument();
+            expect(screen.getByLabelText('Sorteren op')).toBeInTheDocument();
+            expect(screen.getByLabelText('Rijen per pagina')).toBeInTheDocument();
+            expect(screen.getByRole('status')).toHaveTextContent('1–25 van 60 getoond');
+            expect(screen.getAllByLabelText('Volgende pagina').length).toBeGreaterThan(0);
+        });
+
+        it('has every new English key in Dutch, and the same placeholders', () => {
+            const en = (commonEn as any).RESPONSES_LIST as Record<string, string>;
+            const nl = (commonNl as any).RESPONSES_LIST as Record<string, string>;
+            expect(Object.keys(nl).sort()).toEqual(Object.keys(en).sort());
+            const placeholders = (value: string) => (value.match(/{{\w+}}/g) ?? []).sort();
+            Object.keys(en).forEach((key) => expect(placeholders(nl[key]), key).toEqual(placeholders(en[key])));
         });
     });
 });
