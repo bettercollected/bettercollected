@@ -10,8 +10,6 @@ const TRUE_VALUES = new Set(['1', 'true', 't', 'yes', 'y', 'on']);
 export function readRuntimeFlags(env: Record<string, string | undefined> = process.env): RuntimeFlags {
     return {
         // The same switch the backend and auth use (docs/sso.md).
-        ssoEnabled: TRUE_VALUES.has((env.SSO_ENABLED ?? '').trim().toLowerCase()),
-        // The backend's switch for field rules; the builder shows its rules editor only when it is on.
-        fieldRulesEnabled: TRUE_VALUES.has((env.FIELD_RULES_ENABLED ?? '').trim().toLowerCase())
+        ssoEnabled: TRUE_VALUES.has((env.SSO_ENABLED ?? '').trim().toLowerCase())
     };
 }

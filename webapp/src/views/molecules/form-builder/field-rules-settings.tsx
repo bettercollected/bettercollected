@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 
 import { AlertTriangle, ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +38,27 @@ export interface FieldRulesSettingsProps {
     editable?: boolean;
     /** Add a first rule when the editor opens (it was opened by "Add a rule"). */
     addFirst?: boolean;
+}
+
+/** Focus the first element that matches one of `selectors` once it is there (the form has to re-render first), trying for about a second. */
+export function focusSoon(...selectors: string[]): void {
+    let tries = 0;
+    const attempt = () => {
+        for (const selector of selectors) {
+            const element = document.querySelector<HTMLElement>(selector);
+            if (element) {
+                element.focus();
+                return;
+            }
+        }
+        if (++tries < 20) window.setTimeout(attempt, 50);
+    };
+    window.setTimeout(attempt, 0);
+}
+
+/** A new rule with an empty trigger (the first question, no value yet): not valid, so it is kept as a draft until the creator has picked a condition. */
+function emptyRule(sources: SourceField[]): FieldRule {
+    return { id: newRuleId(), when: { operator: 'AND', conditions: [newConditionFor(sources) as unknown as FieldRuleCondition] }, then: { required: true } };
 }
 
 const newRuleId = () => `r_${uuidv4().replace(/-/g, '').slice(0, 10)}`;
@@ -129,7 +150,8 @@ export default function FieldRulesSettings({ field, slides, hiddenNames, onChang
     const stored = rulesOf(field);
     const storedJson = JSON.stringify(stored);
     // What the creator is editing: the form's rules, or a draft that is not valid yet.
-    const [draft, setDraft] = useState<FieldRule[] | null>(null);
+    // Opened by "Add a rule": it starts with one empty rule, which is a draft like any unfinished one.
+    const [draft, setDraft] = useState<FieldRule[] | null>(() => (addFirst && editable && !stored.length ? [emptyRule(ruleSources(slides, field))] : null));
     const [seen, setSeen] = useState(storedJson);
     if (seen !== storedJson) {
         // Changed elsewhere (undo, the AI, another tab): show what the form has, unless the draft says the same.
@@ -138,8 +160,6 @@ export default function FieldRulesSettings({ field, slides, hiddenNames, onChang
     }
     const rules = draft ?? stored;
     const [announcement, setAnnouncement] = useState('');
-    const addRef = useRef<HTMLButtonElement>(null);
-    const didAddFirst = useRef(false);
 
     const sources = useMemo(() => ruleSources(slides, field), [slides, field]);
     const variables = useMemo(() => ruleVariables(slides, hiddenNames, field), [slides, hiddenNames, field]);
@@ -169,19 +189,16 @@ export default function FieldRulesSettings({ field, slides, hiddenNames, onChang
         );
 
     const addRule = () => {
-        const first = sources[0]?.field;
-        const when: FieldRule['when'] = first && !isRepeatingGroup(first) ? { conditions: [{ fieldId: first.id, fieldType: first.type, comparison: 'IS_NOT_EMPTY' }] } : { expression: true };
-        commit([...rules, { id: newRuleId(), when, then: { required: true } }]);
+        // An empty trigger: the rule stays an unsaved draft until the creator has picked a condition.
+        const added = emptyRule(sources);
+        const ruleId = added.id;
+        commit([...rules, added]);
         setAnnouncement(t('FIELD_RULES.ANNOUNCE_ADDED', { n: rules.length + 1 }));
+        focusSoon(`[data-rule-first="${ruleId}"]`);
     };
-    // Opened by "Add a rule": start with one (once).
     useEffect(() => {
-        if (addFirst && editable && !didAddFirst.current) {
-            didAddFirst.current = true;
-            if (!rules.length) addRule();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [addFirst, editable]);
+        if (addFirst && editable && draft?.length === 1) focusSoon(`[data-rule-first="${draft[0].id}"]`);
+    }, []);
     if (!canCarryRules(field)) return null;
 
     const move = (index: number, by: -1 | 1) => {
@@ -189,11 +206,15 @@ export default function FieldRulesSettings({ field, slides, hiddenNames, onChang
         [next[index], next[index + by]] = [next[index + by], next[index]];
         commit(next);
         setAnnouncement(t('FIELD_RULES.ANNOUNCE_MOVED', { from: index + 1, to: index + 1 + by }));
+        // the same button if it can still be used, else the card's own name
+        const ruleId = rules[index].id;
+        focusSoon(`[data-rule-move="${ruleId}:${by < 0 ? 'up' : 'down'}"]:not([disabled])`, `[data-rule-legend="${ruleId}"]`);
     };
     const remove = (index: number) => {
         commit(rules.filter((_, i) => i !== index));
         setAnnouncement(t('FIELD_RULES.ANNOUNCE_DELETED', { n: index + 1 }));
-        window.setTimeout(() => addRef.current?.focus(), 0);
+        // whichever "Add a rule" button there is now (the last rule's going closes the editor)
+        focusSoon('[data-field-rules-add]:not([disabled])');
     };
 
     const atFieldCap = rules.length >= FIELD_RULES_MAX;
@@ -259,7 +280,7 @@ export default function FieldRulesSettings({ field, slides, hiddenNames, onChang
             )}
 
             <button
-                ref={addRef}
+                data-field-rules-add=""
                 type="button"
                 disabled={atFieldCap || atFormCap}
                 aria-describedby={atFieldCap || atFormCap ? `${id}-cap` : undefined}
@@ -359,7 +380,9 @@ function RuleCard({ rule, index, count, field, sources, variables, lockable, inG
 
     return (
         <fieldset aria-describedby={describedBy} className="flex min-w-0 flex-col gap-3 rounded-lg border border-black-300 bg-white p-3" data-testid={`field-rule-${n}`}>
-            <legend className="sr-only">{t('FIELD_RULES.RULE_N', { n })}</legend>
+            <legend tabIndex={-1} data-rule-legend={rule.id} className="sr-only">
+                {t('FIELD_RULES.RULE_N', { n })}
+            </legend>
             <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                     <div className="text-xs font-semibold text-black-800">{t('FIELD_RULES.RULE_N', { n })}</div>
@@ -368,10 +391,10 @@ function RuleCard({ rule, index, count, field, sources, variables, lockable, inG
                     </div>
                 </div>
                 <div className="flex shrink-0 items-center">
-                    <button type="button" className={buttonClass} disabled={index === 0} aria-label={t('FIELD_RULES.MOVE_UP', { n })} onClick={() => onMove(-1)}>
+                    <button type="button" data-rule-move={`${rule.id}:up`} className={buttonClass} disabled={index === 0} aria-label={t('FIELD_RULES.MOVE_UP', { n })} onClick={() => onMove(-1)}>
                         <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
-                    <button type="button" className={buttonClass} disabled={index === count - 1} aria-label={t('FIELD_RULES.MOVE_DOWN', { n })} onClick={() => onMove(1)}>
+                    <button type="button" data-rule-move={`${rule.id}:down`} className={buttonClass} disabled={index === count - 1} aria-label={t('FIELD_RULES.MOVE_DOWN', { n })} onClick={() => onMove(1)}>
                         <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                     <button type="button" className={buttonClass} aria-label={t('FIELD_RULES.DELETE', { n })} onClick={onRemove}>
@@ -387,6 +410,7 @@ function RuleCard({ rule, index, count, field, sources, variables, lockable, inG
                 </label>
                 <select
                     id={`${id}-kind`}
+                    data-rule-first={rule.id}
                     className={selectClass}
                     value={kind}
                     onChange={(e) => {

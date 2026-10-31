@@ -75,11 +75,15 @@ function checkRuleSpec(spec: FieldRuleSpec): void {
 
 /** The stored rule a spec describes: its conditions resolved against the form like logic's, nothing but what is given. */
 function storedRule(doc: FormDoc, spec: FieldRuleSpec, scopeGroupId: string | null): Record<string, any> {
+    // Conditions are resolved against the form before the rule's own shape is checked, as on the server,
+    // so the same problem is named first.
+    const listed = spec?.when?.conditions;
+    const resolved = Array.isArray(listed) && listed.length && listed.every((c) => c && typeof c === 'object') ? validatedConditions(doc, listed, scopeGroupId) : undefined;
     checkRuleSpec(spec);
     const when: Record<string, any> = {};
     if (given(spec.when.conditions)) {
         if (given(spec.when.operator)) when.operator = spec.when.operator;
-        when.conditions = validatedConditions(doc, spec.when.conditions!, scopeGroupId);
+        when.conditions = resolved ?? validatedConditions(doc, spec.when.conditions!, scopeGroupId);
     } else {
         when.expression = spec.when.expression;
     }

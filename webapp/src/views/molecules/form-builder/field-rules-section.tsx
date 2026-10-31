@@ -9,8 +9,8 @@ import { useTranslation } from 'react-i18next';
 import { FieldRule } from '@app/lib/field-rules';
 import { canCarryRules } from '@app/lib/form-ops/field-rule-checks';
 import type { FieldRuleSpec } from '@app/lib/form-ops/types';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { useFieldRulesEnabled } from '@app/shared/hocs/runtime-flags-provider';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { dispatchAtom } from '@app/store/jotai/form-document';
@@ -29,7 +29,8 @@ import { InspectorSection } from '@app/views/molecules/form-builder/inspector-co
  */
 export default function FieldRulesSection({ field }: { field: StandardFormFieldDto }) {
     const { t } = useTranslation('builder');
-    const enabled = useFieldRulesEnabled();
+    // The server says whether it takes rules (with the permissions): one switch, the backend's.
+    const { fieldRulesEnabled: enabled } = useWorkspacePermissions();
     const has = Array.isArray(field.properties?.rules) && field.properties.rules.length > 0;
     // the question the editor was opened for (selecting another one closes it)
     const [opened, setOpened] = useState<string | null>(null);
@@ -44,8 +45,9 @@ export default function FieldRulesSection({ field }: { field: StandardFormFieldD
                     <p className="text-[11px] leading-relaxed text-black-600">{t('FIELD_RULES.EMPTY')}</p>
                     <button
                         type="button"
+                        data-field-rules-add=""
                         onClick={() => setOpened(field.id)}
-                        className="text-brand-500 hover:text-brand-600 focus-visible:ring-brand-500 inline-flex w-fit items-center gap-1 rounded text-xs font-medium focus-visible:ring-2 focus-visible:outline-hidden"
+                        className="inline-flex w-fit items-center gap-1 rounded text-xs font-medium text-brand-500 hover:text-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden"
                     >
                         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                         {t('FIELD_RULES.ADD')}

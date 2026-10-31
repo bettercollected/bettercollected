@@ -1,4 +1,6 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import React from 'react';
+
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import i18n from 'i18next';
 import { Provider, createStore, useAtomValue } from 'jotai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -6,13 +8,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FieldRule } from '@app/lib/field-rules';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
-import RuntimeFlagsProvider from '@app/shared/hocs/runtime-flags-provider';
 import { useField } from '@app/store/jotai/entity-hooks';
 import { canUndoAtom, dispatchAtom, formDocAtom, resetFromServerAtom, undoAtom } from '@app/store/jotai/form-document';
 import { axeViolations } from '@app/test/axe';
 
 import FieldRulesSection from './field-rules-section';
 import FieldRulesSettings, { ruleSources, unfinishedReason } from './field-rules-settings';
+
+// What the server says about field rules, with the permissions (its FIELD_RULES_ENABLED).
+const served = vi.hoisted(() => ({ fieldRulesEnabled: true }));
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ fieldRulesEnabled: served.fieldRulesEnabled }) }));
 
 const question = (id: string, type: string, title: string, extra: Record<string, unknown> = {}, properties: Record<string, unknown> = {}): StandardFormFieldDto =>
     ({ id, index: 0, type, title, properties: { fields: [], ...properties }, validations: {}, ...extra }) as unknown as StandardFormFieldDto;
@@ -54,15 +59,41 @@ describe('the rules editor (props)', () => {
         expect(screen.getByRole('button', { name: 'Add a rule' })).toBeEnabled();
     });
 
-    it('adds a rule that is complete from the start: require when the first question has an answer', () => {
+    it('adds a rule with an empty trigger as an unsaved draft: nothing is saved until a condition is picked', () => {
         const onChange = renderEditor(undefined);
         fireEvent.click(screen.getByRole('button', { name: 'Add a rule' }));
+        expect(onChange).not.toHaveBeenCalled();
+        const card = within(screen.getByTestId('field-rule-1'));
+        expect(screen.getByTestId('rule-unfinished')).toHaveTextContent('Finish the condition');
+        expect(card.getByRole('combobox', { name: 'Question' })).toHaveDisplayValue('Country');
+        fireEvent.change(card.getByRole('combobox', { name: 'Value' }), { target: { value: 'Netherlands' } });
         expect(onChange).toHaveBeenCalledTimes(1);
         const [rules] = onChange.mock.calls[0] as unknown as [FieldRule[]];
         expect(rules).toHaveLength(1);
-        expect(rules[0].when.conditions?.[0]).toMatchObject({ fieldId: 'country', comparison: 'IS_NOT_EMPTY' });
+        expect(rules[0].when.conditions?.[0]).toMatchObject({ fieldId: 'country', comparison: 'IS_EQUAL', value: 'Netherlands' });
         expect(rules[0].then).toEqual({ required: true });
         expect(rules[0].id).toMatch(/^[A-Za-z0-9_-]{1,64}$/);
+    });
+
+    it('has no formula fallback: with nothing to read, the empty rule says so and waits', () => {
+        const field = postcode();
+        const onChange = vi.fn(() => true);
+        render(<FieldRulesSettings field={field} slides={[page(field)]} hiddenNames={[]} onChange={onChange} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Add a rule' }));
+        expect(onChange).not.toHaveBeenCalled();
+        expect(screen.getByText(/Add another question/)).toBeInTheDocument();
+        expect(screen.getByTestId('rule-unfinished')).toBeInTheDocument();
+    });
+
+    it('starts a rule on a repeating group the same way: an empty count condition, not a formula', () => {
+        const group = question('people', FieldTypes.GROUP, 'People', {}, { repeat: { minItems: 1, maxItems: 3 }, fields: [question('name', FieldTypes.SHORT_TEXT, 'Name')] });
+        const field = postcode();
+        const onChange = vi.fn(() => true);
+        render(<FieldRulesSettings field={field} slides={[page(group, field)]} hiddenNames={[]} onChange={onChange} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Add a rule' }));
+        expect(onChange).not.toHaveBeenCalled();
+        expect(within(screen.getByTestId('field-rule-1')).getByRole('combobox', { name: 'Group condition' })).toHaveDisplayValue('Number of items');
+        expect(screen.queryByLabelText('Formula that must be true')).toBeNull();
     });
 
     it('lists the rules with a one-line summary each, in order', () => {
@@ -226,16 +257,25 @@ describe('the rules section on the form document', () => {
         store.set(resetFromServerAtom, { formId: 'f', title: 'T', builderVersion: 'v2', fields: [page(country, postcode(rules), qty, total())] } as any);
         return store;
     }
-    function Harness({ flag }: { flag: boolean }) {
+    function Harness() {
         const field = useField('postcode');
-        return <RuntimeFlagsProvider flags={{ ssoEnabled: false, fieldRulesEnabled: flag }}>{field && <FieldRulesSection field={field} />}</RuntimeFlagsProvider>;
+        return field ? <FieldRulesSection field={field} /> : null;
     }
-    const mount = (store: ReturnType<typeof createStore>, flag = true) =>
-        render(
+    const mount = (store: ReturnType<typeof createStore>, flag = true) => {
+        served.fieldRulesEnabled = flag;
+        return render(
             <Provider store={store}>
-                <Harness flag={flag} />
+                <Harness />
             </Provider>
         );
+    };
+
+    it('shows the editor when the server says it takes rules', () => {
+        mount(load(), true);
+        expect(screen.getByRole('heading', { name: 'Rules' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Add a rule' })).toBeInTheDocument();
+        expect(screen.queryByText(/cannot be created or changed on this server yet/)).toBeNull();
+    });
 
     it('is hidden when the server has rules switched off and the question has none', () => {
         mount(load(), false);
@@ -244,7 +284,8 @@ describe('the rules section on the form document', () => {
 
     it('still lists the rules a question has when rules are switched off', () => {
         mount(load([NL]), false);
-        expect(screen.getByTestId('field-rules-readonly')).toBeInTheDocument();
+        expect(screen.getByTestId('field-rules-readonly')).toHaveTextContent('cannot be created or changed on this server yet');
+        expect(screen.queryByRole('button', { name: 'Add a rule' })).toBeNull();
     });
 
     it('adds, edits, undoes: each edit is a set_field_rules step on the document', () => {
@@ -252,8 +293,11 @@ describe('the rules section on the form document', () => {
         mount(store);
         fireEvent.click(screen.getByRole('button', { name: 'Add a rule' }));
         const rulesNow = () => (store.get(formDocAtom).fields![0].properties!.fields![1].properties as any).rules as FieldRule[] | undefined;
-        expect(rulesNow()).toHaveLength(1);
+        // an empty trigger is a draft: the document has nothing yet
+        expect(rulesNow()).toBeUndefined();
         expect(screen.getByTestId('field-rule-1')).toBeInTheDocument();
+        fireEvent.change(within(screen.getByTestId('field-rule-1')).getByRole('combobox', { name: 'Value' }), { target: { value: 'Netherlands' } });
+        expect(rulesNow()).toHaveLength(1);
         fireEvent.click(screen.getByRole('switch', { name: 'Change the description' }));
         fireEvent.change(screen.getByLabelText('New description'), { target: { value: 'Four digits' } });
         expect(rulesNow()![0].then).toMatchObject({ required: true, description: 'Four digits' });
@@ -269,9 +313,93 @@ describe('the rules section on the form document', () => {
         const store = load();
         mount(store);
         fireEvent.click(screen.getByRole('button', { name: 'Add a rule' }));
+        fireEvent.change(within(screen.getByTestId('field-rule-1')).getByRole('combobox', { name: 'Value' }), { target: { value: 'Netherlands' } });
         const refused = store.set(dispatchAtom, {
             ops: [{ op: 'set_field_rules', fieldId: 'total', rules: [{ id: (store.get(formDocAtom).fields![0].properties!.fields![1].properties as any).rules[0].id, when: { expression: true }, then: { required: true } }] }]
         });
         expect(refused).toBe(false);
+    });
+});
+
+describe('focus', () => {
+    const waitFocus = async (find: () => HTMLElement | null) => {
+        await waitFor(() => expect(find()).not.toBeNull());
+        await waitFor(() => expect(document.activeElement).toBe(find()));
+    };
+    const ruleCard = (n: number) => within(screen.getByTestId(`field-rule-${n}`));
+
+    function Section({ rules }: { rules?: FieldRule[] }) {
+        // a live copy of the question, so that the editor re-renders with what it saved
+        const [current, setCurrent] = React.useState(postcode(rules));
+        const slides = [page(country, current, qty, total())];
+        const onChange = (next: FieldRule[] | undefined) => {
+            setCurrent(postcode(next));
+            return true;
+        };
+        return <FieldRulesSettings field={current} slides={slides} hiddenNames={[]} onChange={onChange} />;
+    }
+
+    it('goes to the new rule\'s first control after "Add a rule", the first time and the next', async () => {
+        render(<Section />);
+        fireEvent.click(screen.getByRole('button', { name: 'Add a rule' }));
+        await waitFocus(() => ruleCard(1).getAllByRole('combobox')[0]);
+        expect(document.activeElement).toHaveDisplayValue('answers match');
+        fireEvent.change(ruleCard(1).getByRole('combobox', { name: 'Value' }), { target: { value: 'Netherlands' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Add a rule' }));
+        await waitFocus(() => ruleCard(2).getAllByRole('combobox')[0]);
+    });
+
+    it('goes to the first control of the first rule when the editor was opened from the closed section', async () => {
+        const field = postcode();
+        served.fieldRulesEnabled = true;
+        const store = createStore();
+        store.set(resetFromServerAtom, { formId: 'f', title: 'T', builderVersion: 'v2', fields: [page(country, field, qty, total())] } as any);
+        function Harness() {
+            const live = useField('postcode');
+            return live ? <FieldRulesSection field={live} /> : null;
+        }
+        render(
+            <Provider store={store}>
+                <Harness />
+            </Provider>
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Add a rule' })); // this button goes away
+        await waitFocus(() => ruleCard(1).getAllByRole('combobox')[0]);
+    });
+
+    it('stays on the moved card: the same button, or the card when that button is now disabled', async () => {
+        render(<Section rules={[NL, BE, { ...NL, id: 'r_3' }]} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Move rule 2 up' }));
+        // rule 2 is now first: its "up" button is disabled, so the card itself
+        await waitFocus(() => screen.getByTestId('field-rule-1').querySelector('legend'));
+        fireEvent.click(screen.getByRole('button', { name: 'Move rule 1 down' }));
+        // the rule that was first is now second, and its "down" button still works: focus stays on that button
+        await waitFocus(() => (screen.getByRole('button', { name: 'Move rule 2 down' }).hasAttribute('disabled') ? null : screen.getByRole('button', { name: 'Move rule 2 down' })));
+    });
+
+    it('goes to an "Add a rule" button after a delete, also when the last rule is gone', async () => {
+        render(<Section rules={[NL, BE]} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Delete rule 1' }));
+        await waitFocus(() => screen.getByRole('button', { name: 'Add a rule' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Delete rule 1' }));
+        await waitFocus(() => screen.getByRole('button', { name: 'Add a rule' }));
+    });
+
+    it('goes to the closed section\'s own "Add a rule" button when the last rule is deleted from the inspector', async () => {
+        served.fieldRulesEnabled = true;
+        const store = createStore();
+        store.set(resetFromServerAtom, { formId: 'f', title: 'T', builderVersion: 'v2', fields: [page(country, postcode([NL]), qty, total())] } as any);
+        function Harness() {
+            const live = useField('postcode');
+            return live ? <FieldRulesSection field={live} /> : null;
+        }
+        render(
+            <Provider store={store}>
+                <Harness />
+            </Provider>
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Delete rule 1' }));
+        // the editor closes (no rules, and it was not opened from the button): its Add button is a new element
+        await waitFocus(() => screen.getByRole('button', { name: 'Add a rule' }));
     });
 });

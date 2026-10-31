@@ -295,6 +295,7 @@ const OutlineQuestionRow = memo(function OutlineQuestionRow({
                             )}
                             {rulesCount > 0 && (
                                 <span title={t('FIELD_RULES.BADGE_TITLE', { count: rulesCount })} data-testid="rules-badge" className="bg-brand-100 text-brand-600 shrink-0 rounded px-1 text-[10px] leading-4 font-semibold">
+                                    <span className="sr-only">, </span>
                                     {t('FIELD_RULES.BADGE', { count: rulesCount })}
                                 </span>
                             )}
