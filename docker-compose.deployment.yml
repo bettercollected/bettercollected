@@ -308,6 +308,8 @@ services:
       ADMIN_PUBLIC_ORIGINS: ${ADMIN_PUBLIC_ORIGINS:-http://localhost:${ADMIN_PORT:-8100},http://127.0.0.1:${ADMIN_PORT:-8100}}
       ADMIN_TRUSTED_PROXIES: ${ADMIN_TRUSTED_PROXIES:-}
       ADMIN_TRUSTED_PROXY_REFRESH_SECONDS: ${ADMIN_TRUSTED_PROXY_REFRESH_SECONDS:-}
+      ADMIN_TRUST_CLOUDFLARE: ${ADMIN_TRUST_CLOUDFLARE:-}
+      ADMIN_CLOUDFLARE_IPS: ${ADMIN_CLOUDFLARE_IPS:-}
       ADMIN_EDGE_GATEWAY: ${ADMIN_EDGE_GATEWAY:-172.30.77.1}
       # the bc_admin role sees only schema `admin` (postgres/ensure-admin-roles.sh);
       # empty without the password, which keeps the service in bare-gate mode

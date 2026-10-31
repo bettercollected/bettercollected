@@ -868,7 +868,7 @@ fi
 # The admin settings are read by docker compose from the root .env only. A value in
 # .env.deployment has no effect on the portal (it used to be listed there), so say so
 # instead of letting an operator believe a restriction is in force.
-for var in ADMIN_PORT ADMIN_ALLOWED_IPS ADMIN_ALLOWED_HOSTS ADMIN_PUBLIC_ORIGINS ADMIN_TRUSTED_PROXIES ADMIN_EDGE_SUBNET ADMIN_EDGE_GATEWAY; do
+for var in ADMIN_PORT ADMIN_ALLOWED_IPS ADMIN_ALLOWED_HOSTS ADMIN_PUBLIC_ORIGINS ADMIN_TRUSTED_PROXIES ADMIN_TRUST_CLOUDFLARE ADMIN_CLOUDFLARE_IPS ADMIN_EDGE_SUBNET ADMIN_EDGE_GATEWAY; do
   if file_has .env.deployment "$var" && ! file_has .env "$var"; then
     echo "NOTE: ${var} is set in .env.deployment but the admin service ignores it there: put it in the root .env."
   fi

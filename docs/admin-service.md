@@ -88,6 +88,18 @@ mode instead of failing.
   `X-Forwarded-For`. Use a name only on a network whose members you control. Behind the
   address gate the sign-in, second-factor and step-up checks still apply to every
   request.
+- **Behind Cloudflare: `ADMIN_TRUST_CLOUDFLARE=true`** (off by default) takes the client
+  address from `CF-Connecting-IP`, so `ADMIN_ALLOWED_IPS` can name the operators' own
+  addresses. It follows the same rules as the API's `API_TRUST_CLOUDFLARE`: the header is
+  believed only for a request whose TCP peer is in `ADMIN_TRUSTED_PROXIES` and whose first
+  hop past those proxies (the right-most `X-Forwarded-For` address that is not a trusted
+  proxy) is a Cloudflare address. Anything else is judged by that address, or by the peer,
+  and the header is ignored: from an untrusted peer, from a client that is not Cloudflare,
+  sent twice, or malformed. The built-in ranges are Cloudflare's published ones
+  (`common/utils/client_ip.py`, dated); `ADMIN_CLOUDFLARE_IPS` replaces them with your own
+  comma-separated list when Cloudflare publishes new ones. It needs `ADMIN_TRUSTED_PROXIES`:
+  without a trusted proxy in front, the header is never read. A value that is neither true nor
+  false, or a range that is not an address or CIDR (or matches everything), stops startup.
 - **Cookies and ports.** The `__Host-` cookies carry no port, so a browser sends
   `__Host-bcadmin` to every service on the same host name, whatever the port
   (`localhost:3000`, another tunnel, a second environment's portal tunnelled to
@@ -1485,6 +1497,8 @@ check), `(setting, reason)` pairs and the time of the check; `Portal.mail_status
 | `ADMIN_ALLOWED_HOSTS` | `localhost:<port>,127.0.0.1:<port>` | allowed `Host` values |
 | `ADMIN_TRUSTED_PROXIES` | empty | proxies whose `X-Forwarded-For` is believed: addresses, CIDRs and host names (resolved at start and refreshed; see "Network") |
 | `ADMIN_TRUSTED_PROXY_REFRESH_SECONDS` | `60` | how often host names in `ADMIN_TRUSTED_PROXIES` are resolved again (10 to 3600) |
+| `ADMIN_TRUST_CLOUDFLARE` | `false` | take the client address from `CF-Connecting-IP`, for a request from a trusted proxy whose first hop is a Cloudflare address (see "Network") |
+| `ADMIN_CLOUDFLARE_IPS` | empty (the built-in ranges) | addresses or CIDRs believed to be Cloudflare, with `ADMIN_TRUST_CLOUDFLARE` |
 | `ADMIN_EDGE_SUBNET` / `ADMIN_EDGE_GATEWAY` | `172.30.77.0/29` / `172.30.77.1` | the admin network |
 | `ADMIN_PUBLIC_ORIGINS` | `http://localhost:<port>,http://127.0.0.1:<port>` | origins the browser uses; state-changing requests must come from one of them (scheme, host, port) |
 | `PLATFORM_ADMIN_EMAILS` | empty (portal off) | the super admin addresses |

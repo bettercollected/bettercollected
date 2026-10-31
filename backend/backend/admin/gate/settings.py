@@ -5,6 +5,8 @@ import os
 from dataclasses import dataclass
 from typing import List, Mapping, Optional, Tuple
 
+from common.utils.client_ip import CLOUDFLARE_IPS
+
 from backend.admin.gate.proxies import (
     DEFAULT_REFRESH_SECONDS,
     MAX_NAMES,
@@ -75,6 +77,36 @@ def _refresh_seconds(value: Optional[str]) -> int:
     return int(raw)
 
 
+_TRUE = ("1", "true", "yes", "on", "t", "y")
+_FALSE = ("", "0", "false", "no", "off", "f", "n")
+
+
+def _cloudflare(switch: Optional[str], ranges: Optional[str]) -> Optional[str]:
+    """The Cloudflare ranges the portal believes ``CF-Connecting-IP`` from, or
+    None while ``ADMIN_TRUST_CLOUDFLARE`` is off (the default). A value that
+    is neither true nor false fails startup rather than guess. With it on,
+    ``ADMIN_CLOUDFLARE_IPS`` (addresses or CIDRs) replaces the built-in list;
+    it must not be empty of valid entries, and never matches everything."""
+    word = (switch or "").strip().lower()
+    if word in _FALSE:
+        return None
+    if word not in _TRUE:
+        raise GateConfigError("ADMIN_TRUST_CLOUDFLARE: not true or false")
+    spec = ",".join(_split(ranges)) or CLOUDFLARE_IPS
+    for part in spec.split(","):
+        try:
+            net = ipaddress.ip_network(part, strict=False)
+        except ValueError:
+            raise GateConfigError(
+                f"ADMIN_CLOUDFLARE_IPS: {part!r} is not an address or CIDR"
+            ) from None
+        if net.prefixlen == 0:
+            raise GateConfigError(
+                f"ADMIN_CLOUDFLARE_IPS: {part!r} would match every address"
+            )
+    return spec
+
+
 def _host(value: str) -> str:
     host = value.lower()
     if any(c in host for c in " /\\@\t") or not host.isascii():
@@ -92,6 +124,12 @@ class GateSettings:
     trusted_proxy_names: Tuple[str, ...] = ()
     proxy_refresh_seconds: int = DEFAULT_REFRESH_SECONDS
     port: int = DEFAULT_PORT
+    # Cloudflare's edge ranges, when the portal is explicitly set to take the
+    # client address from CF-Connecting-IP (ADMIN_TRUST_CLOUDFLARE, off by
+    # default); None: that header is never read. It is believed only for a
+    # request that came through a trusted proxy and whose first hop past the
+    # proxies is one of these ranges (common.utils.client_ip.resolve_client_ip).
+    cloudflare_ips: Optional[str] = None
     # the admin network's gateway: what host-side traffic looks like after Docker's
     # port publishing; /healthz answers it as well as loopback
     edge_gateway: Optional[ipaddress.IPv4Address | ipaddress.IPv6Address] = None
@@ -130,12 +168,16 @@ class GateSettings:
             "ADMIN_TRUSTED_PROXIES", env.get("ADMIN_TRUSTED_PROXIES")
         )
         refresh = _refresh_seconds(env.get("ADMIN_TRUSTED_PROXY_REFRESH_SECONDS"))
+        cloudflare = _cloudflare(
+            env.get("ADMIN_TRUST_CLOUDFLARE"), env.get("ADMIN_CLOUDFLARE_IPS")
+        )
         return cls(
             allowed_ips=tuple(ips),
             allowed_hosts=hosts,
             trusted_proxies=",".join(str(n) for n in proxies),
             trusted_proxy_names=proxy_names,
             proxy_refresh_seconds=refresh,
+            cloudflare_ips=cloudflare,
             port=port,
             edge_gateway=edge_gateway,
         )
