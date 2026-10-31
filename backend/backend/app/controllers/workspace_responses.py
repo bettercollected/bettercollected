@@ -108,8 +108,9 @@ class WorkspaceResponsesRouter(CustomRoutable):
         user: User = Depends(get_logged_user),
     ):
         """Every response of the form, decrypted and unpaginated: a bulk
-        download, so response.export like ``.../export``. The flow view reads
-        ``.../submission-paths`` instead."""
+        download, so response.export. The webapp's export is
+        ``POST .../exports`` (streamed or a job, audited); the flow view reads
+        ``.../submission-paths``."""
         return await self._form_response_service.get_workspace_form_all_submissions(
             form_id, workspace_id, user
         )
@@ -128,21 +129,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
         taken, ending reached), no answers: the flow view's insights
         (response.read)."""
         return await self._form_response_service.get_workspace_form_submission_paths(
-            form_id, workspace_id, user
-        )
-
-    @get(
-        "/forms/{form_id}/all-submissions/export",
-        response_model=List[StandardFormResponseCamelModel],
-    )
-    async def export_workspace_form_submissions(
-        self,
-        workspace_id: RecordId,
-        form_id: str,
-        user: User = Depends(get_logged_user),
-    ):
-        """Every response of the form for the CSV download (response.export)."""
-        return await self._form_response_service.get_workspace_form_all_submissions(
             form_id, workspace_id, user
         )
 

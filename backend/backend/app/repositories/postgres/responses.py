@@ -105,6 +105,13 @@ from common.clock import utcnow
 from camel_converter import to_camel, to_snake
 
 
+def utc_instant(moment: dt.datetime) -> dt.datetime:
+    """An aware UTC instant, to the microsecond (a naive one is taken as UTC)."""
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=dt.timezone.utc)
+    return moment.astimezone(dt.timezone.utc)
+
+
 def _filter_terms(doc, filter_query) -> list:
     """``create_filter_pipeline(filter_object=...)``: each set field is
     literal text its camelCase or snake_case key contains, ignoring case."""
@@ -637,6 +644,61 @@ class PostgresFormResponseRepository(RecordRepository):
 
     async def list_by_form_id(self, scope: ResponseScope) -> List[FormResponseDocument]:
         return await self.many(_in_scope(FormResponseRow, scope))
+
+    # -- export (services/response_export) ------------------------------------
+    @staticmethod
+    def _export_where(scope: ResponseScope, filters) -> list:
+        """The responses an export holds: those of ``scope`` that carry
+        answers (deletion-only stubs are not responses), narrowed by
+        ``filters`` on plaintext columns only; every value is bound.
+        TODO: the list's filter conditions (``_list_filters``) once that
+        branch is on develop."""
+        row = FormResponseRow
+        where = [
+            _in_scope(row, scope),
+            # a stub kept for a deletion request has no answers (or a null one)
+            func.coalesce(func.jsonb_typeof(row.doc["answers"]), "null") != "null",
+        ]
+        if filters is None:
+            return where
+        if filters.submitted_from is not None:
+            where.append(row.created_at >= utc_instant(filters.submitted_from))
+        if filters.submitted_to is not None:
+            where.append(row.created_at < utc_instant(filters.submitted_to))
+        if filters.respondent is not None:
+            anonymous = or_(row.data_owner_identifier.is_(None), row.data_owner_identifier == "")
+            where.append(anonymous if filters.respondent.value == "anonymous" else ~anonymous)
+        if filters.form_version:
+            where.append(
+                func.coalesce(row.form_version, 0).in_(sorted(set(filters.form_version)))
+            )
+        if filters.search:
+            where.extend(
+                _filter_terms(
+                    FormResponseRow.doc,
+                    FormResponseFilterQuery(data_owner_identifier=filters.search),
+                )
+            )
+        return where
+
+    async def count_for_export(self, scope: ResponseScope, filters=None) -> int:
+        """How many responses an export would hold, without reading an answer."""
+        return await self.count(*self._export_where(scope, filters))
+
+    async def export_batch(
+        self,
+        scope: ResponseScope,
+        filters=None,
+        after_id: Optional[str] = None,
+        limit: int = 500,
+    ) -> List[FormResponseDocument]:
+        """The next ``limit`` responses an export holds after ``after_id``, in
+        id order (the order they were stored in): a keyset, so a response
+        deleted meanwhile is simply not met and nothing is read twice."""
+        where = self._export_where(scope, filters)
+        if after_id is not None:
+            where.append(FormResponseRow.id > after_id)
+        return await self.many(*where, order_by=(FormResponseRow.id,), limit=limit)
 
     async def list_by_response_id(self, response_id: str) -> List[FormResponseDocument]:
         return await self.many(

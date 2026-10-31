@@ -29,6 +29,7 @@ JOB_NAMES = (
     "revoke_google_grant",
     "register_submission",
     "deliver_webhook",
+    "build_response_export",
 )
 SEARCH_PATH_OPTIONS = "-c search_path=jobs"
 

@@ -44,11 +44,13 @@ class FormImportService:
         workspace_repo: PostgresWorkspaceRepository,
         form_response_repo: PostgresFormResponseRepository,
         workspace_form_repo=None,
+        response_export_repo=None,
     ):
         self.form_service = form_service
         self._workspace_repo = workspace_repo
         self._form_response_repo = form_response_repo
         self._workspace_form_repo = workspace_form_repo  # routed
+        self._response_exports = response_export_repo
 
     async def get_form_workspace_by_id(self, workspace_id: RecordId):
         return await self._workspace_repo.get_workspace_by_id(workspace_id=workspace_id)
@@ -132,6 +134,12 @@ class FormImportService:
         await self._form_response_repo.delete_by_form_id_except(
             scope, updated_responses_id
         )
+        if self._response_exports is not None:
+            # responses the provider no longer has were deleted: no stored
+            # export file keeps them
+            await self._response_exports.forget_files_of_form(
+                workspace_id, standard_form.form_id
+            )
 
         modified_count = (
             await self._form_response_repo.mark_deletion_requests_success_except(

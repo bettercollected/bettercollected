@@ -137,6 +137,7 @@ class FormResponseService:
         workspace_repo: PostgresWorkspaceRepository,
         registration_delivery_repo=None,
         webhook_log_repo=None,
+        response_export_repo=None,
     ):
         self._form_response_repo = form_response_repo
         self._form_repo = form_repo
@@ -148,6 +149,9 @@ class FormResponseService:
         self._registration_deliveries = registration_delivery_repo
         # so do the webhook action-log rows that name it (ids only, 30 days)
         self._webhook_logs = webhook_log_repo
+        # stored export files (a job's) hold decrypted answers: any deletion of
+        # a form's responses drops them with it (services/response_export)
+        self._response_exports = response_export_repo
 
     async def get_all_workspace_responses(
         self,
@@ -618,20 +622,37 @@ class FormResponseService:
     ):
         """A form unlinked from one of several workspaces: the responses and
         deletion requests collected through that workspace go with it."""
-        return await self._form_response_repo.delete_in_scope(
+        deleted = await self._form_response_repo.delete_in_scope(
             ResponseScope(
                 workspace_id=RecordId(workspace_id), form_ids=(str(form_id),)
             )
         )
+        await self._forget_export_files([form_id], workspace_id)
+        return deleted
+
+    async def _forget_export_files(self, form_ids, workspace_id=None) -> None:
+        """Responses of these forms were deleted: so is every stored export
+        file that could hold them."""
+        if self._response_exports is None:
+            return
+        if workspace_id is not None:
+            for form_id in form_ids:
+                await self._response_exports.forget_files_of_form(workspace_id, form_id)
+        else:
+            await self._response_exports.forget_files_of_forms(list(form_ids))
 
     async def delete_form_responses(self, form_id):
-        return await self._form_response_repo.delete_by_form_id(form_id)
+        deleted = await self._form_response_repo.delete_by_form_id(form_id)
+        await self._forget_export_files([form_id])
+        return deleted
 
     async def delete_deletion_requests(self, form_id):
         return await self._form_response_repo.delete_deletion_requests(form_id=form_id)
 
     async def delete_form_responses_of_form_ids(self, form_ids):
-        return await self._form_response_repo.delete_by_form_ids(form_ids=form_ids)
+        deleted = await self._form_response_repo.delete_by_form_ids(form_ids=form_ids)
+        await self._forget_export_files(form_ids)
+        return deleted
 
     async def delete_deletion_requests_of_form_ids(self, form_ids):
         return await self._form_response_repo.delete_deletion_requests_by_form_ids(
@@ -668,6 +689,7 @@ class FormResponseService:
                     legacy_form_ids=(str(form_id),),
                 )
             )
+        await self._forget_export_files([form_id])
 
     def decrypt_form_responses(
         self,
@@ -782,6 +804,7 @@ class FormResponseService:
         await self._form_response_repo.delete_form_response(
             existing, expected_closures=expected_closures
         )
+        await self._forget_export_files([form_id], workspace_id)
         prefix = f"private/{workspace_id}/{form_id}/{response_id}"
         self._aws_service.delete_folder_from_s3(prefix)
         if self._registration_deliveries is not None:
@@ -905,10 +928,14 @@ class FormResponseService:
         # read first: the webhook log rows are scoped by workspace and form
         existing = (
             await self._form_response_repo.get_response(response_id)
-            if self._webhook_logs is not None
+            if self._webhook_logs is not None or self._response_exports is not None
             else None
         )
         deleted = await self._form_response_repo.delete_response(response_id=response_id)
+        if existing is not None and existing.workspace_id is not None:
+            await self._forget_export_files([existing.form_id], existing.workspace_id)
+        elif existing is not None:
+            await self._forget_export_files([existing.form_id])
         if self._registration_deliveries is not None:
             await self._registration_deliveries.delete_by_response_id(response_id)
         if (

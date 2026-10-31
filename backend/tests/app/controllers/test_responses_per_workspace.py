@@ -3,6 +3,8 @@ both). Each workspace's import brings its own copy of the responses, and
 every read path — staff, respondent and MCP — shows a workspace only the
 responses collected or imported there."""
 
+import csv
+import io
 from typing import List
 from unittest.mock import AsyncMock, patch
 
@@ -129,12 +131,20 @@ class TestStaffReads:
             assert _ids(dashboard.json()["items"]) == expected
             everything = await client.get(f"{base}/all-submissions", cookies=cookies)
             assert _ids(everything.json()["items"]) == expected
-            for path in ("all-submissions", "all-submissions/export"):
+            for path in ("all-submissions",):
                 listed = await client.get(
                     f"{base}/forms/{FORM_ID}/{path}", cookies=cookies
                 )
                 assert listed.status_code == 200, listed.text
                 assert _ids(listed.json()) == expected
+            # the export holds only this workspace's copies, whichever the form is
+            exported = await client.post(
+                f"{base}/forms/{FORM_ID}/exports", json={}, cookies=cookies
+            )
+            assert exported.status_code == 200, exported.text
+            table = list(csv.reader(io.StringIO(exported.content.decode("utf-8-sig"))))
+            at = table[0].index("Response ID")
+            assert {row[at] for row in table[1:]} == expected
             # answers decrypt under the workspace's own key context
             assert {
                 item["answers"]["q1"]["text"] for item in dashboard.json()["items"]

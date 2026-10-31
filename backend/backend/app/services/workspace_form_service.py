@@ -331,6 +331,7 @@ class WorkspaceFormService:
         registration_service=None,
         webhook_service=None,
         copy_recipient_service=None,
+        response_export_service=None,
     ):
         # who the "send me a copy" action may mail (services/copy_recipient.py)
         self._copy_recipient_service = copy_recipient_service
@@ -354,6 +355,7 @@ class WorkspaceFormService:
         # queues the delivery of a stored submission (services/registration)
         self._registration_service = registration_service
         self._webhook_service = webhook_service
+        self._response_export_service = response_export_service
 
     async def check_form_exists_in_workspace(
         self, workspace_id: RecordId, form_id: str
@@ -525,6 +527,9 @@ class WorkspaceFormService:
         if self._webhook_service is not None:
             # the form's webhooks, delivery log and audit trail
             await self._webhook_service.delete_for_form(workspace_id, form_id)
+        if self._response_export_service is not None:
+            # the form's export audit entries and any stored export file
+            await self._response_export_service.delete_for_form(workspace_id, form_id)
 
         if len(workspace_ids) > 1:
             # the form stays in the other workspaces; the responses collected
@@ -638,6 +643,8 @@ class WorkspaceFormService:
             await self._registration_service.delete_for_forms(list(form_ids))
         if self._webhook_service is not None and form_ids:
             await self._webhook_service.delete_for_forms(list(form_ids))
+        if self._response_export_service is not None and form_ids:
+            await self._response_export_service.delete_for_forms(list(form_ids))
         if self._pdf_import_repo is not None and form_ids:
             await self._pdf_import_repo.delete_by_form_ids(list(form_ids))
         return await self.workspace_form_repository.delete_forms(form_ids=form_ids)

@@ -657,3 +657,28 @@ class WebhookAuditRow(Base, BaseRow):
     form_id = S.text("form_id")
     webhook_id = S.text("webhook_id")
     __table_args__ = (Index(None, "workspace_id", "form_id", "created_at"),)
+
+
+class ResponseExportRow(Base, BaseRow):
+    __tablename__ = "response_exports"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    actor_id = S.text("actor_id")
+    status = S.text("status")
+    __table_args__ = (
+        Index(None, "workspace_id", "form_id", "created_at"),
+        Index(None, "actor_id", "form_id", "created_at"),
+        Index(None, "status", "created_at"),
+    )
+
+
+class ResponseExportChunkRow(Base, BaseRow):
+    __tablename__ = "response_export_chunks"
+    export_id = S.text("export_id")
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    chunk_index = S.int("index", name="chunk_index")
+    __table_args__ = (
+        UniqueConstraint("export_id", "chunk_index"),
+        Index(None, "workspace_id", "form_id"),
+    )
