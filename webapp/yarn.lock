@@ -841,7 +841,7 @@
   dependencies:
     "@swc/helpers" "^0.5.0"
 
-"@isaacs/nonrecursive-glob-match@^1.0.2":
+"@isaacs/nonrecursive-glob-match@^1.0.3":
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/@isaacs/nonrecursive-glob-match/-/nonrecursive-glob-match-1.0.3.tgz#7f6724fd8a6ca315d6bb7f63f0e4d079060da246"
   integrity sha512-SI7kyKHq4XXDRozw+r9GlRZkia1ZkFrpLW98r2IC2Bpr8YkFGE3fvjzmxCG0x78A++69HmDNrDvSMYBZmHGpKA==
@@ -6230,12 +6230,12 @@ minimatch@^10.2.2, minimatch@^10.2.3, minimatch@^10.2.4, minimatch@^10.2.5, mini
   dependencies:
     brace-expansion "^5.0.8"
 
-minimatch@^11.0.2:
-  version "11.0.2"
-  resolved "https://registry.yarnpkg.com/minimatch/-/minimatch-11.0.2.tgz#c51ab06cf560793fa5472fdd70829e088cd1a218"
-  integrity sha512-pWTgz5CN3tjqyZNSK2tePlSmu9IwM41q8yn8Usdqqwe9TIHh+9dEpLLjF4uApsfPEAZY71qtSiA2B2APEr+1Yw==
+minimatch@^11.0.3:
+  version "11.0.3"
+  resolved "https://registry.yarnpkg.com/minimatch/-/minimatch-11.0.3.tgz#d794539f77c0a98ea4adca473768d1e1357204f5"
+  integrity sha512-iny/40PEGkNJQ5/Pv6z3nm6FbRAby32GeZRjCUJk2WnNDbgPSTcdI+DDvLqsgBdD4cD5sMtMheqPPnehCCa8Nw==
   dependencies:
-    "@isaacs/nonrecursive-glob-match" "^1.0.2"
+    "@isaacs/nonrecursive-glob-match" "^1.0.3"
     brace-expansion "^5.0.12"
 
 minimist@^1.2.0, minimist@^1.2.6:
