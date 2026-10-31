@@ -46,12 +46,16 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - Email actions per form (off by default, `EMAIL_ACTIONS_ENABLED`). Owners and admins mail the form's team when a
   response is submitted, from English and Dutch templates (plain text, placeholders for the questions they choose)
   with a preview and a test mail to themselves. Team addresses must be members of the workspace, checked when saved
-  and again when sent. A copy for the respondent uses fixed wording, goes only to the address typed in that
-  submission and is rate limited, with its labels and answers cut short and without links. Mails are sent by the
-  jobs worker on a new `emails` queue with retries, and the action log (ids, status and timings, no addresses or
-  content, 30 days) shows them. The respondent's privacy panel says who is mailed.
-  Upgrade note: the jobs worker now serves `default`, `webhooks` and `emails`; if you set `JOBS_QUEUES`, include
-  `emails`. The backend now reads the `MAIL_*` settings of the mail server the auth service uses.
+  and again when sent, and a member removed from the workspace, deprovisioned by its SCIM directory or whose
+  account is deleted is taken off the team lists. A respondent can get a copy of their own answers only when they
+  are signed in: it goes to the verified email of the account they submitted with, read when the copy is sent, and
+  never to an address typed in an answer. Anonymous respondents (not signed in, or submitting anonymously) get no
+  copy, and the builder and the privacy panel say so. The copy uses fixed wording, with its labels and answers cut
+  short and without links (also links written with fullwidth or other look-alike characters). Team mail and copies
+  are rate limited per mailbox, form and workspace, each limit checked and counted in one locked step. Mails are
+  sent by the jobs worker on a new `emails` queue with retries, and the action log (ids, status and timings, no
+  addresses or content, 30 days) shows them. The respondent's privacy panel says who is mailed.
+  Upgrade note: see the 4.2.0 upgrade notes above for `JOBS_QUEUES` and the `MAIL_*` settings.
 - Webhooks and email actions can run only when a condition on the answers holds, built in the form's own logic
   conditions and checked by the server when the submission arrives. A submission that does not match is logged as
   cancelled, with no answers.
@@ -345,12 +349,6 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   removed or disabled later stops receiving copies. Before, any address could be set and the
   instance's mail server sent response data to it. Addresses are compared after trimming
   whitespace and ignoring case; plus tags and dots are not ignored.
-- A person deprovisioned by a workspace's SCIM directory is now also removed from the team lists of that workspace's
-  email actions, as removing a member or deleting an account already did.
-- The limits on the respondent's copy and on a form's team mail can no longer be overshot by mails sent at the same
-  time: each budget is checked and counted in one locked step.
-- The respondent's copy now finds links written with fullwidth or ideographic dots, slashes and colons, and other
-  compatibility forms: each label and answer is normalised to plain text before the links are removed.
 - Number-like answers (number, rating, linear rating and opinion scale questions) are now
   parsed in linear time. The same numbers are accepted as before.
 - With `DB_AUTO_MIGRATE` on, the backend now also removes, at startup, the response data that 4.1.x left in queued action jobs, as `python -m backend.jobs.schema` does at deploy. A stack upgraded by swapping images no longer keeps that data until someone runs the command. The step is idempotent, logs counts only, and never stops the start.
