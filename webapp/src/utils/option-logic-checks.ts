@@ -77,8 +77,7 @@ export interface OptionLogicWarning {
  * What a creator should look at, without being refused: an option no row of
  * the filter shows (`unreachable_option`), an option of the earlier question
  * with no row (`source_option_unmapped`), and a required question whose every
- * option has logic or sits behind a filter, so some answers leave nothing to
- * choose (`can_end_empty`: it is then not required).
+ * option has its own logic, so some answers leave nothing to choose (`can_end_empty`: it is then not required).
  */
 export function optionLogicWarnings(slides: StandardFormFieldDto[] | undefined): OptionLogicWarning[] {
     const found: OptionLogicWarning[] = [];
@@ -104,7 +103,7 @@ export function optionLogicWarnings(slides: StandardFormFieldDto[] | undefined):
             });
         }
         const choices = (field.properties?.choices ?? []).filter((choice) => choice?.id);
-        if (field.validations?.required && choices.length > 0 && !field.properties?.allowOtherChoice && choices.every((choice) => choiceLogic(choice) !== null || !!filter)) {
+        if (field.validations?.required && choices.length > 0 && !field.properties?.allowOtherChoice && choices.every((choice) => choiceLogic(choice) !== null)) {
             found.push({ fieldId: field.id, code: 'can_end_empty' });
         }
     });

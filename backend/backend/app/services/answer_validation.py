@@ -82,8 +82,10 @@ from backend.app.services.field_rules import (
     field_rule_states,
 )
 from backend.app.services.option_logic import (
+    COSTLY_CODE,
     HIDDEN_OPTION,
     NO_OPTION_LOGIC,
+    OptionLogicTooCostly,
     OptionStates,
     hidden_selection,
     option_states,
@@ -988,9 +990,21 @@ def check_answers(
     number of problems and their rule codes, never a value."""
     if form is None:
         return
-    problems = validate_answers(
-        form, answers, known_ids=known_ids, only=only, rule_states=rule_states
-    )
+    try:
+        problems = validate_answers(
+            form, answers, known_ids=known_ids, only=only, rule_states=rule_states
+        )
+    except OptionLogicTooCostly:
+        # a crafted form or answer: nothing is stored unchecked
+        logger.warning("Form {}: option logic over its evaluation budget", form_id)
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content={
+                "code": COSTLY_CODE,
+                "message": "This form's option logic is too costly to check; "
+                "the response was not stored.",
+            },
+        )
     if not problems:
         return
     if enforce is None:

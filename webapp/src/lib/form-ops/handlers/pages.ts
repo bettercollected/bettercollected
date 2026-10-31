@@ -73,19 +73,39 @@ export const duplicatePage: Handler<DuplicatePageOp> = (ctx, op) => {
     const page = clone(original);
     page.id = ctx.newId();
     const idMap = new Map<string, string>();
+    const choiceMap = new Map<string, string>();
     const pageFields = childrenOf(page);
     const all = [...pageFields, ...pageFields.filter(isRepeatingGroup).flatMap(childrenOf)];
     for (const field of all) {
         const id = ctx.newId();
         idMap.set(field.id, id);
         field.id = id;
-        for (const choice of field.properties?.choices ?? []) choice.id = ctx.newId();
+        for (const choice of field.properties?.choices ?? []) {
+            const choiceId = ctx.newId();
+            if (choice.id) choiceMap.set(choice.id, choiceId);
+            choice.id = choiceId;
+        }
     }
     // Remap in-page references onto the copies; references outside the page stay.
     for (const field of all) {
         for (const condition of field.properties?.logic?.conditions ?? []) {
             if (idMap.has(condition.fieldId)) condition.fieldId = idMap.get(condition.fieldId)!;
             if (condition.childFieldId && idMap.has(condition.childFieldId)) condition.childFieldId = idMap.get(condition.childFieldId)!;
+        }
+        // Option logic: conditions on the page's own questions follow the copies, and a filter's option ids follow the copied options.
+        for (const choice of field.properties?.choices ?? []) {
+            for (const condition of choice.logic?.conditions ?? []) {
+                if (idMap.has(condition.fieldId)) condition.fieldId = idMap.get(condition.fieldId)!;
+                if (condition.childFieldId && idMap.has(condition.childFieldId)) condition.childFieldId = idMap.get(condition.childFieldId)!;
+            }
+        }
+        const optionFilter = field.properties?.optionFilter;
+        if (optionFilter) {
+            if (idMap.has(optionFilter.fieldId)) optionFilter.fieldId = idMap.get(optionFilter.fieldId)!;
+            for (const entry of optionFilter.mapping) {
+                entry.when = choiceMap.get(entry.when) ?? entry.when;
+                entry.show = entry.show.map((option) => choiceMap.get(option) ?? option);
+            }
         }
         for (const rule of field.properties?.dateRules ?? []) if (rule.fieldId && idMap.has(rule.fieldId)) rule.fieldId = idMap.get(rule.fieldId)!;
         // Field rules are not copied: their ids are unique per form, and their references point at the original page.

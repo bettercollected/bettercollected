@@ -152,6 +152,25 @@ function questionState(field: StandardFormFieldDto, answers: Answers, sources: L
 }
 
 /**
+ * `answers` with every choice question's answer reduced to the options it really
+ * selects (each once, only options the question has), as the server reads them
+ * (a crafted answer costs nothing more than an honest one): the text typed as
+ * "Other" stays.
+ */
+function boundedAnswers(answers: Answers, sources: LogicSources): Answers {
+    let read = answers;
+    Object.entries(sources).forEach(([id, source]) => {
+        const answer = answers[id];
+        if (!CHOICE_TYPES.has(source.type) || !answer || typeof answer !== 'object') return;
+        const picked = selectedOptionIds(answer, source);
+        const next = answer.choices && typeof answer.choices === 'object' ? { choices: { values: picked, other: answer.choices.other } } : { choice: { value: picked[0], other: answer.choice?.other } };
+        if (read === answers) read = { ...answers };
+        read[id] = next;
+    });
+    return read;
+}
+
+/**
  * The availability of the options of every page-level choice question that
  * has option logic, for `answers`. `slides`: the form as respondents are
  * served it (no internal questions). `locked`: questions a field rule sets
@@ -165,7 +184,7 @@ export function optionStates(slides: StandardFormFieldDto[] | undefined, answers
     const lockedIds = new Set(locked ?? []);
     const budget = { conditions: FORM_OPTION_CONDITIONS_MAX, filters: FORM_OPTION_FILTERS_MAX };
     const states = new OptionStates();
-    const given = answers ?? {};
+    const given = boundedAnswers(answers ?? {}, sources);
     questions.forEach((field) => {
         if (lockedIds.has(field.id)) return;
         const { hidden, offered } = questionState(field, given, sources, budget);

@@ -51,6 +51,7 @@ loop.
 """
 
 from dataclasses import dataclass, field as dataclass_field
+from types import SimpleNamespace
 from http import HTTPStatus
 from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Set, Tuple
 
@@ -67,6 +68,14 @@ from backend.app.exceptions import HTTPException
 from backend.app.services.repeating_groups import evaluate_conditions, logic_sources
 
 ERROR_CODE = "invalid_option_logic"
+COSTLY_CODE = "option_logic_too_costly"
+# What one response may spend on evaluating option conditions: a condition
+# costs 1, plus the square of the options chosen in the choice question it
+# reads (its text is looked up for each of them), plus the items of a repeating
+# group it reads. Far above what a form within the caps needs; a response past
+# it (a crafted form, a crafted answer) is refused, never half checked.
+OPTION_LOGIC_COST_PER_RESPONSE = 200_000
+_GROUP_ITEMS_COST = 50 * 50
 # The rule code of an answer that selects an unavailable option.
 HIDDEN_OPTION = "hidden_option"
 
@@ -219,6 +228,11 @@ class OptionStates:
 NO_OPTION_LOGIC = OptionStates()
 
 
+class OptionLogicTooCostly(Exception):
+    """One response's option conditions went over
+    ``OPTION_LOGIC_COST_PER_RESPONSE``."""
+
+
 @dataclass
 class _Budget:
     """What one response may read: conditions and filters, as the form caps
@@ -226,6 +240,12 @@ class _Budget:
 
     conditions: int = FORM_OPTION_CONDITIONS_MAX
     filters: int = FORM_OPTION_FILTERS_MAX
+    cost: int = OPTION_LOGIC_COST_PER_RESPONSE
+
+    def charge(self, units: int) -> None:
+        self.cost -= units
+        if self.cost < 0:
+            raise OptionLogicTooCostly()
 
     def take_conditions(self, wanted: int) -> bool:
         if wanted > self.conditions:
@@ -275,14 +295,80 @@ def _allowed_by_filter(
     return allowed
 
 
+class _Reading:
+    """The answers and questions a condition reads. A choice question's answer
+    is read as the options it really selects (each once, only options the
+    question has) and its text is looked up among those alone, so that the
+    cost of a condition does not grow with the size of an answer or of the
+    question's list of options."""
+
+    def __init__(self, answers: Dict[str, Any], sources: Dict[str, Any]):
+        self.answers = dict(answers)
+        self.sources = dict(sources)
+        self.chosen: Dict[str, int] = {}
+        for key, source in sources.items():
+            if _type(source) not in CHOICE_TYPES:
+                continue
+            answer = answers.get(key)
+            if not isinstance(answer, dict):
+                continue
+            picked = selected_option_ids(answer, source)
+            self.chosen[key] = len(picked)
+            others = {
+                slot: _as_dict(answer.get(slot)).get("other")
+                for slot in ("choice", "choices")
+                if isinstance(_as_dict(answer.get(slot)), dict)
+            }
+            if isinstance(_as_dict(answer.get("choices")), dict):
+                read: Dict[str, Any] = {
+                    "choices": {"values": picked, "other": others.get("choices")}
+                }
+            else:
+                read = {
+                    "choice": {
+                        "value": picked[0] if picked else None,
+                        "other": others.get("choice"),
+                    }
+                }
+            self.answers[key] = read
+            wanted = set(picked)
+            self.sources[key] = SimpleNamespace(
+                id=key,
+                type=_type(source),
+                internal=False,
+                properties=SimpleNamespace(
+                    choices=[
+                        {
+                            "id": str(_get(choice, "id")),
+                            "value": _get(choice, "value"),
+                            "label": _get(choice, "label"),
+                        }
+                        for choice in _choices(source)
+                        if str(_get(choice, "id")) in wanted
+                    ]
+                ),
+            )
+
+    def cost(self, conditions: Iterable[Any]) -> int:
+        total = 0
+        for condition in conditions:
+            total += 1
+            if _get(condition, "group_mode"):
+                total += _GROUP_ITEMS_COST
+                continue
+            chosen = self.chosen.get(str(_get(condition, "field_id") or ""), 0)
+            total += chosen * chosen
+        return total
+
+
 def _question_state(
     field: Any,
-    answers: Dict[str, Any],
-    sources: Dict[str, Any],
+    reading: _Reading,
     budget: _Budget,
 ) -> Tuple[FrozenSet[str], int]:
     """``(hidden option ids, options offered)`` of one question."""
     owner = str(_get(field, "id"))
+    answers, sources = reading.answers, reading.sources
     choices = _choices(field)[:OPTION_LOGIC_OPTIONS_MAX]
     flt = _filter(field)
     allowed = (
@@ -307,9 +393,8 @@ def _question_state(
             continue
         if _dangling(conditions, owner, sources):
             continue
-        met = evaluate_conditions(
-            _get(logic, "operator"), conditions, answers, sources
-        )
+        budget.charge(reading.cost(conditions))
+        met = evaluate_conditions(_get(logic, "operator"), conditions, answers, sources)
         if (_get(logic, "action") == "SHOW") != met:
             hidden.add(choice_id)
     return frozenset(hidden), len(choices) - len(hidden)
@@ -346,12 +431,13 @@ def option_states(
     }
     locked_ids = set(locked)
     budget = _Budget()
+    reading = _Reading(plain, sources)
     states = OptionStates()
     for field in questions:
         field_id = str(_get(field, "id"))
         if field_id in locked_ids:
             continue
-        hidden, offered = _question_state(field, plain, sources, budget)
+        hidden, offered = _question_state(field, reading, budget)
         if not hidden:
             continue
         other = bool(_get(_props(field), "allow_other_choice"))
@@ -362,9 +448,7 @@ def option_states(
     return states
 
 
-def hidden_selection(
-    field: Any, answer: Any, states: OptionStates
-) -> bool:
+def hidden_selection(field: Any, answer: Any, states: OptionStates) -> bool:
     """Does the answer select an option the question does not offer?"""
     hidden = states.hidden_options(str(_get(field, "id")))
     return bool(hidden) and any(
@@ -526,7 +610,9 @@ class _Check:
         if is_group and mode not in GROUP_MODES:
             return f"'{_title(source)}' is a repeating group: set groupMode to COUNT, ANY or ALL."
         if not is_group and mode:
-            return f"groupMode only applies to repeating groups, not '{_title(source)}'."
+            return (
+                f"groupMode only applies to repeating groups, not '{_title(source)}'."
+            )
         if is_group and mode in ("ANY", "ALL"):
             children = {str(_get(c, "id")) for c in _group_children(source)}
             if str(_get(condition, "child_field_id") or "") not in children:
@@ -799,14 +885,13 @@ def option_logic_warnings(form: Any) -> List[OptionLogicWarning]:
       shows, so no answer to the earlier question offers it;
     - ``source_option_unmapped``: an option of the earlier question with no
       row (or an empty one): choosing it leaves nothing to choose;
-    - ``can_end_empty``: a required question whose every option has logic or
-      sits behind a filter, so some answers leave it with nothing to choose
-      (it is then never required, but the creator probably did not mean it).
+    - ``can_end_empty``: a required question whose every option has its own
+      logic, so some answers leave it with nothing to choose (it is then never
+      required, but the creator probably did not mean it). A filter that leaves
+      nothing is ``source_option_unmapped``'s to say.
     """
     found: List[OptionLogicWarning] = []
-    by_id = {
-        str(_get(f, "id")): f for f in _page_questions(form) if _get(f, "id")
-    }
+    by_id = {str(_get(f, "id")): f for f in _page_questions(form) if _get(f, "id")}
     for field in by_id.values():
         if not _is_option_target(field) or not has_option_logic(field):
             continue
@@ -841,7 +926,7 @@ def option_logic_warnings(form: Any) -> List[OptionLogicWarning]:
             required
             and choices
             and not _get(_props(field), "allow_other_choice")
-            and all(_option_logic(c) is not None or flt is not None for c in choices)
+            and all(_option_logic(c) is not None for c in choices)
         ):
             found.append(OptionLogicWarning(field_id, CAN_END_EMPTY))
     return found

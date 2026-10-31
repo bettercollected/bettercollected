@@ -144,7 +144,11 @@ def test_the_spec_round_trips_option_logic_and_the_filter():
             _country(),
             _city(
                 choices=[
-                    {"id": "ams", "value": "Amsterdam", "logic": _show(_is("country", "Netherlands"))},
+                    {
+                        "id": "ams",
+                        "value": "Amsterdam",
+                        "logic": _show(_is("country", "Netherlands")),
+                    },
                     *CITIES[1:],
                 ]
             ),
@@ -154,7 +158,11 @@ def test_the_spec_round_trips_option_logic_and_the_filter():
     city = document["pages"][0]["fields"][1]
     assert city["optionFilter"]["fieldId"] == "country"
     assert city["choices"][0]["logic"]["action"] == "SHOW"
-    back = spec_to_form(__import__("common.form_spec", fromlist=["FormSpec"]).FormSpec.model_validate(document))
+    back = spec_to_form(
+        __import__("common.form_spec", fromlist=["FormSpec"]).FormSpec.model_validate(
+            document
+        )
+    )
     again = back.fields[0].properties.fields[1].properties
     assert again.option_filter.mapping[2].show == ["bru"]
     assert again.choices[0].logic.conditions[0].value == "Netherlands"
@@ -225,32 +233,78 @@ def test_a_form_without_option_logic_costs_nothing():
         ),
         # a filter that reads itself
         (
-            [_field("city", choices=CITIES, optionFilter={"fieldId": "city", "mapping": [{"when": "ams", "show": ["ber"]}]})],
+            [
+                _field(
+                    "city",
+                    choices=CITIES,
+                    optionFilter={
+                        "fieldId": "city",
+                        "mapping": [{"when": "ams", "show": ["ber"]}],
+                    },
+                )
+            ],
             "cannot read its own question",
         ),
         # an unknown question
         (
-            [_city(optionFilter={"fieldId": "gone", "mapping": [{"when": "a", "show": ["b"]}]})],
+            [
+                _city(
+                    optionFilter={
+                        "fieldId": "gone",
+                        "mapping": [{"when": "a", "show": ["b"]}],
+                    }
+                )
+            ],
             "not a question of this form",
         ),
         # an entry that names an unknown option of the earlier question
         (
-            [_country(), _city(optionFilter={"fieldId": "country", "mapping": [{"when": "xx", "show": ["ams"]}]})],
+            [
+                _country(),
+                _city(
+                    optionFilter={
+                        "fieldId": "country",
+                        "mapping": [{"when": "xx", "show": ["ams"]}],
+                    }
+                ),
+            ],
             "'xx' is not an option of 'Country'",
         ),
         # ... or of this one
         (
-            [_country(), _city(optionFilter={"fieldId": "country", "mapping": [{"when": "nl", "show": ["xx"]}]})],
+            [
+                _country(),
+                _city(
+                    optionFilter={
+                        "fieldId": "country",
+                        "mapping": [{"when": "nl", "show": ["xx"]}],
+                    }
+                ),
+            ],
             "an entry names an option that 'City' does not have",
         ),
         # a filter on a text question
         (
-            [_field("name", "short_text"), _city(optionFilter={"fieldId": "name", "mapping": [{"when": "a", "show": ["ams"]}]})],
+            [
+                _field("name", "short_text"),
+                _city(
+                    optionFilter={
+                        "fieldId": "name",
+                        "mapping": [{"when": "a", "show": ["ams"]}],
+                    }
+                ),
+            ],
             "not a single or multiple choice",
         ),
         # option logic on a question that has no choices
         (
-            [_field("name", "short_text", choices=[{"id": "a", "value": "A", "logic": _show(_is("x", "y"))}])],
+            [
+                _field(
+                    "name",
+                    "short_text",
+                    choices=[{"id": "a", "value": "A", "logic": _show(_is("x", "y"))}],
+                )
+            ],
             "cannot have logic",
         ),
     ],
@@ -267,7 +321,15 @@ def test_problems_the_save_refuses(fields, expected):
         (_is("gone", "x"), "not a question of this form"),
         (_is("later", "x"), "can only depend on an earlier question"),
         (_is("note", "x", "short_text"), "internal field"),
-        ({"fieldId": "country", "comparison": "IS_EQUAL", "value": "x", "groupMode": "ANY"}, "groupMode only applies"),
+        (
+            {
+                "fieldId": "country",
+                "comparison": "IS_EQUAL",
+                "value": "x",
+                "groupMode": "ANY",
+            },
+            "groupMode only applies",
+        ),
     ],
 )
 def test_option_conditions_are_checked_like_logic_and_must_read_earlier_questions(
@@ -281,7 +343,10 @@ def test_option_conditions_are_checked_like_logic_and_must_read_earlier_question
             note,
             _field(
                 "city",
-                choices=[{"id": "ams", "value": "Amsterdam", "logic": _show(condition)}, CITIES[1]],
+                choices=[
+                    {"id": "ams", "value": "Amsterdam", "logic": _show(condition)},
+                    CITIES[1],
+                ],
             ),
             _field("later", "short_text"),
         ]
@@ -302,7 +367,19 @@ def test_option_logic_is_for_page_level_choice_questions_only():
 
 def test_too_many_options_for_option_logic():
     many = [{"id": f"o{i}", "value": str(i)} for i in range(201)]
-    form = _form([_country(), _field("city", choices=many, optionFilter={"fieldId": "country", "mapping": [{"when": "nl", "show": ["o1"]}]})])
+    form = _form(
+        [
+            _country(),
+            _field(
+                "city",
+                choices=many,
+                optionFilter={
+                    "fieldId": "country",
+                    "mapping": [{"when": "nl", "show": ["o1"]}],
+                },
+            ),
+        ]
+    )
     assert any("more than 200 options" in m for m in _messages(form))
 
 
@@ -310,7 +387,14 @@ def test_the_form_caps_count_conditions_and_filters():
     # 51 questions each with a filter
     sources = [_country()]
     filtered = [
-        _field(f"c{i}", choices=CITIES, optionFilter={"fieldId": "country", "mapping": [{"when": "nl", "show": ["ams"]}]})
+        _field(
+            f"c{i}",
+            choices=CITIES,
+            optionFilter={
+                "fieldId": "country",
+                "mapping": [{"when": "nl", "show": ["ams"]}],
+            },
+        )
         for i in range(51)
     ]
     form = _unchecked_form(sources + filtered)
@@ -400,9 +484,7 @@ def test_a_builder_style_save_repairs_instead_of_refusing():
 
 def test_states_hold_minimum_choices_and_none_left():
     form = _form([_country(), _city()])
-    answers = StandardFormResponseCamelModel(
-        answers={"country": _choice("nl")}
-    ).answers
+    answers = StandardFormResponseCamelModel(answers={"country": _choice("nl")}).answers
     states = option_states(form, answers)
     assert states.hidden_options("city") == frozenset({"ber", "bru"})
     assert states.min_choices(form.fields[0].properties.fields[1], 3) == 1
@@ -414,11 +496,12 @@ def test_the_replay_reads_no_more_than_the_caps_allow():
     # past it are offered (such a form cannot be saved)
     conditions = [_is("country", "Netherlands") for _ in range(20)]
     choices = [
-        {"id": f"o{i}", "value": str(i), "logic": _show(*conditions)}
-        for i in range(60)
+        {"id": f"o{i}", "value": str(i), "logic": _show(*conditions)} for i in range(60)
     ]
     form = _unchecked_form([_country(), _field("pick", choices=choices)])
-    states = option_states(form, StandardFormResponseCamelModel(answers={"country": _choice("de")}).answers)
+    states = option_states(
+        form, StandardFormResponseCamelModel(answers={"country": _choice("de")}).answers
+    )
     assert len(states.hidden_options("pick")) == FORM_OPTION_CONDITIONS_MAX // 20
 
 
@@ -454,7 +537,10 @@ def test_warnings_name_the_options_and_questions():
             _city(
                 optionFilter={
                     "fieldId": "country",
-                    "mapping": [{"when": "nl", "show": ["ams"]}, {"when": "de", "show": ["ber"]}],
+                    "mapping": [
+                        {"when": "nl", "show": ["ams"]},
+                        {"when": "de", "show": ["ber"]},
+                    ],
                 },
             ),
         ]
@@ -471,9 +557,7 @@ def _apply(form, ops, atomic=False):
 
 
 def _plain_form():
-    return _form(
-        [_country(), _field("city", choices=CITIES), _field("age", "number")]
-    )
+    return _form([_country(), _field("city", choices=CITIES), _field("age", "number")])
 
 
 def test_set_option_logic_names_the_option_by_label_and_checks_it():
@@ -487,7 +571,11 @@ def test_set_option_logic_names_the_option_by_label_and_checks_it():
                 "logic": {
                     "action": "SHOW",
                     "conditions": [
-                        {"fieldId": "country", "comparison": "IS_EQUAL", "value": "Netherlands"}
+                        {
+                            "fieldId": "country",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands",
+                        }
                     ],
                 },
             }
@@ -499,7 +587,8 @@ def test_set_option_logic_names_the_option_by_label_and_checks_it():
     assert logic.conditions[0].field_type == "dropdown"
     # clearing it
     form, results = _apply(
-        form, [{"op": "set_option_logic", "fieldId": "city", "choice": "ams", "logic": None}]
+        form,
+        [{"op": "set_option_logic", "fieldId": "city", "choice": "ams", "logic": None}],
     )
     assert results[0].ok
     assert form.fields[0].properties.fields[1].properties.choices[0].logic is None
@@ -509,7 +598,12 @@ def test_set_option_logic_names_the_option_by_label_and_checks_it():
     "op, expected",
     [
         (
-            {"op": "set_option_logic", "fieldId": "city", "choice": "Nowhere", "logic": None},
+            {
+                "op": "set_option_logic",
+                "fieldId": "city",
+                "choice": "Nowhere",
+                "logic": None,
+            },
             "is not an option of 'City'",
         ),
         (
@@ -521,7 +615,12 @@ def test_set_option_logic_names_the_option_by_label_and_checks_it():
                 "op": "set_option_logic",
                 "fieldId": "country",
                 "choice": "Germany",
-                "logic": {"action": "SHOW", "conditions": [{"fieldId": "city", "comparison": "IS_EQUAL", "value": "Berlin"}]},
+                "logic": {
+                    "action": "SHOW",
+                    "conditions": [
+                        {"fieldId": "city", "comparison": "IS_EQUAL", "value": "Berlin"}
+                    ],
+                },
             },
             "can only depend on an earlier question",
         ),
@@ -530,7 +629,12 @@ def test_set_option_logic_names_the_option_by_label_and_checks_it():
                 "op": "set_option_logic",
                 "fieldId": "city",
                 "choice": "Berlin",
-                "logic": {"action": "SHOW", "conditions": [{"fieldId": "city", "comparison": "IS_EQUAL", "value": "Berlin"}]},
+                "logic": {
+                    "action": "SHOW",
+                    "conditions": [
+                        {"fieldId": "city", "comparison": "IS_EQUAL", "value": "Berlin"}
+                    ],
+                },
             },
             "own question",
         ),
@@ -539,7 +643,16 @@ def test_set_option_logic_names_the_option_by_label_and_checks_it():
                 "op": "set_option_logic",
                 "fieldId": "city",
                 "choice": "Berlin",
-                "logic": {"action": "SHOW", "conditions": [{"fieldId": "country", "comparison": "IS_EQUAL", "value": "Mars"}]},
+                "logic": {
+                    "action": "SHOW",
+                    "conditions": [
+                        {
+                            "fieldId": "country",
+                            "comparison": "IS_EQUAL",
+                            "value": "Mars",
+                        }
+                    ],
+                },
             },
             "is not a choice of 'Country'",
         ),
@@ -582,12 +695,18 @@ def test_set_option_filter_refuses_a_later_or_text_source():
             {
                 "op": "set_option_filter",
                 "fieldId": "country",
-                "filter": {"fieldId": "city", "mapping": [{"when": "Berlin", "show": ["Germany"]}]},
+                "filter": {
+                    "fieldId": "city",
+                    "mapping": [{"when": "Berlin", "show": ["Germany"]}],
+                },
             },
             {
                 "op": "set_option_filter",
                 "fieldId": "city",
-                "filter": {"fieldId": "age", "mapping": [{"when": "x", "show": ["Berlin"]}]},
+                "filter": {
+                    "fieldId": "age",
+                    "mapping": [{"when": "x", "show": ["Berlin"]}],
+                },
             },
         ],
     )
@@ -603,7 +722,13 @@ def test_removing_a_question_or_an_option_drops_what_read_it_and_says_so():
     assert form.fields[0].properties.fields[0].properties.option_filter is None
     form, results = _apply(
         base,
-        [{"op": "update_field", "fieldId": "country", "patch": {"choices": ["Netherlands", "Belgium"]}}],
+        [
+            {
+                "op": "update_field",
+                "fieldId": "country",
+                "patch": {"choices": ["Netherlands", "Belgium"]},
+            }
+        ],
     )
     assert results[0].ok
     mapping = form.fields[0].properties.fields[1].properties.option_filter.mapping
@@ -643,7 +768,9 @@ def test_duplicating_a_page_remaps_option_logic_onto_the_copy():
     assert flt.field_id == clone[0].id != "country"
     new_ids = {c.id for c in clone[0].properties.choices}
     assert {e.when for e in flt.mapping} == new_ids
-    assert {s for e in flt.mapping for s in e.show} == {c.id for c in clone[1].properties.choices}
+    assert {s for e in flt.mapping for s in e.show} == {
+        c.id for c in clone[1].properties.choices
+    }
     assert option_logic_problems(form) == []
 
 
@@ -655,12 +782,18 @@ def test_an_editor_op_cannot_bring_broken_option_logic():
         "title": "City",
         "properties": {
             "choices": [{"id": "a", "value": "A"}, {"id": "b", "value": "B"}],
-            "optionFilter": {"fieldId": "gone", "mapping": [{"when": "x", "show": ["a"]}]},
+            "optionFilter": {
+                "fieldId": "gone",
+                "mapping": [{"when": "x", "show": ["a"]}],
+            },
         },
     }
     _, results = apply_form_ops(
         base,
-        parse_ops([{"op": "insert_field", "pageId": "p0", "index": 1, "field": bad}], allow_editor_ops=True),
+        parse_ops(
+            [{"op": "insert_field", "pageId": "p0", "index": 1, "field": bad}],
+            allow_editor_ops=True,
+        ),
     )
     assert not results[0].ok
     assert "option filter" in results[0].message
@@ -669,7 +802,12 @@ def test_an_editor_op_cannot_bring_broken_option_logic():
 def test_too_many_option_conditions_in_one_payload_are_refused_before_parsing():
     conditions = [{"fieldId": "country", "comparison": "IS_EQUAL", "value": "x"}] * 20
     ops = [
-        {"op": "set_option_logic", "fieldId": "city", "choice": f"c{i}", "logic": {"action": "SHOW", "conditions": conditions}}
+        {
+            "op": "set_option_logic",
+            "fieldId": "city",
+            "choice": f"c{i}",
+            "logic": {"action": "SHOW", "conditions": conditions},
+        }
         for i in range(FORM_OPTION_CONDITIONS_MAX // 20 + 1)
     ]
     with pytest.raises(ValueError):
@@ -787,15 +925,11 @@ async def test_a_builder_save_repairs_broken_option_logic_without_refusing(works
         workspace.id, _form([_country(), _city()]), testUser
     )
     # the source question is removed: the filter goes, the save does not fail
-    await service.update_form(
-        workspace.id, form.form_id, _form([_city()]), testUser
-    )
+    await service.update_form(workspace.id, form.form_id, _form([_city()]), testUser)
     saved = await container.form_service().get_form_document_by_id(str(form.form_id))
     assert saved.fields[0].properties.fields[0].properties.option_filter is None
     # the builder sends the same thing again and the save still goes through
-    await service.update_form(
-        workspace.id, form.form_id, _form([_city()]), testUser
-    )
+    await service.update_form(workspace.id, form.form_id, _form([_city()]), testUser)
 
 
 async def test_persist_form_is_the_last_gate_and_repairs_what_a_writer_left(workspace):
@@ -810,3 +944,110 @@ async def test_persist_form_is_the_last_gate_and_repairs_what_a_writer_left(work
     await persist_form(repo, document, broken, parts=["fields"])
     saved = await repo.get_form_document_by_id(str(created.form_id))
     assert saved.fields[0].properties.fields[0].properties.option_filter is None
+
+
+def test_a_crafted_answer_is_read_as_the_options_it_selects():
+    # the same option five thousand times, and one it does not have: read once / not at all
+    form = _form(
+        [
+            _country(),
+            _field(
+                "city",
+                choices=[
+                    {
+                        "id": "ams",
+                        "value": "Amsterdam",
+                        "logic": _show(_is("country", "Netherlands")),
+                    },
+                    {
+                        "id": "ber",
+                        "value": "Berlin",
+                        "logic": _show(_is("country", "Germany")),
+                    },
+                ],
+            ),
+        ]
+    )
+    answers = {
+        "country": {"type": "choices", "choices": {"values": ["nl"] * 5000 + ["ghost"]}}
+    }
+    states = option_states(form, answers)
+    assert states.hidden_options("city") == frozenset({"ber"})
+
+
+def test_option_logic_over_its_budget_is_refused_not_half_checked():
+    from backend.app.services.option_logic import OptionLogicTooCostly
+
+    # a source with many options, all chosen, read by many conditions
+    countries = [{"id": f"c{i}", "value": f"Country {i}"} for i in range(300)]
+    pick = [
+        {
+            "id": f"o{i}",
+            "value": f"Option {i}",
+            "logic": _show(_is("country", "Country 0", "multiple_choice")),
+        }
+        for i in range(30)
+    ]
+    form = _unchecked_form(
+        [
+            _field(
+                "country",
+                "multiple_choice",
+                choices=countries,
+                allowMultipleSelection=True,
+            ),
+            _field("pick", choices=pick),
+        ]
+    )
+    everything = {
+        "country": {
+            "type": "choices",
+            "choices": {"values": [c["id"] for c in countries]},
+        }
+    }
+    with pytest.raises(OptionLogicTooCostly):
+        option_states(form, everything)
+    # one chosen option costs next to nothing
+    one = {"country": {"type": "choices", "choices": {"values": ["c0"]}}}
+    assert option_states(form, one).hidden == {}
+
+
+async def test_the_server_answers_422_when_the_option_logic_is_too_costly(workspace):
+    countries = [{"id": f"c{i}", "value": f"Country {i}"} for i in range(300)]
+    pick = [
+        {
+            "id": f"o{i}",
+            "value": f"Option {i}",
+            "logic": _show(_is("country", "Country 0", "multiple_choice")),
+        }
+        for i in range(30)
+    ]
+    form = await _published(
+        workspace,
+        [
+            _field(
+                "country",
+                "multiple_choice",
+                choices=countries,
+                allowMultipleSelection=True,
+            ),
+            _field("pick", choices=pick),
+        ],
+    )
+    service = container.workspace_form_service()
+    with pytest.raises(HTTPException) as error:
+        await service.submit_response(
+            workspace.id,
+            form.form_id,
+            StandardFormResponseCamelModel(
+                answers={
+                    "country": {
+                        "type": "choices",
+                        "choices": {"values": [c["id"] for c in countries]},
+                    }
+                }
+            ),
+            testUser,
+        )
+    assert error.value.status_code == 422
+    assert error.value.content["code"] == "option_logic_too_costly"

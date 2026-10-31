@@ -1288,6 +1288,206 @@
       "noneLeft": []
     },
     {
+      "name": "a crafted multiple choice answer is read as the options it selects, each once",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "multiple_choice",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "dutch",
+                      "value": "Stroopwafel",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "multiple_choice",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "german",
+                      "value": "Bratwurst",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "multiple_choice",
+                            "comparison": "IS_EQUAL",
+                            "value": "Germany"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "c-nl",
+              "c-nl",
+              "c-nl",
+              "ghost"
+            ]
+          }
+        }
+      },
+      "hidden": {
+        "drink": [
+          "german"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
+      "name": "an answer naming an option the question does not have selects nothing",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "multiple_choice",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              },
+              {
+                "id": "drink",
+                "type": "multiple_choice",
+                "title": "Drink",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "soda",
+                      "value": "Soda"
+                    },
+                    {
+                      "id": "dutch",
+                      "value": "Stroopwafel",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "multiple_choice",
+                            "comparison": "IS_EQUAL",
+                            "value": "Netherlands"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "german",
+                      "value": "Bratwurst",
+                      "logic": {
+                        "action": "SHOW",
+                        "conditions": [
+                          {
+                            "fieldId": "country",
+                            "fieldType": "multiple_choice",
+                            "comparison": "IS_EQUAL",
+                            "value": "Germany"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "allowMultipleSelection": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "country": {
+          "type": "choices",
+          "choices": {
+            "values": [
+              "Germany"
+            ]
+          }
+        }
+      },
+      "hidden": {
+        "drink": [
+          "dutch",
+          "german"
+        ]
+      },
+      "noneLeft": []
+    },
+    {
       "name": "filter: only the options the chosen option maps to are offered",
       "checks": [
         "evaluate"
@@ -4812,6 +5012,99 @@
           "number": 20
         }
       },
+      "hidden": {},
+      "noneLeft": [],
+      "warnings": []
+    },
+    {
+      "name": "warnings: a required question behind a complete filter has none",
+      "checks": [
+        "evaluate"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "country",
+                "type": "dropdown",
+                "title": "Country",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "c-nl",
+                      "value": "Netherlands"
+                    },
+                    {
+                      "id": "c-de",
+                      "value": "Germany"
+                    },
+                    {
+                      "id": "c-be",
+                      "value": "Belgium"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "city",
+                "type": "dropdown",
+                "title": "City",
+                "properties": {
+                  "choices": [
+                    {
+                      "id": "ct-ams",
+                      "value": "Amsterdam"
+                    },
+                    {
+                      "id": "ct-rot",
+                      "value": "Rotterdam"
+                    },
+                    {
+                      "id": "ct-ber",
+                      "value": "Berlin"
+                    },
+                    {
+                      "id": "ct-bru",
+                      "value": "Brussels"
+                    }
+                  ],
+                  "optionFilter": {
+                    "fieldId": "country",
+                    "mapping": [
+                      {
+                        "when": "c-nl",
+                        "show": [
+                          "ct-ams",
+                          "ct-rot"
+                        ]
+                      },
+                      {
+                        "when": "c-de",
+                        "show": [
+                          "ct-ber"
+                        ]
+                      },
+                      {
+                        "when": "c-be",
+                        "show": [
+                          "ct-bru"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
       "hidden": {},
       "noneLeft": [],
       "warnings": []

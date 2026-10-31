@@ -223,7 +223,7 @@ number of options offered, and a question a field rule sets or locks is not
 filtered.
 
 **Warnings** (never refused): an option no filter row shows, an earlier option
-with no row, and a required question whose every option is conditional.
+with no row, and a required question whose every option has its own logic.
 
 ## What is not in the document
 
