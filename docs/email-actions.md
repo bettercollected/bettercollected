@@ -24,7 +24,7 @@ One action belongs to one form (at most 5 per form). It has:
 | Part | Rule |
 |---|---|
 | Name | Up to 80 characters, one line. |
-| Team addresses | Up to 5, one plain address each (trimmed, case-folded; plus tags and dots are kept, so a tagged address counts only if it matches a member's exactly). **Each must be the address of a current, enabled member of the workspace**: checked when saved (422 `recipient_not_allowed`) and again every time a mail is sent, so a removed member stops receiving mail. Same rule as the "send me a copy" action. |
+| Team addresses | Up to 5, one plain address each, stored and mailed **as typed** (surrounding space removed); each mailbox once, and compared with the members' addresses case-folded (plus tags and dots are kept, so a tagged address counts only if it matches a member's exactly). **Each must be the address of a current, enabled member of the workspace**: checked when saved (422 `recipient_not_allowed`) and again every time a mail is sent, so a removed member stops receiving mail. Same rule as the "send me a copy" action. |
 | Respondent copy | An `email` question of the form. Its answer in *this* submission receives a copy. See "The respondent's copy". |
 | Questions | The questions the text may name, each with a name (`^[A-Za-z_][A-Za-z0-9_]{0,63}$`, unique, never `form_title`, `submitted_at` or `answers`). Same variables as webhooks; files are never sent; a repeating group is a list. |
 | Templates | A subject and a message in **English and Dutch**, both required. The form's language (`nl`, `nl-BE`, ... is Dutch, anything else English) picks which one the team gets. |
@@ -49,10 +49,14 @@ Rules, all enforced by `backend/backend/app/services/email_actions/templates.py`
 
 - A placeholder that is not mapped nor built in is refused when saved (422 `unknown_placeholder`), and so is a `{{` or `}}` that is not part of one (`invalid_placeholder`).
 - Rendering is **one pass**: a value inserted is never read again, so an answer that contains `{{answers}}` stays the text it is.
-- Every value: control characters, line and paragraph separators (U+2028, U+2029), NEL (U+0085), bidirectional overrides and isolates (U+202A-U+202E, U+2066-U+2069), zero
-  width characters and unassigned code points are removed (a line break in the **subject** or a name becomes a space, in the message a line break); each value is capped (2,000
+- Every value: control characters, line and paragraph separators (U+2028, U+2029), NEL (U+0085), bidirectional overrides and isolates (U+202A-U+202E, U+2066-U+2069), and the
+  other format characters (zero width space and joiner-like marks, byte order mark) are removed, except the zero width joiner (U+200D) that emoji sequences need. Unassigned code points are kept in
+  messages (this Python's Unicode data can be older than the sender's emoji and scripts; addresses are stricter and refuse them) (a line break in the **subject** or a name becomes a space, in the message a line break); each value is capped (2,000
   characters in the message, 200 in the subject) and the message at 20,000.
-- The team's mails are also capped at 600 per hour per form, so a flood of submissions cannot drain the instance's mail quota (over the cap: `cancelled`, `rate_limited`).
+- The team's mails are also capped at 600 per hour per form, so a flood of submissions cannot drain the instance's mail quota. Over the cap the mail is `cancelled` (`rate_limited`), **not deferred**: a deferral
+  of that size (hundreds of mails to the next hour) would only move the flood, and the log shows exactly which submissions were not mailed. A public form that really gets more than 600 responses an hour
+  is not a fit for per-response mail.
+- A literal encoded word in a subject (`=?utf-8?q?...?=`) is broken up (`= ?`), so no mail client decodes typed text into something else.
 - The **subject is always one line**. The standard library refuses a header value with a line break, so nothing that slipped past cleaning could add a header. Recipients are
   validated as one plain address (no whitespace, control or format character, none of `<>(),;:"\[]`), all in `To`; there is no `Cc`, `Bcc` or `Reply-To`. Messages carry
   `Auto-Submitted: auto-generated`.
@@ -66,12 +70,16 @@ A respondent-supplied address is the one place the system mails someone nobody o
 - The address comes only from the `email` question of this very submission, read from the stored (decrypted in memory) answers at send time, never from a request, a header or the
   queue. It receives a copy of **their own** submission and nothing else. There is no endpoint that mails an address a caller supplies.
 - **Fixed wording** (English or Dutch, by the form's language), not a template the creator wrote: a line saying what it is, a line saying why they got it, the answers of the
-  mapped questions under their question labels (their own, each capped; a calculation kept from respondents is left out) and the time. **No form title**, in the subject or the body:
-  nothing a creator wrote reaches the copy except the question labels.
+  mapped questions under their question labels (their own; a calculation kept from respondents is left out) and the time. **No form title**, in the subject or the body. The question
+  labels and the answers are the only free text, so they are limited **there and only there** (the team's mail is not):
+  every label and every answer is cut to 200 characters (with an ellipsis), the whole answers block to 2,000, and anything URL-like (`scheme://...`, `mailto:`, `www....`, a bare
+  `domain.tld/path`) becomes `[link removed]` (an email address in an answer stays). So the copy cannot carry a page or an advertisement of any size to someone who never asked for it.
+  Limiting the copy to *verified* addresses (the email-code gate) is a possible later step; this is the default.
 - Rate limited, counted in keyed hashes that name no address: 3 per hour per mailbox and form, 10 per hour per mailbox (all forms), 600 per hour per form and **1,000 per hour per workspace**. A
   *mailbox* is the address reduced to a key: lower case, the `+tag` dropped, the dots of a Gmail / Googlemail local part dropped (`googlemail.com` is `gmail.com`), the domain IDNA-encoded with a
   trailing dot removed. So `A.B+x@GMAIL.com` and `ab@gmail.com` share one budget, and so do an internationalised domain and its punycode form; the mail itself goes to the address exactly as typed.
-  Over a limit, the run is `cancelled` (`rate_limited`) and not retried. A mail counts against the limits **once**, however many attempts it takes.
+  Over a limit, the run is `cancelled` (`rate_limited`) and not retried. A mail counts against the limits **once**, however many attempts it takes, and an attempt that is denied counts
+  against **none** of the budgets (so someone over one limit cannot use up the workspace's or another mailbox's).
 - A submission without a usable address queues no copy.
 
 ## Conditions
@@ -94,8 +102,11 @@ was removed) never runs the action (`condition_invalid`). A condition cannot be 
 - The log is the shared action log (`action_logs`, type `email`): one row per mail (the team's and the respondent's copy are two rows), with the ids (workspace, form, action, response),
   the channel (`team` or `respondent`), a status (`pending`, `in_progress`, `retrying`, `delivered`, `failed`, `cancelled`), the attempt count, timings and one of our codes
   (`recipient_rejected`, `smtp_rejected`, `smtp_busy`, `smtp_auth`, `smtp_unavailable`, `smtp_error`, `timeout`, `tls_error`, `invalid_message`, `mail_not_configured`,
-  `answers_unreadable`, `recipient_not_allowed`, `no_address`, `rate_limited`, `disabled`, `condition_not_met`, `condition_invalid`, `internal_error`). **No address, hash or domain of
+  `answers_unreadable`, `address_not_supported`, `recipient_not_allowed`, `no_address`, `rate_limited`, `disabled`, `condition_not_met`, `condition_invalid`, `internal_error`). **No address, hash or domain of
   one, subject or content.** Kept 30 days.
+- **At least once.** A worker that dies after the mail server accepted a message but before the row says `delivered` is rescued after 30 minutes and sends it again (the retry does not count against the limits a second time). A duplicate mail is possible; a lost one is not.
+- **Addresses at rest.** The team addresses an action lists are stored in clear (admins read them in the list). When a member is removed from a workspace, or their account is deleted (every workspace they were in), their address is removed from every email action's team (an action left with no recipient and no copy question is switched off).
+- **Addresses on the wire.** An address is mailed as typed, except that an internationalised domain goes in its ASCII (IDNA) form (the same mailbox); a non-ASCII local part needs SMTPUTF8, which a server may not offer, and fails at once as `address_not_supported`. `%` (legacy source routing) is not allowed in an address.
 - Erasure: deleting a response deletes its log rows, a mail not yet sent is never sent (the job finds the submission gone and drops the row), and deleting a form or workspace deletes the actions and
   the log. Mail already sent is out of our hands: the privacy panel says so.
 

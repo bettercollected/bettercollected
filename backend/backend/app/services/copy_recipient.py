@@ -44,14 +44,14 @@ COPY_RECIPIENT_MESSAGE = (
 
 _ADDRESS_MAX = 254
 #: characters an address in a header or an address list could not carry
-_FORBIDDEN = set('<>(),;:"\\[]')
+_FORBIDDEN = set('<>(),;:"\\[]%')
 
 
 def normalize_address(value: Any) -> Optional[str]:
     """``value`` trimmed and case-folded, or None when it cannot be one plain
     address: not text, empty, over 254 characters, not exactly one ``@`` with
     something on both sides, or holding whitespace, a control character, or
-    one of ``<>(),;:"\\[]`` (so a second address, a display name or an extra
+    one of ``<>(),;:"\\[]%`` (``%`` is legacy source routing; so a second address, a display name or an extra
     header line never gets through)."""
     if not isinstance(value, str):
         return None
@@ -168,18 +168,20 @@ class CopyRecipientService:
     async def allowed_among(
         self, addresses: Iterable[Any], workspace_id, form_id
     ) -> List[str]:
-        """Those of ``addresses`` (normalised, in order, once each) that belong
-        to a current, enabled member of the workspace now. One membership read
-        for all of them. Nothing for a form that is not the workspace's."""
-        wanted = []
+        """Those of ``addresses`` (in order, each mailbox once, **as typed**
+        apart from surrounding space: only the comparison is case-folded) that
+        belong to a current, enabled member of the workspace now. One
+        membership read for all of them. Nothing for a form that is not the
+        workspace's."""
+        wanted: dict = {}
         for value in addresses:
-            address = normalize_address(value)
-            if address is not None and address not in wanted:
-                wanted.append(address)
+            folded = normalize_address(value)
+            if folded is not None and folded not in wanted:
+                wanted[folded] = value.strip()
         if not wanted:
             return []
         allowed = await self._allowed_addresses(workspace_id, form_id)
-        return [address for address in wanted if address in allowed]
+        return [typed for folded, typed in wanted.items() if folded in allowed]
 
     async def is_allowed(self, address: Any, workspace_id, form_id) -> bool:
         wanted = normalize_address(address)

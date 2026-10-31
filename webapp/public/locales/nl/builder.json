@@ -1182,7 +1182,8 @@
         "condition_not_met": "De antwoorden kwamen niet overeen met de voorwaarde, dus er is niets verstuurd.",
         "condition_invalid": "De voorwaarde kon niet worden gelezen (een vraag is verwijderd), dus er is niets verstuurd.",
         "internal_error": "Er ging iets mis aan onze kant.",
-        "unknown": "Het is niet verstuurd."
+        "unknown": "Het is niet verstuurd.",
+        "address_not_supported": "Naar dit adres kan niet worden verstuurd: de mailserver accepteert alleen adressen met gewone letters voor de @. Dat proberen we niet opnieuw."
       }
     }
   }

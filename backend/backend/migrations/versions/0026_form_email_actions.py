@@ -7,12 +7,15 @@ Create Date: 2026-10-31
 One new table (``backend/app/services/email_actions``): a form's email
 actions (templates, team addresses, the question whose answer receives a copy).
 And a generated spine column ``action_type`` on ``action_logs``, so the webhook
-and the email sweeps and lists each read only their own rows. Expand-only: a
-new table and a new nullable generated column (the table is small and kept 30
-days); rows written before it read as ``webhook``. Numbered 0026 because the
-responses list work takes 0025: whichever merges second sets its down-revision
-to the other's. Written by hand in the shape
-autogenerate produces for a BaseRow table.
+and the email sweeps and lists each read only their own rows. A new table and a
+new nullable column: the previous release does not use either, so a rollback
+keeps working. **A STORED generated column rewrites the table**, taking an
+exclusive lock on ``action_logs`` while it does: it holds at most 30 days of
+action log rows (this table is new in the same release), so it is quick, but it
+is not free. Rows written before it read as ``webhook``. Numbered 0026 because
+the responses list work takes 0025: whichever merges second sets its
+down-revision to the other's. Written by hand in the shape autogenerate
+produces for a BaseRow table.
 """
 
 from typing import Sequence, Union

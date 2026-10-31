@@ -102,7 +102,7 @@ COPY_ADDRESS_FORM_SCOPE = "email_copy_address_form"
 COPY_ADDRESS_FORM_PER_HOUR = 3
 COPY_ADDRESS_SCOPE = "email_copy_address"
 COPY_ADDRESS_PER_HOUR = 10
-# all the copies of one workspace together (owner decision)
+# all the copies of one workspace together
 COPY_WORKSPACE_SCOPE = "email_copy_workspace"
 COPY_WORKSPACE_PER_HOUR = 1000
 # the team's mails of one form: a submission flood cannot drain the instance's mail quota
@@ -283,9 +283,10 @@ def _plain(value: Any) -> Dict[str, Any]:
 
 
 def respondent_address(form: Any, source: Optional[str], answers: Any) -> Optional[str]:
-    """The normalised address in the answer to the email question ``source``
-    of this submission, or None (no such question, not an email question,
-    unanswered, or not one plain address)."""
+    """The address in the answer to the email question ``source`` of this
+    submission **as typed** (surrounding space removed), or None (no such
+    question, not an email question, unanswered, or not one plain address).
+    Only counting and comparing use the case-folded form."""
     if not source:
         return None
     variable = body_builder.variables_of(form).get(source)
@@ -293,7 +294,7 @@ def respondent_address(form: Any, source: Optional[str], answers: Any) -> Option
         return None
     answer = _plain((answers or {}).get(source) if isinstance(answers, dict) else None)
     value = answer.get("email") or answer.get("text")
-    return normalize_address(value)
+    return value.strip() if normalize_address(value) is not None else None
 
 
 def _form_title(form: Any) -> str:
@@ -483,22 +484,21 @@ class EmailActionService:
     async def _checked_team(
         self, addresses: List[str], workspace_id: RecordId, form_id: str
     ) -> List[str]:
-        normalised: List[str] = []
+        typed: dict = {}  # case-folded -> as typed (trimmed): each mailbox once
         for value in addresses:
-            address = normalize_address(value)
-            if address is None:
+            folded = normalize_address(value)
+            if folded is None:
                 raise _invalid("invalid_recipient", "Use one plain email address per line.")
-            if address not in normalised:
-                normalised.append(address)
-        if len(normalised) > MAX_TEAM:
+            typed.setdefault(folded, value.strip())
+        if len(typed) > MAX_TEAM:
             raise _invalid("too_many_recipients", f"At most {MAX_TEAM} addresses.")
-        allowed = await self._copy.allowed_among(normalised, workspace_id, form_id)
-        if len(allowed) != len(normalised):
+        allowed = await self._copy.allowed_among(list(typed.values()), workspace_id, form_id)
+        if len(allowed) != len(typed):
             raise _invalid(
                 "recipient_not_allowed",
                 "A team address must be the address of a member of this workspace.",
             )
-        return normalised
+        return list(typed.values())
 
     @staticmethod
     def _checked_respondent_field(form, source: Optional[str]) -> Optional[str]:
@@ -836,9 +836,10 @@ class EmailActionService:
         channel = request.channel if request.channel in (CHANNEL_TEAM, CHANNEL_RESPONDENT) else CHANNEL_TEAM
         if channel == CHANNEL_RESPONDENT and not document.respondent_field:
             raise _invalid("no_copy", "This action sends no copy to the respondent.")
-        address = normalize_address(getattr(user, "sub", None))
-        if address is None:
+        sub = getattr(user, "sub", None)
+        if normalize_address(sub) is None:
             raise _invalid("no_address", "Your account has no email address.")
+        address = sub.strip()
         message = "Too many test mails; try again later."
         await self._rate_limit(TEST_SCOPE, f"{workspace_id}:{document.id}", TEST_PER_ACTION, 60, message)
         await self._rate_limit(TEST_SCOPE, str(workspace_id), TEST_PER_WORKSPACE, 60, message)
@@ -880,7 +881,7 @@ class EmailActionService:
         try:
             await self._transport.send(
                 recipients=[address],
-                subject=templates.one_line("[Test] " + subject, templates.SUBJECT_MAX),
+                subject=templates.subject_line("[Test] " + subject),
                 body=body,
             )
             log.status = LogStatus.DELIVERED
@@ -1136,11 +1137,24 @@ class EmailActionService:
             COUNTED_SCOPE, str(log.id), self._clock() + COUNTED_TTL
         )
 
-    async def _team_within_limit(self, form_id: str) -> bool:
+    async def _within(self, checks) -> bool:
+        """``checks``: ``(scope, client, limit)`` triples. True, and every
+        counter goes up, only when **all** of them have room: a denied attempt
+        counts against none of the budgets, so someone who is over one limit
+        cannot use up the others (a victim's mailbox, the workspace)."""
         if self._limiter is None:
             return True
-        verdict = await self._limiter.hit(TEAM_FORM_SCOPE, str(form_id), TEAM_FORM_PER_HOUR, HOUR)
-        return verdict.allowed
+        for scope, client, limit in checks:
+            seen = await self._limiter.hit(scope, client, limit, HOUR, amount=0)
+            if seen.count >= limit:
+                return False
+        allowed = True
+        for scope, client, limit in checks:
+            allowed = (await self._limiter.hit(scope, client, limit, HOUR)).allowed and allowed
+        return allowed
+
+    async def _team_within_limit(self, form_id: str) -> bool:
+        return await self._within(((TEAM_FORM_SCOPE, str(form_id), TEAM_FORM_PER_HOUR),))
 
     async def _copy_within_limits(self, workspace_id, form_id: str, address: str) -> bool:
         """The respondent's copy: per workspace, per form, per mailbox and
@@ -1148,20 +1162,15 @@ class EmailActionService:
         Gmail dots and the spelling of the domain do not make a new one); the
         address itself is mailed as typed. The counters are keyed hashes: none
         names an address."""
-        if self._limiter is None:
-            return True
-        key = rate_limit_key(address) or address
-        checks = (
-            (COPY_WORKSPACE_SCOPE, str(workspace_id), COPY_WORKSPACE_PER_HOUR),
-            (COPY_FORM_SCOPE, str(form_id), COPY_FORM_PER_HOUR),
-            (COPY_ADDRESS_FORM_SCOPE, f"{form_id}:{key}", COPY_ADDRESS_FORM_PER_HOUR),
-            (COPY_ADDRESS_SCOPE, key, COPY_ADDRESS_PER_HOUR),
+        key = rate_limit_key(address) or address.casefold()
+        return await self._within(
+            (
+                (COPY_WORKSPACE_SCOPE, str(workspace_id), COPY_WORKSPACE_PER_HOUR),
+                (COPY_FORM_SCOPE, str(form_id), COPY_FORM_PER_HOUR),
+                (COPY_ADDRESS_FORM_SCOPE, f"{form_id}:{key}", COPY_ADDRESS_FORM_PER_HOUR),
+                (COPY_ADDRESS_SCOPE, key, COPY_ADDRESS_PER_HOUR),
+            )
         )
-        allowed = True
-        for scope, client, limit in checks:
-            verdict = await self._limiter.hit(scope, client, limit, HOUR)
-            allowed = allowed and verdict.allowed
-        return allowed
 
     async def _still_wanted(self, log: ActionLogDocument) -> Optional[Outcome]:
         """Right before a send: ``None`` when it may go on, else the outcome
@@ -1253,6 +1262,32 @@ class EmailActionService:
         return {"queued": queued, "rescued": rescued}
 
     # --------------------------------------------------------- deletion hooks
+
+    async def forget_address(self, address: Any, workspace_id: Any = None) -> int:
+        """Erasure of a person's address from the team lists: removed from
+        every email action's team (of ``workspace_id`` when given, else of every
+        workspace) when they leave a workspace or their account is deleted. An
+        action left with no recipient at all (no team, no copy question) is
+        switched off. Returns how many actions changed. Compared case-folded."""
+        folded = normalize_address(address)
+        if folded is None:
+            return 0
+        changed = 0
+        for action in await self._actions.list_with_team_address(folded, workspace_id):
+            kept = [a for a in action.team_recipients if normalize_address(a) != folded]
+            if len(kept) == len(action.team_recipients):
+                continue
+            action.team_recipients = kept
+            if not kept and not action.respondent_field:
+                action.enabled = False
+            action.touch()
+            await self._actions.save(action)
+            changed += 1
+            logger.info(
+                "email action: a team address was erased: workspace={} form={} action={}",
+                action.workspace_id, action.form_id, action.id,
+            )
+        return changed
 
     async def delete_for_form(self, workspace_id: RecordId, form_id: str) -> None:
         await self._actions.delete_for_form(workspace_id, form_id)

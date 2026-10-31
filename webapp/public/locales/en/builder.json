@@ -1182,7 +1182,8 @@
         "condition_not_met": "The answers did not match the condition, so nothing was sent.",
         "condition_invalid": "The condition could not be read (a question was removed), so nothing was sent.",
         "internal_error": "Something went wrong on our side.",
-        "unknown": "It was not sent."
+        "unknown": "It was not sent.",
+        "address_not_supported": "The address cannot be sent to: this mail server accepts only addresses with plain letters before the @. We do not retry that."
       }
     }
   }

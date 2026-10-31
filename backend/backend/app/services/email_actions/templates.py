@@ -40,8 +40,9 @@ LABEL_MAX = 200
 LANGUAGES = ("en", "nl")
 DEFAULT_LANGUAGE = "en"
 
-_LINE_BREAKS = re.compile(r"\r\n|[\r  \u0085\u000b\u000c]")
-_KEEP_FORMAT = {"‍"}  # zero width joiner: part of emoji sequences
+_LINE_BREAKS = re.compile("\r\n|[\r\u2028\u2029\u0085\u000b\u000c]")
+# zero width joiner (U+200D): part of emoji sequences, the one format character kept
+_KEEP_FORMAT = {"\u200d"}
 
 
 def language_of(form: Any) -> str:
@@ -63,7 +64,12 @@ def clean(value: Any, *, multiline: bool) -> str:
     """``value`` as text with nothing that could break a line, a header or the
     reader's screen: line breaks become ``\\n`` (a space when not ``multiline``),
     tabs a space, other control characters, bidirectional overrides, zero width
-    characters and unassigned or private code points are dropped."""
+    format characters (zero width ones; not the zero width joiner of emoji
+    sequences), surrogates and private-use code points are dropped. Unassigned
+    code points are **kept**: the Unicode data of this Python can be older than
+    the sender's emoji and scripts, and a code point it does not know is not
+    one it can call dangerous (addresses are stricter, see
+    ``copy_recipient.normalize_address``)."""
     text = "" if value is None else str(value)
     text = _LINE_BREAKS.sub("\n", text)
     out: List[str] = []
@@ -74,7 +80,7 @@ def clean(value: Any, *, multiline: bool) -> str:
             out.append(" ")
         else:
             category = unicodedata.category(ch)
-            if category in ("Cc", "Cs", "Co", "Cn"):
+            if category in ("Cc", "Cs", "Co"):
                 continue
             if category == "Cf" and ch not in _KEEP_FORMAT:
                 continue
@@ -151,6 +157,48 @@ def format_value(value: Any, language: str = DEFAULT_LANGUAGE) -> str:
 
 Entry = Tuple[str, str, Any]  # key, label, value
 
+# ---------------------------------------------- limits of the respondent's copy
+
+# The copy goes to an address a respondent typed, with the creator's question
+# labels and the respondent's answers as the only free text. So there it is
+# short, and it holds no link: a label or an answer cannot carry a phishing
+# page or an advertisement to someone who never asked for it. (The team's mail
+# is not limited this way.)
+COPY_ITEM_MAX = 200
+COPY_ANSWERS_MAX = 2000
+LINK_REMOVED = "[link removed]"
+# whole email addresses are left alone (a respondent's own address in their own
+# copy); then a scheme (``https://``, ``mailto:``...), ``www.``, or a bare
+# ``name.tld`` with an optional path
+_EMAIL = r"[\w.+-]+@(?:[\w-]+\.)+[A-Za-z]{2,}"
+_LINK = re.compile(
+    rf"(?P<email>{_EMAIL})"
+    r"|(?P<link>\b(?:[A-Za-z][A-Za-z0-9+.-]*://|(?:mailto|tel|sms|javascript|data|file):)\S*"
+    r"|\bwww\.\S*"
+    r"|(?<![\w@.-])(?:[\w-]+\.)+[A-Za-z]{2,}(?:[/:?#]\S*)?)",
+    re.IGNORECASE,
+)
+
+
+def defang_links(text: str) -> str:
+    """``text`` with anything URL-like (``scheme://...``, ``www....``, a bare
+    ``domain.tld/path``) replaced by ``[link removed]``. Email addresses stay."""
+    return _LINK.sub(lambda m: m.group(0) if m.group("email") else LINK_REMOVED, text)
+
+
+def copy_answers_block(entries: Sequence[Entry], language: str = DEFAULT_LANGUAGE) -> str:
+    """The respondent's copy of ``answers_block``: every label and answer cut
+    to ``COPY_ITEM_MAX`` characters (with an ellipsis), links removed, the
+    whole block to ``COPY_ANSWERS_MAX``."""
+    lines = []
+    for _key, label, value in entries:
+        name = truncate(defang_links(one_line(label, LABEL_MAX)), COPY_ITEM_MAX)
+        text = truncate(
+            defang_links(multi_line(format_value(value, language), VALUE_MAX)), COPY_ITEM_MAX
+        ).replace("\n", "\n  ")
+        lines.append(f"{name}: {text}".rstrip())
+    return truncate("\n".join(lines), COPY_ANSWERS_MAX)
+
 
 def answers_block(entries: Sequence[Entry], language: str = DEFAULT_LANGUAGE) -> str:
     """One ``Label: answer`` line per question; the lines of a long answer are
@@ -201,13 +249,21 @@ def render(
     values = _values_for(entries, form_title, submitted_at, language, subject=subject)
     filled = PLACEHOLDER.sub(lambda m: values.get(m.group(1), ""), template)
     if subject:
-        return one_line(filled, SUBJECT_MAX)
+        return subject_line(filled)
     return multi_line(filled, MESSAGE_MAX)
+
+
+def subject_line(value: Any) -> str:
+    """A subject: one line, capped, and no literal encoded word (``=?utf-8?q?..?=``)
+    that a mail client could decode into something else than what was typed."""
+    return one_line(value, SUBJECT_MAX).replace("=?", "= ?")
 
 
 # ----------------------------------------------- the respondent's own copy
 
-# Fixed wording: nothing a creator wrote goes to an address a respondent gave.
+# Fixed wording: apart from the question labels, nothing a creator wrote goes to
+# an address a respondent gave, and labels and answers are cut and link-free
+# there (``copy_answers_block``).
 RESPONDENT_TEXT = {
     "en": {
         "subject": "A copy of your submission",
@@ -242,7 +298,7 @@ def render_respondent(
     words = RESPONDENT_TEXT.get(language, RESPONDENT_TEXT[DEFAULT_LANGUAGE])
     parts = [words["intro"], "", words["why"]]
     if entries:
-        parts += ["", words["answers"], answers_block(entries, language)]
+        parts += ["", words["answers"], copy_answers_block(entries, language)]
     if submitted_at:
         parts += ["", words["when"].format(when=one_line(submitted_at, 40))]
     return words["subject"], multi_line("\n".join(parts), MESSAGE_MAX)

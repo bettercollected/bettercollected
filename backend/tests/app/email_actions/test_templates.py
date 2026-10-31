@@ -273,3 +273,114 @@ def test_an_address_with_any_of_them_is_not_an_address(mark):
     assert normalize_address(f"ada{mark}@example.test") is None
     assert normalize_address(f"ada@exa{mark}mple.test") is None
     assert normalize_address("ada@example.test") == "ada@example.test"
+
+
+# ----------------------------------------------- the respondent's copy: size and links
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("see https://evil.example/login now", "see [link removed] now"),
+        ("HTTP://EVIL.example", "[link removed]"),
+        ("ftp://a.example/x", "[link removed]"),
+        ("www.evil.example/pay", "[link removed]"),
+        ("evil.example", "[link removed]"),
+        ("evil.example/pay?x=1#y", "[link removed]"),
+        ("sub.evil.co.uk/x", "[link removed]"),
+        ("mailto:victim@evil.example", "[link removed]"),
+        ("javascript:alert(1)", "[link removed]"),
+        ("go to evil.example, then www.evil.example.", "go to [link removed], then [link removed]"),
+        ("a https://x.example b https://y.example c", "a [link removed] b [link removed] c"),
+        # not links: plain words, numbers, and an email address (the respondent's own)
+        ("Just words, and 3.14 and e.g. things", "Just words, and 3.14 and e.g. things"),
+        ("ada@example.test", "ada@example.test"),
+        ("write to ada@example.test please", "write to ada@example.test please"),
+    ],
+)
+def test_links_are_removed_from_the_respondents_copy(text, expected):
+    assert templates.defang_links(text) == expected
+
+
+def _copy(entries):
+    return templates.render_respondent(entries, submitted_at="now", language="en")[1]
+
+
+def test_the_copy_removes_links_from_labels_and_answers_but_the_team_mail_keeps_them():
+    entries = [("q", "Visit https://evil.example/now", "Pay at www.evil.example/pay or evil.example/x")]
+    text = _copy(entries)
+    assert "evil" not in text.lower() and text.count("[link removed]") == 3
+    assert "Question" not in text
+    team = body("{{answers}}", entries)
+    assert "https://evil.example/now" in team and "www.evil.example/pay" in team
+
+
+def test_every_label_and_answer_of_the_copy_is_cut_to_200_characters_and_the_block_to_2000():
+    long = "x" * 5000
+    text = _copy([("q", long, long)])
+    line = [l for l in text.split("\n") if l.startswith("x")][0]
+    label, _, answer = line.partition(": ")
+    assert len(label) == 200 and label.endswith("…")
+    assert len(answer) == 200 and answer.endswith("…")
+    # the review's probe: 50 labels of 200 characters, answers of 2,000 with links
+    entries = [(f"k{i}", ("L" * 190) + f" {i} https://evil.example/{i}", ("A " * 1000) + " https://evil.example/pay") for i in range(50)]
+    block = templates.copy_answers_block(entries)
+    assert len(block) <= templates.COPY_ANSWERS_MAX == 2000 and block.endswith("…")
+    body_text = _copy(entries)
+    assert "evil.example" not in body_text
+    fixed = len(templates.render_respondent([], submitted_at="now", language="en")[1])
+    assert len(body_text) <= fixed + 2000 + 100
+    # the team's mail is not cut this way
+    assert len(body("{{answers}}", [(f"k{i}", "L" * 190, "A" * 1500) for i in range(5)])) > 2000
+
+
+def test_a_multi_line_answer_in_the_copy_is_indented_and_cut():
+    text = _copy([("q", "Q", "first\nsecond\n" + "z" * 400)])
+    assert "Q: first\n  second\n  " in text
+
+
+# ---------------------------------------------------------------- other limits
+
+
+def test_a_literal_encoded_word_in_a_subject_is_neutralised():
+    entries = [("name", "Full name", "=?utf-8?q?hi=0D=0ABcc:_v@x.com?=")]
+    line = subject("Re: {{name}} =?UTF-8?B?aGk=?=", entries)
+    assert "=?" not in line and "= ?utf-8?q?hi=0D=0ABcc:_v@x.com?=" in line
+    assert templates.subject_line("=?x?q?y?=") == "= ?x?q?y?="
+
+
+def test_unassigned_code_points_are_kept_in_messages_but_not_in_addresses():
+    from backend.app.services.copy_recipient import normalize_address
+
+    newer_emoji = "\U0001fae8"  # unassigned in an older Unicode release than the sender's
+    assert templates.clean(f"a{newer_emoji}b", multiline=True) == f"a{newer_emoji}b"
+    assert normalize_address(f"ada{newer_emoji}@example.test") is None
+
+
+def test_the_source_has_no_raw_invisible_characters():
+    import pathlib
+
+    root = pathlib.Path(templates.__file__).parent
+    for path in root.glob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        assert not any(ch in text for ch in "\u2028\u2029\u200b\u200d\u202e\u2066\ufeff"), path.name
+
+
+@pytest.mark.parametrize("char", list('<>(),;:"\\[]%'))
+def test_every_forbidden_character_makes_an_address_not_one(char):
+    from backend.app.services.copy_recipient import normalize_address
+
+    assert normalize_address(f"a{char}b@example.test") is None
+    assert normalize_address(f"ab@exa{char}mple.test") is None
+
+
+def test_the_wire_form_of_an_address_is_ascii_or_refused_for_good():
+    from backend.app.services.email_actions.transport import ascii_recipient
+
+    assert ascii_recipient("Jan@B\u00fccher.example") == "Jan@xn--bcher-kva.example"
+    assert ascii_recipient("jan@xn--bcher-kva.example.") == "jan@xn--bcher-kva.example"
+    assert ascii_recipient("ada+tag@example.test") == "ada+tag@example.test"
+    for bad in ("j\u00e4n@example.test", "\u5f20@example.test"):
+        with pytest.raises(MailFailed) as refused:
+            ascii_recipient(bad)
+        assert refused.value.code == "address_not_supported" and refused.value.permanent

@@ -848,6 +848,9 @@ class WorkspaceService:
             form_ids=form_ids, workspace_ids=workspace_ids, user_id=user.id
         )
         await self._workspace_user_service.delete_user_form_all_workspaces(user)
+        if self._email_action_service is not None:
+            # their address leaves the team lists of every workspace they were in
+            await self._email_action_service.forget_address(user.sub)
         await self._workspace_user_service.delete_user_of_workspaces(
             workspace_ids=workspace_ids
         )

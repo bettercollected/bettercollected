@@ -11,6 +11,7 @@ from types import SimpleNamespace
 
 import pytest
 from common.models.standard_form import StandardForm, StandardFormSettings
+from common.models.user import User
 from loguru import logger
 
 from backend.app.container import container
@@ -23,7 +24,7 @@ from backend.app.services.email_actions.service import (
 )
 from backend.app.services.email_actions.transport import MailFailed
 from backend.jobs import tasks
-from tests.app.controllers.data import invited_user, testUser
+from tests.app.controllers.data import invited_user, testUser, testUser1
 from tests.app.email_actions.helpers import OWNER, age, logs_of, make_action
 from tests.app.registration.helpers import ANSWERS, FIELDS, publish, submit
 
@@ -202,7 +203,7 @@ async def test_the_respondent_copy_is_fixed_wording_to_the_address_of_this_submi
     (log,) = await rows_of(setup, response, "respondent")
     assert (await run(log)).status == "delivered"
     (mail,) = setup.transport.sent
-    assert mail["recipients"] == ["ada.example@example.test"]
+    assert mail["recipients"] == ["Ada.Example@Example.test"]  # as typed (trimmed)
     assert mail["subject"] == "A copy of your submission"
     # fixed wording and the answers: not the form's title
     assert "Registration test" not in mail["body"] and "Registration test" not in mail["subject"]
@@ -508,8 +509,8 @@ async def test_variants_of_one_mailbox_share_one_budget_and_are_mailed_as_typed(
     typed = ["A.B+1@GMAIL.com", "ab@gmail.com", "a.b+2@googlemail.com", "ab+x@gmail.com", "a.b@gmail.com"]
     statuses = [(await run(await _copy_to(setup, address))).status for address in typed]
     assert statuses == ["delivered"] * 3 + ["cancelled"] * 2
-    # mailed as typed (trimmed and lower-cased, tag and dots kept), never the key
-    assert [m["recipients"][0] for m in setup.transport.sent] == ["a.b+1@gmail.com", "ab@gmail.com", "a.b+2@googlemail.com"]
+    # mailed as typed (trimmed; case, tag and dots kept), never the key
+    assert [m["recipients"][0] for m in setup.transport.sent] == ["A.B+1@GMAIL.com", "ab@gmail.com", "a.b+2@googlemail.com"]
 
 
 async def test_an_idn_domain_and_its_punycode_form_are_one_mailbox(setup, monkeypatch):
@@ -562,3 +563,172 @@ async def test_a_retried_mail_counts_once_against_the_limits(setup, monkeypatch)
     setup.transport.fail = None
     assert (await run(copy, 2)).status == "delivered"
     assert (await run(team, 2)).status == "delivered"
+
+
+# --------------------------------------------- the copy's content, as sent
+
+
+async def test_the_copy_as_sent_has_no_links_and_is_cut(workspace, emails_on, memory_jobs, transport):
+    fields = [
+        {"id": "name", "type": "short_text", "title": "Visit https://evil.example/now " + "L" * 300},
+        {"id": "story", "type": "long_text", "title": "Your story"},
+        {"id": "mail", "type": "email", "title": "Email", "properties": {"why_we_ask": "To reply to you"}},
+    ]
+    form = await publish(workspace, fields=fields)
+    await make_action(workspace, form, fields=["name", "story"], team=[OWNER], respondent="mail")
+    answers = {
+        "name": {"type": "text", "text": "Pay at www.evil.example/pay"},
+        "story": {"type": "text", "text": ("Ask for evil.example/x. " * 200)},
+        "mail": {"type": "email", "email": "victim@example.test"},
+    }
+    response = await submit(workspace, form, answers=answers)
+    rows = {r.channel: r for r in await logs_of(form) if r.response_id == response.response_id}
+    await run(rows["respondent"])
+    await run(rows["team"])
+    copy, team = transport.sent
+    assert "evil" not in copy["body"].lower() and "[link removed]" in copy["body"]
+    assert all(len(line) <= 405 for line in copy["body"].splitlines())  # label and answer, 200 each
+    # the team's mail is not limited this way
+    assert "www.evil.example/pay" in team["body"] and "https://evil.example/now" in team["body"]
+
+
+# ------------------------------------------------------- budgets and denied attempts
+
+
+async def test_denied_copies_do_not_count_against_the_wider_budgets(setup, monkeypatch):
+    from backend.app.services.copy_recipient import rate_limit_key
+    from backend.app.services.email_actions import service as module
+
+    monkeypatch.setattr(module, "COPY_ADDRESS_FORM_PER_HOUR", 1)
+    statuses = [(await run(await _copy_to(setup, "victim+%d@example.test" % n))).status for n in range(6)]
+    assert statuses == ["delivered"] + ["cancelled"] * 5
+    limiter = container.rate_limiter()
+
+    async def seen(scope, client):
+        return (await limiter.hit(scope, client, 10_000, module.HOUR, amount=0)).count
+
+    # one delivered copy is counted once in each budget; five denied ones in none
+    assert await seen(module.COPY_WORKSPACE_SCOPE, str(setup.workspace.id)) == 1
+    assert await seen(module.COPY_FORM_SCOPE, setup.form.form_id) == 1
+    assert await seen(module.COPY_ADDRESS_SCOPE, rate_limit_key("victim@example.test")) == 1
+
+
+async def test_a_denied_team_mail_does_not_count_either(setup, monkeypatch):
+    from backend.app.services.email_actions import service as module
+
+    monkeypatch.setattr(module, "TEAM_FORM_PER_HOUR", 1)
+    statuses = []
+    for _ in range(4):
+        response = await submit(setup.workspace, setup.form)
+        (log,) = await rows_of(setup, response, "team")
+        statuses.append((await run(log)).status)
+    assert statuses == ["delivered"] + ["cancelled"] * 3
+    seen = await container.rate_limiter().hit(
+        module.TEAM_FORM_SCOPE, setup.form.form_id, 10_000, module.HOUR, amount=0
+    )
+    assert seen.count == 1
+
+
+# ------------------------------------------------------------ as typed, and the wire
+
+
+async def test_team_addresses_are_mailed_as_typed_and_compared_case_folded(workspace, emails_on, memory_jobs, transport):
+    form = await publish(workspace)
+    await make_action(workspace, form, team=["  Owner@Acme.EXAMPLE "])
+    response = await submit(workspace, form)
+    (log,) = [r for r in await logs_of(form) if r.response_id == response.response_id]
+    await run(log)
+    assert transport.sent[0]["recipients"] == ["Owner@Acme.EXAMPLE"]
+
+
+async def test_an_address_the_server_cannot_take_fails_for_good(setup):
+    response = await submit(
+        setup.workspace, setup.form,
+        answers={**ANSWERS, "mail": {"type": "email", "email": "jän@example.test"}},
+    )
+    (log,) = await rows_of(setup, response, "respondent")
+    real = container.email_action_service()._transport
+    from backend.app.services.email_actions.transport import SmtpTransport
+
+    container.email_action_service()._transport = SmtpTransport()
+    try:
+        outcome = await run(log)
+    finally:
+        container.email_action_service()._transport = real
+    row = await container.action_log_repo().get(log.id)
+    assert (outcome.status, outcome.retry) == ("failed", False)
+    assert row.last_error_code in ("address_not_supported", "mail_not_configured")
+
+
+# ------------------------------------------------------------ hidden answers are sent
+
+
+async def test_a_logic_hidden_answer_is_in_the_team_mail_and_the_copy(workspace, emails_on, memory_jobs, transport):
+    hidden_when_adult = {
+        "logic": {
+            "action": "HIDE",
+            "operator": "AND",
+            "conditions": [{"fieldId": "age", "fieldType": "number", "comparison": "GREATER_THAN", "value": 10}],
+        }
+    }
+    fields = [
+        {**f, "properties": {**(f.get("properties") or {}), **hidden_when_adult}} if f["id"] == "story" else f
+        for f in FIELDS
+    ]
+    form = await publish(workspace, fields=fields)
+    await make_action(workspace, form, fields=["name", "story"], team=[OWNER], respondent="mail")
+    response = await submit(workspace, form)  # age 36: the story question is hidden by logic
+    for row in [r for r in await logs_of(form) if r.response_id == response.response_id]:
+        assert (await run(row)).status == "delivered"
+    team, copy = (m for m in sorted(transport.sent, key=lambda m: m["recipients"] != [OWNER]))
+    assert "Synthetic story." in team["body"] and "Synthetic story." in copy["body"]
+
+
+# ------------------------------------------------------------------------- erasure
+
+
+async def _team_of(workspace, form, action):
+    stored = await container.form_email_action_repo().get(workspace.id, form.form_id, action.id)
+    return stored.team_recipients, stored.enabled
+
+
+async def test_a_member_who_leaves_is_erased_from_the_team_lists(workspace, emails_on, memory_jobs, transport):
+    form = await publish(workspace)
+    both = await make_action(workspace, form, team=[OWNER, "Editor@Acme.example"])
+    only = await make_action(workspace, form, team=["editor@acme.example"], name="Editor only")
+    copy_too = await make_action(workspace, form, team=["editor@acme.example"], respondent="mail", name="With copy")
+    await container.workspace_members_service().delete_workspace_member(
+        workspace.id, invited_user.id, testUser
+    )
+    assert await _team_of(workspace, form, both) == ([OWNER], True)
+    # an action left with no recipient at all is switched off; one with a copy question keeps running for that
+    assert await _team_of(workspace, form, only) == ([], False)
+    assert await _team_of(workspace, form, copy_too) == ([], True)
+    # the list an admin reads no longer shows the address
+    listed = await container.email_action_service().list_actions(workspace.id, form.form_id, testUser)
+    assert "acme.example" in str([a.team_recipients for a in listed]) and "ditor" not in str([a.team_recipients for a in listed])
+
+
+async def test_a_deleted_account_is_erased_from_the_team_lists_of_every_workspace(workspace, workspace_1, emails_on, memory_jobs, transport):
+    from backend.app.models.enum.workspace_roles import WorkspaceRoles
+    from backend.app.schemas.workspace_user import WorkspaceUserDocument
+
+    await container.workspace_user_repo().save(
+        WorkspaceUserDocument(workspace_id=workspace_1.id, user_id=invited_user.id, roles=[WorkspaceRoles.COLLABORATOR])
+    )
+    form = await publish(workspace)
+    other = await publish(workspace_1, user=testUser1)
+    a = await make_action(workspace, form, team=[OWNER, "editor@acme.example"])
+    b = await make_action(workspace_1, other, team=["editor@acme.example", "outsider@elsewhere.example"], user=testUser1)
+    # the deletion job names the account by its email (``UserDeletion``), as the auth service knows it
+    leaving = User(id=invited_user.id, sub="editor@acme.example")
+    await container.workspace_service().delete_workspaces_of_user_with_forms(leaving)
+    assert (await _team_of(workspace, form, a))[0] == [OWNER]
+    assert (await _team_of(workspace_1, other, b))[0] == ["outsider@elsewhere.example"]
+
+
+async def test_forgetting_an_unknown_or_invalid_address_changes_nothing(setup):
+    service = container.email_action_service()
+    assert await service.forget_address("nobody@acme.example") == 0
+    assert await service.forget_address("not an address") == 0
+    assert await service.forget_address(None) == 0

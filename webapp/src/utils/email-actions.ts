@@ -46,6 +46,7 @@ export const DELIVERY_ERROR_CODES = [
     'timeout',
     'tls_error',
     'invalid_message',
+    'address_not_supported',
     'mail_not_configured',
     'answers_unreadable',
     'recipient_not_allowed',

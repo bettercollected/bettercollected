@@ -45,7 +45,8 @@ def code_of(error: HTTPException) -> str:
 async def test_an_action_is_saved_with_normalised_members_and_checked_keys(workspace):
     form = await publish(workspace)
     created = await make_action(workspace, form, team=["  OWNER@Acme.Example ", "owner@acme.example", "editor@acme.example"])
-    assert created.team_recipients == ["owner@acme.example", "editor@acme.example"]
+    # as typed (trimmed); each mailbox once, compared case-folded
+    assert created.team_recipients == ["OWNER@Acme.Example", "editor@acme.example"]
     assert [(f.source, f.key) for f in created.fields] == [("name", "name"), ("age", "age")]
     assert created.condition is None and created.enabled
 

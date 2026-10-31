@@ -13,7 +13,8 @@ what this module builds from already-cleaned parts:
 - ``Auto-Submitted: auto-generated`` so auto-responders do not answer it.
 
 A failure is one of our codes (never the server's text or an address):
-``recipient_rejected`` and ``smtp_rejected`` are permanent, the rest retry.
+``recipient_rejected``, ``smtp_rejected`` and ``address_not_supported`` are
+permanent, the rest retry.
 """
 
 from __future__ import annotations
@@ -80,6 +81,21 @@ def _config() -> _Config:
     )
 
 
+def ascii_recipient(address: str) -> str:
+    """The address as it goes on the wire: an internationalised **domain** is
+    sent in its ASCII (IDNA) form, which is the same mailbox; a non-ASCII local
+    part needs SMTPUTF8, which a server may not offer, and is refused as
+    ``address_not_supported`` (permanent: a retry cannot help)."""
+    local, _, domain = address.rpartition("@")
+    if not local or not local.isascii():
+        raise MailFailed("address_not_supported", permanent=True)
+    try:
+        domain = domain.rstrip(".").encode("idna").decode("ascii")
+    except UnicodeError:
+        raise MailFailed("address_not_supported", permanent=True) from None
+    return f"{local}@{domain}"
+
+
 def build_message(
     *, sender: str, sender_name: str, recipients: Sequence[str], subject: str, body: str
 ) -> EmailMessage:
@@ -127,17 +143,18 @@ class SmtpTransport:
         if not config.host or not config.sender:
             raise MailFailed("mail_not_configured", permanent=True)
         try:
+            wire = [ascii_recipient(r) for r in recipients]
             message = build_message(
                 sender=config.sender,
                 sender_name=config.sender_name,
-                recipients=recipients,
+                recipients=wire,
                 subject=subject,
                 body=body,
             )
             await aiosmtplib.send(
                 message,
                 sender=config.sender,
-                recipients=list(recipients),
+                recipients=wire,
                 hostname=config.host,
                 port=config.port,
                 username=config.username if config.use_credentials else None,

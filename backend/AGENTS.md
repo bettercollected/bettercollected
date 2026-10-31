@@ -922,7 +922,9 @@ the instance's `MAIL_*` settings (`config/mail_settings.py`, the auth service's 
   `bc_jobs_exec` must stay unable to see or queue it (`tests/app/jobs/test_executor_role.py`).
 - **No open relay.** Team addresses are members of the workspace only (`CopyRecipientService.allowed_among`, at save and again at send). A
   respondent's copy goes only to the `email` answer of its own submission, read from the stored answers at send time, in fixed wording
-  (never a creator template), rate limited per address and form / per address / per form. No endpoint mails an address it is given: the
+  (never a creator template, no form title; labels and answers cut to 200 characters, 2,000 in all, links removed: `copy_answers_block`),
+  rate limited per mailbox (`rate_limit_key`) and form / per mailbox / per form / per workspace; a denied attempt counts against no budget,
+  a mail counts once across retries. Team mail is capped per form. An address is erased from the team lists when its member leaves or is deleted (`forget_address`). No endpoint mails an address it is given: the
   test mail goes to the caller. Never add one.
 - **Plain text only, one pass.** Template values pass through `templates.clean` (controls, line/paragraph separators, NEL, bidi overrides and
   isolates, zero width characters out); the subject is one line; addresses are validated by `copy_recipient.normalize_address` (which refuses

@@ -874,6 +874,7 @@ class AppContainer(containers.DeclarativeContainer):
         http_client=http_client,
         workspace_form_service=workspace_form_service,
         scim_directory_repo=scim_directory_repo,
+        email_action_service=email_action_service,
     )
 
     stripe_service: StripeService = providers.Singleton(
