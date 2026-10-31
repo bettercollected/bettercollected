@@ -78,6 +78,17 @@ questions (read-only, not disabled; a locked question is never required and meet
 page's status region (`field-rule-announcer.tsx`) says once, politely, what an answer changed. A form without rules
 takes none of these paths. The server stays authoritative.
 
+**Review page (respondent runtime):** a form with `settings.showReviewPage` (builder: Form tab, "Before sending") ends
+in a page of its own instead of submitting from the last page. It is a place in the journey like the welcome page and
+the ending: `REVIEW_SLIDE = -3` in `utils/review-page.ts`, drawn by `views/organism/form/review-page.tsx`, never
+stored or sent before submit. `reviewSections` lists the pages of the visited path (`history`) from the answers
+`normalizeGroupAnswersForSubmit` gives (what the submit sends): logic-hidden, internal and hidden-field values are
+left out, rule-set values are marked, files show their name. "Edit" (`editFromReview`) goes to a page and keeps the
+reviewed path in `reviewPath`; its "Back to review" replays that path with `walkReviewPath` (back to the review,
+on from the first changed jump, or to a page that is no longer complete). Sending lives in `use-finish-form.ts`,
+shared by the last page and the review (409 closed/not open/full keep the answers; 422 goes to the page). A page is
+complete by `pageInvalidations` (`utils/page-validation.ts`) everywhere.
+
 ## Commands
 
 ```bash

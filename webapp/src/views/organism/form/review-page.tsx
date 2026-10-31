@@ -224,7 +224,7 @@ function QuestionView({ question, ink, quiet, edge, link, contentLang, onFix }: 
 function RowView({ row, ink, quiet, edge, link, contentLang, onFix, last = false }: { row: ReviewRow; ink?: string; quiet: string; edge: string; link: string; contentLang: string | undefined; onFix: (key: string) => void; last?: boolean }) {
     const { t } = useRespondentLanguage();
     return (
-        <div className={cn('py-4', !last && 'border-b')} style={{ borderColor: edge }} data-testid="review-row">
+        <div className={cn(last ? 'py-3' : 'py-4', !last && 'border-b')} style={{ borderColor: edge }} data-testid="review-row">
             <dt className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[15px] leading-snug font-semibold [overflow-wrap:anywhere]" style={{ color: ink }}>
                 <span lang={contentLang}>{row.title}</span>
                 {row.locked && (

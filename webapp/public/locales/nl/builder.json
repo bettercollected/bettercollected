@@ -742,6 +742,12 @@
     "SYNTAX": "Patronen gebruiken RE2-syntaxis: er zijn geen lookarounds en geen terugverwijzingen.",
     "KEPT": "Het patroon dat de vraag al heeft, blijft gelden tot dit patroon geldig is."
   },
+  "REVIEW_PAGE": {
+    "TITLE": "Voor het verzenden",
+    "LABEL": "Antwoorden laten controleren voor het verzenden",
+    "HINT": "Respondenten zien na de laatste vraag al hun antwoorden op één pagina, met een knop om elke pagina te wijzigen, en versturen ze vanaf daar. Er wordt niets verstuurd of opgeslagen voordat ze dat doen.",
+    "ERROR": "De instelling kon niet worden opgeslagen. Probeer het opnieuw."
+  },
   "FIELD_RULES": {
     "DROPPED_one": "{{count}} vraag verloor een regel die niet meer bij het formulier past.",
     "DROPPED_other": "{{count}} vragen verloren een regel die niet meer bij het formulier past."
