@@ -72,14 +72,15 @@ A respondent-supplied address is the one place the system mails someone nobody o
 - **Fixed wording** (English or Dutch, by the form's language), not a template the creator wrote: a line saying what it is, a line saying why they got it, the answers of the
   mapped questions under their question labels (their own; a calculation kept from respondents is left out) and the time. **No form title**, in the subject or the body. The question
   labels and the answers are the only free text, so they are limited **there and only there** (the team's mail is not):
-  every label and every answer is cut to 200 characters (with an ellipsis), the whole answers block to 2,000, and anything URL-like (`scheme://...`, `mailto:`, `www....`, a bare
+  every label and every answer is cut to 200 characters (with an ellipsis), normalised to NFKC (the copy is plain text: fullwidth, ideographic and other compatibility forms of dots, slashes, colons and letters become the plain ones, so `evil。example` and `ｈｔｔｐｓ：／／evil．example` are links too), the whole answers block to 2,000, and anything URL-like (`scheme://...`, `mailto:`, `www....`, a bare
   `domain.tld/path`) becomes `[link removed]` (an email address in an answer stays). So the copy cannot carry a page or an advertisement of any size to someone who never asked for it.
   Limiting the copy to *verified* addresses (the email-code gate) is a possible later step; this is the default.
 - Rate limited, counted in keyed hashes that name no address: 3 per hour per mailbox and form, 10 per hour per mailbox (all forms), 600 per hour per form and **1,000 per hour per workspace**. A
   *mailbox* is the address reduced to a key: lower case, the `+tag` dropped, the dots of a Gmail / Googlemail local part dropped (`googlemail.com` is `gmail.com`), the domain IDNA-encoded with a
   trailing dot removed. So `A.B+x@GMAIL.com` and `ab@gmail.com` share one budget, and so do an internationalised domain and its punycode form; the mail itself goes to the address exactly as typed.
   Over a limit, the run is `cancelled` (`rate_limited`) and not retried. A mail counts against the limits **once**, however many attempts it takes, and an attempt that is denied counts
-  against **none** of the budgets (so someone over one limit cannot use up the workspace's or another mailbox's).
+  against **none** of the budgets (so someone over one limit cannot use up the workspace's or another mailbox's). Each budget is checked and counted in one locked step (`admit`), so mails sent at the same time
+  cannot overshoot it; a mail one budget refuses gives back what the narrower budgets admitted.
 - A submission without a usable address queues no copy.
 
 ## Conditions
@@ -105,7 +106,7 @@ was removed) never runs the action (`condition_invalid`). A condition cannot be 
   `answers_unreadable`, `address_not_supported`, `recipient_not_allowed`, `no_address`, `rate_limited`, `disabled`, `condition_not_met`, `condition_invalid`, `internal_error`). **No address, hash or domain of
   one, subject or content.** Kept 30 days.
 - **At least once.** A worker that dies after the mail server accepted a message but before the row says `delivered` is rescued after 30 minutes and sends it again (the retry does not count against the limits a second time). A duplicate mail is possible; a lost one is not.
-- **Addresses at rest.** The team addresses an action lists are stored in clear (admins read them in the list). When a member is removed from a workspace, or their account is deleted (every workspace they were in), their address is removed from every email action's team (an action left with no recipient and no copy question is switched off).
+- **Addresses at rest.** The team addresses an action lists are stored in clear (admins read them in the list). When a member is removed from a workspace, or their account is deleted (every workspace they were in), their address is removed from every email action's team (also when the workspace's SCIM directory deprovisions them: their membership is only disabled, but they are no longer "the form's team"; an admin adds the address again if they come back. A plan downgrade that disables members does not erase anything, it is undone by an upgrade; an action left with no recipient and no copy question is switched off).
 - **Addresses on the wire.** An address is mailed as typed, except that an internationalised domain goes in its ASCII (IDNA) form (the same mailbox); a non-ASCII local part needs SMTPUTF8, which a server may not offer, and fails at once as `address_not_supported`. `%` (legacy source routing) is not allowed in an address.
 - Erasure: deleting a response deletes its log rows, a mail not yet sent is never sent (the job finds the submission gone and drops the row), and deleting a form or workspace deletes the actions and
   the log. Mail already sent is out of our hands: the privacy panel says so.
