@@ -63,6 +63,22 @@ constant or an expression, as for a date) and a currency's amount (in its first
 currency). In the exports a time is `HH:MM`, a day `YYYY-MM-DD` and a currency
 `EUR 12.50` (code, a space, a dot decimal).
 
+**Rollout.** The newer question types (`time`, `day` and `currency`; the date
+range and tags will join them) are behind one server setting,
+`NEW_QUESTION_TYPES_ENABLED`, off by default. While it is off, every write
+that gives a form such a question, or changes the type or the settings of one
+(the limits, the currencies, a day's date rules), is refused with 422
+`question_type_disabled`: a form spec document (the public API create and
+replace), the builder's whole-form save, the edit operations (the public API,
+the MCP server, the AI assistant and the builder's own, in both engines),
+templates and imports. The validation of a document warns about them. Questions
+a form already has keep working: they are shown, take answers, are exported and
+appear in the response view, and a save that leaves their type and settings as
+they are (a new title, another position, other questions changed) is
+accepted. Stored data is never changed. The workspace permissions answer
+(`GET /workspaces/{id}/permissions`) tells the builder, as
+`newQuestionTypesEnabled`, so it can offer the types.
+
 Ids are chosen by the writer and must be unique within the form. Logic
 conditions and page jumps refer to them; a jump's `target` is a page id or
 `"__SUBMIT__"`. A jump to `"__SUBMIT__"` may add `endingId` to show that
@@ -335,6 +351,14 @@ should pass every case.
   run by every implementation; `["backend"]` would mark behaviour the form
   builder's TypeScript engine does not have (no case does today). A case that
   brings field rules assumes the server setting `FIELD_RULES_ENABLED` is on.
+- `newQuestionTypes` (optional, default `true`): the state of the switch for the
+  newer question types (the server setting `NEW_QUESTION_TYPES_ENABLED`) in
+  that case. With `false`, an operation that adds a `time`, `day` or `currency`
+  question, or changes the type or the settings of one the form's `before` did
+  not have in the same state, fails with a message containing
+  `NEW_QUESTION_TYPES_ENABLED`; questions `before` already holds, and edits to
+  them that leave their type and settings alone, still apply. Both engines
+  read it.
 - Ids the operations generate are replaced by `$uuid:1`, `$uuid:2`, ... in
   order of first appearance, walking the form depth first with object keys
   in sorted order. Compare after replacing them the same way.

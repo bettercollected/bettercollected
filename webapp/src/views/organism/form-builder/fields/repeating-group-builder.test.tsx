@@ -2,13 +2,17 @@ import React from 'react';
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'jotai';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { newRepeatingGroup } from '@app/utils/repeating-groups';
 import RepeatingGroupSettings from '@app/views/molecules/form-builder/repeating-group-settings';
 import RepeatingGroupBuilder from './repeating-group-builder';
+
+// What the server says about the newer question types (its NEW_QUESTION_TYPES_ENABLED).
+const served = vi.hoisted(() => ({ newQuestionTypesEnabled: true }));
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ newQuestionTypesEnabled: served.newQuestionTypesEnabled }) }));
 
 const form = (): StandardFormFieldDto[] => [{ id: 's1', index: 0, type: FieldTypes.SLIDE, properties: { fields: [newRepeatingGroup('g', 0)] } }];
 
@@ -78,5 +82,25 @@ describe('RepeatingGroupBuilder', () => {
         fireEvent.change(label, { target: { value: 'Employer' } });
         fireEvent.blur(label);
         expect(latest[0].properties!.fields![0].properties!.repeat!.itemLabel).toBe('Employer');
+    });
+
+    it('offers time, day and currency only while the server takes them, and keeps a child that has one', () => {
+        const options = () => Array.from((screen.getByLabelText('Add a question to the group') as HTMLSelectElement).options).map((o) => o.value);
+        served.newQuestionTypesEnabled = false;
+        const { unmount } = render(
+            <Provider>
+                <Harness />
+            </Provider>
+        );
+        expect(options()).toContain(FieldTypes.DATE);
+        for (const type of [FieldTypes.TIME, FieldTypes.DAY, FieldTypes.CURRENCY]) expect(options()).not.toContain(type);
+        unmount();
+        served.newQuestionTypesEnabled = true;
+        render(
+            <Provider>
+                <Harness />
+            </Provider>
+        );
+        for (const type of [FieldTypes.TIME, FieldTypes.DAY, FieldTypes.CURRENCY]) expect(options()).toContain(type);
     });
 });

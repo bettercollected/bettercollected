@@ -3,7 +3,7 @@ import React from 'react';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { bestInsertMatch, filterInsertCatalog, insertCatalog } from '@app/constants/insert-field-catalog';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
@@ -14,6 +14,13 @@ import { store } from '@app/store/store';
 import FieldSettings from '@app/views/organism/field-settings';
 
 import InsertFieldComponent from './insert-field-modal';
+
+// What the server says about the newer question types (its NEW_QUESTION_TYPES_ENABLED).
+const served = vi.hoisted(() => ({ newQuestionTypesEnabled: false }));
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ newQuestionTypesEnabled: served.newQuestionTypesEnabled }) }));
+afterEach(() => {
+    served.newQuestionTypesEnabled = false;
+});
 
 const pages = (): StandardFormFieldDto[] => [
     {
@@ -254,5 +261,68 @@ describe('field settings', () => {
         );
         expect(await screen.findByText('This question is no longer on the page.')).toBeInTheDocument();
         expect(screen.queryByRole('heading', { name: 'Basics' })).toBeNull();
+    });
+});
+
+describe('the newer question types and the server switch', () => {
+    const NEW_NAMES = ['Day (d-m-y)', 'Time', 'Amount of money'];
+
+    it('leaves time, day and currency out of the Insert menu while the server does not take them', async () => {
+        renderEditor();
+        await search();
+        for (const name of NEW_NAMES) expect(screen.queryByRole('option', { name })).toBeNull();
+        expect(within(screen.getByRole('group', { name: 'Date & number' })).getByRole('option', { name: 'Date' })).toBeInTheDocument();
+        fireEvent.change(await search(), { target: { value: 'euro' } });
+        expect(screen.queryAllByRole('option')).toHaveLength(0);
+    });
+
+    it('offers them, and adds one, while the server takes them', async () => {
+        served.newQuestionTypesEnabled = true;
+        renderEditor();
+        await search();
+        for (const name of NEW_NAMES) expect(screen.getByRole('option', { name })).toBeInTheDocument();
+        await act(async () => fireEvent.click(screen.getByRole('option', { name: 'Time' })));
+        expect(pageFields()[3].type).toBe(FieldTypes.TIME);
+    });
+
+    function Existing() {
+        const builder = useFormFieldsAtom();
+        const { setActiveSlideComponent } = useActiveSlideComponent();
+        const { setActiveFieldComponent } = useActiveFieldComponent();
+        React.useEffect(() => {
+            builder.initFormFields([
+                { id: 'page-1', index: 0, type: FieldTypes.SLIDE, properties: { fields: [{ id: 'q-time', index: 0, type: FieldTypes.TIME, title: 'Arrival', properties: { minTime: '08:00' } }] } } as StandardFormFieldDto
+            ]);
+            setActiveSlideComponent({ id: 'page-1', index: 0 });
+            setActiveFieldComponent({ id: 'q-time', index: 0 });
+        }, []);
+        return <FieldSettings />;
+    }
+    const renderExisting = () =>
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <Existing />
+                </Provider>
+            </ReduxProvider>
+        );
+
+    it('shows the settings of a question a form already has read-only while the server does not take them', async () => {
+        renderExisting();
+        // (the text itself is builder.json NEW_TYPES.LOCKED, English and Dutch)
+        expect(await screen.findByRole('note')).toHaveTextContent('NEW_TYPES.LOCKED');
+        const box = screen.getByDisplayValue('08:00');
+        expect(box).toBeDisabled();
+        expect(box.closest('fieldset')).toBeDisabled();
+        // what every question has stays editable
+        expect(screen.getByRole('switch', { name: 'Required' })).not.toBeDisabled();
+    });
+
+    it('lets the settings be changed while the server takes the types', async () => {
+        served.newQuestionTypesEnabled = true;
+        renderExisting();
+        const box = await screen.findByDisplayValue('08:00');
+        expect(box).not.toBeDisabled();
+        expect(screen.queryByRole('note')).toBeNull();
     });
 });

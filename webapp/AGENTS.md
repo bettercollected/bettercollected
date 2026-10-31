@@ -89,6 +89,14 @@ read per request like `SSO_ENABLED`, `lib/runtime-flags.ts`); with it off, exist
 save the server refuses with 422 `field_rules_disabled` toasts the reason (`audo-save-form.tsx`). The formula box is
 shared with calculated fields (`formula-input.tsx`).
 
+**New question types switch:** the backend's `NEW_QUESTION_TYPES_ENABLED` (off by default; the time, day and currency
+questions now, the date range and tags later) reaches the webapp in the permissions answer (`newQuestionTypesEnabled`
+from `useWorkspacePermissions`). While off, the Insert menu and a repeating group's type lists leave those types out,
+and `FieldSettings` shows an existing question's settings read-only (`NEW_TYPES.LOCKED`). `lib/form-ops/new-question-types.ts`
+twins the backend module, and `applyOps` applies it when given `newQuestionTypes: false` (the shared corpus cases with
+`newQuestionTypes: false`); the builder's own edits do not pass it, because the server checks every save and undo must
+be able to put an existing question back. Respondent inputs, the response view and exports never read it.
+
 ## Commands
 
 ```bash

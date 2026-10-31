@@ -524,6 +524,13 @@ export interface ApplyOptions {
      */
     isStorageImageUrl?: (url: string) => boolean;
     /**
+     * The server's NEW_QUESTION_TYPES_ENABLED switch for the time, day and
+     * currency questions. Default true (not checked); false refuses an op that
+     * adds one or changes the type or settings of one the form did not have.
+     * The server checks every save either way.
+     */
+    newQuestionTypes?: boolean;
+    /**
      * The batch comes from the form editor (default). False applies the
      * rules for everyone else (AI, API): editor ops are refused and titles
      * must be plain text. The backend refuses those when it parses a batch,

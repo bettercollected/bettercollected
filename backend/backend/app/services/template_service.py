@@ -21,6 +21,7 @@ from backend.app.services.field_rules import (
     ensure_rules_allowed,
     ensure_valid_field_rules,
 )
+from backend.app.services.new_question_types import ensure_question_types_allowed
 from starlette.concurrency import run_in_threadpool
 from backend.app.services.form_logo import logo_key, read_logo_upload
 from backend.app.services.retention import checked_retention
@@ -168,6 +169,9 @@ class FormTemplateService:
         # and new ones need FIELD_RULES_ENABLED
         await run_in_threadpool(ensure_valid_field_rules, template_body, True)
         ensure_rules_allowed(template_body)
+        # a template cannot be built from the newer question types while
+        # NEW_QUESTION_TYPES_ENABLED is off
+        ensure_question_types_allowed(template_body)
         template_body.id = RecordId()
         if logo:
             template_body.logo = await self._store_logo(logo)
@@ -213,6 +217,7 @@ class FormTemplateService:
         check_template_retention(template_body.settings, template.settings)
         await run_in_threadpool(ensure_valid_field_rules, template_body, True)
         ensure_rules_allowed(template_body, template)
+        ensure_question_types_allowed(template_body, template)
         if logo:
             # The previous file stays: forms and imported copies made from this
             # template may still show it.

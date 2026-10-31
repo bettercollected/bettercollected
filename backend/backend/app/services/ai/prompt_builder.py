@@ -266,6 +266,27 @@ Rules:
 
 """ + _looks_guide()
 
+# What the field types line says while NEW_QUESTION_TYPES_ENABLED is off (the
+# server refuses those types then, so the assistant is not told about them).
+_TYPES_WITH_NEW = """phone_number, date, day (a date typed as day, month and year: birth dates),
+time (HH:MM, 24-hour; "minTime"/"maxTime" limit it), currency (an amount with an
+ISO 4217 code; "currencies":["EUR","USD"], the first is the default; minValue and
+maxValue limit the amount), yes_no, multiple_choice, dropdown, rating,
+linear_rating, file_upload, text (a display-only statement), calculated (a computed
+value)."""
+_TYPES_WITHOUT_NEW = """phone_number, date, yes_no, multiple_choice, dropdown, rating, linear_rating,
+file_upload, text (a display-only statement), calculated (a computed value)."""
+
+
+def ops_guide() -> str:
+    """OPS_GUIDE, without the newer question types while they are switched
+    off (services/new_question_types.py)."""
+    from backend.app.services.new_question_types import new_question_types_enabled
+
+    if new_question_types_enabled():
+        return OPS_GUIDE
+    return OPS_GUIDE.replace(_TYPES_WITH_NEW, _TYPES_WITHOUT_NEW)
+
 
 def _project_condition(c) -> dict:
     entry = {"fieldId": c.field_id, "comparison": c.comparison, "value": c.value}
@@ -411,7 +432,7 @@ def build_chat_system_prompt(form_snapshot: str, profile, memory_entries: Option
     """
     parts = [
         "You are the form-editing copilot inside BetterCollected, a privacy-first form builder.",
-        OPS_GUIDE,
+        ops_guide(),
         *([RULES_GUIDE] if field_rules_enabled() else []),
         UNTRUSTED_CONTENT_RULES.strip(),
         "## Current form snapshot\n" + fence("form_snapshot", form_snapshot),

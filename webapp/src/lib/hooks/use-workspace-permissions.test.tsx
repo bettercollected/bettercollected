@@ -110,4 +110,15 @@ describe('useWorkspacePermissions', () => {
         expect(query.calls.at(-1)?.arg).toEqual({ workspaceId: 'workspace-1', userId: 'someone-else' });
         spy.mockRestore();
     });
+
+    it('tells whether the server takes the newer question types, false until it says so', () => {
+        query.result = { data: { permissions: [], newQuestionTypesEnabled: true } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.newQuestionTypesEnabled).toBe(true);
+        query.result = { data: { permissions: [], newQuestionTypesEnabled: false } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.newQuestionTypesEnabled).toBe(false);
+        query.result = { data: { permissions: [] } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.newQuestionTypesEnabled).toBe(false);
+        query.result = { isError: true, data: { permissions: [], newQuestionTypesEnabled: true } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.newQuestionTypesEnabled).toBe(false);
+    });
 });

@@ -21,6 +21,7 @@ import { DROPPED_HIDDEN_REFERENCES_MARK, DROPPED_REFERENCES_MARK, DROPPED_RULES_
 import { editorGrowth } from './handlers/editor';
 import { buildInverse, touchedEntities } from './inverse';
 import { MAX_OPS_PER_BATCH, OpError, SIZE_LIMIT_SKIPPED, SizeLimitReached, countFields, findPage, formSize, hasOwn, isRepeatingGroup, isSlide, sizeProblem } from './model';
+import { GATED_OPS, gatedSignatures, questionTypeProblem } from './new-question-types';
 import { referenceFixes } from './references';
 import { type RefTable, refsDefined, resolveRefs } from './refs';
 import type { ApplyOptions, ApplyResult, FormDoc, FormField, FormOp, OpResult } from './types';
@@ -168,6 +169,7 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
     let size = formSize(working);
     let stopped = false;
     const refs: RefTable = new Map();
+    let startedTypes: Map<string, string> | null = null;
 
     for (let i = 0; i < ops.length; i++) {
         const raw = ops[i];
@@ -210,6 +212,17 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
             });
             if (failure) throw failure;
             [working, message] = settleMarks(working, message, opContext);
+            // The newer question types (new-question-types.ts): with the switch
+            // off, an op that leaves one new or changed against the form the
+            // batch started from is refused and undone.
+            if (options.newQuestionTypes === false && GATED_OPS.has(name)) {
+                startedTypes ??= gatedSignatures(doc);
+                const refusal = questionTypeProblem(working, startedTypes, name);
+                if (refusal) {
+                    working = state;
+                    throw new OpError(refusal);
+                }
+            }
             // Calculations stay valid after every op (backend apply_form_ops):
             // one left broken refuses the op and undoes it.
             if (calculationsTouched(state, working, op)) {

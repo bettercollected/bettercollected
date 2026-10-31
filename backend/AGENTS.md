@@ -344,6 +344,18 @@ gate for every op writer (chat, proposals, MCP, public API). Never add a paralle
 `ensure_rules_allowed` / `new_or_changed_rules`, which compares a rule by its question (id and type, not
 where it sits: moving a question changes no rule) and its content, so a rule moved to another question, or
 to one of another type under a reused id, reads as new. Stored rules are kept and enforced.
+`NEW_QUESTION_TYPES_ENABLED` (default off) is the same kind of switch for the newer question types (`time`, `day`,
+`currency`; the date range and tags join `GATED_TYPES` in `services/new_question_types.py`): while off, a write that
+brings a new gated question, or changes the type or the type's own settings of one (`signature`: time limits,
+currencies, a day's date rules, amount limits; not the title, label, required flag or place), is refused with 422
+`question_type_disabled`, and an op fails with the same message (`question_type_problem`, after each op in
+`GATED_OPS`, against the form the batch started from). Paths: `write_form_parts` (the last gate for every op writer),
+create/update form (a copy, `drop_unusable_settings`, keeps what its source has), templates, the spec API (its
+validate warns) and `apply_form_ops`; the permissions answer says it as `newQuestionTypesEnabled`, the assistant's
+prompt leaves the types out (`ops_guide()`). Never add a parallel check. Stored questions keep rendering, taking
+answers and exporting: answer validation and exports do not read the switch. The shared ops corpus runs a case with
+the switch off through `newQuestionTypes: false`. A test that needs such a form builds it with the switch on, then
+turns it off.
 Bounds: 8 per question, 100 per form (counted before parsing a builder body, a spec or an ops payload), 50
 variables per expression, 50 problems per check, and a per-response cost budget (`RULE_COST_PER_RESPONSE`:
 forms that could exceed it are refused on save; a replay over it answers 422 `field_rules_too_costly`).

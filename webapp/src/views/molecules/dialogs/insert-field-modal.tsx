@@ -3,8 +3,10 @@ import { KeyboardEvent, useEffect, useId, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { INSERT_CATEGORIES, InsertCatalogItem, bestInsertMatch, filterInsertCatalog } from '@app/constants/insert-field-catalog';
+import { INSERT_CATEGORIES, InsertCatalogItem, bestInsertMatch, filterInsertCatalog, insertCatalog } from '@app/constants/insert-field-catalog';
+import { GATED_TYPES } from '@app/lib/form-ops/new-question-types';
 import { InsertPlacement, useInsertField } from '@app/lib/hooks/use-insert-field';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { InsertTarget } from '@app/store/jotai/insert-target';
@@ -24,7 +26,10 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
     const baseId = useId();
     const optionId = (index: number) => `${baseId}-option-${index}`;
 
-    const results = useMemo(() => filterInsertCatalog(query), [query]);
+    // The newer question types are offered only while the server takes them (NEW_QUESTION_TYPES_ENABLED).
+    const { newQuestionTypesEnabled } = useWorkspacePermissions();
+    const offered = useMemo(() => (newQuestionTypesEnabled ? insertCatalog : insertCatalog.filter((item) => !GATED_TYPES.has(item.type))), [newQuestionTypesEnabled]);
+    const results = useMemo(() => filterInsertCatalog(query, offered), [query, offered]);
     const active: InsertCatalogItem | undefined = results[Math.min(activeIndex, results.length - 1)];
     // A page to add to: the selected one, or the canvas target's.
     const hasPage = !!target || (!!activeSlideComponent && activeSlideComponent.index >= 0 && !!formFields?.[activeSlideComponent.index]);
@@ -96,7 +101,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
                         value={query}
                         onChange={(event) => {
                             setQuery(event.target.value);
-                            setActiveIndex(bestInsertMatch(filterInsertCatalog(event.target.value), event.target.value));
+                            setActiveIndex(bestInsertMatch(filterInsertCatalog(event.target.value, offered), event.target.value));
                         }}
                         onKeyDown={onKeyDown}
                         className="w-full border-0 bg-transparent py-2 text-sm text-black-900 outline-hidden placeholder:text-black-600 focus:ring-0"

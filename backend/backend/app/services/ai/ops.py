@@ -121,6 +121,13 @@ from backend.app.services.field_rules import (
     new_or_changed_rules,
     prune_field_rules,
 )
+from backend.app.services.new_question_types import (
+    GATED_OPS,
+    gated_signatures,
+    new_question_types_enabled,
+    op_may_gate,
+    question_type_problem,
+)
 from backend.app.services.image_urls import (
     IMAGE_URL_ERROR,
     checked_image_url,
@@ -3530,6 +3537,7 @@ def apply_form_ops(
     that keeps calculated fields valid, for a batch that creates none.
     """
     working = form.model_copy(deep=True)
+    started_types: Optional[Dict[str, str]] = None
     results: List[OpResult] = []
     size = _form_size(working) if check_size else (0, 0)
     stopped = False
@@ -3576,7 +3584,22 @@ def apply_form_ops(
                 )
                 if problem:
                     raise _SizeLimitReached(problem)
+            # The newer question types (services/new_question_types.py): while
+            # NEW_QUESTION_TYPES_ENABLED is off, an op that leaves a time,
+            # day or currency question new or changed against the form the
+            # batch started from is refused and undone.
+            types_snapshot = None
+            if op.op in GATED_OPS and not new_question_types_enabled():
+                if started_types is None:
+                    started_types = gated_signatures(form)
+                if op_may_gate(op, started_types):
+                    types_snapshot = working.model_copy(deep=True)
             message = handler(working, op)
+            if types_snapshot is not None:
+                refusal = question_type_problem(working, started_types, op.op)
+                if refusal:
+                    working = types_snapshot
+                    raise OpError(refusal)
             if snapshot is not None:
                 new_problems = [
                     p for p in (_calculation_problems(working) or []) if p not in (calc_before or [])

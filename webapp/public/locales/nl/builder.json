@@ -1046,5 +1046,8 @@
         "enabled": "aan of uit"
       }
     }
+  },
+  "NEW_TYPES": {
+    "LOCKED": "Deze instellingen kunnen op deze server nog niet worden gewijzigd. Antwoorden blijven werken zoals ze zijn."
   }
 }

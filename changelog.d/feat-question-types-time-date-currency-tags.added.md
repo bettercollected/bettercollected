@@ -4,3 +4,9 @@
   work in the builder (in English and Dutch), the form respondents fill in, the response
   views, the CSV export, the public API, the MCP server and both SDKs, and as sources in
   logic, field rules and calculations. The server checks every answer.
+- `NEW_QUESTION_TYPES_ENABLED` (off by default) switches the new question types on for
+  creators: while it is off, the Insert menu leaves them out, and saving a new one, or
+  changing the settings of one a form already has, is refused (422 `question_type_disabled`;
+  the same for the API, MCP, the AI assistant, templates and imports). Questions a form
+  already has keep working: they are shown, answered and exported. The date range and tags
+  will join the same switch.

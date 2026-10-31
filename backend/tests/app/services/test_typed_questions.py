@@ -3,6 +3,7 @@ edit, date rules, exports of answers and what an error may carry. The rules of
 each type are in the shared cases (docs/spec/answer-validation.cases.json);
 this covers the paths around them."""
 
+import contextlib
 import datetime as dt
 import json
 
@@ -14,6 +15,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.services.date_rules import validate_date_rule_answers
 from backend.app.services.ai.insights import _answer_text
+from backend.config import settings
 from tests.app.controllers.data import testUser
 
 SECRET_TIME = "13:37"
@@ -57,9 +59,23 @@ def _form(pages=PAGES):
     )
 
 
+@contextlib.contextmanager
+def _switch(on: bool):
+    """NEW_QUESTION_TYPES_ENABLED for a block: the form is made with the new
+    types switched on, and everything after it runs with the switch off (the
+    default), as a form that already has such questions does."""
+    before = settings.NEW_QUESTION_TYPES_ENABLED
+    settings.NEW_QUESTION_TYPES_ENABLED = on
+    try:
+        yield
+    finally:
+        settings.NEW_QUESTION_TYPES_ENABLED = before
+
+
 async def _published(workspace):
     service = container.workspace_form_service()
-    form = await service.create_form(workspace.id, _form(), testUser)
+    with _switch(True):
+        form = await service.create_form(workspace.id, _form(), testUser)
     await service.publish_form(workspace.id, form.form_id, testUser)
     return form
 

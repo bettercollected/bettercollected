@@ -93,6 +93,7 @@ from backend.app.services.field_rules import (
     ensure_valid_field_rules,
     rule_keys_affected,
 )
+from backend.app.services.new_question_types import ensure_question_types_allowed
 from backend.app.services.internal_fields import (
     drop_respondent_internal_answers,
     ensure_no_internal_logic,
@@ -718,6 +719,9 @@ class WorkspaceFormService:
         await run_in_threadpool(ensure_valid_field_rules, form, True)
         if not drop_unusable_settings:
             ensure_rules_allowed(form)
+            # the newer question types: a copy of a form or template keeps
+            # what its source has; anything else needs the switch
+            ensure_question_types_allowed(form)
         ensure_valid_themes(form)
         _check_ending_links(form, drop_unusable=drop_unusable_settings)
         # first-party images only (services/form_images.py); a copy drops
@@ -842,6 +846,8 @@ class WorkspaceFormService:
         if dropped_rules is not None:
             dropped_rules.extend(dropped)
         ensure_rules_allowed(form, existing_form)
+        # the newer question types (services/new_question_types.py)
+        ensure_question_types_allowed(form, existing_form)
         # first-party images only; an address the draft already holds is kept
         # (services/form_images.py).
         check_form_images(form, existing_form)

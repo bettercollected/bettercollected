@@ -1046,5 +1046,8 @@
         "enabled": "on or off"
       }
     }
+  },
+  "NEW_TYPES": {
+    "LOCKED": "These settings can't be changed on this server yet. Answers keep working as they are."
   }
 }

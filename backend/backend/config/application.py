@@ -82,6 +82,13 @@ class Application(StoreBackedSettings):
     # until an operator turns rules on): those saves are refused with 422
     # field_rules_disabled; stored rules are kept and still enforced.
     FIELD_RULES_ENABLED: bool = False
+    # The newer question types (time, day, currency; date range and tags
+    # follow) may be added or changed through the API, the builder save,
+    # edit operations (MCP and AI included), templates and imports
+    # (services/new_question_types.py). Off (the default, until the release
+    # that turns them on): those saves are refused with 422
+    # question_type_disabled; questions already stored keep working.
+    NEW_QUESTION_TYPES_ENABLED: bool = False
     # The admin task runner presents this key to the internal admin-task
     # routes (controllers/admin_tasks_router.py; the runner's
     # ADMIN_TASKS_API_KEY). Empty: those routes answer 503.

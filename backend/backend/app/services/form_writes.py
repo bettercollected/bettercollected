@@ -15,6 +15,7 @@ from common.models.standard_form import StandardForm, StandardFormSettings
 
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.field_rules import ensure_rules_allowed
+from backend.app.services.new_question_types import ensure_question_types_allowed
 
 # the parts of a form its content writers may replace
 FORM_PARTS = (
@@ -81,6 +82,9 @@ async def persist_form(
         # FIELD_RULES_ENABLED is on, except as the stored form has them:
         # whatever an op or a writer did, nothing new gets past this.
         ensure_rules_allowed(new_form, form_document)
+        # The newer question types (services/new_question_types.py): the
+        # same, while NEW_QUESTION_TYPES_ENABLED is off.
+        ensure_question_types_allowed(new_form, form_document)
     if expected_updated_at is not None:
         if guard is not None:
             raise ValueError("guard and expected_updated_at do not combine")
