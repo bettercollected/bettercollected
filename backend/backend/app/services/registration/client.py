@@ -222,6 +222,7 @@ async def _request_once(
     headers,
     keep_reply: bool,
     max_reply: int,
+    timeouts=TIMEOUTS,
 ) -> Reply:
     async with httpcore.AsyncConnectionPool(
         ssl_context=ssl_context(),
@@ -235,7 +236,7 @@ async def _request_once(
             url,
             headers=headers,
             content=body,
-            extensions={"timeout": TIMEOUTS},
+            extensions={"timeout": timeouts},
         ) as response:
             status = response.status
             if 300 <= status < 400:
@@ -273,6 +274,9 @@ async def request(
     idempotency_key: Optional[str] = None,
     keep_reply: bool = False,
     max_reply: Optional[int] = None,
+    user_agent: bytes = USER_AGENT,
+    timeouts=None,
+    total_timeout: Optional[float] = None,
 ) -> Reply:
     """One request to ``target`` (``POST`` with ``body``, or ``GET``). Returns
     the 2xx :class:`Reply` or raises :class:`SendFailed`. ``query`` pairs are
@@ -294,7 +298,7 @@ async def request(
     except safe_http.UrlRefused:
         raise SendFailed("invalid_url", permanent=True)
     headers = [
-        (b"User-Agent", USER_AGENT),
+        (b"User-Agent", user_agent),
         (b"Accept", b"application/json" if keep_reply else b"*/*"),
         (b"Accept-Encoding", b"identity"),
     ]
@@ -324,6 +328,7 @@ async def request(
                 headers,
                 keep_reply,
                 max_reply or MAX_REPLY_BYTES,
+                timeouts or TIMEOUTS,
             )
         except SendFailed:
             raise
@@ -335,7 +340,7 @@ async def request(
             raise SendFailed("unreachable", permanent=False)
 
     try:
-        return await asyncio.wait_for(run(), TOTAL_TIMEOUT_S)
+        return await asyncio.wait_for(run(), total_timeout or TOTAL_TIMEOUT_S)
     except asyncio.TimeoutError:
         raise SendFailed("timeout", permanent=False)
 

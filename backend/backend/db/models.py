@@ -635,3 +635,36 @@ class RespondentIdentityKeyCheck(Base):
         TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")
     )
     __table_args__ = (CheckConstraint("id = 1", name="ck_respondent_identity_key_check_one_row"),)
+
+
+class FormWebhookRow(Base, BaseRow):
+    __tablename__ = "form_webhooks"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    __table_args__ = (Index(None, "workspace_id", "form_id"),)
+
+
+class ActionLogRow(Base, BaseRow):
+    __tablename__ = "action_logs"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    action_id = S.text("action_id")
+    response_id = S.text("response_id")
+    status = S.text("status")
+    __table_args__ = (
+        # the idempotency key of a submission run: one per action and response
+        # (a test run has no response id: NULLs never collide)
+        UniqueConstraint("action_id", "response_id"),
+        Index(None, "workspace_id", "form_id", "created_at"),
+        Index(None, "status", "created_at"),
+        Index(None, "response_id"),
+        Index(None, "created_at"),
+    )
+
+
+class WebhookAuditRow(Base, BaseRow):
+    __tablename__ = "webhook_audit_entries"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    webhook_id = S.text("webhook_id")
+    __table_args__ = (Index(None, "workspace_id", "form_id", "created_at"),)

@@ -435,7 +435,8 @@ services:
       retries: 6
     restart: unless-stopped
 
-  # Consumes the procrastinate `default` queue (delete_user, delete_response) when
+  # Consumes the procrastinate `default` queue (delete_user, delete_response) and the
+  # `webhooks` queue (webhook deliveries; never `actions`, the executor's) when
   # JOBS_BACKEND routes those to Postgres; same image and env as the backend.
   jobs-worker:
     image: bettercollected/backend:${BC_IMAGE_TAG:-v4.1.2}

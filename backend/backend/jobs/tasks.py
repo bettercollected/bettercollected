@@ -25,7 +25,8 @@ from backend.app.services.registration.retry import (
 )
 from backend.app.services.user_service import user_for_deletion
 from backend.config import settings
-from backend.jobs.app import ACTIONS_QUEUE, DEFAULT_QUEUE, app
+from backend.app.services.webhooks.retry import WebhookRetry, WebhookRetryStrategy
+from backend.jobs.app import ACTIONS_QUEUE, DEFAULT_QUEUE, WEBHOOKS_QUEUE, app
 
 RUN_ACTION = "run_action"
 
@@ -323,3 +324,49 @@ async def registration_sweep(timestamp: int) -> str:
     registrations of removed forms (no-op while the switch is off)."""
     counts = await _container().registration_service().sweep_orphans()
     return f"{counts['deliveries']} deliveries, {counts['registrations']} registrations"
+
+
+@app.task(
+    name="deliver_webhook",
+    queue=WEBHOOKS_QUEUE,
+    retry=WebhookRetryStrategy(),
+    pass_context=True,
+)
+async def deliver_webhook(context, log_id: str) -> str:
+    """One attempt to send one webhook delivery (docs/webhooks.md). The only
+    argument is the log row's id: the answers are decrypted inside the attempt,
+    reduced to the questions the webhook maps, and never queued. A transient
+    failure raises so the job is retried with exponential backoff and jitter; a
+    permanent one, or the last attempt, ends with the delivery ``failed``."""
+    outcome = await _container().webhook_service().run_delivery(
+        log_id, job_attempt=context.job.attempts
+    )
+    if outcome.retry:
+        raise WebhookRetry(outcome.retry_after)
+    return outcome.status
+
+
+@app.periodic(cron="*/5 * * * *", periodic_id="webhooks_redefer")
+@app.task(
+    name="webhooks_redefer",
+    queue=WEBHOOKS_QUEUE,
+    queueing_lock="webhooks_redefer",
+)
+async def webhooks_redefer(timestamp: int) -> str:
+    """Queue again deliveries whose job was never queued or whose worker died
+    (no-op while WEBHOOKS_ENABLED is off). Counts only."""
+    counts = await _container().webhook_service().redefer_pending()
+    return f"{counts['queued']} queued, {counts['rescued']} rescued"
+
+
+@app.periodic(cron="41 3 * * *", periodic_id="purge_action_logs")
+@app.task(
+    name="purge_action_logs",
+    queue=WEBHOOKS_QUEUE,
+    queueing_lock="purge_action_logs",
+)
+async def purge_action_logs(timestamp: int) -> str:
+    """Daily: delete the action log rows (ids, statuses and timings of each
+    webhook delivery) older than 30 days. Counts only."""
+    deleted = await _container().webhook_service().purge_expired()
+    return f"{deleted} deleted"

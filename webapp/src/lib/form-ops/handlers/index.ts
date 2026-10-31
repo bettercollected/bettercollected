@@ -5,6 +5,7 @@ import { addEnding, removeEnding, setEndings, updateEnding } from './endings';
 import { addField, addGroup, moveField, removeField, setFieldLogic, setFieldValidation, updateField } from './fields';
 import { setFormLanguage, setThemePreset, updateFormInfo, updateFormSettings, updateTheme } from './form';
 import { addPage, duplicatePage, movePage, removePage, setPageJumps, setQuestionNumbering, setSectionTitle } from './pages';
+import { setFieldRules } from './rules';
 
 /** The handler of each op, in the backend's order (ops.py `_HANDLERS`), then the editor ops. */
 export const HANDLERS: { [K in FormOpName]: Handler<Extract<FormOp, { op: K }>> } = {
@@ -18,6 +19,7 @@ export const HANDLERS: { [K in FormOpName]: Handler<Extract<FormOp, { op: K }>> 
     update_form_info: updateFormInfo,
     update_form_settings: updateFormSettings,
     set_field_logic: setFieldLogic,
+    set_field_rules: setFieldRules,
     set_page_jumps: setPageJumps,
     duplicate_page: duplicatePage,
     update_theme: updateTheme,
@@ -45,6 +47,19 @@ export const HANDLERS: { [K in FormOpName]: Handler<Extract<FormOp, { op: K }>> 
 };
 
 /** Ops only the builder sends; the AI and the API never get them. */
-export const EDITOR_ONLY_OPS: ReadonlySet<string> = new Set<FormOpName>(['insert_field', 'replace_field', 'insert_page', 'update_page', 'update_welcome_page', 'set_hidden_fields', 'update_logo', 'set_choice', 'add_choice', 'remove_choice', 'move_choice', 'set_endings']);
+export const EDITOR_ONLY_OPS: ReadonlySet<string> = new Set<FormOpName>([
+    'insert_field',
+    'replace_field',
+    'insert_page',
+    'update_page',
+    'update_welcome_page',
+    'set_hidden_fields',
+    'update_logo',
+    'set_choice',
+    'add_choice',
+    'remove_choice',
+    'move_choice',
+    'set_endings'
+]);
 
 export const OP_NAMES: ReadonlySet<string> = new Set(Object.keys(HANDLERS));

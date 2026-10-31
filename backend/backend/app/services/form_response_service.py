@@ -140,6 +140,7 @@ class FormResponseService:
         aws_service: AWSS3Service,
         workspace_repo: PostgresWorkspaceRepository,
         registration_delivery_repo=None,
+        webhook_log_repo=None,
     ):
         self._form_response_repo = form_response_repo
         self._form_repo = form_repo
@@ -149,6 +150,8 @@ class FormResponseService:
         self._workspace_repo = workspace_repo
         # delivery records of a deleted response go with it (registration)
         self._registration_deliveries = registration_delivery_repo
+        # so do the webhook action-log rows that name it (ids only, 30 days)
+        self._webhook_logs = webhook_log_repo
 
     async def get_all_workspace_responses(
         self,
@@ -860,6 +863,10 @@ class FormResponseService:
         self._aws_service.delete_folder_from_s3(prefix)
         if self._registration_deliveries is not None:
             await self._registration_deliveries.delete_by_response_id(response_id)
+        if self._webhook_logs is not None:
+            await self._webhook_logs.delete_by_response_id(
+                workspace_id, form_id, response_id
+            )
         return response_id
 
     async def has_pending_deletion_request(
@@ -972,9 +979,23 @@ class FormResponseService:
         return closed
 
     async def delete_response(self, response_id: str):
+        # read first: the webhook log rows are scoped by workspace and form
+        existing = (
+            await self._form_response_repo.get_response(response_id)
+            if self._webhook_logs is not None
+            else None
+        )
         deleted = await self._form_response_repo.delete_response(response_id=response_id)
         if self._registration_deliveries is not None:
             await self._registration_deliveries.delete_by_response_id(response_id)
+        if (
+            self._webhook_logs is not None
+            and existing is not None
+            and existing.workspace_id is not None
+        ):
+            await self._webhook_logs.delete_by_response_id(
+                existing.workspace_id, existing.form_id, response_id
+            )
         return deleted
 
     async def get_by_uuid(self, workspace_id: RecordId, submission_uuid: str):

@@ -539,6 +539,9 @@ SERVICES: Tuple[SettingSpec, ...] = (
           "Registration of submissions in a case system: on, or off (410, nothing is queued or "
           "sent; saved settings and delivery records stay).",
           ENUM, tier=T2, default="off", choices=("on", "off")),
+    _bool("WEBHOOKS_ENABLED", "webhooks", (BACKEND,), False,
+          "Self-service webhooks per form: on, or off (creating or enabling one answers 422, nothing is "
+          "queued or sent; saved webhooks and the delivery log stay).", tier=T2),
 )
 
 PDF = dict(section="pdf_import", readers=(BACKEND,))

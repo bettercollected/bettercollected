@@ -2637,11 +2637,17 @@ def _field_rule_messages(form: StandardForm) -> List[str]:
 
 
 def _new_problems(
-    form: StandardForm, before: Tuple[Set[str], Set[str], Set[str], Set[str]]
+    form: StandardForm,
+    before: Tuple[Set[str], Set[str], Set[str], Set[str]],
+    prune_rules: bool = False,
 ) -> Optional[str]:
     """The first problem of ``form`` a whole-form save would refuse (logic
     on an internal field, a date rule, a calculation, a field rule) that was
-    not there ``before``."""
+    not there ``before``. With ``prune_rules``, a problem with one field rule
+    (a reference it lost, a type it no longer fits) is not one: the caller
+    drops such rules with a note, as the builder's save does; only what no
+    single rule is to blame for (too many rules, too costly, a circle) is
+    still refused."""
     for problem in internal_logic_violations(form):
         if problem not in before[0]:
             return problem
@@ -2651,9 +2657,11 @@ def _new_problems(
     for problem in _calculation_messages(form):
         if problem not in before[2]:
             return problem
-    for problem in _field_rule_messages(form):
-        if problem not in before[3]:
-            return problem
+    for problem in field_rule_problems(form):
+        if prune_rules and (problem.rule is not None or problem.whole_field):
+            continue
+        if problem.message not in before[3]:
+            return problem.message
     return None
 
 
@@ -2837,12 +2845,17 @@ def _apply_replace_field(form: StandardForm, op: ReplaceFieldOp) -> str:
         _check_child_type(field.type, field.internal)
     known = _known_problems(form)
     container[position] = field
-    problem = _new_problems(form, known)
+    problem = _new_problems(form, known, prune_rules=True)
     if problem:
         container[position] = old
         raise OpError(problem)
     gone = {f.id for f in _subtree(old)} - {f.id for f in _subtree(field)}
-    return f"Replaced '{_title_text(field)}'{_dropped_references_note(form, gone)}"
+    # Field rules the new question leaves dangling (made internal, retyped, or
+    # one that read it) are dropped, with a note; the engine does the same.
+    return (
+        f"Replaced '{_title_text(field)}'{_dropped_rules_note(form)}"
+        f"{_dropped_references_note(form, gone)}"
+    )
 
 
 def _apply_insert_page(form: StandardForm, op: InsertPageOp) -> str:

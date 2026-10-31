@@ -10,6 +10,7 @@ from pydantic import EmailStr
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_permissions_dto import WorkspacePermissionsDto
+from backend.app.services.field_rules import field_rules_enabled
 from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
@@ -216,7 +217,8 @@ class WorkspaceRouter(Routable):
             user, workspace_id
         )
         return WorkspacePermissionsDto(
-            permissions=sorted(permissions, key=lambda p: p.value)
+            permissions=sorted(permissions, key=lambda p: p.value),
+            field_rules_enabled=field_rules_enabled(),
         )
 
     @get("/{workspace_id}/ai-profile")
