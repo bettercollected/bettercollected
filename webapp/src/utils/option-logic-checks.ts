@@ -338,7 +338,7 @@ export function worstCaseCost(slides: StandardFormFieldDto[] | undefined): numbe
                 if (!source || condition.groupMode === 'COUNT') return;
                 if (condition.groupMode === 'ANY' || condition.groupMode === 'ALL') {
                     const child = byId.get(condition.childFieldId ?? '');
-                    total += GROUP_ITEMS_MAX * (1 + (child && CHOICE_TYPES.has(child.type) ? (child.properties?.choices ?? []).length : 0));
+                    total += GROUP_ITEMS_MAX * (1 + byId.size + (child && CHOICE_TYPES.has(child.type) ? (child.properties?.choices ?? []).length : 0));
                 } else if (CHOICE_TYPES.has(source.type)) total += (source.properties?.choices ?? []).length;
             });
         });

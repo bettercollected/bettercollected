@@ -71,6 +71,7 @@ from common.models.standard_form import (
     FieldLogic,
 )
 
+from common.expressions import MAX_INPUT_STRING_LENGTH
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
@@ -369,6 +370,9 @@ class _Reading:
     def __init__(self, answers: Dict[str, Any], sources: Dict[str, Any]):
         self.answers = dict(answers)
         self.sources = dict(sources)
+        # answers to questions the form has: what merging an item over them costs
+        # (a crafted answer's unknown keys are not charged: they are refused)
+        self.known = sum(1 for key in answers if key in sources)
         # top-level choice question -> options chosen
         self.chosen: Dict[str, int] = {}
         # repeating group -> its items as read
@@ -414,7 +418,8 @@ class _Reading:
             if mode in ("ANY", "ALL"):
                 child = str(_get(condition, "child_field_id") or "")
                 for item in self.items.get(field_id, []):
-                    total += 1 + _values_in(item.get(child))
+                    # (each item is merged over the form's answers to be read)
+                    total += 1 + self.known + _values_in(item.get(child))
             else:
                 total += self.chosen.get(field_id, 0)
         return total
@@ -457,8 +462,10 @@ def worst_case_cost(form: Any) -> int:
                     continue
                 if mode in ("ANY", "ALL"):
                     child = by_id.get(str(_get(condition, "child_field_id") or ""))
-                    per_item = 1 + (
-                        len(_choices(child)) if _type(child) in CHOICE_TYPES else 0
+                    per_item = (
+                        1
+                        + len(by_id)
+                        + (len(_choices(child)) if _type(child) in CHOICE_TYPES else 0)
                     )
                     total += _GROUP_ITEMS_MAX * per_item
                 elif _type(source) in CHOICE_TYPES:
@@ -499,7 +506,13 @@ def _question_state(
         if _dangling(conditions, owner, sources):
             continue
         budget.charge(reading.cost(conditions))
-        met = evaluate_conditions(_get(logic, "operator"), conditions, answers, sources)
+        met = evaluate_conditions(
+            _get(logic, "operator"),
+            conditions,
+            answers,
+            sources,
+            MAX_INPUT_STRING_LENGTH,
+        )
         if (_get(logic, "action") == "SHOW") != met:
             hidden.add(choice_id)
     return frozenset(hidden), len(choices) - len(hidden)
@@ -1085,10 +1098,12 @@ def choice_logic_enabled() -> bool:
 def _condition_key(condition: Any) -> Tuple[Any, ...]:
     return (
         str(_get(condition, "field_id") or ""),
+        _get(condition, "field_type"),
         _get(condition, "comparison"),
         json.dumps(_get(condition, "value"), sort_keys=True, default=str),
         _get(condition, "group_mode"),
         str(_get(condition, "child_field_id") or ""),
+        _get(condition, "child_field_type"),
     )
 
 

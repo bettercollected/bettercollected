@@ -473,3 +473,22 @@ def test_the_other_importers_do_not_write_choice_logic():
         text = (root / relative).read_text("utf-8")
         assert "set_option_logic" not in text and "set_option_filter" not in text
         assert "option_filter" not in text and "optionFilter" not in text
+
+
+def test_a_save_made_while_off_cannot_change_how_stored_logic_evaluates(off):
+    stored = _form([_country(), LOGIC_CITY])
+    # the same conditions with another source type read the answer another way
+    retyped = _field(
+        "city",
+        choices=[
+            {
+                "id": "ams",
+                "value": "Amsterdam",
+                "logic": _show(_is("country", "Netherlands", "short_text")),
+            },
+            *CITIES[1:],
+        ],
+    )
+    assert new_or_changed_option_logic(_form([_country(), retyped]), stored) == [
+        ("city", "option:ams")
+    ]

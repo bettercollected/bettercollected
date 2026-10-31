@@ -1047,6 +1047,9 @@
     "WARNING_TOO_MANY": "This question has more than {{max}} options, too many for option logic: remove its option logic or some options, or the form cannot be saved.",
     "DROPPED_one": "{{count}} piece of option logic no longer fitted the form and was removed.",
     "DROPPED_other": "{{count}} pieces of option logic no longer fitted the form and were removed.",
-    "DISABLED": "Option logic cannot be saved: it is switched off on this server. Option logic already saved is kept."
+    "DISABLED": "Option logic cannot be saved: it is switched off on this server. Option logic already saved is kept.",
+    "REMOVE_LIST": "Remove option logic",
+    "REMOVE_OPTION": "Remove the logic of “{{option}}”",
+    "REMOVE_FILTER": "Remove the filter"
   }
 }

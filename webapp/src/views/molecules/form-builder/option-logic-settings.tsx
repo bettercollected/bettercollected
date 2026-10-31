@@ -85,6 +85,26 @@ export default function OptionLogicSettings() {
                     {t('OPTION_LOGIC.DISABLED_NOTE')}
                 </p>
             )}
+            {!editable && (
+                <ul className="flex flex-col gap-1.5" aria-label={t('OPTION_LOGIC.REMOVE_LIST')}>
+                    {choices.map((choice, index) =>
+                        choice.logic ? (
+                            <li key={choice.id}>
+                                <button type="button" className="text-xs font-medium text-brand-500 hover:text-brand-600" onClick={() => updateChoiceLogic(field.id, choice.id, undefined)}>
+                                    {t('OPTION_LOGIC.REMOVE_OPTION', { option: optionLabel(choice, index, t) })}
+                                </button>
+                            </li>
+                        ) : null
+                    )}
+                    {field.properties?.optionFilter && (
+                        <li>
+                            <button type="button" className="text-xs font-medium text-brand-500 hover:text-brand-600" onClick={() => updateOptionFilter(field.id, undefined)}>
+                                {t('OPTION_LOGIC.REMOVE_FILTER')}
+                            </button>
+                        </li>
+                    )}
+                </ul>
+            )}
             <fieldset disabled={!editable} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0">
                 {sources.length === 0 ? (
                     <p className="text-xs text-black-600">{t('OPTION_LOGIC.NO_SOURCES')}</p>

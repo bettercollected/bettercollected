@@ -1,4 +1,5 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { evaluateConditions } from '@app/utils/conditional-logic';
 import { dropOptionLogic } from '@app/utils/field-rule-copies';
 import { OPTION_LOGIC_COST_PER_RESPONSE, checkOptionLogic, optionLogicProblems, optionLogicWarnings, pruneOptionLogic, worstCaseCost } from '@app/utils/option-logic';
 
@@ -73,5 +74,12 @@ describe('the structure checks of option logic', () => {
         expect(copy.properties!.optionFilter).toBeUndefined();
         expect('logic' in copy.properties!.choices![0]).toBe(false);
         expect(copy.properties!.choices).toHaveLength(2);
+    });
+
+    it('reads a long digit string ending in a letter at once (no backtracking), as not a number', () => {
+        const started = performance.now();
+        const condition = { fieldId: 'n', fieldType: 'short_text', comparison: 'GREATER_THAN', value: '5' } as any;
+        expect(evaluateConditions('AND' as any, [condition], { n: { text: `${'1'.repeat(50000)}x` } })).toBe(false);
+        expect(performance.now() - started).toBeLessThan(500);
     });
 });

@@ -196,6 +196,18 @@ describe('option logic in the builder', () => {
             expect(screen.getByRole('switch', { name: 'Show or hide the option “Berlin” based on answers' })).toBeDisabled();
             expect(screen.getByRole('table')).toBeInTheDocument();
         });
+
+        it('still lets the creator remove what is there (a save that clears it is allowed)', async () => {
+            const logicChoice = { id: 'ber', value: 'Berlin', logic: { action: 'SHOW' as const, operator: 'AND' as any, conditions: [{ fieldId: 'country', fieldType: 'dropdown', comparison: 'IS_EQUAL' as any, value: 'Germany' }] } };
+            const city = { ...CITY, properties: { ...CITY.properties, choices: [CITY.properties!.choices![0], logicChoice, CITY.properties!.choices![2]], optionFilter: { fieldId: 'country', mapping: [{ when: 'nl', show: ['ams'] }] } } };
+            const { fieldNow } = setup([COUNTRY, city], 'city');
+            await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Remove the logic of “Berlin”' })));
+            expect('logic' in fieldNow('city').properties!.choices![1]).toBe(false);
+            await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Remove the filter' })));
+            expect(fieldNow('city').properties!.optionFilter).toBeUndefined();
+            // nothing left to remove: the section goes
+            expect(screen.queryByTestId('option-logic-settings')).not.toBeInTheDocument();
+        });
     });
 
     it('warns about a question with more options than option logic may sit on', () => {

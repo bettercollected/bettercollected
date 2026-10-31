@@ -1,3 +1,4 @@
+import { MAX_INPUT_STRING_LENGTH } from '@app/lib/expressions';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { LogicSources, evaluateConditions, logicSourcesById } from '@app/utils/conditional-logic';
 import {
@@ -145,7 +146,7 @@ function questionState(field: StandardFormFieldDto, answers: Answers, sources: L
         if (conditions.length > budget.conditions) return;
         budget.conditions -= conditions.length;
         if (isDangling(conditions, owner, sources)) return;
-        const met = evaluateConditions((logic as any).operator, conditions, answers, sources);
+        const met = evaluateConditions((logic as any).operator, conditions, answers, sources, MAX_INPUT_STRING_LENGTH);
         if ((logic.action === 'SHOW') !== met) hidden.add(choice.id);
     });
     return { hidden, offered: choices.length - hidden.size };

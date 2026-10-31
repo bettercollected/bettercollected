@@ -1205,3 +1205,78 @@ def test_a_question_with_too_many_options_is_refused_not_wiped():
     # nothing was wiped
     assert form.fields[0].properties.fields[1].properties.choices[0].logic is not None
     assert {w.code for w in option_logic_warnings(form)} == {"too_many_options"}
+
+
+def test_a_group_condition_is_charged_for_merging_each_item_over_the_answers():
+    from backend.app.services.option_logic import _Reading, option_states
+
+    group = _field(
+        "g",
+        "group",
+        fields=[_field("inner", choices=CITIES)],
+        repeat={"minItems": 0, "maxItems": 50},
+    )
+    pick = [
+        {
+            "id": "o1",
+            "value": "One",
+            "logic": _show(
+                {
+                    "fieldId": "g",
+                    "fieldType": "group",
+                    "comparison": "IS_EQUAL",
+                    "value": "Berlin",
+                    "groupMode": "ANY",
+                    "childFieldId": "inner",
+                    "childFieldType": "dropdown",
+                }
+            ),
+        },
+        CITIES[1],
+    ]
+    form = _form([group, _country(), _field("pick", choices=pick)])
+    from backend.app.services.repeating_groups import logic_sources
+
+    sources = logic_sources(form.fields)
+    items = [{"inner": {"type": "choice", "choice": {"value": "ber"}}}] * 10
+    answers = {
+        "g": {"type": "group", "items": items},
+        "country": {"type": "choice", "choice": {"value": "nl"}},
+        "junk1": {"type": "text", "text": "x"},
+    }
+    reading = _Reading(answers, sources)
+    condition = form.fields[0].properties.fields[2].properties.choices[0].logic.conditions[0]
+    # known keys only (the group and the country), never the crafted ones
+    assert reading.known == 2
+    assert reading.cost([condition]) >= 1 + 10 * (1 + 2)
+    assert option_states(form, answers).hidden == {}
+
+
+def test_an_option_condition_reads_no_text_over_ten_thousand_characters():
+    form = _form(
+        [
+            _field("n", "short_text"),
+            _field(
+                "pick",
+                choices=[
+                    {
+                        "id": "a",
+                        "value": "A",
+                        "logic": _show(
+                            {
+                                "fieldId": "n",
+                                "fieldType": "short_text",
+                                "comparison": "IS_NOT_EMPTY",
+                            }
+                        ),
+                    },
+                    CITIES[1],
+                ],
+            ),
+        ]
+    )
+    long = {"n": {"type": "text", "text": "a" * 10_001}}
+    assert option_states(form, long).hidden_options("pick") == frozenset({"a"})
+    assert (
+        option_states(form, {"n": {"type": "text", "text": "a" * 10_000}}).hidden == {}
+    )

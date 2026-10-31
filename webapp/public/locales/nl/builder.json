@@ -1047,6 +1047,9 @@
     "WARNING_TOO_MANY": "Deze vraag heeft meer dan {{max}} opties, te veel voor optielogica: haal de optielogica of een deel van de opties weg, anders kan het formulier niet worden opgeslagen.",
     "DROPPED_one": "{{count}} stuk optielogica paste niet meer in het formulier en is verwijderd.",
     "DROPPED_other": "{{count}} stukken optielogica pasten niet meer in het formulier en zijn verwijderd.",
-    "DISABLED": "Optielogica kan niet worden opgeslagen: ze staat uit op deze server. Optielogica die al is opgeslagen blijft bewaard."
+    "DISABLED": "Optielogica kan niet worden opgeslagen: ze staat uit op deze server. Optielogica die al is opgeslagen blijft bewaard.",
+    "REMOVE_LIST": "Optielogica verwijderen",
+    "REMOVE_OPTION": "De logica van “{{option}}” verwijderen",
+    "REMOVE_FILTER": "Het filter verwijderen"
   }
 }
