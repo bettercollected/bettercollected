@@ -819,6 +819,7 @@ class AppContainer(containers.DeclarativeContainer):
         domain_service=workspace_domain_service,
         session_service=session_service,
         http_client=http_client,
+        email_action_service=email_action_service,
     )
 
     polis_directory_client: PolisDirectoryClient = providers.Singleton(

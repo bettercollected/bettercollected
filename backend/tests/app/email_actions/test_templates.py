@@ -396,3 +396,41 @@ def test_the_wire_form_of_an_address_is_ascii_or_refused_for_good():
         with pytest.raises(MailFailed) as refused:
             ascii_recipient(bad)
         assert refused.value.code == "address_not_supported" and refused.value.permanent
+
+
+# ------------------------------------------- compatibility forms of links (NFKC)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "evil\uff0eexample",  # fullwidth full stop
+        "evil\u3002example/pay",  # ideographic full stop
+        "evil\uff61example",  # halfwidth ideographic full stop
+        "evil\ufe52example",  # small full stop
+        "evil\u2024example",  # one dot leader
+        "\uff57\uff57\uff57\uff0eevil\uff0eexample",  # fullwidth www.evil.example
+        "\uff48\uff54\uff54\uff50\uff53\uff1a\uff0f\uff0fevil\uff0eexample",  # fullwidth https://evil.example
+        "\uff4d\uff41\uff49\uff4c\uff54\uff4f\uff1avictim\uff20evil\uff0eexample",  # fullwidth mailto:
+        "visit evil\u3002example\uff0fpay now",
+    ],
+)
+def test_compatibility_forms_of_a_link_are_found_in_the_respondents_copy(text):
+    block = templates.copy_answers_block([("q", "Q " + text, text)])
+    assert "evil" not in block and "[link removed]" in block, block
+    # the team's mail is plain text as typed: it is not rewritten
+    assert text in body("{{answers}}", [("q", "Q", text)])
+
+
+def test_normalising_does_not_hide_a_link_behind_the_cut_and_the_cut_is_applied_again():
+    # cut first (a link cut in the middle is still a link), then normalise, then search
+    straddling = "a" * 190 + " evil.example/pay"
+    block = templates.copy_answers_block([("q", "Q", straddling)])
+    assert "evil" not in block
+    # NFKC can lengthen a text ("\u3300" is four characters): cut again afterwards
+    wide = templates.copy_item("\u3300" * 300, multiline=False)
+    assert len(wide) <= templates.COPY_ITEM_MAX and wide.endswith("\u2026")
+    # plain text is normalised: fullwidth letters and digits become the plain ones
+    assert templates.copy_item("\uff21\uff22\uff23 \uff11\uff12\uff13", multiline=False) == "ABC 123"
+    # an email address is still left alone once normalised
+    assert templates.copy_item("ada\uff20example.test", multiline=False) == "ada@example.test"

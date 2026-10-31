@@ -732,3 +732,69 @@ async def test_forgetting_an_unknown_or_invalid_address_changes_nothing(setup):
     assert await service.forget_address("nobody@acme.example") == 0
     assert await service.forget_address("not an address") == 0
     assert await service.forget_address(None) == 0
+
+
+# ---------------------------------------------------- budgets under concurrency
+
+
+async def test_the_limiter_admits_exactly_the_limit_in_parallel():
+    import asyncio
+
+    limiter = container.rate_limiter()
+    verdicts = await asyncio.gather(*[limiter.admit("t_parallel", "client", 7, 3600) for _ in range(30)])
+    assert sum(v.allowed for v in verdicts) == 7
+    seen = await limiter.hit("t_parallel", "client", 100, 3600, amount=0)
+    assert seen.count == 7  # a refused request changed nothing
+    # a release gives one back, and never goes below zero
+    await limiter.release("t_parallel", "client", 3600)
+    assert (await limiter.hit("t_parallel", "client", 100, 3600, amount=0)).count == 6
+    for _ in range(10):
+        await limiter.release("t_parallel", "client", 3600)
+    assert (await limiter.hit("t_parallel", "client", 100, 3600, amount=0)).count == 0
+    assert not (await limiter.admit("t_parallel", "client", 0, 3600)).allowed
+
+
+async def test_copies_in_parallel_never_overshoot_a_budget(setup, monkeypatch):
+    import asyncio
+
+    from backend.app.services.email_actions import service as module
+
+    service = container.email_action_service()
+    ws, form = setup.workspace.id, setup.form.form_id
+    monkeypatch.setattr(module, "COPY_ADDRESS_PER_HOUR", 3)
+    monkeypatch.setattr(module, "COPY_ADDRESS_FORM_PER_HOUR", 100)
+    # twenty parallel copies to variants of one mailbox: exactly three are admitted
+    variants = ["v.ictim@gmail.com", "victim+1@gmail.com", "VICTIM@googlemail.com", "victim@gmail.com."] * 5
+    results = await asyncio.gather(*[service._copy_within_limits(ws, form, a) for a in variants])
+    assert sum(results) == 3
+    limiter = container.rate_limiter()
+    # the wider budgets hold what was admitted, not what was refused
+    assert (await limiter.hit(module.COPY_WORKSPACE_SCOPE, str(ws), 10_000, module.HOUR, amount=0)).count == 3
+    assert (await limiter.hit(module.COPY_FORM_SCOPE, str(form), 10_000, module.HOUR, amount=0)).count == 3
+
+
+async def test_the_wider_budget_is_never_overshot_either(setup, monkeypatch):
+    import asyncio
+
+    from backend.app.services.email_actions import service as module
+
+    service = container.email_action_service()
+    ws, form = setup.workspace.id, setup.form.form_id
+    monkeypatch.setattr(module, "COPY_WORKSPACE_PER_HOUR", 5)
+    results = await asyncio.gather(
+        *[service._copy_within_limits(ws, form, f"person{n}@example.test") for n in range(30)]
+    )
+    assert sum(results) == 5
+    assert (await container.rate_limiter().hit(module.COPY_WORKSPACE_SCOPE, str(ws), 10_000, module.HOUR, amount=0)).count == 5
+
+
+async def test_team_mails_in_parallel_never_overshoot_the_form_cap(setup, monkeypatch):
+    import asyncio
+
+    from backend.app.services.email_actions import service as module
+
+    monkeypatch.setattr(module, "TEAM_FORM_PER_HOUR", 4)
+    results = await asyncio.gather(
+        *[container.email_action_service()._team_within_limit(setup.form.form_id) for _ in range(25)]
+    )
+    assert sum(results) == 4
