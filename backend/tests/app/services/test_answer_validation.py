@@ -161,6 +161,17 @@ def test_js_number(text, expected):
     assert (math.isnan(value) and math.isnan(expected)) or value == expected
 
 
+@pytest.mark.parametrize("tail", ["x", ".x", "e", "1e+", " 1"])
+def test_a_long_digit_string_that_is_not_a_number_is_read_in_linear_time(tail):
+    # The decimal pattern must fail in linear time on a long run of digits
+    # that is not a number.
+    text = "1" * 50_000 + tail
+    started = time.monotonic()
+    value = js_number(text)
+    assert math.isnan(value)
+    assert time.monotonic() - started < 1.0
+
+
 def test_javascript_escapes_are_rewritten_for_re2():
     assert to_re2_syntax("^caf\\u00e9$") == "^caf\\x{00e9}$"
     assert to_re2_syntax("\\u{1F600}") == "\\x{1F600}"
