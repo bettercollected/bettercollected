@@ -9,7 +9,7 @@ import { pruneOrphanedPipes } from '@app/utils/answer-piping';
 import { pruneOrphanedCalculationRefs } from '@app/utils/calculated-fields';
 import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
 import { pruneOrphanedDateRules, remapDateRules } from '@app/utils/date-rules';
-import { dropFieldRules } from '@app/utils/field-rule-copies';
+import { dropFieldRules, dropOptionLogic } from '@app/utils/field-rule-copies';
 import { fieldAndChildIds, movePageInSlides, pruneOutOfOrderReferences } from '@app/utils/form-outline';
 import { SECTION_TITLE_MAX } from '@app/utils/leaflet-sections';
 import { remapGroupChildIds, remapTextTokens } from '@app/utils/repeating-groups';
@@ -82,6 +82,8 @@ export function pageMutators(ctx: BuilderContext) {
         clone.id = v4();
         // Field rules are not copied (their ids are unique per form).
         dropFieldRules(clone);
+        // ... nor option logic (it names the original's options).
+        dropOptionLogic(clone);
 
         const idMap: Record<string, string> = {};
         clone.properties?.fields?.forEach((field) => {

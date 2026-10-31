@@ -16,6 +16,7 @@ import { clone, jsonEqual } from '@app/lib/form-ops/model';
 import type { FormField } from '@app/lib/form-ops/types';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldConditionalLogic, IFormFieldValidation } from '@app/models/types/form-builder-shared';
+import type { OptionFilter } from '@app/utils/option-logic-checks';
 
 import { FormDocument, builderFieldsAtom, commitBuilderFieldsAtom, dispatchAtom, formDocAtom } from './form-document';
 import { fieldAtom, fieldIdsOfPageAtom, pageAtom, pageIdsAtom, pageShellAtom } from './form-document-selectors';
@@ -164,6 +165,10 @@ export interface FieldActions {
     updateFieldAttachment: (fieldId: string, attachment: StandardFormFieldDto['attachment']) => boolean;
     /** The question's show/hide rule; `undefined` clears it. */
     updateFieldLogic: (fieldId: string, logic: FieldConditionalLogic | undefined) => boolean;
+    /** One option's own logic ("show this option when…"); `undefined` clears it (utils/option-logic.ts). */
+    updateChoiceLogic: (fieldId: string, choiceId: string, logic: FieldConditionalLogic | undefined) => boolean;
+    /** The question's filter of its options by an earlier answer; `undefined` clears it (utils/option-logic.ts). */
+    updateOptionFilter: (fieldId: string, filter: OptionFilter | undefined) => boolean;
 }
 
 const fieldActionsByStore = new WeakMap<Store, FieldActions>();
@@ -204,7 +209,30 @@ export function fieldActions(store: Store): FieldActions {
         updateFieldRequired: (fieldId, required) => change(fieldId, (field) => ({ ...field, validations: { ...field.validations, required } })),
         updateFieldColSpan: (fieldId, colSpan) => change(fieldId, (field) => withProperties(field, { colSpan: Math.min(12, Math.max(1, colSpan)) })),
         updateFieldAttachment: (fieldId, attachment) => change(fieldId, (field) => ({ ...field, attachment }), `attachment:${fieldId}`),
-        updateFieldLogic: (fieldId, logic) => change(fieldId, (field) => ({ ...field, properties: { ...(field.properties || {}), logic } }), `logic:${fieldId}`)
+        updateFieldLogic: (fieldId, logic) => change(fieldId, (field) => ({ ...field, properties: { ...(field.properties || {}), logic } }), `logic:${fieldId}`),
+        updateChoiceLogic: (fieldId, choiceId, logic) =>
+            change(
+                fieldId,
+                (field) =>
+                    withProperties(field, {
+                        // an option without logic carries no `logic` key at all
+                        choices: field.properties?.choices?.map((choice) => {
+                            if (choice.id !== choiceId) return choice;
+                            const { logic: _previous, ...rest } = choice;
+                            return logic ? { ...rest, logic } : rest;
+                        })
+                    }),
+                `choice-logic:${fieldId}:${choiceId}`
+            ),
+        updateOptionFilter: (fieldId, filter) =>
+            change(
+                fieldId,
+                (field) => {
+                    const { optionFilter: _previous, ...rest } = field.properties || { fields: [] };
+                    return { ...field, properties: filter ? { ...rest, optionFilter: filter } : rest };
+                },
+                `option-filter:${fieldId}`
+            )
     };
     fieldActionsByStore.set(store, actions);
     return actions;

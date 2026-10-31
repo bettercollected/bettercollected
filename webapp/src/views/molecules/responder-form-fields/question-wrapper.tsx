@@ -6,6 +6,7 @@ import { AlertCircle } from 'lucide-react';
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { useFieldRuleStates } from '@app/lib/hooks/use-field-rule-states';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
+import { useOptionStates } from '@app/lib/hooks/use-option-states';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
@@ -64,14 +65,17 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     // Continue, then re-checked against the answer as it is now, so the
     // message goes away as soon as the answer is fixed.
     const isAnswerable = isAnswerableField(field);
+    // Choice logic (utils/option-logic.ts): a question with nothing to choose is never required.
+    const optionStates = useOptionStates();
+    const nothingToChoose = !itemScope && optionStates.isNoneLeft(field.id);
     // Required unless a rule says otherwise (never for a locked question).
-    const isRequired = ruleStates.isRequired(field.id, !!field?.validations?.required, itemScope?.groupId, itemScope?.index);
+    const isRequired = !nothingToChoose && ruleStates.isRequired(field.id, !!field?.validations?.required, itemScope?.groupId, itemScope?.index);
     // The page's own "required" (the enum's 0) flagged earlier goes away when a rule
     // stops requiring the question. What the server said stays: it is the server's
     // word on the answer it was sent, and only the next Continue replaces it.
     const flagged = (invalidFields?.[field.id] ?? []).filter((code) => ruleStates.isEmpty || isRequired || code !== Invalidations.REQUIRED);
     const flaggedOnlyRules = flagged.length > 0 && flagged.every(isAnswerRuleProblem);
-    const ruleProblems = flaggedOnlyRules ? checkAnswerRules(field, formResponse.answers?.[field.id]) : [];
+    const ruleProblems = flaggedOnlyRules ? checkAnswerRules(field, formResponse.answers?.[field.id], optionStates) : [];
     // A custom pattern is not tested in the browser (utils/answer-rules.ts): only
     // the server finds a miss, and its message stays until the next Continue.
     const serverPattern = flagged.includes('PATTERN') && !!field?.validations?.regex && !browserChecksPattern(field.validations.regex);

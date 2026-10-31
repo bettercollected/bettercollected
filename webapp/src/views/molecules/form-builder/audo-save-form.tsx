@@ -20,6 +20,7 @@ import { usePatchV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { FlushResult, SaveOutcome, SaveQueue } from '@app/utils/autosave-queue';
 import { DroppedRule, withoutFieldRules } from '@app/utils/field-rule-copies';
+import { pruneOptionLogic } from '@app/utils/option-logic-checks';
 import { reloadPage } from '@app/utils/reload-page';
 
 /** Quiet time after the last edit before it is saved. */
@@ -64,6 +65,50 @@ function storedBodyOf(body: string, dropped: DroppedRule[]): string {
 /** Did the server refuse the save because field rules are switched off (422 `field_rules_disabled`)? */
 export function isFieldRulesDisabled(response: any): boolean {
     return response?.error?.status === 422 && response.error.data?.code === 'field_rules_disabled';
+}
+
+/** Did the server refuse the save because choice logic is switched off (422 `choice_logic_disabled`)? */
+export function isChoiceLogicDisabled(response: any): boolean {
+    return response?.error?.status === 422 && response.error.data?.code === 'choice_logic_disabled';
+}
+
+/** A piece of option logic a save repaired (dropped): where, and why. */
+export interface RepairedOptionLogic {
+    fieldId?: string | null;
+    optionId?: string | null;
+    message?: string | null;
+}
+
+/** The option logic a save repaired (`droppedOptionLogic`). */
+export function droppedOptionLogicOf(data: any): RepairedOptionLogic[] {
+    return Array.isArray(data?.droppedOptionLogic) ? data.droppedOptionLogic.filter((item: any) => item?.fieldId) : [];
+}
+
+// Repairs already told about in this session ("<form>/<question>/<option>/<message>").
+const noticedOptionLogic = new Set<string>();
+
+/** Forget which repairs were told about (tests). */
+export function resetRepairedOptionLogicNotices() {
+    noticedOptionLogic.clear();
+}
+
+/** How many repairs were not told about yet (once each per session). */
+export function newlyRepairedOptionLogic(formId: string, repaired: RepairedOptionLogic[]): number {
+    const fresh = repaired.filter(({ fieldId, optionId, message }) => !noticedOptionLogic.has(`${formId}/${fieldId}/${optionId ?? ''}/${message ?? ''}`));
+    fresh.forEach(({ fieldId, optionId, message }) => noticedOptionLogic.add(`${formId}/${fieldId}/${optionId ?? ''}/${message ?? ''}`));
+    return fresh.length;
+}
+
+/** The notice for `count` repairs. */
+export function repairedOptionLogicText(count: number): string {
+    return i18n.t('builder:OPTION_LOGIC.DROPPED', { count });
+}
+
+/** A sent body as the server stored it: with its option logic repaired the way the server repairs it. */
+function bodyWithRepairedOptionLogic(body: string): string {
+    const parsed = JSON.parse(body);
+    if (Array.isArray(parsed?.fields)) pruneOptionLogic(parsed.fields);
+    return JSON.stringify(parsed);
 }
 
 export function saveOutcomeOf(response: any): SaveOutcome {
@@ -173,6 +218,7 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                         const outcome = saveOutcomeOf(response);
                         // Rules the server will not take (they are switched off there): say so plainly, once per refusal.
                         if (isFieldRulesDisabled(response)) toast({ description: i18n.t('builder:FIELD_RULES.DISABLED') });
+                        if (isChoiceLogicDisabled(response)) toast({ description: i18n.t('builder:OPTION_LOGIC.DISABLED') });
                         if (outcome.kind === 'saved') {
                             contextRef.current.dispatch(setForm({ ...response.data, settings: contextRef.current.settings }));
                             // The language the server stored: it keeps its own
@@ -183,6 +229,25 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                                 store.set(adoptSavedLanguageAtom, { sent: JSON.parse(body)?.settings?.language ?? null, saved: saved.language ?? null });
                             }
                             const dropped = droppedRulesOf(response.data);
+                            const repaired = droppedOptionLogicOf(response.data);
+                            if (repaired.length) {
+                                // The server repaired these (a condition or filter that no longer fits
+                                // the form): the builder repairs its own copy the same way (no undo
+                                // step, not an edit) and so do the saves waiting, and says so once.
+                                const fields = store.get(builderFieldsAtom);
+                                const copy = JSON.parse(JSON.stringify(fields));
+                                pruneOptionLogic(copy);
+                                if (JSON.stringify(copy) !== JSON.stringify(fields)) {
+                                    quiet.on = true;
+                                    store.set(commitBuilderFieldsAtom, copy, { undoable: false });
+                                    quiet.on = false;
+                                }
+                                const fresh = newlyRepairedOptionLogic(formId, repaired);
+                                if (fresh) waitingNotices.add(toastWhenFree({}, { key: `option-logic:${formId}`, count: fresh, describe: repairedOptionLogicText }));
+                            }
+                            if (repaired.length && !dropped.length) {
+                                return { ...outcome, savedBody: bodyWithRepairedOptionLogic(body), rewritePending: (waiting: string) => bodyWithRepairedOptionLogic(waiting) } as SaveOutcome;
+                            }
                             if (dropped.length) {
                                 // The server left these rules out: the builder lets go of
                                 // them too (no undo step, not an edit), and neither the
@@ -201,7 +266,8 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                                     const cancel = toastWhenFree({}, { key: `field-rules:${formId}`, count: questions, describe: droppedRulesText });
                                     waitingNotices.add(cancel);
                                 }
-                                return { ...outcome, savedBody: storedBodyOf(body, dropped), rewritePending: (waiting: string) => storedBodyOf(waiting, dropped) } as SaveOutcome;
+                                const rewrite = (text: string) => (repaired.length ? bodyWithRepairedOptionLogic(storedBodyOf(text, dropped)) : storedBodyOf(text, dropped));
+                                return { ...outcome, savedBody: rewrite(body), rewritePending: rewrite } as SaveOutcome;
                             }
                         }
                         return outcome;

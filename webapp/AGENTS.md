@@ -89,6 +89,22 @@ read per request like `SSO_ENABLED`, `lib/runtime-flags.ts`); with it off, exist
 save the server refuses with 422 `field_rules_disabled` toasts the reason (`audo-save-form.tsx`). The formula box is
 shared with calculated fields (`formula-input.tsx`).
 
+**Choice logic (respondent runtime and builder):** a choice's `logic` and a question's `properties.optionFilter`
+(which options are offered; `utils/option-logic.ts` is the pure twin of backend `services/option_logic.py`, its structure,
+save checks, repair and warnings are in `utils/option-logic-checks.ts`; shared cases `docs/spec/option-logic.cases.json`)
+are evaluated by `optionStates`. `useOptionStates` (`lib/hooks/use-option-states.ts`) hands the choice components the
+available options (radios, checkboxes and the dropdown render only those: `offeredChoices`), `QuestionWrapper` and
+`validateSlide` treat a question with nothing to choose as optional, and `useClearUnavailableOptions` (called next to
+`useDerivedAnswers` in `form-slide.tsx`) clears a selection that stopped being available, from the answers as a submission
+carries them; the question says so in `option-cleared-notice.tsx` (a polite status region under its options). The builder
+edits an option's logic and a question's filter in `form-builder/option-logic-settings.tsx` (Logic section of a choice
+question; the existing `ConditionRow`), with the shared warnings; `pruneOrphanedConditions` also runs `pruneOptionLogic`, so
+every structural edit repairs option logic as the server's save does (and autosave tells the creator what the server
+repaired: `droppedOptionLogic`). Page-level choice questions only. The section shows only while `CHOICE_LOGIC_ENABLED` is on
+(`useWorkspacePermissions().choiceLogicEnabled`, from the permissions answer like `fieldRulesEnabled`); with it off, existing
+option logic is listed read-only. A copy of a question or page starts without option logic (`dropOptionLogic`). The server
+stays authoritative (`hidden_option`).
+
 ## Commands
 
 ```bash

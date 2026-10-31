@@ -16,6 +16,7 @@ from common.models.standard_form import (
     FieldLogic,
     FieldPosition,
     FieldRule,
+    OptionFilter,
     FIELD_RULES_MAX,
     PageJump,
     LogicalOperator,
@@ -68,6 +69,8 @@ class StandardChoice(CamelModel):
     value: Optional[str] = None
     label: Optional[str] = None
     attachment: Optional[StandardFieldAttachment] = None
+    # Choice-level logic (common StandardChoice.logic), checked on every save.
+    logic: Optional[FieldLogic] = None
 
 
 class StandardFieldValidationsCamelModal(CamelModel):
@@ -134,6 +137,9 @@ class StandardFieldPropertyCamelModel(CamelModel):
     unanswered_as_zero: Optional[bool] = None
     # Field rules (common StandardFieldProperty.rules), checked on every save.
     rules: Optional[List[FieldRule]] = Field(None, max_length=FIELD_RULES_MAX)
+    # Filter this question's options by an earlier choice question's answer
+    # (common OptionFilter), checked on every save.
+    option_filter: Optional[OptionFilter] = None
 
 
 class StandardFormFieldCamelModel(CamelModel):
