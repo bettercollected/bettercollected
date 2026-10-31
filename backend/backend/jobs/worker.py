@@ -1,7 +1,7 @@
 """The backend's job worker: ``python -m backend.jobs.worker``.
 
 Same image and configuration as the API; boots the container (the Postgres
-engine; Mongo is not used) and consumes the ``default`` queue — never
+engine; Mongo is not used) and consumes the ``default`` and ``webhooks`` queues — never
 ``actions``, which belongs to the actions-executor. Concurrency is small on
 purpose (jobs are deletions).
 """
@@ -25,12 +25,16 @@ from backend.app.container import container
 from backend.app.services.internal_auth import log_if_internal_key_missing
 from backend.app.utils import AiohttpClient
 from backend.db.startup import check_postgres_at_startup, dispose_postgres
-from backend.jobs.app import DEFAULT_QUEUE, app
+from backend.jobs.app import DEFAULT_QUEUE, WEBHOOKS_QUEUE, app
 from common.services.crypto_service import crypto_service
 
 
 async def main() -> None:
-    queues = [q for q in os.environ.get("JOBS_QUEUES", DEFAULT_QUEUE).split(",") if q]
+    queues = [
+        q
+        for q in os.environ.get("JOBS_QUEUES", f"{DEFAULT_QUEUE},{WEBHOOKS_QUEUE}").split(",")
+        if q
+    ]
     concurrency = int(os.environ.get("JOBS_CONCURRENCY", "4"))
     log_if_internal_key_missing()  # delete_user removes the account in auth
     crypto_service.load()  # the response keyset: fail at startup when there is none

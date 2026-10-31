@@ -214,6 +214,7 @@ environment, whatever the tier.
 | `AWS_SECRET_ACCESS_KEY` | storage | backend | str | yes | R | T3 |  |
 | `EVENT_WEBHOOK_ENABLED` | webhooks | backend | bool |  | R | T3 | `false` |
 | `EVENT_WEBHOOK_URL` | webhooks | backend | url |  | R | T3 |  |
+| `WEBHOOKS_ENABLED` | webhooks | backend | bool |  | R | T2 | `false` |
 | `DEFAULT_SEED_FLOW_TEMPLATES` | workspace | backend | bool |  | R | T1 | `true` |
 | `DEFAULT_SHOW_TEMPLATES` | workspace | backend | bool |  | R | T1 | `false` |
 | `DEFAULT_WORKSPACE_ID` | workspace | backend | str max 64 |  | R | T2 |  |

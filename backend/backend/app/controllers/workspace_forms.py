@@ -449,6 +449,24 @@ class WorkspaceFormsRouter(Routable):
                     form["registrationDestination"] = destination
                 else:
                     form.registration_destination = destination
+            # ... and the hosts of its webhooks (the privacy panel names them)
+            try:
+                webhooks = await container.webhook_service().destination_for(
+                    workspace_id, str(form_id)
+                )
+            except Exception as error:  # noqa: BLE001 - never fail a respondent's form load
+                logger.error(
+                    "webhook destination not read: workspace={} form={} ({})",
+                    workspace_id,
+                    form_id,
+                    type(error).__name__,
+                )
+                webhooks = None
+            if webhooks:
+                if isinstance(form, dict):
+                    form["webhookDestination"] = webhooks
+                else:
+                    form.webhook_destination = webhooks
         if etag is not None and isinstance(form, FormDtoCamelModel):
             form.etag = etag
             response.headers["ETag"] = etag
