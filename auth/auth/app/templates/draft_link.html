@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body style="margin:0;padding:0;background-color:#F5F7FB;">
-<!-- Fixed notice: names the form and links to the saved draft. No answer is
-     ever in this mail. Every value is autoescaped (see
+<!-- Fixed wording and the link to the saved draft: no form title, no
+     organisation, no answer. Every value is autoescaped (see
      notification_service.render_draft_link). -->
 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"
        style="background-color:#F5F7FB;">
@@ -24,8 +24,6 @@
                 <tr>
                     <td align="center"
                         style="padding:0 32px 32px 32px;font-family:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:16px;font-weight:400;line-height:1.5;color:#5A6478;">
-                        {{ t.draft_from_workspace }}
-                        <span style="color:#101828;">{{ form_title }}</span>{% if by_workspace %} {{ by_workspace }}{% endif %}.
                         {{ t.draft_intro }}
                     </td>
                 </tr>

@@ -120,6 +120,10 @@ from backend.app.services.field_rules import (
     prune_field_rules,
 )
 from backend.app.services.form_drafts.limits import normalized_draft_retention_days
+from backend.app.services.form_drafts.mode import (
+    DISABLED_MESSAGE as SAVE_DRAFTS_DISABLED_MESSAGE,
+    save_drafts_enabled,
+)
 from backend.app.services.image_urls import (
     IMAGE_URL_ERROR,
     checked_image_url,
@@ -1607,6 +1611,9 @@ def _apply_update_form_settings(form: StandardForm, op: UpdateFormSettingsOp) ->
             "privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber, "
             "allowSaveDraft, draftRetentionDays."
         )
+    if op.patch.allow_save_draft is True and not save_drafts_enabled():
+        # SAVE_DRAFTS_ENABLED is off: the setting cannot be turned on
+        raise OpError(SAVE_DRAFTS_DISABLED_MESSAGE)
     if op.patch.draft_retention_days is not None:
         try:
             normalized_draft_retention_days(op.patch.draft_retention_days)

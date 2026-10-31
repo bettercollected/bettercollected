@@ -113,7 +113,7 @@ async def draft_mail(locale, workspace="Acme Zorg", form="Aanvraag"):
     with patch("auth.app.services.notification_service.MailService") as mail:
         mail.return_value.send_message = AsyncMock()
         await NotificationService().send_draft_link(
-            "r@example.com", form, workspace, FORM_LINK, 7, locale=locale
+            "r@example.com", FORM_LINK, 7, locale=locale
         )
     mail.assert_called_once_with()
     return mail.return_value.send_message.await_args.args[0]

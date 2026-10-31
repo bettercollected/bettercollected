@@ -113,25 +113,13 @@ def is_allowed_draft_link(link: str) -> bool:
     return False
 
 
-def render_draft_link(
-    form_title: str,
-    workspace_title: Optional[str],
-    link: str,
-    days: int,
-    locale: Optional[str] = None,
-) -> str:
+def render_draft_link(link: str, days: int, locale: Optional[str] = None) -> str:
+    """Fixed wording and the link: no form title, no organisation, no answer."""
     t = texts(locale)
-    workspace_title = one_line(workspace_title)
     return render(
         DRAFT_LINK_TEMPLATE,
         t=t,
         lang=mail_locale(locale),
-        form_title=one_line(form_title),
-        by_workspace=(
-            t["draft_by_workspace"].format(workspace=workspace_title)
-            if workspace_title
-            else None
-        ),
         expiry=t["draft_expiry"].format(days=days),
         link=link,
     )
@@ -250,22 +238,19 @@ class NotificationService:
     async def send_draft_link(
         self,
         recipient: str,
-        form_title: str,
-        workspace_title: Optional[str],
         link: str,
         days: int,
         locale: Optional[str] = None,
     ) -> None:
         """Email ``recipient`` the link that reopens a saved draft. The mail
-        names the form and the organisation and holds no answer. Runs after
+        is fixed wording and the link: no form, no organisation, no answer. Runs after
         the response was sent: failures are logged without the address, and
         never with the link."""
         try:
             message = MessageSchema(
-                # fixed wording: titles appear only in the body (#761)
                 subject=texts(locale)["draft_subject"],
                 recipients=[recipient],
-                body=render_draft_link(form_title, workspace_title, link, days, locale),
+                body=render_draft_link(link, days, locale),
                 subtype="html",
             )
             await MailService().send_message(message)

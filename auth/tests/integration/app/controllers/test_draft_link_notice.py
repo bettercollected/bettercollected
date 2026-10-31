@@ -25,8 +25,6 @@ LINK = f"{CLIENT}/acme/forms/6a0000000000000000000002#resume={TOKEN}"
 def notice(**overrides) -> dict:
     return {
         "recipient": "applicant@example.com",
-        "form_title": "Job application",
-        "workspace_title": "Acme Hiring",
         "link": LINK,
         "days": 7,
         **overrides,
@@ -71,7 +69,7 @@ def test_a_users_token_is_not_what_it_takes(app_runner, sent):
     sent.assert_not_called()
 
 
-def test_it_sends_the_link_with_fixed_wording_and_no_answer(app_runner, sent):
+def test_it_sends_the_link_with_fixed_wording_and_nothing_else(app_runner, sent):
     response = app_runner.post(URL, json=notice(), headers=key())
     assert response.status_code == 200, response.text
     sent.assert_awaited_once()
@@ -79,7 +77,9 @@ def test_it_sends_the_link_with_fixed_wording_and_no_answer(app_runner, sent):
     assert message.subject == "Your link to continue a form"
     assert [r.email for r in message.recipients] == ["applicant@example.com"]
     assert f'href="{LINK}"' in message.body
-    assert "Job application" in message.body and "Acme Hiring" in message.body
+    # no form title and no organisation: the mail has only fixed wording and the link
+    assert "Job application" not in message.body and "Acme" not in message.body
+    assert "You saved a draft of a form." in " ".join(message.body.split())
     assert "7 days" in message.body and "do not forward" in message.body
 
 
@@ -91,15 +91,22 @@ def test_the_mail_is_in_dutch_when_asked(app_runner, sent):
     body = " ".join(message.body.split())
     assert '<html lang="nl"' in message.body
     assert "Verder met het formulier" in body
-    assert "Je hebt een concept bewaard van" in body
+    assert "Je hebt het concept van een formulier bewaard." in body
     assert "Stuur deze e-mail dus niet door" in body
 
 
 def test_only_structured_fields(app_runner, sent):
-    for extra in ({"subject": "x"}, {"body": "<b>x</b>"}, {"answers": {"a": 1}}):
+    for extra in (
+        {"subject": "x"},
+        {"body": "<b>x</b>"},
+        {"answers": {"a": 1}},
+        # the mail names no form and no organisation: those fields are not accepted
+        {"form_title": "Job application"},
+        {"workspace_title": "Acme Hiring"},
+    ):
         response = app_runner.post(URL, json=notice(**extra), headers=key())
         assert response.status_code == 422, extra
-    for bad in ({"recipient": "nope"}, {"form_title": ""}, {"days": 0}, {"days": 500}):
+    for bad in ({"recipient": "nope"}, {"days": 0}, {"days": 500}):
         response = app_runner.post(URL, json=notice(**bad), headers=key())
         assert response.status_code == 422, bad
     sent.assert_not_called()
@@ -135,21 +142,12 @@ def test_the_admin_host_is_a_link_host_too():
     )
 
 
-def test_values_are_escaped_and_single_line(app_runner, sent):
-    response = app_runner.post(
-        URL,
-        json=notice(
-            form_title="<script>alert(1)</script>\r\nBcc: x@evil.com",
-            workspace_title='<a href="https://evil.com">Click</a>',
-        ),
-        headers=key(),
-    )
+def test_the_link_is_escaped_in_the_mail(app_runner, sent):
+    assert "<img" not in render_draft_link('"><img src=x>', 7)
+    response = app_runner.post(URL, json=notice(), headers=key())
     assert response.status_code == 200
     message = sent.await_args.args[0]
-    assert "\n" not in message.subject and "<script>" not in message.body
-    assert "&lt;script&gt;" in message.body
-    assert 'href="https://evil.com"' not in message.body
-    assert "<img" not in render_draft_link('"><img src=x>', "A & B", LINK, 7)
+    assert "\n" not in message.subject
 
 
 def test_a_mail_failure_is_swallowed_and_logs_no_link(app_runner):

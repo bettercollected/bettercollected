@@ -510,6 +510,12 @@ export interface ApplyOptions {
      * backend's apply_settings_ops does to the stored settings. Default true;
      * false leaves settings alone, as the backend's form engine does.
      */
+    /**
+     * Whether the server lets respondents save drafts (its SAVE_DRAFTS_ENABLED).
+     * `false`: an op that turns "save and continue later" on is refused, as the
+     * server's engine refuses it; absent: the server decides.
+     */
+    saveDraftsEnabled?: boolean;
     applySettings?: boolean;
     /**
      * Is this address one of our own storage's public images? It depends on

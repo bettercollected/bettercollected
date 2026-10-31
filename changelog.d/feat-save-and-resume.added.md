@@ -4,3 +4,5 @@
   list, export, count or response limit and start no action or webhook until the form is submitted), expire after 1 to
   90 days (30 by default) and are deleted when the form is submitted or on request. The respondent's privacy panel says
   so. Creators set it in the form's settings, the API, the spec and the AI/MCP operations.
+  Behind `SAVE_DRAFTS_ENABLED` (off by default): until it is on, the setting cannot be turned on and drafts are not
+  saved or opened. The link mail holds only fixed wording and the link.

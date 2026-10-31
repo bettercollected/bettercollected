@@ -1,6 +1,7 @@
 import pytest
 
 from backend.app.container import container
+from backend.config import settings
 
 
 @pytest.fixture()
@@ -18,3 +19,9 @@ def mails(monkeypatch):
 
     monkeypatch.setattr(type(container.http_client()), "post", post)
     return sent
+
+
+@pytest.fixture(autouse=True)
+def drafts_switched_on(monkeypatch):
+    """SAVE_DRAFTS_ENABLED is on for these tests; the switch tests turn it off."""
+    monkeypatch.setattr(settings, "SAVE_DRAFTS_ENABLED", True)

@@ -54,6 +54,11 @@ from backend.app.services.form_spec.service import (
     FormSpecService,
     ops_errors,
 )
+from backend.app.services.form_drafts.mode import (
+    DISABLED_CODE,
+    DISABLED_MESSAGE,
+    ensure_save_drafts_allowed,
+)
 from backend.app.services.workspace_form_service import keep_section_titles
 
 PRECONDITION_FAILED_CODE = "precondition_failed"
@@ -161,6 +166,36 @@ def with_builder_defaults(form: StandardForm) -> StandardForm:
     return form
 
 
+_DRAFTS_PATH = "/trust/allowSaveDraft"
+
+
+def _drafts_problem(spec: FormSpec, settings: Any) -> Optional[Dict[str, str]]:
+    """The problem of a document that turns "save and continue later" on while
+    ``SAVE_DRAFTS_ENABLED`` is off (a form that already has it on keeps it)."""
+    try:
+        ensure_save_drafts_allowed(
+            spec.trust.allow_save_draft if spec.trust else None,
+            getattr(settings, "allow_save_draft", None),
+        )
+    except HTTPException:
+        return {"path": _DRAFTS_PATH, "message": DISABLED_MESSAGE}
+    return None
+
+
+def _ensure_drafts_allowed(spec: FormSpec, settings: Any) -> None:
+    """422 ``save_drafts_disabled`` for such a document, before anything is stored."""
+    problem = _drafts_problem(spec, settings)
+    if problem is not None:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content={
+                "code": DISABLED_CODE,
+                "message": DISABLED_MESSAGE,
+                "errors": [problem],
+            },
+        )
+
+
 def _trust_patch(spec: FormSpec) -> Optional[UpdateFormSettingsOp]:
     trust = spec_trust_settings(spec)
     values = {k: trust[k] for k in _PATCH_KEYS if k in trust}
@@ -169,16 +204,12 @@ def _trust_patch(spec: FormSpec) -> Optional[UpdateFormSettingsOp]:
     return UpdateFormSettingsOp(patch=FormSettingsPatch(**values))
 
 
-async def _write_trust(
-    workspace_id: RecordId, form_id: str, spec: FormSpec
-) -> None:
+async def _write_trust(workspace_id: RecordId, form_id: str, spec: FormSpec) -> None:
     """The document's trust settings, on this workspace's association only."""
     op = _trust_patch(spec)
     if op is not None:
         result = OpResult(index=0, op=op.op, ok=True, message="")
-        await _persist_settings_ops(
-            form_id, [op], [result], workspace_id=workspace_id
-        )
+        await _persist_settings_ops(form_id, [op], [result], workspace_id=workspace_id)
 
 
 def _replacement(existing: StandardForm, settings: Any, spec: FormSpec) -> StandardForm:
@@ -281,6 +312,7 @@ class FormSpecWriter:
         All or nothing: the document is checked in full before anything is
         stored."""
         spec = await _checked_spec(raw)
+        _ensure_drafts_allowed(spec, None)
         try:
             form = spec_to_form(spec)
         except SpecConversionError as error:
@@ -312,6 +344,7 @@ class FormSpecWriter:
         current = form_etag(document.updated_at, self._spec.spec_of(existing, settings))
         self._check_if_match(if_match, current)
         spec = await _checked_spec(raw)
+        _ensure_drafts_allowed(spec, settings)
         form = _replacement(existing, settings, spec)
         try:
             await self._workspace_forms.update_form(
@@ -363,6 +396,11 @@ class FormSpecWriter:
             "diff": None,
         }
         if not result["valid"]:
+            return out
+        problem = _drafts_problem(FormSpec.model_validate(raw), settings)
+        if problem is not None:
+            out["valid"] = False
+            out["errors"] = [*result["errors"], problem]
             return out
 
         def compute() -> None:

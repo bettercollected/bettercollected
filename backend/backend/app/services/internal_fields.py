@@ -35,6 +35,7 @@ from typing import Any, Dict, Iterable, Iterator, List, Optional, Set
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
+from backend.app.services.form_drafts.mode import save_drafts_enabled
 
 SLIDE_TYPE = "slide"
 GROUP_TYPE = "group"
@@ -123,6 +124,12 @@ def strip_internal_fields(form: Any) -> Any:
         # the response limit is the creator's too: a full form says so
         # (``unavailable``), never how many it takes
         for key in ("needs_review", "import_source", "import_id", "response_limit"):
+            if _get(settings, key) is not None:
+                _set(settings, key, None)
+    # saving drafts is offered only while the server has it switched on
+    # (services/form_drafts/mode.py): a form never advertises it otherwise
+    if settings is not None and not save_drafts_enabled():
+        for key in ("allow_save_draft", "draft_retention_days"):
             if _get(settings, key) is not None:
                 _set(settings, key, None)
     # an ending's name is the creator's label ("Not eligible"); respondents

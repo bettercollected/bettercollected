@@ -50,5 +50,7 @@ export function useWorkspacePermissions() {
     const answered = !!workspaceId && !!userId && !!isSuccess && !isError;
     // Whether the server takes field rules (its FIELD_RULES_ENABLED), told with the permissions.
     const fieldRulesEnabled = !!userId && !isError && !!data?.fieldRulesEnabled;
-    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled };
+    // ...and whether it lets respondents save drafts (its SAVE_DRAFTS_ENABLED): the setting is read-only while it is off.
+    const saveDraftsEnabled = !!userId && !isError && !!data?.saveDraftsEnabled;
+    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, saveDraftsEnabled };
 }

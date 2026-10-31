@@ -54,14 +54,13 @@ class SubmissionUpdateNotice(BaseModel):
 
 
 class DraftLinkNotice(BaseModel):
-    """The link that reopens a saved draft: structured fields only, the mail's
-    wording is fixed and holds no answer."""
+    """The link that reopens a saved draft: the address, the link and how many
+    days it works. The mail's wording is fixed: no form title, no organisation,
+    no answer."""
 
     model_config = ConfigDict(extra="forbid")
 
     recipient: EmailStr
-    form_title: str = Field(..., min_length=1, max_length=1000)
-    workspace_title: Optional[str] = Field(None, max_length=1000)
     link: str = Field(..., max_length=2000)
     # how long the link works, named in the mail
     days: int = Field(7, ge=1, le=90)
@@ -150,8 +149,6 @@ class NotificationsRouter(Routable):
         background_tasks.add_task(
             self.notification_service.send_draft_link,
             recipient=str(notice.recipient),
-            form_title=one_line(notice.form_title),
-            workspace_title=one_line(notice.workspace_title),
             link=notice.link,
             days=notice.days,
             locale=notice.locale,

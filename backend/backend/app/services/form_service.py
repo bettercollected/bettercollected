@@ -58,6 +58,10 @@ from backend.app.services.form_availability import (
     is_full,
     response_limit,
 )
+from backend.app.services.form_drafts.mode import (
+    ensure_save_drafts_allowed,
+    save_drafts_enabled,
+)
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.internal_fields import respondent_view
 from backend.app.services.user_tags_service import UserTagsService
@@ -78,6 +82,9 @@ def _stub_settings(workspace_form, form) -> Optional[FormSettingsCamelModel]:
     settings.language = language
     # the limit is the creator's: respondents learn only that a form is full
     settings.response_limit = None
+    if not save_drafts_enabled():
+        settings.allow_save_draft = None
+        settings.draft_retention_days = None
     return settings
 
 
@@ -96,10 +103,13 @@ def _unavailable_stub(form: Any, reason: str, settings: Any = None) -> dict:
 
     form_id = get("form_id")
     shown = settings if settings is not None else get("settings")
+    hidden = {"response_limit": None}
+    if not save_drafts_enabled():
+        hidden.update(allow_save_draft=None, draft_retention_days=None)
     if isinstance(shown, dict):
-        shown = {**shown, "response_limit": None}
+        shown = {**shown, **hidden}
     elif shown is not None:
-        shown = shown.model_copy(update={"response_limit": None})
+        shown = shown.model_copy(update=hidden)
     return {
         "formId": str(form_id) if form_id is not None else None,
         "builderVersion": get("builder_version"),
@@ -531,6 +541,11 @@ class FormService:
         )
         if not workspace_form:
             raise HTTPException(404, "Form not found in workspace")
+        # Saving drafts: turning it on needs SAVE_DRAFTS_ENABLED (422), and is
+        # checked before anything is changed
+        ensure_save_drafts_allowed(
+            settings.allow_save_draft, workspace_form.settings.allow_save_draft
+        )
         if settings.hidden is not None:
             workspace_form.settings.hidden = settings.hidden
         if settings.private is not None:

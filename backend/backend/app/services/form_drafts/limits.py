@@ -27,10 +27,12 @@ MAX_DRAFTS_PER_ADDRESS = 5
 
 HOUR = 3600
 # mails the link: per address and form, per client, per form (one form cannot
-# be used to mail the world), as (scope, limit, window seconds)
+# be used to mail the world), per workspace, as (scope, limit, window seconds)
 LINK_PER_ADDRESS = ("draft-link-address", 3, HOUR)
 LINK_PER_CLIENT = ("draft-link-client", 10, HOUR)
 LINK_PER_FORM = ("draft-link-form", 60, HOUR)
+# and one workspace, whatever its forms, in all
+LINK_PER_WORKSPACE = ("draft-link-workspace", 1000, HOUR)
 SAVES_PER_CLIENT = ("draft-save", 120, HOUR)
 # opening a draft: every attempt counts, a failed one counts again
 OPENS_PER_CLIENT = ("draft-open", 60, HOUR)

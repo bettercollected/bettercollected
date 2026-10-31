@@ -911,12 +911,20 @@ admins (`workspace.manage`) send the mapped questions' answers to an https addre
 
 ## Drafts (save and continue later)
 
-A per-form setting, off by default (`WorkspaceFormSettings.allow_save_draft`, `draft_retention_days` 1 to 90, none =
+Behind the server switch `SAVE_DRAFTS_ENABLED` (default off until it is released; `services/form_drafts/mode.py`, served as `saveDraftsEnabled` by `GET /workspaces/{id}/permissions`) and a per-form setting, off by default (`WorkspaceFormSettings.allow_save_draft`, `draft_retention_days` 1 to 90, none =
 30; settings PATCH, spec `trust.allowSaveDraft` / `draftRetentionDays`, the `update_form_settings` op, MCP and the SDKs)
 lets respondents save what they typed and carry on later. Code in `services/form_drafts/` (`limits.py` the numbers,
 `tokens.py` the secrets, `service.py` the logic), table `form_drafts` (revision 0027, in `NOT_IMPORTED_TABLES`),
 router `controllers/form_drafts_router.py`, daily job `purge_form_drafts` (default queue). Rules to keep:
 
+- **The switch.** Off: turning the setting on is refused (422 `save_drafts_disabled`, `ensure_save_drafts_allowed`) on the
+  settings PATCH, the spec API (create, replace, its dry run and validation), and the operations engine (so the AI, MCP,
+  the public API and the editor's dry run too); a form that already has it on keeps it. Saving, opening, and sending a
+  link are refused like a form that keeps none (404 `drafts_off`), respondents are served the form without the setting
+  (`strip_internal_fields`, the stubs), the purge removes what is left, and discard still works. Copies and templates
+  never carry the setting. Tests: `tests/app/form_drafts/test_switch.py`.
+- **The mail** carries fixed wording and the link only: no form title, no organisation, no answer. Link requests are also
+  capped at 1,000 per workspace per hour.
 - **A draft is not a response.** Own table, never read by the responses repositories, so it is in no list, export,
   count, response limit, action, webhook or registration until submitted. The submit is the normal
   `WorkspaceFormService.submit_response`, every gate included; the route takes an optional `draft_key` form field and

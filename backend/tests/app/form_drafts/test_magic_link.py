@@ -13,7 +13,9 @@ from loguru import logger
 from backend.app.container import container
 from backend.app.services.form_drafts import limits, tokens
 from tests.app.controllers.data import testUser1
+from tests.app.registration.helpers import publish
 from tests.app.form_drafts.helpers import (
+    settings_of,
     ANSWERS,
     body,
     cookies,
@@ -43,7 +45,7 @@ def lines():
     logger.remove(handler)
 
 
-async def test_the_mail_names_the_form_and_the_link_and_holds_no_answer(
+async def test_the_mail_carries_only_the_address_the_link_and_fixed_values(
     client, workspace, mails
 ):
     form = await drafting_form(workspace)
@@ -54,21 +56,21 @@ async def test_the_mail_names_the_form_and_the_link_and_holds_no_answer(
     assert mail["headers"] is not None
     payload = mail["json"]
     assert payload["recipient"] == ADDRESS and payload["locale"] == "nl"
-    assert payload["days"] == 7 and payload["form_title"]
-    assert set(payload) == {
-        "recipient",
-        "form_title",
-        "workspace_title",
-        "link",
-        "days",
-        "locale",
-    }
+    assert payload["days"] == 7
+    # no form title and no organisation: the address, the link, the days, the language
+    assert set(payload) == {"recipient", "link", "days", "locale"}
     # the link: the client host, the form's page, the token in the fragment
     link = payload["link"]
     assert f"/{workspace.workspace_name}/forms/{form.form_id}#resume=" in link
     assert "?" not in link
     dumped = json.dumps(mail)
-    for secret in ("Ada Example", "synthetic story", "newsletter"):
+    for secret in (
+        "Ada Example",
+        "synthetic story",
+        "newsletter",
+        "Registration test",
+        "Test workspace",
+    ):
         assert secret not in dumped
 
 
@@ -357,6 +359,35 @@ async def test_link_requests_are_limited_per_address_per_client_and_per_form(
     ).status_code == 429
     # refused requests sent nothing
     assert len(mails) == 7
+
+
+async def test_a_workspace_is_capped_at_a_thousand_link_mails_an_hour(
+    client, workspace, workspace_1, mails, monkeypatch
+):
+    assert limits.LINK_PER_WORKSPACE == ("draft-link-workspace", 1000, 3600)
+    monkeypatch.setattr(limits, "LINK_PER_WORKSPACE", ("draft-link-workspace", 3, 3600))
+    first = await drafting_form(workspace)
+    second = await drafting_form(workspace)
+    # every other limit is out of the way: addresses and forms differ, the client's is high
+    monkeypatch.setattr(limits, "LINK_PER_CLIENT", ("draft-link-client", 100, 3600))
+    assert (
+        await ask_for_link(client, workspace, first, address="a@example.org")
+    ).status_code == 200
+    assert (
+        await ask_for_link(client, workspace, second, address="b@example.org")
+    ).status_code == 200
+    assert (
+        await ask_for_link(client, workspace, first, address="c@example.org")
+    ).status_code == 200
+    refused = await ask_for_link(client, workspace, second, address="d@example.org")
+    assert refused.status_code == 429 and refused.json()["code"] == "rate_limited"
+    assert len(mails) == 3
+    # another workspace has its own budget
+    other = await publish(workspace_1, user=testUser1)
+    await settings_of(workspace_1, other, allow_save_draft=True)
+    assert (
+        await ask_for_link(client, workspace_1, other, address="e@example.org")
+    ).status_code == 200
 
 
 async def test_one_address_holds_at_most_a_few_drafts_on_a_form(

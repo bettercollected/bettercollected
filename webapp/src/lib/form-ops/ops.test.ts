@@ -250,6 +250,17 @@ describe('form-level ops', () => {
         expect(one({ op: 'update_form_settings', patch: {} }).result.message).toContain('allowSaveDraft, draftRetentionDays');
     });
 
+    it('refuses turning drafts on while the server has them switched off, like the server', () => {
+        const on = { op: 'update_form_settings', patch: { allowSaveDraft: true } } as const;
+        const refused = applyOps(smallForm(), [on], { saveDraftsEnabled: false });
+        expect(refused.results[0].ok).toBe(false);
+        expect(refused.results[0].message).toBe('Saving drafts is not switched on on this server yet (SAVE_DRAFTS_ENABLED is off).');
+        // turning it off, or the server's say-so left to the server
+        expect(applyOps(smallForm(), [{ op: 'update_form_settings', patch: { allowSaveDraft: false } }], { saveDraftsEnabled: false }).results[0].ok).toBe(true);
+        expect(applyOps(smallForm(), [on], { saveDraftsEnabled: true }).results[0].ok).toBe(true);
+        expect(applyOps(smallForm(), [on]).results[0].ok).toBe(true);
+    });
+
     it('applies presets by name, legacy names included, and keeps the style', () => {
         const ocean = one({ op: 'set_theme_preset', name: ' blue ' });
         expect(ocean.result.message).toBe("Applied the 'Ocean' theme");

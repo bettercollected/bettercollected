@@ -43,6 +43,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.schemas.form_draft import FormDraftDocument
 from backend.app.services import form_availability
 from backend.app.services.form_drafts import limits, tokens
+from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.rate_limiter import FixedWindowRateLimiter, Verdict
 from backend.app.services.retention import retention_date
@@ -253,7 +254,7 @@ class FormDraftService:
         )
         if link is None:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found")
-        if not limits.saving_enabled(link.settings):
+        if not save_drafts_enabled() or not limits.saving_enabled(link.settings):
             raise _error(
                 HTTPStatus.NOT_FOUND,
                 DRAFTS_OFF,
@@ -490,6 +491,7 @@ class FormDraftService:
         await self._limit(limits.LINK_PER_CLIENT, client)
         await self._limit_key(limits.LINK_PER_ADDRESS, email_key)
         await self._limit_key(limits.LINK_PER_FORM, f"{workspace_id}:{real_form_id}")
+        await self._limit_key(limits.LINK_PER_WORKSPACE, str(workspace_id))
         await self._ensure_takes_responses(link, workspace_id, received_at)
         now = self._clock()
         draft = await self._by_secret(
@@ -555,9 +557,8 @@ class FormDraftService:
             response = await self._http.post(
                 app_settings.auth_settings.BASE_URL + NOTIFY_PATH,
                 json={
+                    # no form title, no organisation: fixed wording and the link
                     "recipient": address,
-                    "form_title": (form.title if form else None) or "a form",
-                    "workspace_title": workspace.title or None,
                     "link": url,
                     "days": limits.LINK_LIFETIME.days,
                     **({"locale": chosen} if chosen else {}),
@@ -782,7 +783,11 @@ class FormDraftService:
             link = await self._workspace_forms.find_workspace_form(
                 workspace_id, form_id
             )
-            if link is None or not limits.saving_enabled(link.settings):
+            if (
+                link is None
+                or not save_drafts_enabled()
+                or not limits.saving_enabled(link.settings)
+            ):
                 orphaned += await self._drafts.delete_for_form(workspace_id, form_id)
             await asyncio.sleep(0)
         return {"expired": expired, "unwanted": orphaned}

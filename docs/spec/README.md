@@ -25,7 +25,7 @@ A test fails when the committed file is out of date.
 | `theme` | Colours, background and style; optionally type and shape (`titleFont`, `bodyFont`, `dataFont` from `public-sans`, `atkinson-next`, `archivo`, `besley`, `rubik`, `atkinson-mono`; `titleWidth` `normal` or `expanded`; `radius` `sharp`, `soft` or `round`; `buttonStyle` `filled`, `outlined` or `pill`) a `highlight` colour (`#rrggbb`) and an `inputText` colour (`#rrggbb`, the answers typed in the white input boxes; absent: `primary`). A key left out keeps the look forms had before it existed. |
 | `hiddenFields` | URL parameter names captured with each response (names only). |
 | `logo` | Position, alt text and whether to use the workspace logo. `url` is read-only: a logo is set by uploading it. |
-| `trust` | Purpose, retention text, privacy policy link, retention period, the identity, editing and submission-number switches, and `allowSaveDraft` (let respondents save a draft and continue later, off by default) with `draftRetentionDays` (1 to 90, default 30). |
+| `trust` | Purpose, retention text, privacy policy link, retention period, the identity, editing and submission-number switches, and `allowSaveDraft` (let respondents save a draft and continue later, off by default; turning it on is refused with 422 `save_drafts_disabled` while the server setting `SAVE_DRAFTS_ENABLED` is off) with `draftRetentionDays` (1 to 90, default 30). |
 
 A field has an `id`, a `type` and a `title` (plain text, or a rich-text
 document that can pipe answers). Depending on the type it also has `choices`,
