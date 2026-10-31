@@ -3,8 +3,8 @@ import { StandardFormFieldDto } from '@app/models/dtos/form';
 /**
  * Field rules (`properties.rules`, kept and enforced by the server) are not
  * copied when a question or a page is duplicated: their ids must be unique in
- * the form, and their references point at the original's questions. The
- * builder has no rule editor yet, so a copy simply starts without rules.
+ * the form, and their references point at the original's questions. A copy
+ * starts without rules; the creator gives it its own in the rules editor.
  * Removes them from `field` and every question inside it, in place.
  */
 export function dropFieldRules(field: StandardFormFieldDto | undefined): void {

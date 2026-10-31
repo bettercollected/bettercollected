@@ -332,9 +332,9 @@ should pass every case.
   It is left out when the form does not change, and for generated forms.
 - `expect` without `error` means every operation applies.
 - `engines` (optional): the engines that run the case. A case without it is
-  run by every implementation; `["backend"]` marks behaviour the form
-  builder's TypeScript engine does not have. A case that brings field rules
-  assumes the server setting `FIELD_RULES_ENABLED` is on.
+  run by every implementation; `["backend"]` would mark behaviour the form
+  builder's TypeScript engine does not have (no case does today). A case that
+  brings field rules assumes the server setting `FIELD_RULES_ENABLED` is on.
 - Ids the operations generate are replaced by `$uuid:1`, `$uuid:2`, ... in
   order of first appearance, walking the form depth first with object keys
   in sorted order. Compare after replacing them the same way.

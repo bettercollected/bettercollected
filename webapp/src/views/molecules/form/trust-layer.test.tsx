@@ -392,3 +392,61 @@ describe('Privacy panel: answers also sent to a case system', () => {
         expect((window as any).__pwned).toBeUndefined();
     });
 });
+
+describe('Privacy panel: answers also sent by a webhook', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+        window.history.replaceState(null, '', '/');
+    });
+
+    it('says nothing when no webhook sends the answers on', () => {
+        setBrowserLanguages(['en']);
+        const { unmount } = renderPanel({ ownerName: 'Acme' });
+        openPanel();
+        expect(screen.queryByTestId('privacy-webhooks')).not.toBeInTheDocument();
+        unmount();
+        // no hosts, or only blank ones, is no destination
+        renderPanel({ ownerName: 'Acme', webhookDestination: { hosts: [] } });
+        openPanel();
+        expect(screen.queryByTestId('privacy-webhooks')).not.toBeInTheDocument();
+        expect(screen.queryByText(/sent automatically/i)).not.toBeInTheDocument();
+    });
+
+    it('names the destination hosts and what deleting here does not do (English)', () => {
+        setBrowserLanguages(['en']);
+        renderPanel({ ownerName: 'Acme', webhookDestination: { hosts: ['hooks.example.org', 'crm.example.com'] } });
+        openPanel();
+        expect(row('webhooks')).toHaveTextContent('Your answers to some questions are also sent automatically to: hooks.example.org, crm.example.com.');
+        expect(row('webhooks')).toHaveTextContent("Deleting your answers here does not delete the copy there. Contact the form's team to have it deleted.");
+        const keys = screen.getAllByTestId(/^privacy-/).map((el) => el.getAttribute('data-testid'));
+        expect(keys.indexOf('privacy-webhooks')).toBeLessThan(keys.indexOf('privacy-rights'));
+    });
+
+    it('says it in Dutch to a Dutch browser, in the same "je" register', () => {
+        setBrowserLanguages(['nl-NL']);
+        renderPanel({ ownerName: 'Acme', webhookDestination: { hosts: ['hooks.example.org'] } });
+        fireEvent.click(screen.getByRole('button', { name: /je privacy/i }));
+        expect(row('webhooks')).toHaveTextContent('Je antwoorden op een aantal vragen worden ook automatisch verstuurd naar: hooks.example.org.');
+        expect(row('webhooks')).toHaveTextContent('Als je je antwoorden hier verwijdert, wordt de kopie daar niet verwijderd.');
+    });
+
+    it('renders a host with markup as literal text, never a link', () => {
+        setBrowserLanguages(['en']);
+        const host = '<img src=x onerror="window.__pwned=1">.example.org';
+        renderPanel({ ownerName: 'Acme', webhookDestination: { hosts: [host] } });
+        openPanel();
+        const line = row('webhooks');
+        expect(line.querySelector('img')).toBeNull();
+        expect(line.querySelector('a')).toBeNull();
+        expect(line).toHaveTextContent(host);
+        expect((window as any).__pwned).toBeUndefined();
+    });
+
+    it('can sit beside a case-system destination', () => {
+        setBrowserLanguages(['en']);
+        renderPanel({ ownerName: 'Acme', registrationDestination: { organisation: 'Example Organisation' }, webhookDestination: { hosts: ['hooks.example.org'] } });
+        openPanel();
+        expect(row('registration')).toBeInTheDocument();
+        expect(row('webhooks')).toBeInTheDocument();
+    });
+});

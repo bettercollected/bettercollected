@@ -40,6 +40,12 @@ export interface TrustLayerProps {
      * text, never as markup.
      */
     registrationDestination?: { organisation?: string | null } | null;
+    /**
+     * Set when a webhook sends some answers on: the host names of its
+     * destinations (the published form's `webhookDestination`). Shown as text,
+     * never as markup or a link.
+     */
+    webhookDestination?: { hosts?: Array<string | null> | null } | null;
     /** Where a respondent views or deletes their response (the workspace portal). */
     portalUrl?: string;
     /**
@@ -75,7 +81,7 @@ export interface TrustLayerProps {
  */
 const PANEL_CLASS = 'pointer-events-auto max-h-[45vh] overflow-y-auto border-t border-t-black-400 bg-white py-4 text-[14px] leading-relaxed text-black-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]';
 
-export default function TrustLayer({ ownerName, ownerUnnamed = false, ownerImage, settings, registrationDestination, portalUrl, poweredBy, defaultExpanded = false, protectPrimaryAction = false, layout }: TrustLayerProps) {
+export default function TrustLayer({ ownerName, ownerUnnamed = false, ownerImage, settings, registrationDestination, webhookDestination, portalUrl, poweredBy, defaultExpanded = false, protectPrimaryAction = false, layout }: TrustLayerProps) {
     // The form's column (form-column.ts): one left and right edge from the
     // page header down to this footer.
     const column = cn(FORM_COLUMN, columnPlacementClass(layout));
@@ -167,6 +173,18 @@ export default function TrustLayer({ ownerName, ownerUnnamed = false, ownerImage
             term: t('PRIVACY.REGISTRATION'),
             detail: `${t('PRIVACY.REGISTRATION_DESTINATION', { organisation: destination })} ${t('PRIVACY.REGISTRATION_NO_DELETION', { organisation: destination })}`
         });
+    // A webhook sends answers on to an address the form's team chose: name its
+    // host (never the address, which can hold a token), and say that deleting
+    // here leaves that copy.
+    const webhookHosts = (webhookDestination?.hosts ?? []).map((host) => host?.trim()).filter((host): host is string => !!host);
+    if (webhookHosts.length > 0) {
+        const hosts = webhookHosts.join(', ');
+        rows.push({
+            key: 'webhooks',
+            term: t('PRIVACY.WEBHOOKS'),
+            detail: `${t('PRIVACY.WEBHOOKS_DESTINATION', { hosts })} ${t('PRIVACY.WEBHOOKS_NO_DELETION')}`
+        });
+    }
     rows.push({
         key: 'rights',
         term: t('PRIVACY.RIGHTS'),

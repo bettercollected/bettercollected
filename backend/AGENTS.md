@@ -895,6 +895,30 @@ one of ours; `services/image_urls.py` is the single allow-list:
   `test_images.py`, `test_form_images.py` (no network: fetch, DNS and the
   sandbox are faked).
 
+## Webhooks and the action log (per form)
+
+Behind `WEBHOOKS_ENABLED` (default off; `config/webhooks_settings.py`, read at call time through
+`services/webhooks/mode.py`: off means 422 `webhooks_off` on create/enable/test, nothing queued or sent). A form's
+admins (`workspace.manage`) send the mapped questions' answers to an https address, HMAC-signed. Docs:
+`docs/webhooks.md`. Rules to keep:
+
+- Code in `services/webhooks/` (`guard.py` address rules, `sender.py` the signed POST, `payload.py` body and signature,
+  `retry.py` the schedule, `service.py` the logic), tables `form_webhooks`, `action_logs`, `webhook_audit_entries`
+  (revision 0024), router `controllers/webhooks_router.py`. No creator code: it runs in the backend jobs worker on the
+  **`webhooks` queue** (`deliver_webhook(log_id)`, `webhooks_redefer`, `purge_action_logs`), never the actions
+  executor. `bc_jobs_exec` must stay unable to see or queue it (`jobs/schema.py`, the RLS test in
+  `tests/app/jobs/test_executor_role.py`): any new queue is invisible to it by default, keep it that way.
+- The address is sealed (`services/webhooks/sealing.py`, `url_sealed`; only `host` in clear): open it only in the delivery job and `get_webhook` (the owner-facing detail read); lists, DTOs, audit and logs never carry it.
+- The log row is the delivery (its id is the `X-Bettercollected-Delivery` header on every attempt): ids, status,
+  counters, timings and one of our codes. **Never** an answer, body, address, secret or the destination's text, in the
+  row, a log line or the queue. Kept 30 days (`LOG_RETENTION`, daily purge). Other action types may write the same
+  table (`action_type`); only webhooks do today.
+- Outbound calls go through `registration/client.py` (`safe_http.py` rules): never a second HTTP path, never an
+  http/private allowance. The guard runs when an address is saved, when a webhook is switched on and at every
+  connection. Webhooks carry no files.
+- Tests: `tests/app/webhooks/` (SSRF matrix `test_guard.py`, delivery, retries, rebinding and erasure
+  `test_delivery.py`, secrets, audit, log, purge, privacy `test_api.py`, roles `test_permissions.py`).
+
 ## Registration of submissions (case systems)
 
 Behind `OPEN_FORMULIEREN_REGISTRATION=on|off` (default off; `config/registration_settings.py`, read at call time

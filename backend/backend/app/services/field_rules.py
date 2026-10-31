@@ -1455,15 +1455,17 @@ def _rule_signature(rule: Any) -> Any:
 def _stored_rules(form: Any) -> Dict[Tuple[str, str], Counter]:
     """The rules of ``form`` by ``(question id, rule id)``, each as what makes
     it the same rule: its content, and which question it is on (the
-    question's id and type), so a rule that moved to another question, or to
-    a question of another type under a reused id, reads as a different one.
-    Where the question sits (its page or group) does not count: moving a
-    question keeps its rules as they are."""
+    question's id), so a rule that moved to another question reads as a
+    different one. The question's type does not count: changing it keeps a
+    rule the new type still accepts (one it cannot carry is dropped by the
+    save before this is asked), so with the flag off a type change never
+    blocks a save. Where the question sits (its page or group) does not
+    count either: moving a question keeps its rules as they are."""
     stored: Dict[Tuple[str, str], Counter] = {}
     for field in _walk(form):
         for rule in _rules(field):
             signature = json.dumps(
-                [_type(field), _rule_signature(rule)],
+                _rule_signature(rule),
                 sort_keys=True,
                 default=str,
             )
@@ -1582,8 +1584,8 @@ def _dropped_rule_id(
 def new_or_changed_rules(form: Any, existing: Any = None) -> List[Tuple[str, str]]:
     """``(field id, rule id)`` of the rules ``form`` has that ``existing``
     (the stored version, or None) does not have exactly as they are: the same
-    content, on a question of the same id and type (wherever it sits: moving
-    a question to another page or group changes no rule), in the same order on
+    content, on a question of the same id (whatever its type, and wherever it
+    sits: moving a question to another page or group changes no rule), in the same order on
     that question (the last active rule wins, so an order change is a change:
     every rule of that question counts)."""
     stored = _stored_rules(existing) if existing is not None else {}

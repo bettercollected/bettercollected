@@ -1,11 +1,15 @@
 'use client';
 
+import { useId } from 'react';
+
+import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
 import { jsonEqual } from '@app/lib/form-ops/model';
 import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { Comparison, GroupConditionMode, LogicCondition } from '@app/models/types/form-builder-shared';
 import { getGroupChildren, isRepeatingGroup } from '@app/utils/repeating-groups';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
-import { X } from 'lucide-react';
 
 /** A candidate condition source: the field plus a display label that matches the canvas. */
 export interface SourceField {
@@ -51,21 +55,6 @@ export function buildSourceFields(slides: Array<StandardFormFieldDto>, predicate
     return sources;
 }
 
-export const COMPARISON_LABELS: Record<string, string> = {
-    [Comparison.IS_EQUAL]: 'is equal to',
-    [Comparison.IS_NOT_EQUAL]: 'is not equal to',
-    [Comparison.CONTAINS]: 'contains',
-    [Comparison.DOES_NOT_CONTAIN]: 'does not contain',
-    [Comparison.GREATER_THAN]: 'is greater than',
-    [Comparison.GREATER_THAN_EQUAL]: 'is at least',
-    [Comparison.LESS_THAN]: 'is less than',
-    [Comparison.LESS_THAN_EQUAL]: 'is at most',
-    [Comparison.STARTS_WITH]: 'starts with',
-    [Comparison.ENDS_WITH]: 'ends with',
-    [Comparison.IS_EMPTY]: 'is empty',
-    [Comparison.IS_NOT_EMPTY]: 'is not empty'
-};
-
 const TEXT_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN, Comparison.STARTS_WITH, Comparison.ENDS_WITH, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 const NUMBER_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.GREATER_THAN, Comparison.GREATER_THAN_EQUAL, Comparison.LESS_THAN, Comparison.LESS_THAN_EQUAL, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 const CHOICE_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
@@ -100,18 +89,11 @@ export function comparisonsForField(field?: StandardFormFieldDto): Comparison[] 
 
 export const needsValue = (c: Comparison) => c !== Comparison.IS_EMPTY && c !== Comparison.IS_NOT_EMPTY;
 
-/** Item-count comparisons offered for a repeating group ("number of items is / at least / at most"). */
-export const COUNT_COMPARISON_LABELS: Record<string, string> = {
-    [Comparison.IS_EQUAL]: 'is',
-    [Comparison.GREATER_THAN_EQUAL]: 'is at least',
-    [Comparison.LESS_THAN_EQUAL]: 'is at most'
-};
+/** Item-count comparisons offered for a repeating group ("number of items is / at least / at most"); their words are CONDITION.COUNT_COMPARISON.* in the catalogue. */
+export const COUNT_COMPARISONS = [Comparison.IS_EQUAL, Comparison.GREATER_THAN_EQUAL, Comparison.LESS_THAN_EQUAL];
 
-export const GROUP_MODE_LABELS: Record<GroupConditionMode, string> = {
-    COUNT: 'Number of items',
-    ANY: 'Any item',
-    ALL: 'All items'
-};
+/** The ways to condition on a repeating group; their words are CONDITION.GROUP_MODE.* in the catalogue. */
+export const GROUP_MODES: GroupConditionMode[] = ['COUNT', 'ANY', 'ALL'];
 
 /** Group-level condition defaults when a repeating group is picked as the source. */
 export function groupConditionFor(group: StandardFormFieldDto, groupMode: GroupConditionMode = 'COUNT'): Partial<LogicCondition> {
@@ -132,34 +114,28 @@ export const selectClass = 'text-black-800 focus:border-brand-500 w-full min-w-0
 const invalidSelectClass = selectClass.replace('border-control', 'border-amber-400');
 
 /** One condition row: [source field] [comparison] [value], with an optional remove button. */
-export function ConditionRow({
-    condition,
-    sources,
-    onChange,
-    onRemove
-}: {
-    condition: LogicCondition;
-    sources: SourceField[];
-    onChange: (patch: Partial<LogicCondition>) => void;
-    onRemove?: () => void;
-}) {
+export function ConditionRow({ condition, sources, onChange, onRemove }: { condition: LogicCondition; sources: SourceField[]; onChange: (patch: Partial<LogicCondition>) => void; onRemove?: () => void }) {
+    const { t } = useTranslation('builder');
+    const errorId = useId();
     const src = sources.find((s) => s.field.id === condition.fieldId)?.field;
     const group = isRepeatingGroup(src) ? src : undefined;
     const groupChildren = group ? getGroupChildren(group).filter((c) => c.type !== FieldTypes.TEXT) : [];
     const child = group && condition.groupMode !== 'COUNT' ? groupChildren.find((c) => c.id === condition.childFieldId) : undefined;
     // A group condition compares the item count, or one question in any/all items.
     const valueField: StandardFormFieldDto | undefined = group ? (condition.groupMode === 'COUNT' ? ({ id: 'count', index: 0, type: FieldTypes.NUMBER } as StandardFormFieldDto) : child) : src;
-    const comparisons = group && condition.groupMode === 'COUNT' ? (Object.keys(COUNT_COMPARISON_LABELS) as Comparison[]) : comparisonsForField(valueField);
-    const labels = group && condition.groupMode === 'COUNT' ? COUNT_COMPARISON_LABELS : COMPARISON_LABELS;
+    const counting = !!group && condition.groupMode === 'COUNT';
+    const comparisons = counting ? COUNT_COMPARISONS : comparisonsForField(valueField);
+    const comparisonText = (c: Comparison) => t(counting ? `CONDITION.COUNT_COMPARISON.${c}` : `CONDITION.COMPARISON.${c}`);
     const valueMissing = needsValue(condition.comparison) && (condition.value === undefined || condition.value === null || String(condition.value).trim() === '');
     return (
-        <div className="border-black-300 bg-black-100 relative flex flex-col gap-1.5 rounded-md border p-2">
+        <div className="relative flex flex-col gap-1.5 rounded-md border border-black-300 bg-black-100 p-2">
             {onRemove && (
-                <button aria-label="Remove condition" className="text-black-600 hover:text-black-700 absolute right-1.5 top-1.5" onClick={onRemove}>
+                <button type="button" aria-label={t('CONDITION.REMOVE')} className="absolute top-1.5 right-1.5 text-black-600 hover:text-black-700" onClick={onRemove}>
                     <X className="h-3.5 w-3.5" />
                 </button>
             )}
             <select
+                aria-label={t('CONDITION.QUESTION')}
                 className={selectClass}
                 value={condition.fieldId}
                 onChange={(e) => {
@@ -175,17 +151,17 @@ export function ConditionRow({
                 ))}
             </select>
             {group && (
-                <select aria-label="Group condition" className={selectClass} value={condition.groupMode ?? 'COUNT'} onChange={(e) => onChange(groupConditionFor(group, e.target.value as GroupConditionMode))}>
-                    {(Object.keys(GROUP_MODE_LABELS) as GroupConditionMode[]).map((mode) => (
+                <select aria-label={t('CONDITION.GROUP_CONDITION')} className={selectClass} value={condition.groupMode ?? 'COUNT'} onChange={(e) => onChange(groupConditionFor(group, e.target.value as GroupConditionMode))}>
+                    {GROUP_MODES.map((mode) => (
                         <option key={mode} value={mode} disabled={mode !== 'COUNT' && groupChildren.length === 0}>
-                            {GROUP_MODE_LABELS[mode]}
+                            {t(`CONDITION.GROUP_MODE.${mode}`)}
                         </option>
                     ))}
                 </select>
             )}
             {group && condition.groupMode !== 'COUNT' && (
                 <select
-                    aria-label="Question in each item"
+                    aria-label={t('CONDITION.CHILD_QUESTION')}
                     className={selectClass}
                     value={condition.childFieldId ?? ''}
                     onChange={(e) => {
@@ -200,38 +176,46 @@ export function ConditionRow({
                     ))}
                 </select>
             )}
-            <select className={selectClass} value={condition.comparison} onChange={(e) => onChange({ comparison: e.target.value as Comparison, value: '' })}>
+            <select aria-label={t('CONDITION.COMPARISON_LABEL')} className={selectClass} value={condition.comparison} onChange={(e) => onChange({ comparison: e.target.value as Comparison, value: '' })}>
                 {comparisons.map((c) => (
                     <option key={c} value={c}>
-                        {labels[c]}
+                        {comparisonText(c)}
                     </option>
                 ))}
             </select>
-            {needsValue(condition.comparison) && <ConditionValueInput field={valueField} value={condition.value} invalid={valueMissing} onChange={(v) => onChange({ value: v })} />}
-            {valueMissing && <span className="text-[11px] text-amber-700">Enter a value for this rule to work.</span>}
+            {needsValue(condition.comparison) && <ConditionValueInput field={valueField} value={condition.value} invalid={valueMissing} describedBy={valueMissing ? errorId : undefined} onChange={(v) => onChange({ value: v })} />}
+            {valueMissing && (
+                <span id={errorId} className="text-[11px] text-amber-700">
+                    {t('CONDITION.VALUE_MISSING')}
+                </span>
+            )}
         </div>
     );
 }
 
-export function ConditionValueInput({ field, value, onChange, invalid }: { field?: StandardFormFieldDto; value: any; onChange: (v: any) => void; invalid?: boolean }) {
+export function ConditionValueInput({ field, value, onChange, invalid, describedBy }: { field?: StandardFormFieldDto; value: any; onChange: (v: any) => void; invalid?: boolean; describedBy?: string }) {
+    const { t } = useTranslation('builder');
     const cls = invalid ? invalidSelectClass : selectClass;
+    // an input that waits for a value says so to assistive technology too, and points at the reason
+    const state = { 'aria-label': t('CONDITION.VALUE'), 'aria-invalid': invalid || undefined, 'aria-describedby': describedBy };
     if (field?.type === FieldTypes.YES_NO) {
+        // (the stored values are "Yes" and "No", whatever the language of the labels)
         return (
-            <select className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
-                <option value="">Select…</option>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
+            <select {...state} className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+                <option value="">{t('CONDITION.SELECT')}</option>
+                <option value="Yes">{t('CONDITION.YES')}</option>
+                <option value="No">{t('CONDITION.NO')}</option>
             </select>
         );
     }
     if (field?.type === FieldTypes.MULTIPLE_CHOICE || field?.type === FieldTypes.DROP_DOWN) {
         const choices = field?.properties?.choices ?? [];
         return (
-            <select className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
-                <option value="">Select…</option>
+            <select {...state} className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+                <option value="">{t('CONDITION.SELECT')}</option>
                 {choices.map((c) => (
                     <option key={c.id} value={c.value ?? c.label ?? ''}>
-                        {c.value || c.label || 'Option'}
+                        {c.value || c.label || t('CONDITION.OPTION')}
                     </option>
                 ))}
             </select>
@@ -241,7 +225,7 @@ export function ConditionValueInput({ field, value, onChange, invalid }: { field
     const date = field?.type === FieldTypes.DATE || field?.type === FieldTypes.DAY;
     const time = field?.type === FieldTypes.TIME;
     // An amount may have cents: the number box must not insist on whole steps.
-    return <input className={cls} type={date ? 'date' : time ? 'time' : numeric ? 'number' : 'text'} step={field?.type === FieldTypes.CURRENCY ? 'any' : undefined} value={value ?? ''} placeholder="value" onChange={(e) => onChange(e.target.value)} />;
+    return <input {...state} className={cls} type={date ? 'date' : time ? 'time' : numeric ? 'number' : 'text'} step={field?.type === FieldTypes.CURRENCY ? 'any' : undefined} value={value ?? ''} placeholder={t('CONDITION.VALUE_PLACEHOLDER')} onChange={(e) => onChange(e.target.value)} />;
 }
 
 export function newConditionFor(sources: SourceField[]): LogicCondition {

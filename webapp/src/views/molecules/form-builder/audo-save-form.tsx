@@ -8,7 +8,7 @@ import { useStore } from 'jotai';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader } from '@app/shadcn/components/ui/dialog';
-import { toastWhenFree } from '@app/shadcn/components/ui/use-toast';
+import { toast, toastWhenFree } from '@app/shadcn/components/ui/use-toast';
 import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
@@ -41,7 +41,7 @@ export function resetDroppedRuleNotices() {
 
 /**
  * How many questions lost rules not told about yet (once per rule per
- * session). The builder cannot show or edit rules yet.
+ * session).
  */
 export function newlyDroppedQuestions(formId: string, dropped: DroppedRule[]): number {
     const fresh = dropped.filter(({ fieldId, ruleId }) => !noticedRules.has(`${formId}/${fieldId}/${ruleId}`));
@@ -59,6 +59,11 @@ function storedBodyOf(body: string, dropped: DroppedRule[]): string {
     const parsed = JSON.parse(body);
     if (Array.isArray(parsed?.fields)) parsed.fields = withoutFieldRules(parsed.fields, dropped);
     return JSON.stringify(parsed);
+}
+
+/** Did the server refuse the save because field rules are switched off (422 `field_rules_disabled`)? */
+export function isFieldRulesDisabled(response: any): boolean {
+    return response?.error?.status === 422 && response.error.data?.code === 'field_rules_disabled';
 }
 
 export function saveOutcomeOf(response: any): SaveOutcome {
@@ -166,6 +171,8 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                         if (version) formData.append('expected_updated_at', version);
                         const response: any = await patch({ formId, workspaceId, body: formData });
                         const outcome = saveOutcomeOf(response);
+                        // Rules the server will not take (they are switched off there): say so plainly, once per refusal.
+                        if (isFieldRulesDisabled(response)) toast({ description: i18n.t('builder:FIELD_RULES.DISABLED') });
                         if (outcome.kind === 'saved') {
                             contextRef.current.dispatch(setForm({ ...response.data, settings: contextRef.current.settings }));
                             // The language the server stored: it keeps its own
@@ -331,12 +338,10 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
         <Dialog open={conflict} onOpenChange={(open) => !open && setConflict(false)}>
             <DialogContent className="max-w-md" title="This form changed elsewhere">
                 <DialogHeader>
-                    <div aria-hidden="true" className="text-lg font-semibold leading-none tracking-tight">
+                    <div aria-hidden="true" className="text-lg leading-none font-semibold tracking-tight">
                         This form changed elsewhere
                     </div>
-                    <DialogDescription>
-                        Someone saved this form in another tab or window after you opened it. Your latest changes here were not saved, so theirs are not overwritten. Reload to continue from the latest version.
-                    </DialogDescription>
+                    <DialogDescription>Someone saved this form in another tab or window after you opened it. Your latest changes here were not saved, so theirs are not overwritten. Reload to continue from the latest version.</DialogDescription>
                 </DialogHeader>
                 <div className="flex justify-end gap-2">
                     <Button variant="secondary" onClick={() => setConflict(false)}>

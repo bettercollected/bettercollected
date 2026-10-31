@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import FormSettingsTab from '@app/components/dashboard/form-settings';
 import FormIntegrations from '@app/components/form/integrations';
 import FormRegistrationSection from '@app/components/registration/form-registration-settings';
+import FormWebhooksSection from '@app/components/webhooks/webhooks-section';
 import { useModal } from '@app/components/modal-views/context';
 import { memberRoles } from '@app/constants/locales/member-roles';
 import { formPage } from '@app/constants/locales/form-page';
@@ -56,6 +57,9 @@ export default function FormSettings() {
 
             {/* Owners and admins, while this server sends to case systems; renders nothing otherwise. */}
             <FormRegistrationSection />
+
+            {/* Owners and admins configure, editors see the deliveries, while this server has webhooks on; renders nothing otherwise. */}
+            <FormWebhooksSection />
 
             {can(WorkspacePermission.FORM_DELETE) && (
             <section className="flex flex-col gap-2">

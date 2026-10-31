@@ -126,7 +126,7 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                             </span>
                         ) : (
                             <span id={valueId} style={{ color: '#667085' }}>
-                                {readOnly ? READ_ONLY_EMPTY : t('DATE.PICK')}
+                                {readOnly ? <span aria-hidden="true">{READ_ONLY_EMPTY}</span> : t('DATE.PICK')}
                             </span>
                         )}
                     </button>

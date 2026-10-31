@@ -8,7 +8,7 @@
  *  - `update_field` on the same question whose patch keys are covered by the
  *    later patch's keys;
  *  - `replace_field` on the same question, `update_page` on the same page
- *    with covered keys, `set_field_logic` / `set_page_jumps` on the same
+ *    with covered keys, `set_field_logic` / `set_field_rules` / `set_page_jumps` on the same
  *    target, and the whole-value form ops (`update_theme`,
  *    `set_hidden_fields`, `set_form_language`): the later one wins.
  */
@@ -34,6 +34,7 @@ function folds(earlier: FormOp, later: FormOp): boolean {
         case 'update_logo':
             return keysCovered(earlier, later);
         case 'set_field_logic':
+        case 'set_field_rules':
             return earlier.fieldId === (later as typeof earlier).fieldId;
         case 'set_page_jumps':
             return earlier.pageId === (later as typeof earlier).pageId;

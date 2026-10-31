@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { skipToken } from '@reduxjs/toolkit/query/react';
 
@@ -71,6 +72,7 @@ const dotKeyDown = (handler: () => void) => (e: React.KeyboardEvent) => {
 };
 
 function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
+    const { t } = useTranslation('builder');
     return (
         <div
             aria-label={`Page ${data.pageNumber}: ${data.label} — ${data.questionCount} question${data.questionCount === 1 ? '' : 's'}`}
@@ -112,6 +114,11 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                     {data.questionCount} question{data.questionCount === 1 ? '' : 's'}
                 </span>
                 {data.showHideCount > 0 && <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium">{data.showHideCount} show/hide</span>}
+                {data.rulesCount > 0 && (
+                    <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium" data-testid="flow-rules-badge">
+                        {t('FIELD_RULES.FLOW_BADGE', { count: data.rulesCount })}
+                    </span>
+                )}
                 {data.questionCount === 0 && (
                     <span className="inline-flex items-center gap-0.5 rounded bg-brand-accent-100 px-1.5 py-[1px] font-medium text-brand-olive" title="Responders will see a blank page — add a question or delete it">
                         <AlertTriangle className="h-3 w-3" /> empty page
@@ -372,6 +379,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 questions: (slide.properties?.fields ?? []).slice(1, 3).map((f) => fieldText(f)),
                 moreCount: Math.max(0, (slide.properties?.fields?.length ?? 0) - 3),
                 showHideCount: slide.properties?.fields?.filter((f) => fieldHasLogic(f)).length ?? 0,
+                rulesCount: (slide.properties?.fields ?? []).reduce((count, f) => count + ((f.properties?.rules?.length ?? 0) > 0 ? 1 : 0) + (f.properties?.fields ?? []).filter((child) => (child.properties?.rules?.length ?? 0) > 0).length, 0),
                 brokenCount: ((slide.properties?.jumps as PageJump[] | undefined) ?? []).filter((j) => j?.conditions?.length && !jumpTargetNode(j)).length,
                 visits: traffic ? traffic.nodeVisits.get(slide.id) ?? 0 : undefined,
                 totalResponses: traffic?.total,
@@ -463,7 +471,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         () =>
             JSON.stringify(
                 [
-                    slides.map((s, i) => [s.id, pageLabel(s, i), s.properties?.fields?.length, s.properties?.position, s.properties?.jumps, s.properties?.fields?.map((f) => !!f.properties?.logic)]),
+                    slides.map((s, i) => [s.id, pageLabel(s, i), s.properties?.fields?.length, s.properties?.position, s.properties?.jumps, s.properties?.fields?.map((f) => !!f.properties?.logic), s.properties?.fields?.map((f) => [f.properties?.rules?.length ?? 0, f.properties?.fields?.map((child) => child.properties?.rules?.length ?? 0)])]),
                     endings.map((e) => [e.id, e.name, e.isDefault])
                 ]
             ),

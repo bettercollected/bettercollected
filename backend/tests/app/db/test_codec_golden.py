@@ -84,6 +84,10 @@ NO_DOCUMENT_CLASS = {
     "registration_services",
     "form_registrations",
     "registration_deliveries",
+    # new in 4.2 too (webhooks): never in Mongo either
+    "form_webhooks",
+    "action_logs",
+    "webhook_audit_entries",
 }
 
 # The document classes, all on ``Record`` (every group is served from Postgres

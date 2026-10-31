@@ -221,17 +221,23 @@ export function parseFormulaText(text: string, variables: CalculationVariable[])
 
 /** The variable keys an AST reads, in order of appearance. */
 export function expressionVariables(ast: unknown): string[] {
+    // Iterative: an expression nested hundreds of levels deep (a stored form
+    // is creator content) must not exhaust the call stack. Children are
+    // pushed in reverse so they are read in order, as a recursive walk would.
     const found: string[] = [];
-    const visit = (node: unknown) => {
-        if (!node || typeof node !== 'object' || Array.isArray(node)) return;
+    const pending: unknown[] = [ast];
+    while (pending.length) {
+        const node = pending.pop();
+        if (!node || typeof node !== 'object' || Array.isArray(node)) continue;
         const entries = Object.entries(node as Record<string, unknown>);
-        if (entries.length !== 1) return;
+        if (entries.length !== 1) continue;
         const [op, value] = entries[0];
         if (op === 'var') {
             if (typeof value === 'string' && !found.includes(value)) found.push(value);
-        } else if (Array.isArray(value)) value.forEach(visit);
-    };
-    visit(ast);
+        } else if (Array.isArray(value)) {
+            for (let i = value.length - 1; i >= 0; i--) pending.push(value[i]);
+        }
+    }
     return found;
 }
 

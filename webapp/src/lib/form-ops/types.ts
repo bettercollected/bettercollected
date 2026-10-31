@@ -221,6 +221,35 @@ export interface SetFieldLogicOp {
     logic?: FieldLogicSpec | null;
 }
 
+/** When a field rule is active: the conditions of `set_field_logic` (operator AND when left out) or an expressions-v1 expression, never both. */
+export interface RuleWhenSpec {
+    operator?: 'AND' | 'OR' | null;
+    conditions?: LogicConditionSpec[] | null;
+    expression?: unknown;
+}
+
+/** What a field rule does while it is active; at least one key. */
+export interface RuleThenSpec {
+    required?: boolean | null;
+    readOnly?: true | null;
+    title?: string | null;
+    description?: string | null;
+    setValue?: { const?: boolean | number | string | null; expression?: unknown } | null;
+}
+
+export interface FieldRuleSpec {
+    id: string;
+    when: RuleWhenSpec;
+    then: RuleThenSpec;
+}
+
+/** Replace the rules of a question (null or [] clears them). */
+export interface SetFieldRulesOp {
+    op: 'set_field_rules';
+    fieldId: string;
+    rules?: FieldRuleSpec[] | null;
+}
+
 export interface SetPageJumpsOp {
     op: 'set_page_jumps';
     pageId: string;
@@ -431,6 +460,7 @@ export type AiFormOp =
     | UpdateFormInfoOp
     | UpdateFormSettingsOp
     | SetFieldLogicOp
+    | SetFieldRulesOp
     | SetPageJumpsOp
     | DuplicatePageOp
     | UpdateThemeOp
