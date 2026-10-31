@@ -28,8 +28,8 @@ For a high-level tour of how the services fit together, read
 |---|---|---|
 | uv | latest | https://docs.astral.sh/uv/getting-started/installation/ |
 | Python | 3.11+ | uv can install it for you (`uv python install`); see [`.python-version`](../.python-version) |
-| Node.js | 20+ | see [`.nvmrc`](../.nvmrc) — `nvm use` |
-| Yarn | 1.x (Classic) | `corepack enable` or `npm i -g yarn` |
+| Node.js | 26 LTS (22.12+ works) | see [`.nvmrc`](../.nvmrc) — `nvm use` |
+| Yarn | 1.x (Classic) | `npm i -g yarn` (Node 25+ no longer ships Corepack) |
 | Docker + Compose | latest | for PostgreSQL, nginx, Mailpit, RustFS, Umami |
 
 ## 1. Start infrastructure

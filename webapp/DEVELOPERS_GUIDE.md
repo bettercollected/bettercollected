@@ -55,7 +55,7 @@ Please refer to the [.env.example](.env.example) file for updated environment va
 
 ### Project Setup and Scripts
 
-1. If you are using `nvm`, install node version `16 LTS` and run `nvm alias default 16` to set the default node environment or run `nvm use` to use the version from [.nvmrc](.nvmrc)](.nvmrc). Else, use node version `16`.
+1. If you are using `nvm`, run `nvm install` and `nvm use` from the repository root: it reads the Node version (26 LTS) from the root [.nvmrc](../.nvmrc). Else, use Node 26 (22.12 or later works).
 2. Run `yarn install` in the terminal to set up the project and husky configuration.
 3. Run `yarn dev` to start the project locally.
 4. Run `yarn build` and `yarn start` to start production build.

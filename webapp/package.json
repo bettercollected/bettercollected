@@ -132,7 +132,7 @@
         "@trivago/prettier-plugin-sort-imports": "^6.0.2",
         "@types/canvas-confetti": "^1.6.4",
         "@types/lodash": "^4.17.27",
-        "@types/node": "^22",
+        "@types/node": "^26",
         "@types/nprogress": "^0.2.0",
         "@types/overlayscrollbars": "^2.0.0",
         "@types/react": "19.3.0",
