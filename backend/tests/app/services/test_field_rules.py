@@ -307,6 +307,17 @@ def test_a_builder_payload_with_a_deep_expression_is_a_clean_422(where):
     assert "nested at most 32 levels" in str(error.value.content)
 
 
+@pytest.mark.parametrize("levels", [600, 100000])
+def test_a_body_nested_beyond_what_json_can_read_is_a_clean_422(levels):
+    body = '{"title": "x", "fields": ' + "[" * levels + "]" * levels + "}"
+    with pytest.raises(HTTPException) as error:
+        _parse_form_body(body)
+    # a clean 422 either way: json refuses the deepest, the model the rest
+    assert error.value.status_code == 422
+    if levels > 10000:
+        assert "nested too deeply" in str(error.value.content)
+
+
 def test_an_expression_at_the_depth_limit_still_parses():
     body = json.dumps(
         {
