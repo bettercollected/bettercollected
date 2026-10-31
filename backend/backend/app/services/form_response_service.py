@@ -15,7 +15,7 @@ from common.models.standard_form import (
 )
 from common.models.user import User
 from common.services.crypto_service import UnreadableCiphertext, crypto_service
-from fastapi_pagination import Page
+from fastapi_pagination import Page, Params
 from loguru import logger
 from starlette.concurrency import run_in_threadpool
 
@@ -38,7 +38,9 @@ from backend.app.models.dtos.response_dtos import (
     StandardFormFieldCamelModel,
     StandardFormResponseCamelModel,
 )
+from backend.app.models.dtos.response_list_page import ResponseListPage
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
+from backend.app.models.filter_queries.response_list import ResponseListQuery
 from backend.app.models.enum.permission import Permission
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
@@ -57,7 +59,9 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDeletionRequest,
     FormResponseDocument,
 )
+from backend.app.services import response_cursor
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.response_paging import PageTooDeep
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.calculated_fields import (
     drop_answers,
@@ -276,6 +280,79 @@ class FormResponseService:
         if request_for_deletion:
             await self._withhold_receipt_numbers(form_responses, user, workspace_id)
         return form_responses
+
+    async def get_workspace_form_response_page(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        query: ResponseListQuery,
+        user: User,
+    ) -> ResponseListPage:
+        """The form's responses, filtered and sorted on plaintext columns and
+        paged by keyset (``response.read``; the answers are decrypted after
+        the page is chosen, as in ``get_workspace_form_submissions``)."""
+        await self._authorization.authorize(
+            user, Permission.RESPONSE_READ, workspace_id
+        )
+        workspace_form = (
+            await self._workspace_form_repo.get_workspace_form_in_workspace(
+                workspace_id, form_id
+            )
+        )
+        if not workspace_form:
+            raise HTTPException(
+                HTTPStatus.NOT_FOUND, "Form not found in the workspace."
+            )
+        anchor = None
+        if query.cursor:
+            try:
+                anchor = response_cursor.read(
+                    query.cursor, workspace_id, form_id, query
+                )
+            except response_cursor.InvalidCursor:
+                raise HTTPException(
+                    HTTPStatus.BAD_REQUEST,
+                    content={
+                        "code": "invalid_cursor",
+                        "message": "The cursor is not valid for this list.",
+                    },
+                ) from None
+        try:
+            listed = await self._form_response_repo.list_form_page(
+                await self.scope(workspace_id, [form_id]), query, anchor
+            )
+        except PageTooDeep:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                content={
+                    "code": "page_too_deep",
+                    "message": "That page is too far from the start; "
+                    "move there with the pager.",
+                },
+            ) from None
+        page = ResponseListPage.create(
+            [StandardFormResponseCamelModel.model_validate(i) for i in listed.items],
+            Params(page=query.page, size=query.size),
+            total=listed.total,
+            total_exact=listed.total_exact,
+            has_next=listed.has_next,
+            cursor=(
+                response_cursor.issue(workspace_id, form_id, query, listed.first)
+                if listed.first is not None
+                else None
+            ),
+        )
+        page = self.decrypt_response_page(
+            workspace_id=workspace_id, responses_page=page
+        )
+        form = await self._form_repo.get_form_document_by_id(form_id)
+        file_fields = get_fields_of_type_file_upload(form) if form is not None else []
+        if file_fields:
+            for response in page.items:
+                self.generate_presigned_url_for_each_response(
+                    file_fields, response, workspace_id
+                )
+        return page
 
     async def _withhold_receipt_numbers(
         self, page: Any, user: User, workspace_id: RecordId
