@@ -1,0 +1,25 @@
+// Exporting a form's responses: the button and what follows it
+// (components/datatable/response-export-control.tsx, docs/response-export.md).
+export const responseExportLocale = {
+    button: 'RESPONSE_EXPORT.BUTTON',
+    buttonMatching: 'RESPONSE_EXPORT.BUTTON_MATCHING',
+    starting: 'RESPONSE_EXPORT.STARTING',
+    preparing: 'RESPONSE_EXPORT.PREPARING',
+    ready: 'RESPONSE_EXPORT.READY',
+    download: 'RESPONSE_EXPORT.DOWNLOAD',
+    downloading: 'RESPONSE_EXPORT.DOWNLOADING',
+    downloaded: 'RESPONSE_EXPORT.DOWNLOADED',
+    deletedAfterDownload: 'RESPONSE_EXPORT.DELETED_AFTER_DOWNLOAD',
+    readyUntil: 'RESPONSE_EXPORT.READY_UNTIL',
+    dismiss: 'RESPONSE_EXPORT.DISMISS',
+    errorRateLimited: 'RESPONSE_EXPORT.ERROR_RATE_LIMITED',
+    errorInProgress: 'RESPONSE_EXPORT.ERROR_IN_PROGRESS',
+    errorTooMany: 'RESPONSE_EXPORT.ERROR_TOO_MANY',
+    errorForbidden: 'RESPONSE_EXPORT.ERROR_FORBIDDEN',
+    errorFailed: 'RESPONSE_EXPORT.ERROR_FAILED',
+    errorDeleted: 'RESPONSE_EXPORT.ERROR_DELETED',
+    errorPermission: 'RESPONSE_EXPORT.ERROR_PERMISSION',
+    errorTooLarge: 'RESPONSE_EXPORT.ERROR_TOO_LARGE',
+    errorGone: 'RESPONSE_EXPORT.ERROR_GONE',
+    errorGeneric: 'RESPONSE_EXPORT.ERROR_GENERIC'
+};

@@ -9,29 +9,16 @@ import globalConstants from '@app/constants/global';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetFormsSubmissionsQuery, useLazyExportFormSubmissionsQuery } from '@app/store/workspaces/api';
+import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import EmptyResponseIcon from '@Components/icons/expty-response-icon';
-import { DownloadIcon } from 'lucide-react';
+import ResponseExportControl from './response-export-control';
 import ResponsesTable from './responses-table';
 //@ts-ignore
 import { StandardFormResponseDto } from '@app/models/dtos/form';
-import { buildResponsesExport, exportFileName, tableToCsv } from '@app/utils/response-export';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { rememberResponseListPage, rememberResponseListView, rememberedListView } from '@app/utils/response-list-memory';
-
-function downloadCsv(csv: string, fileName: string) {
-    // BOM so spreadsheet apps read UTF-8 names correctly.
-    const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 export default function FormResponsesTable({ props }: any) {
     const form = useAppSelector(selectForm);
@@ -66,26 +53,12 @@ export default function FormResponsesTable({ props }: any) {
     const { data, currentData, isLoading, isFetching, isError, refetch } = useGetFormsSubmissionsQuery(query, { skip: !workspace?.id });
     const { can } = useWorkspacePermissions();
     const canExport = can(WorkspacePermission.RESPONSE_EXPORT);
-    const [trigger, { isLoading: csvLoading }] = useLazyExportFormSubmissionsQuery();
 
     const handleSearch = useCallback((event: any) => {
         // a new search starts on the first page
         setSearchText(String(event?.target?.value ?? '').trim());
         setPage(1);
     }, []);
-
-    const handleClickExportCSV = () => {
-        trigger({ formId: form.formId, workspaceId: workspace?.id }).then((result) => {
-            // never a header-only file for a refused export
-            if (result.isError) return;
-            // One row per submission; repeating groups become columns per item,
-            // or (large groups) a CSV of their own with one row per item.
-            const { main, groupTables } = buildResponsesExport(form, (result.data ?? []) as Array<StandardFormResponseDto>);
-            // Every file goes through tableToCsv, which neutralises formula-like cells.
-            downloadCsv(tableToCsv(main), exportFileName(form.title));
-            groupTables.forEach((table) => downloadCsv(tableToCsv(table), exportFileName(form.title, table.name)));
-        });
-    };
 
     const hasItems = !!data && Array.isArray(data.items) && data.items.length > 0;
     // A page past the end of the list (its last rows were deleted or their
@@ -192,11 +165,7 @@ export default function FormResponsesTable({ props }: any) {
                     ) : (
                         <></>
                     )}
-                    {isSubmission && canExport && (
-                        <Button data-umami-event="Export CSV Button" isLoading={csvLoading} variant="v2Button" icon={<DownloadIcon className="h-4 w-4" />} onClick={handleClickExportCSV} className={''}>
-                            Export CSV
-                        </Button>
-                    )}
+                    {isSubmission && canExport && <ResponseExportControl workspaceId={workspace?.id} formId={form.formId} formTitle={form.title} search={searchText} />}
                 </div>
             </div>
             <div ref={resultsRef} tabIndex={-1} role="region" aria-label={requestForDeletion ? 'Deletion requests' : 'Responses'} className="focus:outline-hidden">

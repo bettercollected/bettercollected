@@ -1116,5 +1116,28 @@
     "RESYNCED": "Resynced {{users}} users and {{groups}} groups.",
     "CLEANUP_FAILED": "The previous directory could not be deleted yet.",
     "CLEANED_UP": "The previous directory was deleted."
+  },
+  "RESPONSE_EXPORT": {
+    "BUTTON": "Export CSV",
+    "BUTTON_MATCHING": "Export matching responses",
+    "STARTING": "Starting your export…",
+    "PREPARING": "We're preparing your export. This can take a few minutes. You can leave this page open or come back later; it will be waiting here.",
+    "READY": "Your export is ready.",
+    "DOWNLOAD": "Download",
+    "DOWNLOADING": "Downloading…",
+    "DOWNLOADED": "Your export was downloaded.",
+    "DELETED_AFTER_DOWNLOAD": "We deleted the file from our servers. Export again if you need another copy.",
+    "READY_UNTIL": "The file is kept until {{time}} and is deleted when you download it.",
+    "DISMISS": "Dismiss",
+    "ERROR_RATE_LIMITED": "You exported this form too often. Try again in {{minutes}} minutes.",
+    "ERROR_IN_PROGRESS": "An export of this form is already being prepared.",
+    "ERROR_TOO_MANY": "This export would hold too many responses for one file. Narrow it down with a search and try again.",
+    "ERROR_FORBIDDEN": "You are not allowed to export these responses.",
+    "ERROR_FAILED": "The export could not be prepared. Nothing was kept. Try again.",
+    "ERROR_DELETED": "Responses were deleted while your export was being prepared, so we threw the file away. Start the export again.",
+    "ERROR_PERMISSION": "You can no longer export this form's responses.",
+    "ERROR_TOO_LARGE": "The export is too large for one file. Narrow it down with a search and try again.",
+    "ERROR_GONE": "This export is no longer available. Start it again.",
+    "ERROR_GENERIC": "The export did not work. Try again."
   }
 }
