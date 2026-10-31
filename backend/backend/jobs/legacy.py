@@ -26,7 +26,6 @@ from typing import Any, Optional
 from loguru import logger
 from procrastinate import App
 
-from backend.app.services.action_run_token import run_token
 from backend.jobs.app import ACTIONS_QUEUE
 
 BATCH = 200
@@ -40,6 +39,16 @@ SELECT id, status, args FROM jobs.procrastinate_jobs
    AND ({" OR ".join(f"args ? '{key}'" for key in LEGACY_KEYS)})
  ORDER BY id LIMIT %(limit)s
 """
+
+
+def run_token(workspace_id: str, form_id: str, action_id: str, response_id: str) -> str:
+    """The run token of :mod:`backend.app.services.action_run_token`, imported only
+    when a waiting job needs one: importing ``backend.app`` loads the settings,
+    which a fresh install's ``deploy.sh`` does not have yet when it runs this
+    module, and a stack with no 4.1.x job never needs a token."""
+    from backend.app.services.action_run_token import run_token as make
+
+    return make(workspace_id, form_id, action_id, response_id)
 
 
 def _ids_of(args: dict[str, Any]) -> Optional[dict[str, str]]:

@@ -7,6 +7,10 @@ counts only in the log. Real database, as in test_executor_role.py."""
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 from loguru import logger
@@ -235,3 +239,28 @@ async def test_a_failed_scrub_at_startup_is_logged_and_the_start_goes_on(
     text = "".join(lines)
     assert "scrub at startup failed (RuntimeError)" in text
     assert "cannot reach" not in text  # no URL, no credentials in the log
+
+
+def test_the_schema_step_loads_without_the_app_and_its_settings():
+    # deploy.sh runs `python -m backend.jobs.schema` on a fresh install before the
+    # settings store holds any key; importing backend.app would load the settings
+    # and refuse. The token helper is imported only when a 4.1.x job needs one.
+    code = (
+        "import sys, backend.jobs.schema, backend.jobs.legacy;"
+        "loaded = sorted(m for m in sys.modules if m.startswith('backend.app'));"
+        "assert not loaded, loaded"
+    )
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith(("AUTH_", "SETTINGS_", "RESPONDENT_"))
+    }
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=Path(__file__).resolve().parents[3],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert result.returncode == 0, result.stderr[-2000:]
