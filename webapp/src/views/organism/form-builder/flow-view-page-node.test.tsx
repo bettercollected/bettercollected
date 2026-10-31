@@ -105,4 +105,18 @@ describe('flow view page nodes', () => {
         expect(within(screen.getByTestId('node-p1')).getByTestId('flow-rules-badge')).toHaveTextContent('2 with rules');
         expect(within(screen.getByTestId('node-p2')).queryByTestId('flow-rules-badge')).toBeNull();
     });
+
+    it('counts the questions in a repeating group that have rules too', async () => {
+        const ruled = page('p1', 0, 1);
+        const rule = { id: 'r1', when: { expression: true }, then: { required: true } };
+        (ruled.properties!.fields as any[]).push({
+            id: 'g',
+            index: 1,
+            type: FieldTypes.GROUP,
+            title: 'People',
+            properties: { repeat: { minItems: 1, maxItems: 3 }, fields: [{ id: 'g1', index: 0, type: FieldTypes.SHORT_TEXT, title: 'Name', properties: { rules: [rule] } }] }
+        });
+        await renderFlow([ruled]);
+        expect(within(screen.getByTestId('node-p1')).getByTestId('flow-rules-badge')).toHaveTextContent('1 with rules');
+    });
 });

@@ -273,3 +273,20 @@ describe("replace_field (the builder's own edit) and field rules", () => {
         expect(results[0].message).toContain('in a circle');
     });
 });
+
+describe('details shared with the server', () => {
+    const titled = (title: string) => run([{ op: 'set_field_rules', fieldId: 'q_postcode', rules: [{ id: 'r', when: { expression: true }, then: { title } }] }]).results[0];
+
+    it('blank is what Python strip() calls blank: U+001F is, U+FEFF is not', () => {
+        expect(titled('\u001f \u001c').ok).toBe(false);
+        expect(titled('﻿').ok).toBe(true);
+        expect(titled('   x ').ok).toBe(true);
+    });
+
+    it("reports rules on what cannot carry them in the server's walk order (the last page first)", () => {
+        const doc = base();
+        (doc.fields[0] as any).properties.rules = [{ id: 'x1', when: { expression: true }, then: { required: true } }];
+        (doc.fields[1] as any).properties.rules = [{ id: 'x2', when: { expression: true }, then: { required: true } }];
+        expect(fieldRuleProblems(doc).map((p) => p.fieldId)).toEqual(['p2', 'p1']);
+    });
+});

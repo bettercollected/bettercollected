@@ -248,8 +248,13 @@ class Checker {
     }
 
     private misplaced() {
+        // the server's walk: a stack, the last field first, its children after it
         const onQuestions = new Set(this.targets.map((target) => target.field as unknown));
-        for (const { field } of walkFields(this.form).reverse()) {
+        const pending: FormField[] = [...((this.form.fields ?? []) as FormField[])];
+        while (pending.length) {
+            const field = pending.pop()!;
+            if (!field || typeof field !== 'object') continue;
+            pending.push(...childrenOf(field));
             if (rulesOnField(field).length && !onQuestions.has(field)) {
                 this.add(String(field.id ?? ''), '', `'${titleOf(field as unknown as StandardFormFieldDto)}' cannot have rules: only questions on the pages of a form (or in a repeating group) can.`, undefined, true);
             }

@@ -7,12 +7,13 @@ import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 
 import { FIELD_RULES_MAX, FORM_FIELD_RULES_MAX, FieldRule, FieldRuleCondition } from '@app/lib/field-rules';
+import { pyStrip } from '@app/lib/form-ops/model';
 import { FieldRuleProblem, canCarryRules, canLockOrSet, fieldRuleProblems, totalRules } from '@app/lib/form-ops/field-rule-checks';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { LogicCondition } from '@app/models/types/form-builder-shared';
 import { CalculationVariable, calculationVariables } from '@app/utils/calculated-fields';
 import { getGroupChildren, isRepeatingGroup } from '@app/utils/repeating-groups';
-import { COMPARISON_LABELS, ConditionRow, SourceField, buildSourceFields, fieldText, isConditionComplete, isConditionSource, newConditionFor, selectClass } from '@app/views/molecules/form-builder/condition-editor-shared';
+import { ConditionRow, SourceField, buildSourceFields, fieldText, isConditionComplete, isConditionSource, newConditionFor, selectClass } from '@app/views/molecules/form-builder/condition-editor-shared';
 import FormulaInput from '@app/views/molecules/form-builder/formula-input';
 import { SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
 
@@ -135,7 +136,7 @@ export function unfinishedReason(rule: FieldRule, field: StandardFormFieldDto): 
     }
     const then = rule.then ?? {};
     if (!['required', 'readOnly', 'title', 'description', 'setValue'].some((key) => (then as Record<string, unknown>)[key] !== undefined)) return 'EFFECT';
-    if (typeof then.title === 'string' && !then.title.trim()) return 'TITLE';
+    if (typeof then.title === 'string' && !pyStrip(then.title)) return 'TITLE';
     if (then.setValue) {
         const { const: value, expression } = then.setValue;
         if (expression === undefined && (value === undefined || value === null || value === '')) return 'VALUE';
@@ -322,7 +323,7 @@ export function ruleSummary(rule: FieldRule, slides: StandardFormFieldDto[], fie
         triggerKind(rule) === 'expression'
             ? t('FIELD_RULES.SUMMARY_FORMULA')
             : (rule.when?.conditions ?? [])
-                  .map((c: FieldRuleCondition) => `${label(c.fieldId)} ${COMPARISON_LABELS[String(c.comparison)] ?? ''}${c.value !== undefined && c.value !== '' ? ` ${valueText(c.value)}` : ''}`.trim())
+                  .map((c: FieldRuleCondition) => `${label(c.fieldId)} ${c.comparison ? t(`CONDITION.COMPARISON.${c.comparison}`) : ''}${c.value !== undefined && c.value !== '' ? ` ${valueText(c.value)}` : ''}`.trim())
                   .join(rule.when?.operator === 'OR' ? ` ${t('FIELD_RULES.OR')} ` : ` ${t('FIELD_RULES.AND')} `);
     const then = rule.then ?? {};
     const effects: string[] = [];
@@ -465,6 +466,7 @@ function RuleCard({ rule, index, count, field, sources, variables, lockable, inG
                         placeholder={t('FIELD_RULES.FORMULA_PLACEHOLDER')}
                         help={t(FORMULA_HELP)}
                         invalid={problems.some((problem) => problem.path.startsWith(`/${index}/when/expression`))}
+                        describedBy={describedBy}
                     />
                 )}
             </div>
@@ -499,7 +501,15 @@ function RuleCard({ rule, index, count, field, sources, variables, lockable, inG
                                 onCheckedChange={(on) => setThen(on ? { setValue: field.type === FieldTypes.YES_NO ? { const: true } : isChoice(field) ? { const: '' } : { expression: 1 }, readOnly: undefined } : { setValue: undefined })}
                             />
                             {then.setValue && (
-                                <ValueEditor field={valueField} value={then.setValue} variables={variables} ruleId={rule.id} onChange={(setValue, key) => setThen({ setValue }, key)} invalid={problems.some((p) => p.path.includes('/then/setValue'))} />
+                                <ValueEditor
+                                    field={valueField}
+                                    value={then.setValue}
+                                    variables={variables}
+                                    ruleId={rule.id}
+                                    onChange={(setValue, key) => setThen({ setValue }, key)}
+                                    invalid={problems.some((p) => p.path.includes('/then/setValue')) || unfinished === 'VALUE'}
+                                    describedBy={describedBy}
+                                />
                             )}
                         </div>
                     </>
@@ -511,7 +521,16 @@ function RuleCard({ rule, index, count, field, sources, variables, lockable, inG
                     <SettingSwitch label={t('FIELD_RULES.EFFECT_TITLE')} checked={then.title !== undefined} onCheckedChange={(on) => setThen({ title: on ? '' : undefined })} />
                     {then.title !== undefined && (
                         <>
-                            <input aria-label={t('FIELD_RULES.TITLE_INPUT')} className={inputClass} type="text" maxLength={300} value={then.title} onChange={(e) => setThen({ title: e.target.value }, 'title')} />
+                            <input
+                                aria-label={t('FIELD_RULES.TITLE_INPUT')}
+                                aria-invalid={unfinished === 'TITLE' || undefined}
+                                aria-describedby={describedBy}
+                                className={inputClass}
+                                type="text"
+                                maxLength={300}
+                                value={then.title}
+                                onChange={(e) => setThen({ title: e.target.value }, 'title')}
+                            />
                             <p className="text-[11px] leading-relaxed text-black-600">{t('FIELD_RULES.HINT_CONSENT')}</p>
                         </>
                     )}
@@ -561,7 +580,8 @@ function ValueEditor({
     variables,
     ruleId,
     onChange,
-    invalid
+    invalid,
+    describedBy
 }: {
     field: StandardFormFieldDto;
     value: NonNullable<FieldRule['then']['setValue']>;
@@ -569,6 +589,8 @@ function ValueEditor({
     ruleId: string;
     onChange: (value: NonNullable<FieldRule['then']['setValue']>, coalesceKey?: string) => void;
     invalid: boolean;
+    /** Ids of the text that says what is wrong with the rule (its problems, what is left to fill in). */
+    describedBy?: string;
 }) {
     const { t } = useTranslation('builder');
     const id = useId();
@@ -579,7 +601,7 @@ function ValueEditor({
     const constInput = () => {
         if (choice) {
             return (
-                <select aria-label={t('FIELD_RULES.VALUE_OPTION')} className={selectClass} value={String(constant ?? '')} onChange={(e) => onChange({ const: e.target.value })}>
+                <select aria-label={t('FIELD_RULES.VALUE_OPTION')} aria-invalid={invalid || undefined} aria-describedby={describedBy} className={selectClass} value={String(constant ?? '')} onChange={(e) => onChange({ const: e.target.value })}>
                     <option value="">{t('FIELD_RULES.VALUE_CHOOSE')}</option>
                     {(field.properties?.choices ?? []).map((option) => (
                         <option key={option.id} value={option.id}>
@@ -601,6 +623,8 @@ function ValueEditor({
         return (
             <input
                 aria-label={t('FIELD_RULES.VALUE_INPUT')}
+                aria-invalid={invalid || undefined}
+                aria-describedby={describedBy}
                 className={`${inputClass} ${invalid ? 'border-amber-400' : ''}`}
                 type={type}
                 value={constant === undefined || constant === null ? '' : String(constant)}
@@ -637,6 +661,7 @@ function ValueEditor({
                     placeholder={t('FIELD_RULES.FORMULA_PLACEHOLDER_VALUE')}
                     help={t(FORMULA_HELP)}
                     invalid={invalid}
+                    describedBy={describedBy}
                 />
             ) : (
                 constInput()

@@ -819,5 +819,43 @@
     "FLOW_BADGE_other": "{{count}} with rules",
     "MISSING_SOURCE": "(question no longer on the form)",
     "REFUSED": "Not changed: it would break a rule of this form. {{reason}}"
+  },
+  "CONDITION": {
+    "QUESTION": "Question",
+    "COMPARISON_LABEL": "Comparison",
+    "VALUE": "Value",
+    "VALUE_PLACEHOLDER": "value",
+    "SELECT": "Select…",
+    "YES": "Yes",
+    "NO": "No",
+    "OPTION": "Option",
+    "REMOVE": "Remove condition",
+    "GROUP_CONDITION": "Group condition",
+    "CHILD_QUESTION": "Question in each item",
+    "VALUE_MISSING": "Enter a value for this rule to work.",
+    "COMPARISON": {
+      "IS_EQUAL": "is equal to",
+      "IS_NOT_EQUAL": "is not equal to",
+      "CONTAINS": "contains",
+      "DOES_NOT_CONTAIN": "does not contain",
+      "GREATER_THAN": "is greater than",
+      "GREATER_THAN_EQUAL": "is at least",
+      "LESS_THAN": "is less than",
+      "LESS_THAN_EQUAL": "is at most",
+      "STARTS_WITH": "starts with",
+      "ENDS_WITH": "ends with",
+      "IS_EMPTY": "is empty",
+      "IS_NOT_EMPTY": "is not empty"
+    },
+    "COUNT_COMPARISON": {
+      "IS_EQUAL": "is",
+      "GREATER_THAN_EQUAL": "is at least",
+      "LESS_THAN_EQUAL": "is at most"
+    },
+    "GROUP_MODE": {
+      "COUNT": "Number of items",
+      "ANY": "Any item",
+      "ALL": "All items"
+    }
   }
 }

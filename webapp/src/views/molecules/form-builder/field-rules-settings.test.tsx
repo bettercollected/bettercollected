@@ -235,6 +235,59 @@ describe('accessibility', () => {
     });
 });
 
+describe('accessibility: names, errors and hints', () => {
+    const describers = (element: Element) =>
+        (element.getAttribute('aria-describedby') ?? '')
+            .split(' ')
+            .filter(Boolean)
+            .map((id) => document.getElementById(id));
+
+    it('points an invalid value input at what is wrong, and marks it invalid', () => {
+        const field = postcode([{ id: 'r', when: { expression: true }, then: { setValue: { const: '' } } }]);
+        render(<FieldRulesSettings field={field} slides={[page(country, field)]} hiddenNames={[]} onChange={() => true} />);
+        const input = within(screen.getByTestId('field-rule-1')).getByLabelText('Value');
+        expect(input).toHaveAttribute('aria-invalid', 'true');
+        const described = describers(input);
+        expect(described.length).toBeGreaterThan(0);
+        expect(described.every(Boolean)).toBe(true);
+        expect(described.map((el) => el!.textContent).join(' ')).toContain('Give the value');
+    });
+
+    it("points the formula and the value formula at the rule's problems", () => {
+        const rule: FieldRule = { id: 'r', when: { expression: { '>': [{ var: 'qty' }, 3] } }, then: { setValue: { expression: { '+': [{ var: 'nope' }, 1] } } } };
+        const field = total([rule]);
+        render(<FieldRulesSettings field={field} slides={[page(qty, field)]} hiddenNames={[]} onChange={() => true} />);
+        const formula = screen.getByLabelText('Formula for the value');
+        expect(formula).toHaveAttribute('aria-invalid', 'true');
+        const text = describers(formula)
+            .map((el) => el!.textContent)
+            .join(' ');
+        expect(text).toContain("uses 'nope'");
+        // and the other formula, which is fine, is not marked
+        expect(screen.getByLabelText('Formula that must be true')).not.toHaveAttribute('aria-invalid');
+    });
+
+    it('marks a condition that waits for its value, and says why', () => {
+        const field = postcode([{ id: 'r', when: { conditions: [{ fieldId: 'country', fieldType: 'dropdown', comparison: 'IS_EQUAL', value: '' }] }, then: { required: true } }]);
+        render(<FieldRulesSettings field={field} slides={[page(country, field)]} hiddenNames={[]} onChange={() => true} />);
+        const value = within(screen.getByTestId('field-rule-1')).getByLabelText('Value');
+        expect(value).toHaveAttribute('aria-invalid', 'true');
+        expect(describers(value).map((el) => el!.textContent)).toContain('Enter a value for this rule to work.');
+    });
+
+    it('has no English left in the condition rows in Dutch', async () => {
+        await act(() => i18n.changeLanguage('nl'));
+        const field = postcode([NL]);
+        render(<FieldRulesSettings field={field} slides={[page(country, field)]} hiddenNames={[]} onChange={() => true} />);
+        const card = within(screen.getByTestId('field-rule-1'));
+        expect(card.getByRole('combobox', { name: 'Vraag' })).toBeInTheDocument();
+        expect(card.getByRole('combobox', { name: 'Vergelijking' })).toHaveDisplayValue('is gelijk aan');
+        expect(card.getByLabelText('Waarde')).toBeInTheDocument();
+        for (const english of ['Question', 'Comparison', 'is equal to', 'Remove condition', 'Select…']) expect(screen.queryByText(english)).toBeNull();
+        expect(screen.getByTestId('rule-summary')).toHaveTextContent('Wanneer Country is gelijk aan Netherlands');
+    });
+});
+
 describe('helpers', () => {
     it('sources are the other answerable questions, never the question itself', () => {
         const field = postcode();

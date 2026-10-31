@@ -56,7 +56,8 @@ export default function FormulaInput({
     placeholder,
     help,
     rows = 3,
-    invalid
+    invalid,
+    describedBy
 }: {
     label: string;
     /** Another question or rule selected: show its formula. */
@@ -73,6 +74,8 @@ export default function FormulaInput({
     help?: string;
     rows?: number;
     invalid?: boolean;
+    /** Ids of other text that describes this input (a list of problems with it), after its own error and help. */
+    describedBy?: string;
 }) {
     const id = useId();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -184,7 +187,7 @@ export default function FormulaInput({
                     aria-controls={listOpen ? listId : undefined}
                     aria-activedescendant={listOpen ? `${listId}-${Math.min(active, suggestions.length - 1)}` : undefined}
                     aria-invalid={bad || undefined}
-                    aria-describedby={[shownError || problem ? errorId : '', help ? helpId : ''].filter(Boolean).join(' ') || undefined}
+                    aria-describedby={[shownError || problem ? errorId : '', help ? helpId : '', describedBy ?? ''].filter(Boolean).join(' ') || undefined}
                     onChange={(event) => {
                         setCaret(event.target.selectionStart ?? event.target.value.length);
                         setDismissed(false);

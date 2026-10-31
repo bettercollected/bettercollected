@@ -379,7 +379,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 questions: (slide.properties?.fields ?? []).slice(1, 3).map((f) => fieldText(f)),
                 moreCount: Math.max(0, (slide.properties?.fields?.length ?? 0) - 3),
                 showHideCount: slide.properties?.fields?.filter((f) => fieldHasLogic(f)).length ?? 0,
-                rulesCount: slide.properties?.fields?.filter((f) => (f.properties?.rules?.length ?? 0) > 0).length ?? 0,
+                rulesCount: (slide.properties?.fields ?? []).reduce((count, f) => count + ((f.properties?.rules?.length ?? 0) > 0 ? 1 : 0) + (f.properties?.fields ?? []).filter((child) => (child.properties?.rules?.length ?? 0) > 0).length, 0),
                 brokenCount: ((slide.properties?.jumps as PageJump[] | undefined) ?? []).filter((j) => j?.conditions?.length && !jumpTargetNode(j)).length,
                 visits: traffic ? traffic.nodeVisits.get(slide.id) ?? 0 : undefined,
                 totalResponses: traffic?.total,
@@ -471,7 +471,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         () =>
             JSON.stringify(
                 [
-                    slides.map((s, i) => [s.id, pageLabel(s, i), s.properties?.fields?.length, s.properties?.position, s.properties?.jumps, s.properties?.fields?.map((f) => !!f.properties?.logic), s.properties?.fields?.map((f) => f.properties?.rules?.length ?? 0)]),
+                    slides.map((s, i) => [s.id, pageLabel(s, i), s.properties?.fields?.length, s.properties?.position, s.properties?.jumps, s.properties?.fields?.map((f) => !!f.properties?.logic), s.properties?.fields?.map((f) => [f.properties?.rules?.length ?? 0, f.properties?.fields?.map((child) => child.properties?.rules?.length ?? 0)])]),
                     endings.map((e) => [e.id, e.name, e.isDefault])
                 ]
             ),

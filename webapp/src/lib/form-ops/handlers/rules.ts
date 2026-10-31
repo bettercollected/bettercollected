@@ -3,7 +3,7 @@ import { validateExpression } from '@app/lib/expressions/validator';
 import { FIELD_RULES_MAX } from '@app/lib/field-rules';
 
 import { fieldRuleChecker } from '../field-rule-checks';
-import { type FieldLocation, OpError, childrenOf, locateField, pyLen, titleText } from '../model';
+import { type FieldLocation, OpError, childrenOf, locateField, pyLen, pyStrip, titleText } from '../model';
 import type { FieldRuleSpec, FormDoc, FormField, SetFieldRulesOp } from '../types';
 import { type Handler, draftField, ensureProperties, setKey } from './context';
 import { validatedConditions } from './fields';
@@ -56,7 +56,7 @@ function checkRuleSpec(spec: FieldRuleSpec): void {
         if (typeof text !== 'string') throw new OpError(`${key}: Input should be a valid string`);
         if (pyLen(text) > max) throw new OpError(`${key}: String should have at most ${max} characters`);
     }
-    if (typeof then.title === 'string' && !then.title.trim()) throw new OpError("A rule's title cannot be empty.");
+    if (typeof then.title === 'string' && !pyStrip(then.title)) throw new OpError("A rule's title cannot be empty.");
     const value = then.setValue;
     if (given(value)) {
         if (typeof value !== 'object' || Array.isArray(value)) throw new OpError('Input should be a valid dictionary');

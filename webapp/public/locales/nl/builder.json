@@ -819,5 +819,43 @@
     "FLOW_BADGE_other": "{{count}} met regels",
     "MISSING_SOURCE": "(vraag staat niet meer in het formulier)",
     "REFUSED": "Niet aangepast: het zou een regel van dit formulier breken. {{reason}}"
+  },
+  "CONDITION": {
+    "QUESTION": "Vraag",
+    "COMPARISON_LABEL": "Vergelijking",
+    "VALUE": "Waarde",
+    "VALUE_PLACEHOLDER": "waarde",
+    "SELECT": "Kies…",
+    "YES": "Ja",
+    "NO": "Nee",
+    "OPTION": "Optie",
+    "REMOVE": "Voorwaarde verwijderen",
+    "GROUP_CONDITION": "Voorwaarde op groep",
+    "CHILD_QUESTION": "Vraag in elk item",
+    "VALUE_MISSING": "Vul een waarde in om deze regel te laten werken.",
+    "COMPARISON": {
+      "IS_EQUAL": "is gelijk aan",
+      "IS_NOT_EQUAL": "is niet gelijk aan",
+      "CONTAINS": "bevat",
+      "DOES_NOT_CONTAIN": "bevat niet",
+      "GREATER_THAN": "is groter dan",
+      "GREATER_THAN_EQUAL": "is minstens",
+      "LESS_THAN": "is kleiner dan",
+      "LESS_THAN_EQUAL": "is hooguit",
+      "STARTS_WITH": "begint met",
+      "ENDS_WITH": "eindigt op",
+      "IS_EMPTY": "is leeg",
+      "IS_NOT_EMPTY": "is niet leeg"
+    },
+    "COUNT_COMPARISON": {
+      "IS_EQUAL": "is",
+      "GREATER_THAN_EQUAL": "is minstens",
+      "LESS_THAN_EQUAL": "is hooguit"
+    },
+    "GROUP_MODE": {
+      "COUNT": "Aantal items",
+      "ANY": "Een willekeurig item",
+      "ALL": "Alle items"
+    }
   }
 }

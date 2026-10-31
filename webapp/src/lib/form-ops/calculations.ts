@@ -9,7 +9,7 @@ import { validateExpression } from '@app/lib/expressions/validator';
 import { FieldTypes } from '@app/models/dtos/form';
 
 import { findCycle } from './date-rules';
-import { OpError, isRepeatingGroup, isSlide } from './model';
+import { OpError, isRepeatingGroup, isSlide, pyStrip } from './model';
 import type { FormDoc, FormField } from './types';
 
 /** Field types whose answer a formula cannot read (backend NOT_VARIABLES). */
@@ -52,9 +52,9 @@ function plainText(node: any): string {
 /** A calculation's name in messages (backend calculated_fields `_title`). */
 export function calcTitle(field: FormField): string {
     const title = field.title as any;
-    if (typeof title === 'string' && title.trim()) return title.trim();
+    if (typeof title === 'string' && pyStrip(title)) return pyStrip(title);
     if (title && typeof title === 'object') {
-        const text = plainText(title).trim();
+        const text = pyStrip(plainText(title));
         if (text) return text;
     }
     return String(field.id || 'a calculation');
