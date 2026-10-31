@@ -1578,6 +1578,28 @@
       "title": "FieldRule",
       "type": "object"
     },
+    "FieldRuleSpec": {
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "when": {
+          "$ref": "#/$defs/RuleWhenSpec"
+        },
+        "then": {
+          "$ref": "#/$defs/RuleThenSpec"
+        }
+      },
+      "required": [
+        "id",
+        "when",
+        "then"
+      ],
+      "title": "FieldRuleSpec",
+      "type": "object"
+    },
     "FieldType": {
       "enum": [
         "single",
@@ -2783,6 +2805,113 @@
       "title": "RuleSetValue",
       "type": "object"
     },
+    "RuleSetValueSpec": {
+      "description": "The value a rule gives the question: a fixed ``const`` (text, number,\ntrue/false for yes/no, a YYYY-MM-DD date, or the id of one of a choice\nquestion's options) or an ``expression``, never both.",
+      "properties": {
+        "const": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Const"
+        },
+        "expression": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expression"
+        }
+      },
+      "title": "RuleSetValueSpec",
+      "type": "object"
+    },
+    "RuleThenSpec": {
+      "description": "What a rule does while it is active; at least one key.",
+      "properties": {
+        "required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required"
+        },
+        "readOnly": {
+          "anyOf": [
+            {
+              "const": true,
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Readonly"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "setValue": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuleSetValueSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "RuleThenSpec",
+      "type": "object"
+    },
     "RuleTrigger": {
       "additionalProperties": false,
       "description": "When a field rule is active: either ``conditions`` (folded with\n``operator``, AND when absent; the conditions of ``properties.logic``)\nor an expressions-v1 ``expression``, active when its value is truthy.",
@@ -2831,6 +2960,56 @@
         }
       },
       "title": "RuleTrigger",
+      "type": "object"
+    },
+    "RuleWhenSpec": {
+      "description": "When a field rule is active: ``conditions`` (as in set_field_logic;\n``operator`` AND when left out) or an expressions-v1 ``expression``\n(active when its value is truthy), never both.",
+      "properties": {
+        "operator": {
+          "anyOf": [
+            {
+              "enum": [
+                "AND",
+                "OR"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operator"
+        },
+        "conditions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/LogicConditionSpec"
+              },
+              "maxItems": 20,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditions"
+        },
+        "expression": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expression"
+        }
+      },
+      "title": "RuleWhenSpec",
       "type": "object"
     },
     "SetChoiceOp": {
@@ -2924,6 +3103,42 @@
         "fieldId"
       ],
       "title": "SetFieldLogicOp",
+      "type": "object"
+    },
+    "SetFieldRulesOp": {
+      "description": "The rules of a question: while ``when`` holds, ``then`` applies (make\nthe question required or optional, read-only, give it a value, change its\ntitle or description). ``rules`` replaces the question's list, in order\n(the last active rule wins for each property); null or [] clears it. A\nrule never shows or hides a question (set_field_logic does). The server\nrefuses it while field rules are switched off.",
+      "properties": {
+        "op": {
+          "const": "set_field_rules",
+          "default": "set_field_rules",
+          "title": "Op",
+          "type": "string"
+        },
+        "fieldId": {
+          "title": "Fieldid",
+          "type": "string"
+        },
+        "rules": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/FieldRuleSpec"
+              },
+              "maxItems": 8,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rules"
+        }
+      },
+      "required": [
+        "fieldId"
+      ],
+      "title": "SetFieldRulesOp",
       "type": "object"
     },
     "SetFieldValidationOp": {
@@ -5535,6 +5750,7 @@
             "set_choice": "#/$defs/SetChoiceOp",
             "set_endings": "#/$defs/SetEndingsOp",
             "set_field_logic": "#/$defs/SetFieldLogicOp",
+            "set_field_rules": "#/$defs/SetFieldRulesOp",
             "set_field_validation": "#/$defs/SetFieldValidationOp",
             "set_form_language": "#/$defs/SetFormLanguageOp",
             "set_hidden_fields": "#/$defs/SetHiddenFieldsOp",
@@ -5583,6 +5799,9 @@
           },
           {
             "$ref": "#/$defs/SetFieldLogicOp"
+          },
+          {
+            "$ref": "#/$defs/SetFieldRulesOp"
           },
           {
             "$ref": "#/$defs/SetPageJumpsOp"

@@ -14,6 +14,7 @@ from typing import Callable, Optional, Sequence
 from common.models.standard_form import StandardForm, StandardFormSettings
 
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.services.field_rules import ensure_rules_allowed
 
 # the parts of a form its content writers may replace
 FORM_PARTS = (
@@ -75,6 +76,11 @@ async def persist_form(
     unknown = set(parts) - set(FORM_PARTS)
     if unknown:
         raise ValueError(f"not a form content part: {sorted(unknown)}")
+    if "fields" in parts:
+        # Field rules (services/field_rules.py) are written only while
+        # FIELD_RULES_ENABLED is on, except as the stored form has them:
+        # whatever an op or a writer did, nothing new gets past this.
+        ensure_rules_allowed(new_form, form_document)
     if expected_updated_at is not None:
         if guard is not None:
             raise ValueError("guard and expected_updated_at do not combine")

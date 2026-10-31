@@ -65,7 +65,8 @@ function normalised(document: unknown): unknown {
 }
 
 describe.skipIf(!corpus)('form ops conformance corpus', () => {
-    const cases: any[] = corpus?.cases ?? [];
+    // A case may name the engines that run it (`engines`): field rules are the server's for now.
+    const cases: any[] = (corpus?.cases ?? []).filter((c: any) => !c.engines || c.engines.includes('webapp'));
 
     it.each(cases.map((c) => [c.name, c]))('%s', (_name, c: any) => {
         const before = formOf(c.before);

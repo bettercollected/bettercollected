@@ -43,17 +43,27 @@ from common.form_spec.models import (
 from common.expressions import validate_expression
 from common.models.standard_form import (
     DATE_RULES_MAX,
+    FIELD_RULES_MAX,
+    FORM_FIELD_RULES_MAX,
     FORM_LANGUAGES,
     CalculationFormat,
     DateRule,
     FieldLogic,
     FieldLogicCondition,
     FieldPosition,
+    FieldRule,
     LayoutType,
     LOGO_ALT_MAX_LENGTH,
     PageJump,
     REPEAT_CHILD_FIELD_TYPES,
+    RULE_CONDITIONS_MAX,
+    RULE_DESCRIPTION_MAX_LENGTH,
+    RULE_ID_PATTERN,
+    RULE_TITLE_MAX_LENGTH,
     RepeatSettings,
+    RuleEffect,
+    RuleSetValue,
+    RuleTrigger,
     StandardChoice,
     StandardFieldAttachment,
     StandardFieldProperty,
@@ -78,6 +88,7 @@ from common.models.standard_form import (
     SECTION_TITLE_MAX_LENGTH,
     THEME_TYPE_SHAPE_KEYS,
     WHY_WE_ASK_MAX_LENGTH,
+    raw_rule_count,
     theme_problems,
 )
 from pydantic import (
@@ -103,7 +114,9 @@ from backend.app.services.calculated_fields import calculated_field_problems
 from backend.app.services.field_rules import (
     DISABLED_MESSAGE,
     field_rule_problems,
+    field_rules_enabled,
     new_or_changed_rules,
+    parent_id,
     prune_field_rules,
 )
 from backend.app.services.image_urls import (
@@ -468,6 +481,56 @@ class SetFieldLogicOp(_CamelModel):
     logic: Optional[FieldLogicSpec] = None
 
 
+class RuleWhenSpec(_CamelModel):
+    """When a field rule is active: ``conditions`` (as in set_field_logic;
+    ``operator`` AND when left out) or an expressions-v1 ``expression``
+    (active when its value is truthy), never both."""
+
+    operator: Optional[Literal["AND", "OR"]] = None
+    conditions: Optional[List[LogicConditionSpec]] = Field(
+        None, min_length=1, max_length=RULE_CONDITIONS_MAX
+    )
+    expression: Optional[Any] = None
+
+
+class RuleSetValueSpec(_CamelModel):
+    """The value a rule gives the question: a fixed ``const`` (text, number,
+    true/false for yes/no, a YYYY-MM-DD date, or the id of one of a choice
+    question's options) or an ``expression``, never both."""
+
+    const: Optional[Union[bool, int, float, str]] = None
+    expression: Optional[Any] = None
+
+
+class RuleThenSpec(_CamelModel):
+    """What a rule does while it is active; at least one key."""
+
+    required: Optional[bool] = None
+    read_only: Optional[Literal[True]] = None
+    title: Optional[str] = Field(None, max_length=RULE_TITLE_MAX_LENGTH)
+    description: Optional[str] = Field(None, max_length=RULE_DESCRIPTION_MAX_LENGTH)
+    set_value: Optional[RuleSetValueSpec] = None
+
+
+class FieldRuleSpec(_CamelModel):
+    id: str = Field(..., pattern=RULE_ID_PATTERN)
+    when: RuleWhenSpec
+    then: RuleThenSpec
+
+
+class SetFieldRulesOp(_CamelModel):
+    """The rules of a question: while ``when`` holds, ``then`` applies (make
+    the question required or optional, read-only, give it a value, change its
+    title or description). ``rules`` replaces the question's list, in order
+    (the last active rule wins for each property); null or [] clears it. A
+    rule never shows or hides a question (set_field_logic does). The server
+    refuses it while field rules are switched off."""
+
+    op: Literal["set_field_rules"] = "set_field_rules"
+    field_id: str
+    rules: Optional[List[FieldRuleSpec]] = Field(None, max_length=FIELD_RULES_MAX)
+
+
 class PageJumpSpec(_CamelModel):
     operator: Literal["AND", "OR"] = "AND"
     conditions: List[LogicConditionSpec] = Field(..., min_length=1)
@@ -814,6 +877,7 @@ FormOp = Annotated[
         UpdateFormInfoOp,
         UpdateFormSettingsOp,
         SetFieldLogicOp,
+        SetFieldRulesOp,
         SetPageJumpsOp,
         DuplicatePageOp,
         UpdateThemeOp,
@@ -845,10 +909,38 @@ FormOp = Annotated[
 ]
 
 
+def _raw_rules_in_ops(ops: Any) -> int:
+    """Field rules in a raw ops payload (``set_field_rules`` and the editor
+    ops' whole questions and pages), counted before anything is parsed."""
+    total = 0
+    for op in ops if isinstance(ops, list) else []:
+        if not isinstance(op, dict):
+            continue
+        if isinstance(op.get("rules"), list) and op.get("op") == "set_field_rules":
+            total += len(op["rules"])
+        for key in ("field", "page"):
+            if isinstance(op.get(key), dict):
+                total += raw_rule_count([op[key]])
+    return total
+
+
 class FormOps(_CamelModel):
     """Envelope for parsing an AI/MCP payload of operations."""
 
     ops: List[FormOp]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _count_rules_first(cls, data):
+        # far too many field rules: refused before each one is parsed
+        if isinstance(data, dict):
+            total = _raw_rules_in_ops(data.get("ops"))
+            if total > FORM_FIELD_RULES_MAX:
+                raise ValueError(
+                    f"A form can have at most {FORM_FIELD_RULES_MAX} rules; these "
+                    f"operations bring {total}."
+                )
+        return data
 
 
 class OpResult(_CamelModel):
@@ -1347,7 +1439,10 @@ def _apply_update_field(form: StandardForm, op: UpdateFieldOp) -> str:
     if op.patch.date_rules is not None:
         _check_date_rules_patch(form, field, op.patch.date_rules)
     changed = _patch_field(field, op.patch)
-    return f"Updated '{_title_text(field)}' ({', '.join(changed)})"
+    # Field rules apply to what respondents answer: an internal question
+    # loses its own, and the ones that read it, as a save would refuse them.
+    note = _dropped_rules_note(form) if op.patch.internal else ""
+    return f"Updated '{_title_text(field)}' ({', '.join(changed)}){note}"
 
 
 def _dropped_rules_note(form: StandardForm) -> str:
@@ -1616,6 +1711,70 @@ def _apply_set_field_logic(form: StandardForm, op: SetFieldLogicOp) -> str:
     field.properties.logic = FieldLogic(action=op.logic.action, operator=op.logic.operator, conditions=conditions)
     verb = "Show" if op.logic.action == "SHOW" else "Hide"
     return f"{verb} '{_title_text(field)}' when {len(conditions)} condition(s) match"
+
+
+def _field_rule(
+    form: StandardForm, spec: FieldRuleSpec, scope_group_id: Optional[str]
+) -> FieldRule:
+    """The stored rule a spec describes: its conditions resolved against the
+    form like logic's (``_validated_conditions``), its expressions and
+    effects checked by the stored model."""
+    try:
+        conditions = (
+            _validated_conditions(form, spec.when.conditions, scope_group_id)
+            if spec.when.conditions is not None
+            else None
+        )
+        then = spec.then
+        value = then.set_value
+        return FieldRule(
+            id=spec.id,
+            when=RuleTrigger(
+                operator=spec.when.operator,
+                conditions=conditions,
+                expression=spec.when.expression,
+            ),
+            then=RuleEffect(
+                required=then.required,
+                read_only=then.read_only,
+                title=then.title,
+                description=then.description,
+                set_value=(
+                    RuleSetValue(const=value.const, expression=value.expression)
+                    if value is not None
+                    else None
+                ),
+            ),
+        )
+    except ValidationError as error:
+        raise OpError(_validation_message(error))
+
+
+def _apply_set_field_rules(form: StandardForm, op: SetFieldRulesOp) -> str:
+    _, parent, _, field, _ = _locate_field(form, op.field_id)
+    if field.properties is None:
+        field.properties = StandardFieldProperty()
+    if not op.rules:
+        field.properties.rules = None
+        return f"Cleared the rules on '{_title_text(field)}'"
+    rules = [
+        _field_rule(form, spec, parent.id if parent is not None else None)
+        for spec in op.rules
+    ]
+    # While FIELD_RULES_ENABLED is off, only the rules the field already has
+    probe = field.model_copy(deep=True)
+    probe.properties.rules = rules
+    _check_rules_allowed(probe, form)
+    # Only this question's rules changed: check them (and what spans the
+    # form), not every rule of the form again, for each op of a batch.
+    known = {p.message for p in field_rule_problems(form, only={field.id})}
+    previous = field.properties.rules
+    field.properties.rules = rules
+    for problem in field_rule_problems(form, only={field.id}):
+        if problem.message not in known:
+            field.properties.rules = previous
+            raise OpError(problem.message)
+    return f"Set {len(rules)} rule(s) on '{_title_text(field)}'"
 
 
 def _apply_set_page_jumps(form: StandardForm, op: SetPageJumpsOp) -> str:
@@ -2383,13 +2542,14 @@ def _editor_theme(theme: Optional[Theme], keep: "_KeptImages", path: str = "prop
 
 
 def _check_rules_allowed(item: StandardFormField, form: StandardForm) -> None:
-    """While FIELD_RULES_ENABLED is off, an editor op may carry a field's
-    rules only as the form already has them (services/field_rules.py)."""
-    from backend.config import settings
-
-    if getattr(settings, "FIELD_RULES_ENABLED", False):
+    """While FIELD_RULES_ENABLED is off, an op may give a field rules only as
+    the form already has them (services/field_rules.py)."""
+    if field_rules_enabled():
         return
-    if new_or_changed_rules(StandardForm(fields=[item]), form):
+    # ``item`` is compared where it sits in ``form`` (its page or group)
+    if new_or_changed_rules(
+        StandardForm(fields=[item]), form, parent=parent_id(form, item.id)
+    ):
         raise OpError(DISABLED_MESSAGE)
 
 
@@ -2940,6 +3100,7 @@ _HANDLERS = {
     "update_form_info": _apply_update_form_info,
     "update_form_settings": _apply_update_form_settings,
     "set_field_logic": _apply_set_field_logic,
+    "set_field_rules": _apply_set_field_rules,
     "set_page_jumps": _apply_set_page_jumps,
     "duplicate_page": _apply_duplicate_page,
     "update_theme": _apply_update_theme,
@@ -3125,7 +3286,8 @@ def finished_form(working: StandardForm) -> StandardForm:
     working = working.model_copy(deep=True)
     _renumber(working)
     # Nothing may leave with a date rule or a field rule the save path would
-    # refuse (a structural edit can break them; no op writes field rules).
+    # refuse (a structural edit can break them, for example by making a
+    # question with rules internal).
     prune_date_rules(working.fields)
     prune_field_rules(working)
     # The schema is the final arbiter — a structurally invalid result must

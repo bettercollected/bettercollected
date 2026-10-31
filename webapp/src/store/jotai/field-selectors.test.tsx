@@ -302,3 +302,37 @@ describe('duplicating leaves field rules behind', () => {
         expect(rulesOf(result.current.formFields[0].properties!.fields![1])).toEqual([rule('r1')]);
     });
 });
+
+describe('marking a question internal clears its field rules', () => {
+    const rule = (id: string) => ({ id, when: { conditions: [{ fieldId: 'a', comparison: 'IS_NOT_EMPTY' }] }, then: { required: true } });
+    const page = (): StandardFormFieldDto[] => [
+        {
+            id: 'page',
+            index: 0,
+            type: FieldTypes.SLIDE,
+            properties: {
+                fields: [q('a', 0), { ...q('b', 1), properties: { rules: [rule('r1')] } as any }, { ...q('c', 2), properties: { rules: [rule('r2')] } as any }]
+            }
+        }
+    ];
+    const rulesOf = (field: StandardFormFieldDto) => (field.properties as any)?.rules;
+
+    it('updateFieldInternal drops that question’s rules, so the server never sees rules on an internal question', () => {
+        const { result } = setup();
+        act(() => result.current.initFormFields(page()));
+        act(() => result.current.updateFieldInternal(1, 0, true));
+        const fields = result.current.formFields[0].properties!.fields!;
+        expect(fields[1].internal).toBe(true);
+        expect(rulesOf(fields[1])).toBeUndefined();
+        // other questions keep theirs
+        expect(rulesOf(fields[2])).toEqual([rule('r2')]);
+    });
+
+    it('making a question visible again does not bring rules back', () => {
+        const { result } = setup();
+        act(() => result.current.initFormFields(page()));
+        act(() => result.current.updateFieldInternal(1, 0, true));
+        act(() => result.current.updateFieldInternal(1, 0, false));
+        expect(rulesOf(result.current.formFields[0].properties!.fields![1])).toBeUndefined();
+    });
+});

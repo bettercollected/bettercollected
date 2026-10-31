@@ -14,6 +14,7 @@ from pydantic.alias_generators import to_camel
 
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.services.ai.ops import EDITOR_ONLY_OPS, apply_form_ops, parse_ops
+from backend.config import settings
 
 CASES_PATH = (
     Path(__file__).resolve().parents[4] / "docs" / "spec" / "form-ops-v1.cases.json"
@@ -129,7 +130,10 @@ def _cases() -> List[Dict[str, Any]]:
 
 
 @pytest.mark.parametrize("case", _cases(), ids=lambda case: case["name"])
-def test_case(case):
+def test_case(case, monkeypatch):
+    # the cases describe what the operations do; the server flag that
+    # refuses new field rules is tested on its own (test_field_rules_ops.py)
+    monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", True)
     run_case(case, _corpus()["forms"])
 
 
