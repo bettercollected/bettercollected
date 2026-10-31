@@ -19,6 +19,7 @@ import { useFormState } from '@app/store/jotai/form';
 import useFormFileAtom from '@app/store/jotai/form-file';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
+import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { store } from '@app/store/store';
 import { axeViolations } from '@app/test/axe';
 import { REVIEW_SLIDE } from '@app/utils/review-page';
@@ -105,11 +106,13 @@ const ANSWERS = {
 let responder: ReturnType<typeof useResponderState>;
 let response: ReturnType<typeof useFormResponse>;
 let fileStore: ReturnType<typeof useFormFileAtom>;
+let linkStore: ReturnType<typeof useHiddenFieldValues>;
 let preview = false;
 function Respondent() {
     responder = useResponderState();
     response = useFormResponse();
     fileStore = useFormFileAtom();
+    linkStore = useHiddenFieldValues();
     const { updateFormTheme } = useFormState();
     React.useEffect(() => {
         updateFormTheme(ThemeColors[0], { undoable: false });
@@ -245,6 +248,41 @@ describe('the review page', () => {
             // and what the block names is what the submit sends
             await click('Submit response');
             expect(sentAnswers().secret.text).toBe('PLUS-123');
+        });
+
+        it('names the values the link carried, on a line of their own, in EN and NL', async () => {
+            const { secret, ...answers } = ANSWERS;
+            start({ ...FORM(), hiddenFields: ['source', 'campaign'] }, answers);
+            act(() => linkStore.setHiddenValues({ source: 'newsletter', campaign: 'spring <b>2027</b>' }));
+            await toReview();
+            // nothing else is sent beyond the questions, yet the block is there for the link's values
+            const block = screen.getByTestId('review-also-sent');
+            expect(within(block).queryAllByTestId('review-also-sent-row')).toHaveLength(0);
+            expect(within(block).queryByText(/still sent/)).not.toBeInTheDocument();
+            const line = within(block).getByTestId('review-link-values');
+            expect(line).toHaveTextContent('From the link you opened: source = newsletter, campaign = spring <b>2027</b>');
+            // text, not markup
+            expect(line.querySelector('b')).toBeNull();
+            // and they are what the submit sends
+            await click('Submit response');
+            expect(JSON.parse((submit.mock.calls[0][0].body as FormData).get('response') as string).hidden_fields).toEqual({ source: 'newsletter', campaign: 'spring <b>2027</b>' });
+        });
+
+        it('says it in Dutch', async () => {
+            window.history.replaceState(null, '', '/acme/forms/f1?lang=nl');
+            start({ ...FORM(), hiddenFields: ['source'] });
+            act(() => linkStore.setHiddenValues({ source: 'newsletter' }));
+            act(() => responder.setResponderState({ ...responder.responderState, currentSlide: REVIEW_SLIDE, history: [0, 1, 2] }));
+            await screen.findByRole('heading', { level: 1, name: 'Controleer je antwoorden' });
+            expect(screen.getByTestId('review-link-values')).toHaveTextContent('Uit de link die je opende: source = newsletter');
+            expect(screen.getByRole('heading', { level: 2, name: 'Ook verstuurd' })).toBeInTheDocument();
+        });
+
+        it('has no link line when the link carried nothing', async () => {
+            start({ ...FORM(), hiddenFields: ['source'] });
+            await toReview();
+            expect(screen.queryByTestId('review-link-values')).not.toBeInTheDocument();
+            expect(screen.queryByText(/From the link you opened/)).not.toBeInTheDocument();
         });
 
         it('is not there when everything sent is listed above', async () => {
@@ -603,9 +641,10 @@ describe.each([
         store.dispatch(setAuth({ id: '', email: '' }));
     });
 
-    it.each(['classic', 'leaflet'])('in the %s style, with a group, a file, a rule value, a long text and a missing answer', async (style) => {
-        const data: any = { ...FORM(), theme: { ...ThemeColors[0], style } };
+    it.each(['classic', 'leaflet'])('in the %s style, with a group, a file, a rule value, a long text, a missing answer, an "also sent" answer and a link value', async (style) => {
+        const data: any = { ...FORM(), hiddenFields: ['source'], theme: { ...ThemeColors[0], style } };
         start(data, { ...ANSWERS, children: { type: 'group', items: [{ 'child-name': text('Kim') }, { 'child-name': text('Noor') }] }, extra: text('x'.repeat(300)), agree: undefined as any });
+        act(() => linkStore.setHiddenValues({ source: 'newsletter' }));
         act(() => responder.setResponderState({ ...responder.responderState, currentSlide: REVIEW_SLIDE, history: [0, 1, 2] }));
         const heading = await screen.findByRole('heading', { level: 1, name: title });
         expect(await axeViolations(document, { page: true })).toEqual([]);

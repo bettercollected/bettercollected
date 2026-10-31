@@ -87,7 +87,7 @@ left out, rule-set values are marked, files show their name. "Edit" (`editFromRe
 reviewed path in `reviewPath`; its "Back to review" replays the whole path from its first page with `walkReviewPath`
 (back to the review over the route as it now runs, on at a page never seen, or to a page that is no longer
 complete). The review does not change what is sent: answers to hidden questions and files are still sent by design,
-so `alsoSentRows` names them in an "Also sent" block. Sending lives in `use-finish-form.ts`,
+so `alsoSentRows` names them in an "Also sent" block, with the link's hidden-field values on a line of their own. Sending lives in `use-finish-form.ts`,
 shared by the last page and the review (409 closed/not open/full keep the answers; 422 goes to the page). A page is
 complete by `pageInvalidations` (`utils/page-validation.ts`) everywhere.
 

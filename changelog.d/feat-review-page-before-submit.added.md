@@ -5,5 +5,6 @@
   the pages the respondent went through, with an "Edit" button per page and
   "Back to review" on the page they return to. Answers to questions the form no
   longer shows, and uploaded files of those, are still sent as before; the
-  page names them in an "Also sent" block. Nothing is sent or stored until the
+  page names them, and the values the link carried, in an "Also sent"
+  block. Nothing is sent or stored until the
   respondent submits from it.

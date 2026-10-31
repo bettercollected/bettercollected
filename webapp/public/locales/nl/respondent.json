@@ -73,6 +73,7 @@
         "ALSO_SENT": "Ook verstuurd",
         "ALSO_SENT_HINT": "Dit formulier toont deze vragen niet meer, door je latere antwoorden, maar je eerdere antwoorden erop worden nog wel verstuurd. Wil je ze wijzigen, ga dan terug en wijzig het antwoord waardoor ze verborgen werden.",
         "UPLOADED_FILE": "Geüpload bestand",
+        "FROM_LINK": "Uit de link die je opende:",
         "FILLED_IN": "Ingevuld door het formulier"
     },
     "CONSENT": {

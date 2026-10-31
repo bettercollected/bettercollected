@@ -73,6 +73,7 @@
         "ALSO_SENT": "Also sent",
         "ALSO_SENT_HINT": "This form no longer shows these questions, because of your later answers, but your earlier answers to them are still sent. To change them, go back and change the answer that hid them.",
         "UPLOADED_FILE": "Uploaded file",
+        "FROM_LINK": "From the link you opened:",
         "FILLED_IN": "Filled in by the form"
     },
     "CONSENT": {

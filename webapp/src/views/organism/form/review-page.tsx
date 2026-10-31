@@ -72,6 +72,8 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
         return { sections, alsoSent: alsoSentRows({ ...input, sections, files }) };
     }, [standardForm?.fields, standardForm?.hiddenFields, formResponse.answers, hiddenValues, path, responderState.currentSlide, language, t, files]);
     const problems = useMemo(() => reviewProblems(sections), [sections]);
+    // The values the link carried (declared hidden fields): sent with every response.
+    const linkValues = useMemo(() => Object.entries(hiddenValues ?? {}), [hiddenValues]);
 
     // To a page that needs something, with what it lacks marked, and the first such question in focus.
     const goFix = (slideIndex: number, key?: string) => {
@@ -132,7 +134,7 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
                     />
                 ))}
             </div>
-            {alsoSent.length > 0 && <AlsoSentView rows={alsoSent} ink={ink} quiet={quiet} edge={edge} serif={serif} contentLang={contentLang} />}
+            {(alsoSent.length > 0 || linkValues.length > 0) && <AlsoSentView rows={alsoSent} linkValues={linkValues} ink={ink} quiet={quiet} edge={edge} serif={serif} contentLang={contentLang} />}
             <div className="mt-10 flex flex-col items-start gap-4">
                 <ShareIdentityConsent effectiveAnonymize={effectiveAnonymize} />
                 <Button flat style={formButtonStyle(theme?.secondary, corner)} isLoading={isLoading} className={cn('form-button min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')} onClick={onSubmit} size="medium">
@@ -276,7 +278,7 @@ function RowView({ row, ink, quiet, edge, link, contentLang, onFix, last = false
  * to questions the form no longer shows, and uploaded files of such questions
  * or of pages that were skipped. Named, so that what the page says is what is sent.
  */
-function AlsoSentView({ rows, ink, quiet, edge, serif, contentLang }: { rows: AlsoSentRow[]; ink?: string; quiet: string; edge: string; serif?: React.CSSProperties; contentLang: string | undefined }) {
+function AlsoSentView({ rows, linkValues, ink, quiet, edge, serif, contentLang }: { rows: AlsoSentRow[]; linkValues: Array<[string, string]>; ink?: string; quiet: string; edge: string; serif?: React.CSSProperties; contentLang: string | undefined }) {
     const { t } = useRespondentLanguage();
     return (
         <section aria-labelledby="review-also-sent" className="mt-10" data-testid="review-also-sent">
@@ -285,9 +287,11 @@ function AlsoSentView({ rows, ink, quiet, edge, serif, contentLang }: { rows: Al
                     {t('REVIEW.ALSO_SENT')}
                 </h2>
             </div>
-            <p className="mt-3 max-w-[60ch] text-[15px] leading-relaxed" style={{ color: quiet }}>
-                {t('REVIEW.ALSO_SENT_HINT')}
-            </p>
+            {rows.length > 0 && (
+                <p className="mt-3 max-w-[60ch] text-[15px] leading-relaxed" style={{ color: quiet }}>
+                    {t('REVIEW.ALSO_SENT_HINT')}
+                </p>
+            )}
             <dl className="flex flex-col">
                 {rows.map((row) => (
                     <div key={row.key} className="border-b py-3" style={{ borderColor: edge }} data-testid="review-also-sent-row">
@@ -309,6 +313,12 @@ function AlsoSentView({ rows, ink, quiet, edge, serif, contentLang }: { rows: Al
                     </div>
                 ))}
             </dl>
+            {/* The link's own values (the form's declared hidden fields) travel with every response. */}
+            {linkValues.length > 0 && (
+                <p className="mt-3 text-[15px] leading-relaxed break-words" style={{ color: ink }} data-testid="review-link-values">
+                    <span className="font-semibold">{t('REVIEW.FROM_LINK')}</span> {linkValues.map(([name, value]) => `${name} = ${value}`).join(', ')}
+                </p>
+            )}
         </section>
     );
 }
