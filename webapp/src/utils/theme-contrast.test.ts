@@ -168,11 +168,31 @@ describe('themeContrastGuard', () => {
         expect(contrast('#FFFFFF', fix!.secondary!)).toBeGreaterThanOrEqual(AA_TEXT);
     });
 
-    it('turns a dark page pale, since answers sit in white boxes', () => {
+    it('keeps a dark page dark: the answers get their own colour for the white boxes', () => {
         const theme = { primary: '#F9FAFB', secondary: '#60A5FA', tertiary: '#374151', accent: '#111827' };
         const { fix } = themeContrastGuard(theme);
-        expect(contrast(fix!.accent!, '#FFFFFF')).toBeLessThan(1.5);
+        // the page stays as it is; only colours that fail move
+        expect(fix!.accent).toBeUndefined();
+        expect(contrast(fix!.inputText!, '#FFFFFF')).toBeGreaterThanOrEqual(AA_TEXT);
+        expect(fix!.primary).toBeUndefined();
         expect(passesEverything({ ...theme, ...fix })).toBe(true);
+    });
+
+    it('measures the answers on white in inputText, else primary', () => {
+        const dark = { primary: '#F9FAFB', secondary: '#076EED', tertiary: '#56667F', accent: '#111827' };
+        expect(themeContrastGuard(dark).issues.map((issue) => issue.key)).toEqual(['answer']);
+        expect(themeContrastGuard({ ...dark, inputText: '#101828' })).toEqual({ issues: [], fix: null, imageGround: false });
+        // a pale input text fails on white even where the questions are fine
+        const pale = { ...ThemeColors[0], inputText: '#9CA3AF' };
+        const { issues, fix } = themeContrastGuard(pale);
+        expect(issues.map((issue) => issue.key)).toEqual(['answer']);
+        expect(contrast(fix!.inputText!, '#FFFFFF')).toBeGreaterThanOrEqual(AA_TEXT);
+        expect(fix!.primary).toBeUndefined();
+    });
+
+    it('lists the input text pairing among the checks', () => {
+        const checks = themeContrastChecks({ ...ThemeColors[0], inputText: '#9CA3AF' });
+        expect(checks.find((check) => check.key === 'answer')).toMatchObject({ foreground: '#9CA3AF', background: '#FFFFFF', passes: false });
     });
 
     it('checks text on both stops of a gradient', () => {
@@ -265,6 +285,11 @@ describe('contrastKey', () => {
         expect(contrastKey({ ...theme, primary: '#101828'.toLowerCase() } as any)).toBe(contrastKey(theme as any));
     });
 
+    it('holds the answers colour: no inputText is the same as one equal to primary', () => {
+        expect(contrastKey({ ...theme, inputText: '#101828' } as any)).toBe(contrastKey(theme as any));
+        expect(contrastKey({ ...theme, inputText: '#334155' } as any)).toBe(contrastKey({ ...theme, inputText: '#334155'.toLowerCase() } as any));
+    });
+
     it('reads the colours, outlined buttons and what the background puts behind the text', () => {
         const base = contrastKey(theme as any);
         for (const change of [
@@ -272,6 +297,7 @@ describe('contrastKey', () => {
             { secondary: '#1649E3' },
             { tertiary: '#6B7281' },
             { accent: '#FFFFFE' },
+            { inputText: '#334155' },
             { buttonStyle: 'outlined' },
             { background: { type: 'gradient', gradientFrom: '#FFFFFF', gradientTo: '#E5E7EB' } },
             { background: { type: 'image', imageUrl: '/a.png' } }

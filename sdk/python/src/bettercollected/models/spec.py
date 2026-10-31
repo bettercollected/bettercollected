@@ -467,6 +467,15 @@ class Selection(RootModel[str]):
     )
 
 
+class InputText(RootModel[str]):
+    root: str = Field(
+        None,
+        description="The colour of the answers typed in the white input boxes (4.5:1 on white). Absent: primary.",
+        pattern="^#[0-9a-fA-F]{6}$",
+        title="Inputtext",
+    )
+
+
 class ThemeBackground(BaseModel):
     """
     Optional decoration of the page ground.
@@ -740,6 +749,12 @@ class Theme(BaseModel):
         None,
         description="The chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary.",
         title="Selection",
+    )
+    input_text: InputText | None = Field(
+        None,
+        alias="inputText",
+        description="The colour of the answers typed in the white input boxes (4.5:1 on white). Absent: primary.",
+        title="Inputtext",
     )
 
 

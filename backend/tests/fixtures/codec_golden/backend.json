@@ -2983,7 +2983,7 @@
   "document": "FormResponseDocument"
  },
  "form_templates/full": {
-  "checksum": "sha256:2485c4d5548a132af20b986ce777fefe666063e658a7abc308a5d21f2e7f989e",
+  "checksum": "sha256:2136b2371308d31f35b7f98a65a8e6ecbf440e35442d73da6b25c3ac4a8e96ea",
   "doc": {
    "_id": {
     "$oid": "081f1de730ff4503d0f47270"
@@ -3193,6 +3193,7 @@
     "buttonStyle": "FormTemplateDocument.theme.buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
     "dataFont": "FormTemplateDocument.theme.dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "highlight": "FormTemplateDocument.theme.highlight tëxt ✓ \"quoted\" \\ line\nbreak",
+    "inputText": "FormTemplateDocument.theme.inputText tëxt ✓ \"quoted\" \\ line\nbreak",
     "primary": "FormTemplateDocument.theme.primary tëxt ✓ \"quoted\" \\ line\nbreak",
     "radius": "FormTemplateDocument.theme.radius tëxt ✓ \"quoted\" \\ line\nbreak",
     "secondary": "FormTemplateDocument.theme.secondary tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -3257,7 +3258,7 @@
   "document": "FormTemplateDocument"
  },
  "form_templates/naive": {
-  "checksum": "sha256:da3b00fad821e8579dbe1fc626c836f3abb8213bd32ca0b6c88c31ed210e541c",
+  "checksum": "sha256:0b3b195d9c12b3efcc2a955771d4b8e7c4b21e06effbac7546e465a74c13335b",
   "doc": {
    "_id": {
     "$oid": "e059e369c6a20f3d47778cec"
@@ -3467,6 +3468,7 @@
     "buttonStyle": "FormTemplateDocument.theme.buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
     "dataFont": "FormTemplateDocument.theme.dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "highlight": "FormTemplateDocument.theme.highlight tëxt ✓ \"quoted\" \\ line\nbreak",
+    "inputText": "FormTemplateDocument.theme.inputText tëxt ✓ \"quoted\" \\ line\nbreak",
     "primary": "FormTemplateDocument.theme.primary tëxt ✓ \"quoted\" \\ line\nbreak",
     "radius": "FormTemplateDocument.theme.radius tëxt ✓ \"quoted\" \\ line\nbreak",
     "secondary": "FormTemplateDocument.theme.secondary tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -3526,7 +3528,7 @@
   "document": "FormTemplateDocument"
  },
  "form_versions/full": {
-  "checksum": "sha256:486b6795419d33c05a86a553065b4b3e5b70c3d954d5a73880444b504691b03b",
+  "checksum": "sha256:ff21645e9099b59c0cd104c1a5ae9b479ea170afff2cd181c0d6bd6c064bfd49",
   "doc": {
    "_id": {
     "$oid": "4dba015f9787ef732cba733e"
@@ -3979,6 +3981,7 @@
     "buttonStyle": "FormVersionsDocument.theme.buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
     "dataFont": "FormVersionsDocument.theme.dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "highlight": "FormVersionsDocument.theme.highlight tëxt ✓ \"quoted\" \\ line\nbreak",
+    "inputText": "FormVersionsDocument.theme.inputText tëxt ✓ \"quoted\" \\ line\nbreak",
     "primary": "FormVersionsDocument.theme.primary tëxt ✓ \"quoted\" \\ line\nbreak",
     "radius": "FormVersionsDocument.theme.radius tëxt ✓ \"quoted\" \\ line\nbreak",
     "secondary": "FormVersionsDocument.theme.secondary tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -4063,7 +4066,7 @@
   "document": "FormVersionsDocument"
  },
  "form_versions/naive": {
-  "checksum": "sha256:cf86bc96ff0d24774ba14c669b9b9ea2cba4e34349f3172cba97cdbfa074ff25",
+  "checksum": "sha256:460ab3a8c93e6833f0e55366a30bf8a6d93469223e8d27a1e9f7d1af1ad25b56",
   "doc": {
    "_id": {
     "$oid": "43be05d1a65c7a21699ae9d8"
@@ -4516,6 +4519,7 @@
     "buttonStyle": "FormVersionsDocument.theme.buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
     "dataFont": "FormVersionsDocument.theme.dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "highlight": "FormVersionsDocument.theme.highlight tëxt ✓ \"quoted\" \\ line\nbreak",
+    "inputText": "FormVersionsDocument.theme.inputText tëxt ✓ \"quoted\" \\ line\nbreak",
     "primary": "FormVersionsDocument.theme.primary tëxt ✓ \"quoted\" \\ line\nbreak",
     "radius": "FormVersionsDocument.theme.radius tëxt ✓ \"quoted\" \\ line\nbreak",
     "secondary": "FormVersionsDocument.theme.secondary tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -4581,7 +4585,7 @@
   "document": "FormVersionsDocument"
  },
  "forms/full": {
-  "checksum": "sha256:ef9d458e7fff4793ce77b4f22122a47ff1a21054ec304ed43179f2bb8d930b41",
+  "checksum": "sha256:20f4b8e0cdf722bfee32797049b1445893a81e5deff35d021f52420c26bf7da7",
   "doc": {
    "_id": {
     "$oid": "59514663b83c1ab0eecfa44a"
@@ -5034,6 +5038,7 @@
     "buttonStyle": "FormDocument.theme.buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
     "dataFont": "FormDocument.theme.dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "highlight": "FormDocument.theme.highlight tëxt ✓ \"quoted\" \\ line\nbreak",
+    "inputText": "FormDocument.theme.inputText tëxt ✓ \"quoted\" \\ line\nbreak",
     "primary": "FormDocument.theme.primary tëxt ✓ \"quoted\" \\ line\nbreak",
     "radius": "FormDocument.theme.radius tëxt ✓ \"quoted\" \\ line\nbreak",
     "secondary": "FormDocument.theme.secondary tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -5116,7 +5121,7 @@
   "document": "FormDocument"
  },
  "forms/naive": {
-  "checksum": "sha256:7f2e8a9421e39313ca08109e10685b50daac038ccac6663069f05f2adaa2ae9e",
+  "checksum": "sha256:de2dace9f7f41db8052c0c7ecc0b978f54019f028f1a3d64a5e993921f05faa2",
   "doc": {
    "_id": {
     "$oid": "a3e31dcf7bba394ece4402b6"
@@ -5569,6 +5574,7 @@
     "buttonStyle": "FormDocument.theme.buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
     "dataFont": "FormDocument.theme.dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "highlight": "FormDocument.theme.highlight tëxt ✓ \"quoted\" \\ line\nbreak",
+    "inputText": "FormDocument.theme.inputText tëxt ✓ \"quoted\" \\ line\nbreak",
     "primary": "FormDocument.theme.primary tëxt ✓ \"quoted\" \\ line\nbreak",
     "radius": "FormDocument.theme.radius tëxt ✓ \"quoted\" \\ line\nbreak",
     "secondary": "FormDocument.theme.secondary tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -8789,7 +8795,7 @@
   "document": "WorkspaceUserDocument"
  },
  "workspaces/full": {
-  "checksum": "sha256:d9a030627da1742b2cb6d34d505a3bb3089f64eeeb2d591971af81ef04465cec",
+  "checksum": "sha256:592c5dd01ccad32e7cb8a56da1f8e8eb308de3cd5f654b6b77a39517ea198a9f",
   "doc": {
    "_id": {
     "$oid": "a809c17de9bfb723bacb0d11"
@@ -8981,6 +8987,7 @@
      "buttonStyle": "WorkspaceDocument.custom_themes[0].buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
      "dataFont": "WorkspaceDocument.custom_themes[0].dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
      "highlight": "WorkspaceDocument.custom_themes[0].highlight tëxt ✓ \"quoted\" \\ line\nbreak",
+     "inputText": "#1a2b3c",
      "primary": "#1a2b3c",
      "radius": "WorkspaceDocument.custom_themes[0].radius tëxt ✓ \"quoted\" \\ line\nbreak",
      "secondary": "#1a2b3c",
@@ -9006,6 +9013,7 @@
      "buttonStyle": "WorkspaceDocument.custom_themes[1].buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
      "dataFont": "WorkspaceDocument.custom_themes[1].dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
      "highlight": "WorkspaceDocument.custom_themes[1].highlight tëxt ✓ \"quoted\" \\ line\nbreak",
+     "inputText": "#1a2b3c",
      "primary": "#1a2b3c",
      "radius": "WorkspaceDocument.custom_themes[1].radius tëxt ✓ \"quoted\" \\ line\nbreak",
      "secondary": "#1a2b3c",
@@ -9078,7 +9086,7 @@
   "document": "WorkspaceDocument"
  },
  "workspaces/naive": {
-  "checksum": "sha256:5a6b3a23159b73261041b008c5862c5d99e56f752f427798fb67b12fdb5ed44b",
+  "checksum": "sha256:f61c8629682f856dbaccbf46485806ecd8b1fe63670207f284fc04a48ab4f19c",
   "doc": {
    "_id": {
     "$oid": "89649ece376f31ff66edc1a2"
@@ -9270,6 +9278,7 @@
      "buttonStyle": "WorkspaceDocument.custom_themes[0].buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
      "dataFont": "WorkspaceDocument.custom_themes[0].dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
      "highlight": "WorkspaceDocument.custom_themes[0].highlight tëxt ✓ \"quoted\" \\ line\nbreak",
+     "inputText": "#1a2b3c",
      "primary": "#1a2b3c",
      "radius": "WorkspaceDocument.custom_themes[0].radius tëxt ✓ \"quoted\" \\ line\nbreak",
      "secondary": "#1a2b3c",
@@ -9295,6 +9304,7 @@
      "buttonStyle": "WorkspaceDocument.custom_themes[1].buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
      "dataFont": "WorkspaceDocument.custom_themes[1].dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
      "highlight": "WorkspaceDocument.custom_themes[1].highlight tëxt ✓ \"quoted\" \\ line\nbreak",
+     "inputText": "#1a2b3c",
      "primary": "#1a2b3c",
      "radius": "WorkspaceDocument.custom_themes[1].radius tëxt ✓ \"quoted\" \\ line\nbreak",
      "secondary": "#1a2b3c",

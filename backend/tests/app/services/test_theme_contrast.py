@@ -164,6 +164,45 @@ def test_a_hard_to_read_theme_names_each_failing_pair_and_the_fix():
     ]
 
 
+# Light questions on a dark page, with the app's white input boxes.
+NIGHT = {
+    "title": "Night",
+    "primary": "#F9FAFB",
+    "secondary": "#076EED",
+    "tertiary": "#56667F",
+    "accent": "#111827",
+}
+
+
+def test_a_dark_page_keeps_light_questions_with_dark_answers():
+    # Without an input text colour the answers are light on white.
+    [problem] = theme_contrast_problems(Theme(**NIGHT))
+    assert "answers in the input boxes (1.0:1, needs 4.5:1)" in problem["message"]
+    # The suggestion keeps the page dark: only the answers get a colour.
+    assert "The nearest colours that pass: answer text #5D748B." in problem["message"]
+    guard = theme_contrast_guard(NIGHT)
+    assert guard.fix == {"inputText": "#5D748B"}
+    assert contrast(guard.fix["inputText"], "#FFFFFF") >= AA_TEXT
+    # With its own dark input text, the same theme passes.
+    assert theme_contrast_problems(Theme(**NIGHT, inputText="#101828")) == []
+
+
+def test_the_input_text_is_measured_on_white_not_the_questions_colour():
+    pale = {**PASTEL, "primary": "#101828", "tertiary": "#818CA0", "inputText": "#9CA3AF"}
+    guard = theme_contrast_guard(pale)
+    assert [issue.key for issue in guard.issues] == ["answer"]
+    assert set(guard.fix) == {"inputText"}
+    assert contrast(guard.fix["inputText"], "#FFFFFF") >= AA_TEXT
+
+
+def test_the_contrast_key_holds_the_answers_colour_once():
+    base = {**NIGHT, "primary": "#101828", "accent": "#FFFFFF"}
+    # no input text is the same as one equal to the questions' colour
+    assert contrast_key(base) == contrast_key({**base, "inputText": "#101828"})
+    assert contrast_key(base) == contrast_key({**base, "inputText": "#101828".lower()})
+    assert contrast_key(base) != contrast_key({**base, "inputText": "#334155"})
+
+
 def test_a_gradient_fix_names_both_stops():
     theme = {
         **PASTEL,

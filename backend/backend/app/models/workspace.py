@@ -124,6 +124,8 @@ class WorkspaceThemeDto(BaseModel):
     buttonStyle: Optional[str] = None
     highlight: Optional[str] = None
     selection: Optional[str] = None
+    # The answers typed in the white input boxes; absent: primary.
+    inputText: Optional[str] = None
 
     @field_validator("style")
     @classmethod
@@ -146,6 +148,13 @@ class WorkspaceThemeDto(BaseModel):
     @classmethod
     def _hex_colour(cls, v: str) -> str:
         if not HEX_COLOUR.fullmatch(v):
+            raise ValueError("Colours must be 6-digit hex, e.g. #2456CC")
+        return v
+
+    @field_validator("inputText")
+    @classmethod
+    def _hex_input_text(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not HEX_COLOUR.fullmatch(v):
             raise ValueError("Colours must be 6-digit hex, e.g. #2456CC")
         return v
 

@@ -17,6 +17,7 @@ import { READ_ONLY_EMPTY } from '@app/utils/form-utils';
 import { moveOnFrom } from '@app/utils/scroll-utils';
 import { ChevronDown } from 'lucide-react';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { inputTextOf } from '@app/views/molecules/theme/theme-root';
 import { WithQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
@@ -62,8 +63,8 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
         if (choiceValue) {
             return {
                 borderColor: theme?.secondary,
-                // The chosen answer is content — ink, not the action colour.
-                color: theme?.primary
+                // The chosen answer is content — ink (or the theme's input text), not the action colour.
+                color: inputTextOf(theme)
             };
         }
         // Placeholder state: the theme's border colour (3:1 on its ground),

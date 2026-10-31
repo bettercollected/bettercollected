@@ -6,7 +6,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { contrast } from '@app/utils/color-contrast';
 import { firstPartyImageUrl } from '@app/utils/first-party-image';
 import ImageUrlField from '@app/views/molecules/theme/image-url-field';
-import { formButtonStyle, themeRootProps } from '@app/views/molecules/theme/theme-root';
+import { formButtonStyle, inputTextOf, themeRootProps } from '@app/views/molecules/theme/theme-root';
 
 // Each editable colour, labelled by what it actually controls on the responder
 // form (not by its internal role name), so the choice is legible to a creator.
@@ -156,9 +156,9 @@ export const ThemePreview = ({ color, sample }: { color: FormTheme; /** Words fr
             <span style={{ color: primary }} className={cn('form-title-face text-[13px] leading-tight', tokens.key === 'sheet' ? 'font-serif font-medium' : tokens.key === 'studio' ? 'font-bold tracking-tight' : 'font-semibold', 'line-clamp-2')}>
                 {question}
             </span>
-            {/* Answer text wears primary on a white input, exactly like the
-                runtime — so an illegible combination is visible right here. */}
-            <span style={{ borderColor: '#E3E3E3', color: primary, borderRadius: tokens.fieldRadius }} className="w-full truncate border bg-white px-2 py-1 text-[11px] leading-tight">
+            {/* Answer text wears the input text (else primary) on a white input,
+                exactly like the runtime — so an illegible combination is visible right here. */}
+            <span style={{ borderColor: '#E3E3E3', color: inputTextOf(color), borderRadius: tokens.fieldRadius }} className="w-full truncate border bg-white px-2 py-1 text-[11px] leading-tight">
                 {answer}
             </span>
             <span style={formButtonStyle(secondary, tokens.inputRadius)} className="px-2 py-0.5 text-[10px] font-semibold leading-tight text-white">

@@ -103,7 +103,7 @@ export const isHexColour = (value: unknown): value is string => typeof value ===
  * What is wrong with a theme's type, shape and highlight keys, word for word
  * as the backend says it (common models/standard_form.py `theme_problems`):
  * each is absent (or null) or one of its listed values, the highlight and
- * the selection #rrggbb, the background's artwork on its list.
+ * the selection and the input text #rrggbb, the background's artwork on its list.
  */
 export function themeProblems(theme: unknown, path = 'theme'): string[] {
     if (theme == null || typeof theme !== 'object') return [];
@@ -114,6 +114,7 @@ export function themeProblems(theme: unknown, path = 'theme'): string[] {
     }
     if (value.highlight != null && !isHexColour(value.highlight)) problems.push(`${path}.highlight must be a 6-digit hex colour, e.g. #A3305A.`);
     if (value.selection != null && !isHexColour(value.selection)) problems.push(`${path}.selection must be a 6-digit hex colour, e.g. #1E4D3B.`);
+    if (value.inputText != null && !isHexColour(value.inputText)) problems.push(`${path}.inputText must be a 6-digit hex colour, e.g. #101828.`);
     const background = value.background as Record<string, unknown> | null | undefined;
     if (background != null && typeof background === 'object') {
         if (background.artwork != null && !(THEME_ARTWORKS as readonly unknown[]).includes(background.artwork)) problems.push(`${path}.background.artwork must be one of: ${THEME_ARTWORKS.join(', ')}.`);
@@ -127,7 +128,7 @@ export function themeProblems(theme: unknown, path = 'theme'): string[] {
  */
 export function themeTypeShape(theme?: Partial<FormTheme> | null): Partial<FormTheme> {
     const kept: Record<string, unknown> = {};
-    for (const key of [...THEME_TYPE_SHAPE_KEYS, 'highlight', 'selection'] as const) if (theme?.[key] != null) kept[key] = theme[key];
+    for (const key of [...THEME_TYPE_SHAPE_KEYS, 'highlight', 'selection', 'inputText'] as const) if (theme?.[key] != null) kept[key] = theme[key];
     return kept as Partial<FormTheme>;
 }
 
@@ -152,6 +153,8 @@ export interface FormTheme {
     highlight?: string | null;
     /** #rrggbb: the chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary. */
     selection?: string | null;
+    /** #rrggbb: the answers typed in the white input boxes (4.5:1 on white). Absent: primary, as before. */
+    inputText?: string | null;
 }
 
 export const ThemeColors: Array<FormTheme> = [

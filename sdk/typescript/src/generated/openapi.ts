@@ -965,6 +965,11 @@ export interface components {
              * @description The chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary.
              */
             selection?: string | null;
+            /**
+             * Inputtext
+             * @description The colour of the answers typed in the white input boxes (4.5:1 on white). Absent: primary.
+             */
+            inputText?: string | null;
         };
         /**
          * ThemeBackground

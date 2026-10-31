@@ -10,6 +10,7 @@ import { getPlaceholderValueForField } from '@app/utils/form-utils';
 import { useEnterToNextQuestion } from './next-question';
 import { useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
+import { inputTextOf } from '@app/views/molecules/theme/theme-root';
 
 
 // Default the flag to the responder's own region (from the browser locale)
@@ -74,7 +75,7 @@ export default function PhoneNumberField({ field }: { field: StandardFormFieldDt
                     border: `1px solid ${theme?.tertiary || '#818CA0'}`,
                     borderRadius: 'var(--form-radius-field, 6px)',
                     background: '#ffffff',
-                    color: theme?.primary
+                    color: inputTextOf(theme)
                 }}
                 placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
                 inputProps={{

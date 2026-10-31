@@ -1,5 +1,5 @@
 {
-  "description": "WCAG 2.2 AA contrast of form themes: colour pairs with their contrast ratio, and themes with the pairings that fail and the nearest colours that pass. Run by backend/tests/app/services/test_theme_contrast.py (services/theme_contrast.py, the publish check theme_contrast) and webapp src/utils/theme-contrast-cases.test.ts (utils/color-contrast.ts, themeContrastGuard in utils/theme-contrast.ts), so the builder's guard and the server's publish check can't drift. 'ratio' to 6 decimals (null: a colour that is not hex, which fails every check); 'display' is the ratio as shown, one decimal rounded down. Text needs 4.5:1, controls 3:1. A theme's 'issues' are in the order text, answer, button, outlined, border, action, each at its lowest ratio; 'fix' holds only the keys that change (null when nothing fails); an image page can't be measured ('imageGround'). Every preset is listed and passes. An outlined button (buttonStyle 'outlined') is not white text on the button colour: its ink (the button colour where it reads at 4.5:1 on the page, else the questions' colour) is measured against the page colour (text 4.5:1) and against every page ground (its edge, 3:1), key 'outlined'; the white-on-button rule (key 'button') does not apply to it. 'keys': pairs of themes that must ('same': true) or must not ('same': false) produce the same contrast key, the key publishing compares to tell whether an older live form's colours changed (backend theme_contrast.contrast_key, webapp contrastKey): it holds the four colours (hex case ignored), whether buttons are outlined, and the ground the guard reads (an image with an address; both stops of a gradient; the white sheet of the margin pattern; else the plain page), so a re-saved or leftover background that shows no difference is no change. Keys are compared within a language, never across.",
+  "description": "WCAG 2.2 AA contrast of form themes: colour pairs with their contrast ratio, and themes with the pairings that fail and the nearest colours that pass. Run by backend/tests/app/services/test_theme_contrast.py (services/theme_contrast.py, the publish check theme_contrast) and webapp src/utils/theme-contrast-cases.test.ts (utils/color-contrast.ts, themeContrastGuard in utils/theme-contrast.ts), so the builder's guard and the server's publish check can't drift. 'ratio' to 6 decimals (null: a colour that is not hex, which fails every check); 'display' is the ratio as shown, one decimal rounded down. Text needs 4.5:1, controls 3:1. A theme's 'issues' are in the order text, answer, button, outlined, border, action, each at its lowest ratio; 'fix' holds only the keys that change (null when nothing fails); an image page can't be measured ('imageGround'). Every preset is listed and passes. An outlined button (buttonStyle 'outlined') is not white text on the button colour: its ink (the button colour where it reads at 4.5:1 on the page, else the questions' colour) is measured against the page colour (text 4.5:1) and against every page ground (its edge, 3:1), key 'outlined'; the white-on-button rule (key 'button') does not apply to it. 'keys': pairs of themes that must ('same': true) or must not ('same': false) produce the same contrast key, the key publishing compares to tell whether an older live form's colours changed (backend theme_contrast.contrast_key, webapp contrastKey): it holds the four colours (hex case ignored), whether buttons are outlined, and the ground the guard reads (an image with an address; both stops of a gradient; the white sheet of the margin pattern; else the plain page), so a re-saved or leftover background that shows no difference is no change. Keys are compared within a language, never across. 'inputText' (optional, 6-digit hex; the colour of the answers typed in the white input boxes) takes the place of 'primary' for the 'answer' check, 4.5:1 on white; absent, the answers are in 'primary' as before. A fix for answers that fail on white sets 'inputText' to the nearest shade that passes, so a dark page stays dark. The contrast key holds the colour of the answers (inputText, else primary).",
   "pairs": [
     {
       "name": "black on white",
@@ -529,9 +529,9 @@
         }
       ],
       "fix": {
-        "primary": "#4E6174",
         "secondary": "#076EED",
-        "accent": "#DBDCDF"
+        "tertiary": "#56667F",
+        "inputText": "#5D748B"
       },
       "imageGround": false
     },
@@ -716,7 +716,7 @@
         }
       ],
       "fix": {
-        "primary": "#737373"
+        "inputText": "#737373"
       },
       "imageGround": true
     },
@@ -953,6 +953,84 @@
       "fix": {
         "secondary": "#1A4177",
         "tertiary": "#3D4148"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "dark page with its own input text: light questions, dark answers",
+      "theme": {
+        "primary": "#F9FAFB",
+        "secondary": "#076EED",
+        "tertiary": "#56667F",
+        "accent": "#111827",
+        "inputText": "#101828"
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "dark page with the same light colours and no input text",
+      "theme": {
+        "primary": "#F9FAFB",
+        "secondary": "#076EED",
+        "tertiary": "#56667F",
+        "accent": "#111827"
+      },
+      "issues": [
+        {
+          "key": "answer",
+          "ratio": 1.045026,
+          "display": "1.0",
+          "minimum": 4.5
+        }
+      ],
+      "fix": {
+        "inputText": "#5D748B"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "input text that fails on white",
+      "theme": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "inputText": "#9CA3AF"
+      },
+      "issues": [
+        {
+          "key": "answer",
+          "ratio": 2.538841,
+          "display": "2.5",
+          "minimum": 4.5
+        }
+      ],
+      "fix": {
+        "inputText": "#6C7586"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "a dark input text does not rescue questions that fail on the page",
+      "theme": {
+        "primary": "#9CA3AF",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "inputText": "#101828"
+      },
+      "issues": [
+        {
+          "key": "text",
+          "ratio": 2.538841,
+          "display": "2.5",
+          "minimum": 4.5
+        }
+      ],
+      "fix": {
+        "primary": "#6C7586"
       },
       "imageGround": false
     }
@@ -1523,6 +1601,58 @@
         "secondary": "#1649E2",
         "tertiary": "#6B7280",
         "accent": "#FFFFFF"
+      },
+      "same": false
+    },
+    {
+      "name": "no input text and an input text equal to the questions' colour",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "inputText": "#101828"
+      },
+      "same": true
+    },
+    {
+      "name": "input text hex case ignored",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "inputText": "#334155"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "inputText": "#334155"
+      },
+      "same": true
+    },
+    {
+      "name": "a different input text",
+      "a": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF"
+      },
+      "b": {
+        "primary": "#101828",
+        "secondary": "#1649E2",
+        "tertiary": "#6B7280",
+        "accent": "#FFFFFF",
+        "inputText": "#334155"
       },
       "same": false
     }

@@ -6,6 +6,7 @@ import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { inputTextOf } from '@app/views/molecules/theme/theme-root';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     textColor?: string;
@@ -18,9 +19,10 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className,
         <input
             style={{
                 // The answer is the responder's own words — it wears ink (theme
-                // primary), never the accent/action colour. 16px floor, and never
-                // larger than the 24px question (DESIGN.md, Type).
-                color: theme?.primary
+                // primary, or the theme's own input text), never the accent/action
+                // colour. 16px floor, and never larger than the 24px question
+                // (DESIGN.md, Type).
+                color: inputTextOf(theme)
             }}
             type={type}
             className={cn(`w-full rounded-md border bg-white px-4 py-3 text-base outline-hidden transition duration-150 disabled:cursor-not-allowed disabled:opacity-50 lg:text-lg`, className)}

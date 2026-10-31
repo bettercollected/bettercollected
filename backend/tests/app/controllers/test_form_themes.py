@@ -111,6 +111,9 @@ async def test_a_theme_without_them_is_stored_as_before(
         ("highlight", "rose"),
         ("highlight", "#A35"),
         ("highlight", "#A3305A; background: url(x)"),
+        ("inputText", "black"),
+        ("inputText", "#101"),
+        ("inputText", "#101828; background: url(x)"),
     ],
 )
 async def test_an_unlisted_value_is_refused_and_nothing_is_written(

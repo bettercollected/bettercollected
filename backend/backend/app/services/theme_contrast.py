@@ -10,8 +10,10 @@ suites run every case.
 
 Where the respondent form shows each role, and what it must reach:
 
-- ``primary`` (questions and text): 4.5:1 on the page and in the white input
-  boxes;
+- ``primary`` (questions and text): 4.5:1 on the page;
+- ``inputText`` (the answers typed in the white input boxes; absent: the
+  ``primary`` colour): 4.5:1 on white, so a dark page can keep light questions
+  and still have readable answers;
 - ``secondary`` (buttons): white button text 4.5:1 on it, and 3:1 on the page
   for the chosen answer, icons and progress;
 - ``tertiary`` (input borders): 3:1 on the page.
@@ -53,6 +55,7 @@ ISSUE_ORDER = (TEXT, ANSWER, BUTTON, OUTLINED, BORDER, ACTION)
 # webapp's theme-root.ts inkOf / pageOf fallbacks).
 DEFAULT_INK = "#101828"
 ROLES = ("primary", "secondary", "tertiary")
+INPUT_ROLE = "input"
 
 
 def _get(obj: Any, key: str) -> Any:
@@ -189,15 +192,24 @@ def outlined_button_ink(theme: Any) -> str:
     return primary if is_hex_colour(primary) else DEFAULT_INK
 
 
+def input_text_colour(theme: Any) -> Any:
+    """The colour of the answers in the input boxes: the theme's ``inputText``,
+    else its questions' colour (``primary``), as the respondent form draws
+    them (``inputTextOf`` in the webapp's theme-root.ts)."""
+    own = _get(theme, "inputText")
+    return own if is_hex_colour(own) else _get(theme, "primary")
+
+
 def _role_rules(
     grounds: List[str], outlined: bool = False
 ) -> Dict[str, List[Tuple[str, str, float]]]:
     """What each role must reach, and on what: ``(issue key, ground, minimum)``.
     An outlined button has no white text on the button colour; its real
-    colours are measured by ``_outlined_failures``."""
+    colours are measured by ``_outlined_failures``. ``input`` is the colour of
+    the answers (``inputText``, else ``primary``) on the white input box."""
     return {
-        "primary": [(TEXT, ground, AA_TEXT) for ground in grounds]
-        + [(ANSWER, WHITE, AA_TEXT)],
+        "primary": [(TEXT, ground, AA_TEXT) for ground in grounds],
+        INPUT_ROLE: [(ANSWER, WHITE, AA_TEXT)],
         "secondary": ([] if outlined else [(BUTTON, WHITE, AA_TEXT)])
         + [(ACTION, ground, AA_NON_TEXT) for ground in grounds],
         "tertiary": [(BORDER, ground, AA_NON_TEXT) for ground in grounds],
@@ -225,6 +237,9 @@ def _failures(theme: Dict[str, Any], grounds: List[str]) -> List[ContrastIssue]:
         (key, theme.get(role), ground, minimum)
         for role in ROLES
         for key, ground, minimum in rules[role]
+    ] + [
+        (key, input_text_colour(theme), ground, minimum)
+        for key, ground, minimum in rules[INPUT_ROLE]
     ]
     if outlined:
         checks += _outlined_rules(theme, grounds)
@@ -238,6 +253,10 @@ def _failures(theme: Dict[str, Any], grounds: List[str]) -> List[ContrastIssue]:
         if seen is None or ratio < seen.ratio:
             worst[key] = ContrastIssue(key, ratio, minimum)
     return [worst[key] for key in ISSUE_ORDER if key in worst]
+
+
+def _answers_read(colour: Any) -> bool:
+    return contrast(colour, WHITE) >= AA_TEXT
 
 
 def _to_hsl(value: str) -> Tuple[float, float, float]:
@@ -344,6 +363,7 @@ def _plain(theme: Any) -> Dict[str, Any]:
             "accent",
             "background",
             "buttonStyle",
+            "inputText",
         )
     }
 
@@ -352,8 +372,10 @@ def theme_contrast_guard(theme: Any) -> ContrastGuard:
     """Every pairing of the theme's own colours that fails WCAG 2.2 AA (text
     4.5:1, controls 3:1) where the respondent form shows it, and the nearest
     colours that pass: the questions, button and border colours move first,
-    each only as far as it must (keeping its hue); the page is lightened only
-    when no colour reads on it and in the white input boxes at once."""
+    each only as far as it must (keeping its hue). Answers that don't read in
+    the white input boxes get their own ``inputText`` colour (the nearest shade
+    of the answers' colour that does), so a dark page stays dark; the page is
+    lightened only when the other colours can't read on it."""
     plain = _plain(theme)
     grounds = _page_grounds(plain)
     image_ground = not grounds
@@ -366,7 +388,19 @@ def theme_contrast_guard(theme: Any) -> ContrastGuard:
         moved = {role: _nearest_passing(plain[role], rules[role]) for role in ROLES}
         if None in moved.values():
             continue
-        fixed = {**candidate, **moved}
+        # The answers keep what they have where it reads in the white boxes
+        # (the questions' colour moved above, or their own inputText); else
+        # they get an inputText: the nearest shade of what they were.
+        answers = plain["inputText"] if is_hex_colour(plain["inputText"]) else None
+        if _answers_read(answers or moved["primary"]):
+            answer_text = answers
+        else:
+            answer_text = _nearest_passing(
+                answers or plain["primary"], rules[INPUT_ROLE]
+            )
+            if answer_text is None:
+                continue
+        fixed = {**candidate, **moved, "inputText": answer_text}
         if _failures(fixed, _page_grounds(fixed)):
             continue
         fix = {
@@ -374,6 +408,8 @@ def theme_contrast_guard(theme: Any) -> ContrastGuard:
             for role in ("primary", "secondary", "tertiary", "accent")
             if fixed[role] != plain[role]
         }
+        if answer_text != plain["inputText"] and answer_text is not None:
+            fix["inputText"] = answer_text
         if fixed["background"] is not plain["background"]:
             fix["background"] = fixed["background"]
         return ContrastGuard(issues, fix, image_ground)
@@ -395,8 +431,8 @@ def _colour(value: Any) -> Any:
 
 
 def contrast_key(theme: Any) -> Tuple[Any, ...]:
-    """Everything the contrast check reads from a theme: its four colours,
-    whether its buttons are outlined, and the ground the page puts behind the
+    """Everything the contrast check reads from a theme: its four colours, the
+    colour of the answers (``inputText``, else ``primary``), whether its buttons are outlined, and the ground the page puts behind the
     text, as ``_page_grounds`` reads it (an image with an address; both stops
     of a gradient; the white sheet of the ``margin`` pattern; anything else,
     an absent background or type, ``color`` and other patterns included, is
@@ -426,6 +462,7 @@ def contrast_key(theme: Any) -> Tuple[Any, ...]:
             _colour(_get(theme, role))
             for role in ("primary", "secondary", "tertiary", "accent")
         ),
+        _colour(input_text_colour(theme)),
         is_outlined(theme),
         *ground,
     )

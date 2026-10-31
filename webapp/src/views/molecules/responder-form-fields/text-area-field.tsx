@@ -10,6 +10,7 @@ import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { READ_ONLY_EMPTY, getRespondentPlaceholder } from '@app/utils/form-utils';
+import { inputTextOf } from '@app/views/molecules/theme/theme-root';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import { useQuestionLabel } from './question-label-context';
@@ -35,7 +36,7 @@ const StyledAutoSizeTextArea = styled(AutosizeTextarea)<{
         // Rest on the theme's border colour (3:1 on its ground); hover steps to
         // ink; focus commits to the action colour (matches shadcn/ui/input.tsx).
         borderColor: themeColor || '#818CA0',
-        color: $formTheme?.primary,
+        color: inputTextOf($formTheme),
         '&::placeholder': {
             color: '#667085 !important'
         },

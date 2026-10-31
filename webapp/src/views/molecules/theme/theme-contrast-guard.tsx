@@ -8,7 +8,10 @@ import { themeContrastGuard } from '@app/utils/theme-contrast';
 
 import { Swatch } from './theme-shared';
 
-const ROLES = ['accent', 'primary', 'secondary', 'tertiary'] as const;
+const ROLES = ['accent', 'primary', 'secondary', 'tertiary', 'inputText'] as const;
+
+/** The colour a role has now: the answers' colour is the questions' own until it is set. */
+const currentColour = (theme: FormTheme, role: (typeof ROLES)[number]) => (role === 'inputText' ? (theme.inputText ?? theme.primary) : theme[role]);
 
 /** A ratio as people read it: one decimal, rounded down so 4.47 never shows as 4.5. */
 const formatRatio = (ratio: number, language: string) => new Intl.NumberFormat(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(Math.floor(ratio * 10) / 10);
@@ -44,7 +47,7 @@ const ThemeContrastGuard = forwardRef<HTMLDivElement, { theme: FormTheme; onAppl
         );
     }
 
-    const changed = fix ? ROLES.filter((role) => fix[role] && fix[role] !== theme[role]) : [];
+    const changed = fix ? ROLES.filter((role) => fix[role] && fix[role] !== currentColour(theme, role)) : [];
     const gradientChanged = !!fix?.background && fix.background !== theme.background;
 
     return (
@@ -68,7 +71,7 @@ const ThemeContrastGuard = forwardRef<HTMLDivElement, { theme: FormTheme; onAppl
                         {changed.map((role) => (
                             <li key={role} className="flex items-center gap-1.5 text-[11px] text-black-800">
                                 <span className="min-w-0 flex-1 truncate">{t(`THEME.ROLE_${role.toUpperCase()}`)}</span>
-                                <Swatch color={theme[role]} />
+                                <Swatch color={currentColour(theme, role)} />
                                 <ArrowRight className="h-3 w-3 text-black-600" aria-hidden="true" />
                                 <Swatch color={fix[role]!} />
                                 <span className="font-mono text-[10px] uppercase tabular-nums">{fix[role]}</span>

@@ -275,6 +275,11 @@ class Theme(_Spec):
         pattern=r"^#[0-9a-fA-F]{6}$",
         description="The chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary.",
     )
+    input_text: Optional[str] = Field(
+        None,
+        pattern=r"^#[0-9a-fA-F]{6}$",
+        description="The colour of the answers typed in the white input boxes (4.5:1 on white). Absent: primary.",
+    )
 
 
 class Attachment(_Spec):

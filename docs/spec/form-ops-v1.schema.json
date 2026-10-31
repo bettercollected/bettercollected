@@ -5334,6 +5334,20 @@
           "default": null,
           "description": "The chosen answer alone, when it should differ from the highlight (which then keeps the notes and the focus ring). Absent: the highlight, else secondary.",
           "title": "Selection"
+        },
+        "inputText": {
+          "anyOf": [
+            {
+              "pattern": "^#[0-9a-fA-F]{6}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The colour of the answers typed in the white input boxes (4.5:1 on white). Absent: primary, as before.",
+          "title": "Inputtext"
         }
       },
       "required": [

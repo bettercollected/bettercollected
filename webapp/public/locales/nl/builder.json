@@ -510,6 +510,11 @@
     "SELECTION_NONE": "Gebruikt de accentkleur, anders de kleur van de knoppen.",
     "SELECTION_ADD": "Kleur kiezen",
     "SELECTION_REMOVE": "Kleur van gekozen antwoord verwijderen",
+    "INPUT_TEXT": "Antwoordtekst",
+    "INPUT_TEXT_HINT": "De kleur van wat respondenten in de witte invulvakken typen. Die moet leesbaar zijn op wit, zodat een donkere pagina lichte vragen kan houden.",
+    "INPUT_TEXT_NONE": "Gebruikt de kleur van vragen en tekst.",
+    "INPUT_TEXT_ADD": "Antwoordkleur kiezen",
+    "INPUT_TEXT_REMOVE": "Kleur van antwoordtekst verwijderen",
     "GALLERY_LABEL": "Thema",
     "GALLERY_SAVED": "Uw thema's",
     "GALLERY_PRESETS": "Kant-en-klaar",
@@ -535,6 +540,7 @@
     "ROLE_PRIMARY": "Vragen en tekst",
     "ROLE_SECONDARY": "Knoppen",
     "ROLE_TERTIARY": "Randen van invulvakken",
+    "ROLE_INPUTTEXT": "Antwoordtekst",
     "ROLE_GRADIENT": "Kleurverloop"
   },
   "OPEN_FORMULIEREN_IMPORT": {

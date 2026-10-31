@@ -296,7 +296,9 @@ _CONTRAST_WORDS = {
     "border": "input borders",
     "action": "chosen answers and progress",
 }
-_FIX_ORDER = ("primary", "secondary", "tertiary", "accent")
+_FIX_ORDER = ("primary", "secondary", "tertiary", "accent", "inputText")
+# How a role is named in the message (the others by their own name).
+_FIX_WORDS = {"inputText": "answer text"}
 
 
 def _and_list(words: List[str]) -> str:
@@ -322,7 +324,9 @@ def theme_contrast_problems(theme: Any) -> List[Dict[str, Optional[str]]]:
     message = f"The theme's colours are hard to read: {pairs}."
     if guard.fix:
         colours = [
-            f"{role} {guard.fix[role]}" for role in _FIX_ORDER if role in guard.fix
+            f"{_FIX_WORDS.get(role, role)} {guard.fix[role]}"
+            for role in _FIX_ORDER
+            if role in guard.fix
         ]
         background = guard.fix.get("background")
         if background:
