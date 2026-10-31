@@ -115,6 +115,10 @@ yarn test           # jest (watch mode) + Testing Library + MSW
 yarn storybook      # component explorer on :6006
 ```
 
+The `@shadcn/lint` design-system rules are registered but off (counts and an adoption order in
+[docs/webapp-shadcn-lint-baseline.md](docs/webapp-shadcn-lint-baseline.md)). Check new code
+against one without enabling it: `yarn eslint --rule 'shadcn/no-raw-colors: warn' <files>`.
+
 ## Code style & quality gates
 
 - **Python:** `black` (line length 88) + `flake8` (docstrings, import-order, TODO). Each Python service has a
