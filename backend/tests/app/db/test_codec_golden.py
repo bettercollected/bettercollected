@@ -88,6 +88,7 @@ NO_DOCUMENT_CLASS = {
     "form_webhooks",
     "action_logs",
     "webhook_audit_entries",
+    "form_email_actions",
 }
 
 # The document classes, all on ``Record`` (every group is served from Postgres

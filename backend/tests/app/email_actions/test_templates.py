@@ -1,0 +1,253 @@
+"""The words of an email action: placeholders, escaping and the injection
+matrix. Nothing a respondent types may become markup, a header line, another
+placeholder or another recipient."""
+
+import email
+from email import policy
+
+import pytest
+
+from backend.app.services.email_actions import templates, transport
+from backend.app.services.email_actions.transport import MailFailed
+
+ENTRIES = [
+    ("name", "Full name", "Ada"),
+    ("story", "Story", "Line one\nLine two"),
+]
+KW = dict(form_title="Intake", submitted_at="2026-10-31 09:00 UTC", language="en")
+
+
+def body(template, entries=ENTRIES, **kw):
+    return templates.render(template, entries, subject=False, **{**KW, **kw})
+
+
+def subject(template, entries=ENTRIES, **kw):
+    return templates.render(template, entries, subject=True, **{**KW, **kw})
+
+
+def test_placeholders_are_filled_in_one_pass():
+    assert body("Hello {{name}} / {{ form_title }}") == "Hello Ada / Intake"
+    assert subject("{{name}} on {{submitted_at}}") == "Ada on 2026-10-31 09:00 UTC"
+
+
+def test_the_answers_block_has_one_line_per_question_and_indents_long_answers():
+    assert body("{{answers}}") == "Full name: Ada\nStory: Line one\n  Line two"
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["{{form_title}}", "{{answers}}", "{{ name }}", "{{ story }}", "{{{{name}}}}", "}}{{"],
+)
+def test_an_answer_that_looks_like_a_placeholder_stays_text(value):
+    entries = [("name", "Full name", value), ("story", "Story", "S")]
+    assert body("{{name}}", entries) == value
+    assert value in body("{{answers}}", entries)
+    assert subject("{{name}}", entries) == value
+
+
+def test_html_in_an_answer_is_plain_text_never_markup():
+    value = '<script>alert(1)</script><img src=x onerror=y> &amp; <a href="http://e.example">x</a>'
+    entries = [("name", "Full name", value)]
+    assert body("{{name}}", entries) == value  # no escaping, no tags added: it is plain text
+    assert "<" not in body("no answers here {{form_title}}", entries)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "x\r\nBcc: attacker@evil.example",
+        "x\nBcc: attacker@evil.example",
+        "x\rBcc: attacker@evil.example",
+        "x Bcc: attacker@evil.example",
+        "x Bcc: attacker@evil.example",
+        "x\u0085Bcc: attacker@evil.example",
+        "x\x0bBcc: attacker@evil.example",
+        "x\x0cBcc: attacker@evil.example",
+        "x\x00\x1b[31mBcc: attacker@evil.example",
+    ],
+)
+def test_no_line_break_survives_in_the_subject(value):
+    entries = [("name", "Full name", value)]
+    line = subject("Re: {{name}}", entries)
+    assert all(ch not in line for ch in "\r\n\x0b\x0c  \u0085\x00\x1b")
+    # and the standard library agrees: it builds a one-header message
+    message = transport.build_message(
+        sender="noreply@example.test",
+        sender_name="Acme",
+        recipients=["owner@acme.example"],
+        subject=line,
+        body="b",
+    )
+    parsed = email.message_from_bytes(message.as_bytes(), policy=policy.default)
+    assert parsed["Bcc"] is None
+    assert parsed["To"] == "owner@acme.example"
+
+
+def test_a_template_written_with_line_breaks_in_the_subject_is_one_line():
+    assert subject("one\r\ntwo\nthree") == "one two three"
+
+
+def test_the_standard_library_refuses_a_header_value_with_a_line_break():
+    with pytest.raises(ValueError):
+        transport.build_message(
+            sender="noreply@example.test",
+            sender_name="Acme",
+            recipients=["owner@acme.example"],
+            subject="a\r\nBcc: x@y.example",
+            body="b",
+        )
+    with pytest.raises(ValueError):
+        transport.build_message(
+            sender="noreply@example.test",
+            sender_name="Acme",
+            recipients=["owner@acme.example\r\nBcc: x@y.example"],
+            subject="a",
+            body="b",
+        )
+    assert isinstance(transport.failure_of(ValueError("x")), MailFailed)
+    assert transport.failure_of(ValueError("x")).permanent
+
+
+def test_bidirectional_overrides_and_zero_width_characters_are_dropped():
+    value = "evil‮gpj.exe​⁦x⁩﻿"
+    assert templates.one_line(value, 100) == "evilgpj.exex"
+    assert templates.clean("a‍b", multiline=False) == "a‍b"  # ZWJ of emoji sequences stays
+
+
+def test_values_are_capped_and_the_whole_message_is_too():
+    entries = [("name", "Full name", "a" * 5000)]
+    assert len(body("{{name}}", entries)) == templates.VALUE_MAX
+    assert len(subject("{{name}}", entries)) == templates.SUBJECT_VALUE_MAX
+    huge = "x" * 9000
+    many = [(f"k{i}", f"Q{i}", "v" * 1500) for i in range(40)]
+    assert len(body(huge + "{{answers}}", many)) <= templates.MESSAGE_MAX
+
+
+def test_a_question_the_form_no_longer_has_is_empty():
+    assert body("[{{gone}}]") == "[]"
+
+
+@pytest.mark.parametrize(
+    "text,allowed,code",
+    [
+        ("{{name}} {{form_title}}", {"name", "form_title"}, None),
+        ("{{ name }}", {"name"}, None),
+        ("{{other}}", {"name"}, "unknown_placeholder"),
+        ("{{name|upper}}", {"name"}, "invalid_placeholder"),
+        ("{{ name", {"name"}, "invalid_placeholder"),
+        ("name }}", {"name"}, "invalid_placeholder"),
+        ("{{1abc}}", {"name"}, "invalid_placeholder"),
+        ("{% if x %}", {"name"}, None),  # not our syntax: plain text
+        ("${name}", {"name"}, None),
+    ],
+)
+def test_placeholder_problems_are_found_at_save(text, allowed, code):
+    problem = templates.placeholder_problem(text, allowed)
+    assert (problem[0] if problem else None) == code
+
+
+def test_values_are_formatted_by_kind_and_language():
+    assert templates.format_value(True, "nl") == "Ja"
+    assert templates.format_value(False, "en") == "No"
+    assert templates.format_value(["Red", "Blue"]) == "Red, Blue"
+    assert templates.format_value([{"a": "Bo", "b": 3}, {"a": "Cy"}]) == "1. Bo / 3\n2. Cy"
+    assert templates.format_value(None) == ""
+
+
+def test_the_form_language_picks_the_template():
+    class Settings:
+        language = "nl-BE"
+
+    class Form:
+        settings = Settings()
+
+    assert templates.language_of(Form()) == "nl"
+    Settings.language = "de"
+    assert templates.language_of(Form()) == "en"
+    assert templates.language_of(None) == "en"
+    assert templates.language_of({"settings": {"language": "NL"}}) == "nl"
+
+
+def test_the_respondents_copy_is_fixed_wording_with_the_form_title_on_one_line():
+    entries = [("name", "Full name", "Ada")]
+    for lang, word in (("en", "copy of your submission"), ("nl", "kopie van uw inzending")):
+        subject_line, text = templates.render_respondent(
+            entries, form_title="Intake\r\nBcc: x@y.example", submitted_at="now", language=lang
+        )
+        assert word in subject_line.lower() or word in text.lower()
+        assert "\n" not in subject_line and "Intake Bcc: x@y.example" in text
+        assert "Full name: Ada" in text
+    # a title that tries to be a format field changes nothing
+    _s, text = templates.render_respondent(
+        [], form_title="{title} {when}", submitted_at="now", language="en"
+    )
+    assert '"{title} {when}"' in text
+
+
+def test_the_message_is_plain_text_from_the_instance_with_an_auto_submitted_header():
+    message = transport.build_message(
+        sender="noreply@example.test",
+        sender_name="Acme",
+        recipients=["a@acme.example", "b@acme.example"],
+        subject="Hello",
+        body="Text <b>not bold</b>",
+    )
+    assert message.get_content_type() == "text/plain" and not message.is_multipart()
+    assert message["Auto-Submitted"] == "auto-generated"
+    assert message["From"] == "Acme <noreply@example.test>"
+    assert message["To"] == "a@acme.example, b@acme.example"
+    assert message["Cc"] is None and message["Bcc"] is None and message["Reply-To"] is None
+
+
+@pytest.mark.parametrize(
+    "error,code,permanent",
+    [
+        (TimeoutError(), "timeout", False),
+        (ConnectionRefusedError(), "smtp_unavailable", False),
+        (RuntimeError("x"), "smtp_error", False),
+    ],
+)
+def test_failures_become_our_codes(error, code, permanent):
+    failed = transport.failure_of(error)
+    assert (failed.code, failed.permanent) == (code, permanent)
+
+
+def test_smtp_errors_are_mapped_without_their_text():
+    import aiosmtplib
+
+    assert transport.failure_of(aiosmtplib.SMTPRecipientsRefused([])).permanent
+    assert transport.failure_of(aiosmtplib.SMTPResponseException(550, "no such user")).code == "smtp_rejected"
+    assert transport.failure_of(aiosmtplib.SMTPResponseException(451, "busy")).permanent is False
+    assert transport.failure_of(aiosmtplib.SMTPAuthenticationError(535, "bad")).code == "smtp_auth"
+
+
+BIDI = [chr(c) for c in (*range(0x202A, 0x202F), *range(0x2066, 0x206A), 0x200E, 0x200F, 0x061C)]
+SEPARATORS = ["\u2028", "\u2029", "\u0085"]
+
+
+@pytest.mark.parametrize("mark", BIDI)
+def test_every_bidirectional_override_and_isolate_is_stripped_from_values_and_names(mark):
+    value = f"a{mark}b"
+    entries = [("name", f"Q{mark}uestion", value)]
+    assert subject("{{name}}", entries) == "ab"
+    assert body("{{answers}}", entries) == "Question: ab"
+    assert templates.one_line(f"Org{mark}name", 100) == "Orgname"  # display names (From)
+    assert templates.clean(f"x{mark}y", multiline=True) == "xy"
+
+
+@pytest.mark.parametrize("sep", SEPARATORS)
+def test_line_and_paragraph_separators_and_nel_collapse_to_a_space_in_one_line_values(sep):
+    entries = [("name", "Full name", f"a{sep}Bcc: x@y.example")]
+    assert subject("{{name}}", entries) == "a Bcc: x@y.example"
+    assert templates.one_line(f"Org{sep}name", 100) == "Org name"
+    # in the body they are line breaks, never kept as separators
+    assert sep not in body("{{name}}", entries)
+
+
+@pytest.mark.parametrize("mark", BIDI + SEPARATORS + ["\r", "\n", "\t", " ", "\x00", "\u200b"])
+def test_an_address_with_any_of_them_is_not_an_address(mark):
+    from backend.app.services.copy_recipient import normalize_address
+
+    assert normalize_address(f"ada{mark}@example.test") is None
+    assert normalize_address(f"ada@exa{mark}mple.test") is None
+    assert normalize_address("ada@example.test") == "ada@example.test"

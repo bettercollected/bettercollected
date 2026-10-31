@@ -330,6 +330,7 @@ class WorkspaceFormService:
         pdf_import_repo=None,
         registration_service=None,
         webhook_service=None,
+        email_action_service=None,
         copy_recipient_service=None,
     ):
         # who the "send me a copy" action may mail (services/copy_recipient.py)
@@ -354,6 +355,7 @@ class WorkspaceFormService:
         # queues the delivery of a stored submission (services/registration)
         self._registration_service = registration_service
         self._webhook_service = webhook_service
+        self._email_action_service = email_action_service
 
     async def check_form_exists_in_workspace(
         self, workspace_id: RecordId, form_id: str
@@ -525,6 +527,9 @@ class WorkspaceFormService:
         if self._webhook_service is not None:
             # the form's webhooks, delivery log and audit trail
             await self._webhook_service.delete_for_form(workspace_id, form_id)
+        if self._email_action_service is not None:
+            # the form's email actions and their log rows
+            await self._email_action_service.delete_for_form(workspace_id, form_id)
 
         if len(workspace_ids) > 1:
             # the form stays in the other workspaces; the responses collected
@@ -638,6 +643,8 @@ class WorkspaceFormService:
             await self._registration_service.delete_for_forms(list(form_ids))
         if self._webhook_service is not None and form_ids:
             await self._webhook_service.delete_for_forms(list(form_ids))
+        if self._email_action_service is not None and form_ids:
+            await self._email_action_service.delete_for_forms(list(form_ids))
         if self._pdf_import_repo is not None and form_ids:
             await self._pdf_import_repo.delete_by_form_ids(list(form_ids))
         return await self.workspace_form_repository.delete_forms(form_ids=form_ids)
@@ -1389,6 +1396,20 @@ class WorkspaceFormService:
                 workspace_id=workspace_id,
                 form_id=str(form_id),
                 response_id=str(form_response.response_id),
+                form=latest_version_of_form,
+                answers=form_response.answers,
+            )
+        if self._email_action_service is not None:
+            # one log row and one job (by log id) per mail: nothing external,
+            # never fails the submission (services/email_actions/service.py);
+            # the submitted answers are read in memory for the actions'
+            # conditions and are not kept
+            await self._email_action_service.queue_for_submission(
+                workspace_id=workspace_id,
+                form_id=str(form_id),
+                response_id=str(form_response.response_id),
+                form=latest_version_of_form,
+                answers=form_response.answers,
             )
         return form_response
 

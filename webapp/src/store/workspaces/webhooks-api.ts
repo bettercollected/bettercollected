@@ -1,4 +1,15 @@
+import type { LogicCondition, LogicalOperator } from '@app/models/types/form-builder-shared';
 import { workspacesApi } from '@app/store/workspaces/api';
+
+/**
+ * When an action (a webhook or an email action) runs: the form's logic
+ * conditions, evaluated by the server on the submitted answers. No condition,
+ * or null: every submission.
+ */
+export interface ActionCondition {
+    operator: LogicalOperator | 'AND' | 'OR';
+    conditions: LogicCondition[];
+}
 
 // Sending a form's submissions to an https address of the workspace's own
 // (docs/webhooks.md). Every call is `/workspaces/{id}/forms/{form}/webhooks...`.
@@ -16,6 +27,7 @@ export interface Webhook {
     host: string;
     enabled: boolean;
     fields: WebhookField[];
+    condition?: ActionCondition | null;
     hasSecret: boolean;
     secretSetAt?: string | null;
     createdAt?: string | null;
@@ -36,6 +48,8 @@ export interface WebhookInput {
     url?: string;
     fields?: Array<{ source: string; key?: string | null }>;
     enabled?: boolean;
+    /** null removes the condition; leaving it out keeps it */
+    condition?: ActionCondition | null;
 }
 
 export interface WebhookVariable {

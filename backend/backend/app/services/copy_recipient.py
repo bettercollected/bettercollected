@@ -21,6 +21,7 @@ member's ``+tag`` address counts only when it matches exactly. The refusal
 message names the rule and never lists members.
 """
 
+import unicodedata
 from http import HTTPStatus
 from typing import Any, Iterable, List, Optional, Set
 
@@ -58,6 +59,11 @@ def normalize_address(value: Any) -> Optional[str]:
     if not address or len(address) > _ADDRESS_MAX:
         return None
     if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in address):
+        return None
+    # no format character (bidirectional overrides and isolates, zero width
+    # characters), surrogate, private-use or unassigned code point: an address
+    # that renders as another one in a header or on a screen is not one
+    if any(unicodedata.category(ch) in ("Cf", "Cs", "Co", "Cn") for ch in address):
         return None
     if any(ch in _FORBIDDEN for ch in address):
         return None
@@ -131,6 +137,22 @@ class CopyRecipientService:
             if address:
                 allowed.add(address)
         return allowed
+
+    async def allowed_among(
+        self, addresses: Iterable[Any], workspace_id, form_id
+    ) -> List[str]:
+        """Those of ``addresses`` (normalised, in order, once each) that belong
+        to a current, enabled member of the workspace now. One membership read
+        for all of them. Nothing for a form that is not the workspace's."""
+        wanted = []
+        for value in addresses:
+            address = normalize_address(value)
+            if address is not None and address not in wanted:
+                wanted.append(address)
+        if not wanted:
+            return []
+        allowed = await self._allowed_addresses(workspace_id, form_id)
+        return [address for address in wanted if address in allowed]
 
     async def is_allowed(self, address: Any, workspace_id, form_id) -> bool:
         wanted = normalize_address(address)

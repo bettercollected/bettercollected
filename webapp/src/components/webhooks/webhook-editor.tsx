@@ -4,10 +4,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
+import ActionConditionEditor, { conditionIncomplete } from '@app/components/email-actions/action-condition-editor';
 import { Field, inputClass } from '@app/components/registration/field';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Switch } from '@app/shadcn/components/ui/switch';
-import { WebhookDetail, WebhookVariable, WebhookWithSecret, useCreateWebhookMutation, useUpdateWebhookMutation } from '@app/store/workspaces/webhooks-api';
+import { ActionCondition, WebhookDetail, WebhookVariable, WebhookWithSecret, useCreateWebhookMutation, useUpdateWebhookMutation } from '@app/store/workspaces/webhooks-api';
 import { variableTypeKey } from '@app/utils/registration';
 import { MAX_FIELDS, defaultKeyOf, errorCodeOf, errorField, errorKey, isValidKey, urlProblem } from '@app/utils/webhooks';
 
@@ -40,7 +41,8 @@ export default function WebhookEditor({ workspaceId, formId, variables, webhook,
     const [on, setOn] = useState(webhook?.enabled ?? true);
     // source -> the name it gets in the body
     const [chosen, setChosen] = useState<Record<string, string>>(() => Object.fromEntries((webhook?.fields ?? []).map((f) => [f.source, f.key])));
-    const [serverErrors, setServerErrors] = useState<{ url?: string; fields?: string; general?: string }>({});
+    const [condition, setCondition] = useState<ActionCondition | null>(webhook?.condition ?? null);
+    const [serverErrors, setServerErrors] = useState<{ url?: string; fields?: string; condition?: string; general?: string }>({});
     const [keyErrors, setKeyErrors] = useState<Record<string, string>>({});
     const urlField = useRef<HTMLInputElement>(null);
     const heading = useRef<HTMLHeadingElement>(null);
@@ -84,12 +86,13 @@ export default function WebhookEditor({ workspaceId, formId, variables, webhook,
             return;
         }
         if (Object.keys(badKeys).length > 0) return;
+        if (conditionIncomplete(condition)) return;
         if (count > MAX_FIELDS) {
             setServerErrors({ fields: t('WEBHOOKS.ERROR.too_many_fields') });
             return;
         }
         const fields = Object.entries(chosen).map(([source, key]) => ({ source, key: key.trim() }));
-        const response: any = webhook ? await update({ workspaceId, formId, webhookId: webhook.id, body: { url: url.trim(), fields, enabled: on } }) : await create({ workspaceId, formId, body: { url: url.trim(), fields, enabled: on } });
+        const response: any = webhook ? await update({ workspaceId, formId, webhookId: webhook.id, body: { url: url.trim(), fields, enabled: on, condition } }) : await create({ workspaceId, formId, body: { url: url.trim(), fields, enabled: on, condition } });
         if (response.error) {
             const code = errorCodeOf(response.error);
             const message = t(errorKey(code));
@@ -98,6 +101,7 @@ export default function WebhookEditor({ workspaceId, formId, variables, webhook,
                 setServerErrors({ url: message });
                 urlField.current?.focus();
             } else if (field === 'fields') setServerErrors({ fields: message });
+            else if (field === 'condition') setServerErrors({ condition: message });
             else setServerErrors({ general: message });
             return;
         }
@@ -213,6 +217,16 @@ export default function WebhookEditor({ workspaceId, formId, variables, webhook,
                     {t('WEBHOOKS.EDITOR.COUNT', { count })}
                 </p>
             </fieldset>
+
+            <ActionConditionEditor
+                idPrefix="webhook"
+                value={condition}
+                error={serverErrors.condition}
+                onChange={(next) => {
+                    setServerErrors((e) => ({ ...e, condition: undefined }));
+                    setCondition(next);
+                }}
+            />
 
             <div className="flex items-center gap-3">
                 <Switch id="webhook-enabled" checked={on} aria-labelledby="webhook-enabled-label" onCheckedChange={setOn} />

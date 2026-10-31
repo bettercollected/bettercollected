@@ -1,14 +1,15 @@
 """Stored records of form webhooks (``services/webhooks``): a form's webhooks,
-the log of every delivery (the action log) and the audit trail of changes to a
-form's webhooks. None of them holds an answer, a response body or a secret in
+the log of every delivery (the action log, shared with the email actions of
+``services/email_actions``) and the audit trail of changes to a form's webhooks. None of them holds an answer, a response body or a secret in
 the clear: the secret is sealed, the log keeps ids, a status and counters, the
 audit trail names the fields that changed.
 """
 
 import datetime as dt
 import enum
-from typing import List, Optional
+from typing import List, Literal, Optional
 
+from common.models.standard_form import FieldLogicCondition
 from common.records import Record, RecordId
 from pydantic import BaseModel, field_validator
 
@@ -27,6 +28,16 @@ class WebhookField(BaseModel):
     key: str
 
 
+class ActionCondition(BaseModel):
+    """When an action (a webhook or an email action) runs: the conditions of
+    the form's logic (``FieldLogicCondition``), folded with ``operator``,
+    evaluated by the server on the submitted answers when the submission is
+    queued (``services/action_conditions.py``). No condition: always."""
+
+    operator: Literal["AND", "OR"] = "AND"
+    conditions: List[FieldLogicCondition] = []
+
+
 class FormWebhookDocument(Record):
     """A destination a workspace's admins registered for one form.
     ``url_sealed`` is the sealed address and ``secret_sealed`` the sealed signing secret (``services/registration/
@@ -42,6 +53,8 @@ class FormWebhookDocument(Record):
     host: str
     enabled: bool = False
     fields: List[WebhookField] = []
+    # runs only when it holds on the submitted answers (None: every submission)
+    condition: Optional[ActionCondition] = None
     secret_sealed: Optional[str] = None
     secret_set_at: Optional[dt.datetime] = None
     created_by: Optional[str] = None
@@ -64,6 +77,7 @@ class LogStatus(str, enum.Enum):
 
 class ActionType(str, enum.Enum):
     WEBHOOK = "webhook"
+    EMAIL = "email"
 
 
 class ActionLogDocument(Record):
@@ -81,6 +95,9 @@ class ActionLogDocument(Record):
     action_id: str
     # ``submission`` (a stored response) or ``test`` (sample data, no response)
     event: str = "submission"
+    # email actions only: ``team`` (the staff addresses) or ``respondent`` (the
+    # copy to the address the respondent gave); never an address
+    channel: Optional[str] = None
     # the host this delivery was queued for (the one the respondent was shown):
     # a run whose webhook points to another host by then is cancelled
     host: Optional[str] = None

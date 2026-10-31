@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+from typing import Optional
 
 from common.configs.shipped_secrets import require_secrets
 from common.services.keyset_source import configured_key_ids
@@ -32,6 +33,8 @@ from backend.config.OpenAISettings import OpenAISettings
 from backend.config.open_formulieren_settings import OpenFormulierenSettings
 from backend.config.registration_settings import RegistrationSettings
 from backend.config.webhooks_settings import WebhooksSettings
+from backend.config.email_actions_settings import EmailActionsSettings
+from backend.config.mail_settings import MailSettings
 from backend.config.respondent_identity_settings import RespondentIdentitySettings
 from backend.config.pdf_import_settings import PdfImportSettings
 from backend.config.unsplash_settings import UnsplashSettings
@@ -114,6 +117,10 @@ class Application(StoreBackedSettings):
     scim: SCIMSettings = SCIMSettings()
     registration: RegistrationSettings = RegistrationSettings()
     webhooks: WebhooksSettings = WebhooksSettings()
+    email_actions: EmailActionsSettings = EmailActionsSettings()
+    mail_settings: MailSettings = MailSettings()
+    # the From display name of mails the backend sends (never a workspace's)
+    ORGANIZATION_NAME: Optional[str] = "Better Collected"
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 

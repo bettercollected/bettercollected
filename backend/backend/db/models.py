@@ -633,6 +633,13 @@ class FormWebhookRow(Base, BaseRow):
     __table_args__ = (Index(None, "workspace_id", "form_id"),)
 
 
+class FormEmailActionRow(Base, BaseRow):
+    __tablename__ = "form_email_actions"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    __table_args__ = (Index(None, "workspace_id", "form_id"),)
+
+
 class ActionLogRow(Base, BaseRow):
     __tablename__ = "action_logs"
     workspace_id = S.text("workspace_id")
@@ -640,6 +647,9 @@ class ActionLogRow(Base, BaseRow):
     action_id = S.text("action_id")
     response_id = S.text("response_id")
     status = S.text("status")
+    # ``webhook`` or ``email`` (revision 0025): each kind's sweep and list read
+    # only its own rows
+    action_type = S.text("action_type")
     __table_args__ = (
         # the idempotency key of a submission run: one per action and response
         # (a test run has no response id: NULLs never collide)
