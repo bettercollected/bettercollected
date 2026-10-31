@@ -54,7 +54,9 @@ def instance(monkeypatch):
 
 async def code_mail(locale, title="Acme Zorg", creator=False):
     repo = SimpleNamespace(
-        get_user_by_email=AsyncMock(return_value=None), save_otp_user=AsyncMock()
+        get_user_by_email=AsyncMock(return_value=None),
+        save_otp_user=AsyncMock(return_value=SimpleNamespace(id="a" * 24)),
+        set_user_otp=AsyncMock(),
     )
     with patch("auth.app.services.auth_service.MailService") as mail:
         mail.return_value.send_message = AsyncMock()

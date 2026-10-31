@@ -22,11 +22,13 @@ logger = logging.getLogger(__name__)
 
 
 def build_engine(
-    settings: DatabaseSettings, application_name: str
+    settings: DatabaseSettings, application_name: str, hide_parameters: bool = False
 ) -> Optional[AsyncEngine]:
     if not settings.configured:
         return None
-    return make_engine(settings, application_name=application_name)
+    return make_engine(
+        settings, application_name=application_name, hide_parameters=hide_parameters
+    )
 
 
 def build_sessionmaker(

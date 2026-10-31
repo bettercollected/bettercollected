@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { firstPageWithError, historyBackTo, serverAnswerErrors, serverInvalidations, serverProblemMessage } from './server-answer-errors';
+import { firstPageWithError, historyBackTo, isFormClosedError, serverAnswerErrors, serverInvalidations, serverProblemMessage } from './server-answer-errors';
 
 const q = (id: string, type = FieldTypes.SHORT_TEXT, properties: Record<string, any> = {}) => ({ id, index: 0, type, properties }) as StandardFormFieldDto;
 const page = (id: string, fields: StandardFormFieldDto[]) => ({ id, index: 0, type: FieldTypes.SLIDE, properties: { fields } }) as StandardFormFieldDto;
@@ -86,5 +86,14 @@ describe('messages', () => {
             expect(respondent.RULE.SERVER_CHOICE).toBeTruthy();
             expect(respondent.NAV.SUBMIT_INVALID).toBeTruthy();
         }
+    });
+});
+
+describe('isFormClosedError', () => {
+    it('is the 409 form_closed refusal only', () => {
+        expect(isFormClosedError({ status: 409, data: { code: 'form_closed', message: 'x' } })).toBe(true);
+        expect(isFormClosedError({ status: 409, data: 'Form with given custom slug already exists' })).toBe(false);
+        expect(isFormClosedError({ status: 422, data: { code: 'form_closed' } })).toBe(false);
+        expect(isFormClosedError(undefined)).toBe(false);
     });
 });

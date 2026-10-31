@@ -49,6 +49,19 @@ class ApiSettings(StoreBackedSettings):
     # ...and for all of one workspace's keys together in the same window.
     PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW: int = 600
     PUBLIC_API_WINDOW_SECONDS: int = 60
+    # The public receipt routes (GET and DELETE .../submissions/by-uuid/{number},
+    # services/receipt_limits.py): the number is the only credential, so per
+    # client address and window: requests per route, and receipt numbers not
+    # found (both routes together; once used up, every lookup answers 429
+    # until the window ends). 429 with Retry-After; 0 turns a limit off.
+    RECEIPT_REQUESTS_PER_WINDOW: int = 60
+    RECEIPT_MISSES_PER_WINDOW: int = 10
+    # An emergency switch, off by default: the misses of all clients together.
+    # Once reached, receipts (and deletion requests by number) answer 429 for
+    # everyone until the window ends, so anyone with enough addresses could
+    # take them offline; receipt numbers (uuid4) can't be guessed anyway.
+    RECEIPT_GLOBAL_MISSES_PER_WINDOW: int = 0
+    RECEIPT_WINDOW_SECONDS: int = 600
     # GET /images/unsplash/...: requests per client address in each window,
     # and of those, how many may fetch a photo not cached yet.
     IMAGE_PROXY_PER_WINDOW: int = 600

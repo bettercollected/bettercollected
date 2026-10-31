@@ -23,8 +23,13 @@ class AppContainer(containers.DeclarativeContainer):
     # and startup refuses (app/asgi.py).
     flags = providers.Singleton(load_auth_flags)
     db_settings = providers.Singleton(DatabaseSettings.from_env)
+    # hide_parameters: a database error's text never lists a statement's
+    # parameters (emails, whole account documents) in logs or APM
     pg_engine = providers.Singleton(
-        build_engine, db_settings, application_name="bettercollected-auth"
+        build_engine,
+        db_settings,
+        application_name="bettercollected-auth",
+        hide_parameters=True,
     )
     pg_sessionmaker = providers.Singleton(build_sessionmaker, pg_engine)
 

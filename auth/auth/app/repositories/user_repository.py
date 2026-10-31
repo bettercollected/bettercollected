@@ -2,7 +2,7 @@
 (the 4.0 Mongo collection is read only by ``python -m auth.migrate``)."""
 
 import datetime
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from pydantic import EmailStr
 from sqlalchemy import and_, func, select
@@ -12,10 +12,28 @@ from auth.app.schemas.user import UserDocument
 from auth.db.base import SCHEMA
 from auth.db.models import UserRow
 from common.ids import RecordId
+from common.records.codec import decode, row_values
 from common.records.repository import RecordRepository
 from common.enums.plan import Plans
 from common.enums.roles import Roles
 from common.clock import utcnow
+
+
+def clear_otp(user: UserDocument) -> None:
+    """Drop the account's pending sign-in code (unused)."""
+    user.otp_code = user.otp_expiry = user.otp_code_for = None
+
+
+def consume_otp(user: UserDocument) -> None:
+    """A sign-in code was used: the roles it was asked for are added (once
+    each) and the code is cleared."""
+    wanted = [Roles.FORM_RESPONDER]
+    if user.otp_code_for == Roles.FORM_CREATOR:
+        wanted.append(Roles.FORM_CREATOR)
+    for role in wanted:
+        if role not in (user.roles or []):
+            user.roles = [*(user.roles or []), role]
+    clear_otp(user)
 
 
 class UserRepository(RecordRepository):
@@ -52,6 +70,56 @@ class UserRepository(RecordRepository):
     async def get_users_by_ids(self, user_ids: List[RecordId]):
         return await self.many(UserRow.id.in_([str(i) for i in user_ids]))
 
+    # -- writes ------------------------------------------------------------------
+    # Every write of an account re-reads it with its row locked (FOR UPDATE)
+    # and changes only its own fields in the same transaction, so a write never
+    # stores an older copy of the rest of the document: in particular never an
+    # older sign-in code (a used one, or one with fewer wrong tries counted).
+    # Only set_user_otp, save_otp_user and change_otp_locked change otp_*.
+    async def _change_locked(
+        self,
+        where,
+        change: Callable[[UserDocument], Optional[bool]],
+        *,
+        touch: bool,
+    ) -> Optional[UserDocument]:
+        """The first account matching ``where``, loaded with its row locked;
+        ``change`` edits it (returning ``False`` to store nothing) and it is
+        stored in the same transaction, ``updated_at`` moved when ``touch``.
+        ``None`` when nothing matches."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(UserRow.doc)
+                    .where(where)
+                    .order_by(UserRow.created_at, UserRow.id)
+                    .limit(1)
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return None
+            user = decode(UserDocument, doc)
+            if change(user) is not False:
+                if touch:
+                    user.touch()
+                await session.execute(self._upsert_statement(row_values(user)))
+            return user
+
+    async def _change_by_id(
+        self, user_id: RecordId, change: Callable[[UserDocument], None]
+    ) -> UserDocument:
+        """``_change_locked`` on the account ``user_id`` (updated_at moved);
+        the record layer's ``NotFoundError`` when there is none."""
+        found = await self._change_locked(
+            UserRow.id == str(user_id), change, touch=True
+        )
+        return UserDocument.verify_doc_exists(found, {"id": user_id})
+
+    @staticmethod
+    def _by_email(email: str):
+        return func.lower(UserRow.email) == func.lower(email)
+
     async def save_otp_user(
         self,
         email: str,
@@ -59,23 +127,33 @@ class UserRepository(RecordRepository):
         otp_expiry: Optional[int] = None,
         creator: bool = True,
     ) -> UserDocument:
-        user_document = await self.get_user_by_email(email)
-        if not user_document:
-            otp_code_for = Roles.FORM_RESPONDER
-            if creator:
-                otp_code_for = Roles.FORM_CREATOR
-            user_document = await self.save_document(
-                UserDocument(
-                    email=email,
-                    otp_code=otp_code,
-                    otp_expiry=otp_expiry,
-                    otp_code_for=otp_code_for,
-                )
+        """The account for ``email``, created when there is none (with the
+        code given, for the purpose ``creator`` names). An existing account
+        gets the code when one is given; without one, only its purpose is
+        raised to creator when asked."""
+        purpose = Roles.FORM_CREATOR if creator else Roles.FORM_RESPONDER
+
+        def update(user: UserDocument) -> bool:
+            if otp_code is not None:
+                user.otp_code, user.otp_expiry = otp_code, otp_expiry
+                user.otp_code_for = purpose
+                return True
+            if creator and Roles.FORM_CREATOR not in (user.otp_code_for or ""):
+                user.otp_code_for = Roles.FORM_CREATOR
+                return True
+            return False
+
+        existing = await self._change_locked(self._by_email(email), update, touch=True)
+        if existing is not None:
+            return existing
+        return await self.save_document(
+            UserDocument(
+                email=email,
+                otp_code=otp_code,
+                otp_expiry=otp_expiry,
+                otp_code_for=purpose,
             )
-        if creator and Roles.FORM_CREATOR not in user_document.otp_code_for:
-            user_document.otp_code_for = Roles.FORM_CREATOR
-            await self.save_document(user_document)
-        return user_document
+        )
 
     async def save_user(
         self,
@@ -87,34 +165,42 @@ class UserRepository(RecordRepository):
         creator: bool = True,
         profile_image: Optional[str] = None,
     ) -> UserDocument:
-        user_document = await self.get_user_by_email(email)
+        """The account for ``email``, created when there is none (``otp_code``
+        and ``otp_expiry`` are stored only then); ``creator`` adds that role,
+        and the names and picture fill in what the account lacks."""
         roles = [Roles.FORM_RESPONDER]
         if creator:
             roles.append(Roles.FORM_CREATOR)
-        if not user_document:
-            user_document = UserDocument(
-                email=email, roles=roles, otp_code=otp_code, otp_expiry=otp_expiry
-            )
-        if user_document.roles:
-            if creator and Roles.FORM_CREATOR not in user_document.roles:
-                user_document.roles.append(Roles.FORM_CREATOR)
-        else:
-            user_document.roles = roles
-        if not (
-            user_document.first_name
-            and user_document.last_name
-            and user_document.profile_image
-        ) and (first_name or last_name or profile_image):
-            user_document.first_name = (
-                first_name if first_name else user_document.first_name
-            )
-            user_document.last_name = (
-                last_name if last_name else user_document.last_name
-            )
-            user_document.profile_image = (
-                profile_image if profile_image else user_document.profile_image
-            )
-        return await self.save_document(user_document)
+
+        def update(user_document: UserDocument) -> None:
+            if user_document.roles:
+                if creator and Roles.FORM_CREATOR not in user_document.roles:
+                    user_document.roles.append(Roles.FORM_CREATOR)
+            else:
+                user_document.roles = list(roles)
+            if not (
+                user_document.first_name
+                and user_document.last_name
+                and user_document.profile_image
+            ) and (first_name or last_name or profile_image):
+                user_document.first_name = (
+                    first_name if first_name else user_document.first_name
+                )
+                user_document.last_name = (
+                    last_name if last_name else user_document.last_name
+                )
+                user_document.profile_image = (
+                    profile_image if profile_image else user_document.profile_image
+                )
+
+        existing = await self._change_locked(self._by_email(email), update, touch=True)
+        if existing is not None:
+            return existing
+        created = UserDocument(
+            email=email, roles=[], otp_code=otp_code, otp_expiry=otp_expiry
+        )
+        update(created)
+        return await self.save_document(created)
 
     async def set_user_otp(
         self,
@@ -123,11 +209,11 @@ class UserRepository(RecordRepository):
         otp_expiry: int,
         otp_code_for: Roles,
     ) -> UserDocument:
-        user_document = await self.get_user_by_id(user_id)
-        user_document.otp_code = otp_code
-        user_document.otp_expiry = otp_expiry
-        user_document.otp_code_for = otp_code_for
-        return await self.save_document(user_document)
+        def update(user: UserDocument) -> None:
+            user.otp_code, user.otp_expiry = otp_code, otp_expiry
+            user.otp_code_for = otp_code_for
+
+        return await self._change_by_id(user_id, update)
 
     async def update_user_names(
         self,
@@ -135,17 +221,18 @@ class UserRepository(RecordRepository):
         first_name: Optional[str],
         last_name: Optional[str],
     ) -> UserDocument:
-        user_document = await self.get_user_by_id(user_id)
-        user_document.first_name = first_name
-        user_document.last_name = last_name
-        return await self.save_document(user_document)
+        def update(user: UserDocument) -> None:
+            user.first_name, user.last_name = first_name, last_name
+
+        return await self._change_by_id(user_id, update)
 
     async def set_stripe_payment_id(
         self, user_id: RecordId, stripe_payment_id: str
     ) -> UserDocument:
-        user_document = await self.get_user_by_id(user_id)
-        user_document.stripe_payment_id = stripe_payment_id
-        return await self.save_document(user_document)
+        def update(user: UserDocument) -> None:
+            user.stripe_payment_id = stripe_payment_id
+
+        return await self._change_by_id(user_id, update)
 
     async def set_user_plan(
         self,
@@ -155,24 +242,37 @@ class UserRepository(RecordRepository):
     ) -> UserDocument:
         """The account's plan; ``stripe_customer_id`` is stored too when given
         (a completed checkout)."""
-        user_document = await self.get_user_by_id(user_id)
-        if stripe_customer_id is not None:
-            user_document.stripe_customer_id = stripe_customer_id
-        user_document.plan = plan
-        return await self.save_document(user_document)
+
+        def update(user: UserDocument) -> None:
+            if stripe_customer_id is not None:
+                user.stripe_customer_id = stripe_customer_id
+            user.plan = plan
+
+        return await self._change_by_id(user_id, update)
 
     async def clear_user_otp(self, user: UserDocument):
-        user_roles = [Roles.FORM_RESPONDER]
-        if user.otp_code_for == Roles.FORM_CREATOR:
-            user_roles.append(Roles.FORM_CREATOR)
-        stored = await self.one(UserRow.id == str(user.id))
-        if stored is None:
-            return
-        for role in user_roles:  # added once each, updated_at left as it is
-            if role not in (stored.roles or []):
-                stored.roles = [*(stored.roles or []), role]
-        stored.otp_code = stored.otp_expiry = stored.otp_code_for = None
-        await self.upsert(stored)
+        """Consume ``user``'s code (``consume_otp``) with the purpose ``user``
+        names, updated_at left as it is."""
+
+        def update(stored: UserDocument) -> None:
+            stored.otp_code_for = user.otp_code_for
+            consume_otp(stored)
+
+        await self._change_locked(UserRow.id == str(user.id), update, touch=False)
+
+    async def change_otp_locked(
+        self, email: str, change: Callable[[UserDocument], bool]
+    ) -> Optional[UserDocument]:
+        """The account for ``email`` (ignoring case) loaded with its row locked
+        (``FOR UPDATE``); ``change`` edits it and returns whether to store it,
+        in the same transaction (updated_at left as it is). Sign-in attempts on
+        one account so run one after another: parallel guesses can't share a
+        try. ``None`` when there is no such account."""
+        if not email:
+            return None
+        return await self._change_locked(
+            self._by_email(email), lambda user: bool(change(user)), touch=False
+        )
 
     async def delete_user(self, user_id: RecordId):
         return await self.delete_by_id(user_id)
@@ -232,6 +332,10 @@ class UserRepository(RecordRepository):
         return list(row)
 
     async def update_last_logged_in(self, user_id: RecordId):
-        user_document = await self.one(UserRow.id == str(user_id))
-        user_document.last_logged_in = utcnow()
-        return await self.save_document(user_document)
+        """Stamp ``last_logged_in`` (every ``/auth/status``); ``None`` when the
+        account is gone."""
+
+        def update(user: UserDocument) -> None:
+            user.last_logged_in = utcnow()
+
+        return await self._change_locked(UserRow.id == str(user_id), update, touch=True)

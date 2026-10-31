@@ -39,7 +39,8 @@ def instance(monkeypatch):
 def _repo(**overrides):
     return SimpleNamespace(
         get_user_by_email=AsyncMock(return_value=None),
-        save_otp_user=AsyncMock(),
+        save_otp_user=AsyncMock(return_value=SimpleNamespace(id="a" * 24)),
+        set_user_otp=AsyncMock(),
         **overrides,
     )
 

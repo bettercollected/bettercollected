@@ -86,7 +86,19 @@ Shares the local `common` package. JWT + crypto helpers come from `common.servic
   `account_for_provider_sign_in`, matching emails case-insensitively (like every lookup), `email_verified`
   true, and never the platform-admin role (`roles_for(..., verified=False)`).
 - **Routes** (`controllers/auth_router.py`):
-  - `GET /otp/send`, `GET /otp/validate` — email OTP login.
+  - `GET /otp/send`, `GET /otp/validate` — email OTP login. The code is never stored: `otp_code` holds
+    `otp1$<wrong tries>$<HMAC>` (`services/signin_code.py`; key derived from `AUTH_AES_HEX_KEY`, bound to
+    the account **id**, purpose and expiry, `compare_digest`). `validate_otp` runs under the account's row
+    lock (`UserRepository.change_otp_locked`): expired codes are cleared before any comparison, anything not
+    in that format is refused, a match consumes the code, 5 wrong tries clear it. **Every account write**
+    re-reads the row `FOR UPDATE` and changes only its own fields (`UserRepository._change_locked`), so
+    none can store an older code back; only `set_user_otp`, `save_otp_user` and `change_otp_locked` touch
+    `otp_*`. Responses to the backend (`GET /users`, the upgrade) blank the `otp_*` fields (the Stripe webhook reply names the account by `_id` only)
+    (`without_sign_in_codes`); the access log drops query strings (`app/access_log.py`, installed by
+    `get_application`); the engine hides SQL parameters in errors (`hide_parameters`); Elastic APM cleans
+    every transaction, span and error (`app/apm_privacy.py`, strict `common.utils.apm_privacy`: no query
+    string in any URL or name, no request headers, cookies, body, frame variables, SQL parameters, `DETAIL:` lines or key values; local
+    variables never collected; built into the client, no `ELASTIC_APM_*` setting turns it off).
   - `GET /{provider_name}/basic` + `GET /{provider}/basic/callback` — per-provider OAuth login.
   - `GET /callback` — JWT exchange. `GET /status` — session/user status.
 - **Stripe billing** (`controllers/stripe_router.py`, logic in `services/stripe_service.py`):

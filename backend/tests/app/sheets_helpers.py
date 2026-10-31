@@ -9,8 +9,12 @@ from urllib.parse import parse_qs
 import httpx
 import pytest
 
+from common.models.user import User
+
 from backend.app.container import container
+from backend.app.services import integration_oauth_state
 from backend.app.services.google_sheets_oauth import DRIVE_FILE_SCOPE, SHEETS_API_URL
+from backend.app.services.session_service import user_from_access_token
 from backend.app.services.sheets_grant_revocation import REVOKE_URL
 from backend.config import settings
 
@@ -120,3 +124,14 @@ def decrypt_credential(ciphertext: str) -> str:
 
 def credential_dict(ciphertext: str) -> dict:
     return json.loads(decrypt_credential(ciphertext))
+
+
+def oauth_state(user: User) -> str:
+    """A state as ``GET /integration/{type}/oauth`` mints it for ``user``."""
+    return integration_oauth_state.mint(container.crypto(), user, None)
+
+
+def session_oauth_state(cookies: dict) -> str:
+    """A state as ``GET /integration/{type}/oauth`` mints it for the session
+    these cookies carry."""
+    return oauth_state(user_from_access_token(cookies["Authorization"]))

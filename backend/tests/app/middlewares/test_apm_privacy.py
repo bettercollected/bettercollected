@@ -1,7 +1,9 @@
 """Elastic APM records full URLs; what it records must carry no query string
-(the typed search is a respondent's email) and no receipt number."""
+(the typed search is a respondent's email; the calls to the auth service carry
+emails and sign-in codes) and no receipt number."""
 
 import pytest
+from elasticapm.transport.base import Transport
 from elasticapm.utils import get_url_dict
 
 from backend.app.middlewares.apm_privacy import PrivateAPMClient, redact_apm_event
@@ -69,8 +71,8 @@ def test_an_event_without_a_request_passes_through(shape):
     assert redact_apm_event(None, dict(shape)) == shape
 
 
-def test_the_processor_only_runs_on_transactions_and_errors():
-    assert redact_apm_event.event_types == {"transaction", "error"}
+def test_the_processor_runs_on_transactions_spans_and_errors():
+    assert redact_apm_event.event_types == {"transaction", "span", "error"}
 
 
 def _client():
@@ -123,5 +125,75 @@ def test_the_application_traces_with_the_private_client(monkeypatch):
     client = apm.kwargs["client"]
     try:
         assert isinstance(client, PrivateAPMClient)
+    finally:
+        client.close()
+
+
+class RecordingTransport(Transport):
+    """Keeps each event as it would be sent (after every processor)."""
+
+    def __init__(self, *args, url=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.events = []
+
+    def queue(self, event_type, data, flush=False):
+        if event_type in ("transaction", "span", "error"):
+            self.events.append((event_type, self._process_event(event_type, data)))
+
+    def start_thread(self, pid=None):
+        pass
+
+    def close(self):
+        self._closed = True
+
+
+CODE = "QRS-987"
+AUTH = "http://auth:8001/api/v1/auth"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        f"{AUTH}/otp/validate?email={SEARCH}&otp_code={CODE}",
+        f"{AUTH}/otp/send?receiver_email={SEARCH}&creator=true&x={CODE}",
+    ],
+)
+def test_a_call_to_the_auth_service_is_recorded_without_its_query(url, monkeypatch):
+    """The span of an outgoing call, as the httpx instrumentation records it
+    (``context.http.url``), loses the email and the code."""
+    import elasticapm
+
+    # the environment outranks the client's config (CI disables sending)
+    monkeypatch.setenv("ELASTIC_APM_DISABLE_SEND", "false")
+
+    client = PrivateAPMClient(
+        {
+            "SERVICE_NAME": "t",
+            "SERVER_URL": "http://127.0.0.1:1",
+            "TRANSPORT_CLASS": f"{__name__}.RecordingTransport",
+            "CENTRAL_CONFIG": False,
+            "METRICS_INTERVAL": "0s",
+            "CLOUD_PROVIDER": "none",
+            "EXIT_SPAN_MIN_DURATION": "0ms",
+            "SPAN_COMPRESSION_ENABLED": False,
+        }
+    )
+    try:
+        client.begin_transaction("request")
+        with elasticapm.capture_span(
+            "GET auth:8001",
+            span_type="external",
+            span_subtype="http",
+            extra={"http": {"url": url}},
+            leaf=True,
+        ):
+            pass
+        client.end_transaction("GET /api/v1/auth/otp/validate", "HTTP 2xx")
+
+        spans = [data for kind, data in client._transport.events if kind == "span"]
+        assert spans, "the call was not recorded"
+        recorded = repr(client._transport.events)
+        assert CODE not in recorded and SEARCH not in recorded
+        assert spans[0]["context"]["http"]["url"] == url.split("?", 1)[0]
     finally:
         client.close()
