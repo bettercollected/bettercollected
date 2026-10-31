@@ -1204,16 +1204,19 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             )
         workspace_forms = [from_canonical_document(doc) for doc in docs]
         if filter_closed:
-            # Closed forms leave the listing on the instant the submit gate
-            # starts refusing them: the same reader of the stored close date
-            # (services/form_availability.py), whatever its offset or spelling.
-            # Not in SQL: the stored text is the client's, and comparing it
-            # as text got every offset other than UTC wrong.
+            # Closed and not yet open forms are left out of the listing on the
+            # instant the submit gate starts refusing them: the same reader of
+            # the stored dates (services/form_availability.py), whatever their
+            # offset or spelling. Not in SQL: the stored text is the client's,
+            # and comparing it as text got every offset other than UTC wrong.
+            # (A full form needs a count: FormService leaves those out.)
             now = form_availability.now()
             workspace_forms = [
                 wf
                 for wf in workspace_forms
-                if not form_availability.is_closed(wf.get("settings"), now)
+                if not form_availability.is_unavailable_by_date(
+                    wf.get("settings"), now
+                )
             ]
         if is_not_admin and user:
             # private forms stay visible to responders this workspace's own
@@ -1253,6 +1256,35 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             filter_closed=filter_closed,
         )
         return list(set([a["form_id"] for a in workspace_forms]))
+
+    async def get_response_limits(
+        self, workspace_id: RecordId, form_ids: List[str]
+    ) -> Dict[str, int]:
+        """form_id -> response limit, for those of ``form_ids`` linked to the
+        workspace with a limit set (services/form_availability.py)."""
+        if not form_ids:
+            return {}
+        try:
+            async with self._session() as session:
+                rows = (
+                    await session.execute(
+                        select(WorkspaceFormRow.form_id, WorkspaceFormRow.doc).where(
+                            WorkspaceFormRow.workspace_id == _oid(workspace_id),
+                            WorkspaceFormRow.form_id.in_(list(form_ids)),
+                        )
+                    )
+                ).all()
+        except SQLAlchemyError:
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                content=MESSAGE_DATABASE_EXCEPTION,
+            )
+        limits = {}
+        for form_id, doc in rows:
+            limit = form_availability.response_limit(doc.get("settings"))
+            if limit is not None:
+                limits[str(form_id)] = limit
+        return limits
 
     async def get_workspace_form_with_custom_slug_form_id(
         self, workspace_id: RecordId, custom_url: str

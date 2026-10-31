@@ -51,6 +51,7 @@ from backend.app.repositories.postgres.forms import (
     _sqlstate,
     _text,
 )
+from backend.app.services import form_availability
 from backend.app.repositories.response_scope import (
     ResponseScope,
     form_importers,
@@ -484,6 +485,13 @@ class PostgresFormResponseRepository(RecordRepository):
             FormResponseRow.doc.has_key("answers"),
         )
 
+    async def count_responses_by_form_ids(self, scope: ResponseScope) -> Dict[str, int]:
+        """form_id -> the stored responses in scope (what a response limit
+        counts: every stored response, deletions already gone)."""
+        return await self._counts_by_form(
+            FormResponseRow, _in_scope(FormResponseRow, scope)
+        )
+
     async def count_deletion_requests_by_form_ids(
         self, scope: ResponseScope
     ) -> Dict[str, int]:
@@ -847,7 +855,14 @@ class PostgresFormResponseRepository(RecordRepository):
         form_id: RecordId,
         response: StandardFormResponse,
         workspace_id: RecordId,
+        response_limit: Optional[int] = None,
+        scope: Optional[ResponseScope] = None,
     ):
+        """Store a new response. With ``response_limit`` (and the ``scope`` the
+        count is taken over) the count and the insert happen in one
+        transaction under an advisory lock on the form in this workspace, so
+        concurrent submissions queue up and the one that would pass the limit
+        is refused: 409 ``form_full``, nothing stored."""
         response_document = FormResponseDocument(**response.model_dump(mode="json"))
         response_document.submission_uuid = str(uuid4())
         if workspace_id:
@@ -874,7 +889,23 @@ class PostgresFormResponseRepository(RecordRepository):
         now = utcnow()
         response_document.created_at = now
         response_document.updated_at = now
-        return await self.save_document(response_document)
+        if response_limit is None:
+            return await self.save_document(response_document)
+        if scope is None:
+            raise ValueError("a response limit needs the scope its count is taken over")
+        self._check_collection(response_document, FormResponseRow)
+        response_document.touch()
+        async with self._session() as session, session.begin():
+            await _advisory_lock(session, "response-limit", workspace_id, form_id)
+            stored = (
+                await session.execute(
+                    select(func.count()).where(_in_scope(FormResponseRow, scope))
+                )
+            ).scalar_one()
+            if stored >= response_limit:
+                raise form_availability.form_full_error()
+            await session.execute(self._upsert_statement(row_values(response_document)))
+        return response_document
 
     async def patch_form_response(
         self,

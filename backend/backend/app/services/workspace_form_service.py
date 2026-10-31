@@ -66,7 +66,12 @@ from backend.app.services.form_logo import (
     read_logo_upload,
 )
 from backend.app.services.form_concurrency import ensure_not_changed_since
-from backend.app.services.form_availability import ensure_accepting_responses
+from backend.app.services.form_availability import (
+    FORM_FULL,
+    ensure_accepting_responses,
+    ensure_not_full,
+    response_limit,
+)
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.answer_validation import (
@@ -1209,14 +1214,24 @@ class WorkspaceFormService:
                 workspace_id=workspace_id, query=str(form_id)
             )
         )
-        # A closed form takes no new responses: 409 form_closed before
-        # anything is stored, uploaded or started. The close date is checked
-        # against the time the request arrived, within a bound
-        # (services/form_availability.py decision_time).
-        ensure_accepting_responses(
-            workspace_form.settings if workspace_form else None,
-            received_at=received_at,
-        )
+        # A closed form takes no new responses: 409 form_closed (form_not_open
+        # before its open date) before anything is stored, uploaded or
+        # started. The dates are checked against the time the request arrived,
+        # within a bound (services/form_availability.py decision_time).
+        form_settings = workspace_form.settings if workspace_form else None
+        ensure_accepting_responses(form_settings, received_at=received_at)
+        # A form that holds as many responses as its limit takes no more (409
+        # form_full). Counted here so a full form uploads and starts nothing;
+        # the insert counts again under a lock, which is what keeps parallel
+        # submissions within the limit (save_form_response).
+        limit = response_limit(form_settings)
+        if limit is not None:
+            ensure_not_full(
+                form_settings,
+                await self.form_response_service.count_for_form(
+                    workspace_id, str(form_id)
+                ),
+            )
         # Respondents fill the published version: a form never published has
         # none, and takes no responses (as its read answers 404).
         latest_version_of_form = await self.form_service.get_latest_version_of_form(
@@ -1322,9 +1337,21 @@ class WorkspaceFormService:
         elif user:
             response.dataOwnerIdentifier = user.sub
 
-        form_response = await self.form_response_service.submit_form_response(
-            form_id=form_id, response=response, workspace_id=workspace_id
-        )
+        try:
+            form_response = await self.form_response_service.submit_form_response(
+                form_id=form_id,
+                response=response,
+                workspace_id=workspace_id,
+                response_limit=limit,
+            )
+        except HTTPException as refused:
+            # lost the race for the last slot: the files of this attempt go too
+            body = refused.content
+            if form_files and isinstance(body, dict) and body.get("code") == FORM_FULL:
+                self._aws_service.delete_folder_from_s3(
+                    f"private/{workspace_id}/{form_id}/{response.response_id}"
+                )
+            raise
 
         latest_version_of_form.actions = form.actions
         latest_version_of_form.secrets = form.secrets

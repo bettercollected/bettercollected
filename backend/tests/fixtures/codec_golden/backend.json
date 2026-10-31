@@ -8283,7 +8283,7 @@
   "document": "WorkspaceDomainDocument"
  },
  "workspace_forms/full": {
-  "checksum": "sha256:a53e3a79806250ba2e87ef65fa4dce0de3cfde91943d1076798b605bfa734509",
+  "checksum": "sha256:ebc3bd8880d459c1ae72093b34a6d4838cff6e21f7c577c1bc623bae7dc83f54",
   "doc": {
    "_id": {
     "$oid": "57fc021e64025f5a380473ba"
@@ -8306,6 +8306,7 @@
      "WorkspaceFormDocument.settings.feedback_statuses[1] tëxt ✓ \"quoted\" \\ line\nbreak"
     ],
     "form_close_date": "2026-03-04T05:06:07.891234+02:00",
+    "form_open_date": "2026-03-04T05:06:07.891234+02:00",
     "hidden": true,
     "import_id": "WorkspaceFormDocument.settings.import_id tëxt ✓ \"quoted\" \\ line\nbreak",
     "import_source": "WorkspaceFormDocument.settings.import_source tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -8321,6 +8322,7 @@
     "response_data_owner_field": "WorkspaceFormDocument.settings.response_data_owner_field tëxt ✓ \"quoted\" \\ line\nbreak",
     "response_expiration": "WorkspaceFormDocument.settings.response_expiration tëxt ✓ \"quoted\" \\ line\nbreak",
     "response_expiration_type": "forever",
+    "response_limit": 9007199254740993,
     "retention_text": "WorkspaceFormDocument.settings.retention_text tëxt ✓ \"quoted\" \\ line\nbreak",
     "show_original_form": true,
     "show_submission_number": true
@@ -8352,7 +8354,7 @@
   "document": "WorkspaceFormDocument"
  },
  "workspace_forms/naive": {
-  "checksum": "sha256:f2429dcef39bf7c7e68975134c3202b7f64d8a6665e9a2355d45e7a15f2c0756",
+  "checksum": "sha256:94761b99519acc819dc4f775a11f0e0ad1ece218fad83839791971bb657e2d4a",
   "doc": {
    "_id": {
     "$oid": "9dcc24b50c63c287e6a3cbf8"
@@ -8375,6 +8377,7 @@
      "WorkspaceFormDocument.settings.feedback_statuses[1] tëxt ✓ \"quoted\" \\ line\nbreak"
     ],
     "form_close_date": "2026-03-04T05:06:07.891234",
+    "form_open_date": "2026-03-04T05:06:07.891234",
     "hidden": true,
     "import_id": "WorkspaceFormDocument.settings.import_id tëxt ✓ \"quoted\" \\ line\nbreak",
     "import_source": "WorkspaceFormDocument.settings.import_source tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -8390,6 +8393,7 @@
     "response_data_owner_field": "WorkspaceFormDocument.settings.response_data_owner_field tëxt ✓ \"quoted\" \\ line\nbreak",
     "response_expiration": "WorkspaceFormDocument.settings.response_expiration tëxt ✓ \"quoted\" \\ line\nbreak",
     "response_expiration_type": "forever",
+    "response_limit": 9007199254740993,
     "retention_text": "WorkspaceFormDocument.settings.retention_text tëxt ✓ \"quoted\" \\ line\nbreak",
     "show_original_form": true,
     "show_submission_number": true

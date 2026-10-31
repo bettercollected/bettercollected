@@ -1,9 +1,19 @@
-"""Whether a form still accepts responses: its close date, read one way.
+"""Whether a form still accepts responses: its open date, its close date and
+its response limit, read one way.
 
 A form's close date (``WorkspaceFormSettings.form_close_date``) is an instant.
 The form is closed from that instant on (``now >= close``); before it, or
-without a date, it is open. The server's clock decides, never the
-respondent's.
+without a date, it is open. The open date (``form_open_date``) is the same
+kind of instant the other way round: the form is not open yet before it
+(``now < open``) and open from that instant on. The server's clock decides,
+never the respondent's.
+
+The response limit (``response_limit``) is a number of stored responses: a
+form that holds that many takes no more (``form_full``). Deleting a response
+frees its slot. The count is the server's: the submit gate checks it first and
+the insert checks it again under a lock (``save_form_response``), so
+concurrent submissions never pass the limit. Edits of an existing response and
+deletion requests are never affected by any of the three.
 
 A submission is judged at the time the backend received the request
 (``request.state.received_at``, stamped before the body is read by
@@ -39,9 +49,18 @@ from backend.app.exceptions import HTTPException
 
 FORM_CLOSED = "form_closed"
 FORM_CLOSED_MESSAGE = "This form is closed and no longer accepts responses."
-# The read of a closed form's published version for a respondent: a stub with
-# this marker instead of the questions (services/form_service.py).
+FORM_NOT_OPEN = "form_not_open"
+FORM_NOT_OPEN_MESSAGE = "This form is not open yet."
+FORM_FULL = "form_full"
+FORM_FULL_MESSAGE = "This form has received all the responses it accepts."
+# The read of an unavailable form's published version for a respondent: a stub
+# with one of these markers instead of the questions (services/form_service.py).
 UNAVAILABLE_CLOSED = "closed"
+UNAVAILABLE_NOT_OPEN = "not_yet_open"
+UNAVAILABLE_FULL = "full"
+UNAVAILABLE_REASONS = (UNAVAILABLE_CLOSED, UNAVAILABLE_NOT_OPEN, UNAVAILABLE_FULL)
+# The most responses a limit can name (a sanity bound, well inside int4).
+MAX_RESPONSE_LIMIT = 1_000_000
 # How long after it arrived a submission is still judged at its arrival time.
 MAX_ARRIVAL_WINDOW = dt.timedelta(minutes=10)
 
@@ -74,18 +93,44 @@ def parse_instant(value: Any) -> Optional[dt.datetime]:
         return None
 
 
-def _close_value(settings: Any) -> Any:
+def _setting(settings: Any, key: str) -> Any:
     if settings is None:
         return None
     if isinstance(settings, Mapping):
-        return settings.get("form_close_date")
-    return getattr(settings, "form_close_date", None)
+        return settings.get(key)
+    return getattr(settings, key, None)
+
+
+def _close_value(settings: Any) -> Any:
+    return _setting(settings, "form_close_date")
 
 
 def closes_at(settings: Any) -> Optional[dt.datetime]:
     """The instant the form closes (aware UTC), or None when it has none.
     ``settings`` is a ``WorkspaceFormSettings`` or its stored dict."""
     return parse_instant(_close_value(settings))
+
+
+def opens_at(settings: Any) -> Optional[dt.datetime]:
+    """The instant the form opens (aware UTC), or None when it has none."""
+    return parse_instant(_setting(settings, "form_open_date"))
+
+
+def response_limit(settings: Any) -> Optional[int]:
+    """The number of responses the form accepts, or None for no limit. A
+    stored value that is not a positive whole number counts as no limit:
+    nothing writes one (``normalized_response_limit``), and a stray value must
+    never close a form."""
+    value = _setting(settings, "response_limit")
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        return None
+    return value
+
+
+def is_full(settings: Any, count: int) -> bool:
+    """Whether ``count`` stored responses use up the form's limit."""
+    limit = response_limit(settings)
+    return limit is not None and count >= limit
 
 
 def is_closed(settings: Any, now: Optional[dt.datetime] = None) -> bool:
@@ -108,25 +153,68 @@ def decision_time(
     return received_at
 
 
+def date_unavailability(
+    settings: Any, now: Optional[dt.datetime] = None
+) -> Optional[str]:
+    """Why the form's dates keep respondents out at ``now``:
+    ``"closed"``, ``"not_yet_open"``, or None. Closed wins (only a stored pair
+    with the open date after the close date can be both)."""
+    current = now or clock.utcnow()
+    close = closes_at(settings)
+    if close is not None and current >= close:
+        return UNAVAILABLE_CLOSED
+    opens = opens_at(settings)
+    if opens is not None and current < opens:
+        return UNAVAILABLE_NOT_OPEN
+    return None
+
+
+def is_unavailable_by_date(settings: Any, now: Optional[dt.datetime] = None) -> bool:
+    """Closed or not open yet: the public listing and the search leave the
+    form out (a full form is left out by ``is_full``, which needs a count)."""
+    return date_unavailability(settings, now) is not None
+
+
+def _refusal(code: str, message: str, **extra: str) -> HTTPException:
+    return HTTPException(
+        status_code=HTTPStatus.CONFLICT,
+        content={"code": code, "message": message, **extra},
+    )
+
+
+def form_full_error() -> HTTPException:
+    """409 ``form_full``: the refusal of a submission over the limit. The
+    body names no number (the count and the limit are the creator's)."""
+    return _refusal(FORM_FULL, FORM_FULL_MESSAGE)
+
+
 def ensure_accepting_responses(
     settings: Any,
     now: Optional[dt.datetime] = None,
     received_at: Optional[dt.datetime] = None,
 ) -> None:
-    """Refuse a new response to a closed form: 409 ``form_closed``, in the
-    shape of the other refusals of a submission (``invalid_answers``).
-    Judged at ``decision_time(received_at, now)``."""
-    close = closes_at(settings)
-    if close is None or decision_time(received_at, now) < close:
-        return
-    raise HTTPException(
-        status_code=HTTPStatus.CONFLICT,
-        content={
-            "code": FORM_CLOSED,
-            "message": FORM_CLOSED_MESSAGE,
-            "closesAt": close.isoformat(),
-        },
-    )
+    """Refuse a new response to a closed form (409 ``form_closed``) or one
+    that has not opened yet (409 ``form_not_open``), in the shape of the other
+    refusals of a submission (``invalid_answers``). Judged at
+    ``decision_time(received_at, now)``. The response limit needs a count and
+    is checked by ``ensure_not_full``."""
+    judged_at = decision_time(received_at, now)
+    reason = date_unavailability(settings, judged_at)
+    if reason == UNAVAILABLE_CLOSED:
+        raise _refusal(
+            FORM_CLOSED, FORM_CLOSED_MESSAGE, closesAt=closes_at(settings).isoformat()
+        )
+    if reason == UNAVAILABLE_NOT_OPEN:
+        raise _refusal(
+            FORM_NOT_OPEN, FORM_NOT_OPEN_MESSAGE, opensAt=opens_at(settings).isoformat()
+        )
+
+
+def ensure_not_full(settings: Any, count: int) -> None:
+    """Refuse a new response to a form that holds as many as its limit:
+    409 ``form_full``."""
+    if is_full(settings, count):
+        raise form_full_error()
 
 
 def normalized_close_date(value: Any) -> Optional[str]:
@@ -145,3 +233,38 @@ def normalized_close_date(value: Any) -> Optional[str]:
     if instant is None:
         raise ValueError("The close date must be a date and time (ISO 8601).")
     return instant.isoformat()
+
+
+def normalized_open_date(value: Any) -> Optional[str]:
+    """An open date as the settings PATCH stores it: as ``normalized_close_date``
+    (None = no change, ``""`` = no date, else a UTC ISO 8601 instant)."""
+    try:
+        return normalized_close_date(value)
+    except ValueError:
+        raise ValueError("The open date must be a date and time (ISO 8601).") from None
+
+
+def ensure_dates_in_order(open_value: Any, close_value: Any) -> None:
+    """Refuse an open date that is not before the close date (both, once
+    normalised, may be None or ``""`` for "none"). Raises ValueError."""
+    opens = parse_instant(open_value)
+    close = parse_instant(close_value)
+    if opens is not None and close is not None and opens >= close:
+        raise ValueError("The open date must be before the close date.")
+
+
+def normalized_response_limit(value: Any) -> Optional[int]:
+    """A response limit as the settings PATCH stores it: None (no change), 0
+    (no limit) or a whole number from 1 to ``MAX_RESPONSE_LIMIT``. Raises
+    ValueError for anything else (a 422): a fraction, text, a boolean, a
+    negative number."""
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError("The response limit must be a whole number.")
+    if value < 0 or value > MAX_RESPONSE_LIMIT:
+        raise ValueError(
+            f"The response limit must be between 1 and {MAX_RESPONSE_LIMIT} "
+            "(0 removes it)."
+        )
+    return value

@@ -487,6 +487,8 @@ class TestWorkspaceForm:
                 "needsReview": None,
                 "importSource": None,
                 "importId": None,
+                "formOpenDate": None,
+                "responseLimit": None,
             }
         }
         actual_response = patch_settings.json()
