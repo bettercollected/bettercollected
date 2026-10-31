@@ -502,3 +502,31 @@ def test_the_chat_prompt_teaches_the_op_only_while_it_works(rules_off, monkeypat
     prompt = build_chat_system_prompt("{}", None)
     assert '"op":"set_field_rules"' in prompt
     assert "set_field_logic" in prompt
+
+
+# --- checking only the question an op changed ----------------------------------------
+
+
+def test_the_check_of_one_question_skips_the_others_but_keeps_what_spans_the_form():
+    from backend.app.services.field_rules import field_rule_problems
+
+    broken = lambda rule_id: _rule(  # noqa: E731
+        rule_id, {"required": True}, [_is("gone", "x")]
+    )
+    form = _form(
+        [_q("a"), _q("b", rules=[broken("r1")]), _q("c", rules=[broken("r2")])]
+    )
+    assert {p.field_id for p in field_rule_problems(form)} == {"b", "c"}
+    assert {p.field_id for p in field_rule_problems(form, only={"b"})} == {"b"}
+    # a rule id used on two questions is still found when only one is checked
+    twice = _form([_q("a"), _q("b", rules=[REQUIRE_B]), _q("c", rules=[REQUIRE_B])])
+    assert any(
+        "more than once" in p.message for p in field_rule_problems(twice, only={"b"})
+    )
+
+
+def test_set_field_rules_is_not_refused_for_a_problem_another_question_had(rules_on):
+    stored_broken = _q("c", rules=[_rule("r9", {"required": True}, [_is("gone", "x")])])
+    form = _form([_q("a"), _q("b"), stored_broken])
+    after, results = apply_form_ops(form, _set("b", [_spec_rule()]))
+    assert results[0].ok, results[0].message

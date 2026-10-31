@@ -57,7 +57,18 @@ from collections import Counter, deque
 from dataclasses import dataclass, field as dataclass_field
 from decimal import Decimal
 from http import HTTPStatus
-from typing import Any, Deque, Dict, Iterable, List, Mapping, Optional, Set, Tuple
+from typing import (
+    Any,
+    Collection,
+    Deque,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+)
 
 from common.expressions import (
     ExpressionError,
@@ -846,9 +857,15 @@ class _Enough(Exception):
 class _Checker:
     """Checks the rules of one form; see :func:`field_rule_problems`."""
 
-    def __init__(self, form: Any, limit: Optional[int] = PROBLEMS_MAX):
+    def __init__(
+        self,
+        form: Any,
+        limit: Optional[int] = PROBLEMS_MAX,
+        only: Optional[Collection[str]] = None,
+    ):
         self.form = form
         self.limit = limit
+        self.only = set(only) if only is not None else None
         self.problems: List[FieldRuleProblem] = []
         self.targets = _targets(form)
         self.by_id: Dict[str, _Target] = {t.id: t for t in self.targets if t.id}
@@ -900,7 +917,9 @@ class _Checker:
             if not rules:
                 continue
             total += len(rules)
-            self.target(target)
+            checked = self.only is None or target.id in self.only
+            if checked:
+                self.target(target)
             for index, rule in enumerate(rules):
                 rule_id = str(_get(rule, "id") or "")
                 if rule_id in seen:
@@ -911,7 +930,8 @@ class _Checker:
                         index,
                     )
                 seen.setdefault(rule_id, target.id)
-                self.rule(target, index, rule)
+                if checked:
+                    self.rule(target, index, rule)
         self.cycles()
         cost = worst_case_cost(self.form)
         if cost > RULE_COST_PER_RESPONSE:
@@ -1284,10 +1304,15 @@ def _var_pointer(ast: Any, key: str) -> str:
 
 
 def field_rule_problems(
-    form: Any, limit: Optional[int] = PROBLEMS_MAX
+    form: Any,
+    limit: Optional[int] = PROBLEMS_MAX,
+    only: Optional[Collection[str]] = None,
 ) -> List[FieldRuleProblem]:
     """Problems with the rules of a form (see the module doc), at most
-    ``limit`` (None: all; only after the form-wide cap holds)."""
+    ``limit`` (None: all; only after the form-wide cap holds). ``only``
+    (question ids) checks the rules of those questions alone, plus what spans
+    the form (rule ids, circles, cost): for a caller that changed just them
+    and must not pay for every rule of the form again."""
     total = _total_rules(form)
     if not total:
         return []
@@ -1302,7 +1327,7 @@ def field_rule_problems(
                 f"has {total}.",
             )
         ]
-    checker = _Checker(form, limit)
+    checker = _Checker(form, limit, only)
     try:
         checker.check()
     except _Enough:

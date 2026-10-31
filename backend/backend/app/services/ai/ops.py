@@ -1765,13 +1765,15 @@ def _apply_set_field_rules(form: StandardForm, op: SetFieldRulesOp) -> str:
     probe = field.model_copy(deep=True)
     probe.properties.rules = rules
     _check_rules_allowed(probe, form)
-    known = _known_problems(form)
+    # Only this question's rules changed: check them (and what spans the
+    # form), not every rule of the form again, for each op of a batch.
+    known = {p.message for p in field_rule_problems(form, only={field.id})}
     previous = field.properties.rules
     field.properties.rules = rules
-    problem = _new_problems(form, known)
-    if problem:
-        field.properties.rules = previous
-        raise OpError(problem)
+    for problem in field_rule_problems(form, only={field.id}):
+        if problem.message not in known:
+            field.properties.rules = previous
+            raise OpError(problem.message)
     return f"Set {len(rules)} rule(s) on '{_title_text(field)}'"
 
 
