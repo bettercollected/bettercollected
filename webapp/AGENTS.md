@@ -78,6 +78,19 @@ questions (read-only, not disabled; a locked question is never required and meet
 page's status region (`field-rule-announcer.tsx`) says once, politely, what an answer changed. A form without rules
 takes none of these paths. The server stays authoritative.
 
+**Review page (respondent runtime):** a form with `settings.showReviewPage` (builder: Form tab, "Before sending") ends
+in a page of its own instead of submitting from the last page. It is a place in the journey like the welcome page and
+the ending: `REVIEW_SLIDE = -3` in `utils/review-page.ts`, drawn by `views/organism/form/review-page.tsx`, never
+stored or sent before submit. `reviewSections` lists the pages of the visited path (`history`) from the answers
+`normalizeGroupAnswersForSubmit` gives (what the submit sends): logic-hidden, internal and hidden-field values are
+left out, rule-set values are marked, files show their name. "Edit" (`editFromReview`) goes to a page and keeps the
+reviewed path in `reviewPath`; its "Back to review" replays the whole path from its first page with `walkReviewPath`
+(back to the review over the route as it now runs, on at a page never seen, or to a page that is no longer
+complete). The review does not change what is sent: answers to hidden questions and files are still sent by design,
+so `alsoSentRows` names them in an "Also sent" block, with the link's hidden-field values on a line of their own. Sending lives in `use-finish-form.ts`,
+shared by the last page and the review (409 closed/not open/full keep the answers; 422 goes to the page). A page is
+complete by `pageInvalidations` (`utils/page-validation.ts`) everywhere.
+
 **Field rules (builder):** the inspector's Rules section (`views/molecules/form-builder/field-rules-section.tsx`, the
 editor in `field-rules-settings.tsx`) writes rules through the `set_field_rules` op, so the ops engine's handler
 (`lib/form-ops/handlers/rules.ts`) and the shared checks (`lib/form-ops/field-rule-checks.ts`, twin of the

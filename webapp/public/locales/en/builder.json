@@ -742,6 +742,12 @@
     "SYNTAX": "Patterns use RE2 syntax: there are no lookarounds and no backreferences.",
     "KEPT": "The pattern the question already has stays in use until this one is valid."
   },
+  "REVIEW_PAGE": {
+    "TITLE": "Before sending",
+    "LABEL": "Review answers before sending",
+    "HINT": "Respondents see all their answers on one page after the last question, with a button to change each page, and send from there. Nothing is sent or stored until they do.",
+    "ERROR": "The setting could not be saved. Please try again."
+  },
   "FIELD_RULES": {
     "DROPPED_one": "{{count}} question lost a rule that no longer fits the form.",
     "DROPPED_other": "{{count}} questions lost a rule that no longer fits the form.",

@@ -658,6 +658,7 @@ class FormSettingsPatch(_CamelModel):
     require_verified_identity: Optional[bool] = None
     allow_editing_response: Optional[bool] = None
     show_submission_number: Optional[bool] = None
+    show_review_page: Optional[bool] = None
 
 
 class UpdateFormSettingsOp(_CamelModel):
@@ -1683,6 +1684,7 @@ _SETTINGS_LABELS = {
     "require_verified_identity": "verified-identity requirement",
     "allow_editing_response": "response editing",
     "show_submission_number": "submission numbers",
+    "show_review_page": "review page before sending",
 }
 
 
@@ -1697,7 +1699,7 @@ def _apply_update_form_settings(form: StandardForm, op: UpdateFormSettingsOp) ->
     if not changed:
         raise OpError(
             "Nothing to change — provide at least one of: purpose, retentionText, "
-            "privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber."
+            "privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber, showReviewPage."
         )
     if op.patch.privacy_policy_url is not None:
         # Respondents get it as a link: http(s) only.
@@ -1713,6 +1715,7 @@ _SETTINGS_SWITCH_KEYS = (
     "require_verified_identity",
     "allow_editing_response",
     "show_submission_number",
+    "show_review_page",
 )
 
 

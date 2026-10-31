@@ -640,6 +640,10 @@ export interface Trust {
   requireVerifiedIdentity?: boolean | null;
   allowEditingResponse?: boolean | null;
   showSubmissionNumber?: boolean | null;
+  /**
+   * Respondents see their answers on a page of their own, with a link back to each page, before they send them.
+   */
+  showReviewPage?: boolean | null;
 }
 /**
  * How long answers are kept: a number of days, until a date

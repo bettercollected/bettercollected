@@ -1051,6 +1051,11 @@ export interface components {
             allowEditingResponse?: boolean | null;
             /** Showsubmissionnumber */
             showSubmissionNumber?: boolean | null;
+            /**
+             * Showreviewpage
+             * @description Respondents see their answers on a page of their own, with a link back to each page, before they send them.
+             */
+            showReviewPage?: boolean | null;
         };
         /** ValidationResult */
         ValidationResult: {

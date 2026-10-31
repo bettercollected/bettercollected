@@ -731,6 +731,13 @@ class Trust(_Spec):
     require_verified_identity: Optional[bool] = None
     allow_editing_response: Optional[bool] = None
     show_submission_number: Optional[bool] = None
+    show_review_page: Optional[bool] = Field(
+        None,
+        description=(
+            "Respondents see their answers on a page of their own, with a link "
+            "back to each page, before they send them."
+        ),
+    )
 
 
 class FormSpec(_Spec):

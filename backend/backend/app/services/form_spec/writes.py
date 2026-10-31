@@ -70,6 +70,7 @@ _PATCH_KEYS = (
     "require_verified_identity",
     "allow_editing_response",
     "show_submission_number",
+    "show_review_page",
 )
 
 

@@ -236,6 +236,8 @@ export interface StandardFormDto {
         responseLimit?: number | null;
         requireVerifiedIdentity?: boolean;
         showSubmissionNumber?: boolean;
+        /** Respondents review their answers on a page of their own before sending (client-only; utils/review-page.ts). */
+        showReviewPage?: boolean;
         allowEditingResponse?: boolean;
         showOriginalForm?: boolean;
         /** "Respond to submissions": staff post updates respondents see. */

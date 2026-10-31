@@ -126,6 +126,7 @@ export interface FormSettingsPatch {
     requireVerifiedIdentity?: boolean | null;
     allowEditingResponse?: boolean | null;
     showSubmissionNumber?: boolean | null;
+    showReviewPage?: boolean | null;
 }
 
 // ---------------------------------------------------------------------------

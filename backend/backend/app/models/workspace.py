@@ -258,6 +258,9 @@ class WorkspaceFormSettings(BaseModel):
     response_limit: Optional[int] = None
     require_verified_identity: Optional[bool] = None
     show_submission_number: Optional[bool] = None
+    # Respondents see their answers on a page of their own before sending
+    # (client-only: nothing is stored until they submit). Off unless set.
+    show_review_page: Optional[bool] = None
     allow_editing_response: Optional[bool] = None
     show_original_form: Optional[bool] = None
     # "Allow AI insights on responses" (#716): off by default, admins only.
