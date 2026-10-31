@@ -25,6 +25,7 @@ from urllib.parse import quote, urlsplit
 
 from smoke import forms
 from smoke.browser import FlowError, Session
+from smoke.cleanup import delete_forms, describe, list_all_forms
 from smoke.config import OBJECT_ID, Config
 from smoke.http import Http, HttpError
 from smoke.mailbox import Mailbox
@@ -41,8 +42,10 @@ class State:
     workspace_id: str = ""
     handle: str = ""
     standing_form: str = ""
-    standing_created: bool = False
     run_form: str = ""
+    # every form this run created, by the id the API answered with:
+    # {form id: label}. The cleanup deletes these and nothing else.
+    created: Dict[str, str] = field(default_factory=dict)
     run_slug: str = ""
     run_response: str = ""
     signed_in: bool = False
@@ -233,14 +236,7 @@ class Suite:
 
     def _all_forms(self) -> List[dict]:
         assert self.key is not None
-        items: List[dict] = []
-        for page in range(1, 11):
-            body = self.key.get(f"/forms?page={page}&size=100").body or {}
-            batch = body.get("items", []) if isinstance(body, dict) else []
-            items.extend(batch)
-            if len(batch) < 100:
-                break
-        return items
+        return list_all_forms(self.key)
 
     def _responses(self, form_id: str) -> List[dict]:
         assert self.key is not None
@@ -322,7 +318,8 @@ class Suite:
                         "formId"
                     ]
                 )
-                self.state.standing_created = True
+                # until the set is complete, an unfinished one is cleaned up
+                self.state.created[form_id] = "unfinished standing form"
                 slug = self._publish(form_id)
             self.state.standing_form = form_id
             c.id("form", form_id)
@@ -341,7 +338,7 @@ class Suite:
             if not problems:
                 c.note(f"{len(stored)} responses read back and decrypted as stored")
             # a set made this run is complete now: keep it
-            self.state.standing_created = False
+            self.state.created.pop(form_id, None)
 
     def _answer_standing(self, slug: str) -> None:
         session = self.session()
@@ -380,6 +377,7 @@ class Suite:
                 "/forms", forms.run_spec(self.config.run_tag), expect=(201,)
             )
             self.state.run_form = str(created.body["formId"])
+            self.state.created[self.state.run_form] = "run form"
             c.id("form", self.state.run_form)
             self.state.run_slug = self._publish(self.state.run_form)
             session = self.respondent if self.state.signed_in else self.session()
@@ -532,20 +530,25 @@ class Suite:
     # -- cleanup ---------------------------------------------------------------------
     def cleanup(self) -> None:
         report = self.report
-        for form_id, what in (
-            (self.state.run_form, "run form"),
-            (
-                self.state.standing_form if self.state.standing_created else "",
-                "unfinished standing form",
-            ),
-        ):
-            if not form_id or self.key is None:
-                continue
+        # the forms this run created, run form first (the order they were made
+        # in, reversed); a missing scope or a failed delete is a warning with
+        # the ids left behind, never a failed check
+        if self.key is not None and self.state.created:
             try:
-                self.key.delete(f"/forms/{quote(form_id)}", expect=(204,))
-                report.note_cleanup(f"{what} {form_id} deleted")
+                result = delete_forms(
+                    self.key, list(reversed(list(self.state.created.items())))
+                )
+                notes, warnings = describe(result)
             except Exception as error:
-                report.note_cleanup(f"{what} {form_id} NOT deleted ({error})")
+                notes = [f"form cleanup failed ({type(error).__name__})"]
+                warnings = [
+                    "form(s) possibly left behind in the test workspace: "
+                    + ", ".join(self.state.created)
+                ]
+            for note in notes:
+                report.note_cleanup(note)
+            for warning in warnings:
+                report.warn(warning)
         if self.respondent is not None:
             if self.state.signed_in:
                 try:

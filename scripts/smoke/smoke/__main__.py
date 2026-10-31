@@ -2,7 +2,11 @@
 
 Configured from the environment (smoke/config.py, docs/smoke-test.md). Exit
 status: 0 every check passed (or was skipped), 1 a check failed, 2 the
-configuration is incomplete.
+configuration is incomplete. A form the run could not delete afterwards (the
+key lacks forms:delete) is a warning in the report, not a failure.
+
+The one-off cleanup of forms that earlier runs left behind is a separate
+command: python -m smoke.cleanup (dry run unless --delete is given).
 
 Local dry run (never against production): point --target at a local stack and
 read the codes from its Mailpit inbox with --mailpit http://localhost:8025.
@@ -11,6 +15,7 @@ read the codes from its Mailpit inbox with --mailpit http://localhost:8025.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -80,6 +85,10 @@ def main(argv: list[str] | None = None) -> int:
         mailbox.close()
         report.write(args.report_dir)
     print(report.markdown())
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        for text in report.warnings:
+            safe = text.replace("%", "%25").replace("\r", " ").replace("\n", " ")
+            print(f"::warning title=Smoke test cleanup::{safe}")
     return 0 if report.ok else 1
 
 
