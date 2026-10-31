@@ -1,4 +1,3 @@
-import json
 from http import HTTPStatus
 
 from common.records import RecordId
@@ -7,7 +6,6 @@ from common.configs.crypto import Crypto
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 from common.models.user import User
 from common.services.http_client import HttpClient
-from cryptography.fernet import InvalidToken
 
 from backend.app.repositories.postgres.forms import (
     PostgresFormRepository,
@@ -17,9 +15,11 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.enum.form_integration import FormIntegrationType
 from backend.app.models.enum.permission import Permission
 from backend.app.repositories.postgres.actions import PostgresActionRepository
+from backend.app.repositories.postgres.identity import PostgresSsoUsedStateRepository
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.integration_action_service import IntegrationActionService
+from backend.app.services.integration_oauth_state import IntegrationOAuthState, mint
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 
 
@@ -34,8 +34,10 @@ class IntegrationService:
         workspace_form_repo: PostgresWorkspaceFormRepository,
         authorization_service: AuthorizationService,
         action_repository: PostgresActionRepository,
+        used_state_repo: PostgresSsoUsedStateRepository,
     ):
         self._crypto = crypto
+        self._state = IntegrationOAuthState(crypto, used_state_repo)
         self._workspace_form_repo = workspace_form_repo
         self._authorization = authorization_service
         self._action_repository = action_repository
@@ -53,7 +55,8 @@ class IntegrationService:
         return await self.integration__provider_factory.get_integration_provider(
             integration_type
         ).get_basic_integration_oauth_url(
-            client_referer_url=client_referer_url, user_id=user.id
+            client_referer_url=client_referer_url,
+            state=mint(self._crypto, user, client_referer_url),
         )
 
     async def handle_oauth_callback(
@@ -68,21 +71,15 @@ class IntegrationService:
         provider = self.integration__provider_factory.get_integration_provider(
             integration_type
         )
-        self._check_state_belongs_to_user(state, user)
+        # minted by get_oauth_url for this user's session, not expired
+        state_data = self._state.read(state, user)
         await self._check_user_can_configure_form(form_id, user)
         await self._check_action(integration_type, action_id)
+        # accepted once, before the code is exchanged
+        await self._state.consume(state_data)
         return await provider.handle_basic_integration_callback(
             state=state, code=code, form_id=form_id, action_id=action_id
         )
-
-    def _check_state_belongs_to_user(self, state: str, user: User):
-        """The state was minted by get_oauth_url for the signed-in user."""
-        try:
-            state_data = json.loads(self._crypto.decrypt(state))
-        except (InvalidToken, ValueError, TypeError):
-            raise HTTPException(HTTPStatus.BAD_REQUEST, "Invalid OAuth state.")
-        if not isinstance(state_data, dict) or state_data.get("user_id") != user.id:
-            raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
 
     async def _check_user_can_configure_form(self, form_id: str, user: User):
         """Only members of a workspace holding the form may attach credentials."""

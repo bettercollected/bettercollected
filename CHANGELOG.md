@@ -13,6 +13,98 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.1.2] - 2026-10-31
+
+4.1.2 is a security release. The server now enforces a form's close date, the public receipt routes are rate limited, and the sign-in page on the form host and custom domains only follows links to this site. The auth service keeps only a keyed hash of each email sign-in code and no longer hands pending codes to the backend, its access log or Elastic APM. Connecting Google Sheets to a form hands the consent result only to the dashboard, and an imported form's link to its original must be an http(s) address. The Python and TypeScript SDKs can now be published from this repository.
+
+**Upgrading from 4.1.1:** no migration and no required setting. Check four things:
+
+- **Closed forms:** forms whose close date has already passed stop accepting responses as soon as this version runs.
+- **Receipt limits count per client address:** check that `TRUSTED_PROXIES` covers your reverse proxy's current address. Prefer the CIDR of the network between the proxy and the backend over a single container address, which changes when the container is recreated (host names are not accepted here). The backend logs a warning, once per process, when a proxy at a private address sends `X-Forwarded-For` but is not in `TRUSTED_PROXIES`. The limits are live settings: if receipts start answering 429 for everyone, set them to 0 in the admin portal.
+- **Sign-in codes sent before the upgrade are refused:** they were stored in plain text and expire within 5 minutes anyway, so anyone signing in at that moment asks for a new code. An account whose last code was sent before the upgrade keeps that expired value until its next code is sent or checked. Rotating `AUTH_AES_HEX_KEY` likewise voids the codes pending at that moment.
+- **Google Sheets connections in progress during the upgrade** are refused once: start the connection again.
+
+### Added
+
+- **The SDKs can be published to package registries**: the Python SDK and CLI as
+  `bettercollected` on PyPI and the TypeScript SDK as `@bettercollected/sdk` on npm, both
+  Apache-2.0, each with its own version (starting at 0.1.0) and working with
+  bettercollected 4.1 or later. A tag `sdk-py-vX.Y.Z` or `sdk-ts-vX.Y.Z` starts the new
+  Publish SDK workflow, which tests and builds the package, waits for an environment
+  reviewer and uploads it with trusted publishing (PyPI attestations, npm provenance). The
+  tags do not start the app's Build and Deploy. Steps in RELEASING.md, "SDK releases".
+
+### Fixed
+
+- A response sent to a form that was never published is refused with 404, as the form's
+  page is. Before, it was stored and the request then failed with a server error, without
+  starting the form's actions.
+
+### Security
+
+- The server now enforces a form's close date. Before, the date only hid the form from the
+  public listing and the share menus: a direct link to a closed form still loaded it and
+  accepted new responses. From the close instant on, a new response is refused with 409
+  `form_closed` before anything is stored, uploaded or started. The time the backend
+  received the request decides (behind a proxy that buffers uploads, the time the upload
+  finished), for at most 10 minutes after it arrived. Respondents can still edit or ask
+  to delete what they already sent. Forms whose close date has passed stop accepting
+  responses when this version is deployed.
+- A closed form's questions are no longer served on any respondent read: the published
+  form, any of its versions, the public listing and the search. Respondents get the
+  form's welcome page and look with a "closed" notice, without an AI notice token or a
+  registration destination. A respondent whose form closes while they fill it in sees the
+  same notice, and keeps their answers on the page. Workspace members still see the whole
+  form, with a line saying respondents can no longer answer it.
+- The close date is checked when it is saved: it is stored as a UTC instant (a value
+  without an offset counts as UTC), an empty value removes it, and anything that is not a
+  date is refused with 422. Values stored earlier, in any offset, are read as the same
+  instant. The listing used to compare them as text, which was off by the offset.
+- The sign-in page on the form host and on custom domains only follows a `redirect_to`
+  that is a path of this site. Before, a crafted sign-in link could send someone who
+  signed in (or was already signed in) to another site.
+- The public receipt routes (reading a response by its receipt number, and requesting its
+  deletion) are now rate limited, so receipt numbers can no longer be tried at full speed.
+  Per client address and 10-minute window: 60 requests per route and 10 unknown numbers
+  (both routes together; after that every lookup answers 429 with `Retry-After` until the
+  window ends). The counters are shared by every backend replica and hold neither the
+  number nor the address. Set them with `API_RECEIPT_REQUESTS_PER_WINDOW`,
+  `API_RECEIPT_MISSES_PER_WINDOW` and `API_RECEIPT_WINDOW_SECONDS` (0 turns a limit off).
+  `API_RECEIPT_GLOBAL_MISSES_PER_WINDOW` is an emergency switch, off (0) by default: a cap
+  on all clients' unknown numbers together, after which receipts answer 429 for everyone
+  until the window ends. The receipt pages say "Too many attempts. Try again in a few
+  minutes." instead of "not found" when a lookup is refused.
+- Email sign-in codes are no longer stored as they are mailed. The auth service keeps a keyed
+  hash of each code (HMAC-SHA256 with a key derived from `AUTH_AES_HEX_KEY`), bound to the
+  account, whether the code was asked as a creator or a respondent, and its expiry, and compares
+  it in constant time. Anyone who can read the auth database or a backup can no longer sign in
+  with a pending code. Five wrong tries now clear a code (parallel tries count too), and a new
+  one must be requested; an expired code is refused before it is compared, and a code signs in
+  only once. Other changes to an account (names, plan, last sign-in) can no longer put back an
+  older code or reset its count of wrong tries.
+- The auth service no longer returns an account's pending code to the backend (account lookups,
+  the plan upgrade and the Stripe webhook reply, which now names the account by id only), and
+  its access log no longer records query strings (where the backend sends the email and the
+  code). Its database error messages leave out the statement's parameter values (SQLAlchemy's
+  `hide_parameters`); other parts of an error message, such as Postgres' detail line, are only
+  removed from what Elastic APM sends.
+- Elastic APM no longer records what a request to the auth service carries. Every transaction,
+  span and error it sends has no query string in a URL or name (the email and the sign-in
+  code), no request headers (the internal key), cookies or body, no local variables of stack
+  frames (which the auth service no longer collects at all), and no statement parameters,
+  Postgres detail line or key values in an error message. The backend's APM guard now covers
+  spans too: its calls to the auth service are recorded without their query strings. Both
+  guards are built into the APM client, and no `ELASTIC_APM_*` setting switches them off.
+- Connecting Google Sheets to a form: the consent popup now hands its result only to the
+  dashboard origin, and only the code, the state or Google's error. The dashboard accepts
+  it only from the popup it opened, on the dashboard origin. The connection's state is
+  tied to the session that started it, expires after an hour (also when the Google Forms
+  service runs the connection) and is accepted once. A connection started before the
+  upgrade and finished after it is refused: start it again.
+- An imported form's link to its original (opened or framed when the form is set to show
+  the original) is kept only when it is an http(s) address, and the respondent page opens
+  or frames nothing else.
+
 ## [4.1.1] - 2026-10-30
 
 4.1.1 is about reading responses. A response opens on its own page that looks like the form, the search on the responses page works, the CSV export gains the response id, submission time and hidden fields, and receipt numbers and searched emails stay out of logs, caches and the hands of roles that must not read answers. The admin portal can also trust its reverse proxy by host name.
@@ -2396,7 +2488,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.1.1...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.1.2...HEAD
+[4.1.2]: https://github.com/bettercollected/bettercollected/compare/v4.1.1...v4.1.2
 [4.1.1]: https://github.com/bettercollected/bettercollected/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/bettercollected/bettercollected/compare/v4.0.14...v4.1.0
 [4.0.14]: https://github.com/bettercollected/bettercollected/compare/v4.0.13...v4.0.14

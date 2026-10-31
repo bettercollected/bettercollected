@@ -38,6 +38,7 @@ from tests.app.sheets_helpers import (
     TOKEN_URI,
     backend_sheets_oauth,  # noqa: F401 (fixture)
     credential_dict,
+    session_oauth_state,
     fake_google,  # noqa: F401 (fixture)
     sheets_client,  # noqa: F401 (fixture)
 )
@@ -135,9 +136,7 @@ async def run_worker():
 
 
 async def _connect(client, cookies, form_id, action_id):
-    state = container.crypto().encrypt(
-        json.dumps({"client_referer_uri": None, "user_id": testUser.id})
-    )
+    state = session_oauth_state(cookies)
     return await client.post(
         f"{OAUTH_URL}/callback",
         cookies=cookies,

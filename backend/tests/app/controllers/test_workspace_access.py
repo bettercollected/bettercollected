@@ -24,6 +24,7 @@ from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.config import settings
 from tests.app.controllers.data import formData, testUser, testUser1
+from tests.app.sheets_helpers import oauth_state, session_oauth_state
 
 
 def _url(workspace) -> str:
@@ -229,12 +230,6 @@ def google_provider():
         yield http_client
 
 
-def _state_for(user) -> str:
-    return container.crypto().encrypt(
-        json.dumps({"client_referer_uri": None, "user_id": user.id})
-    )
-
-
 CALLBACK_URL = f"/api/v1/integration/{FormIntegrationType.GOOGLE_SHEET.value}/oauth"
 
 
@@ -265,7 +260,7 @@ class TestIntegrationOAuth:
             f"{CALLBACK_URL}/callback",
             cookies=test_user_cookies_1,
             json={
-                "state": _state_for(testUser1),
+                "state": session_oauth_state(test_user_cookies_1),
                 "code": "attacker-code",
                 "form_id": workspace_form.form_id,
                 "action_id": str(sheets_action.id),
@@ -289,7 +284,7 @@ class TestIntegrationOAuth:
             f"{CALLBACK_URL}/callback",
             cookies=test_user_cookies,
             json={
-                "state": _state_for(testUser1),
+                "state": oauth_state(testUser1),
                 "code": "code",
                 "form_id": workspace_form.form_id,
                 "action_id": str(sheets_action.id),
@@ -323,7 +318,7 @@ class TestIntegrationOAuth:
             f"{CALLBACK_URL}/callback",
             cookies=test_user_cookies,
             json={
-                "state": _state_for(testUser),
+                "state": session_oauth_state(test_user_cookies),
                 "code": "code",
                 "form_id": workspace_form.form_id,
                 "action_id": action_id,
@@ -346,7 +341,7 @@ class TestIntegrationOAuth:
             f"{CALLBACK_URL}/callback",
             cookies=test_user_cookies,
             json={
-                "state": _state_for(testUser),
+                "state": session_oauth_state(test_user_cookies),
                 "code": "code",
                 "form_id": workspace_form.form_id,
                 "action_id": str(sheets_action.id),

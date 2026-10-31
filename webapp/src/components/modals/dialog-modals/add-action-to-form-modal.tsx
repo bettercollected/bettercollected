@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useModal } from '@app/components/modal-views/context';
 import { googleFormsImport } from '@app/constants/locales/google-forms-import';
 import { sheetsReconnect } from '@app/constants/locales/sheets-reconnect';
+import { configuredDashboardOrigin, oauthMessage } from '@app/lib/google-oauth-popup';
 import { googleFormsRefusal, useGoogleFormsImportMode } from '@app/lib/hooks/use-google-forms-import-mode';
 import { IntegrationType } from '@app/models/enums/integration-type';
 import { AppInput } from '@app/shadcn/components/ui/input';
@@ -38,6 +39,8 @@ export default function AddActionToFormModal({ action, form, reconnect = false, 
     const [showIntegrationConsent, setShowIntegrationConsent] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [oauthResult, setOauthResult] = useState({ state: '', code: '' });
+    // the consent popup this modal opened: the only window it takes a result from
+    const popupRef = useRef<Window | null>(null);
     const { t } = useTranslation();
     // GOOGLE_FORMS_IMPORT=off: the Sheets action still goes through the
     // Google Forms service, so connecting answers 410 google_forms_off.
@@ -75,6 +78,21 @@ export default function AddActionToFormModal({ action, form, reconnect = false, 
         }
     }, [oauthResult.state]);
 
+    // The consent popup's result: only from that popup, on the dashboard origin.
+    useEffect(() => {
+        const onMessage = (event: MessageEvent) => {
+            const result = oauthMessage(event, configuredDashboardOrigin(), popupRef.current);
+            if (!result) return;
+            if (result.error) {
+                setErrorMessage('Access has been denied');
+            } else if (result.state && result.code) {
+                setOauthResult({ state: result.state, code: result.code });
+            }
+        };
+        window.addEventListener('message', onMessage);
+        return () => window.removeEventListener('message', onMessage);
+    }, []);
+
     const handleClick = () => {
         setErrorMessage('');
         fetchOauthUrl({ integrationType: IntegrationType.GoogleSheet }).then((res) => {
@@ -86,7 +104,7 @@ export default function AddActionToFormModal({ action, form, reconnect = false, 
                 setErrorMessage('Could not reach Google. Please try again.');
                 return;
             }
-            window.open(res.data, 'oauthWindow', 'height=600 width=600 left=600 top=300');
+            popupRef.current = window.open(res.data, 'oauthWindow', 'height=600 width=600 left=600 top=300');
         });
     };
 
@@ -115,17 +133,6 @@ export default function AddActionToFormModal({ action, form, reconnect = false, 
             </HeaderModalWrapper>
         );
     }
-
-    // listen for oauth event
-    window.addEventListener('message', function (event) {
-        if (event.origin === `${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}`) {
-            if (event.data?.error) {
-                setErrorMessage('Access has been denied');
-            } else if (event.data?.state && event.data?.code) {
-                setOauthResult({ state: event.data?.state, code: event.data?.code });
-            }
-        }
-    });
 
     const onAddIntegration = async () => {
         let error = false;
