@@ -46,9 +46,9 @@ async def test_a_code_sign_in_in_another_case_reaches_the_same_account(
 ):
     service = AuthService(None, repo, None)
 
-    await service.send_otp_to_mail("JANE.DOE@example.COM", None, None, creator=True)
-    code = (await repo.get_user_by_email(STORED)).otp_code
-    signed_in = await service.validate_otp("jane.doe@example.com", code)
+    with patch.object(AuthService, "generate_otp", return_value="ABC-123"):
+        await service.send_otp_to_mail("JANE.DOE@example.COM", None, None, creator=True)
+    signed_in = await service.validate_otp("jane.doe@example.com", "ABC-123")
 
     assert signed_in is not None and signed_in.id == str(jane.id)
     assert signed_in.sub == STORED  # the stored address, as it was written

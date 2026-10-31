@@ -125,6 +125,7 @@ def fresh_warning(monkeypatch):
     from backend.app.utils import client_ip as module
 
     monkeypatch.setattr(module, "_warned_untrusted_private_peer", False)
+    monkeypatch.setattr(module, "_warned_unlisted_private_proxy", False)
 
 
 def test_warns_once_about_an_unconfigured_proxy(fresh_warning, caplog):
@@ -149,3 +150,37 @@ def test_no_warning_when_configured_public_or_headerless(fresh_warning, caplog):
         client_ip(_request("93.184.216.34", ["198.51.100.1"]))
         client_ip(_request(NGINX, None))
     assert not [r for r in caplog.records if "TRUSTED_PROXIES" in r.getMessage()]
+
+
+def test_warns_once_about_a_proxy_left_out_of_trusted_proxies(fresh_warning, caplog):
+    """TRUSTED_PROXIES is set, but not to the private peer that forwards (a
+    recreated proxy container with a new address, a host name)."""
+    import logging
+
+    stale = "10.9.9.9, proxy.internal"  # neither covers NGINX
+    secret = "198.51.100.78"
+    with caplog.at_level(logging.WARNING, logger="backend.app.utils.client_ip"):
+        for _ in range(3):
+            assert client_ip(_request(NGINX, [secret]), stale) == NGINX
+    records = [
+        r for r in caplog.records if "is not in TRUSTED_PROXIES" in r.getMessage()
+    ]
+    assert len(records) == 1
+    text = records[0].getMessage()
+    assert "all clients may share one address for rate limits" in text
+    assert secret not in text and NGINX not in text and "10.9.9.9" not in text
+
+
+def test_no_stale_proxy_warning_for_a_listed_proxy_or_a_public_peer(
+    fresh_warning, caplog
+):
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="backend.app.utils.client_ip"):
+        client_ip(_request(NGINX, ["198.51.100.1"]), TRUSTED)
+        client_ip(_request(NGINX, ["198.51.100.1"]), NGINX + "/8")
+        client_ip(_request("93.184.216.34", ["198.51.100.1"]), "10.9.9.9")
+        client_ip(_request(NGINX, None), "10.9.9.9")
+    assert not [
+        r for r in caplog.records if "is not in TRUSTED_PROXIES" in r.getMessage()
+    ]

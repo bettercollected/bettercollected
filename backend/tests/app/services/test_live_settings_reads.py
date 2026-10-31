@@ -24,6 +24,7 @@ from backend.app.services.flow_event_service import FlowEventService
 from backend.app.services.form_spec.editor_ops import EditorOpsService
 from backend.app.services.image_service import ImageService
 from backend.app.services.rate_limiter import Verdict
+from backend.app.services.receipt_limits import READ as RECEIPT_READ, ReceiptLimits
 from backend.config import settings
 from common.settings.canonical import SettingRow
 from common.settings.keys import SectionKeys
@@ -296,6 +297,29 @@ async def test_image_import_limits_are_read_per_call(monkeypatch, key, field, po
         with pytest.raises(HTTPException):
             await service.import_image("ws", "https://images.example.org/a.png", user)
         assert limiter.calls[-1][position] == new, key
+
+
+# ------------------------------------------------------------- receipts
+
+
+@pytest.mark.parametrize(
+    "key, field, call, position",
+    [
+        ("API_RECEIPT_REQUESTS_PER_WINDOW", "RECEIPT_REQUESTS_PER_WINDOW", 0, 2),
+        ("API_RECEIPT_WINDOW_SECONDS", "RECEIPT_WINDOW_SECONDS", 0, 3),
+        ("API_RECEIPT_MISSES_PER_WINDOW", "RECEIPT_MISSES_PER_WINDOW", 1, 2),
+        ("API_RECEIPT_GLOBAL_MISSES_PER_WINDOW", "RECEIPT_GLOBAL_MISSES_PER_WINDOW", 2, 2),
+    ],
+)
+async def test_receipt_limits_are_read_per_call(monkeypatch, key, field, call, position):
+    limiter = RecordingLimiter(ALLOW)
+    limits = ReceiptLimits(limiter)
+    for new in (9001, 9002):
+        _set(monkeypatch, settings.api_settings, field, new)
+        before = len(limiter.calls)
+        async with limits.lookup(RECEIPT_READ, "203.0.113.1"):
+            pass
+        assert limiter.calls[before + call][position] == new, key
 
 
 # ------------------------------------------------------------ editor ops

@@ -35,6 +35,11 @@ from backend.app.repositories.postgres.analytics import PostgresFlowEventReposit
 from backend.app.router import router
 from backend.app.services.flow_event_service import FlowEventService
 from backend.app.services.form_response_service import FormResponseService
+from backend.app.services.receipt_limits import (
+    DELETION_REQUEST as RECEIPT_DELETION_REQUEST,
+    READ as RECEIPT_READ,
+    ReceiptLimits,
+)
 from backend.app.services.respondent_feedback_service import (
     RespondentFeedbackService,
 )
@@ -63,6 +68,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
             container.respondent_feedback_service()
         ),
         flow_event_service: FlowEventService = container.flow_event_service(),
+        receipt_limits: ReceiptLimits = container.receipt_limits(),
         *args,
         **kwargs
     ):
@@ -71,6 +77,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
         self._respondent_feedback_service = respondent_feedback_service
         self._flow_event_repo = flow_event_repo
         self._flow_event_service = flow_event_service
+        self._receipt_limits = receipt_limits
 
     @get(
         "/forms/{form_id}/submissions",
@@ -313,13 +320,19 @@ class WorkspaceResponsesRouter(CustomRoutable):
             workspace_id, submission_id, user
         )
 
+    # The receipt routes need no sign-in: the number is the credential, so
+    # each lookup is rate limited per client address, unknown numbers more
+    # strictly (services/receipt_limits.py; 429 with Retry-After).
     @get("/submissions/by-uuid/{submission_uuid}")
     async def get_submission_by_uuid(
-        self, workspace_id: RecordId, submission_uuid: str
+        self, workspace_id: RecordId, submission_uuid: str, request: Request
     ):
-        return await self._form_response_service.get_by_uuid(
-            submission_uuid=submission_uuid, workspace_id=workspace_id
-        )
+        async with self._receipt_limits.lookup(
+            RECEIPT_READ, request_client_ip(request)
+        ):
+            return await self._form_response_service.get_by_uuid(
+                submission_uuid=submission_uuid, workspace_id=workspace_id
+            )
 
     @delete(
         "/submissions/{submission_id}",
@@ -338,9 +351,12 @@ class WorkspaceResponsesRouter(CustomRoutable):
 
     @delete("/submissions/by-uuid/{submission_uuid}")
     async def _request_workspace_form_response_delete_by_uuid(
-        self, workspace_id: RecordId, submission_uuid: str
+        self, workspace_id: RecordId, submission_uuid: str, request: Request
     ):
-        await self._form_response_service.request_for_response_deletion_by_uuid(
-            workspace_id, submission_uuid
-        )
+        async with self._receipt_limits.lookup(
+            RECEIPT_DELETION_REQUEST, request_client_ip(request)
+        ):
+            await self._form_response_service.request_for_response_deletion_by_uuid(
+                workspace_id, submission_uuid
+            )
         return {"message": "Request for deletion created successfully."}

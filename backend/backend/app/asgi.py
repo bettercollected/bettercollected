@@ -22,6 +22,7 @@ from backend.jobs.app import app as jobs_app, postgres_jobs_enabled
 from backend.app.mcp.server import build_mcp_asgi_app, mcp
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.middlewares.apm_privacy import PrivateAPMClient
+from backend.app.middlewares.received_at import ReceivedAtMiddleware
 from backend.app.middlewares.request_privacy import redact_receipts
 from backend.app.public_api.app import PUBLIC_API_PATH, build_public_api_asgi
 from backend.app.router import root_api_router
@@ -232,6 +233,8 @@ def get_application(is_test_mode: bool = False):
 
     logger.info("Register application middlewares.")
     include_middlewares(app)
+    # a submission's arrival time, for the close-date gate (submit route only)
+    app.add_middleware(ReceivedAtMiddleware)
     # the timing line names the route (and, for an unmatched one, the raw path)
     add_timing_middleware(
         app,

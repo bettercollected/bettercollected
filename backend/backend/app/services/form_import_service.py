@@ -1,6 +1,7 @@
 import datetime
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from urllib.parse import urlsplit
 
 from common.ids import RecordId
 from loguru import logger
@@ -19,6 +20,21 @@ from backend.app.services.form_service import FormService
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponseAnswer
 from common.services.crypto_service import crypto_service
+
+
+def http_url_or_none(value: Optional[str]) -> Optional[str]:
+    """An address the respondent page may open or show in a frame: an
+    absolute http(s) URL with a host; anything else is None."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    url = value.strip()
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return None
+    if parts.scheme.lower() not in ("http", "https") or not parts.hostname:
+        return None
+    return url
 
 
 class FormImportService:
@@ -49,6 +65,12 @@ class FormImportService:
         if not workspace_id:
             # responses belong to the workspace they are imported into (#768)
             raise ValueError("An import needs the workspace it goes into.")
+        if form_data.form and form_data.form.settings:
+            # the provider's address of the original form, which the
+            # respondent page opens or frames: http(s) only
+            form_data.form.settings.embed_url = http_url_or_none(
+                form_data.form.settings.embed_url
+            )
         # A provider import never brings field rules (services/field_rules.py):
         # none come in this way, whatever the payload holds.
         if form_data.form is not None and strip_field_rules(form_data.form):

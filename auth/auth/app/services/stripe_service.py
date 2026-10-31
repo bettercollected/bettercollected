@@ -8,6 +8,13 @@ from auth.app.schemas.user import UserDocument
 from auth.config import settings
 
 
+def _webhook_user(user: UserDocument) -> dict:
+    """The account as the webhook reply carries it: its id only, all the
+    backend reads (``_id``). Never the whole document (a pending sign-in code,
+    Stripe ids, the email)."""
+    return {"_id": str(user.id)}
+
+
 class StripeService:
     def __init__(
         self,
@@ -78,7 +85,7 @@ class StripeService:
             user = await self.user_repository.set_user_plan(
                 user.id, Plans.PRO, stripe_customer_id=stripe_customer_id
             )
-            return {"user": user, "upgrade": True}
+            return {"user": _webhook_user(user), "upgrade": True}
         elif (
             event_type == "customer.subscription.deleted"
             or event_type == "invoice.payment_failed"
@@ -93,7 +100,7 @@ class StripeService:
                 loguru.logger.error("User not found with customer_id:" + stripe_customer_id)
                 return {"message": "User not found with customer_id:" + stripe_customer_id}
             user = await self.user_repository.set_user_plan(user.id, Plans.FREE)
-            return {"user": user, "downgrade": True}
+            return {"user": _webhook_user(user), "downgrade": True}
         elif event_type == "invoice.payment_succeeded":
             stripe_customer_id = data.object.customer
             user: UserDocument = (
@@ -105,4 +112,4 @@ class StripeService:
                 loguru.logger.error("User not found with customer_id:" + stripe_customer_id)
                 return {"message": "User not found with customer_id:" + stripe_customer_id}
             user = await self.user_repository.set_user_plan(user.id, Plans.PRO)
-            return {"user": user, "upgrade": True}
+            return {"user": _webhook_user(user), "upgrade": True}

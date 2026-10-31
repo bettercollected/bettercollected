@@ -36,7 +36,7 @@ import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/
 import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
 import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
 import { focusQuestionInGroup, scrollToDivById } from '@app/utils/scroll-utils';
-import { firstPageWithError, historyBackTo, serverAnswerErrors, serverInvalidations } from '@app/utils/server-answer-errors';
+import { firstPageWithError, historyBackTo, isFormClosedError, serverAnswerErrors, serverInvalidations } from '@app/utils/server-answer-errors';
 import { validateSlide } from '@app/utils/vvalidation-utils';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import BackButton from '@app/views/molecules/form-builder/back-button';
@@ -135,7 +135,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const { t, language } = useRespondentLanguage();
     const contentLang = useFormContentLanguage();
     const standardForm = useAppSelector(selectResponderForm);
-    const formSlideFromState = standardForm.fields[index];
+    // undefined once the form came back without its questions (closed)
+    const formSlideFromState = standardForm?.fields?.[index];
     const formSlide = formSlideData ? formSlideData : formSlideFromState;
 
     const { currentSlide, setCurrentSlideToThankyouPage, nextSlide, goToSlide, previousSlide, setResponderState, responderState, setCurrentSlideToWelcomePage } = useResponderState();
@@ -239,8 +240,9 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const isLastPage = (standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index;
     const endsHere = currentSlide === index && resolveJump(formSlide, formResponse.answers || {}, logicSources)?.target === JUMP_TARGET_SUBMIT;
     const submitsHere = isLastPage || endsHere;
-    // A failed submission, shown by the button until the next attempt.
-    const [submitError, setSubmitError] = useState(false);
+    // A failed submission, shown by the button until the next attempt:
+    // "closed" when the form closed before it was sent (409 form_closed).
+    const [submitError, setSubmitError] = useState<false | 'failed' | 'closed'>(false);
 
     const [sendFlowEvent] = useSendFlowEventMutation();
     // Anonymous drop-off breadcrumb: page → page, never answers, never in preview.
@@ -264,9 +266,14 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     });
                 })
                 .catch((e) => {
-                    if (!showServerAnswerErrors(e?.response)) {
+                    // The form closed while it was being filled in: say so,
+                    // and keep the answers (nothing was stored).
+                    if (isFormClosedError(e?.response)) {
+                        toast({ description: t('NAV.SUBMIT_CLOSED'), variant: 'destructive' });
+                        setSubmitError('closed');
+                    } else if (!showServerAnswerErrors(e?.response)) {
                         toast({ description: t('NAV.SUBMIT_ERROR'), variant: 'destructive' });
-                        setSubmitError(true);
+                        setSubmitError('failed');
                     }
                 });
     };
@@ -496,7 +503,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         {/* Stays until the next attempt; the toast alone is gone in a moment. */}
                         {submitError && (
                             <p role="alert" className="text-[15px] leading-relaxed font-medium text-[#B42318]" lang={language}>
-                                {t('NAV.SUBMIT_ERROR')}
+                                {t(submitError === 'closed' ? 'NAV.SUBMIT_CLOSED' : 'NAV.SUBMIT_ERROR')}
                             </p>
                         )}
                     </div>

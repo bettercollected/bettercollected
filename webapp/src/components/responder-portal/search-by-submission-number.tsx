@@ -13,6 +13,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceSubmissionByUUIDQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { portalPath } from '@app/utils/portal-path';
+import { isRateLimited } from '@app/utils/rate-limited';
 
 /**
  * Find a submission by its receipt number. On the respondent's pages it is in
@@ -28,7 +29,8 @@ const SearchBySubmissionNumber = ({ className, audience = 'respondent' }: { clas
     const [getSubmissionByUUID, { isLoading }] = useLazyGetWorkspaceSubmissionByUUIDQuery();
     const isCustomDomain = window?.location?.host !== window.PUBLIC_CONFIG?.FORM_DOMAIN;
 
-    const [error, setError] = useState(false);
+    // what went wrong: no such number, or too many lookups for now (429)
+    const [error, setError] = useState<false | 'NOT_FOUND' | 'TOO_MANY'>(false);
     const errorId = useId();
 
     const router = useRouter();
@@ -46,7 +48,7 @@ const SearchBySubmissionNumber = ({ className, audience = 'respondent' }: { clas
             router.push(submissionUrl);
         }
         if (response.error) {
-            setError(true);
+            setError(isRateLimited(response.error) ? 'TOO_MANY' : 'NOT_FOUND');
         }
     };
 
@@ -72,7 +74,7 @@ const SearchBySubmissionNumber = ({ className, audience = 'respondent' }: { clas
                         }}
                         placeholder={t('LOOKUP.PLACEHOLDER')}
                         aria-label={t('LOOKUP.LABEL')}
-                        aria-invalid={error || undefined}
+                        aria-invalid={error === 'NOT_FOUND' || undefined}
                         aria-describedby={error ? errorId : undefined}
                         className="w-full flex-1"
                     />
@@ -89,7 +91,7 @@ const SearchBySubmissionNumber = ({ className, audience = 'respondent' }: { clas
                             <span aria-hidden="true">
                                 <InfoIcon className="text-[#C43D3D]" width={16} height={16} />
                             </span>
-                            {t('LOOKUP.NOT_FOUND')}
+                            {t(error === 'TOO_MANY' ? 'LOOKUP.TOO_MANY' : 'LOOKUP.NOT_FOUND')}
                         </div>
                     )}
                 </div>

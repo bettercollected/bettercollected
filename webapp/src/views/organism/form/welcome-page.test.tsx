@@ -64,3 +64,48 @@ describe('WelcomePage as a preview of another form', () => {
         expect(screen.getByRole('button', { name: 'Get help' })).toBeDefined();
     });
 });
+
+describe('WelcomePage of a closed form', () => {
+    it('says the form is closed and offers no Start', () => {
+        // The server's stub of a closed form: the welcome page, no questions.
+        store.dispatch(setForm({ formId: 'closed', builderVersion: 'v2', title: 'Visit feedback', welcomePage: { description: 'Three minutes.' }, settings: {}, unavailable: 'closed' } as any));
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <WelcomePage isPreviewMode={false} />
+                </Provider>
+            </ReduxProvider>
+        );
+        expect(screen.getByRole('heading', { level: 1, name: 'Visit feedback' })).toBeDefined();
+        expect(screen.getByRole('status').textContent).toBe('This form is closed and no longer accepts responses.');
+        expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
+    });
+});
+
+describe('WelcomePage of a closed form for a member', () => {
+    it('keeps Start and says respondents can no longer answer', () => {
+        // members get the whole form after the close date (no stub)
+        store.dispatch(setForm({ formId: 'closed-staff', title: 'Visit feedback', fields: [], welcomePage: {}, settings: { formCloseDate: '2020-01-01T00:00:00+00:00' } } as any));
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <WelcomePage isPreviewMode />
+                </Provider>
+            </ReduxProvider>
+        );
+        expect(screen.getByRole('status').textContent).toBe('This form is closed: respondents can no longer send answers.');
+        expect(screen.getByRole('button', { name: 'Start' })).toBeDefined();
+    });
+
+    it('says nothing while the close date is ahead', () => {
+        store.dispatch(setForm({ formId: 'open-staff', title: 'Visit feedback', fields: [], welcomePage: {}, settings: { formCloseDate: '2999-01-01T00:00:00+00:00' } } as any));
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <WelcomePage isPreviewMode />
+                </Provider>
+            </ReduxProvider>
+        );
+        expect(screen.queryByRole('status')).toBeNull();
+    });
+});

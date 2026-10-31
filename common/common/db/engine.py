@@ -83,13 +83,18 @@ class DatabaseSettings:
         return bool(self.url)
 
 
-def make_engine(settings: DatabaseSettings, *, application_name: str) -> AsyncEngine:
-    """One engine per process. ``application_name`` shows up in ``pg_stat_activity``."""
+def make_engine(
+    settings: DatabaseSettings, *, application_name: str, hide_parameters: bool = False
+) -> AsyncEngine:
+    """One engine per process. ``application_name`` shows up in ``pg_stat_activity``.
+    ``hide_parameters``: a statement's parameters never appear in an error
+    message or the echo log (SQLAlchemy's ``hide_parameters``)."""
     if not settings.url:
         raise ValueError("DATABASE_URL is not set")
     return create_async_engine(
         settings.url,
         echo=settings.echo,
+        hide_parameters=hide_parameters,
         pool_pre_ping=True,
         pool_size=settings.pool_size,
         max_overflow=settings.max_overflow,

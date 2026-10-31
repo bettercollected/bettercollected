@@ -6,6 +6,8 @@ interface SubmissionContextType {
     data: any;
     isLoading: boolean;
     isError: boolean;
+    /** The receipt lookup was refused for now (429): too many attempts. */
+    isRateLimited?: boolean;
     handleRequestForDeletion: () => void;
     hasCustomDomain: boolean;
     workspaceName?: string;
