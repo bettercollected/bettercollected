@@ -371,7 +371,7 @@ class FormResponseRow(Base, BaseRow):
             postgresql_where=LEGACY_IDENTITY_WHERE,
         ),
         Index(None, "expiration"),
-        # the staff responses list sorted by form version (0024)
+        # the staff responses list sorted by form version (0025)
         Index(
             "ix_form_responses_list_version",
             "form_id",
@@ -406,7 +406,7 @@ class ResponseDeletionRequestRow(Base, BaseRow):
             postgresql_nulls_not_distinct=True,
         ),
         Index(None, "status"),
-        # the list's per-row request lookup and its status filter (0024)
+        # the list's per-row request lookup and its status filter (0025)
         Index("ix_deletion_requests_response", "response_id"),
         Index(
             "ix_deletion_requests_legacy_identity",

@@ -16,7 +16,7 @@
   next, previous and nearby pages cost the same at any depth (a signed,
   expiring cursor names where a page began; a tampered one or one from another
   list is refused with 400 `invalid_cursor`). Without these parameters it
-  answers as before. Migration 0024 adds an index for the form-version sort and
+  answers as before. Migration 0025 adds an index for the form-version sort and
   one on the deletion requests' `response_id`; the build blocks writes to those
   tables for a moment (the statements are in the migration for a manual,
   concurrent build first).

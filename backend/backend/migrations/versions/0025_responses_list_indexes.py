@@ -1,7 +1,7 @@
 """indexes of the staff responses list (sort by form version, status lookup)
 
-Revision ID: 0024
-Revises: 0023
+Revision ID: 0025
+Revises: 0024
 Create Date: 2026-10-31
 
 Expand only: two new indexes, nothing read or changed in existing rows.
@@ -36,8 +36,8 @@ from typing import Sequence, Union
 
 from alembic import op
 
-revision: str = "0024"
-down_revision: Union[str, None] = "0023"
+revision: str = "0025"
+down_revision: Union[str, None] = "0024"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

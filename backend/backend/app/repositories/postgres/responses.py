@@ -217,7 +217,7 @@ class ListedPage:
 
 
 # ``doc ? 'answers'`` with the key written into the statement (not bound), so
-# the planner can match it against the partial index of revision 0024.
+# the planner can match it against the partial index of revision 0025.
 _HAS_ANSWERS = FormResponseRow.doc.op("?")(literal_column("'answers'"))
 
 
