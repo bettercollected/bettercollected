@@ -274,6 +274,9 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                 // Wide centred pages hang the number outside the text measure.
                 number && numbering?.hang && '@min-[880px]/page:block',
                 tokens.divider && 'border-b pb-7',
+                // A locked question (a field rule sets it or makes it read-only) keeps
+                // its ink, and its box takes a quiet tint so it does not look editable.
+                locked && '[&_[aria-expanded]]:bg-[#F3F4F6]! [&_[aria-haspopup]]:bg-[#F3F4F6]! [&_button]:cursor-default [&_input]:cursor-default [&_input]:bg-[#F3F4F6]! [&_textarea]:cursor-default [&_textarea]:bg-[#F3F4F6]!',
                 // The field's edge (inputs, the date and dropdown triggers, the
                 // option controls) in signal red while its error shows.
                 hasError &&
