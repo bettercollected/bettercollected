@@ -466,6 +466,32 @@ class WorkspaceFormsRouter(Routable):
                     form["registrationDestination"] = destination
                 else:
                     form.registration_destination = destination
+            # ... and the hosts of its webhooks. Fail closed: when that cannot be
+            # read, the panel could not name where answers also go, so the form
+            # is not served (a submission to it would be sent on undisclosed).
+            try:
+                webhooks = await container.webhook_service().destination_for(
+                    workspace_id, str(form_id)
+                )
+            except Exception as error:  # noqa: BLE001
+                logger.error(
+                    "webhook destination not read, form not served: workspace={} form={} ({})",
+                    workspace_id,
+                    form_id,
+                    type(error).__name__,
+                )
+                raise HTTPException(
+                    status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                    content={
+                        "code": "form_unavailable",
+                        "message": "This form is temporarily unavailable. Try again in a moment.",
+                    },
+                )
+            if webhooks:
+                if isinstance(form, dict):
+                    form["webhookDestination"] = webhooks
+                else:
+                    form.webhook_destination = webhooks
         if etag is not None and isinstance(form, FormDtoCamelModel):
             form.etag = etag
             response.headers["ETag"] = etag

@@ -17,6 +17,9 @@ from backend.jobs.log_safety import scrub_job_logging
 
 DEFAULT_QUEUE = "default"
 ACTIONS_QUEUE = "actions"
+# webhook deliveries: no creator code, run by the backend's own worker (never
+# the executor, whose database role cannot see this queue)
+WEBHOOKS_QUEUE = "webhooks"
 JOB_NAMES = (
     "delete_user",
     "delete_response",
@@ -25,6 +28,7 @@ JOB_NAMES = (
     "purge_provider_credentials",
     "revoke_google_grant",
     "register_submission",
+    "deliver_webhook",
 )
 SEARCH_PATH_OPTIONS = "-c search_path=jobs"
 
