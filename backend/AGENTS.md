@@ -1119,7 +1119,9 @@ implementation of the "new or changed" comparison, never add a parallel check), 
 Logic reads the **postcode** as text (`ADDRESS_COMPARISONS`: `IS_EQUAL`, `IS_NOT_EQUAL`, `STARTS_WITH`, `IS_EMPTY`,
 `IS_NOT_EMPTY`; the spec check and the ops engine refuse others). Not a formula variable, rules may require/retitle/describe it
 (never set or lock it), the export cell is one line (`common.address.one_line`; temporal twin `address_line`), the AI sees
-`[address]`. Not yet mappable in webhooks, registration or email actions (`registration/body.py` `SUPPORTED_TYPES`).
+`[address]`. Webhooks, registrations and email actions send its six parts as an object (`registration/body.py`
+`_address_value`: a part that is not clean text within its cap is `null`, a country alone is no answer, the question's one
+allowed country fills a missing one); an email reads it as one line; action conditions take `ADDRESS_COMPARISONS`.
 
 The **lookup** (`services/address_lookup/`, route `POST /workspaces/{id}/forms/{form_id}/address-lookup`, public like the
 form, in `controllers/workspace_responses.py`) fills in street and city from a Dutch postcode and house number. Rules to keep:
