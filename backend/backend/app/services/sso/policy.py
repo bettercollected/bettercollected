@@ -85,6 +85,19 @@ SSO_ASSIGNABLE_ROLES = (
 )
 
 
+def session_exempt(
+    method: Optional[str], scope: Optional[str], is_owner: bool = False
+) -> bool:
+    """The one rule of who meets (or is outside) a workspace's single
+    sign-on requirement, by how the session was made: SSO sessions, API keys
+    (machine credentials), respondent-scoped sessions, and an owner's
+    email-code session (break-glass). Used by the refresh, the selection
+    screen and the per-request check, so they cannot drift."""
+    if method in (SSO_METHOD, API_KEY_METHOD) or scope == RESPONDENT_SCOPE:
+        return True
+    return method == OTP_METHOD and is_owner
+
+
 def assignable_sso_roles() -> List[str]:
     return [role.value for role in SSO_ASSIGNABLE_ROLES]
 
@@ -193,12 +206,16 @@ class SsoPolicyService:
         respondent-scoped, or is an owner's email-code session
         (break-glass). The one rule behind ``session_must_end`` and the
         workspace selection screen."""
-        if method == SSO_METHOD or scope == RESPONDENT_SCOPE:
+        if session_exempt(method, scope):
             return None
         workspace = await self.requiring_workspace(email or "")
         if workspace is None:
             return None
-        if method == OTP_METHOD and await self._is_owner(workspace, user_id):
+        if session_exempt(
+            method,
+            scope,
+            is_owner=method == OTP_METHOD and await self._is_owner(workspace, user_id),
+        ):
             return None
         return workspace
 
@@ -227,13 +244,9 @@ class SsoPolicyService:
             return False
         if workspace.disabled or not workspace.sso_required:
             return False
-        if method in (SSO_METHOD, API_KEY_METHOD) or scope == RESPONDENT_SCOPE:
+        if session_exempt(method, scope, is_owner):
             return False
-        if not await self._domain_requires_sso(workspace.id, email):
-            return False
-        if method == OTP_METHOD and is_owner:
-            return False
-        return True
+        return await self._domain_requires_sso(workspace.id, email)
 
     async def _domain_requires_sso(self, workspace_id, email: Optional[str]) -> bool:
         """Whether ``email``'s domain is a verified SSO domain of the

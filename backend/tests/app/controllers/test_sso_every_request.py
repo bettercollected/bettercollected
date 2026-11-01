@@ -9,16 +9,24 @@ from common.ids import RecordId
 from common.models.user import User
 
 from backend.app.container import container
+from backend.app.models.enum.permission import Permission
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
+from backend.app.exceptions import HTTPException
 from backend.app.services.ai.api_keys import CreateAPIKeyDto
+from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.session_service import decode_token
 from backend.config import settings
 from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import testUser
+from tests.app.controllers.test_sso_review import fake_status  # noqa: F401 — fixture
 from tests.app.sso_helpers import (  # noqa: F401 — fixtures
     DOMAIN,
+    LOGIN_PAGE,
     add_connection,
+    query_of,
     sso_on,
+    state_of,
     verify_domain,
 )
 
@@ -303,21 +311,257 @@ async def test_an_sso_session_and_a_plain_workspace_cost_nothing_extra(
 
 
 # -- one rule ------------------------------------------------------------------
-@pytest.mark.parametrize("method", ["otp", "google", "sso", None])
+@pytest.mark.parametrize("method", ["otp", "google", "sso", "api_key", None])
 @pytest.mark.parametrize("is_owner", [True, False])
 @pytest.mark.parametrize("scope", [None, "respondent"])
+@pytest.mark.parametrize(
+    "email", ["someone@" + DOMAIN, "guest@partner-corp.org", "", None]
+)
 async def test_the_request_check_is_the_refresh_rule(
-    client, required, method, is_owner, scope
+    client, required, method, is_owner, scope, email
 ):
     """``blocks_session`` (every request) and ``unmet_requirement`` (refresh,
-    the selection screen) never disagree for a member of the workspace."""
+    the selection screen) never disagree: for members and for anyone else,
+    on the SSO domain or off it."""
     policy = container.sso_policy_service()
     policy._requirement_cache.clear()
     user_id = testUser.id if is_owner else str(RecordId())
-    email = "someone@" + DOMAIN
     workspace = await container.workspace_repo().find_by_id(required.id)
     expected = await policy.unmet_requirement(email, method, scope, user_id)
     blocked = await policy.blocks_session(
         workspace, email, method, scope, is_owner=is_owner
     )
     assert blocked == (expected is not None)
+
+
+@pytest.mark.parametrize("state", ["not_required", "disabled", "no_connection"])
+async def test_the_request_check_is_the_refresh_rule_when_nothing_applies(
+    client, sso_workspace, state
+):
+    policy = container.sso_policy_service()
+    policy._requirement_cache.clear()
+    repo = container.workspace_repo()
+    if state == "disabled":
+        await _require(client, sso_workspace)
+        await repo.set_fields(sso_workspace, {"disabled": True})
+    elif state == "no_connection":
+        await repo.set_fields(sso_workspace, {"sso_required": True})
+        for connection in await container.sso_connection_repo().list_by_workspace(
+            sso_workspace.id
+        ):
+            await container.sso_connection_repo().delete(connection.id)
+    workspace = await repo.find_by_id(sso_workspace.id)
+    email = "someone@" + DOMAIN
+    expected = await policy.unmet_requirement(email, "otp", None, str(RecordId()))
+    blocked = await policy.blocks_session(workspace, email, "otp", None, False)
+    assert expected is None and blocked is False
+
+
+# -- the check cannot be left out ----------------------------------------------
+def test_the_authorization_service_cannot_be_built_without_the_policy():
+    with pytest.raises(TypeError):
+        AuthorizationService(
+            workspace_repo=container.workspace_repo(),
+            workspace_user_repo=container.workspace_user_repo(),
+            workspace_form_repo=container.workspace_form_repo(),
+        )
+
+
+async def test_an_unwired_policy_fails_closed_instead_of_allowing(workspace):
+    service = AuthorizationService(
+        workspace_repo=container.workspace_repo(),
+        workspace_user_repo=container.workspace_user_repo(),
+        workspace_form_repo=container.workspace_form_repo(),
+        sso_policy=lambda: None,
+    )
+    with pytest.raises(RuntimeError):
+        await service.effective_permissions(testUser, workspace.id)
+    with pytest.raises(RuntimeError):
+        await service.authorize(testUser, Permission.FORM_READ, workspace.id)
+
+
+# -- owner-only routes and the staff helpers carry the code too -----------------
+def _is_sso_required_error(error: HTTPException) -> bool:
+    content = error.content
+    return isinstance(content, dict) and content.get("code") == "sso_required"
+
+
+async def _google_owner(required):
+    """An owner on the SSO domain whose session did not use SSO or an email code."""
+    owner = User(id=testUser.id, sub="boss@" + DOMAIN, auth_method="google")
+    return owner, _cookies(owner)
+
+
+async def test_require_owner_answers_sso_required_not_a_plain_403(required):
+    owner, _ = await _google_owner(required)
+    authorization = container.authorization_service()
+    with pytest.raises(HTTPException) as refused:
+        await authorization.require_owner(owner, required.id)
+    assert _is_sso_required_error(refused.value)
+    # a member who is no owner and not on the SSO path: the plain 403, unchanged
+    guest = User(id=str(RecordId()), sub="x@partner-corp.org", auth_method="otp")
+    await container.workspace_user_repo().save(
+        WorkspaceUserDocument(
+            workspace_id=required.id, user_id=guest.id, roles=[WorkspaceRoles.VIEWER]
+        )
+    )
+    with pytest.raises(HTTPException) as plain:
+        await authorization.require_owner(guest, required.id)
+    assert not _is_sso_required_error(plain.value)
+
+
+async def test_is_owner_stays_a_bool_unless_asked_to_raise(required):
+    owner, _ = await _google_owner(required)
+    authorization = container.authorization_service()
+    assert await authorization.is_owner(owner, required.id) is False
+    with pytest.raises(HTTPException):
+        await authorization.is_owner(owner, required.id, raise_sso_required=True)
+
+
+@pytest.mark.parametrize("suffix", ["/sso", "/scim", "/members"])
+async def test_owner_routes_answer_sso_required_to_a_plain_session(
+    client, required, suffix
+):
+    _, cookies = await _google_owner(required)
+    reply = await client.get(
+        f"/api/v1/workspaces/{required.id}{suffix}", cookies=cookies
+    )
+    _sso_required(reply)
+
+
+async def test_the_owner_overview_flags_read_the_same_answer(client, required):
+    """An owner on an email-code session still sees ``canManage``."""
+    owner = User(id=testUser.id, sub="boss@" + DOMAIN, auth_method="otp")
+    reply = await client.get(
+        f"/api/v1/workspaces/{required.id}/sso", cookies=_cookies(owner)
+    )
+    assert reply.status_code == 200 and reply.json()["canManage"] is True
+
+
+@pytest.mark.parametrize("service", ["webhook_service", "email_action_service"])
+async def test_the_staff_helpers_answer_sso_required(required, service):
+    owner, _ = await _google_owner(required)
+    with pytest.raises(HTTPException) as refused:
+        await getattr(container, service)()._staff(owner, required.id, "a-form")
+    assert _is_sso_required_error(refused.value)
+
+
+# -- real sign-ins, end to end ---------------------------------------------------
+async def _otp_sign_in(client, email, user_id, role):
+    """A member (or owner) signing in with an email code through the API:
+    the cookies the response set, the method claim included."""
+    auth = container.sso_login_service()._http
+    account = auth.add_account(email, user_id=user_id)
+    auth.otp_user = {**account, "email_verified": True}
+    reply = await client.post(
+        "/api/v1/auth/otp/validate", json={"email": email, "otp_code": "X"}
+    )
+    assert reply.status_code == 200, reply.text
+    client.cookies.clear()
+    cookies = {
+        "Authorization": reply.cookies.get("Authorization"),
+        "RefreshToken": reply.cookies.get("RefreshToken"),
+    }
+    assert decode_token(cookies["Authorization"])["auth_method"] == "otp"
+    return cookies
+
+
+async def _membership(workspace, user_id, role):
+    await container.workspace_user_repo().save(
+        WorkspaceUserDocument(
+            workspace_id=workspace.id, user_id=user_id, roles=[role]
+        )
+    )
+
+
+async def _refresh(client, cookies, email, fake_status):
+    fake_status.email = email
+    reply = await client.post(
+        "/api/v1/auth/refresh", cookies={"RefreshToken": cookies["RefreshToken"]}
+    )
+    client.cookies.clear()
+    return reply
+
+
+async def test_end_to_end_an_email_code_session_when_the_requirement_is_turned_on(
+    client, sso_workspace, fake_status
+):
+    """The sessions are made by the real sign-in; the requirement is turned on
+    afterwards with the same tokens in hand. A member is refused at once (and
+    ends at refresh); an owner keeps working through break-glass, also after
+    the token is refreshed (explicitly or because only the refresh cookie came)."""
+    workspace = sso_workspace
+    member_id, owner_id = str(RecordId()), str(RecordId())
+    member_email, owner_email = "mia@" + DOMAIN, "olga@" + DOMAIN
+    await _membership(workspace, member_id, WorkspaceRoles.COLLABORATOR)
+    await _membership(workspace, owner_id, WorkspaceRoles.OWNER)
+    member = await _otp_sign_in(
+        client, member_email, member_id, WorkspaceRoles.COLLABORATOR
+    )
+    owner = await _otp_sign_in(client, owner_email, owner_id, WorkspaceRoles.OWNER)
+    for cookies in (member, owner):
+        reply = await client.get(forms_url(workspace), cookies=cookies)
+        assert reply.status_code == 200, reply.text
+
+    await _require(client, workspace)
+
+    # the member: refused on the very next request, no refresh needed
+    _sso_required(await client.get(forms_url(workspace), cookies=member))
+    ended = await _refresh(client, member, member_email, fake_status)
+    assert ended.status_code == 401, ended.text
+
+    # the owner: accepted, with the old token, a refreshed one, and a refresh
+    # that happens because the access token is missing
+    assert (
+        await client.get(forms_url(workspace), cookies=owner)
+    ).status_code == 200
+    refreshed = await _refresh(client, owner, owner_email, fake_status)
+    assert refreshed.status_code == 200, refreshed.text
+    new = {
+        "Authorization": refreshed.cookies.get("Authorization"),
+        "RefreshToken": refreshed.cookies.get("RefreshToken") or owner["RefreshToken"],
+    }
+    assert decode_token(new["Authorization"])["auth_method"] == "otp"
+    assert (await client.get(forms_url(workspace), cookies=new)).status_code == 200
+    fake_status.email = owner_email
+    implicit = await client.get(
+        forms_url(workspace), cookies={"RefreshToken": new["RefreshToken"]}
+    )
+    client.cookies.clear()
+    assert implicit.status_code == 200, implicit.text
+
+
+async def test_end_to_end_an_sso_callback_session_is_accepted(
+    client, required, fake_status
+):
+    workspace = required
+    auth = container.sso_login_service()._http
+    auth.idp_email = "jane@" + DOMAIN
+    started = await client.get(
+        "/api/v1/auth/sso/login",
+        params={"email": "jane@" + DOMAIN},
+        headers={"referer": LOGIN_PAGE},
+    )
+    assert started.status_code == 307, started.text
+    callback = await client.get(
+        "/api/v1/auth/sso/callback",
+        params={"code": "c", "state": state_of(started.headers["location"])},
+    )
+    assert "sso_error" not in query_of(callback.headers.get("location", "")), callback.text
+    cookies = {
+        "Authorization": callback.cookies.get("Authorization"),
+        "RefreshToken": callback.cookies.get("RefreshToken"),
+    }
+    client.cookies.clear()
+    assert decode_token(cookies["Authorization"])["auth_method"] == "sso"
+    assert (
+        await client.get(forms_url(workspace), cookies=cookies)
+    ).status_code == 200
+    refreshed = await _refresh(client, cookies, "jane@" + DOMAIN, fake_status)
+    assert refreshed.status_code == 200, refreshed.text
+    new = {
+        "Authorization": refreshed.cookies.get("Authorization"),
+        "RefreshToken": cookies["RefreshToken"],
+    }
+    assert decode_token(new["Authorization"])["auth_method"] == "sso"
+    assert (await client.get(forms_url(workspace), cookies=new)).status_code == 200

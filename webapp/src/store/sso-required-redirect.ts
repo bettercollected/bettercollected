@@ -18,6 +18,19 @@ export const navigation = {
     goTo: (url: string) => window.location.assign(url)
 };
 
+let navigating = false;
+
+/** Forget a navigation in progress (a page restored from the back/forward cache, tests). */
+export function resetSsoRedirect() {
+    navigating = false;
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) resetSsoRedirect();
+    });
+}
+
 /**
  * Any API call the backend refuses with 403 `sso_required` (the workspace
  * requires single sign-on and this session didn't use it: docs/sso.md) sends
@@ -28,7 +41,9 @@ export const navigation = {
  * can never loop) are left alone.
  */
 export const ssoRequiredRedirect: Middleware = () => (next) => (action) => {
-    if (typeof window !== 'undefined' && isRejectedWithValue(action) && isSsoRequiredError(action.payload) && isDashboardPath(window.location.pathname)) {
+    if (!navigating && typeof window !== 'undefined' && isRejectedWithValue(action) && isSsoRequiredError(action.payload) && isDashboardPath(window.location.pathname)) {
+        // several requests of one page are refused together: one navigation
+        navigating = true;
         navigation.goTo(selectWorkspaceUrl(SSO_REQUIRED_NOTICE));
     }
     return next(action);

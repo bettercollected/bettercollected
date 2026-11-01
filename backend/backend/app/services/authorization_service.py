@@ -159,13 +159,15 @@ class AuthorizationService:
         workspace_repo: PostgresWorkspaceRepository,
         workspace_user_repo: PostgresWorkspaceUserRepository,
         workspace_form_repo: PostgresWorkspaceFormRepository,
-        sso_policy: Optional[Callable[[], object]] = None,
+        sso_policy: Callable[[], object],
     ):
         self._workspace_repo = workspace_repo
         self._workspace_user_repo = workspace_user_repo
         self._workspace_form_repo = workspace_form_repo
         # Returns the SsoPolicyService, resolved per call: the policy depends
         # on services that depend on this one (the container wires it late).
+        # Required: a service built without it must not silently skip the
+        # single sign-on check.
         self._sso_policy = sso_policy
 
     async def effective_permissions(
@@ -249,9 +251,11 @@ class AuthorizationService:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in workspace")
 
     async def _sso_blocks(self, user: User, workspace, is_owner: bool) -> bool:
-        if self._sso_policy is None:
-            return False
-        return await self._sso_policy().blocks_session(
+        policy = self._sso_policy()
+        if policy is None:
+            # fail closed: never allow because the policy is not wired
+            raise RuntimeError("AuthorizationService: the SSO policy is not wired")
+        return await policy.blocks_session(
             workspace,
             getattr(user, "sub", None),
             getattr(user, "auth_method", None),
@@ -268,13 +272,20 @@ class AuthorizationService:
         return sso_required_error(domain_of(getattr(user, "sub", "") or "") or "")
 
     async def is_owner(
-        self, user: Optional[User], workspace_id: Union[RecordId, str, None]
+        self,
+        user: Optional[User],
+        workspace_id: Union[RecordId, str, None],
+        raise_sso_required: bool = False,
     ) -> bool:
         """Whether ``user`` is an owner of an available workspace (the
         billing owner or a member with role OWNER, every owner alike), with
         a full (not respondent-scoped) session and an active membership.
-        Only owners hold every permission."""
-        return await self.effective_permissions(user, workspace_id) == OWNER_PERMISSIONS
+        Only owners hold every permission. ``raise_sso_required``: as for
+        ``effective_permissions``."""
+        held = await self.effective_permissions(
+            user, workspace_id, raise_sso_required=raise_sso_required
+        )
+        return held == OWNER_PERMISSIONS
 
     async def require_owner(
         self,
@@ -285,8 +296,9 @@ class AuthorizationService:
         """403 unless ``user`` is an owner of the workspace. For decisions no
         role below Owner may take, like single sign-on configuration: it
         controls every account on the workspace's verified domains, the
-        owners' own included."""
-        if not await self.is_owner(user, workspace_id):
+        owners' own included. A session that misses the workspace's single
+        sign-on requirement gets 403 ``sso_required`` instead."""
+        if not await self.is_owner(user, workspace_id, raise_sso_required=True):
             raise HTTPException(status_code=HTTPStatus.FORBIDDEN, content=message)
 
     async def _form_in_workspace(self, workspace_id, form_id) -> bool:
