@@ -123,6 +123,7 @@ async def run_action_job(
                 workspace=workspace,
                 secrets_plain=secrets_plain,
                 run_scope=run_scope,
+                log_ref=None if action_id is None else str(action_id),
             ),
             timeout=RUN_TIMEOUT_SECONDS,
         )

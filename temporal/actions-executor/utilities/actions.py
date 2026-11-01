@@ -55,11 +55,14 @@ async def run_action(
     workspace: Optional[str] = None,
     secrets_plain: bool = False,
     run_scope: Optional[RunScope] = None,
+    log_ref: Optional[str] = None,
 ):
     """Run one action. ``secrets_plain``: the backend already opened the run's
     secrets (the executor then holds no key); otherwise they are sealed and are
     opened with this process's key, as 4.2 did. ``run_scope``: the ids and token
-    of the run, used to hand a refreshed credential back to the backend."""
+    of the run, used to hand a refreshed credential back to the backend.
+    ``log_ref``: the action id the job was queued with, for log lines (never read
+    from the run's payload, which carries the secrets)."""
     workspace = json.loads(workspace)
     action = json.loads(action)
     form = json.loads(form)
@@ -72,7 +75,7 @@ async def run_action(
         logger.warning(
             "ACTION_ISOLATION=legacy: action %s runs without isolation "
             "(custom code in this process, no egress rules)",
-            action.get("id"),
+            log_ref or "-",
         )
 
     def get_state():
@@ -747,7 +750,7 @@ async def run_action(
         return
     if isolation_enforced():
         return await run_isolated_code(
-            action_id=action.get("id"),
+            action_ref=log_ref or "-",
             action_code=action.get("action_code"),
             data={
                 "action": action,
@@ -821,7 +824,7 @@ def mark_action_broken(workspace, form, action) -> None:
     )
 
 
-async def run_isolated_code(*, action_code, data, toolbox, action_id):
+async def run_isolated_code(*, action_code, data, toolbox, action_ref):
     """Custom action code in the sandbox (sandbox/, utilities/custom_action.py).
     The result and the failure look as the in-process run's did: the code's log,
     or a RuntimeError holding the log; the class of an error, never a traceback.
@@ -836,7 +839,7 @@ async def run_isolated_code(*, action_code, data, toolbox, action_id):
     log_lines.append(str(error.get("message") or ""))
     logger.error(
         "action %s failed in its code: %s",
-        action_id,
+        action_ref,
         error.get("class") or error.get("kind"),
     )
     raise RuntimeError("\n".join(log_lines))

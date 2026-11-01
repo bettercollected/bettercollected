@@ -61,6 +61,7 @@ def test_a_run_is_fetched_by_ids_then_run(monkeypatch, ran):
             workspace=CONTEXT["workspace"],
             secrets_plain=False,
             run_scope=GoogleRunScope("w1", "f1", "a1", "r1", RUN_TOKEN),
+            log_ref="a1",
         )
     ]
 
@@ -142,6 +143,7 @@ def test_a_job_queued_before_the_change_still_runs_once(monkeypatch, ran):
     assert ran[0]["user_email"] == "e@example.org"
     # a 4.1.x job has no run scope, and its secrets are sealed
     assert ran[0]["secrets_plain"] is False and ran[0]["run_scope"] is None
+    assert ran[0]["log_ref"] is None
 
 
 def test_retries_grow_in_wait_and_stop_after_three_attempts():
