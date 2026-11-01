@@ -1091,8 +1091,9 @@ class EmailActionService:
             address = await self._copy.email_of_account(log.account_id)
             if address is None:
                 return await self._cancel(log, ACCOUNT_GONE)
-            if await self._first_attempt(log) and not await self._copy_within_limits(
-                log.workspace_id, log.form_id, address
+            if not await self._counted(
+                log,
+                lambda: self._copy_within_limits(log.workspace_id, log.form_id, address),
             ):
                 return await self._cancel(log, "rate_limited")
             recipients = [address]
@@ -1105,8 +1106,8 @@ class EmailActionService:
             )
             if not recipients:
                 return await self._cancel(log, "recipient_not_allowed")
-            if await self._first_attempt(log) and not await self._team_within_limit(
-                log.form_id
+            if not await self._counted(
+                log, lambda: self._team_within_limit(log.form_id)
             ):
                 return await self._cancel(log, "rate_limited")
             template = action.nl if language == "nl" else action.en
@@ -1131,16 +1132,26 @@ class EmailActionService:
         logger.info("email delivered: delivery={} attempts={}", log.id, log.attempts)
         return Outcome("delivered")
 
-    async def _first_attempt(self, log: ActionLogDocument) -> bool:
-        """True the first time a delivery asks, False on every later attempt
-        (a one-time claim on its id, whichever replica): a mail counts against
-        the limits once, so a retried mail is not cancelled as ``rate_limited``
-        by its own earlier attempt."""
+    async def _counted(self, log: ActionLogDocument, count) -> bool:
+        """Count a delivery against the limits once: ``count()`` runs on the
+        first attempt only and says whether the mail has room; a retry finds
+        the delivery's mark and is let through, so a retried mail is not
+        cancelled as ``rate_limited`` by its own earlier attempt.
+
+        The mark is written only after the counters went up. If the counting
+        or the mark fails, nothing is marked and the retry counts again (at
+        worst one extra count): a failure here can make a mail count twice,
+        never send unchecked. A row's attempts never run in parallel (the
+        delivery claim), so the read and the later write cannot race."""
         if self._limiter is None:
+            return await count()
+        expires = self._clock() + COUNTED_TTL
+        if await self._limiter.claimed(COUNTED_SCOPE, str(log.id), expires):
             return True
-        return await self._limiter.claim(
-            COUNTED_SCOPE, str(log.id), self._clock() + COUNTED_TTL
-        )
+        if not await count():
+            return False
+        await self._limiter.claim(COUNTED_SCOPE, str(log.id), expires)
+        return True
 
     async def _within(self, checks) -> bool:
         """``checks``: ``(scope, client, limit)`` triples, narrowest first.
@@ -1153,14 +1164,26 @@ class EmailActionService:
         if self._limiter is None:
             return True
         admitted = []
-        for scope, client, limit in checks:
-            verdict = await self._limiter.admit(scope, client, limit, HOUR)
-            if not verdict.allowed:
-                for done_scope, done_client in admitted:
-                    await self._limiter.release(done_scope, done_client, HOUR)
-                return False
-            admitted.append((scope, client))
+        try:
+            for scope, client, limit in checks:
+                verdict = await self._limiter.admit(scope, client, limit, HOUR)
+                if not verdict.allowed:
+                    await self._give_back(admitted)
+                    return False
+                admitted.append((scope, client))
+        except BaseException:
+            # a counter that fails half way gives back what the earlier ones
+            # admitted; the retry counts afresh
+            await self._give_back(admitted)
+            raise
         return True
+
+    async def _give_back(self, admitted) -> None:
+        for done_scope, done_client in admitted:
+            try:
+                await self._limiter.release(done_scope, done_client, HOUR)
+            except Exception:  # noqa: BLE001 - best effort; the original error wins
+                logger.warning("rate counter release failed: scope={}", done_scope)
 
     async def _team_within_limit(self, form_id: str) -> bool:
         return await self._within(((TEAM_FORM_SCOPE, str(form_id), TEAM_FORM_PER_HOUR),))

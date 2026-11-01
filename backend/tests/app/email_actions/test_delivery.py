@@ -568,6 +568,81 @@ async def test_a_retried_mail_counts_once_against_the_limits(setup, monkeypatch)
     assert (await run(team, 2)).status == "delivered"
 
 
+async def _fail_once(monkeypatch, after_calls):
+    """Make the shared limiter's ``admit`` raise on its ``after_calls``-th call
+    (counting from zero), once."""
+    limiter = container.rate_limiter()
+    real = limiter.admit
+    state = {"calls": 0}
+
+    async def flaky(*args, **kwargs):
+        n = state["calls"]
+        state["calls"] += 1
+        if n == after_calls:
+            raise RuntimeError("counter store unavailable")
+        return await real(*args, **kwargs)
+
+    monkeypatch.setattr(limiter, "admit", flaky)
+
+
+async def test_a_counter_failure_does_not_let_the_retry_send_unchecked(setup, monkeypatch):
+    from backend.app.services.email_actions import service as module
+
+    monkeypatch.setattr(module, "COPY_ADDRESS_FORM_PER_HOUR", 1)
+    assert (await run(await _copy_to(setup, "same@example.test"))).status == "delivered"
+    second = await _copy_to(setup, "same@example.test")
+    await _fail_once(monkeypatch, 0)
+    assert (await run(second, 0)).status == "retrying"
+    assert len(setup.transport.sent) == 1
+    # the retry counts afresh: the budget of the mailbox is used up
+    assert (await run(second, 1)).status == "cancelled"
+    row = await container.action_log_repo().get(second.id)
+    assert row.last_error_code == "rate_limited"
+    assert len(setup.transport.sent) == 1
+
+
+async def test_a_counter_that_fails_half_way_gives_back_what_it_admitted(setup, monkeypatch):
+    from backend.app.services.copy_recipient import rate_limit_key
+    from backend.app.services.email_actions import service as module
+
+    log = await _copy_to(setup, "half@example.test")
+    await _fail_once(monkeypatch, 2)  # the third of the four budgets
+    assert (await run(log, 0)).status == "retrying"
+    limiter = container.rate_limiter()
+
+    async def seen(scope, client):
+        return (await limiter.hit(scope, client, 10_000, module.HOUR, amount=0)).count
+
+    assert await seen(module.COPY_ADDRESS_SCOPE, rate_limit_key("half@example.test")) == 0
+    assert await seen(module.COPY_ADDRESS_FORM_SCOPE, f"{setup.form.form_id}:{rate_limit_key('half@example.test')}") == 0
+    # the retry goes through once, and counts once everywhere
+    assert (await run(log, 1)).status == "delivered"
+    assert await seen(module.COPY_WORKSPACE_SCOPE, str(setup.workspace.id)) == 1
+    assert (await run(log, 2)).status in ("skipped", "delivered", "gone")
+    assert await seen(module.COPY_WORKSPACE_SCOPE, str(setup.workspace.id)) == 1
+
+
+async def test_a_failing_mark_after_counting_counts_again_never_unchecked(setup, monkeypatch):
+    from backend.app.services.email_actions import service as module
+
+    monkeypatch.setattr(module, "COPY_ADDRESS_FORM_PER_HOUR", 1)
+    log = await _copy_to(setup, "mark@example.test")
+    limiter = container.rate_limiter()
+    real = limiter.claim
+
+    async def broken(*args, **kwargs):
+        raise RuntimeError("counter store unavailable")
+
+    monkeypatch.setattr(limiter, "claim", broken)
+    assert (await run(log, 0)).status == "retrying"
+    assert setup.transport.sent == []
+    monkeypatch.setattr(limiter, "claim", real)
+    # counted once before the failed mark, and the budget (1) is spent: the
+    # retry cannot slip through unchecked
+    assert (await run(log, 1)).status == "cancelled"
+    assert setup.transport.sent == []
+
+
 # --------------------------------------------- the copy's content, as sent
 
 
