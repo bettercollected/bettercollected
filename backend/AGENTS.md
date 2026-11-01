@@ -1330,7 +1330,7 @@ feature switch). Docs: `docs/response-export.md`. Rules to keep:
 
 - Code in `services/response_export/`: `table.py` (columns, cells, the formula guard; the browser's old builder moved
   here, pinned by `tests/app/response_export/test_table.py` against its recorded output), `writer.py` (CSV, or a ZIP of
-  CSVs when a repeating group exports as `rows`; one pass per table, nothing spooled to disk), `links.py` (the signed
+  CSVs when a repeating group exports as `rows`; one pass per table, nothing spooled to disk), `xlsx.py`, `json_export.py`, `formats.py`, `links.py` (the signed
   link), `limits.py` (constants), `service.py`. Tables `response_exports` (the audit entry and the job state, revision
   0027) and `response_export_chunks` (a job's encrypted file), both in `NOT_IMPORTED_TABLES`.
 - Up to `STREAM_MAX_ROWS` matching responses stream, nothing stored; above it a job (`build_response_export(export_id)`,
@@ -1340,6 +1340,17 @@ feature switch). Docs: `docs/response-export.md`. Rules to keep:
   `FormImportService`): stored files go at once, a running job throws its file away. A new deletion path without it
   leaves decrypted answers in a file for up to 24 hours.
 - A run owns an export only while its claim (`attempts`) is current: store chunks with `add_chunk_if_owned` (row lock plus heartbeat) and end with `_end_owned`, never with a bare write. One live export per requester and form is a partial unique index; `admit_job` also caps jobs per workspace, and `admit_stream` bounds streamed exports (and `bulk_read`) per requester+workspace and per workspace on the `streaming` audit rows, under the same workspace advisory lock (no in-process counter: it must hold across replicas). `GET .../all-submissions` goes through `ResponseExportService.bulk_read` (audit, rate limit, stream slot, at most `BULK_JSON_MAX_ROWS` rows: 413 above; the slot is closed by a background task after the answer is serialised). A stream's slot lives by its heartbeat (`updated_at`, beaten by its own task only while the consumer takes pieces and at most `STALE_STREAMING_AFTER` after the start; `STREAM_SLOT_TTL`; never touch a row you merely edit: `update_locked(..., touch=False)`, as `forget_actor` does, keeps a queued job's age); `recent()` lists job rows only, and a request refused for lack of a slot is given back to the rate limiter (`admit` / `release`). A running job's liveness is `heartbeat_at` (chunk or `beat_if_owned`), never `started_at`; a queued job older than `QUEUED_MAX_AGE` is failed `queue_timeout` by the hourly purge; reads of responses through API keys and MCP call `audit_key_read` (channel `api_key`/`mcp`, actor `api-key:<id>`, no answers; nothing when nothing was returned) before returning. The hourly purge deletes files first and runs the queue sweep after, guarded.
+- **Formats are a parameter of the one path** (`format` on the request: `csv`, `xlsx`, `json`; `formats.py` maps the stored
+  format to its media type and writer). A new column or filter reaches every format through `build_plan`; a new answer
+  type needs its text in `table.py` (CSV, XLSX and the PDF read it there) and, for JSON, nothing unless it carries a link
+  to a stored file (`json_export.clean_answer` drops them). `xlsx.py` is our own streaming writer (no library: a library
+  needs a seekable file or spools to disk): text is `inlineStr`, a formula-like string gets `quotePrefix`, never a formula
+  element; keep it that way (`test_formats_writers.py` re-reads files with openpyxl, a dev-only dependency).
+- **The PDF of one response** (`GET /workspaces/{id}/submissions/{response_id}/pdf`, `response.read`, `services/response_pdf/`):
+  drawn in-process with ReportLab and the bundled DejaVu Sans, never stored, audited (channel `response_pdf`) before the
+  bytes go out, own budget (`PDF_REQUESTS_PER_WINDOW`), bounded (`PDF_PARALLEL`, `MAX_PAGES`, `MAX_VALUE_CHARS`). Answers are
+  only ever drawn with `drawString` (no markup parsing); no image (a drawn signature is listed: this process never decodes
+  images), link, script or font other than ours. Internal fields and staff feedback are not printed.
 - The audit entry never holds an answer, the search text or a file name made from content. Do not add one.
 - Every route re-checks `response.export`, the job and the download too; an export is its requester's alone (someone
   else's is a 404). The export takes the responses list's filters (`ResponseListFilters`, SQL in `_list_filters`): a new list filter reaches the export by adding it to the request DTO (`models/dtos/response_export_dto.py`) and the audit summary.
