@@ -2,6 +2,8 @@ import asyncio
 from typing import Optional
 
 from common.models.standard_form import Trigger
+from cryptography.fernet import InvalidToken
+from http import HTTPStatus
 from loguru import logger
 from common.models.user import User
 from common.records import RecordId
@@ -56,6 +58,7 @@ class ActionService:
         form_response_service: FormResponseService,
         workspace_repo=PostgresWorkspaceRepository,
         sheets_reconsent=None,
+        crypto=None,
     ):
         self.action_repository = action_repository
         self.form_repo = form_repo
@@ -67,6 +70,37 @@ class ActionService:
         self.workspace_repo = workspace_repo
         # services/sheets_reconsent.py: holds back Sheets runs on a legacy grant
         self.sheets_reconsent = sheets_reconsent
+        # the Fernet key ring that seals the stored secrets: opens them for an
+        # executor that asks (``action_run_context(plain_secrets=True)``)
+        self.crypto = crypto
+
+    def _opened(self, values, action_id):
+        """``values`` (secrets, each sealed) with every value opened, or None.
+        A value no key of the ring opens fails the run's context (500), logged
+        by ids: the run is not started on a secret that is silently missing."""
+        if values is None:
+            return None
+        opened = []
+        for item in values:
+            if item.value in (None, ""):
+                opened.append(item)
+                continue
+            try:
+                opened.append(
+                    item.model_copy(update={"value": self.crypto.decrypt(item.value)})
+                )
+            except (InvalidToken, TypeError, ValueError):
+                logger.error(
+                    "a stored secret of action {} cannot be opened with this "
+                    "deployment's key (name {})",
+                    action_id,
+                    item.name,
+                )
+                raise AppHTTPException(
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    "A stored secret could not be opened.",
+                )
+        return opened
 
     async def get_action(self, action_id: RecordId):
         return await self.action_repository.get_action_by_id(action_id)
@@ -161,12 +195,36 @@ class ActionService:
                     type(exc).__name__,
                 )
 
+    async def run_in_force(
+        self,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        action_id: RecordId,
+        response_id: str,
+    ) -> bool:
+        """Whether the run still applies: the form has the action switched on and
+        the response is still stored, in this workspace and on this form."""
+        form_document = await self.form_repo.get_form_document_by_id(str(form_id))
+        if form_document is None:
+            return False
+        on_submit = (form_document.actions or {}).get(Trigger.on_submit) or []
+        if not any(
+            str(configured.id) == str(action_id) and configured.enabled
+            for configured in on_submit
+        ):
+            return False
+        stored = await self.form_response_service.workspace_response(
+            workspace_id, str(response_id)
+        )
+        return stored is not None and str(stored.form_id) == str(form_id)
+
     async def action_run_context(
         self,
         workspace_id: RecordId,
         form_id: RecordId,
         action_id: RecordId,
         response_id: str,
+        plain_secrets: bool = False,
     ) -> Optional[dict]:
         """What the actions executor needs to run one queued action run, read
         now (the job carries ids only, never answers): the action, the
@@ -178,7 +236,12 @@ class ActionService:
         (erasure wins over a late run), the form, the action or the workspace's
         copy is gone, the action was switched off or taken off the form, or a
         Google Sheets action holds a legacy grant. The executor then skips the
-        job instead of retrying it."""
+        job instead of retrying it.
+
+        With ``plain_secrets`` (an executor of 4.3 or later asks for it) this
+        action's secrets arrive opened, and ``secrets_plain`` is true in the
+        answer: the executor then needs no key. Otherwise they are sealed, as
+        they are stored, and the executor opens them with its own copy of the key."""
         form_document = await self.form_repo.get_form_document_by_id(str(form_id))
         latest = await self.form_repo.get_latest_version_of_form(RecordId(str(form_id)))
         if form_document is None or latest is None:
@@ -224,13 +287,43 @@ class ActionService:
         form.parameters = _only(form.parameters, action.id)
         workspace.secrets = _only(workspace.secrets, action.id)
         workspace.parameters = _only(workspace.parameters, action.id)
-        return {
+        if plain_secrets and self.crypto is not None:
+            action = action.model_copy(
+                update={"secrets": self._opened(action.secrets, action.id)}
+            )
+            for owner in (form, workspace):
+                if owner.secrets:
+                    owner.secrets = {
+                        key: self._opened(values, action.id)
+                        for key, values in owner.secrets.items()
+                    }
+            # the hand-out is on record: which run, how many, never a value
+            handed = len(action.secrets or []) + sum(
+                len(values or [])
+                for owner in (form, workspace)
+                for values in (owner.secrets or {}).values()
+            )
+            logger.info(
+                "run secrets handed to the executor opened: workspace={} form={} "
+                "action={} response={} count={}",
+                workspace_id,
+                form_id,
+                action_id,
+                response_id,
+                handed,
+            )
+        else:
+            plain_secrets = False
+        answer = {
             "action": action.model_dump_json(),
             "form": form.model_dump_json(),
             "response": response.model_dump_json(),
             "user_email": response.dataOwnerIdentifier or "",
             "workspace": workspace.model_dump_json(),
         }
+        if plain_secrets:
+            answer["secrets_plain"] = True
+        return answer
 
     async def delete_action_from_workspace(self, action_id: RecordId):
         await self.form_repo.remove_action_from_all_forms(action_id=action_id)
