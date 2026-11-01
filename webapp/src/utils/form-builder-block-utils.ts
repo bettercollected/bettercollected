@@ -2,6 +2,7 @@
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/form-builder';
 import { calculatedAnswerValue, formatCalculatedValue } from '@app/utils/calculated-fields';
+import { addressLine } from '@app/utils/address';
 import { currencyExportText } from '@app/utils/currency';
 import { dateRangeExportText, dateRangeText } from '@app/utils/date-range';
 import { calendarDayIn } from '@app/utils/date-utils';
@@ -62,6 +63,9 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
         case FieldTypes.DATE_RANGE:
             // "YYYY-MM-DD/YYYY-MM-DD" (an ISO 8601 interval), the same in every language and in the CSV
             return dateRangeExportText(answer);
+        case FieldTypes.ADDRESS:
+            // one cell, one line: "street number addition, postcode city" and the country code unless NL, the same in every language and in the CSV
+            return addressLine(answer?.address);
         case FieldTypes.TAGS:
             // one cell, "; " between the tags (never the list separator of the choice questions)
             return (answerTags(answer) ?? []).join(listSeparator ?? '; ');

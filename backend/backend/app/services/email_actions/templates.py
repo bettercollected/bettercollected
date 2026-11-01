@@ -24,6 +24,9 @@ import re
 import unicodedata
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
+from common.address import PARTS as ADDRESS_PARTS
+from common.address import one_line as address_line
+
 PLACEHOLDER = re.compile(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]{0,63})\s*\}\}")
 BUILT_INS_SUBJECT = ("form_title", "submitted_at")
 BUILT_INS_BODY = ("form_title", "submitted_at", "answers")
@@ -142,7 +145,8 @@ def _row(row: Dict[str, Any], language: str) -> str:
 def format_value(value: Any, language: str = DEFAULT_LANGUAGE) -> str:
     """An answer as text: a list joined with ``, ``, the items of a repeating
     group one per line (``1. a / b``), a yes/no in the form's language, a currency
-    ``EUR 12.50`` and a date range ``2026-01-31/2026-02-03``."""
+    ``EUR 12.50``, a date range ``2026-01-31/2026-02-03`` and an address
+    ``Keizersgracht 12 A, 1015 CS Amsterdam``."""
     if value is None:
         return ""
     if isinstance(value, bool):
@@ -161,6 +165,9 @@ def format_value(value: Any, language: str = DEFAULT_LANGUAGE) -> str:
         if set(value) == {"start", "end"}:
             # a date range: an ISO 8601 interval, as the export writes it
             return f"{value['start'] or ''}/{value['end'] or ''}"
+        if set(value) == set(ADDRESS_PARTS):
+            # an address: one line, as the export writes it
+            return address_line(value)
         return _row(value, language)
     if isinstance(value, (list, tuple)):
         if value and all(isinstance(item, dict) for item in value):

@@ -41,6 +41,9 @@ export interface NewFieldSpec {
     maxTime?: string | null;
     /** currency only: the allowed ISO 4217 codes, the first being the default. */
     currencies?: string[] | null;
+    /** address only: the allowed ISO 3166-1 alpha-2 country codes (default NL only) and whether street and city are looked up from a Dutch postcode and house number. */
+    countries?: string[] | null;
+    addressLookup?: boolean | null;
     whyWeAsk?: string | null;
     /** calculated only (backend NewFieldSpec): an expressions-v1 AST, its format, visibility and "unanswered as 0". */
     expression?: unknown;
@@ -82,6 +85,9 @@ export interface FieldPatch {
     minTime?: string | null;
     maxTime?: string | null;
     currencies?: string[] | null;
+    /** address only ([] goes back to the default, NL only). */
+    countries?: string[] | null;
+    addressLookup?: boolean | null;
     whyWeAsk?: string | null;
     expression?: unknown;
     format?: Record<string, unknown> | null;
@@ -569,6 +575,12 @@ export interface ApplyOptions {
      * The server checks every save either way.
      */
     newQuestionTypes?: boolean;
+    /**
+     * The server's ADDRESS_QUESTION_ENABLED switch for the address question,
+     * the same way: default true; false refuses an op that adds one or changes
+     * the type or the settings of one the form did not have.
+     */
+    addressQuestion?: boolean;
     /**
      * The server's SIGNATURE_QUESTION_ENABLED switch for the signature
      * question, the same way: default true; false refuses an op that adds one

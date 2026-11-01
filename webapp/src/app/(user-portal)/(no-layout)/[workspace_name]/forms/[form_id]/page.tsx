@@ -21,6 +21,7 @@ import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import Form from '@app/views/organism/form/form';
 import RespondentPageShell from '@app/views/organism/form/respondent-page-shell';
 import { hasSignatureQuestion } from '@app/utils/form-drafts';
+import { formLooksUpAddresses } from '@app/utils/address';
 import TrustLayer from '@app/views/molecules/form/trust-layer';
 import { layoutOfPage } from '@app/views/organism/layout/form-column';
 import { useRouter } from 'next/navigation';
@@ -205,6 +206,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
                     webhookDestination={data?.webhookDestination}
                     emailDestination={data?.emailDestination}
                     hasSignature={hasSignatureQuestion(data?.fields)}
+                    addressLookup={formLooksUpAddresses(data)}
                     portalUrl={typeof window !== 'undefined' && window.PUBLIC_CONFIG ? `${window.PUBLIC_CONFIG.HTTP_SCHEME}${window.PUBLIC_CONFIG.FORM_DOMAIN}/${workspace?.workspaceName}` : undefined}
                     layout={layoutOfPage(shownForm, shownSlide, endingId)}
                     // Open on the welcome page when the screen has room for

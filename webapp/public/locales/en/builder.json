@@ -303,6 +303,7 @@
         "currency": "Amount of money",
         "date_range": "Date range",
         "tags": "Tags",
+        "address": "Address",
         "file_upload": "File upload",
         "calculated": "Calculated value",
         "group": "Repeating group",
@@ -1264,6 +1265,10 @@
       "NAME": "Tags",
       "DESCRIPTION": "Short labels the respondent types"
     },
+    "address": {
+      "NAME": "Address",
+      "DESCRIPTION": "A postal address; Dutch ones can be looked up from the postcode"
+    },
     "signature": {
       "NAME": "Signature",
       "DESCRIPTION": "A drawn or typed signature, stored with the response"
@@ -1296,7 +1301,19 @@
     "LOCKED": "These settings can't be changed on this server yet. Answers keep working as they are.",
     "SAVE_REFUSED": "These question types can't be added or changed on this server yet. The change was not saved: remove the new question, or put its settings back.",
     "CANNOT_COPY": "Questions of this type can't be copied on this server yet.",
+    "ADDRESS_SAVE_REFUSED": "The address question can't be added or changed on this server yet. The change was not saved: remove the question, or put its settings back.",
     "SIGNATURE_SAVE_REFUSED": "The signature question can't be added or changed on this server yet. The change was not saved: remove the new signature question."
+  },
+  "ADDRESS_SETTINGS": {
+    "SECTION": "Address",
+    "COUNTRIES": "Countries",
+    "ADD_COUNTRY": "Add a country",
+    "REMOVE_COUNTRY": "Remove {{country}}",
+    "COUNTRIES_HINT": "Respondents choose from these. With one country they see no country box.",
+    "LOOKUP": "Fill in street and city from the postcode",
+    "LOOKUP_HINT": "For Dutch addresses, once the postcode and house number are typed. Respondents can always change them.",
+    "LOOKUP_SERVER_OFF": "The lookup is switched off on this server, so addresses are typed and respondents are told nothing about a lookup.",
+    "UNVERIFIED": "A street and city that were looked up are not verified: respondents can change them."
   },
   "SIGNATURE": {
     "SECTION": "Signature",

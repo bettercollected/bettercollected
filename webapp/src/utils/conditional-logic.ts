@@ -78,6 +78,11 @@ export function getComparableAnswerValue(answer: any, fieldType: FieldTypes | st
         }
         case FieldTypes.TAGS:
             return answerTags(answer);
+        case FieldTypes.ADDRESS: {
+            // the postcode as written (conditions compare it as text: "starts with 10"); the other parts are not conditions
+            const postcode = answer.address?.postcode;
+            return typeof postcode === 'string' && postcode ? postcode : undefined;
+        }
         case FieldTypes.SIGNATURE:
             // only "is it signed" is ever asked (is empty / is not empty): a marker, never the typed name or anything about the image
             return answer.signature && typeof answer.signature === 'object' && Object.keys(answer.signature).length ? 'signed' : undefined;
@@ -255,6 +260,8 @@ export function compareDateRange(answer: any, comparison: Comparison | string, t
     }
 }
 
+/** What a condition on an address question may ask: about its postcode (backend `ADDRESS_COMPARISONS`). */
+export const ADDRESS_COMPARISONS = new Set<string>([Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.STARTS_WITH, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY]);
 /** A signature is either there or not: nothing else can be asked of it (backend `SIGNATURE_COMPARISONS`). */
 const SIGNATURE_COMPARISONS = new Set<string>([Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY]);
 
@@ -265,6 +272,11 @@ function evaluateCondition(answers: Record<string, any>, condition: LogicConditi
     if (condition.groupMode) return evaluateGroupCondition(answers, condition, sources, textMax);
     const answer = answers?.[condition.fieldId];
     if (condition.fieldType === FieldTypes.DATE_RANGE) return compareDateRange(answer, condition.comparison, condition.value);
+    if (condition.fieldType === FieldTypes.ADDRESS) {
+        // only the postcode is read (the spec check and the operations refuse the other comparisons)
+        if (!ADDRESS_COMPARISONS.has(condition.comparison)) return false;
+        return compareValue(getComparableAnswerValue(answer, condition.fieldType), condition.comparison, condition.value, textMax);
+    }
     if (condition.fieldType === FieldTypes.SIGNATURE) {
         // only "is it signed" can be asked (the spec check and the operations refuse the other comparisons)
         if (!SIGNATURE_COMPARISONS.has(condition.comparison)) return false;

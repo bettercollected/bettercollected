@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -16,10 +16,14 @@ import FieldSettings from '@app/views/organism/field-settings';
 import InsertFieldComponent from './insert-field-modal';
 
 // What the server says about the newer question types (its NEW_QUESTION_TYPES_ENABLED).
-const served = vi.hoisted(() => ({ newQuestionTypesEnabled: false, signatureQuestionEnabled: false }));
-vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ newQuestionTypesEnabled: served.newQuestionTypesEnabled, signatureQuestionEnabled: served.signatureQuestionEnabled }) }));
+// ...and about the address and signature questions, which have switches of their own (ADDRESS_QUESTION_ENABLED, SIGNATURE_QUESTION_ENABLED).
+const served = vi.hoisted(() => ({ newQuestionTypesEnabled: false, addressQuestionEnabled: true, signatureQuestionEnabled: false }));
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
+    useWorkspacePermissions: () => ({ newQuestionTypesEnabled: served.newQuestionTypesEnabled, addressQuestionEnabled: served.addressQuestionEnabled, signatureQuestionEnabled: served.signatureQuestionEnabled })
+}));
 afterEach(() => {
     served.newQuestionTypesEnabled = false;
+    served.addressQuestionEnabled = true;
     served.signatureQuestionEnabled = false;
 });
 
@@ -294,6 +298,21 @@ describe('the newer question types and the server switch', () => {
         fireEvent.change(await search(), { target: { value: 'keywords' } });
         await act(async () => fireEvent.click(screen.getByRole('option', { name: 'Tags' })));
         expect(pageFields()[4].type).toBe(FieldTypes.TAGS);
+    });
+
+    it('offers the address question, and adds it, only while its own switch is on, whatever the other one says', async () => {
+        served.addressQuestionEnabled = false;
+        served.newQuestionTypesEnabled = true;
+        renderEditor();
+        fireEvent.change(await search(), { target: { value: 'postcode' } });
+        expect(screen.queryAllByRole('option')).toHaveLength(0);
+        cleanup();
+        served.addressQuestionEnabled = true;
+        served.newQuestionTypesEnabled = false;
+        renderEditor();
+        fireEvent.change(await search(), { target: { value: 'postcode' } });
+        await act(async () => fireEvent.click(screen.getByRole('option', { name: 'Address' })));
+        expect(pageFields()[3].type).toBe(FieldTypes.ADDRESS);
     });
 
     it('offers the signature question, and adds it, only while its own switch is on', async () => {

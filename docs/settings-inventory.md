@@ -80,6 +80,8 @@ environment, whatever the tier.
 | `VERIFIED_DOMAINS_RECHECK_INTERVAL_HOURS` | domains | backend | int 1..720 |  | R | T1 | `24` |
 | `VERIFIED_DOMAINS_RESERVED` | domains | backend | str max 4000 |  | R | T2 |  |
 | `EMAIL_ACTIONS_ENABLED` | email_actions | backend | bool |  | R | T2 | `false` |
+| `ADDRESS_LOOKUP_ENABLED` | features | backend | bool |  | R | T2 | `false` |
+| `ADDRESS_QUESTION_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `API_EDITOR_OPS_SAVE_ENABLED` | features | backend | bool |  | H | T1 | `false` |
 | `API_ENABLE_EXPORT_CSV` | features | backend | bool |  | R | T1 | `false` |
 | `API_ENABLE_FORM_CREATION` | features | backend | bool |  | R | T1 | `false` |
@@ -155,6 +157,9 @@ environment, whatever the tier.
 | `AI_RATE_LIMIT_PER_USER` | rate_limits | backend | int 0..100000 |  | H | T1 | `10` |
 | `AI_RATE_LIMIT_PER_WORKSPACE` | rate_limits | backend | int 0..100000 |  | H | T1 | `30` |
 | `AI_RATE_LIMIT_WINDOW_SECONDS` | rate_limits | backend | int 1..86400 |  | H | T1 | `60` |
+| `API_ADDRESS_LOOKUP_FORM_PER_WINDOW` | rate_limits | backend | int 1..1e+06 |  | H | T1 | `600` |
+| `API_ADDRESS_LOOKUP_PER_WINDOW` | rate_limits | backend | int 1..100000 |  | H | T1 | `30` |
+| `API_ADDRESS_LOOKUP_WINDOW_SECONDS` | rate_limits | backend | int 1..86400 |  | H | T1 | `60` |
 | `API_EDITOR_OPS_PER_WINDOW` | rate_limits | backend | int 0..1e+06 |  | H | T1 | `300` |
 | `API_EDITOR_OPS_WINDOW_SECONDS` | rate_limits | backend | int 1..86400 |  | H | T1 | `60` |
 | `API_FLOW_EVENTS_PER_WINDOW` | rate_limits | backend | int 1..100000 |  | H | T1 | `120` |

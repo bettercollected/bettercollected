@@ -2046,7 +2046,7 @@
       "answers": {
         "q1": {
           "type": "text",
-          "text": "\ud83d\ude00\ud83d\ude00"
+          "text": "😀😀"
         }
       },
       "errors": []
@@ -2310,7 +2310,7 @@
       "answers": {
         "q1": {
           "type": "text",
-          "text": "Zo\u00eb Anne-Marie"
+          "text": "Zoë Anne-Marie"
         }
       },
       "errors": []
@@ -2377,7 +2377,7 @@
       "answers": {
         "q1": {
           "type": "text",
-          "text": "caf\u00e9"
+          "text": "café"
         }
       },
       "errors": []
@@ -11603,8 +11603,8 @@
           "type": "tags",
           "tags": [
             "blue sky",
-            "caf\u00e9",
-            "\u65e5\u672c"
+            "café",
+            "日本"
           ]
         }
       },
@@ -14216,7 +14216,7 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "re\u202ed"
+            "re‮d"
           ]
         }
       },
@@ -14251,7 +14251,7 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "re\u200bd"
+            "re​d"
           ]
         }
       },
@@ -14286,7 +14286,7 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "re\u200fd"
+            "re‏d"
           ]
         }
       },
@@ -14321,7 +14321,7 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "re\u061cd"
+            "re؜d"
           ]
         }
       },
@@ -14356,7 +14356,7 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "re\u2066d"
+            "re⁦d"
           ]
         }
       },
@@ -14391,7 +14391,7 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "re\ufeffd"
+            "re﻿d"
           ]
         }
       },
@@ -14426,7 +14426,7 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "re\u00add"
+            "re­d"
           ]
         }
       },
@@ -14461,7 +14461,7 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "re\u200dd"
+            "re‍d"
           ]
         }
       },
@@ -14496,7 +14496,7 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "re\u200cd"
+            "re‌d"
           ]
         }
       },
@@ -14532,7 +14532,7 @@
           "type": "tags",
           "tags": [
             "red",
-            "re\u200bd"
+            "re​d"
           ]
         }
       },
@@ -14567,7 +14567,7 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "\u202etxet"
+            "‮txet"
           ]
         }
       },
@@ -14602,7 +14602,7 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "\ufeff"
+            "﻿"
           ]
         }
       },
@@ -14637,9 +14637,9 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "caf\u00e9",
-            "\u05e9\u05dc\u05d5\u05dd",
-            "\u65e5\u672c\u8a9e"
+            "café",
+            "שלום",
+            "日本語"
           ]
         }
       },
@@ -14912,7 +14912,7 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "re\u202ed"
+            "re‮d"
           ]
         }
       },
@@ -15828,8 +15828,8 @@
         "q1": {
           "type": "tags",
           "tags": [
-            "caf\u00e9",
-            "cafe\u0301"
+            "café",
+            "café"
           ]
         }
       },
@@ -15865,8 +15865,1698 @@
           "type": "tags",
           "tags": [
             "cafe",
-            "caf\u00e9"
+            "café"
           ]
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "address with every part",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL",
+            "house_number_addition": "A"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "address without an addition",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "address without a country when one country is allowed",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "address with a postcode in lower case",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 cs",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address with a postcode without the space",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address with a postcode that begins with zero",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "0123 AB",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address with a postcode whose letters are not used",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 SS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address with a house number of zero",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "0",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address with a house number that has a letter",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12a",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address with a house number of six digits",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "123456",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address with an addition that is a word",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL",
+            "house_number_addition": "bis"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "address with an addition that starts with a hyphen",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL",
+            "house_number_addition": "-2"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address without a street",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "address without a city",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "address with only a postcode and a house number",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "postcode": "1015 CS",
+            "house_number": "12",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "address with only a country is no answer when it is not required",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "country": "NL"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "required address with only a country",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "address with a country that is not a code",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "nl"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address with a country the question does not allow",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "5",
+            "postcode": "10115",
+            "city": "Amsterdam",
+            "country": "DE"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "country"
+        }
+      ]
+    },
+    {
+      "name": "address of another allowed country",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1",
+                "properties": {
+                  "countries": [
+                    "NL",
+                    "BE"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Rue Neuve",
+            "house_number": "5B",
+            "postcode": "1000",
+            "city": "Bruxelles",
+            "country": "BE"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "address of another country with a postcode that is not one",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1",
+                "properties": {
+                  "countries": [
+                    "NL",
+                    "BE"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "@@",
+            "city": "Amsterdam",
+            "country": "BE"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address without a country when several are allowed",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1",
+                "properties": {
+                  "countries": [
+                    "NL",
+                    "BE"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "address that breaks several rules reports each once",
+      "checks": [
+        "rules"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "house_number": "x",
+            "postcode": "1015cs",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        },
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "required address left out",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "required address with only empty parts",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "",
+            "postcode": ""
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "required address given",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1",
+                "validations": {
+                  "required": true
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "address left out is fine when it is not required",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": []
+    },
+    {
+      "name": "address in the text slot is the wrong type",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "text",
+          "text": "Keizersgracht 12"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "address with a part that is not text",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": 12
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "address with a part the question does not have",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "A",
+            "floor": "3"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "type"
+        }
+      ]
+    },
+    {
+      "name": "address with a hidden character in the street",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizers​gracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address with a lone surrogate in the street",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "\ud800",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address with a private use character in the city",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address with an unassigned character in the street",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizers͸gracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address with an untrimmed city",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": " Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "format"
+        }
+      ]
+    },
+    {
+      "name": "address with a street over the limit",
+      "checks": [
+        "server"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q1",
+          "rule": "too_long"
+        }
+      ]
+    },
+    {
+      "name": "address whose postcode starts with a value",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "address",
+                        "comparison": "STARTS_WITH",
+                        "value": "10"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "address whose postcode does not start with a value",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "address",
+                        "comparison": "STARTS_WITH",
+                        "value": "20"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "address that is equal to a postcode",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "address",
+                        "comparison": "IS_EQUAL",
+                        "value": "1015 CS"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "address that is not empty",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "address",
+                        "comparison": "IS_NOT_EMPTY"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "address that is empty",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "address",
+                        "comparison": "IS_EMPTY"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {},
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "address compared with a comparison it does not have",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "address",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q1",
+                        "fieldType": "address",
+                        "comparison": "CONTAINS",
+                        "value": "10"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "address",
+          "address": {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL"
+          }
         }
       },
       "errors": []

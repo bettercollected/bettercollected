@@ -298,6 +298,11 @@ _TYPES_WITHOUT_NEW = """phone_number, date, yes_no, multiple_choice, dropdown, r
 file_upload, text (a display-only statement), calculated (a computed value)."""
 
 
+_ADDRESS_TYPE = (
+    ", address (a postal address: street, house number, postcode, city, country; "
+    '"countries":["NL"] limits the countries, default NL only; "addressLookup": false '
+    "turns the street and city lookup off; a condition on it compares the postcode)"
+)
 _SIGNATURE_TYPE = (
     ", signature (a drawn or typed signature, no settings; a condition on it "
     "uses IS_EMPTY or IS_NOT_EMPTY)"
@@ -306,17 +311,23 @@ _SIGNATURE_TYPE = (
 
 def ops_guide() -> str:
     """OPS_GUIDE, without the newer question types while they are switched
-    off, and with the signature question only while its own switch is on
-    (services/new_question_types.py)."""
+    off, and with the address and signature questions only while their own
+    switches are on (services/new_question_types.py)."""
     from backend.app.services.new_question_types import (
+        address_question_enabled,
         new_question_types_enabled,
         signature_question_enabled,
     )
 
     types = _TYPES_WITH_NEW if new_question_types_enabled() else _TYPES_WITHOUT_NEW
     guide = OPS_GUIDE.replace(_TYPES_WITH_NEW, types)
+    extra = ""
+    if address_question_enabled():
+        extra += _ADDRESS_TYPE
     if signature_question_enabled():
-        guide = guide.replace(types, types[:-1] + _SIGNATURE_TYPE + ".")
+        extra += _SIGNATURE_TYPE
+    if extra:
+        guide = guide.replace(types, types[:-1] + extra + ".")
     return guide
 
 

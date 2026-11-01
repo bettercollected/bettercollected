@@ -84,6 +84,7 @@ export const ADDABLE_FIELD_TYPES = new Set<string>([
     FieldTypes.CURRENCY,
     FieldTypes.DATE_RANGE,
     FieldTypes.TAGS,
+    FieldTypes.ADDRESS,
     FieldTypes.SIGNATURE,
     FieldTypes.YES_NO,
     FieldTypes.MULTIPLE_CHOICE,
@@ -325,7 +326,7 @@ export function jsonEqual(a: any, b: any): boolean {
 
 /** Every field type the backend knows (common StandardFormFieldType). */
 export const KNOWN_FIELD_TYPES = new Set<string>(
-    'slide,date,day,time,currency,date_range,tags,signature,short_text,long_text,multiple_choice,opinion_scale,ranking,rating,dropdown,matrix,tabular_input,file_upload,group,email,payment,statement,page_break,calculated,hidden,conditional,h1,h2,h3,h4,h5,p,strong,divider,markdown,input_short_text,input_long_text,input_markdown,input_multiple_choice,input_multiselect,input_checkboxes,input_email,input_number,input_phone_number,input_link,input_date,input_time,input_date_range,input_time_range,input_datetime_range,input_dropdown,input_rating,input_linear_scale,input_template_button,input_file_upload,input_ranking,input_matrix,text,yes_no,url,linear_rating,phone_number,number,VIDEO_CONTENT,IMAGE_CONTENT,date_input,email_input,number_input,short_text_input,long_text_input,multiple_choice_input,ranking_input,rating_input,drop_down_input,media_input,matrix_row_input'.split(
+    'slide,date,day,time,currency,date_range,tags,address,signature,short_text,long_text,multiple_choice,opinion_scale,ranking,rating,dropdown,matrix,tabular_input,file_upload,group,email,payment,statement,page_break,calculated,hidden,conditional,h1,h2,h3,h4,h5,p,strong,divider,markdown,input_short_text,input_long_text,input_markdown,input_multiple_choice,input_multiselect,input_checkboxes,input_email,input_number,input_phone_number,input_link,input_date,input_time,input_date_range,input_time_range,input_datetime_range,input_dropdown,input_rating,input_linear_scale,input_template_button,input_file_upload,input_ranking,input_matrix,text,yes_no,url,linear_rating,phone_number,number,VIDEO_CONTENT,IMAGE_CONTENT,date_input,email_input,number_input,short_text_input,long_text_input,multiple_choice_input,ranking_input,rating_input,drop_down_input,media_input,matrix_row_input'.split(
         ','
     )
 );

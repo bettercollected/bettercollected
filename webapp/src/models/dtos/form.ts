@@ -57,6 +57,10 @@ export interface StandardFormFieldProperties {
     maxTime?: string;
     /** Currency questions: the ISO 4217 codes respondents may pick, the first being the default (see utils/currency.ts). */
     currencies?: string[];
+    /** Address questions: the countries a respondent may give (ISO 3166-1 alpha-2; absent means the Netherlands only; see utils/address.ts). */
+    countries?: string[];
+    /** Address questions: fill in street and city from a Dutch postcode and house number (absent means yes, while the server offers it). */
+    addressLookup?: boolean;
     /** "Why we ask this": the creator's reason for an identifying question, shown to respondents under it (see utils/publish-checks.ts). */
     whyWeAsk?: string;
     /**
@@ -363,6 +367,8 @@ export interface AnswerDto {
     dateRange?: { start?: string; end?: string };
     /** A tags question's answer: the labels, in the order they were entered. */
     tags?: string[];
+    /** An address question's answer: its parts (see utils/address.ts). */
+    address?: { street?: string; house_number?: string; house_number_addition?: string; postcode?: string; city?: string; country?: string };
     /**
      * A signature question's answer (utils/signature.ts): how it was given,
      * the typed name or the id of the drawn image (a private stored file),
@@ -428,6 +434,8 @@ export enum FieldTypes {
     DATE_RANGE = 'date_range',
     /** Free-entry short labels (answer slot `tags`). */
     TAGS = 'tags',
+    /** A postal address: street, house number, postcode, city and country (answer slot `address`). */
+    ADDRESS = 'address',
     /** A drawn or typed signature (answer slot `signature`). */
     SIGNATURE = 'signature',
     PHONE_NUMBER = 'phone_number',
@@ -472,6 +480,7 @@ export const V2InputFields = [
     FieldTypes.CURRENCY,
     FieldTypes.DATE_RANGE,
     FieldTypes.TAGS,
+    FieldTypes.ADDRESS,
     FieldTypes.SIGNATURE,
     FieldTypes.YES_NO,
     FieldTypes.MULTIPLE_CHOICE,

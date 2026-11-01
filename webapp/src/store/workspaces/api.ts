@@ -493,7 +493,7 @@ export const workspacesApi = createApi({
         // The caller's effective permissions in a workspace (empty for a
         // non-member). Kept a while: many controls read it. The user id is
         // part of the cache key only, so one user never reads another's.
-        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean; choiceLogicEnabled?: boolean; newQuestionTypesEnabled?: boolean; signatureQuestionEnabled?: boolean; saveDraftsEnabled?: boolean }, { workspaceId: string; userId: string }>({
+        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean; choiceLogicEnabled?: boolean; newQuestionTypesEnabled?: boolean; addressQuestionEnabled?: boolean; addressLookupEnabled?: boolean; signatureQuestionEnabled?: boolean; saveDraftsEnabled?: boolean }, { workspaceId: string; userId: string }>({
             query: ({ workspaceId }) => ({
                 url: `/workspaces/${workspaceId}/permissions`,
                 method: 'GET'

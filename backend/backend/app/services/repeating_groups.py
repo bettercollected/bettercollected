@@ -89,6 +89,12 @@ def comparable_answer_value(answer: Any, field_type: Optional[str]) -> Any:
     if field_type == "tags":
         tags = answer.get("tags")
         return [tag for tag in tags if isinstance(tag, str)] if isinstance(tags, list) else None
+    if field_type == "address":
+        # the postcode as written (conditions compare it as text: "starts
+        # with 10"); the other parts are not conditions
+        address = answer.get("address")
+        postcode = address.get("postcode") if isinstance(address, dict) else None
+        return postcode if isinstance(postcode, str) and postcode else None
     if field_type == "signature":
         # only "is it signed" is ever asked (is empty / is not empty): a
         # marker, never the typed name or anything about the image
@@ -336,6 +342,14 @@ DATE_RANGE_COMPARISONS = (
     "IS_EMPTY",
     "IS_NOT_EMPTY",
 )
+# What a condition on an address question may ask: about its postcode.
+ADDRESS_COMPARISONS = (
+    "IS_EQUAL",
+    "IS_NOT_EQUAL",
+    "STARTS_WITH",
+    "IS_EMPTY",
+    "IS_NOT_EMPTY",
+)
 # A signature is either there or not: nothing else can be asked of it.
 SIGNATURE_COMPARISONS = ("IS_EMPTY", "IS_NOT_EMPTY")
 ORDERED_COMPARISONS = (
@@ -437,6 +451,17 @@ def evaluate_condition(
             comparable_answer_value(answers.get(field_id), field_type),
             comparison,
             None,
+            text_max,
+        )
+    if field_type == "address":
+        # only the postcode is read (the spec check and the operations refuse
+        # the other comparisons)
+        if comparison not in ADDRESS_COMPARISONS:
+            return False
+        return compare(
+            comparable_answer_value(answers.get(field_id), field_type),
+            comparison,
+            target,
             text_max,
         )
     if field_type == "tags":

@@ -3,7 +3,7 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 
 import { formFieldsList } from '@app/constants/form-fields';
-import { GATED_TYPES } from '@app/lib/form-ops/new-question-types';
+import { typeIsOff } from '@app/lib/form-ops/new-question-types';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldConditionalLogic, LogicalOperator } from '@app/models/types/form-builder-shared';
@@ -33,8 +33,8 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
     const { updateGroupChildren } = useBuilderActions();
     // The newer question types are offered while the server takes them (NEW_QUESTION_TYPES_ENABLED);
     // a child that already has one keeps it in its own list.
-    const { newQuestionTypesEnabled } = useWorkspacePermissions();
-    const typesFor = (own?: string) => CHILD_TYPES.filter((option) => newQuestionTypesEnabled || !GATED_TYPES.has(option.type) || option.type === own);
+    const { newQuestionTypesEnabled, addressQuestionEnabled } = useWorkspacePermissions();
+    const typesFor = (own?: string) => CHILD_TYPES.filter((option) => !typeIsOff(option.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled }) || option.type === own);
     const children = getGroupChildren(field);
     const slideIndex = slide.index;
     const fieldIndex = field.index;

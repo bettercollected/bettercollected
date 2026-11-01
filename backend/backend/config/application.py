@@ -91,6 +91,17 @@ class Application(StoreBackedSettings):
     # that turns them on): those saves are refused with 422
     # question_type_disabled; questions already stored keep working.
     NEW_QUESTION_TYPES_ENABLED: bool = False
+    # The address question (street, house number, postcode, city, country;
+    # common/address.py) may be added or changed through the same paths. Off
+    # (the default, until the release that turns it on): those saves are
+    # refused with 422 address_question_disabled; an address question already
+    # stored keeps being shown, answered and exported.
+    ADDRESS_QUESTION_ENABLED: bool = False
+    # The street and city lookup of the address question
+    # (services/address_lookup/): a Dutch postcode and house number are sent,
+    # through this server, to a third-party address service. Off (the default):
+    # no outbound call, every address is typed. Needs ADDRESS_QUESTION_ENABLED.
+    ADDRESS_LOOKUP_ENABLED: bool = False
     # The signature question (a drawn or typed signature, services/signatures.py)
     # may be added or changed through the same paths. Off (the default, until
     # the release that turns it on): those saves are refused with 422

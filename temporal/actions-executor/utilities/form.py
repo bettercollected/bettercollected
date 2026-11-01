@@ -21,6 +21,7 @@ FieldTypes = {
     'CURRENCY': 'currency',
     'DATE_RANGE': 'date_range',
     'TAGS': 'tags',
+    'ADDRESS': 'address',
     'SIGNATURE': 'signature',
     'YES_NO': 'yes_no',
     'MULTIPLE_CHOICE': 'multiple_choice',
@@ -108,6 +109,24 @@ def get_fields_from_v2_form(form: Dict[str, Any], respondent: bool = False) -> L
                 fields.extend(matrix_rows)
     return [field for field in fields if field is not None]
 
+def address_line(value: Any) -> str:
+    """An address answer as one line: "street number addition, postcode city" and the
+    country code unless NL; a missing part is left out (same as the CSV export)."""
+    if not isinstance(value, dict):
+        return ''
+
+    def text(part: str) -> str:
+        found = value.get(part)
+        return found.strip() if isinstance(found, str) else ''
+
+    street = ' '.join(p for p in (text('street'), text('house_number'), text('house_number_addition')) if p)
+    town = ' '.join(p for p in (text('postcode'), text('city')) if p)
+    parts = [p for p in (street, town) if p]
+    country = text('country')
+    if country and country != 'NL' and parts:
+        parts.append(country)
+    return ', '.join(parts)
+
 def get_answer_for_field(response: Dict[str, Any], field: Dict[str, Any]) -> Any:
 
     answer = response.get('answers', {}).get(field['id'],{})
@@ -139,6 +158,10 @@ def get_answer_for_field(response: Dict[str, Any], field: Dict[str, Any]) -> Any
         # one cell, "; " between the tags (same as the CSV export)
         tags = answer.get('tags')
         return '; '.join(str(tag) for tag in tags) if isinstance(tags, list) else ''
+    if field['type'] == FieldTypes['ADDRESS']:
+        # one line, "street number addition, postcode city" and the country code
+        # unless NL (same as the CSV export)
+        return address_line(answer.get('address'))
     if field['type'] == FieldTypes['YES_NO']:
         return 'Yes' if answer.get('boolean') else 'No' if answer.get('boolean') is False else ''
     if field['type'] in [FieldTypes['MULTIPLE_CHOICE'], FieldTypes['DROP_DOWN']]:
@@ -251,6 +274,7 @@ def get_placeholder_value_for_title(field_type):
         'currency': 'Enter an amount',
         'date_range': 'Select the first and the last day',
         'tags': 'Type a tag and press Enter',
+        'address': 'Enter an address',
         'signature': 'Sign here',
         'linear_rating': 'Rate from 1 to 10',
         'matrix': 'Matrix Field',

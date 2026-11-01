@@ -131,6 +131,47 @@ accepted. Stored data is never changed. The workspace permissions answer
 (`GET /workspaces/{id}/permissions`) tells the builder, as
 `newQuestionTypesEnabled`, so it can offer the types.
 
+### Address question
+
+| Type | The respondent | The answer | Settings |
+|---|---|---|---|
+| `address` | postcode, house number, an optional addition, street, city and (when several countries are allowed) a country | `{"type":"address","address":{"street":"Keizersgracht","house_number":"12","house_number_addition":"A","postcode":"1015 CS","city":"Amsterdam","country":"NL"}}` | `countries` (ISO 3166-1 alpha-2 codes the respondent may give, 1 to 30, default `["NL"]`), `addressLookup` (fill in street and city from a Dutch postcode and house number, default true) |
+
+Each part is text stored the way it is shown: trimmed, in Unicode form C, without control or format
+characters, at most 100 characters for the street and the city, 10 for the house number and the addition,
+12 for the postcode. An answer is given once any part but the country is: then the street, the house
+number, the postcode and the city are needed (`required`), and the country too when the question allows
+more than one (a single allowed country is assumed). A Dutch address (`NL`) holds to the Dutch forms: a
+postcode as `1234 AB` (one space, capitals, not starting with 0, the letters not `SA`, `SD` or `SS`) and a
+house number of one to five digits not starting with 0 (`format`); the addition is a letter, a number or a
+short word. A postcode of another country is two to twelve letters, digits, spaces or hyphens. A country
+the question does not allow is `country`; a part over its cap is `too_long`; a part of the wrong type or an
+unknown part is `type`. **A street and a city that a lookup filled in are not verified:** the respondent can
+change them and the server checks their shape, never that the address exists.
+
+A logic condition on an address compares its **postcode** as text with `IS_EQUAL`, `IS_NOT_EQUAL`,
+`STARTS_WITH` (a region: `10`), `IS_EMPTY` or `IS_NOT_EMPTY`; the spec check and the edit operations refuse
+the others, and the other parts are not conditions. An address is not a formula variable, and a field rule
+may make it required or change its label or description, never set or lock it. In the exports it is one
+cell, `street number addition, postcode city` with the country code added unless it is `NL`, and the CSV's
+formula guard applies. The AI never reads an address.
+
+**The lookup.** For a Dutch address the respondent's form sends the postcode and the house number (never
+the addition) to the backend, which asks a third-party address service and returns the street and
+the city (`POST /workspaces/{id}/forms/{form_id}/address-lookup`, public like the form: 404 unless the form
+is published and the question asks for a lookup, 422 for input that is not a postcode and a house number, 429
+past 30 lookups per client and form or 600 per form each minute, 503 when the service cannot answer, and the
+form then asks for the street and city to be typed). The respondent's browser and address never reach the
+service. The lookup works only while `ADDRESS_LOOKUP_ENABLED` is on as well; see
+[../address-question.md](../address-question.md).
+
+**Rollout.** The address question is behind its own server setting, `ADDRESS_QUESTION_ENABLED`, off by
+default. While it is off, every write that gives a form an address question, or changes its type or its
+settings (`countries`, `addressLookup`), is refused with 422 `address_question_disabled` on the same paths
+as the newer question types; the validation of a document warns about it. Questions a form already has keep
+working: they are shown, take answers and are exported, and a save that leaves their type and settings as
+they are is accepted. The workspace permissions answer tells the builder as `addressQuestionEnabled`.
+
 ### Signature question
 
 | Type | The respondent | The answer | Settings |
@@ -560,11 +601,13 @@ should pass every case.
   `NEW_QUESTION_TYPES_ENABLED`; questions `before` already holds, and edits to
   them that leave their type and settings alone, still apply. Both engines
   read it.
+- `addressQuestion` (optional, default `true`): the same for the `address`
+  question and its own switch (`ADDRESS_QUESTION_ENABLED`; the message names it).
 - `signatureQuestion` (optional, default `true`): the same for the signature
   question (the server setting `SIGNATURE_QUESTION_ENABLED`). With `false`, an
   operation that adds a `signature` question, or turns a question into one, fails
-  with a message containing `SIGNATURE_QUESTION_ENABLED`; the other switch
-  is not affected by it. Both engines read it.
+  with a message containing `SIGNATURE_QUESTION_ENABLED`; the other switches
+  are not affected by it. Both engines read it.
 - Ids the operations generate are replaced by `$uuid:1`, `$uuid:2`, ... in
   order of first appearance, walking the form depth first with object keys
   in sorted order. Compare after replacing them the same way.

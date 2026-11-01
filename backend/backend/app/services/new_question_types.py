@@ -17,10 +17,12 @@ question changed) passes. Stored data is never touched.
 date range and tags), and ``signature`` is what
 counts as "the question's type and settings".
 
-The signature question has a switch of its own, ``SIGNATURE_QUESTION_ENABLED``
-(``SIGNATURE_TYPES``, refusal code ``signature_question_disabled``). It runs
+The signature question and the address question have a switch of their own,
+``SIGNATURE_QUESTION_ENABLED`` (``SIGNATURE_TYPES``, refusal code
+``signature_question_disabled``) and ``ADDRESS_QUESTION_ENABLED``
+(``ADDRESS_TYPES``, refusal code ``address_question_disabled``). They run
 through the same checks: a ``Gate`` names a switch, its types and its refusal,
-``GATES`` lists both, and every entry point below looks at each gate that is
+``GATES`` lists them all, and every entry point below looks at each gate that is
 off. A new gated type with its own switch is one more ``Gate``.
 """
 
@@ -33,10 +35,13 @@ from backend.app.exceptions import HTTPException
 from backend.app.services.calculated_fields import _get, _type
 
 DISABLED_CODE = "question_type_disabled"
+ADDRESS_DISABLED_CODE = "address_question_disabled"
 SIGNATURE_DISABLED_CODE = "signature_question_disabled"
 # Types behind the switch. Keep in step with GATED_TYPES in
 # webapp/src/lib/form-ops/new-question-types.ts.
 GATED_TYPES = frozenset({"time", "day", "currency", "date_range", "tags"})
+# The address question's own switch (ADDRESS_QUESTION_ENABLED).
+ADDRESS_TYPES = frozenset({"address"})
 # The signature question's own switch (SIGNATURE_QUESTION_ENABLED).
 SIGNATURE_TYPES = frozenset({"signature"})
 # Operations that can give a form such a question or change one.
@@ -62,6 +67,13 @@ DISABLED_MESSAGE = (
 )
 
 
+ADDRESS_DISABLED_MESSAGE = (
+    "The address question cannot be added or changed on this server yet "
+    "(ADDRESS_QUESTION_ENABLED is off). An address question that a form "
+    "already has is kept."
+)
+
+
 SIGNATURE_DISABLED_MESSAGE = (
     "The signature question cannot be added or changed on this server yet "
     "(SIGNATURE_QUESTION_ENABLED is off). A signature question that a form "
@@ -76,6 +88,11 @@ def new_question_types_enabled() -> bool:
     return bool(getattr(settings, "NEW_QUESTION_TYPES_ENABLED", False))
 
 
+def address_question_enabled() -> bool:
+    """Is ``ADDRESS_QUESTION_ENABLED`` on?"""
+    from backend.config import settings
+
+    return bool(getattr(settings, "ADDRESS_QUESTION_ENABLED", False))
 def signature_question_enabled() -> bool:
     """Is ``SIGNATURE_QUESTION_ENABLED`` on?"""
     from backend.config import settings
@@ -101,6 +118,13 @@ NEW_TYPES_GATE = Gate(
     DISABLED_MESSAGE,
     lambda: new_question_types_enabled(),
 )
+ADDRESS_GATE = Gate(
+    "ADDRESS_QUESTION_ENABLED",
+    ADDRESS_TYPES,
+    ADDRESS_DISABLED_CODE,
+    ADDRESS_DISABLED_MESSAGE,
+    lambda: address_question_enabled(),
+)
 SIGNATURE_GATE = Gate(
     "SIGNATURE_QUESTION_ENABLED",
     SIGNATURE_TYPES,
@@ -108,9 +132,9 @@ SIGNATURE_GATE = Gate(
     SIGNATURE_DISABLED_MESSAGE,
     lambda: signature_question_enabled(),
 )
-GATES = (NEW_TYPES_GATE, SIGNATURE_GATE)
+GATES = (NEW_TYPES_GATE, ADDRESS_GATE, SIGNATURE_GATE)
 # Every type behind a switch.
-ALL_GATED_TYPES = GATED_TYPES | SIGNATURE_TYPES
+ALL_GATED_TYPES = GATED_TYPES | ADDRESS_TYPES | SIGNATURE_TYPES
 
 
 def gates_off() -> List[Gate]:
@@ -150,6 +174,10 @@ def signature_parts(field: Any) -> Tuple[str, Tuple[str, ...]]:
             "minTime": _get(props, "min_time"),
             "maxTime": _get(props, "max_time"),
             "currencies": _get(props, "currencies"),
+            # an address question: the countries and whether street and city
+            # are looked up
+            "countries": _get(props, "countries"),
+            "addressLookup": _get(props, "address_lookup"),
             "minValue": _get(validations, "min_value"),
             "maxValue": _get(validations, "max_value"),
             # a tags question: the number of tags and the length of one
@@ -224,8 +252,8 @@ def new_or_changed_questions(
 
 
 def ensure_question_types_allowed(form: Any, existing: Any = None) -> None:
-    """While a switch is off, refuse (422 ``question_type_disabled`` or
-    ``signature_question_disabled``) a save that brings a new gated question
+    """While a switch is off, refuse (422, with the code of the gate that is
+    off, e.g. ``question_type_disabled`` or ``address_question_disabled``) a save that brings a new gated question
     or changes the type or settings of one. Questions stored and unchanged
     pass."""
     for gate in gates_off():

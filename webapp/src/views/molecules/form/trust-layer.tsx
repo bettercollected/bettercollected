@@ -53,6 +53,13 @@ export interface TrustLayerProps {
      * respondent gets a copy. Shown as text, never an address.
      */
     emailDestination?: { team?: boolean | null; copy?: boolean | null } | null;
+    /**
+     * Set when the form fills in street and city from a postcode and house number
+     * (`formLooksUpAddresses`): the panel says what is sent, and to whom.
+     */
+    addressLookup?: boolean;
+    /** Shown in a preview, which looks nothing up: the panel says what the published form will do. */
+    addressLookupPreview?: boolean;
     /** Where a respondent views or deletes their response (the workspace portal). */
     portalUrl?: string;
     /**
@@ -90,7 +97,7 @@ export interface TrustLayerProps {
  */
 const PANEL_CLASS = 'pointer-events-auto max-h-[45vh] overflow-y-auto border-t border-t-black-400 bg-white py-4 text-[14px] leading-relaxed text-black-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]';
 
-export default function TrustLayer({ ownerName, ownerUnnamed = false, ownerImage, settings, registrationDestination, webhookDestination, emailDestination, portalUrl, poweredBy, defaultExpanded = false, protectPrimaryAction = false, layout, hasSignature = false }: TrustLayerProps) {
+export default function TrustLayer({ ownerName, ownerUnnamed = false, ownerImage, settings, registrationDestination, webhookDestination, emailDestination, addressLookup, addressLookupPreview = false, portalUrl, poweredBy, defaultExpanded = false, protectPrimaryAction = false, layout, hasSignature = false }: TrustLayerProps) {
     // The form's column (form-column.ts): one left and right edge from the
     // page header down to this footer.
     const column = cn(FORM_COLUMN, columnPlacementClass(layout));
@@ -210,6 +217,8 @@ export default function TrustLayer({ ownerName, ownerUnnamed = false, ownerImage
             detail: [emailDestination.team ? t('PRIVACY.EMAIL_TEAM') : null, emailDestination.copy ? t('PRIVACY.EMAIL_COPY') : null, t('PRIVACY.EMAIL_NO_DELETION')].filter(Boolean).join(' ')
         });
     }
+    // The address lookup sends two things to an address service, through our server: say which, and that nothing else goes.
+    if (addressLookup) rows.push({ key: 'address', term: t('PRIVACY.ADDRESS'), detail: t(addressLookupPreview ? 'PRIVACY.ADDRESS_DETAIL_PREVIEW' : 'PRIVACY.ADDRESS_DETAIL') });
     rows.push({
         key: 'rights',
         term: t('PRIVACY.RIGHTS'),

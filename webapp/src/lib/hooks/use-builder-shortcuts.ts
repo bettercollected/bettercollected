@@ -89,7 +89,7 @@ export function useBuilderShortcuts({ openHelp }: { openHelp: () => void }) {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     const { setInsertTarget } = useInsertTarget();
     // The newer question types cannot be copied while the server does not take them (a copy is a new question there).
-    const { newQuestionTypesEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
+    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
 
     // One window listener; after each render it is handed the current
     // selection and the actions over the current builder state.
@@ -127,7 +127,7 @@ export function useBuilderShortcuts({ openHelp }: { openHelp: () => void }) {
             }
             case 'duplicate':
                 if (fieldIndex < 0) return;
-                if (typeIsOff(fields[fieldIndex]?.type, { newQuestionTypes: newQuestionTypesEnabled, signatureQuestion: signatureQuestionEnabled })) {
+                if (typeIsOff(fields[fieldIndex]?.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled })) {
                     toast({ description: i18n.t('builder:NEW_TYPES.CANNOT_COPY') });
                     return;
                 }

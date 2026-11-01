@@ -43,7 +43,7 @@ describe('add_field', () => {
         expect(result.message).toBe("Added 'School' (short_text) to the group 'Children'");
         expect(field(doc, 'kids').properties!.fields!.map((f) => f.id)).toEqual(['kid-name', 'new-1', 'kid-born', 'kid-yes']);
         expect(one({ op: 'add_field', groupId: 'kids', field: { title: 'Up', type: 'file_upload' } }).result.message).toBe(
-            "A 'file_upload' question cannot be placed inside a repeating group (allowed: currency, date, date_range, day, dropdown, email, linear_rating, long_text, multiple_choice, number, phone_number, rating, short_text, tags, text, time, url, yes_no)."
+            "A 'file_upload' question cannot be placed inside a repeating group (allowed: address, currency, date, date_range, day, dropdown, email, linear_rating, long_text, multiple_choice, number, phone_number, rating, short_text, tags, text, time, url, yes_no)."
         );
         expect(one({ op: 'add_field', groupId: 'name', field: { title: 'x', type: 'short_text' } }).result.message).toBe("'Your name' is not a repeating group.");
     });
@@ -52,7 +52,7 @@ describe('add_field', () => {
         expect(one({ op: 'add_field', field: { title: 'x', type: 'email' } }).result.message).toBe('add_field needs a pageId (or a groupId to add into a repeating group).');
         expect(one({ op: 'add_field', pageId: 'nope', field: { title: 'x', type: 'email' } }).result.message).toBe("Page 'nope' was not found — it may have been removed.");
         expect(one({ op: 'add_field', pageId: 'p1', field: { title: 'x', type: 'matrix' } }).result.message).toBe(
-            "Field type 'matrix' cannot be created by AI ops (allowed: calculated, currency, date, date_range, day, dropdown, email, file_upload, linear_rating, long_text, multiple_choice, number, phone_number, rating, short_text, signature, tags, text, time, url, yes_no)."
+            "Field type 'matrix' cannot be created by AI ops (allowed: address, calculated, currency, date, date_range, day, dropdown, email, file_upload, linear_rating, long_text, multiple_choice, number, phone_number, rating, short_text, signature, tags, text, time, url, yes_no)."
         );
         expect(one({ op: 'add_field', pageId: 'p1', field: { title: 'x', type: 'dropdown', choices: ['one'] } }).result.message).toBe("'dropdown' needs at least 2 choices.");
         expect(one({ op: 'add_field', pageId: 'p1', afterFieldId: 'age', field: { title: 'x', type: 'email' } }).result.message).toBe("Field 'age' is not in page 'p1'.");

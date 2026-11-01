@@ -1,5 +1,7 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
+import { addressProblems } from '@app/utils/address';
+import { countryName, questionCountries } from '@app/utils/countries';
 import { currencyDecimals, formatAmount, isCurrencyCode, parseAmount } from '@app/utils/currency';
 import { isDay } from '@app/utils/iso-date';
 import { rawDateRange } from '@app/utils/date-range';
@@ -33,6 +35,10 @@ import { getDisplayedItemCount, getGroupChildren, getGroupItems, getItemHiddenCh
  *   same ignoring case, and their number within the fewest and most (never
  *   above TAGS_MAX).
  *
+ * - Address: the street, house number, postcode and city once any part is given
+ *   (and the country when the question allows several), a Dutch postcode as
+ *   `1234 AB` and a Dutch house number of digits, a country the question allows
+ *   (utils/address.ts, the twin of the server's common `address.py`).
  * - Signature: a typed name is well formed (trimmed, in form C, no hidden or
  *   control characters, at most SIGNATURE_NAME_MAX characters); a drawn
  *   signature names its image. It has no limits of its own to set.
@@ -41,16 +47,16 @@ import { getDisplayedItemCount, getGroupChildren, getGroupItems, getItemHiddenCh
  * Required says.
  */
 
-export type AnswerRuleKind = 'text' | 'number' | 'choices' | 'time' | 'day' | 'currency' | 'date_range' | 'tags';
+export type AnswerRuleKind = 'text' | 'number' | 'choices' | 'time' | 'day' | 'currency' | 'date_range' | 'tags' | 'address';
 
-export type AnswerRuleProblem = 'TOO_SHORT' | 'TOO_LONG' | 'PATTERN' | 'TOO_SMALL' | 'TOO_LARGE' | 'NOT_INTEGER' | 'TOO_FEW_CHOICES' | 'TOO_MANY_CHOICES' | 'FORMAT' | 'CURRENCY' | 'REQUIRED' | 'RANGE_ORDER' | 'DUPLICATE' | 'SIGNATURE_IMAGE';
+export type AnswerRuleProblem = 'TOO_SHORT' | 'TOO_LONG' | 'PATTERN' | 'TOO_SMALL' | 'TOO_LARGE' | 'NOT_INTEGER' | 'TOO_FEW_CHOICES' | 'TOO_MANY_CHOICES' | 'FORMAT' | 'CURRENCY' | 'REQUIRED' | 'RANGE_ORDER' | 'DUPLICATE' | 'COUNTRY' | 'SIGNATURE_IMAGE';
 
 /**
  * What the problems are, by the server's rule code (lower case). `REQUIRED` is
- * a date range with only one end given; it is not listed in ANSWER_RULE_PROBLEMS
+ * a date range with only one end given, or an address with a part missing; it is not listed in ANSWER_RULE_PROBLEMS
  * because the server and the page also use it for an unanswered required question.
  */
-export const ANSWER_RULE_PROBLEMS: ReadonlyArray<AnswerRuleProblem> = ['TOO_SHORT', 'TOO_LONG', 'PATTERN', 'TOO_SMALL', 'TOO_LARGE', 'NOT_INTEGER', 'TOO_FEW_CHOICES', 'TOO_MANY_CHOICES', 'FORMAT', 'CURRENCY', 'RANGE_ORDER', 'DUPLICATE', 'SIGNATURE_IMAGE'];
+export const ANSWER_RULE_PROBLEMS: ReadonlyArray<AnswerRuleProblem> = ['TOO_SHORT', 'TOO_LONG', 'PATTERN', 'TOO_SMALL', 'TOO_LARGE', 'NOT_INTEGER', 'TOO_FEW_CHOICES', 'TOO_MANY_CHOICES', 'FORMAT', 'CURRENCY', 'RANGE_ORDER', 'DUPLICATE', 'COUNTRY', 'SIGNATURE_IMAGE'];
 
 /** "Whole numbers only" on a number question. */
 export const INTEGER_PATTERN = '^-?\\d+$';
@@ -126,6 +132,8 @@ export function answerRuleKind(field: Pick<StandardFormFieldDto, 'type' | 'prope
             return 'date_range';
         case FieldTypes.TAGS:
             return 'tags';
+        case FieldTypes.ADDRESS:
+            return 'address';
         default:
             return null;
     }
@@ -264,6 +272,11 @@ export function checkAnswerRules(field: StandardFormFieldDto, answer: any, optio
             if (end < start) problems.push('RANGE_ORDER');
             break;
         }
+        case 'address': {
+            // the rules of utils/address.ts; the server says "type" for another shape
+            for (const rule of addressProblems(answer?.address, questionCountries(field))) problems.push(rule === 'required' ? 'REQUIRED' : rule === 'country' ? 'COUNTRY' : rule === 'too_long' ? 'TOO_LONG' : 'FORMAT');
+            break;
+        }
         case 'tags': {
             const tags = answer?.tags;
             if (!Array.isArray(tags) || !tags.length) break;
@@ -325,6 +338,7 @@ export function answerRuleMessage(field: StandardFormFieldDto, problem: AnswerRu
             return t('RULE.TOO_SHORT', { count: rules.minLength });
         case 'TOO_LONG':
             if (field?.type === FieldTypes.SIGNATURE) return t('RULE.TOO_LONG', { count: SIGNATURE_NAME_MAX });
+            if (field?.type === FieldTypes.ADDRESS) return t('RULE.ADDRESS_TOO_LONG');
             if (field?.type === FieldTypes.TAGS) return t('RULE.TAG_TOO_LONG', { count: tagLimits(field).length });
             return t('RULE.TOO_LONG', { count: rules.maxLength });
         case 'PATTERN': {
@@ -347,9 +361,12 @@ export function answerRuleMessage(field: StandardFormFieldDto, problem: AnswerRu
             if (field?.type === FieldTypes.DAY) return t('RULE.FORMAT_DAY');
             if (field?.type === FieldTypes.DATE_RANGE) return t('RULE.FORMAT_RANGE');
             if (field?.type === FieldTypes.TAGS) return t('RULE.FORMAT_TAGS');
+            if (field?.type === FieldTypes.ADDRESS) return t('RULE.FORMAT_ADDRESS');
             return t('RULE.FORMAT_AMOUNT');
         case 'REQUIRED':
-            return t('RULE.RANGE_INCOMPLETE');
+            return field?.type === FieldTypes.ADDRESS ? t('RULE.ADDRESS_INCOMPLETE') : t('RULE.RANGE_INCOMPLETE');
+        case 'COUNTRY':
+            return t('RULE.COUNTRY', { countries: questionCountries(field).map((code) => countryName(code, language)).join(', ') });
         case 'RANGE_ORDER':
             return t('RULE.RANGE_ORDER');
         case 'DUPLICATE':

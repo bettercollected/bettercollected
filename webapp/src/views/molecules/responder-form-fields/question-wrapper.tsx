@@ -17,6 +17,7 @@ import { useGroupItemScope } from '@app/store/jotai/group-item-scope';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
+import { hasAnyPart } from '@app/utils/address';
 import { answerRuleMessage, browserChecksPattern, checkAnswerRules, isAnswerRuleProblem } from '@app/utils/answer-rules';
 import { rawDateRange } from '@app/utils/date-range';
 import { isAnswerableField } from '@app/utils/leaflet-sections';
@@ -77,7 +78,9 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     const flagged = (invalidFields?.[field.id] ?? []).filter((code) => ruleStates.isEmpty || isRequired || code !== Invalidations.REQUIRED);
     // A date range with one end given is flagged "required" by the answer rules; it is re-checked like the other rules (and an empty one is only ever the page's "required").
     const rangeAnswer = rawDateRange(formResponse.answers?.[field.id]);
-    const rangeRule = field.type === FieldTypes.DATE_RANGE && flagged.includes('REQUIRED') && !!(rangeAnswer?.start || rangeAnswer?.end);
+    // The same for an address with a part missing: "required" about an answer that is there is an answer rule's.
+    const addressRule = field.type === FieldTypes.ADDRESS && flagged.includes('REQUIRED') && hasAnyPart(formResponse.answers?.[field.id]?.address);
+    const rangeRule = (field.type === FieldTypes.DATE_RANGE && flagged.includes('REQUIRED') && !!(rangeAnswer?.start || rangeAnswer?.end)) || addressRule;
     const flaggedOnlyRules = flagged.length > 0 && flagged.every((code) => isAnswerRuleProblem(code) || (rangeRule && code === 'REQUIRED'));
     const ruleProblems = flaggedOnlyRules ? checkAnswerRules(field, formResponse.answers?.[field.id], optionStates) : [];
     // A custom pattern is not tested in the browser (utils/answer-rules.ts): only
@@ -179,11 +182,17 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                 control.removeAttribute('aria-readonly');
                 control.removeAttribute('data-rule-readonly');
             }
+            // `data-local-invalid` is how a control that judges its own value talks to this loop:
+            // "true" (it flags itself, e.g. a name or a country that cannot be used) keeps aria-invalid
+            // with or without the question's error; "false" (it is fine) never takes the question's
+            // error; absent follows the question's error.
             if (hasError) {
-                control.setAttribute('aria-invalid', 'true');
+                // a control that judges its own value as fine is not marked by the question's error
+                if (control.getAttribute('data-local-invalid') === 'false') control.removeAttribute('aria-invalid');
+                else control.setAttribute('aria-invalid', 'true');
                 control.setAttribute('aria-describedby', [...describedBy, errorId].join(' '));
             } else {
-                // a control that flags its own value as it is typed (data-local-invalid) keeps that mark
+                // a control that flags its own value as it is typed keeps that mark
                 if (control.getAttribute('data-local-invalid') !== 'true') control.removeAttribute('aria-invalid');
                 if (describedBy.length) control.setAttribute('aria-describedby', describedBy.join(' '));
                 else control.removeAttribute('aria-describedby');

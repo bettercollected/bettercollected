@@ -138,6 +138,10 @@ def test_case(case, monkeypatch):
     monkeypatch.setattr(
         settings, "NEW_QUESTION_TYPES_ENABLED", case.get("newQuestionTypes", True)
     )
+    # ...and the address question's own switch, the same way
+    monkeypatch.setattr(
+        settings, "ADDRESS_QUESTION_ENABLED", case.get("addressQuestion", True)
+    )
     # the signature question's own switch, on unless a case says so
     monkeypatch.setattr(
         settings, "SIGNATURE_QUESTION_ENABLED", case.get("signatureQuestion", True)
