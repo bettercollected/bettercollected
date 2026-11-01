@@ -1076,7 +1076,17 @@
     "KEY_REVOKE": "Revoke",
     "KEY_REVOKE_LABEL": "Revoke key {{name}}",
     "KEY_REVOKED": "Key revoked.",
-    "KEY_REVOKE_FAILED": "Could not revoke the key."
+    "KEY_REVOKE_FAILED": "Could not revoke the key.",
+    "KEYS_INTRO_NONE_OLD": "Every API key was created after single sign-on was required. Keys are machine credentials: they are not covered by the requirement and keep working.",
+    "KEY_CREATED_AFTER": "Created after single sign-on was required",
+    "KEY_FORMER_MEMBER": "a former member ({{id}})",
+    "AUDIT_TITLE": "Break-glass sign-ins",
+    "AUDIT_INTRO": "Owners can sign in with an email code even when single sign-on is required. Each such sign-in, and each session let in that way, is recorded here (ids only).",
+    "AUDIT_EMPTY": "No break-glass sign-ins recorded.",
+    "AUDIT_EVENT_SIGN_IN": "Owner signed in with an email code",
+    "AUDIT_EVENT_SESSION": "Owner session let into the workspace",
+    "AUDIT_USER_FORMER": "{{id}} (no longer a member)",
+    "AUDIT_SESSION": "session {{id}}"
   },
   "SCIM": {
     "TITLE": "Directory sync (SCIM)",

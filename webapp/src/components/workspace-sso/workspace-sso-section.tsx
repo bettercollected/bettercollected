@@ -13,7 +13,7 @@ import environments from '@app/configs/environments';
 import { sso } from '@app/constants/locales/sso';
 import { navigateWithReferrer, ssoTestMessage } from '@app/lib/sso';
 import { workspaceSectionUrls } from '@app/lib/workspace-sections';
-import { SsoApiKeyDto, SsoConnectionDto, SsoConnectionType, SsoOverviewDto, SsoServiceProviderDto } from '@app/models/dtos/workspace-sso-dto';
+import { SsoApiKeyDto, SsoAuditEntryDto, SsoConnectionDto, SsoConnectionType, SsoOverviewDto, SsoServiceProviderDto } from '@app/models/dtos/workspace-sso-dto';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
@@ -375,6 +375,8 @@ function ApiKeysReview({ keys, workspaceId, canManage }: { keys: SsoApiKeyDto[];
     const { t } = useTranslation();
     const { toast } = useToast();
     const [revoke, { isLoading }] = useRevokeAPIKeyMutation();
+    const older = keys.filter((key) => !key.createdAfterRequirement).length;
+    const who = (key: SsoApiKeyDto) => (key.createdByFormerMember ? t('SSO.KEY_FORMER_MEMBER', { id: key.createdBy ?? '?' }) : key.createdByLabel || key.createdBy || '?');
     const onRevoke = async (key: SsoApiKeyDto) => {
         const response: any = await revoke({ workspace_id: workspaceId, key_id: key.id });
         toast(response.error ? { description: t('SSO.KEY_REVOKE_FAILED'), variant: 'destructive' } : { description: t('SSO.KEY_REVOKED') });
@@ -385,7 +387,7 @@ function ApiKeysReview({ keys, workspaceId, canManage }: { keys: SsoApiKeyDto[];
                 <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
                 <div className="flex flex-col gap-1">
                     <h3 className="text-xs font-semibold text-black-900">{t('SSO.KEYS_TITLE')}</h3>
-                    <p>{t('SSO.KEYS_INTRO', { count: keys.length })}</p>
+                    <p>{older ? t('SSO.KEYS_INTRO', { count: older }) : t('SSO.KEYS_INTRO_NONE_OLD')}</p>
                 </div>
             </div>
             <ul className="flex flex-col divide-y divide-black-200 rounded border border-black-200 bg-white">
@@ -396,8 +398,9 @@ function ApiKeysReview({ keys, workspaceId, canManage }: { keys: SsoApiKeyDto[];
                                 {key.name} <code className="font-normal text-black-600">{key.prefix}…</code>
                             </span>
                             <span className="text-black-600">{key.scopes.join(', ')}</span>
+                            {key.createdAfterRequirement ? <span className="w-fit rounded bg-black-200 px-1.5 py-0.5 text-[11px] text-black-700">{t('SSO.KEY_CREATED_AFTER')}</span> : null}
                             <span className="text-black-600">
-                                {t('SSO.KEY_CREATED_BY', { who: key.createdByLabel || key.createdBy || '?' })}
+                                {t('SSO.KEY_CREATED_BY', { who: who(key) })}
                                 {key.createdAt ? ` ${t('SSO.KEY_CREATED_AT', { date: formatTime(key.createdAt) })}` : ''}
                                 {' · '}
                                 {key.lastUsedAt ? t('SSO.KEY_LAST_USED', { date: formatTime(key.lastUsedAt) }) : t('SSO.KEY_NEVER_USED')}
@@ -411,6 +414,33 @@ function ApiKeysReview({ keys, workspaceId, canManage }: { keys: SsoApiKeyDto[];
                     </li>
                 ))}
             </ul>
+        </div>
+    );
+}
+
+/** Owner break-glass sign-ins (docs/sso.md): ids only, the name is a current member's. */
+function BreakGlassLog({ entries }: { entries: SsoAuditEntryDto[] }) {
+    const { t } = useTranslation();
+    return (
+        <div data-testid="sso-break-glass-log" className="mt-1 flex flex-col gap-2 rounded-md border border-black-300 p-3 text-xs leading-relaxed text-black-700">
+            <h3 className="text-xs font-semibold text-black-900">{t('SSO.AUDIT_TITLE')}</h3>
+            <p>{t('SSO.AUDIT_INTRO')}</p>
+            {entries.length === 0 ? (
+                <p className="text-black-600">{t('SSO.AUDIT_EMPTY')}</p>
+            ) : (
+                <ul className="flex flex-col divide-y divide-black-200 rounded border border-black-200 bg-white">
+                    {entries.map((entry) => (
+                        <li key={entry.id} className="flex flex-col gap-0.5 p-3">
+                            <span className="text-[13px] font-semibold text-black-900">{entry.event === 'sso_break_glass_sign_in' ? t('SSO.AUDIT_EVENT_SIGN_IN') : t('SSO.AUDIT_EVENT_SESSION')}</span>
+                            <span className="break-words text-black-600">
+                                {entry.userIsMember ? entry.userLabel || entry.userId : t('SSO.AUDIT_USER_FORMER', { id: entry.userId })}
+                                {entry.sessionId ? ` · ${t('SSO.AUDIT_SESSION', { id: entry.sessionId })}` : ''}
+                                {entry.at ? ` · ${formatTime(entry.at)}` : ''}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 }
@@ -516,6 +546,7 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
                         <p className="text-xs text-black-600">Verify a domain, enable a connection and test it successfully first.</p>
                     )}
                     {settings.ssoRequired && settings.apiKeys?.length ? <ApiKeysReview keys={settings.apiKeys} workspaceId={workspaceId} canManage={canManage} /> : null}
+                    <BreakGlassLog entries={overview.audit ?? []} />
                     <div className="mt-1 flex items-start gap-2 rounded-md border border-[#D6E2F5] bg-[#F3F7FD] p-3 text-xs leading-relaxed text-black-700">
                         <LifeBuoy className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
                         <span>

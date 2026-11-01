@@ -171,6 +171,22 @@ describe('WorkspaceSsoSection', () => {
             expect(toastMock).toHaveBeenCalledWith({ description: 'Key revoked.' });
         });
 
+        it('lists newer keys too, marked, and names a former member by id only', () => {
+            query.data = required([key(), key({ id: 'k3', name: 'Newer', createdAfterRequirement: true, createdByLabel: null, createdByFormerMember: true, createdBy: 'u9' })]);
+            renderSection();
+            const box = screen.getByTestId('sso-api-keys');
+            expect(within(box).getByText(/1 API key was created before single sign-on was required/)).toBeTruthy();
+            expect(within(box).getAllByText('Created after single sign-on was required')).toHaveLength(1);
+            expect(box.textContent).toContain('Created by a former member (u9)');
+            expect(box.textContent).not.toContain('@');
+        });
+
+        it('says so when every key is newer than the requirement', () => {
+            query.data = required([key({ createdAfterRequirement: true })]);
+            renderSection();
+            expect(within(screen.getByTestId('sso-api-keys')).getByText(/Every API key was created after single sign-on was required/)).toBeTruthy();
+        });
+
         it('uses the singular for one key', () => {
             query.data = required([key()]);
             renderSection();
@@ -194,6 +210,26 @@ describe('WorkspaceSsoSection', () => {
             renderSection();
             expect(screen.getByTestId('sso-api-keys')).toBeTruthy();
             expect(screen.queryByRole('button', { name: 'Revoke key Zapier' })).toBeNull();
+        });
+    });
+
+    describe('break-glass log', () => {
+        const entry = (overrides = {}) => ({ id: 'e1', event: 'sso_break_glass_session', at: '2026-10-31T08:30:00Z', userId: 'u1', userLabel: 'Olga Owner', userIsMember: true, sessionId: 's1', ...overrides });
+
+        it('lists the entries with the current member name, or the id of a former member', () => {
+            query.data = overview({ audit: [entry(), entry({ id: 'e2', event: 'sso_break_glass_sign_in', userId: 'u2', userLabel: null, userIsMember: false, sessionId: null })] });
+            renderSection();
+            const log = screen.getByTestId('sso-break-glass-log');
+            expect(within(log).getByText('Owner session let into the workspace')).toBeTruthy();
+            expect(within(log).getByText('Owner signed in with an email code')).toBeTruthy();
+            expect(log.textContent).toContain('Olga Owner · session s1');
+            expect(log.textContent).toContain('u2 (no longer a member)');
+        });
+
+        it('says when nothing was recorded', () => {
+            query.data = overview({ audit: [] });
+            renderSection();
+            expect(within(screen.getByTestId('sso-break-glass-log')).getByText('No break-glass sign-ins recorded.')).toBeTruthy();
         });
     });
 
@@ -371,7 +407,7 @@ describe('WorkspaceSsoSection', () => {
 });
 
 describe('hardening texts', () => {
-    const keys = ['LOCKOUT_TITLE', 'LOCKOUT_BODY', 'LOCKOUT_CONFIRM', 'LOCKOUT_CANCEL', 'KEYS_TITLE', 'KEYS_INTRO_one', 'KEYS_INTRO_other', 'KEY_CREATED_BY', 'KEY_CREATED_AT', 'KEY_LAST_USED', 'KEY_NEVER_USED', 'KEY_REVOKE', 'KEY_REVOKE_LABEL', 'KEY_REVOKED', 'KEY_REVOKE_FAILED'];
+    const keys = ['LOCKOUT_TITLE', 'LOCKOUT_BODY', 'LOCKOUT_CONFIRM', 'LOCKOUT_CANCEL', 'KEYS_TITLE', 'KEYS_INTRO_one', 'KEYS_INTRO_other', 'KEY_CREATED_BY', 'KEY_CREATED_AT', 'KEY_LAST_USED', 'KEY_NEVER_USED', 'KEY_REVOKE', 'KEY_REVOKE_LABEL', 'KEY_REVOKED', 'KEY_REVOKE_FAILED', 'KEYS_INTRO_NONE_OLD', 'KEY_CREATED_AFTER', 'KEY_FORMER_MEMBER', 'AUDIT_TITLE', 'AUDIT_INTRO', 'AUDIT_EMPTY', 'AUDIT_EVENT_SIGN_IN', 'AUDIT_EVENT_SESSION', 'AUDIT_USER_FORMER', 'AUDIT_SESSION'];
 
     it('exist in English and Dutch with the same placeholders', () => {
         for (const key of keys) {

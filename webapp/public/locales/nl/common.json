@@ -1076,7 +1076,17 @@
     "KEY_REVOKE": "Intrekken",
     "KEY_REVOKE_LABEL": "Sleutel {{name}} intrekken",
     "KEY_REVOKED": "Sleutel ingetrokken.",
-    "KEY_REVOKE_FAILED": "De sleutel kon niet worden ingetrokken."
+    "KEY_REVOKE_FAILED": "De sleutel kon niet worden ingetrokken.",
+    "KEYS_INTRO_NONE_OLD": "Elke API-sleutel is gemaakt nadat single sign-on verplicht werd. Sleutels zijn machine-inloggegevens: de verplichting geldt er niet voor en ze blijven werken.",
+    "KEY_CREATED_AFTER": "Gemaakt nadat single sign-on verplicht werd",
+    "KEY_FORMER_MEMBER": "een voormalig lid ({{id}})",
+    "AUDIT_TITLE": "Break-glass-inlogs",
+    "AUDIT_INTRO": "Eigenaren kunnen met een e-mailcode inloggen, ook als single sign-on verplicht is. Elke zo'n inlog, en elke sessie die zo is toegelaten, staat hier (alleen id's).",
+    "AUDIT_EMPTY": "Geen break-glass-inlogs vastgelegd.",
+    "AUDIT_EVENT_SIGN_IN": "Eigenaar logde in met een e-mailcode",
+    "AUDIT_EVENT_SESSION": "Eigenaarssessie toegelaten in de werkruimte",
+    "AUDIT_USER_FORMER": "{{id}} (geen lid meer)",
+    "AUDIT_SESSION": "sessie {{id}}"
   },
   "SCIM": {
     "TITLE": "Synchronisatie met gebruikersbeheer (SCIM)",
