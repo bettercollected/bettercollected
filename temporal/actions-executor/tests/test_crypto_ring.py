@@ -45,3 +45,16 @@ def test_the_start_check_accepts_a_ring_and_refuses_a_bad_member(monkeypatch):
         require_aes_hex_key(ApplicationSettings(_env_file=None))
     assert "AES_HEX_KEY is not a Fernet key" in str(error.value)
     assert NEW not in str(error.value)
+
+
+def test_the_ring_warning_names_the_setting_and_never_a_key(monkeypatch, caplog):
+    import logging
+
+    from settings import shipped_secrets
+
+    caplog.set_level(logging.WARNING, logger="common.shipped_secrets")
+    shipped_secrets.require_secrets("the executor", fernet_keys={"AES_HEX_KEY": f"{NEW},{OLD}"})
+    assert [r.getMessage() for r in caplog.records] == [
+        "AES_HEX_KEY is read as a key ring of two: the first encrypts, both decrypt (a rotation under way)"
+    ]
+    assert OLD not in caplog.text and NEW not in caplog.text

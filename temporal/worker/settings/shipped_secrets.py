@@ -131,28 +131,51 @@ def secret_problems(
     return problems
 
 
+# The names a ring warning may carry: constants, never taken from the mapping that
+# holds the secrets (a log line must not be derived from them in any way).
+_JWT_NAMES = ("AUTH_JWT_SECRET",)
+_FERNET_NAMES = ("AUTH_AES_HEX_KEY", "AES_HEX_KEY")
+_RING, _COMMA, _PLAIN = "ring", "comma", "plain"
+
+
+def _jwt_shape(value: Optional[str]) -> str:
+    """How a signing secret reads: ``ring`` (two long secrets around one comma),
+    ``comma`` (a comma, but one secret) or ``plain``. Only one of these three
+    constants leaves; nothing of the value does."""
+    if len(token_members(value)) > 1:
+        return _RING
+    if "," in (value or ""):
+        return _COMMA
+    return _PLAIN
+
+
+def _fernet_shape(value: Optional[str]) -> str:
+    return _RING if len(fernet_members(value)) > 1 else _PLAIN
+
+
 def _log_rings(jwt_secrets, fernet_keys) -> None:
     """Say loudly what a key with a comma is read as: a ring of two (a rotation
     under way, docs/auth-key-rotation.md) or, for a signing secret that only
-    looks like one, a single secret. Names only, never a value."""
+    looks like one, a single secret. Logs a constant setting name and a fixed
+    sentence; the secrets are only looked at by the two shape helpers."""
     log = logging.getLogger("common.shipped_secrets")
-    for name, value in jwt_secrets.items():
-        members = token_members(value)
-        if len(members) > 1:
+    for name in _JWT_NAMES:
+        shape = _jwt_shape(jwt_secrets.get(name))
+        if shape == _RING:
             log.warning(
                 "%s is read as a key ring of two: the first signs, both verify "
                 "(a rotation under way; a single secret must not contain a comma)",
                 name,
             )
-        elif "," in (value or ""):
+        elif shape == _COMMA:
             log.warning(
                 "%s contains a comma but is not a key ring (each side must be at "
                 "least %d characters): it is used as one secret, as it always was",
                 name,
                 MIN_TOKEN_MEMBER,
             )
-    for name, value in fernet_keys.items():
-        if len(fernet_members(value)) > 1:
+    for name in _FERNET_NAMES:
+        if _fernet_shape(fernet_keys.get(name)) == _RING:
             log.warning(
                 "%s is read as a key ring of two: the first encrypts, both decrypt "
                 "(a rotation under way)",
