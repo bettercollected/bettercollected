@@ -859,6 +859,8 @@ class AppContainer(containers.DeclarativeContainer):
         session_service=session_service,
         policy=sso_policy_service,
         polis=polis_admin_client,
+        api_key_repo=workspace_api_key_repo,
+        http_client=http_client,
         # defined further down
         on_default_role_changed=providers.Object(
             lambda workspace: container.scim_sync_service().recompute_workspace(

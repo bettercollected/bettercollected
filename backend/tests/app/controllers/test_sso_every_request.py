@@ -41,6 +41,9 @@ def _cookies(user: User) -> dict:
 async def _member(workspace, email, method, role=WorkspaceRoles.COLLABORATOR, **extra):
     """A member of the workspace with an address ``email``, and the cookies of
     a session signed in with ``method``."""
+    if method == "sso":
+        # an SSO session is signed in through a workspace's identity provider
+        extra.setdefault("sso_workspace_id", str(workspace.id))
     user = User(id=str(RecordId()), sub=email, auth_method=method, **extra)
     await container.workspace_user_repo().save(
         WorkspaceUserDocument(
@@ -149,7 +152,12 @@ async def test_an_owner_keeps_break_glass_by_email_code(
     client, required, method, allowed
 ):
     # an owner whose own address is on the SSO domain
-    owner = User(id=testUser.id, sub="boss@" + DOMAIN, auth_method=method)
+    owner = User(
+        id=testUser.id,
+        sub="boss@" + DOMAIN,
+        auth_method=method,
+        sso_workspace_id=str(required.id) if method == "sso" else None,
+    )
     reply = await client.get(forms_url(required), cookies=_cookies(owner))
     if allowed:
         assert reply.status_code == 200, reply.text
@@ -314,11 +322,12 @@ async def test_an_sso_session_and_a_plain_workspace_cost_nothing_extra(
 @pytest.mark.parametrize("method", ["otp", "google", "sso", "api_key", None])
 @pytest.mark.parametrize("is_owner", [True, False])
 @pytest.mark.parametrize("scope", [None, "respondent"])
+@pytest.mark.parametrize("bound", ["this", "other", None])
 @pytest.mark.parametrize(
     "email", ["someone@" + DOMAIN, "guest@partner-corp.org", "", None]
 )
 async def test_the_request_check_is_the_refresh_rule(
-    client, required, method, is_owner, scope, email
+    client, required, method, is_owner, scope, bound, email
 ):
     """``blocks_session`` (every request) and ``unmet_requirement`` (refresh,
     the selection screen) never disagree: for members and for anyone else,
@@ -327,9 +336,17 @@ async def test_the_request_check_is_the_refresh_rule(
     policy._requirement_cache.clear()
     user_id = testUser.id if is_owner else str(RecordId())
     workspace = await container.workspace_repo().find_by_id(required.id)
-    expected = await policy.unmet_requirement(email, method, scope, user_id)
+    sso_workspace_id = {"this": str(required.id), "other": str(RecordId())}.get(bound)
+    expected = await policy.unmet_requirement(
+        email, method, scope, user_id, sso_workspace_id=sso_workspace_id
+    )
     blocked = await policy.blocks_session(
-        workspace, email, method, scope, is_owner=is_owner
+        workspace,
+        email,
+        method,
+        scope,
+        is_owner=is_owner,
+        sso_workspace_id=sso_workspace_id,
     )
     assert blocked == (expected is not None)
 

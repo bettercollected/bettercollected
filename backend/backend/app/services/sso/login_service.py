@@ -496,7 +496,15 @@ class SsoLoginService:
         except (HTTPException, CommonHTTPException) as error:
             code = _error_code(error)
             raise SsoRefused(code, await self._login_error(referer, code))
-        user = User(**{**reply, "auth_method": SSO_METHOD, "email_verified": True})
+        user = User(
+            **{
+                **reply,
+                "auth_method": SSO_METHOD,
+                "email_verified": True,
+                # the session belongs to this workspace's identity provider
+                "sso_workspace_id": str(workspace.id),
+            }
+        )
         try:
             await self._members.add_sso_member(
                 workspace.id, user, stored_role(default_sso_role(workspace))

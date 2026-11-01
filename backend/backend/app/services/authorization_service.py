@@ -261,6 +261,9 @@ class AuthorizationService:
             getattr(user, "auth_method", None),
             getattr(user, "session_scope", None),
             is_owner,
+            sso_workspace_id=getattr(user, "sso_workspace_id", None),
+            session_id=getattr(user, "sid", None),
+            user_id=getattr(user, "id", None),
         )
 
     @staticmethod

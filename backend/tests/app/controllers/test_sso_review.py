@@ -270,6 +270,8 @@ async def test_refresh_ends_non_sso_sessions_on_required_domains(
     extra = (
         {"scope": scope, "scope_workspace_id": str(RecordId())} if scope else {}
     )
+    if method == "sso":
+        extra["sso_workspace_id"] = str(workspace.id)
     token = await _refresh_token(user, method=method, **extra)
     reply = await refresh(client, token)
     if survives:

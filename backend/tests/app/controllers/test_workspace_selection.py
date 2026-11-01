@@ -346,7 +346,7 @@ async def test_a_session_not_from_the_sso_marks_that_row(
 
 async def test_an_sso_session_opens_the_workspace(client: AsyncClient, sso_required):
     acme, _ = sso_required
-    jane = _sso_user("sso")
+    jane = _sso_user("sso").model_copy(update={"sso_workspace_id": str(acme.id)})
     await _join(acme, jane, [WorkspaceRoles.VIEWER])
 
     selection = await _select(client, jane, "/acme/dashboard")

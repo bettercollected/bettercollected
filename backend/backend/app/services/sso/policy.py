@@ -13,6 +13,13 @@ provider cannot lock everyone out of the workspace. Google sign-in stays
 refused for owners too: the code proves the owner's mailbox; a Google
 account on the same address is a second path we don't need.
 
+**Bound to the workspace:** an SSO session carries the workspace whose
+identity provider signed it in (``sso_workspace_id``) and meets only *that*
+workspace's requirement. A verified domain that moves to another workspace
+cannot carry existing SSO sessions over to it: they are refused there (at once
+and at their refresh) and sign in again. A session made before the binding
+existed has none and does not meet the requirement either.
+
 **Respondents:** the requirement covers the dashboard and the workspace's
 own forms. On *another* workspace's forms such an address may still verify
 itself with an email code, but only into a respondent-scoped session (no
@@ -26,7 +33,10 @@ not, except the owners' email-code sessions and respondent-scoped ones.
 for the workspace (``blocks_session``, called by ``AuthorizationService``),
 so a session that does not meet the requirement is refused at once and not
 only at its next refresh. API keys are machine credentials issued inside the
-workspace and are not subject to it. See docs/sso.md.
+workspace and are not subject to it (the owners are shown the keys that
+predate the requirement). Each time an owner's email-code session is let in by
+break-glass, an audit line is written (once per session and hour). See
+docs/sso.md.
 """
 
 import time
@@ -72,6 +82,11 @@ API_KEY_METHOD = "api_key"
 REQUIREMENT_CACHE_SECONDS = 30.0
 REQUIREMENT_CACHE_MAX = 2048
 
+# Owner break-glass is audited once per session and workspace per hour, so a
+# busy dashboard does not flood the log.
+BREAK_GLASS_AUDIT_SECONDS = 3600.0
+BREAK_GLASS_AUDIT_MAX = 4096
+
 # The role a first SSO sign-in gets unless the workspace chose another.
 # The accepted design's default (docs/enterprise-access-model.md): Viewer.
 DEFAULT_SSO_ROLE = WorkspaceRoles.VIEWER
@@ -85,15 +100,38 @@ SSO_ASSIGNABLE_ROLES = (
 )
 
 
+def sso_session_meets(
+    method: Optional[str],
+    sso_workspace_id: Optional[str],
+    workspace_id,
+) -> bool:
+    """An SSO session meets the requirement of the workspace whose identity
+    provider signed it in, and of no other: a session without that binding
+    (made before it existed) meets none."""
+    return (
+        method == SSO_METHOD
+        and bool(sso_workspace_id)
+        and workspace_id is not None
+        and str(sso_workspace_id) == str(workspace_id)
+    )
+
+
 def session_exempt(
-    method: Optional[str], scope: Optional[str], is_owner: bool = False
+    method: Optional[str],
+    scope: Optional[str],
+    is_owner: bool = False,
+    sso_workspace_id: Optional[str] = None,
+    workspace_id=None,
 ) -> bool:
     """The one rule of who meets (or is outside) a workspace's single
-    sign-on requirement, by how the session was made: SSO sessions, API keys
-    (machine credentials), respondent-scoped sessions, and an owner's
+    sign-on requirement, by how the session was made: SSO sessions signed in
+    through this workspace (``sso_workspace_id`` is ``workspace_id``), API
+    keys (machine credentials), respondent-scoped sessions, and an owner's
     email-code session (break-glass). Used by the refresh, the selection
     screen and the per-request check, so they cannot drift."""
-    if method in (SSO_METHOD, API_KEY_METHOD) or scope == RESPONDENT_SCOPE:
+    if method == API_KEY_METHOD or scope == RESPONDENT_SCOPE:
+        return True
+    if sso_session_meets(method, sso_workspace_id, workspace_id):
         return True
     return method == OTP_METHOD and is_owner
 
@@ -142,6 +180,8 @@ class SsoPolicyService:
         # SSO there), per process; see REQUIREMENT_CACHE_SECONDS
         self._requirement_cache: Dict[Tuple[str, str], Tuple[float, bool]] = {}
         self._clock = time.monotonic
+        # (workspace id, session) -> when its break-glass was last audited
+        self._break_glass_seen: Dict[Tuple[str, str], float] = {}
 
     async def requiring_workspace(self, email: str) -> Optional[WorkspaceDocument]:
         """The workspace whose SSO requirement covers ``email``, if any."""
@@ -199,6 +239,7 @@ class SsoPolicyService:
         method: Optional[str],
         scope: Optional[str],
         user_id: Optional[str],
+        sso_workspace_id: Optional[str] = None,
     ) -> Optional[WorkspaceDocument]:
         """The workspace whose SSO requirement a session signed in with
         ``method`` (and ``scope``) does not meet, if any: the one requiring
@@ -215,6 +256,8 @@ class SsoPolicyService:
             method,
             scope,
             is_owner=method == OTP_METHOD and await self._is_owner(workspace, user_id),
+            sso_workspace_id=sso_workspace_id,
+            workspace_id=workspace.id,
         ):
             return None
         return workspace
@@ -226,12 +269,18 @@ class SsoPolicyService:
         method: Optional[str],
         scope: Optional[str],
         is_owner: bool,
+        sso_workspace_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> bool:
         """Whether a request to ``workspace`` by a session signed in with
         ``method`` must be refused for want of single sign-on: the rule of
         ``unmet_requirement`` (``is_owner``: an owner with an active
         membership, for the email-code break-glass), applied to the one
-        workspace being accessed. The caller already holds the workspace row,
+        workspace being accessed. An SSO session passes only when it was
+        signed in through this workspace (``sso_workspace_id``). When an
+        owner's email-code session is let in by break-glass, that is audited
+        (``session_id`` and ``user_id`` name it; once per hour). The caller already holds the workspace row,
         so nothing is read unless the workspace requires SSO and the session
         could fall short; then at most the domain claim and the connection,
         reused for ``REQUIREMENT_CACHE_SECONDS``.
@@ -244,9 +293,64 @@ class SsoPolicyService:
             return False
         if workspace.disabled or not workspace.sso_required:
             return False
-        if session_exempt(method, scope, is_owner):
+        if session_exempt(
+            method,
+            scope,
+            sso_workspace_id=sso_workspace_id,
+            workspace_id=workspace.id,
+        ):
             return False
-        return await self._domain_requires_sso(workspace.id, email)
+        requires = await self._domain_requires_sso(workspace.id, email)
+        if not requires:
+            return False
+        if session_exempt(method, scope, is_owner):
+            self._audit_break_glass(workspace.id, session_id, user_id)
+            return False
+        return True
+
+    def _audit_break_glass(self, workspace_id, session_id, user_id) -> None:
+        """One audit line (ids only) per session, workspace and hour for an
+        owner's non-SSO session let into the SSO-required workspace."""
+        who = str(session_id or user_id or "")
+        key = (str(workspace_id), who)
+        now = self._clock()
+        last = self._break_glass_seen.get(key)
+        if last is not None and now - last < BREAK_GLASS_AUDIT_SECONDS:
+            return
+        if len(self._break_glass_seen) >= BREAK_GLASS_AUDIT_MAX:
+            self._break_glass_seen.clear()
+        self._break_glass_seen[key] = now
+        logger.bind(audit=True).warning(
+            "AUDIT sso_break_glass workspace={} user={} session={}",
+            workspace_id,
+            user_id,
+            session_id,
+        )
+
+    async def session_would_be_blocked(
+        self,
+        workspace: WorkspaceDocument,
+        user,
+        is_owner: bool = True,
+    ) -> bool:
+        """Whether ``user``'s session would be refused by ``workspace`` once
+        it requires single sign-on (it does not yet): the rule of
+        ``blocks_session`` without looking at the requirement itself. For the
+        warning shown to an owner who is about to switch it on."""
+        if not settings.sso.ENABLED:
+            return False
+        if session_exempt(
+            getattr(user, "auth_method", None),
+            getattr(user, "session_scope", None),
+            is_owner,
+            sso_workspace_id=getattr(user, "sso_workspace_id", None),
+            workspace_id=workspace.id,
+        ):
+            return False
+        domain = domain_of(getattr(user, "sub", "") or "")
+        return domain is not None and domain in set(
+            await self._domains.sso_domains(workspace.id)
+        )
 
     async def _domain_requires_sso(self, workspace_id, email: Optional[str]) -> bool:
         """Whether ``email``'s domain is a verified SSO domain of the
@@ -276,7 +380,11 @@ class SsoPolicyService:
         with SSO, except the owners' email-code sessions (break-glass) and
         respondent-scoped sessions."""
         workspace = await self.unmet_requirement(
-            email, session.method, session.scope, user_id
+            email,
+            session.method,
+            session.scope,
+            user_id,
+            sso_workspace_id=getattr(session, "sso_workspace_id", None),
         )
         if workspace is None:
             return False

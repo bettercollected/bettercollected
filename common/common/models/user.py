@@ -78,6 +78,11 @@ class User(BaseModel):
     # permissions and no platform-admin role (backend authorization_service).
     session_scope: Optional[str] = None
     scope_workspace_id: Optional[str] = None
+    # An SSO session: the workspace whose identity provider signed the user
+    # in. Only that workspace counts the session as meeting its single
+    # sign-on requirement (docs/sso.md); a session without it (made before
+    # this existed) does not.
+    sso_workspace_id: Optional[str] = None
 
     def is_admin(self):
         """

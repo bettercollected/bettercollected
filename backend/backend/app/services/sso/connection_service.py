@@ -44,6 +44,7 @@ from backend.app.schemas.sso_connection import (
 )
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.domains.names import display_domain, domain_of
+from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.session_service import RevokeReason, SessionService
 from backend.app.services.sso.polis_client import (
     PolisAdminClient,
@@ -101,6 +102,11 @@ class UpdateSsoSettingsDto(_CamelModel):
     # (their sessions from before the requirement); the owners and the
     # caller's own session are kept
     revoke_sessions: bool = False
+    # the owner's own session would be refused once the requirement is on
+    # (a non-SSO, non-email-code session on an SSO domain) and they confirmed
+    # that (docs/sso.md); without it the save is refused with 409
+    # ``sso_lockout_unconfirmed``
+    confirm_lockout: bool = False
 
 
 class SsoConnectionDto(_CamelModel):
@@ -156,6 +162,22 @@ class ServiceProviderDto(_CamelModel):
     oidc_redirect_uri: str
 
 
+class SsoApiKeyDto(_CamelModel):
+    """An API key shown to the owners for review when the workspace requires
+    single sign-on: keys are machine credentials and stay valid (docs/sso.md),
+    so the owner has to see them. No secret, ever: ids and labels only."""
+
+    id: str
+    name: str
+    prefix: str
+    scopes: List[str]
+    created_by: Optional[str] = None
+    # the creator's name (or address), when auth could say; None otherwise
+    created_by_label: Optional[str] = None
+    created_at: Optional[dt.datetime] = None
+    last_used_at: Optional[dt.datetime] = None
+
+
 class SsoSettingsDto(_CamelModel):
     sso_required: bool = False
     sso_required_changed_at: Optional[dt.datetime] = None
@@ -164,6 +186,12 @@ class SsoSettingsDto(_CamelModel):
     # owners can always sign in with an email code (docs/sso.md)
     owner_break_glass: bool = True
     revoked_sessions: Optional[int] = None
+    # with the requirement on: the live API keys created before it was
+    # switched on, which it does not cover (None: not applicable)
+    api_keys: Optional[List[SsoApiKeyDto]] = None
+    # with the requirement off (an owner reading): switching it on would
+    # refuse the caller's own session on the next request
+    caller_would_be_locked_out: bool = False
 
 
 class SsoOverviewDto(_CamelModel):
@@ -221,6 +249,13 @@ def _now() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
 
 
+def _aware(value: Optional[dt.datetime]) -> dt.datetime:
+    """Comparable: naive datetimes are UTC; none sorts first."""
+    if value is None:
+        return dt.datetime.min.replace(tzinfo=dt.timezone.utc)
+    return value if value.tzinfo else value.replace(tzinfo=dt.timezone.utc)
+
+
 def _polis_error(error: PolisError) -> HTTPException:
     if isinstance(error, PolisUnavailable):
         return _refused(
@@ -253,7 +288,12 @@ class SsoConnectionService:
         resolver: Optional[Resolver] = None,
         fetch_transport=None,
         on_default_role_changed=None,
+        api_key_repo=None,
+        http_client=None,
     ):
+        # the workspace's API keys, shown for review (docs/sso.md)
+        self._api_keys = api_key_repo
+        self._http_client = http_client
         # SCIM: re-apply roles of directory members without a mapped group
         self._on_default_role_changed = on_default_role_changed
         self._authorization = authorization_service
@@ -322,6 +362,9 @@ class SsoConnectionService:
         workspace = await self._workspace_repo.find_by_id(workspace_id)
         available = settings.sso.is_configured
         sso = settings.sso
+        can_manage = await self._authorization.is_owner(
+            user, workspace_id, raise_sso_required=True
+        )
         return SsoOverviewDto(
             available=available,
             reason=None if available else sso_unavailable_reason(),
@@ -342,11 +385,12 @@ class SsoConnectionService:
                 SsoConnectionDto.of(c)
                 for c in await self._connections.list_by_workspace(workspace_id)
             ],
-            settings=self._settings_dto(workspace),
-            max_connections=sso.MAX_CONNECTIONS_PER_WORKSPACE,
-            can_manage=await self._authorization.is_owner(
-                user, workspace_id, raise_sso_required=True
+            settings=await self._settings_with_review(
+                workspace,
+                user=user if can_manage else None,
             ),
+            max_connections=sso.MAX_CONNECTIONS_PER_WORKSPACE,
+            can_manage=can_manage,
         )
 
     @staticmethod
@@ -358,6 +402,79 @@ class SsoConnectionService:
             assignable_roles=assignable_sso_roles(),
             revoked_sessions=revoked,
         )
+
+    async def _settings_with_review(
+        self,
+        workspace,
+        revoked: Optional[int] = None,
+        user: Optional[User] = None,
+    ) -> SsoSettingsDto:
+        """The settings, plus what the owner has to see: the API keys that
+        predate the requirement (with it on), and whether switching it on
+        would lock the caller (``user``, an owner) out (with it off)."""
+        dto = self._settings_dto(workspace, revoked)
+        if dto.sso_required:
+            dto.api_keys = await self._keys_to_review(workspace)
+        elif user is not None and workspace is not None:
+            dto.caller_would_be_locked_out = (
+                await self._policy.session_would_be_blocked(workspace, user)
+            )
+        return dto
+
+    async def _keys_to_review(self, workspace) -> List[SsoApiKeyDto]:
+        """The workspace's live API keys created before the requirement was
+        switched on (all of them, when its time is unknown): machine
+        credentials the requirement does not cover."""
+        if self._api_keys is None:
+            return []
+        since = getattr(workspace, "sso_required_changed_at", None)
+        keys = [
+            key
+            for key in await self._api_keys.list_by_workspace(workspace.id)
+            if not key.revoked
+            and (since is None or _aware(key.created_at) <= _aware(since))
+        ]
+        keys.sort(key=lambda key: _aware(key.created_at))
+        labels = await self._creator_labels({k.created_by for k in keys})
+        return [
+            SsoApiKeyDto(
+                id=str(key.id),
+                name=key.name,
+                prefix=key.prefix,
+                scopes=list(key.scopes or []),
+                created_by=str(key.created_by) if key.created_by else None,
+                created_by_label=labels.get(str(key.created_by)),
+                created_at=key.created_at,
+                last_used_at=key.last_used_at,
+            )
+            for key in keys
+        ]
+
+    async def _creator_labels(self, user_ids) -> dict:
+        """User id -> name (or address) for the owners' review list; empty
+        when auth can't say. Never raises: the list is useful without it."""
+        ids = sorted({str(u) for u in user_ids if u})
+        if not ids or self._http_client is None:
+            return {}
+        try:
+            reply = await self._http_client.get(
+                settings.auth_settings.BASE_URL + "/users",
+                params={"user_ids": ids},
+                headers=auth_service_headers(),
+            )
+        except Exception as error:  # noqa: BLE001
+            logger.warning("API key creators lookup failed: {}", type(error).__name__)
+            return {}
+        labels = {}
+        for info in (reply or {}).get("users_info") or []:
+            name = " ".join(
+                p for p in (info.get("first_name"), info.get("last_name")) if p
+            ).strip()
+            label = name or (info.get("email") or "").strip()
+            user_id = str(info.get("_id") or info.get("id") or "")
+            if label and user_id:
+                labels[user_id] = label
+        return labels
 
     # -- connections ----------------------------------------------------------
     async def create_connection(
@@ -710,6 +827,16 @@ class SsoConnectionService:
         ):
             if request.sso_required:
                 await self._check_can_require(workspace_id)
+                if not request.confirm_lockout and (
+                    await self._policy.session_would_be_blocked(workspace, user)
+                ):
+                    raise _refused(
+                        HTTPStatus.CONFLICT,
+                        "sso_lockout_unconfirmed",
+                        "Your current session would be refused once single "
+                        "sign-on is required. Sign in with SSO or an email "
+                        "code first, or confirm that you want to continue.",
+                    )
             fields.update(
                 {
                     "sso_required": request.sso_required,
@@ -732,7 +859,7 @@ class SsoConnectionService:
         revoked = None
         if request.revoke_sessions and (switching_on or workspace.sso_required):
             revoked = await self._revoke_member_sessions(workspace, user)
-        return self._settings_dto(workspace, revoked)
+        return await self._settings_with_review(workspace, revoked)
 
     async def _check_can_require(self, workspace_id: RecordId) -> None:
         self._require_available()

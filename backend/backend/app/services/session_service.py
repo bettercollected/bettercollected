@@ -176,13 +176,21 @@ class SessionService:
         method: Optional[str] = None,
         scope: Optional[str] = None,
         scope_workspace_id: Optional[str] = None,
+        sso_workspace_id: Optional[str] = None,
     ) -> User:
         """A new session for a user who just signed in; sets both cookies and
         returns the user as the tokens describe them (with ``sid``).
         ``method``: how they signed in ("sso", "otp", "google").
         ``scope``: "respondent" for a session limited to answering the forms
-        of ``scope_workspace_id``."""
+        of ``scope_workspace_id``. ``sso_workspace_id``: for an SSO session,
+        the workspace whose identity provider signed it in (default: the
+        user's own claim)."""
         method = method or user.auth_method
+        sso_workspace_id = (
+            str(sso_workspace_id or user.sso_workspace_id or "") or None
+            if method == SSO_METHOD
+            else None
+        )
         now = utcnow()
         expires_at = now + dt.timedelta(
             days=settings.auth_settings.REFRESH_TOKEN_EXPIRY_IN_DAYS
@@ -198,6 +206,7 @@ class SessionService:
             method=method,
             scope=scope,
             scope_workspace_id=str(scope_workspace_id) if scope else None,
+            sso_workspace_id=sso_workspace_id,
             user_agent=user_agent[:USER_AGENT_MAX] if user_agent else None,
             created_at=now,
             updated_at=now,
@@ -210,6 +219,7 @@ class SessionService:
                 "auth_method": method,
                 "session_scope": scope,
                 "scope_workspace_id": session.scope_workspace_id,
+                "sso_workspace_id": session.sso_workspace_id,
                 "roles": session_roles(user.roles, method, scope),
             }
         )
@@ -346,6 +356,7 @@ class SessionService:
                 "auth_method": session.method,
                 "session_scope": session.scope,
                 "scope_workspace_id": session.scope_workspace_id,
+                "sso_workspace_id": session.sso_workspace_id,
                 "roles": session_roles(body.get("roles"), session.method, session.scope),
             }
         )

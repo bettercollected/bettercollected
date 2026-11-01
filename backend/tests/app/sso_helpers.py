@@ -283,6 +283,7 @@ def sso_on(monkeypatch):
     )
     monkeypatch.setattr(container.sso_login_service(), "_http", auth)
     monkeypatch.setattr(container.sso_policy_service(), "_http_client", auth)
+    monkeypatch.setattr(container.sso_connection_service(), "_http_client", auth)
     monkeypatch.setattr(container.auth_service(), "http_client", auth)
     monkeypatch.setattr(container.workspace_service(), "http_client", auth)
     web = FakeWeb()
