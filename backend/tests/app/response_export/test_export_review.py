@@ -70,7 +70,7 @@ async def test_a_slow_run_that_was_swept_cannot_mix_its_chunks_into_the_file(cli
     await submit_many(workspace, form, 8)
     export = await queued(client, workspace, form)
     first_paused, release = asyncio.Event(), asyncio.Event()
-    real = service_module.write_export
+    real = service_module.write_file
     state = {"runs": 0}
 
     async def gated(*args, **kwargs):
@@ -84,7 +84,7 @@ async def test_a_slow_run_that_was_swept_cannot_mix_its_chunks_into_the_file(cli
                 first_paused.set()
                 await release.wait()
 
-    monkeypatch.setattr(service_module, "write_export", gated)
+    monkeypatch.setattr(service_module, "write_file", gated)
     slow = asyncio.create_task(service().run_job(export["id"]))
     await first_paused.wait()
     mid = await repo().get_by_id(export["id"])
