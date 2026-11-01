@@ -565,6 +565,21 @@ describe('Privacy panel when the form looks up addresses', () => {
         expect(row('address')).toHaveTextContent('sturen we je postcode en huisnummer naar de adresservice PDOK Locatieserver');
     });
 
+    it('says in a preview that the published form will look it up, and that the preview sends nothing', () => {
+        setBrowserLanguages(['en-GB']);
+        const { unmount } = renderPanel({ ownerName: 'Acme Health', addressLookup: true, addressLookupPreview: true });
+        openPanel();
+        const english = row('address');
+        expect(english).toHaveTextContent('In the published form, if the address lookup is switched on');
+        expect(english).toHaveTextContent('This preview looks nothing up and sends nothing.');
+        expect(english).not.toHaveTextContent('Your browser and IP address are not shared');
+        unmount();
+        setBrowserLanguages(['nl-NL']);
+        renderPanel({ ownerName: 'Acme Health', addressLookup: true, addressLookupPreview: true });
+        openPanel();
+        expect(row('address')).toHaveTextContent('Deze preview zoekt niets op en verstuurt niets.');
+    });
+
     it('has no line for a form that looks nothing up', () => {
         setBrowserLanguages(['en-GB']);
         renderPanel({ ownerName: 'Acme Health' });

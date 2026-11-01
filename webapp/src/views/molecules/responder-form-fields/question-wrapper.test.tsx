@@ -231,6 +231,22 @@ describe('QuestionWrapper — accessible name and description', () => {
         expect(input).toHaveAccessibleDescription('As on your passport. Please answer this question to continue.');
     });
 
+    it('does not mark a control invalid that says for itself (data-local-invalid="false") that it is fine', () => {
+        renderWrapper(field({ validations: { required: true } }), {
+            invalid: { f1: [0] },
+            children: (
+                <>
+                    <input aria-label="Fine" data-local-invalid="false" />
+                    <input aria-label="Wrong" data-local-invalid="true" />
+                    <input aria-label="Unsaid" />
+                </>
+            )
+        });
+        expect(screen.getByLabelText('Fine')).not.toHaveAttribute('aria-invalid');
+        expect(screen.getByLabelText('Wrong')).toHaveAttribute('aria-invalid', 'true');
+        expect(screen.getByLabelText('Unsaid')).toHaveAttribute('aria-invalid', 'true');
+    });
+
     it('leaves an untitled control to its own label', () => {
         renderWrapper(field({ title: undefined }), { children: <LabelledProbe /> });
         expect(screen.getByRole('textbox')).not.toHaveAttribute('aria-labelledby');

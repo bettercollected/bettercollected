@@ -99,12 +99,12 @@ function CurrencySettings({ field, onChange, onPropertyChange }: { field: Standa
                             {index === 0 ? (
                                 <span className="rounded bg-black-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-black-600 uppercase">{t('TYPED_SETTINGS.DEFAULT')}</span>
                             ) : (
-                                <button type="button" className="ml-1 rounded p-1 text-black-600 hover:text-black-800" aria-label={t('TYPED_SETTINGS.MAKE_DEFAULT', { code })} title={t('TYPED_SETTINGS.MAKE_DEFAULT', { code })} onClick={() => save([code, ...currencies.filter((c) => c !== code)])}>
+                                <button type="button" className="ml-1 inline-flex min-h-6 min-w-6 items-center justify-center rounded p-1 text-black-600 hover:text-black-800" aria-label={t('TYPED_SETTINGS.MAKE_DEFAULT', { code })} title={t('TYPED_SETTINGS.MAKE_DEFAULT', { code })} onClick={() => save([code, ...currencies.filter((c) => c !== code)])}>
                                     <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
                                 </button>
                             )}
                             {currencies.length > 1 && (
-                                <button type="button" className="ml-auto rounded p-1 text-black-600 hover:text-black-800" aria-label={t('TYPED_SETTINGS.REMOVE_CURRENCY', { code })} title={t('TYPED_SETTINGS.REMOVE_CURRENCY', { code })} onClick={() => save(currencies.filter((c) => c !== code))}>
+                                <button type="button" className="ml-auto inline-flex min-h-6 min-w-6 items-center justify-center rounded p-1 text-black-600 hover:text-black-800" aria-label={t('TYPED_SETTINGS.REMOVE_CURRENCY', { code })} title={t('TYPED_SETTINGS.REMOVE_CURRENCY', { code })} onClick={() => save(currencies.filter((c) => c !== code))}>
                                     <X className="h-3.5 w-3.5" aria-hidden="true" />
                                 </button>
                             )}
@@ -148,7 +148,7 @@ function CurrencySettings({ field, onChange, onPropertyChange }: { field: Standa
  */
 function AddressSettings({ field, onPropertyChange }: { field: StandardFormFieldDto; onPropertyChange: (patch: PropertyPatch) => void }) {
     const { t, i18n } = useTranslation('builder');
-    const { addressLookupEnabled } = useWorkspacePermissions();
+    const { addressLookupEnabled, answered } = useWorkspacePermissions();
     const id = useId();
     const countries = questionCountries(field);
     const language = i18n.language?.split('-')[0] ?? 'en';
@@ -169,7 +169,7 @@ function AddressSettings({ field, onPropertyChange }: { field: StandardFormField
                         <li key={code} className="flex items-center gap-1.5 rounded border border-black-300 bg-white px-2 py-1 text-xs">
                             <span className="font-medium text-black-800">{name(code)}</span>
                             {countries.length > 1 && (
-                                <button type="button" className="ml-auto rounded p-1 text-black-600 hover:text-black-800" aria-label={t('ADDRESS_SETTINGS.REMOVE_COUNTRY', { country: name(code) })} title={t('ADDRESS_SETTINGS.REMOVE_COUNTRY', { country: name(code) })} onClick={() => save(countries.filter((c) => c !== code))}>
+                                <button type="button" className="ml-auto inline-flex min-h-6 min-w-6 items-center justify-center rounded p-1 text-black-600 hover:text-black-800" aria-label={t('ADDRESS_SETTINGS.REMOVE_COUNTRY', { country: name(code) })} title={t('ADDRESS_SETTINGS.REMOVE_COUNTRY', { country: name(code) })} onClick={() => save(countries.filter((c) => c !== code))}>
                                     <X className="h-3.5 w-3.5" aria-hidden="true" />
                                 </button>
                             )}
@@ -198,7 +198,7 @@ function AddressSettings({ field, onPropertyChange }: { field: StandardFormField
                     label={t('ADDRESS_SETTINGS.LOOKUP')}
                     checked={lookupOn}
                     onCheckedChange={(checked) => onPropertyChange({ addressLookup: checked ? undefined : false })}
-                    hint={lookupOn && !addressLookupEnabled ? t('ADDRESS_SETTINGS.LOOKUP_SERVER_OFF') : t('ADDRESS_SETTINGS.LOOKUP_HINT')}
+                    hint={lookupOn && answered && !addressLookupEnabled ? t('ADDRESS_SETTINGS.LOOKUP_SERVER_OFF') : t('ADDRESS_SETTINGS.LOOKUP_HINT')}
                 />
             )}
             <p className="text-[11px] leading-relaxed text-black-600">{t('ADDRESS_SETTINGS.UNVERIFIED')}</p>

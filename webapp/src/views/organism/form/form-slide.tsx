@@ -53,6 +53,7 @@ import LinearRatingField from '@app/views/molecules/responder-form-fields/linear
 import MultipleChoiceField from '@app/views/molecules/responder-form-fields/multiple-choice-field';
 import MultipleChoiceWithMultipleSelection from '@app/views/molecules/responder-form-fields/multiple-choice-with-multiple-selections';
 import PhoneNumberField from '@app/views/molecules/responder-form-fields/phone-number-field';
+import { PreviewModeContext } from '@app/views/molecules/responder-form-fields/preview-mode-context';
 import { QuestionNumberContext } from '@app/views/molecules/responder-form-fields/question-number-context';
 import QuestionWrapper from '@app/views/molecules/responder-form-fields/question-wrapper';
 import RatingField from '@app/views/molecules/responder-form-fields/rating-field';
@@ -369,6 +370,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     48px between questions (~6× the 8px inside a question). */}
                 <div className={cn(FORM_COLUMN, columnPlacementClass(formSlide?.properties?.layout), 'relative flex flex-col lg:grid lg:grid-cols-12 lg:gap-x-6', leaflet ? 'gap-10 pt-7 lg:gap-y-10' : 'gap-12 pt-12 lg:gap-y-12')} style={marginVar}>
                     <QuestionNumberContext.Provider value={numbering}>
+                        <PreviewModeContext.Provider value={isPreviewMode}>
                         {pageFields.map((field: StandardFormFieldDto, position: number) => (
                             // 12-grid width on desktop: adjacent spans that fit pack
                             // into one row (two 6s sit side by side); mobile stays a
@@ -377,6 +379,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                 <FormFieldComponent field={field} slideIndex={formSlide!.index} />
                             </div>
                         ))}
+                        </PreviewModeContext.Provider>
                     </QuestionNumberContext.Provider>
                     {/* The button belongs to the last answer: 32px above it,
                         a little closer than the 48px between questions. */}

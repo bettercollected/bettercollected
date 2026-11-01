@@ -1,5 +1,4 @@
 // Respondent text resolves through the app's i18n instance.
-import '@app/shared/hocs/i18n-provider';
 import React from 'react';
 
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -9,6 +8,7 @@ import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import '@app/shared/hocs/i18n-provider';
 import { setForm } from '@app/store/forms/slice';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { store } from '@app/store/store';
@@ -16,22 +16,16 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 import { checkAnswerRules } from '@app/utils/answer-rules';
 
 import AddressField from './address-field';
+import { PreviewModeContext } from './preview-mode-context';
 
 // The lookup route: what it answers, and what it was asked, is the test's.
 const lookup = vi.hoisted(() => ({ answer: undefined as undefined | ((args: any) => Promise<any>), calls: [] as any[] }));
-vi.mock('@app/store/redux/form-api', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('@app/store/redux/form-api')>();
-    return {
-        ...actual,
-        useLookUpAddressMutation: () => [
-            (args: any) => {
-                lookup.calls.push(args);
-                const promise = lookup.answer ? lookup.answer(args) : Promise.reject(new Error('unavailable'));
-                return { unwrap: () => promise };
-            }
-        ]
-    };
-});
+vi.mock('@app/lib/address-lookup', () => ({
+    lookUpAddress: (args: any) => {
+        lookup.calls.push(args);
+        return lookup.answer ? lookup.answer(args) : Promise.reject(new Error('unavailable'));
+    }
+}));
 
 // A field rule that locks the question (read-only, or the form sets its value).
 const served = vi.hoisted(() => ({ locked: false }));
@@ -58,7 +52,7 @@ function Spy() {
     return null;
 }
 
-const show = (field: StandardFormFieldDto, answers: Record<string, any> = {}, invalid: Record<string, any> = {}) => {
+const show = (field: StandardFormFieldDto, answers: Record<string, any> = {}, invalid: Record<string, any> = {}, preview = false) => {
     store.dispatch(setForm({ formId: 'form-1', title: 'Address', fields: [{ id: 's1', index: 0, type: FieldTypes.SLIDE, properties: { fields: [home, noLookup, abroad, belgian] } }] }));
     store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'ws' }));
     const Harness = () => {
@@ -68,7 +62,11 @@ const show = (field: StandardFormFieldDto, answers: Record<string, any> = {}, in
             setFormResponse({ ...formResponse, answers, invalidFields: invalid });
             setReady(true);
         }, []);
-        return ready ? <AddressField field={field} /> : null;
+        return ready ? (
+            <PreviewModeContext.Provider value={preview}>
+                <AddressField field={field} />
+            </PreviewModeContext.Provider>
+        ) : null;
     };
     return render(
         <ReduxProvider store={store}>
@@ -110,7 +108,7 @@ describe('AddressField', () => {
         expect(screen.getByLabelText('House number')).toHaveAttribute('inputmode', 'numeric');
     });
 
-    it('stores only the parts that are given, with the question\'s country, trimmed, and a Dutch postcode in its stored form', async () => {
+    it("stores only the parts that are given, with the question's country, trimmed, and a Dutch postcode in its stored form", async () => {
         show(home);
         type('Postcode', ' 1015cs ');
         expect(latest.home).toEqual({ type: 'address', address: { postcode: '1015 CS', country: 'NL' } });
@@ -151,7 +149,11 @@ describe('AddressField', () => {
     it('offers a country box when several are allowed, named in the page language and in order', async () => {
         show(abroad);
         const country = await screen.findByLabelText('Country');
-        expect(within(country).getAllByRole('option').map((o) => o.textContent)).toEqual(['Belgium', 'Germany', 'Netherlands']);
+        expect(
+            within(country)
+                .getAllByRole('option')
+                .map((o) => o.textContent)
+        ).toEqual(['Belgium', 'Germany', 'Netherlands']);
         expect(country).toHaveValue('NL');
         expect(country).toHaveAttribute('autocomplete', 'country');
     });
@@ -301,7 +303,121 @@ describe('AddressField lookup', () => {
     });
 });
 
+describe('AddressField lookup, stale values', () => {
+    const found = () => Promise.resolve({ status: 'found', street: 'Keizersgracht', city: 'Amsterdam' });
+    const lookedUp = async () => {
+        lookup.answer = found;
+        show(home);
+        type('Postcode', '1015 CS');
+        type('House number', '12');
+        fireEvent.blur(screen.getByLabelText('House number'));
+        await waitFor(() => expect(screen.getByLabelText('Street')).toHaveValue('Keizersgracht'));
+    };
+
+    it('drops the street and city of the last lookup when the house number changes, and when the new lookup finds nothing', async () => {
+        await lookedUp();
+        lookup.answer = () => Promise.resolve({ status: 'not_found' });
+        type('House number', '99');
+        // at once: they belonged to the old number
+        expect(screen.getByLabelText('Street')).toHaveValue('');
+        expect(screen.getByLabelText('City')).toHaveValue('');
+        expect(latest.home.address.street).toBeUndefined();
+        fireEvent.blur(screen.getByLabelText('House number'));
+        await waitFor(() => expect(status()).toHaveTextContent('We could not find this address'));
+        expect(screen.getByLabelText('Street')).toHaveValue('');
+        expect(latest.home.address).toMatchObject({ postcode: '1015 CS', house_number: '99' });
+        expect(latest.home.address.city).toBeUndefined();
+    });
+
+    it('drops them when the postcode changes, and when the service cannot answer', async () => {
+        await lookedUp();
+        lookup.answer = () => Promise.reject(new Error('down'));
+        type('Postcode', '1016 CS');
+        expect(screen.getByLabelText('Street')).toHaveValue('');
+        fireEvent.blur(screen.getByLabelText('Postcode'));
+        await waitFor(() => expect(status()).toHaveTextContent('not available right now'));
+        expect(screen.getByLabelText('Street')).toHaveValue('');
+        expect(screen.getByLabelText('City')).toHaveValue('');
+    });
+
+    it('keeps what the respondent changed by hand', async () => {
+        await lookedUp();
+        type('City', 'Amstelveen');
+        lookup.answer = () => Promise.resolve({ status: 'not_found' });
+        type('House number', '99');
+        fireEvent.blur(screen.getByLabelText('House number'));
+        await waitFor(() => expect(status()).toHaveTextContent('We could not find this address'));
+        expect(screen.getByLabelText('Street')).toHaveValue('');
+        expect(screen.getByLabelText('City')).toHaveValue('Amstelveen');
+    });
+
+    it('drops them when the country changes', async () => {
+        lookup.answer = found;
+        show(abroad);
+        type('Postcode', '1015 CS');
+        type('House number', '12');
+        fireEvent.blur(screen.getByLabelText('House number'));
+        await waitFor(() => expect(screen.getByLabelText('Street')).toHaveValue('Keizersgracht'));
+        fireEvent.change(screen.getByLabelText('Country'), { target: { value: 'BE' } });
+        expect(screen.getByLabelText('Street')).toHaveValue('');
+        expect(screen.getByLabelText('City')).toHaveValue('');
+    });
+
+    it('asks again for an address that was typed over and put back', async () => {
+        await lookedUp();
+        type('House number', '14');
+        type('House number', '12');
+        fireEvent.blur(screen.getByLabelText('House number'));
+        await waitFor(() => expect(lookup.calls).toHaveLength(2));
+        await waitFor(() => expect(screen.getByLabelText('Street')).toHaveValue('Keizersgracht'));
+    });
+});
+
+describe('AddressField in a preview', () => {
+    it('looks nothing up and does not announce a lookup', async () => {
+        lookup.answer = () => Promise.resolve({ status: 'found', street: 'Keizersgracht', city: 'Amsterdam' });
+        show(home, {}, {}, true);
+        type('Postcode', '1015 CS');
+        type('House number', '12');
+        fireEvent.blur(screen.getByLabelText('House number'));
+        expect(lookup.calls).toEqual([]);
+        expect(screen.getByLabelText('Street')).toHaveValue('');
+        expect(screen.queryByText(/we fill in the street and city/)).toBeNull();
+    });
+});
+
+describe('AddressField description and requirement', () => {
+    it('describes the two boxes that start the lookup by the line that says what leaving them does', async () => {
+        show(home);
+        const postcode = await screen.findByLabelText('Postcode');
+        expect(postcode).toHaveAccessibleDescription(/we fill in the street and city/);
+        expect(screen.getByLabelText('House number')).toHaveAccessibleDescription(/we fill in the street and city/);
+        expect(screen.getByLabelText('Street')).not.toHaveAccessibleDescription(/we fill in the street and city/);
+    });
+
+    it('marks the boxes a required address needs as required, and not the addition', async () => {
+        show(home);
+        const postcode = await screen.findByLabelText('Postcode');
+        expect(postcode).toHaveAttribute('aria-required', 'true');
+        expect(screen.getByLabelText('Street')).toHaveAttribute('aria-required', 'true');
+        expect(screen.getByLabelText(/Addition/)).not.toHaveAttribute('aria-required');
+    });
+
+    it('marks nothing as required when the question is optional', async () => {
+        show({ ...home, validations: { required: false } });
+        expect(await screen.findByLabelText('Postcode')).not.toHaveAttribute('aria-required');
+    });
+});
+
 describe('AddressField when the answer is flagged', () => {
+    it('marks only the boxes that are wrong as invalid', async () => {
+        show(home, { home: { type: 'address', address: { street: 'Keizersgracht', house_number: '12', postcode: '1015 SS', city: 'Amsterdam', country: 'NL' } } }, { home: ['REQUIRED'] });
+        const postcode = await screen.findByLabelText('Postcode');
+        await waitFor(() => expect(postcode).toHaveAttribute('aria-invalid', 'true'));
+        for (const label of ['House number', 'Street', 'City']) expect(screen.getByLabelText(label)).not.toHaveAttribute('aria-invalid');
+        expect(screen.getByLabelText(/Addition/)).not.toHaveAttribute('aria-invalid');
+    });
+
     it('names the part that is wrong next to it, and ties the message to the box', async () => {
         show(home, { home: { type: 'address', address: { postcode: '1015 SS', house_number: '12a', country: 'NL' } } }, { home: ['REQUIRED'] });
         const postcode = await screen.findByLabelText('Postcode');

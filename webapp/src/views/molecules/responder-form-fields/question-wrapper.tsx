@@ -183,7 +183,9 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                 control.removeAttribute('data-rule-readonly');
             }
             if (hasError) {
-                control.setAttribute('aria-invalid', 'true');
+                // a control that judges its own value (data-local-invalid="false": it is fine) is not marked by the question's error
+                if (control.getAttribute('data-local-invalid') === 'false') control.removeAttribute('aria-invalid');
+                else control.setAttribute('aria-invalid', 'true');
                 control.setAttribute('aria-describedby', [...describedBy, errorId].join(' '));
             } else {
                 control.removeAttribute('aria-invalid');

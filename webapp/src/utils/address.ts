@@ -43,9 +43,10 @@ export const NL = 'NL';
 /** Rule codes, as the server says them (lower case). */
 export type AddressRule = 'required' | 'format' | 'country' | 'too_long';
 
-// Control (Cc), format (Cf: zero-width and bidirectional marks, the byte order mark, the soft hyphen) and
-// line/paragraph separators (Zl, Zp) never belong in an address (the server's twin: common `address.py`).
-const FORBIDDEN = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
+// Control (Cc), format (Cf: zero-width and bidirectional marks, the byte order mark, the soft hyphen), line/paragraph
+// separators (Zl, Zp), lone surrogates (Cs: they cannot be written as UTF-8), private use (Co) and unassigned
+// code points (Cn) never belong in an address (the server's twin: common `address.py`).
+const FORBIDDEN = /[\p{Cc}\p{Cf}\p{Cn}\p{Co}\p{Cs}\p{Zl}\p{Zp}]/u;
 // What Python's str.strip() removes (the server's notion of "trimmed"), not what JavaScript's trim() does (it also strips U+FEFF).
 const PY_SPACE = '\\t\\n\\v\\f\\r \\x1c-\\x1f\\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000';
 const EDGE_SPACE = new RegExp(`^[${PY_SPACE}]|[${PY_SPACE}]$`);
@@ -118,6 +119,12 @@ export function addressShape(value: unknown): boolean {
 /** Is any part but the country given? (A country alone is no answer.) */
 export const hasAnyPart = (value: unknown): boolean => !!value && typeof value === 'object' && PARTS.some((part) => part !== 'country' && typeof (value as any)[part] === 'string' && (value as any)[part] !== '');
 
+/** An address answer that holds a country and nothing else: no answer (the country is a default the respondent never typed). Twin of the server's `_blank_address`. */
+export const isBlankAddressAnswer = (answer: unknown): boolean => {
+    const parts = answer && typeof answer === 'object' ? (answer as any).address : undefined;
+    return !!parts && typeof parts === 'object' && !Array.isArray(parts) && !hasAnyPart(parts);
+};
+
 /**
  * What no stored address may break whatever its question says: a part that is not clean text (untrimmed, not in
  * Unicode form C, a control or format character) is `format`, one over its cap `too_long`. Undefined for
@@ -140,12 +147,12 @@ export function hardProblem(value: unknown): AddressRule | undefined {
  * number, postcode, city or, when the question allows several countries, the country is missing), `format` (a part
  * is not what its country writes, the country not a code), `country` (not one the question allows), `too_long`.
  * A single allowed country is assumed when none is given. Nothing for something that is not an address or has no
- * part at all (Required's to say). Twin of common `address.problems`.
+ * part at all (a country alone counts as none: Required's to say). Twin of common `address.problems`.
  */
 export function addressProblems(value: unknown, allowedCountries?: ReadonlyArray<string>): AddressRule[] {
     if (!addressShape(value)) return [];
     const raw = value as Record<string, string | null | undefined>;
-    if (!PARTS.some((part) => raw[part])) return [];
+    if (!hasAnyPart(raw)) return [];
     const allowed = allowedCountries && allowedCountries.length ? allowedCountries : [NL];
     const found: AddressRule[] = [];
     const add = (rule: AddressRule) => {
@@ -196,7 +203,12 @@ export function addressLines(value: unknown, countryNameOf: (code: string) => st
         return typeof found === 'string' ? pyStrip(found) : '';
     };
     const country = text('country');
-    const lines = [[text('street'), text('house_number'), text('house_number_addition')], [text('postcode'), text('city')]].map((line) => line.filter(Boolean).join(' ')).filter(Boolean);
+    const lines = [
+        [text('street'), text('house_number'), text('house_number_addition')],
+        [text('postcode'), text('city')]
+    ]
+        .map((line) => line.filter(Boolean).join(' '))
+        .filter(Boolean);
     if (country && country !== NL && lines.length) lines.push(countryNameOf(country));
     return lines;
 }

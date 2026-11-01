@@ -11,8 +11,8 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
 import AnswerRulesSettings from './answer-rules-settings';
 
-const served = vi.hoisted(() => ({ addressLookupEnabled: true }));
-vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ addressLookupEnabled: served.addressLookupEnabled }) }));
+const served = vi.hoisted(() => ({ addressLookupEnabled: true, answered: true }));
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ addressLookupEnabled: served.addressLookupEnabled, answered: served.answered }) }));
 vi.mock('@app/store/redux/form-api', async (importOriginal) => ({ ...(await importOriginal<typeof import('@app/store/redux/form-api')>()), useCheckAnswerPatternMutation: () => [vi.fn(), {}] }));
 
 const address = (properties: Record<string, any> = {}): StandardFormFieldDto => ({ id: 'a', index: 0, type: FieldTypes.ADDRESS, title: 'Home', properties });
@@ -26,6 +26,7 @@ function setup(field: StandardFormFieldDto) {
 
 afterEach(async () => {
     served.addressLookupEnabled = true;
+    served.answered = true;
     await act(() => i18n.changeLanguage('en'));
 });
 
@@ -73,6 +74,19 @@ describe('settings of an address question', () => {
         setup(address());
         expect(screen.getByRole('switch')).toHaveAccessibleDescription(/switched off on this server/);
         expect(screen.getByText(/are not verified/)).toBeInTheDocument();
+    });
+
+    it('does not claim the server has the lookup off before the server has said', () => {
+        served.addressLookupEnabled = false;
+        served.answered = false;
+        setup(address());
+        expect(screen.getByRole('switch')).not.toHaveAccessibleDescription(/switched off on this server/);
+    });
+
+    it('gives the remove button a target of at least 24 pixels', () => {
+        setup(address({ countries: ['NL', 'BE'] }));
+        const button = screen.getByRole('button', { name: 'Remove Belgium' });
+        expect(button).toHaveClass('min-h-6', 'min-w-6');
     });
 
     it('passes axe', async () => {

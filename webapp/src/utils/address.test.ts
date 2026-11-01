@@ -74,7 +74,7 @@ describe('the rules of an answered address (twin of the server)', () => {
 
     it('asks for a missing part once', () => {
         expect(addressProblems(parts({ street: undefined, city: undefined, postcode: undefined }))).toEqual(['required']);
-        expect(addressProblems({ country: 'NL' })).toEqual(['required']);
+        expect(addressProblems({ country: 'NL' })).toEqual([]);
         expect(addressProblems(parts({ country: undefined }), ['NL', 'BE'])).toEqual(['required']);
     });
 

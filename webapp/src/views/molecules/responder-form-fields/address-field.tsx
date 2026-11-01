@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useContext, useEffect, useId, useRef, useState } from 'react';
 
 import { Loader2 } from 'lucide-react';
 
+import { AddressLookupResult, lookUpAddress } from '@app/lib/address-lookup';
 import { useFieldRuleStates } from '@app/lib/hooks/use-field-rule-states';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
@@ -10,7 +11,6 @@ import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
-import { useLookUpAddressMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { AddressPart, AddressParts, AddressRule, NL, PART_MAX, canonicalNlPostcode, hasAnyPart, lookupKey, partProblems, pyStrip } from '@app/utils/address';
 import { countryName, questionCountries } from '@app/utils/countries';
@@ -18,6 +18,7 @@ import { parseScopedFieldId } from '@app/utils/repeating-groups';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import { useEnterToNextQuestion } from './next-question';
+import { PreviewModeContext } from './preview-mode-context';
 import { useQuestionLabel } from './question-label-context';
 import QuestionWrapper from './question-wrapper';
 
@@ -70,7 +71,8 @@ function AddressFieldSection({ field, isBuilder }: IAddressField) {
     const locked = useFieldRuleStates().isLocked(field.id);
     const workspace = useAppSelector(selectWorkspace);
     const responderForm = useAppSelector(selectResponderForm);
-    const [lookUp] = useLookUpAddressMutation();
+    // A preview sends nothing: the form may not be published (the server answers a lookup for a published form only).
+    const preview = useContext(PreviewModeContext);
     const countries = questionCountries(field);
     const stored = formResponse.answers?.[field.id]?.address;
     const [parts, setParts] = useState<Parts>(() => boxesFrom(stored, countries));
@@ -102,10 +104,26 @@ function AddressFieldSection({ field, isBuilder }: IAddressField) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [storedKey]);
 
-    const lookupWanted = !isBuilder && !locked && field.properties?.addressLookup !== false && countries.includes(NL) && !!workspace?.id && !!responderForm?.formId;
+    const lookupWanted = !isBuilder && !preview && !locked && field.properties?.addressLookup !== false && countries.includes(NL) && !!workspace?.id && !!responderForm?.formId;
 
-    const finishLookup = (result: { status: 'found'; street: string; city: string } | { status: 'not_found' }) => {
+    /** Street and city that a lookup filled in and the respondent has not changed belong to the postcode and house number they were looked up for: when those change, or the lookup finds nothing, they go. What was typed stays. */
+    const withoutLookedUp = (current: Parts): Parts => {
+        const was = lookedUp.current;
+        lookedUp.current = null;
+        if (!was) return current;
+        return { ...current, street: current.street === was.street ? '' : current.street, city: current.city === was.city ? '' : current.city };
+    };
+    const dropLookedUp = () => {
+        const current = latest.current.parts;
+        const next = withoutLookedUp(current);
+        if (sameParts(current, next)) return;
+        setParts(next);
+        latest.current.commit(next);
+    };
+
+    const finishLookup = (result: AddressLookupResult) => {
         if (result.status !== 'found') {
+            dropLookedUp();
             setStatus('not_found');
             return;
         }
@@ -130,8 +148,7 @@ function AddressFieldSection({ field, isBuilder }: IAddressField) {
         lastKey.current = id;
         const mine = ++request.current;
         setStatus('looking');
-        lookUp({ workspaceId: workspace!.id, formId: responderForm!.formId!, fieldId: parseScopedFieldId(field.id)?.childId ?? field.id, postcode: key.postcode, houseNumber: key.houseNumber })
-            .unwrap()
+        lookUpAddress({ workspaceId: workspace!.id, formId: responderForm!.formId!, fieldId: parseScopedFieldId(field.id)?.childId ?? field.id, postcode: key.postcode, houseNumber: key.houseNumber })
             .then((result) => {
                 if (mine === request.current) finishLookup(result);
             })
@@ -139,21 +156,23 @@ function AddressFieldSection({ field, isBuilder }: IAddressField) {
                 if (mine !== request.current) return;
                 // the same two values may be tried again on the next blur
                 lastKey.current = '';
+                dropLookedUp();
                 setStatus('unavailable');
             });
     };
 
     const change = (part: AddressPart) => (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         if (locked) return;
-        const next = { ...parts, [part]: event.target.value };
+        let next = { ...parts, [part]: event.target.value };
+        if (part === 'postcode' || part === 'house_number' || part === 'country') {
+            // a later answer belongs to what is typed now; the street and city of the last lookup do not, and the new values may be looked up again
+            request.current++;
+            lastKey.current = '';
+            next = withoutLookedUp(next);
+            setStatus('idle');
+        }
         setParts(next);
         commit(next);
-        if (part === 'postcode' || part === 'house_number' || part === 'country') {
-            // a later answer belongs to what is typed now
-            request.current++;
-            setStatus('idle');
-            if (part === 'country' && event.target.value !== NL) lookedUp.current = null;
-        }
     };
 
     // Leaving the postcode box shows it as it is stored (1015cs -> 1015 CS) and may start the lookup.
@@ -189,10 +208,12 @@ function AddressFieldSection({ field, isBuilder }: IAddressField) {
     const sorted = [...countries].sort((a, b) => countryName(a, language).localeCompare(countryName(b, language), language));
     const labelledBy = question?.labelledBy;
 
-    const box = (part: AddressPart, config: { autoComplete: string; inputMode?: 'numeric' | 'text'; span: string; optional?: boolean; hint?: string; onBlur?: () => void; last?: boolean }) => {
+    const box = (part: AddressPart, config: { autoComplete: string; inputMode?: 'numeric' | 'text'; span: string; optional?: boolean; hint?: string; onBlur?: () => void; last?: boolean; describedBy?: string }) => {
         const id = idOf(part);
         const errorText = problemText(part);
         const errorId = errorText ? idOf(`error-${part}`) : undefined;
+        // the box is described by its own message first, then by the lookup line that tells what leaving it does
+        const describedBy = [errorId, config.describedBy].filter(Boolean).join(' ') || undefined;
         return (
             <div className={`flex flex-col gap-1 ${config.span}`}>
                 <label htmlFor={id} className="text-sm font-medium" style={{ color: theme?.primary }}>
@@ -211,7 +232,10 @@ function AddressFieldSection({ field, isBuilder }: IAddressField) {
                     readOnly={locked}
                     aria-readonly={locked || undefined}
                     aria-invalid={errorText ? true : undefined}
-                    aria-describedby={errorId}
+                    // each box says for itself whether it is wrong: the question's error does not mark the boxes that are fine
+                    data-local-invalid={errorText ? 'true' : 'false'}
+                    aria-required={!!question?.required && !config.optional ? true : undefined}
+                    aria-describedby={describedBy}
                     placeholder={config.hint ? t(config.hint) : undefined}
                     $formTheme={theme}
                     onChange={change(part)}
@@ -229,15 +253,29 @@ function AddressFieldSection({ field, isBuilder }: IAddressField) {
     };
 
     const statusText =
-        status === 'looking' ? t('ADDRESS.STATUS.LOOKING') : status === 'found' ? t('ADDRESS.STATUS.FOUND') : status === 'found_kept' ? t('ADDRESS.STATUS.FOUND_KEPT') : status === 'not_found' ? t('ADDRESS.STATUS.NOT_FOUND') : status === 'unavailable' ? t('ADDRESS.STATUS.UNAVAILABLE') : '';
+        status === 'looking'
+            ? t('ADDRESS.STATUS.LOOKING')
+            : status === 'found'
+              ? t('ADDRESS.STATUS.FOUND')
+              : status === 'found_kept'
+                ? t('ADDRESS.STATUS.FOUND_KEPT')
+                : status === 'not_found'
+                  ? t('ADDRESS.STATUS.NOT_FOUND')
+                  : status === 'unavailable'
+                    ? t('ADDRESS.STATUS.UNAVAILABLE')
+                    : '';
     const lookupLine = lookupWanted && dutch ? t('ADDRESS.LOOKUP_HINT') : '';
+    const hintId = idOf('hint-lookup');
+    // the two boxes that start the lookup are described by the line that says so (while it is shown; the status line is read out on its own)
+    const lookupDescribedBy = !statusText && lookupLine ? hintId : undefined;
 
     return (
         <div role="group" {...group} aria-labelledby={labelledBy} className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
-                {box('postcode', { autoComplete: 'postal-code', span: 'col-span-2 sm:col-span-2', hint: dutch ? 'ADDRESS.POSTCODE_EXAMPLE' : undefined, onBlur: leave('postcode') })}
-                {box('house_number', { autoComplete: 'off', inputMode: dutch ? 'numeric' : 'text', span: 'sm:col-span-2', hint: dutch ? 'ADDRESS.HOUSE_NUMBER_EXAMPLE' : undefined, onBlur: leave('house_number') })}
+                {box('postcode', { autoComplete: 'postal-code', span: 'col-span-2 sm:col-span-2', hint: dutch ? 'ADDRESS.POSTCODE_EXAMPLE' : undefined, onBlur: leave('postcode'), describedBy: lookupDescribedBy })}
+                {box('house_number', { autoComplete: 'off', inputMode: dutch ? 'numeric' : 'text', span: 'sm:col-span-2', hint: dutch ? 'ADDRESS.HOUSE_NUMBER_EXAMPLE' : undefined, onBlur: leave('house_number'), describedBy: lookupDescribedBy })}
                 {box('house_number_addition', { autoComplete: 'off', span: 'sm:col-span-2', optional: true })}
+                {/* Not address-line1: a browser fills that with street and number in one string, which does not fit a street box beside a house number box. */}
                 {box('street', { autoComplete: 'off', span: 'col-span-2 sm:col-span-3' })}
                 {box('city', { autoComplete: 'address-level2', span: 'col-span-2 sm:col-span-3', last: countries.length < 2 })}
                 {countries.length > 1 && (
@@ -252,6 +290,8 @@ function AddressFieldSection({ field, isBuilder }: IAddressField) {
                             disabled={isBuilder}
                             aria-readonly={locked || undefined}
                             aria-invalid={problems.country ? true : undefined}
+                            data-local-invalid={problems.country ? 'true' : 'false'}
+                            aria-required={question?.required ? true : undefined}
                             aria-describedby={problems.country ? idOf('error-country') : undefined}
                             className="min-h-12 w-full border bg-white px-3 text-base lg:text-lg"
                             style={{ borderRadius: fieldRadius, borderColor: theme?.tertiary ?? '#818CA0', color: theme?.primary }}
@@ -273,12 +313,12 @@ function AddressFieldSection({ field, isBuilder }: IAddressField) {
                 )}
             </div>
             <div className="flex min-h-5 flex-col gap-0.5">
-                <p id={statusId} role="status" aria-live="polite" data-testid="address-status" className="flex items-center gap-2 text-sm leading-snug text-[#344054]">
+                <p id={statusId} role="status" aria-live="polite" data-testid="address-status" className="flex items-center gap-2 text-sm leading-snug text-[#344054]" style={{ color: theme?.primary }}>
                     {status === 'looking' && <Loader2 className="h-4 w-4 shrink-0 motion-safe:animate-spin" aria-hidden="true" />}
                     {statusText}
                 </p>
                 {!statusText && lookupLine && (
-                    <span id={idOf('hint-lookup')} className="text-sm text-[#667085]">
+                    <span id={hintId} className="text-sm text-[#667085]" style={{ color: theme?.primary }}>
                         {lookupLine}
                     </span>
                 )}
