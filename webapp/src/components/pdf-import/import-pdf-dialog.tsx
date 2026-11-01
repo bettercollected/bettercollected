@@ -55,10 +55,10 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-lg bg-white" title="Import a PDF form">
+            <DialogContent className="max-w-lg bg-white" title={t('PDF_IMPORT.DIALOG.TITLE')}>
                 <DialogHeader>
-                    <DialogTitle>Import a PDF form</DialogTitle>
-                    <DialogDescription>Upload a fillable or printed PDF, or a photo of a paper form. We turn it into a draft form you can review and edit before publishing.</DialogDescription>
+                    <DialogTitle>{t('PDF_IMPORT.DIALOG.TITLE')}</DialogTitle>
+                    <DialogDescription>{t('PDF_IMPORT.DIALOG.INTRO')}</DialogDescription>
                 </DialogHeader>
                 <button
                     type="button"
@@ -78,12 +78,12 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
                     {file ? (
                         <>
                             <span className="font-medium text-black-800">{file.name}</span>
-                            <span className="mt-1 text-xs text-black-600">{(file.size / 1024 / 1024).toFixed(1)} MB · click to choose another file</span>
+                            <span className="mt-1 text-xs text-black-600">{t('PDF_IMPORT.DIALOG.CHOSEN', { size: (file.size / 1024 / 1024).toFixed(1) })}</span>
                         </>
                     ) : (
                         <>
-                            <span className="font-medium text-black-800">Drop a file here, or click to choose</span>
-                            <span className="mt-1 text-xs text-black-600">PDF, PNG, JPEG or WebP · up to 15 MB and 30 pages</span>
+                            <span className="font-medium text-black-800">{t('PDF_IMPORT.DIALOG.DROP')}</span>
+                            <span className="mt-1 text-xs text-black-600">{t('PDF_IMPORT.DIALOG.LIMITS')}</span>
                         </>
                     )}
                 </button>
@@ -91,31 +91,31 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
                 {error && <p className="text-sm text-red-600">{error}</p>}
                 {ai?.available && !ai?.enabled ? (
                     <div className="flex flex-col gap-2">
-                        <AIOptIn feature="PDF import" sends="the page text and page images of a file, only when you also agree for that upload" onEnabled={() => refetchAi()} compact />
-                        <p className="text-xs text-black-600">Until then, the import uses the built-in reader only. The draft may need more manual review.</p>
+                        <AIOptIn feature={t('PDF_IMPORT.DIALOG.AI_FEATURE')} sends={t('PDF_IMPORT.DIALOG.AI_SENDS')} onEnabled={() => refetchAi()} compact />
+                        <p className="text-xs text-black-600">{t('PDF_IMPORT.DIALOG.BUILT_IN_ONLY')}</p>
                     </div>
                 ) : aiUsable ? (
                     <div className="rounded-md border border-black-300 p-3">
                         <label className="flex cursor-pointer items-start gap-2 text-sm text-black-800">
                             <input type="checkbox" className="mt-0.5" checked={aiConsent} onChange={(e) => setAiConsent(e.target.checked)} />
-                            <span>Let {ai.provider} read this document to recognise the questions</span>
+                            <span>{t('PDF_IMPORT.DIALOG.LET_READ', { provider: ai.provider })}</span>
                         </label>
                         <p className="mt-2 text-xs text-black-600">
                             {aiConsent
-                                ? `The page text and page images of this file are sent to ${ai.provider} to recognise its questions. On a filled-in form, the answers written on it are visible to ${ai.provider} in the page images. Don't upload forms that hold other people's personal data unless you're allowed to share it.`
-                                : 'Without this, the import uses the built-in reader only. The draft may need more manual review.'}
+                                ? t('PDF_IMPORT.DIALOG.SENT', { provider: ai.provider })
+                                : t('PDF_IMPORT.DIALOG.WITHOUT')}
                         </p>
                     </div>
                 ) : (
-                    <p className="text-xs text-black-600">No AI provider is set up on this server, so the import uses the built-in reader only. The draft may need more manual review.</p>
+                    <p className="text-xs text-black-600">{t('PDF_IMPORT.DIALOG.NO_PROVIDER')}</p>
                 )}
-                <p className="text-xs text-black-600">Upload a blank form if you can. The file is kept with the draft form until you delete the form.</p>
+                <p className="text-xs text-black-600">{t('PDF_IMPORT.DIALOG.BLANK')}</p>
                 <div className="flex justify-end gap-2">
                     <Button variant="v2Button" onClick={() => onOpenChange(false)}>
-                        Cancel
+                        {t('PDF_IMPORT.DIALOG.CANCEL')}
                     </Button>
                     <Button onClick={submit} disabled={!file} isLoading={isLoading}>
-                        Import
+                        {t('PDF_IMPORT.DIALOG.IMPORT')}
                     </Button>
                 </div>
             </DialogContent>

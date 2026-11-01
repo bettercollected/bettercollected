@@ -7,7 +7,7 @@ import HeaderModalWrapper from '@Components/modals/modal-wrapper/header-modal-wr
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
 import { useModal } from '@app/components/modal-views/context';
 import { googleFormsImport } from '@app/constants/locales/google-forms-import';
@@ -84,7 +84,7 @@ export default function AddActionToFormModal({ action, form, reconnect = false, 
             const result = oauthMessage(event, configuredDashboardOrigin(), popupRef.current);
             if (!result) return;
             if (result.error) {
-                setErrorMessage('Access has been denied');
+                setErrorMessage(t('STAFF.INTEGRATIONS.ACCESS_DENIED'));
             } else if (result.state && result.code) {
                 setOauthResult({ state: result.state, code: result.code });
             }
@@ -101,7 +101,7 @@ export default function AddActionToFormModal({ action, form, reconnect = false, 
                 return;
             }
             if (!res.data) {
-                setErrorMessage('Could not reach Google. Please try again.');
+                setErrorMessage(t('STAFF.INTEGRATIONS.GOOGLE_UNREACHABLE'));
                 return;
             }
             popupRef.current = window.open(res.data, 'oauthWindow', 'height=600 width=600 left=600 top=300');
@@ -110,15 +110,15 @@ export default function AddActionToFormModal({ action, form, reconnect = false, 
 
     if (showIntegrationConsent) {
         return (
-            <HeaderModalWrapper headerTitle={reconnect ? t(sheetsReconnect.button) : 'Add Google Sheets to form'}>
+            <HeaderModalWrapper headerTitle={reconnect ? t(sheetsReconnect.button) : t('STAFF.INTEGRATIONS.ADD_SHEETS_HEADER')}>
                 <div className="relative flex flex-col rounded p-8 md:min-w-[400px]">
                     <div className="mb-6 flex justify-center">
-                        <Image src={action?.url || '/integration/default.svg'} alt="Google Sheets Icon" width={80} height={80} />
+                        <Image src={action?.url || '/integration/default.svg'} alt={t('STAFF.INTEGRATIONS.SHEETS_ICON')} width={80} height={80} />
                     </div>
                     <div className="mb-4 text-center text-2xl font-bold text-gray-800">
-                        <span className="text-blue-600">{action?.title || 'Untitled'}</span> to the form <span className="text-blue-600">{form?.title || 'Untitled'}</span>
+                        <Trans i18nKey="STAFF.INTEGRATIONS.TO_THE_FORM" values={{ title: action?.title || t('STAFF.COMMON.UNTITLED'), form: form?.title || t('STAFF.COMMON.UNTITLED') }} components={{ 1: <span className="text-blue-600" /> }} />
                     </div>
-                    <p className="text-center text-sm text-gray-600 ">Send your BetterCollected form responses to your Google Sheets</p>
+                    <p className="text-center text-sm text-gray-600 ">{t('STAFF.INTEGRATIONS.SHEETS_SEND')}</p>
                     {sheetsOff ? (
                         <p role="note" className="mt-4 max-w-[400px] rounded-lg border border-black-300 bg-black-100 px-4 py-3 text-sm text-black-800">
                             {t(googleFormsImport.off.sheets)}
@@ -170,23 +170,23 @@ export default function AddActionToFormModal({ action, form, reconnect = false, 
     };
 
     return (
-        <HeaderModalWrapper headerTitle="Add integration to form">
+        <HeaderModalWrapper headerTitle={t('STAFF.INTEGRATIONS.ADD_HEADER')}>
             {/* This is the front popup */}
             <div className="relative flex flex-col rounded  p-8  md:min-w-[400px]">
                 {/* Top Banner/Icon Section with Illustrations */}
                 <div className="mb-6 flex justify-center">
-                    <Image src={action?.url || '/integration/default.svg'} alt="Integration Icon" width={80} height={80} />
+                    <Image src={action?.url || '/integration/default.svg'} alt={t('STAFF.INTEGRATIONS.ICON')} width={80} height={80} />
                 </div>
 
                 {/* Title with Enhanced Typography */}
                 <div className="mb-4 text-center text-2xl font-bold text-gray-800">
-                    Adding <span className="text-blue-600">{action?.title || 'Untitled'}</span> to the form <span className="text-blue-600">{form?.title || 'Untitled'}</span>
+                    <Trans i18nKey="STAFF.INTEGRATIONS.ADDING_TO_FORM" values={{ title: action?.title || t('STAFF.COMMON.UNTITLED'), form: form?.title || t('STAFF.COMMON.UNTITLED') }} components={{ 1: <span className="text-blue-600" /> }} />
                 </div>
 
                 {/* Floating Label Input Fields */}
                 {action?.parameters?.filter((param: any) => param.required).length > 0 && (
                     <>
-                        <div className="mb-2 text-lg font-semibold text-gray-700">Required Parameters</div>
+                        <div className="mb-2 text-lg font-semibold text-gray-700">{t('STAFF.INTEGRATIONS.REQUIRED_PARAMS')}</div>
                         <div className="space-y-4">
                             {action?.parameters?.map((parameter: any, index: number) =>
                                 parameter?.required ? (
@@ -205,13 +205,13 @@ export default function AddActionToFormModal({ action, form, reconnect = false, 
                                 )
                             )}
                         </div>
-                        {error && <div className="mt-2 text-sm text-red-500">Please fill in all required parameters.</div>}
+                        {error && <div className="mt-2 text-sm text-red-500">{t('STAFF.INTEGRATIONS.FILL_PARAMS')}</div>}
                     </>
                 )}
 
                 {/* Add Integration Button */}
                 <Button data-umami-event={`Add ${action?.title} Integration`} variant="primary" size="medium" onClick={onAddIntegration} className="mt-4">
-                    Add Integration
+                    {t('STAFF.INTEGRATIONS.ADD_BUTTON')}
                 </Button>
             </div>
         </HeaderModalWrapper>

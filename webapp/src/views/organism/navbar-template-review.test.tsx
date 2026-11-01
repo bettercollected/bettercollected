@@ -74,7 +74,7 @@ async function renderNavbar() {
     });
 }
 
-const makeTemplate = () => screen.getByRole('button', { name: 'Make Template' });
+const makeTemplate = () => screen.getByRole('button', { name: /Make Template|Sjabloon maken/ });
 
 describe('making a template from a form that still needs review', () => {
     beforeEach(() => {
@@ -172,7 +172,7 @@ describe('making a template from a form that still needs review', () => {
         setUp(MARKED);
         await renderNavbar();
         await act(async () => {
-            fireEvent.click(screen.getByRole('button', { name: 'Make Template' }));
+            fireEvent.click(makeTemplate());
         });
         const dialog = await screen.findByRole('dialog', { name: 'Dit formulier moet nog worden nagekeken' });
         expect(dialog).toHaveTextContent('Er kan pas een sjabloon van worden gemaakt');

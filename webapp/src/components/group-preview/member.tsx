@@ -46,7 +46,7 @@ export default function GroupMembersTab({ group, workspace }: IGroupMemberTabPro
 
     const handleRemoveMembers = (email: string) => {
         openModal('DELETE_CONFIRMATION', {
-            headerTitle: 'Remove Member',
+            headerTitle: t('BUTTON.DELETE_MEMBER'),
             title: t(localesCommon.remove) + ' ' + email,
             handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id })
         });

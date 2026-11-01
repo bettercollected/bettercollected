@@ -13,8 +13,10 @@ interface IDeleteConfirmationModal {
     positiveText?: string;
 }
 
-export default function DeleteConfirmationModal({ title, handleDelete, headerTitle = 'Delete', positiveText = 'Delete' }: IDeleteConfirmationModal) {
+export default function DeleteConfirmationModal({ title, handleDelete, headerTitle, positiveText }: IDeleteConfirmationModal) {
     const { t } = useTranslation();
+    headerTitle = headerTitle ?? t('BUTTON.DELETE');
+    positiveText = positiveText ?? t('BUTTON.DELETE');
 
     return <GenericHalfModal headerTitle={headerTitle} positiveAction={handleDelete} positiveText={positiveText} type="danger" title={title + '?'} subTitle={t(localesCommon.deleteMessage)} />;
 }

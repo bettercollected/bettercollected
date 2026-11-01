@@ -1,4 +1,5 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 import GenericHalfModal from '@Components/common/generic-half-modal';
 
@@ -9,6 +10,7 @@ import { useAppDispatch } from '@app/store/hooks';
 import { resetAfterSignOut } from '@app/store/actions/reset-after-sign-out';
 
 export default function LogoutView(props: any) {
+    const { t } = useTranslation();
     const { closeModal } = useModal();
     const [trigger] = useLogoutMutation();
     const [authTrigger] = useLazyGetStatusQuery();
@@ -36,5 +38,5 @@ export default function LogoutView(props: any) {
         });
     };
 
-    return <GenericHalfModal headerTitle="Logout" title="Are you sure you want to logout?" type="danger" positiveText="Yes" negativeText="No" positiveAction={handleLogout} />;
+    return <GenericHalfModal headerTitle={t('STAFF.LOGOUT.HEADER')} title={t('STAFF.LOGOUT.TITLE')} type="danger" positiveText={t('BUTTON.YES')} negativeText={t('BUTTON.NO')} positiveAction={handleLogout} />;
 }

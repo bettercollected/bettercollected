@@ -1,6 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
+
+import { intlLocaleFor } from '@app/lib/hooks/use-intl-locale';
 
 
 import { FieldTypes } from '@app/models/dtos/form';
@@ -55,6 +58,7 @@ function NavbarInsertMenu(props: Omit<ComponentProps<typeof InsertFieldComponent
 }
 
 const Navbar = () => {
+    const { t, i18n } = useTranslation('builder');
     // Acts on the form and follows whether there is anything to undo; it does
     // not subscribe to the form itself, so typing does not re-render the bar.
     const { undo, redo, getFormFields } = useBuilderActions();
@@ -167,7 +171,7 @@ const Navbar = () => {
                     same rule as the top navbar). Still the "back to forms" target. */}
                 <button
                     type="button"
-                    aria-label={`Back to ${workspaceDisplayName(workspace) || 'workspace'} forms`}
+                    aria-label={t('TOPBAR.BACK_TO', { name: workspaceDisplayName(workspace) || t('TOPBAR.WORKSPACE') })}
                     className="mr-1 cursor-pointer"
                     onClick={() => {
                         router.push('/' + workspace.workspaceName + '/dashboard/forms');
@@ -181,7 +185,7 @@ const Navbar = () => {
                     )}
                 </button>
                 <AppInput
-                    placeholder="Form title"
+                    placeholder={t('TOPBAR.FORM_TITLE')}
                     value={formState.title}
                     onChange={(event) => {
                         setFormTitle(event.target.value);
@@ -194,7 +198,7 @@ const Navbar = () => {
                     <PopoverTrigger asChild>
                         <button
                             type="button"
-                            title={isContentPage ? 'Insert a field (Ctrl/Cmd+K)' : 'Select a page to insert fields'}
+                            title={isContentPage ? t('TOPBAR.INSERT_TITLE') : t('TOPBAR.INSERT_DISABLED')}
                             aria-disabled={!isContentPage}
                             aria-haspopup="dialog"
                             aria-keyshortcuts="Control+K Meta+K"
@@ -205,10 +209,10 @@ const Navbar = () => {
                             className={cn('text-black-700 flex flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium', isContentPage ? 'hover:bg-black-100 hover:text-black-900 cursor-pointer' : 'cursor-not-allowed opacity-40')}
                         >
                             <PlusOutlined aria-hidden="true" />
-                            <span>Insert</span>
+                            <span>{t('TOPBAR.INSERT')}</span>
                         </button>
                     </PopoverTrigger>
-                    <PopoverContent align="center" className="w-auto overflow-hidden p-0" aria-label="Insert a field">
+                    <PopoverContent align="center" className="w-auto overflow-hidden p-0" aria-label={t('TOPBAR.INSERT_A_FIELD')}>
                         <NavbarInsertMenu
                             activeSlideComponent={activeSlideComponent}
                             closeDropdown={() => {
@@ -222,20 +226,20 @@ const Navbar = () => {
                     type="button"
                     aria-disabled={!isContentPage}
                     onClick={handleAddText}
-                    title={isContentPage ? 'Add a display-text block to this page' : 'Select a page to add a text block'}
+                    title={isContentPage ? t('TOPBAR.TEXT_BLOCK_TITLE') : t('TOPBAR.TEXT_BLOCK_DISABLED')}
                     className={cn('text-black-700 flex flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium', isContentPage ? 'hover:bg-black-100 hover:text-black-900 cursor-pointer' : 'cursor-not-allowed opacity-40')}
                 >
                     <TextOutlinedIcon aria-hidden="true" />
-                    <span>Text block</span>
+                    <span>{t('TOPBAR.TEXT_BLOCK')}</span>
                 </button>
                 <button
                     data-umami-event={'Open Flow View'}
                     onClick={() => setFlowViewOpen(true)}
-                    title="Open the flow view to edit page branching"
+                    title={t('TOPBAR.FLOW_TITLE')}
                     className="text-black-700 hover:bg-black-100 hover:text-black-900 flex cursor-pointer flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium"
                 >
                     <LogicOutlinedIcon />
-                    Logic
+                    {t('TOPBAR.LOGIC')}
                 </button>
             </div>
 
@@ -243,17 +247,17 @@ const Navbar = () => {
                 {autosaveStatus.state !== 'idle' && (
                     <span
                         aria-live="polite"
-                        title={autosaveStatus.savedAt ? `Last saved ${new Date(autosaveStatus.savedAt).toLocaleTimeString()}` : undefined}
+                        title={autosaveStatus.savedAt ? t('TOPBAR.LAST_SAVED', { time: new Date(autosaveStatus.savedAt).toLocaleTimeString(intlLocaleFor(i18n.language)) }) : undefined}
                         className={cn('mr-1 whitespace-nowrap text-xs font-medium', isAutosaveProblem(autosaveStatus.state) ? 'text-brand-olive' : 'text-black-600')}
                     >
-                        {autosaveStatusLabel(autosaveStatus.state)}
+                        {autosaveStatusLabel(autosaveStatus.state, t)}
                     </span>
                 )}
                 <div className="mr-1 flex items-center gap-1">
-                    <button aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={undo} className="text-black-600 hover:text-black-900 rounded-md p-1.5 hover:bg-black-100 disabled:opacity-30 disabled:hover:bg-transparent">
+                    <button aria-label={t('TOPBAR.UNDO')} title={t('TOPBAR.UNDO_TITLE')} disabled={!canUndo} onClick={undo} className="text-black-600 hover:text-black-900 rounded-md p-1.5 hover:bg-black-100 disabled:opacity-30 disabled:hover:bg-transparent">
                         <Undo2 className="h-4 w-4" />
                     </button>
-                    <button aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!canRedo} onClick={redo} className="text-black-600 hover:text-black-900 rounded-md p-1.5 hover:bg-black-100 disabled:opacity-30 disabled:hover:bg-transparent">
+                    <button aria-label={t('TOPBAR.REDO')} title={t('TOPBAR.REDO_TITLE')} disabled={!canRedo} onClick={redo} className="text-black-600 hover:text-black-900 rounded-md p-1.5 hover:bg-black-100 disabled:opacity-30 disabled:hover:bg-transparent">
                         <Redo2 className="h-4 w-4" />
                     </button>
                     <KeyboardShortcuts />
@@ -261,11 +265,11 @@ const Navbar = () => {
                 <Sheet>
                     <SheetTrigger asChild>
                         <Button icon={<PlayIcon />} variant={'v2Button'} data-umami-event={`Preview Button`}>
-                            Preview
+                            {t('TOPBAR.PREVIEW')}
                         </Button>
                     </SheetTrigger>
                     <SheetContent className="h-full w-full p-0" side={'bottom'} hideCloseIcon>
-                        <SheetTitle className="sr-only">Navigation menu</SheetTitle>
+                        <SheetTitle className="sr-only">{t('TOPBAR.NAV_MENU')}</SheetTitle>
                         <SheetFooter>
                             <SheetClose asChild onClick={handleResetResponderState}>
                                 <div className="absolute left-4 top-16 z-50 lg:top-3 ">
@@ -280,7 +284,7 @@ const Navbar = () => {
                 </Sheet>
                 {authState?.roles?.includes('ADMIN') && (
                     <Button variant="secondary" isLoading={isCreatingTemplate} onClick={makeTemplate}>
-                        Make Template
+                        {t('TOPBAR.MAKE_TEMPLATE')}
                     </Button>
                 )}
 
@@ -300,7 +304,7 @@ const Navbar = () => {
                 can open it regardless of which page (if any) is active. */}
             <Sheet open={flowViewOpen} onOpenChange={handleFlowViewOpenChange}>
                 <SheetContent className="h-full w-full p-0" side={'bottom'} hideCloseIcon>
-                    <SheetTitle className="sr-only">Flow view</SheetTitle>
+                    <SheetTitle className="sr-only">{t('TOPBAR.FLOW_VIEW')}</SheetTitle>
                     <FlowView onClose={() => handleFlowViewOpenChange(false)} />
                 </SheetContent>
             </Sheet>

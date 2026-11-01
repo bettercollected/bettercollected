@@ -8,8 +8,10 @@ import { useAppSelector } from '@app/store/hooks';
 import EmptyResponseIcon from '@Components/icons/expty-response-icon';
 import { AlertTriangle } from 'lucide-react';
 import { useEffect, useState, type JSX } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function FormAnalytics() {
+    const { t } = useTranslation();
     interface Metric {
         x: string;
         y: number;
@@ -217,7 +219,7 @@ export default function FormAnalytics() {
             <div className="flex min-h-[300px] w-full items-center justify-center">
                 <div className="text-center">
                     <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-blue-500"></div>
-                    <div className="text-sm font-medium">Loading Data...</div>
+                    <div className="text-sm font-medium">{t('ANALYTICS.LOADING')}</div>
                 </div>
             </div>
         );
@@ -236,7 +238,7 @@ export default function FormAnalytics() {
         return (
             <>
                 <TimeRangeSelector onRangeSelect={handleRangeSelect} selectedRange={range} />
-                <EmptyDataResponseComponent title="No views yet" detail="There is no view in this time range." />
+                <EmptyDataResponseComponent title={t('ANALYTICS.EMPTY_TITLE')} detail={t('ANALYTICS.EMPTY_DETAIL')} />
             </>
         );
     }
@@ -247,11 +249,11 @@ export default function FormAnalytics() {
             <Metrics analyticsData={analyticsData} />
             <BarChart workspaceId={workspaceId} slug={slug} startAt={startAt} endAt={endAt} unit={unit} timezone={timezone} range={range} />
             <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <AnalyticsDataTable title="Referrers" data={analyticsData.detailedData.referrers} />
-                <AnalyticsDataTable title="Browsers" data={analyticsData.detailedData.browsers} />
-                <AnalyticsDataTable title="Operating System" data={analyticsData.detailedData.os} />
-                <AnalyticsDataTable title="Devices" data={analyticsData.detailedData.devices} />
-                <AnalyticsDataTable title="Countries" data={analyticsData.detailedData.countries} showCountryFlag={true} />
+                <AnalyticsDataTable title={t('ANALYTICS.REFERRERS')} data={analyticsData.detailedData.referrers} />
+                <AnalyticsDataTable kind="browsers" title={t('ANALYTICS.BROWSERS')} data={analyticsData.detailedData.browsers} />
+                <AnalyticsDataTable kind="os" title={t('ANALYTICS.OS')} data={analyticsData.detailedData.os} />
+                <AnalyticsDataTable kind="devices" title={t('ANALYTICS.DEVICES')} data={analyticsData.detailedData.devices} />
+                <AnalyticsDataTable title={t('ANALYTICS.COUNTRIES')} data={analyticsData.detailedData.countries} showCountryFlag={true} />
             </div>
         </main>
     );
@@ -270,18 +272,19 @@ const EmptyDataResponseComponent = ({ title, detail }: { title: JSX.Element | st
 };
 
 const AnalyticsErrorComponent = ({ onRetry }: { onRetry: () => void }) => {
+    const { t } = useTranslation();
     return (
         <div className="flex min-h-[300px] w-full items-center justify-center">
             <div className="mb-28 flex max-w-[360px] flex-col items-center gap-3 text-center">
                 <AlertTriangle className="h-9 w-9 text-amber-500" strokeWidth={1.5} />
-                <span className="p3-new text-black">Couldn&apos;t load analytics</span>
-                <span className="p4-new text-black-600">Something went wrong fetching this data. Check your connection and try again.</span>
+                <span className="p3-new text-black">{t('ANALYTICS.ERROR_TITLE')}</span>
+                <span className="p4-new text-black-600">{t('ANALYTICS.ERROR_DETAIL')}</span>
                 <button
                     type="button"
                     onClick={onRetry}
                     className="text-brand-500 border-brand-500 mt-1 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-blue-50"
                 >
-                    Try again
+                    {t('ANALYTICS.TRY_AGAIN')}
                 </button>
             </div>
         </div>

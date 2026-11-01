@@ -89,7 +89,7 @@ export default function BannerImageComponent(props: { workspace: any; isFormCrea
                         <Image src={workspace?.bannerImage ?? ''} priority layout="fill" objectFit="cover" objectPosition="center" alt={workspace?.title} />
                     ) : (
                         <div className="bg-black-200 hover:bg-black-300 h-full align-center cursor-pointer flex flex-col items-center justify-center" onClick={onClickFileUploadButton}>
-                            <div className="p2-new ml-10 text-black-700!">Add banner image</div>
+                            <div className="p2-new ml-10 text-black-700!">{t('STAFF.BANNER.ADD')}</div>
                         </div>
                     )}
                     <input ref={imageInputRef} data-testid="file-upload" type="file" accept="image/*" className="hidden" onClick={(event: any) => (event.target.value = null)} onChange={onUploadFileChange} />

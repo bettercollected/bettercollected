@@ -43,7 +43,7 @@ export default function ManageURLs() {
                         variant="ghost"
                         onClick={() => {
                             copyToClipboard(workspaceUrl);
-                            toast({ description: 'Copied' });
+                            toast({ description: t('STAFF.COMMON.COPIED') });
                         }}
                     >
                         <Copy className="mr-2 h-4 w-4" />
@@ -62,7 +62,7 @@ export default function ManageURLs() {
                     </Button>
                 </div>
                 {/* The consequence, stated up front — not discovered after. */}
-                <p className="p4-new text-black-600 mt-2">Changing the handle changes this link; the old link stops working.</p>
+                <p className="p4-new text-black-600 mt-2">{t('STAFF.WORKSPACE.HANDLE_CHANGE_NOTE')}</p>
             </section>
             <section>
                 <CustomDomainCard />

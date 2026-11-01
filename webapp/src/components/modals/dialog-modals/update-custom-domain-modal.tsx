@@ -60,7 +60,7 @@ export default function UpdateCustomDomainModal() {
     };
 
     return (
-        <HeaderModalWrapper headerTitle="Add Custom Domain">
+        <HeaderModalWrapper headerTitle={t('STAFF.WORKSPACE.ADD_CUSTOM_DOMAIN_HEADER')}>
             <form onSubmit={handleSubmit}>
                 <div className="text-start max-w-full mb-4 body4 text-black-700!">{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.NOTE')}</div>
                 <h1 className={'body3 text-black-800! mb-1'}>{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.TEXT_FIELD_TITLE')}</h1>

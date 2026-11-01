@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
+
 import WorkspaceScimSection from '@app/components/workspace-sso/workspace-scim-section';
 import WorkspaceSsoSection from '@app/components/workspace-sso/workspace-sso-section';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
@@ -12,12 +14,13 @@ import { WorkspacePermission } from '@app/models/enums/workspace-permission';
  * The page sends instances without SSO to the Domains tab before this renders.
  */
 export default function WorkspaceSsoPage() {
+    const { t } = useTranslation();
     const { can } = useWorkspacePermissions();
 
     if (!can(WorkspacePermission.SECURITY_MANAGE)) {
         return (
             <div className="pb-10">
-                <p className="text-sm text-black-600">Only workspace admins can manage single sign-on.</p>
+                <p className="text-sm text-black-600">{t('SSO_UI.ONLY_ADMINS')}</p>
             </div>
         );
     }
@@ -25,8 +28,7 @@ export default function WorkspaceSsoPage() {
     return (
         <div className="flex w-full max-w-[860px] flex-col gap-8 pb-10">
             <p className="max-w-[62ch] text-sm leading-relaxed text-black-600">
-                Let your members sign in with your organisation&apos;s identity provider. People who sign in this way for the first time join this workspace automatically, as long as there is a free seat. Your identity provider decides who that is, so only
-                connect one you control.
+                {t('SSO_UI.PAGE_INTRO')}
             </p>
             <WorkspaceSsoSection />
             <WorkspaceScimSection />

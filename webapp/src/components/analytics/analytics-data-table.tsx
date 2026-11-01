@@ -1,4 +1,8 @@
 import React from 'react';
+
+import { useTranslation } from 'react-i18next';
+
+import { useIntlLocale } from '@app/lib/hooks/use-intl-locale';
 import { FaGlobe } from 'react-icons/fa';
 import Flag from 'react-world-flags';
 import { getBrowserIcon, getDeviceIcon, getOSIcon } from './icons';
@@ -7,18 +11,21 @@ interface DataTableProps {
     title: string;
     data: { x: string; y: number }[];
     showCountryFlag?: boolean;
+    /** Which icons to draw; the title is only what the person reads. */
+    kind?: 'browsers' | 'devices' | 'os';
 }
 
-const AnalyticsDataTable: React.FC<DataTableProps> = ({ title, data, showCountryFlag = false }) => {
-    const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+const AnalyticsDataTable: React.FC<DataTableProps> = ({ title, data, showCountryFlag = false, kind }) => {
+    const { t } = useTranslation();
+    const regionNames = new Intl.DisplayNames([useIntlLocale()], { type: 'region' });
 
     const getIcon = (item: string): React.ElementType => {
-        switch (title) {
-            case 'Browsers':
+        switch (kind) {
+            case 'browsers':
                 return getBrowserIcon(item);
-            case 'Devices':
+            case 'devices':
                 return getDeviceIcon(item);
-            case 'Operating System':
+            case 'os':
                 return getOSIcon(item);
             default:
                 return FaGlobe; // Default icon
@@ -39,10 +46,10 @@ const AnalyticsDataTable: React.FC<DataTableProps> = ({ title, data, showCountry
                                 {showCountryFlag
                                     ? (() => {
                                         try {
-                                            return regionNames.of(item.x) || 'Unknown';
+                                            return regionNames.of(item.x) || t('ANALYTICS.UNKNOWN');
                                         } catch (error) {
                                             if (error instanceof RangeError) {
-                                                return 'Unknown';
+                                                return t('ANALYTICS.UNKNOWN');
                                             }
                                             throw error;
                                         }

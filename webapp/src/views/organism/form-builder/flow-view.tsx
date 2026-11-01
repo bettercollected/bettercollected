@@ -651,7 +651,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         carry the same reassurance here. */}
                     {autosaveStatus.state !== 'idle' && (
                         <span aria-live="polite" className={'mr-1 whitespace-nowrap text-xs font-medium ' + (isAutosaveProblem(autosaveStatus.state) ? 'text-brand-olive' : 'text-black-600')}>
-                            {autosaveStatusLabel(autosaveStatus.state)}
+                            {autosaveStatusLabel(autosaveStatus.state, tBuilder)}
                         </span>
                     )}
                     {/* Two instruments, labelled apart: node/edge counts replay the
@@ -812,7 +812,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                 <div className="flex shrink-0 items-center gap-3">
                                     {/* Live save state beats the static "changes save automatically" claim. */}
                                     <span aria-live="polite" className={'whitespace-nowrap text-xs ' + (isAutosaveProblem(autosaveStatus.state) ? 'font-medium text-brand-olive' : 'text-black-600')}>
-                                        {autosaveStatusLabel(autosaveStatus.state) ?? 'Changes save automatically'}
+                                        {autosaveStatusLabel(autosaveStatus.state, tBuilder) ?? tBuilder('AUTOSAVE.AUTOMATIC')}
                                     </span>
                                     <button onClick={() => setOverlayId(null)} className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
                                         <X className="h-3.5 w-3.5" /> Back to flow

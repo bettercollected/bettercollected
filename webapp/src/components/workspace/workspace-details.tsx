@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import BannerImageComponent from '@app/components/dashboard/banner-image';
 import { EyeIcon } from '@app/components/icons/eye-icon';
 import Globe from '@app/components/icons/flags/globe';
@@ -14,6 +16,7 @@ import { Copy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function WorkspaceDetails({ showUrlRow = true }: { showUrlRow?: boolean }) {
+    const { t } = useTranslation();
     const workspace: WorkspaceState = useAppSelector(selectWorkspace);
     const router = useRouter();
     const { toast } = useToast();
@@ -30,7 +33,7 @@ export default function WorkspaceDetails({ showUrlRow = true }: { showUrlRow?: b
                     className="mr-4 flex cursor-pointer items-center gap-4"
                     onClick={() => {
                         copyToClipboard(getWorkspaceShareURL(workspace));
-                        toast({ description: 'Copied' });
+                        toast({ description: t('STAFF.COMMON.COPIED') });
                     }}
                 >
                     <span className="text-black-700 font-mono text-[13px]">{getWorkspaceShareURL(workspace)}</span>
@@ -49,13 +52,13 @@ export default function WorkspaceDetails({ showUrlRow = true }: { showUrlRow?: b
                             }}
                         >
                             <Globe width={20} height={20} strokeWidth={1} className="mr-2" />
-                            Use Custom Domain
+                            {t('STAFF.WORKSPACE.USE_CUSTOM_DOMAIN')}
                         </Button>
                     )}
                     <ActiveLink href={getWorkspaceShareURL(workspace)} target="_blank" referrerPolicy="no-referrer">
                         <Button variant="ghost">
                             <EyeIcon width={20} height={20} className="mr-2" />
-                            Preview as audience
+                            {t('STAFF.WORKSPACE.PREVIEW_AS_AUDIENCE')}
                         </Button>
                     </ActiveLink>
                 </div>

@@ -39,19 +39,19 @@ export default function FormSettings() {
     return (
         <div className="flex flex-col gap-12 pb-6 md:max-w-[760px]">
             <section className="flex flex-col gap-2">
-                <SectionHeader>General</SectionHeader>
+                <SectionHeader>{t('STAFF.FORM_SETTINGS.GENERAL')}</SectionHeader>
                 <FormSettingsTab view="DEFAULT" />
             </section>
 
             <section className="flex flex-col gap-2">
-                <SectionHeader>Visibility</SectionHeader>
+                <SectionHeader>{t('STAFF.FORM_SETTINGS.VISIBILITY')}</SectionHeader>
                 <p className="text-black-700 text-sm">{t(formPage.visibilityDescription)}</p>
                 <FormSettingsTab view="VISIBILITY" />
             </section>
 
             {showIntegrations && (
                 <section className="flex flex-col gap-2">
-                    <SectionHeader>Integrations</SectionHeader>
+                    <SectionHeader>{t('STAFF.FORM_SETTINGS.INTEGRATIONS')}</SectionHeader>
                     <FormIntegrations />
                 </section>
             )}
@@ -66,12 +66,12 @@ export default function FormSettings() {
 
             {can(WorkspacePermission.FORM_DELETE) && (
             <section className="flex flex-col gap-2">
-                <SectionHeader>Danger zone</SectionHeader>
+                <SectionHeader>{t('STAFF.FORM_SETTINGS.DANGER')}</SectionHeader>
                 <div className="flex items-start justify-between gap-6 rounded-lg border border-[#E5B9B9] p-5">
                     <div className="flex max-w-[520px] flex-col gap-1">
-                        <div className="text-black-900 text-[15px] font-semibold">Delete this form</div>
+                        <div className="text-black-900 text-[15px] font-semibold">{t('STAFF.FORM_SETTINGS.DELETE_TITLE')}</div>
                         <div className="text-black-700 text-sm leading-relaxed">
-                            Permanently deletes the form{typeof form?.responses === 'number' && form.responses > 0 ? ` and all ${form.responses} responses` : ' and any responses'}. This cannot be undone.
+                            {typeof form?.responses === 'number' && form.responses > 0 ? t('STAFF.FORM_SETTINGS.DELETE_DESC', { count: form.responses }) : t('STAFF.FORM_SETTINGS.DELETE_DESC_NONE')}
                         </div>
                     </div>
                     <Button
@@ -81,7 +81,7 @@ export default function FormSettings() {
                             openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
                         }}
                     >
-                        Delete form
+                        {t('STAFF.FORM_SETTINGS.DELETE_BUTTON')}
                     </Button>
                 </div>
             </section>

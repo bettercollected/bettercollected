@@ -126,7 +126,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                 const questionCount = Array.isArray(form?.fields) ? getFormFields(form).length : 0;
                                 return questionCount > 0 ? (
                                     <span>
-                                        {questionCount} question{questionCount === 1 ? '' : 's'}
+                                        {t('STAFF.FORM_CARD.QUESTIONS', { count: questionCount })}
                                     </span>
                                 ) : null;
                             })()}
@@ -218,8 +218,8 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                             event.stopPropagation();
                             event.preventDefault();
                             openModal('DELETE_CONFIRMATION', {
-                                positiveText: 'Remove',
-                                headerTitle: 'Remove Form',
+                                positiveText: t('BUTTON.REMOVE'),
+                                headerTitle: t('STAFF.MODALS.REMOVE_FORM_HEADER'),
                                 title: t(localesCommon.remove) + ' ' + form.title,
                                 handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form })
                             });
