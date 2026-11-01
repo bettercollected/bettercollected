@@ -13,7 +13,9 @@
  * - the members of a container (tabs in strip order, then each tab's members)
  *   appear in the page in that order with no respondent-facing question
  *   between them, so the display order is the page order;
- * - container and tab ids are unique across the form.
+ * - container and tab ids are unique across the form and are never the id of a
+ *   question, group child or page (state and DOM ids are keyed by them);
+ * - a container's rule has at most `CONTAINER_CONDITIONS_MAX` conditions.
  *
  * The functions here never change what they are given: they return the new
  * list of containers (or the same list when nothing changed).
@@ -35,6 +37,8 @@ export const LAYOUT_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 export const CONTAINERS_MAX = 20;
 export const CONTAINER_MEMBERS_MAX = 100;
 export const TABS_MAX = 8;
+/** Conditions in one container's visibility rule (backend `CONTAINER_CONDITIONS_MAX`). */
+export const CONTAINER_CONDITIONS_MAX = 20;
 export const CONTAINER_TITLE_MAX = 120;
 /** One question id in a container's list. */
 export const LAYOUT_MEMBER_ID_MAX = 200;
@@ -106,6 +110,29 @@ export function usedIds(pages: Array<Page | undefined | null>): Set<string> {
     }
     return ids;
 }
+
+/** The ids on one page: the page itself, its questions and a repeating group's children. */
+export function pageItemIds(page: Page | undefined | null): Set<string> {
+    const ids = new Set<string>(page ? [page.id] : []);
+    for (const field of pageFieldsOf(page)) {
+        ids.add(field.id);
+        for (const child of (field.properties?.fields as StandardFormFieldDto[] | undefined) ?? []) ids.add(child.id);
+    }
+    return ids;
+}
+
+/** Every page, question and group-child id of a form's pages: what a container or tab id must not equal. */
+export function formItemIds(pages: Array<Page | undefined | null>): Set<string> {
+    const ids = new Set<string>();
+    for (const page of pages) {
+        if (page?.type !== 'slide') continue;
+        for (const id of pageItemIds(page)) ids.add(id);
+    }
+    return ids;
+}
+
+/** Ids a new container or tab must avoid: the containers' and tabs' own, and every page, question and group child. */
+export const reservedIds = (pages: Array<Page | undefined | null>): Set<string> => new Set([...usedIds(pages), ...formItemIds(pages)]);
 
 /** The smallest unused `<prefix><n>` (n from 1); adds it to `taken`. Deterministic, so the server's and this engine agree. */
 export function freshId(prefix: string, taken: Set<string>): string {
@@ -253,10 +280,13 @@ export interface LayoutProblem {
  * a group's children or in two containers; members not next to each other or
  * out of page order; ids used twice (`taken` holds the ids of the pages
  * before, and is added to); rules that read a question that is not before the
- * container's first member, or one of its own. `earlier`: the ids of every
- * question on the earlier pages.
+ * container's first member, or one of its own, or more than
+ * `CONTAINER_CONDITIONS_MAX` conditions; container and tab ids that are also the
+ * id of a question or page. `earlier`: the ids of every question on the
+ * earlier pages. `itemIds`: every page, question and group-child id of the form
+ * (this page's own when left out).
  */
-export function containerProblems(page: Page, taken: Set<string> = new Set(), earlier: Set<string> = new Set()): Array<[string | null, string]> {
+export function containerProblems(page: Page, taken: Set<string> = new Set(), earlier: Set<string> = new Set(), itemIds?: Set<string>): Array<[string | null, string]> {
     const problems: Array<[string | null, string]> = [];
     const containers = containersOf(page);
     if (!containers.length) return problems;
@@ -264,13 +294,16 @@ export function containerProblems(page: Page, taken: Set<string> = new Set(), ea
     const children = groupChildIds(page);
     const order = new Map(respondentIds(page).map((id, i) => [id, i]));
     const claimed = new Map<string, string>();
+    const items = itemIds ?? pageItemIds(page);
     for (const container of containers) {
         const cid = container.id;
         const names = [cid, ...(container.type === 'tabs' ? (container.tabs ?? []).map((tab) => tab.id) : [])];
         for (const name of names) {
             if (taken.has(name)) problems.push([cid, `The id '${name}' is used more than once.`]);
+            else if (items.has(name)) problems.push([cid, `The id '${name}' is also the id of a question or page.`]);
             taken.add(name);
         }
+        if ((container.logic?.conditions?.length ?? 0) > CONTAINER_CONDITIONS_MAX) problems.push([cid, `A container's rule can have at most ${CONTAINER_CONDITIONS_MAX} conditions.`]);
         const members = membersOf(container);
         if (!members.length) {
             problems.push([cid, 'A container needs at least one question.']);
@@ -316,15 +349,39 @@ export function layoutProblems(pages: Page[]): LayoutProblem[] {
     const found: LayoutProblem[] = [];
     const taken = new Set<string>();
     const earlier = new Set<string>();
+    const items = formItemIds(pages);
     for (const page of pages) {
         if (page.type !== 'slide') continue;
-        for (const [containerId, message] of containerProblems(page, taken, earlier)) found.push({ pageId: page.id, containerId, message });
+        for (const [containerId, message] of containerProblems(page, taken, earlier, items)) found.push({ pageId: page.id, containerId, message });
         for (const field of pageFieldsOf(page)) {
             earlier.add(field.id);
             for (const child of (field.properties?.fields as StandardFormFieldDto[] | undefined) ?? []) earlier.add(child.id);
         }
     }
     return found;
+}
+
+/**
+ * The container problems a save of the form would still refuse after it
+ * repaired the dangling ones (a question moved off a container's page, an
+ * emptied container): what the server's `ensure_valid_layout` does. In page
+ * and container order.
+ */
+export function layoutProblemsOnceRepaired(pages: Page[]): LayoutProblem[] {
+    if (!pages.some((page) => containersOf(page).length)) return [];
+    return layoutProblems(
+        pages.map((page) => {
+            if (page.type !== 'slide' || !containersOf(page).length) return page;
+            return { ...page, properties: { ...page.properties, containers: repairContainers(page).containers } };
+        })
+    );
+}
+
+/** The first problem `after` has that `before` did not, or undefined (a move that would leave a container no save accepts). */
+export function newLayoutProblem(before: Page[], after: Page[]): LayoutProblem | undefined {
+    const key = (p: LayoutProblem) => `${p.pageId}\u0000${p.containerId}\u0000${p.message}`;
+    const known = new Set(layoutProblemsOnceRepaired(before).map(key));
+    return layoutProblemsOnceRepaired(after).find((p) => !known.has(key(p)));
 }
 
 /** `{member id: [logic of each container it is in]}` for the logic that can hide (usable logic only). */

@@ -796,6 +796,7 @@ LAYOUT_CONTAINER_TYPES = ("panel", "fieldset", "tabs")
 CONTAINERS_MAX = 20  # containers on one page
 CONTAINER_MEMBERS_MAX = 100  # questions in one container
 TABS_MAX = 8  # tabs in one strip
+CONTAINER_CONDITIONS_MAX = 20  # conditions in one container's visibility rule
 CONTAINER_TITLE_MAX = 120
 LAYOUT_MEMBER_ID_MAX = 200  # one question id in a container's list
 # The one pair of format characters a title keeps: they join emoji sequences
@@ -862,6 +863,13 @@ class LayoutContainer(BaseModel):
 
     @model_validator(mode="after")
     def _shape(self):
+        if (
+            self.logic is not None
+            and len(self.logic.conditions or []) > CONTAINER_CONDITIONS_MAX
+        ):
+            raise ValueError(
+                f"A container's rule can have at most {CONTAINER_CONDITIONS_MAX} conditions."
+            )
         if self.type == "tabs":
             if self.fields is not None or self.title is not None or self.collapsed is not None:
                 raise ValueError(
