@@ -309,8 +309,34 @@ def _includes(container: Any, item: Any) -> bool:
     return False
 
 
+def _snapshot_text(answer: Dict[str, Any], separator: str) -> str:
+    """The text of a choice answer to a question whose options come from a
+    source: the label snapshot the server stored next to each chosen id (the
+    options are not in the form, and may have changed since)."""
+    single = _dict(answer.get("choice"))
+    multiple = _dict(answer.get("choices"))
+    texts: List[Any] = []
+    if multiple:
+        labels = _dict(multiple.get("labels"))
+        for option_id in _list(multiple.get("values")):
+            label = labels.get(option_id)
+            if isinstance(label, str) and label:
+                texts.append(label)
+        other = multiple.get("other")
+    else:
+        label = single.get("label")
+        if isinstance(label, str) and label:
+            texts.append(label)
+        other = single.get("other")
+    if _truthy(other):
+        texts.append(other)
+    return _join(texts, separator)
+
+
 def _choices_value(field_: Dict[str, Any], answer: Dict[str, Any], separator: str) -> str:
     properties = _dict(field_.get("properties"))
+    if _get(properties, "option_source", "optionSource") is not None:
+        return _snapshot_text(answer, separator)
     choices = properties.get("choices")
     if choices is None:
         return ""

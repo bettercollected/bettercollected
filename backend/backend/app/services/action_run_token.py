@@ -17,10 +17,11 @@ token, and only while that run is in flight:
   nothing.
 
 This narrows what a holder of the job key and the executor's queue access can
-read; it does not stop code running inside the executor from marking a queued
-row ``doing`` (its role may update the ``actions`` rows). Isolating the executor
-from the queue's other rows and from the process's own secrets is the executor
-track's work; keep form actions off until it is done. The key is derived
+read; it does not stop code running inside the executor process from marking a
+queued row ``doing`` (its role may update the ``actions`` rows). Custom action
+code no longer runs there: it runs in a confined child with no database, no
+network and no secret (docs/executor-isolation.md), so what holds the role is
+the executor's own fixed code. The key is derived
 from the respondent identity key with a label of its own, so rotating that key
 (not implemented, docs/respondent-identity.md) also ends the tokens of jobs still
 queued: those runs fail visibly.

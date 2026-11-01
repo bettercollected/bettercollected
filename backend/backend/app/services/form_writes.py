@@ -9,7 +9,7 @@ sanitising added here cover every writer.
 from __future__ import annotations
 
 import datetime as dt
-from typing import Callable, Optional, Sequence
+from typing import Awaitable, Callable, Optional, Sequence
 
 from common.models.standard_form import StandardForm, StandardFormSettings
 
@@ -20,6 +20,10 @@ from backend.app.services.new_question_types import ensure_question_types_allowe
 from backend.app.services.option_logic import (
     ensure_choice_logic_allowed,
     ensure_valid_option_logic,
+)
+from backend.app.services.option_sources.checks import (
+    ensure_option_sources_allowed,
+    ensure_valid_structure as ensure_valid_option_sources,
 )
 
 # the parts of a form its content writers may replace
@@ -65,6 +69,7 @@ async def persist_form(
     parts: Sequence[str] = FORM_PARTS,
     guard: Optional[Callable[[FormDocument], bool]] = None,
     expected_updated_at: Optional[dt.datetime] = None,
+    lists_check: Optional[Callable[[object, object], Awaitable[None]]] = None,
 ) -> bool:
     """Copy ``parts`` of ``new_form`` onto the stored form and save it.
 
@@ -72,6 +77,9 @@ async def persist_form(
     only if ``guard(current)`` holds (otherwise nothing is written and the
     result is False): a writer that worked on an older copy must not
     overwrite changes made since.
+
+    ``lists_check(new_form, stored)``: awaited before the write for the new or
+    changed option-list sources (they must be lists of the caller's workspace).
 
     With ``expected_updated_at``, the save is the builder's conditional
     write (``update_form_if_unchanged``): refused with 409 ``form_changed``
@@ -97,6 +105,16 @@ async def persist_form(
         # a structural change left broken and refuses the size caps.
         ensure_valid_option_logic(new_form, drop=True)
         ensure_choice_logic_allowed(new_form, form_document)
+        # Option sources (services/option_sources): the shape, the switch, and
+        # no new or changed source of another form's answers here, where the
+        # saver's access to that form cannot be asked (the builder's save and
+        # the spec API ask it).
+        ensure_valid_option_sources(new_form)
+        ensure_option_sources_allowed(new_form, form_document, answers_ok=False)
+        # a list a source names must be one of the caller's workspace (the
+        # caller knows the workspace; without it nothing can be asked here)
+        if lists_check is not None:
+            await lists_check(new_form, form_document)
     if expected_updated_at is not None:
         if guard is not None:
             raise ValueError("guard and expected_updated_at do not combine")
