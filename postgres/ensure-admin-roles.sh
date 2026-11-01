@@ -46,6 +46,12 @@
 #                 bc_count_google, column-level SELECT on version_num and
 #                 resolved_at only, EXECUTE for bc_admin only). The admin role
 #                 itself still has no access to those schemas.
+#   admin.sealed_jobs_pending(), admin.sessions_on_old_key(ts), admin.drafts_on_old_key(ts)
+#                 the auth key rotation tasks' counts (docs/auth-key-rotation.md) of
+#                 what a drop of the previous key would cost: queued jobs with a sealed
+#                 argument, live sessions and saved-draft links made before the
+#                 promotion. A number each, NULL when the tables cannot be seen; owned
+#                 by bc_count_app; EXECUTE for bc_tasks only.
 #
 #   bc_tasks_data_app, bc_tasks_data_google
 #                 the task runner's DATA roles, ONE PER OWNING SCHEMA (the
@@ -318,6 +324,17 @@ BEGIN
         ['form_responses', 'id,form_id,response_id,workspace_id,doc', 'doc,_bc_checksum'],
         ['responses_deletion_requests', 'id,form_id,response_id,workspace_id,doc', 'doc,_bc_checksum'],
         ['workspace_forms', 'id,form_id,workspace_id,doc', ''],
+        -- the values sealed with the encryption key that authkeys.reencrypt moves to
+        -- the new one (docs/auth-key-rotation.md): the documents that hold a sealed
+        -- secret, read and rewritten whole (their checksum follows). Nothing else of
+        -- these tables is granted.
+        ['forms', 'id,doc', 'doc,_bc_checksum'],
+        ['form_versions', 'id,doc', 'doc,_bc_checksum'],
+        ['actions', 'id,doc', 'doc,_bc_checksum'],
+        ['workspace_actions', 'id,doc', 'doc,_bc_checksum'],
+        ['scim_directories', 'id,doc', 'doc,_bc_checksum'],
+        ['registration_services', 'id,doc', 'doc,_bc_checksum'],
+        ['form_webhooks', 'id,doc', 'doc,_bc_checksum'],
         -- whether the forms' links were imported from 4.0 (a finished backfill
         -- of workspace_forms that skipped nothing, and up to which Mongo _id),
         -- before a task writes from them
@@ -702,6 +719,68 @@ BEGIN
 END
 $fn$;
 
+-- The auth key rotation tasks (docs/auth-key-rotation.md) count what a drop of the previous
+-- key would cost before they drop it: queued jobs whose argument is sealed with the
+-- encryption key, live sessions whose refresh token was issued before the promotion
+-- (so it is signed with the previous signing key) and unexpired saved drafts whose link
+-- or edit key was made before it (hashed with it). A number each, NULL when the
+-- tables cannot be seen (the task then refuses rather than read it as zero); never a row,
+-- an id, an argument or a date. Executable by the task runner only.
+CREATE OR REPLACE FUNCTION admin.sealed_jobs_pending() RETURNS integer
+LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET search_path = pg_catalog, pg_temp AS $fn$
+BEGIN
+    IF to_regnamespace('jobs') IS NULL OR NOT has_schema_privilege('jobs', 'USAGE')
+       OR to_regclass('jobs.procrastinate_jobs') IS NULL THEN
+        RETURN NULL;
+    END IF;
+    RETURN (
+        SELECT count(*)::integer
+          FROM jobs.procrastinate_jobs j
+         WHERE j.task_name IN ('purge_provider_credentials', 'revoke_google_grant',
+                               'delete_user')
+           AND j.status IN ('todo', 'doing')
+    );
+END
+$fn$;
+
+CREATE OR REPLACE FUNCTION admin.sessions_on_old_key(p_before timestamptz) RETURNS integer
+LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET search_path = pg_catalog, pg_temp AS $fn$
+BEGIN
+    IF p_before IS NULL OR to_regnamespace('app') IS NULL OR NOT has_schema_privilege('app', 'USAGE')
+       OR to_regclass('app.sessions') IS NULL THEN
+        RETURN NULL;
+    END IF;
+    RETURN (
+        SELECT count(*)::integer
+          FROM app.sessions s
+         WHERE s.revoked_at IS NULL
+           AND s.expires_at > pg_catalog.now()
+           AND coalesce((s.doc -> 'rotated_at' ->> '$date')::timestamptz,
+                        (s.doc -> 'created_at' ->> '$date')::timestamptz) < p_before
+    );
+END
+$fn$;
+
+CREATE OR REPLACE FUNCTION admin.drafts_on_old_key(p_before timestamptz) RETURNS integer
+LANGUAGE plpgsql SECURITY DEFINER STABLE
+SET search_path = pg_catalog, pg_temp AS $fn$
+BEGIN
+    IF p_before IS NULL OR to_regnamespace('app') IS NULL OR NOT has_schema_privilege('app', 'USAGE')
+       OR to_regclass('app.form_drafts') IS NULL THEN
+        RETURN NULL;
+    END IF;
+    RETURN (
+        SELECT count(*)::integer
+          FROM app.form_drafts d
+         WHERE d.expires_at > pg_catalog.now()
+           AND (d.doc ->> 'token_hash' IS NOT NULL OR d.doc ->> 'edit_key_hash' IS NOT NULL)
+           AND (d.doc -> 'created_at' ->> '$date')::timestamptz < p_before
+    );
+END
+$fn$;
+
 -- The Health page's migration and outbox state, the same way: per owning schema,
 -- one function returning the schema's Alembic revision(s) and one returning the
 -- mirror outbox's unresolved and total row counts (counts only, never a row).
@@ -810,6 +889,14 @@ BEGIN
     IF to_regclass('app.form_responses') IS NOT NULL THEN
         GRANT SELECT (doc, created_at, data_owner_identifier) ON app.form_responses TO bc_count_app;
     END IF;
+    -- admin.sessions_on_old_key() and admin.drafts_on_old_key() (auth key rotation): the
+    -- dates and flags they count on; the functions return a number, never a row
+    IF to_regclass('app.sessions') IS NOT NULL THEN
+        GRANT SELECT (id, revoked_at, expires_at, doc) ON app.sessions TO bc_count_app;
+    END IF;
+    IF to_regclass('app.form_drafts') IS NOT NULL THEN
+        GRANT SELECT (id, expires_at, doc) ON app.form_drafts TO bc_count_app;
+    END IF;
     IF to_regclass('auth.users') IS NOT NULL THEN
         GRANT SELECT (id, doc, plan) ON auth.users TO bc_count_auth;
     END IF;
@@ -852,6 +939,13 @@ GRANT EXECUTE ON FUNCTION admin.credential_purges_overdue() TO bc_admin;
 ALTER FUNCTION admin.queue_counts_app() OWNER TO bc_count_app;
 REVOKE ALL ON FUNCTION admin.queue_counts_app() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION admin.queue_counts_app() TO bc_admin;
+ALTER FUNCTION admin.sealed_jobs_pending() OWNER TO bc_count_app;
+ALTER FUNCTION admin.sessions_on_old_key(timestamptz) OWNER TO bc_count_app;
+ALTER FUNCTION admin.drafts_on_old_key(timestamptz) OWNER TO bc_count_app;
+REVOKE ALL ON FUNCTION admin.sealed_jobs_pending(), admin.sessions_on_old_key(timestamptz),
+    admin.drafts_on_old_key(timestamptz) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION admin.sealed_jobs_pending(), admin.sessions_on_old_key(timestamptz),
+    admin.drafts_on_old_key(timestamptz) TO bc_tasks;
 ALTER FUNCTION admin.platform_counts_app() OWNER TO bc_count_app;
 ALTER FUNCTION admin.platform_counts_auth() OWNER TO bc_count_auth;
 REVOKE ALL ON FUNCTION admin.platform_counts_app() FROM PUBLIC;

@@ -572,6 +572,7 @@ commands print counts, setting names and short reason codes, never a value.
 | `settings-prune --env-file PATH ... [--apply] [--swap] [--keep NAME]` | In 4.0 an environment value wins over the store, so a stale value left in `.env` silently overrides a portal change. Prune removes the settings the store already holds with the same value (comments and everything else stay). Without `--apply` it only reports. With `--apply` it writes `PATH.pruned` and a private backup `PATH.pre-v4.<time>` (both mode 600, never over an existing file); `--swap` then replaces the original with the pruned copy. A key whose value differs is never removed (exit 1: fix it first). Backups hold the old secrets: delete them when the stack runs well. Use `--keep` for a name something outside the store still reads. |
 | `settings-env-export --keys A,B --out FILE` | Break-glass: writes the named settings, with values, to a new file (mode 600, refuses to overwrite). Audited by names. Delete the file when the incident is over. |
 | `settings-set KEY (--stdin \| --value V) [--confirm KEY] --yes` | Sets a setting of tier T1 to T3 from the host. A secret is read from standard input, never from an argument. A T3 setting needs `--confirm KEY` (the typed confirmation). Key material (T4) is managed by tasks and environment-only settings (T5) are refused. |
+| `settings-grant-runner [KEY ...] [--apply]` | Lists, and with `--apply` fixes, the auth key rings (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`) whose stored row does not name the task runner among its readers (a row written before the runner became a reader): the same value is re-sealed as its next version with the registry's readers and audited as `settings.grant_readers`. Prints `ok`, `would_grant` or `granted` per key, never a value. Run it after every service runs a release that knows the runner as a reader of these keys. See [auth-key-rotation.md](auth-key-rotation.md). |
 | `settings-restore KEY --version N [--confirm KEY] --yes`, `settings-history KEY` | Restores a kept version as a new version; lists the versions (no values). |
 | `settings-clear KEY [--confirm KEY] --yes` | Clears a setting (tiers T1-T3; T3 needs the key typed again): the services read it as unset, its versions are kept (`settings-restore` brings one back). `deploy.sh` clears `MONGO_URI` this way after the import from 4.0. |
 | `settings-mail-apply --env-file PATH --test-to ADDRESS` | Saves the admin sign-in mail settings (`ADMIN_MAIL_*`, section `admin_mail`) from an env file. A test mail with a random code goes to ADDRESS with the candidate settings (the stored ones overlaid with the file); the operator types the code from the mail; only then are the keys saved. See below. |
@@ -1189,6 +1190,23 @@ gets nothing from the other.
 rotate `MASTER_ENCRYPTION_KEYSET`; the order and every guard are in
 [response-keyset-rotation.md](response-keyset-rotation.md). They hold the locks `keyset` and
 `responses.encryption`, so only one of them runs at a time.
+
+### Auth key tasks
+
+`authkeys.add_key`, `authkeys.promote`, `authkeys.reencrypt`, `authkeys.verify` and `authkeys.drop_old`
+rotate `AUTH_JWT_SECRET` (`which: jwt`) and `AUTH_AES_HEX_KEY` (`which: aes`), each a **key ring**
+`<current>[,<previous>]` in the settings store; the order, the parameters, every refusal and what
+happens to signed-in people are in [auth-key-rotation.md](auth-key-rotation.md). They hold the locks
+`authkeys` and `keyset` (so never beside a response keyset rotation). The data they re-encrypt is the
+backend's own (`DATABASE_URL`, the same role as the responses tasks: column grants on `forms`,
+`form_versions`, `actions`, `workspace_actions`, `scim_directories`, `registration_services` and
+`form_webhooks`, their `doc` and checksum only); the counts a drop of the previous key is gated on
+(`admin.sealed_jobs_pending()`, `admin.sessions_on_old_key(ts)`, `admin.drafts_on_old_key(ts)`) are
+definer functions only the runner may execute. The ring is written through the same
+`settings.task_write_keyset` function as the keyset (migration 0020 lets it write the two rings for
+an `authkeys.*` run and the keyset for a `keyset.*` run, each bound to its own family). Services need
+no new heartbeat: a service that has restarted onto the settings revision that wrote the ring
+(`revision_applied`, `restart_pending` false) holds the ring.
 
 ### Google credentials without a user id
 

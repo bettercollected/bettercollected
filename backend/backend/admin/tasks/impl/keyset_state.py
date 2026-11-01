@@ -68,23 +68,35 @@ class StoredKeyset:
     version: int
     revision: int
     manifest_entries: Mapping[str, Any]
+    # when this version was written (the database clock): for a key ring, the
+    # moment of the promote while the old key is still in the ring
+    updated_at: Any = None
 
     def __repr__(self) -> str:
         return f"StoredKeyset(version={self.version}, revision={self.revision})"
 
 
-async def read_stored(conn, keys: SectionKeys) -> Optional[StoredKeyset]:
-    """The keyset from the settings store, verified: row signature, signed
-    manifest (including that it names this exact row), then opened. ``None``
-    when the runner's view has no such row. Refuses (``keyset_unverified``)
-    anything that does not verify."""
+async def read_stored(
+    conn,
+    keys: SectionKeys,
+    name: str = KEY,
+    *,
+    hidden_code: str = "keyset_not_readable_by_runner",
+) -> Optional[StoredKeyset]:
+    """The setting ``name`` (the keyset unless told otherwise) from the settings
+    store, verified: row signature, signed manifest (including that it names
+    this exact row), then opened. ``None`` when the runner's view has no such
+    row. Refuses (``keyset_unverified``) anything that does not verify. ``name``
+    is any T4 key of section ``auth_keys`` the runner rotates (the auth key
+    rings, ``authkeys_state``); ``hidden_code`` is the refusal for a row the
+    runner's view hides."""
     row = (
         await conn.execute(
             text(
                 "SELECT key, section, readers, is_secret, reload_class, blob, version, "
                 "updated_at, sig FROM settings.v_tasks WHERE key = :k"
             ),
-            {"k": KEY},
+            {"k": name},
         )
     ).first()
     if row is None:
@@ -95,8 +107,8 @@ async def read_stored(conn, keys: SectionKeys) -> Optional[StoredKeyset]:
         listed = (
             await conn.execute(text("SELECT entries::text FROM settings.v_tasks_manifest"))
         ).scalar()
-        if listed is not None and KEY in json.loads(listed):
-            raise Refusal("keyset_not_readable_by_runner")
+        if listed is not None and name in json.loads(listed):
+            raise Refusal(hidden_code)
         return None
     m = row._mapping
     manifest_row = (
@@ -123,7 +135,7 @@ async def read_stored(conn, keys: SectionKeys) -> Optional[StoredKeyset]:
         manifest = Manifest(
             int(manifest_row._mapping["revision"]), entries, manifest_row._mapping["sig"]
         )
-        listed = manifest.entries.get(KEY)
+        listed = manifest.entries.get(name)
         ok = (
             keys.verify_row(setting)
             and keys.verify_manifest(manifest)
@@ -135,12 +147,12 @@ async def read_stored(conn, keys: SectionKeys) -> Optional[StoredKeyset]:
         )
         if not ok:
             raise Refusal("keyset_unverified")
-        value = keys.open(SECTION, KEY, setting.version, setting.blob)
+        value = keys.open(SECTION, name, setting.version, setting.blob)
     except Refusal:
         raise
     except Exception:  # noqa: BLE001 - never carry a cause that could quote a value
         raise Refusal("keyset_unverified") from None
-    return StoredKeyset(value, setting.version, manifest.revision, entries)
+    return StoredKeyset(value, setting.version, manifest.revision, entries, setting.updated_at)
 
 
 async def write_stored(
@@ -154,6 +166,7 @@ async def write_stored(
     task: str,
     action: str,
     extra: Optional[Mapping[str, Any]] = None,
+    name: str = KEY,
 ) -> tuple[int, int]:
     """Write ``new_value`` as the next version of the keyset, in the caller's
     transaction: the audit row is built first (hashed with the audit key) and
@@ -166,16 +179,16 @@ async def write_stored(
     from backend.admin.services import audit
     from backend.admin.services.settings_store import store_registry, value_digest
 
-    spec = store_registry().get(KEY)
+    spec = store_registry().get(name)
     readers = tuple(sorted(spec.readers))
     version, revision = current.version + 1, current.revision + 1
     now = (await conn.execute(text("SELECT clock_timestamp()"))).scalar_one()
-    blob = keys.seal(SECTION, KEY, version, new_value)
+    blob = keys.seal(SECTION, name, version, new_value)
     signed = keys.sign_row(
-        SettingRow(KEY, SECTION, readers, True, spec.reload_class.value, version, now, None, blob, "")
+        SettingRow(name, SECTION, readers, True, spec.reload_class.value, version, now, None, blob, "")
     )
     entries = {k: (v[0], v[1], tuple(v[2])) for k, v in current.manifest_entries.items()}
-    entries[KEY] = (version, signed.sig, readers)
+    entries[name] = (version, signed.sig, readers)
     manifest = sign_manifest(revision, entries, keys.signing_key())
     digest = hashlib.sha256(canonical_manifest(revision, entries)).hexdigest()
 
@@ -194,12 +207,12 @@ async def write_stored(
         conn,
         AUDIT_ACTION,
         "setting",
-        KEY,
-        {**audit.setting_payload(KEY, "x", secret=True), "version": current.version},
+        name,
+        {**audit.setting_payload(name, "x", secret=True), "version": current.version},
         {
-            **audit.setting_payload(KEY, "x", secret=True),
+            **audit.setting_payload(name, "x", secret=True),
             "version": version,
-            "digest": value_digest(keys, spec, KEY, version, new_value),
+            "digest": value_digest(keys, spec, name, version, new_value),
         },
         "success",
         detail=detail,
@@ -215,7 +228,7 @@ async def write_stored(
                 "CAST(CAST(:aafter AS text) AS jsonb), CAST(CAST(:adetail AS text) AS jsonb))"
             ),
             {
-                "key": KEY,
+                "key": name,
                 "ev": current.version,
                 "er": current.revision,
                 "section": SECTION,
