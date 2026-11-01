@@ -536,6 +536,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_service=form_response_service,
         workspace_repo=workspace_repo,
         sheets_reconsent=sheets_reconsent_service,
+        crypto=crypto,
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(

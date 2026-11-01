@@ -1262,8 +1262,15 @@ form, in `controllers/workspace_responses.py`) fills in street and city from a D
   fails closed until `python -m backend.jobs.schema` (every `deploy.sh`) has run again, so after upgrading procrastinate
   run it before starting the executor. `postgres/ensure-jobs-exec-role.sh` creates the role. Job arguments are kept out of every log line
   (`backend/jobs/log_safety.py`, installed when `backend.jobs.app` is imported; the executor has its own copy).
-  **Not isolated yet (executor track):** the executor's `exec` is not a sandbox and not a security boundary; code in it
-  reaches the process's environment. Keep form actions off until the executor isolation work lands.
+  **Executor isolation** (docs/executor-isolation.md): the context route takes an optional body `{"secrets": "plain"}` (default
+  `sealed`, what an older executor gets): the action's, the workspace's and the form's secrets for this action then arrive opened
+  (`ActionService.action_run_context(plain_secrets=True)`, `secrets_plain: true` in the answer; a value no key opens is a 500
+  with ids in the log, never the value), so the executor needs no key. A refreshed Google credential comes back in plain on
+  `PATCH /temporal/workspaces/{w}/forms/{f}/actions/{a}/runs/{r}/secrets` (same job key + run token + job `doing` as the context
+  route via `TemporalRouter._authorise_run`, run still in force, only a secret the form's action already holds, sealed with the
+  current key in `FormActionsService.update_run_secret`). The key-only `PATCH /temporal/forms/{f}/actions/{a}/secrets` stays for
+  executors before 4.3 and lets any holder of the job key write any form's secret: do not add routes like it. Tests:
+  `tests/app/jobs/test_action_run_secrets.py`.
   Tests: `tests/app/jobs/test_action_runs.py`, `test_executor_role.py`, `test_ensure_jobs_exec_role.py`,
   `test_legacy_scrub.py`, `test_job_log_safety.py`.
   The workers call back into the internal job routes (`/temporal/*`, action update, template preview,
