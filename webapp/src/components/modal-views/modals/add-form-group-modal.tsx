@@ -58,15 +58,15 @@ export default function AddFormOnGroup({ forms, group }: IAddFormOnGroupProps) {
                                 aria-expanded={open}
                                 className={cn("w-full justify-between font-normal", !selectedForm && "text-muted-foreground")}
                             >
-                                {selectedForm ? (selectedForm.title || "Untitled") : t(localesCommon.chooseYourForm)}
+                                {selectedForm ? (selectedForm.title || t('STAFF.COMMON.UNTITLED')) : t(localesCommon.chooseYourForm)}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[570px] p-0 bg-white" align="start">
                             <Command>
-                                <CommandInput placeholder={"Search forms..."} />
+                                <CommandInput placeholder={t('STAFF.MODALS.SEARCH_FORMS')} />
                                 <CommandList>
-                                    <CommandEmpty>No form found.</CommandEmpty>
+                                    <CommandEmpty>{t('STAFF.MODALS.NO_FORM')}</CommandEmpty>
                                     <CommandGroup>
                                         {forms.map((form) => (
                                             <CommandItem
@@ -86,7 +86,7 @@ export default function AddFormOnGroup({ forms, group }: IAddFormOnGroupProps) {
                                                         selectedForm?.formId === form.formId ? "opacity-100" : "opacity-0"
                                                     )}
                                                 />
-                                                {form.title || "Untitled"}
+                                                {form.title || t('STAFF.COMMON.UNTITLED')}
                                                 {isFormAlreadyInGroup(form.groups, group.id) && <CheckCircle className="ml-auto h-4 w-4" />}
                                             </CommandItem>
                                         ))}

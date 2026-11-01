@@ -38,7 +38,7 @@ import { selectForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { utcToLocalDateTIme } from '@app/utils/date-utils';
+import { utcToLocalDateTimeIn } from '@app/utils/date-utils';
 import getFormShareURL from '@app/utils/form-utils';
 import { validateFormOpen } from '@app/utils/vvalidation-utils';
 import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
@@ -54,7 +54,7 @@ type FormSettingsTabView = 'VISIBILITY' | 'LINKS' | 'DEFAULT';
 
 export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabProps) {
     const { toast } = useToast();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const form = useAppSelector(selectForm);
     const [patchFormSettings] = usePatchFormSettingsMutation();
     const workspace = useAppSelector((state) => state.workspace);
@@ -182,7 +182,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         patchSettings(patchBody, form)
             .then(() => { })
             .catch(() => {
-                toast({ description: 'Something went wrong!!!', variant: 'destructive' });
+                toast({ description: t('STAFF.COMMON.SOMETHING_WRONG'), variant: 'destructive' });
             });
     };
 
@@ -310,7 +310,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                         }}
                                         variant="ghost"
                                     >
-                                        Generate QR Code
+                                        {t('STAFF.FORM_SETTINGS.QR')}
                                     </Button>
                                 )}
                             </div>
@@ -325,7 +325,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                 return (
                     <div className="divide-black-300 flex flex-col divide-y">
                         {form?.importedFormId && (
-                            <SettingRow title="Show original form" description="Show the original Google Form in embed mode instead of the bettercollected renderer.">
+                            <SettingRow title={t('STAFF.FORM_SETTINGS.ORIGINAL_TITLE')} description={t('STAFF.FORM_SETTINGS.ORIGINAL_DESC')}>
                                 <Switch
                                     data-umami-event="Show Original Google Form Switch"
                                     data-testid="show-original-form-switch"
@@ -337,7 +337,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             </SettingRow>
                         )}
                         {form?.settings?.provider === 'self' && (
-                            <SettingRow title="Require verified identity" description="Respondents must verify their email before they can fill out this form.">
+                            <SettingRow title={t('STAFF.FORM_SETTINGS.VERIFIED_TITLE')} description={t('STAFF.FORM_SETTINGS.VERIFIED_DESC')}>
                                 <Switch
                                     data-umami-event="Require Verified Identity Switch"
                                     data-testid="require-verified-identity-switch"
@@ -349,7 +349,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             </SettingRow>
                         )}
                         {form?.settings?.provider === 'self' && (
-                            <SettingRow title="Show submission number" description="Respondents get a submission ID they can use to view their response and request its deletion.">
+                            <SettingRow title={t('STAFF.FORM_SETTINGS.NUMBER_TITLE')} description={t('STAFF.FORM_SETTINGS.NUMBER_DESC')}>
                                 <Switch
                                     data-umami-event="Show Submission Number Switch"
                                     data-testid="show-submission-number-switch"
@@ -374,7 +374,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             </SettingRow>
                         )}
                         {form?.settings?.provider === 'self' && form?.settings?.requireVerifiedIdentity && (
-                            <SettingRow title="Allow response editing" description="Verified responders can change their response after submitting.">
+                            <SettingRow title={t('STAFF.FORM_SETTINGS.EDITING_TITLE')} description={t('STAFF.FORM_SETTINGS.EDITING_DESC')}>
                                 <Switch
                                     data-umami-event="Allow Response Editing Switch"
                                     data-testid="allow-response-editing-switch"
@@ -387,11 +387,11 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                         )}
                         {form?.settings?.provider === 'self' && (
                             <SettingRow
-                                title="Respond to submissions"
+                                title={t('STAFF.FORM_SETTINGS.FEEDBACK_TITLE')}
                                 description={
                                     form?.settings?.requireVerifiedIdentity
-                                        ? 'Workspace admins can give each submission a status and a message that its respondent sees. Respondents get an email that there is an update.'
-                                        : 'Workspace admins can give each submission a status and a message that its respondent sees with their submission number. Turn on "Require verified identity" to also email them when there is an update.'
+                                        ? t('STAFF.FORM_SETTINGS.FEEDBACK_DESC_VERIFIED')
+                                        : t('STAFF.FORM_SETTINGS.FEEDBACK_DESC')
                                 }
                                 hint={form?.settings?.respondentFeedbackEnabled ? <FeedbackStatusesEditor key={form.formId} statuses={form?.settings?.feedbackStatuses} onSave={(feedbackStatuses) => patchSettings({ feedbackStatuses }, form)} /> : undefined}
                             >
@@ -441,7 +441,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     hint={
                                         !isProPlan ? (
                                             <span className="text-black-600 flex items-center gap-1 text-xs">
-                                                <Lock className="h-3 w-3" /> Available on Pro — the control is locked on your current plan.
+                                                <Lock className="h-3 w-3" /> {t('STAFF.FORM_SETTINGS.PRO_LOCKED')}
                                             </span>
                                         ) : undefined
                                     }
@@ -490,7 +490,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 {form?.settings?.formCloseDate && moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
                                     <div className="bg-black-200 mb-4 flex w-full justify-between rounded-md p-5">
                                         <div>
-                                            {t(formPage.automaticallyCloseOn)} {utcToLocalDateTIme(form?.settings?.formCloseDate)}
+                                            {t(formPage.automaticallyCloseOn)} {utcToLocalDateTimeIn(form?.settings?.formCloseDate, i18n.language)}
                                         </div>
                                         <div>
                                             <div onClick={reopenForm}>

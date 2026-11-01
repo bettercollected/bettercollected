@@ -137,7 +137,7 @@ export default function StartWithAi() {
                 <div className="p2-new shrink-0 border-b border-b-black-300 p-4">Start with AI</div>
                 <div className="flex shrink-0 flex-col gap-3 px-4 pt-4 sm:px-10">
                     <div>
-                        <div className="tex-black-800 text-normal font-medium">Review the outline</div>
+                        <div className="text-black-800 text-normal font-medium">Review the outline</div>
                         <p className="mt-1 text-xs text-black-600">
                             {outline.pages.length} page{outline.pages.length === 1 ? '' : 's'}, {questionCount(outline)} question{questionCount(outline) === 1 ? '' : 's'}. Rename, reorder, delete or add questions, then build the form. Nothing is created
                             until you do.
@@ -212,7 +212,7 @@ export default function StartWithAi() {
         <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto">
             <div className="p2-new border-b border-b-black-300 p-4">Start with AI</div>
             <div className="flex flex-col gap-4 px-4 py-6 sm:px-10">
-                <div className="tex-black-800 text-normal font-medium">Create a new form with AI</div>
+                <div className="text-black-800 text-normal font-medium">Create a new form with AI</div>
                 <ErrorNotice message={shownError} />
                 {aiSettings && !aiEnabled && <AIOptIn feature="Start with AI" sends="your prompt, the workspace AI profile and your AI memory" onEnabled={() => setError(null)} />}
                 <div className="prompt-input-wrapper rounded-lg bg-black-200 p-[1px]">

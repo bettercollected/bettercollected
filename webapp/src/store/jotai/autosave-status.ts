@@ -23,18 +23,20 @@ export function useAutosaveStatus() {
 }
 
 /** The short status line shown next to Undo/Redo (and in the flow view). */
-export function autosaveStatusLabel(state: AutosaveState): string | null {
+export function autosaveStatusLabel(state: AutosaveState, t?: (key: string) => string): string | null {
+    // With `t` (the builder's translation function) the line is read in the dashboard's language.
+    const say = (key: string, english: string) => (t ? t(key) : english);
     switch (state) {
         case 'saving':
-            return 'Saving…';
+            return say('AUTOSAVE.SAVING', 'Saving…');
         case 'saved':
-            return 'Saved';
+            return say('AUTOSAVE.SAVED', 'Saved');
         case 'retrying':
-            return 'Offline — retrying…';
+            return say('AUTOSAVE.RETRYING', 'Offline — retrying…');
         case 'error':
-            return "Couldn't save — edit to retry";
+            return say('AUTOSAVE.ERROR', "Couldn't save — edit to retry");
         case 'conflict':
-            return 'Not saved — changed elsewhere';
+            return say('AUTOSAVE.CONFLICT', 'Not saved — changed elsewhere');
         default:
             return null;
     }

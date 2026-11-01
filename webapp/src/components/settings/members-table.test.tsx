@@ -2,7 +2,8 @@ import React from 'react';
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from 'i18next';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import MakeBillingOwnerDialog, { billingOwnerBlocker } from '@app/components/member/make-billing-owner-dialog';
 import InviteMemberModal, { INVITE_FIELD_CLASS } from '@app/components/modal-views/modals/invite-member-modal';
@@ -14,6 +15,11 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 import MemberOptions from '@Components/datatable/member-options';
 
 import MembersTable from './members-table';
+
+// This suite asserts the translation keys: i18next's `cimode` language answers every `t()` with its key.
+beforeAll(async () => {
+    await i18n.changeLanguage('cimode');
+});
 
 const access: { permissions: string[] } = { permissions: [] };
 vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
@@ -243,7 +249,7 @@ describe('resending an invitation', () => {
         renderWith(<MemberOptions invitation={invitation} workspaceId="w1" />);
 
         fireEvent.pointerDown(screen.getByRole('button', { name: 'A11Y.MORE_ACTIONS_FOR' }), { button: 0, ctrlKey: false });
-        fireEvent.click(await screen.findByText('Resend invitation'));
+        fireEvent.click(await screen.findByText('STAFF.MEMBERS.RESEND_INVITATION'));
         fireEvent.click(await screen.findByRole('button', { name: 'Yes' }));
 
         await waitFor(() => expect(resendMock).toHaveBeenCalledWith({ workspaceId: 'w1', invitationToken: 't1', locale: 'nl' }));

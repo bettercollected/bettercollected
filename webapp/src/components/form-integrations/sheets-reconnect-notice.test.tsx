@@ -2,7 +2,8 @@ import React from 'react';
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from 'i18next';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import FormIntegrations from '@app/components/form/integrations';
 import AddActionToFormModal from '@app/components/modals/dialog-modals/add-action-to-form-modal';
@@ -16,6 +17,11 @@ import { axeViolations } from '@app/test/axe';
 
 import en from '../../../public/locales/en/common.json';
 import nl from '../../../public/locales/nl/common.json';
+
+// This suite asserts the translation keys: i18next's `cimode` language answers every `t()` with its key.
+beforeAll(async () => {
+    await i18n.changeLanguage('cimode');
+});
 
 const openModal = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));

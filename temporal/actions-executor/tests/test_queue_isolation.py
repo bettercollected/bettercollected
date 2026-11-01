@@ -46,3 +46,26 @@ def test_the_check_names_the_definer_role_and_its_search_path():
     # pg_temp last: the temporary schema is searched first otherwise
     assert queue_isolation.DEFINER_SEARCH_PATH.endswith("pg_temp")
     assert queue_isolation.DEFINER_SEARCH_PATH in sql
+
+
+def test_the_check_refuses_temporary_tables_and_memberships_of_either_role():
+    sql = queue_isolation.isolation_sql()
+    # the executor's role, and the definer role's: no TEMPORARY on the database
+    assert sql.count("'TEMPORARY'") == 2
+    # no membership of any role (it could SET ROLE to the definer role), for both
+    assert sql.count("pg_catalog.pg_auth_members") == 2
+
+
+def test_the_check_keeps_the_definer_role_out_of_the_other_services_schemas():
+    sql = queue_isolation.isolation_sql()
+    for schema in ("app", "auth", "google", "admin", "tasks", "settings"):
+        assert f"'{schema}'" in sql, schema
+    assert queue_isolation.OTHER_SCHEMAS == (
+        "app", "auth", "google", "admin", "tasks", "settings"
+    )
+
+
+def test_the_refusal_names_each_thing_the_check_looks_at_and_the_fix():
+    message = queue_isolation.REFUSAL
+    for word in ("TEMPORARY", "member of another role", queue_isolation.DEFINER_ROLE, "ensure-jobs-exec-role.sh", "backend.jobs.schema"):
+        assert word in message, word

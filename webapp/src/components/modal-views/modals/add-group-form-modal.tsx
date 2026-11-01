@@ -63,7 +63,7 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
                             <Command>
                                 <CommandInput placeholder={t(formConstant.addgroup.label)} />
                                 <CommandList>
-                                    <CommandEmpty>No group found.</CommandEmpty>
+                                    <CommandEmpty>{t('STAFF.MODALS.NO_GROUP')}</CommandEmpty>
                                     <CommandGroup>
                                         {responderGroups.map((group) => (
                                             <CommandItem

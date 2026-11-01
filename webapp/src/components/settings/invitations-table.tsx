@@ -18,14 +18,14 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { browserMailLocale } from '@app/utils/mail-locale';
-import { utcToLocalDate, utcToLocalTime } from '@app/utils/date-utils';
+import { utcToLocalDateTimeIn } from '@app/utils/date-utils';
 
 interface IInvitationTableProps {
     data: Page<WorkspaceInvitationDto>;
 }
 
 export default function InvitationsTable({ data }: IInvitationTableProps) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { toast } = useToast();
     const [trigger] = useInviteToWorkspaceMutation();
     const [invitations, setInvitations] = useState<Array<any>>([]);
@@ -67,7 +67,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
                 {status.toLowerCase() === 'expired' && (
                     <div className="truncate">
                         <span className="body4 text-brand-500! cursor-pointer" onClick={() => handleInvitation({ email, role })}>
-                            Resend Invitation
+                            {t('STAFF.MEMBERS.RESEND')}
                         </span>
                     </div>
                 )}
@@ -90,7 +90,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
         },
         {
             name: t(members.invitationDate),
-            selector: (invitation: WorkspaceInvitationDto) => (!!invitation?.createdAt ? `${utcToLocalDate(invitation?.createdAt)} ${utcToLocalTime(invitation?.createdAt)}` : ''),
+            selector: (invitation: WorkspaceInvitationDto) => (!!invitation?.createdAt ? utcToLocalDateTimeIn(invitation?.createdAt, i18n.language) : ''),
             style: {
                 color: '#344054',
                 paddingLeft: '16px',

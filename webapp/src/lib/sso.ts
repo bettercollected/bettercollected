@@ -21,9 +21,13 @@ export const ssoErrorMessages: Record<string, string> = {
     sso_failed: 'Single sign-on failed. Please try again.'
 };
 
-export function ssoErrorMessage(code?: string | null): string | null {
+type Translate = (key: string) => string;
+
+// With `t` (the dashboard), the message is read in the dashboard's language; without it (the sign-in page) in English.
+export function ssoErrorMessage(code?: string | null, t?: Translate): string | null {
     if (!code) return null;
-    return ssoErrorMessages[code] ?? ssoErrorMessages.sso_failed;
+    const known = code in ssoErrorMessages ? code : 'sso_failed';
+    return t ? t(`SSO.ERRORS.${known}`) : ssoErrorMessages[known];
 }
 
 // Outcome of "Test connection" (``sso_test=`` on the settings page).
@@ -40,9 +44,10 @@ export const ssoTestMessages: Record<string, string> = {
     sso_failed: 'The identity provider did not complete the sign-in. Check the connection details at your identity provider and try again.'
 };
 
-export function ssoTestMessage(code?: string | null): string | null {
+export function ssoTestMessage(code?: string | null, t?: Translate): string | null {
     if (!code) return null;
-    return ssoTestMessages[code] ?? ssoTestMessages.sso_failed;
+    const known = code in ssoTestMessages ? code : 'sso_failed';
+    return t ? t(`SSO.TEST.${known}`) : ssoTestMessages[known];
 }
 
 /** Full-page navigation that sends a full Referer, so the backend can send the

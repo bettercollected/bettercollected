@@ -4,30 +4,35 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import React from 'react';
 import { Bar } from 'react-chartjs-2';
+import { useTranslation } from 'react-i18next';
+
+import { useIntlLocale } from '@app/lib/hooks/use-intl-locale';
 
 dayjs.extend(utc);
 
-const getXAxisLabel = (timestamp: string, range: string) => {
-    const date = dayjs.utc(timestamp);
+// The axis labels are written in the dashboard's language (the buckets are UTC days, hours, months).
+const getXAxisLabel = (timestamp: string, range: string, locale: string) => {
+    const date = dayjs.utc(timestamp).toDate();
+    const format = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale, { timeZone: 'UTC', ...options }).format(date);
     switch (range) {
         case 'Last 7 days':
         case 'Last 30 days':
         case 'Last 90 days':
         case 'This month':
-            return date.format('D MMM');
+            return format({ day: 'numeric', month: 'short' });
         case 'Last 24 hours':
         case 'Today':
-            return date.format('h A');
+            return format({ hour: 'numeric', hour12: locale.startsWith('en') });
         case 'This week':
-            return date.format('dddd');
+            return format({ weekday: 'long' });
         case 'This year':
         case 'Last 6 months':
         case 'Last 12 months':
-            return date.format('MMMM');
+            return format({ month: 'long' });
         case 'All time':
-            return date.format('YYYY');
+            return format({ year: 'numeric' });
         default:
-            return date.format('D MMM');
+            return format({ day: 'numeric', month: 'short' });
     }
 };
 
@@ -53,6 +58,8 @@ interface BarChartProps {
 }
 
 const BarChart: React.FC<BarChartProps> = ({ workspaceId, slug, startAt, endAt, unit, timezone, range }) => {
+    const { t } = useTranslation();
+    const locale = useIntlLocale();
     const { formPageviews, pageviewsError, pageviewsLoading } = useFormAnalyticsData(workspaceId, slug, startAt, endAt, unit, timezone);
 
     if (pageviewsLoading) {
@@ -60,7 +67,7 @@ const BarChart: React.FC<BarChartProps> = ({ workspaceId, slug, startAt, endAt, 
             <div className="mt-16 flex h-screen items-start justify-center">
                 <div className="text-center">
                     <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-blue-500"></div>
-                    <p className="text-lg font-semibold text-gray-600">Loading...</p>
+                    <p className="text-lg font-semibold text-gray-600">{t('ANALYTICS.LOADING_CHART')}</p>
                 </div>
             </div>
         );
@@ -68,14 +75,14 @@ const BarChart: React.FC<BarChartProps> = ({ workspaceId, slug, startAt, endAt, 
 
     const pageviewsData = formPageviews as FormPageviewsData;
 
-    const labels = pageviewsData.pageviews.map((view: Pageview) => getXAxisLabel(view.x, range));
+    const labels = pageviewsData.pageviews.map((view: Pageview) => getXAxisLabel(view.x, range, locale));
     const dataPoints = pageviewsData.pageviews.map((view: Pageview) => view.y);
 
     const chartData = {
         labels: labels,
         datasets: [
             {
-                label: 'Visitors',
+                label: t('ANALYTICS.METRIC.VISITORS'),
                 data: dataPoints,
                 backgroundColor: 'rgba(54, 162, 235, 0.6)',
                 borderColor: 'rgba(54, 162, 235, 1)',
