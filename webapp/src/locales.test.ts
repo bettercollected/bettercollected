@@ -163,8 +163,9 @@ describe('Dutch field type labels in the registration answers list', () => {
         const nl = types(builderNl as Tree);
         const en = types(builderEn as Tree);
         expect(Object.keys(nl).sort()).toEqual(Object.keys(en).sort());
-        // the same word in both languages is fine only for these
-        const same = new Set(['matrix']);
+        // the same word in both languages is fine only for these ("Tags" is the Dutch
+        // word the builder already uses for this type)
+        const same = new Set(['matrix', 'tags']);
         for (const [type, label] of Object.entries(nl)) {
             if (!same.has(type) && type !== 'url') expect(label, type).not.toBe(en[type]);
         }
