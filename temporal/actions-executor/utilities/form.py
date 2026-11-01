@@ -234,7 +234,28 @@ def format_calculated_value(answer: Dict[str, Any], fmt: Dict[str, Any] | None) 
     return fixed(number, decimals)
 
 
+def get_sourced_choices_value(answer: Dict[str, Any]) -> str:
+    """The text of a choice answer to a question whose options come from a list
+    or another form's answers: the label the server stored beside each chosen id
+    (the options are not part of the form), then an "other" text."""
+    multiple = answer.get('choices')
+    if isinstance(multiple, dict) and multiple.get('values') is not None:
+        labels = multiple.get('labels') if isinstance(multiple.get('labels'), dict) else {}
+        texts = [labels[v] for v in multiple['values'] if isinstance(labels.get(v), str) and labels[v]]
+        other = multiple.get('other')
+    else:
+        single = answer.get('choice') if isinstance(answer.get('choice'), dict) else {}
+        label = single.get('label')
+        texts = [label] if isinstance(label, str) and label else []
+        other = single.get('other')
+    if isinstance(other, str) and other:
+        texts.append(other)
+    return ', '.join(texts)
+
+
 def get_choices_value(field: Dict[str, Any], answer: Dict[str, Any]) -> str:
+    if (field.get('properties') or {}).get('option_source') is not None:
+        return get_sourced_choices_value(answer)
     choices = field.get('properties', {}).get('choices', [])
     if field.get('properties', {}).get('allow_multiple_selection'):
         selected_choices = [choice for choice in choices if choice['id'] in answer.get('choices', {}).get('values', [])]

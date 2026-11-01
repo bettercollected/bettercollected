@@ -26,11 +26,11 @@ and friends consume dicts), rebuilt from the row's canonical ``doc``.
 
 from datetime import datetime
 from http import HTTPStatus
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import and_, exists, func, not_, or_, select, text, true, update
+from sqlalchemy import Text, and_, cast, exists, func, not_, or_, select, text, true, update
 from sqlalchemy.exc import DBAPIError, IntegrityError, SQLAlchemyError
 
 from backend.app.exceptions import HTTPException
@@ -746,6 +746,25 @@ class PostgresFormRepository(RecordRepository):
             await session.execute(self._upsert_statement(row_values(stored)))
         return stored
 
+    async def revision_of(self, form_id: str) -> Tuple[Optional[str], Optional[int]]:
+        """``(last change of the draft, latest published version)`` of a form,
+        without reading either document (the cache token of what is built from
+        the form's questions)."""
+        async with self._session() as session:
+            changed = (
+                await session.execute(
+                    select(FormRow.updated_at).where(FormRow.form_id == str(form_id))
+                )
+            ).scalar_one_or_none()
+            version = (
+                await session.execute(
+                    select(func.max(FormVersionRow.version)).where(
+                        FormVersionRow.form_id == str(form_id)
+                    )
+                )
+            ).scalar_one_or_none()
+        return (changed.isoformat() if changed is not None else None, version)
+
     async def get_form_document_by_id(self, form_id: str):
         return await self.one(FormRow.form_id == form_id)
 
@@ -755,6 +774,65 @@ class PostgresFormRepository(RecordRepository):
             FormVersionsDocument,
             FormVersionRow.form_id == _oid(form_id),
             order_by=(FormVersionRow.version.desc(), FormVersionRow.id),
+        )
+
+    async def documents_naming_source(
+        self, source_form_id: str, workspace_id=None, page_size: int = 500
+    ):
+        """The drafts and published versions whose document names the form
+        ``source_form_id`` as the source of some question's options
+        (``"formId": "<id>"``; a coarse text match, the caller checks the
+        structure), of the forms in ``workspace_id`` (every workspace when
+        None). Used to find the forms that consume a form's answers. Pages
+        through every match (``page_size`` at a time, by row id): none is
+        skipped, however many forms there are."""
+        safe = "".join(c for c in str(source_form_id) if c in "0123456789abcdef")
+        # properties are stored camelCase (the snake_case spelling too)
+        needles = ['"formId": "%s"' % safe, '"form_id": "%s"' % safe]
+
+        async def collect(session, row):
+            found = []
+            after = None
+            while True:
+                where = [
+                    # the source's own documents name it in ``form_id``: a form
+                    # takes its options from another form, never itself
+                    row.form_id != str(source_form_id),
+                    or_(
+                        *(
+                            cast(row.doc, Text).contains(n, autoescape=True)
+                            for n in needles
+                        )
+                    )
+                ]
+                if workspace_id is not None:
+                    where.append(
+                        exists().where(
+                            WorkspaceFormRow.form_id == row.form_id,
+                            WorkspaceFormRow.workspace_id == str(workspace_id),
+                        )
+                    )
+                if after is not None:
+                    where.append(row.id > after)
+                page = (
+                    await session.execute(
+                        select(row.id, row.doc)
+                        .where(*where)
+                        .order_by(row.id)
+                        .limit(page_size)
+                    )
+                ).all()
+                found.extend(doc for _, doc in page)
+                if len(page) < page_size:
+                    return found
+                after = page[-1][0]
+
+        async with self._session() as session:
+            drafts = await collect(session, FormRow)
+            versions = await collect(session, FormVersionRow)
+        return (
+            [decode(FormDocument, d) for d in drafts],
+            [decode(FormVersionsDocument, d) for d in versions],
         )
 
     async def get_versions_of_form(self, form_id: RecordId):

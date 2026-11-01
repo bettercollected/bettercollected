@@ -72,6 +72,10 @@ class FormDtoCamelModel(CamelModel):
     # the published form while the form allows AI insights. The form page
     # sends it back with the submission.
     ai_notice_token: Optional[str] = None
+    # Signed proof of which questions' "may be offered as a choice" notice this
+    # page shows (services/option_sources/share_token.py); only on the
+    # published form, sent back on submit. Without it nothing is shared.
+    share_notice_token: Optional[str] = None
     # Only in the answer to a builder save: the field rules that save left
     # out because they were broken (``fieldId``, ``ruleId``, ``message``;
     # services/field_rules.py). Never stored.

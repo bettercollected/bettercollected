@@ -86,6 +86,8 @@ export interface TrustLayerProps {
     layout?: FormSlideLayout | null;
     /** The form has a signature question: the panel says where a signature is kept. */
     hasSignature?: boolean;
+    /** Some answers to this form may be shown as choices in the organisation's other forms (a question's `shareAsChoices`). */
+    sharesAnswers?: boolean;
 }
 
 /**
@@ -97,7 +99,7 @@ export interface TrustLayerProps {
  */
 const PANEL_CLASS = 'pointer-events-auto max-h-[45vh] overflow-y-auto border-t border-t-black-400 bg-white py-4 text-[14px] leading-relaxed text-black-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]';
 
-export default function TrustLayer({ ownerName, ownerUnnamed = false, ownerImage, settings, registrationDestination, webhookDestination, emailDestination, addressLookup, addressLookupPreview = false, portalUrl, poweredBy, defaultExpanded = false, protectPrimaryAction = false, layout, hasSignature = false }: TrustLayerProps) {
+export default function TrustLayer({ ownerName, ownerUnnamed = false, ownerImage, settings, registrationDestination, webhookDestination, emailDestination, addressLookup, addressLookupPreview = false, portalUrl, poweredBy, defaultExpanded = false, protectPrimaryAction = false, layout, hasSignature = false, sharesAnswers = false }: TrustLayerProps) {
     // The form's column (form-column.ts): one left and right edge from the
     // page header down to this footer.
     const column = cn(FORM_COLUMN, columnPlacementClass(layout));
@@ -208,6 +210,8 @@ export default function TrustLayer({ ownerName, ownerUnnamed = false, ownerImage
     }
     // A signature names a person: say that it is kept with the response, like the other answers.
     if (hasSignature) rows.push({ key: 'signature', term: t('PRIVACY.SIGNATURE'), detail: t('PRIVACY.SIGNATURE_DETAIL') });
+    // Answers that other forms of the organisation may show as choices: said once, here, and next to each question.
+    if (sharesAnswers) rows.push({ key: 'share', term: t('PRIVACY.SHARE_AS_CHOICES'), detail: t('PRIVACY.SHARE_AS_CHOICES_DETAIL') });
     // An email action mails answers to the form's team (the workspace's
     // members, never named) and, if it is set up, a copy to the respondent.
     if (emailDestination?.team || emailDestination?.copy) {

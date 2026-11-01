@@ -1,6 +1,6 @@
 /** Layout containers: the op that sets a page's containers, and the joins other ops make by position. */
 import type { LayoutContainer, LayoutTab } from '@app/models/dtos/form';
-import { CONTAINERS_MAX, CONTAINER_ID_PREFIX, TAB_ID_PREFIX, containerProblems, freshId, stripTitle, titleProblem, usedIds } from '@app/utils/layout-containers';
+import { CONTAINERS_MAX, CONTAINER_CONDITIONS_MAX, CONTAINER_ID_PREFIX, TAB_ID_PREFIX, containerProblems, formItemIds, freshId, stripTitle, titleProblem, usedIds } from '@app/utils/layout-containers';
 import { CONTAINER_MEMBERS_MAX, CONTAINER_TITLE_MAX, LAYOUT_ID_PATTERN, LAYOUT_MEMBER_ID_MAX, TABS_MAX } from '@app/utils/layout-containers';
 
 import { OpError, childrenOf, findPage, pagesOf } from '../model';
@@ -76,12 +76,16 @@ export const setPageContainers: Handler<SetPageContainersOp> = (ctx, op) => {
     }
     const explicit = [...op.containers.map((spec) => spec.id), ...op.containers.flatMap((spec) => (spec.tabs ?? []).map((tab) => tab.id))].filter((id): id is string => !!id);
     if (new Set(explicit).size !== explicit.length || explicit.some((id) => taken.has(id))) throw new OpError('Container and tab ids must be unique in the form.');
-    const reserved = new Set([...taken, ...explicit]);
+    // a container or tab id is never the id of a page, question or group child
+    const items = formItemIds(pagesOf(ctx.state));
+    for (const id of explicit) if (items.has(id)) throw new OpError(`The id '${id}' is also the id of a question or page.`);
+    for (const spec of op.containers) if ((spec.logic?.conditions?.length ?? 0) > CONTAINER_CONDITIONS_MAX) throw new OpError(`A container's rule can have at most ${CONTAINER_CONDITIONS_MAX} conditions.`);
+    const reserved = new Set([...taken, ...explicit, ...items]);
     const built: LayoutContainer[] = op.containers.map((spec) => {
         const logic = spec.logic ? ({ action: spec.logic.action, operator: spec.logic.operator ?? 'AND', conditions: validatedConditions(ctx.state, spec.logic.conditions) } as any) : undefined;
         return buildContainer(spec, reserved, logic);
     });
-    const problems = containerProblems({ ...page, properties: { ...page.properties, containers: built } }, new Set(taken), earlier);
+    const problems = containerProblems({ ...page, properties: { ...page.properties, containers: built } }, new Set(taken), earlier, items);
     if (problems.length) throw new OpError(problems[0][1]);
     properties.containers = built as any;
     return `Set ${built.length} layout container(s) on page '${op.pageId}' (${built.map((c) => c.type).join(', ')})`;

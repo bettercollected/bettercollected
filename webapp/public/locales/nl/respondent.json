@@ -40,7 +40,9 @@
         "LANGUAGE": "Taal",
         "OPENS_IN_NEW_TAB": "(opent in een nieuw tabblad)",
         "SIGNATURE": "Handtekening",
-        "SIGNATURE_DETAIL": "Je handtekening wordt bewaard bij je antwoorden, net als je andere antwoorden."
+        "SIGNATURE_DETAIL": "Je handtekening wordt bewaard bij je antwoorden, net als je andere antwoorden.",
+        "SHARE_AS_CHOICES": "Antwoorden die als keuze worden getoond",
+        "SHARE_AS_CHOICES_DETAIL": "Sommige antwoorden op dit formulier kunnen zonder je naam als keuze worden getoond in andere formulieren van deze organisatie. Bij de vraag staat welke. Antwoorden van mensen die om verwijdering vroegen blijven buiten beschouwing. Een keuze die iemand anders uit je antwoord maakte, kan in diens antwoord blijven staan totdat jouw eigen antwoord is gewist."
     },
     "RETENTION": {
         "DAYS_one": "Bewaard gedurende {{count}} dag na het insturen.",
@@ -49,7 +51,8 @@
         "UNTIL_DELETED": "Geen vaste termijn: bewaard tot ze worden verwijderd."
     },
     "QUESTION": {
-        "WHY_WE_ASK": "Waarom we dit vragen:"
+        "WHY_WE_ASK": "Waarom we dit vragen:",
+        "SHARE_AS_CHOICES": "Je antwoord kan als keuze worden getoond in andere formulieren van deze organisatie. Een keuze die iemand daaruit maakt, blijft in diens antwoord staan totdat jouw antwoord is gewist."
     },
     "NAV": {
         "BACK": "Vorige",
@@ -491,5 +494,25 @@
         "DRAWN_ALT": "Je getekende handtekening",
         "REVIEW_DRAWN": "Getekende handtekening",
         "SUBMIT_UNAVAILABLE": "Je getekende handtekening kon nu niet worden verwerkt. Er is niets verstuurd. Probeer het zo opnieuw, of kies “Typ je naam”."
+    },
+    "SOURCE": {
+        "SEARCH": "Zoek in de keuzes",
+        "CHOICES": "Keuzes",
+        "COUNT_one": "{{count}} keuze",
+        "COUNT_other": "{{count}} keuzes",
+        "NO_MATCH": "Geen keuzes die bij je zoekopdracht passen.",
+        "NONE": "Er zijn nu geen keuzes beschikbaar.",
+        "UNAVAILABLE": "Deze keuzes zijn nu niet beschikbaar. Probeer het later opnieuw of neem contact op met de organisatie.",
+        "LOADING": "De keuzes laden…",
+        "FAILED": "De keuzes konden niet worden geladen. Probeer het opnieuw.",
+        "MORE": "Toon meer",
+        "CUT": "Alleen het eerste deel wordt getoond; typ verder om het te beperken.",
+        "SELECTED_one": "{{count}} gekozen",
+        "SELECTED_other": "{{count}} gekozen",
+        "SELECTED_LIST": "Je keuzes",
+        "REMOVE": "{{option}} verwijderen",
+        "CLEARED": "Je keuze is verwijderd omdat ze afhangt van een antwoord dat je hebt gewijzigd. Kies opnieuw.",
+        "ANSWERS_NOTE": "De keuzes komen uit antwoorden die anderen op een ander formulier van deze organisatie hebben gegeven.",
+        "LIMITED": "Even te veel verzoeken. De keuzes laden zo opnieuw."
     }
 }

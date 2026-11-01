@@ -38,6 +38,7 @@ from common.models.standard_form import (
     OPTION_CONDITIONS_MAX,
     OPTION_FILTER_PAIRS_MAX,
     OPTION_ID_MAX_LENGTH,
+    OPTION_SOURCE_ID_MAX_LENGTH,
     FORM_LANGUAGES,
     MAX_ENDINGS,
     LOGO_ALT_MAX_LENGTH,
@@ -379,6 +380,39 @@ class OptionFilter(_Spec):
     )
 
 
+class OptionSource(_Spec):
+    """Where a dropdown or multiple choice question's options come from
+    instead of ``choices``: ``kind`` ``list`` (a workspace's option list,
+    ``listId``; ``parentFieldId`` names an earlier choice question whose
+    answer narrows the list by each item's group) or ``form_answers`` (the
+    answers to question ``questionId`` of another form ``formId`` of the same
+    workspace; the saver needs permission to read that form's responses).
+    A question has either a source or ``choices``, never both. Checked by
+    the server on every save and again on every submission."""
+
+    kind: Literal["list", "form_answers"]
+    list_id: Optional[str] = Field(None, max_length=OPTION_SOURCE_ID_MAX_LENGTH)
+    parent_field_id: Optional[str] = Field(
+        None, max_length=OPTION_SOURCE_ID_MAX_LENGTH
+    )
+    form_id: Optional[str] = Field(None, max_length=OPTION_SOURCE_ID_MAX_LENGTH)
+    question_id: Optional[str] = Field(None, max_length=OPTION_SOURCE_ID_MAX_LENGTH)
+
+    @model_validator(mode="after")
+    def _shape(self):
+        if self.kind == "list":
+            if not self.list_id or self.form_id or self.question_id:
+                raise ValueError("A list source names a list (listId) and nothing else.")
+        else:
+            if not self.form_id or not self.question_id:
+                raise ValueError("A form-answers source names formId and questionId.")
+            if self.list_id or self.parent_field_id:
+                raise ValueError(
+                    "A form-answers source takes no listId or parentFieldId."
+                )
+        return self
+
+
 class RuleWhen(_Spec):
     """When a rule is active: ``conditions`` (as in ``logic``; operator AND
     when absent) or an expressions-v1 ``expression`` (active when its value
@@ -663,6 +697,20 @@ class FormField(_Spec):
         None,
         description="A choice question's options filtered by an earlier "
         "choice question's answer (see OptionFilter).",
+    )
+    option_source: Optional[OptionSource] = Field(
+        None,
+        description="A dropdown or multiple choice question's options taken from "
+        "a workspace list or from another form's answers instead of choices "
+        "(see OptionSource).",
+    )
+    share_as_choices: Optional[bool] = Field(
+        None,
+        description="A short text, dropdown or multiple choice question: its answers "
+        "may be shown as choices in other forms of the same workspace (an "
+        "optionSource of kind form_answers). Off unless true. Respondents are told "
+        "next to the question; only answers given while a version with it on was "
+        "filled are ever offered.",
     )
     rules: Optional[List[Rule]] = Field(
         None,

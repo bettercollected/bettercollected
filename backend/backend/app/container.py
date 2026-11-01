@@ -62,6 +62,13 @@ from backend.app.repositories.postgres.form_drafts import PostgresFormDraftRepos
 from backend.app.repositories.postgres.response_exports import (
     PostgresResponseExportRepository,
 )
+from backend.app.repositories.postgres.option_erasures import (
+    PostgresOptionErasureRepository,
+)
+from backend.app.repositories.postgres.option_lists import (
+    PostgresOptionListRepository,
+    PostgresOptionListUsage,
+)
 from backend.app.repositories.postgres.email_actions import (
     PostgresFormEmailActionRepository,
 )
@@ -160,6 +167,8 @@ from backend.app.services.form_drafts.service import FormDraftService
 from backend.app.services.webhooks.service import WebhookService
 from backend.app.services.response_export.service import ResponseExportService
 from backend.app.services.email_actions.service import EmailActionService
+from backend.app.services.option_lists.service import OptionListService
+from backend.app.services.option_sources.service import OptionSourceService
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.app.services.sso.connection_service import SsoConnectionService
 from backend.app.services.sso.login_service import SsoLoginService
@@ -265,6 +274,15 @@ class AppContainer(containers.DeclarativeContainer):
     )
     form_email_action_repo: PostgresFormEmailActionRepository = providers.Singleton(
         PostgresFormEmailActionRepository, pg_sessionmaker
+    )
+    option_list_repo: PostgresOptionListRepository = providers.Singleton(
+        PostgresOptionListRepository, pg_sessionmaker
+    )
+    option_list_usage: PostgresOptionListUsage = providers.Singleton(
+        PostgresOptionListUsage, pg_sessionmaker
+    )
+    option_erasure_repo: PostgresOptionErasureRepository = providers.Singleton(
+        PostgresOptionErasureRepository, pg_sessionmaker
     )
     action_log_repo: PostgresActionLogRepository = providers.Singleton(
         PostgresActionLogRepository, pg_sessionmaker
@@ -544,6 +562,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_service=form_response_service,
         workspace_repo=workspace_repo,
         sheets_reconsent=sheets_reconsent_service,
+        crypto=crypto,
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(
@@ -571,6 +590,7 @@ class AppContainer(containers.DeclarativeContainer):
         draft_service=form_draft_service,
         response_export_service=LazyRepository(lambda: container.response_export_service()),
         email_action_service=LazyRepository(lambda: container.email_action_service()),
+        option_source_service=LazyRepository(lambda: container.option_source_service()),
     )
 
     registration_service: RegistrationService = providers.Singleton(
@@ -614,6 +634,26 @@ class AppContainer(containers.DeclarativeContainer):
         rate_limiter=rate_limiter,
     )
 
+    # options from a workspace list or from another form's answers (a public
+    # route; one instance keeps the cache of built options)
+    option_source_service: OptionSourceService = providers.Singleton(
+        OptionSourceService,
+        list_repo=option_list_repo,
+        form_repo=form_repo,
+        workspace_form_repo=workspace_form_repo,
+        response_repo=form_response_repo,
+        form_response_service=form_response_service,
+        rate_limiter=rate_limiter,
+        authorization_service=authorization_service,
+        erasure_repo=option_erasure_repo,
+    )
+    option_list_service: OptionListService = providers.Singleton(
+        OptionListService,
+        list_repo=option_list_repo,
+        authorization_service=authorization_service,
+        usage_repo=option_list_usage,
+        source_service=option_source_service,
+    )
     email_action_service: EmailActionService = providers.Singleton(
         EmailActionService,
         authorization_service=authorization_service,
@@ -726,6 +766,7 @@ class AppContainer(containers.DeclarativeContainer):
         draft_service=form_draft_service,
         response_export_service=response_export_service,
         email_action_service=email_action_service,
+        option_list_repo=option_list_repo,
     )
 
     ai_profile_service: AIProfileService = providers.Singleton(

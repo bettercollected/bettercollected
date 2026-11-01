@@ -390,8 +390,12 @@ structure error is 422 `invalid_layout`. `is_hidden_by_logic` also reads the con
 `logic_sources(...).container_logic` (a dict subclass: the keys stay the questions), so hidden-by-container questions
 are exempt from Required like any hidden question and their answers stay stored. The op `set_page_containers`
 replaces a page's list; `add_field`, `add_group`, `insert_field` and `move_field` call `join_by_position`
-(inside a container joins it, the edge does not); `finished_form` repairs what a removal left. Never add a parallel
-check.
+(inside a container joins it, the edge does not); `finished_form` repairs what a removal left. `move_field` and
+`move_page` refuse (and undo) a move that leaves a new container problem once repaired (a rule reading a question that is
+no longer before the container; webapp twin: `newLayoutProblem` in `apply.ts` and the builder's hand-over in
+`form-document.ts`), as they do for option logic. Container and tab ids are never the id of a page, question or group
+child (`form_item_ids`; made-up ids skip them) and a container's rule has at most `CONTAINER_CONDITIONS_MAX` (20)
+conditions (model, `container_problems`, `set_page_containers`). Never add a parallel check.
 
 **Signature question** (`signature`; spec section "Signature question"): a drawn image or a typed name,
 behind its own switch `SIGNATURE_QUESTION_ENABLED` (default off, 422 `signature_question_disabled`, permissions
@@ -482,6 +486,48 @@ it is on, and the permissions answer carries `choiceLogicEnabled` for the builde
 what it repaired (`droppedOptionLogic`, toasted by autosave); a question with more than 200 options, a form over the
 evaluation budget (`worst_case_cost`) or over the caps refuses (never wiped). The server never clears an answer; the
 respondent page does (`clearUnavailableOptions`).
+
+**Option sources — opt-in (`shareAsChoices`)**: another form's answers are used only from a question with
+`properties.shareAsChoices` true; the server stamps `shared_as_choices` (question ids) on each response at submit as the
+questions of the signed notice token the form fetch issued (`option_sources/share_token.py`, `shareNoticeToken` /
+`share_notice_token`) ∩ `checks.shared_ids(latest version)`; never from the body, a provider import or an edit; copies
+strip the flag (`strip_share_as_choices`), the eligibility SQL
+(`PostgresFormResponseRepository._option_source_where`) requires the stamp, and `answer_question_problem` /
+`_rebuild` require the flag on the current document (422 `option_source_not_shared` at save; off = nothing offered at once).
+The options route judges access per call (`OptionSourceService._judge`: hidden, dates, limit, verified identity, private
+groups) and limits from memory first (`_coarse_limit`); the cache token is `(count, hash sum of id+updated_at, form
+revision)` with a 5 s growth debounce for the public route only. `OPTION_SOURCES_ENABLED` off is also a kill switch for
+`form_answers` (`OptionSourceService.options` returns nothing; lists unaffected). AI insights replace a `form_answers`
+choice by a placeholder (`insights._sourced_label`). **Erasure:** every delete of a response goes through
+`PostgresFormResponseRepository._delete_recorded`, which notes the option ids the erased responses offered in
+`option_source_erasures` (same transaction); `OptionSourceService.redact_erased` (started after the erasure and by the
+`redact_erased_options` job every two minutes) sets the label snapshots of options no eligible response still offers to
+`[removed]` in the consuming forms' responses (`services/option_sources/erasure.py`). A note is kept `NOTE_GRACE` (15
+min) and worked on every pass until then (a submit racing the erasure commits late), notes hold each option's id under
+every JWT ring member, and the option ids themselves (`ids.py`) are keyed with the primary ring member only.
+
+**Option sources** ([../docs/option-sources.md](../docs/option-sources.md), spec section "Option sources"): a dropdown or
+multiple choice question takes its options from a workspace list or another form's answers (`properties.option_source`, common
+`OptionSource`, stored camelCase `optionSource`; also in the builder DTO `StandardFieldPropertyCamelModel`, or a save drops it).
+Switch `OPTION_SOURCES_ENABLED` (off): `services/option_sources/checks.py` `ensure_valid_structure` (shape, every save),
+`ensure_option_sources_allowed` (new or changed source vs the stored form, 422 `option_sources_disabled`; `answers_ok=False` in
+`persist_form` refuses a new `form_answers` source, 422 `option_source_forbidden`: chat/MCP/imports cannot ask the saver's access),
+`OptionSourceService.ensure_resolved` (builder create/update and the spec API: list exists in the workspace, another form's answers
+need `response.read` on that form, not the form itself, not an API key); stored sources are served and enforced either way.
+Lists: `workspace_option_lists` (revision 0031, items inside the document, `revision` is the cache token and the editors' optimistic
+check), `services/option_lists/` (limits in `option_sources/text.py`, `form.read` / `form.edit`, CSV), routes in
+`controllers/option_lists_router.py` (also the builder's `POST .../option-sources/preview`). Another form's answers:
+`OptionSourceService._rebuild` reads `PostgresFormResponseRepository.option_source_batch` (no deletion request of any status,
+no `anonymous_identity`, not expired) and decrypts in a thread; the cache is keyed by `option_source_token` (count, newest
+`updated_at`, newest id of those responses) checked on every call, so nothing is stale in any process; ids are keyed hashes
+(`option_sources/ids.py`). The public `GET /workspaces/{id}/forms/{form_id}/options/{field_id}` serves `{id, label}` only for
+published forms (one 404 otherwise, rate limit constants in `service.py`, no extra settings); `strip_internal_fields` blanks the
+list id / form id / question id of a respondent's copy. `OptionSourceService.apply` (after validation in `submit_response` and
+`patch_response`) refuses a new chosen option the source does not offer (`option_unavailable`), writes the label snapshot
+(`choice.label`, `choices.labels`) and removes any a client sent for a question without a source; readers (CSV `_snapshot_text`,
+`registration/body.py` `sourced_texts`, insights, the executor's `get_sourced_choices_value`) use the snapshot only for a question
+with a source. `_choice_problem` skips the membership check for a sourced question. Templates never hold a source; a duplicate
+keeps list sources and loses `form_answers`; provider imports strip them.
 
 **Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
 Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record
@@ -1288,8 +1334,16 @@ form, in `controllers/workspace_responses.py`) fills in street and city from a D
   fails closed until `python -m backend.jobs.schema` (every `deploy.sh`) has run again, so after upgrading procrastinate
   run it before starting the executor. `postgres/ensure-jobs-exec-role.sh` creates the role. Job arguments are kept out of every log line
   (`backend/jobs/log_safety.py`, installed when `backend.jobs.app` is imported; the executor has its own copy).
-  **Not isolated yet (executor track):** the executor's `exec` is not a sandbox and not a security boundary; code in it
-  reaches the process's environment. Keep form actions off until the executor isolation work lands.
+  **Executor isolation** (docs/executor-isolation.md): the context route takes an optional body `{"secrets": "plain"}` (default
+  `sealed`, what an older executor gets): the action's, the workspace's and the form's secrets for this action then arrive opened
+  (`ActionService.action_run_context(plain_secrets=True)`, `secrets_plain: true` in the answer; a value no key opens is a 500
+  with ids in the log, never the value), so the executor needs no key. A refreshed Google credential comes back in plain on
+  `PATCH /temporal/workspaces/{w}/forms/{f}/actions/{a}/runs/{r}/secrets` (same job key + run token + job `doing` as the context
+  route via `TemporalRouter._authorise_run`, run still in force, only the `Credentials` secret (`RunSecretDto`: any other name is a 422) and only when the form's
+  action already holds one, sealed with the current key in `FormActionsService.update_run_secret`). The hand-out of opened
+  secrets is logged with ids and a count, never a value. The key-only `PATCH /temporal/forms/{f}/actions/{a}/secrets` stays for
+  executors before 4.3 and lets any holder of the job key write any form's secret: do not add routes like it. Tests:
+  `tests/app/jobs/test_action_run_secrets.py`.
   Tests: `tests/app/jobs/test_action_runs.py`, `test_executor_role.py`, `test_ensure_jobs_exec_role.py`,
   `test_legacy_scrub.py`, `test_job_log_safety.py`.
   The workers call back into the internal job routes (`/temporal/*`, action update, template preview,

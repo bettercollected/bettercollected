@@ -294,9 +294,10 @@ Every type may have `logic` (the shape of a question's `logic`: it shows or
 hides the whole container; the questions inside count as hidden by logic, so
 they are not required, and what they hold stays stored and sent, as for any
 question hidden by logic). Its conditions read only questions before the
-container.
+container, and there are at most 20 of them.
 
-- `id`s (containers and tabs) are unique across the form; a question id in a list is at most 200 characters. At most 20 containers
+- `id`s (containers and tabs) are unique across the form and are never the id of
+  a page, a question or a repeating group's child; a question id in a list is at most 200 characters. At most 20 containers
   per page and 100 questions per container.
 - The questions of a container are questions of that page, each in at most one
   container, never an internal question and never a repeating group's child
@@ -320,7 +321,11 @@ member of it before and after) joins it, at its edge it does not; a question
 moved out of its container leaves it (a container's only question takes the
 container along); removing a question, moving it to another page or into a
 group, or making it internal takes it out, and a container left without
-questions goes. `duplicate_page` copies the containers with new ids.
+questions goes. `duplicate_page` copies the containers with new ids. A
+`move_field` or `move_page` that would leave a container's rule reading a
+question that is not before the container (the question moved below it, into
+it, or onto a later page) is refused with a message starting "would break a
+layout container", and changes nothing.
 
 **Rollout.** Layout containers are behind the server setting
 `LAYOUT_CONTAINERS_ENABLED`, off by default. While it is off, every write that
@@ -516,6 +521,39 @@ logic settings are hidden, and what a question already has is listed read-only.
 
 **Warnings** (never refused): an option no filter row shows, an earlier option
 with no row, and a required question whose every option has its own logic.
+
+## Option sources
+
+A dropdown or multiple choice question can take its options from a workspace list or from another form's
+answers instead of `choices` (the question has one or the other, never both):
+
+```jsonc
+{ "id": "city", "type": "dropdown", "title": "City",
+  "optionSource": { "kind": "list", "listId": "…", "parentFieldId": "country" } },
+{ "id": "who", "type": "multiple_choice", "title": "Who comes",
+  "optionSource": { "kind": "form_answers", "formId": "…", "questionId": "name" } }
+```
+
+- **`kind: "list"`**: `listId` is a list of the form's workspace (`/workspaces/{id}/option-lists`). The optional
+  `parentFieldId` names an earlier dropdown or multiple choice question: the items offered are those whose group
+  equals the label of the chosen option (the union over several), plus the items without a group; with no answer
+  to the parent nothing is filtered.
+- **`kind: "form_answers"`**: `formId` and `questionId` name a short text, dropdown or multiple choice question of
+  another form of the same workspace **that opted in** with `shareAsChoices: true` (a boolean on that question, off
+  unless true; 422 `option_source_not_shared` otherwise). Respondents are told next to that question that their
+  answer may be shown as a choice in other forms; only answers submitted from a page that showed the notice
+  are ever offered (the form a respondent loads carries a signed `shareNoticeToken`, sent back on submit), a copy of a
+  form starts with it off, and turning it off stops every use. When a response is erased, choices made from its
+  answer show `[removed]` in the consuming forms. With `OPTION_SOURCES_ENABLED` off, this kind offers nothing. Whoever saves needs permission to read that form's
+  responses; an API key cannot set this kind.
+- Only page-level questions; not combined with `choices`, `optionFilter` or option logic; a condition on such a
+  question can only be `IS_EMPTY` or `IS_NOT_EMPTY`; no `setValue` rule targets it.
+- The answer is the chosen option id with a label snapshot the server writes (`choice.label`, `choices.labels`);
+  the server refuses an option the source does not offer now (422 `invalid_answers`, rule `option_unavailable`).
+  A respondent's copy of the form does not carry `listId`, `formId` or `questionId`.
+- **Rollout.** Until the server setting `OPTION_SOURCES_ENABLED` is on (off by default), a save that adds or changes
+  a source is refused with 422 `option_sources_disabled`; the validation of a document warns about it. Sources
+  already stored keep working. Details and the privacy rules: `docs/option-sources.md`.
 
 ## What is not in the document
 
