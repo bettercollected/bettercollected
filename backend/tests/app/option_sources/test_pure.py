@@ -236,3 +236,43 @@ def test_the_spec_model_and_stored_model_agree_on_the_keys():
     }
     with pytest.raises(Exception):
         OptionSource(kind="url", list_id="x")
+
+
+RING_A = "a" * 40
+RING_B = "b" * 40
+
+
+def _ring(monkeypatch, *members):
+    from backend.config import settings
+
+    monkeypatch.setattr(settings.auth_settings, "JWT_SECRET", ",".join(members))
+
+
+def test_option_ids_are_keyed_with_the_primary_member_only(monkeypatch):
+    _ring(monkeypatch, RING_A)
+    alone = ids.answer_option_id("w1", "f1", "q1", "alice")
+    # adding a key, or dropping the old one, changes no id
+    _ring(monkeypatch, RING_A, RING_B)
+    assert ids.answer_option_id("w1", "f1", "q1", "alice") == alone
+    # a promote does, and the id under every member is available
+    _ring(monkeypatch, RING_B, RING_A)
+    promoted = ids.answer_option_id("w1", "f1", "q1", "alice")
+    assert promoted != alone
+    assert ids.answer_option_ids("w1", "f1", "q1", "alice") == [promoted, alone]
+    _ring(monkeypatch, RING_B)
+    assert ids.answer_option_id("w1", "f1", "q1", "alice") == promoted
+
+
+def test_a_single_secret_keeps_its_ids(monkeypatch):
+    # a ring of one is the plain secret it always was: ids made before rings
+    # existed are the same
+    import hashlib
+    import hmac
+
+    _ring(monkeypatch, "an-old-single-secret-that-has-no-comma")
+    message = "\0".join(("form_answers", "w1", "f1", "q1", "alice")).encode()
+    key = hmac.new(
+        b"an-old-single-secret-that-has-no-comma", ids._PURPOSE, hashlib.sha256
+    ).digest()
+    expected = "fa" + hmac.new(key, message, hashlib.sha256).hexdigest()[:22]
+    assert ids.answer_option_id("w1", "f1", "q1", "alice") == expected

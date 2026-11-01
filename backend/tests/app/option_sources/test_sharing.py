@@ -510,3 +510,47 @@ async def test_without_a_secret_to_key_ids_another_forms_answers_are_not_used(
     source = {"kind": "form_answers", "form_id": shared.form_id, "question_id": "name"}
     error = await refused(sources().authorize_source(workspace.id, source, testUser))
     assert error.status_code == 422 and code_of(error) == INVALID_CODE
+
+
+def _ring(monkeypatch, *members):
+    from backend.config import settings
+
+    monkeypatch.setattr(settings.auth_settings, "JWT_SECRET", ",".join(members))
+
+
+def test_the_notice_token_survives_a_key_rotation(monkeypatch):
+    a, b = "a" * 40, "b" * 40
+    kw = {"workspace_id": "w1", "form_id": "f1"}
+    _ring(monkeypatch, a)
+    token = share_token.issue_token(question_ids=["q1", "q2"], **kw)
+    assert share_token.shown_question_ids(token, **kw) == ["q1", "q2"]
+    # add_key: [a, b]; promote: [b, a]: a token in flight still verifies
+    for members in ((a, b), (b, a)):
+        _ring(monkeypatch, *members)
+        assert share_token.shown_question_ids(token, **kw) == ["q1", "q2"]
+    # a token signed under the new primary verifies while the old one is in the ring ...
+    newer = share_token.issue_token(question_ids=["q3"], **kw)
+    _ring(monkeypatch, a, b)
+    assert share_token.shown_question_ids(newer, **kw) == ["q3"]
+    # ... and neither after both keys changed
+    _ring(monkeypatch, "c" * 40)
+    assert share_token.shown_question_ids(token, **kw) == []
+    assert share_token.shown_question_ids(newer, **kw) == []
+    # drop_old: the old token is gone with its key, the new one stays
+    _ring(monkeypatch, b)
+    assert share_token.shown_question_ids(token, **kw) == []
+    assert share_token.shown_question_ids(newer, **kw) == ["q3"]
+
+
+def test_a_token_naming_the_most_questions_fits_the_routes_cap():
+    import uuid
+
+    ids = [str(uuid.uuid4()) for _ in range(share_token.MAX_QUESTIONS)]
+    kw = {"workspace_id": str(uuid.uuid4()), "form_id": str(uuid.uuid4())}
+    token = share_token.issue_token(question_ids=ids, **kw)
+    # (the cap used to be 4096, which this exceeds)
+    assert 4096 < len(token) <= share_token.MAX_TOKEN_LENGTH
+    assert sorted(share_token.shown_question_ids(token, **kw)) == sorted(ids)
+    # an id too long to fit is never named, so a token never exceeds the cap
+    long_id = "x" * (share_token.MAX_ID_LENGTH + 1)
+    assert share_token.issue_token(question_ids=[long_id], **kw) is None

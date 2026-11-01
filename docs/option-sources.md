@@ -90,10 +90,16 @@ answers those people agreed to share, such as a participant list. The builder sa
   snapshot beside the chosen id becomes `[removed]` in every consuming response of the workspace (all forms that use
   that source question), so exports, screens, insights and webhooks or emails sent from then on show `[removed]`.
   The erasure notes which options the erased responses offered (option ids only, never text) in the same
-  transaction; a background run starts right after and the jobs worker repeats it every two minutes until every note
-  is done, so a crash only delays it. Erasing one of two responses that gave the same answer changes nothing.
-  What cannot be undone: webhooks and emails already sent, exports already downloaded, and a respondent's own saved
-  draft keep what they held. The source form's notice tells its respondents that a choice someone else made from their
+  transaction; a background run starts right after and the jobs worker repeats it every two minutes, so a crash only
+  delays it. A note is **kept for 15 minutes** and worked on every pass until then, so a submission that took the
+  option while the erased response still offered it, and committed a moment after the first pass, is redacted by the
+  next one. Erasing one of two responses that gave the same answer changes nothing.
+  What cannot be undone or is not reached: webhooks and emails already sent, exports already downloaded, a
+  respondent's own saved draft, and the consuming form's stored export files (kept 24 hours, then deleted) keep what
+  they held. Past the caps (a source's responses read for its options, the consuming forms looked up) an option is
+  judged by what could be read, so a choice can be redacted although a response beyond the cap still offers it
+  (redacting too much, never too little). The ids in a note are the option's id under every member of the signing key
+  ring, so a key rotation does not stop it matching (see [auth-key-rotation.md](auth-key-rotation.md)). The source form's notice tells its respondents that a choice someone else made from their
   answer may stay in that person's response until their own answer is erased.
 - **Switch off.** With `OPTION_SOURCES_ENABLED` off, another form's answers stop being offered at once: the
   respondent endpoint answers `available: false` with no options, a submission with a new choice from them is refused

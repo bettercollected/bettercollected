@@ -14,7 +14,9 @@ empty stamp (fail closed).
 
 Same construction as ``services/ai/notice_token.py``: HMAC-SHA256 under a key
 derived from ``AUTH_JWT_SECRET`` with a purpose label of its own, bound to the
-workspace and form, valid for 24 hours.
+workspace and form, valid for 24 hours. ``AUTH_JWT_SECRET`` is a key ring: the
+first member signs, every member verifies, so a rotation never invalidates a
+token in flight.
 """
 
 import base64
@@ -24,21 +26,38 @@ import hmac
 import json
 from typing import Iterable, List, Optional
 
+from common.settings import key_ring
+
 from backend.config import settings
 
 TOKEN_TTL = dt.timedelta(hours=24)
 CLOCK_SKEW = dt.timedelta(minutes=2)
-MAX_TOKEN_LENGTH = 4096
 MAX_QUESTIONS = 100
+# a question id longer than this is never named by a token (a form's ids are
+# UUIDs or short keys): fail closed for that question
+MAX_ID_LENGTH = 64
+# the largest token that can be issued: base64 of the claims for MAX_QUESTIONS
+# ids of MAX_ID_LENGTH (each with its quotes and comma), two ids and the
+# timestamp with generous slack, plus the version and the signature. Used for
+# the submit route's size cap, so a form at the question limit never 422s.
+MAX_TOKEN_LENGTH = 4 * ((MAX_QUESTIONS * (MAX_ID_LENGTH + 3) + 512 + 2) // 3) + 64
 _VERSION = "v1"
 _PURPOSE = b"bettercollected/option-share-notice-token/v1"
 
 
-def _key() -> Optional[bytes]:
-    secret = settings.auth_settings.JWT_SECRET
-    if not secret:
-        return None
-    return hmac.new(secret.encode("utf-8"), _PURPOSE, hashlib.sha256).digest()
+def _keys() -> List[bytes]:
+    """One signing key per member of the JWT key ring (current first): the
+    first signs, every one verifies (docs/auth-key-rotation.md)."""
+    return key_ring.derive_all(
+        key_ring.token_members(settings.auth_settings.JWT_SECRET), _PURPOSE
+    )
+
+
+def _verifies(signature: str, payload: str) -> bool:
+    ok = False
+    for key in _keys():
+        ok = hmac.compare_digest(_sign(key, payload), signature) or ok
+    return ok
 
 
 def _b64(data: bytes) -> str:
@@ -72,10 +91,13 @@ def issue_token(
 ) -> Optional[str]:
     """A token saying the notice of ``question_ids`` was shown now, or None
     when there is nothing shared or the server has no secret to sign with."""
-    key = _key()
-    ids = sorted({str(q) for q in question_ids})[:MAX_QUESTIONS]
-    if key is None or not ids:
+    keys = _keys()
+    ids = sorted(
+        {str(q) for q in question_ids if len(str(q)) <= MAX_ID_LENGTH}
+    )[:MAX_QUESTIONS]
+    if not keys or not ids:
         return None
+    key = keys[0]
     claims = {
         "w": str(workspace_id),
         "f": str(form_id),
@@ -96,8 +118,7 @@ def shown_question_ids(
 ) -> List[str]:
     """The questions whose notice ``token`` proves was shown, or ``[]`` when
     it is missing, forged, expired or for another form (never an error)."""
-    key = _key()
-    if key is None or not token or not isinstance(token, str):
+    if not _keys() or not token or not isinstance(token, str):
         return []
     if len(token) > MAX_TOKEN_LENGTH:
         return []
@@ -106,7 +127,7 @@ def shown_question_ids(
         return []
     body = f"{parts[0]}.{parts[1]}"
     try:
-        if not hmac.compare_digest(_sign(key, body), parts[2]):
+        if not _verifies(parts[2], body):
             return []
         claims = json.loads(_unb64(parts[1]))
     except (ValueError, TypeError):

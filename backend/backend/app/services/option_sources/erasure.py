@@ -16,19 +16,36 @@ delete of a response goes through ``PostgresFormResponseRepository``):
    back together.
 2. ``OptionSourceService.redact_erased`` (right after the erasure, and every
    few minutes in the jobs worker) works through the notes: an option that is
-   no longer offered is redacted in every consuming response of the workspace,
-   then the note is removed. It is idempotent (a redacted snapshot is not
-   touched again) and a failed run leaves the note for the next one.
+   no longer offered is redacted in every consuming response of the workspace.
+   It is idempotent (a redacted snapshot is not touched again) and a failed run
+   leaves the note for the next one. A note is **kept for ``NOTE_GRACE``**
+   (15 minutes) and worked on every pass until then, then removed: a
+   submission that took the option while the erased response still offered it
+   can commit after the first pass, and the next one redacts it.
 
-What cannot be undone: webhooks and emails sent before the redaction, exports
-already downloaded and a respondent's own saved draft keep what they held.
+A note names each option by its id under every member of the JWT key ring
+(``ids.answer_option_ids``), so choices made under an earlier primary key are
+matched too while that key is in the ring (docs/auth-key-rotation.md).
+
+What cannot be undone or is not reached: webhooks and emails sent before the
+redaction, exports already downloaded, a respondent's own saved draft, and the
+stored export files of the consuming form (kept 24 hours, then deleted) keep
+what they held. The redaction is also deliberately wider than necessary when a
+source is larger than the caps (the source's responses read for the options,
+the consuming forms looked up): an option is then judged by what could be read,
+so a choice may be redacted although a response beyond the cap still offers it.
 """
 
+import datetime as dt
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set
 
 from backend.app.services.option_sources import ids, read, text
 
 REMOVED_LABEL = "[removed]"
+# a note works on every redaction pass until it is this old: a submission that
+# took the option while the erased response still offered it may commit after
+# the first pass
+NOTE_GRACE = dt.timedelta(minutes=15)
 
 
 def answer_labels(raw: Any, kind: Optional[str], choice_labels: Mapping[str, str]):
@@ -65,7 +82,9 @@ def offered_option_ids(
 ) -> Dict[str, List[str]]:
     """``{question id: option ids}`` that a response with these decrypted
     answers offered to other forms: its answers to the questions it shared
-    (``form`` is the version it was filled on). May raise ``ids.NoIdKey``."""
+    (``form`` is the version it was filled on). Each option is listed under its
+    id for every member of the JWT key ring (so the note still matches choices
+    made under an earlier primary key). May raise ``ids.NoIdKey``."""
     questions = {
         str(read.get(q, "id")): q for q in read.page_questions(form)
     }
@@ -77,9 +96,12 @@ def offered_option_ids(
         kind = read.field_type(question)
         choice_labels = read.static_labels(question) if kind != "short_text" else {}
         option_ids = {
-            ids.answer_option_id(workspace_id, form_id, question_id, text.fold(label))
+            option_id
             for label in answer_labels(
                 answers.get(str(question_id)), kind, choice_labels
+            )
+            for option_id in ids.answer_option_ids(
+                workspace_id, form_id, question_id, text.fold(label)
             )
         }
         if option_ids:

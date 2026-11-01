@@ -1,7 +1,7 @@
 """workspace option lists (reference data for choice questions)
 
-Revision ID: 0029
-Revises: 0028
+Revision ID: 0031
+Revises: 0030
 Create Date: 2026-11-01
 
 Two new tables. ``option_source_erasures`` is the queue of answers of another
@@ -24,8 +24,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0029"
-down_revision: Union[str, None] = "0028"
+revision: str = "0031"
+down_revision: Union[str, None] = "0030"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

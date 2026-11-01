@@ -18,7 +18,7 @@ class OptionListItem(BaseModel):
 class OptionListDocument(Record):
     workspace_id: RecordId
     name: str
-    # the folded name: a name is unique per workspace (revision 0029)
+    # the folded name: a name is unique per workspace (revision 0031)
     name_key: str
     order: Literal["manual", "alphabetical"] = "manual"
     items: List[OptionListItem] = []

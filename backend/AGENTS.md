@@ -498,7 +498,9 @@ choice by a placeholder (`insights._sourced_label`). **Erasure:** every delete o
 `PostgresFormResponseRepository._delete_recorded`, which notes the option ids the erased responses offered in
 `option_source_erasures` (same transaction); `OptionSourceService.redact_erased` (started after the erasure and by the
 `redact_erased_options` job every two minutes) sets the label snapshots of options no eligible response still offers to
-`[removed]` in the consuming forms' responses (`services/option_sources/erasure.py`).
+`[removed]` in the consuming forms' responses (`services/option_sources/erasure.py`). A note is kept `NOTE_GRACE` (15
+min) and worked on every pass until then (a submit racing the erasure commits late), notes hold each option's id under
+every JWT ring member, and the option ids themselves (`ids.py`) are keyed with the primary ring member only.
 
 **Option sources** ([../docs/option-sources.md](../docs/option-sources.md), spec section "Option sources"): a dropdown or
 multiple choice question takes its options from a workspace list or another form's answers (`properties.option_source`, common
@@ -508,7 +510,7 @@ Switch `OPTION_SOURCES_ENABLED` (off): `services/option_sources/checks.py` `ensu
 `persist_form` refuses a new `form_answers` source, 422 `option_source_forbidden`: chat/MCP/imports cannot ask the saver's access),
 `OptionSourceService.ensure_resolved` (builder create/update and the spec API: list exists in the workspace, another form's answers
 need `response.read` on that form, not the form itself, not an API key); stored sources are served and enforced either way.
-Lists: `workspace_option_lists` (revision 0029, items inside the document, `revision` is the cache token and the editors' optimistic
+Lists: `workspace_option_lists` (revision 0031, items inside the document, `revision` is the cache token and the editors' optimistic
 check), `services/option_lists/` (limits in `option_sources/text.py`, `form.read` / `form.edit`, CSV), routes in
 `controllers/option_lists_router.py` (also the builder's `POST .../option-sources/preview`). Another form's answers:
 `OptionSourceService._rebuild` reads `PostgresFormResponseRepository.option_source_batch` (no deletion request of any status,

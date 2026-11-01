@@ -25,6 +25,7 @@ applies its change to the stored copy, never to one read earlier.
 import datetime as dt
 import hashlib
 from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 import json
 import re
@@ -36,6 +37,7 @@ from fastapi_pagination import Page
 from loguru import logger
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import EmailStr
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy import (
     Text,
     and_,
@@ -337,19 +339,23 @@ class PostgresFormResponseRepository(RecordRepository):
         self._workspace_forms = workspace_form_repo  # PostgresWorkspaceFormRepository
 
     # -- erasure of answers that were offered as options --------------------
-    _options_noted = 0
+    # Per task, not per repository: a delete runs ``_delete_recorded`` and then
+    # ``_prune_tombstones_if_due`` in one task, and another delete running at
+    # the same time (the repository is shared) must not see or clear its count.
+    _options_noted: ContextVar[int] = ContextVar("options_noted", default=0)
 
     async def _delete_recorded(self, session, row, *where):
         if row is FormResponseRow:
-            self._options_noted += await self._note_erased_options(session, where)
+            noted = await self._note_erased_options(session, where)
+            self._options_noted.set(self._options_noted.get() + noted)
         return await super()._delete_recorded(session, row, *where)
 
     async def _prune_tombstones_if_due(self, row):
         await super()._prune_tombstones_if_due(row)
-        if row is FormResponseRow and self._options_noted > 0:
+        if row is FormResponseRow and self._options_noted.get() > 0:
             # a delete that noted erased options committed: start redacting
             # the choices made from them (the jobs worker repeats it)
-            self._options_noted = 0
+            self._options_noted.set(0)
             try:
                 from backend.app.container import container
 
@@ -391,49 +397,60 @@ class PostgresFormResponseRepository(RecordRepository):
         from backend.app.services.option_sources.ids import NoIdKey
         from backend.db.models import OptionSourceErasureRow
 
-        found: Dict[Tuple[str, str, str], Set[str]] = {}
+        # the versions the responses were filled on (reads), then the decryption
+        # and hashing of every answer off the event loop (a large delete)
         versions: Dict[Tuple[str, Any], Any] = {}
-        unreadable = 0
+        documents = []
         for raw in stored:
             document = decode(FormResponseDocument, raw)
-            workspace_id, form_id = document.workspace_id, str(document.form_id)
             if not document.shared_as_choices:
                 continue
-            try:
-                if workspace_id is None:
-                    raise ValueError("no workspace")
-                answers = document.answers
-                if not isinstance(answers, dict):
-                    answers = json.loads(
-                        crypto_service.decrypt(
-                            workspace_id=workspace_id,
-                            form_id=form_id,
-                            data=answers,
-                        )
-                    )
-                key = (form_id, document.form_version)
-                if key not in versions:
+            key = (str(document.form_id), document.form_version)
+            if key not in versions:
+                try:
                     versions[key] = await self._filled_version(
-                        form_id, document.form_version
+                        key[0], document.form_version
                     )
-                if versions[key] is None:
-                    raise ValueError("no form")
-                offered = erasure.offered_option_ids(
-                    workspace_id,
-                    form_id,
-                    versions[key],
-                    answers,
-                    document.shared_as_choices,
-                )
-            except NoIdKey:
-                raise
-            except Exception:  # noqa: BLE001 - one response never blocks an erasure
-                unreadable += 1
-                continue
-            for question_id, option_ids in offered.items():
-                found.setdefault((str(workspace_id), form_id, question_id), set()).update(
-                    option_ids
-                )
+                except Exception:  # noqa: BLE001 - one response never blocks an erasure
+                    versions[key] = None
+            documents.append((document, versions[key]))
+
+        def offered_by(items):
+            found: Dict[Tuple[str, str, str], Set[str]] = {}
+            unreadable = 0
+            for document, version in items:
+                workspace_id, form_id = document.workspace_id, str(document.form_id)
+                try:
+                    if workspace_id is None or version is None:
+                        raise ValueError("no workspace or form")
+                    answers = document.answers
+                    if not isinstance(answers, dict):
+                        answers = json.loads(
+                            crypto_service.decrypt(
+                                workspace_id=workspace_id,
+                                form_id=form_id,
+                                data=answers,
+                            )
+                        )
+                    offered = erasure.offered_option_ids(
+                        workspace_id,
+                        form_id,
+                        version,
+                        answers,
+                        document.shared_as_choices,
+                    )
+                except NoIdKey:
+                    raise
+                except Exception:  # noqa: BLE001 - one response never blocks an erasure
+                    unreadable += 1
+                    continue
+                for question_id, option_ids in offered.items():
+                    found.setdefault(
+                        (str(workspace_id), form_id, question_id), set()
+                    ).update(option_ids)
+            return found, unreadable
+
+        found, unreadable = await run_in_threadpool(offered_by, documents)
         for (workspace_id, form_id, question_id), option_ids in found.items():
             note = OptionSourceErasureDocument(
                 workspace_id=workspace_id,

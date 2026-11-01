@@ -80,6 +80,9 @@ from backend.app.services.option_sources import share_token as share_notice_toke
 from backend.app.services.option_sources.checks import (
     shared_ids as shared_question_ids,
 )
+from backend.app.services.option_sources.share_token import (
+    MAX_TOKEN_LENGTH as SHARE_TOKEN_MAX_LENGTH,
+)
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_service import (
     get_logged_user,
@@ -679,7 +682,9 @@ class WorkspaceFormsRouter(Routable):
         file_ids: list[str] = Form(None),
         response: str = Form(None),
         ai_notice_token: Optional[str] = Form(None),
-        share_notice_token: Optional[str] = Form(None, max_length=4096),
+        share_notice_token: Optional[str] = Form(
+            None, max_length=SHARE_TOKEN_MAX_LENGTH
+        ),
         # the respondent's local date (YYYY-MM-DD) their calculations used
         today: Optional[str] = Form(None),
         # the edit key or magic-link token of the draft this submission

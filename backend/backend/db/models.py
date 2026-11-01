@@ -656,7 +656,7 @@ class WorkspaceOptionListRow(Base, BaseRow):
     workspace_id = S.text("workspace_id")
     name_key = S.text("name_key")
     __table_args__ = (
-        # a list name once per workspace (revision 0029)
+        # a list name once per workspace (revision 0031)
         Index("uq_workspace_option_lists_name", "workspace_id", "name_key", unique=True),
     )
 

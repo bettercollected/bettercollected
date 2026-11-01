@@ -776,45 +776,57 @@ class PostgresFormRepository(RecordRepository):
             order_by=(FormVersionRow.version.desc(), FormVersionRow.id),
         )
 
-    async def documents_naming_source(self, source_form_id: str, limit: int = 500):
+    async def documents_naming_source(
+        self, source_form_id: str, workspace_id=None, page_size: int = 500
+    ):
         """The drafts and published versions whose document names the form
         ``source_form_id`` as the source of some question's options
         (``"formId": "<id>"``; a coarse text match, the caller checks the
-        structure). Used to find the forms that consume a form's answers."""
+        structure), of the forms in ``workspace_id`` (every workspace when
+        None). Used to find the forms that consume a form's answers. Pages
+        through every match (``page_size`` at a time, by row id): none is
+        skipped, however many forms there are."""
         safe = "".join(c for c in str(source_form_id) if c in "0123456789abcdef")
         # properties are stored camelCase (the snake_case spelling too)
         needles = ['"formId": "%s"' % safe, '"form_id": "%s"' % safe]
+
+        async def collect(session, row):
+            found = []
+            after = None
+            while True:
+                where = [
+                    or_(
+                        *(
+                            cast(row.doc, Text).contains(n, autoescape=True)
+                            for n in needles
+                        )
+                    )
+                ]
+                if workspace_id is not None:
+                    where.append(
+                        exists().where(
+                            WorkspaceFormRow.form_id == row.form_id,
+                            WorkspaceFormRow.workspace_id == str(workspace_id),
+                        )
+                    )
+                if after is not None:
+                    where.append(row.id > after)
+                page = (
+                    await session.execute(
+                        select(row.id, row.doc)
+                        .where(*where)
+                        .order_by(row.id)
+                        .limit(page_size)
+                    )
+                ).all()
+                found.extend(doc for _, doc in page)
+                if len(page) < page_size:
+                    return found
+                after = page[-1][0]
+
         async with self._session() as session:
-            drafts = (
-                await session.execute(
-                    select(FormRow.doc)
-                    .where(
-                        or_(
-                            *(
-                                cast(FormRow.doc, Text).contains(n, autoescape=True)
-                                for n in needles
-                            )
-                        )
-                    )
-                    .limit(limit)
-                )
-            ).scalars().all()
-            versions = (
-                await session.execute(
-                    select(FormVersionRow.doc)
-                    .where(
-                        or_(
-                            *(
-                                cast(FormVersionRow.doc, Text).contains(
-                                    n, autoescape=True
-                                )
-                                for n in needles
-                            )
-                        )
-                    )
-                    .limit(limit)
-                )
-            ).scalars().all()
+            drafts = await collect(session, FormRow)
+            versions = await collect(session, FormVersionRow)
         return (
             [decode(FormDocument, d) for d in drafts],
             [decode(FormVersionsDocument, d) for d in versions],
