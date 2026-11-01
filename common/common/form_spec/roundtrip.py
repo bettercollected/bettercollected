@@ -55,6 +55,7 @@ PAGE_PROPERTIES = frozenset(
         "show_question_numbers",
         "position",
         "jumps",
+        "containers",
         "fields",
     }
 )

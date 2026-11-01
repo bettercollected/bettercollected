@@ -30,6 +30,7 @@ import { useNavbarState } from '@app/store/jotai/navbar';
 import { fieldHasLogic } from '@app/utils/conditional-logic';
 import { locateField } from '@app/utils/form-outline';
 import { leafletMarginWidth, leafletSection, pageSectionTitle, questionNumbers } from '@app/utils/leaflet-sections';
+import { canvasBlocks, containerOfField } from '@app/utils/layout-containers';
 import { ownTitleText } from '@app/utils/publish-checks';
 import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
 import CanvasInsertMenu from '@app/views/molecules/form-builder/canvas-insert-menu';
@@ -42,6 +43,7 @@ import { actionInk, leafletColours, styleTokens } from '@app/views/molecules/the
 import { RichTextEditor } from '../../molecules/rich-text-editor';
 import { FORM_COLUMN, clampSpan, columnPlacementClass, fieldSpacingClass } from '../layout/form-column';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
+import LayoutContainerFrame from './layout-container-frame';
 import FieldDescription, { FieldDescriptionHints } from './fields/field-description';
 import renderFieldWrapper from './fields/render-field';
 
@@ -215,8 +217,10 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
     const { duplicateField, getFormFields } = useBuilderActions();
     const { deleteQuestion } = useUndoableDelete();
     // A copy of a time, day or currency question is a new one: not while the server does not take them.
-    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
-    const cannotCopy = typeIsOff(field?.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled });
+    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, layoutContainersEnabled } = useWorkspacePermissions();
+    // a question inside a layout container cannot be copied while the server does not take containers (the copy joins it)
+    const copyBlockedByLayout = !layoutContainersEnabled && !!field && !!containerOfField(slide, field.id);
+    const cannotCopy = copyBlockedByLayout || typeIsOff(field?.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled });
     // The toolbar acts on the question where it is now, found by id.
     const locate = () => (field ? locateField(getFormFields(), field.id) : null);
     if (!field) return null;
@@ -289,7 +293,7 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                                 type="button"
                                 aria-label="Duplicate question"
                                 aria-keyshortcuts="Control+D Meta+D"
-                                title={cannotCopy ? i18n.t('builder:NEW_TYPES.CANNOT_COPY') : 'Duplicate question (Ctrl/Cmd+D)'}
+                                title={copyBlockedByLayout ? i18n.t('builder:LAYOUT.CANNOT_COPY_QUESTION') : cannotCopy ? i18n.t('builder:NEW_TYPES.CANNOT_COPY') : 'Duplicate question (Ctrl/Cmd+D)'}
                                 disabled={cannotCopy}
                                 className="p-2 text-black-700 hover:bg-black-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                                 onClick={(event) => {
@@ -421,6 +425,31 @@ const SlideBuilder = ({ pageId, slide: given, isScaledDown = false, disabled = f
     const sectionNumber = (slide?.index ?? 0) + 1;
     const marginVar = leaflet ? ({ ['--leaflet-margin' as string]: `${leafletMarginWidth(numbers, sectionNumber)}px` } as React.CSSProperties) : undefined;
     const slideIn = !!navbarState.insertClicked && activeSlideComponent?.id === slide.id;
+    // One question on the canvas (alone or inside a layout container's frame).
+    const renderField = (fieldId: string) => {
+        const index = fieldIds.indexOf(fieldId);
+        return openingId && fieldId === openingId ? null : (
+            <CanvasField
+                key={fieldId}
+                fieldId={fieldId}
+                field={givenById.get(fieldId)}
+                slide={slide}
+                index={index}
+                isLast={index === fieldIds.length - 1}
+                disabled={disabled}
+                isScaledDown={isScaledDown}
+                editable={editable}
+                active={activeFieldComponent?.id === fieldId}
+                slideIn={slideIn}
+                number={numbers[fieldId]}
+                plainNumber={plainNumbers[fieldId]}
+                mark={proposalMarks[fieldId] as keyof typeof PROPOSAL_MARK | undefined}
+                numberInk={numberInk}
+                primary={theme?.primary}
+                plainLanguage={plainLanguage}
+            />
+        );
+    };
 
     return (
         <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined} topAligned={leaflet} logo={logo}>
@@ -467,27 +496,14 @@ const SlideBuilder = ({ pageId, slide: given, isScaledDown = false, disabled = f
                 >
                     <AnimatePresence>
                         {fieldIds.length ? (
-                            fieldIds.map((fieldId, index) =>
-                                openingId && fieldId === openingId ? null : (
-                                    <CanvasField
-                                        key={fieldId}
-                                        fieldId={fieldId}
-                                        field={givenById.get(fieldId)}
-                                        slide={slide}
-                                        index={index}
-                                        isLast={index === fieldIds.length - 1}
-                                        disabled={disabled}
-                                        isScaledDown={isScaledDown}
-                                        editable={editable}
-                                        active={activeFieldComponent?.id === fieldId}
-                                        slideIn={slideIn}
-                                        number={numbers[fieldId]}
-                                        plainNumber={plainNumbers[fieldId]}
-                                        mark={proposalMarks[fieldId] as keyof typeof PROPOSAL_MARK | undefined}
-                                        numberInk={numberInk}
-                                        primary={theme?.primary}
-                                        plainLanguage={plainLanguage}
-                                    />
+                            canvasBlocks(fieldIds, slide.properties?.containers).map((block) =>
+                                block.kind === 'field' ? (
+                                    renderField(block.id)
+                                ) : (
+                                    // a layout container: a frame around its questions, the page's full width
+                                    <div key={block.container.id} className="min-w-0 @min-[448px]/page:col-span-12">
+                                        <LayoutContainerFrame page={slide} container={block.container} members={block.ids} editable={editable} renderMembers={(ids) => ids.map(renderField)} />
+                                    </div>
                                 )
                             )
                         ) : !disabled && !isScaledDown ? (

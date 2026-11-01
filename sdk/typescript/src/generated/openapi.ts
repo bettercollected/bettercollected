@@ -305,6 +305,48 @@ export interface components {
             /** Childfieldtype */
             childFieldType?: string | null;
         };
+        /**
+         * Container
+         * @description A layout container on a page: ``panel`` (a titled group that opens and
+         *     closes; ``collapsed``: closed when the page opens), ``fieldset`` (a
+         *     bordered group with a legend) or ``tabs`` (a strip of ``tabs``, no title
+         *     of its own). A panel and a field set list their questions in ``fields``;
+         *     the questions of one container are next to each other on the page, in the
+         *     order given, and are questions of the page itself (never a repeating
+         *     group's children). ``logic`` shows or hides the whole container. Layout
+         *     only: answers, logic, rules and exports see the questions as before.
+         */
+        Container: {
+            /** Id */
+            id: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "panel" | "fieldset" | "tabs";
+            /** Title */
+            title?: string | null;
+            /** Collapsed */
+            collapsed?: boolean | null;
+            logic?: components["schemas"]["Logic"] | null;
+            /** Fields */
+            fields?: string[] | null;
+            /** Tabs */
+            tabs?: components["schemas"]["ContainerTab"][] | null;
+        };
+        /**
+         * ContainerTab
+         * @description One tab of a ``tabs`` container: its title and its questions (ids, in
+         *     page order). A tab may be empty.
+         */
+        ContainerTab: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Fields */
+            fields?: string[];
+        };
         /** CreatedForm */
         CreatedForm: {
             /** Formid */
@@ -744,6 +786,11 @@ export interface components {
             position?: components["schemas"]["Position"] | null;
             /** Jumps */
             jumps?: components["schemas"]["PageJump"][] | null;
+            /**
+             * Containers
+             * @description Panels, field sets and tabs that group questions of this page.
+             */
+            containers?: components["schemas"]["Container"][] | null;
             /** Fields */
             fields?: components["schemas"]["FormField"][];
         };

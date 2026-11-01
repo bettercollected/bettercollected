@@ -16,7 +16,10 @@ Where the respondent form shows each role, and what it must reach:
   and still have readable answers;
 - ``secondary`` (buttons): white button text 4.5:1 on it, and 3:1 on the page
   for the chosen answer, icons and progress;
-- ``tertiary`` (input borders): 3:1 on the page.
+- ``tertiary`` (input borders): 3:1 on the page;
+- the muted labels beside a question ("Optional", "Read only"): the colour
+  ``muted_label_ink`` derives (the questions' ink softened towards the page,
+  else the ink), 4.5:1 on the page, measured as ``text``.
 
 An outlined button (``buttonStyle`` ``outlined``) is not white text on the
 button colour: its text and 2px edge are its *ink* (``outlined_button_ink``:
@@ -192,6 +195,49 @@ def outlined_button_ink(theme: Any) -> str:
     return primary if is_hex_colour(primary) else DEFAULT_INK
 
 
+# How much of the questions' ink the muted labels keep (the rest is the page).
+MUTED_LABEL_WEIGHT = 0.82
+
+
+def muted_label_ink(theme: Any) -> str:
+    """The colour of the small muted labels beside a question ("Optional",
+    "Read only"): the questions' ink softened 18% towards the page, where that
+    still reads at 4.5:1 on every ground the page puts behind it, else the ink
+    itself. Where even the ink does not read (a stored theme whose ``text``
+    check fails), black or white, whichever reads better: never worse than the
+    ink. Derived from the theme, so a dark custom page gets a light label
+    instead of a fixed dark grey. An image page has no measurable ground: the
+    ink. The webapp's ``mutedLabelInk`` (utils/theme-contrast.ts) is the same;
+    the ``muted`` section of docs/spec/theme-contrast.cases.json holds the
+    shared cases."""
+    primary = _get(theme, "primary")
+    ink = primary if is_hex_colour(primary) else DEFAULT_INK
+    accent = _get(theme, "accent")
+    if not is_hex_colour(accent):
+        return ink
+    grounds = _page_grounds(_plain(theme))
+    if not grounds:
+        return ink
+
+    def lowest(colour: str) -> float:
+        # a colour that is not hex counts as 1:1, as in the checks
+        return min(
+            1.0 if math.isnan(raw := contrast(colour, ground)) else raw
+            for ground in grounds
+        )
+
+    softened = mix_colours(ink, accent, MUTED_LABEL_WEIGHT)
+    if lowest(softened) >= AA_TEXT:
+        return softened
+    if lowest(ink) >= AA_TEXT:
+        return ink
+    best = ink
+    for candidate in (BLACK, WHITE):
+        if lowest(candidate) > lowest(best):
+            best = candidate
+    return best
+
+
 def input_text_colour(theme: Any) -> Any:
     """The colour of the answers in the input boxes: the theme's ``inputText``,
     else its questions' colour (``primary``), as the respondent form draws
@@ -241,6 +287,8 @@ def _failures(theme: Dict[str, Any], grounds: List[str]) -> List[ContrastIssue]:
         (key, input_text_colour(theme), ground, minimum)
         for key, ground, minimum in rules[INPUT_ROLE]
     ]
+    # the muted labels beside a question, measured as questions are
+    checks += [(TEXT, muted_label_ink(theme), ground, AA_TEXT) for ground in grounds]
     if outlined:
         checks += _outlined_rules(theme, grounds)
     worst: Dict[str, ContrastIssue] = {}

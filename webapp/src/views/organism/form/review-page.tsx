@@ -18,9 +18,8 @@ import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { pageInvalidations } from '@app/utils/page-validation';
-import { parseScopedFieldId } from '@app/utils/repeating-groups';
 import { AlsoSentRow, ReviewQuestion, ReviewRow, ReviewSection, alsoSentRows, pathPages, reviewProblems, reviewSections } from '@app/utils/review-page';
-import { focusQuestionInGroup, scrollToDivById } from '@app/utils/scroll-utils';
+import useFocusProblem from './focus-problem';
 import { actionText } from '@app/utils/theme-contrast';
 import BackButton from '@app/views/molecules/form-builder/back-button';
 import { formButtonStyle } from '@app/views/molecules/theme/theme-root';
@@ -47,6 +46,7 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
     const { t, language } = useRespondentLanguage();
     const contentLang = useFormContentLanguage();
     const standardForm = useAppSelector(selectResponderForm);
+    const focusProblem = useFocusProblem();
     const { responderState, previousSlide, editFromReview } = useResponderState();
     const { formResponse, setInvalidFields } = useFormResponse();
     const { hiddenValues } = useHiddenFieldValues();
@@ -88,10 +88,7 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
         const target = key ?? Object.keys(invalid)[0];
         // after the page has changed, as a page's own validation does
         if (target)
-            setTimeout(() => {
-                if (parseScopedFieldId(target)) focusQuestionInGroup(target);
-                else scrollToDivById(target, undefined, { focusControl: true });
-            }, 600);
+            setTimeout(() => focusProblem(standardForm?.fields?.[slideIndex], target), 600);
     };
 
     const onSubmit = () => {
@@ -190,13 +187,33 @@ function ReviewSectionView({
                     {t('REVIEW.EDIT')} <span className="sr-only">{name}</span>
                 </button>
             </div>
-            <dl className="flex flex-col">
-                {section.questions.map((question) => (
-                    <QuestionView key={question.key} question={question} ink={ink} quiet={quiet} edge={edge} link={link} contentLang={contentLang} onFix={onFix} />
-                ))}
-            </dl>
+            {/* flat, in page order; a layout container's (or tab's) title heads its questions */}
+            {runsOf(section.questions).map((run) => (
+                <div key={run.questions[0].key}>
+                    {run.heading && (
+                        <h3 className="mt-5 text-[16px] leading-snug font-semibold [overflow-wrap:anywhere]" style={{ color: ink, ...serif }} lang={contentLang}>
+                            {run.heading}
+                        </h3>
+                    )}
+                    <dl className="flex flex-col">
+                        {run.questions.map((question) => (
+                            <QuestionView key={question.key} question={question} ink={ink} quiet={quiet} edge={edge} link={link} contentLang={contentLang} onFix={onFix} />
+                        ))}
+                    </dl>
+                </div>
+            ))}
         </section>
     );
+}
+
+/** The section's questions in runs: a run starts where a layout container's (or tab's) title heads questions, or where they stop being under one. */
+function runsOf(questions: ReviewQuestion[]): Array<{ heading?: string | null; questions: ReviewQuestion[] }> {
+    const runs: Array<{ heading?: string | null; questions: ReviewQuestion[] }> = [];
+    for (const question of questions) {
+        if (!runs.length || question.heading !== undefined) runs.push({ heading: question.heading, questions: [question] });
+        else runs[runs.length - 1].questions.push(question);
+    }
+    return runs;
 }
 
 const PROBLEM_INK = '#B42318';

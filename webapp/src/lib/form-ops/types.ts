@@ -293,6 +293,30 @@ export interface SetPageJumpsOp {
     jumps?: PageJumpSpec[] | null;
 }
 
+export interface ContainerTabSpec {
+    id?: string | null;
+    title: string;
+    fields?: string[];
+}
+
+/** A layout container: a panel or field set lists its questions in `fields`, tabs in `tabs` (backend ContainerSpec). */
+export interface ContainerSpec {
+    id?: string | null;
+    type: 'panel' | 'fieldset' | 'tabs';
+    title?: string | null;
+    collapsed?: boolean | null;
+    logic?: FieldLogicSpec | null;
+    fields?: string[] | null;
+    tabs?: ContainerTabSpec[] | null;
+}
+
+/** Replace the layout containers of a page (null or [] removes them; the questions stay). */
+export interface SetPageContainersOp {
+    op: 'set_page_containers';
+    pageId: string;
+    containers?: ContainerSpec[] | null;
+}
+
 export interface DuplicatePageOp {
     op: 'duplicate_page';
     pageId: string;
@@ -501,6 +525,7 @@ export type AiFormOp =
     | SetOptionFilterOp
     | SetFieldRulesOp
     | SetPageJumpsOp
+    | SetPageContainersOp
     | DuplicatePageOp
     | UpdateThemeOp
     | SetThemePresetOp
@@ -587,6 +612,13 @@ export interface ApplyOptions {
      * or changes the type of one the form did not have.
      */
     signatureQuestion?: boolean;
+    /**
+     * The server's LAYOUT_CONTAINERS_ENABLED switch for panels, tabs and field
+     * sets, the same way: default true; false refuses an op that adds a
+     * container, changes one or puts a question into one (taking questions out
+     * of one, or removing it, is fine).
+     */
+    layoutContainers?: boolean;
     /**
      * The batch comes from the form editor (default). False applies the
      * rules for everyone else (AI, API): editor ops are refused and titles

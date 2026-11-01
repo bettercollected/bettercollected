@@ -293,7 +293,31 @@ def _page_to_spec(page: StandardFormField) -> Dict[str, Any]:
             if p and p.jumps is not None
             else None
         ),
+        "containers": (
+            [_container_to_spec(c) for c in p.containers]
+            if p and p.containers is not None
+            else None
+        ),
         "fields": [_field_to_spec(f) for f in (p.fields if p else None) or []],
+    }
+
+
+def _container_to_spec(container) -> Dict[str, Any]:
+    return {
+        "id": container.id,
+        "type": container.type,
+        "title": container.title,
+        "collapsed": container.collapsed,
+        "logic": _logic_to_spec(container.logic),
+        "fields": list(container.fields) if container.fields is not None else None,
+        "tabs": (
+            [
+                {"id": tab.id, "title": tab.title, "fields": list(tab.fields)}
+                for tab in container.tabs
+            ]
+            if container.tabs is not None
+            else None
+        ),
     }
 
 
@@ -596,8 +620,32 @@ def _page_from_spec(page, index: int) -> Dict[str, Any]:
                 if page.jumps is not None
                 else None
             ),
+            "containers": (
+                [_container_from_spec(c) for c in page.containers]
+                if page.containers is not None
+                else None
+            ),
             "fields": [_field_from_spec(f, i) for i, f in enumerate(page.fields)],
         },
+    }
+
+
+def _container_from_spec(container) -> Dict[str, Any]:
+    return {
+        "id": container.id,
+        "type": container.type,
+        "title": container.title,
+        "collapsed": container.collapsed,
+        "logic": _logic_from_spec(container.logic),
+        "fields": list(container.fields) if container.fields is not None else None,
+        "tabs": (
+            [
+                {"id": tab.id, "title": tab.title, "fields": list(tab.fields)}
+                for tab in container.tabs
+            ]
+            if container.tabs is not None
+            else None
+        ),
     }
 
 

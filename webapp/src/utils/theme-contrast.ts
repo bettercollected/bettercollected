@@ -107,6 +107,7 @@ export function themeContrastChecks(theme: ThemeColours & Partial<Pick<FormTheme
             : [{ key: 'button', kind: 'role' as const, label: 'White text on buttons', foreground: '#FFFFFF', background: theme.secondary, minimum: AA_TEXT }]),
         { key: 'border', kind: 'role', label: 'Input borders on the background', foreground: theme.tertiary, background: theme.accent, minimum: AA_NON_TEXT },
         { key: 'action', kind: 'role', label: 'Chosen answers, icons and progress on the background', foreground: theme.secondary, background: theme.accent, minimum: AA_NON_TEXT },
+        { key: 'muted-label', kind: 'derived', label: 'Optional and read-only labels on the background', foreground: mutedLabelInk(theme), background: theme.accent, minimum: AA_TEXT },
         { key: 'action-text', kind: 'derived', label: 'Text in the button colour on the background', foreground: actionText(theme), background: theme.accent, minimum: AA_TEXT },
         { key: 'action-text-on-white', kind: 'derived', label: 'Links in the button colour on white cards', foreground: actionTextOn(theme, '#FFFFFF'), background: '#FFFFFF', minimum: AA_TEXT },
         { key: 'calendar-day', kind: 'derived', label: 'Date picker: month name and days', foreground: calendar.day, background: calendar.background, minimum: AA_TEXT },
@@ -193,6 +194,35 @@ export function inputTextColour(theme: Partial<Pick<FormTheme, 'primary' | 'inpu
     return isHexColour(theme.inputText) ? theme.inputText : (theme.primary as string);
 }
 
+/** How much of the questions' ink the muted labels keep (the rest is the page colour). */
+const MUTED_LABEL_WEIGHT = 0.82;
+
+/**
+ * The colour of the small muted labels beside a question ("Optional", "Read
+ * only"): the questions' ink softened 18% towards the page, where that still
+ * reads at 4.5:1 on every ground the page puts behind it, else the ink itself.
+ * Where even the ink does not read (a stored theme whose `text` check fails),
+ * black or white, whichever reads better: never worse than the ink. Derived
+ * from the theme, so a dark custom page gets a light label instead of a fixed
+ * dark grey. An image page has no measurable ground: the ink. The server's
+ * `muted_label_ink` (services/theme_contrast.py) is the same;
+ * docs/spec/theme-contrast.cases.json (`muted`) holds the shared cases.
+ */
+export function mutedLabelInk(theme?: Partial<FormTheme> | null): string {
+    const ink = isHexColour(theme?.primary) ? theme!.primary : DEFAULT_INK;
+    if (!isHexColour(theme?.accent)) return ink;
+    const grounds = pageGrounds(theme as GuardedTheme);
+    if (grounds.length === 0) return ink;
+    // the lowest ratio over the grounds (a colour that is not hex counts as 1:1, as in the checks)
+    const lowest = (colour: string) => Math.min(...grounds.map((ground) => (Number.isNaN(contrast(colour, ground)) ? 1 : contrast(colour, ground))));
+    const softened = mixColours(ink, theme!.accent, MUTED_LABEL_WEIGHT);
+    if (lowest(softened) >= AA_TEXT) return softened;
+    if (lowest(ink) >= AA_TEXT) return ink;
+    let best = ink;
+    for (const candidate of [BLACK, WHITE]) if (lowest(candidate) > lowest(best)) best = candidate;
+    return best;
+}
+
 /**
  * What each role must reach, and on what (one list per role the creator
  * picks). An outlined button has no white text on the button colour: its
@@ -230,6 +260,8 @@ function failures(theme: GuardedTheme, grounds: string[]): ContrastIssue[] {
     const checks = [
         ...(['primary', 'secondary', 'tertiary'] as const).flatMap((role) => rules[role].map((rule) => ({ ...rule, colour: theme[role] }))),
         ...rules.input.map((rule) => ({ ...rule, colour: inputTextColour(theme) })),
+        // the muted labels beside a question, measured as questions are (4.5:1 on the page)
+        ...grounds.map((ground) => ({ key: 'text' as ContrastIssueKey, ground, minimum: AA_TEXT, colour: mutedLabelInk(theme) })),
         ...(outlined ? outlinedRules(theme, grounds) : [])
     ];
     const worst = new Map<ContrastIssueKey, ContrastIssue>();

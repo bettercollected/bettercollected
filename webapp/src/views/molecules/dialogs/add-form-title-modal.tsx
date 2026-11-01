@@ -41,7 +41,7 @@ export default function AddFormTitleModal() {
         >
             <div className="p2-new border-b-black-300 border-b p-4 ">Create New Form</div>
             <div className="px-10 py-6">
-                <div className="tex-black-800 text-normal font-semibold">Give name to your form</div>
+                <div className="text-black-800 text-normal font-semibold">Give name to your form</div>
                 <div className="text-black-700 mb-2 text-xs">You can always change it later.</div>
                 <Input
                     type="text"
