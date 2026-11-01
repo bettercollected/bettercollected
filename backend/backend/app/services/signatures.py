@@ -116,6 +116,8 @@ SEALED_MAX_BYTES = STORED_MAX_BYTES + 256
 # A signed-in user may fetch this many drawn images a minute (one response page
 # shows one or a few).
 READS_PER_MINUTE = 60
+# The image route's answers, errors included, are never kept by a cache.
+NO_STORE = {"Cache-Control": "no-store"}
 
 
 def image_context(response_id: Any, field_id: Any, file_id: Any) -> bytes:
@@ -203,7 +205,7 @@ async def read_throttle(user_id: Any) -> None:
         raise HTTPException(
             status_code=HTTPStatus.TOO_MANY_REQUESTS,
             content={"code": "rate_limited", "message": "Too many requests; try again later."},
-            headers={"Retry-After": str(verdict.retry_after)},
+            headers={"Retry-After": str(verdict.retry_after), **NO_STORE},
         )
 
 

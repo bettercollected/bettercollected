@@ -16,6 +16,7 @@ from common.models.standard_form import (
 from common.models.user import User
 from common.services.crypto_service import UnreadableCiphertext, crypto_service
 from fastapi_pagination import Page, Params
+from botocore.exceptions import BotoCoreError
 from loguru import logger
 from starlette.concurrency import run_in_threadpool
 
@@ -63,6 +64,7 @@ from backend.app.services import response_cursor
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.response_paging import PageTooDeep
 from backend.app.services.signatures import (
+    NO_STORE,
     SEALED_MAX_BYTES,
     open_image,
     signature_image_path,
@@ -646,7 +648,9 @@ class FormResponseService:
         Anything that is not there or not the caller's is the same 404, staff
         without the permission included, so the route says nothing about which
         responses or questions exist."""
-        not_found = HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        not_found = HTTPException(
+            HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND, headers=dict(NO_STORE)
+        )
         permissions = await self._authorization.effective_permissions(
             user, workspace_id
         )
@@ -690,6 +694,15 @@ class FormResponseService:
                 self._aws_service.read_object, key, SEALED_MAX_BYTES
             )
         except ValueError:
+            stored = None
+        except (BotoCoreError, OSError) as error:
+            # the store could not be reached (endpoint, connection, timeout):
+            # the same 404 as a missing object; ids and the error's type only
+            logger.warning(
+                "response {}: the store could not be read for a signature image ({})",
+                response.response_id,
+                type(error).__name__,
+            )
             stored = None
         image = (
             open_image(

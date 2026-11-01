@@ -7,10 +7,12 @@ the headers of an image that is never cached, sniffed or run."""
 import json
 
 import pytest
+from botocore.exceptions import ConnectTimeoutError, EndpointConnectionError
 
 from backend.app.container import container
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
+from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services import signatures
 from common.models.user import User
 from common.ids import RecordId
@@ -237,8 +239,8 @@ async def test_the_respondent_reads_their_own_signature_and_nobody_elses(
     assert submitted.status_code == 200, submitted.text
     response_id = await _response_id(workspace, form_id)
     document = await container.form_response_repo().get_response(response_id)
-    if document.dataOwnerIdentifier != testUser2.sub and not document.anonymous_identity:
-        pytest.skip("the form does not attribute submissions to the signed-in user")
+    # the submission is attributed to its signed-in respondent (never a skip)
+    assert document.dataOwnerIdentifier == testUser2.sub
     own = await client.get(_route(workspace, response_id), cookies=_cookies(testUser2))
     assert own.status_code == 200 and own.content.startswith(b"\x89PNG")
     other = await client.get(_route(workspace, response_id), cookies=_cookies(testUser1))
@@ -255,3 +257,139 @@ async def test_the_route_is_rate_limited_per_user(
         for _ in range(3)
     ]
     assert codes == [200, 200, 429]
+
+
+# --- more ways to be (not) allowed -------------------------------------------------------
+
+
+async def test_a_form_shared_into_another_workspace_does_not_share_the_image(
+    client, workspace, workspace_1, signed_form, store, test_user_cookies, test_user_cookies_1
+):
+    form_id = signed_form.form_id
+    response_id = await _drawn_response(client, workspace, form_id)
+    # the same form is linked to workspace B too (a provider form imported twice)
+    await container.workspace_form_repo().save(
+        WorkspaceFormDocument(workspace_id=workspace_1.id, form_id=form_id, user_id=testUser1.id)
+    )
+    # B's owner reads nothing of A's response, however the path is spelled
+    for ws in (workspace_1, workspace):
+        got = await client.get(_route(ws, response_id), cookies=test_user_cookies_1)
+        assert got.status_code == 404, ws.id
+        assert not got.content.startswith(b"\x89PNG")
+    # A's copy is read in A, and only in A
+    assert (await client.get(_route(workspace, response_id), cookies=test_user_cookies)).status_code == 200
+    assert (await client.get(_route(workspace_1, response_id), cookies=test_user_cookies)).status_code == 404
+
+
+async def test_an_anonymous_response_is_readable_by_its_respondent_only(
+    client, workspace, signed_form, store, test_user_cookies
+):
+    form_id = signed_form.form_id
+    data = {
+        "response": json.dumps({"anonymize": True, "answers": _answers(method="drawn", file_id="img-1")}),
+        "file_field_ids": ["sig"],
+        "file_ids": ["img-1"],
+    }
+    submitted = await client.post(
+        f"{_url(workspace, form_id)}/response",
+        data=data,
+        files=[("files", ("signature.png", _png(), "image/png"))],
+        cookies=_cookies(testUser2),
+    )
+    assert submitted.status_code == 200, submitted.text
+    response_id = await _response_id(workspace, form_id)
+    document = await container.form_response_repo().get_response(response_id)
+    # no identity is stored, only the one-way hash the respondent finds it by
+    assert document.dataOwnerIdentifier is None and document.anonymous_identity
+    own = await client.get(_route(workspace, response_id), cookies=_cookies(testUser2))
+    assert own.status_code == 200 and own.content.startswith(b"\x89PNG")
+    assert (await client.get(_route(workspace, response_id), cookies=_cookies(testUser1))).status_code == 404
+    # staff with response.read still read it, as they read the response
+    assert (await client.get(_route(workspace, response_id), cookies=test_user_cookies)).status_code == 200
+
+
+async def test_a_response_with_a_deletion_request_is_readable_until_it_is_deleted(
+    client, workspace, signed_form, store, test_user_cookies
+):
+    form_id = signed_form.form_id
+    response_id = await _drawn_response(client, workspace, form_id)
+    responses = container.form_response_repo()
+    await responses.add_deletion_request(await responses.get_response(response_id), response_id)
+    # staff decide on the request with the response in front of them
+    assert (await client.get(_route(workspace, response_id), cookies=test_user_cookies)).status_code == 200
+    deleted = await client.delete(f"{_url(workspace, form_id)}/response/{response_id}", cookies=test_user_cookies)
+    assert deleted.status_code == 200, deleted.text
+    assert store.objects == {}
+    gone = await client.get(_route(workspace, response_id), cookies=test_user_cookies)
+    assert gone.status_code == 404
+
+
+def _rotated(monkeypatch, drop_old=False):
+    """The cipher after a key was added as the primary (the old key stays),
+    or with only the new key (``drop_old``)."""
+    from common.services.crypto_service import crypto_service
+    from common.services.keyset import CryptoService, add_primary_key, encode_keyset, only_primary
+
+    before = crypto_service.load()
+    keyset = add_primary_key(before.keyset)
+    if drop_old:
+        keyset = only_primary(keyset)
+    after = CryptoService(encode_keyset(keyset))
+    assert after.primary_key_id != before.primary_key_id
+    monkeypatch.setattr(crypto_service, "_service", after)
+    return before.primary_key_id, after.primary_key_id
+
+
+async def test_an_image_sealed_under_an_older_key_is_still_read_after_a_rotation(
+    client, workspace, signed_form, store, test_user_cookies, monkeypatch
+):
+    from common.services.keyset import ciphertext_key_id
+
+    form_id = signed_form.form_id
+    response_id = await _drawn_response(client, workspace, form_id)
+    stored = store.objects[_key(workspace, form_id, response_id)]
+    old_key, new_key = _rotated(monkeypatch)
+    assert ciphertext_key_id(stored) == old_key
+    got = await client.get(_route(workspace, response_id), cookies=test_user_cookies)
+    assert got.status_code == 200 and got.content.startswith(b"\x89PNG")
+    # a new drawing is sealed under the new primary
+    fresh = await _drawn_response(client, workspace, form_id)
+    assert ciphertext_key_id(store.objects[_key(workspace, form_id, fresh)]) == new_key
+    # once the old key is dropped the old image cannot be read (the documented limit)
+    _rotated(monkeypatch, drop_old=True)
+    gone = await client.get(_route(workspace, response_id), cookies=test_user_cookies)
+    assert gone.status_code == 404
+
+
+async def test_the_not_found_and_rate_limited_answers_are_never_cached(
+    client, workspace, signed_form, store, test_user_cookies, monkeypatch
+):
+    response_id = await _drawn_response(client, workspace, signed_form.form_id)
+    missing = await client.get(_route(workspace, "0" * 24), cookies=test_user_cookies)
+    assert missing.status_code == 404 and missing.headers["cache-control"] == "no-store"
+    outsider = await client.get(_route(workspace, response_id), cookies=_cookies(testUser1))
+    assert outsider.status_code == 404 and outsider.headers["cache-control"] == "no-store"
+    monkeypatch.setattr(signatures, "READS_PER_MINUTE", 1)
+    await client.get(_route(workspace, response_id), cookies=test_user_cookies)
+    limited = await client.get(_route(workspace, response_id), cookies=test_user_cookies)
+    assert limited.status_code == 429
+    assert limited.headers["cache-control"] == "no-store" and limited.headers["retry-after"]
+
+
+@pytest.mark.parametrize(
+    "error",
+    [EndpointConnectionError(endpoint_url="http://store.invalid"), ConnectTimeoutError(endpoint_url="http://store.invalid"), ConnectionResetError("reset")],
+)
+async def test_an_unreachable_store_is_the_same_404(
+    client, workspace, signed_form, store, test_user_cookies, monkeypatch, error
+):
+    response_id = await _drawn_response(client, workspace, signed_form.form_id)
+
+    def down(key, max_bytes, bucket=None):
+        raise error
+
+    monkeypatch.setattr(store, "read_object", down)
+    got = await client.get(_route(workspace, response_id), cookies=test_user_cookies)
+    missing = await client.get(_route(workspace, "0" * 24), cookies=test_user_cookies)
+    assert got.status_code == 404 and got.text == missing.text
+    assert got.headers["cache-control"] == "no-store"
