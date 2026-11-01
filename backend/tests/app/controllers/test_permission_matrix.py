@@ -172,6 +172,7 @@ ROLES_WITH: Dict[Permission, FrozenSet[str]] = {
     P.RESPONSE_ANNOTATE: EDITORS | {REVIEWER},
     P.RESPONSE_EXPORT: EDITORS,
     P.RESPONSE_DELETE: EDITORS,
+    P.RESPONSE_EDIT: EDITORS,
     P.PRIVACY_MANAGE: ADMINS | {PRIVACY},
     P.ANALYTICS_READ: MEMBERS,
 }
@@ -924,6 +925,30 @@ CASES = [
         lambda c: {"json": {"answers": {"not-a-field": None}}},
     ),
     Case(
+        "responses.answers.edit",
+        "PATCH",
+        F + "/submissions/{response}/answers",
+        P.RESPONSE_EDIT,
+        lambda c: {"json": {"answers": {}}},
+        switches={"RESPONSE_REVISIONS_ENABLED": True},
+    ),
+    Case(
+        "responses.revisions.list",
+        "GET",
+        F + "/submissions/{response}/revisions",
+        P.RESPONSE_READ,
+        ok=200,
+        switches={"RESPONSE_REVISIONS_ENABLED": True},
+    ),
+    Case(
+        "responses.revisions.values",
+        "GET",
+        F + "/submissions/{response}/revisions/1",
+        P.RESPONSE_READ,
+        ok=404,
+        switches={"RESPONSE_REVISIONS_ENABLED": True},
+    ),
+    Case(
         "responses.feedback",
         "POST",
         F + "/submissions/{response}/feedback",
@@ -1348,7 +1373,7 @@ def test_the_expected_table_is_the_documented_one():
     assert EXPECTED_PERMISSIONS[NO_ROLES] == EXPECTED_PERMISSIONS[EDITOR]
     assert P.PRIVACY_MANAGE not in EXPECTED_PERMISSIONS[EDITOR]
     assert EXPECTED_PERMISSIONS[PRIVACY].isdisjoint(
-        {P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.RESPONSE_EXPORT}
+        {P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.RESPONSE_EXPORT, P.RESPONSE_EDIT}
     )
     for nothing in (UNKNOWN_ROLE, NON_MEMBER, DISABLED):
         assert EXPECTED_PERMISSIONS[nothing] == frozenset()

@@ -23,6 +23,15 @@ import '@app/shared/hocs/i18n-provider';  // the catalogue's English text
 
 // The "server": what the submission endpoint answers for the response asked for.
 const server: { result: any; calls: any[]; refetch: ReturnType<typeof vi.fn> } = { result: {}, calls: [], refetch: vi.fn() };
+vi.mock('@app/store/workspaces/response-revisions-api', async (importOriginal) => {
+    const actual: any = await importOriginal();
+    return {
+        ...actual,
+        useEditResponseAnswersMutation: () => [vi.fn(), { isLoading: false }],
+        useGetResponseRevisionsQuery: () => ({ data: { revisions: [] }, isLoading: false, isError: false, refetch: vi.fn() }),
+        useLazyGetResponseRevisionValuesQuery: () => [vi.fn(), { isFetching: false, isError: false }]
+    };
+});
 vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
@@ -36,9 +45,9 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     };
 });
 
-const access: { permissions: string[]; revisions?: boolean } = { permissions: [] };
+const access: { permissions: string[]; revisions?: boolean; staffRevisions?: boolean } = { permissions: [] };
 vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
-    useWorkspacePermissions: () => ({ can: (permission: string) => access.permissions.includes(permission), permissions: new Set(access.permissions), isLoading: false, ready: true, formRevisionsUiEnabled: !!access.revisions })
+    useWorkspacePermissions: () => ({ can: (permission: string) => access.permissions.includes(permission), permissions: new Set(access.permissions), isLoading: false, ready: true, formRevisionsUiEnabled: !!access.revisions, responseRevisionsEnabled: !!access.staffRevisions })
 }));
 
 const neighbours: { value: { previousId?: string; nextId?: string; position?: number; total?: number }; asked: any[][] } = { value: {}, asked: [] };
@@ -66,6 +75,7 @@ beforeEach(() => {
     server.result = loaded();
     access.permissions = [WorkspacePermission.RESPONSE_READ];
     access.revisions = false;
+    access.staffRevisions = false;
     openModal.mockReset();
     neighbours.value = {};
     neighbours.asked = [];
@@ -138,6 +148,32 @@ describe('the response page', () => {
         access.permissions = [WorkspacePermission.RESPONSE_READ, WorkspacePermission.FORM_READ];
         renderPage();
         expect(within(details()).getByRole('link', { name: 'Open version 3 of the form, read-only' })).toHaveAttribute('href', '/acme/dashboard/forms/form-1/versions/3');
+    });
+
+    it('offers Edit answers and the history only with the switch and the permissions, never with a deletion request pending', () => {
+        const edit = () => screen.queryByRole('button', { name: 'Edit answers' });
+        const history = () => screen.queryByRole('heading', { name: 'History' });
+        // the switch off: neither, whatever the permissions
+        access.permissions = [WorkspacePermission.RESPONSE_READ, WorkspacePermission.RESPONSE_EDIT];
+        const off = renderPage();
+        expect(edit()).toBeNull();
+        expect(history()).toBeNull();
+        off.unmount();
+        // on: a reader sees the history, only an editor the button
+        access.staffRevisions = true;
+        access.permissions = [WorkspacePermission.RESPONSE_READ];
+        const reader = renderPage();
+        expect(history()).toBeInTheDocument();
+        expect(edit()).toBeNull();
+        reader.unmount();
+        access.permissions = [WorkspacePermission.RESPONSE_READ, WorkspacePermission.RESPONSE_EDIT];
+        const editor = renderPage();
+        expect(edit()).toBeInTheDocument();
+        editor.unmount();
+        // a pending deletion request: the data is on its way out
+        server.result = loaded({ ...RESPONSE, deletionStatus: 'pending' });
+        renderPage();
+        expect(edit()).toBeNull();
     });
 
     it('shows no version for a response that has none (an import)', () => {

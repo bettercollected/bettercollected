@@ -28,6 +28,8 @@ import { responseOriginListUrl, responsePageSections, responsePageUrl } from '@a
 import { formVersionUrl } from '@app/utils/response-urls';
 import { ResponseOrigin } from '@app/utils/response-urls';
 
+import EditAnswers from './edit-answers';
+import ResponseHistory from './response-history';
 import ReadOnlyForm, { CONTENTS_HEADING_ID, CONTENTS_ID, followInPageLink } from './read-only-form';
 
 /** The message keys for a failed load. A 403 and a 404 are answers, not faults: no Retry for them. */
@@ -60,7 +62,7 @@ let focusDetailsOf: string | null = null;
 export default function ResponsePage({ formId, responseId, origin }: { formId: string; responseId: string; origin?: ResponseOrigin }) {
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
-    const { can, formRevisionsUiEnabled } = useWorkspacePermissions();
+    const { can, formRevisionsUiEnabled, responseRevisionsEnabled } = useWorkspacePermissions();
     const { openModal } = useModal();
     const workspaceId = workspace?.id ?? '';
     // While the response is being deleted the page stops asking for it: the
@@ -90,6 +92,8 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
     const listName = t(origin ? 'RESPONSE_PAGE.LIST_DELETION' : 'RESPONSE_PAGE.LIST_RESPONSES');
     // As in the deletion-requests table: completing a pending deletion request is also privacy.manage.
     const canDelete = can(WorkspacePermission.RESPONSE_DELETE) || (response?.deletionStatus === 'pending' && can(WorkspacePermission.PRIVACY_MANAGE));
+    // Staff edit of the answers: response.edit (and the read it needs), behind the server switch, never for a response with a pending deletion request
+    const canEdit = responseRevisionsEnabled && can(WorkspacePermission.RESPONSE_EDIT) && response?.deletionStatus !== 'pending' && form?.settings?.provider === 'self';
     const failure = isError ? failureOf(error) : wrongForm ? failureOf({ status: 404 }) : null;
     const loaded = !!response && !!form && !wrongForm;
 
@@ -154,6 +158,9 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
                                 <span className="sr-only sm:not-sr-only">{t('RESPONSE_PAGE.PRINT')}</span>
                             </Button>
                         )}
+                        {loaded && canEdit && (
+                            <EditAnswers key={`edit-${response.responseId}`} workspaceId={workspaceId} formId={formId} responseId={response.responseId} form={form} answers={response.answers ?? {}} />
+                        )}
                         {loaded && canDelete && (
                             <Button variant="dangerGhost" className="px-2!" aria-label={t('RESPONSE_PAGE.DELETE_RESPONSE')} onClick={() => openModal('DELETE_RESPONSE', { workspace, formId, responseId: response.responseId, navigateTo: listUrl, onDeleting: (active: boolean) => setFrozen(active ? fetched : null) })}>
                                 <DeleteIcon className="mr-1.5 h-4 w-4 shrink-0 text-[#C43D3D]" aria-hidden="true" />
@@ -193,6 +200,13 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
                         </div>
                     )}
                     <ReadOnlyForm form={form} response={response} />
+                    {responseRevisionsEnabled && can(WorkspacePermission.RESPONSE_READ) && (
+                        <div className={`${pageGutter} pb-8`}>
+                            <div className="mx-auto w-full max-w-2xl">
+                                <ResponseHistory key={`history-${response.responseId}`} workspaceId={workspaceId} formId={formId} responseId={response.responseId} form={form} />
+                            </div>
+                        </div>
+                    )}
                     {(!!currentData?.feedback || staffFields.length > 0) && (
                         <section aria-label={t('RESPONSE_PAGE.TEAM_ONLY')} className={`mx-auto flex w-full max-w-2xl flex-col gap-8 px-5 py-10 sm:px-8 print:hidden`}>
                             {currentData?.feedback && (

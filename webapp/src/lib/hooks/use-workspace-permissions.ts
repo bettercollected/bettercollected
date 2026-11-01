@@ -67,6 +67,8 @@ export function useWorkspacePermissions() {
     const saveDraftsEnabled = !!userId && !isError && !!data?.saveDraftsEnabled;
     // ...and the Versions page of a form (its FORM_REVISIONS_UI_ENABLED): list, compare and restore.
     const formRevisionsUiEnabled = !!userId && !isError && !!data?.formRevisionsUiEnabled;
+    // ...and staff edit of answers with the history of a response (its RESPONSE_REVISIONS_ENABLED).
+    const responseRevisionsEnabled = !!userId && !isError && !!data?.responseRevisionsEnabled;
     return {
         can,
         permissions,
@@ -82,6 +84,7 @@ export function useWorkspacePermissions() {
         optionSourcesEnabled,
         layoutContainersEnabled,
         saveDraftsEnabled,
-        formRevisionsUiEnabled
+        formRevisionsUiEnabled,
+        responseRevisionsEnabled
     };
 }

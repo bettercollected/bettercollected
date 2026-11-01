@@ -25,6 +25,12 @@ from backend.app.models.dtos.form_response_dto import (
     InternalAnswersResponse,
     SubmissionPath,
 )
+from backend.app.models.dtos.response_revisions_dto import (
+    RevisionListDto,
+    RevisionValuesDto,
+    StaffAnswersPatch,
+    StaffAnswersResult,
+)
 from backend.app.models.dtos.respondent_feedback_dto import (
     RespondentFeedbackPost,
     StaffFeedback,
@@ -233,6 +239,69 @@ class WorkspaceResponsesRouter(CustomRoutable):
             answers=body.answers,
             user=user,
             expected_version=body.version,
+        )
+
+    @patch(
+        "/forms/{form_id}/submissions/{submission_id}/answers",
+        response_model=StaffAnswersResult,
+    )
+    async def staff_edit_answers(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        submission_id: str,
+        body: StaffAnswersPatch,
+        user: User = Depends(get_logged_user),
+    ):
+        """Staff change answers of one submission (``response.edit`` and
+        ``response.read``; behind ``RESPONSE_REVISIONS_ENABLED``). Checked
+        like the respondent's own edit, against the version the response was
+        given in; a signature or a file can't be changed; refused for a
+        response with a pending deletion request. The edit and its history
+        entry are stored together. The respondent is not told and nothing is
+        sent on again."""
+        return StaffAnswersResult(
+            **await container.workspace_form_service().staff_edit_answers(
+                workspace_id=workspace_id,
+                form_id=RecordId(form_id),
+                response_id=RecordId(submission_id),
+                answers=body.answers,
+                user=user,
+            )
+        )
+
+    @get(
+        "/forms/{form_id}/submissions/{submission_id}/revisions",
+        response_model=RevisionListDto,
+    )
+    async def list_response_revisions(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        submission_id: str,
+        user: User = Depends(get_logged_user),
+    ):
+        """Who edited a response and when, and which questions
+        (``response.read``; behind ``RESPONSE_REVISIONS_ENABLED``). No values."""
+        return await container.response_revision_service().list_revisions(
+            workspace_id, form_id, submission_id, user
+        )
+
+    @get(
+        "/forms/{form_id}/submissions/{submission_id}/revisions/{seq}",
+        response_model=RevisionValuesDto,
+    )
+    async def get_response_revision_values(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        submission_id: str,
+        seq: int,
+        user: User = Depends(get_logged_user),
+    ):
+        """The values one edit replaced, unsealed (``response.read``)."""
+        return await container.response_revision_service().previous_values(
+            workspace_id, form_id, submission_id, seq, user
         )
 
     @post(

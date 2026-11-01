@@ -26,6 +26,7 @@ class Permission(str, enum.Enum):
     RESPONSE_ANNOTATE = "response.annotate"
     RESPONSE_EXPORT = "response.export"
     RESPONSE_DELETE = "response.delete"
+    RESPONSE_EDIT = "response.edit"
     # privacy and aggregates
     PRIVACY_MANAGE = "privacy.manage"
     ANALYTICS_READ = "analytics.read"

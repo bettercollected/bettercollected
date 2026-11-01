@@ -81,7 +81,7 @@ async function responseExportFileHandler(response: Response): Promise<any> {
 }
 
 const WORKSPACE_TAGS = 'WORKSPACE_TAG';
-const SUBMISSION_TAG = 'SUBMISSION_TAG';
+export const SUBMISSION_TAG = 'SUBMISSION_TAG';
 
 /**
  * One id as exactly one path segment: encoded (no "/", "?" or "#" gets
@@ -493,7 +493,7 @@ export const workspacesApi = createApi({
         // The caller's effective permissions in a workspace (empty for a
         // non-member). Kept a while: many controls read it. The user id is
         // part of the cache key only, so one user never reads another's.
-        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean; choiceLogicEnabled?: boolean; newQuestionTypesEnabled?: boolean; addressQuestionEnabled?: boolean; addressLookupEnabled?: boolean; signatureQuestionEnabled?: boolean; optionSourcesEnabled?: boolean; layoutContainersEnabled?: boolean; saveDraftsEnabled?: boolean; formRevisionsUiEnabled?: boolean }, { workspaceId: string; userId: string }>({
+        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean; choiceLogicEnabled?: boolean; newQuestionTypesEnabled?: boolean; addressQuestionEnabled?: boolean; addressLookupEnabled?: boolean; signatureQuestionEnabled?: boolean; optionSourcesEnabled?: boolean; layoutContainersEnabled?: boolean; saveDraftsEnabled?: boolean; formRevisionsUiEnabled?: boolean; responseRevisionsEnabled?: boolean }, { workspaceId: string; userId: string }>({
             query: ({ workspaceId }) => ({
                 url: `/workspaces/${workspaceId}/permissions`,
                 method: 'GET'

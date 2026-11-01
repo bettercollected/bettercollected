@@ -30,7 +30,9 @@ class WorkspacePermissionsDto(CamelModel):
     respondents save and continue later": the builder shows the setting
     read-only while it is off).
     ``form_revisions_ui_enabled`` is the same for ``FORM_REVISIONS_UI_ENABLED``
-    (the Versions page of a form: list, compare, restore)."""
+    (the Versions page of a form: list, compare, restore).
+    ``response_revisions_enabled`` is the same for ``RESPONSE_REVISIONS_ENABLED``
+    (staff edit of answers and the history of a response)."""
 
     permissions: List[Permission] = []
     field_rules_enabled: bool = False
@@ -45,3 +47,4 @@ class WorkspacePermissionsDto(CamelModel):
     option_sources_enabled: bool = False
     layout_containers_enabled: bool = False
     form_revisions_ui_enabled: bool = False
+    response_revisions_enabled: bool = False

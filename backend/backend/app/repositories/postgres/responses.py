@@ -99,6 +99,14 @@ from backend.app.schemas.standard_form_response import (
     import_closure,
     staff_closure,
 )
+from backend.app.schemas.response_revision import (
+    MAX_REVISIONS,
+    ActorKind,
+    ResponseRevisionDocument,
+    RevisionEditor,
+    plain_answer,
+    same_answer,
+)
 from backend.app.schemas.workspace_responder import (
     WorkspaceResponderDocument,
     WorkspaceTags,
@@ -109,6 +117,7 @@ from backend.db.models import (
     ResponderGroupFormRow,
     ResponderGroupMemberRow,
     ResponderGroupRow,
+    ResponseRevisionRow,
     WorkspaceResponderRow,
     WorkspaceTagRow,
 )
@@ -1463,11 +1472,26 @@ class PostgresFormResponseRepository(RecordRepository):
         response: StandardFormResponse,
         workspace_id: RecordId,
         user=User,
+        editor: Optional[RevisionEditor] = None,
+        record: bool = False,
+        outcome: Optional[dict] = None,
     ):
         """Merge the sent answers into the stored response, decrypting and
         re-encrypting under the response's row lock: two edits made at once
         both keep their answers, and one landing on top of a respondent
-        feedback or an internal-answers write keeps those."""
+        feedback or an internal-answers write keeps those.
+
+        Without ``editor`` this is the respondent's own edit: only the
+        verified respondent who submitted the response may make it. With
+        ``editor`` (a staff member, whose permission the service checked) the
+        ownership test does not apply.
+
+        With ``record`` the edit is also written to the revision log
+        (``response_revisions``) in the same transaction: the questions whose
+        answer really changed and the values they had, sealed. An edit that
+        changes nothing writes no entry (and, by staff, no response either).
+        ``outcome``, when given, receives ``changed`` (question ids) and
+        ``seq`` (the entry's number, or None)."""
         async with self._session() as session, session.begin():
             response_document = await _locked_doc(
                 session,
@@ -1481,7 +1505,9 @@ class PostgresFormResponseRepository(RecordRepository):
                     status_code=HTTPStatus.NOT_FOUND, content="Response not found"
                 )
             # only the verified respondent who submitted it may edit a response
-            if not user or response_document.dataOwnerIdentifier != user.sub:
+            if editor is None and (
+                not user or response_document.dataOwnerIdentifier != user.sub
+            ):
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
                 )
@@ -1503,12 +1529,22 @@ class PostgresFormResponseRepository(RecordRepository):
                         status_code=HTTPStatus.CONFLICT,
                         content="This submission can't be read, so it can't be edited.",
                     )
+            previous: Dict[str, Any] = {}
             for k, v in (response.answers or {}).items():
-                answers[k] = (
+                new_answer = (
                     v.model_dump(mode="json")
                     if isinstance(v, StandardFormResponseAnswer)
                     else v
                 )
+                if not same_answer(answers.get(k), new_answer):
+                    previous[k] = plain_answer(answers.get(k))
+                answers[k] = new_answer
+            if outcome is not None:
+                outcome["changed"] = sorted(previous)
+                outcome["seq"] = None
+            if editor is not None and not previous:
+                # a staff edit that changes nothing leaves the response as it is
+                return response_document
             response_document.answers = crypto_service.encrypt(
                 workspace_id=workspace_id,
                 form_id=form_id,
@@ -1521,8 +1557,71 @@ class PostgresFormResponseRepository(RecordRepository):
                 response_document.workspace_id = RecordId(workspace_id)
             # an edit keeps the submission time and records when it changed
             response_document.touch()
+            if record and previous:
+                seq = await self._write_revision(
+                    session,
+                    response_document,
+                    form_id,
+                    workspace_id,
+                    editor,
+                    previous,
+                )
+                if outcome is not None:
+                    outcome["seq"] = seq
             await session.execute(self._upsert_statement(row_values(response_document)))
         return response_document
+
+    async def _write_revision(
+        self,
+        session,
+        response_document: FormResponseDocument,
+        form_id: RecordId,
+        workspace_id: RecordId,
+        editor: Optional[RevisionEditor],
+        previous: Dict[str, Any],
+    ) -> int:
+        """One entry of the revision log, in the edit's own transaction (the
+        response row is locked, so the count and the insert cannot race): the
+        questions that changed and their previous values, sealed like the
+        answers. 409 ``revision_limit`` once the response has
+        ``MAX_REVISIONS`` entries: the history is never trimmed."""
+        response_pk = str(response_document.id)
+        count = (
+            await session.execute(
+                select(func.count())
+                .select_from(ResponseRevisionRow)
+                .where(ResponseRevisionRow.response_pk == response_pk)
+            )
+        ).scalar_one()
+        if count >= MAX_REVISIONS:
+            raise HTTPException(
+                HTTPStatus.CONFLICT,
+                content={
+                    "code": "revision_limit",
+                    "message": "This response has been edited as often as the history keeps. "
+                    "It can't be edited again.",
+                },
+            )
+        entry = ResponseRevisionDocument(
+            response_pk=response_pk,
+            response_id=response_document.response_id,
+            form_id=str(form_id),
+            workspace_id=str(workspace_id),
+            seq=count + 1,
+            actor_kind=ActorKind.RESPONDENT if editor is None else ActorKind.STAFF,
+            actor_id=editor.user_id if editor is not None else None,
+            actor_role=editor.role if editor is not None else None,
+            changed=sorted(previous),
+            previous_values=crypto_service.encrypt(
+                workspace_id=workspace_id,
+                form_id=form_id,
+                data=json.dumps(previous),
+            ),
+        )
+        await session.execute(
+            self._upsert_statement(row_values(entry), ResponseRevisionRow)
+        )
+        return entry.seq
 
     async def delete_form_response(
         self,

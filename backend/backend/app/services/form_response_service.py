@@ -995,17 +995,28 @@ class FormResponseService:
         response: StandardFormResponse,
         workspace_id: RecordId,
         user=User,
+        editor=None,
+        record: bool = False,
+        outcome: Optional[dict] = None,
     ):
         """``document_id``: the ``_id`` of the workspace's own copy, as
-        ``workspace_response`` found it."""
+        ``workspace_response`` found it. ``editor``, ``record`` and
+        ``outcome``: see the repository (a staff edit, the revision log)."""
         updated_response = await self._form_response_repo.patch_form_response(
             form_id=form_id,
             document_id=document_id,
             response=response,
             workspace_id=workspace_id,
             user=user,
+            editor=editor,
+            record=record,
+            outcome=outcome,
         )
         return updated_response
+
+    async def deletion_request_of(self, response: FormResponseDocument):
+        """The deletion request of this copy of a response, or None."""
+        return await self._form_response_repo.find_deletion_request_for(response)
 
     async def delete_form_response(
         self,

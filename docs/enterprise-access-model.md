@@ -42,6 +42,7 @@ can(user, permission, workspace, form?)  =
 | `response.annotate` | internal fields, respondent feedback |
 | `response.export` | CSV, API/MCP `responses:read`, integrations and actions that send responses out (sheets, webhooks, email copies) |
 | `response.delete` | delete a response |
+| `response.edit` | change the answers of a response (needs `response.read` too); behind the server setting `RESPONSE_REVISIONS_ENABLED`; every edit is kept in the response's history ([response-revisions.md](response-revisions.md)) |
 | `privacy.manage` | deletion requests, data subjects (responders), consent catalog, retention and privacy texts |
 | `analytics.read` | aggregates: counts, Umami stats, drop-off. No individual answers |
 
@@ -59,6 +60,7 @@ can(user, permission, workspace, form?)  =
 | response.annotate | ✓ | ✓ | ✓ | ✓ | | |
 | response.export | ✓ | ✓ | ✓ | | | |
 | response.delete | ✓ | ✓ | ✓ | | | |
+| response.edit | ✓ | ✓ | ✓ | | | **✗** |
 | privacy.manage | ✓ | ✓ | | | | ✓ |
 | analytics.read | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
@@ -66,7 +68,7 @@ can(user, permission, workspace, form?)  =
 - **Editor** is today's `COLLABORATOR`; existing collaborators migrate to Editor with no behaviour change. A new form is editable by its creator even inside restricted scopes.
 - **Reviewer:** reads, annotates (internal fields) and responds to submissions (feedback), but does not change forms. This is the hiring and case-handling role.
 - **Viewer:** read-only access to forms and their responses.
-- **Privacy officer:** runs the privacy programme without reading answers. They handle deletion requests and see who the data subjects are (respondent identifiers, needed to act on a request). They manage consent, retention and privacy texts, and read the audit log. They cannot read answers, export, or change forms. They **complete** deletion requests: deleting a response that has a *pending* deletion request needs `privacy.manage` (or `response.delete`); any other delete needs `response.delete`. They can also close a pending request by hand (`POST /workspaces/{id}/forms/{form_id}/submissions/{response_id}/deletion-request/close`, `privacy.manage` only), which needs no form provider: `completed` deletes the workspace's stored copy, `declined` keeps it and records one of a fixed list of reasons (`legal_obligation`, `legal_claims`, `public_interest`, `identity_not_verified`, `other`); who closed it and when stay on the request, and a later import from the provider never brings a completed response back. Combined with any other role on the same membership, a Privacy officer still never holds `response.read`, `response.annotate` or `response.export`. This role is deliberately unusual for a form tool and fits the trust-first positioning.
+- **Privacy officer:** runs the privacy programme without reading answers. They handle deletion requests and see who the data subjects are (respondent identifiers, needed to act on a request). They manage consent, retention and privacy texts, and read the audit log. They cannot read answers, export, or change forms. They **complete** deletion requests: deleting a response that has a *pending* deletion request needs `privacy.manage` (or `response.delete`); any other delete needs `response.delete`. They can also close a pending request by hand (`POST /workspaces/{id}/forms/{form_id}/submissions/{response_id}/deletion-request/close`, `privacy.manage` only), which needs no form provider: `completed` deletes the workspace's stored copy, `declined` keeps it and records one of a fixed list of reasons (`legal_obligation`, `legal_claims`, `public_interest`, `identity_not_verified`, `other`); who closed it and when stay on the request, and a later import from the provider never brings a completed response back. Combined with any other role on the same membership, a Privacy officer still never holds `response.read`, `response.annotate`, `response.export` or `response.edit`. This role is deliberately unusual for a form tool and fits the trust-first positioning.
 
 Respondent feedback (#760, #762) is currently admin-only. It moves to `response.annotate`, so Reviewers get it, which is the point of the role. Turning feedback on per form moves to `form.edit`.
 
@@ -84,7 +86,7 @@ A **form grant** is `(form, principal, form role, export?)`:
 - **Who manages grants:** whoever has `form.share` on the form, within two caps:
   - **Grantor cap:** a grant can't give more on that form than the grantor holds there. An Editor can grant Editor, Reviewer or Viewer, but never workspace-level permissions.
   - **Export is reserved:** only the Owner and Admins can grant `export`. It is the bulk-data path, so it stays with the people accountable for the workspace.
-- **Privacy officer is never elevated:** form grants don't apply to Privacy officers. A grant can never add `response.read`, `response.annotate` or `response.export` to that role, so "never reads answers" holds on every form. A Privacy officer who also needs to review answers needs a different workspace role; that is an explicit choice, and it is visible in the members list.
+- **Privacy officer is never elevated:** form grants don't apply to Privacy officers. A grant can never add `response.read`, `response.annotate`, `response.export` or `response.edit` to that role, so "never reads answers" holds on every form. A Privacy officer who also needs to review answers needs a different workspace role; that is an explicit choice, and it is visible in the members list.
 
 **Member groups** are new and are not responder groups. They are named sets of workspace members, managed by hand or synced from SCIM. Responder groups remain the "who may answer" mechanism. SCIM groups may later feed both, through separate mappings.
 

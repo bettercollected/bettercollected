@@ -139,7 +139,10 @@ class WorkspaceService:
         option_list_repo=None,
         sso_policy=None,
         sso_release=None,
+        response_revision_repo=None,
     ):
+        # the revision log of response edits: a deleted account's entries lose the user id
+        self._response_revision_repo = response_revision_repo
         self._authorization = authorization_service
         # single sign-on: refuses email codes for SSO-required domains, and
         # removes a deleted workspace's connections (docs/sso.md)
@@ -708,9 +711,13 @@ class WorkspaceService:
 
     async def forget_exports_of_user(self, user_id: str) -> None:
         """An account is being deleted: the export audit rows it leaves in other
-        workspaces lose the user (the rows stay), and files it had waiting go."""
+        workspaces lose the user (the rows stay), and files it had waiting go;
+        its entries in the revision log of responses lose the user too."""
         if self._response_export_service is not None:
             await self._response_export_service.forget_actor(user_id)
+        # the history of response edits keeps what changed and when, not who
+        if self._response_revision_repo is not None:
+            await self._response_revision_repo.forget_actor(user_id)
 
     async def apply_custom_domain_event(self, event) -> str:
         """Apply a verified webhook event to the workspace that owns the domain.

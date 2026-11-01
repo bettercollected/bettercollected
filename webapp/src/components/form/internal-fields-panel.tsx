@@ -24,9 +24,9 @@ interface InternalFieldsPanelProps {
     workspaceId: string;
 }
 
-const inputClass = 'w-full text-sm!';
+export const inputClass = 'w-full text-sm!';
 
-function InternalFieldInput({ field, value, onChange }: { field: StandardFormFieldDto; value: InternalInputValue; onChange: (value: InternalInputValue) => void }) {
+export function InternalFieldInput({ field, value, onChange }: { field: StandardFormFieldDto; value: InternalInputValue; onChange: (value: InternalInputValue) => void }) {
     const { t } = useTranslation();
     const id = `internal-${field.id}`;
     const choices = field.properties?.choices ?? [];

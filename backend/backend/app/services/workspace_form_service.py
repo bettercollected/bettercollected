@@ -104,6 +104,12 @@ from backend.app.services.option_sources.checks import (
     strip_option_sources,
     strip_share_as_choices,
 )
+from backend.app.schemas.response_revision import RevisionEditor
+from backend.app.schemas.standard_form_response import DeletionRequestStatus
+from backend.app.services.response_revisions.mode import (
+    ensure_enabled as ensure_response_revisions_enabled,
+    response_revisions_enabled,
+)
 from backend.app.services.signatures import (
     delete_stored_images,
     prepare_signatures,
@@ -360,9 +366,12 @@ class WorkspaceFormService:
         copy_recipient_service=None,
         response_export_service=None,
         option_source_service=None,
+        member_directory=None,
     ):
         # options from a list or from another form's answers
         self._option_source_service = option_source_service
+        # names and roles of staff members (the revision log records the role)
+        self._member_directory = member_directory
         # who the "send me a copy" action may mail (services/copy_recipient.py)
         self._copy_recipient_service = copy_recipient_service
         self.form_provider_service = form_provider_service
@@ -1209,7 +1218,147 @@ class WorkspaceFormService:
         form = await self.form_service.get_latest_version_of_form(
             form_id
         ) or await self.form_service.get_form_document_by_id(str(form_id))
-        # internal fields are the staff's: a respondent's edit never writes them
+        form_response = await self._apply_edit(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            response_id=response_id,
+            existing=existing,
+            response=response,
+            form=form,
+            form_files=form_files,
+            workspace_form=workspace_form,
+            user=user,
+            client_ip=client_ip,
+            # a respondent's edit is logged only while the switch is on
+            editor=None,
+            record=response_revisions_enabled(),
+        )
+        return form_response.submission_uuid
+
+    async def staff_edit_answers(
+        self,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        response_id: RecordId,
+        answers: Dict[str, Dict[str, Any]],
+        user: User,
+    ) -> Dict[str, Any]:
+        """A staff member changes answers of a stored response
+        (``response.edit`` and ``response.read``, behind
+        ``RESPONSE_REVISIONS_ENABLED``). Validated exactly like the
+        respondent's own edit (``_apply_edit``), against the form version the
+        response was given in; the edit and its history entry are one
+        transaction. No notice goes to the respondent and no action, webhook
+        or email action runs again."""
+        ensure_response_revisions_enabled()
+        for permission in (Permission.RESPONSE_EDIT, Permission.RESPONSE_READ):
+            await self.authorization_service.authorize(
+                user, permission, workspace_id, form_id=str(form_id)
+            )
+        workspace_form = await self.workspace_form_repository.find_workspace_form(
+            workspace_id, str(form_id)
+        )
+        if workspace_form is None:
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        existing = await self.form_response_service.workspace_response(
+            workspace_id, str(response_id)
+        )
+        if existing is None or str(existing.form_id) != str(form_id):
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        # a response collected somewhere else (an import) is not edited here
+        if (workspace_form.settings.provider if workspace_form.settings else None) != "self":
+            raise HTTPException(
+                HTTPStatus.CONFLICT,
+                content={
+                    "code": "not_editable",
+                    "message": "A response imported from another service can't be edited here.",
+                },
+            )
+        # a pending deletion request: the data is on its way out, not changed
+        request = await self.form_response_service.deletion_request_of(existing)
+        if request is not None and request.status == DeletionRequestStatus.PENDING:
+            raise HTTPException(
+                HTTPStatus.CONFLICT,
+                content={
+                    "code": "deletion_requested",
+                    "message": "This response has a deletion request, so it can't be edited.",
+                },
+            )
+        # the version the response was given in (what the page shows staff);
+        # the latest when it has none
+        form = None
+        if existing.form_version:
+            form = await self._form_repo.get_form_by_by_version(
+                form_id, existing.form_version
+            )
+        form = (
+            form
+            or await self.form_service.get_latest_version_of_form(form_id)
+            or await self.form_service.get_form_document_by_id(str(form_id))
+        )
+        locked = _not_staff_editable(form, answers)
+        if locked:
+            raise HTTPException(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                content={
+                    "code": "question_not_editable",
+                    "message": "A signature or a file can't be changed here.",
+                    "questionIds": locked,
+                },
+            )
+        response = StandardFormResponseCamelModel(answers=answers)
+        # internal answers have their own route (response.annotate)
+        drop_respondent_internal_answers(
+            response,
+            await self.form_response_service.all_internal_field_ids(str(form_id)),
+        )
+        outcome: Dict[str, Any] = {}
+        await self._apply_edit(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            response_id=response_id,
+            existing=existing,
+            response=response,
+            form=form,
+            form_files=None,
+            workspace_form=workspace_form,
+            user=user,
+            client_ip=None,
+            editor=RevisionEditor(
+                user_id=str(user.id),
+                role=(
+                    await self._member_directory.role_of(workspace_id, user.id)
+                    if self._member_directory is not None
+                    else None
+                ),
+            ),
+            record=True,
+            outcome=outcome,
+        )
+        return {"changed": outcome.get("changed", []), "revision": outcome.get("seq")}
+
+    async def _apply_edit(
+        self,
+        *,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        response_id: RecordId,
+        existing,
+        response: StandardFormResponseCamelModel,
+        form,
+        form_files: Optional[Any],
+        workspace_form: WorkspaceFormDocument,
+        user: User,
+        client_ip: Optional[str],
+        editor: Optional[RevisionEditor],
+        record: bool,
+        outcome: Optional[dict] = None,
+    ):
+        """The checks every edit of a stored response passes, whoever makes it,
+        then the merge: the respondent's own edit (``editor`` None) and a
+        staff member's (``editor`` set, the permission already checked by the
+        caller). ``form`` is the version the answers are validated against."""
+        # internal fields are the staff's: an edit here never writes them
         allowed = _question_ids(getattr(form, "fields", None) or []) - (
             await self.form_response_service.all_internal_field_ids(str(form_id))
         )
@@ -1332,6 +1481,9 @@ class WorkspaceFormService:
             document_id=existing.id,
             response=response,
             user=user,
+            editor=editor,
+            record=record,
+            outcome=outcome,
         )
         # the images the edit replaced go only once the edit is stored
         await delete_stored_images(
@@ -1342,7 +1494,7 @@ class WorkspaceFormService:
             prepared.replaced,
         )
 
-        return form_response.submission_uuid
+        return form_response
 
     async def submit_response(
         self,
@@ -2045,6 +2197,27 @@ class WorkspaceFormService:
         form_action.enabled = False
         await self._form_repo.save_form(form)
         return form
+
+
+# the questions staff cannot change: a drawn or typed signature is the
+# respondent's own mark and carries a server stamp, and a file needs an upload
+_STAFF_LOCKED_TYPES = {"signature", "file_upload", "input_file_upload"}
+
+
+def _not_staff_editable(form, answers) -> List[str]:
+    """Ids of the questions among ``answers`` whose type staff cannot change."""
+    types: Dict[str, str] = {}
+
+    def walk(fields):
+        for field in fields or []:
+            field_id = getattr(field, "id", None)
+            if field_id:
+                kind = getattr(field, "type", None)
+                types[str(field_id)] = str(getattr(kind, "value", kind))
+            walk(getattr(getattr(field, "properties", None), "fields", None))
+
+    walk(getattr(form, "fields", None))
+    return sorted(k for k in answers if types.get(k) in _STAFF_LOCKED_TYPES)
 
 
 def _question_ids(fields) -> set:

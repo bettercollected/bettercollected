@@ -36,7 +36,7 @@ export default function VersionCompare({ from, to }: { from: string; to: string 
     if (!allowed) {
         return (
             <div className="px-4 md:px-10 lg:px-28">
-                <p role="status" className="text-black-700 text-sm">
+                <p role="status" className="text-sm text-black-700">
                     {t('FORM_VERSIONS.DISABLED')}
                 </p>
             </div>
@@ -47,14 +47,14 @@ export default function VersionCompare({ from, to }: { from: string; to: string 
     return (
         <div className="px-4 md:px-10 lg:px-28" data-testid="version-compare">
             <section aria-labelledby="version-compare-title" className="flex max-w-3xl flex-col gap-4">
-                <Link href={back} className="text-black-700 hover:text-black-900 w-fit text-sm underline underline-offset-2">
+                <Link href={back} className="w-fit text-sm text-black-700 underline underline-offset-2 hover:text-black-900">
                     {t('FORM_VERSIONS.VIEW_PAGE.BACK')}
                 </Link>
                 <div className="flex flex-col gap-1">
                     <h2 id="version-compare-title" className="text-lg font-semibold">
                         {t('FORM_VERSIONS.COMPARE.TITLE')}
                     </h2>
-                    {valid && <p className="text-black-700 text-sm">{t('FORM_VERSIONS.COMPARE.FROM_TO', { from: side(from), to: side(to) })}</p>}
+                    {valid && <p className="text-sm text-black-700">{t('FORM_VERSIONS.COMPARE.FROM_TO', { from: side(from), to: side(to) })}</p>}
                 </div>
                 {!valid && (
                     <p role="alert" className="text-sm">
@@ -62,7 +62,7 @@ export default function VersionCompare({ from, to }: { from: string; to: string 
                     </p>
                 )}
                 {valid && isLoading && (
-                    <p role="status" className="text-black-700 text-sm">
+                    <p role="status" className="text-sm text-black-700">
                         {t('FORM_VERSIONS.LOADING')}
                     </p>
                 )}
@@ -79,10 +79,10 @@ export default function VersionCompare({ from, to }: { from: string; to: string 
                             <div className="flex flex-col gap-5">
                                 {groupChanges(data.entries).map((group) => (
                                     <section key={group.scope} aria-labelledby={`changes-${group.scope}`} className="flex flex-col gap-2">
-                                        <h3 id={`changes-${group.scope}`} className="text-black-700 text-xs font-semibold tracking-wide uppercase">
+                                        <h3 id={`changes-${group.scope}`} className="text-xs font-semibold tracking-wide text-black-700 uppercase">
                                             {t(`FORM_VERSIONS.COMPARE.SCOPE_${group.scope}`)}
                                         </h3>
-                                        <ul className="border-black-300 flex flex-col divide-y divide-black-300 rounded border bg-white">
+                                        <ul className="flex flex-col divide-y divide-black-300 rounded border border-black-300 bg-white">
                                             {group.changes.map((change, index) => (
                                                 <li key={`${change.kind}-${change.ref ?? ''}-${index}`} className="px-4 py-2.5 text-sm break-words">
                                                     {describeChange(t, change)}
@@ -93,8 +93,8 @@ export default function VersionCompare({ from, to }: { from: string; to: string 
                                 ))}
                             </div>
                         )}
-                        {data.truncated && <p className="text-black-700 text-sm">{t('FORM_VERSIONS.COMPARE.TRUNCATED', { count: data.entries.length })}</p>}
-                        <p className="text-black-700 text-xs">{t('FORM_VERSIONS.COMPARE.NOTE')}</p>
+                        {data.truncated && <p className="text-sm text-black-700">{t('FORM_VERSIONS.COMPARE.TRUNCATED', { count: data.entries.length })}</p>}
+                        <p className="text-xs text-black-700">{t('FORM_VERSIONS.COMPARE.NOTE')}</p>
                     </>
                 )}
             </section>
