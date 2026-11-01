@@ -919,6 +919,57 @@ class PostgresFormResponseRepository(RecordRepository):
             where.append(FormResponseRow.id > after_id)
         return await self.many(*where, order_by=(FormResponseRow.id,), limit=limit)
 
+    # -- another form's answers as options (services/option_sources) ----------
+    @staticmethod
+    def _option_source_where(scope: ResponseScope, now_iso: str) -> list:
+        """The responses whose answers may become choices of another form:
+        those of ``scope`` that carry answers, with **no deletion request of
+        any status** (a respondent who asked to be erased is not shown), not
+        submitted with the anonymous choice (``anonymous_identity`` set), and
+        not past their retention (``expiration``, ISO text)."""
+        r, dr = FormResponseRow, ResponseDeletionRequestRow
+        return [
+            _in_scope(r, scope),
+            func.coalesce(func.jsonb_typeof(r.doc["answers"]), "null") != "null",
+            not_(exists().where(_requests_of(r, dr)).correlate(r)),
+            or_(r.anonymous_identity.is_(None), r.anonymous_identity == ""),
+            or_(r.expiration.is_(None), r.expiration == "", r.expiration > now_iso),
+        ]
+
+    async def option_source_token(
+        self, scope: ResponseScope, now_iso: str
+    ) -> Tuple[int, Optional[str], Optional[str]]:
+        """``(count, newest change, newest id)`` of the eligible responses
+        (``_option_source_where``): one aggregate, no answer read. Any new,
+        deleted, edited, expired or deletion-requested response changes it."""
+        r = FormResponseRow
+        async with self._session() as session:
+            row = (
+                await session.execute(
+                    select(
+                        func.count(),
+                        func.max(r.updated_at),
+                        func.max(r.id),
+                    ).where(*self._option_source_where(scope, now_iso))
+                )
+            ).one()
+        newest = row[1].isoformat() if row[1] is not None else None
+        return int(row[0]), newest, row[2]
+
+    async def option_source_batch(
+        self,
+        scope: ResponseScope,
+        now_iso: str,
+        after_id: Optional[str] = None,
+        limit: int = 500,
+    ) -> List[FormResponseDocument]:
+        """The next ``limit`` eligible responses after ``after_id``, in id
+        order (a keyset)."""
+        where = self._option_source_where(scope, now_iso)
+        if after_id is not None:
+            where.append(FormResponseRow.id > after_id)
+        return await self.many(*where, order_by=(FormResponseRow.id,), limit=limit)
+
     async def list_by_response_id(self, response_id: str) -> List[FormResponseDocument]:
         return await self.many(
             FormResponseRow.response_id == response_id, order_by=(FormResponseRow.id,)

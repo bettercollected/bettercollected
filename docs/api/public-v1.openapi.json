@@ -2885,6 +2885,17 @@
             ],
             "description": "A choice question's options filtered by an earlier choice question's answer (see OptionFilter)."
           },
+          "optionSource": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OptionSource"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A dropdown or multiple choice question's options taken from a workspace list or from another form's answers instead of choices (see OptionSource)."
+          },
           "rules": {
             "anyOf": [
               {
@@ -3451,6 +3462,73 @@
         ],
         "title": "OptionFilterEntry",
         "description": "While the earlier question's option ``when`` (its id) is chosen, the\nquestion offers the options in ``show`` (their ids)."
+      },
+      "OptionSource": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "list",
+              "form_answers"
+            ],
+            "title": "Kind"
+          },
+          "listId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listid"
+          },
+          "parentFieldId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parentfieldid"
+          },
+          "formId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formid"
+          },
+          "questionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questionid"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "title": "OptionSource",
+        "description": "Where a dropdown or multiple choice question's options come from\ninstead of ``choices``: ``kind`` ``list`` (a workspace's option list,\n``listId``; ``parentFieldId`` names an earlier choice question whose\nanswer narrows the list by each item's group) or ``form_answers`` (the\nanswers to question ``questionId`` of another form ``formId`` of the same\nworkspace; the saver needs permission to read that form's responses).\nA question has either a source or ``choices``, never both. Checked by\nthe server on every save and again on every submission."
       },
       "Page": {
         "properties": {

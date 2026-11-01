@@ -453,6 +453,29 @@ what it repaired (`droppedOptionLogic`, toasted by autosave); a question with mo
 evaluation budget (`worst_case_cost`) or over the caps refuses (never wiped). The server never clears an answer; the
 respondent page does (`clearUnavailableOptions`).
 
+**Option sources** ([../docs/option-sources.md](../docs/option-sources.md), spec section "Option sources"): a dropdown or
+multiple choice question takes its options from a workspace list or another form's answers (`properties.option_source`, common
+`OptionSource`, stored camelCase `optionSource`; also in the builder DTO `StandardFieldPropertyCamelModel`, or a save drops it).
+Switch `OPTION_SOURCES_ENABLED` (off): `services/option_sources/checks.py` `ensure_valid_structure` (shape, every save),
+`ensure_option_sources_allowed` (new or changed source vs the stored form, 422 `option_sources_disabled`; `answers_ok=False` in
+`persist_form` refuses a new `form_answers` source, 422 `option_source_forbidden`: chat/MCP/imports cannot ask the saver's access),
+`OptionSourceService.ensure_resolved` (builder create/update and the spec API: list exists in the workspace, another form's answers
+need `response.read` on that form, not the form itself, not an API key); stored sources are served and enforced either way.
+Lists: `workspace_option_lists` (revision 0029, items inside the document, `revision` is the cache token and the editors' optimistic
+check), `services/option_lists/` (limits in `option_sources/text.py`, `form.read` / `form.edit`, CSV), routes in
+`controllers/option_lists_router.py` (also the builder's `POST .../option-sources/preview`). Another form's answers:
+`OptionSourceService._rebuild` reads `PostgresFormResponseRepository.option_source_batch` (no deletion request of any status,
+no `anonymous_identity`, not expired) and decrypts in a thread; the cache is keyed by `option_source_token` (count, newest
+`updated_at`, newest id of those responses) checked on every call, so nothing is stale in any process; ids are keyed hashes
+(`option_sources/ids.py`). The public `GET /workspaces/{id}/forms/{form_id}/options/{field_id}` serves `{id, label}` only for
+published forms (one 404 otherwise, rate limit constants in `service.py`, no extra settings); `strip_internal_fields` blanks the
+list id / form id / question id of a respondent's copy. `OptionSourceService.apply` (after validation in `submit_response` and
+`patch_response`) refuses a new chosen option the source does not offer (`option_unavailable`), writes the label snapshot
+(`choice.label`, `choices.labels`) and removes any a client sent for a question without a source; readers (CSV `_snapshot_text`,
+`registration/body.py` `sourced_texts`, insights, the executor's `get_sourced_choices_value`) use the snapshot only for a question
+with a source. `_choice_problem` skips the membership check for a sourced question. Templates never hold a source; a duplicate
+keeps list sources and loses `form_answers`; provider imports strip them.
+
 **Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
 Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record
 `_bettercollected-verification.<domain>` = `bettercollected-domain-verification=<token>`. Code:

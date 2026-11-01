@@ -301,6 +301,47 @@ class OptionFilterEntry(BaseModel):
     show: list[str] | None = Field(None, max_length=2000, title="Show")
 
 
+class ListId(RootModel[str]):
+    root: str = Field(None, max_length=64, title="Listid")
+
+
+class ParentFieldId(RootModel[str]):
+    root: str = Field(None, max_length=64, title="Parentfieldid")
+
+
+class FormId(RootModel[str]):
+    root: str = Field(None, max_length=64, title="Formid")
+
+
+class QuestionId(RootModel[str]):
+    root: str = Field(None, max_length=64, title="Questionid")
+
+
+class OptionSource(BaseModel):
+    """
+    Where a dropdown or multiple choice question's options come from
+    instead of ``choices``: ``kind`` ``list`` (a workspace's option list,
+    ``listId``; ``parentFieldId`` names an earlier choice question whose
+    answer narrows the list by each item's group) or ``form_answers`` (the
+    answers to question ``questionId`` of another form ``formId`` of the same
+    workspace; the saver needs permission to read that form's responses).
+    A question has either a source or ``choices``, never both. Checked by
+    the server on every save and again on every submission.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    kind: Literal["list", "form_answers"] = Field(..., title="Kind")
+    list_id: ListId | None = Field(None, alias="listId", title="Listid")
+    parent_field_id: ParentFieldId | None = Field(
+        None, alias="parentFieldId", title="Parentfieldid"
+    )
+    form_id: FormId | None = Field(None, alias="formId", title="Formid")
+    question_id: QuestionId | None = Field(None, alias="questionId", title="Questionid")
+
+
 class SectionTitle(RootModel[str]):
     root: str = Field(None, max_length=120, title="Sectiontitle")
 
@@ -1058,6 +1099,11 @@ class FormField(BaseModel):
         None,
         alias="optionFilter",
         description="A choice question's options filtered by an earlier choice question's answer (see OptionFilter).",
+    )
+    option_source: OptionSource | None = Field(
+        None,
+        alias="optionSource",
+        description="A dropdown or multiple choice question's options taken from a workspace list or from another form's answers instead of choices (see OptionSource).",
     )
     rules: Rules | None = Field(
         None,

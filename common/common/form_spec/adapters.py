@@ -252,6 +252,11 @@ def _field_to_spec(field: StandardFormField) -> Dict[str, Any]:
                     else None
                 ),
                 "optionFilter": _option_filter_to_spec(p.option_filter),
+                "optionSource": (
+                    p.option_source.model_dump(by_alias=True, exclude_none=True)
+                    if p.option_source is not None
+                    else None
+                ),
                 "rules": _rules_to_spec(p.rules),
                 "repeat": (
                     p.repeat.model_dump(by_alias=True) if p.repeat is not None else None
@@ -535,6 +540,11 @@ def _field_from_spec(field, index: int) -> Dict[str, Any]:
         "option_filter": (
             field.option_filter.model_dump()
             if field.option_filter is not None
+            else None
+        ),
+        "option_source": (
+            field.option_source.model_dump(exclude_none=True)
+            if field.option_source is not None
             else None
         ),
         "rules": _rules_from_spec(field.rules),

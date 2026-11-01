@@ -18,6 +18,7 @@ from backend.app.schemas.standard_form_response import (
 from backend.app.services.field_rules import strip_field_rules
 from backend.app.services.new_question_types import ensure_question_types_allowed
 from backend.app.services.option_logic import strip_option_logic
+from backend.app.services.option_sources.checks import strip_option_sources
 from backend.app.services.form_service import FormService
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponseAnswer
@@ -89,6 +90,10 @@ class FormImportService:
         # none, and CHOICE_LOGIC_ENABLED is for what people write here.
         if form_data.form is not None and strip_option_logic(form_data.form):
             logger.warning("A form import carried choice logic; it was dropped")
+        # ... nor an option source: the providers have none, and a source
+        # names a list or a form of one workspace
+        if form_data.form is not None and strip_option_sources(form_data.form):
+            logger.warning("A form import carried an option source; it was dropped")
         standard_form = await self.form_service.save_form(form_data.form)
         # The responses are this workspace's copy (#768): the same provider
         # form may be linked to other workspaces, each with its own.

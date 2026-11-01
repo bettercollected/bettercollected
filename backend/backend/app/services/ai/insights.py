@@ -279,11 +279,19 @@ def _answer_text(raw: Any, choice_labels: Dict[str, str]) -> Optional[str]:
         return f"{currency.get('code') or ''} {currency['amount']}".strip()
     choice = answer.get("choice")
     if isinstance(choice, dict) and choice.get("value"):
+        # an option from a source carries its label (a list's or another form's
+        # answer): the id means nothing to the model
+        if isinstance(choice.get("label"), str) and choice["label"]:
+            return choice["label"]
         return _resolve_choice(str(choice["value"]), choice_labels)
     choices = answer.get("choices")
     if isinstance(choices, dict) and choices.get("values"):
+        snapshot = choices.get("labels") if isinstance(choices.get("labels"), dict) else {}
         return ", ".join(
-            _resolve_choice(str(v), choice_labels) for v in choices["values"]
+            snapshot[v]
+            if isinstance(snapshot.get(v), str) and snapshot[v]
+            else _resolve_choice(str(v), choice_labels)
+            for v in choices["values"]
         )
     if answer.get("file_url") or answer.get("file_metadata"):
         return "[file uploaded]"

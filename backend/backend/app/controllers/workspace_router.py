@@ -18,6 +18,7 @@ from backend.app.services.new_question_types import (
     signature_question_enabled,
 )
 from backend.app.services.option_logic import choice_logic_enabled
+from backend.app.services.option_sources.mode import option_sources_enabled
 from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
 from backend.app.models.workspace import (
@@ -237,6 +238,7 @@ class WorkspaceRouter(Routable):
             address_question_enabled=address_question_enabled(),
             address_lookup_enabled=address_lookup_enabled(),
             choice_logic_enabled=choice_logic_enabled(),
+            option_sources_enabled=option_sources_enabled(),
             save_drafts_enabled=save_drafts_enabled(),
         )
 

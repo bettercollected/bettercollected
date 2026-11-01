@@ -20,6 +20,10 @@ from backend.app.services.option_logic import (
     ensure_choice_logic_allowed,
     ensure_valid_option_logic,
 )
+from backend.app.services.option_sources.checks import (
+    ensure_option_sources_allowed,
+    ensure_valid_structure as ensure_valid_option_sources,
+)
 
 # the parts of a form its content writers may replace
 FORM_PARTS = (
@@ -93,6 +97,12 @@ async def persist_form(
         # a structural change left broken and refuses the size caps.
         ensure_valid_option_logic(new_form, drop=True)
         ensure_choice_logic_allowed(new_form, form_document)
+        # Option sources (services/option_sources): the shape, the switch, and
+        # no new or changed source of another form's answers here, where the
+        # saver's access to that form cannot be asked (the builder's save and
+        # the spec API ask it).
+        ensure_valid_option_sources(new_form)
+        ensure_option_sources_allowed(new_form, form_document, answers_ok=False)
     if expected_updated_at is not None:
         if guard is not None:
             raise ValueError("guard and expected_updated_at do not combine")

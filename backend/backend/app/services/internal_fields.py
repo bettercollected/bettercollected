@@ -142,6 +142,16 @@ def strip_internal_fields(form: Any) -> Any:
                 properties = _get(question, "properties")
                 if properties is not None:
                     _set(properties, "address_lookup", False)
+    # where a question's options come from is the creator's business: a
+    # respondent's form keeps the kind (to render a searchable list) and the
+    # parent question, never the list's or the other form's identity
+    for question in iter_question_fields(form):
+        properties = _get(question, "properties")
+        source = _get(properties, "option_source", _get(properties, "optionSource"))
+        if source is not None:
+            for key in ("list_id", "form_id", "question_id", "listId", "formId", "questionId"):
+                if _get(source, key) is not None:
+                    _set(source, key, None)
     # an ending's name is the creator's label ("Not eligible"); respondents
     # get endings by id only
     for ending in _get(form, "thankyou_page") or []:

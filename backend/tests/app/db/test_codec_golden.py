@@ -94,6 +94,7 @@ NO_DOCUMENT_CLASS = {
     "response_exports",
     "response_export_chunks",
     "form_email_actions",
+    "workspace_option_lists",
 }
 
 # The document classes, all on ``Record`` (every group is served from Postgres

@@ -495,14 +495,25 @@ class StandardSignatureAnswer(BaseModel):
     url: Optional[str] = None
 
 
+# A label of a chosen option of a question whose options come from a source
+# (``OptionSource``): the server writes it next to the chosen id, so the answer
+# stays readable after the item or the other form's response is gone.
+OPTION_LABEL_MAX_LENGTH = 200
+
+
 class StandardChoiceAnswer(BaseModel):
     value: Optional[str] = None
     other: Optional[str] = None
+    # Written by the server for a question with an option source (the label
+    # of ``value`` when it was submitted); never taken from a client.
+    label: Optional[str] = Field(None, max_length=OPTION_LABEL_MAX_LENGTH)
 
 
 class StandardChoicesAnswer(BaseModel):
     values: Optional[List[str]] = None
     other: Optional[str] = None
+    # Option id -> label, as for ``StandardChoiceAnswer.label``.
+    labels: Optional[Dict[str, str]] = Field(None, max_length=1000)
 
 
 class Comparison(str, enum.Enum):
@@ -724,6 +735,30 @@ class OptionFilter(BaseModel):
                 "entries in all."
             )
         return self
+
+
+OPTION_SOURCE_KINDS = ("list", "form_answers")
+OPTION_SOURCE_ID_MAX_LENGTH = 64
+
+
+class OptionSource(BaseModel):
+    """Where a choice question's options come from instead of ``choices``
+    (``properties.option_source``): ``list`` is a workspace's option list
+    (``list_id``; ``parent_field_id`` names an earlier choice question whose
+    answer narrows the list by the items' group), ``form_answers`` is the
+    answers given to one question (``question_id``) of another form
+    (``form_id``) of the same workspace. Which ids go with which kind is
+    checked on save by the backend (services/option_sources/checks.py), where
+    a respondent's view of the form has them blanked, so the stored model
+    does not require them; never trusted from a client."""
+
+    kind: Literal["list", "form_answers"]
+    list_id: Optional[str] = Field(None, max_length=OPTION_SOURCE_ID_MAX_LENGTH)
+    parent_field_id: Optional[str] = Field(None, max_length=OPTION_SOURCE_ID_MAX_LENGTH)
+    form_id: Optional[str] = Field(None, max_length=OPTION_SOURCE_ID_MAX_LENGTH)
+    question_id: Optional[str] = Field(None, max_length=OPTION_SOURCE_ID_MAX_LENGTH)
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
 
 # Jump target meaning "submit the form" (and show an ending).
@@ -1288,6 +1323,8 @@ class StandardFieldProperty(BaseModel):
     # Filter this choice question's options by an earlier choice question's
     # answer (see OptionFilter); per-option conditions are ``choices[].logic``.
     option_filter: Optional[OptionFilter] = None
+    # The options come from a source instead of ``choices`` (see OptionSource).
+    option_source: Optional[OptionSource] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 

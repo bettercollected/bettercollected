@@ -2602,6 +2602,76 @@
       "title": "OptionFilterSpec",
       "type": "object"
     },
+    "OptionSource": {
+      "description": "Where a choice question's options come from instead of ``choices``\n(``properties.option_source``): ``list`` is a workspace's option list\n(``list_id``; ``parent_field_id`` names an earlier choice question whose\nanswer narrows the list by the items' group), ``form_answers`` is the\nanswers given to one question (``question_id``) of another form\n(``form_id``) of the same workspace. Which ids go with which kind is\nchecked on save by the backend (services/option_sources/checks.py), where\na respondent's view of the form has them blanked, so the stored model\ndoes not require them; never trusted from a client.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "list",
+            "form_answers"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "listId": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Listid"
+        },
+        "parentFieldId": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parentfieldid"
+        },
+        "formId": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Formid"
+        },
+        "questionId": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Questionid"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "OptionSource",
+      "type": "object"
+    },
     "PageJump": {
       "description": "v2 page-jump / branching rule stored on a slide at ``properties.jumps``.\n``target`` is a slide id or the sentinel ``__SUBMIT__``. Plain strings, same\nrationale as :class:`FieldLogic`.\n\n``ending_id`` (only with ``__SUBMIT__``): the ending shown after the\nsubmission; without it, or when that ending is gone, the form's default\nending. Kept beside the target rather than in it, so a reader that does\nnot know endings still sees \"submit\" and ends the path there.",
       "properties": {
@@ -4450,6 +4520,17 @@
             }
           ],
           "default": null
+        },
+        "optionSource": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OptionSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "title": "StandardFieldProperty",
@@ -5034,6 +5115,17 @@
           "anyOf": [
             {
               "$ref": "#/$defs/OptionFilter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "optionSource": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OptionSource"
             },
             {
               "type": "null"

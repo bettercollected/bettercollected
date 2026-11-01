@@ -2217,7 +2217,7 @@
   "document": "FormImportDocument"
  },
  "form_responses/full": {
-  "checksum": "sha256:bef1a92210c61f50385b9d5dbc51997da929bbbfd20ffda8bb5a1d306f5fbc9e",
+  "checksum": "sha256:eda117519ffa0081786230cab779e07c9af9797c8d0485eff2865c1120208c0f",
   "doc": {
    "_id": {
     "$oid": "2badfbd5705103813c283a21"
@@ -2237,10 +2237,12 @@
      },
      "boolean": true,
      "choice": {
+      "label": null,
       "other": null,
       "value": null
      },
      "choices": {
+      "labels": null,
       "other": null,
       "values": null
      },
@@ -2397,10 +2399,12 @@
      },
      "boolean": true,
      "choice": {
+      "label": null,
       "other": null,
       "value": null
      },
      "choices": {
+      "labels": null,
       "other": null,
       "values": null
      },
@@ -2680,7 +2684,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/naive": {
-  "checksum": "sha256:55a0d5ae3d1757d234df167fcd9f2646e1a7e47697227167addd52c8934f28e1",
+  "checksum": "sha256:bb14905c7ebacf023d301f4d52d2297aaf677fe9d38c3b874dc0a6df480c3ae4",
   "doc": {
    "_id": {
     "$oid": "10cd94a70aa205bdc7631e61"
@@ -2700,10 +2704,12 @@
      },
      "boolean": true,
      "choice": {
+      "label": null,
       "other": null,
       "value": null
      },
      "choices": {
+      "labels": null,
       "other": null,
       "values": null
      },
@@ -2860,10 +2866,12 @@
      },
      "boolean": true,
      "choice": {
+      "label": null,
       "other": null,
       "value": null
      },
      "choices": {
+      "labels": null,
       "other": null,
       "values": null
      },
@@ -3143,7 +3151,7 @@
   "document": "FormResponseDocument"
  },
  "form_templates/full": {
-  "checksum": "sha256:5c7281b0f44332842d3b62f46b62bc502af694ffd5d834b959054ba5e0a006ea",
+  "checksum": "sha256:80ea017903493c10529d8e9bbc7098fe92c2a13cd8e810e877f6f34574eff4fc",
   "doc": {
    "_id": {
     "$oid": "081f1de730ff4503d0f47270"
@@ -3202,6 +3210,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3280,6 +3289,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3430,7 +3440,7 @@
   "document": "FormTemplateDocument"
  },
  "form_templates/naive": {
-  "checksum": "sha256:1860380ab3977fcadbe22200cff52259fd7678efffb3cc823b8607dafcd166e2",
+  "checksum": "sha256:524255b6d0dcffe6c9482a7aff5f2f3cd9c3ec12bf235ea063a7d01727820856",
   "doc": {
    "_id": {
     "$oid": "e059e369c6a20f3d47778cec"
@@ -3489,6 +3499,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3567,6 +3578,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3712,7 +3724,7 @@
   "document": "FormTemplateDocument"
  },
  "form_versions/full": {
-  "checksum": "sha256:a98fe66af564bf11e34ca5518d384b7f355dcb59394786f0d36c425e1a7d165e",
+  "checksum": "sha256:e07e12a36eec4958e7842721cafe15f7ae0e054f86e018606faea9434d1f5bbd",
   "doc": {
    "_id": {
     "$oid": "4dba015f9787ef732cba733e"
@@ -3807,6 +3819,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3885,6 +3898,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -4262,7 +4276,7 @@
   "document": "FormVersionsDocument"
  },
  "form_versions/naive": {
-  "checksum": "sha256:c83b6713251055384653be5d57f97fe421f82aec70c7c3022c3358162b1343ae",
+  "checksum": "sha256:f890984008d3698878de9850c790f1b70c06c4e8fe118ff441048ba3c54c9928",
   "doc": {
    "_id": {
     "$oid": "43be05d1a65c7a21699ae9d8"
@@ -4357,6 +4371,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -4435,6 +4450,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -4793,7 +4809,7 @@
   "document": "FormVersionsDocument"
  },
  "forms/full": {
-  "checksum": "sha256:6155e7c75091ec53370ccb165619714b2b0cf873049e2841d89c3aea2294530f",
+  "checksum": "sha256:91b96d33f9075c7fed236966b42ff012f99c3029efb2d020868dd4681e27d2c5",
   "doc": {
    "_id": {
     "$oid": "59514663b83c1ab0eecfa44a"
@@ -4888,6 +4904,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -4966,6 +4983,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -5341,7 +5359,7 @@
   "document": "FormDocument"
  },
  "forms/naive": {
-  "checksum": "sha256:5a80fb196058a8ecf9530fbf6841ef25f4c79c92b3b0b60b10524f1963be6327",
+  "checksum": "sha256:6f9cdf9175a1419668b16b28d5ff377550a7773dff98ae81f8aa509ead581d99",
   "doc": {
    "_id": {
     "$oid": "a3e31dcf7bba394ece4402b6"
@@ -5436,6 +5454,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -5514,6 +5533,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,

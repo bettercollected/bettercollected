@@ -375,6 +375,10 @@ export interface FormField {
    */
   optionFilter?: OptionFilter | null;
   /**
+   * A dropdown or multiple choice question's options taken from a workspace list or from another form's answers instead of choices (see OptionSource).
+   */
+  optionSource?: OptionSource | null;
+  /**
    * At most 8 rules per question and 100 per form (see Rule).
    */
   rules?: Rule[] | null;
@@ -499,6 +503,26 @@ export interface OptionFilterEntry {
    * @maxItems 2000
    */
   show?: string[];
+}
+/**
+ * Where a dropdown or multiple choice question's options come from
+ * instead of ``choices``: ``kind`` ``list`` (a workspace's option list,
+ * ``listId``; ``parentFieldId`` names an earlier choice question whose
+ * answer narrows the list by each item's group) or ``form_answers`` (the
+ * answers to question ``questionId`` of another form ``formId`` of the same
+ * workspace; the saver needs permission to read that form's responses).
+ * A question has either a source or ``choices``, never both. Checked by
+ * the server on every save and again on every submission.
+ *
+ * This interface was referenced by `FormSpec`'s JSON-Schema
+ * via the `definition` "OptionSource".
+ */
+export interface OptionSource {
+  kind: "list" | "form_answers";
+  listId?: string | null;
+  parentFieldId?: string | null;
+  formId?: string | null;
+  questionId?: string | null;
 }
 /**
  * A field rule: while ``when`` holds, ``then`` applies. A field's rules
