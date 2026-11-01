@@ -40,10 +40,8 @@ const nextConfig = {
             {
                 source: '/(.*)',
                 headers: [
-                    {
-                        key: 'X-Frame-Options',
-                        value: `ALLOW-FROM https://${process.env.NEXT_PUBLIC_DASHBOARD_DOMAIN}`
-                    },
+                    // Framing is decided per request by src/proxy.ts (Content-Security-Policy frame-ancestors):
+                    // this list is evaluated at build time, without the running server's domains.
                     {
                         key: 'X-Content-Type-Options',
                         value: 'nosniff'
