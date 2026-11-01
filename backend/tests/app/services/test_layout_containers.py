@@ -1142,3 +1142,88 @@ def test_the_shared_structure_cases(case):
             for page_id, container_id, message in form_problems(form)
         ]
         assert {"problems": found} == case["expect"]
+
+
+# --- titles, ids, the import path and copies ------------------------------------
+
+
+def test_a_title_keeps_the_joiners_of_emoji_and_scripts_but_no_other_format_character():
+    for title in ("Team \U0001f469‍\U0001f4bb", "می‌خواهم", "क्‍ष"):
+        assert (
+            LayoutContainer.model_validate(panel("c", "a") | {"title": title}).title
+            == title
+        )
+    for bad in ("T‮", "T​", "T﻿", "T⁦", "T\x07"):
+        with pytest.raises(ValidationError):
+            LayoutContainer.model_validate(panel("c", "a") | {"title": bad})
+    LayoutContainer.model_validate(
+        tabs("c", ["a"]) | {"tabs": [{"id": "t", "title": "می‌خواهم", "fields": ["a"]}]}
+    )
+    with pytest.raises(ValidationError):
+        LayoutContainer.model_validate(
+            tabs("c", ["a"]) | {"tabs": [{"id": "t", "title": "A‮", "fields": ["a"]}]}
+        )
+
+
+def test_a_member_id_is_bounded():
+    with pytest.raises(ValidationError):
+        LayoutContainer.model_validate(panel("c", "x" * 201))
+    LayoutContainer.model_validate(panel("c", "x" * 200))
+
+
+def _converted(page):
+    return {
+        "form": {
+            "form_id": "1FAIpQLSe-layout-import",
+            "title": "Imported form",
+            "settings": {"provider": "google"},
+            "fields": [{"id": "p1", "type": "slide", "properties": page}],
+        },
+        "responses": [],
+    }
+
+
+async def test_an_import_goes_through_the_layout_checks(workspace, monkeypatch):
+    from backend.app.container import container
+
+    importer = container.form_import_service()
+    page = {"fields": [q("a"), q("b")], "containers": [panel("c1", "a", "gone", "b")]}
+    monkeypatch.setattr(settings, "LAYOUT_CONTAINERS_ENABLED", False)
+    with pytest.raises(HTTPException) as error:
+        await importer.save_converted_form_and_responses(
+            _converted(page), None, workspace_id=workspace.id
+        )
+    assert disabled(error)
+    monkeypatch.setattr(settings, "LAYOUT_CONTAINERS_ENABLED", True)
+    await importer.save_converted_form_and_responses(
+        _converted(page), None, workspace_id=workspace.id
+    )
+    stored = await container.form_repo().get_form_document_by_id(
+        "1FAIpQLSe-layout-import"
+    )
+    # the member that is not there was repaired away
+    assert members_of(stored.fields[0].properties.containers[0]) == ["a", "b"]
+
+
+async def test_a_copy_of_a_form_keeps_its_containers_while_the_switch_is_off(
+    workspace, monkeypatch
+):
+    from backend.app.container import container
+    from tests.app.controllers.data import testUser
+
+    service = container.workspace_form_service()
+    created = await service.create_form(workspace.id, _body(GROUPED), testUser)
+    stored = await container.form_repo().get_form_document_by_id(str(created.form_id))
+    monkeypatch.setattr(settings, "LAYOUT_CONTAINERS_ENABLED", False)
+    copy = StandardForm(**stored.model_dump())
+    copied = await service.create_form(
+        workspace.id, copy, testUser, drop_unusable_settings=True
+    )
+    again = await container.form_repo().get_form_document_by_id(str(copied.form_id))
+    assert members_of(again.fields[0].properties.containers[0]) == ["a", "b"]
+    # a new form with the same containers is refused
+    with pytest.raises(HTTPException) as error:
+        await service.create_form(
+            workspace.id, StandardForm(**stored.model_dump()), testUser
+        )
+    assert disabled(error)

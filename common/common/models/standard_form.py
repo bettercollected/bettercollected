@@ -762,6 +762,10 @@ CONTAINERS_MAX = 20  # containers on one page
 CONTAINER_MEMBERS_MAX = 100  # questions in one container
 TABS_MAX = 8  # tabs in one strip
 CONTAINER_TITLE_MAX = 120
+LAYOUT_MEMBER_ID_MAX = 200  # one question id in a container's list
+# The one pair of format characters a title keeps: they join emoji sequences
+# and shape Persian, Hindi and other scripts (U+200C, U+200D).
+_TITLE_KEEP_FORMAT = frozenset("\u200c\u200d")
 LAYOUT_ID_PATTERN = r"^[A-Za-z0-9_-]{1,64}$"
 
 
@@ -773,7 +777,10 @@ def _plain_title(value: str) -> str:
     text = value.strip()
     if not text:
         raise ValueError("A title cannot be empty.")
-    if any(unicodedata.category(ch) in ("Cc", "Cf") for ch in text):
+    if any(
+        unicodedata.category(ch) in ("Cc", "Cf") and ch not in _TITLE_KEEP_FORMAT
+        for ch in text
+    ):
         raise ValueError("A title cannot contain control characters.")
     return text
 
@@ -784,7 +791,9 @@ class LayoutTab(BaseModel):
 
     id: str = Field(..., pattern=LAYOUT_ID_PATTERN)
     title: str = Field(..., min_length=1, max_length=CONTAINER_TITLE_MAX)
-    fields: List[str] = Field(default_factory=list, max_length=CONTAINER_MEMBERS_MAX)
+    fields: List[Annotated[str, Field(max_length=LAYOUT_MEMBER_ID_MAX)]] = Field(
+        default_factory=list, max_length=CONTAINER_MEMBERS_MAX
+    )
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
@@ -809,7 +818,9 @@ class LayoutContainer(BaseModel):
     title: Optional[str] = Field(None, max_length=CONTAINER_TITLE_MAX)
     collapsed: Optional[bool] = None
     logic: Optional[FieldLogic] = None
-    fields: Optional[List[str]] = Field(None, max_length=CONTAINER_MEMBERS_MAX)
+    fields: Optional[List[Annotated[str, Field(max_length=LAYOUT_MEMBER_ID_MAX)]]] = (
+        Field(None, max_length=CONTAINER_MEMBERS_MAX)
+    )
     tabs: Optional[List[LayoutTab]] = Field(None, max_length=TABS_MAX)
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)

@@ -13,7 +13,7 @@ keys are refused, so a typo is reported instead of silently dropped.
 """
 
 import enum
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from common.countries import COUNTRIES_MAX
 from common.currencies import CURRENCIES_MAX, is_currency_code
@@ -28,6 +28,7 @@ from common.models.standard_form import (
     ENDING_NAME_MAX_LENGTH,
     ENDING_TITLE_MAX_LENGTH,
     CONTAINER_MEMBERS_MAX,
+    LAYOUT_MEMBER_ID_MAX,
     CONTAINER_TITLE_MAX,
     CONTAINERS_MAX,
     FIELD_RULES_MAX,
@@ -717,7 +718,9 @@ class ContainerTab(_Spec):
 
     id: str = Field(..., pattern=LAYOUT_ID_PATTERN)
     title: str = Field(..., min_length=1, max_length=CONTAINER_TITLE_MAX)
-    fields: List[str] = Field(default_factory=list, max_length=CONTAINER_MEMBERS_MAX)
+    fields: List[Annotated[str, Field(max_length=LAYOUT_MEMBER_ID_MAX)]] = Field(
+        default_factory=list, max_length=CONTAINER_MEMBERS_MAX
+    )
 
 
 class Container(_Spec):
@@ -735,7 +738,9 @@ class Container(_Spec):
     title: Optional[str] = Field(None, max_length=CONTAINER_TITLE_MAX)
     collapsed: Optional[bool] = None
     logic: Optional[Logic] = None
-    fields: Optional[List[str]] = Field(None, max_length=CONTAINER_MEMBERS_MAX)
+    fields: Optional[List[Annotated[str, Field(max_length=LAYOUT_MEMBER_ID_MAX)]]] = (
+        Field(None, max_length=CONTAINER_MEMBERS_MAX)
+    )
     tabs: Optional[List[ContainerTab]] = Field(None, max_length=TABS_MAX)
 
 

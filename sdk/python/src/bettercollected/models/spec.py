@@ -109,8 +109,12 @@ class Title(RootModel[str]):
     root: str = Field(None, max_length=120, title="Title")
 
 
-class Fields(RootModel[list[str]]):
-    root: list[str] = Field(None, max_length=100, title="Fields")
+class FieldModel(RootModel[str]):
+    root: str = Field(..., max_length=200)
+
+
+class Fields(RootModel[list[FieldModel]]):
+    root: list[FieldModel] = Field(None, max_length=100, title="Fields")
 
 
 class ContainerTab(BaseModel):
@@ -125,7 +129,7 @@ class ContainerTab(BaseModel):
     )
     id: str = Field(..., pattern="^[A-Za-z0-9_-]{1,64}$", title="Id")
     title: str = Field(..., max_length=120, min_length=1, title="Title")
-    fields: list[str] | None = Field(None, max_length=100, title="Fields")
+    fields: list[FieldModel] | None = Field(None, max_length=100, title="Fields")
 
 
 class DateRule(BaseModel):
