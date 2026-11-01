@@ -169,6 +169,8 @@ DATE_RANGE_COMPARISONS = (
     "DOES_NOT_CONTAIN",
     "GREATER_THAN",
     "LESS_THAN",
+    "IS_EMPTY",
+    "IS_NOT_EMPTY",
 )
 # What a condition on a tags question may ask with a value.
 TAGS_VALUE_COMPARISONS = ("CONTAINS", "DOES_NOT_CONTAIN")
