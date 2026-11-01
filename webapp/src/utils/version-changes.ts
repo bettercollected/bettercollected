@@ -78,9 +78,7 @@ export function describeChange(t: TFunction, change: VersionChange): string {
         case 'choice_renamed':
             return t(key, { question: question(t, change), before: quoted(p.before), after: quoted(p.after) });
         case 'rules_changed': {
-            const parts = (['added', 'removed', 'changed'] as const)
-                .filter((part) => Number(p[part]) > 0)
-                .map((part) => t(`FORM_VERSIONS.CHANGE.RULES_${part.toUpperCase()}`, { count: Number(p[part]) }));
+            const parts = (['added', 'removed', 'changed'] as const).filter((part) => Number(p[part]) > 0).map((part) => t(`FORM_VERSIONS.CHANGE.RULES_${part.toUpperCase()}`, { count: Number(p[part]) }));
             return t(key, { question: question(t, change), summary: parts.join(', ') });
         }
         case 'validation_changed':

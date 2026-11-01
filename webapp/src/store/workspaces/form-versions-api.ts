@@ -27,6 +27,8 @@ export interface FormDraftState {
 
 export interface FormVersionList {
     versions: FormVersionSummary[];
+    /** Older versions exist than the newest ones listed. */
+    truncated?: boolean;
     draft?: FormDraftState | null;
 }
 

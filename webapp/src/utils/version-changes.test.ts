@@ -1,12 +1,12 @@
 import i18n from 'i18next';
 import { describe, expect, it } from 'vitest';
 
-import builderEn from '../../public/locales/en/builder.json';
-import builderNl from '../../public/locales/nl/builder.json';
-import commonEn from '../../public/locales/en/common.json';
-import commonNl from '../../public/locales/nl/common.json';
 import type { VersionChange } from '@app/store/workspaces/form-versions-api';
 
+import builderEn from '../../public/locales/en/builder.json';
+import commonEn from '../../public/locales/en/common.json';
+import builderNl from '../../public/locales/nl/builder.json';
+import commonNl from '../../public/locales/nl/common.json';
 import { describeChange, groupChanges } from './version-changes';
 
 const instance = i18n.createInstance();
@@ -41,7 +41,11 @@ const CASES: Array<[VersionChange, string, string]> = [
     [change('choice_renamed', 'question', 'Colour', { before: 'Red', after: 'Crimson' }), '“Colour”: the option “Red” was renamed “Crimson”.', '“Colour”: de optie “Red” heet nu “Crimson”.'],
     [change('rules_changed', 'question', 'Colour', { added: 1, removed: 0, changed: 2 }), 'The rules of “Colour” changed: 1 added, 2 changed.', 'De regels van “Colour” zijn gewijzigd: 1 toegevoegd, 2 gewijzigd.'],
     [change('calculation_changed', 'question', 'Total'), 'The calculation of “Total” changed.', 'De berekening van “Total” is gewijzigd.'],
-    [change('validation_changed', 'question', 'Name', { keys: ['maxLength', 'pattern'] }), 'The limits on the answer to “Name” changed (maximum length, answer pattern).', 'De grenzen voor het antwoord op “Name” zijn gewijzigd (maximale lengte, antwoordpatroon).'],
+    [
+        change('validation_changed', 'question', 'Name', { keys: ['maxLength', 'pattern'] }),
+        'The limits on the answer to “Name” changed (maximum length, answer pattern).',
+        'De grenzen voor het antwoord op “Name” zijn gewijzigd (maximale lengte, antwoordpatroon).'
+    ],
     [change('other_changed', 'question', 'Name', { keys: ['placeholder', 'unknownKey'] }), '“Name”: something else changed (placeholder, unknownKey).', '“Name”: er is iets anders gewijzigd (plaatshouder, unknownKey).'],
     [change('other_changed', 'form', null, { keys: ['logo'] }, ''), 'Something else about the form changed (logo).', 'Er is iets anders aan het formulier gewijzigd (logo).'],
     [change('title_changed', 'question', '', { before: '', after: 'Name' }), 'The question “A question without a title” was renamed “Name”.', 'De vraag “Een vraag zonder titel” heet nu “Name”.']
@@ -55,14 +59,54 @@ describe('describeChange', () => {
 
     it('has a sentence in both languages for every kind the server sends', () => {
         const kinds = [
-            'form_title_changed', 'form_description_changed', 'language_changed', 'theme_changed', 'welcome_page_changed', 'ending_changed', 'logo_settings_changed',
-            'hidden_fields_added', 'hidden_fields_removed', 'page_added', 'page_removed', 'page_moved', 'page_jumps_changed', 'page_changed', 'question_added', 'question_removed',
-            'question_moved', 'title_changed', 'type_changed', 'required_changed', 'choice_added', 'choice_removed', 'choice_renamed', 'choice_logic_changed', 'choices_reordered',
-            'rules_changed', 'rules_reordered', 'logic_changed', 'calculation_changed', 'validation_changed', 'description_changed', 'other_changed'
+            'form_title_changed',
+            'form_description_changed',
+            'language_changed',
+            'theme_changed',
+            'welcome_page_changed',
+            'ending_changed',
+            'logo_settings_changed',
+            'hidden_fields_added',
+            'hidden_fields_removed',
+            'page_added',
+            'page_removed',
+            'page_moved',
+            'page_jumps_changed',
+            'page_changed',
+            'question_added',
+            'question_removed',
+            'question_moved',
+            'title_changed',
+            'type_changed',
+            'required_changed',
+            'choice_added',
+            'choice_removed',
+            'choice_renamed',
+            'choice_logic_changed',
+            'choices_reordered',
+            'rules_changed',
+            'rules_reordered',
+            'logic_changed',
+            'calculation_changed',
+            'validation_changed',
+            'description_changed',
+            'other_changed'
         ];
         for (const kind of kinds) {
             for (const t of [en, nl]) {
-                const text = describeChange(t, change(kind, kind.startsWith('page') ? 'page' : kind.startsWith('form') || ['language_changed', 'theme_changed', 'welcome_page_changed', 'ending_changed', 'logo_settings_changed', 'hidden_fields_added', 'hidden_fields_removed'].includes(kind) ? 'form' : 'question', 'T', { type: 'short_text', number: 1, before: 1, after: 2, required: true, keys: ['placeholder'], names: ['a'], value: 'v', added: 1, removed: 1, changed: 1, page: 1 }));
+                const text = describeChange(
+                    t,
+                    change(
+                        kind,
+                        kind.startsWith('page')
+                            ? 'page'
+                            : kind.startsWith('form') || ['language_changed', 'theme_changed', 'welcome_page_changed', 'ending_changed', 'logo_settings_changed', 'hidden_fields_added', 'hidden_fields_removed'].includes(kind)
+                              ? 'form'
+                              : 'question',
+                        'T',
+                        { type: 'short_text', number: 1, before: 1, after: 2, required: true, keys: ['placeholder'], names: ['a'], value: 'v', added: 1, removed: 1, changed: 1, page: 1 }
+                    )
+                );
                 expect(text, kind).not.toBe(kind);
                 expect(text, kind).not.toMatch(/FORM_VERSIONS|\{\{/);
             }

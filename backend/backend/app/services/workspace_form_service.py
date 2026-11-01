@@ -1411,6 +1411,10 @@ class WorkspaceFormService:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found"
             )
+        # The version this submission is checked against, set by the server:
+        # whatever the page sent is ignored (staff edits and the responses
+        # list read it, so it must be the one the form was validated against).
+        response.form_version = latest_version_of_form.version
         # "Require verified identity" was enforced only by the webapp; a form
         # that asks for it refuses submissions without a signed-in respondent.
         if (

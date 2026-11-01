@@ -7,6 +7,7 @@ new version.
 
 from __future__ import annotations
 
+import re
 from http import HTTPStatus
 from typing import Optional, Tuple, Union
 
@@ -51,12 +52,19 @@ def _unprocessable(code: str, message: str) -> HTTPException:
     )
 
 
+#: the highest version number any call takes: beyond it the version cannot exist
+MAX_VERSION = 1_000_000
+_VERSION = re.compile(r"[0-9]{1,7}")
+
+
 def parse_side(value: Optional[str]) -> Union[int, str]:
-    """``draft`` or a version number; 422 otherwise."""
+    """``draft`` or a version number (ASCII digits only, at most
+    ``MAX_VERSION``); 422 otherwise. Never an unhandled error: ``int()`` also
+    refuses what ``str.isdigit`` accepts (superscripts, other scripts)."""
     text = (value or "").strip().lower()
     if text == DRAFT:
         return DRAFT
-    if text.isdigit() and 0 < int(text) < 10**9:
+    if _VERSION.fullmatch(text) and 0 < int(text) <= MAX_VERSION:
         return int(text)
     raise _unprocessable(
         "invalid_version", "A version is a number, or draft."
@@ -88,8 +96,10 @@ class FormVersionsService:
             user, Permission.FORM_READ, workspace_id, form_id=form_id
         )
         summaries = await self._form_repo.list_version_summaries(
-            form_id, limit=LIST_LIMIT
+            form_id, limit=LIST_LIMIT + 1
         )
+        truncated = len(summaries) > LIST_LIMIT
+        summaries = summaries[:LIST_LIMIT]
         roles, names = await self._members.lookup(
             workspace_id, [by for _, _, by in summaries if by]
         )
@@ -105,6 +115,7 @@ class FormVersionsService:
         draft = await self._form_repo.get_form_document_by_id(str(form_id))
         latest = await self._form_repo.get_latest_version_of_form(form_id)
         return FormVersionListDto(
+            truncated=truncated,
             versions=[
                 FormVersionSummaryDto(
                     version=version,
@@ -158,10 +169,10 @@ class FormVersionsService:
         """``form.read``: what changed going from one version (or the
         draft) to another."""
         ensure_enabled()
-        older, newer = parse_side(from_version), parse_side(to_version)
         await self._authorization.authorize(
             user, Permission.FORM_READ, workspace_id, form_id=form_id
         )
+        older, newer = parse_side(from_version), parse_side(to_version)
         before = await self._side(form_id, older)
         after = await self._side(form_id, newer)
 
@@ -203,6 +214,8 @@ class FormVersionsService:
             raise _unprocessable(
                 "not_restorable", "Only a form made here can be restored."
             )
+        if not 0 < version <= MAX_VERSION:
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Version not found")
         target = await self._form_repo.get_form_by_by_version(
             RecordId(form_id), version
         )

@@ -12,9 +12,9 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormVersionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { questionTypeName } from '@app/utils/version-changes';
 import { formVersionsUrl } from '@app/utils/response-urls';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+import { questionTypeName } from '@app/utils/version-changes';
 
 const link = buttonClassName({ variant: 'v2Button', size: 'sm', className: '' });
 
@@ -38,7 +38,7 @@ export default function VersionView({ version }: { version: number }) {
     if (!allowed) {
         return (
             <div className="px-4 md:px-10 lg:px-28">
-                <p role="status" className="text-black-700 text-sm">
+                <p role="status" className="text-sm text-black-700">
                     {t('FORM_VERSIONS.DISABLED')}
                 </p>
             </div>
@@ -48,14 +48,14 @@ export default function VersionView({ version }: { version: number }) {
     return (
         <div className="px-4 md:px-10 lg:px-28" data-testid="version-view">
             <section aria-labelledby="version-view-title" className="flex max-w-3xl flex-col gap-4">
-                <Link href={back} className="text-black-700 hover:text-black-900 w-fit text-sm underline underline-offset-2">
+                <Link href={back} className="w-fit text-sm text-black-700 underline underline-offset-2 hover:text-black-900">
                     {t('FORM_VERSIONS.VIEW_PAGE.BACK')}
                 </Link>
                 <div className="flex flex-col gap-1">
                     <h2 id="version-view-title" className="text-lg font-semibold">
                         {t('FORM_VERSIONS.VIEW_PAGE.TITLE', { n: version })}
                     </h2>
-                    <p className="text-black-700 text-sm">{t('FORM_VERSIONS.VIEW_PAGE.INTRO')}</p>
+                    <p className="text-sm text-black-700">{t('FORM_VERSIONS.VIEW_PAGE.INTRO')}</p>
                 </div>
                 {version > 1 && (
                     <div className="flex flex-wrap gap-2">
@@ -65,7 +65,7 @@ export default function VersionView({ version }: { version: number }) {
                     </div>
                 )}
                 {isLoading && (
-                    <p role="status" className="text-black-700 text-sm">
+                    <p role="status" className="text-sm text-black-700">
                         {t('FORM_VERSIONS.LOADING')}
                     </p>
                 )}
@@ -97,13 +97,13 @@ function Outline({ form }: { form: StandardFormDto }) {
                 {pages.map((page, index) => {
                     const questions = (page.properties?.fields ?? []) as StandardFormFieldDto[];
                     return (
-                        <li key={page.id ?? index} className="border-black-300 rounded border bg-white p-4">
+                        <li key={page.id ?? index} className="rounded border border-black-300 bg-white p-4">
                             <h4 className="font-medium">
                                 {t('FORM_VERSIONS.VIEW_PAGE.PAGE', { n: index + 1 })}
                                 {page.properties?.sectionTitle ? ` · ${page.properties.sectionTitle}` : ''}
                             </h4>
                             {questions.length === 0 ? (
-                                <p className="text-black-700 mt-2 text-sm">{t('FORM_VERSIONS.VIEW_PAGE.NO_QUESTIONS')}</p>
+                                <p className="mt-2 text-sm text-black-700">{t('FORM_VERSIONS.VIEW_PAGE.NO_QUESTIONS')}</p>
                             ) : (
                                 <ol className="mt-3 flex flex-col gap-3">
                                     {questions.map((question) => (
@@ -137,9 +137,9 @@ function Question({ question }: { question: StandardFormFieldDto }) {
     return (
         <li className="flex flex-col gap-1">
             <p className="text-sm font-medium">{extractTextfromJSON(question)}</p>
-            <p className="text-black-700 text-xs">{[questionTypeName(t, question.type), ...notes].join(' · ')}</p>
+            <p className="text-xs text-black-700">{[questionTypeName(t, question.type), ...notes].join(' · ')}</p>
             {choices.length > 0 && (
-                <ul aria-label={t('FORM_VERSIONS.VIEW_PAGE.OPTIONS')} className="text-black-800 ml-4 list-disc text-sm">
+                <ul aria-label={t('FORM_VERSIONS.VIEW_PAGE.OPTIONS')} className="ml-4 list-disc text-sm text-black-800">
                     {choices.map((choice) => (
                         <li key={choice.id}>{choice.value || choice.label}</li>
                     ))}

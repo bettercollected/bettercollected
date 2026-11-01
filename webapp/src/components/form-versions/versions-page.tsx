@@ -6,10 +6,10 @@ import Link from 'next/link';
 
 import { useTranslation } from 'react-i18next';
 
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@app/shadcn/components/ui/alert-dialog';
-import { buttonClassName } from '@app/shadcn/components/ui/button';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@app/shadcn/components/ui/alert-dialog';
+import { buttonClassName } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { FormVersionSummary, VersionAuthor, useGetFormVersionsQuery, useRestoreFormVersionMutation } from '@app/store/workspaces/form-versions-api';
@@ -40,7 +40,7 @@ export default function FormVersionsPage() {
     if (!allowed) {
         return (
             <div className="px-4 md:px-10 lg:px-28">
-                <p role="status" className="text-black-700 max-w-2xl text-sm">
+                <p role="status" className="max-w-2xl text-sm text-black-700">
                     {t('FORM_VERSIONS.DISABLED')}
                 </p>
             </div>
@@ -72,7 +72,7 @@ export default function FormVersionsPage() {
                     <h2 id="form-versions-title" className="text-lg font-semibold">
                         {t('FORM_VERSIONS.TITLE')}
                     </h2>
-                    <p className="text-black-700 text-sm">{t('FORM_VERSIONS.INTRO')}</p>
+                    <p className="text-sm text-black-700">{t('FORM_VERSIONS.INTRO')}</p>
                 </div>
 
                 {/* what a screen reader hears after a restore or a failed one */}
@@ -89,7 +89,7 @@ export default function FormVersionsPage() {
                 </div>
 
                 {isLoading && (
-                    <p role="status" className="text-black-700 text-sm">
+                    <p role="status" className="text-sm text-black-700">
                         {t('FORM_VERSIONS.LOADING')}
                     </p>
                 )}
@@ -105,10 +105,10 @@ export default function FormVersionsPage() {
                 {!isLoading && !isError && (
                     <>
                         {draft && (
-                            <div className="border-black-300 flex flex-col gap-2 rounded border bg-white p-4" data-testid="draft-row">
+                            <div className="flex flex-col gap-2 rounded border border-black-300 bg-white p-4" data-testid="draft-row">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <h3 className="font-medium">{t('FORM_VERSIONS.DRAFT')}</h3>
-                                    <span className="text-black-700 text-sm">{draft.hasUnpublishedChanges ? t('FORM_VERSIONS.DRAFT_CHANGED') : t('FORM_VERSIONS.DRAFT_SAME')}</span>
+                                    <span className="text-sm text-black-700">{draft.hasUnpublishedChanges ? t('FORM_VERSIONS.DRAFT_CHANGED') : t('FORM_VERSIONS.DRAFT_SAME')}</span>
                                 </div>
                                 {draft.hasUnpublishedChanges && newest !== undefined && (
                                     <div className="flex flex-wrap gap-2">
@@ -120,19 +120,20 @@ export default function FormVersionsPage() {
                             </div>
                         )}
 
+                        {data?.truncated && <p className="text-sm text-black-700">{t('FORM_VERSIONS.LIST_TRUNCATED', { count: versions.length })}</p>}
                         {versions.length === 0 ? (
-                            <p className="text-black-700 text-sm">{t('FORM_VERSIONS.NO_VERSIONS')}</p>
+                            <p className="text-sm text-black-700">{t('FORM_VERSIONS.NO_VERSIONS')}</p>
                         ) : (
                             <ul aria-label={t('FORM_VERSIONS.TABLE_LABEL')} className="flex flex-col gap-3">
                                 {versions.map((item, index) => {
                                     const previous = versions[index + 1];
                                     return (
-                                        <li key={item.version} className="border-black-300 flex flex-col gap-2 rounded border bg-white p-4" data-testid={`version-${item.version}`}>
+                                        <li key={item.version} className="flex flex-col gap-2 rounded border border-black-300 bg-white p-4" data-testid={`version-${item.version}`}>
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <h3 className="font-medium">{t('FORM_VERSIONS.VERSION_N', { n: item.version })}</h3>
-                                                {item.current && <span className="bg-success-100 text-success-700 rounded-full px-2 py-0.5 text-xs font-semibold">{t('FORM_VERSIONS.LIVE')}</span>}
+                                                {item.current && <span className="bg-success-100 rounded-full px-2 py-0.5 text-xs font-semibold text-success-700">{t('FORM_VERSIONS.LIVE')}</span>}
                                             </div>
-                                            <p className="text-black-700 text-sm">
+                                            <p className="text-sm text-black-700">
                                                 {when(item.publishedAt)}
                                                 {when(item.publishedAt) ? ' · ' : ''}
                                                 {authorText(t, item.publishedBy)}
@@ -147,7 +148,16 @@ export default function FormVersionsPage() {
                                                     </Link>
                                                 )}
                                                 {canRestore && (
-                                                    <button type="button" className={actionLink} aria-label={t('FORM_VERSIONS.RESTORE_NAMED', { n: item.version })} onClick={() => { setFailure(null); setRestored(null); setTarget(item); }}>
+                                                    <button
+                                                        type="button"
+                                                        className={actionLink}
+                                                        aria-label={t('FORM_VERSIONS.RESTORE_NAMED', { n: item.version })}
+                                                        onClick={() => {
+                                                            setFailure(null);
+                                                            setRestored(null);
+                                                            setTarget(item);
+                                                        }}
+                                                    >
                                                         {t('FORM_VERSIONS.RESTORE')}
                                                     </button>
                                                 )}

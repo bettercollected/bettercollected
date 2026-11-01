@@ -2310,6 +2310,7 @@
       "signature": "Handtekening",
       "IMAGE_CONTENT": "Afbeelding",
       "VIDEO_CONTENT": "Video"
-    }
+    },
+    "LIST_TRUNCATED": "Alleen de nieuwste {{count}} versies worden getoond."
   }
 }

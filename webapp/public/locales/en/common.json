@@ -2310,6 +2310,7 @@
       "signature": "Signature",
       "IMAGE_CONTENT": "Image",
       "VIDEO_CONTENT": "Video"
-    }
+    },
+    "LIST_TRUNCATED": "Only the newest {{count}} versions are listed."
   }
 }
