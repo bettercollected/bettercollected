@@ -354,7 +354,7 @@ def cmd_webhook(args) -> None:
     time.sleep(12)
     say("NOTCOVERED", "a webhook delivery arrives signed (X-Bettercollected-Signature): the guard has no setting that "
         "allows a private destination (docs/webhooks.md: \"There is no setting that relaxes them, and no plain-http "
-        "mode\"), so a receiver in this stack cannot be registered. Goes on the production smoke list "
+        "mode\"), so a receiver in this stack cannot be registered. Goes on the release's post-deploy smoke list "
         "(release checklist: one delivery to an allowed public https endpoint with a valid signature).")
 
 

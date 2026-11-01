@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Upgrade acceptance by IMAGE SWAP, against REAL containers: the way production upgrades.
-# Production never runs deploy.sh. It changes the image tags in its stack, restarts, and the services
+# Upgrade acceptance by IMAGE SWAP, against REAL containers: the way an orchestrated stack upgrades.
+# Such a stack never runs deploy.sh. It changes the image tags in its stack, restarts, and the services
 # migrate themselves (DB_AUTO_MIGRATE=true). This check does the same:
 #
 #   (1) old     a stack of the previous release (V4 default v4.1.2): its own docker-compose.deployment.yml
@@ -443,7 +443,7 @@ $mail
 EOF
 }
 
-# the old stack's auth sends its sign-in codes to the sink (production has MAIL_* on auth)
+# the old stack's auth sends its sign-in codes to the sink (an orchestrated stack has MAIL_* on auth)
 write_old_mail_override() {
   cat > "$S_DIR/docker-compose.oldmail.yml" <<EOF
 services:
@@ -537,14 +537,14 @@ part_swap() {
   expect "the swap changed image: lines only" "" "$(diff "$OLD_COMPOSE_NORMAL" "$work/compose.new.normal")"
   write_swap_override
   COMPOSE_EXTRA=(-f docker-compose.swap.yml)
-  # one DB_AUTO_MIGRATE per service of the compose files (what production has), the six switches and MAIL_*
+  # one DB_AUTO_MIGRATE per service of the compose files (what an orchestrated stack has), the six switches and MAIL_*
   expect "every running service of the old stack has a DB_AUTO_MIGRATE=true in the swapped stack (backend, jobs-worker, auth, admin, task-runner)" \
     "5" "$(dc config 2>/dev/null | grep -c 'DB_AUTO_MIGRATE: "\?true')"
   echo "  docker compose up -d ${OLD_RUNNING}"
   local swap_start=$SECONDS rc=0
   # shellcheck disable=SC2086
   dc up -d $OLD_RUNNING >"$work/swap-up.out" 2>&1 || rc=$?
-  expect "docker compose up -d (the services of the old stack, as production restarts them) exits 0" "0" "$rc"
+  expect "docker compose up -d (the services of the old stack, as an orchestrated stack restarts them) exits 0" "0" "$rc"
   [ "$rc" = 0 ] || { tail -n 20 "$work/swap-up.out"; show_failures; return 1; }
   # the recreated containers run the candidate images
   expect "backend, jobs-worker, auth and webapp run the candidate images" \
