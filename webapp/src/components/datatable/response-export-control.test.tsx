@@ -86,6 +86,7 @@ const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('butto
 const lastStatusQuery = () => server.statusOptions.at(-1);
 
 beforeEach(() => {
+    window.localStorage.clear();
     Object.assign(server, { started: undefined, startError: undefined, mine: [], status: undefined, statusError: undefined, statusOptions: [], downloadError: undefined, starts: [], downloads: [], discards: [], discardError: undefined, saved: [] });
 });
 
@@ -410,5 +411,108 @@ describe('the Dutch strings', () => {
             expect(nl[key].trim()).not.toBe('');
             expect(nl[key].match(/{{\w+}}/g) ?? []).toEqual(en[key].match(/{{\w+}}/g) ?? []);
         }
+    });
+});
+
+
+describe('the format', () => {
+    const radio = (name: string) => screen.getByRole('radio', { name });
+
+    it('is a radio group of CSV, Excel and JSON, CSV by default, named for screen readers', () => {
+        render(tree());
+        const group = screen.getByRole('radiogroup', { name: 'File format' });
+        expect(group).toBeInTheDocument();
+        expect(screen.getAllByRole('radio').map((r) => r.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
+        expect(screen.getAllByRole('radio').map((r) => r.id)).toEqual(['response-export-format-csv', 'response-export-format-xlsx', 'response-export-format-json']);
+        expect(radio('CSV')).toBeChecked();
+        // each option has its visible label
+        expect(screen.getByText('Excel')).toBeInTheDocument();
+        expect(screen.getByText('JSON')).toBeInTheDocument();
+    });
+
+    it('asks for an Excel workbook and saves it as one', async () => {
+        server.started = { kind: 'file', blob: new Blob(['PK']), mediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+        render(tree());
+        fireEvent.click(radio('Excel'));
+        expect(screen.getByRole('button', { name: 'Export Excel' })).toBeInTheDocument();
+        click('Export Excel');
+        await waitFor(() => expect(server.saved).toHaveLength(1));
+        expect(server.starts).toEqual([{ workspaceId: 'ws-1', formId: 'form-1', format: 'xlsx' }]);
+        expect(server.saved[0].name).toBe('Colours.xlsx');
+    });
+
+    it('asks for JSON and saves it as JSON, with the list’s search and filters', async () => {
+        server.started = { kind: 'file', blob: new Blob(['{}']), mediaType: 'application/json; charset=utf-8' };
+        render(tree({ search: 'sita@example.org', filters: { respondent: 'known' as const } }));
+        fireEvent.click(radio('JSON'));
+        click('Export matching responses');
+        await waitFor(() => expect(server.saved).toHaveLength(1));
+        expect(server.starts).toEqual([{ workspaceId: 'ws-1', formId: 'form-1', search: 'sita@example.org', respondent: 'known', format: 'json' }]);
+        expect(server.saved[0].name).toBe('Colours.json');
+    });
+
+    it('a large export in another format is followed and downloaded like any other', async () => {
+        server.started = { kind: 'job', export: job({ format: 'xlsx', fileName: 'Colours.xlsx' }) };
+        server.status = ready({ format: 'xlsx', fileName: 'Colours.xlsx' });
+        render(tree());
+        fireEvent.click(radio('Excel'));
+        click('Export Excel');
+        expect(await screen.findByText('Your export is ready.')).toBeInTheDocument();
+        click('Download');
+        await waitFor(() => expect(server.saved).toHaveLength(1));
+        expect(server.saved[0].name).toBe('Colours.xlsx');
+        expect(server.starts[0]).toMatchObject({ format: 'xlsx' });
+    });
+
+    it('is remembered in this browser, and a store that cannot be read is CSV', () => {
+        const first = render(tree());
+        fireEvent.click(radio('JSON'));
+        expect(window.localStorage.getItem('bc.responseExportFormat')).toBe('json');
+        first.unmount();
+        const second = render(tree());
+        expect(radio('JSON')).toBeChecked();
+        second.unmount();
+        // nonsense in the store, or no store at all
+        window.localStorage.setItem('bc.responseExportFormat', 'pdf');
+        const third = render(tree());
+        expect(radio('CSV')).toBeChecked();
+        third.unmount();
+        const get = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+            throw new Error('blocked');
+        });
+        const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+            throw new Error('blocked');
+        });
+        render(tree());
+        expect(radio('CSV')).toBeChecked();
+        fireEvent.click(radio('Excel'));
+        expect(radio('Excel')).toBeChecked();
+        get.mockRestore();
+        set.mockRestore();
+    });
+
+    it('cannot be changed while an export is being prepared', async () => {
+        server.started = { kind: 'job', export: job() };
+        render(tree());
+        click('Export CSV');
+        await screen.findByRole('status');
+        screen.getAllByRole('radio').forEach((r) => expect(r).toBeDisabled());
+    });
+
+    it('says when a form has too many columns for an Excel sheet', async () => {
+        server.startError = { status: 422, data: { code: 'too_many_columns' } };
+        render(tree());
+        fireEvent.click(radio('Excel'));
+        click('Export Excel');
+        expect(await screen.findByRole('alert')).toHaveTextContent('more columns than an Excel sheet can hold');
+    });
+
+    it('speaks Dutch', () => {
+        const nl = (commonNl as any).RESPONSE_EXPORT;
+        for (const key of ['BUTTON', 'FORMAT', 'FORMAT_CSV', 'FORMAT_XLSX', 'FORMAT_JSON', 'ERROR_TOO_MANY_COLUMNS']) {
+            expect(nl[key], key).toBeTruthy();
+            expect((commonEn as any).RESPONSE_EXPORT[key], key).toBeTruthy();
+        }
+        expect(nl.BUTTON).toContain('{{format}}');
     });
 });

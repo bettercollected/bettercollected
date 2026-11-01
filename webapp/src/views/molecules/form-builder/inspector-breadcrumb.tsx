@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { InspectorLevel } from '@app/lib/hooks/use-inspector-escape';
 import { cn } from '@app/shadcn/util/lib';
@@ -16,8 +17,9 @@ export interface InspectorCrumb {
  * marked for assistive tech and takes focus when Escape moves up a level.
  */
 export default function InspectorBreadcrumb({ crumbs, current, onSelect }: { crumbs: InspectorCrumb[]; current: InspectorLevel; onSelect: (level: InspectorLevel) => void }) {
+    const { t } = useTranslation('builder');
     return (
-        <nav aria-label="Settings location" className="shrink-0 border-b border-black-300 px-4 py-2.5">
+        <nav aria-label={t('BREADCRUMB.LABEL')} className="shrink-0 border-b border-black-300 px-4 py-2.5">
             <ol className="flex min-w-0 items-center gap-1 text-xs">
                 {crumbs.map((crumb, index) => {
                     const isCurrent = crumb.level === current;

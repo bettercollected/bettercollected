@@ -11,6 +11,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { useSetAtom } from 'jotai';
+import { useTranslation } from 'react-i18next';
 
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
@@ -38,6 +39,7 @@ import HelpMenuComponent from '@Components/sidebar/help-menu-component';
 import HelpMenuItem from '@Components/sidebar/help-menu-item';
 
 export default function FormEditPage(props: { params: Promise<{ form_id: string }> }) {
+    const { t } = useTranslation('builder');
     const params = use(props.params);
     // The page ids only: typing in a question does not re-render the page.
     const pageIds = usePageIds();
@@ -226,7 +228,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                                     ) : (
                                         <>
                                             {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && pageIds[activeSlideComponent.index] && <SlideBuilder pageId={pageIds[activeSlideComponent.index]} />}
-                                            {!activeSlideComponent?.id && <div>Add a slide to start</div>}
+                                            {!activeSlideComponent?.id && <div>{t('CANVAS.ADD_SLIDE_TO_START')}</div>}
                                             {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
 
                                             {activeSlideComponent?.id === 'thank-you-page' && <ThankYouSlide />}
