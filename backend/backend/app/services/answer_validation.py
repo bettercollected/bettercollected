@@ -987,6 +987,16 @@ def _matrix_unanswered(field: Any, answers: Dict[str, Any]) -> bool:
     return False
 
 
+def _blank_address(field: Any, answer: Any) -> bool:
+    """An address answer that holds a country and nothing else: no answer (the
+    country is a default the respondent never typed), like the webhook and
+    export builders read it."""
+    if _type(field) != "address" or not isinstance(answer, dict):
+        return False
+    parts = answer.get("address")
+    return isinstance(parts, dict) and not address_rules.has_any_part(parts)
+
+
 def _counts(field: Any) -> bool:
     """Is the field a question a respondent answers?"""
     if getattr(field, "internal", None):
@@ -1023,7 +1033,7 @@ def _check_question(
         if required and _matrix_unanswered(field, scope):
             out.append(AnswerProblem(field_id, REQUIRED, item, key))
         return
-    if not has_answer_value(answer):
+    if not has_answer_value(answer) or _blank_address(field, answer):
         if required:
             out.append(AnswerProblem(field_id, REQUIRED, item, key))
         return

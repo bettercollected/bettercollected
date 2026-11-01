@@ -17,6 +17,11 @@ what a respondent of a published form can send:
   answers are cached in memory (found ``FOUND_TTL_S``, not found
   ``NOT_FOUND_TTL_S``, ``CACHE_SIZE`` entries, errors never) under the two
   validated values;
+- what costs a database query before a form is known to be servable is
+  bounded: a form that is not servable is remembered for ``FORM_CACHE_S`` too,
+  and one client may make at most ``COARSE_FACTOR`` times the per-client limit
+  of requests per window to this process, whatever form they name (in memory,
+  no query);
 - nothing is stored and nothing that was asked is logged: counts and our own
   failure codes only.
 """
@@ -54,6 +59,9 @@ CLIENT_SCOPE = "address-lookup"
 FORM_SCOPE = "address-lookup-form"
 FORM_CACHE_S = 30.0
 FORM_CACHE_SIZE = 2048
+NEGATIVE_CACHE_SIZE = 2048
+COARSE_FACTOR = 4
+COARSE_SIZE = 4096
 FOUND_TTL_S = 6 * 3600.0
 NOT_FOUND_TTL_S = 600.0
 CACHE_SIZE = 2048
@@ -129,6 +137,10 @@ class AddressLookupService:
         self._transport = transport
         self._monotonic = monotonic
         self._forms_cache: Dict[Tuple[str, str], _Servable] = {}
+        # (workspace, form) that were not servable -> when that was found out
+        self._unservable: Dict[Tuple[str, str], float] = {}
+        # client key -> (window start, requests in it): in memory, no query
+        self._coarse: Dict[str, Tuple[float, int]] = {}
         # "1015CS 12" -> (street, city) or None, with the time it expires
         self._results: "OrderedDict[str, Tuple[Optional[provider.Place], float]]" = OrderedDict()
         self._in_flight = 0
@@ -150,6 +162,7 @@ class AddressLookupService:
     ) -> Dict[str, str]:
         if not address_lookup_enabled():
             raise _not_found()
+        self._coarse_limit(client)
         form = await self._servable(workspace_id, form_ref)
         if form is None or field_id not in form.fields:
             raise _not_found()
@@ -179,6 +192,30 @@ class AddressLookupService:
         if canonical is None or not is_nl_house_number(number):
             return None
         return canonical.replace(" ", "") + " " + number
+
+    def _coarse_limit(self, client: Optional[str]) -> None:
+        """Before anything is read from the database: a client that sends far
+        more than the per-client limit allows is answered 429 from memory. The
+        per-process counters are bounded (emptied when full) and hold only the
+        rate-limit key, never what was asked."""
+        api = live().api
+        window = float(api.ADDRESS_LOOKUP_WINDOW_SECONDS)
+        limit = max(1, int(api.ADDRESS_LOOKUP_PER_WINDOW)) * COARSE_FACTOR
+        now = self._monotonic()
+        who = rate_limit_key(client)
+        started, used = self._coarse.get(who, (now, 0))
+        if now - started >= window:
+            started, used = now, 0
+        if used >= limit:
+            self._count("limited")
+            raise HTTPException(
+                status_code=HTTPStatus.TOO_MANY_REQUESTS,
+                content="Too many lookups; try again later.",
+                headers={"Retry-After": str(max(1, int(window - (now - started))))},
+            )
+        if who not in self._coarse and len(self._coarse) >= COARSE_SIZE:
+            self._coarse.clear()
+        self._coarse[who] = (started, used + 1)
 
     async def _limit(self, form_id: str, client: Optional[str]) -> None:
         api = live().api
@@ -261,11 +298,19 @@ class AddressLookupService:
         if cached is not None and now - cached.loaded_at < FORM_CACHE_S:
             return cached
         self._forms_cache.pop(key, None)
+        missed = self._unservable.get(key)
+        if missed is not None and now - missed < FORM_CACHE_S:
+            return None
+        self._unservable.pop(key, None)
         form = await self._load(workspace_id, form_ref, now)
         if form is not None:
             if len(self._forms_cache) >= FORM_CACHE_SIZE:
                 self._forms_cache.clear()
             self._forms_cache[key] = form
+        else:
+            if len(self._unservable) >= NEGATIVE_CACHE_SIZE:
+                self._unservable.clear()
+            self._unservable[key] = now
         return form
 
     async def _load(

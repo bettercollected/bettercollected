@@ -68,7 +68,7 @@ def transport(monkeypatch):
     lookup = container.address_lookup_service()
     monkeypatch.setattr(lookup, "_transport", fake)
     # a fresh service state for every test
-    for name, value in (("_forms_cache", {}), ("_in_flight", 0), ("_failures", 0), ("_open_until", 0.0), ("counts", {})):
+    for name, value in (("_forms_cache", {}), ("_unservable", {}), ("_coarse", {}), ("_in_flight", 0), ("_failures", 0), ("_open_until", 0.0), ("counts", {})):
         monkeypatch.setattr(lookup, name, value)
     monkeypatch.setattr(lookup, "_results", type(lookup._results)())
     return fake
@@ -422,6 +422,68 @@ async def test_a_form_that_does_not_exist_creates_no_counter(client: AsyncClient
         await client.post(_url(workspace.id, "65f0c0ffee0000000000abcd"), json=_ask())
         await client.post(_url(workspace.id, form.form_id), json=_ask(field_id="name"))
     assert await counters() == before
+
+
+async def test_a_form_that_is_not_servable_is_looked_up_once_per_half_minute(
+    client: AsyncClient, workspace, form, transport, monkeypatch
+):
+    lookup = container.address_lookup_service()
+    clock = {"t": 1000.0}
+    monkeypatch.setattr(lookup, "_monotonic", lambda: clock["t"])
+    loads = []
+    real = lookup._load
+
+    async def counted(*args, **kwargs):
+        loads.append(1)
+        return await real(*args, **kwargs)
+
+    monkeypatch.setattr(lookup, "_load", counted)
+    url = _url(workspace.id, "no-such-slug")
+    for _ in range(5):
+        await _is_plain_404(client, url, _ask())
+    assert len(loads) == 1
+    clock["t"] += service_module.FORM_CACHE_S + 1
+    await _is_plain_404(client, url, _ask())
+    assert len(loads) == 2
+    assert transport.queries == []
+
+
+async def test_the_memory_of_forms_that_are_not_servable_is_bounded(
+    client: AsyncClient, workspace, form, transport, monkeypatch
+):
+    monkeypatch.setattr(service_module, "NEGATIVE_CACHE_SIZE", 3)
+    for index in range(8):
+        await _is_plain_404(client, _url(workspace.id, f"missing-{index}"), _ask())
+    assert len(container.address_lookup_service()._unservable) <= 3
+
+
+async def test_a_client_that_floods_is_stopped_before_the_database_is_asked(
+    client: AsyncClient, workspace, form, transport, limits, monkeypatch
+):
+    lookup = container.address_lookup_service()
+    loads = []
+
+    async def refuse(*args, **kwargs):
+        loads.append(1)
+        return None
+
+    monkeypatch.setattr(lookup, "_load", refuse)
+    flood = {"X-Forwarded-For": "203.0.113.77"}
+    allowed = 3 * service_module.COARSE_FACTOR
+    for index in range(allowed):
+        # a different form every time: nothing is cached
+        response = await client.post(_url(workspace.id, f"missing-{index}"), json=_ask(), headers=flood)
+        assert response.status_code == 404
+    assert len(loads) == allowed
+    refused = await client.post(_url(workspace.id, "missing-next"), json=_ask(), headers=flood)
+    assert refused.status_code == 429
+    assert int(refused.headers["Retry-After"]) >= 1
+    assert len(loads) == allowed
+    # another client is not affected
+    other = await client.post(
+        _url(workspace.id, "missing-next"), json=_ask(), headers={"X-Forwarded-For": "198.51.100.5"}
+    )
+    assert other.status_code == 404
 
 
 async def test_nothing_that_was_asked_is_stored_or_logged(

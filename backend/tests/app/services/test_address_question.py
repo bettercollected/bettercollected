@@ -175,6 +175,21 @@ def test_a_group_item_can_hold_an_address():
     assert got == [("home", "format", 0), ("home", "required", 1)]
 
 
+def test_a_country_alone_is_no_answer():
+    form = _form()
+    only_country = {"type": "address", "address": {"country": "NL"}}
+    # required: it is still missing; optional: nothing was answered
+    got = [(p.field_id, p.rule) for p in validate_answers(form, {"home": only_country, "work": only_country})]
+    assert got == [("home", "required")]
+    assert validate_answers(form, {"home": _address(), "work": only_country}) == []
+
+
+def test_a_part_that_cannot_be_encoded_is_refused_not_a_server_error():
+    form = _form()
+    got = [(p.field_id, p.rule) for p in validate_answers(form, {"home": _address(street="\ud800")})]
+    assert got == [("home", "format")]
+
+
 def test_a_condition_reads_the_postcode_as_text():
     answers = {"q": _address()}
     condition = lambda comparison, value=None: {  # noqa: E731
