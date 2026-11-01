@@ -186,8 +186,9 @@ export function useFinishForm(isPreviewMode: boolean) {
                     if (refusal) {
                         toast({ description: t(SUBMIT_REFUSED[refusal]), variant: 'destructive' });
                         setSubmitError(refusal);
-                    } else if (e?.response?.status === 503 && sendsDrawnSignature(standardForm?.fields, files)) {
-                        // the server could not process the drawn image just now: nothing was stored, the drawing is kept, typing works
+                    } else if ((e?.response?.status === 503 || e?.response?.status === 429) && sendsDrawnSignature(standardForm?.fields, files)) {
+                        // the server could not process the drawn image just now (unavailable, busy, or too many drawn signatures
+                        // from here in the last minute): nothing was stored, the drawing is kept, typing works
                         toast({ description: t('SIGNATURE.SUBMIT_UNAVAILABLE'), variant: 'destructive' });
                         setSubmitError('signature_unavailable');
                     } else if (!showServerAnswerErrors(e?.response)) {

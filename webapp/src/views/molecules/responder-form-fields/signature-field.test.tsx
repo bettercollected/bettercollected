@@ -26,22 +26,29 @@ const sign: StandardFormFieldDto = { id: 'sig', index: 0, type: FieldTypes.SIGNA
 
 let latest: Record<string, any> = {};
 let held: Array<{ fieldId: string; fileId: string; fileName: string; file: File }> = [];
+let flag: (codes: Record<string, string[]>) => void = () => undefined;
 
 function Spy() {
-    const { formResponse } = useFormResponse();
+    const { formResponse, setFormResponse } = useFormResponse();
     const { files } = useFormAtom();
     latest = formResponse.answers ?? {};
     held = files;
+    // what Continue does: the page flags the question
+    flag = (codes) => setFormResponse({ ...formResponse, invalidFields: codes });
     return null;
 }
 
-const show = (answers: Record<string, any> = {}, field: StandardFormFieldDto = sign, isBuilder = false) => {
+const HELD_FILE = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'signature.png', { type: 'image/png' });
+
+const show = (answers: Record<string, any> = {}, field: StandardFormFieldDto = sign, isBuilder = false, heldFiles: Array<{ fieldId: string; fileId: string }> = []) => {
     store.dispatch(setForm({ formId: 'f', title: 'Agreement', fields: [{ id: 's1', index: 0, type: FieldTypes.SLIDE, properties: { fields: [field] } }] }));
     const Harness = () => {
         const { setFormResponse, formResponse } = useFormResponse();
+        const { addFile } = useFormAtom();
         const [ready, setReady] = React.useState(false);
         React.useEffect(() => {
             setFormResponse({ ...formResponse, answers });
+            heldFiles.forEach((item) => addFile(item.fieldId, item.fileId, 'signature.png', HELD_FILE));
             setReady(true);
         }, []);
         return ready ? <SignatureField field={field} isBuilder={isBuilder} /> : null;
@@ -80,7 +87,12 @@ afterEach(() => {
     vi.restoreAllMocks();
 });
 
-const pointer = (target: Element, type: string, x: number, y: number) => fireEvent(target, new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+/** A pointer event as jsdom can make one (it has no PointerEvent): a mouse event with the pointer's id. */
+const pointer = (target: Element, type: string, x: number, y: number, { pointerId = 1, button = 0 }: { pointerId?: number; button?: number } = {}) => {
+    const event = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button });
+    Object.defineProperty(event, 'pointerId', { value: pointerId });
+    return fireEvent(target, event);
+};
 const drawLine = async (canvas: Element) => {
     await act(async () => {
         pointer(canvas, 'pointerdown', 10, 10);
@@ -156,7 +168,7 @@ describe('SignatureField', () => {
         expect(held).toHaveLength(1);
     });
 
-    it('a tap is a dot, which is a signature of sorts, and a move without a press draws nothing', async () => {
+    it('a tap or a very short stroke is not a signature, and a move without a press draws nothing', async () => {
         show();
         const canvas = await screen.findByRole('img', { name: 'Signature drawing area' });
         await act(async () => {
@@ -167,7 +179,63 @@ describe('SignatureField', () => {
             pointer(canvas, 'pointerdown', 50, 50);
             pointer(canvas, 'pointerup', 50, 50);
         });
+        expect(latest.sig).toBeUndefined();
+        await act(async () => {
+            pointer(canvas, 'pointerdown', 50, 50);
+            pointer(canvas, 'pointermove', 53, 50);
+            pointer(canvas, 'pointerup', 53, 50);
+        });
+        expect(latest.sig).toBeUndefined();
+        expect(held).toHaveLength(0);
+    });
+
+    it('draws with one pointer only: a second finger and a pen eraser draw nothing', async () => {
+        show();
+        const canvas = await screen.findByRole('img', { name: 'Signature drawing area' });
+        await act(async () => {
+            pointer(canvas, 'pointerdown', 10, 10, { pointerId: 1 });
+            // a second finger lands, moves and lifts while the first draws
+            pointer(canvas, 'pointerdown', 200, 80, { pointerId: 2 });
+            pointer(canvas, 'pointermove', 250, 90, { pointerId: 2 });
+            pointer(canvas, 'pointerup', 250, 90, { pointerId: 2 });
+        });
+        // the second finger lifting does not end the first stroke
+        expect(latest.sig).toBeUndefined();
+        await act(async () => {
+            pointer(canvas, 'pointermove', 120, 40, { pointerId: 1 });
+            pointer(canvas, 'pointerup', 120, 40, { pointerId: 1 });
+        });
         expect(latest.sig.signature.method).toBe('drawn');
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Clear signature' }));
+        });
+        await act(async () => {
+            pointer(canvas, 'pointerdown', 10, 10, { pointerId: 3, button: 5 });
+            pointer(canvas, 'pointermove', 200, 80, { pointerId: 3, button: 5 });
+            pointer(canvas, 'pointerup', 200, 80, { pointerId: 3, button: 5 });
+        });
+        expect(latest.sig).toBeUndefined();
+        expect(held).toHaveLength(0);
+    });
+
+    it('drops a PNG that is made after Clear or a switch to typing', async () => {
+        let finish: (() => void) | undefined;
+        vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(((cb: BlobCallback) => {
+            finish = () => cb(new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: 'image/png' }));
+        }) as any);
+        show();
+        const canvas = await screen.findByRole('img', { name: 'Signature drawing area' });
+        await drawLine(canvas);
+        fireEvent.click(screen.getByRole('button', { name: 'Clear signature' }));
+        await act(async () => finish?.());
+        expect(latest.sig).toBeUndefined();
+        expect(held).toHaveLength(0);
+        await drawLine(canvas);
+        fireEvent.click(screen.getByRole('radio', { name: 'Type your name' }));
+        fireEvent.change(await screen.findByLabelText('Your full name'), { target: { value: 'Ada' } });
+        await act(async () => finish?.());
+        expect(latest.sig).toEqual({ type: 'signature', signature: { method: 'typed', name: 'Ada' } });
+        expect(held).toHaveLength(0);
     });
 
     it('types: the name is the answer, trimmed, and clearing the box removes it', async () => {
@@ -175,7 +243,8 @@ describe('SignatureField', () => {
         fireEvent.click(await screen.findByRole('radio', { name: 'Type your name' }));
         const input = await screen.findByLabelText('Your full name');
         expect(input).toHaveAttribute('autocomplete', 'name');
-        expect(input).toHaveAttribute('maxlength', '100');
+        // 100 characters as the server counts them: the box itself only bounds UTF-16 units
+        expect(input).toHaveAttribute('maxlength', '200');
         expect(input).toBeRequired();
         fireEvent.change(input, { target: { value: '  Fatima El Idrissi ' } });
         expect(latest.sig).toEqual({ type: 'signature', signature: { method: 'typed', name: 'Fatima El Idrissi' } });
@@ -185,6 +254,15 @@ describe('SignatureField', () => {
         expect(screen.getByText('Fatima El Idrissi', { selector: 'p' })).toHaveAttribute('aria-hidden', 'true');
         fireEvent.change(input, { target: { value: '   ' } });
         expect(latest.sig).toBeUndefined();
+    });
+
+    it('keeps a name to 100 characters, counting a character outside the BMP as one', async () => {
+        show();
+        fireEvent.click(await screen.findByRole('radio', { name: 'Type your name' }));
+        const input = await screen.findByLabelText('Your full name');
+        fireEvent.change(input, { target: { value: '\u{1F600}'.repeat(60) + 'a'.repeat(60) } });
+        expect(Array.from(latest.sig.signature.name)).toHaveLength(100);
+        expect(Array.from(latest.sig.signature.name).slice(0, 60).join('')).toBe('\u{1F600}'.repeat(60));
     });
 
     it('flags a name with hidden characters and keeps it as typed', async () => {
@@ -197,6 +275,41 @@ describe('SignatureField', () => {
         expect(checkAnswerRules(sign, latest.sig)).toEqual(['FORMAT']);
         expect(screen.getByText('Your name has characters that cannot be used. Please type it again.')).toBeInTheDocument();
         expect(input).toHaveAccessibleDescription(/characters that cannot be used/);
+        expect(input).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    it('says the name problem once: after Continue the question owns the message', async () => {
+        show();
+        fireEvent.click(await screen.findByRole('radio', { name: 'Type your name' }));
+        const input = await screen.findByLabelText('Your full name');
+        fireEvent.change(input, { target: { value: 'Ada\u200bLovelace' } });
+        expect(screen.getAllByText('Your name has characters that cannot be used. Please type it again.')).toHaveLength(1);
+        act(() => flag({ sig: ['FORMAT'] }));
+        expect(screen.getAllByText('Your name has characters that cannot be used. Please type it again.')).toHaveLength(1);
+        expect(screen.getByRole('alert')).toHaveTextContent('characters that cannot be used');
+        expect(input).toHaveAttribute('aria-invalid', 'true');
+        // a fixed name clears the mark
+        fireEvent.change(input, { target: { value: 'Ada Lovelace' } });
+        expect(input).not.toHaveAttribute('aria-invalid');
+    });
+
+    it('marks the drawing box with the error edge while the question is flagged', async () => {
+        show();
+        const canvas = await screen.findByRole('img', { name: 'Signature drawing area' });
+        const pad = canvas.closest('[data-signature-pad]') as HTMLElement;
+        const atRest = pad.style.borderColor;
+        act(() => flag({ sig: ['REQUIRED'] }));
+        expect(pad.style.borderColor).not.toBe(atRest);
+    });
+
+    it('shows which way is chosen by a dot and weight, like a choice question', async () => {
+        show();
+        const draw = (await screen.findByRole('radio', { name: 'Draw' })).closest('label') as HTMLElement;
+        const typed = screen.getByRole('radio', { name: 'Type your name' }).closest('label') as HTMLElement;
+        expect(draw).toHaveClass('font-semibold');
+        expect(typed).not.toHaveClass('font-semibold');
+        expect(draw.querySelector('[data-choice-indicator] span')).not.toBeNull();
+        expect(typed.querySelector('[data-choice-indicator] span')).toBeNull();
     });
 
     it('is a complete path by keyboard and screen reader: the radio, the labelled box, the question named and described', async () => {
@@ -227,6 +340,34 @@ describe('SignatureField', () => {
         });
         expect(latest.sig.signature.method).toBe('drawn');
         expect(held).toHaveLength(1);
+    });
+
+    it('keeps a held drawing through Draw, Type and Draw again, without making a new one', async () => {
+        show({ sig: { type: 'signature', signature: { method: 'drawn', file_id: 'img-held' } } }, sign, false, [{ fieldId: 'sig', fileId: 'img-held' }]);
+        expect(await screen.findByRole('img', { name: 'Your drawn signature' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('radio', { name: 'Type your name' }));
+        expect(held).toHaveLength(0);
+        fireEvent.click(screen.getByRole('radio', { name: 'Draw' }));
+        expect(latest.sig).toEqual({ type: 'signature', signature: { method: 'drawn', file_id: 'img-held' } });
+        expect(held.map((item) => item.fileId)).toEqual(['img-held']);
+        expect(screen.getByRole('img', { name: 'Your drawn signature' })).toBeInTheDocument();
+    });
+
+    it('a tap on a held drawing keeps it, and drawing over it signs again', async () => {
+        show({ sig: { type: 'signature', signature: { method: 'drawn', file_id: 'img-held' } } }, sign, false, [{ fieldId: 'sig', fileId: 'img-held' }]);
+        await screen.findByRole('img', { name: 'Your drawn signature' });
+        const canvas = screen.getByRole('img', { name: 'Signature drawing area' });
+        await act(async () => {
+            pointer(canvas, 'pointerdown', 50, 50);
+            pointer(canvas, 'pointerup', 50, 50);
+        });
+        expect(latest.sig.signature.file_id).toBe('img-held');
+        expect(held.map((item) => item.fileId)).toEqual(['img-held']);
+        expect(screen.getByRole('img', { name: 'Your drawn signature' })).toBeInTheDocument();
+        await drawLine(canvas);
+        expect(latest.sig.signature.file_id).not.toBe('img-held');
+        expect(held).toHaveLength(1);
+        expect(held[0].fileId).toBe(latest.sig.signature.file_id);
     });
 
     it('shows a stored typed name, and a drawing this browser holds', async () => {

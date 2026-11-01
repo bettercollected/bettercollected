@@ -297,17 +297,18 @@ export const useFormResponse = () => {
     };
 
     // A signature: typed (the name) or drawn (the id of the image, which goes along as a file part of the submission).
+    // From the answers as they are when it runs: a drawing is committed after the PNG is made (an await).
     const addFieldSignatureAnswer = (fieldId: string, signature: { method: 'typed'; name: string } | { method: 'drawn'; file_id: string }) => {
-        setFormResponse({
-            ...formResponse,
+        setFormResponse((previous) => ({
+            ...previous,
             answers: {
-                ...(formResponse.answers || {}),
+                ...(previous.answers || {}),
                 [fieldId]: {
                     type: AnswerType.SIGNATURE,
                     signature
                 }
             }
-        });
+        }));
     };
 
     const addFieldURLAnswer = (fieldId: string, url: string) => {

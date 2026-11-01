@@ -1,10 +1,12 @@
 import React from 'react';
 
-import { render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import i18n from 'i18next';
 import { Provider as ReduxProvider } from 'react-redux';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { FieldTypes } from '@app/models/dtos/form';
+import '@app/shared/hocs/i18n-provider';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
 import { axeViolations } from '@app/test/axe';
@@ -51,12 +53,17 @@ beforeEach(() => {
     store.dispatch(setWorkspace({ id: 'workspace-1', workspaceName: 'acme' } as any));
 });
 
+afterEach(async () => {
+    await act(() => i18n.changeLanguage('en'));
+});
+
 describe('a signature on the response page', () => {
     it('shows a typed name as text (the name is the signature) and when it was signed', () => {
         show();
         const group = screen.getAllByRole('group', { name: /Sign for yourself/ })[0];
         expect(within(group).getByText('Fatima El Idrissi')).toBeInTheDocument();
-        expect(within(group).getByText(/Signed 1 November 2026/)).toBeInTheDocument();
+        // the full time with its zone, like "Submitted"
+        expect(within(group).getByText(/^Signed 1 November 2026(,| at) \d\d:\d\d:\d\d \S+$/)).toBeInTheDocument();
         expect(group.querySelector('img')).toBeNull();
     });
 
@@ -65,6 +72,16 @@ describe('a signature on the response page', () => {
         const group = screen.getAllByRole('group', { name: /Sign for your partner/ })[0];
         const image = within(group).getByRole('img', { name: 'Drawn signature' });
         expect(image).toHaveAttribute('src', 'https://files.example/private/ws/f/r/img-1?signed');
+        // the link is a bearer address to a private file: never sent on as a referrer
+        expect(image).toHaveAttribute('referrerpolicy', 'no-referrer');
+    });
+
+    it('says the image is not available when its link does not load', () => {
+        show();
+        const group = screen.getAllByRole('group', { name: /Sign for your partner/ })[0];
+        fireEvent.error(within(group).getByRole('img', { name: 'Drawn signature' }));
+        expect(within(group).queryByRole('img')).toBeNull();
+        expect(within(group).getByText('Drawn signature (the image is not available)')).toBeInTheDocument();
     });
 
     it('says so when a drawn signature has no link (the file is gone)', () => {
@@ -78,9 +95,14 @@ describe('a signature on the response page', () => {
         expect(within(group).getByText(/No answer/i)).toBeInTheDocument();
     });
 
-    it('writes the time in the form’s language', () => {
+    it('writes the label and the time in one language', async () => {
         show('nl');
-        expect(screen.getAllByText(/Signed 1 november 2026/).length).toBeGreaterThan(0);
+        // the page's language, whatever the form's: never "Signed 1 november"
+        expect(screen.queryByText(/Signed 1 november/)).toBeNull();
+        expect(screen.getAllByText(/^Signed 1 November 2026/).length).toBeGreaterThan(0);
+        await act(() => i18n.changeLanguage('nl'));
+        expect(screen.getAllByText(/^Ondertekend op 1 november 2026/).length).toBeGreaterThan(0);
+        expect(screen.getByRole('img', { name: 'Getekende handtekening' })).toBeInTheDocument();
     });
 
     it('has no accessibility violations', async () => {

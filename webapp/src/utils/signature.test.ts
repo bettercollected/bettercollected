@@ -17,7 +17,21 @@ describe('typed names (the server twin is common signature.py)', () => {
         ['a line break', 'a\nb'],
         ['a tab', 'a\tb'],
         ['a decomposed accent (not Unicode form C)', 'é'],
-        ['the byte order mark', '﻿Ada']
+        ['the byte order mark', '﻿Ada'],
+        ['a leading no-break space', '\u00a0Ada'],
+        ['a trailing next-line character', 'Ada\u0085'],
+        ['a leading ideographic space', '\u3000Ada'],
+        ['a Hangul filler only', '\u3164'],
+        ['Hangul choseong and jungseong fillers', '\u115f\u1160'],
+        ['halfwidth Hangul fillers', '\uffa0\uffa0'],
+        ['blank braille patterns', '\u2800\u2800\u2800'],
+        ['a Hangul filler inside a name', 'Ada\u3164Lovelace'],
+        ['no letter or digit', '-- .'],
+        ['an emoji only', '\u{1F600}'],
+        ['a private-use character', 'Ada\ue000'],
+        ['an unassigned character', 'Ada\u0378'],
+        ['a lone surrogate', 'Ada\ud800'],
+        ['five combining marks in a row', 'x\u0301\u0301\u0301\u0301\u0301']
     ])('refuses %s', (_why, name) => {
         expect(isSignatureName(name)).toBe(false);
         expect(signatureProblem({ method: 'typed', name })).toBe('FORMAT');
@@ -26,7 +40,9 @@ describe('typed names (the server twin is common signature.py)', () => {
     it('counts characters as the server does, by code point', () => {
         expect(signatureNameLength('a😀')).toBe(2);
         expect(signatureProblem({ method: 'typed', name: 'x'.repeat(SIGNATURE_NAME_MAX + 1) })).toBe('TOO_LONG');
-        expect(signatureProblem({ method: 'typed', name: '😀'.repeat(SIGNATURE_NAME_MAX) })).toBeNull();
+        // a letter outside the BMP (two UTF-16 units) counts once
+        expect(signatureProblem({ method: 'typed', name: '\u{1D49C}'.repeat(SIGNATURE_NAME_MAX) })).toBeNull();
+        expect(signatureProblem({ method: 'typed', name: '\u{1D49C}'.repeat(SIGNATURE_NAME_MAX + 1) })).toBe('TOO_LONG');
     });
 
     it('stores what was typed trimmed and in form C, and nothing for what leaves nothing or something forbidden', () => {
@@ -34,6 +50,8 @@ describe('typed names (the server twin is common signature.py)', () => {
         expect(normalisedName('Zoë')).toBe('Zoë');
         expect(normalisedName('   ')).toBeUndefined();
         expect(normalisedName('a​b')).toBeUndefined();
+        expect(normalisedName(' \u3164 ')).toBeUndefined();
+        expect(normalisedName('x\u0301\u0301\u0301\u0301')).toBe('x\u0301\u0301\u0301\u0301');
         // a name made so is one the server accepts
         expect(isSignatureName(normalisedName('  Zoë  ') as string)).toBe(true);
     });

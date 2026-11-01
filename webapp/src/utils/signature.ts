@@ -4,8 +4,10 @@
  *
  * - `typed`: the name, stored the way it is shown: trimmed, in Unicode form C,
  *   1 to SIGNATURE_NAME_MAX characters, without control, format (zero-width,
- *   bidirectional marks, the byte order mark, the soft hyphen) or line and
- *   paragraph separator characters;
+ *   bidirectional marks, the byte order mark, the soft hyphen), line and
+ *   paragraph separator, surrogate, private-use or unassigned characters, nor
+ *   the invisible fillers (Hangul fillers, blank braille); with at least one
+ *   letter or digit, and no more than four combining marks in a row;
  * - `drawn`: the id of the PNG the browser made. The image itself travels as a
  *   file part of the submission and is kept as a private stored file, never in
  *   the answer.
@@ -29,9 +31,14 @@ export interface SignatureValue {
     url?: string;
 }
 
-// Control (Cc), format (Cf: zero-width and bidirectional marks, the byte order mark, the soft hyphen) and the line and
-// paragraph separators (Zl, Zp) never belong in a name: they reverse or hide text in a view.
-const FORBIDDEN = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
+// Control (Cc), format (Cf: zero-width and bidirectional marks, the byte order mark, the soft hyphen), the line and
+// paragraph separators (Zl, Zp), surrogate (Cs), private-use (Co) and unassigned (Cn) characters never belong in a name:
+// they reverse or hide text in a view. Nor do the characters that draw nothing but count as letters or symbols: the
+// Hangul fillers and the blank braille pattern (a name of them would look empty).
+const FORBIDDEN = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Cs}\p{Co}\p{Cn}\u115F\u1160\u3164\uFFA0\u2800]/u;
+// A name holds at least one letter or digit, and never more than four combining marks in a row (they only stack up).
+const LETTER_OR_DIGIT = /[\p{L}\p{N}]/u;
+const STACKED_MARKS = /\p{M}{5,}/u;
 // What Python's str.strip() removes (the server's notion of "trimmed"), not what JavaScript's trim() does (it also strips U+FEFF).
 const PY_SPACE = '\\t\\n\\v\\f\\r \\x1c-\\x1f\\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000';
 const EDGE_SPACE = new RegExp(`^[${PY_SPACE}]|[${PY_SPACE}]$`);
@@ -44,13 +51,13 @@ export const signatureNameLength = (value: string): number => Array.from(value).
 
 /** Is `value` a well-formed typed name (the length is checked apart)? */
 export function isSignatureName(value: unknown): value is string {
-    return typeof value === 'string' && value !== '' && !EDGE_SPACE.test(value) && value.normalize('NFC') === value && !FORBIDDEN.test(value);
+    return typeof value === 'string' && value !== '' && !EDGE_SPACE.test(value) && value.normalize('NFC') === value && !FORBIDDEN.test(value) && LETTER_OR_DIGIT.test(value) && !STACKED_MARKS.test(value);
 }
 
-/** What to store for what was typed: trimmed, in form C; undefined when that leaves nothing, or something forbidden. */
+/** What to store for what was typed: trimmed, in form C; undefined when that leaves nothing, or no well-formed name. */
 export function normalisedName(typed: string): string | undefined {
     const text = typed.replace(PY_TRIM, '').normalize('NFC');
-    return text && !FORBIDDEN.test(text) ? text : undefined;
+    return isSignatureName(text) ? text : undefined;
 }
 
 export const isPlainImageId = (value: unknown): value is string => typeof value === 'string' && PLAIN_ID.test(value) && value !== '.' && value !== '..';

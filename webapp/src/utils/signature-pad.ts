@@ -4,8 +4,9 @@
  * points, how they are painted, and whether anything is drawn.
  *
  * The canvas keeps a fixed resolution of PAD_WIDTH x PAD_HEIGHT times
- * PAD_SCALE (1200 x 480 pixels, at most what the server takes: backend
- * services/signatures.py) and is shown at any width, so the PNG it makes is
+ * PAD_SCALE (1200 x 600 pixels, within what the server takes: backend
+ * services/signatures.py), 2:1 so the box is tall enough to sign in on a
+ * phone, and is shown at any width, so the PNG it makes is
  * the same on every screen. Ink is dark on transparent pixels: the box shows
  * its own light background.
  */
@@ -17,7 +18,7 @@ export interface Point {
 export type Stroke = Point[];
 
 export const PAD_WIDTH = 600;
-export const PAD_HEIGHT = 240;
+export const PAD_HEIGHT = 300;
 /** Pixels per unit of the pad's space: the exported image is PAD_WIDTH * PAD_SCALE wide. */
 export const PAD_SCALE = 2;
 export const INK = '#111827';
@@ -48,8 +49,18 @@ export function extendStroke(strokes: ReadonlyArray<Stroke>, point: Point): Stro
     return [...strokes.slice(0, -1), [...last, point]];
 }
 
-/** Is anything drawn? A single tap is a dot. */
-export const hasInk = (strokes: ReadonlyArray<Stroke>): boolean => strokes.some((stroke) => stroke.length > 0);
+/** How much ink (the length of all strokes, in pad units) counts as a signature: a tap or a short tick does not. */
+export const MIN_INK_LENGTH = 24;
+
+/** The length of all strokes together, in pad units. */
+export function inkLength(strokes: ReadonlyArray<Stroke>): number {
+    let length = 0;
+    for (const stroke of strokes) for (let i = 1; i < stroke.length; i++) length += Math.hypot(stroke[i].x - stroke[i - 1].x, stroke[i].y - stroke[i - 1].y);
+    return length;
+}
+
+/** Is enough drawn to count as signed? A single dot or a very short stroke is not. */
+export const hasInk = (strokes: ReadonlyArray<Stroke>): boolean => inkLength(strokes) >= MIN_INK_LENGTH;
 
 /** The minimal drawing context the painting needs (a CanvasRenderingContext2D has it). */
 export interface PadContext {

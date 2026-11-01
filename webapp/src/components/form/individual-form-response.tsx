@@ -1,3 +1,5 @@
+import SignatureImage from '@app/components/response-page/signature-image';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
@@ -33,6 +35,7 @@ export const UnreadableNotice = ({ unreadable }: { unreadable: string[] }) => {
 export const IndividualFormResponse = ({ formFields, response, form, className }: { formFields: Array<StandardFormFieldDto>; response: StandardFormResponseDto; form?: StandardFormDto; className?: string }) => {
 
     const { toast } = useToast();
+    const { t } = useBuilderTranslation();
 
     const reduxForm = useAppSelector(selectForm);
     const standardForm = form ? form : reduxForm;
@@ -145,14 +148,13 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                         <div className="flex flex-col gap-1.5" key={field.id}>
                             {getTitleForHeaderForTable(field)}
                             {signature?.method === 'drawn' && signature.url ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={signature.url} alt="Drawn signature" className="max-h-32 w-fit max-w-full rounded border border-gray-200 bg-white object-contain p-2" />
+                                <SignatureImage url={signature.url} alt={t('SIGNATURE.VIEW_DRAWN_ALT')} unavailable={t('SIGNATURE.VIEW_IMAGE_UNAVAILABLE')} className="max-h-32 w-fit max-w-full rounded border border-gray-200 bg-white object-contain p-2" fallbackClassName="text-black-600 text-base" />
                             ) : signature?.method === 'typed' && signature.name ? (
                                 <span className="text-black-900 text-2xl italic [overflow-wrap:anywhere]" style={{ fontFamily: TYPED_SIGNATURE_FONT }}>
                                     {signature.name}
                                 </span>
                             ) : signature?.method === 'drawn' ? (
-                                <span className="text-black-600 text-base">Drawn signature (the image is not available)</span>
+                                <span className="text-black-600 text-base">{t('SIGNATURE.VIEW_IMAGE_UNAVAILABLE')}</span>
                             ) : (
                                 noAnswer
                             )}

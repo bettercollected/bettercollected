@@ -183,7 +183,8 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                 control.setAttribute('aria-invalid', 'true');
                 control.setAttribute('aria-describedby', [...describedBy, errorId].join(' '));
             } else {
-                control.removeAttribute('aria-invalid');
+                // a control that flags its own value as it is typed (data-local-invalid) keeps that mark
+                if (control.getAttribute('data-local-invalid') !== 'true') control.removeAttribute('aria-invalid');
                 if (describedBy.length) control.setAttribute('aria-describedby', describedBy.join(' '));
                 else control.removeAttribute('aria-describedby');
             }

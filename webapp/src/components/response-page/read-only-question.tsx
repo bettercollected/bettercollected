@@ -9,6 +9,7 @@ import parse from 'html-react-parser';
 import { Check, ChevronDown, Download } from 'lucide-react';
 
 import { FormTheme } from '@app/constants/theme';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { PipeContext, resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
@@ -16,7 +17,7 @@ import { calculatedAnswerValue, formatCalculatedValue, isShownToRespondents } fr
 import { LogicSources, getHiddenFieldIds } from '@app/utils/conditional-logic';
 import { formatAmount } from '@app/utils/currency';
 import { dateRangeText } from '@app/utils/date-range';
-import { calendarDayIn } from '@app/utils/date-utils';
+import { calendarDayIn, utcToLocalDateTimeWithZone } from '@app/utils/date-utils';
 import { formatFileSizeMb } from '@app/utils/file-utils';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { DISPLAY_LIST_SEPARATOR, getAnswerForField } from '@app/utils/form-builder-block-utils';
@@ -30,6 +31,8 @@ import { ChoiceContent, choiceRowStyle } from '@app/views/atoms/choice';
 import { scaleCellStyle } from '@app/views/molecules/responder-form-fields/linear-rating';
 import { themed } from '@app/views/molecules/theme/theme-root';
 import { softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
+
+import SignatureImage from './signature-image';
 
 export const UNREADABLE_SHORT = 'Could not be decrypted';
 export const NO_ANSWER = 'No answer';
@@ -313,13 +316,6 @@ function FileAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?: str
     );
 }
 
-/** When the server stored a signature, as a date and time in the form's language; empty when it is not a time. */
-function signedAtText(value: unknown, language: 'en' | 'nl'): string {
-    const time = typeof value === 'string' ? new Date(value) : null;
-    if (!time || Number.isNaN(time.getTime())) return '';
-    return time.toLocaleString(language === 'nl' ? 'nl-NL' : 'en-GB', { dateStyle: 'long', timeStyle: 'short' });
-}
-
 /**
  * A signature as a person reads it: a drawn one as its image (the server's
  * short-lived link is the only way to it), a typed one as the name in an
@@ -328,9 +324,12 @@ function signedAtText(value: unknown, language: 'en' | 'nl'): string {
  * say who signed.
  */
 function SignatureAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?: string; ctx: ReadOnlyContext }) {
+    const { t, i18n } = useBuilderTranslation();
     const signature = answerSignature(answer);
     if (!signature || (signature.method === 'typed' ? !signature.name : signature.method !== 'drawn')) return <NoAnswer ctx={ctx} />;
-    const at = signedAtText(signature.signed_at, ctx.formatLanguage);
+    // When the server stamped it, written like "Submitted" (full time and zone), in the page's language like its label.
+    const at = utcToLocalDateTimeWithZone(signature.signed_at, undefined, i18n.language);
+    const unavailable = t('SIGNATURE.VIEW_IMAGE_UNAVAILABLE');
     return (
         <div className="flex flex-col gap-1" role="group" {...nameProps(labelledBy)} data-signature={signature.method}>
             <div className="flex min-h-24 w-full max-w-xl items-center border px-4 py-3" style={{ background: '#ffffff', color: INK_ON_WHITE, borderColor: 'var(--rp-edge)', borderRadius: 'var(--rp-field-radius)' }}>
@@ -339,15 +338,14 @@ function SignatureAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?
                         {signature.name}
                     </span>
                 ) : signature.url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={signature.url} alt="Drawn signature" className="max-h-40 w-auto max-w-full object-contain" />
+                    <SignatureImage url={signature.url} alt={t('SIGNATURE.VIEW_DRAWN_ALT')} unavailable={unavailable} className="max-h-40 w-auto max-w-full object-contain" fallbackClassName="text-[15px] italic opacity-70" />
                 ) : (
-                    <span className="text-[15px] italic opacity-70">Drawn signature (the image is not available)</span>
+                    <span className="text-[15px] italic opacity-70">{unavailable}</span>
                 )}
             </div>
             {at && (
                 <p className="m-0 text-sm" style={{ color: softInk(ctx.theme) }}>
-                    Signed {at}
+                    {t('SIGNATURE.VIEW_SIGNED', { date: at })}
                 </p>
             )}
         </div>

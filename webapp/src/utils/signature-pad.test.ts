@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { MAX_POINTS, PAD_HEIGHT, PAD_SCALE, PAD_WIDTH, beginStroke, canvasToPng, extendStroke, hasInk, paintStrokes, pointFrom } from './signature-pad';
+import { MAX_POINTS, MIN_INK_LENGTH, PAD_HEIGHT, PAD_SCALE, PAD_WIDTH, beginStroke, canvasToPng, extendStroke, hasInk, inkLength, paintStrokes, pointFrom } from './signature-pad';
 
 const rect = { left: 10, top: 20, width: 300, height: 100 };
 
@@ -20,7 +20,6 @@ describe('pointFrom', () => {
 describe('strokes', () => {
     it('start with a tap and grow with moves', () => {
         let strokes = beginStroke([], { x: 10, y: 10 });
-        expect(hasInk(strokes)).toBe(true);
         strokes = extendStroke(strokes, { x: 20, y: 20 });
         expect(strokes).toEqual([
             [
@@ -51,6 +50,22 @@ describe('strokes', () => {
     it('have no ink when none are drawn', () => {
         expect(hasInk([])).toBe(false);
         expect(hasInk([[]])).toBe(false);
+    });
+
+    it('do not count a dot, taps or a very short tick as signed', () => {
+        const dot = beginStroke([], { x: 10, y: 10 });
+        expect(hasInk(dot)).toBe(false);
+        expect(hasInk(beginStroke(beginStroke(dot, { x: 40, y: 40 }), { x: 90, y: 90 }))).toBe(false);
+        const tick = extendStroke(dot, { x: 20, y: 10 });
+        expect(inkLength(tick)).toBe(10);
+        expect(hasInk(tick)).toBe(false);
+        const line = extendStroke(tick, { x: 10 + MIN_INK_LENGTH, y: 10 });
+        expect(hasInk(line)).toBe(true);
+    });
+
+    it('count the ink of every stroke together', () => {
+        const two = beginStroke(extendStroke(beginStroke([], { x: 0, y: 0 }), { x: 15, y: 0 }), { x: 0, y: 50 });
+        expect(hasInk(extendStroke(two, { x: 15, y: 50 }))).toBe(true);
     });
 });
 
