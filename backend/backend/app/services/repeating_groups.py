@@ -22,6 +22,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from common.currencies import is_time
 from common.tags import tag_key
 from common.expressions import format_expression_value
+from common.layout_containers import container_logic_index
 from common.models.standard_form import (
     StandardForm,
     StandardFormFieldType,
@@ -241,12 +242,21 @@ def group_items(answer: Any) -> List[Dict[str, Any]]:
     )
 
 
+class LogicSources(dict):
+    """The questions of a form by id. ``container_logic``: member id -> the
+    logic of the layout containers it is in (``common.layout_containers``),
+    so ``is_hidden_by_logic`` also hides a question its container hides."""
+
+    container_logic: Dict[str, List[Any]] = {}
+
+
 def logic_sources(fields: Any) -> Dict[str, Any]:
     """The questions of a form by id (page questions and the questions of
     groups), where a condition on a choice question reads its options.
     ``fields``: the form's top-level fields (its pages). Twin of the
     webapp's ``logicSourcesById``."""
-    by_id: Dict[str, Any] = {}
+    by_id: Dict[str, Any] = LogicSources()
+    by_id.container_logic = container_logic_index(fields)
 
     def add(field: Any) -> None:
         if getattr(field, "id", None):
@@ -522,10 +532,18 @@ def is_hidden_by_logic(
     field: Any, answers: Dict[str, Any], sources: Optional[Dict[str, Any]] = None
 ) -> bool:
     logic = field.properties.logic if field.properties else None
-    if logic is None or not logic.action or not logic.conditions:
-        return False
-    met = evaluate_conditions(logic.operator, logic.conditions, answers, sources)
-    return not met if logic.action == "SHOW" else met
+    if logic is not None and logic.action and logic.conditions:
+        met = evaluate_conditions(logic.operator, logic.conditions, answers, sources)
+        if (not met) if logic.action == "SHOW" else met:
+            return True
+    # a layout container that hides it (common/layout_containers.py)
+    for outer in (getattr(sources, "container_logic", None) or {}).get(
+        str(getattr(field, "id", "")), []
+    ):
+        met = evaluate_conditions(outer.operator, outer.conditions, answers, sources)
+        if (not met) if outer.action == "SHOW" else met:
+            return True
+    return False
 
 
 def _title(field: Any) -> str:
