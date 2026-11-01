@@ -5,6 +5,8 @@ its image through the route), and ``drop-old`` refuses while any image is
 under a key other than the primary or cannot be checked. The real Tink keyset
 and the real submission path are used; the file store is in memory."""
 
+import hashlib
+import io
 import json
 
 import pytest
@@ -12,6 +14,7 @@ from botocore.exceptions import ClientError
 
 from scripts.rotate_images import (
     DrawnImages,
+    ObjectChanged,
     ObjectStoreError,
     ObjectTooLarge,
     S3Objects,
@@ -34,40 +37,61 @@ from tests.scripts.test_rotate_response_keyset import (  # noqa: F401
     add_key_and_deploy,
     cli,
     google_table,
+    stores,
 )
 
 pytestmark = pytest.mark.asyncio
 
 
-class Objects:
-    """The file store as the rotation sees it, over the route tests' in-memory
-    store, with the failures a real one has."""
+def etag(data):
+    return hashlib.md5(data).hexdigest() if data is not None else None
 
-    def __init__(self, fake):
+
+class Objects:
+    """The file store as the rotation sees it, over an in-memory store, with the
+    failures a real one has and conditional writes (``If-Match``)."""
+
+    def __init__(self, fake, conditional=True):
         self.fake = fake
+        self.conditional = conditional  # False: a store that ignores If-Match
         self.types = {}
         self.unreachable = set()  # keys whose reads fail
         self.read_only = False  # writes fail
+        self.corrupt_writes = False  # a write that does not read back as written
         self.swap_after_first_read = {}  # key -> bytes read next (a concurrent edit)
+        self.after_compare_read = None  # awaited after the compare read (an erasure)
+        self.before_write = None  # awaited just before the put (an erasure)
         self.reads = []
         self.writes = []
 
-    async def read(self, key):
+    async def read_tagged(self, key):
         self.reads.append(key)
         if key in self.unreachable:
             raise ObjectStoreError("EndpointConnectionError")
         if key in self.swap_after_first_read and self.reads.count(key) == 2:
-            return self.swap_after_first_read[key]
-        data = self.fake.objects.get(key)
+            data = self.swap_after_first_read[key]
+        else:
+            data = self.fake.objects.get(key)
         if data is not None and len(data) > signatures.SEALED_MAX_BYTES:
             raise ObjectTooLarge
-        return data
+        found = None if data is None else (data, etag(data))
+        if self.after_compare_read and self.reads.count(key) == 2:
+            await self.after_compare_read()
+        return found
 
-    async def write(self, key, data):
+    async def read(self, key):
+        found = await self.read_tagged(key)
+        return None if found is None else found[0]
+
+    async def write(self, key, data, if_match=None):
         if self.read_only:
             raise ObjectStoreError("ClientError")
+        if self.before_write:
+            await self.before_write()
+        if self.conditional and if_match and etag(self.fake.objects.get(key)) != if_match:
+            raise ObjectChanged
         self.writes.append(key)
-        self.fake.objects[key] = data
+        self.fake.objects[key] = b"v1:corrupt" if self.corrupt_writes else data
         self.types[key] = signatures.SEALED_CONTENT_TYPE
 
 
@@ -357,6 +381,274 @@ async def test_an_image_replaced_meanwhile_is_not_overwritten(
     assert "images_resealed" not in counts and objects.writes == []
 
 
+async def erase_response_row():
+    from sqlalchemy import text
+
+    async with container.pg_engine().begin() as conn:
+        await conn.execute(text("DELETE FROM app.form_responses"))
+
+
+@pytest.mark.parametrize("conditional", [True, False], ids=["if-match", "no-if-match"])
+async def test_a_response_erased_between_the_compare_and_the_write_leaves_no_object(
+    client, workspace, signed_form, objects, rotation_env, tmp_path, capsys, monkeypatch,
+    conditional,
+):
+    """An erasure removes the row and the response's folder; the walk must not
+    bring the image back, whether or not the store does conditional writes."""
+    form_id, response_id, key = await signed_response(client, workspace, signed_form)
+    rotated_file, _, _ = await rotate(capsys, monkeypatch, tmp_path)
+    objects.conditional = conditional
+
+    async def erase():
+        await erase_response_row()
+        del objects.fake.objects[key]
+
+    objects.after_compare_read = erase
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    counts = counts_of(report)
+    assert code == 0 and counts["images_changed_concurrently"] == 1
+    assert "images_resealed" not in counts
+    assert objects.writes == [] and key not in objects.fake.objects
+
+
+async def test_an_object_erased_just_before_the_put_is_not_recreated(
+    client, workspace, signed_form, objects, rotation_env, tmp_path, capsys, monkeypatch,
+):
+    """After every check, the conditional write is what stops a deleted object
+    from coming back."""
+    form_id, response_id, key = await signed_response(client, workspace, signed_form)
+    rotated_file, _, _ = await rotate(capsys, monkeypatch, tmp_path)
+
+    async def erase():
+        del objects.fake.objects[key]
+
+    objects.before_write = erase
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    counts = counts_of(report)
+    assert code == 0 and counts["images_changed_concurrently"] == 1
+    assert objects.writes == [] and key not in objects.fake.objects
+
+
+async def test_an_edit_that_no_longer_names_the_image_is_not_overwritten(
+    client, workspace, signed_form, objects, rotation_env, tmp_path, capsys, monkeypatch,
+):
+    from backend.admin.tasks.impl.keyset_core import RESPONSES, PostgresStore
+
+    form_id, response_id, key = await signed_response(client, workspace, signed_form)
+    rotated_file, rotated_value, _ = await rotate(capsys, monkeypatch, tmp_path)
+    cipher = CryptoService(rotated_value)
+
+    async def edited_to_typed():
+        # the respondent's edit replaced the drawing with a typed name
+        store_ = PostgresStore(container.pg_engine(), RESPONSES)
+        (record,) = await store_.batch(None, 5)
+        document = json.dumps({"sig": {"type": "signature", "signature": {"method": "typed", "name": "Ada"}}})
+        assert await store_.write(
+            record["id"],
+            [(("answers",), bytes(record["answers"]), cipher.encrypt(str(workspace.id), str(form_id), document))],
+        )
+
+    objects.after_compare_read = edited_to_typed
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    counts = counts_of(report)
+    assert code == 0 and counts["images_changed_concurrently"] == 1
+    assert objects.writes == []
+
+
+async def test_a_write_that_does_not_read_back_is_not_counted(
+    client, workspace, signed_form, objects, rotation_env, tmp_path, capsys, monkeypatch,
+):
+    form_id, response_id, key = await signed_response(client, workspace, signed_form)
+    rotated_file, _, _ = await rotate(capsys, monkeypatch, tmp_path)
+    objects.corrupt_writes = True
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    counts = counts_of(report)
+    assert code == 0 and counts["images_readback_failed"] == 1
+    assert "images_resealed" not in counts
+
+
+async def test_a_key_id_the_keyset_does_not_have_blocks_drop_old(
+    client, workspace, signed_form, objects, rotation_env, tmp_path, capsys, monkeypatch,
+):
+    form_id, response_id, key = await signed_response(client, workspace, signed_form)
+    rotated_file, _, _ = await rotate(capsys, monkeypatch, tmp_path)
+    # a Tink header naming a key that is in no keyset (already dropped elsewhere)
+    objects.fake.objects[key] = b"v1:\x01" + (12345).to_bytes(4, "big") + b"0" * 40
+
+    code, report = await cli(
+        capsys, "reencrypt", "--keyset-file", str(rotated_file), "--dry-run"
+    )
+    counts = counts_of(report)
+    assert counts["images_stale"] == 1 and counts["images_key_12345"] == 1
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    assert code == 0 and counts_of(report)["images_unopenable"] == 1  # nothing can open it
+    code, refused = await cli(
+        capsys, "drop-old", "--keyset-file", str(rotated_file),
+        "--out", str(tmp_path / "final.keyset"), "--allow-empty",
+    )
+    assert code == 1 and refused["images_blocking"] == {"images_stale": 1}
+
+
+async def test_a_reseal_that_does_not_check_out_is_counted_and_the_run_goes_on(
+    client, workspace, signed_form, objects, rotation_env, tmp_path, capsys, monkeypatch,
+):
+    form_id = signed_form.form_id
+    first = await _drawn_response(client, workspace, form_id)
+    second = await _drawn_response(client, workspace, form_id)
+    rotated_file, _, _ = await rotate(capsys, monkeypatch, tmp_path)
+    real = CryptoService.encrypt
+    calls = {"n": 0}
+
+    def flaky(self, *args, **kwargs):  # the first image comes out under the wrong key
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return b"v1:\x01" + (1).to_bytes(4, "big") + b"0" * 40
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(CryptoService, "encrypt", flaky)
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    counts = counts_of(report)
+    assert code == 0 and counts["images_unopenable"] == 1 and counts["images_resealed"] == 1
+    assert len(objects.writes) == 1
+
+
+# --- records seeded without the app -----------------------------------------------------
+
+WS_A, WS_B = "65e5501d00000000000000a1", "65e5501d00000000000000b2"
+FAKE_PNG = signatures.PNG_SIGNATURE + b"0" * 40
+
+
+class Memory:
+    def __init__(self):
+        self.objects = {}
+
+
+@pytest.fixture
+def memory(monkeypatch):
+    memory = Memory()
+    objects = Objects(memory)
+    objects.memory = memory
+    monkeypatch.setattr(script, "make_images", lambda: DrawnImages(objects))
+    return objects
+
+
+def sealed_for(workspace, form_id, response_id, field_id="sig", file_id="img-1"):
+    return crypto_service.encrypt(
+        workspace, form_id, FAKE_PNG, signatures.image_context(response_id, field_id, file_id)
+    )
+
+
+def drawn_answers(file_id="img-1"):
+    return {"sig": {"type": "signature", "signature": {"method": "drawn", "file_id": file_id}}}
+
+
+async def seed_response(form_id, response_id, answers, workspace=None, links=(), encrypt_for=None):
+    from common.ids import RecordId
+    from backend.app.repositories.postgres.forms import PostgresWorkspaceFormRepository
+    from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
+    from backend.app.schemas.standard_form_response import FormResponseDocument
+    from backend.app.schemas.workspace_form import WorkspaceFormDocument
+
+    sessions = container.pg_sessionmaker()
+    link_repo = PostgresWorkspaceFormRepository(sessions, None)
+    for linked in links:
+        await link_repo.upsert(
+            WorkspaceFormDocument(id=RecordId(), workspace_id=RecordId(linked), form_id=form_id, user_id="u")
+        )
+    if encrypt_for:
+        answers = crypto_service.encrypt(encrypt_for, form_id, json.dumps(answers))
+    await PostgresFormResponseRepository(sessions, None, None).upsert(
+        FormResponseDocument(
+            id=RecordId(), form_id=form_id, response_id=response_id,
+            workspace_id=RecordId(workspace) if workspace else None, answers=answers,
+        )
+    )
+
+
+async def test_a_form_shared_into_two_workspaces_finds_its_images(
+    stores, rotation_env, memory, tmp_path, capsys, monkeypatch
+):
+    """An unstamped response of a form linked to two workspaces: the workspace
+    its answers open for (or, for plain answers, the one holding the object) is
+    where the image is."""
+    seeded = {
+        "r-cipher": ("f2", WS_B),
+        "r-plain": ("f2", WS_B),
+    }
+    await seed_response("f2", "r-cipher", drawn_answers(), links=(WS_A, WS_B), encrypt_for=WS_B)
+    await seed_response("f2", "r-plain", drawn_answers(), links=(), )
+    for response_id, (form_id, workspace) in seeded.items():
+        memory.memory.objects[f"private/{workspace}/{form_id}/{response_id}/img-1"] = sealed_for(
+            workspace, form_id, response_id
+        )
+    rotated_file, _, new_key = await rotate(capsys, monkeypatch, tmp_path)
+
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    counts = counts_of(report)
+    assert code == 0 and counts["images_resealed"] == 2 and counts["images_drawn"] == 2
+    for response_id, (form_id, workspace) in seeded.items():
+        stored = memory.memory.objects[f"private/{workspace}/{form_id}/{response_id}/img-1"]
+        assert header_key(stored) == new_key
+    assert not any(key.startswith(f"private/{WS_A}/") for key in memory.memory.objects)
+
+
+async def test_answers_no_workspace_opens_block_drop_old(
+    stores, rotation_env, memory, tmp_path, capsys, monkeypatch
+):
+    rotated_file, _, _ = await rotate(capsys, monkeypatch, tmp_path)
+    # no workspace, no link: nothing opens these answers (they are under the primary,
+    # so the row check is clean), and an image may be behind them
+    await seed_response("gone", "r-orphan", drawn_answers(), encrypt_for=WS_A)
+    code, refused = await cli(
+        capsys, "drop-old", "--keyset-file", str(rotated_file),
+        "--out", str(tmp_path / "final.keyset"), "--allow-empty",
+    )
+    assert code == 1 and refused["values_stale"] == 0
+    assert refused["images_blocking"] == {"images_answers_unopenable": 1}
+
+
+async def test_an_image_that_cannot_be_located_blocks_drop_old(
+    stores, rotation_env, memory, tmp_path, capsys, monkeypatch
+):
+    await seed_response("f1", "r1", drawn_answers("a/../b"), workspace=WS_A, encrypt_for=WS_A)
+    rotated_file, _, _ = await rotate(capsys, monkeypatch, tmp_path)
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    counts = counts_of(report)
+    assert code == 0 and counts["images_unlocatable"] == 1 and counts["images_drawn"] == 1
+    assert memory.reads == []  # no path is built from an invalid id
+    code, refused = await cli(
+        capsys, "drop-old", "--keyset-file", str(rotated_file),
+        "--out", str(tmp_path / "final.keyset"), "--allow-empty",
+    )
+    assert code == 1 and refused["images_blocking"] == {"images_unlocatable": 1}
+
+
+async def test_with_one_key_an_image_error_is_reported_and_does_not_refuse(
+    stores, rotation_env, memory, tmp_path, capsys, monkeypatch
+):
+    await seed_response("f1", "r1", drawn_answers(), workspace=WS_A, encrypt_for=WS_A)
+    key = f"private/{WS_A}/f1/r1/img-1"
+    memory.memory.objects[key] = sealed_for(WS_A, "f1", "r1")
+    rotated_file, _, new_key = await rotate(capsys, monkeypatch, tmp_path)
+    assert (await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file)))[0] == 0
+    final_file = tmp_path / "final.keyset"
+    code, dropped = await cli(
+        capsys, "drop-old", "--keyset-file", str(rotated_file), "--out", str(final_file),
+        "--allow-empty",
+    )
+    assert code == 0, dropped
+    # the services now run the final keyset, a single key
+    monkeypatch.setenv("MASTER_ENCRYPTION_KEYSET", final_file.read_text().strip())
+    crypto_service.reset()
+    memory.unreachable.add(key)
+    code, report = await cli(
+        capsys, "drop-old", "--keyset-file", str(final_file),
+        "--out", str(tmp_path / "again.keyset"), "--allow-empty",
+    )
+    assert code == 0 and report["nothing_to_drop"] is True and "refused" not in report
+    assert report["images_blocking"] == {"images_storage_errors": 1}
+
+
 async def test_a_response_without_a_drawn_signature_never_touches_the_store(
     client, workspace, signed_form, rotation_env, tmp_path, capsys, monkeypatch,
 ):
@@ -385,10 +677,19 @@ async def test_a_response_without_a_drawn_signature_never_touches_the_store(
 # --- the storage adapter -------------------------------------------------------------
 
 
+class Body(io.BytesIO):
+    closed_by_caller = False
+
+    def close(self):
+        Body.closed_by_caller = True
+        super().close()
+
+
 class FakeS3Client:
-    def __init__(self, objects=None, error=None):
+    def __init__(self, objects=None, error=None, put_error=None):
         self.objects = objects or {}
         self.error = error
+        self.put_error = put_error  # error code for puts carrying IfMatch
         self.puts = []
 
     def _fail(self, code):
@@ -402,14 +703,14 @@ class FakeS3Client:
         return {"ContentLength": len(self.objects[Key])}
 
     def get_object(self, Bucket, Key):
-        import io
-
-        return {"Body": io.BytesIO(self.objects[Key])}
+        return {"Body": Body(self.objects[Key]), "ETag": '"tag-1"'}
 
     def put_object(self, **kwargs):
         self.puts.append(kwargs)
         if self.error:
             self._fail(self.error)
+        if self.put_error and "IfMatch" in kwargs:
+            self._fail(self.put_error)
 
 
 def service_over(client):
@@ -429,6 +730,14 @@ async def test_read_private_object_tells_gone_from_could_not_look():
         with pytest.raises(ClientError):
             service_over(FakeS3Client({"k": b"abc"}, error=code)).read_private_object("k", 10)
     assert service_over(FakeS3Client(error="NoSuchKey")).read_private_object("k", 10) is None
+
+
+async def test_read_private_object_tagged_gives_the_etag_and_closes_the_body():
+    Body.closed_by_caller = False
+    service = service_over(FakeS3Client({"k": b"abc"}))
+    assert service.read_private_object_tagged("k", 10) == (b"abc", '"tag-1"')
+    assert Body.closed_by_caller
+    assert service.read_private_object_tagged("nope", 10) is None
 
 
 async def test_write_private_object_is_private_and_typed():
@@ -460,3 +769,24 @@ async def test_s3_objects_without_credentials_fail_as_a_storage_error(monkeypatc
     monkeypatch.setattr(settings.aws_settings, "ACCESS_KEY_ID", "")
     with pytest.raises(ObjectStoreError):
         await S3Objects().read("k")
+
+
+@pytest.mark.parametrize("code", ["412", "PreconditionFailed", "404", "NoSuchKey", "409"])
+async def test_a_conditional_write_refused_means_the_object_changed(code):
+    client = FakeS3Client(put_error=code)
+    with pytest.raises(ObjectChanged):
+        await S3Objects(service_over(client)).write("k", b"x", if_match='"tag-1"')
+    assert client.puts[0]["IfMatch"] == '"tag-1"'
+
+
+async def test_a_store_without_conditional_writes_gets_the_write_without_the_condition():
+    client = FakeS3Client(put_error="NotImplemented")
+    await S3Objects(service_over(client)).write("k", b"x", if_match='"tag-1"')
+    assert [("IfMatch" in put) for put in client.puts] == [True, False]
+
+
+async def test_other_write_errors_are_a_storage_error_not_a_change():
+    with pytest.raises(ObjectStoreError):
+        await S3Objects(service_over(FakeS3Client(put_error="AccessDenied"))).write(
+            "k", b"x", if_match='"tag-1"'
+        )

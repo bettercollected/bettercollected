@@ -55,11 +55,19 @@ BLOCKING = (
     "images_unopenable",
     "images_storage_errors",
     "images_unlocatable",
+    # answers no workspace of their form opens: an image may still be on an old
+    # key behind them, and it cannot be looked for
+    "images_answers_unopenable",
 )
 
 
 class ObjectTooLarge(Exception):
     """The object is larger than a sealed image can be."""
+
+
+class ObjectChanged(Exception):
+    """The object is no longer the version that was read (replaced or deleted):
+    a conditional write was refused."""
 
 
 class ObjectStoreError(Exception):
@@ -86,14 +94,14 @@ class S3Objects:
             self._service = AWSS3Service(aws.ACCESS_KEY_ID, aws.SECRET_ACCESS_KEY)
         return self._service
 
-    async def read(self, key: str) -> Optional[bytes]:
-        """The object; ``None`` when the store says it does not exist."""
+    async def read_tagged(self, key: str) -> Optional[Tuple[bytes, Optional[str]]]:
+        """``(object, etag)``; ``None`` when the store says it does not exist."""
         from backend.app.services.signatures import SEALED_MAX_BYTES
 
         try:
             service = self._get()
             return await asyncio.to_thread(
-                service.read_private_object, key, SEALED_MAX_BYTES
+                service.read_private_object_tagged, key, SEALED_MAX_BYTES
             )
         except ValueError:
             raise ObjectTooLarge from None
@@ -102,15 +110,45 @@ class S3Objects:
         except Exception as error:  # noqa: BLE001 - never surface a driver message
             raise ObjectStoreError(type(error).__name__) from None
 
-    async def write(self, key: str, data: bytes) -> None:
+    async def read(self, key: str) -> Optional[bytes]:
+        found = await self.read_tagged(key)
+        return None if found is None else found[0]
+
+    async def write(
+        self, key: str, data: bytes, if_match: Optional[str] = None
+    ) -> None:
+        """Put the object. With ``if_match`` (the ETag read) the store writes
+        only over that version: ``ObjectChanged`` when it was replaced or
+        deleted since. A store that does not implement conditional writes
+        (501) gets the write without the condition: the caller's own checks
+        are then all there is."""
         from backend.app.services.signatures import SEALED_CONTENT_TYPE
+        from botocore.exceptions import ClientError
+
+        async def put(tag):
+            await asyncio.to_thread(
+                self._get().write_private_object,
+                key,
+                data,
+                SEALED_CONTENT_TYPE,
+                if_match=tag,
+            )
 
         try:
-            service = self._get()
-            await asyncio.to_thread(
-                service.write_private_object, key, data, SEALED_CONTENT_TYPE
-            )
-        except ObjectStoreError:
+            try:
+                await put(if_match)
+            except ClientError as error:
+                code = error.response.get("Error", {}).get("Code")
+                if if_match and code in (
+                    "412", "PreconditionFailed", "404", "NoSuchKey", "NotFound",
+                    "409", "ConditionalRequestConflict",
+                ):
+                    raise ObjectChanged from None
+                if if_match and code in ("501", "NotImplemented"):
+                    await put(None)
+                else:
+                    raise
+        except (ObjectChanged, ObjectStoreError):
             raise
         except Exception as error:  # noqa: BLE001
             raise ObjectStoreError(type(error).__name__) from None
@@ -166,6 +204,8 @@ def drawn_images(
         if context is None:
             counts["images_answers_unopenable"] += 1
             return []
+        if b'"drawn"' not in plain:  # most answers: no parse
+            return []
         try:
             document = json.loads(plain)
         except (ValueError, TypeError):
@@ -210,8 +250,8 @@ def _count(counts: Counter, found: Found) -> None:
 
 class DrawnImages:
     """The image pass, for ``keyset_core.scan`` and ``reencrypt_store``.
-    ``objects``: ``read(key) -> bytes | None`` and ``write(key, data)``
-    (``S3Objects``; a test passes an in-memory one)."""
+    ``objects``: ``read(key)``, ``read_tagged(key)`` and ``write(key, data,
+    if_match)`` (``S3Objects``; a test passes an in-memory one)."""
 
     def __init__(self, objects: Any = None):
         self.objects = objects if objects is not None else S3Objects()
@@ -256,51 +296,87 @@ class DrawnImages:
             _count(counts, found)
 
     async def reencrypt(
-        self, rotation, target, record, links, counts: Counter
+        self, rotation, target, record, links, counts: Counter, store=None
     ) -> None:
         """Seal each image of the response that is not under the primary key
-        again, in place. Safe to repeat."""
+        again, in place. Safe to repeat. ``store``: the records' store, to
+        check just before a write that the response still exists and still
+        names the image."""
         for image in drawn_images(rotation, target, record, links, counts):
             counts["images_drawn"] += 1
             found = await self._look(rotation, image)
             _count(counts, found)
             if found.status == "stale":
-                await self._reseal(rotation, image, found, counts)
+                await self._reseal(
+                    rotation, target, record, links, store, image, found, counts
+                )
 
-    async def _reseal(self, rotation, image: Image, found: Found, counts: Counter):
+    async def _still_named(self, rotation, target, record, links, store, image) -> bool:
+        """Whether the response is still there and its answers still name this
+        image: an erasure or an edit may have removed it since the walk read the
+        record, and writing then would bring a deleted image back."""
+        if store is None:
+            return True
+        fresh = await store.read(record["id"])
+        if fresh is None:
+            return False
+        still = drawn_images(rotation, target, fresh, links, Counter())
+        return any(
+            held.field_id == image.field_id and held.file_id == image.file_id
+            for held in still
+        )
+
+    async def _reseal(
+        self, rotation, target, record, links, store, image: Image, found: Found,
+        counts: Counter,
+    ):
         context = image.context()
         key = image.key(found.workspace, found.form_id)
-        try:
-            plain = rotation.cipher.decrypt(
-                found.workspace, found.form_id, found.data, context
-            )
-        except UnreadableCiphertext:
+
+        def unopenable():
             counts["images_unopenable"] += 1
             logger.warning(
                 "response %s: a signature image is not opened by its context; "
                 "left as it is",
                 image.response_id,
             )
-            return
-        new = rotation.cipher.encrypt(found.workspace, found.form_id, plain, context)
-        if (
-            ciphertext_key_id(new) != rotation.primary
-            or rotation.cipher.decrypt(found.workspace, found.form_id, new, context)
-            != plain
-        ):
-            raise RuntimeError("a re-sealed image did not read back")
+
         try:
-            # a respondent's edit may have replaced the image since it was
-            # read: write only over the object that was read
-            if await self.objects.read(key) != found.data:
-                counts["images_changed_concurrently"] += 1
-                logger.info(
-                    "response %s: a signature image changed while it was read; "
-                    "left for the next run",
-                    image.response_id,
-                )
-                return
-            await self.objects.write(key, new)
+            plain = rotation.cipher.decrypt(
+                found.workspace, found.form_id, found.data, context
+            )
+        except UnreadableCiphertext:
+            return unopenable()
+        new = rotation.cipher.encrypt(found.workspace, found.form_id, plain, context)
+        try:
+            checked = (
+                ciphertext_key_id(new) == rotation.primary
+                and rotation.cipher.decrypt(found.workspace, found.form_id, new, context)
+                == plain
+            )
+        except UnreadableCiphertext:
+            checked = False
+        if not checked:  # never written; the run goes on
+            return unopenable()
+
+        def changed():
+            counts["images_changed_concurrently"] += 1
+            logger.info(
+                "response %s: a signature image changed while it was read; "
+                "left for the next run",
+                image.response_id,
+            )
+
+        try:
+            # a respondent's edit or an erasure may have replaced or removed the
+            # image since it was read: write only over the version that was
+            # read, and only while the response still names it
+            again = await self.objects.read_tagged(key)
+            if again is None or again[0] != found.data:
+                return changed()
+            if not await self._still_named(rotation, target, record, links, store, image):
+                return changed()
+            await self.objects.write(key, new, if_match=again[1])
             if await self.objects.read(key) != new:
                 counts["images_readback_failed"] += 1
                 logger.warning(
@@ -309,6 +385,8 @@ class DrawnImages:
                     image.response_id,
                 )
                 return
+        except ObjectChanged:
+            return changed()
         except (ObjectStoreError, ObjectTooLarge) as failure:
             counts["images_storage_errors"] += 1
             logger.warning(

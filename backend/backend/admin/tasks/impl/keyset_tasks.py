@@ -505,8 +505,8 @@ class DropOld(_Base):
             raise Refusal("values_not_readable")
         if drawn and len(parsed.key) > 1:
             # drawn signature images are objects in the file store: the runner
-            # cannot see which key they are sealed with. The script can
-            # (docs/response-keyset-rotation.md); nothing to drop, nothing to guard
+            # cannot see which key they are sealed with. Keeping an old key is
+            # safe (docs/response-keyset-rotation.md); nothing to drop, nothing to guard
             raise Refusal("signature_images_unchecked")
         if empty:
             raise Refusal("store_empty")

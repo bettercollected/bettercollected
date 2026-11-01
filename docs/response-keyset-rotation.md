@@ -156,6 +156,10 @@ From now on, new responses are encrypted with the new key.
 
 ### 4. Re-encrypt
 
+If drawn signatures exist, turn on **bucket versioning** (or take a backup of the file store) before
+this step: `reencrypt` overwrites each image in place, and a version kept by the store is the way
+back if anything goes wrong with an object.
+
 ```bash
 rotate reencrypt --keyset-file /rotation/rotated.keyset --dry-run
 rotate reencrypt --keyset-file /rotation/rotated.keyset
@@ -187,9 +191,11 @@ values were stale (a response re-encrypted by an earlier run can still have an i
 key), `reencrypt` reads the object. One already under the primary key is left alone. Any other is
 decrypted with the same binding it was sealed with (workspace, form, response, question, file),
 sealed again under the primary key and put back under the same key as `application/octet-stream`.
-Before the write it reads the object again and only writes if it is still the bytes it opened (an
-edit by the respondent in between is left for the next run); after the write it reads the object
-back. It is idempotent and resumable like the row pass (same batches, `--start-after`; `--dry-run`
+Before the write it reads the object again and only writes if it is still the bytes it opened, checks
+that the response row still exists and still names that image, and then writes conditionally
+(`If-Match` on the ETag it read, where the store supports it), so a respondent's edit or an
+erasure in between is never undone: it is counted as `images_changed_concurrently` and left for
+the next run. After the write it reads the object back. It is idempotent and resumable like the row pass (same batches, `--start-after`; `--dry-run`
 changes nothing). The counts are in the same report, as numbers only (never a path, an id or a
 byte of an image):
 
@@ -207,7 +213,8 @@ byte of an image):
   moved by hand). Left as it is. Stops step 5.
 - `images_changed_concurrently`, `images_readback_failed`: run again.
 - `images_answers_unopenable`: the answers of a response no workspace of its form opens, so its
-  images cannot be found (the same records as `records_unopenable`). Reported only.
+  images cannot be found (the same records as `records_unopenable`). Stops step 5: an image may
+  still be on an old key behind them.
 
 Repeat the dry run until it reports `values_stale` as 0 (or absent) for every target and store and
 no `images_stale` for `responses`.
@@ -223,7 +230,8 @@ This scans every target in Postgres. It **refuses**, writing nothing, when:
 - any value still uses a key other than the primary (the report shows the counts per key id);
 - any drawn signature image is still sealed under a key other than the primary (`images_stale`), or
   could not be checked or fixed (`images_unreadable`, `images_unopenable`, `images_storage_errors`;
-  also an image whose location cannot be worked out, `images_unlocatable`). The report's
+  also an image whose location cannot be worked out, `images_unlocatable`, and answers no workspace of
+  their form opens, `images_answers_unopenable`, behind which an image may still be on an old key). The report's
   `images_blocking` names what stopped it. An image whose object is gone (`images_missing`) is
   reported and does not stop it. With a single key in the keyset there is nothing to drop and the
   image counts are only reported;
@@ -279,7 +287,7 @@ parameter, result, event, audit row or log: only key ids and counts.
 | 4 | (restart the services) | |
 | 5 | `keyset.reencrypt` (`primary_id`) | moves every value to the primary: resumable, idempotent, compare-and-swap writes, each record read back before it is counted; `stores: postgres` (the default; `auto` means the same) follows the store rule below; refuses a published primary; it does not re-seal drawn signature images (the runner cannot reach the file store: see step 7). Starting an apply run mails all admins (`settings.keyset_reencrypt` in the admin outbox: run id and primary key id); a dry run mails no one |
 | 6 | `keyset.verify` | read-only full scan: every value opens; counts per key id (events `kid_<id>`); counts the drawn signatures (`images_drawn`) |
-| 7 | `keyset.drop_old` (`mongo_retired`) | removes the other keys only when a full scan of EVERY target in Postgres (configured, else `store_not_configured`) finds no value on them, and only with `mongo_retired` (see "Dropping a key once Mongo is retired" below; `store_retired` without it). The scan decrypts with the primary key ALONE, so a value the final keyset could not open also stops it (`values_not_readable`). The responses must be there (an empty Google credentials store needs `allow_empty_google`). It refuses `signature_images_unchecked` while any response holds a drawn signature and there is a key to drop: the runner cannot reach the file store, so it cannot show the images are off that key; re-encrypt and drop the key with the script (above) instead |
+| 7 | `keyset.drop_old` (`mongo_retired`) | removes the other keys only when a full scan of EVERY target in Postgres (configured, else `store_not_configured`) finds no value on them, and only with `mongo_retired` (see "Dropping a key once Mongo is retired" below; `store_retired` without it). The scan decrypts with the primary key ALONE, so a value the final keyset could not open also stops it (`values_not_readable`). The responses must be there (an empty Google credentials store needs `allow_empty_google`). It refuses `signature_images_unchecked` while any response holds a drawn signature and there is a key to drop: the runner cannot reach the file store, so it cannot show the images are off that key. On a stack whose keyset lives only in the settings store (so the script, which needs `MASTER_ENCRYPTION_KEYSET` in its environment, cannot be used), **the old keys stay while any drawn signature exists**. Nothing is lost by that: keeping a key is safe, and the refusal changes nothing. |
 
 **The store rule.** Postgres is the only store the tasks read or write (since 4.1): `DATABASE_URL`
 for the responses and `GOOGLE_DATABASE_URL` for the Google credentials, which must be configured

@@ -76,7 +76,7 @@ class Refusals(str, enum.Enum):
     values_not_readable = "values_not_readable"
     # a response holds a drawn signature: its image is an object in the file
     # store, sealed with the keyset, which the runner cannot reach, so it
-    # cannot be shown to be off the key about to go (use the script)
+    # cannot be shown to be off the key about to go (the old keys stay)
     signature_images_unchecked = "signature_images_unchecked"
 
 

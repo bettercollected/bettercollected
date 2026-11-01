@@ -32,7 +32,9 @@ What is encrypted with the keyset (``common.services.crypto_service``):
   service (the ``AWS_*`` settings; needed only when a response holds a drawn
   signature). ``reencrypt`` re-seals each one not under the primary key, in
   place, after reading the object again to be sure it is still the one it
-  opened, and reads it back; the counts are ``images_drawn`` and
+  opened and checking that the response still exists and names it, with a
+  conditional write (``If-Match`` on the ETag read) where the store has one, and
+  reads it back; the counts are ``images_drawn`` and
   ``images_*`` (``images_resealed``, ``images_current``, ``images_missing``,
   ``images_unreadable``, ``images_unopenable``, ``images_storage_errors``,
   ``images_changed_concurrently``, ``images_readback_failed``); a storage
@@ -71,8 +73,8 @@ scanned. It refuses, writing nothing,
 while any value still uses a key other than the primary, while any drawn
 signature image is still sealed under another key (``images_stale``) or could
 not be checked or fixed (``images_unreadable``, ``images_unopenable``,
-``images_storage_errors``, ``images_unlocatable``; an image whose object is
-gone, ``images_missing``, only shows in the report), or while Postgres holds
+``images_storage_errors``, ``images_unlocatable``, ``images_answers_unopenable``;
+an image whose object is gone, ``images_missing``, only shows in the report), or while Postgres holds
 no records at all: a wrong or empty database would
 otherwise pass as clean (``--allow-empty`` when that is really so). Otherwise
 it writes a keyset holding the primary key only.
@@ -89,7 +91,6 @@ import sys
 from typing import Any, Dict, List, Optional
 
 from backend.admin.tasks.catalog.responses_common import StoreChoice
-from scripts.rotate_images import DrawnImages, S3Objects, blocking
 from backend.admin.tasks.impl.keyset_core import (  # noqa: F401 - re-exported
     GOOGLE_CREDENTIALS,
     RESPONSES,
@@ -113,6 +114,7 @@ from common.services.keyset import (
     parse_keyset,
     published_key_ids,
 )
+from scripts.rotate_images import DrawnImages, S3Objects, blocking
 
 logger = logging.getLogger("rotate_response_keyset")
 

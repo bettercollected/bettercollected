@@ -463,6 +463,12 @@ async def verify_store(
                     drawn = drawn_signatures_in(plain)
                     if drawn:
                         counts["images_drawn"] += drawn
+            answers = record.get("answers")
+            if target.drawn_images and isinstance(answers, dict):
+                # answers stored as a plain document (legacy): nothing to open
+                drawn = drawn_signatures_in(json.dumps(answers, default=str).encode())
+                if drawn:
+                    counts["images_drawn"] += drawn
         if on_batch is not None and await on_batch(counts["records"]):
             counts["stopped"] = 1
             break
@@ -499,7 +505,9 @@ async def reencrypt_store(
             after = record["id"]  # the last id walked, for --start-after
             counts["records"] += 1
             if use_images:
-                await images.reencrypt(rotation, target, record, links, counts)
+                await images.reencrypt(
+                    rotation, target, record, links, counts, store=store
+                )
             updates, unopenable = rotation.reencrypt(target, record, links)
             if unopenable:
                 counts["records_unopenable"] += 1

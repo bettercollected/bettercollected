@@ -750,6 +750,30 @@ async def test_drop_old_refuses_while_a_response_holds_a_drawn_signature(world, 
     assert len(parse_keyset((await flow.stored()).value).key) == 2
 
 
+async def test_the_task_counts_drawn_signatures_in_plain_document_answers_too():
+    """Answers stored as a plain document (legacy) need no decryption, but their
+    images are just as much objects the task cannot check."""
+
+    class Records:
+        def __init__(self, answers):
+            self.answers = answers
+
+        async def links(self):
+            return {}
+
+        async def batch(self, after, limit):
+            if after is not None:
+                return []
+            return [{"id": "1", "form_id": "f", "workspace_id": "w", "answers": self.answers}]
+
+    rotation = core.Rotation(os.environ["MASTER_ENCRYPTION_KEYSET"])
+    drawn = {"sig": {"signature": {"method": "drawn", "file_id": "i"}}}
+    counts = await core.verify_store(Records(drawn), core.RESPONSES, rotation, 10)
+    assert counts["images_drawn"] == 1
+    typed = {"sig": {"signature": {"method": "typed", "name": "Ada"}}}
+    assert "images_drawn" not in await core.verify_store(Records(typed), core.RESPONSES, rotation, 10)
+
+
 async def test_drop_old_refuses_a_published_primary(world, flow):
     _, run = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
     assert run["state"] == "refused" and run["refusal_code"] == "published_primary"
