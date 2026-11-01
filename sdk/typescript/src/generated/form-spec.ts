@@ -379,6 +379,10 @@ export interface FormField {
    */
   optionSource?: OptionSource | null;
   /**
+   * A short text, dropdown or multiple choice question: its answers may be shown as choices in other forms of the same workspace (an optionSource of kind form_answers). Off unless true. Respondents are told next to the question; only answers given while a version with it on was filled are ever offered.
+   */
+  shareAsChoices?: boolean | null;
+  /**
    * At most 8 rules per question and 100 per form (see Rule).
    */
   rules?: Rule[] | null;

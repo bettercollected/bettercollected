@@ -259,6 +259,8 @@ class OptionListService:
         if body.order is not None:
             document.order = body.order
         if body.items is not None:
+            # replacing the items is made against a revision somebody read
+            _require_revision(body.expected_revision)
             known = {item.id: item for item in document.items}
             document.items = clean_items(body.items, known)
         return await self._save(workspace_id, document, body.expected_revision, user)
@@ -330,6 +332,7 @@ class OptionListService:
         item's id; the rest are new."""
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
         document = await self._get(workspace_id, list_id)
+        _require_revision(expected_revision)
         if len(body) > CSV_BYTES_MAX:
             raise _refuse(
                 HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
@@ -410,6 +413,17 @@ class OptionListService:
             getattr(user, "id", None),
             len(document.items),
             document.revision,
+        )
+
+
+def _require_revision(expected: Optional[int]) -> None:
+    """A change of the items names the revision it was made against: another
+    save since is a 409 (``list_changed``), never an overwrite."""
+    if expected is None:
+        raise _refuse(
+            HTTPStatus.UNPROCESSABLE_ENTITY,
+            "revision_required",
+            "Say which revision of the list you changed (expectedRevision).",
         )
 
 

@@ -2217,7 +2217,7 @@
   "document": "FormImportDocument"
  },
  "form_responses/full": {
-  "checksum": "sha256:eda117519ffa0081786230cab779e07c9af9797c8d0485eff2865c1120208c0f",
+  "checksum": "sha256:4f74fc4596f566d3136de278e964405c0eb840510e5b411f834bfcf331e3f10b",
   "doc": {
    "_id": {
     "$oid": "2badfbd5705103813c283a21"
@@ -2558,6 +2558,10 @@
     }
    ],
    "response_id": "FormResponseDocument.response_id tëxt ✓ \"quoted\" \\ line\nbreak",
+   "shared_as_choices": [
+    "FormResponseDocument.shared_as_choices[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+    "FormResponseDocument.shared_as_choices[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+   ],
    "state": {
     "choices_total_point": 0.30000000000000004,
     "global_state": {
@@ -2649,7 +2653,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/minimal": {
-  "checksum": "sha256:831c56a2689ff70dc2645c326df119097e4187a6e4e54c726bba7111348741c7",
+  "checksum": "sha256:44b9f86237c1c324ac7e556288892d59415da1f7320ddffb1ec04dae5c5936d6",
   "doc": {
    "_id": {
     "$oid": "539dc6c4ce1df29da7f7f496"
@@ -2676,6 +2680,7 @@
    "respondent_email": null,
    "respondent_feedback": null,
    "response_id": null,
+   "shared_as_choices": null,
    "state": null,
    "submission_uuid": null,
    "updated_at": "2026-02-03T04:05:06.789012+00:00",
@@ -2684,7 +2689,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/naive": {
-  "checksum": "sha256:bb14905c7ebacf023d301f4d52d2297aaf677fe9d38c3b874dc0a6df480c3ae4",
+  "checksum": "sha256:ab2d3f53351749c74384e445f3bdcdbaec1860db571b7bdac26e6fab656cd1e9",
   "doc": {
    "_id": {
     "$oid": "10cd94a70aa205bdc7631e61"
@@ -3025,6 +3030,10 @@
     }
    ],
    "response_id": "FormResponseDocument.response_id tëxt ✓ \"quoted\" \\ line\nbreak",
+   "shared_as_choices": [
+    "FormResponseDocument.shared_as_choices[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+    "FormResponseDocument.shared_as_choices[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+   ],
    "state": {
     "choices_total_point": 0.30000000000000004,
     "global_state": {
@@ -3116,7 +3125,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/nulls": {
-  "checksum": "sha256:50acf29d691fc3f35b3164c70bd510b1bfcd1e724fdad2eca46e7ac91bc4de37",
+  "checksum": "sha256:f67f8fb0eda1ec706e0c8805363b78b93117d0bfc6eafe46abaf85693c88b843",
   "doc": {
    "_id": {
     "$oid": "75ee3a989c3d2809e5805fb7"
@@ -3143,6 +3152,7 @@
    "respondent_email": null,
    "respondent_feedback": null,
    "response_id": null,
+   "shared_as_choices": null,
    "state": null,
    "submission_uuid": null,
    "updated_at": "2026-02-03T04:05:06.789012+00:00",
@@ -3151,7 +3161,7 @@
   "document": "FormResponseDocument"
  },
  "form_templates/full": {
-  "checksum": "sha256:80ea017903493c10529d8e9bbc7098fe92c2a13cd8e810e877f6f34574eff4fc",
+  "checksum": "sha256:6ffa32d674d1e98c61df9fe13a6949dbdb6eb41c071d14af245748c6561d4189",
   "doc": {
    "_id": {
     "$oid": "081f1de730ff4503d0f47270"
@@ -3218,6 +3228,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -3297,6 +3308,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -3440,7 +3452,7 @@
   "document": "FormTemplateDocument"
  },
  "form_templates/naive": {
-  "checksum": "sha256:524255b6d0dcffe6c9482a7aff5f2f3cd9c3ec12bf235ea063a7d01727820856",
+  "checksum": "sha256:cd6e3efcfee564c18ca3372b41dffb65306683c31f60a72bdf2201371ddfc72c",
   "doc": {
    "_id": {
     "$oid": "e059e369c6a20f3d47778cec"
@@ -3507,6 +3519,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -3586,6 +3599,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -3724,7 +3738,7 @@
   "document": "FormTemplateDocument"
  },
  "form_versions/full": {
-  "checksum": "sha256:e07e12a36eec4958e7842721cafe15f7ae0e054f86e018606faea9434d1f5bbd",
+  "checksum": "sha256:b6e21b87629ea5c18ff7bdcc95470bb1d3aed681aef770d6a3a20ca0b3554e81",
   "doc": {
    "_id": {
     "$oid": "4dba015f9787ef732cba733e"
@@ -3827,6 +3841,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -3906,6 +3921,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -4276,7 +4292,7 @@
   "document": "FormVersionsDocument"
  },
  "form_versions/naive": {
-  "checksum": "sha256:f890984008d3698878de9850c790f1b70c06c4e8fe118ff441048ba3c54c9928",
+  "checksum": "sha256:8de93d4a5d5a51f9ba0ce7dfd0caddc160aa5b3b9efe35b660b2d5e5e82469a9",
   "doc": {
    "_id": {
     "$oid": "43be05d1a65c7a21699ae9d8"
@@ -4379,6 +4395,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -4458,6 +4475,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -4809,7 +4827,7 @@
   "document": "FormVersionsDocument"
  },
  "forms/full": {
-  "checksum": "sha256:91b96d33f9075c7fed236966b42ff012f99c3029efb2d020868dd4681e27d2c5",
+  "checksum": "sha256:d81b8137605afb2a6bc7bb0cbdf8b590cede321f1dcb1a1a8f91fde77669195d",
   "doc": {
    "_id": {
     "$oid": "59514663b83c1ab0eecfa44a"
@@ -4912,6 +4930,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -4991,6 +5010,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -5359,7 +5379,7 @@
   "document": "FormDocument"
  },
  "forms/naive": {
-  "checksum": "sha256:6f9cdf9175a1419668b16b28d5ff377550a7773dff98ae81f8aa509ead581d99",
+  "checksum": "sha256:2aa6cc1a74958015ec338ee966e1ba58c529a7edd17c7bcb70a0758d63906004",
   "doc": {
    "_id": {
     "$oid": "a3e31dcf7bba394ece4402b6"
@@ -5462,6 +5482,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -5541,6 +5562,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,

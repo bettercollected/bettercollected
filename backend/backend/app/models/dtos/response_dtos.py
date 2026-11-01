@@ -157,6 +157,8 @@ class StandardFieldPropertyCamelModel(CamelModel):
     # Where this question's options come from instead of ``choices`` (common
     # OptionSource), checked on every save (services/option_sources).
     option_source: Optional[OptionSource] = None
+    # Answers may be shown as choices in other forms of the workspace (common StandardFieldProperty).
+    share_as_choices: Optional[bool] = None
 
     @model_validator(mode="after")
     def _check_type_settings(self):

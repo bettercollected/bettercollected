@@ -190,7 +190,9 @@ async def test_the_options_of_another_forms_answers_hold_labels_only(
     client: AsyncClient, workspace
 ):
     people = await publish(
-        workspace, [question("name", "short_text", "Name")], title="People"
+        workspace,
+        [question("name", "short_text", "Name", share_as_choices=True)],
+        title="People",
     )
     for name in ("Alice", "Bob", "alice"):
         await submit(workspace, people, {"name": text_answer(name)}, user=testUser1)
@@ -360,7 +362,9 @@ async def test_the_preview_of_another_forms_answers_needs_response_read(
     client: AsyncClient, workspace, privacy_officer, viewer
 ):
     people = await publish(
-        workspace, [question("name", "short_text", "Name")], title="People"
+        workspace,
+        [question("name", "short_text", "Name", share_as_choices=True)],
+        title="People",
     )
     await submit(workspace, people, {"name": text_answer("Alice")})
     body = {

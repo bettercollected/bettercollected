@@ -160,7 +160,9 @@ async def test_an_update_keeps_the_ids_of_kept_items_and_refuses_unknown_ids(wor
         service().update_list(
             workspace.id,
             created.id,
-            OptionListUpdateDto(items=[ItemDto(id="li" + "0" * 22, label="X")]),
+            OptionListUpdateDto(
+                items=[ItemDto(id="li" + "0" * 22, label="X")], expected_revision=2
+            ),
             testUser,
         )
     )
@@ -174,7 +176,8 @@ async def test_an_update_keeps_the_ids_of_kept_items_and_refuses_unknown_ids(wor
                 items=[
                     ItemDto(id=ids["Utrecht"], label="A"),
                     ItemDto(id=ids["Utrecht"], label="B"),
-                ]
+                ],
+                expected_revision=2,
             ),
             testUser,
         )
@@ -215,7 +218,7 @@ async def test_csv_round_trips_keeping_ids_and_neutralising_formulas(workspace):
     assert lines[1].startswith("'=cmd") or lines[1].startswith("\"'=cmd")
     ids = ids_of(created)
     again = await service().import_csv(
-        workspace.id, created.id, exported.encode(), testUser
+        workspace.id, created.id, exported.encode(), testUser, expected_revision=1
     )
     assert ids_of(again) == ids  # ids and the neutralised cells read back as they were
     assert again.revision == 2
@@ -225,12 +228,16 @@ async def test_csv_import_matches_rows_without_an_id_by_label_and_group(workspac
     created = await make_list(workspace, items=[("A", "g"), ("B", None)])
     ids = ids_of(created)
     body = "label,group\r\nB,\r\nA,g\r\nNew,\r\n".encode("utf-8-sig")
-    result = await service().import_csv(workspace.id, created.id, body, testUser)
+    result = await service().import_csv(
+        workspace.id, created.id, body, testUser, expected_revision=1
+    )
     assert [i.label for i in result.items] == ["B", "A", "New"]
     assert result.items[0].id == ids["B"] and result.items[1].id == ids["A"]
     assert result.items[2].id not in ids.values()
     # without a header the columns are label, group, id
-    plain = await service().import_csv(workspace.id, created.id, b"Solo,x\n", testUser)
+    plain = await service().import_csv(
+        workspace.id, created.id, b"Solo,x\n", testUser, expected_revision=2
+    )
     assert [(i.label, i.group) for i in plain.items] == [("Solo", "x")]
 
 
@@ -252,7 +259,9 @@ async def test_a_bad_csv_is_refused(workspace, body, code, status):
     created = await make_list(workspace)
     data = body if isinstance(body, bytes) else body.encode()
     error = await refused(
-        service().import_csv(workspace.id, created.id, data, testUser)
+        service().import_csv(
+            workspace.id, created.id, data, testUser, expected_revision=1
+        )
     )
     assert code_of(error) == code and error.status_code == status
     assert (
@@ -368,6 +377,7 @@ async def test_reading_needs_form_read_and_writing_form_edit(
     imported = await client.post(
         url(workspace, f"/{created.id}/import"),
         content=b"label\r\nA\r\n",
+        params={"expectedRevision": 2},
         headers={"Content-Type": "text/csv"},
         cookies=cookies,
     )
@@ -408,3 +418,42 @@ async def test_a_list_of_another_workspace_is_never_found(
 
 async def test_an_unauthenticated_call_is_refused(client: AsyncClient, workspace):
     assert (await client.get(url(workspace))).status_code in (401, 403)
+
+
+async def test_replacing_the_items_needs_the_revision_that_was_read(workspace):
+    created = await make_list(workspace)
+    for call in (
+        service().update_list(
+            workspace.id,
+            created.id,
+            OptionListUpdateDto(items=[ItemDto(label="Only")]),
+            testUser,
+        ),
+        service().import_csv(workspace.id, created.id, b"label\r\nA\r\n", testUser),
+    ):
+        error = await refused(call)
+        assert error.status_code == 422 and code_of(error) == "revision_required"
+    # a name or an order can change without it
+    renamed = await service().update_list(
+        workspace.id, created.id, OptionListUpdateDto(name="Renamed"), testUser
+    )
+    assert renamed.name == "Renamed" and len(renamed.items) == 5
+    stale = await refused(
+        service().import_csv(
+            workspace.id, created.id, b"label\r\nA\r\n", testUser, expected_revision=1
+        )
+    )
+    assert stale.status_code == 409 and code_of(stale) == "list_changed"
+    assert (
+        len((await service().get_list(workspace.id, created.id, testUser)).items) == 5
+    )
+
+
+async def test_deleting_a_workspace_deletes_its_lists(workspace, workspace_1):
+    mine = await make_list(workspace)
+    theirs = await make_list(workspace_1, name="Theirs", user=testUser1)
+    repo = container.option_list_repo()
+    assert await repo.delete_for_workspaces([workspace.id]) == 1
+    assert await repo.get(workspace.id, mine.id) is None
+    assert await repo.get(workspace_1.id, theirs.id) is not None
+    assert await repo.delete_for_workspaces([]) == 0

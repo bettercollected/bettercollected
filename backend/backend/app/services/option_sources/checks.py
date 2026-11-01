@@ -88,10 +88,44 @@ def _conditions(node: Any, sourced: set) -> List[str]:
     return found
 
 
+def shared_ids(form: Any) -> List[str]:
+    """Ids of the page-level questions whose answers may be shown as choices
+    in other forms (``shareAsChoices``) and can be: a short text, dropdown or
+    multiple choice question that is not internal and has no source."""
+    found = []
+    for question in read.page_questions(form):
+        if (
+            read.get(read.props(question), "share_as_choices") is True
+            and not read.get(question, "internal")
+            and read.field_type(question) in read.ANSWER_SOURCE_TYPES
+            and not read.has_source(question)
+            and read.get(question, "id")
+        ):
+            found.append(str(read.get(question, "id")))
+    return found
+
+
 def structural_problems(form: Any) -> List[Dict[str, str]]:
     """Everything wrong with the sources of ``form``, as ``{fieldId,
     message}`` (at most ``PROBLEMS_MAX``)."""
     problems: List[Dict[str, str]] = []
+    for field, top in read.every_field(form):
+        if read.get(read.props(field), "share_as_choices") is not True:
+            continue
+        field_id = str(read.get(field, "id"))
+        if (
+            not top
+            or read.get(field, "internal")
+            or read.field_type(field) not in read.ANSWER_SOURCE_TYPES
+            or read.has_source(field)
+        ):
+            problems.append(
+                _problem(
+                    field_id,
+                    "Only a short text, dropdown or multiple choice question of a page, "
+                    "that is not internal and has no source, can have its answers shown as choices.",
+                )
+            )
     sourced = {
         str(read.get(field, "id")): (field, source, top)
         for field, top in read.every_field(form)
@@ -99,7 +133,7 @@ def structural_problems(form: Any) -> List[Dict[str, str]]:
         if source is not None
     }
     if not sourced:
-        return problems
+        return problems[:PROBLEMS_MAX]
     order = [str(read.get(q, "id")) for q in read.page_questions(form)]
     choice_ids = {
         str(read.get(q, "id"))
@@ -247,7 +281,11 @@ def ensure_option_sources_allowed(
     ``option_sources_disabled``). With ``answers_ok`` False, also refuse a new
     or changed ``form_answers`` source (422 ``option_source_forbidden``)."""
     changed = new_or_changed(form, existing)
-    if not changed:
+    # turning "answers may be shown as choices" on is part of the same feature
+    newly_shared = [
+        f for f in shared_ids(form) if existing is None or f not in shared_ids(existing)
+    ]
+    if not changed and not newly_shared:
         return
     if not option_sources_enabled():
         raise HTTPException(

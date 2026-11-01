@@ -346,8 +346,10 @@ class WorkspaceResponsesRouter(CustomRoutable):
         options come from a workspace list or from another form's answers
         (``{items: [{id, label}], total, truncated, available}``: labels only).
         Public, like the form: 404 (the same) unless the form is published in
-        this workspace and has that question with a source; 429 per client and
-        form and per form. ``parent``: the ids the respondent chose in the
+        this workspace, is one a respondent may fill in now (not hidden, open,
+        not full, signed in where it asks for a verified identity, a member of
+        its responder groups when private) and has that question with a source;
+        429 per client and form and per form. ``parent``: the ids the respondent chose in the
         question this one depends on. Never cached.
         """
         response.headers["Cache-Control"] = "no-store"
@@ -360,6 +362,8 @@ class WorkspaceResponsesRouter(CustomRoutable):
             offset=offset,
             parent_ids=parent,
             client=request_client_ip(request),
+            # read only for a form that asks for a signed-in respondent
+            user_loader=lambda: get_user_if_logged_in(request, response),
         )
 
     @post("/forms/{form_id}/flow-events")

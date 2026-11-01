@@ -97,6 +97,7 @@ from backend.app.services.field_rules import (
 from backend.app.services.new_question_types import ensure_question_types_allowed
 from backend.app.services.option_sources.checks import (
     ensure_option_sources_allowed,
+    shared_ids as shared_question_ids,
     ensure_valid_structure as ensure_valid_option_sources,
     strip_option_sources,
 )
@@ -1423,6 +1424,10 @@ class WorkspaceFormService:
         # notice (#752): the signed token the form fetch handed out, checked
         # against the form's current setting. Never what the body claims.
         stamp_ai_notice(response, ai_notice_token, workspace_id, workspace_form)
+        # Which answers were given while the version said they may be shown as
+        # choices in other forms: the server's, whatever the body claims
+        # (services/option_sources); only these are ever offered.
+        response.shared_as_choices = shared_question_ids(latest_version_of_form)
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
         # Respondents fill the published version; check against what they saw.
         response.answers = _checked_group_answers(

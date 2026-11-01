@@ -455,6 +455,15 @@ what it repaired (`droppedOptionLogic`, toasted by autosave); a question with mo
 evaluation budget (`worst_case_cost`) or over the caps refuses (never wiped). The server never clears an answer; the
 respondent page does (`clearUnavailableOptions`).
 
+**Option sources — opt-in (`shareAsChoices`)**: another form's answers are used only from a question with
+`properties.shareAsChoices` true; the server stamps `shared_as_choices` (question ids) on each response at submit from the
+published version it was filled on (`checks.shared_ids`, never from the body), the eligibility SQL
+(`PostgresFormResponseRepository._option_source_where`) requires the stamp, and `answer_question_problem` /
+`_rebuild` require the flag on the current document (422 `option_source_not_shared` at save; off = nothing offered at once).
+The options route judges access per call (`OptionSourceService._judge`: hidden, dates, limit, verified identity, private
+groups) and limits from memory first (`_coarse_limit`); the cache token is `(count, hash sum of id+updated_at, form
+revision)` with a 5 s growth debounce for the public route only.
+
 **Option sources** ([../docs/option-sources.md](../docs/option-sources.md), spec section "Option sources"): a dropdown or
 multiple choice question takes its options from a workspace list or another form's answers (`properties.option_source`, common
 `OptionSource`, stored camelCase `optionSource`; also in the builder DTO `StandardFieldPropertyCamelModel`, or a save drops it).

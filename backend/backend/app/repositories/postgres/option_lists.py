@@ -104,6 +104,12 @@ class PostgresOptionListRepository(RecordRepository):
     async def delete_for_workspace(self, workspace_id) -> int:
         return await self.delete_where(Row.workspace_id == _id(workspace_id))
 
+    async def delete_for_workspaces(self, workspace_ids) -> int:
+        ids = [_id(w) for w in workspace_ids]
+        if not ids:
+            return 0
+        return await self.delete_where(Row.workspace_id.in_(ids))
+
 
 class PostgresOptionListUsage(RecordRepository):
     """Which forms of a workspace take their options from which list: the

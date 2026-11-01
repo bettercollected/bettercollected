@@ -749,6 +749,7 @@ class AppContainer(containers.DeclarativeContainer):
         draft_service=form_draft_service,
         response_export_service=response_export_service,
         email_action_service=email_action_service,
+        option_list_repo=option_list_repo,
     )
 
     ai_profile_service: AIProfileService = providers.Singleton(
