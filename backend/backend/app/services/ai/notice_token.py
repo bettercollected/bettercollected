@@ -30,6 +30,8 @@ import hmac
 import json
 from typing import Optional
 
+from common.settings import key_ring
+
 from backend.config import settings
 
 TOKEN_TTL = dt.timedelta(hours=24)
@@ -40,11 +42,24 @@ _VERSION = "v1"
 _PURPOSE = b"bettercollected/ai-insights-notice-token/v1"
 
 
+def _keys() -> list:
+    """One signing key per member of the JWT key ring (current first;
+    docs/auth-key-rotation.md): the first signs, every one verifies."""
+    return key_ring.derive_all(
+        key_ring.token_members(settings.auth_settings.JWT_SECRET), _PURPOSE
+    )
+
+
 def _key() -> Optional[bytes]:
-    secret = settings.auth_settings.JWT_SECRET
-    if not secret:
-        return None
-    return hmac.new(secret.encode("utf-8"), _PURPOSE, hashlib.sha256).digest()
+    keys = _keys()
+    return keys[0] if keys else None
+
+
+def _verifies(token_signature: str, payload: str) -> bool:
+    ok = False
+    for key in _keys():
+        ok = hmac.compare_digest(_sign(key, payload), token_signature) or ok
+    return ok
 
 
 def _b64(data: bytes) -> str:
@@ -127,7 +142,7 @@ def shown_at(
         return None
     body = f"{parts[0]}.{parts[1]}"
     try:
-        if not hmac.compare_digest(_sign(key, body), parts[2]):
+        if not _verifies(parts[2], body):
             return None
         claims = json.loads(_unb64(parts[1]))
     except (ValueError, TypeError):

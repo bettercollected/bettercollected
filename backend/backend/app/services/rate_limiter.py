@@ -14,6 +14,8 @@ import time
 from dataclasses import dataclass
 from typing import Callable
 
+from common.settings import key_ring
+
 from backend.app.repositories.postgres.analytics import PostgresRateLimitRepository
 
 _KEY_LABEL = b"bettercollected rate-limit counter v1\0"
@@ -34,7 +36,10 @@ class FixedWindowRateLimiter:
         clock: Callable[[], float] = time.time,
     ):
         self._repo = repo
-        self._key = hashlib.sha256(_KEY_LABEL + (secret or "").encode()).digest()
+        # the current member of the JWT key ring (docs/auth-key-rotation.md);
+        # counters are windows of seconds or minutes, so a rotation just restarts them
+        current = key_ring.primary(key_ring.token_members(secret))
+        self._key = hashlib.sha256(_KEY_LABEL + current.encode()).digest()
         self._clock = clock
 
     def counter_id(self, scope: str, client: str, window: int) -> str:

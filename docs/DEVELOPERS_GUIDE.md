@@ -120,10 +120,12 @@ passwords. An
 upgrade imports the values an older release kept in `.env` or `.env.deployment`
 (`deploy/generate-secrets.sh` copies and checks them first) and never overwrites
 the store. Keep the master key backed up. Local development sets
-`SETTINGS_STORE=off` and keeps using plain environment values. Rotating these keys has costs:
+`SETTINGS_STORE=off` and keeps using plain environment values. Replacing these keys by hand has costs:
 a new `AUTH_JWT_SECRET` signs everyone out; data encrypted with the old
-`AUTH_AES_HEX_KEY` (Google Forms and Sheets connections, form-action secrets,
-SCIM webhook secrets) can no longer be read; and responses can only be read
+`AUTH_AES_HEX_KEY` (Sheets connections and other form-action secrets,
+SCIM webhook secrets, registration services, webhooks) can no longer be read. Rotate them with the
+portal's `authkeys.*` tasks instead, which keep both keys readable (a ring, `<current>,<previous>`)
+until everything is moved: `docs/auth-key-rotation.md`. Responses can only be read
 with the `MASTER_ENCRYPTION_KEYSET` they were stored with, so a stack that
 already holds responses must keep its keyset (`deploy.sh` imports it and stops
 rather than generate a new one for it). A keyset can be rotated without losing data (a new
