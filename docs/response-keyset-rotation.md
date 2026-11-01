@@ -156,9 +156,20 @@ From now on, new responses are encrypted with the new key.
 
 ### 4. Re-encrypt
 
-If drawn signatures exist, turn on **bucket versioning** (or take a backup of the file store) before
-this step: `reencrypt` overwrites each image in place, and a version kept by the store is the way
-back if anything goes wrong with an object.
+If drawn signatures exist, take a backup of the file store (or turn on **bucket versioning**) before
+this step: `reencrypt` overwrites each image in place, and a copy kept by the store is the way back
+if anything goes wrong with an object. **Versioning and backups keep the old copies, and an erased
+signature's image stays readable in them** (the old versions are sealed with the old key, which this
+rotation is about to drop, but until then they are decryptable). So if you turn versioning on, also
+set a lifecycle rule that expires **noncurrent versions** after a few days, and delete the backup
+once the rotation is checked, so that erasure still holds. Without such a rule, clean up the
+noncurrent versions by hand afterwards.
+
+**Confirm that your store enforces `If-Match` on writes** (S3 conditional writes) before relying on
+the protection below: the script cannot tell a store that silently ignores the header from one that
+enforces it. Do this with a test object in a bucket or prefix that holds no real data (a `put` with
+a wrong `If-Match` must be refused with 412), never with real signatures. The script counts every
+write that was not conditional (`images_unconditional_writes`).
 
 ```bash
 rotate reencrypt --keyset-file /rotation/rotated.keyset --dry-run
@@ -195,7 +206,10 @@ Before the write it reads the object again and only writes if it is still the by
 that the response row still exists and still names that image, and then writes conditionally
 (`If-Match` on the ETag it read, where the store supports it), so a respondent's edit or an
 erasure in between is never undone: it is counted as `images_changed_concurrently` and left for
-the next run. After the write it reads the object back. It is idempotent and resumable like the row pass (same batches, `--start-after`; `--dry-run`
+the next run. Right after the write it checks the response row once more: an erasure or an edit
+drops the row first, so if the response no longer names the image, the object just written is
+deleted again (`images_written_then_removed`; this covers a store that ignores `If-Match`). Then it
+reads the object back. It is idempotent and resumable like the row pass (same batches, `--start-after`; `--dry-run`
 changes nothing). The counts are in the same report, as numbers only (never a path, an id or a
 byte of an image):
 
@@ -212,6 +226,12 @@ byte of an image):
 - `images_unopenable`: sealed with this keyset but not for this response, question and file (a copy
   moved by hand). Left as it is. Stops step 5.
 - `images_changed_concurrently`, `images_readback_failed`: run again.
+- `images_unconditional_writes`: a write that was not conditional (no ETag, or the store answered
+  501 to `If-Match`). Only the row checks protect those writes; confirm your store's behaviour (see
+  step 4) and expect this to be 0.
+- `images_written_then_removed`: a response lost its signature while its image was written again,
+  and the image was removed. `images_removal_failed`: that removal failed, so an image of an
+  erased signature is back in the store (logged at error level by response id): delete it by hand.
 - `images_answers_unopenable`: the answers of a response no workspace of its form opens, so its
   images cannot be found (the same records as `records_unopenable`). Stops step 5: an image may
   still be on an old key behind them.

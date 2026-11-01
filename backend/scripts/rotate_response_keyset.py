@@ -33,8 +33,11 @@ What is encrypted with the keyset (``common.services.crypto_service``):
   signature). ``reencrypt`` re-seals each one not under the primary key, in
   place, after reading the object again to be sure it is still the one it
   opened and checking that the response still exists and names it, with a
-  conditional write (``If-Match`` on the ETag read) where the store has one, and
-  reads it back; the counts are ``images_drawn`` and
+  conditional write (``If-Match`` on the ETag read) where the store has one,
+  checks the response again right after the write and deletes the object if
+  the response no longer names it (``images_written_then_removed``; a write
+  that was not conditional is ``images_unconditional_writes``), and reads it
+  back; the counts are ``images_drawn`` and
   ``images_*`` (``images_resealed``, ``images_current``, ``images_missing``,
   ``images_unreadable``, ``images_unopenable``, ``images_storage_errors``,
   ``images_changed_concurrently``, ``images_readback_failed``); a storage

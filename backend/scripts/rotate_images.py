@@ -116,12 +116,14 @@ class S3Objects:
 
     async def write(
         self, key: str, data: bytes, if_match: Optional[str] = None
-    ) -> None:
+    ) -> bool:
         """Put the object. With ``if_match`` (the ETag read) the store writes
         only over that version: ``ObjectChanged`` when it was replaced or
-        deleted since. A store that does not implement conditional writes
-        (501) gets the write without the condition: the caller's own checks
-        are then all there is."""
+        deleted since. Returns whether the write was conditional: False when
+        there was no ETag, or the store does not implement conditional writes
+        (501) and got the write without the condition, where the caller's own
+        checks are all there is. (A store that silently ignores the header
+        cannot be told from here.)"""
         from backend.app.services.signatures import SEALED_CONTENT_TYPE
         from botocore.exceptions import ClientError
 
@@ -137,6 +139,7 @@ class S3Objects:
         try:
             try:
                 await put(if_match)
+                return bool(if_match)
             except ClientError as error:
                 code = error.response.get("Error", {}).get("Code")
                 if if_match and code in (
@@ -146,9 +149,19 @@ class S3Objects:
                     raise ObjectChanged from None
                 if if_match and code in ("501", "NotImplemented"):
                     await put(None)
-                else:
-                    raise
+                    return False
+                raise
         except (ObjectChanged, ObjectStoreError):
+            raise
+        except Exception as error:  # noqa: BLE001
+            raise ObjectStoreError(type(error).__name__) from None
+
+    async def delete(self, key: str) -> None:
+        """Remove the object (deleting one that is not there is not an error)."""
+        try:
+            service = self._get()
+            await asyncio.to_thread(service.delete_file_from_s3, key)
+        except ObjectStoreError:
             raise
         except Exception as error:  # noqa: BLE001
             raise ObjectStoreError(type(error).__name__) from None
@@ -250,8 +263,8 @@ def _count(counts: Counter, found: Found) -> None:
 
 class DrawnImages:
     """The image pass, for ``keyset_core.scan`` and ``reencrypt_store``.
-    ``objects``: ``read(key)``, ``read_tagged(key)`` and ``write(key, data,
-    if_match)`` (``S3Objects``; a test passes an in-memory one)."""
+    ``objects``: ``read(key)``, ``read_tagged(key)``, ``write(key, data,
+    if_match)`` (returns whether it was conditional) and ``delete(key)`` (``S3Objects``; a test passes an in-memory one)."""
 
     def __init__(self, objects: Any = None):
         self.objects = objects if objects is not None else S3Objects()
@@ -376,7 +389,31 @@ class DrawnImages:
                 return changed()
             if not await self._still_named(rotation, target, record, links, store, image):
                 return changed()
-            await self.objects.write(key, new, if_match=again[1])
+            conditional = await self.objects.write(key, new, if_match=again[1])
+            if conditional is False:
+                counts["images_unconditional_writes"] += 1
+            # an erasure or an edit drops the row first: if the response no
+            # longer names the image now, what was just written must go (a store
+            # that ignores If-Match would otherwise have brought it back)
+            if not await self._still_named(rotation, target, record, links, store, image):
+                try:
+                    await self.objects.delete(key)
+                except ObjectStoreError as failure:
+                    counts["images_removal_failed"] += 1
+                    logger.error(
+                        "response %s: a signature image written again for a "
+                        "response that no longer names it could not be removed (%s)",
+                        image.response_id,
+                        failure,
+                    )
+                    return
+                counts["images_written_then_removed"] += 1
+                logger.warning(
+                    "response %s: the response lost its signature while the image "
+                    "was written again; the image was removed",
+                    image.response_id,
+                )
+                return
             if await self.objects.read(key) != new:
                 counts["images_readback_failed"] += 1
                 logger.warning(

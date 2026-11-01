@@ -61,8 +61,10 @@ class Objects:
         self.swap_after_first_read = {}  # key -> bytes read next (a concurrent edit)
         self.after_compare_read = None  # awaited after the compare read (an erasure)
         self.before_write = None  # awaited just before the put (an erasure)
+        self.undeletable = False  # deletes fail
         self.reads = []
         self.writes = []
+        self.deleted = []
 
     async def read_tagged(self, key):
         self.reads.append(key)
@@ -93,6 +95,13 @@ class Objects:
         self.writes.append(key)
         self.fake.objects[key] = b"v1:corrupt" if self.corrupt_writes else data
         self.types[key] = signatures.SEALED_CONTENT_TYPE
+        return bool(self.conditional and if_match)
+
+    async def delete(self, key):
+        if self.undeletable:
+            raise ObjectStoreError("ClientError")
+        self.deleted.append(key)
+        self.fake.objects.pop(key, None)
 
 
 @pytest.fixture
@@ -427,6 +436,67 @@ async def test_an_object_erased_just_before_the_put_is_not_recreated(
     counts = counts_of(report)
     assert code == 0 and counts["images_changed_concurrently"] == 1
     assert objects.writes == [] and key not in objects.fake.objects
+
+
+@pytest.mark.parametrize("conditional", [True, False], ids=["if-match", "if-match-ignored"])
+async def test_a_response_erased_between_the_check_and_the_write_leaves_no_object(
+    client, workspace, signed_form, objects, rotation_env, tmp_path, capsys, monkeypatch,
+    conditional,
+):
+    """The row goes (and the folder with it) after the last check and before the
+    put. A store that enforces If-Match refuses the put; one that ignores it
+    recreates the object, and the walk removes what it just wrote."""
+    form_id, response_id, key = await signed_response(client, workspace, signed_form)
+    rotated_file, _, _ = await rotate(capsys, monkeypatch, tmp_path)
+    objects.conditional = conditional
+
+    async def erase():
+        await erase_response_row()
+        objects.fake.objects.pop(key, None)
+
+    objects.before_write = erase
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    counts = counts_of(report)
+    assert code == 0 and "images_resealed" not in counts
+    assert key not in objects.fake.objects
+    if conditional:
+        assert counts["images_changed_concurrently"] == 1
+        assert objects.writes == [] and "images_unconditional_writes" not in counts
+    else:
+        assert objects.writes == [key] and objects.deleted == [key]
+        assert counts["images_written_then_removed"] == 1
+        assert counts["images_unconditional_writes"] == 1
+        assert "images_removal_failed" not in counts
+
+
+async def test_an_image_that_cannot_be_removed_after_an_erasure_is_reported(
+    client, workspace, signed_form, objects, rotation_env, tmp_path, capsys, monkeypatch,
+):
+    form_id, response_id, key = await signed_response(client, workspace, signed_form)
+    rotated_file, _, _ = await rotate(capsys, monkeypatch, tmp_path)
+    objects.conditional = False
+    objects.undeletable = True
+
+    async def erase():
+        await erase_response_row()
+
+    objects.before_write = erase
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    counts = counts_of(report)
+    assert code == 0 and counts["images_removal_failed"] == 1
+    assert "images_written_then_removed" not in counts
+
+
+async def test_a_normal_conditional_write_is_not_counted_as_unconditional(
+    client, workspace, signed_form, objects, rotation_env, tmp_path, capsys, monkeypatch,
+):
+    form_id, response_id, key = await signed_response(client, workspace, signed_form)
+    rotated_file, _, _ = await rotate(capsys, monkeypatch, tmp_path)
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    counts = counts_of(report)
+    assert counts["images_resealed"] == 1
+    for name in ("images_unconditional_writes", "images_written_then_removed", "images_removal_failed"):
+        assert name not in counts
 
 
 async def test_an_edit_that_no_longer_names_the_image_is_not_overwritten(
@@ -781,8 +851,34 @@ async def test_a_conditional_write_refused_means_the_object_changed(code):
 
 async def test_a_store_without_conditional_writes_gets_the_write_without_the_condition():
     client = FakeS3Client(put_error="NotImplemented")
-    await S3Objects(service_over(client)).write("k", b"x", if_match='"tag-1"')
+    conditional = await S3Objects(service_over(client)).write("k", b"x", if_match='"tag-1"')
     assert [("IfMatch" in put) for put in client.puts] == [True, False]
+    assert conditional is False  # the caller counts it
+
+
+async def test_a_write_says_whether_it_was_conditional():
+    objects = S3Objects(service_over(FakeS3Client()))
+    assert await objects.write("k", b"x", if_match='"tag-1"') is True
+    assert await objects.write("k", b"x") is False
+
+
+async def test_delete_goes_through_the_storage_service_and_maps_errors():
+    class Service:
+        deleted = []
+        fail = False
+
+        def delete_file_from_s3(self, key):
+            if self.fail:
+                raise RuntimeError("secret detail")
+            self.deleted.append(key)
+
+    service = Service()
+    await S3Objects(service).delete("k")
+    assert service.deleted == ["k"]
+    service.fail = True
+    with pytest.raises(ObjectStoreError) as failure:
+        await S3Objects(service).delete("k")
+    assert str(failure.value) == "RuntimeError"
 
 
 async def test_other_write_errors_are_a_storage_error_not_a_change():
