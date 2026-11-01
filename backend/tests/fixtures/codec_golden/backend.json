@@ -2217,7 +2217,7 @@
   "document": "FormImportDocument"
  },
  "form_responses/full": {
-  "checksum": "sha256:bef1a92210c61f50385b9d5dbc51997da929bbbfd20ffda8bb5a1d306f5fbc9e",
+  "checksum": "sha256:b3748e27b14d2391bdd4b975d771bd91795896309b9bef8da31e5c47b7153572",
   "doc": {
    "_id": {
     "$oid": "2badfbd5705103813c283a21"
@@ -2375,6 +2375,7 @@
     }
    ],
    "created_at": "2026-01-02T03:04:05.678901+00:00",
+   "csv_import_id": "FormResponseDocument.csv_import_id tëxt ✓ \"quoted\" \\ line\nbreak",
    "dataOwnerIdentifier": "FormResponseDocument.dataOwnerIdentifier tëxt ✓ \"quoted\" \\ line\nbreak",
    "dataOwnerIdentifierType": "FormResponseDocument.dataOwnerIdentifierType tëxt ✓ \"quoted\" \\ line\nbreak",
    "ending_id": "FormResponseDocument.ending_id tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -2645,7 +2646,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/minimal": {
-  "checksum": "sha256:831c56a2689ff70dc2645c326df119097e4187a6e4e54c726bba7111348741c7",
+  "checksum": "sha256:753c3618738029453881396048dc64e573fc940bba17d8bc3185d11a92df95c9",
   "doc": {
    "_id": {
     "$oid": "539dc6c4ce1df29da7f7f496"
@@ -2656,6 +2657,7 @@
    "answers": null,
    "consent": null,
    "created_at": "2026-01-02T03:04:05.678901+00:00",
+   "csv_import_id": null,
    "dataOwnerIdentifier": null,
    "dataOwnerIdentifierType": null,
    "ending_id": null,
@@ -2680,7 +2682,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/naive": {
-  "checksum": "sha256:55a0d5ae3d1757d234df167fcd9f2646e1a7e47697227167addd52c8934f28e1",
+  "checksum": "sha256:35bbaa8d2952eb45fbc0a80eaa6a7adab0c248446bc69519b7f7ba168a24aea0",
   "doc": {
    "_id": {
     "$oid": "10cd94a70aa205bdc7631e61"
@@ -2838,6 +2840,7 @@
     }
    ],
    "created_at": "2026-01-02T03:04:05.678901",
+   "csv_import_id": "FormResponseDocument.csv_import_id tëxt ✓ \"quoted\" \\ line\nbreak",
    "dataOwnerIdentifier": "FormResponseDocument.dataOwnerIdentifier tëxt ✓ \"quoted\" \\ line\nbreak",
    "dataOwnerIdentifierType": "FormResponseDocument.dataOwnerIdentifierType tëxt ✓ \"quoted\" \\ line\nbreak",
    "ending_id": "FormResponseDocument.ending_id tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -3108,7 +3111,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/nulls": {
-  "checksum": "sha256:50acf29d691fc3f35b3164c70bd510b1bfcd1e724fdad2eca46e7ac91bc4de37",
+  "checksum": "sha256:c6085c485c1b29efd542e8937ae7dfa4acfcc10a21cfc32d8804d7e6233a7415",
   "doc": {
    "_id": {
     "$oid": "75ee3a989c3d2809e5805fb7"
@@ -3119,6 +3122,7 @@
    "answers": null,
    "consent": null,
    "created_at": "2026-01-02T03:04:05.678901+00:00",
+   "csv_import_id": null,
    "dataOwnerIdentifier": null,
    "dataOwnerIdentifierType": null,
    "ending_id": null,

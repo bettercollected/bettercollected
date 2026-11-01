@@ -154,7 +154,11 @@ class ResponseExportService:
         rate_limiter: FixedWindowRateLimiter,
         defer: Optional[Callable[[str], Awaitable[None]]] = None,
         clock: Callable[[], dt.datetime] = utcnow,
+        import_hooks=None,
     ):
+        # the CSV import (services/response_import) keeps records of a form and
+        # of an account too: it follows the same deletions
+        self._import_hooks = import_hooks
         self._authorization = authorization_service
         self._responses = form_response_service
         self._forms = form_repo
@@ -1104,16 +1108,25 @@ class ResponseExportService:
     async def forget_actor(self, user_id: str) -> int:
         """The account of ``user_id`` was deleted: its export audit rows stay,
         without the user (``DELETED_ACTOR``); a file it had waiting is deleted."""
-        return await self._exports.forget_actor(user_id)
+        changed = await self._exports.forget_actor(user_id)
+        if self._import_hooks is not None:
+            changed += await self._import_hooks.forget_actor(user_id)
+        return changed
 
     async def delete_for_form(self, workspace_id: RecordId, form_id: str) -> None:
         await self._exports.delete_for_form(workspace_id, form_id)
+        if self._import_hooks is not None:
+            await self._import_hooks.delete_for_form(workspace_id, form_id)
 
     async def delete_for_forms(self, form_ids: List[str]) -> None:
         await self._exports.delete_by_form_ids(form_ids)
+        if self._import_hooks is not None:
+            await self._import_hooks.delete_for_forms(form_ids)
 
     async def delete_for_workspaces(self, workspace_ids: List[str]) -> None:
         await self._exports.delete_by_workspace_ids(workspace_ids)
+        if self._import_hooks is not None:
+            await self._import_hooks.delete_for_workspaces(workspace_ids)
 
 
 async def _defer_job(export_id: str) -> None:

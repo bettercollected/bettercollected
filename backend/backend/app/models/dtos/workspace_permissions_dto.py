@@ -25,7 +25,9 @@ class WorkspacePermissionsDto(CamelModel):
     (``LAYOUT_CONTAINERS_ENABLED``).
     ``save_drafts_enabled`` is the same for ``SAVE_DRAFTS_ENABLED`` ("Let
     respondents save and continue later": the builder shows the setting
-    read-only while it is off)."""
+    read-only while it is off).
+    ``csv_import_enabled`` is the same for ``CSV_IMPORT_ENABLED`` (import
+    responses from a CSV file: the responses screen offers it from it)."""
 
     permissions: List[Permission] = []
     field_rules_enabled: bool = False
@@ -33,6 +35,7 @@ class WorkspacePermissionsDto(CamelModel):
     # its option logic and filter settings from it.
     choice_logic_enabled: bool = False
     save_drafts_enabled: bool = False
+    csv_import_enabled: bool = False
     new_question_types_enabled: bool = False
     address_question_enabled: bool = False
     address_lookup_enabled: bool = False

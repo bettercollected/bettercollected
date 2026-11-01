@@ -41,6 +41,7 @@ can(user, permission, workspace, form?)  =
 | `response.read` | individual answers (incl. AI insights, flow analytics per response) |
 | `response.annotate` | internal fields, respondent feedback |
 | `response.export` | CSV, API/MCP `responses:read`, integrations and actions that send responses out (sheets, webhooks, email copies) |
+| `response.import` | import submissions from a CSV file and undo an import (docs/response-import.md; behind `CSV_IMPORT_ENABLED`) |
 | `response.delete` | delete a response |
 | `privacy.manage` | deletion requests, data subjects (responders), consent catalog, retention and privacy texts |
 | `analytics.read` | aggregates: counts, Umami stats, drop-off. No individual answers |
@@ -58,6 +59,7 @@ can(user, permission, workspace, form?)  =
 | response.read | ✓ | ✓ | ✓ | ✓ | ✓ | **✗** |
 | response.annotate | ✓ | ✓ | ✓ | ✓ | | |
 | response.export | ✓ | ✓ | ✓ | | | |
+| response.import | ✓ | ✓ | | | | |
 | response.delete | ✓ | ✓ | ✓ | | | |
 | privacy.manage | ✓ | ✓ | | | | ✓ |
 | analytics.read | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |

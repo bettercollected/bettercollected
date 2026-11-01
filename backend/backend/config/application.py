@@ -126,6 +126,11 @@ class Application(StoreBackedSettings):
     # is refused with 422 save_drafts_disabled, and saving or opening a draft is
     # refused.
     SAVE_DRAFTS_ENABLED: bool = False
+    # Importing submissions from a CSV file (services/response_import/). Off
+    # (the default, until the release that turns it on): every import route
+    # answers 404 and the webapp shows no import control; the hourly sweep
+    # that deletes uploaded files still runs.
+    CSV_IMPORT_ENABLED: bool = False
     # The admin task runner presents this key to the internal admin-task
     # routes (controllers/admin_tasks_router.py; the runner's
     # ADMIN_TASKS_API_KEY). Empty: those routes answer 503.

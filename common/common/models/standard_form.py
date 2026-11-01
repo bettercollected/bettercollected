@@ -2031,3 +2031,8 @@ class StandardFormResponse(BaseModel):
     # answers (never taken from the request). None for responses submitted
     # before endings could be chosen.
     ending_id: Optional[str] = None
+    # Set when the response was imported from a CSV file (the id of the
+    # import job, ``response_imports``): set by the server only, never taken
+    # from a submission's body. The importer is read from the job, so a
+    # deleted account is pseudonymised in one place.
+    csv_import_id: Optional[str] = None

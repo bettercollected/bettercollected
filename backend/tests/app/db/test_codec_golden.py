@@ -93,6 +93,8 @@ NO_DOCUMENT_CLASS = {
     # and the response exports (audit entries and a job's file chunks)
     "response_exports",
     "response_export_chunks",
+    "response_imports",
+    "response_import_files",
     "form_email_actions",
     # and the workspaces' security events (break-glass audit)
     "workspace_audit_events",

@@ -182,6 +182,10 @@ SERVER: Tuple[SettingSpec, ...] = (
     _bool("SAVE_DRAFTS_ENABLED", "features", (BACKEND,), False,
           "Lets respondents save a draft and continue later (off: the per-form setting cannot be turned on and drafts are not saved or opened).",
           tier=T2),
+    _bool("CSV_IMPORT_ENABLED", "features", (BACKEND,), False,
+          "Lets members who may (Owner, Admin) import submissions from a CSV file into a form "
+          "(off: the import routes answer 404 and the control is hidden).",
+          tier=T2),
     _bool("NEW_QUESTION_TYPES_ENABLED", "features", (BACKEND,), False,
           "Allows adding or changing the newer question types (time, day, currency, date range, tags); "
           "questions a form already has keep working either way.",

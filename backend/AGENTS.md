@@ -1335,6 +1335,31 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
   `API_FLOW_EVENTS_RETENTION_DAYS` (395): a Mongo TTL index on `created_at`, and for Postgres a sweep on the write path
   (`FlowEventService._sweep_expired`, at most every 6 h per process, using the existing `created_at` index).
 
+## Importing responses from CSV (behind `CSV_IMPORT_ENABLED`)
+
+`POST /workspaces/{id}/forms/{form_id}/imports` and friends (`controllers/response_imports_router.py`,
+`response.import` = Owner + Admin, switch off = 404 everywhere). Docs: `docs/response-import.md`. Rules to keep:
+
+- Code in `services/response_import/`: `parser.py` (stdlib `csv`, caps, encodings; never touch the process-wide
+  `csv.field_size_limit`), `targets.py` (the export's own column keys + header auto-matching), `convert.py` (a cell
+  back to an answer: the inverse of `response_export/table.py`), `validation.py` (`check_submission`: the respondent
+  checks in the submission path's order, returns problems), `service.py` (routes, the job, the sweep), `limits.py`
+  (constants). Tables `response_imports` (audit entry and job state) and `response_import_files` (the encrypted
+  upload), revision 0035 (provisional number), both in `NOT_IMPORTED_TABLES`.
+- The upload is the request body (`text/csv`), read in pieces and refused over the cap: never a multipart form (the
+  framework spools those to disk). It lives only encrypted in `response_import_files` and is deleted when the job ends
+  in any outcome, on discard, with the form/workspace (the export service's `delete_for_*`/`forget_actor` call the
+  import service through `import_hooks`) and by the hourly `response_import_sweep`. The job's only argument is the id.
+- A new question type that the export writes needs: a branch in `convert.convert_cell`, `targets.SIMPLE_TYPES`, and a
+  row in the round-trip test (`tests/app/response_import/test_round_trip.py`). If `submit_response`'s checks change,
+  change `validation.check_submission` (the parity test fails otherwise).
+- Imported responses carry `csv_import_id` (set by the server; `submit_response` clears it from a body), no identity,
+  no consent, no AI-notice stamp; nothing fires (no actions, webhooks, registration, email actions): do not call those
+  services from the import. `save_form_response(submitted_at=, internal_answers=)` exist for this path only.
+- All or nothing: validate every row first; a failure while storing, or a dead worker, deletes by
+  `delete_imported(scope, import_id)`. A run owns the import while its `attempts` claim is current.
+- The audit row holds codes, counts and positions, never a value, header (beyond the life of the file), file name or title.
+
 ## Exporting responses (stream or job, audited)
 
 `POST /workspaces/{id}/forms/{form_id}/exports` (`controllers/response_exports_router.py`, `response.export`; no
