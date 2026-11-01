@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider, useAtom } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '@app/shared/hocs/i18n-provider'; // the catalogue's English text
 
 // Mock only the mutation hook — the redux store still needs the real
 // formsApi (reducer + middleware are registered at store creation).

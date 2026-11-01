@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { Lock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { AnswerDto, FieldTypes, InternalAnswerMeta, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -12,7 +13,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { InternalAnswersState, useUpdateInternalAnswersMutation } from '@app/store/workspaces/api';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
-import { utcToLocalDateTIme } from '@app/utils/date-utils';
+import { utcToLocalDateTimeIn } from '@app/utils/date-utils';
 import { buildInternalAnswer, conflictingInternalFields, InternalInputValue, internalAnswerChanged, internalAnswerToInput } from '@app/utils/internal-fields';
 import { fieldText, selectClass } from '@app/views/molecules/form-builder/condition-editor-shared';
 
@@ -26,6 +27,7 @@ interface InternalFieldsPanelProps {
 const inputClass = 'w-full text-sm!';
 
 function InternalFieldInput({ field, value, onChange }: { field: StandardFormFieldDto; value: InternalInputValue; onChange: (value: InternalInputValue) => void }) {
+    const { t } = useTranslation();
     const id = `internal-${field.id}`;
     const choices = field.properties?.choices ?? [];
     switch (field.type) {
@@ -45,8 +47,8 @@ function InternalFieldInput({ field, value, onChange }: { field: StandardFormFie
             return (
                 <select id={id} className={selectClass} value={value === true ? 'yes' : value === false ? 'no' : ''} onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value === 'yes')}>
                     <option value="">—</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
+                    <option value="yes">{t('RESPONSE_TEAM.YES')}</option>
+                    <option value="no">{t('RESPONSE_TEAM.NO')}</option>
                 </select>
             );
         case FieldTypes.MULTIPLE_CHOICE:
@@ -63,7 +65,7 @@ function InternalFieldInput({ field, value, onChange }: { field: StandardFormFie
                                     checked={selected.includes(choice.id)}
                                     onChange={(e) => onChange(e.target.checked ? [...selected, choice.id] : selected.filter((c) => c !== choice.id))}
                                 />
-                                {choice.value || `Item ${idx + 1}`}
+                                {choice.value || t('RESPONSE_TEAM.ITEM_N', { n: idx + 1 })}
                             </label>
                         ))}
                     </div>
@@ -74,7 +76,7 @@ function InternalFieldInput({ field, value, onChange }: { field: StandardFormFie
                     <option value="">—</option>
                     {choices.map((choice, idx) => (
                         <option key={choice.id} value={choice.id}>
-                            {choice.value || `Item ${idx + 1}`}
+                            {choice.value || t('RESPONSE_TEAM.ITEM_N', { n: idx + 1 })}
                         </option>
                     ))}
                 </select>
@@ -90,6 +92,7 @@ function InternalFieldInput({ field, value, onChange }: { field: StandardFormFie
  * who changed it last. Only rendered in the dashboard (workspace members).
  */
 export default function InternalFieldsPanel({ fields, response, formId, workspaceId }: InternalFieldsPanelProps) {
+    const { t, i18n } = useTranslation();
     const { toast } = useToast();
     const [updateInternalAnswers, { isLoading }] = useUpdateInternalAnswersMutation();
     // Viewers read the values; filling them in is response.annotate.
@@ -142,17 +145,17 @@ export default function InternalFieldsPanel({ fields, response, formId, workspac
                 setMeta(latest.internalAnswersMeta ?? {});
                 setVersion(latest.internalAnswersVersion ?? 0);
                 setValues((prev) => ({ ...latestInputs, ...Object.fromEntries(changedFields.filter((f) => !clashes.includes(f)).map((f) => [f.id, prev[f.id]])) }));
-                toast({ description: `${clashes.map((f) => fieldText(f)).join(', ')} ${clashes.length > 1 ? 'were' : 'was'} just changed by another team member. Review and save again.`, variant: 'destructive' });
+                toast({ description: t('RESPONSE_TEAM.INTERNAL_CLASH', { count: clashes.length, fields: clashes.map((f) => fieldText(f)).join(', ') }), variant: 'destructive' });
                 return;
             }
         }
         if (result?.data) {
             applySaved(result.data);
-            toast({ description: 'Internal fields saved' });
+            toast({ description: t('RESPONSE_TEAM.INTERNAL_SAVED') });
         } else {
             const detail = result?.error?.data;
             const message = typeof detail === 'string' ? detail : detail?.message;
-            toast({ description: message || 'Could not save the internal fields', variant: 'destructive' });
+            toast({ description: message || t('RESPONSE_TEAM.INTERNAL_SAVE_FAILED'), variant: 'destructive' });
         }
     };
 
@@ -161,9 +164,9 @@ export default function InternalFieldsPanel({ fields, response, formId, workspac
             <div className="flex flex-col gap-0.5">
                 <span id="internal-fields-heading" className="text-black-800 flex items-center gap-1.5 text-sm font-semibold">
                     <Lock className="h-3.5 w-3.5" aria-hidden="true" />
-                    Internal · staff only
+                    {t('RESPONSE_TEAM.INTERNAL_TITLE')}
                 </span>
-                <span className="text-black-600 text-xs">Respondents never see these fields or their values.</span>
+                <span className="text-black-600 text-xs">{t('RESPONSE_TEAM.INTERNAL_NOTE')}</span>
             </div>
             <fieldset disabled={!canAnnotate} className="flex flex-col gap-4">
             {fields.map((field) => {
@@ -173,15 +176,15 @@ export default function InternalFieldsPanel({ fields, response, formId, workspac
                         <label htmlFor={`internal-${field.id}`} className="text-black-700 text-[13px] font-medium leading-snug">
                             {fieldText(field)}
                             {field.validations?.required && (
-                                <span className="text-black-600 ml-1 text-[11px] font-normal" title="Required for your team, not for respondents">
-                                    (required)
+                                <span className="text-black-600 ml-1 text-[11px] font-normal" title={t('RESPONSE_TEAM.INTERNAL_REQUIRED_TITLE')}>
+                                    {t('RESPONSE_TEAM.INTERNAL_REQUIRED')}
                                 </span>
                             )}
                         </label>
                         <InternalFieldInput field={field} value={values[field.id]} onChange={(value) => setValues((prev) => ({ ...prev, [field.id]: value }))} />
                         {fieldMeta?.updated_at && (
                             <span className="text-black-600 text-[11px]">
-                                Last changed by {fieldMeta.updated_by_email || 'a team member'} · {utcToLocalDateTIme(fieldMeta.updated_at)}
+                                {t('RESPONSE_TEAM.INTERNAL_LAST_CHANGED', { who: fieldMeta.updated_by_email || t('RESPONSE_TEAM.TEAM_MEMBER'), time: utcToLocalDateTimeIn(fieldMeta.updated_at, i18n.language) })}
                             </span>
                         )}
                     </div>
@@ -190,9 +193,9 @@ export default function InternalFieldsPanel({ fields, response, formId, workspac
             </fieldset>
             {canAnnotate && (
             <div className="flex items-center justify-between gap-2">
-                <span className="text-black-600 text-[11px]">{missingRequired.length > 0 ? `${missingRequired.length} required field${missingRequired.length > 1 ? 's' : ''} still empty` : ''}</span>
+                <span className="text-black-600 text-[11px]">{missingRequired.length > 0 ? t('RESPONSE_TEAM.INTERNAL_MISSING', { count: missingRequired.length }) : ''}</span>
                 <Button variant="primary" size="sm" isLoading={isLoading} disabled={changedFields.length === 0 || isLoading} onClick={save}>
-                    Save
+                    {t('RESPONSE_TEAM.INTERNAL_SAVE')}
                 </Button>
             </div>
             )}

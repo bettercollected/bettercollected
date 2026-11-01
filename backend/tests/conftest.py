@@ -373,6 +373,25 @@ async def _clean_db(_initialized_app):
 
 
 @pytest.fixture(autouse=True)
+def in_memory_storage(request, _initialized_app, monkeypatch):
+    """The object store is outside the test: the storage adapter's two boto3
+    objects are replaced by in-memory ones (tests/app/storage_fake.py), empty
+    for every test. Deleting a response, a form or a media file then never
+    looks for credentials or opens a connection (about 0.3 s each locally,
+    more on CI). The adapter's own logic is the real one, and tests that
+    patch its methods work as before. ``@pytest.mark.real_storage_client``
+    leaves the real objects alone, for a test that drives them itself."""
+    from tests.app.storage_fake import FakeClient, FakeResource, FakeStore
+
+    store = FakeStore()
+    if request.node.get_closest_marker("real_storage_client") is None:
+        aws = container.aws_service()
+        monkeypatch.setattr(aws, "_s3", FakeResource(store))
+        monkeypatch.setattr(aws, "_s3_client", FakeClient(store))
+    return store
+
+
+@pytest.fixture(autouse=True)
 def rate_limit_clock(_initialized_app, monkeypatch):
     """The shared rate limiter's clock, held still for the test.
 

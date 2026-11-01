@@ -12,6 +12,7 @@ import { axeViolations } from '@app/test/axe';
 import { ANONYMOUS_RESPONSE, ANSWERS, COLOUR_CHOICES, FORM, RESPONSE } from '@app/test/response-fixtures';
 
 import ReadOnlyForm from './read-only-form';
+import '@app/shared/hocs/i18n-provider';  // the catalogue's English text
 
 const NOT_SHOWN = 'Not shown to the respondent';
 

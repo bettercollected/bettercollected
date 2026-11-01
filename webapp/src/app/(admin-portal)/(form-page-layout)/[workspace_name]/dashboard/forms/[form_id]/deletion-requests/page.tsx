@@ -12,7 +12,9 @@ export default function Page() {
 
     return (
         <div className="mt-4 px-4 md:px-10 lg:px-28">
-            <ResponseSegments />
+            <div className="mb-4">
+                <ResponseSegments />
+            </div>
             <FormResponsesTable props={{ formId: form.formId, workspace, requestForDeletion: true }} />
         </div>
     );

@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { StarIcon } from '@Components/icons/start';
 import parse from 'html-react-parser';
 import { Check, ChevronDown, Download } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { FormTheme } from '@app/constants/theme';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
@@ -36,10 +37,12 @@ import { softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import SignatureImage from './signature-image';
 
-export const UNREADABLE_SHORT = 'Could not be decrypted';
-export const NO_ANSWER = 'No answer';
-export const NOT_SHOWN = 'Not shown to the respondent';
-export const ANSWERED_THEN_SKIPPED = 'Answered, then skipped';
+// Message keys (common namespace), said in the staff member's language
+export const UNREADABLE_SHORT = 'RESPONSE_PAGE.UNREADABLE_SHORT';
+export const NO_ANSWER = 'RESPONSE_PAGE.NO_ANSWER';
+export const NOT_SHOWN = 'RESPONSE_PAGE.NOT_SHOWN';
+export const ANSWERED_THEN_SKIPPED = 'RESPONSE_PAGE.ANSWERED_THEN_SKIPPED';
+export const CALCULATED_SKIPPED = 'RESPONSE_PAGE.CALCULATED_SKIPPED';
 
 /** What every question of the page needs to draw itself, from the form and this response. */
 export interface ReadOnlyContext {
@@ -71,23 +74,27 @@ function titleHtml(field: StandardFormFieldDto, pipe: PipeContext): string {
 
 const hasVisibleText = (html: string) => /(^|>)[^<]*\S/.test(html);
 
-const NoAnswer = ({ ctx }: { ctx: ReadOnlyContext }) => (
-    <p className="text-[15px] italic" style={{ color: softInk(ctx.theme) }} data-no-answer>
-        {ctx.unreadable ? UNREADABLE_SHORT : NO_ANSWER}
-    </p>
-);
+const NoAnswer = ({ ctx }: { ctx: ReadOnlyContext }) => {
+    const { t } = useTranslation();
+    return (
+        <p className="text-[15px] italic" style={{ color: softInk(ctx.theme) }} data-no-answer>
+            {t(ctx.unreadable ? UNREADABLE_SHORT : NO_ANSWER)}
+        </p>
+    );
+};
 
 /** The name of a control: the question's title, or a plain "Answer" for an untitled question. */
-const nameProps = (labelledBy?: string) => (labelledBy ? { 'aria-labelledby': labelledBy } : { 'aria-label': 'Answer' });
+const nameProps = (labelledBy: string | undefined, t: (key: string) => string) => (labelledBy ? { 'aria-labelledby': labelledBy } : { 'aria-label': t('RESPONSE_PAGE.ANSWER') });
 
 /** A read-only box: the answer in the form's field shape, exposed as a read-only text box. */
 function ReadOnlyBox({ labelledBy, multiline = false, children, trailing }: { labelledBy?: string; multiline?: boolean; children: ReactNode; trailing?: ReactNode }) {
+    const { t } = useTranslation();
     return (
         <div
             role="textbox"
             aria-readonly="true"
             aria-multiline={multiline || undefined}
-            {...nameProps(labelledBy)}
+            {...nameProps(labelledBy, t)}
             className={cn('flex min-h-12 w-full items-center justify-between gap-3 border px-4 py-3 text-base leading-snug [overflow-wrap:anywhere]', multiline && 'items-start')}
             style={{ background: '#ffffff', color: INK_ON_WHITE, borderColor: 'var(--rp-edge)', borderRadius: 'var(--rp-field-radius)', whiteSpace: multiline ? 'pre-wrap' : undefined }}
         >
@@ -98,7 +105,7 @@ function ReadOnlyBox({ labelledBy, multiline = false, children, trailing }: { la
 }
 
 /** The options of a choice question, then a quiet "No answer" when none is marked. */
-function ChoiceAnswer({ rows, multiple, labelledBy, ctx }: { rows: Array<{ key: string; label: string; selected: boolean }>; multiple: boolean; labelledBy?: string; ctx: ReadOnlyContext }) {
+function ChoiceAnswer({ rows, multiple, labelledBy, ctx }: { rows: Array<{ key: string; label: string; selected: boolean; other?: boolean }>; multiple: boolean; labelledBy?: string; ctx: ReadOnlyContext }) {
     return (
         <>
             <OptionRows rows={rows} multiple={multiple} labelledBy={labelledBy} ctx={ctx} />
@@ -108,10 +115,11 @@ function ChoiceAnswer({ rows, multiple, labelledBy, ctx }: { rows: Array<{ key: 
 }
 
 /** Every option listed, the chosen ones marked by the control's shape and by `aria-checked`. */
-function OptionRows({ rows, multiple, labelledBy, ctx }: { rows: Array<{ key: string; label: string; selected: boolean }>; multiple: boolean; labelledBy?: string; ctx: ReadOnlyContext }) {
+function OptionRows({ rows, multiple, labelledBy, ctx }: { rows: Array<{ key: string; label: string; selected: boolean; other?: boolean }>; multiple: boolean; labelledBy?: string; ctx: ReadOnlyContext }) {
+    const { t } = useTranslation();
     const tokens = styleTokens(ctx.theme.style);
     return (
-        <div role={multiple ? 'group' : 'radiogroup'} aria-readonly={multiple ? undefined : true} {...nameProps(labelledBy)} className={cn('flex w-full flex-col', !tokens.ruledChoices && 'gap-2')}>
+        <div role={multiple ? 'group' : 'radiogroup'} aria-readonly={multiple ? undefined : true} {...nameProps(labelledBy, t)} className={cn('flex w-full flex-col', !tokens.ruledChoices && 'gap-2')}>
             {rows.map((row) => {
                 const style = choiceRowStyle(ctx.theme, row.selected);
                 return (
@@ -126,7 +134,7 @@ function OptionRows({ rows, multiple, labelledBy, ctx }: { rows: Array<{ key: st
                         style={style.style}
                     >
                         <ChoiceContent kind={multiple ? 'checkbox' : 'radio'} selected={row.selected} theme={ctx.theme} solid={style.solid}>
-                            {row.label}
+                            {row.other && !row.selected ? t('RESPONSE_PAGE.OTHER') : row.label}
                         </ChoiceContent>
                     </div>
                 );
@@ -136,33 +144,35 @@ function OptionRows({ rows, multiple, labelledBy, ctx }: { rows: Array<{ key: st
 }
 
 function RatingMarks({ field, answer, labelledBy, ctx }: { field: StandardFormFieldDto; answer: any; labelledBy?: string; ctx: ReadOnlyContext }) {
+    const { t } = useTranslation();
     const steps = field.properties?.steps || 5;
     const value = typeof answer?.number === 'number' ? answer.number : 0;
     return (
         <div className="flex w-fit flex-col gap-1">
-            <div role="radiogroup" aria-readonly="true" {...nameProps(labelledBy)} className="flex flex-wrap gap-1">
+            <div role="radiogroup" aria-readonly="true" {...nameProps(labelledBy, t)} className="flex flex-wrap gap-1">
                 {Array.from({ length: steps }, (_, index) => index + 1).map((step) => (
-                    <span key={step} role="radio" aria-checked={step === value} aria-label={`${step} of ${steps}`} className="flex h-12 w-12 items-center justify-center">
+                    <span key={step} role="radio" aria-checked={step === value} aria-label={t('RESPONSE_PAGE.STEP_OF', { step, steps })} className="flex h-12 w-12 items-center justify-center">
                         <StarIcon width={40} height={39} fill={step <= value ? ctx.theme.secondary : 'transparent'} stroke={ctx.theme.secondary} aria-hidden="true" />
                     </span>
                 ))}
             </div>
             <p className="flex items-center gap-1.5 text-[13px] tabular-nums" style={{ color: ctx.theme.primary }}>
                 <Check className="h-4 w-4 shrink-0" strokeWidth={2.5} style={{ color: themed('--form-highlight-edge', ctx.theme.secondary) }} aria-hidden="true" />
-                {`Rated ${value} of ${steps}`}
+                {t('RESPONSE_PAGE.RATED', { value, steps })}
             </p>
         </div>
     );
 }
 
 function ScaleMarks({ field, answer, labelledBy, ctx }: { field: StandardFormFieldDto; answer: any; labelledBy?: string; ctx: ReadOnlyContext }) {
+    const { t } = useTranslation();
     const tokens = styleTokens(ctx.theme.style);
     const start = field.properties?.startFrom ?? 1;
     const end = +(field.properties?.steps ?? 10);
     const value = typeof answer?.number === 'number' ? answer.number : undefined;
     const values = Array.from({ length: Math.max(0, end - start + 1) }, (_, index) => start + index);
     return (
-        <div role="radiogroup" aria-readonly="true" {...nameProps(labelledBy)} className="flex flex-row flex-wrap gap-2">
+        <div role="radiogroup" aria-readonly="true" {...nameProps(labelledBy, t)} className="flex flex-row flex-wrap gap-2">
             {values.map((step) => {
                 const selected = step === value;
                 return (
@@ -183,9 +193,10 @@ function ScaleMarks({ field, answer, labelledBy, ctx }: { field: StandardFormFie
 }
 
 function TableBox({ children, labelledBy }: { children: ReactNode; labelledBy?: string }) {
+    const { t } = useTranslation();
     // wide tables scroll inside their own box, never the page
     return (
-        <div className="max-w-full overflow-x-auto border" style={{ borderColor: 'var(--rp-edge)', borderRadius: 'var(--rp-field-radius)', background: '#ffffff', color: INK_ON_WHITE }} tabIndex={0} role="region" {...nameProps(labelledBy)}>
+        <div className="max-w-full overflow-x-auto border" style={{ borderColor: 'var(--rp-edge)', borderRadius: 'var(--rp-field-radius)', background: '#ffffff', color: INK_ON_WHITE }} tabIndex={0} role="region" {...nameProps(labelledBy, t)}>
             {children}
         </div>
     );
@@ -228,6 +239,7 @@ function TabularAnswer({ field, answer, labelledBy }: { field: StandardFormField
 }
 
 function MatrixAnswer({ field, answers, labelledBy, ctx }: { field: StandardFormFieldDto; answers: Record<string, any>; labelledBy?: string; ctx: ReadOnlyContext }) {
+    const { t } = useTranslation();
     const rows = field.properties?.fields ?? [];
     const columns = rows[0]?.properties?.choices ?? [];
     const multiple = !!field.properties?.allowMultipleSelection;
@@ -239,7 +251,7 @@ function MatrixAnswer({ field, answers, labelledBy, ctx }: { field: StandardForm
                         <td className="border-r border-b p-2" style={{ borderColor: 'var(--rp-rule)' }} />
                         {columns.map((column, index) => (
                             <th key={column.id ?? index} scope="col" className="border-r border-b p-2 text-center font-semibold last:border-r-0" style={{ borderColor: 'var(--rp-rule)' }}>
-                                {column.value || `Column ${index + 1}`}
+                                {column.value || t('RESPONSE_PAGE.COLUMN_N', { n: index + 1 })}
                             </th>
                         ))}
                     </tr>
@@ -251,7 +263,7 @@ function MatrixAnswer({ field, answers, labelledBy, ctx }: { field: StandardForm
                         return (
                             <tr key={row.id ?? rowIndex}>
                                 <th scope="row" className="border-r border-b p-2 text-left font-semibold" style={{ borderColor: 'var(--rp-rule)' }}>
-                                    {row.title?.toString() || `Row ${rowIndex + 1}`}
+                                    {row.title?.toString() || t('RESPONSE_PAGE.ROW_N', { n: rowIndex + 1 })}
                                 </th>
                                 {(row.properties?.choices ?? []).map((choice: any, index: number) => {
                                     const selected = chosen.includes(choice.id);
@@ -259,7 +271,7 @@ function MatrixAnswer({ field, answers, labelledBy, ctx }: { field: StandardForm
                                         <td key={choice.id ?? index} className="border-r border-b p-2 last:border-r-0" style={{ borderColor: 'var(--rp-rule)' }}>
                                             <span className="flex justify-center">
                                                 <MatrixMark selected={selected} multiple={multiple} theme={ctx.theme} />
-                                                <span className="sr-only">{selected ? 'Selected' : 'Not selected'}</span>
+                                                <span className="sr-only">{t(selected ? 'RESPONSE_PAGE.SELECTED' : 'RESPONSE_PAGE.NOT_SELECTED')}</span>
                                             </span>
                                         </td>
                                     );
@@ -284,6 +296,7 @@ function MatrixMark({ selected, multiple, theme }: { selected: boolean; multiple
 }
 
 function FileAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?: string; ctx: ReadOnlyContext }) {
+    const { t } = useTranslation();
     const file = answer?.file_metadata;
     const size = formatFileSizeMb(file?.size);
     // the server's short-lived signed link is the only way to the file
@@ -306,13 +319,13 @@ function FileAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?: str
             >
                 <Download className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span className="min-w-0 [overflow-wrap:anywhere]">
-                    Download <span className="font-semibold">{file.name ?? file.id}</span>
+                    {t('RESPONSE_PAGE.DOWNLOAD')} <span className="font-semibold">{file.name ?? file.id}</span>
                 </span>
                 {size && <span className="shrink-0 text-sm opacity-70">{size}</span>}
             </button>
             {/* on paper the button is gone: the file's name (and size) stand in for it */}
             <p className="hidden text-base print:block" data-print-file>
-                {`File: ${file.name ?? file.id}${size ? ` (${size})` : ''}`}
+                {size ? t('RESPONSE_PAGE.FILE_PRINT_SIZE', { name: file.name ?? file.id, size }) : t('RESPONSE_PAGE.FILE_PRINT', { name: file.name ?? file.id })}
             </p>
         </>
     );
@@ -327,13 +340,14 @@ function FileAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?: str
  */
 function SignatureAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?: string; ctx: ReadOnlyContext }) {
     const { t, i18n } = useBuilderTranslation();
+    const { t: tc } = useTranslation();
     const signature = answerSignature(answer);
     if (!signature || (signature.method === 'typed' ? !signature.name : signature.method !== 'drawn')) return <NoAnswer ctx={ctx} />;
     // When the server stamped it, written like "Submitted" (full time and zone), in the page's language like its label.
     const at = utcToLocalDateTimeWithZone(signature.signed_at, undefined, i18n.language);
     const unavailable = t('SIGNATURE.VIEW_IMAGE_UNAVAILABLE');
     return (
-        <div className="flex flex-col gap-1" role="group" {...nameProps(labelledBy)} data-signature={signature.method}>
+        <div className="flex flex-col gap-1" role="group" {...nameProps(labelledBy, tc)} data-signature={signature.method}>
             <div className="flex min-h-24 w-full max-w-xl items-center border px-4 py-3" style={{ background: '#ffffff', color: INK_ON_WHITE, borderColor: 'var(--rp-edge)', borderRadius: 'var(--rp-field-radius)' }}>
                 {signature.method === 'typed' ? (
                     <span className="min-w-0 text-3xl italic [overflow-wrap:anywhere]" style={{ fontFamily: TYPED_SIGNATURE_FONT }}>
@@ -361,6 +375,7 @@ const present = (value: unknown) => value !== undefined && value !== null && val
 
 /** The answer control of one question, read-only. Null: a block with no answer to show. */
 function AnswerBody({ field, answers, labelledBy, ctx }: { field: StandardFormFieldDto; answers: Record<string, any>; labelledBy?: string; ctx: ReadOnlyContext }) {
+    const { t } = useTranslation();
     const answer = answers[field.id];
     // the server emptied what it could not decrypt: say so, never list options or "No answer"
     if (ctx.unreadable) return <NoAnswer ctx={ctx} />;
@@ -373,8 +388,8 @@ function AnswerBody({ field, answers, labelledBy, ctx }: { field: StandardFormFi
         }
         case FieldTypes.YES_NO: {
             const rows = [
-                { key: 'yes', label: 'Yes', selected: answer?.boolean === true },
-                { key: 'no', label: 'No', selected: answer?.boolean === false }
+                { key: 'yes', label: t('RESPONSE_PAGE.YES'), selected: answer?.boolean === true },
+                { key: 'no', label: t('RESPONSE_PAGE.NO'), selected: answer?.boolean === false }
             ];
             return <ChoiceAnswer rows={rows} multiple={false} labelledBy={labelledBy} ctx={ctx} />;
         }
@@ -403,7 +418,7 @@ function AnswerBody({ field, answers, labelledBy, ctx }: { field: StandardFormFi
         case FieldTypes.CALCULATED: {
             const calculated = calculatedAnswerValue(answer);
             if (calculated === null) return <NoAnswer ctx={ctx} />;
-            return <ReadOnlyBox labelledBy={labelledBy}>{typeof calculated === 'boolean' ? (calculated ? 'Yes' : 'No') : formatCalculatedValue(calculated, field.properties?.format, ctx.formatLanguage)}</ReadOnlyBox>;
+            return <ReadOnlyBox labelledBy={labelledBy}>{typeof calculated === 'boolean' ? t(calculated ? 'RESPONSE_PAGE.YES' : 'RESPONSE_PAGE.NO') : formatCalculatedValue(calculated, field.properties?.format, ctx.formatLanguage)}</ReadOnlyBox>;
         }
         case FieldTypes.DATE:
         case FieldTypes.DAY:
@@ -447,6 +462,7 @@ function AnswerBody({ field, answers, labelledBy, ctx }: { field: StandardFormFi
 
 /** A question the form did not show this respondent (a logic rule hid it): its title and why there is no answer. */
 function NotShownQuestion({ field, ctx, idPrefix }: { field: StandardFormFieldDto; ctx: ReadOnlyContext; idPrefix: string }) {
+    const { t } = useTranslation();
     const html = titleHtml(field, ctx.pipe);
     const titleId = `${idPrefix}title-${field.id}`;
     return (
@@ -455,7 +471,7 @@ function NotShownQuestion({ field, ctx, idPrefix }: { field: StandardFormFieldDt
                 {hasVisibleText(html) ? parse(html) : null}
             </div>
             <p className="text-[13px] italic" style={{ color: softInk(ctx.theme) }}>
-                {NOT_SHOWN}
+                {t(NOT_SHOWN)}
             </p>
         </div>
     );
@@ -477,6 +493,7 @@ function ReadOnlyImage({ href, alt }: { href?: string; alt?: string }) {
  * lives in (the response's, or one repeating-group item's).
  */
 export function ReadOnlyQuestion({ field, answers, ctx, idPrefix = 'rp-', note }: { field: StandardFormFieldDto; answers: Record<string, any>; ctx: ReadOnlyContext; idPrefix?: string; note?: string }) {
+    const { t } = useTranslation();
     const tokens = styleTokens(ctx.theme.style);
     const html = titleHtml(field, ctx.pipe);
     const titleId = `${idPrefix}title-${field.id}`;
@@ -532,19 +549,19 @@ export function ReadOnlyQuestion({ field, answers, ctx, idPrefix = 'rp-', note }
                     )}
                     {whyWeAsk && (
                         <p id={`${idPrefix}why-${field.id}`} className="mt-2 max-w-[62ch] border-l-2 pl-3 text-[14px] leading-relaxed" style={{ borderColor: themed('--form-highlight-rule', ctx.theme.tertiary), color: softInk(ctx.theme) }} lang={ctx.lang}>
-                            <span className="font-semibold">Why we ask this</span> {whyWeAsk}
+                            <span className="font-semibold">{t('RESPONSE_PAGE.WHY_WE_ASK')}</span> {whyWeAsk}
                         </p>
                     )}
                 </div>
             </div>
             {note && (
                 <p className="text-[13px] font-medium italic" style={{ color: softInk(ctx.theme) }} data-question-note>
-                    {note}
+                    {t(note)}
                 </p>
             )}
             {keptFromRespondents && (
                 <p className="text-[13px] italic" style={{ color: softInk(ctx.theme) }}>
-                    Calculated for staff; kept from the respondent.
+                    {t('RESPONSE_PAGE.CALCULATED_STAFF')}
                 </p>
             )}
             <ReadOnlyImage href={field.imageUrl} />
