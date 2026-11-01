@@ -117,6 +117,12 @@ describe('WorkspaceSelectView', () => {
         expect(screen.getByRole('status').textContent).toMatch(/NO_ACCESS|don't have access/);
     });
 
+    it('shows the single sign-on notice, with the row that starts the sign-in', () => {
+        show([choice('alpha', { ssoRequired: true }), choice('beta')], {}, 'sso_required');
+        expect(screen.getByRole('status').textContent).toMatch(/SSO_NOTICE|requires single sign-on/);
+        expect(within(screen.getByRole('list')).getAllByText(/SSO_ACTION|Sign in with SSO/).length).toBeGreaterThan(0);
+    });
+
     describe('with no workspace', () => {
         it('a creator who may: "Create a workspace"', () => {
             show([], { canCreateWorkspace: true });

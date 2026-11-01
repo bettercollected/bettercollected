@@ -26,5 +26,6 @@ export const responseExportLocale = {
     errorGone: 'RESPONSE_EXPORT.ERROR_GONE',
     errorReady: 'RESPONSE_EXPORT.ERROR_READY',
     errorBusy: 'RESPONSE_EXPORT.ERROR_BUSY',
+    errorExportBusy: 'RESPONSE_EXPORT.ERROR_EXPORT_BUSY',
     errorGeneric: 'RESPONSE_EXPORT.ERROR_GENERIC'
 };

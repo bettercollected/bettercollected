@@ -634,6 +634,10 @@ async def list_responses(form_id: str, limit: int = 20) -> str:
     _require_form_in_workspace(form_id, workspace_forms)
     # this workspace's responses only (#768)
     items, _ = await list_response_summaries(key.workspace_id, form_id, limit)
+    # the export audit too (who: this key; how many; never an answer)
+    await _c().response_export_service().audit_key_read(
+        key.workspace_id, form_id, str(key.id), "mcp", len(items)
+    )
     await _audit("list_responses", True, f"{form_id}: {len(items)}")
     return json.dumps(items)
 
@@ -647,6 +651,9 @@ async def get_response(response_id: str) -> str:
     detail = await response_detail(key.workspace_id, response_id)
     if detail is None:
         raise ValueError("Response not found in this workspace.")
+    await _c().response_export_service().audit_key_read(
+        key.workspace_id, str(detail["formId"]), str(key.id), "mcp", 1
+    )
     await _audit("get_response", True, response_id)
     return json.dumps(detail)
 

@@ -192,7 +192,6 @@ describe('the switch for the newer question types', () => {
     });
 });
 
-
 describe('the signature question’s own switch', () => {
     const SIGN = { id: 'sg', index: 6, type: 'signature', title: 'Sign' };
     const withSignature = () => doc([TEXT, SIGN]);
@@ -247,5 +246,40 @@ describe('the signature question’s own switch', () => {
         expect([...gatedSignatures(withSignature()).keys()]).toEqual(['sg']);
         expect(newOrChangedQuestions(withSignature(), gatedSignatures(doc([TEXT])), { types: SIGNATURE_TYPES, message: '' })).toEqual(['sg']);
         expect(newOrChangedQuestions(withSignature(), gatedSignatures(withSignature()), { types: SIGNATURE_TYPES, message: '' })).toEqual([]);
+    });
+});
+
+describe('what a condition on a date range or tags question may ask', () => {
+    const asked = (id: string, comparison: string, value?: string) =>
+        applyOps(
+            doc([
+                { ...RANGE, index: 0 },
+                { ...TAGS, index: 1 },
+                { ...TEXT, index: 2 }
+            ]),
+            [{ op: 'set_field_logic', fieldId: 's', logic: { action: 'SHOW', conditions: [{ fieldId: id, comparison, ...(value === undefined ? {} : { value }) }] } } as FormOp],
+            { skipInverse: true, newQuestionTypes: true }
+        ).results[0];
+
+    it.each([
+        ['IS_EMPTY', undefined],
+        ['IS_NOT_EMPTY', undefined],
+        ['CONTAINS', '2026-01-31'],
+        ['DOES_NOT_CONTAIN', '2026-01-31'],
+        ['GREATER_THAN', '2026-01-31'],
+        ['LESS_THAN', '2026-01-31']
+    ])('takes %s on a date range, as the form spec check and the action conditions do', (comparison, value) => {
+        expect(asked('r', comparison, value).ok).toBe(true);
+    });
+
+    it.each(['IS_EQUAL', 'IS_NOT_EQUAL', 'GREATER_THAN_EQUAL'])('refuses %s on a date range', (comparison) => {
+        const result = asked('r', comparison, '2026-01-31');
+        expect(result.ok).toBe(false);
+        expect(result.message).toMatch(/^A condition on a date range question uses CONTAINS/);
+    });
+
+    it('keeps the tags comparisons: the four, and nothing else', () => {
+        for (const [comparison, value] of [['IS_EMPTY'], ['IS_NOT_EMPTY'], ['CONTAINS', 'vegan'], ['DOES_NOT_CONTAIN', 'vegan']] as const) expect(asked('g', comparison, value).ok).toBe(true);
+        expect(asked('g', 'IS_EQUAL', 'vegan').message).toBe('A condition on a tags question uses CONTAINS, DOES_NOT_CONTAIN, IS_EMPTY or IS_NOT_EMPTY.');
     });
 });

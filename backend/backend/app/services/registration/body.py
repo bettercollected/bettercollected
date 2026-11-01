@@ -18,6 +18,10 @@ import re
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
+from common.currencies import AMOUNT_MAX_INTEGER_DIGITS, CURRENCY_DECIMALS, is_time
+from common.models.standard_form import is_iso_date
+from common.tags import TAG_LENGTH_MAX, TAGS_MAX
+
 SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema"
 KEY_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
 MAX_FILES = 20
@@ -35,7 +39,30 @@ SUPPORTED_TYPES = (
     TEXT_TYPES
     | NUMBER_TYPES
     | CHOICE_TYPES
-    | {"email", "url", "phone_number", "yes_no", "date", "file_upload", "calculated"}
+    | {
+        "email",
+        "url",
+        "phone_number",
+        "yes_no",
+        "date",
+        "file_upload",
+        "calculated",
+        # the newer types: each is sent in the shape the public API answers
+        # it in (``scalar``)
+        "time",
+        "day",
+        "currency",
+        "date_range",
+        "tags",
+    }
+)
+TIME_PATTERN = r"^([01][0-9]|2[0-3]):[0-5][0-9]$"
+CURRENCY_CODE_PATTERN = r"^[A-Z]{3}$"
+CURRENCY_AMOUNT_PATTERN = r"^-?[0-9]+(\.[0-9]+)?$"
+# a sign, the integer digits an amount may have, the point and the most decimals
+# any currency has: the longest amount a question can be answered with
+CURRENCY_AMOUNT_MAX_LENGTH = (
+    1 + AMOUNT_MAX_INTEGER_DIGITS + 1 + max(CURRENCY_DECIMALS.values())
 )
 
 # fixed metadata, always sent; the creator may add more from EXTRA_METADATA
@@ -288,6 +315,110 @@ def _nullable(schema: dict, value: Any) -> dict:
     return schema
 
 
+_CURRENCY_CODE = re.compile(CURRENCY_CODE_PATTERN)
+_CURRENCY_AMOUNT = re.compile(CURRENCY_AMOUNT_PATTERN)
+
+
+def _is_code(value: Any) -> bool:
+    return isinstance(value, str) and _CURRENCY_CODE.fullmatch(value) is not None
+
+
+def _is_amount(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) <= CURRENCY_AMOUNT_MAX_LENGTH
+        and _CURRENCY_AMOUNT.fullmatch(value) is not None
+    )
+
+
+def _text_parts(
+    raw: Any, rules: Dict[str, Callable[[Any], bool]]
+) -> Dict[str, Optional[str]]:
+    """The named text slots of an answer's object. A slot that is missing, not
+    text, empty or not in the format the published schema names is ``None``:
+    the format rules run on submit for the questions that are shown, but an
+    answer logic hid or a jump skipped is stored with only its type checked, and
+    must not reach a receiver in a form its schema refuses."""
+    raw = raw if isinstance(raw, dict) else {}
+    return {name: raw[name] if rule(raw.get(name)) else None for name, rule in rules.items()}
+
+
+def _parts_value(parts: Dict[str, Optional[str]]) -> Optional[Dict[str, Optional[str]]]:
+    """``None`` when no part is given, else every part (a missing one ``null``)."""
+    return parts if any(v is not None for v in parts.values()) else None
+
+
+def _parts_schema(
+    title: str,
+    parts: Dict[str, Optional[str]],
+    templates: Dict[str, dict],
+) -> dict:
+    """An object schema of the given parts: all required, none extra. A part
+    that is missing in this answer says so (``null`` allowed)."""
+    given = _parts_value(parts) is not None
+    return _nullable(
+        {
+            "title": title,
+            "type": "object",
+            "properties": {
+                name: _nullable(template, parts[name]) if given else template
+                for name, template in templates.items()
+            },
+            "required": list(templates),
+            "additionalProperties": False,
+        },
+        _parts_value(parts),
+    )
+
+
+def currencies_of(field: Any) -> List[str]:
+    """The ISO 4217 codes a currency question offers (the first is its default)."""
+    offered = _get(_get(field, "properties"), "currencies")
+    return [c for c in offered if isinstance(c, str)] if isinstance(offered, list) else []
+
+
+def _currency_value(field: Any, answer: Optional[dict]) -> Tuple[Any, dict]:
+    """``{"code": "EUR", "amount": "12.50"}`` as the API answers it: the
+    amount stays the decimal string it was written as (no rounding by a
+    float). Not answered: ``null``."""
+    parts = _text_parts(
+        (answer or {}).get("currency"), {"code": _is_code, "amount": _is_amount}
+    )
+    # the code is a pattern, not the offered list: an answer keeps the code it
+    # was given when the creator later changes the list
+    return _parts_value(parts), _parts_schema(
+        label_of(field),
+        parts,
+        {
+            "code": {"type": "string", "pattern": CURRENCY_CODE_PATTERN},
+            "amount": {
+                "type": "string",
+                "pattern": CURRENCY_AMOUNT_PATTERN,
+                "maxLength": CURRENCY_AMOUNT_MAX_LENGTH,
+            },
+        },
+    )
+
+
+def _date_range_value(field: Any, answer: Optional[dict]) -> Tuple[Any, dict]:
+    """``{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}``; not answered: ``null``.
+    A day that is not a calendar date is ``null``; a range whose end is before
+    its start is ``null`` as a whole."""
+    raw = (answer or {}).get("date_range")
+    if raw is None:
+        raw = (answer or {}).get("dateRange")
+    parts = _text_parts(raw, {"start": is_iso_date, "end": is_iso_date})
+    start, end = parts["start"], parts["end"]
+    if start and end and end < start:
+        # not a range at all (the form refuses it on submit; a hidden answer
+        # may still hold one): never sent half-trusted
+        parts = {"start": None, "end": None}
+    day = {"type": "string", "format": "date"}
+    return _parts_value(parts), _parts_schema(
+        label_of(field), parts, {"start": day, "end": day}
+    )
+
+
 def scalar(
     field: Any, answer: Optional[dict], *, choices_as_list: bool = True
 ) -> Tuple[Any, dict]:
@@ -313,11 +444,39 @@ def scalar(
         value = _slot(answer, "boolean")
         value = value if isinstance(value, bool) else None
         return value, _nullable({"title": title, "type": "boolean"}, value)
-    if type_ == "date":
+    if type_ in ("date", "day"):
         value = _slot(answer, "date")
+        # empty or not a calendar date (a hidden or skipped answer is stored with
+        # its type checked only): not an answer
+        value = value if is_iso_date(value) else None
         return value, _nullable(
             {"title": title, "type": "string", "format": "date"}, value
         )
+    if type_ == "time":
+        value = _slot(answer, "time")
+        value = value if is_time(value) else None
+        return value, _nullable(
+            {"title": title, "type": "string", "pattern": TIME_PATTERN}, value
+        )
+    if type_ == "currency":
+        return _currency_value(field, answer)
+    if type_ == "date_range":
+        return _date_range_value(field, answer)
+    if type_ == "tags":
+        raw = (answer or {}).get("tags")
+        # at most TAGS_MAX tags of 1 to TAG_LENGTH_MAX characters, the limits of
+        # the question itself: a longer one is left out (a list cannot hold null)
+        tags = (
+            [t for t in raw if isinstance(t, str) and 1 <= len(t) <= TAG_LENGTH_MAX]
+            if isinstance(raw, list)
+            else []
+        )[:TAGS_MAX]
+        return tags, {
+            "title": title,
+            "type": "array",
+            "items": {"type": "string", "minLength": 1, "maxLength": TAG_LENGTH_MAX},
+            "maxItems": TAGS_MAX,
+        }
     if type_ in CHOICE_TYPES:
         options = _option_titles(field)
         picked = _picked(answer)
@@ -410,6 +569,33 @@ def file_value(
     )
 
 
+def _types_of(schema: dict) -> List[str]:
+    kind = schema.get("type")
+    return list(kind) if isinstance(kind, list) else [kind] if kind else []
+
+
+def _merged(into: dict, schema: dict) -> dict:
+    """``schema`` laid over ``into``, except that nullability is a union: an item
+    whose value is missing makes the entry nullable whichever item comes last,
+    also inside an object's properties."""
+    merged = {**into, **schema}
+    plain = [k for k in _types_of(schema) if k != "null"]
+    if "null" in _types_of(into) or "null" in _types_of(schema):
+        merged["type"] = [*plain, "null"]
+    if isinstance(into.get("properties"), dict) and isinstance(
+        schema.get("properties"), dict
+    ):
+        merged["properties"] = {
+            name: (
+                _merged(into["properties"][name], sub)
+                if name in into["properties"]
+                else sub
+            )
+            for name, sub in schema["properties"].items()
+        }
+    return merged
+
+
 def _group_value(
     variable: Variable,
     answer: Optional[dict],
@@ -436,7 +622,7 @@ def _group_value(
                 child.field, _answer(item, child_id), choices_as_list=choices_as_list
             )
             row[child_id] = value
-            properties[child_id] = {**properties[child_id], **schema}
+            properties[child_id] = _merged(properties[child_id], schema)
         rows.append(row)
     schema = {
         "title": variable.label,

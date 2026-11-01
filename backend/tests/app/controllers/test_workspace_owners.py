@@ -45,7 +45,9 @@ from tests.app.sso_helpers import (
     verify_domain,
 )  # noqa: F401
 
-co_owner = User(id=str(RecordId()), sub="co-owner@" + DOMAIN)
+# an owner on the SSO domain, signed in with an email code: the break-glass
+# session that stays allowed while the workspace requires SSO
+co_owner = User(id=str(RecordId()), sub="co-owner@" + DOMAIN, auth_method="otp")
 admin = User(id=str(RecordId()), sub="admin@" + DOMAIN)
 viewer = User(id=str(RecordId()), sub="viewer@" + DOMAIN)
 
@@ -559,7 +561,7 @@ async def test_a_co_owner_deactivated_in_the_directory_loses_everything(
         event(directory, "user.created", user_data("u1", JANE)),
     )
     jane_id = auth.accounts[JANE]["id"]
-    jane = User(id=jane_id, sub=JANE)
+    jane = User(id=jane_id, sub=JANE, auth_method="otp")
     promoted = await client.patch(
         f"{_members(owners.id)}/{jane_id}",
         json={"role": "OWNER"},

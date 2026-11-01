@@ -618,6 +618,10 @@ async def list_responses(
     items, total = await list_response_summaries(
         caller.workspace_id, form_id, size, (page - 1) * size
     )
+    # the export audit too (who: this key; how many; never an answer)
+    await _c().response_export_service().audit_key_read(
+        caller.workspace_id, form_id, str(caller.key.id), "api_key", len(items)
+    )
     return JSONResponse({"items": items, "page": page, "size": size, "total": total})
 
 
@@ -640,6 +644,9 @@ async def get_response(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, content="Response not found"
         )
+    await _c().response_export_service().audit_key_read(
+        caller.workspace_id, form_id, str(caller.key.id), "api_key", 1
+    )
     return JSONResponse(detail)
 
 

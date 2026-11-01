@@ -575,7 +575,7 @@ export const setFieldValidation: Handler<SetFieldValidationOp> = (ctx, op) => {
 
 export const VALUELESS_COMPARISONS = new Set(['IS_EMPTY', 'IS_NOT_EMPTY']);
 /** What a condition on a date range question may ask (backend DATE_RANGE_COMPARISONS, `compareDateRange`). */
-const DATE_RANGE_COMPARISONS = new Set(['CONTAINS', 'DOES_NOT_CONTAIN', 'GREATER_THAN', 'LESS_THAN']);
+const DATE_RANGE_COMPARISONS = new Set(['CONTAINS', 'DOES_NOT_CONTAIN', 'GREATER_THAN', 'LESS_THAN', 'IS_EMPTY', 'IS_NOT_EMPTY']);
 /** What a condition on a tags question may ask with a value (backend TAGS_VALUE_COMPARISONS). */
 const TAGS_VALUE_COMPARISONS = new Set(['CONTAINS', 'DOES_NOT_CONTAIN']);
 const COUNT_COMPARISONS = new Set(['IS_EQUAL', 'IS_NOT_EQUAL', 'GREATER_THAN', 'GREATER_THAN_EQUAL', 'LESS_THAN', 'LESS_THAN_EQUAL']);
