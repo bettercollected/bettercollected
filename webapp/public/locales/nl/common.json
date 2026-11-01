@@ -1002,6 +1002,7 @@
     "TITLE": "Kies een werkruimte",
     "DESCRIPTION": "Kies de werkruimte waarin u wilt werken. U kunt altijd wisselen via het werkruimtemenu.",
     "NO_ACCESS": "U hebt geen toegang tot die werkruimte. Kies hieronder een van uw werkruimtes.",
+    "SSO_NOTICE": "Uw organisatie vereist single sign-on voor die werkruimte, en deze aanmelding gebruikt dat niet. Kies hieronder de werkruimte om in te loggen met SSO.",
     "LIST_LABEL": "Uw werkruimtes",
     "COUNT_one": "{{count}} werkruimte",
     "COUNT_other": "{{count}} werkruimtes",

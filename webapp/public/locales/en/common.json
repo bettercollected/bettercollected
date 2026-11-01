@@ -1002,6 +1002,7 @@
     "TITLE": "Choose a workspace",
     "DESCRIPTION": "Pick the workspace you want to work in. You can switch at any time from the workspace menu.",
     "NO_ACCESS": "You don't have access to that workspace. Choose one of yours below.",
+    "SSO_NOTICE": "Your organisation requires single sign-on for that workspace, and this sign-in doesn't use it. Choose the workspace below to sign in with SSO.",
     "LIST_LABEL": "Your workspaces",
     "COUNT_one": "{{count}} workspace",
     "COUNT_other": "{{count}} workspaces",

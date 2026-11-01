@@ -25,6 +25,7 @@ import { apiActionsApi } from './api-actions-api';
 import { mediaLibraryApi } from './media-library/api';
 import mutationStatusSlice from './mutations/slice';
 import { priceSuggestionApi } from './price-suggestion/api';
+import { ssoRequiredRedirect } from './sso-required-redirect';
 
 // Every API slice's middleware, from the one list (store/api-slices.ts).
 const middlewares = API_SLICES.map((api) => api.middleware);
@@ -73,7 +74,7 @@ export const store = configureStore({
             serializableCheck: false
             // RTK 2's Tuple.concat needs the middlewares spread (an array
             // argument widens the tuple type and fails to typecheck).
-        }).concat(...middlewares)
+        }).concat(...middlewares, ssoRequiredRedirect)
 });
 
 export const persistor = persistStore(store);

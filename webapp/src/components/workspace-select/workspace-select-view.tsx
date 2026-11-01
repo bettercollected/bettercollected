@@ -13,7 +13,7 @@ import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
 import { workspaceSelect } from '@app/constants/locales/workspace-select';
 import { navigateWithReferrer } from '@app/lib/sso';
-import { NO_ACCESS_NOTICE, SEARCH_THRESHOLD, WorkspaceChoice, WorkspaceSelection, matchesSearch, orderChoices, readLastWorkspaceId, rememberWorkspace, workspaceHome } from '@app/lib/workspace-selection';
+import { NO_ACCESS_NOTICE, SEARCH_THRESHOLD, SSO_REQUIRED_NOTICE, WorkspaceChoice, WorkspaceSelection, matchesSearch, orderChoices, readLastWorkspaceId, rememberWorkspace, workspaceHome } from '@app/lib/workspace-selection';
 import { buttonClassName } from '@app/shadcn/components/ui/button';
 import { Input } from '@app/shadcn/components/ui/input';
 import { cn } from '@app/shadcn/util/lib';
@@ -26,7 +26,7 @@ const KNOWN_ROLES = new Set(['OWNER', 'ADMIN', 'EDITOR', 'REVIEWER', 'VIEWER', '
 const rowClassName = 'group flex w-full items-center gap-3 rounded-xl border border-black-300 bg-white px-4 py-3 text-left transition-colors hover:border-brand-400 hover:bg-brand-100/40 focus-visible:border-brand-500';
 
 interface WorkspaceSelectViewProps {
-    /** a fixed notice code from the URL (only `no_access` is shown) */
+    /** a fixed notice code from the URL (only `no_access` and `sso_required` are shown) */
     notice?: string | null;
 }
 
@@ -71,6 +71,11 @@ export default function WorkspaceSelectView({ notice }: WorkspaceSelectViewProps
                     {notice === NO_ACCESS_NOTICE && (
                         <p role="status" className="mt-5 rounded-lg border border-[#F0D9B5] bg-[#FDF8EF] px-4 py-3 text-sm text-black-800">
                             {t(workspaceSelect.noAccess)}
+                        </p>
+                    )}
+                    {notice === SSO_REQUIRED_NOTICE && (
+                        <p role="status" className="mt-5 rounded-lg border border-[#F0D9B5] bg-[#FDF8EF] px-4 py-3 text-sm text-black-800">
+                            {t(workspaceSelect.ssoNotice)}
                         </p>
                     )}
 
