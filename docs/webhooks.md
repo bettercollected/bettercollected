@@ -50,7 +50,7 @@ registration (Objects API / Generic JSON) body and the text of an email action r
 | Number, rating, scales | number | `36` | `null` |
 | Yes / no | boolean | `true` | `null` |
 | Date | `"YYYY-MM-DD"` | `"2026-01-31"` | `null` |
-| Day (a date typed as day, month and year) | `"YYYY-MM-DD"`, the same as a date | `"1990-01-02"` | `null` |
+| Day (a date typed as day, month and year) | `"YYYY-MM-DD"`, the same as a date (an empty string reads as not answered) | `"1990-01-02"` | `null` |
 | Time | `"HH:MM"`, 24-hour | `"09:30"` | `null` |
 | Currency | `{"code": "<ISO 4217>", "amount": "<decimal>"}`; the amount is the decimal string as it was entered (a dot, at most the currency's decimals), never a float, so no digit is lost | `{"code":"EUR","amount":"12.50"}` | `null` |
 | Date range | `{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}` | `{"start":"2026-01-31","end":"2026-02-03"}` | `null` |
@@ -60,7 +60,11 @@ registration (Objects API / Generic JSON) body and the text of an email action r
 | Repeating group | list with one object per item, keyed by the question's id | `[{"pname":"Bo"}]` | `[]` |
 
 These are the keys and values of the public API's answers (`code`, `amount`, `start`, `end`), flattened to one value per question. A currency or a
-date range answered in part keeps both keys, the missing one `null`. Answers that logic hid or a jump skipped are stored and sent like any other. The
+date range answered in part keeps both keys, the missing one `null`. Every part must be in the format named here, or it is sent as `null`: a time that is not
+`HH:MM`, a day that is not a calendar date, a currency code that is not three capital letters, an amount that is not a plain decimal, and a range whose end is
+before its start (`null` as a whole, not half a range). The form checks these when a question is shown; an answer that logic hid or a jump skipped is stored
+with its type checked only, and this keeps it from reaching a receiver in a shape the published schema refuses. What is stored is not changed, and such answers are
+still sent. Answers that logic hid or a jump skipped are stored and sent like any other. The
 **test event** carries made-up values of the same shapes (a currency question's sample uses its first offered currency, EUR when it offers none). A
 question that is no longer one of these types when a delivery runs is left out of `data`, as before. In an email action's text a currency reads `EUR 12.50`
 and a date range `2026-01-31/2026-02-03`, as in the response export.

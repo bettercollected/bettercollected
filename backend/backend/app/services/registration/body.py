@@ -18,6 +18,9 @@ import re
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
+from common.currencies import is_time
+from common.models.standard_form import is_iso_date
+
 SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema"
 KEY_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
 MAX_FILES = 20
@@ -306,13 +309,28 @@ def _nullable(schema: dict, value: Any) -> dict:
     return schema
 
 
-def _text_parts(raw: Any, names: Tuple[str, ...]) -> Dict[str, Optional[str]]:
-    """The named text slots of an answer's object (``None`` for a missing or
-    not-text one)."""
+_CURRENCY_CODE = re.compile(CURRENCY_CODE_PATTERN)
+_CURRENCY_AMOUNT = re.compile(CURRENCY_AMOUNT_PATTERN)
+
+
+def _is_code(value: Any) -> bool:
+    return isinstance(value, str) and _CURRENCY_CODE.fullmatch(value) is not None
+
+
+def _is_amount(value: Any) -> bool:
+    return isinstance(value, str) and _CURRENCY_AMOUNT.fullmatch(value) is not None
+
+
+def _text_parts(
+    raw: Any, rules: Dict[str, Callable[[Any], bool]]
+) -> Dict[str, Optional[str]]:
+    """The named text slots of an answer's object. A slot that is missing, not
+    text, empty or not in the format the published schema names is ``None``:
+    the format rules run on submit for the questions that are shown, but an
+    answer logic hid or a jump skipped is stored with only its type checked, and
+    must not reach a receiver in a form its schema refuses."""
     raw = raw if isinstance(raw, dict) else {}
-    return {
-        n: raw[n] if isinstance(raw.get(n), str) and raw[n] else None for n in names
-    }
+    return {name: raw[name] if rule(raw.get(name)) else None for name, rule in rules.items()}
 
 
 def _parts_value(parts: Dict[str, Optional[str]]) -> Optional[Dict[str, Optional[str]]]:
@@ -353,27 +371,34 @@ def _currency_value(field: Any, answer: Optional[dict]) -> Tuple[Any, dict]:
     """``{"code": "EUR", "amount": "12.50"}`` as the API answers it: the
     amount stays the decimal string it was written as (no rounding by a
     float). Not answered: ``null``."""
-    parts = _text_parts((answer or {}).get("currency"), ("code", "amount"))
-    code: Dict[str, Any] = {"type": "string", "pattern": CURRENCY_CODE_PATTERN}
-    offered = currencies_of(field)
-    if offered:
-        code["enum"] = offered
+    parts = _text_parts(
+        (answer or {}).get("currency"), {"code": _is_code, "amount": _is_amount}
+    )
+    # the code is a pattern, not the offered list: an answer keeps the code it
+    # was given when the creator later changes the list
     return _parts_value(parts), _parts_schema(
         label_of(field),
         parts,
         {
-            "code": code,
+            "code": {"type": "string", "pattern": CURRENCY_CODE_PATTERN},
             "amount": {"type": "string", "pattern": CURRENCY_AMOUNT_PATTERN},
         },
     )
 
 
 def _date_range_value(field: Any, answer: Optional[dict]) -> Tuple[Any, dict]:
-    """``{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}``; not answered: ``null``."""
+    """``{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}``; not answered: ``null``.
+    A day that is not a calendar date is ``null``; a range whose end is before
+    its start is ``null`` as a whole."""
     raw = (answer or {}).get("date_range")
     if raw is None:
         raw = (answer or {}).get("dateRange")
-    parts = _text_parts(raw, ("start", "end"))
+    parts = _text_parts(raw, {"start": is_iso_date, "end": is_iso_date})
+    start, end = parts["start"], parts["end"]
+    if start and end and end < start:
+        # not a range at all (the form refuses it on submit; a hidden answer
+        # may still hold one): never sent half-trusted
+        parts = {"start": None, "end": None}
     day = {"type": "string", "format": "date"}
     return _parts_value(parts), _parts_schema(
         label_of(field), parts, {"start": day, "end": day}
@@ -406,13 +431,15 @@ def scalar(
         value = value if isinstance(value, bool) else None
         return value, _nullable({"title": title, "type": "boolean"}, value)
     if type_ in ("date", "day"):
-        value = _slot(answer, "date")
+        value = _slot(answer, "date") or None
+        if type_ == "day" and not is_iso_date(value):
+            value = None
         return value, _nullable(
             {"title": title, "type": "string", "format": "date"}, value
         )
     if type_ == "time":
         value = _slot(answer, "time")
-        value = value if isinstance(value, str) else None
+        value = value if is_time(value) else None
         return value, _nullable(
             {"title": title, "type": "string", "pattern": TIME_PATTERN}, value
         )
@@ -516,6 +543,33 @@ def file_value(
     )
 
 
+def _types_of(schema: dict) -> List[str]:
+    kind = schema.get("type")
+    return list(kind) if isinstance(kind, list) else [kind] if kind else []
+
+
+def _merged(into: dict, schema: dict) -> dict:
+    """``schema`` laid over ``into``, except that nullability is a union: an item
+    whose value is missing makes the entry nullable whichever item comes last,
+    also inside an object's properties."""
+    merged = {**into, **schema}
+    plain = [k for k in _types_of(schema) if k != "null"]
+    if "null" in _types_of(into) or "null" in _types_of(schema):
+        merged["type"] = [*plain, "null"]
+    if isinstance(into.get("properties"), dict) and isinstance(
+        schema.get("properties"), dict
+    ):
+        merged["properties"] = {
+            name: (
+                _merged(into["properties"][name], sub)
+                if name in into["properties"]
+                else sub
+            )
+            for name, sub in schema["properties"].items()
+        }
+    return merged
+
+
 def _group_value(
     variable: Variable,
     answer: Optional[dict],
@@ -542,7 +596,7 @@ def _group_value(
                 child.field, _answer(item, child_id), choices_as_list=choices_as_list
             )
             row[child_id] = value
-            properties[child_id] = {**properties[child_id], **schema}
+            properties[child_id] = _merged(properties[child_id], schema)
         rows.append(row)
     schema = {
         "title": variable.label,

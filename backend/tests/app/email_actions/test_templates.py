@@ -159,10 +159,12 @@ def test_the_newer_answers_read_as_text():
     # a currency as the export writes it, a range as an ISO 8601 interval, tags as a list
     assert templates.format_value({"code": "EUR", "amount": "12.50"}) == "EUR 12.50"
     assert templates.format_value({"code": None, "amount": "12.50"}) == "12.50"
-    assert templates.format_value({"code": "EUR", "amount": None}) == "EUR"
+    assert templates.format_value({"code": "EUR", "amount": None}) == ""
     assert templates.format_value({"start": "2026-01-31", "end": "2026-02-03"}) == "2026-01-31/2026-02-03"
     assert templates.format_value({"start": "2026-01-31", "end": None}) == "2026-01-31/"
     assert templates.format_value(["alpha", "beta"]) == "alpha, beta"
+    # an empty answer inside a group item leaves no gap: "a /  / b" never happens
+    assert templates.format_value([{"x": "a", "t": [], "r": {}, "y": "b"}]) == "1. a / b"
     # an item of a repeating group is never read as a currency or a range, whatever
     # its questions are called, while the answers inside it are
     assert templates.format_value([{"code": "A", "amount": "1"}]) == "1. A / 1"

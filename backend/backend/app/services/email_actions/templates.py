@@ -134,7 +134,9 @@ _NO = {"en": "No", "nl": "Nee"}
 
 
 def _row(row: Dict[str, Any], language: str) -> str:
-    return " / ".join(format_value(v, language) for v in row.values() if v not in (None, ""))
+    return " / ".join(
+        format_value(v, language) for v in row.values() if v not in (None, "", [], {})
+    )
 
 
 def format_value(value: Any, language: str = DEFAULT_LANGUAGE) -> str:
@@ -150,9 +152,12 @@ def format_value(value: Any, language: str = DEFAULT_LANGUAGE) -> str:
     if isinstance(value, str):
         return value
     if isinstance(value, dict):
-        if set(value) == {"code", "amount"} and value["amount"] not in (None, ""):
-            # a currency answer: "EUR 12.50", as the export writes it
-            return f"{value['code']} {value['amount']}".strip() if value["code"] else str(value["amount"])
+        if set(value) == {"code", "amount"}:
+            # a currency answer: "EUR 12.50", as the export writes it; no amount,
+            # nothing to say (a code alone is not an answer)
+            if value["amount"] in (None, ""):
+                return ""
+            return f"{value['code']} {value['amount']}" if value["code"] else str(value["amount"])
         if set(value) == {"start", "end"}:
             # a date range: an ISO 8601 interval, as the export writes it
             return f"{value['start'] or ''}/{value['end'] or ''}"
