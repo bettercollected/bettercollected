@@ -13,7 +13,7 @@ import os
 
 import pytest
 
-from tests.sandbox_support import needs_confinement, run
+from tests.sandbox_support import REQUIRED, can_confine, needs_confinement, run
 
 pytestmark = needs_confinement
 
@@ -33,6 +33,9 @@ def attempts(body: str, **limits):
     prelude = (
         # only modules the child already holds: once confined it can import no more
         "import os, sys, ctypes, json, struct\n"
+        "from sandbox import syscalls\n"
+        "MACHINE = os.uname().machine\n"
+        "NR = {n: nums[MACHINE] for n, _g, nums in syscalls.DENIED if MACHINE in nums}\n"
         "libc = ctypes.CDLL(None, use_errno=True)\n"
         "libc.syscall.argtypes = [ctypes.c_long] + [ctypes.c_ulong] * 6\n"
         "def raw(number, *args):\n"
@@ -54,6 +57,15 @@ def attempts(body: str, **limits):
     joined = "\n".join(outcome.log)
     assert SENTINEL not in joined
     return results
+
+
+def test_the_kernel_confines_when_it_is_required():
+    # CI sets REQUIRE_SANDBOX_TESTS=1: a runner whose kernel cannot confine a child
+    # fails here instead of skipping every other test of this module
+    if REQUIRED:
+        assert (
+            can_confine()
+        ), "REQUIRE_SANDBOX_TESTS is set and the child cannot confine itself"
 
 
 def assert_denied_by_seccomp(results, names):
@@ -149,19 +161,19 @@ def test_no_network_of_any_kind():
     # filesystem is gone, and that must not be the only thing in the way
     results = attempts(
         """
-attempt("tcp", lambda: raw(41, 2, 1, 0))
-attempt("udp", lambda: raw(41, 2, 2, 0))
-attempt("ipv6", lambda: raw(41, 10, 1, 0))
-attempt("unix", lambda: raw(41, 1, 1, 0))
-attempt("netlink", lambda: raw(41, 16, 3, 0))
-attempt("raw_ip", lambda: raw(41, 2, 3, 1))
-attempt("packet", lambda: raw(41, 17, 3, 0))
-attempt("socketpair", lambda: raw(53, 1, 1, 0, 0))
-attempt("connect", lambda: raw(42, 3, 0, 16))
-attempt("bind", lambda: raw(49, 3, 0, 16))
-attempt("listen", lambda: raw(50, 3, 1))
-attempt("accept", lambda: raw(43, 3, 0, 0))
-attempt("accept4", lambda: raw(288, 3, 0, 0, 0))
+attempt("tcp", lambda: raw(NR["socket"], 2, 1, 0))
+attempt("udp", lambda: raw(NR["socket"], 2, 2, 0))
+attempt("ipv6", lambda: raw(NR["socket"], 10, 1, 0))
+attempt("unix", lambda: raw(NR["socket"], 1, 1, 0))
+attempt("netlink", lambda: raw(NR["socket"], 16, 3, 0))
+attempt("raw_ip", lambda: raw(NR["socket"], 2, 3, 1))
+attempt("packet", lambda: raw(NR["socket"], 17, 3, 0))
+attempt("socketpair", lambda: raw(NR["socketpair"], 1, 1, 0, 0))
+attempt("connect", lambda: raw(NR["connect"], 3, 0, 16))
+attempt("bind", lambda: raw(NR["bind"], 3, 0, 16))
+attempt("listen", lambda: raw(NR["listen"], 3, 1))
+attempt("accept", lambda: raw(NR["accept"], 3, 0, 0))
+attempt("accept4", lambda: raw(NR["accept4"], 3, 0, 0, 0))
 attempt("import_socket", lambda: __import__("socket"))
 attempt("import_urllib", lambda: __import__("urllib.request"))
 attempt("import_ssl", lambda: __import__("ssl"))
@@ -201,17 +213,17 @@ attempt("system", system)
 attempt("posix_spawn", lambda: os.posix_spawn("/bin/sh", ["sh"], {}))
 attempt("kill_the_executor", lambda: os.kill(os.getppid(), 0))
 attempt("kill_own_group", lambda: os.killpg(os.getpgid(0), 0))
-attempt("fork_raw", lambda: raw(57))
-attempt("vfork_raw", lambda: raw(58))
-attempt("clone_raw", lambda: raw(56, 0x00010000, 0, 0, 0, 0))
-attempt("clone3_raw", lambda: raw(435, 0, 0))
-attempt("execve_raw", lambda: raw(59, 0, 0, 0))
-attempt("execveat_raw", lambda: raw(322, 0, 0, 0, 0, 0))
-attempt("kill_raw", lambda: raw(62, os.getppid(), 0))
-attempt("tgkill_raw", lambda: raw(234, os.getppid(), os.getppid(), 0))
-attempt("ptrace_the_executor", lambda: raw(101, 16, os.getppid(), 0, 0))
-attempt("process_vm_readv", lambda: raw(310, os.getppid(), 0, 0, 0, 0, 0))
-attempt("pidfd_open", lambda: raw(434, os.getppid(), 0))
+attempt("fork_raw", lambda: raw(NR["fork"]))
+attempt("vfork_raw", lambda: raw(NR["vfork"]))
+attempt("clone_raw", lambda: raw(NR["clone"], 0x00010000, 0, 0, 0, 0))
+attempt("clone3_raw", lambda: raw(NR["clone3"], 0, 0))
+attempt("execve_raw", lambda: raw(NR["execve"], 0, 0, 0))
+attempt("execveat_raw", lambda: raw(NR["execveat"], 0, 0, 0, 0, 0))
+attempt("kill_raw", lambda: raw(NR["kill"], os.getppid(), 0))
+attempt("tgkill_raw", lambda: raw(NR["tgkill"], os.getppid(), os.getppid(), 0))
+attempt("ptrace_the_executor", lambda: raw(NR["ptrace"], 16, os.getppid(), 0, 0))
+attempt("process_vm_readv", lambda: raw(NR["process_vm_readv"], os.getppid(), 0, 0, 0, 0, 0))
+attempt("pidfd_open", lambda: raw(NR["pidfd_open"], os.getppid(), 0))
 attempt("import_subprocess", lambda: __import__("subprocess"))
 attempt("import_threading_then_start", lambda: __import__("threading").Thread(target=lambda: None).start())
 """,
@@ -248,27 +260,27 @@ attempt("setuid_root", lambda: os.setuid(0))
 attempt("setgid_root", lambda: os.setgid(0))
 attempt("setgroups", lambda: os.setgroups([0]))
 attempt("chroot", lambda: os.chroot("/"))
-attempt("setresuid_raw", lambda: raw(117, 0, 0, 0))
-attempt("mount", lambda: raw(165, 0, 0, 0, 0, 0))
-attempt("umount2", lambda: raw(166, 0, 0))
-attempt("pivot_root", lambda: raw(155, 0, 0))
-attempt("unshare_net", lambda: raw(272, 0x40000000))
-attempt("unshare_user", lambda: raw(272, 0x10000000))
-attempt("setns", lambda: raw(308, 0, 0))
-attempt("bpf", lambda: raw(321, 0, 0, 0))
-attempt("perf_event_open", lambda: raw(298, 0, 0, 0, 0, 0))
-attempt("io_uring_setup", lambda: raw(425, 1, 0))
-attempt("userfaultfd", lambda: raw(323, 0))
-attempt("keyctl", lambda: raw(250, 0))
-attempt("add_key", lambda: raw(248, 0, 0, 0, 0, 0))
-attempt("memfd_create", lambda: raw(319, 0, 0))
-attempt("openat2", lambda: raw(437, 0, 0, 0, 0))
-attempt("open_by_handle_at", lambda: raw(304, 0, 0, 0))
-attempt("personality", lambda: raw(135, 0xfffffffe))
-attempt("init_module", lambda: raw(175, 0, 0, 0))
-attempt("reboot", lambda: raw(169, 0, 0, 0, 0))
-attempt("fchmod", lambda: raw(91, 1, 0o777))
-attempt("ftruncate", lambda: raw(77, 1, 0))
+attempt("setresuid_raw", lambda: raw(NR["setresuid"], 0, 0, 0))
+attempt("mount", lambda: raw(NR["mount"], 0, 0, 0, 0, 0))
+attempt("umount2", lambda: raw(NR["umount2"], 0, 0))
+attempt("pivot_root", lambda: raw(NR["pivot_root"], 0, 0))
+attempt("unshare_net", lambda: raw(NR["unshare"], 0x40000000))
+attempt("unshare_user", lambda: raw(NR["unshare"], 0x10000000))
+attempt("setns", lambda: raw(NR["setns"], 0, 0))
+attempt("bpf", lambda: raw(NR["bpf"], 0, 0, 0))
+attempt("perf_event_open", lambda: raw(NR["perf_event_open"], 0, 0, 0, 0, 0))
+attempt("io_uring_setup", lambda: raw(NR["io_uring_setup"], 1, 0))
+attempt("userfaultfd", lambda: raw(NR["userfaultfd"], 0))
+attempt("keyctl", lambda: raw(NR["keyctl"], 0))
+attempt("add_key", lambda: raw(NR["add_key"], 0, 0, 0, 0, 0))
+attempt("memfd_create", lambda: raw(NR["memfd_create"], 0, 0))
+attempt("openat2", lambda: raw(NR["openat2"], 0, 0, 0, 0))
+attempt("open_by_handle_at", lambda: raw(NR["open_by_handle_at"], 0, 0, 0))
+attempt("personality", lambda: raw(NR["personality"], 0xfffffffe))
+attempt("init_module", lambda: raw(NR["init_module"], 0, 0, 0))
+attempt("reboot", lambda: raw(NR["reboot"], 0, 0, 0, 0))
+attempt("fchmod", lambda: raw(NR["fchmod"], 1, 0o777))
+attempt("ftruncate", lambda: raw(NR["ftruncate"], 1, 0))
 """,
     )
     assert_denied_by_seccomp(
@@ -335,7 +347,6 @@ def test_the_executor_cannot_be_reached_through_another_run():
     from sandbox import broker
 
     async def both():
-        code = "import os\nlog(str(sorted(get_data_keys())))" if False else ""
         mine = (
             "log('mine:' + repr(response))\n"
             "import os\n"
@@ -415,3 +426,53 @@ def test_the_child_cannot_write_to_the_executors_pipe_in_other_ways():
         unvalidated=True,
     )
     assert outcome.error is not None and outcome.error["kind"] == "killed"
+
+
+def test_the_child_cannot_signal_or_re_limit_another_process():
+    """``rt_sigqueueinfo`` / ``rt_tgsigqueueinfo`` can signal any process of the same
+    user with a forged ``si_code``; ``prlimit64`` reads and sets another process's
+    limits. Both are denied. (Signal 0 only asks the kernel whether the signal
+    could be sent, so that a flaw in the filter does not kill the test run.)"""
+    results = attempts(
+        """
+info = ctypes.create_string_buffer(128)
+struct.pack_into("<iii", info, 0, 0, 0, -1)  # si_signo 0, si_errno 0, si_code SI_QUEUE
+old = ctypes.create_string_buffer(16)
+attempt("rt_sigqueueinfo_executor", lambda: raw(NR["rt_sigqueueinfo"], os.getppid(), 0, ctypes.addressof(info)))
+attempt("rt_tgsigqueueinfo_executor", lambda: raw(NR["rt_tgsigqueueinfo"], os.getppid(), os.getppid(), 0, ctypes.addressof(info)))
+attempt("prlimit_read_executor", lambda: raw(NR["prlimit64"], os.getppid(), 0, 0, ctypes.addressof(old)))
+attempt("prlimit_self", lambda: raw(NR["prlimit64"], 0, 0, 0, ctypes.addressof(old)))
+attempt("setrlimit", lambda: raw(NR["setrlimit"], 0, ctypes.addressof(old)))
+attempt("setpriority", lambda: raw(NR["setpriority"], 0, 0, 19))
+attempt("sched_setaffinity", lambda: raw(NR["sched_setaffinity"], os.getppid(), 8, ctypes.addressof(old)))
+attempt("sched_setscheduler", lambda: raw(NR["sched_setscheduler"], os.getppid(), 0, ctypes.addressof(old)))
+attempt("ioprio_set", lambda: raw(NR["ioprio_set"], 1, os.getppid(), 0))
+attempt("process_madvise", lambda: raw(NR["process_madvise"], 0, 0, 0, 0, 0))
+attempt("kcmp", lambda: raw(NR["kcmp"], os.getppid(), os.getpid(), 0, 0, 0))
+attempt("syslog", lambda: raw(NR["syslog"], 3, 0, 0))
+attempt("mbind", lambda: raw(NR["mbind"], 0, 0, 0, 0, 0, 0))
+attempt("move_pages", lambda: raw(NR["move_pages"], os.getppid(), 0, 0, 0, 0, 0))
+attempt("memfd_secret", lambda: raw(NR["memfd_secret"], 0))
+attempt("shmget", lambda: raw(NR["shmget"], 0, 4096, 0o1600))
+attempt("msgget", lambda: raw(NR["msgget"], 0, 0o1600))
+attempt("semget", lambda: raw(NR["semget"], 0, 1, 0o1600))
+attempt("mq_open", lambda: raw(NR["mq_open"], 0, 0, 0, 0))
+""",
+    )
+    assert_denied_by_seccomp(results, list(results))
+    assert len(results) >= 19
+
+
+def test_the_executor_keeps_its_limits_and_signals_are_not_delivered():
+    # the executor (this process) is still as limited as before the attempts above
+    import resource
+
+    before = resource.getrlimit(resource.RLIMIT_CPU)
+    run(
+        "import os, ctypes\n"
+        "libc = ctypes.CDLL(None, use_errno=True)\n"
+        "libc.syscall.argtypes = [ctypes.c_long] + [ctypes.c_ulong] * 6\n"
+        "libc.kill(os.getppid(), 0)\n",
+        unvalidated=True,
+    )
+    assert resource.getrlimit(resource.RLIMIT_CPU) == before

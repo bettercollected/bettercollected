@@ -2,6 +2,7 @@
 skip when this machine's kernel cannot confine one (no Landlock, not root)."""
 
 import asyncio
+import os
 
 import pytest
 
@@ -29,7 +30,11 @@ def can_confine() -> bool:
     return True
 
 
+# CI sets REQUIRE_SANDBOX_TESTS=1: the tests then run (and fail) instead of being
+# skipped on a runner whose kernel cannot confine a child
+REQUIRED = os.environ.get("REQUIRE_SANDBOX_TESTS") == "1"
+
 needs_confinement = pytest.mark.skipif(
-    not can_confine(),
+    not REQUIRED and not can_confine(),
     reason="this kernel cannot confine the sandbox child (no Landlock, not root)",
 )

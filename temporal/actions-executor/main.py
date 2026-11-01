@@ -3,17 +3,16 @@ import os
 import random
 import string
 
-from sandbox import broker as sandbox_broker
 from temporalio.client import Client
 from temporalio.worker import Worker
 
 from activities.run_action_code import run_action_code
 from settings.application import (
-    isolation_enforced,
     log_if_api_key_missing,
     require_aes_hex_key,
     settings,
 )
+from utilities.isolation_log import log_isolation
 from workflows.run_action_code import RunActionCode
 
 
@@ -38,6 +37,7 @@ async def run_worker():
 
 
 async def main():
+    await log_isolation(key_needed=True)
     workers = [run_worker() for i in range(0, settings.workers)]
     await asyncio.gather(*workers)
 
@@ -80,6 +80,4 @@ if __name__ == "__main__":
     else:
         # the Temporal path hands over sealed secrets: it needs the key
         require_aes_hex_key()
-        if isolation_enforced():
-            sandbox_broker.harden_parent()
         asyncio.run(main())

@@ -26,10 +26,9 @@ from typing import Optional
 
 from procrastinate import App, PsycopgConnector, RetryStrategy
 
-from sandbox import broker
-from settings.application import isolation_enforced, settings
 from utilities.actions import run_action
 from utilities.google_service import RunScope
+from utilities.isolation_log import log_isolation
 from utilities.job_logging import scrub_job_logging
 from utilities.queue_isolation import require_isolated_queue
 from utilities.run_context import RunContextUnavailable, fetch_run_context
@@ -139,40 +138,8 @@ async def run_action_job(
     return "ok"
 
 
-async def log_isolation() -> None:
-    """Say at start what the custom-code sandbox can do here (never fatal: a
-    stack that runs only the built-in actions has no use for it, and a run of
-    custom code fails closed when the child cannot confine itself)."""
-    if not isolation_enforced():
-        logger.error(
-            "ACTION_ISOLATION=legacy: custom action code runs inside this process "
-            "and can reach its keys. Unset it unless you are rolling back."
-        )
-        return
-    broker.harden_parent()
-    if settings.aes_hex_key:
-        logger.warning(
-            "AES_HEX_KEY is set on the executor: it is not used while the backend "
-            "(4.3 or later) opens the run's secrets; remove it from this service"
-        )
-    try:
-        facts = await broker.probe()
-        logger.info(
-            "action sandbox ready: filesystem=%s seccomp=%s unprivileged=%s",
-            facts.get("filesystem"),
-            facts.get("seccomp"),
-            facts.get("unprivileged"),
-        )
-    except broker.SandboxUnavailable as error:
-        logger.error(
-            "action sandbox NOT available, custom action code will not run: %s "
-            "(docs/executor-isolation.md)",
-            error,
-        )
-
-
 async def main() -> None:
-    await log_isolation()
+    await log_isolation(key_needed=False)
     async with app.open_async():
         # fail closed: this role only runs where the database keeps it to its own queue
         await require_isolated_queue(app.connector)
