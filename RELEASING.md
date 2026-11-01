@@ -91,7 +91,7 @@ everything it created; on a shared machine start them through `.local/coord/heav
 
 ```bash
 scripts/v4-compose-check.sh                 # fresh install, upgrade with deploy.sh, rollback, negatives
-scripts/upgrade-image-swap-check.sh         # upgrade the way production does it: image tags only
+scripts/upgrade-image-swap-check.sh         # upgrade by image tags only, as an orchestrated stack does
 ```
 
 `upgrade-image-swap-check.sh` installs the previous release (`SWAP_CHECK_OLD_TAG`, default the last
@@ -100,7 +100,7 @@ release's `deploy.sh` (first install only), seeds it (a workspace and user, a fo
 waiting and a finished 4.1-style action job with payload), then changes **only the image tags** of
 backend, auth, webapp, jobs worker and the other first-party services to the candidate, sets
 `DB_AUTO_MIGRATE=true` and the release's new switches and `MAIL_*` the way a stack edit does, and runs
-`docker compose up -d`. It never runs `deploy.sh` for the upgrade, because production does not. It then
+`docker compose up -d`. It never runs `deploy.sh` for the upgrade, as an orchestrated stack does not. It then
 checks migrations, the scrub of old action jobs, that old responses still read, the jobs worker's
 queues, the webhook SSRF guard, drafts and email actions with the respondent copy. It also records, as
 an INFO line, that a bare image swap leaves the actions executor's database restrictions off (the
@@ -110,8 +110,8 @@ notes), then runs the documented step (`postgres/ensure-jobs-exec-role.sh` as th
 (the expected alembic head, `SWAP_CHECK_EXPECT_ALEMBIC`, and the switches it turns on) when a release
 adds a migration or a switch. `SWAP_CHECK_CANDIDATE=v4.2.0` runs the same upgrade with the published
 images of a tag instead of images built from the checkout (use it once more after the images are
-published, before the stack edit in production). What it cannot cover, because the product forbids it
-(a webhook delivery to a private address), goes on the production smoke list.
+published, before the stack edit on an orchestrated stack). What it cannot cover, because the product forbids it
+(a webhook delivery to a private address), goes on the release's post-deploy smoke list.
 
 ## Keeping the changelog current
 
