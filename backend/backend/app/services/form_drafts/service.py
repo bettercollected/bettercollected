@@ -571,7 +571,9 @@ class FormDraftService:
             ):
                 raise _draft_limit()
             if (
-                await self._drafts.count_live_for_address(real_form_id, email_key, now)
+                await self._drafts.count_live_for_address(
+                    real_form_id, self._keys.address_keys(real_form_id, address), now
+                )
                 >= limits.MAX_DRAFTS_PER_ADDRESS
             ):
                 # Somebody else may have filled this address's drafts: answer as
@@ -614,7 +616,10 @@ class FormDraftService:
         )
         if created:
             saved = await self._drafts.create_for_address(
-                draft, limits.MAX_DRAFTS_PER_ADDRESS, now
+                draft,
+                limits.MAX_DRAFTS_PER_ADDRESS,
+                now,
+                email_keys=self._keys.address_keys(real_form_id, address),
             )
             if saved is None:
                 # lost a race for the last place: the mail went, its link is dead

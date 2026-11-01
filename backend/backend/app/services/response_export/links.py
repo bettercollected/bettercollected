@@ -28,20 +28,24 @@ LINK_TTL_SECONDS = 5 * 60
 VALID, EXPIRED, INVALID = "valid", "expired", "invalid"
 
 
-def _key() -> bytes:
+def _keys() -> list:
+    """One signing key per member of the JWT key ring (current first;
+    docs/auth-key-rotation.md): the first signs, every one verifies."""
+    from common.settings import key_ring
+
     from backend.config import settings
 
-    secret = settings.auth_settings.JWT_SECRET
-    if not secret:
+    members = key_ring.token_members(settings.auth_settings.JWT_SECRET)
+    if not members:
         raise RuntimeError("AUTH_JWT_SECRET is not set: no export link can be signed")
-    return hmac.new(secret.encode(), LABEL, hashlib.sha256).digest()
+    return key_ring.derive_all(members, LABEL)
 
 
-def _sign(export_id, workspace_id, form_id, user_id, expiry: int) -> str:
+def _sign(export_id, workspace_id, form_id, user_id, expiry: int, key=None) -> str:
     message = json.dumps(
         [str(export_id), str(workspace_id), str(form_id), str(user_id), expiry]
     ).encode()
-    return hmac.new(_key(), message, hashlib.sha256).hexdigest()
+    return hmac.new(key or _keys()[0], message, hashlib.sha256).hexdigest()
 
 
 def issue(export_id, workspace_id, form_id, user_id, now: Optional[float] = None) -> str:
@@ -63,7 +67,10 @@ def check(
     if not expiry_text.isascii() or not expiry_text.isdigit() or not signature:
         return INVALID
     expiry = int(expiry_text)
-    expected = _sign(export_id, workspace_id, form_id, user_id, expiry)
-    if not hmac.compare_digest(signature.encode(), expected.encode()):
+    right = False
+    for key in _keys():
+        expected = _sign(export_id, workspace_id, form_id, user_id, expiry, key)
+        right = hmac.compare_digest(signature.encode(), expected.encode()) or right
+    if not right:
         return INVALID
     return EXPIRED if (time.time() if now is None else now) > expiry else VALID

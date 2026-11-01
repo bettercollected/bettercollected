@@ -24,7 +24,7 @@ from common.configs.crypto import Crypto
 from common.constants import MESSAGE_FORBIDDEN
 from common.models.user import User
 from common.records import RecordId
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import InvalidToken
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
@@ -62,9 +62,7 @@ class IntegrationOAuthState:
         """The state's content, when it is well formed, not expired, and was
         minted for this user's session; else the request is refused."""
         try:
-            data = json.loads(
-                Fernet.decrypt(self._crypto, state, ttl=STATE_MAX_AGE_SECONDS)
-            )
+            data = json.loads(self._crypto.decrypt(state, ttl=STATE_MAX_AGE_SECONDS))
         except (InvalidToken, TypeError, ValueError):
             raise HTTPException(HTTPStatus.BAD_REQUEST, MESSAGE_INVALID_STATE)
         if (

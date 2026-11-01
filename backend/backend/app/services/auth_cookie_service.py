@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 from common.models.user import User
+from common.services.jwt_service import signing_secret
 from starlette.responses import Response
 
 from backend.config import settings
@@ -43,7 +44,10 @@ def _encode(user: User, *, typ: str, exp: int, jti: str) -> str:
         # "respondent": no workspace permissions (authorization_service)
         claims["session_scope"] = user.session_scope
         claims["scope_workspace_id"] = user.scope_workspace_id
-    return jwt.encode(claims, settings.auth_settings.JWT_SECRET, algorithm="HS256")
+    # the first member of the key ring signs (docs/auth-key-rotation.md)
+    return jwt.encode(
+        claims, signing_secret(settings.auth_settings.JWT_SECRET), algorithm="HS256"
+    )
 
 
 def access_token_for(user: User) -> str:

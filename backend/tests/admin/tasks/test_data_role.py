@@ -51,6 +51,15 @@ pytestmark = needs_postgres
 WS = "65e5501d00000000000000a1"
 HEX = "0123456789abcdef01234567"
 RESPONSE_COLUMNS = ("id", "form_id", "response_id", "workspace_id", "doc")
+SEALED_TABLES = (
+    "forms",
+    "form_versions",
+    "actions",
+    "workspace_actions",
+    "scim_directories",
+    "registration_services",
+    "form_webhooks",
+)
 # exactly what each role holds: (schema, table, column, privilege)
 EXPECTED = {
     "app": {
@@ -62,6 +71,17 @@ EXPECTED = {
         *(
             ("app", "migration_progress", c, "SELECT")
             for c in ("collection", "state", "last_id", "skipped")
+        ),
+        # the values sealed with the encryption key (authkeys.reencrypt)
+        *(
+            ("app", table, c, "SELECT")
+            for table in SEALED_TABLES
+            for c in ("id", "doc")
+        ),
+        *(
+            ("app", table, c, "UPDATE")
+            for table in SEALED_TABLES
+            for c in ("doc", "_bc_checksum")
         ),
     },
     "google": {
@@ -323,6 +343,9 @@ COMMON_DENIED = [
     "SELECT settings.report_state('x', 1, '{}', '{}', false, '')",
     "SELECT settings.task_write_keyset(NULL, 1, 1, 's', ARRAY['a'], 'v2:x', 'u', now(), 'x', 'a', 'b', '{}', 'c', 'promote', 'r', '{}')",
     "SELECT settings.task_notify_reencrypt('x', 1)",
+    "SELECT admin.sealed_jobs_pending()",
+    "SELECT admin.sessions_on_old_key(now())",
+    "SELECT admin.drafts_on_old_key(now())",
     "CREATE TABLE public.t (a int)",
     "CREATE TEMP TABLE t (a int)",
     "CREATE SCHEMA s",
@@ -337,8 +360,14 @@ APP_DENIED = [
     "DELETE FROM app.form_responses",
     "TRUNCATE app.form_responses",
     "SELECT 1 FROM app.sessions",
-    "SELECT 1 FROM app.forms",
-    "UPDATE app.forms SET doc = doc",
+    # the sealed-value tables: their documents only, never another column
+    "SELECT form_id FROM app.forms",
+    "SELECT created_at FROM app.form_webhooks",
+    "UPDATE app.forms SET created_at = now()",
+    "UPDATE app.scim_directories SET updated_at = now()",
+    "INSERT INTO app.forms (id, doc, _bc_checksum) VALUES ('a', '{}', 'c')",
+    "DELETE FROM app.form_webhooks",
+    "SELECT doc FROM app.form_drafts",
     "CREATE TABLE app.t (a int)",
     # the other owner's schema: tables and what it owns
     "SELECT * FROM google.oauth_credentials",
