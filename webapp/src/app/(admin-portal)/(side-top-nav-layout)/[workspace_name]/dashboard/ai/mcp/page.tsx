@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -41,6 +41,14 @@ const SCOPES: Array<{ key: string; label: string; hint: string }> = [
 
 // Offered only while the server accepts it (its SUBMISSIONS_API_ENABLED, told with the permissions).
 const SUBMISSIONS_SCOPE = { key: 'submissions:write', label: 'STAFF.API_KEYS.SCOPE_SUBMISSIONS_WRITE', hint: 'STAFF.API_KEYS.SCOPE_SUBMISSIONS_WRITE_HINT' };
+
+// The server's answer to a refused request as text: a string as it is, an object by its message
+// (e.g. {code: 'submissions_api_off', message}), nothing else.
+function errorText(data: unknown): string | undefined {
+    if (typeof data === 'string' && data.trim()) return data;
+    const message = (data as { message?: unknown; detail?: unknown } | null | undefined)?.message ?? (data as { detail?: unknown } | null | undefined)?.detail;
+    return typeof message === 'string' && message.trim() ? message : undefined;
+}
 
 function CopyButton({ value, label }: { value: string; label: string }) {
     const [copied, setCopied] = useState(false);
@@ -83,6 +91,10 @@ export default function APIKeysPage() {
     // responses:read hands full, unredacted answers to the AI client (#715)
     const [acknowledged, setAcknowledged] = useState(false);
     const readsResponses = scopes.includes('responses:read');
+    // the server turned the feature off while the dialog was open: the scope can no longer be given
+    useEffect(() => {
+        if (!submissionsApiEnabled) setScopes((current) => (current.includes('submissions:write') ? current.filter((scope) => scope !== 'submissions:write') : current));
+    }, [submissionsApiEnabled]);
     // submissions:write may be limited to some of the workspace's published forms (none picked: every form)
     const submits = scopes.includes(SUBMISSIONS_SCOPE.key);
     const [limitForms, setLimitForms] = useState(false);
@@ -112,7 +124,7 @@ export default function APIKeysPage() {
             setLimitForms(false);
             setFormIds([]);
         } else {
-            toast({ description: response.error?.data || t('STAFF.API_KEYS.CREATE_FAILED'), variant: 'destructive' });
+            toast({ description: errorText(response.error?.data) || t('STAFF.API_KEYS.CREATE_FAILED'), variant: 'destructive' });
         }
     };
 
