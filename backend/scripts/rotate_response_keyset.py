@@ -24,6 +24,21 @@ What is encrypted with the keyset (``common.services.crypto_service``):
   is linked to is tried. Postgres ``app.form_responses``.
 * ``google-credentials``: the Google Forms integration's OAuth credentials
   (``personal|<user_id>|``). Postgres ``google.oauth_credentials``.
+* the drawn signature images of the responses (the signature question): not
+  rows but objects in the file store, ``private/<workspace>/<form>/<response>/
+  <file id>``, sealed with the same keyset and bound to their response and
+  question. They are found through the responses' answers (every response is
+  looked at, stale or not) and read and written through the backend's storage
+  service (the ``AWS_*`` settings; needed only when a response holds a drawn
+  signature). ``reencrypt`` re-seals each one not under the primary key, in
+  place, after reading the object again to be sure it is still the one it
+  opened, and reads it back; the counts are ``images_drawn`` and
+  ``images_*`` (``images_resealed``, ``images_current``, ``images_missing``,
+  ``images_unreadable``, ``images_unopenable``, ``images_storage_errors``,
+  ``images_changed_concurrently``, ``images_readback_failed``); a storage
+  failure never ends the run. ``--dry-run`` and ``drop-old`` count them by key
+  from the ciphertext's header (``images_stale``, ``images_key_<id>``),
+  decrypting nothing.
 
 ``reencrypt`` walks a target in batches by id. Tink ciphertexts start with
 the id of their key, so a value already under the primary key is skipped
@@ -53,7 +68,11 @@ The import from 4.0 must be over: no ``MONGO_URI`` here and no unfinished backfi
 values left in Mongo or its backups become unreadable once the old key is
 dropped; without it the command refuses (``store_retired``), since Mongo is not
 scanned. It refuses, writing nothing,
-while any value still uses a key other than the primary, or while Postgres holds
+while any value still uses a key other than the primary, while any drawn
+signature image is still sealed under another key (``images_stale``) or could
+not be checked or fixed (``images_unreadable``, ``images_unopenable``,
+``images_storage_errors``, ``images_unlocatable``; an image whose object is
+gone, ``images_missing``, only shows in the report), or while Postgres holds
 no records at all: a wrong or empty database would
 otherwise pass as clean (``--allow-empty`` when that is really so). Otherwise
 it writes a keyset holding the primary key only.
@@ -70,6 +89,7 @@ import sys
 from typing import Any, Dict, List, Optional
 
 from backend.admin.tasks.catalog.responses_common import StoreChoice
+from scripts.rotate_images import DrawnImages, S3Objects, blocking
 from backend.admin.tasks.impl.keyset_core import (  # noqa: F401 - re-exported
     GOOGLE_CREDENTIALS,
     RESPONSES,
@@ -98,6 +118,13 @@ logger = logging.getLogger("rotate_response_keyset")
 
 
 # ----------------------------------------------------------------------- CLI
+def make_images() -> DrawnImages:
+    """The drawn signature image pass, over the backend's storage service (a
+    test replaces this with an in-memory store). Connects only when a response
+    holds a drawn signature."""
+    return DrawnImages(S3Objects())
+
+
 def deployed_keyset_problem(keyset, env=os.environ) -> Optional[str]:
     """Why ``keyset`` must not be used to write: its primary key is not the
     primary of the keyset the services run with (``MASTER_ENCRYPTION_KEYSET``
@@ -375,6 +402,7 @@ async def _main(argv: List[str]) -> int:
         "targets": {},
     }
     closers: list = []
+    images = make_images()
     try:
         for target in targets:
             stores = await _open_stores(target, plans[target.name], closers)
@@ -397,10 +425,13 @@ async def _main(argv: List[str]) -> int:
                     batch_size=args.batch_size,
                     limit=args.limit,
                     start_after=args.start_after,
+                    images=images,
                 )
             else:
                 report["targets"][target.name] = {
-                    store.name: await scan(store, target, rotation, args.batch_size)
+                    store.name: await scan(
+                        store, target, rotation, args.batch_size, images=images
+                    )
                     for store in stores
                 }
     finally:
@@ -418,6 +449,13 @@ async def _main(argv: List[str]) -> int:
             for counts in stores.values()
         )
         report["values_stale"] = stale
+        images_blocking: Dict[str, int] = {}
+        for stores in report["targets"].values():
+            for counts in stores.values():
+                for name, count in blocking(counts).items():
+                    images_blocking[name] = images_blocking.get(name, 0) + count
+        if images_blocking:
+            report["images_blocking"] = images_blocking
         # Postgres must hold records
         empty = [
             f"{target} in {store}"
@@ -425,11 +463,20 @@ async def _main(argv: List[str]) -> int:
             for store, records in stores.items()
             if records == 0
         ]
+        reasons = []
         if stale:
-            report["refused"] = (
+            reasons.append(
                 "values still use a key other than the primary: run reencrypt "
-                "until it reports none, then drop-old again"
+                "until it reports none"
             )
+        if images_blocking and len(keyset.key) > 1:  # one key: nothing to drop
+            reasons.append(
+                "drawn signature images are still sealed under a key other than "
+                "the primary, or could not be checked (images_blocking): run "
+                "reencrypt until a dry run reports none"
+            )
+        if reasons:
+            report["refused"] = "; ".join(reasons) + "; then drop-old again"
         elif empty and not args.allow_empty:
             report["refused"] = (
                 "no records at all in: "

@@ -226,6 +226,47 @@ class AWSS3Service:
             raise ValueError("object too large")
         return data
 
+    def read_private_object(
+        self, key: str, max_bytes: int, bucket=aws_settings.BUCKET
+    ) -> Optional[bytes]:
+        """The object's bytes, ``None`` only when the store says there is no
+        such object (404 / NoSuchKey). Unlike ``read_object`` every other
+        failure (permission, connection, server error) raises, so a caller that
+        must tell "gone" from "could not look" (the key rotation) can. Raises
+        ``ValueError`` (naming no content) when it is larger than ``max_bytes``;
+        blocking."""
+        try:
+            head = self._s3_client.head_object(Bucket=bucket, Key=key)
+            if int(head.get("ContentLength", 0)) > max_bytes:
+                raise ValueError("object too large")
+            data = self._s3_client.get_object(Bucket=bucket, Key=key)["Body"].read(
+                max_bytes + 1
+            )
+        except ClientError as error:
+            if error.response.get("Error", {}).get("Code") in (
+                "404",
+                "NoSuchKey",
+                "NotFound",
+            ):
+                return None
+            raise
+        if len(data) > max_bytes:
+            raise ValueError("object too large")
+        return data
+
+    def write_private_object(
+        self, key: str, data: bytes, content_type: str, bucket=aws_settings.BUCKET
+    ) -> None:
+        """Put a private object under ``key`` (replacing it). Raises on any
+        failure; blocking."""
+        self._s3_client.put_object(
+            Bucket=bucket,
+            Key=key,
+            Body=data,
+            ACL="private",
+            ContentType=content_type,
+        )
+
     def generate_presigned_url(
         self, key: str, bucket=aws_settings.BUCKET, response_headers=None
     ):

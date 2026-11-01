@@ -74,6 +74,10 @@ class Refusals(str, enum.Enum):
     stale_version = "stale_version"
     google_flags_conflict = "google_flags_conflict"
     values_not_readable = "values_not_readable"
+    # a response holds a drawn signature: its image is an object in the file
+    # store, sealed with the keyset, which the runner cannot reach, so it
+    # cannot be shown to be off the key about to go (use the script)
+    signature_images_unchecked = "signature_images_unchecked"
 
 
 class Events(str, enum.Enum):
@@ -180,6 +184,7 @@ class TargetCounts(Result):
     records_unopenable: int = 0
     values_unopenable: int = 0
     values_openable: int = 0
+    images_drawn: int = 0
     records_changed_concurrently: int = 0
     records_readback_failed: int = 0
     mirror_records_copied: int = 0

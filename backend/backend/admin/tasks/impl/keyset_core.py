@@ -13,6 +13,11 @@ What is encrypted with the keyset (``common.services.crypto_service``):
 * ``google-credentials``: the Google Forms integration's OAuth credentials
   (``personal|<user_id>|``). Postgres ``google.oauth_credentials``.
 
+* the drawn signature images of the responses: objects in the file store, not
+  rows. Only a walk given ``images`` (``scripts.rotate_images.DrawnImages``) counts or
+  re-seals them; the admin tasks are not given one (the runner has no file
+  store access).
+
 Nothing else is encrypted with it (the Fernet-encrypted values use another key).
 Never prints or returns a value or the keyset: counts and key ids only.
 """
@@ -54,6 +59,9 @@ class Target:
     values: Callable[[Dict[str, Any]], List[Tuple[Path, bytes]]]
     contexts: Callable[[Dict[str, Any], Dict[str, List[str]]], List[Tuple[str, str]]]
     needs_links: bool = False
+    # the target's records name drawn signature images, objects in the file
+    # store sealed with the keyset (``scripts/rotate_images.py``)
+    drawn_images: bool = False
     # the 4.0 collections the import copies into this target's table (the rows of
     # ``<schema>.migration_progress`` that say whether the import finished)
     import_collections: Tuple[str, ...] = ()
@@ -102,6 +110,7 @@ RESPONSES = Target(
     fields=(
         "form_id",
         "workspace_id",
+        "response_id",
         "answers",
         "hidden_fields",
         "internal_answers",
@@ -110,6 +119,7 @@ RESPONSES = Target(
     values=_response_values,
     contexts=_response_contexts,
     needs_links=True,
+    drawn_images=True,
     # the links decide which workspace's context opens a value
     import_collections=("form_responses", "workspace_forms"),
 )
@@ -352,6 +362,28 @@ class Rotation:
         return updates, unopenable
 
 
+def drawn_signatures_in(plain: bytes) -> int:
+    """How many drawn signatures a response's decrypted answers hold (for a
+    caller that cannot reach the file store and only needs to know whether any
+    image exists)."""
+    if b'"drawn"' not in plain:  # most answers: no parse
+        return 0
+    try:
+        document = json.loads(plain)
+    except (ValueError, TypeError):
+        return 0
+    if not isinstance(document, dict):
+        return 0
+    return sum(
+        1
+        for answer in document.values()
+        if isinstance(answer, dict)
+        and isinstance(answer.get("signature"), dict)
+        and answer["signature"].get("method") == "drawn"
+        and answer["signature"].get("file_id")
+    )
+
+
 def _count_values(counts: Counter, rotation: Rotation, values) -> None:
     for _, value in values:
         key_id = ciphertext_key_id(value)
@@ -367,11 +399,16 @@ async def scan(
     rotation: Rotation,
     batch_size: int,
     on_batch: Optional[Callable[[int], Any]] = None,
+    images=None,
 ) -> Dict:
     """Counts only: records, values per key id, stale values. ``on_batch(records
     so far)`` is awaited after each batch; a true result stops the scan early
-    and the counts then carry ``stopped``."""
+    and the counts then carry ``stopped``. ``images`` (``DrawnImages``): also
+    count the drawn signature images the records name, by key (``images_*``,
+    ``scripts/rotate_images.py``)."""
     counts: Counter = Counter(records=0, values_stale=0)
+    use_images = images is not None and target.drawn_images
+    links = await store.links() if use_images and target.needs_links else {}
     after = None
     while True:
         batch = await store.batch(after, batch_size)
@@ -384,6 +421,8 @@ async def scan(
             _count_values(counts, rotation, values)
             if rotation.stale(values):
                 counts["records_stale"] += 1
+            if use_images:
+                await images.scan(rotation, target, record, links, counts)
         if on_batch is not None and await on_batch(counts["records"]):
             counts["stopped"] = 1
             break
@@ -399,7 +438,8 @@ async def verify_store(
 ) -> Dict:
     """Read-only: every value must open with the keyset (under some candidate
     context). Counts only: records, values, values per key id, values that do
-    not open. Never keeps a plaintext."""
+    not open, drawn signatures (``images_drawn``: their images are objects
+    this walk does not reach). Never keeps a plaintext."""
     counts: Counter = Counter(records=0, values_stale=0, values_unopenable=0)
     links = await store.links() if target.needs_links else {}
     after = None
@@ -413,11 +453,16 @@ async def verify_store(
             values = target.values(record)
             _count_values(counts, rotation, values)
             contexts = target.contexts(record, links)
-            for _, value in values:
-                context, _plain = rotation._open(contexts, value)
+            for path, value in values:
+                context, plain = rotation._open(contexts, value)
                 counts[
                     "values_openable" if context is not None else "values_unopenable"
                 ] += 1
+                if context is not None and target.drawn_images and path == ("answers",):
+                    # images are objects this walk cannot reach: only count them
+                    drawn = drawn_signatures_in(plain)
+                    if drawn:
+                        counts["images_drawn"] += drawn
         if on_batch is not None and await on_batch(counts["records"]):
             counts["stopped"] = 1
             break
@@ -433,13 +478,17 @@ async def reencrypt_store(
     start_after: Optional[str] = None,
     on_batch: Optional[Callable[[str, Dict], Any]] = None,
     readback: bool = False,
+    images=None,
 ) -> Tuple[Dict, Optional[str]]:
     """Re-encrypt one store; returns
     the counts and the last id walked. ``readback``: read each record again
     after writing it and count it re-encrypted only if the stored values are
-    the ones written. ``on_batch(last id walked, counts so far)`` is awaited
+    the ones written. ``images`` (``DrawnImages``): also re-seal the drawn
+    signature images each record names (``images_*``, ``scripts/rotate_images.py``), for
+    every record, whether or not its own values were stale. ``on_batch(last id walked, counts so far)`` is awaited
     after each batch; a true result stops the walk (counts carry ``stopped``)."""
     counts: Counter = Counter()
+    use_images = images is not None and target.drawn_images
     links = await store.links() if target.needs_links else {}
     after = start_after
     while limit is None or counts["records_reencrypted"] < limit:
@@ -449,6 +498,8 @@ async def reencrypt_store(
         for record in batch:
             after = record["id"]  # the last id walked, for --start-after
             counts["records"] += 1
+            if use_images:
+                await images.reencrypt(rotation, target, record, links, counts)
             updates, unopenable = rotation.reencrypt(target, record, links)
             if unopenable:
                 counts["records_unopenable"] += 1
@@ -522,16 +573,20 @@ async def run_reencrypt(
     batch_size: int = 200,
     limit: Optional[int] = None,
     start_after: Optional[str] = None,
+    images=None,
 ) -> Dict[str, Any]:
-    """``stores``: the stores to cover (Postgres only since 4.1)."""
+    """``stores``: the stores to cover (Postgres only since 4.1). ``images``:
+    see ``reencrypt_store`` (the script passes one, the tasks do not)."""
     report: Dict[str, Any] = {}
     if dry_run:
         for store in stores:
-            report[store.name] = await scan(store, target, rotation, batch_size)
+            report[store.name] = await scan(
+                store, target, rotation, batch_size, images=images
+            )
         return report
     (primary,) = stores
     report[primary.name], last = await reencrypt_store(
-        primary, target, rotation, batch_size, limit, start_after
+        primary, target, rotation, batch_size, limit, start_after, images=images
     )
     report["last_id"] = last
     return report

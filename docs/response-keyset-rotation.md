@@ -31,13 +31,15 @@ keyset does not hide one.
 | `responses` | `answers`, `hidden_fields`, `internal_answers` and each `respondent_feedback[].message` of every stored response | Postgres `app.form_responses` |
 | `google-credentials` | the Google Forms integration's OAuth credentials | Postgres `google.oauth_credentials` |
 
-Not in that table: the **drawn signature images** (the signature question, behind
-`SIGNATURE_QUESTION_ENABLED`). They are encrypted with this keyset too, but they are objects in the
-file store (`private/<workspace>/<form>/<response>/<file id>`), which `reencrypt` and `drop-old` do
-not walk. An image stays under the key it was made with, and `drop-old` cannot see it. **While any
-drawn signature is stored, do not drop an old key** (stop before step 5): once its key is gone the
-image is unreadable (the response then shows "image not available"; the typed name and every other
-answer are not affected).
+Also covered, though not a row: the **drawn signature images** (the signature question, behind
+`SIGNATURE_QUESTION_ENABLED`). They are encrypted with this keyset too and are objects in the file
+store (`private/<workspace>/<form>/<response>/<file id>`). The script finds them through the
+responses' answers, reads and writes them through the backend's storage service (the `AWS_*`
+settings the backend container already has; no new secret, and the store is only contacted when a
+response holds a drawn signature), and handles them in steps 1, 4 and 5 below. A typed signature
+has no image. Once an image's key is gone the image is unreadable (the response then shows "image
+not available"; the typed name and every other answer are not affected), which is why `drop-old`
+checks them.
 
 The services that load the keyset: **backend**, **jobs-worker** and **integrations-googleform**.
 Auth, the Temporal workers, the actions-executor and the webapp do not use it. (The Typeform
@@ -109,7 +111,10 @@ rotate reencrypt --dry-run
 ```
 
 Shows, per target and store, how many records and encrypted values there are and which key ids
-they use (`values_key_<id>`).
+they use (`values_key_<id>`). For `responses` it also counts the drawn signature images the
+responses hold (`images_drawn`) and which key each is sealed with (`images_key_<id>`, read from
+the object's header; nothing is decrypted). Every response's answers are opened to find them, so
+on a large store this takes longer than the row count alone.
 
 ### 2. Add a key
 
@@ -177,7 +182,35 @@ same bytes, and writes it back only if the stored value has not changed since it
   passing such values through). It only looks like ciphertext.
   `python -m scripts.check_undecryptable_values` counts these (read-only).
 
-Repeat the dry run until it reports `values_stale` as 0 (or absent) for every target and store.
+**Drawn signature images.** For every response that holds a drawn signature, whether or not its own
+values were stale (a response re-encrypted by an earlier run can still have an image on an old
+key), `reencrypt` reads the object. One already under the primary key is left alone. Any other is
+decrypted with the same binding it was sealed with (workspace, form, response, question, file),
+sealed again under the primary key and put back under the same key as `application/octet-stream`.
+Before the write it reads the object again and only writes if it is still the bytes it opened (an
+edit by the respondent in between is left for the next run); after the write it reads the object
+back. It is idempotent and resumable like the row pass (same batches, `--start-after`; `--dry-run`
+changes nothing). The counts are in the same report, as numbers only (never a path, an id or a
+byte of an image):
+
+- `images_resealed`: sealed again this run. `images_current`: already under the primary key.
+- `images_missing`: the file store says there is no such object. Nothing to lose; reported, and it
+  does not stop step 5. (A store that answers "forbidden" for a missing key when the credentials
+  cannot list the bucket shows up as `images_storage_errors` instead.)
+- `images_storage_errors`: the store could not be read or written (connection, permission, server
+  error). Counted and logged by response id and the error's type, never fatal for the run: the
+  rows are still re-encrypted and the next run tries again. Stops step 5.
+- `images_unreadable`: an object that is not a sealed image of this keyset (plaintext, left from
+  before images were encrypted, or larger than a sealed image can be). `reencrypt` cannot change
+  it. Stops step 5; look at the object and delete it (or the response) if it is not needed.
+- `images_unopenable`: sealed with this keyset but not for this response, question and file (a copy
+  moved by hand). Left as it is. Stops step 5.
+- `images_changed_concurrently`, `images_readback_failed`: run again.
+- `images_answers_unopenable`: the answers of a response no workspace of its form opens, so its
+  images cannot be found (the same records as `records_unopenable`). Reported only.
+
+Repeat the dry run until it reports `values_stale` as 0 (or absent) for every target and store and
+no `images_stale` for `responses`.
 
 ### 5. Drop the old key
 
@@ -188,6 +221,12 @@ rotate drop-old --keyset-file /rotation/rotated.keyset --out /rotation/final.key
 This scans every target in Postgres. It **refuses**, writing nothing, when:
 
 - any value still uses a key other than the primary (the report shows the counts per key id);
+- any drawn signature image is still sealed under a key other than the primary (`images_stale`), or
+  could not be checked or fixed (`images_unreadable`, `images_unopenable`, `images_storage_errors`;
+  also an image whose location cannot be worked out, `images_unlocatable`). The report's
+  `images_blocking` names what stopped it. An image whose object is gone (`images_missing`) is
+  reported and does not stop it. With a single key in the keyset there is nothing to drop and the
+  image counts are only reported;
 - any target holds **no records at all**. An empty store may mean the script is
   reading the wrong database, for example a `DATABASE_URL` or
   `GOOGLE_DATABASE_URL` that didn't reach the container. Dropping the old key then would make the
@@ -238,9 +277,9 @@ parameter, result, event, audit row or log: only key ids and counts.
 | 2 | (restart the services) | they pick up the new keyset and report its key ids in their heartbeat |
 | 3 | `keyset.promote` (`new_primary_id`) | makes that key the primary; refuses a key that was published |
 | 4 | (restart the services) | |
-| 5 | `keyset.reencrypt` (`primary_id`) | moves every value to the primary: resumable, idempotent, compare-and-swap writes, each record read back before it is counted; `stores: postgres` (the default; `auto` means the same) follows the store rule below; refuses a published primary. Starting an apply run mails all admins (`settings.keyset_reencrypt` in the admin outbox: run id and primary key id); a dry run mails no one |
-| 6 | `keyset.verify` | read-only full scan: every value opens; counts per key id (events `kid_<id>`) |
-| 7 | `keyset.drop_old` (`mongo_retired`) | removes the other keys only when a full scan of EVERY target in Postgres (configured, else `store_not_configured`) finds no value on them, and only with `mongo_retired` (see "Dropping a key once Mongo is retired" below; `store_retired` without it). The scan decrypts with the primary key ALONE, so a value the final keyset could not open also stops it (`values_not_readable`). The responses must be there (an empty Google credentials store needs `allow_empty_google`) |
+| 5 | `keyset.reencrypt` (`primary_id`) | moves every value to the primary: resumable, idempotent, compare-and-swap writes, each record read back before it is counted; `stores: postgres` (the default; `auto` means the same) follows the store rule below; refuses a published primary; it does not re-seal drawn signature images (the runner cannot reach the file store: see step 7). Starting an apply run mails all admins (`settings.keyset_reencrypt` in the admin outbox: run id and primary key id); a dry run mails no one |
+| 6 | `keyset.verify` | read-only full scan: every value opens; counts per key id (events `kid_<id>`); counts the drawn signatures (`images_drawn`) |
+| 7 | `keyset.drop_old` (`mongo_retired`) | removes the other keys only when a full scan of EVERY target in Postgres (configured, else `store_not_configured`) finds no value on them, and only with `mongo_retired` (see "Dropping a key once Mongo is retired" below; `store_retired` without it). The scan decrypts with the primary key ALONE, so a value the final keyset could not open also stops it (`values_not_readable`). The responses must be there (an empty Google credentials store needs `allow_empty_google`). It refuses `signature_images_unchecked` while any response holds a drawn signature and there is a key to drop: the runner cannot reach the file store, so it cannot show the images are off that key; re-encrypt and drop the key with the script (above) instead |
 
 **The store rule.** Postgres is the only store the tasks read or write (since 4.1): `DATABASE_URL`
 for the responses and `GOOGLE_DATABASE_URL` for the Google credentials, which must be configured

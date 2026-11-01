@@ -53,6 +53,7 @@ BASE_COUNTERS = (
     "values_stale",
     "records_stale",
     "values_unopenable",
+    "images_drawn",
     "records_reencrypted",
     "values_reencrypted",
     "records_changed_concurrently",
@@ -459,6 +460,7 @@ class DropOld(_Base):
         base = 0
         stale = 0
         unreadable = 0
+        drawn = 0
         empty: List[str] = []
         stopped = False
         for target in targets:
@@ -480,6 +482,7 @@ class DropOld(_Base):
                     base += counts.get("records", 0)
                     stale += counts.get("values_stale", 0)
                     unreadable += counts.get("values_unopenable", 0)
+                    drawn += counts.get("images_drawn", 0)
                     await ctx.emit(Events.counted, _event_counts(counts), [state.event_target(name), store.name])
                     if counts.get("stopped"):
                         stopped = True
@@ -500,6 +503,11 @@ class DropOld(_Base):
             raise Refusal("values_on_old_key")
         if unreadable:
             raise Refusal("values_not_readable")
+        if drawn and len(parsed.key) > 1:
+            # drawn signature images are objects in the file store: the runner
+            # cannot see which key they are sealed with. The script can
+            # (docs/response-keyset-rotation.md); nothing to drop, nothing to guard
+            raise Refusal("signature_images_unchecked")
         if empty:
             raise Refusal("store_empty")
         old = [k for k in key_ids(parsed) if k != parsed.primary_key_id]
