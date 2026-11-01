@@ -193,6 +193,53 @@ def trusted_origins_of(values: Iterable[Any]) -> List[Tuple[str, str, int]]:
     return origins
 
 
+# an exact configured address: (scheme, host, port, path, query)
+ExactUrl = Tuple[str, str, int, str, str]
+
+
+def trusted_urls_of(values: Iterable[Any]) -> List[ExactUrl]:
+    """The exact addresses among ``values`` (an action's own parameters and
+    secrets, set by the instance's administrators): scheme, host, port, path and
+    query, nothing looser. What an instance secret may be sent to: on a host that
+    many parties share (a chat service's webhook host), the origin alone would
+    let a creator point the address at their own channel and receive the secret.
+    The query counts (it may pick the target); the path is compared as written
+    (no dot-segment or percent-decoding, so ``/a/../b`` is not ``/b``); an empty
+    path is ``/``."""
+    urls: List[ExactUrl] = []
+    for value in values:
+        if not isinstance(value, str) or "://" not in value:
+            continue
+        try:
+            parts = urlsplit(value.strip())
+            port = parts.port
+        except ValueError:
+            continue
+        scheme = parts.scheme.lower()
+        if (
+            scheme not in ("http", "https")
+            or not parts.hostname
+            or parts.username is not None
+            or parts.password is not None
+            or parts.fragment
+        ):
+            continue
+        try:
+            host = _ascii_host(parts.hostname.rstrip("."))
+        except EgressRefused:
+            continue
+        exact = (
+            scheme,
+            host,
+            port or (443 if scheme == "https" else 80),
+            parts.path or "/",
+            parts.query,
+        )
+        if exact not in urls:
+            urls.append(exact)
+    return urls
+
+
 @dataclass(frozen=True)
 class Destination:
     url: str
@@ -200,6 +247,12 @@ class Destination:
     host: str
     port: int
     exempt: bool  # operator-allowed or trusted: the address may be internal
+    path: str = "/"
+    query: str = ""
+
+    @property
+    def exact(self) -> ExactUrl:
+        return (self.scheme, self.host, self.port, self.path, self.query)
 
 
 def check_url(
@@ -248,7 +301,7 @@ def check_url(
     if parts.port:
         netloc += f":{port}"
     rebuilt = f"{scheme}://{netloc}{path}" + (f"?{parts.query}" if parts.query else "")
-    return Destination(rebuilt, scheme, host, port, exempt)
+    return Destination(rebuilt, scheme, host, port, exempt, path, parts.query)
 
 
 def resolve(host: str, port: int) -> List[str]:

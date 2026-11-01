@@ -85,6 +85,15 @@ class Application(StoreBackedSettings):
     # until an operator turns rules on): those saves are refused with 422
     # field_rules_disabled; stored rules are kept and still enforced.
     FIELD_RULES_ENABLED: bool = False
+    # An actions executor older than 4.3 asks for the run's secrets sealed and
+    # opens them with its own copy of the encryption key, and writes a refreshed
+    # credential back on the key-only route. True (the default, for such
+    # executors): both still work. False: the sealed run context and the
+    # key-only route are refused with 426 and a log line, so an executor that
+    # still holds the key fails loudly instead of quietly running with the API
+    # key and the encryption key together. Set it to False at the 4.3 deploy,
+    # once the executor is 4.3 (docs/executor-isolation.md).
+    ACTION_SECRETS_SEALED_ALLOWED: bool = True
     # The newer question types (time, day, currency, date range, tags) may be added or changed through the API, the builder save,
     # edit operations (MCP and AI included), templates and imports
     # (services/new_question_types.py). Off (the default, until the release

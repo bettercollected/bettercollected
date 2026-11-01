@@ -1316,8 +1316,11 @@ form, in `controllers/workspace_responses.py`) fills in street and city from a D
   route via `TemporalRouter._authorise_run`, run still in force, only the `Credentials` secret (`RunSecretDto`: any other name is a 422) and only when the form's
   action already holds one, sealed with the current key in `FormActionsService.update_run_secret`). The hand-out of opened
   secrets is logged with ids and a count, never a value. The key-only `PATCH /temporal/forms/{f}/actions/{a}/secrets` stays for
-  executors before 4.3 and lets any holder of the job key write any form's secret: do not add routes like it. Tests:
-  `tests/app/jobs/test_action_run_secrets.py`.
+  executors before 4.3 and is restricted to the `Credentials` name (422 otherwise; removed in 4.4): do not add routes like it.
+  `ACTION_SECRETS_SEALED_ALLOWED` (default true; false at the 4.3 deploy) refuses the sealed context and that key-only route with
+  426 and an error log line naming the setting, so an executor that still holds `AES_HEX_KEY` fails loudly; plain with no key
+  configured is a 503 (never an empty or sealed answer); the context and the run-scoped write-back send `Cache-Control: no-store`.
+  Tests: `tests/app/jobs/test_action_run_secrets.py`.
   Tests: `tests/app/jobs/test_action_runs.py`, `test_executor_role.py`, `test_ensure_jobs_exec_role.py`,
   `test_legacy_scrub.py`, `test_job_log_safety.py`.
   The workers call back into the internal job routes (`/temporal/*`, action update, template preview,
