@@ -33,6 +33,14 @@ class SessionDocument(Record):
     # grants no workspace permissions (common.models.user.User.session_scope)
     scope: Optional[str] = None
     scope_workspace_id: Optional[str] = None
+    # "sso" sessions: the workspace whose identity provider signed in. Only
+    # that workspace's single sign-on requirement counts the session as met
+    # (a domain claim that moves to another workspace cannot carry it over);
+    # None for sessions from before this field, which then do not meet it.
+    sso_workspace_id: Optional[str] = None
+    # ... and the connection it signed in through: the session ends when the
+    # workspace's enabled connection is another one (a replaced IdP)
+    sso_connection_id: Optional[str] = None
     user_agent: Optional[str] = None
     revoked_at: Optional[dt.datetime] = None
     revoke_reason: Optional[str] = None
