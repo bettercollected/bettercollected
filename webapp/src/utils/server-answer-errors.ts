@@ -40,7 +40,9 @@ const CLIENT_CODES: Record<string, string> = {
     signature_image: 'SIGNATURE_IMAGE',
     type: 'SERVER_TYPE',
     choice: 'SERVER_CHOICE',
-    hidden_option: 'SERVER_OPTION'
+    hidden_option: 'SERVER_OPTION',
+    // an option of a list or of another form's answers that is no longer offered
+    option_unavailable: 'SERVER_OPTION'
 };
 
 export const isServerProblem = (code: unknown): code is ServerProblem => typeof code === 'string' && SERVER_PROBLEMS.includes(code);

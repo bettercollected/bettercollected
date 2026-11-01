@@ -6,6 +6,7 @@ import { Parameters } from '@app/models/dtos/actions';
 import { UserStatus } from '@app/models/dtos/user-status';
 import { DateRule, FieldConditionalLogic, IFormFieldValidation, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
 import type { OptionFilter } from '@app/utils/option-logic';
+import type { OptionSource } from '@app/utils/option-sources';
 
 import { FormSlideLayout } from '../enums/form';
 import { FileMetadata } from '../types/file-types';
@@ -63,6 +64,10 @@ export interface StandardFormFieldProperties {
     rules?: FieldRule[];
     /** A choice question's options filtered by an earlier choice question's answer (see utils/option-logic.ts). */
     optionFilter?: OptionFilter;
+    /** The options come from a workspace list or another form's answers instead of `choices` (see utils/option-sources.ts). */
+    optionSource?: OptionSource;
+    /** A short text, dropdown or multiple choice question whose answers other forms of the workspace may show as choices (off unless true; see utils/option-sources.ts). */
+    shareAsChoices?: boolean;
     /** v2 page-jump / branching rules for this slide (see utils/conditional-logic). */
     jumps?: PageJump[];
     /** Layout containers of this page: panels, field sets and tabs that group its questions (see utils/layout-containers.ts). */
@@ -317,6 +322,14 @@ export interface StandardFormDto {
      * submit. Only responses carrying a valid one are ever analysed.
      */
     aiNoticeToken?: string | null;
+    /**
+     * Signed proof of which questions' "may be shown as a choice" notice this
+     * page shows: the backend hands it out with the published form while a
+     * question shares its answers, and the page sends it back on submit
+     * (`share_notice_token`). An answer is only ever offered to other forms
+     * when it was submitted with a token naming its question.
+     */
+    shareNoticeToken?: string | null;
 }
 
 export type UnavailableReason = 'closed' | 'not_yet_open' | 'full';
@@ -412,11 +425,14 @@ export interface AnswerDto {
     items?: Array<Record<string, any>>;
     choice?: {
         id?: string;
+        /** For a question whose options come from a source: the text of the chosen option (the server writes it). */
         label?: string;
         value?: string;
+        other?: string;
     };
     choices?: {
-        labels: Array<string>;
+        /** Option id -> text, for a question whose options come from a source (the server writes it). */
+        labels?: Record<string, string>;
         values?: Array<string>;
         other?: string;
     };

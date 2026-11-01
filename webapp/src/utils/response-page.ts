@@ -2,6 +2,7 @@ import { FormTheme } from '@app/constants/theme';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { logicSourcesById, submissionPath } from '@app/utils/conditional-logic';
 import { getFormFields } from '@app/utils/form-builder-block-utils';
+import { answerLabels, chosenOptionIds } from '@app/utils/option-sources';
 import { hasAnswerValue } from '@app/utils/repeating-groups';
 
 export { responseOriginListUrl, responsePageUrl, responsesListUrl } from '@app/utils/response-urls';
@@ -64,6 +65,16 @@ export interface ChoiceRow {
  * that allows "Other" shows the row unmarked when it was not used.
  */
 export function choiceRows(field: StandardFormFieldDto, answer: any, multiple: boolean): ChoiceRow[] {
+    // options from a source are not in the form: the chosen ones, by the text stored with the answer
+    if (field.properties?.optionSource) {
+        const labels = answerLabels(answer);
+        const rows: ChoiceRow[] = chosenOptionIds(answer)
+            .filter((id) => labels[id])
+            .map((id) => ({ key: id, label: labels[id], selected: true }));
+        const other: string = String((multiple ? answer?.choices?.other : answer?.choice?.other) ?? '').trim();
+        if (other) rows.push({ key: 'other', label: other, selected: true, other: true });
+        return rows;
+    }
     const chosen: string[] = multiple ? (Array.isArray(answer?.choices?.values) ? answer.choices.values : []) : answer?.choice?.value ? [String(answer.choice.value)] : [];
     const otherText: string = String((multiple ? answer?.choices?.other : answer?.choice?.other) ?? '').trim();
     const rows: ChoiceRow[] = (field.properties?.choices ?? []).map((choice, index) => ({

@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { Provider } from 'jotai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -468,7 +468,7 @@ describe('Privacy panel: answers also emailed', () => {
         expect(screen.queryByTestId('privacy-email')).not.toBeInTheDocument();
     });
 
-    it('says the form\'s team gets the answers, and what deleting here does not do (English)', () => {
+    it("says the form's team gets the answers, and what deleting here does not do (English)", () => {
         setBrowserLanguages(['en']);
         renderPanel({ ownerName: 'Acme', emailDestination: { team: true, copy: false } });
         openPanel();
@@ -588,3 +588,20 @@ describe('Privacy panel when the form looks up addresses', () => {
     });
 });
 
+describe('Privacy panel: answers other forms may show as choices', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('says, in English and in Dutch with "je", that some answers may be shown as choices; only when the form shares', () => {
+        setBrowserLanguages(['en-GB']);
+        const { unmount } = renderPanel({ ownerName: 'Acme', sharesAnswers: true, defaultExpanded: true });
+        expect(row('share')).toHaveTextContent('Answers shown as choices');
+        expect(row('share')).toHaveTextContent('without your name');
+        unmount();
+        setBrowserLanguages(['nl-NL']);
+        renderPanel({ ownerName: 'Acme', sharesAnswers: true, defaultExpanded: true });
+        expect(row('share')).toHaveTextContent('zonder je naam');
+        cleanup();
+        renderPanel({ ownerName: 'Acme', defaultExpanded: true });
+        expect(screen.queryByTestId('privacy-share')).toBeNull();
+    });
+});

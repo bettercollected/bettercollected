@@ -16,6 +16,7 @@ import { useRespondentDraft } from '@app/store/jotai/respondent-draft';
 import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
+import { shareNoticeTokenToSend } from '@app/utils/option-sources';
 import { localToday } from '@app/utils/calculated-fields';
 import { getFlowSessionId } from '@app/utils/flow-session';
 import { normalizeGroupAnswersForSubmit } from '@app/utils/repeating-groups';
@@ -105,6 +106,8 @@ export function useFinishForm(isPreviewMode: boolean) {
         formData.append('today', localToday());
         const aiNoticeToken = aiNoticeTokenToSend(standardForm);
         if (aiNoticeToken) formData.append('ai_notice_token', aiNoticeToken);
+        const shareNoticeToken = shareNoticeTokenToSend(standardForm);
+        if (shareNoticeToken) formData.append('share_notice_token', shareNoticeToken);
         if (savedDraft.editKey) formData.append('draft_key', savedDraft.editKey);
         files.forEach((fileObj) => {
             formData.append('files', fileObj.file, fileObj.fileName);
