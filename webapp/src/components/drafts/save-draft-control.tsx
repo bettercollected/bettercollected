@@ -13,7 +13,7 @@ import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { useDiscardDraftMutation, useRequestDraftLinkMutation, useSaveDraftMutation } from '@app/store/redux/drafts-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { DRAFT_LINK_DAYS, answersForDraft, draftErrorKey, draftsOffered, formatDraftDate, hasFileQuestion, positionForDraft } from '@app/utils/form-drafts';
+import { DRAFT_LINK_DAYS, answersForDraft, draftErrorKey, draftsOffered, formatDraftDate, hasFileQuestion, hasSignatureQuestion, positionForDraft } from '@app/utils/form-drafts';
 
 /**
  * "Save and continue later" on a question page, when the form lets respondents
@@ -175,6 +175,7 @@ export default function SaveDraftControl({ ink }: { ink?: string }) {
                         </p>
                     </div>
                     {hasFileQuestion(standardForm.fields) && <p className="text-[13px] text-black-700">{t('DRAFT.FILES_NOTE')}</p>}
+                    {hasSignatureQuestion(standardForm.fields) && <p className="text-[13px] text-black-700">{t('DRAFT.SIGNATURE_NOTE')}</p>}
                     <div className="flex flex-wrap items-center gap-3">
                         <button type="submit" disabled={busy || !email.trim()} className="min-h-11 rounded-[8px] bg-black-900 px-5 text-[15px] font-semibold text-white disabled:cursor-wait disabled:opacity-60">
                             {sending ? t('DRAFT.SAVING') : t('DRAFT.SEND')}
@@ -194,6 +195,7 @@ export default function SaveDraftControl({ ink }: { ink?: string }) {
                 </form>
             )}
             {!asking && !hasDraft && hasFileQuestion(standardForm.fields) && signedIn && <p className="text-[13px] text-black-700">{t('DRAFT.FILES_NOTE')}</p>}
+            {!asking && !hasDraft && hasSignatureQuestion(standardForm.fields) && signedIn && <p className="text-[13px] text-black-700">{t('DRAFT.SIGNATURE_NOTE')}</p>}
             <p ref={statusRef} role="status" tabIndex={-1} className={cn('text-[14px] leading-relaxed text-black-800 outline-none', !status && 'sr-only')}>
                 {status}
             </p>

@@ -615,6 +615,10 @@ const TAGS_VALUE_COMPARISONS = new Set(['CONTAINS', 'DOES_NOT_CONTAIN']);
 const COUNT_COMPARISONS = new Set(['IS_EQUAL', 'IS_NOT_EQUAL', 'GREATER_THAN', 'GREATER_THAN_EQUAL', 'LESS_THAN', 'LESS_THAN_EQUAL']);
 
 function validatedValue(source: FormField, comparison: string, raw: any): any {
+    if (source.type === FieldTypes.SIGNATURE && !VALUELESS_COMPARISONS.has(comparison)) {
+        // signed or not: nothing else can be asked of a signature
+        throw new OpError('A condition on a signature question uses IS_EMPTY or IS_NOT_EMPTY.');
+    }
     if (VALUELESS_COMPARISONS.has(comparison)) return undefined;
     if (source.type === FieldTypes.ADDRESS && !ADDRESS_COMPARISONS.has(comparison)) {
         // only the postcode is compared, as text

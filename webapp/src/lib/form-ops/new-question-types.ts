@@ -8,8 +8,9 @@
  * webapp learns it from the workspace permissions). The server checks every
  * save either way.
  *
- * The address question has a switch of its own (`ADDRESS_QUESTION_ENABLED`,
- * `addressQuestion: false` in the apply options): a `Gate` names a switch's
+ * The signature and address questions have a switch of their own (`SIGNATURE_QUESTION_ENABLED`
+ * and `ADDRESS_QUESTION_ENABLED`, `signatureQuestion: false` and `addressQuestion: false`
+ * in the apply options): a `Gate` names a switch's
  * types and its refusal, and everything below looks at each gate that is off.
  */
 import { childrenOf, pagesOf } from './model';
@@ -20,7 +21,9 @@ export const GATED_TYPES = new Set<string>(['time', 'day', 'currency', 'date_ran
 
 // The address question's own switch (backend ADDRESS_TYPES).
 export const ADDRESS_TYPES = new Set<string>(['address']);
-const ALL_GATED_TYPES = new Set<string>([...GATED_TYPES, ...ADDRESS_TYPES]);
+// The signature question's own switch (backend SIGNATURE_TYPES).
+export const SIGNATURE_TYPES = new Set<string>(['signature']);
+const ALL_GATED_TYPES = new Set<string>([...GATED_TYPES, ...ADDRESS_TYPES, ...SIGNATURE_TYPES]);
 
 /** Ops that can give a form such a question or change one (backend GATED_OPS). */
 export const GATED_OPS = new Set<string>(['add_field', 'add_group', 'add_page', 'duplicate_page', 'update_field', 'set_field_validation', 'insert_field', 'insert_page', 'replace_field']);
@@ -30,6 +33,8 @@ export const NEW_QUESTION_TYPES_DISABLED_MESSAGE =
 
 export const ADDRESS_QUESTION_DISABLED_MESSAGE =
     'The address question cannot be added or changed on this server yet (ADDRESS_QUESTION_ENABLED is off). An address question that a form already has is kept.';
+export const SIGNATURE_QUESTION_DISABLED_MESSAGE =
+    'The signature question cannot be added or changed on this server yet (SIGNATURE_QUESTION_ENABLED is off). A signature question that a form already has is kept.';
 
 /** A switch, the question types behind it and what a refused op says (backend `Gate`). */
 export interface Gate {
@@ -38,15 +43,21 @@ export interface Gate {
 }
 export const NEW_TYPES_GATE: Gate = { types: GATED_TYPES, message: NEW_QUESTION_TYPES_DISABLED_MESSAGE };
 export const ADDRESS_GATE: Gate = { types: ADDRESS_TYPES, message: ADDRESS_QUESTION_DISABLED_MESSAGE };
+export const SIGNATURE_GATE: Gate = { types: SIGNATURE_TYPES, message: SIGNATURE_QUESTION_DISABLED_MESSAGE };
 
 /** The state of the switches (the workspace permissions tell them): default on. */
 export interface TypeSwitches {
     newQuestionTypes?: boolean;
     addressQuestion?: boolean;
+    signatureQuestion?: boolean;
 }
 
 /** The gates whose switch is off. */
-export const gatesOff = (switches: TypeSwitches): Gate[] => [...(switches.newQuestionTypes === false ? [NEW_TYPES_GATE] : []), ...(switches.addressQuestion === false ? [ADDRESS_GATE] : [])];
+export const gatesOff = (switches: TypeSwitches): Gate[] => [
+    ...(switches.newQuestionTypes === false ? [NEW_TYPES_GATE] : []),
+    ...(switches.addressQuestion === false ? [ADDRESS_GATE] : []),
+    ...(switches.signatureQuestion === false ? [SIGNATURE_GATE] : [])
+];
 
 /** Is this type behind a switch that is off? */
 export const typeIsOff = (type: unknown, switches: TypeSwitches): boolean => gatesOff(switches).some((gate) => gate.types.has(String(type)));
@@ -117,7 +128,7 @@ function* walk(fields: FormField[]): Generator<FormField> {
 export const isGatedQuestion = (field: FormField | undefined | null): boolean => !!field && ALL_GATED_TYPES.has(String(field.type));
 
 /** Does this page, or the group in it, hold a question of a type behind a switch that is off? (`switches` default: every switch off.) */
-export function pageHoldsGatedQuestion(page: FormField | undefined | null, switches: TypeSwitches = { newQuestionTypes: false, addressQuestion: false }): boolean {
+export function pageHoldsGatedQuestion(page: FormField | undefined | null, switches: TypeSwitches = { newQuestionTypes: false, addressQuestion: false, signatureQuestion: false }): boolean {
     if (!page) return false;
     for (const field of walk(childrenOf(page))) if (typeIsOff(field.type, switches)) return true;
     return false;

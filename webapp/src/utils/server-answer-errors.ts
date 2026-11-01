@@ -37,6 +37,7 @@ const CLIENT_CODES: Record<string, string> = {
     range_order: 'RANGE_ORDER',
     duplicate: 'DUPLICATE',
     country: 'COUNTRY',
+    signature_image: 'SIGNATURE_IMAGE',
     type: 'SERVER_TYPE',
     choice: 'SERVER_CHOICE',
     hidden_option: 'SERVER_OPTION'

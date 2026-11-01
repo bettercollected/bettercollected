@@ -22,6 +22,7 @@ enum AnswerType {
     DATE_RANGE = 'date_range',
     TAGS = 'tags',
     ADDRESS = 'address',
+    SIGNATURE = 'signature',
     URL = 'url',
     PHONE_NUMBER = 'phone_number',
     FILE_URL = 'file_url',
@@ -62,6 +63,7 @@ export interface FormResponse {
             date_range?: { start?: string; end?: string };
             tags?: string[];
             address?: AddressParts;
+            signature?: { method?: string; file_id?: string; name?: string; signed_at?: string; url?: string };
             phone_number?: string;
             url?: string;
             choice?: ChoiceAnswer;
@@ -311,6 +313,21 @@ export const useFormResponse = () => {
         });
     };
 
+    // A signature: typed (the name) or drawn (the id of the image, which goes along as a file part of the submission).
+    // From the answers as they are when it runs: a drawing is committed after the PNG is made (an await).
+    const addFieldSignatureAnswer = (fieldId: string, signature: { method: 'typed'; name: string } | { method: 'drawn'; file_id: string }) => {
+        setFormResponse((previous) => ({
+            ...previous,
+            answers: {
+                ...(previous.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.SIGNATURE,
+                    signature
+                }
+            }
+        }));
+    };
+
     const addFieldURLAnswer = (fieldId: string, url: string) => {
         setFormResponse({
             ...formResponse,
@@ -415,6 +432,7 @@ export const useFormResponse = () => {
         formResponse,
         setFormResponse,
         addFieldTextAnswer,
+        addFieldSignatureAnswer,
         addFieldBooleanAnswer,
         addFieldChoiceAnswer,
         addFieldDateAnswer,

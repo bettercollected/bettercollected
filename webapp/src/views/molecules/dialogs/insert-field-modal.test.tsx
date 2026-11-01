@@ -16,12 +16,15 @@ import FieldSettings from '@app/views/organism/field-settings';
 import InsertFieldComponent from './insert-field-modal';
 
 // What the server says about the newer question types (its NEW_QUESTION_TYPES_ENABLED).
-// ...and about the address question, which has its own switch (ADDRESS_QUESTION_ENABLED).
-const served = vi.hoisted(() => ({ newQuestionTypesEnabled: false, addressQuestionEnabled: true }));
-vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ newQuestionTypesEnabled: served.newQuestionTypesEnabled, addressQuestionEnabled: served.addressQuestionEnabled }) }));
+// ...and about the address and signature questions, which have switches of their own (ADDRESS_QUESTION_ENABLED, SIGNATURE_QUESTION_ENABLED).
+const served = vi.hoisted(() => ({ newQuestionTypesEnabled: false, addressQuestionEnabled: true, signatureQuestionEnabled: false }));
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
+    useWorkspacePermissions: () => ({ newQuestionTypesEnabled: served.newQuestionTypesEnabled, addressQuestionEnabled: served.addressQuestionEnabled, signatureQuestionEnabled: served.signatureQuestionEnabled })
+}));
 afterEach(() => {
     served.newQuestionTypesEnabled = false;
     served.addressQuestionEnabled = true;
+    served.signatureQuestionEnabled = false;
 });
 
 const pages = (): StandardFormFieldDto[] => [
@@ -310,6 +313,31 @@ describe('the newer question types and the server switch', () => {
         fireEvent.change(await search(), { target: { value: 'postcode' } });
         await act(async () => fireEvent.click(screen.getByRole('option', { name: 'Address' })));
         expect(pageFields()[3].type).toBe(FieldTypes.ADDRESS);
+    });
+
+    it('offers the signature question, and adds it, only while its own switch is on', async () => {
+        renderEditor();
+        fireEvent.change(await search(), { target: { value: 'sign' } });
+        expect(screen.queryByRole('option', { name: /Signature/ })).toBeNull();
+    });
+
+    it('does not tie the signature question to the newer types’ switch', async () => {
+        served.newQuestionTypesEnabled = true;
+        renderEditor();
+        fireEvent.change(await search(), { target: { value: 'sign' } });
+        expect(screen.queryByRole('option', { name: /Signature/ })).toBeNull();
+    });
+
+    it('adds a signature question while its switch is on, whatever the other says', async () => {
+        served.signatureQuestionEnabled = true;
+        renderEditor();
+        fireEvent.change(await search(), { target: { value: 'sign' } });
+        expect(screen.getByRole('option', { name: /Signature/ })).toHaveTextContent('A drawn or typed signature, stored with the response');
+        await act(async () => fireEvent.click(screen.getByRole('option', { name: /Signature/ })));
+        expect(pageFields()[3].type).toBe(FieldTypes.SIGNATURE);
+        // the newer types stay out
+        fireEvent.change(await search(), { target: { value: 'stay' } });
+        expect(screen.queryByRole('option', { name: 'Date range' })).toBeNull();
     });
 
     it('offers them, and adds one, while the server takes them', async () => {

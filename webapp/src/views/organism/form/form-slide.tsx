@@ -43,6 +43,7 @@ import CurrencyField from '@app/views/molecules/responder-form-fields/currency-f
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
 import DateRangeField from '@app/views/molecules/responder-form-fields/date-range-field';
 import DayField from '@app/views/molecules/responder-form-fields/day-field';
+import SignatureField from '@app/views/molecules/responder-form-fields/signature-field';
 import TagsField from '@app/views/molecules/responder-form-fields/tags-field';
 import TimeField from '@app/views/molecules/responder-form-fields/time-field';
 import DropDownField from '@app/views/molecules/responder-form-fields/drop-down-field';
@@ -123,6 +124,8 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
             return <TagsField field={field} />;
         case FieldTypes.ADDRESS:
             return <AddressField field={field} />;
+        case FieldTypes.SIGNATURE:
+            return <SignatureField field={field} />;
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} />;
         case FieldTypes.IMAGE_CONTENT:

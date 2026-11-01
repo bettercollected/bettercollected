@@ -9,6 +9,7 @@ import parse from 'html-react-parser';
 import { Check, ChevronDown, Download } from 'lucide-react';
 
 import { FormTheme } from '@app/constants/theme';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { PipeContext, resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
@@ -18,7 +19,7 @@ import { addressLines } from '@app/utils/address';
 import { countryName } from '@app/utils/countries';
 import { formatAmount } from '@app/utils/currency';
 import { dateRangeText } from '@app/utils/date-range';
-import { calendarDayIn } from '@app/utils/date-utils';
+import { calendarDayIn, utcToLocalDateTimeWithZone } from '@app/utils/date-utils';
 import { formatFileSizeMb } from '@app/utils/file-utils';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { DISPLAY_LIST_SEPARATOR, getAnswerForField } from '@app/utils/form-builder-block-utils';
@@ -26,11 +27,14 @@ import { legacyTitleText } from '@app/utils/legacy-title';
 import { getGroupChildren, getGroupItems, getItemHeader, getItemHiddenChildIds, isRepeatingGroup, itemScopeAnswers } from '@app/utils/repeating-groups';
 import { answered, choiceRows, fieldHasAnswer } from '@app/utils/response-page';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+import { TYPED_SIGNATURE_FONT, answerSignature } from '@app/utils/signature';
 import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
 import { ChoiceContent, choiceRowStyle } from '@app/views/atoms/choice';
 import { scaleCellStyle } from '@app/views/molecules/responder-form-fields/linear-rating';
 import { themed } from '@app/views/molecules/theme/theme-root';
 import { softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
+
+import SignatureImage from './signature-image';
 
 export const UNREADABLE_SHORT = 'Could not be decrypted';
 export const NO_ANSWER = 'No answer';
@@ -314,6 +318,42 @@ function FileAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?: str
     );
 }
 
+/**
+ * A signature as a person reads it: a drawn one as its image (the server's
+ * short-lived link is the only way to it), a typed one as the name in an
+ * italic serif (the text is the signature; the style is only a flourish),
+ * and when it was signed. This records a drawn or typed name: it does not
+ * say who signed.
+ */
+function SignatureAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?: string; ctx: ReadOnlyContext }) {
+    const { t, i18n } = useBuilderTranslation();
+    const signature = answerSignature(answer);
+    if (!signature || (signature.method === 'typed' ? !signature.name : signature.method !== 'drawn')) return <NoAnswer ctx={ctx} />;
+    // When the server stamped it, written like "Submitted" (full time and zone), in the page's language like its label.
+    const at = utcToLocalDateTimeWithZone(signature.signed_at, undefined, i18n.language);
+    const unavailable = t('SIGNATURE.VIEW_IMAGE_UNAVAILABLE');
+    return (
+        <div className="flex flex-col gap-1" role="group" {...nameProps(labelledBy)} data-signature={signature.method}>
+            <div className="flex min-h-24 w-full max-w-xl items-center border px-4 py-3" style={{ background: '#ffffff', color: INK_ON_WHITE, borderColor: 'var(--rp-edge)', borderRadius: 'var(--rp-field-radius)' }}>
+                {signature.method === 'typed' ? (
+                    <span className="min-w-0 text-3xl italic [overflow-wrap:anywhere]" style={{ fontFamily: TYPED_SIGNATURE_FONT }}>
+                        {signature.name}
+                    </span>
+                ) : signature.url ? (
+                    <SignatureImage url={signature.url} alt={t('SIGNATURE.VIEW_DRAWN_ALT')} unavailable={unavailable} className="max-h-40 w-auto max-w-full object-contain" fallbackClassName="text-[15px] italic opacity-70" />
+                ) : (
+                    <span className="text-[15px] italic opacity-70">{unavailable}</span>
+                )}
+            </div>
+            {at && (
+                <p className="m-0 text-sm" style={{ color: softInk(ctx.theme) }}>
+                    {t('SIGNATURE.VIEW_SIGNED', { date: at })}
+                </p>
+            )}
+        </div>
+    );
+}
+
 /** The date in the app's date style ("30 October 2026", "30 oktober 2026"), or the stored text when it is not a date. */
 const dateText = (value: string, language: 'en' | 'nl'): string => calendarDayIn(value, language);
 
@@ -354,6 +394,8 @@ function AnswerBody({ field, answers, labelledBy, ctx }: { field: StandardFormFi
         case FieldTypes.FILE_UPLOAD:
         case FieldTypes.INPUT_FILE_UPLOAD:
             return answer?.file_metadata ? <FileAnswer answer={answer} labelledBy={labelledBy} ctx={ctx} /> : <NoAnswer ctx={ctx} />;
+        case FieldTypes.SIGNATURE:
+            return answer?.signature ? <SignatureAnswer answer={answer} labelledBy={labelledBy} ctx={ctx} /> : <NoAnswer ctx={ctx} />;
         case FieldTypes.TABULAR_INPUT:
             return answered(answer) ? <TabularAnswer field={field} answer={answer} labelledBy={labelledBy} /> : <NoAnswer ctx={ctx} />;
         case FieldTypes.MATRIX:

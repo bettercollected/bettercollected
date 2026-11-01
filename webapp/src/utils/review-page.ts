@@ -14,6 +14,7 @@ import { legacyTitleText } from '@app/utils/legacy-title';
 import { pageInvalidations } from '@app/utils/page-validation';
 import { getGroupChildren, getGroupItems, getItemHeader, getItemHiddenChildIds, hasAnswerValue, isRepeatingGroup, itemScopeAnswers, normalizeGroupAnswersForSubmit, scopedFieldId } from '@app/utils/repeating-groups';
 import { plainTextFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+import { answerSignature } from '@app/utils/signature';
 
 /**
  * The review page (an optional page after the last one, where respondents
@@ -116,6 +117,12 @@ export function answerLines(field: StandardFormFieldDto, answers: Record<string,
             // the file's name only: never its contents or link
             const file = answer?.file_metadata;
             return file ? [String(file.name ?? file.id ?? t('REVIEW.ANSWERED'))] : [];
+        }
+        case FieldTypes.SIGNATURE: {
+            // the typed name, or that it is drawn: never the image
+            const signature = answerSignature(answer);
+            if (signature?.method === 'typed') return signature.name ? [signature.name] : [];
+            return signature?.method === 'drawn' ? [t('SIGNATURE.REVIEW_DRAWN')] : [];
         }
         case FieldTypes.TABULAR_INPUT: {
             const rowTitles: string[] = field.properties?.rowTitles ?? [];

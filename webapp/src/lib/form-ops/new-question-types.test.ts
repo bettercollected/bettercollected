@@ -4,7 +4,7 @@ import { resolve } from 'path';
 import { describe, expect, it } from 'vitest';
 
 import { applyOps } from './apply';
-import { GATED_TYPES, NEW_QUESTION_TYPES_DISABLED_MESSAGE, gatedSignatures, isGatedQuestion, newOrChangedQuestions, pageHoldsGatedQuestion, signature } from './new-question-types';
+import { GATED_TYPES, NEW_QUESTION_TYPES_DISABLED_MESSAGE, SIGNATURE_QUESTION_DISABLED_MESSAGE, SIGNATURE_TYPES, gatedSignatures, gatesOff, isGatedQuestion, newOrChangedQuestions, pageHoldsGatedQuestion, signature, typeIsOff } from './new-question-types';
 import type { FormDoc, FormField, FormOp } from './types';
 
 const doc = (fields: any[]): FormDoc => ({ title: 'T', builderVersion: 'v2', fields: [{ id: 'p1', index: 0, type: 'slide', properties: { fields } } as FormField] }) as FormDoc;
@@ -189,6 +189,63 @@ describe('the switch for the newer question types', () => {
         expect(results[0].ok).toBe(true);
         const left = (after.fields![0].properties!.fields as FormField[]).map((f) => [f.id, f.properties?.dateRules]);
         expect(left).toEqual([['d', undefined]]);
+    });
+});
+
+describe('the signature question’s own switch', () => {
+    const SIGN = { id: 'sg', index: 6, type: 'signature', title: 'Sign' };
+    const withSignature = () => doc([TEXT, SIGN]);
+    const apply = (ops: FormOp[], switches: { newQuestionTypes?: boolean; signatureQuestion?: boolean }) => applyOps(doc([TEXT, SIGN]), ops, { atomic: false, skipInverse: true, ...switches });
+
+    it('is the backend’s list and message', () => {
+        expect([...SIGNATURE_TYPES]).toEqual(['signature']);
+        const python = readFileSync(resolve(__dirname, '../../../../backend/backend/app/services/new_question_types.py'), 'utf-8');
+        expect(/SIGNATURE_TYPES = frozenset\(\{"signature"\}\)/.test(python)).toBe(true);
+        const block = /SIGNATURE_DISABLED_MESSAGE = \(\n([\s\S]*?)\n\)\n/.exec(python)![1];
+        const text = [...block.matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((match) => match[1]).join('');
+        expect(SIGNATURE_QUESTION_DISABLED_MESSAGE).toBe(text);
+    });
+
+    it('is a switch apart from the newer types: each type follows its own', () => {
+        expect(typeIsOff('signature', { newQuestionTypes: false })).toBe(false);
+        expect(typeIsOff('signature', { signatureQuestion: false })).toBe(true);
+        expect(typeIsOff('time', { signatureQuestion: false })).toBe(false);
+        expect(typeIsOff('time', { newQuestionTypes: false })).toBe(true);
+        expect(typeIsOff('short_text', { newQuestionTypes: false, signatureQuestion: false })).toBe(false);
+        // a switch that is not told is on
+        expect(typeIsOff('signature', {})).toBe(false);
+        expect(gatesOff({ newQuestionTypes: false, signatureQuestion: false })).toHaveLength(2);
+        expect(isGatedQuestion(SIGN as FormField)).toBe(true);
+    });
+
+    it('counts a page with a signature question only while its switch is off', () => {
+        const page = withSignature().fields[0] as FormField;
+        expect(pageHoldsGatedQuestion(page, { newQuestionTypes: true, signatureQuestion: true })).toBe(false);
+        expect(pageHoldsGatedQuestion(page, { newQuestionTypes: false, signatureQuestion: true })).toBe(false);
+        expect(pageHoldsGatedQuestion(page, { newQuestionTypes: true, signatureQuestion: false })).toBe(true);
+    });
+
+    it('refuses an op that adds a signature question while it is off, and says why', () => {
+        const op = { op: 'add_field', pageId: 'p1', field: { title: 'Again', type: 'signature' } } as FormOp;
+        const refused = apply([op], { signatureQuestion: false });
+        expect(refused.results[0].ok).toBe(false);
+        expect(refused.results[0].message).toContain('SIGNATURE_QUESTION_ENABLED');
+        expect(apply([op], { signatureQuestion: true }).results[0].ok).toBe(true);
+        // the other switch does not touch it
+        expect(apply([op], { newQuestionTypes: false }).results[0].ok).toBe(true);
+    });
+
+    it('lets a signature question a form has be retitled, moved and removed while off', () => {
+        const off = { signatureQuestion: false };
+        expect(apply([{ op: 'update_field', fieldId: 'sg', patch: { title: 'Sign below' } } as FormOp], off).results[0].ok).toBe(true);
+        expect(apply([{ op: 'move_field', fieldId: 'sg', index: 0 } as FormOp, { op: 'remove_field', fieldId: 's' } as FormOp], off).results.every((r) => r.ok)).toBe(true);
+    });
+
+    it('reads a signature from its type alone', () => {
+        expect(signature({ ...SIGN, title: 'Elsewhere' } as FormField)).toBe(signature(SIGN as FormField));
+        expect([...gatedSignatures(withSignature()).keys()]).toEqual(['sg']);
+        expect(newOrChangedQuestions(withSignature(), gatedSignatures(doc([TEXT])), { types: SIGNATURE_TYPES, message: '' })).toEqual(['sg']);
+        expect(newOrChangedQuestions(withSignature(), gatedSignatures(withSignature()), { types: SIGNATURE_TYPES, message: '' })).toEqual([]);
     });
 });
 

@@ -71,7 +71,7 @@ export default function FieldSettings() {
     // The newer question types are read-only while the server does not take them (NEW_QUESTION_TYPES_ENABLED):
     // a question a form already has keeps its settings, and they are shown, not changed.
     const { t } = useTranslation('builder');
-    const { newQuestionTypesEnabled, addressQuestionEnabled } = useWorkspacePermissions();
+    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
     // Another question selected (or the steps changed elsewhere): show its steps.
     const [shownSteps, setShownSteps] = useState(activeField?.properties?.steps);
     if (shownSteps !== activeField?.properties?.steps) {
@@ -99,7 +99,7 @@ export default function FieldSettings() {
         setStepValue(e.target.value);
     };
 
-    const lockedType = typeIsOff(field.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled });
+    const lockedType = typeIsOff(field.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled });
     const typeName = formFieldsList.find((f) => f.type === field.type)?.name ?? field.type?.replaceAll('_', ' ').toLowerCase();
     const title = extractTextfromJSON(field);
     const isChoice = field.type === FieldTypes.MULTIPLE_CHOICE || field.type === FieldTypes.MATRIX;
@@ -165,6 +165,13 @@ export default function FieldSettings() {
                     </div>
                 )}
             </InspectorSection>
+
+            {field.type === FieldTypes.SIGNATURE && (
+                <InspectorSection title={t('SIGNATURE.SECTION')}>
+                    <p className="text-[11px] leading-relaxed text-black-600">{t('SIGNATURE.NOTE')}</p>
+                    <p className="text-[11px] leading-relaxed text-black-600">{t('SIGNATURE.PRIVACY_NOTE')}</p>
+                </InspectorSection>
+            )}
 
             {field.type === FieldTypes.CALCULATED && (
                 <InspectorSection title="Calculation">

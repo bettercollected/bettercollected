@@ -83,6 +83,9 @@ export function getComparableAnswerValue(answer: any, fieldType: FieldTypes | st
             const postcode = answer.address?.postcode;
             return typeof postcode === 'string' && postcode ? postcode : undefined;
         }
+        case FieldTypes.SIGNATURE:
+            // only "is it signed" is ever asked (is empty / is not empty): a marker, never the typed name or anything about the image
+            return answer.signature && typeof answer.signature === 'object' && Object.keys(answer.signature).length ? 'signed' : undefined;
         case FieldTypes.PHONE_NUMBER:
             return answer.phoneNumber ?? answer.phone_number;
         case FieldTypes.MULTIPLE_CHOICE:
@@ -259,6 +262,8 @@ export function compareDateRange(answer: any, comparison: Comparison | string, t
 
 /** What a condition on an address question may ask: about its postcode (backend `ADDRESS_COMPARISONS`). */
 export const ADDRESS_COMPARISONS = new Set<string>([Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.STARTS_WITH, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY]);
+/** A signature is either there or not: nothing else can be asked of it (backend `SIGNATURE_COMPARISONS`). */
+const SIGNATURE_COMPARISONS = new Set<string>([Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY]);
 
 /** What a condition on a tags question may ask (backend `TAGS_COMPARISONS`). */
 const TAGS_COMPARISONS = new Set<string>([Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY]);
@@ -271,6 +276,11 @@ function evaluateCondition(answers: Record<string, any>, condition: LogicConditi
         // only the postcode is read (the spec check and the operations refuse the other comparisons)
         if (!ADDRESS_COMPARISONS.has(condition.comparison)) return false;
         return compareValue(getComparableAnswerValue(answer, condition.fieldType), condition.comparison, condition.value, textMax);
+    }
+    if (condition.fieldType === FieldTypes.SIGNATURE) {
+        // only "is it signed" can be asked (the spec check and the operations refuse the other comparisons)
+        if (!SIGNATURE_COMPARISONS.has(condition.comparison)) return false;
+        return compareValue(getComparableAnswerValue(answer, condition.fieldType), condition.comparison, undefined, textMax);
     }
     if (condition.fieldType === FieldTypes.TAGS) {
         // a list of labels has no beginning, end or order to compare: only these hold (backend TAGS_COMPARISONS)

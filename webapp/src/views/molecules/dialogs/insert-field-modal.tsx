@@ -26,9 +26,12 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
     const baseId = useId();
     const optionId = (index: number) => `${baseId}-option-${index}`;
 
-    // The newer question types are offered only while the server takes them (NEW_QUESTION_TYPES_ENABLED), the address question while ADDRESS_QUESTION_ENABLED is on.
-    const { newQuestionTypesEnabled, addressQuestionEnabled } = useWorkspacePermissions();
-    const offered = useMemo(() => insertCatalog.filter((item) => !typeIsOff(item.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled })), [newQuestionTypesEnabled, addressQuestionEnabled]);
+    // The newer question types are offered only while the server takes them (NEW_QUESTION_TYPES_ENABLED), the address and signature questions while ADDRESS_QUESTION_ENABLED and SIGNATURE_QUESTION_ENABLED are on.
+    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
+    const offered = useMemo(
+        () => insertCatalog.filter((item) => !typeIsOff(item.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled })),
+        [newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled]
+    );
     const results = useMemo(() => filterInsertCatalog(query, offered), [query, offered]);
     const active: InsertCatalogItem | undefined = results[Math.min(activeIndex, results.length - 1)];
     // A page to add to: the selected one, or the canvas target's.

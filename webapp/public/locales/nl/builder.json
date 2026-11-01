@@ -1268,6 +1268,10 @@
     "address": {
       "NAME": "Adres",
       "DESCRIPTION": "Een postadres; Nederlandse adressen kunnen op postcode worden opgezocht"
+    },
+    "signature": {
+      "NAME": "Handtekening",
+      "DESCRIPTION": "Een getekende of getypte handtekening, bewaard bij het antwoord"
     }
   },
   "TYPED_SETTINGS": {
@@ -1297,7 +1301,8 @@
     "LOCKED": "Deze instellingen kunnen op deze server nog niet worden gewijzigd. Antwoorden blijven werken zoals ze zijn.",
     "SAVE_REFUSED": "Deze vraagtypen kunnen op deze server nog niet worden toegevoegd of gewijzigd. De wijziging is niet opgeslagen: verwijder de nieuwe vraag of zet de instellingen terug.",
     "CANNOT_COPY": "Vragen van dit type kunnen op deze server nog niet worden gekopieerd.",
-    "ADDRESS_SAVE_REFUSED": "De adresvraag kan op deze server nog niet worden toegevoegd of gewijzigd. De wijziging is niet opgeslagen: verwijder de vraag of zet de instellingen terug."
+    "ADDRESS_SAVE_REFUSED": "De adresvraag kan op deze server nog niet worden toegevoegd of gewijzigd. De wijziging is niet opgeslagen: verwijder de vraag of zet de instellingen terug.",
+    "SIGNATURE_SAVE_REFUSED": "De handtekeningvraag kan op deze server nog niet worden toegevoegd of gewijzigd. De wijziging is niet opgeslagen: verwijder de nieuwe handtekeningvraag."
   },
   "ADDRESS_SETTINGS": {
     "SECTION": "Adres",
@@ -1309,5 +1314,14 @@
     "LOOKUP_HINT": "Voor Nederlandse adressen, zodra postcode en huisnummer zijn getypt. Respondenten kunnen ze altijd aanpassen.",
     "LOOKUP_SERVER_OFF": "Het opzoeken staat op deze server uit, dus adressen worden getypt en respondenten horen niets over een opzoekdienst.",
     "UNVERIFIED": "Een opgezochte straat en plaats worden niet gecontroleerd: respondenten kunnen ze aanpassen."
+  },
+  "SIGNATURE": {
+    "SECTION": "Handtekening",
+    "NOTE": "Respondenten tekenen hun handtekening of typen hun naam; beide werken altijd. Dit legt een getekende of getypte naam vast. Het controleert niet wie er ondertekent.",
+    "PRIVACY_NOTE": "Een handtekening laat zien wie er ondertekent. Hij wordt bij het antwoord bewaard, net als de andere antwoorden, en samen met het antwoord verwijderd.",
+    "VIEW_DRAWN_ALT": "Getekende handtekening",
+    "VIEW_DRAWN_MARK": "[getekende handtekening]",
+    "VIEW_IMAGE_UNAVAILABLE": "Getekende handtekening (de afbeelding is niet beschikbaar)",
+    "VIEW_SIGNED": "Ondertekend op {{date}}"
   }
 }

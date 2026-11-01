@@ -6,6 +6,7 @@ import { addressLine } from '@app/utils/address';
 import { currencyExportText } from '@app/utils/currency';
 import { dateRangeExportText, dateRangeText } from '@app/utils/date-range';
 import { calendarDayIn } from '@app/utils/date-utils';
+import { answerSignature, signatureExportText } from '@app/utils/signature';
 import { answerTags } from '@app/utils/tags';
 import { getFieldsFromV2Form } from './form-utils';
 import { getRepeatSettings, isRepeatingGroup } from './repeating-groups';
@@ -15,8 +16,10 @@ import { extractTextfromJSON } from './richTextEditorExtenstion/get-html-from-js
 /** Joins the options of a multi-select answer on screen (the responses table, the response page, the respondent's view): "Reading, Cycling". */
 export const DISPLAY_LIST_SEPARATOR = ', ';
 
-/** The answer as a screen shows it: like `getAnswerForField`, but a day reads in the app's date style ("5 November 1990") and a date range as two ("3 November 2026 – 7 November 2026"). */
-export function getAnswerDisplayText(response: StandardFormResponseDto, field: StandardFormFieldDto, language: 'en' | 'nl' = 'en') {
+/** The answer as a screen shows it: like `getAnswerForField`, but a day reads in the app's date style ("5 November 1990") and a date range as two ("3 November 2026 – 7 November 2026"), and a drawn signature as `drawnSignatureText` (the screen's translation of the marker the CSV carries). */
+export function getAnswerDisplayText(response: StandardFormResponseDto, field: StandardFormFieldDto, language: 'en' | 'nl' = 'en', drawnSignatureText?: string) {
+    // a drawn signature reads as the dashboard's translated marker; the CSV keeps the server's "[drawn signature]" (getAnswerForField)
+    if (field.type === FieldTypes.SIGNATURE && drawnSignatureText && answerSignature(response.answers?.[field.id])?.method === 'drawn') return drawnSignatureText;
     if (field.type === FieldTypes.DATE_RANGE) return dateRangeText(response.answers?.[field.id], language);
     if (field.type === FieldTypes.DAY || field.type === FieldTypes.DATE) return calendarDayIn(String(response.answers?.[field.id]?.date ?? ''), language);
     return getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR);
@@ -103,6 +106,9 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
         case FormBuilderTagNames.INPUT_FILE_UPLOAD:
         case FieldTypes.FILE_UPLOAD:
             return answer?.file_metadata?.name;
+        case FieldTypes.SIGNATURE:
+            // the typed name, or a marker for a drawn one: never the image or a link
+            return signatureExportText(answer);
         case FieldTypes.CALCULATED: {
             // The value the server computed and stored, shown with the
             // field's format (currency, percent, decimals). Exports use

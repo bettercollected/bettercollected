@@ -369,6 +369,13 @@ export interface AnswerDto {
     tags?: string[];
     /** An address question's answer: its parts (see utils/address.ts). */
     address?: { street?: string; house_number?: string; house_number_addition?: string; postcode?: string; city?: string; country?: string };
+    /**
+     * A signature question's answer (utils/signature.ts): how it was given,
+     * the typed name or the id of the drawn image (a private stored file),
+     * when the server stored it, and the short-lived link to the image a
+     * read adds for people who may see it.
+     */
+    signature?: { method?: 'drawn' | 'typed' | string; file_id?: string; name?: string; signed_at?: string; url?: string };
     url?: string;
     file_metadata?: FileMetadata;
     phoneNumber?: string;
@@ -429,6 +436,8 @@ export enum FieldTypes {
     TAGS = 'tags',
     /** A postal address: street, house number, postcode, city and country (answer slot `address`). */
     ADDRESS = 'address',
+    /** A drawn or typed signature (answer slot `signature`). */
+    SIGNATURE = 'signature',
     PHONE_NUMBER = 'phone_number',
     EMAIL = 'email',
     NUMBER = 'number',
@@ -472,6 +481,7 @@ export const V2InputFields = [
     FieldTypes.DATE_RANGE,
     FieldTypes.TAGS,
     FieldTypes.ADDRESS,
+    FieldTypes.SIGNATURE,
     FieldTypes.YES_NO,
     FieldTypes.MULTIPLE_CHOICE,
     FieldTypes.RATING,

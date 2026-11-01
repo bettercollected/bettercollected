@@ -32,8 +32,8 @@ export default function SlideOptions({ slideIndex, pageName, visible, onMoved }:
     const { duplicateSlide } = useBuilderActions();
     const pageCount = usePageIds().length;
     // A copy of a page with a time, day or currency question holds new ones: not while the server does not take them.
-    const { newQuestionTypesEnabled, addressQuestionEnabled } = useWorkspacePermissions();
-    const cannotCopy = useBuilderFieldsValue((fields) => pageHoldsGatedQuestion(fields[slideIndex], { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled }), [slideIndex, newQuestionTypesEnabled, addressQuestionEnabled]);
+    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
+    const cannotCopy = useBuilderFieldsValue((fields) => pageHoldsGatedQuestion(fields[slideIndex], { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled }), [slideIndex, newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled]);
     const { deletePage } = useUndoableDelete();
     const { movePageTo } = useOutlineMoves();
     // A move hands focus to the moved row instead of back to this trigger.

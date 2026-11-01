@@ -215,8 +215,8 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
     const { duplicateField, getFormFields } = useBuilderActions();
     const { deleteQuestion } = useUndoableDelete();
     // A copy of a time, day or currency question is a new one: not while the server does not take them.
-    const { newQuestionTypesEnabled, addressQuestionEnabled } = useWorkspacePermissions();
-    const cannotCopy = typeIsOff(field?.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled });
+    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
+    const cannotCopy = typeIsOff(field?.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled });
     // The toolbar acts on the question where it is now, found by id.
     const locate = () => (field ? locateField(getFormFields(), field.id) : null);
     if (!field) return null;

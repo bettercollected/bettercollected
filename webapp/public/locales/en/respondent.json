@@ -38,7 +38,9 @@
         "POLICY_LINK": "Privacy policy",
         "POWERED_BY": "Powered by <1>bettercollected</1>",
         "LANGUAGE": "Language",
-        "OPENS_IN_NEW_TAB": "(opens in a new tab)"
+        "OPENS_IN_NEW_TAB": "(opens in a new tab)",
+        "SIGNATURE": "Signature",
+        "SIGNATURE_DETAIL": "Your signature is stored with your response, like your other answers."
     },
     "RETENTION": {
         "DAYS_one": "Kept for {{count}} day after you submit.",
@@ -211,7 +213,9 @@
         "FORMAT_ADDRESS": "Check the address: a Dutch postcode looks like 1015 CS and a Dutch house number is a number, like 12.",
         "ADDRESS_INCOMPLETE": "Complete the address: street, house number, postcode and city.",
         "ADDRESS_TOO_LONG": "A part of the address is too long. Shorten it.",
-        "COUNTRY": "Choose one of these countries: {{countries}}."
+        "COUNTRY": "Choose one of these countries: {{countries}}.",
+        "FORMAT_SIGNATURE": "Your name has characters that cannot be used. Please type it again.",
+        "SIGNATURE_IMAGE": "Your drawn signature could not be accepted. Draw it again, or type your name instead."
     },
     "DATE": {
         "PICK": "Pick a date",
@@ -382,7 +386,8 @@
             "FAILED": "We could not open your draft. Check your connection and open the link again.",
             "DELETE_NOW": "Delete the draft now",
             "DISMISS": "Dismiss"
-        }
+        },
+        "SIGNATURE_NOTE": "A drawn signature is not saved. You draw it again when you continue. A typed name is saved."
     },
     "TIME": {
         "PICK": "Time",
@@ -457,5 +462,25 @@
             "TOO_LONG_one": "Use at most {{count}} character.",
             "TOO_LONG_other": "Use at most {{count}} characters."
         }
+    },
+    "SIGNATURE": {
+        "METHOD": "How you want to sign",
+        "DRAW": "Draw",
+        "TYPE": "Type your name",
+        "PAD_LABEL": "Signature drawing area",
+        "PAD_HINT": "Draw your signature in the box with your mouse, finger or pen. To scroll the page, touch outside the box. Or choose “Type your name”.",
+        "PAD_UNAVAILABLE": "Drawing is not available in this browser. Choose “Type your name” instead.",
+        "SIGN_HERE": "Sign here",
+        "CLEAR": "Clear",
+        "CLEAR_LABEL": "Clear signature",
+        "NAME_LABEL": "Your full name",
+        "NAME_HINT": "Your typed name is your signature.",
+        "ADDED": "Signature added.",
+        "ON_FILE": "A signature is on file for this response. Draw again to replace it, or choose “Type your name”.",
+        "TOO_DETAILED": "Your drawing is too detailed to send. Please draw it again, with fewer strokes.",
+        "CLEARED": "Signature cleared.",
+        "DRAWN_ALT": "Your drawn signature",
+        "REVIEW_DRAWN": "Drawn signature",
+        "SUBMIT_UNAVAILABLE": "Your drawn signature could not be processed right now. Nothing was sent. Try again in a moment, or choose “Type your name” instead."
     }
 }

@@ -26,6 +26,7 @@ const NOT_VARIABLES = new Set<string>([
     'tabular_input',
     'file_upload',
     'address',
+    'signature',
     'VIDEO_CONTENT',
     'IMAGE_CONTENT',
     'h1',

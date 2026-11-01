@@ -44,6 +44,10 @@ describe('utcToLocalDateTimeWithZone', () => {
         expect(utcToLocalDateTimeWithZone('2026-10-30T09:10:05Z', 'Europe/Amsterdam')).toMatch(/^30 October 2026(,| at) 10:10:05 (CET|GMT\+1)$/);
     });
 
+    it('writes it in Dutch when asked', () => {
+        expect(utcToLocalDateTimeWithZone('2026-10-30T09:10:05Z', 'UTC', 'nl')).toMatch(/^30 oktober 2026( om|,)? 09:10:05 UTC$/);
+    });
+
     it('is empty for a missing or invalid date', () => {
         expect(utcToLocalDateTimeWithZone(undefined)).toBe('');
         expect(utcToLocalDateTimeWithZone('not a date')).toBe('');

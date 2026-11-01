@@ -12,18 +12,22 @@ const filesAtom = atom<FileAtom[]>([]);
 export default function useFormAtom() {
     const [files, setFiles] = useAtom(filesAtom);
 
+    // Both update from the files as they are when the update runs, not as this
+    // render saw them: a drawing committed after an await must not bring back
+    // or drop another question's file.
     const addFile = (fieldId: string, fileId: string, fileName: string, file: File) => {
-        // remove existing file
-        const updatedFiles = files.filter((item) => item.fieldId !== fieldId);
-        // add new file
-        updatedFiles.push({ fieldId, fileId, fileName, file });
+        // the question's earlier file is replaced
+        setFiles((current) => [...current.filter((item) => item.fieldId !== fieldId), { fieldId, fileId, fileName, file }]);
+    };
 
-        setFiles(updatedFiles);
+    // The file of one question only (a drawn signature that was cleared or typed over).
+    const removeFile = (fieldId: string) => {
+        setFiles((current) => current.filter((item) => item.fieldId !== fieldId));
     };
 
     const resetFormFiles = () => {
         setFiles([]);
     };
 
-    return { files, addFile, resetFormFiles };
+    return { files, addFile, removeFile, resetFormFiles };
 }

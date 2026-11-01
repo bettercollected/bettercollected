@@ -182,13 +182,18 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                 control.removeAttribute('aria-readonly');
                 control.removeAttribute('data-rule-readonly');
             }
+            // `data-local-invalid` is how a control that judges its own value talks to this loop:
+            // "true" (it flags itself, e.g. a name or a country that cannot be used) keeps aria-invalid
+            // with or without the question's error; "false" (it is fine) never takes the question's
+            // error; absent follows the question's error.
             if (hasError) {
-                // a control that judges its own value (data-local-invalid="false": it is fine) is not marked by the question's error
+                // a control that judges its own value as fine is not marked by the question's error
                 if (control.getAttribute('data-local-invalid') === 'false') control.removeAttribute('aria-invalid');
                 else control.setAttribute('aria-invalid', 'true');
                 control.setAttribute('aria-describedby', [...describedBy, errorId].join(' '));
             } else {
-                control.removeAttribute('aria-invalid');
+                // a control that flags its own value as it is typed keeps that mark
+                if (control.getAttribute('data-local-invalid') !== 'true') control.removeAttribute('aria-invalid');
                 if (describedBy.length) control.setAttribute('aria-describedby', describedBy.join(' '));
                 else control.removeAttribute('aria-describedby');
             }

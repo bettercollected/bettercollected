@@ -5,6 +5,7 @@ import { countryName, questionCountries } from '@app/utils/countries';
 import { currencyDecimals, formatAmount, isCurrencyCode, parseAmount } from '@app/utils/currency';
 import { isDay } from '@app/utils/iso-date';
 import { rawDateRange } from '@app/utils/date-range';
+import { SIGNATURE_NAME_MAX, answerSignature, signatureProblem, signatureShape } from '@app/utils/signature';
 import { TAGS_MAX, TAG_LENGTH_MAX, duplicateIndex, isTag, tagLength } from '@app/utils/tags';
 import { isTime, minutesOf } from '@app/utils/time-of-day';
 import type { LogicSources } from '@app/utils/conditional-logic';
@@ -38,6 +39,9 @@ import { getDisplayedItemCount, getGroupChildren, getGroupItems, getItemHiddenCh
  *   (and the country when the question allows several), a Dutch postcode as
  *   `1234 AB` and a Dutch house number of digits, a country the question allows
  *   (utils/address.ts, the twin of the server's common `address.py`).
+ * - Signature: a typed name is well formed (trimmed, in form C, no hidden or
+ *   control characters, at most SIGNATURE_NAME_MAX characters); a drawn
+ *   signature names its image. It has no limits of its own to set.
  *
  * An empty answer is never checked here: whether one is needed is what
  * Required says.
@@ -45,14 +49,14 @@ import { getDisplayedItemCount, getGroupChildren, getGroupItems, getItemHiddenCh
 
 export type AnswerRuleKind = 'text' | 'number' | 'choices' | 'time' | 'day' | 'currency' | 'date_range' | 'tags' | 'address';
 
-export type AnswerRuleProblem = 'TOO_SHORT' | 'TOO_LONG' | 'PATTERN' | 'TOO_SMALL' | 'TOO_LARGE' | 'NOT_INTEGER' | 'TOO_FEW_CHOICES' | 'TOO_MANY_CHOICES' | 'FORMAT' | 'CURRENCY' | 'REQUIRED' | 'RANGE_ORDER' | 'DUPLICATE' | 'COUNTRY';
+export type AnswerRuleProblem = 'TOO_SHORT' | 'TOO_LONG' | 'PATTERN' | 'TOO_SMALL' | 'TOO_LARGE' | 'NOT_INTEGER' | 'TOO_FEW_CHOICES' | 'TOO_MANY_CHOICES' | 'FORMAT' | 'CURRENCY' | 'REQUIRED' | 'RANGE_ORDER' | 'DUPLICATE' | 'COUNTRY' | 'SIGNATURE_IMAGE';
 
 /**
  * What the problems are, by the server's rule code (lower case). `REQUIRED` is
  * a date range with only one end given, or an address with a part missing; it is not listed in ANSWER_RULE_PROBLEMS
  * because the server and the page also use it for an unanswered required question.
  */
-export const ANSWER_RULE_PROBLEMS: ReadonlyArray<AnswerRuleProblem> = ['TOO_SHORT', 'TOO_LONG', 'PATTERN', 'TOO_SMALL', 'TOO_LARGE', 'NOT_INTEGER', 'TOO_FEW_CHOICES', 'TOO_MANY_CHOICES', 'FORMAT', 'CURRENCY', 'RANGE_ORDER', 'DUPLICATE', 'COUNTRY'];
+export const ANSWER_RULE_PROBLEMS: ReadonlyArray<AnswerRuleProblem> = ['TOO_SHORT', 'TOO_LONG', 'PATTERN', 'TOO_SMALL', 'TOO_LARGE', 'NOT_INTEGER', 'TOO_FEW_CHOICES', 'TOO_MANY_CHOICES', 'FORMAT', 'CURRENCY', 'RANGE_ORDER', 'DUPLICATE', 'COUNTRY', 'SIGNATURE_IMAGE'];
 
 /** "Whole numbers only" on a number question. */
 export const INTEGER_PATTERN = '^-?\\d+$';
@@ -190,6 +194,13 @@ export const questionCurrencies = (field: Pick<StandardFormFieldDto, 'properties
 export function checkAnswerRules(field: StandardFormFieldDto, answer: any, options?: OptionStates): AnswerRuleProblem[] {
     const rules: IFormFieldValidation = field?.validations ?? {};
     const problems: AnswerRuleProblem[] = [];
+    if (field?.type === FieldTypes.SIGNATURE) {
+        // a typed name that is not well formed, or a drawn signature without an image (the server says "type" for another shape)
+        const value = answer?.signature;
+        if (value === undefined || value === null || !signatureShape(value)) return [];
+        const problem = signatureProblem(answerSignature(answer) ?? {});
+        return problem ? [problem] : [];
+    }
     switch (answerRuleKind(field)) {
         case 'text': {
             const text = answerText(answer);
@@ -326,6 +337,7 @@ export function answerRuleMessage(field: StandardFormFieldDto, problem: AnswerRu
         case 'TOO_SHORT':
             return t('RULE.TOO_SHORT', { count: rules.minLength });
         case 'TOO_LONG':
+            if (field?.type === FieldTypes.SIGNATURE) return t('RULE.TOO_LONG', { count: SIGNATURE_NAME_MAX });
             if (field?.type === FieldTypes.ADDRESS) return t('RULE.ADDRESS_TOO_LONG');
             if (field?.type === FieldTypes.TAGS) return t('RULE.TAG_TOO_LONG', { count: tagLimits(field).length });
             return t('RULE.TOO_LONG', { count: rules.maxLength });
@@ -341,7 +353,10 @@ export function answerRuleMessage(field: StandardFormFieldDto, problem: AnswerRu
             if (field?.type === FieldTypes.TIME) return t('RULE.TOO_LATE', { time: field.properties?.maxTime });
             if (field?.type === FieldTypes.CURRENCY) return t('RULE.AMOUNT_TOO_LARGE', { max: formatAmount({ code: questionCurrencies(field)[0], amount: String(rules.maxValue) }, language) });
             return t('RULE.TOO_LARGE', { max: rules.maxValue });
+        case 'SIGNATURE_IMAGE':
+            return t('RULE.SIGNATURE_IMAGE');
         case 'FORMAT':
+            if (field?.type === FieldTypes.SIGNATURE) return t('RULE.FORMAT_SIGNATURE');
             if (field?.type === FieldTypes.TIME) return t('RULE.FORMAT_TIME');
             if (field?.type === FieldTypes.DAY) return t('RULE.FORMAT_DAY');
             if (field?.type === FieldTypes.DATE_RANGE) return t('RULE.FORMAT_RANGE');

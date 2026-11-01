@@ -1,3 +1,5 @@
+import SignatureImage from '@app/components/response-page/signature-image';
+import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
@@ -6,6 +8,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { downloadFile } from '@app/utils/file-utils';
 import { resolvePipesInTitle, titleHasPipes } from '@app/utils/answer-piping';
 import { formFormatLanguage } from '@app/utils/response-page';
+import { TYPED_SIGNATURE_FONT, answerSignature } from '@app/utils/signature';
 import { DISPLAY_LIST_SEPARATOR, getAnswerDisplayText, getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
 import { getGroupChildren, getGroupItems, getItemHeader, isRepeatingGroup, itemScopeAnswers } from '@app/utils/repeating-groups';
 import { getItemAnswer } from '@app/utils/response-export';
@@ -32,6 +35,7 @@ export const UnreadableNotice = ({ unreadable }: { unreadable: string[] }) => {
 export const IndividualFormResponse = ({ formFields, response, form, className }: { formFields: Array<StandardFormFieldDto>; response: StandardFormResponseDto; form?: StandardFormDto; className?: string }) => {
 
     const { toast } = useToast();
+    const { t } = useBuilderTranslation();
 
     const reduxForm = useAppSelector(selectForm);
     const standardForm = form ? form : reduxForm;
@@ -138,6 +142,26 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                     );
                 }
 
+                if (field.type === FieldTypes.SIGNATURE) {
+                    const signature = answerSignature(ans);
+                    return (
+                        <div className="flex flex-col gap-1.5" key={field.id}>
+                            {getTitleForHeaderForTable(field)}
+                            {signature?.method === 'drawn' && signature.url ? (
+                                <SignatureImage url={signature.url} alt={t('SIGNATURE.VIEW_DRAWN_ALT')} unavailable={t('SIGNATURE.VIEW_IMAGE_UNAVAILABLE')} className="max-h-32 w-fit max-w-full rounded border border-gray-200 bg-white object-contain p-2" fallbackClassName="text-black-600 text-base" />
+                            ) : signature?.method === 'typed' && signature.name ? (
+                                <span className="text-black-900 text-2xl italic [overflow-wrap:anywhere]" style={{ fontFamily: TYPED_SIGNATURE_FONT }}>
+                                    {signature.name}
+                                </span>
+                            ) : signature?.method === 'drawn' ? (
+                                <span className="text-black-600 text-base">{t('SIGNATURE.VIEW_IMAGE_UNAVAILABLE')}</span>
+                            ) : (
+                                noAnswer
+                            )}
+                        </div>
+                    );
+                }
+
                 if (field.type === FieldTypes.FILE_UPLOAD || field.type === FieldTypes.INPUT_FILE_UPLOAD) {
                     return (
                         <div className="flex flex-col gap-1.5" key={field.id}>
@@ -152,7 +176,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                         </div>
                     );
                 }
-                const answerText = getAnswerDisplayText(response, field, formFormatLanguage(standardForm?.settings?.language));
+                const answerText = getAnswerDisplayText(response, field, formFormatLanguage(standardForm?.settings?.language), t('SIGNATURE.VIEW_DRAWN_MARK'));
                 return (
                     <div className="flex flex-col gap-1.5" key={field.id}>
                         {getTitleForHeaderForTable(field)}

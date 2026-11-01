@@ -4,6 +4,7 @@ import CurrencyField from '@app/views/molecules/responder-form-fields/currency-f
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
 import DateRangeField from '@app/views/molecules/responder-form-fields/date-range-field';
 import DayField from '@app/views/molecules/responder-form-fields/day-field';
+import SignatureField from '@app/views/molecules/responder-form-fields/signature-field';
 import TagsField from '@app/views/molecules/responder-form-fields/tags-field';
 import TimeField from '@app/views/molecules/responder-form-fields/time-field';
 import LinearRatingField from '@app/views/molecules/responder-form-fields/linear-rating';
@@ -102,6 +103,8 @@ function renderField(field: StandardFormFieldDto, slide: StandardFormFieldDto, d
             return <TagsField field={field} slide={slide} isBuilder={true} />;
         case FieldTypes.ADDRESS:
             return <AddressField field={field} slide={slide} isBuilder={true} />;
+        case FieldTypes.SIGNATURE:
+            return <SignatureField field={field} slide={slide} isBuilder={true} />;
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} slide={slide} isBuilder={true} />;
         case FieldTypes.IMAGE_CONTENT:
