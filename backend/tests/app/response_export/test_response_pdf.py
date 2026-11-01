@@ -530,6 +530,7 @@ def test_a_document_of_unbroken_answers_is_refused_quickly_not_laid_out_for_ever
 def test_a_long_title_is_cut_for_the_footer_in_linear_time():
     import time
 
+    render._ensure_fonts()  # registered by the first drawing otherwise
     started = time.monotonic()
     cut = render.ellipsize("W" * 200_000, render.REGULAR, render.FOOTER_SIZE, render.CONTENT_WIDTH - 90)
     assert time.monotonic() - started < 1.0
