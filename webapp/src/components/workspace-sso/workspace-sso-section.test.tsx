@@ -20,6 +20,7 @@ const createMock = vi.fn();
 const enableMock = vi.fn();
 const deleteMock = vi.fn();
 const settingsMock = vi.fn();
+const auditPageMock = vi.fn();
 const revokeKeyMock = vi.fn();
 vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     const actual: any = await importOriginal();
@@ -30,7 +31,8 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
         useSetSsoConnectionEnabledMutation: () => [enableMock, { isLoading: false }],
         useDeleteSsoConnectionMutation: () => [deleteMock, { isLoading: false }],
         useUpdateSsoSettingsMutation: () => [settingsMock, { isLoading: false }],
-        useRevokeAPIKeyMutation: () => [revokeKeyMock, { isLoading: false }]
+        useRevokeAPIKeyMutation: () => [revokeKeyMock, { isLoading: false }],
+        useLazyGetSsoAuditPageQuery: () => [auditPageMock, { isFetching: false }]
     };
 });
 
@@ -187,6 +189,14 @@ describe('WorkspaceSsoSection', () => {
             expect(within(screen.getByTestId('sso-api-keys')).getByText(/Every API key was created after single sign-on was required/)).toBeTruthy();
         });
 
+        it('says unknown, not a former member, when a key has no creator', () => {
+            query.data = required([key({ createdBy: '', createdByLabel: null, createdByFormerMember: false })]);
+            renderSection();
+            const box = screen.getByTestId('sso-api-keys');
+            expect(box.textContent).toContain('Created by unknown');
+            expect(box.textContent).not.toContain('former member');
+        });
+
         it('uses the singular for one key', () => {
             query.data = required([key()]);
             renderSection();
@@ -214,22 +224,51 @@ describe('WorkspaceSsoSection', () => {
     });
 
     describe('break-glass log', () => {
-        const entry = (overrides = {}) => ({ id: 'e1', event: 'sso_break_glass_session', at: '2026-10-31T08:30:00Z', userId: 'u1', userLabel: 'Olga Owner', userIsMember: true, sessionId: 's1', ...overrides });
+        const entry = (overrides = {}) => ({ id: 'e1', event: 'sso_break_glass_request', at: '2026-10-31T08:30:00Z', userId: 'u1', userLabel: 'Olga Owner', userIsMember: true, sessionId: 's1', method: 'GET', path: '/workspaces/{workspace_id}/forms', ...overrides });
 
-        it('lists the entries with the current member name, or the id of a former member', () => {
-            query.data = overview({ audit: [entry(), entry({ id: 'e2', event: 'sso_break_glass_sign_in', userId: 'u2', userLabel: null, userIsMember: false, sessionId: null })] });
+        it('lists the entries with the current member name, the route template, or the id of a former member', () => {
+            query.data = overview({ audit: [entry(), entry({ id: 'e2', event: 'sso_break_glass_sign_in', userId: 'u2', userLabel: null, userIsMember: false, sessionId: null, method: 'POST', path: '/auth/otp/validate' })] });
             renderSection();
             const log = screen.getByTestId('sso-break-glass-log');
-            expect(within(log).getByText('Owner session let into the workspace')).toBeTruthy();
+            expect(within(log).getByText('Owner session used the workspace')).toBeTruthy();
             expect(within(log).getByText('Owner signed in with an email code')).toBeTruthy();
             expect(log.textContent).toContain('Olga Owner · session s1');
             expect(log.textContent).toContain('u2 (no longer a member)');
+            expect(log.textContent).toContain('GET /workspaces/{workspace_id}/forms');
+            expect(log.textContent).toContain('POST /auth/otp/validate');
         });
 
         it('says when nothing was recorded', () => {
             query.data = overview({ audit: [] });
             renderSection();
-            expect(within(screen.getByTestId('sso-break-glass-log')).getByText('No break-glass sign-ins recorded.')).toBeTruthy();
+            const log = screen.getByTestId('sso-break-glass-log');
+            expect(within(log).getByText('No break-glass sign-ins recorded.')).toBeTruthy();
+            expect(within(log).queryByRole('button', { name: 'Show older entries' })).toBeNull();
+        });
+
+        it('pages back through older entries until the end', async () => {
+            query.data = overview({ audit: [entry()], auditNextCursor: 'c1' });
+            auditPageMock.mockResolvedValueOnce({ data: { entries: [entry({ id: 'e5', userLabel: 'Pat', userId: 'u5', sessionId: 's5' })], nextCursor: 'c2' } }).mockResolvedValueOnce({ data: { entries: [entry({ id: 'e9', userLabel: 'Quinn', userId: 'u9', sessionId: 's9' })], nextCursor: null } });
+            renderSection();
+            const log = screen.getByTestId('sso-break-glass-log');
+            fireEvent.click(within(log).getByRole('button', { name: 'Show older entries' }));
+            await waitFor(() => expect(log.textContent).toContain('Pat'));
+            expect(auditPageMock).toHaveBeenLastCalledWith({ workspace_id: 'ws1', cursor: 'c1' });
+            fireEvent.click(within(log).getByRole('button', { name: 'Show older entries' }));
+            await waitFor(() => expect(log.textContent).toContain('Quinn'));
+            expect(auditPageMock).toHaveBeenLastCalledWith({ workspace_id: 'ws1', cursor: 'c2' });
+            // the first page and both older ones, no pager left
+            expect(log.textContent).toContain('Olga Owner');
+            expect(within(log).queryByRole('button', { name: 'Show older entries' })).toBeNull();
+        });
+
+        it('reports a page that could not be loaded and keeps the pager', async () => {
+            query.data = overview({ audit: [entry()], auditNextCursor: 'c1' });
+            auditPageMock.mockResolvedValueOnce({ error: { status: 500 } });
+            renderSection();
+            fireEvent.click(within(screen.getByTestId('sso-break-glass-log')).getByRole('button', { name: 'Show older entries' }));
+            await waitFor(() => expect(toastMock).toHaveBeenCalledWith({ description: 'Could not load older entries.', variant: 'destructive' }));
+            expect(within(screen.getByTestId('sso-break-glass-log')).getByRole('button', { name: 'Show older entries' })).toBeTruthy();
         });
     });
 
@@ -407,7 +446,7 @@ describe('WorkspaceSsoSection', () => {
 });
 
 describe('hardening texts', () => {
-    const keys = ['LOCKOUT_TITLE', 'LOCKOUT_BODY', 'LOCKOUT_CONFIRM', 'LOCKOUT_CANCEL', 'KEYS_TITLE', 'KEYS_INTRO_one', 'KEYS_INTRO_other', 'KEY_CREATED_BY', 'KEY_CREATED_AT', 'KEY_LAST_USED', 'KEY_NEVER_USED', 'KEY_REVOKE', 'KEY_REVOKE_LABEL', 'KEY_REVOKED', 'KEY_REVOKE_FAILED', 'KEYS_INTRO_NONE_OLD', 'KEY_CREATED_AFTER', 'KEY_FORMER_MEMBER', 'AUDIT_TITLE', 'AUDIT_INTRO', 'AUDIT_EMPTY', 'AUDIT_EVENT_SIGN_IN', 'AUDIT_EVENT_SESSION', 'AUDIT_USER_FORMER', 'AUDIT_SESSION'];
+    const keys = ['LOCKOUT_TITLE', 'LOCKOUT_BODY', 'LOCKOUT_CONFIRM', 'LOCKOUT_CANCEL', 'KEYS_TITLE', 'KEYS_INTRO_one', 'KEYS_INTRO_other', 'KEY_CREATED_BY', 'KEY_CREATED_AT', 'KEY_LAST_USED', 'KEY_NEVER_USED', 'KEY_REVOKE', 'KEY_REVOKE_LABEL', 'KEY_REVOKED', 'KEY_REVOKE_FAILED', 'KEYS_INTRO_NONE_OLD', 'KEY_CREATED_AFTER', 'KEY_FORMER_MEMBER', 'AUDIT_TITLE', 'AUDIT_INTRO', 'AUDIT_EMPTY', 'AUDIT_EVENT_SIGN_IN', 'AUDIT_EVENT_REQUEST', 'AUDIT_USER_FORMER', 'AUDIT_SESSION', 'AUDIT_MORE', 'AUDIT_MORE_FAILED', 'KEY_CREATOR_UNKNOWN'];
 
     it('exist in English and Dutch with the same placeholders', () => {
         for (const key of keys) {

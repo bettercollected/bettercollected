@@ -1081,12 +1081,15 @@
     "KEY_CREATED_AFTER": "Created after single sign-on was required",
     "KEY_FORMER_MEMBER": "a former member ({{id}})",
     "AUDIT_TITLE": "Break-glass sign-ins",
-    "AUDIT_INTRO": "Owners can sign in with an email code even when single sign-on is required. Each such sign-in, and each session let in that way, is recorded here (ids only).",
+    "AUDIT_INTRO": "Owners can sign in with an email code even when single sign-on is required. Each such sign-in, and each request such a session makes, is recorded here with the route it used (ids only, newest first).",
     "AUDIT_EMPTY": "No break-glass sign-ins recorded.",
     "AUDIT_EVENT_SIGN_IN": "Owner signed in with an email code",
-    "AUDIT_EVENT_SESSION": "Owner session let into the workspace",
     "AUDIT_USER_FORMER": "{{id}} (no longer a member)",
-    "AUDIT_SESSION": "session {{id}}"
+    "AUDIT_SESSION": "session {{id}}",
+    "AUDIT_MORE": "Show older entries",
+    "AUDIT_MORE_FAILED": "Could not load older entries.",
+    "KEY_CREATOR_UNKNOWN": "unknown",
+    "AUDIT_EVENT_REQUEST": "Owner session used the workspace"
   },
   "SCIM": {
     "TITLE": "Directory sync (SCIM)",

@@ -8,7 +8,7 @@ import { Page } from '@app/models/dtos/page';
 import { WorkspaceDomainDto } from '@app/models/dtos/workspace-domain-dto';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { CreateScimDirectoryRequest, ScimCredentialsDto, ScimDirectoryDto, ScimGroupDto, ScimOverviewDto, ScimResyncDto } from '@app/models/dtos/workspace-scim-dto';
-import { CreateSsoConnectionRequest, SsoConnectionDto, SsoOverviewDto, SsoSettingsDto, UpdateSsoSettingsRequest } from '@app/models/dtos/workspace-sso-dto';
+import { CreateSsoConnectionRequest, SsoAuditPageDto, SsoConnectionDto, SsoOverviewDto, SsoSettingsDto, UpdateSsoSettingsRequest } from '@app/models/dtos/workspace-sso-dto';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspace-stats-dto';
 import { DeclineReason, DeletionRequestOutcome } from '@app/models/enums/deletion-request';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
@@ -677,6 +677,14 @@ export const workspacesApi = createApi({
             }),
             providesTags: ['SSO_TAG']
         }),
+        // A page of the owner break-glass log (older than the cursor); owners and admins.
+        getSsoAuditPage: builder.query<SsoAuditPageDto, { workspace_id: string; cursor: string }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/sso/audit`,
+                params: { cursor: request.cursor },
+                credentials: 'include'
+            })
+        }),
         createSsoConnection: builder.mutation<SsoConnectionDto, { workspace_id: string; body: CreateSsoConnectionRequest }>({
             query: (request) => ({
                 url: `/workspaces/${request.workspace_id}/sso/connections`,
@@ -856,6 +864,7 @@ export const {
     useRevokeAPIKeyMutation,
     useGetEmailDomainsQuery,
     useGetWorkspaceSsoQuery,
+    useLazyGetSsoAuditPageQuery,
     useCreateSsoConnectionMutation,
     useSetSsoConnectionEnabledMutation,
     useDeleteSsoConnectionMutation,

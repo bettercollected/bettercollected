@@ -1081,12 +1081,15 @@
     "KEY_CREATED_AFTER": "Gemaakt nadat single sign-on verplicht werd",
     "KEY_FORMER_MEMBER": "een voormalig lid ({{id}})",
     "AUDIT_TITLE": "Break-glass-inlogs",
-    "AUDIT_INTRO": "Eigenaren kunnen met een e-mailcode inloggen, ook als single sign-on verplicht is. Elke zo'n inlog, en elke sessie die zo is toegelaten, staat hier (alleen id's).",
+    "AUDIT_INTRO": "Eigenaren kunnen met een e-mailcode inloggen, ook als single sign-on verplicht is. Elke zo'n inlog, en elk verzoek van zo'n sessie, staat hier met de gebruikte route (alleen id's, nieuwste eerst).",
     "AUDIT_EMPTY": "Geen break-glass-inlogs vastgelegd.",
     "AUDIT_EVENT_SIGN_IN": "Eigenaar logde in met een e-mailcode",
-    "AUDIT_EVENT_SESSION": "Eigenaarssessie toegelaten in de werkruimte",
     "AUDIT_USER_FORMER": "{{id}} (geen lid meer)",
-    "AUDIT_SESSION": "sessie {{id}}"
+    "AUDIT_SESSION": "sessie {{id}}",
+    "AUDIT_MORE": "Oudere regels tonen",
+    "AUDIT_MORE_FAILED": "Oudere regels konden niet worden geladen.",
+    "KEY_CREATOR_UNKNOWN": "onbekend",
+    "AUDIT_EVENT_REQUEST": "Eigenaarssessie gebruikte de werkruimte"
   },
   "SCIM": {
     "TITLE": "Synchronisatie met gebruikersbeheer (SCIM)",

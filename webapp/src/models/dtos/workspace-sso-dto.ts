@@ -53,12 +53,21 @@ export interface SsoApiKeyDto {
 // An owner break-glass entry (docs/sso.md): ids only; the name is a current member's.
 export interface SsoAuditEntryDto {
     id: string;
-    event: 'sso_break_glass_session' | 'sso_break_glass_sign_in' | string;
+    event: 'sso_break_glass_request' | 'sso_break_glass_sign_in' | string;
     at?: string | null;
     userId: string;
     userLabel?: string | null;
     userIsMember?: boolean;
     sessionId?: string | null;
+    // request entries: the HTTP method and the route's path template (never a concrete id or query)
+    method?: string | null;
+    path?: string | null;
+}
+
+// One page of the break-glass log, newest first; nextCursor asks for the older one.
+export interface SsoAuditPageDto {
+    entries: SsoAuditEntryDto[];
+    nextCursor?: string | null;
 }
 
 export interface SsoSettingsDto {
@@ -87,6 +96,7 @@ export interface SsoOverviewDto {
     maxConnections: number;
     // the latest owner break-glass entries, newest first
     audit?: SsoAuditEntryDto[];
+    auditNextCursor?: string | null;
     // the caller may change the configuration (the workspace owner only)
     canManage: boolean;
 }
