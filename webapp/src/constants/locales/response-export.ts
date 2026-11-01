@@ -3,6 +3,10 @@
 export const responseExportLocale = {
     button: 'RESPONSE_EXPORT.BUTTON',
     buttonMatching: 'RESPONSE_EXPORT.BUTTON_MATCHING',
+    formatLabel: 'RESPONSE_EXPORT.FORMAT',
+    formatCsv: 'RESPONSE_EXPORT.FORMAT_CSV',
+    formatXlsx: 'RESPONSE_EXPORT.FORMAT_XLSX',
+    formatJson: 'RESPONSE_EXPORT.FORMAT_JSON',
     starting: 'RESPONSE_EXPORT.STARTING',
     preparing: 'RESPONSE_EXPORT.PREPARING',
     ready: 'RESPONSE_EXPORT.READY',
@@ -18,6 +22,7 @@ export const responseExportLocale = {
     errorRateLimited: 'RESPONSE_EXPORT.ERROR_RATE_LIMITED',
     errorInProgress: 'RESPONSE_EXPORT.ERROR_IN_PROGRESS',
     errorTooMany: 'RESPONSE_EXPORT.ERROR_TOO_MANY',
+    errorTooManyColumns: 'RESPONSE_EXPORT.ERROR_TOO_MANY_COLUMNS',
     errorForbidden: 'RESPONSE_EXPORT.ERROR_FORBIDDEN',
     errorFailed: 'RESPONSE_EXPORT.ERROR_FAILED',
     errorDeleted: 'RESPONSE_EXPORT.ERROR_DELETED',
