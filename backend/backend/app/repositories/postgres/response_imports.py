@@ -133,7 +133,7 @@ class PostgresResponseImportRepository(RecordRepository):
         """``update_locked`` for a change that makes the import busy (checking
         or queued): refused with ``WorkspaceBusy`` when the workspace already
         has ``workspace_cap`` imports in flight and with ``ImportBusy`` when the
-        form has one (the partial unique index of revision 0035 backs it, so two
+        form has one (the partial unique index of revision 0033 backs it, so two
         requests at once cannot both get in). The count and the write share one
         transaction under a lock on the workspace."""
         try:
