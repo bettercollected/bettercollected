@@ -12,7 +12,7 @@ is separate as well.
 """
 
 from http import HTTPStatus
-from typing import Dict, FrozenSet, Iterable, Optional, Union
+from typing import Callable, Dict, FrozenSet, Iterable, Optional, Union
 
 from common.records import RecordId
 from bson import ObjectId
@@ -159,17 +159,30 @@ class AuthorizationService:
         workspace_repo: PostgresWorkspaceRepository,
         workspace_user_repo: PostgresWorkspaceUserRepository,
         workspace_form_repo: PostgresWorkspaceFormRepository,
+        sso_policy: Optional[Callable[[], object]] = None,
     ):
         self._workspace_repo = workspace_repo
         self._workspace_user_repo = workspace_user_repo
         self._workspace_form_repo = workspace_form_repo
+        # Returns the SsoPolicyService, resolved per call: the policy depends
+        # on services that depend on this one (the container wires it late).
+        self._sso_policy = sso_policy
 
     async def effective_permissions(
-        self, user: Optional[User], workspace_id: Union[RecordId, str, None]
+        self,
+        user: Optional[User],
+        workspace_id: Union[RecordId, str, None],
+        raise_sso_required: bool = False,
     ) -> FrozenSet[Permission]:
         """What ``user`` may do in the workspace. Nothing without an active
         membership (a disabled one counts as none) or in a missing workspace;
         in a disabled workspace only its owners keep read and privacy
+        permissions.
+
+        Nothing either for a session that does not meet the workspace's
+        single sign-on requirement (docs/sso.md, the rule the token refresh
+        applies, here on every request): with ``raise_sso_required`` the
+        403 ``sso_required`` the webapp reacts to, otherwise just no
         permissions."""
         workspace_oid = _object_id(workspace_id)
         user_oid = _object_id(user.id) if user else None
@@ -189,6 +202,10 @@ class AuthorizationService:
         if workspace is None:
             return NO_PERMISSIONS
         is_owner = is_owner_membership(workspace, membership)
+        if await self._sso_blocks(user, workspace, is_owner):
+            if raise_sso_required:
+                raise self._sso_required(user)
+            return NO_PERMISSIONS
         if workspace.disabled:
             return DISABLED_WORKSPACE_OWNER_PERMISSIONS if is_owner else NO_PERMISSIONS
         return permissions_for(membership.roles, is_owner=is_owner)
@@ -218,13 +235,37 @@ class AuthorizationService:
     ) -> None:
         """403 unless ``user`` holds ``permission`` in the workspace; then,
         with ``form_id``, 404 unless the form belongs to the workspace (so
-        only someone allowed in learns whether a form exists)."""
-        if permission not in await self.effective_permissions(user, workspace_id):
+        only someone allowed in learns whether a form exists). A session that
+        misses the workspace's single sign-on requirement gets 403
+        ``sso_required`` instead, whatever the permission."""
+        held = await self.effective_permissions(
+            user, workspace_id, raise_sso_required=True
+        )
+        if permission not in held:
             raise HTTPException(status_code=HTTPStatus.FORBIDDEN, content=message)
         if form_id is not None and not await self._form_in_workspace(
             workspace_id, form_id
         ):
             raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in workspace")
+
+    async def _sso_blocks(self, user: User, workspace, is_owner: bool) -> bool:
+        if self._sso_policy is None:
+            return False
+        return await self._sso_policy().blocks_session(
+            workspace,
+            getattr(user, "sub", None),
+            getattr(user, "auth_method", None),
+            getattr(user, "session_scope", None),
+            is_owner,
+        )
+
+    @staticmethod
+    def _sso_required(user: User) -> HTTPException:
+        # at call time: the policy module imports services that import this one
+        from backend.app.services.domains.names import domain_of
+        from backend.app.services.sso.policy import sso_required_error
+
+        return sso_required_error(domain_of(getattr(user, "sub", "") or "") or "")
 
     async def is_owner(
         self, user: Optional[User], workspace_id: Union[RecordId, str, None]

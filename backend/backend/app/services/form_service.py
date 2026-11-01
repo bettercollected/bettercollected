@@ -224,6 +224,11 @@ class FormService:
             user, Permission.FORM_READ, workspace_id
         )
         if not published and not staff:
+            # raises 403 ``sso_required`` for a session that misses the
+            # workspace's single sign-on requirement, else the plain 403
+            await self._authorization.authorize(
+                user, Permission.FORM_READ, workspace_id
+            )
             raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
         return staff
 
