@@ -509,6 +509,7 @@
                 "currency",
                 "date_range",
                 "tags",
+                "address",
                 "short_text",
                 "long_text",
                 "multiple_choice",
@@ -944,6 +945,37 @@
           "default": null,
           "description": "A currency question: the ISO 4217 codes respondents may pick (the first is the default). Amounts are answered with min/max in validations.",
           "title": "Currencies"
+        },
+        "countries": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 30,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An address question: the ISO 3166-1 alpha-2 codes of the countries respondents may give (default: NL only).",
+          "title": "Countries"
+        },
+        "addressLookup": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An address question: fill in street and city from a Dutch postcode and house number while the server offers it (default: yes).",
+          "title": "Addresslookup"
         },
         "whyWeAsk": {
           "anyOf": [

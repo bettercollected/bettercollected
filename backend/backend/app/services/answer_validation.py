@@ -65,6 +65,7 @@ from http import HTTPStatus
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import re2
+from common import address as address_rules
 from common.currencies import (
     DEFAULT_CURRENCY,
     is_currency_code,
@@ -193,6 +194,7 @@ VALUE_SLOTS = {
     "currency": {"currency"},
     "date_range": {"date_range"},
     "tags": {"tags"},
+    "address": {"address"},
     "yes_no": {"boolean"},
     "file_upload": {"file_metadata", "file_url"},
     "tabular_input": {"tabular_value"},
@@ -694,6 +696,15 @@ def type_problem(
             return TYPE
         if slot == "date_range" and not _date_range_shape(value):
             return TYPE
+        if slot == "address":
+            if not address_rules.is_shape(value):
+                return TYPE
+            # the hard rules hold for every stored address, a hidden or
+            # skipped question's too (country, completeness and the
+            # country's forms are the rule check's)
+            hard = address_rules.hard_problem(value)
+            if hard:
+                return hard
         if slot == "tags":
             if not (
                 isinstance(value, list) and all(isinstance(tag, str) for tag in value)
@@ -856,6 +867,12 @@ def answer_rule_problems(
         problems.extend(_date_range_problems(answer.get("date_range")))
     elif field_type == "tags":
         problems.extend(_tags_problems(answer.get("tags"), rules))
+    elif field_type == "address":
+        problems.extend(
+            address_rules.problems(
+                answer.get("address"), getattr(_props(field), "countries", None)
+            )
+        )
     elif field_type == MULTIPLE_CHOICE and getattr(
         _props(field), "allow_multiple_selection", None
     ):
@@ -970,6 +987,16 @@ def _matrix_unanswered(field: Any, answers: Dict[str, Any]) -> bool:
     return False
 
 
+def _blank_address(field: Any, answer: Any) -> bool:
+    """An address answer that holds a country and nothing else: no answer (the
+    country is a default the respondent never typed), like the webhook and
+    export builders read it."""
+    if _type(field) != "address" or not isinstance(answer, dict):
+        return False
+    parts = answer.get("address")
+    return isinstance(parts, dict) and not address_rules.has_any_part(parts)
+
+
 def _counts(field: Any) -> bool:
     """Is the field a question a respondent answers?"""
     if getattr(field, "internal", None):
@@ -1006,7 +1033,7 @@ def _check_question(
         if required and _matrix_unanswered(field, scope):
             out.append(AnswerProblem(field_id, REQUIRED, item, key))
         return
-    if not has_answer_value(answer):
+    if not has_answer_value(answer) or _blank_address(field, answer):
         if required:
             out.append(AnswerProblem(field_id, REQUIRED, item, key))
         return

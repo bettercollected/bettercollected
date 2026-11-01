@@ -35,6 +35,7 @@ from typing import Any, Dict, Iterable, Iterator, List, Optional, Set
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
+from backend.app.services.address_lookup.mode import address_lookup_enabled
 from backend.app.services.form_drafts.mode import save_drafts_enabled
 
 SLIDE_TYPE = "slide"
@@ -132,6 +133,15 @@ def strip_internal_fields(form: Any) -> Any:
         for key in ("allow_save_draft", "draft_retention_days"):
             if _get(settings, key) is not None:
                 _set(settings, key, None)
+    # the street and city lookup of an address question is offered only while
+    # the server has it switched on (services/address_lookup/mode.py): a form
+    # never advertises a lookup the server would refuse
+    if not address_lookup_enabled():
+        for question in iter_question_fields(form):
+            if _type_value(question) == "address":
+                properties = _get(question, "properties")
+                if properties is not None:
+                    _set(properties, "address_lookup", False)
     # an ending's name is the creator's label ("Not eligible"); respondents
     # get endings by id only
     for ending in _get(form, "thankyou_page") or []:

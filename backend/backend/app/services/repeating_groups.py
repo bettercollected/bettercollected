@@ -89,6 +89,12 @@ def comparable_answer_value(answer: Any, field_type: Optional[str]) -> Any:
     if field_type == "tags":
         tags = answer.get("tags")
         return [tag for tag in tags if isinstance(tag, str)] if isinstance(tags, list) else None
+    if field_type == "address":
+        # the postcode as written (conditions compare it as text: "starts
+        # with 10"); the other parts are not conditions
+        address = answer.get("address")
+        postcode = address.get("postcode") if isinstance(address, dict) else None
+        return postcode if isinstance(postcode, str) and postcode else None
     if field_type == "phone_number":
         return answer.get("phoneNumber") or answer.get("phone_number")
     if field_type == "calculated":
@@ -331,6 +337,14 @@ DATE_RANGE_COMPARISONS = (
     "IS_EMPTY",
     "IS_NOT_EMPTY",
 )
+# What a condition on an address question may ask: about its postcode.
+ADDRESS_COMPARISONS = (
+    "IS_EQUAL",
+    "IS_NOT_EQUAL",
+    "STARTS_WITH",
+    "IS_EMPTY",
+    "IS_NOT_EMPTY",
+)
 ORDERED_COMPARISONS = (
     "GREATER_THAN",
     "GREATER_THAN_EQUAL",
@@ -421,6 +435,17 @@ def evaluate_condition(
     field_type = get("field_type", "fieldType")
     if field_type == "date_range":
         return _date_range_condition(answers.get(field_id), comparison, target)
+    if field_type == "address":
+        # only the postcode is read (the spec check and the operations refuse
+        # the other comparisons)
+        if comparison not in ADDRESS_COMPARISONS:
+            return False
+        return compare(
+            comparable_answer_value(answers.get(field_id), field_type),
+            comparison,
+            target,
+            text_max,
+        )
     if field_type == "tags":
         # a list of labels has no beginning, end or order to compare: only
         # these hold (the spec check and the operations refuse the others)

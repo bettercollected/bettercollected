@@ -15,8 +15,10 @@ keys are refused, so a typo is reported instead of silently dropped.
 import enum
 from typing import Any, Dict, List, Literal, Optional, Union
 
+from common.countries import COUNTRIES_MAX
 from common.currencies import CURRENCIES_MAX, is_currency_code
 from common.models.standard_form import (
+    check_countries,
     check_tags_settings,
     CALCULATION_MAX_DECIMALS,
     DATE_RULES_MAX,
@@ -135,6 +137,7 @@ CURRENT_FIELD_TYPES = frozenset(
         "currency",
         "date_range",
         "tags",
+        "address",
         "yes_no",
         "multiple_choice",
         "dropdown",
@@ -635,6 +638,18 @@ class FormField(_Spec):
         description="A currency question: the ISO 4217 codes respondents may pick "
         "(the first is the default). Amounts are answered with min/max in validations.",
     )
+    countries: Optional[List[str]] = Field(
+        None,
+        min_length=1,
+        max_length=COUNTRIES_MAX,
+        description="An address question: the ISO 3166-1 alpha-2 codes of the countries "
+        "respondents may give (default: NL only).",
+    )
+    address_lookup: Optional[bool] = Field(
+        None,
+        description="An address question: fill in street and city from a Dutch "
+        "postcode and house number while the server offers it (default: yes).",
+    )
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
     logic: Optional[Logic] = None
     option_filter: Optional[OptionFilter] = Field(
@@ -685,6 +700,7 @@ class FormField(_Spec):
                     raise ValueError(f"'{code}' is not a currency the form offers.")
             if len(set(self.currencies)) != len(self.currencies):
                 raise ValueError("A currency is listed twice.")
+        check_countries(self.countries)
         check_tags_settings(self)
         return self
 

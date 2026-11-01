@@ -27,7 +27,9 @@ from backend.app.services.field_rules import (
 from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.services.image_urls import checked_image_url
 from backend.app.services.new_question_types import (
+    ADDRESS_TYPES,
     GATED_TYPES,
+    address_question_enabled,
     new_question_types_enabled,
 )
 from backend.app.services.option_logic import (
@@ -46,6 +48,7 @@ from backend.app.services.publish_checks import (
     publish_problems,
 )
 from backend.app.services.repeating_groups import (
+    ADDRESS_COMPARISONS,
     DATE_RANGE_COMPARISONS,
     TAGS_COMPARISONS,
 )
@@ -144,6 +147,7 @@ def _check_conditions(
         allowed = {
             "tags": TAGS_COMPARISONS,
             "date_range": DATE_RANGE_COMPARISONS,
+            "address": ADDRESS_COMPARISONS,
         }.get(str(getattr(source.type, "value", source.type)))
         comparison = str(getattr(condition.comparison, "value", condition.comparison))
         if allowed is not None and condition.comparison and comparison not in allowed:
@@ -387,6 +391,20 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
                         "switched off on this server: saving a new one, or changing "
                         "the settings of one, is refused. Questions the form "
                         "already has are kept.",
+                    )
+                )
+    if not address_question_enabled():
+        # a write with a new or changed address question is refused
+        # (422 address_question_disabled)
+        for path, field, _ in index.questions.values():
+            if str(getattr(field.type, "value", field.type)) in ADDRESS_TYPES:
+                warnings.append(
+                    _problem(
+                        f"{path}/type",
+                        "'address' questions are switched off on this server "
+                        "(ADDRESS_QUESTION_ENABLED): saving a new one, or "
+                        "changing the settings of one, is refused. Questions the "
+                        "form already has are kept.",
                     )
                 )
     if not field_rules_enabled():

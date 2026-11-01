@@ -17,6 +17,7 @@ import pytest
 
 from backend.app.exceptions import HTTPException
 from backend.app.public_api import auth as public_auth
+from backend.app.services.address_lookup.service import AddressLookupService
 from backend.app.services import unsplash_route
 from backend.app.services.ai import usage as ai_usage
 from backend.app.services.ai.usage import AIUsageGuard
@@ -230,6 +231,35 @@ async def test_flow_event_limits_are_read_per_call(monkeypatch, key, field, posi
         with pytest.raises(HTTPException):
             await service.record("ws", "form-1", SimpleNamespace(), None)
         assert limiter.calls[-1][position] == new, key
+
+
+# ------------------------------------------------------- address lookup
+
+
+@pytest.mark.parametrize(
+    "key, field, call, position",
+    [
+        ("API_ADDRESS_LOOKUP_PER_WINDOW", "ADDRESS_LOOKUP_PER_WINDOW", 0, 2),
+        ("API_ADDRESS_LOOKUP_WINDOW_SECONDS", "ADDRESS_LOOKUP_WINDOW_SECONDS", 0, 3),
+        ("API_ADDRESS_LOOKUP_FORM_PER_WINDOW", "ADDRESS_LOOKUP_FORM_PER_WINDOW", 1, 2),
+    ],
+)
+async def test_address_lookup_limits_are_read_per_call(monkeypatch, key, field, call, position):
+    monkeypatch.setattr(settings, "ADDRESS_QUESTION_ENABLED", True)
+    monkeypatch.setattr(settings, "ADDRESS_LOOKUP_ENABLED", True)
+    limiter = RecordingLimiter(ALLOW, DENY)
+    service = AddressLookupService(None, None, limiter)
+
+    async def servable(workspace_id, form_ref):
+        return SimpleNamespace(form_id="form-1", fields=frozenset({"ad"}))
+
+    monkeypatch.setattr(service, "_servable", servable)
+    for new in (8001, 8002):
+        _set(monkeypatch, settings.api_settings, field, new)
+        limiter.calls.clear()
+        with pytest.raises(HTTPException):
+            await service.lookup("ws", "form-1", "ad", "1015 CS", "12", None)
+        assert limiter.calls[call][position] == new, key
 
 
 # --------------------------------------------------------------- images

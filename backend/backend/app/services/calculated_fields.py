@@ -72,6 +72,7 @@ NOT_VARIABLES = {
     "payment",
     "tabular_input",
     "file_upload",
+    "address",
     "VIDEO_CONTENT",
     "IMAGE_CONTENT",
     "h1",

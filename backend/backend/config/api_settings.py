@@ -43,6 +43,12 @@ class ApiSettings(StoreBackedSettings):
     # client and form in each window; more answer 429 until the window ends.
     FLOW_EVENTS_PER_WINDOW: int = 120
     FLOW_EVENTS_WINDOW_SECONDS: int = 60
+    # The address lookup route (POST .../forms/{id}/address-lookup): requests
+    # per client and form, and per form for all clients together, in each
+    # window; more answer 429 with Retry-After until the window ends.
+    ADDRESS_LOOKUP_PER_WINDOW: int = 30
+    ADDRESS_LOOKUP_FORM_PER_WINDOW: int = 600
+    ADDRESS_LOOKUP_WINDOW_SECONDS: int = 60
     # Public REST API (/api/v1/public/v1): requests per API key in each
     # window; more answer 429 with Retry-After until the window ends. 0 = off.
     PUBLIC_API_REQUESTS_PER_WINDOW: int = 120

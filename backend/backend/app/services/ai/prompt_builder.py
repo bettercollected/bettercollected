@@ -298,14 +298,27 @@ _TYPES_WITHOUT_NEW = """phone_number, date, yes_no, multiple_choice, dropdown, r
 file_upload, text (a display-only statement), calculated (a computed value)."""
 
 
+_ADDRESS_TYPE = (
+    ", address (a postal address: street, house number, postcode, city, country; "
+    '"countries":["NL"] limits the countries, default NL only; "addressLookup": false '
+    "turns the street and city lookup off; a condition on it compares the postcode)"
+)
+
+
 def ops_guide() -> str:
     """OPS_GUIDE, without the newer question types while they are switched
-    off (services/new_question_types.py)."""
-    from backend.app.services.new_question_types import new_question_types_enabled
+    off, and with the address question only while its own switch is on
+    (services/new_question_types.py)."""
+    from backend.app.services.new_question_types import (
+        address_question_enabled,
+        new_question_types_enabled,
+    )
 
-    if new_question_types_enabled():
-        return OPS_GUIDE
-    return OPS_GUIDE.replace(_TYPES_WITH_NEW, _TYPES_WITHOUT_NEW)
+    types = _TYPES_WITH_NEW if new_question_types_enabled() else _TYPES_WITHOUT_NEW
+    guide = OPS_GUIDE.replace(_TYPES_WITH_NEW, types)
+    if address_question_enabled():
+        guide = guide.replace(types, types[:-1] + _ADDRESS_TYPE + ".")
+    return guide
 
 
 def _project_condition(c) -> dict:
