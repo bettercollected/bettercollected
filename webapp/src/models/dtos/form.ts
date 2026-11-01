@@ -342,6 +342,8 @@ export interface StandardFormResponseDto {
     createdAt: string | Date;
     updatedAt: string | Date;
     formImportedBy?: string;
+    /** Set when the response was imported from a CSV file (the id of the import). */
+    csvImportId?: string | null;
     /** Deletion request status (on deletion request lists): pending, success or declined. */
     status?: string;
     /** The deletion request's status on a single submission (GET /submissions/{id}): pending, success or declined. */

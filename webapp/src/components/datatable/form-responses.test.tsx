@@ -28,7 +28,8 @@ const server: {
     calls: any[];
     refetchCalls: any[];
     push: ReturnType<typeof vi.fn>;
-} = { items: [], error: false, errorBody: undefined, cappedAt: null, pending: false, pendingPages: new Set(), stale: null, lastData: undefined, answered: new Map(), calls: [], refetchCalls: [], push: vi.fn() };
+    permissions: any;
+} = { permissions: null, items: [], error: false, errorBody: undefined, cappedAt: null, pending: false, pendingPages: new Set(), stale: null, lastData: undefined, answered: new Map(), calls: [], refetchCalls: [], push: vi.fn() };
 
 // The URL: the list keeps page, size, sort and filters in it, so the router
 // and the search params are one small store, as in the app.
@@ -120,13 +121,14 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
         useDownloadResponseExportMutation: () => [vi.fn()],
         useDiscardResponseExportMutation: () => [vi.fn()],
         useLazyGetWorkspaceFormVersionQuery: () => [vi.fn()],
-        useGetWorkspacePermissionsQuery: () => ({ data: { permissions: [] }, isLoading: false, isError: false })
+        useGetWorkspacePermissionsQuery: () => ({ data: server.permissions ?? { permissions: [] }, isLoading: false, isError: false })
     };
 });
 
 import { FieldTypes } from '@app/models/dtos/form';
 import I18nProvider from '@app/shared/hocs/i18n-provider';
 import { setForm } from '@app/store/forms/slice';
+import { setAuth } from '@app/store/auth/slice';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
 import { forgetResponseList, rememberedNeighbours } from '@app/utils/response-list-memory';
@@ -1343,5 +1345,42 @@ describe('responses table: search and honest states', () => {
             const placeholders = (value: string) => (value.match(/{{\w+}}/g) ?? []).sort();
             Object.keys(en).forEach((key) => expect(placeholders(nl[key]), key).toEqual(placeholders(en[key])));
         });
+    });
+});
+
+describe('responses table: import responses from a CSV file', () => {
+    beforeEach(() => {
+        window.matchMedia = ((query: string) => ({ matches: false, media: query, addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false, onchange: null })) as any;
+        server.items = [item('r1', null, 'blue')];
+        server.error = false;
+        server.pending = false;
+        server.pendingPages = new Set();
+        server.stale = null;
+        server.lastData = undefined;
+        server.answered = new Map();
+        forgetResponseList();
+        store.dispatch(setAuth({ id: 'user-1' }));
+        store.dispatch(setWorkspace({ id: 'workspace-1', workspaceName: 'acme' } as any));
+        store.dispatch(setForm({ formId: 'form-1', title: 'Colours', responses: 1, deletionRequests: 0, version: 1, builderVersion: 'v1', settings: { provider: 'google' }, fields: [FIELD] } as any));
+    });
+    afterEach(() => {
+        server.permissions = null;
+        store.dispatch(setAuth({ id: '' }));
+    });
+
+    it('offers it with response.import and the server switch on', () => {
+        server.permissions = { permissions: ['response.import'], csvImportEnabled: true };
+        renderTable();
+        expect(screen.getByRole('button', { name: 'Import responses' })).toBeInTheDocument();
+    });
+
+    it('offers nothing while the switch is off, or without the permission', () => {
+        server.permissions = { permissions: ['response.import'], csvImportEnabled: false };
+        const first = renderTable();
+        expect(screen.queryByRole('button', { name: 'Import responses' })).toBeNull();
+        first.unmount();
+        server.permissions = { permissions: ['response.export'], csvImportEnabled: true };
+        renderTable();
+        expect(screen.queryByRole('button', { name: 'Import responses' })).toBeNull();
     });
 });

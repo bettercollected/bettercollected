@@ -21,6 +21,7 @@ import { formFormatLanguage, responsePageUrl } from '@app/utils/response-page';
 import { DISPLAY_LIST_SEPARATOR, getAnswerDisplayText, getAnswerForField, getFormFields, getTitleForHeader, mergeFieldsAcrossVersions } from '@app/utils/form-builder-block-utils';
 import { getInternalAnswerText, getInternalColumnTitle, getInternalFields } from '@app/utils/internal-fields';
 import AnonymousBadge from '@Components/datatable/anonymous-badge';
+import ImportedBadge from '@Components/response-import/imported-badge';
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import ResponseCards from '@Components/datatable/response-cards';
 import { ExpandIcon } from '@Components/icons/expanded-icon';
@@ -103,6 +104,7 @@ export default function TabularResponses({ form, data }: TabularResponsesProps) 
             ) : (
                 <AnonymousBadge />
             )}
+            {response?.csvImportId && <ImportedBadge />}
             <span className="text-black-600 text-[10px] font-normal">{utcToLocalDateTimeIn(response?.createdAt, i18n.language)}</span>
         </div>
     );

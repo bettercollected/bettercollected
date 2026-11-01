@@ -15,6 +15,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import EmptyResponseIcon from '@Components/icons/expty-response-icon';
+import ResponseImportControl from '../response-import/response-import-control';
 import ResponseExportControl, { ExportFilters } from './response-export-control';
 import ResponsesTable from './responses-table';
 //@ts-ignore
@@ -129,8 +130,10 @@ export default function FormResponsesTable({ props }: any) {
 
     const { data, currentData, isLoading, isFetching, isError, error, refetch } = useGetFormsSubmissionsQuery(query, { skip: !workspace?.id || restoring });
     const errorCode = (error as { data?: { code?: string } } | undefined)?.data?.code;
-    const { can } = useWorkspacePermissions();
+    const { can, csvImportEnabled } = useWorkspacePermissions();
     const canExport = can(WorkspacePermission.RESPONSE_EXPORT);
+    // import needs the server's switch and response.import (Owner and Admin)
+    const canImport = csvImportEnabled && can(WorkspacePermission.RESPONSE_IMPORT);
 
     const handleSearch = useCallback(
         (event: any) => {
@@ -310,7 +313,15 @@ export default function FormResponsesTable({ props }: any) {
             />
         </div>
     ) : null;
-    const exportNode = isSubmission && canExport ? <ResponseExportControl workspaceId={workspace?.id} formId={form.formId} formTitle={form.title} search={searchText} filters={exportFilters} /> : null;
+    const exportControl = isSubmission && canExport ? <ResponseExportControl workspaceId={workspace?.id} formId={form.formId} formTitle={form.title} search={searchText} filters={exportFilters} /> : null;
+    const importControl = isSubmission && canImport ? <ResponseImportControl workspaceId={workspace?.id} formId={form.formId} /> : null;
+    const exportNode =
+        exportControl || importControl ? (
+            <div className="flex flex-wrap items-start gap-2 sm:justify-end">
+                {importControl}
+                {exportControl}
+            </div>
+        ) : null;
 
     return (
         <div>

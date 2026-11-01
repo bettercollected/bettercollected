@@ -63,5 +63,7 @@ export function useWorkspacePermissions() {
     const layoutContainersEnabled = !!userId && !isError && !!data?.layoutContainersEnabled;
     // ...and whether it lets respondents save drafts (its SAVE_DRAFTS_ENABLED): the setting is read-only while it is off.
     const saveDraftsEnabled = !!userId && !isError && !!data?.saveDraftsEnabled;
-    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, layoutContainersEnabled, saveDraftsEnabled };
+    // ...and importing responses from a CSV file (its CSV_IMPORT_ENABLED): the responses screen offers it from it.
+    const csvImportEnabled = !!userId && !isError && !!data?.csvImportEnabled;
+    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, layoutContainersEnabled, saveDraftsEnabled, csvImportEnabled };
 }
