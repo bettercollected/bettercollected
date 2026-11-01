@@ -11,6 +11,7 @@ import { toast } from '@app/shadcn/components/ui/use-toast';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useInsertTarget } from '@app/store/jotai/insert-target';
+import { containerOfField } from '@app/utils/layout-containers';
 
 /** Is focus somewhere typing goes: a text field, a select or a rich-text editor? */
 export function isTypingTarget(target: EventTarget | null): boolean {
@@ -89,7 +90,7 @@ export function useBuilderShortcuts({ openHelp }: { openHelp: () => void }) {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     const { setInsertTarget } = useInsertTarget();
     // The newer question types cannot be copied while the server does not take them (a copy is a new question there).
-    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
+    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, layoutContainersEnabled } = useWorkspacePermissions();
 
     // One window listener; after each render it is handed the current
     // selection and the actions over the current builder state.
@@ -129,6 +130,10 @@ export function useBuilderShortcuts({ openHelp }: { openHelp: () => void }) {
                 if (fieldIndex < 0) return;
                 if (typeIsOff(fields[fieldIndex]?.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled })) {
                     toast({ description: i18n.t('builder:NEW_TYPES.CANNOT_COPY') });
+                    return;
+                }
+                if (!layoutContainersEnabled && containerOfField(slide, fields[fieldIndex].id)) {
+                    toast({ description: i18n.t('builder:LAYOUT.CANNOT_COPY_QUESTION') });
                     return;
                 }
                 duplicateField(slideIndex, fieldIndex);
@@ -173,16 +178,16 @@ export function useBuilderShortcuts({ openHelp }: { openHelp: () => void }) {
 }
 
 /** The shortcuts the help popover lists. */
-export const BUILDER_SHORTCUTS: Array<{ keys: string[]; label: string }> = [
-    { keys: ['/'], label: 'Insert a field (on the canvas, or in an empty question or text block)' },
-    { keys: ['Ctrl/⌘', 'K'], label: 'Insert a field after the selected question' },
-    { keys: ['Alt', '↑'], label: 'Move the selected question up' },
-    { keys: ['Alt', '↓'], label: 'Move the selected question down' },
-    { keys: ['Ctrl/⌘', 'D'], label: 'Duplicate the selected question' },
-    { keys: ['Delete'], label: 'Delete the selected question (Undo in the message)' },
-    { keys: ['Ctrl/⌘', 'Alt', '↑'], label: 'Previous page' },
-    { keys: ['Ctrl/⌘', 'Alt', '↓'], label: 'Next page' },
-    { keys: ['Ctrl/⌘', 'Z'], label: 'Undo' },
-    { keys: ['Ctrl/⌘', 'Shift', 'Z'], label: 'Redo' },
-    { keys: ['?'], label: 'Show these shortcuts' }
+export const BUILDER_SHORTCUTS: Array<{ keys: string[]; label: string; labelKey: string }> = [
+    { keys: ['/'], label: 'Insert a field (on the canvas, or in an empty question or text block)', labelKey: 'SHORTCUTS.INSERT_SLASH' },
+    { keys: ['Ctrl/⌘', 'K'], label: 'Insert a field after the selected question', labelKey: 'SHORTCUTS.INSERT_AFTER' },
+    { keys: ['Alt', '↑'], label: 'Move the selected question up', labelKey: 'SHORTCUTS.MOVE_UP' },
+    { keys: ['Alt', '↓'], label: 'Move the selected question down', labelKey: 'SHORTCUTS.MOVE_DOWN' },
+    { keys: ['Ctrl/⌘', 'D'], label: 'Duplicate the selected question', labelKey: 'SHORTCUTS.DUPLICATE' },
+    { keys: ['Delete'], label: 'Delete the selected question (Undo in the message)', labelKey: 'SHORTCUTS.DELETE' },
+    { keys: ['Ctrl/⌘', 'Alt', '↑'], label: 'Previous page', labelKey: 'SHORTCUTS.PREV_PAGE' },
+    { keys: ['Ctrl/⌘', 'Alt', '↓'], label: 'Next page', labelKey: 'SHORTCUTS.NEXT_PAGE' },
+    { keys: ['Ctrl/⌘', 'Z'], label: 'Undo', labelKey: 'SHORTCUTS.UNDO' },
+    { keys: ['Ctrl/⌘', 'Shift', 'Z'], label: 'Redo', labelKey: 'SHORTCUTS.REDO' },
+    { keys: ['?'], label: 'Show these shortcuts', labelKey: 'SHORTCUTS.HELP' }
 ];

@@ -1,5 +1,7 @@
 import type { Draft } from 'immer';
 
+import { containersOf, joinByPosition } from '@app/utils/layout-containers';
+
 import type { FieldPath } from '../date-rules';
 import type { FieldLocation } from '../model';
 import type { ApplyOptions, FormDoc, FormField } from '../types';
@@ -116,4 +118,16 @@ export function setFields(owner: Draft<FormField>, items: readonly any[]): void 
 /** Draft of the page or group holding a located question. */
 export function draftOwner(draft: Draft<FormDoc>, location: FieldLocation): Draft<FormField> {
     return location.parent ? draftAt(draft, [location.pagePos, location.parentPos]) : draft.fields![location.pagePos];
+}
+
+/**
+ * After a question was put into a page's list (added or moved there): it
+ * joins the container it sits inside of, and leaves any other (see
+ * `joinByPosition`). `list` is the page's new list of questions.
+ */
+export function joinInPage(ctx: OpContext, pagePos: number, list: readonly FormField[], fieldId: string): void {
+    const page = ctx.state.fields![pagePos];
+    if (!containersOf(page).length) return;
+    const containers = joinByPosition({ ...page, properties: { ...page.properties, fields: list as FormField[] } }, fieldId);
+    setKey(ensureProperties(ctx.draft.fields![pagePos]), 'containers', containers as any);
 }

@@ -2,6 +2,8 @@
 
 import { useRef, useState } from 'react';
 
+import { Trans, useTranslation } from 'react-i18next';
+
 import { AlertTriangle, Pencil, Plus, Trash2 } from 'lucide-react';
 
 import { FormTheme, ThemeColors } from '@app/constants/theme';
@@ -44,6 +46,7 @@ export default function ThemesPage() {
     const [contrastBlocked, setContrastBlocked] = useState(false);
     const guardRef = useRef<HTMLDivElement>(null);
     const { t } = useBuilderTranslation();
+    const { t: tc } = useTranslation();
     const edit = (next: NonNullable<Editing>) => {
         setContrastBlocked(false);
         setEditing(next);
@@ -64,7 +67,7 @@ export default function ThemesPage() {
             toast({ description: t('THEME.CONTRAST_SAVE_BLOCKED'), variant: 'destructive' });
             return false;
         }
-        toast({ description: 'Could not save your themes. Please try again.', variant: 'destructive' });
+        toast({ description: tc('STAFF.THEMES.SAVE_FAILED'), variant: 'destructive' });
         return false;
     };
 
@@ -72,12 +75,12 @@ export default function ThemesPage() {
         if (!editing) return;
         const name = editing.draft.title.trim();
         if (!name) {
-            setNameError('Give this theme a name.');
+            setNameError(tc('STAFF.THEMES.NAME_REQUIRED'));
             return;
         }
         const clash = savedThemes.some((theme, idx) => idx !== editing.index && theme.title.trim().toLowerCase() === name.toLowerCase());
         if (clash) {
-            setNameError('You already have a theme with this name.');
+            setNameError(tc('STAFF.THEMES.NAME_CLASH'));
             return;
         }
         // A theme that fails AA contrast is never saved: the guard shows the
@@ -89,7 +92,7 @@ export default function ThemesPage() {
         }
         const draft = { ...editing.draft, title: name };
         const nextList = editing.index === 'new' ? [...savedThemes, draft] : savedThemes.map((theme, idx) => (idx === editing.index ? draft : theme));
-        if (await saveThemes(nextList, editing.index === 'new' ? 'Theme saved' : 'Theme updated')) {
+        if (await saveThemes(nextList, editing.index === 'new' ? tc('STAFF.THEMES.SAVED') : tc('STAFF.THEMES.UPDATED'))) {
             setEditing(null);
             setNameError('');
         }
@@ -97,15 +100,15 @@ export default function ThemesPage() {
 
     const handleDelete = (index: number) => {
         openModal('DELETE_CONFIRMATION', {
-            headerTitle: 'Delete theme',
-            positiveText: 'Delete',
-            title: 'Delete ' + savedThemes[index].title,
+            headerTitle: tc('STAFF.THEMES.DELETE_HEADER'),
+            positiveText: tc('BUTTON.DELETE'),
+            title: tc('STAFF.THEMES.DELETE_TITLE', { name: savedThemes[index].title }),
             handleDelete: () => {
                 // Colours are stored inline on each form, so deleting a saved
                 // theme never changes an already-styled form.
                 saveThemes(
                     savedThemes.filter((_, idx) => idx !== index),
-                    'Theme deleted'
+                    tc('STAFF.THEMES.DELETED')
                 );
             }
         });
@@ -114,14 +117,14 @@ export default function ThemesPage() {
     return (
         <div className="flex w-full max-w-[1200px] flex-col gap-10 px-5 py-6 lg:px-10">
             <p className="text-black-600 max-w-[62ch] text-sm leading-relaxed">
-                Palettes for your forms. Save your own to reuse brand colours across the workspace, or start from a preset — apply either from the <span className="text-black-800 font-medium">Design</span> tab in the form builder.
+                <Trans t={tc} i18nKey="STAFF.THEMES.INTRO" components={{ 1: <span className="text-black-800 font-medium" /> }} />
             </p>
 
             {canManageWorkspace && (
                 <section className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1">
-                        <h2 className="text-black-900 text-base font-semibold">Your themes</h2>
-                        <p className="text-black-600 text-sm">Saved for everyone in this workspace. Deleting one never changes forms already using it.</p>
+                        <h2 className="text-black-900 text-base font-semibold">{tc('STAFF.THEMES.YOURS')}</h2>
+                        <p className="text-black-600 text-sm">{tc('STAFF.THEMES.YOURS_HINT')}</p>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -139,7 +142,7 @@ export default function ThemesPage() {
                                     <span className="flex shrink-0 items-center gap-1">
                                         <button
                                             type="button"
-                                            aria-label={`Edit ${theme.title}`}
+                                            aria-label={tc('STAFF.THEMES.EDIT_ARIA', { name: theme.title })}
                                             onClick={() => {
                                                 setNameError('');
                                                 edit({ index, draft: { ...theme } });
@@ -148,7 +151,7 @@ export default function ThemesPage() {
                                         >
                                             <Pencil className="h-3.5 w-3.5" />
                                         </button>
-                                        <button type="button" aria-label={`Delete ${theme.title}`} onClick={() => handleDelete(index)} className="text-black-600 rounded p-1.5 transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]">
+                                        <button type="button" aria-label={tc('STAFF.THEMES.DELETE_ARIA', { name: theme.title })} onClick={() => handleDelete(index)} className="text-black-600 rounded p-1.5 transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]">
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </button>
                                     </span>
@@ -165,22 +168,22 @@ export default function ThemesPage() {
                             className="border-black-400 text-black-600 hover:border-brand-400 hover:text-brand-600 flex min-h-[120px] flex-col items-center justify-center gap-2 rounded border border-dashed bg-white text-sm font-medium transition-colors"
                         >
                             <Plus className="h-5 w-5" />
-                            New theme
+                            {tc('STAFF.THEMES.NEW')}
                         </button>
                     </div>
 
                     {editing && (
                         <div className="border-black-300 flex max-w-[540px] flex-col gap-5 rounded border bg-white p-5">
-                            <h3 className="text-black-900 text-sm font-semibold">{editing.index === 'new' ? 'New theme' : `Edit ${savedThemes[editing.index as number]?.title}`}</h3>
+                            <h3 className="text-black-900 text-sm font-semibold">{editing.index === 'new' ? tc('STAFF.THEMES.NEW') : tc('STAFF.THEMES.EDITING', { name: savedThemes[editing.index as number]?.title })}</h3>
 
                             <div className="flex flex-col gap-2">
                                 <label htmlFor="theme-name" className="text-black-700 text-sm font-medium">
-                                    Name
+                                    {tc('STAFF.THEMES.NAME')}
                                 </label>
                                 <AppInput
                                     id="theme-name"
                                     value={editing.draft.title}
-                                    placeholder="e.g. Acme brand"
+                                    placeholder={tc('STAFF.THEMES.NAME_PLACEHOLDER')}
                                     className={`text-sm! ${nameError ? 'border-[#C43D3D]!' : ''}`}
                                     onChange={(e) => {
                                         setNameError('');
@@ -193,12 +196,12 @@ export default function ThemesPage() {
                             <div className="flex flex-col gap-2.5">
                                 {THEME_ROLE_FIELDS.map((field) => (
                                     <div key={field.key} className="flex items-center justify-between gap-3">
-                                        <span className="text-black-700 text-sm">{field.label}</span>
+                                        <span className="text-black-700 text-sm">{t(field.labelKey)}</span>
                                         <span className="flex items-center gap-2">
                                             <span className="text-black-600 text-xs uppercase tabular-nums">{editing.draft[field.key]}</span>
                                             <input
                                                 type="color"
-                                                aria-label={field.label}
+                                                aria-label={t(field.labelKey)}
                                                 value={editing.draft[field.key]}
                                                 onChange={(e) => edit({ ...editing, draft: { ...editing.draft, [field.key]: e.target.value } })}
                                                 className="border-black-300 h-8 w-10 cursor-pointer rounded border bg-white p-0.5"
@@ -215,7 +218,7 @@ export default function ThemesPage() {
                             <ThemeBackgroundEditor theme={editing.draft} onChange={(background) => edit({ ...editing, draft: { ...editing.draft, background } })} />
 
                             <div className="rounded-lg">
-                                <div className="text-black-600 mb-1.5 text-xs font-medium uppercase tracking-wide">Preview</div>
+                                <div className="text-black-600 mb-1.5 text-xs font-medium uppercase tracking-wide">{tc('STAFF.THEMES.PREVIEW')}</div>
                                 <div className="border-black-300 overflow-hidden rounded-lg border">
                                     <ThemePreview color={editing.draft} />
                                 </div>
@@ -230,7 +233,7 @@ export default function ThemesPage() {
 
                             <div className="flex items-center gap-3">
                                 <Button size="sm" variant="primary" isLoading={isLoading} onClick={handleSaveDraft}>
-                                    {editing.index === 'new' ? 'Save theme' : 'Save changes'}
+                                    {editing.index === 'new' ? tc('STAFF.THEMES.SAVE_NEW') : tc('STAFF.THEMES.SAVE_CHANGES')}
                                 </Button>
                                 <Button
                                     size="sm"
@@ -240,7 +243,7 @@ export default function ThemesPage() {
                                         setNameError('');
                                     }}
                                 >
-                                    Cancel
+                                    {tc('BUTTON.CANCEL')}
                                 </Button>
                             </div>
                         </div>
@@ -250,8 +253,8 @@ export default function ThemesPage() {
 
             <section className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1">
-                    <h2 className="text-black-900 text-base font-semibold">Presets</h2>
-                    <p className="text-black-600 text-sm">Ready-made palettes. Every preset meets WCAG AA contrast for questions, buttons and inputs.</p>
+                    <h2 className="text-black-900 text-base font-semibold">{tc('STAFF.THEMES.PRESETS')}</h2>
+                    <p className="text-black-600 text-sm">{tc('STAFF.THEMES.PRESETS_HINT')}</p>
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {ThemeColors.map((theme) => (

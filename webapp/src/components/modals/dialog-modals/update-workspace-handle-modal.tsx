@@ -48,7 +48,7 @@ export default function UpdateWorkspaceHandle() {
             } else if (!updateText.match(/^(?![_-])(?!.*[_-]{2})[a-zA-Z0-9_-]+(?![_-])$/)) {
                 setErrorMessage(t(onBoarding.allowedCharacters));
             } else if (checkIfPredefinedWorkspaceName(updateText)) {
-                setErrorMessage('It is predefined name. Please use another one.');
+                setErrorMessage(t('STAFF.WORKSPACE.PREDEFINED_USE_OTHER'));
             }
             setError(true);
         } else {
@@ -81,10 +81,10 @@ export default function UpdateWorkspaceHandle() {
         }
     };
     return (
-        <HeaderModalWrapper headerTitle="Update Workspace handle">
+        <HeaderModalWrapper headerTitle={t('STAFF.WORKSPACE.HANDLE_MODAL_HEADER')}>
             <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
-                <div className="h4-new">Enter Slug</div>
-                <div className="p2-new text-black-700">Avoid using spaces or special characters. Only “-” and “_” is accepted.</div>
+                <div className="h4-new">{t('STAFF.WORKSPACE.ENTER_SLUG')}</div>
+                <div className="p2-new text-black-700">{t('STAFF.WORKSPACE.SLUG_RULES')}</div>
                 <div className="p2-new">
                     {window.PUBLIC_CONFIG?.HTTP_SCHEME}
                     {window.PUBLIC_CONFIG?.FORM_DOMAIN}/<span className="p2-new text-pink">{updateText}</span>

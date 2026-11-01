@@ -235,3 +235,46 @@ describe('nextPageAfter and walkReviewPath', () => {
         expect(walkReviewPath({ slides, answers: answers('go'), path: [0, 1, 2], states: NO_RULES })).toEqual({ kind: 'fix', path: [0, 1], page: 2 });
     });
 });
+
+describe('reviewSections with layout containers', () => {
+    const rule = { action: 'HIDE', operator: LogicalOperator.AND, conditions: [{ fieldId: 'gate', fieldType: 'short_text', comparison: 'IS_EQUAL', value: 'skip' }] } as any;
+    const slides = [
+        page(
+            's1',
+            0,
+            [q('gate', FieldTypes.SHORT_TEXT, 'Gate'), q('a', FieldTypes.SHORT_TEXT, 'Street'), q('b', FieldTypes.SHORT_TEXT, 'City'), q('c', FieldTypes.SHORT_TEXT, 'Phone'), q('d', FieldTypes.SHORT_TEXT, 'Mobile'), q('e', FieldTypes.SHORT_TEXT, 'After')],
+            {
+                containers: [
+                    { id: 'c1', type: 'panel', title: 'Address', fields: ['a', 'b'], logic: rule },
+                    {
+                        id: 'c2',
+                        type: 'tabs',
+                        tabs: [
+                            { id: 't1', title: 'Home', fields: ['c'] },
+                            { id: 't2', title: 'Work', fields: ['d'] }
+                        ]
+                    }
+                ]
+            }
+        )
+    ];
+    const input = (answers: Record<string, any>) => ({ slides, answers, path: [0], states: NO_RULES, language: 'en' as const, t });
+    const headings = (sections: ReturnType<typeof reviewSections>) => sections.flatMap((s) => s.questions.map((qn) => [qn.title, qn.heading]));
+
+    it('lists the questions flat, in order, and heads each run with the container (or tab) title', () => {
+        const sections = reviewSections(input({ gate: text('go'), a: text('Main St'), c: text('1'), d: text('2'), e: text('x') }));
+        expect(headings(sections)).toEqual([
+            ['Gate', undefined],
+            ['Street', 'Address'],
+            ['City', undefined],
+            ['Phone', 'Home'],
+            ['Mobile', 'Work'],
+            ['After', null]
+        ]);
+    });
+
+    it('leaves out the questions of a container its rule hides', () => {
+        const sections = reviewSections(input({ gate: text('skip'), a: text('Main St'), c: text('1') }));
+        expect(headings(sections).map(([title]) => title)).toEqual(['Gate', 'Phone', 'Mobile', 'After']);
+    });
+});

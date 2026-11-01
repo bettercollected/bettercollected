@@ -16,6 +16,15 @@
 @import 'tailwindcss/preflight.css' layer(base);
 
 /*
+ * The enter and exit animations of the shadcn components (`animate-in`,
+ * `fade-in-0`, `zoom-in-95`, `slide-in-from-*`, ... in shadcn/components/ui):
+ * Tailwind 4 has none of them itself, `tw-animate-css` (the replacement for
+ * the retired tailwindcss-animate) provides them. Reduced motion is handled
+ * below, in the "Overlay animations" block.
+ */
+@import 'tw-animate-css';
+
+/*
  * Class sources: the app's code only (js/ts/jsx/tsx/mdx under src), as the
  * Tailwind 3 `content` setting had it. Automatic detection is off (`source(none)` on
  * `@tailwind utilities` below) so words in translations, docs or public/ don't
@@ -911,7 +920,9 @@ input[type='number']::-webkit-outer-spin-button {
  * - titleWidth expanded: display titles (h1, `form-display-title`) at 125%,
  *   on a face with a width axis (Archivo); others have none and stay normal;
  * - dataFont: `font-mono` text (the submission number);
- * - highlight: the "optional" note (`form-note-accent`).
+ * - the muted notes beside a question ("Optional", "Read only", `form-note-accent`) wear
+ *   `--form-muted-ink`, derived from the theme (mutedLabelInk in utils/theme-contrast.ts);
+ * - highlight: the same notes, when the theme has one.
  * bodyFont sets --font-form itself, which the `font-form` utility reads.
  */
 [data-form-title-font] :is(h1, .form-title-face, .form-text-block :is(h2, h3)) {
@@ -924,6 +935,10 @@ input[type='number']::-webkit-outer-spin-button {
 
 [data-form-data-font] .font-mono {
     font-family: var(--form-font-data);
+}
+
+.form-note-accent {
+    color: var(--form-muted-ink, var(--color-black-700));
 }
 
 [data-form-highlight] .form-note-accent {
@@ -989,6 +1004,27 @@ input[type='number']::-webkit-outer-spin-button {
 @media (prefers-reduced-motion: reduce) {
     [data-form-buttons='outlined'] .form-button {
         transition: none;
+    }
+}
+
+/*
+ * Overlay animations (dialogs, sheets, menus, popovers, select lists: the
+ * `animate-in` / `animate-out` classes of tw-animate-css). Respondents who ask
+ * for reduced motion get no animation at all; the overlay simply appears and
+ * goes (with `animation: none` a Radix Presence unmounts at once instead of
+ * waiting for an animation that never runs).
+ * `--spacing` is the unit tw-animate-css's `slide-*-N` distances multiply; the
+ * theme above has an explicit scale and no such multiplier, and a plain
+ * variable here does not make Tailwind generate any spacing class.
+ */
+:root {
+    --spacing: 0.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [class*='animate-in'],
+    [class*='animate-out'] {
+        animation: none !important;
     }
 }
 

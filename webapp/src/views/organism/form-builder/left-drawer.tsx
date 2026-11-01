@@ -204,6 +204,10 @@ const outlineEndingsAtom = atom((get) => {
 
 /** What a page's outline row shows that depends on its questions. */
 interface OutlinePageView {
+    /** First member of each container (or tab) -> what to call the group it starts: [kind, title]. */
+    groupStarts: Record<string, [string, string]>;
+    /** Ids of the questions that are in a container. */
+    grouped: string[];
     count: number;
     sectionTitle: string;
     status: PageStatus;
@@ -219,7 +223,16 @@ function outlinePageViewAtom(id: string): Atom<OutlinePageView | null> {
         const view = atom((get): OutlinePageView | null => {
             const page = get(pageAtom(id));
             if (!page) return null;
-            return { count: page.properties?.fields?.length ?? 0, sectionTitle: page.properties?.sectionTitle ?? '', status: pageStatus(page, new Set(get(pageIdsAtom)), get(outlineEndingsAtom)) };
+            const groupStarts: Record<string, [string, string]> = {};
+            const grouped: string[] = [];
+            for (const container of page.properties?.containers ?? []) {
+                for (const tab of container.type === 'tabs' ? (container.tabs ?? []) : [container]) {
+                    const ids = tab.fields ?? [];
+                    grouped.push(...ids);
+                    if (ids[0]) groupStarts[ids[0]] = [container.type, tab.title ?? ''];
+                }
+            }
+            return { groupStarts, grouped, count: page.properties?.fields?.length ?? 0, sectionTitle: page.properties?.sectionTitle ?? '', status: pageStatus(page, new Set(get(pageIdsAtom)), get(outlineEndingsAtom)) };
         });
         cached = selectAtom(view, (value) => value, jsonEqual);
         pageViewAtoms.set(id, cached);
@@ -251,9 +264,15 @@ const OutlineQuestionRow = memo(function OutlineQuestionRow({
     selected,
     filtering,
     aiMark,
+    groupStart,
+    grouped,
     onSelectQuestion,
     onMenuMoved
 }: {
+    /** This question starts a panel, field set or tab: its kind and title. */
+    groupStart?: [string, string];
+    /** It is in a container: drawn indented. */
+    grouped?: boolean;
     fieldId: string;
     pageId: string;
     pageIndex: number;
@@ -274,7 +293,12 @@ const OutlineQuestionRow = memo(function OutlineQuestionRow({
     const title = fieldText(field);
     const missingWhy = !field.internal && asksForIdentity(field) && !field.properties?.whyWeAsk?.trim();
     return (
-        <li>
+        <li className={cn(grouped && 'border-black-300 ml-2 border-l pl-1')}>
+            {groupStart && (
+                <p className="text-black-600 truncate px-1 pt-1 text-[11px] font-semibold">
+                    {t(groupStart[0] === 'fieldset' ? 'LAYOUT.FIELDSET' : groupStart[0] === 'tabs' ? 'LAYOUT.TABS' : 'LAYOUT.PANEL')} · {groupStart[1]}
+                </p>
+            )}
             <SortableRow id={qKey} label={`question ${title}`} disabled={filtering} selected={selected}>
                 {(handle) => (
                     <>
@@ -405,6 +429,8 @@ const OutlinePage = memo(function OutlinePage({
                     {questionIds.map((fieldId) => (
                         <OutlineQuestionRow
                             key={fieldId}
+                            groupStart={view.groupStarts[fieldId]}
+                            grouped={view.grouped.includes(fieldId)}
                             fieldId={fieldId}
                             pageId={pageId}
                             pageIndex={index}

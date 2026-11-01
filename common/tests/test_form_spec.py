@@ -297,6 +297,7 @@ def test_every_stored_property_is_covered_or_excluded_on_purpose():
     covered_properties = {
         "logic",
         "jumps",
+        "containers",
         "position",
         "choices",
         "fields",

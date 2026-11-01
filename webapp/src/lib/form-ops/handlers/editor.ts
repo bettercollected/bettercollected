@@ -43,7 +43,7 @@ import {
     withoutNulls
 } from '../model';
 import type { AddChoiceOp, ApplyOptions, FormDoc, FormField, InsertFieldOp, InsertPageOp, MoveChoiceOp, RemoveChoiceOp, ReplaceFieldOp, SetChoiceOp, SetHiddenFieldsOp, UpdateLogoOp, UpdatePageOp, UpdateWelcomePageOp } from '../types';
-import { type Handler, type OpContext, draftField, droppedHiddenReferencesNote, droppedReferencesNote, droppedRulesNote, ensureProperties, insertedAt, setFields, setKey } from './context';
+import { type Handler, type OpContext, draftField, droppedHiddenReferencesNote, droppedReferencesNote, droppedRulesNote, ensureProperties, insertedAt, joinInPage, setFields, setKey } from './context';
 import { checkedPattern, repeatProblems } from './fields';
 
 /** A rich-text title, serialised: at most this many characters, nested at most this deep. */
@@ -429,6 +429,7 @@ export const insertField: Handler<InsertFieldOp> = (ctx, op) => {
     const problem = newProblem(ctx.state, withList(ctx.state, pagePos, groupPos, list));
     if (problem) throw new OpError(problem);
     setFields(ownerDraft(ctx, pagePos, groupPos), list);
+    if (groupPos === null) joinInPage(ctx, pagePos, list, field.id);
     ctx.noteCreated(field.id);
     return `Inserted '${titleText(field)}' (${field.type}) into ${where}`;
 };

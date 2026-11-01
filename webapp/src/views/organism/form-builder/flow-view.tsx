@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { skipToken } from '@reduxjs/toolkit/query/react';
 
 import { pageHoldsGatedQuestion } from '@app/lib/form-ops/new-question-types';
+import { pageHasContainers } from '@app/utils/layout-containers';
 import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { FieldTypes, V2InputFields } from '@app/models/dtos/form';
@@ -115,6 +116,11 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                     {data.questionCount} question{data.questionCount === 1 ? '' : 's'}
                 </span>
                 {data.showHideCount > 0 && <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium">{data.showHideCount} show/hide</span>}
+                {data.containersCount > 0 && (
+                    <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium" data-testid="flow-containers-badge">
+                        {t('LAYOUT.FLOW_BADGE', { count: data.containersCount })}
+                    </span>
+                )}
                 {data.rulesCount > 0 && (
                     <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium" data-testid="flow-rules-badge">
                         {t('FIELD_RULES.FLOW_BADGE', { count: data.rulesCount })}
@@ -273,7 +279,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const [showInsights, setShowInsights] = useState(false);
     const workspace = useAppSelector(selectWorkspace);
     const standardForm = useAppSelector(selectForm);
-    const { can, newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
+    const { can, newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, layoutContainersEnabled } = useWorkspacePermissions();
     const insightsTarget = !showInsights || !workspace?.id || !standardForm?.formId ? null : { workspaceId: workspace.id, formId: standardForm.formId };
     const { data: paths, isFetching: pathsFetching } = useGetFormSubmissionPathsQuery(insightsTarget ? { ...insightsTarget, savedAt: autosaveStatus.savedAt } : skipToken, {
         skip: !can(WorkspacePermission.RESPONSE_READ)
@@ -289,7 +295,9 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const selectedIndex = slides.findIndex((s) => s.id === selectedId);
     const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : undefined;
     // A copy of a page with a time, day or currency question holds new ones: not while the server does not take them.
-    const cannotCopyPage = pageHoldsGatedQuestion(selectedSlide, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled });
+    // (a page with layout containers cannot be copied either while the server does not take them)
+    const copyBlockedByLayout = !layoutContainersEnabled && pageHasContainers(selectedSlide);
+    const cannotCopyPage = copyBlockedByLayout || pageHoldsGatedQuestion(selectedSlide, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled });
 
     // Click-to-connect: click a right dot to start a jump FROM that page (then
     // click any destination node), or a left dot to start one INTO it (then
@@ -383,6 +391,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 questions: (slide.properties?.fields ?? []).slice(1, 3).map((f) => fieldText(f)),
                 moreCount: Math.max(0, (slide.properties?.fields?.length ?? 0) - 3),
                 showHideCount: slide.properties?.fields?.filter((f) => fieldHasLogic(f)).length ?? 0,
+                containersCount: slide.properties?.containers?.length ?? 0,
                 rulesCount: (slide.properties?.fields ?? []).reduce((count, f) => count + ((f.properties?.rules?.length ?? 0) > 0 ? 1 : 0) + (f.properties?.fields ?? []).filter((child) => (child.properties?.rules?.length ?? 0) > 0).length, 0),
                 brokenCount: ((slide.properties?.jumps as PageJump[] | undefined) ?? []).filter((j) => j?.conditions?.length && !jumpTargetNode(j)).length,
                 visits: traffic ? traffic.nodeVisits.get(slide.id) ?? 0 : undefined,
@@ -475,7 +484,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         () =>
             JSON.stringify(
                 [
-                    slides.map((s, i) => [s.id, pageLabel(s, i), s.properties?.fields?.length, s.properties?.position, s.properties?.jumps, s.properties?.fields?.map((f) => !!f.properties?.logic), s.properties?.fields?.map((f) => [f.properties?.rules?.length ?? 0, f.properties?.fields?.map((child) => child.properties?.rules?.length ?? 0)])]),
+                    slides.map((s, i) => [s.id, pageLabel(s, i), s.properties?.fields?.length, s.properties?.position, s.properties?.jumps, s.properties?.containers?.length, s.properties?.fields?.map((f) => !!f.properties?.logic), s.properties?.fields?.map((f) => [f.properties?.rules?.length ?? 0, f.properties?.fields?.map((child) => child.properties?.rules?.length ?? 0)])]),
                     endings.map((e) => [e.id, e.name, e.isDefault])
                 ]
             ),
@@ -651,7 +660,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         carry the same reassurance here. */}
                     {autosaveStatus.state !== 'idle' && (
                         <span aria-live="polite" className={'mr-1 whitespace-nowrap text-xs font-medium ' + (isAutosaveProblem(autosaveStatus.state) ? 'text-brand-olive' : 'text-black-600')}>
-                            {autosaveStatusLabel(autosaveStatus.state)}
+                            {autosaveStatusLabel(autosaveStatus.state, tBuilder)}
                         </span>
                     )}
                     {/* Two instruments, labelled apart: node/edge counts replay the
@@ -767,7 +776,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                     </button>
                                     <button
                                         disabled={cannotCopyPage}
-                                        title={cannotCopyPage ? tBuilder('NEW_TYPES.CANNOT_COPY') : undefined}
+                                        title={copyBlockedByLayout ? tBuilder('LAYOUT.CANNOT_COPY') : cannotCopyPage ? tBuilder('NEW_TYPES.CANNOT_COPY') : undefined}
                                         onClick={() => {
                                             const newId = duplicateSlide(selectedIndex);
                                             if (newId) setSelectedId(newId);
@@ -812,7 +821,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                 <div className="flex shrink-0 items-center gap-3">
                                     {/* Live save state beats the static "changes save automatically" claim. */}
                                     <span aria-live="polite" className={'whitespace-nowrap text-xs ' + (isAutosaveProblem(autosaveStatus.state) ? 'font-medium text-brand-olive' : 'text-black-600')}>
-                                        {autosaveStatusLabel(autosaveStatus.state) ?? 'Changes save automatically'}
+                                        {autosaveStatusLabel(autosaveStatus.state, tBuilder) ?? tBuilder('AUTOSAVE.AUTOMATIC')}
                                     </span>
                                     <button onClick={() => setOverlayId(null)} className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
                                         <X className="h-3.5 w-3.5" /> Back to flow

@@ -4,6 +4,7 @@ import { ReactNode, useState } from 'react';
 
 import cn from 'classnames';
 import { Check, Copy, ExternalLink } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { FacebookShareButton, LinkedinShareButton, XShareButton } from 'react-share';
 
 import { Facebook } from '@app/components/icons/brands/facebook';
@@ -34,6 +35,7 @@ const SocialButton = ({ children }: { children: ReactNode }) => (
 );
 
 export default function ShareView({ url, title, showCopy = true, className }: Props) {
+    const { t } = useTranslation();
     const [, copyToClipboard] = useCopyToClipboard();
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
@@ -41,16 +43,16 @@ export default function ShareView({ url, title, showCopy = true, className }: Pr
     const handleCopy = () => {
         copyToClipboard(url);
         setCopied(true);
-        toast({ description: 'Link copied to clipboard' });
+        toast({ description: t('STAFF.SHARE.COPIED_TOAST') });
         setTimeout(() => setCopied(false), 2000);
     };
 
     return (
         <div className={cn('flex flex-col gap-6', className)}>
             <div className="flex flex-col gap-1.5">
-                <h2 className="text-black-900 text-lg font-semibold leading-snug">{title || 'Share this form'}</h2>
+                <h2 className="text-black-900 text-lg font-semibold leading-snug">{title || t('STAFF.SHARE.TITLE')}</h2>
                 {/* Honest about what the link does — no coercion, no surprises. */}
-                <p className="text-black-600 text-sm leading-relaxed">Anyone with this link can open and respond to your form.</p>
+                <p className="text-black-600 text-sm leading-relaxed">{t('STAFF.SHARE.INTRO')}</p>
             </div>
 
             {showCopy && (
@@ -59,30 +61,30 @@ export default function ShareView({ url, title, showCopy = true, className }: Pr
                         <span className="text-black-800 min-w-0 flex-1 truncate font-mono text-[13px]" title={url}>
                             {url}
                         </span>
-                        <a href={url} target="_blank" rel="noopener noreferrer" aria-label="Open form in a new tab" className="text-black-600 hover:text-brand-500 shrink-0 transition-colors">
+                        <a href={url} target="_blank" rel="noopener noreferrer" aria-label={t('STAFF.SHARE.OPEN_NEW_TAB')} className="text-black-600 hover:text-brand-500 shrink-0 transition-colors">
                             <ExternalLink className="h-4 w-4" />
                         </a>
                     </div>
                     <Button size="medium" variant="primary" onClick={handleCopy} icon={copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} className="shrink-0">
-                        {copied ? 'Copied' : 'Copy link'}
+                        {copied ? t('STAFF.SHARE.COPIED') : t('STAFF.SHARE.COPY')}
                     </Button>
                 </div>
             )}
 
             <div className="flex flex-col gap-2.5">
-                <span className="text-black-600 text-xs font-medium uppercase tracking-wide">Or share on</span>
+                <span className="text-black-600 text-xs font-medium uppercase tracking-wide">{t('STAFF.SHARE.OR_SHARE_ON')}</span>
                 <div className="flex items-center gap-3">
-                    <XShareButton url={url} aria-label="Share on X">
+                    <XShareButton url={url} aria-label={t('STAFF.SHARE.ON_X')}>
                         <SocialButton>
                             <Twitter className="h-[18px] w-[18px]" />
                         </SocialButton>
                     </XShareButton>
-                    <FacebookShareButton url={url} aria-label="Share on Facebook">
+                    <FacebookShareButton url={url} aria-label={t('STAFF.SHARE.ON_FACEBOOK')}>
                         <SocialButton>
                             <Facebook className="h-[18px] w-[18px]" />
                         </SocialButton>
                     </FacebookShareButton>
-                    <LinkedinShareButton url={url} aria-label="Share on LinkedIn">
+                    <LinkedinShareButton url={url} aria-label={t('STAFF.SHARE.ON_LINKEDIN')}>
                         <SocialButton>
                             <Linkedin className="h-[18px] w-[18px]" />
                         </SocialButton>

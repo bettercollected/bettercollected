@@ -39,7 +39,7 @@ import {
     titleText
 } from '../model';
 import type { AddFieldOp, AddGroupOp, FieldPatch, FormDoc, FormField, LogicConditionSpec, MoveFieldOp, NewFieldSpec, RemoveFieldOp, SetFieldLogicOp, SetFieldValidationOp, UpdateFieldOp } from '../types';
-import { type Handler, draftField, draftOwner, droppedReferencesNote, droppedRulesNote, ensureFields, ensureProperties, insertedAt, removedAt, setFields, setKey } from './context';
+import { type Handler, draftField, draftOwner, droppedReferencesNote, droppedRulesNote, ensureFields, ensureProperties, insertedAt, joinInPage, removedAt, setFields, setKey } from './context';
 import { checkTitle } from './editor';
 
 // ---------------------------------------------------------------------------
@@ -314,7 +314,9 @@ export const addField: Handler<AddFieldOp> = (ctx, op) => {
     ensureFields(pageDraft);
     const at = insertPosition(childrenOf(page), op.afterFieldId, op.index, `page '${op.pageId}'`);
     const field = buildField(op.field, at, ctx.newId);
-    setFields(pageDraft, insertedAt(childrenOf(page), at, field));
+    const list = insertedAt(childrenOf(page), at, field);
+    setFields(pageDraft, list);
+    joinInPage(ctx, pos, list, field.id);
     ctx.noteCreated(field.id);
     return `Added '${op.field.title}' (${op.field.type}) to page ${page.index != null ? page.index + 1 : '?'}`;
 };
@@ -324,6 +326,7 @@ export function logicSources(doc: FormDoc): Set<string | undefined> {
     const sources = new Set<string | undefined>();
     for (const page of pagesOf(doc)) {
         for (const jump of page.properties?.jumps ?? []) for (const c of jump.conditions ?? []) sources.add(c.fieldId);
+        for (const container of page.properties?.containers ?? []) for (const c of container.logic?.conditions ?? []) sources.add(c.fieldId);
         for (const field of childrenOf(page)) {
             const questions = [field, ...(isRepeatingGroup(field) ? childrenOf(field) : [])];
             for (const question of questions) {
@@ -363,7 +366,9 @@ export const addGroup: Handler<AddGroupOp> = (ctx, op) => {
     if (op.description != null) properties.description = op.description;
     const group: FormField = { id: ctx.newId(), index: at, type: FieldTypes.GROUP, title: op.title, properties, validations: {} };
     if (op.description != null) group.description = op.description;
-    setFields(pageDraft, insertedAt(childrenOf(page), at, group));
+    const groupList = insertedAt(childrenOf(page), at, group);
+    setFields(pageDraft, groupList);
+    joinInPage(ctx, pos, groupList, group.id);
     ctx.noteCreated(
         group.id,
         children.map((child) => child.id)
@@ -462,6 +467,13 @@ export const moveField: Handler<MoveFieldOp> = (ctx, op) => {
     } else {
         setFields(draftOwner(ctx.draft, location), source);
         setFields(targetDraft(), insertedAt(targetList, at, field));
+    }
+    // Layout containers: the question follows its position on the page it landed on.
+    if (op.toGroupId == null && (op.toPageId != null || parent === null)) {
+        const landed = op.toPageId ? findPage(ctx.state, op.toPageId).pos : location.pagePos;
+        const landedPage = ctx.state.fields![landed];
+        const before = parent === null && landed === location.pagePos ? source : childrenOf(landedPage);
+        joinInPage(ctx, landed, insertedAt(before as FormField[], at, field), field.id);
     }
     // In or out of a repeating group: rules across the boundary don't apply.
     const note = droppedRulesNote();

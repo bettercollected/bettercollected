@@ -35,12 +35,12 @@ const AddWorkspaceDomainForm = () => {
             return;
         }
         if (domain.match(/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,63}$/) && !warned) {
-            setMessage({ error: false, message: 'This looks like a root domain. This might break your existing site. We recommend using subdomain that is not used elsewhere.' });
+            setMessage({ error: false, message: t('STAFF.WORKSPACE.ROOT_DOMAIN_WARNING') });
             setWarned(true);
             return;
         }
         if (!domain.match(/^(?!:\/\/)([a-zA-Z0-9-_]+\.)+[a-zA-Z]{2,63}$/)) {
-            setMessage({ error: true, message: "That doesn't look like a domain — try something like forms.yoursite.com." });
+            setMessage({ error: true, message: t('STAFF.WORKSPACE.NOT_A_DOMAIN') });
         } else {
             const formData = new FormData();
             formData.append('custom_domain', domain);
@@ -61,20 +61,20 @@ const AddWorkspaceDomainForm = () => {
     };
     return (
         <div className="mt-3 flex flex-col gap-2">
-            <span className="p2-new text-black-700">Serve your site from a domain you own — a subdomain like forms.yourdomain.com works best.</span>
+            <span className="p2-new text-black-700">{t('STAFF.WORKSPACE.DOMAIN_INTRO')}</span>
             {!workspace.isPro ? (
                 // Free plan: the upgrade note IS the whole section. Showing the
                 // domain form too was misleading — filling it in only bounced
                 // you to the upgrade modal.
                 <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-brand-accent-100 px-3 py-2.5 text-sm text-brand-olive">
-                    <span>Custom domains are a Pro feature.</span>
+                    <span>{t('STAFF.WORKSPACE.DOMAIN_PRO')}</span>
                     <button type="button" onClick={() => openModal('UPGRADE_TO_PRO')} className="font-semibold underline underline-offset-2">
-                        Upgrade to connect your domain
+                        {t('STAFF.WORKSPACE.DOMAIN_UPGRADE')}
                     </button>
                 </div>
             ) : (
                 <>
-                    <div className="text-black-800 mt-4 text-sm font-medium">Enter a domain you own</div>
+                    <div className="text-black-800 mt-4 text-sm font-medium">{t('STAFF.WORKSPACE.DOMAIN_ENTER')}</div>
                     <form
                         onSubmit={(event) => {
                             event.preventDefault();
@@ -93,18 +93,18 @@ const AddWorkspaceDomainForm = () => {
                                         setMessage({ error: false, message: '' });
                                     }
                                 }}
-                                placeholder="eg. forms.yoursite.com"
+                                placeholder={t('STAFF.WORKSPACE.DOMAIN_PLACEHOLDER')}
                             />
                         </div>
                         <Button variant={'v2Button'} type="submit" disabled={warned} isLoading={isLoading}>
-                            Add domain
+                            {t('STAFF.WORKSPACE.DOMAIN_ADD')}
                         </Button>
                     </form>
                     <div className="max-w-[440px]">
                         {message.message && <div className={cn(message.error ? 'text-[#C43D3D]' : 'text-brand-olive', 'whitespace-pre-wrap text-wrap text-xs')}>{message.message}</div>}
                         {warned && (
                             <Button variant="ghost" isLoading={isLoading} className="mt-2 cursor-pointer text-xs" onClick={addDomain}>
-                                Add anyway
+                                {t('STAFF.WORKSPACE.DOMAIN_ADD_ANYWAY')}
                             </Button>
                         )}
                     </div>

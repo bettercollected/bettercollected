@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { useModal } from '@app/components/modal-views/context';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@app/shadcn/components/ui/dropdown-menu';
@@ -5,13 +7,14 @@ import DeleteIcon from '@Components/icons/delete';
 import { MoreVertical } from 'lucide-react';
 
 const DeleteDomainDropdown = () => {
+    const { t } = useTranslation();
     const { openModal } = useModal();
 
     return (
         <div>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button aria-label="Domain actions" className="p-1! outline-hidden" variant={'v2GhostButton'} icon={<MoreVertical width={24} height={24} className="text-black-700" />}></Button>
+                    <Button aria-label={t('STAFF.WORKSPACE.DOMAIN_ACTIONS')} className="p-1! outline-hidden" variant={'v2GhostButton'} icon={<MoreVertical width={24} height={24} className="text-black-700" />}></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-white">
                     <DropdownMenuItem
@@ -21,7 +24,7 @@ const DeleteDomainDropdown = () => {
                         }}
                     >
                         <DeleteIcon />
-                        Delete
+                        {t('STAFF.WORKSPACE.DELETE')}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>

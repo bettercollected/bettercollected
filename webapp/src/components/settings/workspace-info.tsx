@@ -84,7 +84,7 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
         urlFields.forEach((field) => {
             const result = normalizeUrl(workspaceInfo[field]);
             if (result === null) {
-                errors[field] = 'Enter a full link, like https://yoursite.com/privacy';
+                errors[field] = t('STAFF.WORKSPACE.URL_INVALID');
             } else {
                 normalized[field] = result;
             }
@@ -161,16 +161,16 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
                 />
             </div>
             <div className="flex w-full flex-col gap-2">
-                <div className="body1">Privacy Policy URL</div>
+                <div className="body1">{t('STAFF.WORKSPACE.PRIVACY_URL')}</div>
                 <AppInput className={`w-full ${urlErrors.privacy_policy ? 'border-[#C43D3D]!' : ''}`} onChange={onChange} value={workspaceInfo.privacy_policy} name="privacy_policy" placeholder={'https://yoursite.com/privacy'} />
                 {urlErrors.privacy_policy && <div className="text-xs text-[#C43D3D]">{urlErrors.privacy_policy}</div>}
-                <div className="p4-new text-black-600">Linked from your site and from the trust footer on every form — it tells responders how their data is used.</div>
+                <div className="p4-new text-black-600">{t('STAFF.WORKSPACE.PRIVACY_URL_HINT')}</div>
             </div>
             <div className="flex w-full flex-col gap-2">
-                <div className="body1">Terms of Service URL</div>
+                <div className="body1">{t('STAFF.WORKSPACE.TERMS_URL')}</div>
                 <AppInput className={`w-full ${urlErrors.terms_of_service ? 'border-[#C43D3D]!' : ''}`} onChange={onChange} value={workspaceInfo.terms_of_service} name="terms_of_service" placeholder={'https://yoursite.com/terms'} />
                 {urlErrors.terms_of_service && <div className="text-xs text-[#C43D3D]">{urlErrors.terms_of_service}</div>}
-                <div className="p4-new text-black-600">Shown alongside the privacy policy on your site.</div>
+                <div className="p4-new text-black-600">{t('STAFF.WORKSPACE.TERMS_URL_HINT')}</div>
             </div>
 
             <Button

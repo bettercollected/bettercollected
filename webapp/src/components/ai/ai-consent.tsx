@@ -23,6 +23,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 export const aiSettingsUrl = (workspaceName?: string) => workspaceSectionUrls(workspaceName).aiSettings;
 
 export function useWorkspaceAI() {
+    const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
     const { data, isLoading, refetch } = useGetAISettingsQuery(workspace?.id, { skip: !workspace?.id });
     const settings = data as WorkspaceAISettings | undefined;
@@ -32,7 +33,7 @@ export function useWorkspaceAI() {
         isLoading,
         refetch,
         enabled: !!settings?.enabled,
-        providerName: settings?.providerName ?? settings?.defaultProviderName ?? 'the AI provider'
+        providerName: settings?.providerName ?? settings?.defaultProviderName ?? t('STAFF.AI.DEFAULT_PROVIDER')
     };
 }
 
@@ -89,7 +90,7 @@ export function AIOptIn({ feature, sends, onEnabled, compact }: OptInProps) {
     const { workspace, settings } = useWorkspaceAI();
     const [update, { isLoading }] = useUpdateAISettingsMutation();
     const [error, setError] = React.useState<string | null>(null);
-    const providerName = settings?.defaultProviderName ?? 'the AI provider';
+    const providerName = settings?.defaultProviderName ?? t('STAFF.AI.DEFAULT_PROVIDER');
     const configured = settings?.providers?.find((p) => p.id === settings?.defaultProvider)?.configured ?? false;
 
     const turnOn = async () => {

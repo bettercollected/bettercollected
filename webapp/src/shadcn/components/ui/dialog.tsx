@@ -3,6 +3,7 @@
 import * as React from 'react';
 
 import * as DialogPrimitive from '@radix-ui/react-dialog';
+import i18n from 'i18next';
 import { X } from 'lucide-react';
 
 import { cn } from '@app/shadcn/util/lib';
@@ -55,7 +56,7 @@ const DialogContent = React.forwardRef<
                         <path d="M19 5L5 19M5.00001 5L19 19" stroke="#6E6E6E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
 
-                    <span className="sr-only">Close</span>
+                    <span className="sr-only">{i18n.t('BUTTON.CLOSE')}</span>
                 </DialogPrimitive.Close>
             }
         </DialogPrimitive.Content>

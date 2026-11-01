@@ -69,6 +69,10 @@ export interface Page {
   showQuestionNumbers?: boolean | null;
   position?: Position | null;
   jumps?: PageJump[] | null;
+  /**
+   * Panels, field sets and tabs that group questions of this page.
+   */
+  containers?: Container[] | null;
   fields?: FormField[];
 }
 /**
@@ -210,6 +214,55 @@ export interface Condition {
   groupMode?: ("COUNT" | "ANY" | "ALL") | null;
   childFieldId?: string | null;
   childFieldType?: string | null;
+}
+/**
+ * A layout container on a page: ``panel`` (a titled group that opens and
+ * closes; ``collapsed``: closed when the page opens), ``fieldset`` (a
+ * bordered group with a legend) or ``tabs`` (a strip of ``tabs``, no title
+ * of its own). A panel and a field set list their questions in ``fields``;
+ * the questions of one container are next to each other on the page, in the
+ * order given, and are questions of the page itself (never a repeating
+ * group's children). ``logic`` shows or hides the whole container. Layout
+ * only: answers, logic, rules and exports see the questions as before.
+ *
+ * This interface was referenced by `FormSpec`'s JSON-Schema
+ * via the `definition` "Container".
+ */
+export interface Container {
+  id: string;
+  type: "panel" | "fieldset" | "tabs";
+  title?: string | null;
+  collapsed?: boolean | null;
+  logic?: Logic | null;
+  fields?: string[] | null;
+  tabs?: ContainerTab[] | null;
+}
+/**
+ * Show or hide this question when its conditions match (operator:
+ * AND = all, OR = any; AND when absent).
+ *
+ * This interface was referenced by `FormSpec`'s JSON-Schema
+ * via the `definition` "Logic".
+ */
+export interface Logic {
+  action?: ("SHOW" | "HIDE") | null;
+  operator?: ("AND" | "OR") | null;
+  conditions?: Condition[] | null;
+}
+/**
+ * One tab of a ``tabs`` container: its title and its questions (ids, in
+ * page order). A tab may be empty.
+ *
+ * This interface was referenced by `FormSpec`'s JSON-Schema
+ * via the `definition` "ContainerTab".
+ */
+export interface ContainerTab {
+  id: string;
+  title: string;
+  /**
+   * @maxItems 100
+   */
+  fields?: string[];
 }
 /**
  * A question or content block on a page (or inside a group).
@@ -443,18 +496,6 @@ export interface Choice {
    * Offer this option only (SHOW) or unless (HIDE) its conditions hold, at most 20. The conditions read earlier questions of the form. An answer that selects an option that is not offered is refused.
    */
   logic?: Logic | null;
-}
-/**
- * Show or hide this question when its conditions match (operator:
- * AND = all, OR = any; AND when absent).
- *
- * This interface was referenced by `FormSpec`'s JSON-Schema
- * via the `definition` "Logic".
- */
-export interface Logic {
-  action?: ("SHOW" | "HIDE") | null;
-  operator?: ("AND" | "OR") | null;
-  conditions?: Condition[] | null;
 }
 /**
  * The chosen date must be ``comparison`` a fixed ``date`` (YYYY-MM-DD),

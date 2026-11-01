@@ -2,7 +2,11 @@
 
 import { useState } from 'react';
 
+import { Trans, useTranslation } from 'react-i18next';
+
 import { Plus, X } from 'lucide-react';
+
+import { useIntlLocale } from '@app/lib/hooks/use-intl-locale';
 
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -23,6 +27,8 @@ interface MemoryEntry {
  * deletable, and the user can add their own. Nothing hidden, no embeddings.
  */
 export default function AIMemorySection() {
+    const { t } = useTranslation();
+    const locale = useIntlLocale();
     const workspace = useAppSelector(selectWorkspace);
     const { toast } = useToast();
     const { data: entries = [], isLoading } = useGetAIMemoryQuery(workspace?.id, { skip: !workspace?.id });
@@ -37,24 +43,23 @@ export default function AIMemorySection() {
         if (response.data) {
             setDraft('');
         } else {
-            toast({ description: 'Could not save that. Please try again.', variant: 'destructive' });
+            toast({ description: t('STAFF.AI_MEMORY.SAVE_FAILED'), variant: 'destructive' });
         }
     };
 
     return (
         <div className="border-black-300 flex max-w-[640px] flex-col gap-4 rounded border bg-white p-6">
             <div className="flex flex-col gap-1">
-                <h2 className="text-black-900 text-sm font-semibold">What the AI remembers about your style</h2>
+                <h2 className="text-black-900 text-sm font-semibold">{t('STAFF.AI_MEMORY.TITLE')}</h2>
                 <p className="text-black-600 text-xs leading-relaxed">
-                    Preferences the assistant has picked up from working with you in <span className="font-medium">{workspace?.title || 'this workspace'}</span> — plus any you add yourself. It reads these when building forms; your request and your organization&apos;s rules
-                    always take priority. Delete anything, anytime.
+                    <Trans i18nKey="STAFF.AI_MEMORY.INTRO" values={{ workspace: workspace?.title || t('STAFF.AI_MEMORY.THIS_WORKSPACE') }} components={{ 1: <span className="font-medium" /> }} />
                 </p>
             </div>
 
             {isLoading ? (
-                <p className="text-black-600 text-xs">Loading…</p>
+                <p className="text-black-600 text-xs">{t('STAFF.SESSIONS.LOADING')}</p>
             ) : entries.length === 0 ? (
-                <p className="text-black-600 border-black-400 rounded-md border border-dashed px-3 py-4 text-center text-xs">Nothing remembered yet — it fills in as you build forms with the assistant.</p>
+                <p className="text-black-600 border-black-400 rounded-md border border-dashed px-3 py-4 text-center text-xs">{t('STAFF.AI_MEMORY.EMPTY')}</p>
             ) : (
                 <ul className="flex flex-col gap-1.5">
                     {(entries as MemoryEntry[]).map((entry) => (
@@ -62,13 +67,13 @@ export default function AIMemorySection() {
                             <div className="min-w-0">
                                 <p className="text-black-800 text-[13px] leading-relaxed">{entry.text}</p>
                                 <p className="text-black-600 text-[10.5px]">
-                                    {entry.source === 'manual' ? 'Added by you' : 'Learned from a session'}
-                                    {entry.at ? ` · ${new Date(entry.at).toLocaleDateString()}` : ''}
+                                    {entry.source === 'manual' ? t('STAFF.AI_MEMORY.ADDED_BY_YOU') : t('STAFF.AI_MEMORY.LEARNED')}
+                                    {entry.at ? ` · ${new Date(entry.at).toLocaleDateString(locale)}` : ''}
                                 </p>
                             </div>
                             <button
                                 type="button"
-                                aria-label={`Forget "${entry.text}"`}
+                                aria-label={t('STAFF.AI_MEMORY.FORGET', { text: entry.text })}
                                 onClick={() => deleteEntry({ workspace_id: workspace.id, entry_id: entry.id })}
                                 className="text-black-600 mt-0.5 shrink-0 rounded p-1 transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]"
                             >
@@ -83,7 +88,7 @@ export default function AIMemorySection() {
                 <input
                     value={draft}
                     maxLength={300}
-                    placeholder="Add a preference, e.g. “Keep pages under 5 questions”"
+                    placeholder={t('STAFF.AI_MEMORY.PLACEHOLDER')}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') handleAdd();
@@ -91,7 +96,7 @@ export default function AIMemorySection() {
                     className="border-control text-black-900 placeholder:text-black-600 focus:border-brand-500 h-9 w-full rounded-md border bg-white px-3 text-[13px] outline-hidden transition duration-150"
                 />
                 <Button size="sm" variant="v2Button" isLoading={isAdding} disabled={!draft.trim()} onClick={handleAdd} icon={<Plus className="h-4 w-4" />}>
-                    Add
+                    {t('STAFF.AI_MEMORY.ADD')}
                 </Button>
             </div>
         </div>

@@ -17,6 +17,7 @@ Contract:
   through ``StandardForm`` — the model proposes, the schema disposes.
 """
 
+import copy
 import json
 import uuid
 from contextvars import ContextVar
@@ -59,7 +60,14 @@ from common.models.standard_form import (
     FieldLogic,
     FieldLogicCondition,
     FieldPosition,
+    CONTAINERS_MAX,
+    CONTAINER_MEMBERS_MAX,
+    LAYOUT_MEMBER_ID_MAX,
+    CONTAINER_TITLE_MAX,
     FieldRule,
+    LAYOUT_ID_PATTERN,
+    LayoutContainer,
+    LayoutTab,
     LayoutType,
     LOGO_ALT_MAX_LENGTH,
     PageJump,
@@ -133,6 +141,13 @@ from backend.app.services.form_drafts.mode import (
     DISABLED_MESSAGE as SAVE_DRAFTS_DISABLED_MESSAGE,
     save_drafts_enabled,
 )
+from backend.app.services.layout_containers import (
+    LAYOUT_OPS,
+    layout_containers_enabled,
+    layout_problem,
+    layout_problem_texts,
+    layout_signatures,
+)
 from backend.app.services.new_question_types import (
     GATED_OPS,
     Signatures,
@@ -160,6 +175,15 @@ from backend.app.services.option_logic import (
 )
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.rich_text import style_value_problem
+from common.layout_containers import (
+    container_tabs,
+    fresh_id,
+    join_by_position,
+    repair_form,
+    TAB_ID_PREFIX,
+    CONTAINER_ID_PREFIX,
+    used_ids as container_ids_used,
+)
 from pydantic.alias_generators import to_camel
 
 
@@ -695,6 +719,52 @@ class SetPageJumpsOp(_CamelModel):
     jumps: Optional[List[PageJumpSpec]] = None
 
 
+class ContainerTabSpec(_CamelModel):
+    """One tab of a tabs container: a title and the ids of its questions (in
+    page order; the id is made up when left out)."""
+
+    id: Optional[str] = Field(None, pattern=LAYOUT_ID_PATTERN)
+    title: str = Field(..., min_length=1, max_length=CONTAINER_TITLE_MAX)
+    fields: List[Annotated[str, Field(max_length=LAYOUT_MEMBER_ID_MAX)]] = Field(
+        default_factory=list, max_length=CONTAINER_MEMBERS_MAX
+    )
+
+
+class ContainerSpec(_CamelModel):
+    """A layout container: ``panel`` (a titled, collapsible group; ``collapsed``
+    closes it when the page opens), ``fieldset`` (a bordered group with a
+    legend) or ``tabs`` (a strip of 1 to 8 ``tabs``, no title of its own). A
+    panel and a field set list their question ids in ``fields``. ``logic``
+    shows or hides the whole container (as set_field_logic does a question)."""
+
+    id: Optional[str] = Field(None, pattern=LAYOUT_ID_PATTERN)
+    type: Literal["panel", "fieldset", "tabs"]
+    title: Optional[str] = Field(None, max_length=CONTAINER_TITLE_MAX)
+    collapsed: Optional[bool] = None
+    logic: Optional[FieldLogicSpec] = None
+    fields: Optional[List[Annotated[str, Field(max_length=LAYOUT_MEMBER_ID_MAX)]]] = Field(
+        None, max_length=CONTAINER_MEMBERS_MAX
+    )
+    tabs: Optional[List[ContainerTabSpec]] = Field(None, max_length=8)
+
+
+class SetPageContainersOp(_CamelModel):
+    """Group the questions of a page into panels, field sets and tabs.
+    ``containers`` replaces the page's list; null or [] removes them all (the
+    questions stay). The questions of one container must be next to each other
+    on the page (internal questions do not count), in the order of the
+    container: move them first with move_field. A container holds questions
+    only (no nesting); a repeating group can be a member as a whole. A
+    question added or moved to the inside of a container joins it, and one
+    moved out of it leaves it; to add a question as the last one of a
+    container, add it and then send the container again. The server refuses
+    it while layout containers are switched off."""
+
+    op: Literal["set_page_containers"] = "set_page_containers"
+    page_id: str
+    containers: Optional[List[ContainerSpec]] = Field(None, max_length=CONTAINERS_MAX)
+
+
 class DuplicatePageOp(_CamelModel):
     """Clone a page with all its fields (fresh ids everywhere). In-page logic
     references are remapped to the cloned fields."""
@@ -1036,6 +1106,7 @@ FormOp = Annotated[
         SetOptionFilterOp,
         SetFieldRulesOp,
         SetPageJumpsOp,
+        SetPageContainersOp,
         DuplicatePageOp,
         UpdateThemeOp,
         SetThemePresetOp,
@@ -1589,6 +1660,7 @@ def _apply_add_field(form: StandardForm, op: AddFieldOp) -> str:
 
     field = _build_field(op.field, insert_at)
     fields.insert(insert_at, field)
+    join_by_position(page, field.id)
     _note_created(field.id)
     return f"Added '{op.field.title}' ({op.field.type.value}) to page {page.index + 1 if page.index is not None else '?'}"
 
@@ -1599,6 +1671,9 @@ def _logic_sources(form: StandardForm) -> set:
     for page in _pages(form):
         for jump in (page.properties.jumps if page.properties else None) or []:
             sources.update(c.field_id for c in jump.conditions or [])
+        for container in (page.properties.containers if page.properties else None) or []:
+            for c in (container.logic.conditions if container.logic else None) or []:
+                sources.add(c.field_id)
         for field in (page.properties.fields if page.properties else None) or []:
             questions = [field] + (_children(field) if _is_repeating_group(field) else [])
             for question in questions:
@@ -1654,6 +1729,7 @@ def _apply_add_group(form: StandardForm, op: AddGroupOp) -> str:
         validations=StandardFieldValidations(),
     )
     fields.insert(insert_at, group)
+    join_by_position(page, group.id)
     _note_created(group.id, [child.id for child in children])
     return (
         f"Added the repeating group '{op.title}' ({repeat.effective_min}-{repeat.effective_max} "
@@ -1786,6 +1862,11 @@ def _apply_move_field(form: StandardForm, op: MoveFieldOp) -> str:
     container.pop(position)
     insert_at = len(target) if op.index is None else max(0, min(op.index, len(target)))
     target.insert(insert_at, field)
+    # layout containers: a question follows its position (inside a container
+    # it joins it; elsewhere it is in none); the page it left is repaired at
+    # the end of the batch
+    if op.to_group_id is None and (op.to_page_id is not None or parent is None):
+        join_by_position(target_page, field.id)
     # Option logic reads earlier questions: a move may not break that (it
     # would silently drop the logic), nor take a question with option logic
     # into a repeating group.
@@ -2273,6 +2354,88 @@ def _apply_set_page_jumps(form: StandardForm, op: SetPageJumpsOp) -> str:
     return f"Set {len(jumps)} jump rule(s) on page '{op.page_id}'"
 
 
+def _other_pages_layout(form: StandardForm, page: StandardFormField) -> Tuple[set, set]:
+    """Container ids on the other pages, and the ids of the questions on the
+    pages before ``page``."""
+    taken: set = set()
+    earlier: set = set()
+    before = True
+    for other in _pages(form):
+        if other is page:
+            before = False
+            continue
+        for container in (other.properties.containers if other.properties else None) or []:
+            taken.add(container.id)
+            for tab in container.tabs or []:
+                taken.add(tab.id)
+        if before:
+            for field in (other.properties.fields if other.properties else None) or []:
+                earlier.add(field.id)
+                # (not _children: that makes an empty list where there is none)
+                earlier.update(
+                    c.id
+                    for c in (field.properties.fields if field.properties else None) or []
+                )
+    return taken, earlier
+
+
+def _apply_set_page_containers(form: StandardForm, op: SetPageContainersOp) -> str:
+    from common.layout_containers import container_problems
+
+    page = _find_page(form, op.page_id)
+    if page.properties is None:
+        page.properties = StandardFieldProperty(fields=[])
+    if not op.containers:
+        page.properties.containers = None
+        return f"Removed the layout containers on page '{op.page_id}'"
+    taken, earlier = _other_pages_layout(form, page)
+    # explicit ids first, then made-up ones in the order given
+    explicit = [spec.id for spec in op.containers if spec.id] + [
+        tab.id for spec in op.containers for tab in (spec.tabs or []) if tab.id
+    ]
+    if len(set(explicit)) != len(explicit) or any(x in taken for x in explicit):
+        raise OpError("Container and tab ids must be unique in the form.")
+    reserved = set(taken) | set(explicit)
+    built: List[LayoutContainer] = []
+    for spec in op.containers:
+        logic = None
+        if spec.logic is not None:
+            logic = FieldLogic(
+                action=spec.logic.action,
+                operator=spec.logic.operator,
+                conditions=_validated_conditions(form, spec.logic.conditions),
+            )
+        try:
+            tabs = [
+                LayoutTab(
+                    id=tab.id or fresh_id(TAB_ID_PREFIX, reserved),
+                    title=tab.title,
+                    fields=list(tab.fields),
+                )
+                for tab in (spec.tabs or [])
+            ]
+            container = LayoutContainer(
+                id=spec.id or fresh_id(CONTAINER_ID_PREFIX, reserved),
+                type=spec.type,
+                title=spec.title,
+                collapsed=spec.collapsed,
+                logic=logic,
+                fields=list(spec.fields) if spec.fields is not None else None,
+                tabs=tabs or None,
+            )
+        except ValueError as e:
+            raise OpError(_validation_message(e))
+        built.append(container)
+    previous = page.properties.containers
+    page.properties.containers = built
+    problems = container_problems(page, set(taken), set(earlier))
+    if problems:
+        page.properties.containers = previous
+        raise OpError(problems[0][1])
+    kinds = ", ".join(c.type for c in built)
+    return f"Set {len(built)} layout container(s) on page '{op.page_id}' ({kinds})"
+
+
 def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
     original = _find_page(form, op.page_id)
     clone = original.model_copy(deep=True)
@@ -2314,6 +2477,22 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
             field.properties.option_filter = None
             for choice in field.properties.choices or []:
                 choice.logic = None
+    # Layout containers follow the copy: new container and tab ids, members
+    # and rule conditions on the cloned questions.
+    if clone.properties and clone.properties.containers:
+        taken = container_ids_used(form)
+        for container in clone.properties.containers:
+            container.id = fresh_id(CONTAINER_ID_PREFIX, taken)
+            for tab in container_tabs(container):
+                if tab is not container:
+                    tab.id = fresh_id(TAB_ID_PREFIX, taken)
+                tab.fields = [id_map.get(m, m) for m in tab.fields or []]
+            if container.logic is not None:
+                for condition in container.logic.conditions or []:
+                    if condition.field_id in id_map:
+                        condition.field_id = id_map[condition.field_id]
+                    if condition.child_field_id in id_map:
+                        condition.child_field_id = id_map[condition.child_field_id]
     # Cloned jumps would re-branch from the copy in surprising ways — drop them.
     if clone.properties:
         clone.properties.jumps = None
@@ -3124,7 +3303,7 @@ def _field_rule_messages(form: StandardForm) -> List[str]:
 
 def _new_problems(
     form: StandardForm,
-    before: Tuple[Set[str], Set[str], Set[str], Set[str], Set[str]],
+    before: Tuple[Set[str], Set[str], Set[str], Set[str], Set[str], Set[str]],
     prune_rules: bool = False,
 ) -> Optional[str]:
     """The first problem of ``form`` a whole-form save would refuse (logic
@@ -3151,6 +3330,9 @@ def _new_problems(
     for problem in _option_logic_messages(form):
         if problem not in before[4]:
             return problem
+    for problem in layout_problem_texts(form):
+        if problem not in before[5]:
+            return problem
     return None
 
 
@@ -3158,13 +3340,14 @@ def _option_logic_messages(form: StandardForm) -> List[str]:
     return [p.message for p in option_logic_problems(form)] if form_has_option_logic(form) else []
 
 
-def _known_problems(form: StandardForm) -> Tuple[Set[str], Set[str], Set[str], Set[str], Set[str]]:
+def _known_problems(form: StandardForm) -> Tuple[Set[str], Set[str], Set[str], Set[str], Set[str], Set[str]]:
     return (
         set(internal_logic_violations(form)),
         set(date_rule_problems(form.fields)),
         set(_calculation_messages(form)),
         set(_field_rule_messages(form)),
         set(_option_logic_messages(form)),
+        set(layout_problem_texts(form)),
     )
 
 
@@ -3285,6 +3468,13 @@ def _prune_references(
                     jump.conditions = conditions
                     jumps.append(jump)
             properties.jumps = jumps or None
+        for container in properties.containers or []:
+            if container.logic is not None:
+                conditions = live_conditions(container.logic.conditions)
+                if conditions:
+                    container.logic.conditions = conditions
+                else:
+                    container.logic = None
         for field in properties.fields or []:
             prune_question(field)
             if _is_repeating_group(field):
@@ -3319,11 +3509,16 @@ def _apply_insert_field(form: StandardForm, op: InsertFieldOp) -> str:
     else:
         raise OpError("insert_field needs a pageId (or a groupId).")
     known = _known_problems(form)
+    layout_before = copy.deepcopy(page.properties.containers) if page.properties else None
     position = min(op.index, len(container))
     container.insert(position, field)
+    if op.group_id is None:
+        join_by_position(page, field.id)
     problem = _new_problems(form, known)
     if problem:
         container.pop(position)
+        if page.properties is not None:
+            page.properties.containers = layout_before
         raise OpError(problem)
     _note_created(field.id)
     return f"Inserted '{_title_text(field)}' ({field.type.value}) into {where}"
@@ -3640,6 +3835,7 @@ _HANDLERS = {
     "set_option_filter": _apply_set_option_filter,
     "set_field_rules": _apply_set_field_rules,
     "set_page_jumps": _apply_set_page_jumps,
+    "set_page_containers": _apply_set_page_containers,
     "duplicate_page": _apply_duplicate_page,
     "update_theme": _apply_update_theme,
     "set_theme_preset": _apply_set_theme_preset,
@@ -3758,6 +3954,22 @@ def _is_ref(node: Any, key: Any, value: Any) -> bool:
     )
 
 
+def _member_slots(data: Any):
+    """``(list, position, value)`` of every question id a set_page_containers
+    payload lists (list elements are not under an id key, so refs are found
+    here)."""
+    for container in (data.get("containers") if isinstance(data, dict) else None) or []:
+        if not isinstance(container, dict):
+            continue
+        lists = [container.get("fields")] + [
+            tab.get("fields") for tab in container.get("tabs") or [] if isinstance(tab, dict)
+        ]
+        for items in lists:
+            if isinstance(items, list):
+                for position, value in enumerate(items):
+                    yield items, position, value
+
+
 def _resolve_refs(op, refs: Dict[str, Tuple[int, Optional[str]]]):
     """``op`` with every ``"$ref:<name>"`` under an id key (REF_ID_KEYS)
     replaced by the id that name was given to. Other values are left as
@@ -3768,6 +3980,11 @@ def _resolve_refs(op, refs: Dict[str, Tuple[int, Optional[str]]]):
         if _is_ref(node, key, value):
             found = True
             node[key] = _ref_target(value[len(REF_PREFIX):], refs)
+    if isinstance(op, SetPageContainersOp):
+        for items, position, value in _member_slots(resolved):
+            if isinstance(value, str) and value.startswith(REF_PREFIX):
+                found = True
+                items[position] = _ref_target(value[len(REF_PREFIX):], refs)
     if not found:
         return op
     try:
@@ -3787,6 +4004,9 @@ def ref_dependencies(ops: List[FormOp]) -> List[Set[int]]:
     def used(root):
         for node, key, value in _scalars(root):
             if _is_ref(node, key, value):
+                yield value[len(REF_PREFIX) :]
+        for _, _, value in _member_slots(root):
+            if isinstance(value, str) and value.startswith(REF_PREFIX):
                 yield value[len(REF_PREFIX) :]
 
     for i, op in enumerate(ops):
@@ -3854,6 +4074,9 @@ def finished_form(working: StandardForm) -> StandardForm:
     prune_date_rules(working.fields)
     prune_field_rules(working)
     prune_option_logic(working)
+    # Layout containers a removal or move left dangling (a member that is
+    # gone, internal or moved off the page, an emptied container).
+    repair_form(working)
     # The schema is the final arbiter — a structurally invalid result must
     # never leave this function.
     return StandardForm.model_validate(working.model_dump())
@@ -3940,6 +4163,7 @@ def apply_form_ops(
     """
     working = form.model_copy(deep=True)
     started_types: Optional[Signatures] = None
+    started_layout: Optional[dict] = None
     results: List[OpResult] = []
     size = _form_size(working) if check_size else (0, 0)
     stopped = False
@@ -3996,7 +4220,20 @@ def apply_form_ops(
                     started_types = gated_signatures(form)
                 if op_may_gate(op, started_types):
                     types_snapshot = working.model_copy(deep=True)
+            # Layout containers (services/layout_containers.py): the same,
+            # while LAYOUT_CONTAINERS_ENABLED is off.
+            layout_snapshot = None
+            if op.op in LAYOUT_OPS and not layout_containers_enabled():
+                if started_layout is None:
+                    started_layout = layout_signatures(form)
+                if op.op == "set_page_containers" or started_layout:
+                    layout_snapshot = working.model_copy(deep=True)
             message = handler(working, op)
+            if layout_snapshot is not None:
+                refusal = layout_problem(working, started_layout, op.op)
+                if refusal:
+                    working = layout_snapshot
+                    raise OpError(refusal)
             if types_snapshot is not None:
                 refusal = question_type_problem(working, started_types, op.op)
                 if refusal:

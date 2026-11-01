@@ -10,7 +10,7 @@ interface HamburgerProps extends ButtonProps {
 export default function Hamburger({ isOpen, ...props }: HamburgerProps) {
     return (
         <button onClick={props.onClick} className="p-0 bg-transparent border-none cursor-pointer flex items-center justify-center">
-            <svg className="sm:w-auo h-auto w-6" width="30" height="30" viewBox="0 0 100 100">
+            <svg className="sm:w-auto h-auto w-6" width="30" height="30" viewBox="0 0 100 100">
                 <path
                     className="ease-[cubic-bezier(0.4, 0, 0.2, 1)] transition-[stroke-dasharray,stroke-dashoffset] duration-600"
                     fill="none"

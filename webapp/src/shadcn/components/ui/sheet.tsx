@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import * as SheetPrimitive from '@radix-ui/react-dialog';
 import { type VariantProps, cva } from 'class-variance-authority';
+import i18n from 'i18next';
 import { X } from 'lucide-react';
 
 import { cn } from '@app/shadcn/util/lib';
@@ -88,7 +89,7 @@ const SheetContent = React.forwardRef<
                         className="data-[state=open]:bg-secondary absolute right-4 top-4 rounded border border-white p-4 opacity-70 transition-opacity hover:opacity-100 disabled:pointer-events-none"
                     >
                         <X className="h-4 w-4" />
-                        <span className="sr-only">Close</span>
+                        <span className="sr-only">{i18n.t('BUTTON.CLOSE')}</span>
                     </SheetPrimitive.Close>
                 )}
             </SheetPrimitive.Content>
