@@ -78,6 +78,19 @@ def test_the_runner_side_imports_no_public_application_module():
     assert offenders == []
 
 
+def test_the_runner_side_never_imports_the_scripts():
+    """``scripts/`` (the break-glass commands) may use the public application;
+    the runner must not reach it through them."""
+    files = [p for p in PACKAGE.rglob("*.py") if _is_runner_side(p)]
+    offenders = [
+        f"{p.relative_to(PACKAGE)}: {n}"
+        for p in files
+        for n in _imports(p)
+        if _under(n, ("scripts",))
+    ]
+    assert offenders == []
+
+
 def test_the_runner_side_uses_only_the_keyset_of_the_shared_services():
     files = [p for p in PACKAGE.rglob("*.py") if _is_runner_side(p)]
     used = {
