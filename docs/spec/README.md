@@ -152,7 +152,8 @@ nothing in the product says it has any legal weight.
   response (also when its retention runs out, when the form is unlinked from a
   workspace, and when the signature is replaced in an edit). Without the sandbox a
   drawn signature is refused (503, try again); a typed one never needs it.
-  An image with no ink at all is not told apart without decoding it: the
+  The object is stored as `image/png`, and its download link is signed to serve
+  `image/png` as an attachment. An image with no ink at all is not told apart without decoding it: the
   respondent form never sends one.
 - **`signedAt`** is stamped by the server when the signature is stored; a value
   the client sends is ignored, and an edit that leaves a signature as it is keeps
@@ -177,7 +178,7 @@ nothing in the product says it has any legal weight.
   has the typed name or `[drawn signature]`; the public API and the MCP server return
   the stored answer (no image, no link); webhooks, registrations and email actions do
   not carry it (it is not a variable they can map); the AI insights see `[signed]`;
-  action code gets the typed name or `[drawn signature]`.
+  action code (the email action and the Sheets row) gets `[signed]` for both methods, never the name.
 - A draft keeps a typed signature and not a drawn one (files are not kept).
 
 **Rollout.** The signature question is behind its own server setting,

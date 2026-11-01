@@ -384,7 +384,7 @@ image is deleted after the edit is stored (`delete_stored_images`). The single-r
 (`NOT_VARIABLES`), not a webhook/registration/email variable (`SUPPORTED_TYPES`), no field rule sets or locks it
 (`NOT_RULE_TARGETS` keeps it a target for required/title/description only), conditions only
 `IS_EMPTY`/`IS_NOT_EMPTY` (`SIGNATURE_COMPARISONS`), not in a repeating group, not internal. Exports write the typed
-name or `[drawn signature]`, insights `[signed]`, action code the name or the marker. Deleting a response removes its
+name or `[drawn signature]`, insights and action code `[signed]` (never the name). The object is put with `ContentType: image/png` and its link is signed with `ResponseContentType: image/png` + `ResponseContentDisposition: attachment`. The refusal of a part for a signature question with no drawn answer to re-encode it (an edit without `answers`, a question only another version has) is a 422, never a pass-through. Deleting a response removes its
 stored files on every path: `delete_response` (the retention job) and `delete_workspace_form_responses` (a form
 unlinked from one of several workspaces, keeping `/imports/`) now do too. The shared ops corpus runs a case with the
 switch off through `signatureQuestion: false`.

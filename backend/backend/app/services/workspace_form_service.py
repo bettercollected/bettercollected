@@ -1079,11 +1079,16 @@ class WorkspaceFormService:
                 if workspace_id and form_id
                 else "private"
             )
+            # only a part the server made (a signature image) names its type
+            extra = {}
+            if getattr(form_file, "content_type", None):
+                extra["content_type"] = form_file.content_type
             await self._aws_service.upload_file_to_s3(
                 file=form_file.file.file,
                 key=str(form_file.file_id),
                 private=True,
                 folder_name=folder_name,
+                **extra,
             )
         return response
 

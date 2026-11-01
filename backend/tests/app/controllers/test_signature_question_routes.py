@@ -71,14 +71,18 @@ class FakeStore:
 
     def __init__(self):
         self.objects = {}
+        self.types = {}
+        self.link_headers = {}
 
-    async def upload_file_to_s3(self, file=None, key=None, previous_image="", bucket=None, private=False, folder_name="public"):
+    async def upload_file_to_s3(self, file=None, key=None, previous_image="", bucket=None, private=False, folder_name="public", content_type=None):
         self.objects[f"{folder_name}/{key}"] = file.read()
+        self.types[f"{folder_name}/{key}"] = content_type
 
     def check_if_key_exists(self, key, bucket=None):
         return any(k.startswith(key) for k in self.objects)
 
-    def generate_presigned_url(self, key, bucket=None):
+    def generate_presigned_url(self, key, bucket=None, response_headers=None):
+        self.link_headers[key] = response_headers
         return f"https://files.example/{key}?signed"
 
     def delete_file_from_s3(self, key, bucket=None):
@@ -197,6 +201,7 @@ async def test_a_drawn_signature_stores_a_clean_image_and_staff_get_a_link(
     key = f"private/{workspace.id}/{form_id}/{response_id}/img-1"
     assert list(store.objects) == [key]
     assert store.objects[key].startswith(b"\x89PNG") and b"my secret note" not in store.objects[key]
+    assert store.types[key] == "image/png"
     stored = await _stored(workspace, form_id, response_id)
     assert stored["sig"]["signature"]["file_id"] == "img-1"
     assert "url" not in stored["sig"]["signature"]
@@ -205,6 +210,11 @@ async def test_a_drawn_signature_stores_a_clean_image_and_staff_get_a_link(
     signature = one.json()["response"]["answers"]["sig"]["signature"]
     assert signature["method"] == "drawn" and signature["file_id"] == "img-1"
     assert signature["url"] == f"https://files.example/{key}?signed"
+    # the link serves the object as a downloaded PNG, whatever its stored type
+    assert store.link_headers[key] == {
+        "ResponseContentType": "image/png",
+        "ResponseContentDisposition": "attachment",
+    }
 
 
 async def test_a_bad_drawing_is_refused_with_nothing_stored(
@@ -369,6 +379,57 @@ async def test_an_edit_that_redraws_or_retypes_deletes_the_replaced_image(
     # naming an image the response does not hold is refused
     forged = await _edit(client, common_url, form_id, response_id, {"sig": {"type": "signature", "signature": {"method": "drawn", "file_id": "someone-elses"}}}, test_user_cookies)
     assert forged.status_code == 422, forged.text
+
+
+async def test_an_edit_without_answers_cannot_overwrite_the_stored_drawing(
+    client, workspace, signed_form, store, test_user_cookies
+):
+    form_id = signed_form.form_id
+    common_url = f"{API}/workspaces/{workspace.id}"
+    await _allow_editing(client, common_url, form_id, test_user_cookies)
+    submitted = await _submit(client, workspace, form_id, _answers(method="drawn", file_id="img-1"), files=[("sig", "img-1", _png())], cookies=test_user_cookies)
+    assert submitted.status_code == 200, submitted.text
+    response_id = await _response_id(workspace, form_id)
+    key = f"private/{workspace.id}/{form_id}/{response_id}/img-1"
+    clean = store.objects[key]
+    assert clean.startswith(b"\x89PNG")
+    for body in ({}, {"answers": None}):
+        forged = await client.patch(
+            f"{common_url}/forms/{form_id}/response/{response_id}",
+            data={
+                "response": json.dumps(body),
+                "file_field_ids": ["sig"],
+                "file_ids": ["img-1"],
+            },
+            files=[("files", ("x.svg", b"<svg onload=alert(1)>", "image/svg+xml"))],
+            cookies=test_user_cookies,
+        )
+        assert forged.status_code == 422, forged.text
+        assert list(store.objects) == [key] and store.objects[key] == clean
+    stored = await _stored(workspace, form_id, response_id)
+    assert stored["sig"]["signature"]["file_id"] == "img-1"
+
+
+async def test_a_part_for_a_signature_question_only_the_draft_has_is_refused(
+    client, workspace, workspace_form, test_user_cookies, store, monkeypatch
+):
+    _switch(monkeypatch, True)
+    form_id = workspace_form.form_id
+    await container.workspace_form_service().publish_form(workspace.id, form_id, testUser)
+    # the draft gains a signature question the published version does not have
+    saved = await _save(client, workspace, workspace_form, test_user_cookies, [_short(), _sign()])
+    assert saved.status_code == 200, saved.text
+    response = await client.post(
+        f"{_url(workspace, form_id)}/response",
+        data={
+            "response": json.dumps({"answers": {}}),
+            "file_field_ids": ["sig"],
+            "file_ids": ["raw-1"],
+        },
+        files=[("files", ("x.svg", b"<svg onload=alert(1)>", "image/svg+xml"))],
+    )
+    assert response.status_code in (404, 422), response.text
+    assert store.objects == {}
 
 
 async def test_an_edit_cannot_replace_the_stored_drawing_through_another_question(
