@@ -1093,14 +1093,14 @@ describe('responses table: search and honest states', () => {
             renderTable();
             openFilters();
             ['Submitted from', 'Submitted until', 'Responder', 'Deletion request', 'Form version', 'Sort by', 'Rows per page'].forEach((label) => expect(screen.getByLabelText(label)).toBeInTheDocument());
-            expect(screen.getByRole('search', { name: 'Filter and sort responses' })).toBeInTheDocument();
+            expect(screen.getByRole('search', { name: 'Search, filter and sort responses' })).toBeInTheDocument();
         });
     });
 
     describe('the head: one row, the filters behind a button, what is in force as chips', () => {
         it('puts search, Filters, sort and export in one toolbar, with the filter fields closed', () => {
             renderTable();
-            const toolbar = screen.getByRole('search', { name: 'Filter and sort responses' });
+            const toolbar = screen.getByRole('search', { name: 'Search, filter and sort responses' });
             expect(within(toolbar).getByPlaceholderText('Search by responder email')).toBeInTheDocument();
             const toggle = within(toolbar).getByRole('button', { name: 'Filters' });
             expect(toggle).toHaveAttribute('aria-expanded', 'false');
@@ -1137,6 +1137,32 @@ describe('responses table: search and honest states', () => {
             expect(screen.queryByRole('list', { name: 'Active filters' })).toBeNull();
         });
 
+        it('moves focus to the Filters button when "Clear filters" is used, and when the empty state\'s button is', () => {
+            nav.search = 'who=known&status=pending';
+            const { unmount } = render(tree());
+            fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+            expect(screen.getByRole('button', { name: /^Filters(,|$)/ })).toHaveFocus();
+            unmount();
+            // nothing matches: the empty state's own button goes with the filters, and focus must not fall to <body>
+            server.items = [item('r1', 'a@example.com', 'blue')];
+            nav.search = 'who=anonymous';
+            render(tree());
+            const clear = screen.getAllByRole('button', { name: 'Clear filters' }).at(-1)!;
+            clear.focus();
+            fireEvent.click(clear);
+            expect(screen.getByRole('button', { name: /^Filters(,|$)/ })).toHaveFocus();
+        });
+
+        it('opens the panel with focus on its first field, and Escape closes it back onto the button', () => {
+            renderTable();
+            const toggle = screen.getByRole('button', { name: /^Filters(,|$)/ });
+            fireEvent.click(toggle);
+            expect(screen.getByLabelText('Submitted from')).toHaveFocus();
+            fireEvent.keyDown(screen.getByLabelText('Submitted from'), { key: 'Escape' });
+            expect(screen.queryByLabelText('Submitted from')).toBeNull();
+            expect(toggle).toHaveFocus();
+        });
+
         it('has no WCAG A/AA violations with the fields open and chips showing', async () => {
             vi.useRealTimers();
             nav.search = 'who=known&version=1';
@@ -1161,9 +1187,21 @@ describe('responses table: search and honest states', () => {
             expect(container.querySelector('[role="table"]')).toBeNull();
             const list = screen.getByRole('list', { name: 'Responses on this page' });
             expect(within(list).getAllByRole('listitem')).toHaveLength(4);
-            const link = within(list).getByRole('link', { name: 'Open response from known.a@example.com' });
+            const link = within(list).getByRole('link', { name: /^Open response from known\.a@example\.com, submitted 2 January 2026 at \d\d:\d\d$/ });
             expect(link).toHaveAttribute('href', '/acme/dashboard/forms/form-1/responses/r1');
-            expect(within(list).getByRole('link', { name: 'Open anonymous response' })).toHaveAttribute('href', '/acme/dashboard/forms/form-1/responses/r4');
+            expect(within(list).getByRole('link', { name: /^Open anonymous response, submitted 2 January 2026 at \d\d:\d\d$/ })).toHaveAttribute('href', '/acme/dashboard/forms/form-1/responses/r4');
+        });
+
+        it('gives every card its own link name, also for anonymous responses (the time tells them apart)', () => {
+            phone();
+            server.items = [
+                { ...item('a1', null, 'blue'), createdAt: '2026-01-02T03:04:05Z' },
+                { ...item('a2', null, 'blue'), createdAt: '2026-01-03T09:30:00Z' }
+            ];
+            renderTable();
+            const names = within(screen.getByRole('list', { name: 'Responses on this page' })).getAllByRole('link').map((link) => link.getAttribute('aria-label'));
+            expect(new Set(names).size).toBe(2);
+            names.forEach((name) => expect(name).toMatch(/^Open anonymous response, submitted \d+ January 2026 at \d\d:\d\d$/));
         });
 
         it('says when it was submitted, in the viewer\'s time, and the first answer', () => {
@@ -1224,12 +1262,12 @@ describe('responses table: search and honest states', () => {
             await nlBundle();
             nav.search = 'from=2026-01-05&who=known&version=1';
             render(tree());
-            const toolbar = screen.getByRole('search', { name: 'Reacties filteren en sorteren' });
+            const toolbar = screen.getByRole('search', { name: 'Reacties zoeken, filteren en sorteren' });
             expect(within(toolbar).getByPlaceholderText('Zoeken op e-mailadres van de respondent')).toBeInTheDocument();
             expect(within(toolbar).getByRole('button', { name: /^Filters(,|$)/ })).toBeInTheDocument();
             const chips = within(screen.getByRole('list', { name: 'Actieve filters' }));
-            ['Vanaf 5 januari 2026', 'Respondent: Bekend', 'Versie 1 (huidig)'].forEach((label) => expect(chips.getByText(label)).toBeInTheDocument());
-            expect(screen.getByRole('button', { name: 'Filter verwijderen: Respondent: Bekend' })).toBeInTheDocument();
+            ['Vanaf 5 januari 2026', 'Respondent: Geïdentificeerd', 'Versie 1 (huidig)'].forEach((label) => expect(chips.getByText(label)).toBeInTheDocument());
+            expect(screen.getByRole('button', { name: 'Filter verwijderen: Respondent: Geïdentificeerd' })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: 'Filters wissen' })).toBeInTheDocument();
             expect(screen.getByText('Respondent-ID')).toBeInTheDocument();
             expect(screen.getAllByText(/^2 januari 2026 om \d\d:\d\d$/).length).toBeGreaterThan(0);
@@ -1272,8 +1310,8 @@ describe('responses table: search and honest states', () => {
             try {
                 renderTable();
                 const list = screen.getByRole('list', { name: 'Reacties op deze pagina' });
-                expect(within(list).getByRole('link', { name: 'Reactie van known.a@example.com openen' })).toBeInTheDocument();
-                expect(within(list).getByRole('link', { name: 'Anonieme reactie openen' })).toBeInTheDocument();
+                expect(within(list).getByRole('link', { name: /^Reactie van known\.a@example\.com, ingediend 2 januari 2026 om \d\d:\d\d, openen$/ })).toBeInTheDocument();
+                expect(within(list).getByRole('link', { name: /^Anonieme reactie, ingediend 2 januari 2026 om \d\d:\d\d, openen$/ })).toBeInTheDocument();
                 expect(within(list).getAllByText(/^Ingediend 2 januari 2026 om \d\d:\d\d/).length).toBe(4);
             } finally {
                 window.innerWidth = 1024;

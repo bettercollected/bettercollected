@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { SlidersHorizontal, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +26,8 @@ interface Props {
     search?: React.ReactNode;
     /** The export control: last in the toolbar row. */
     trailing?: React.ReactNode;
+    /** The Filters button, for the parent to move focus to once a filter it removes is gone. */
+    toggleRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 function Field({ id, label, children, className }: { id: string; label: string; children: React.ReactNode; className?: string }) {
@@ -48,12 +50,20 @@ function Field({ id, label, children, className }: { id: string; label: string; 
  * field (keyboard and screen reader ready); a change is applied at once and
  * lives in the URL (the parent writes it).
  */
-export default function ResponseFilters({ state, currentVersion, onChange, onClear, search, trailing }: Props) {
+export default function ResponseFilters({ state, currentVersion, onChange, onClear, search, trailing, toggleRef: parentToggleRef }: Props) {
     const { t, i18n } = useTranslation();
     const id = useId();
     const panelId = `${id}-panel`;
     const [open, setOpen] = useState(false);
-    const toggleRef = useRef<HTMLButtonElement>(null);
+    const ownToggleRef = useRef<HTMLButtonElement>(null);
+    const toggleRef = parentToggleRef ?? ownToggleRef;
+    const fromRef = useRef<HTMLInputElement>(null);
+    // The panel sits after the sort and the export in the page, so opening it moves focus to its first field (not on the first render).
+    const opened = useRef(false);
+    useEffect(() => {
+        if (open && opened.current) fromRef.current?.focus();
+        opened.current = true;
+    }, [open]);
     const active = activeFilterCount(state);
     const versions = Array.from({ length: Math.min(Math.max(currentVersion ?? 1, state.version ?? 1), 200) }, (_, index) => index + 1).reverse();
     const versionLabel = (version: number) => t(version === currentVersion ? text.versionCurrent : text.versionN, { n: version });
@@ -69,7 +79,7 @@ export default function ResponseFilters({ state, currentVersion, onChange, onCle
     return (
         <div className="mb-4 flex flex-col gap-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <form role="search" aria-label={t(text.filters)} className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end" onSubmit={(event) => event.preventDefault()}>
+                <form role="search" aria-label={t('RESPONSES_STAFF.TOOLBAR')} className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end" onSubmit={(event) => event.preventDefault()}>
                     {search}
                     <Button
                         ref={toggleRef}
@@ -108,9 +118,21 @@ export default function ResponseFilters({ state, currentVersion, onChange, onCle
                 {trailing}
             </div>
             {open && (
-                <div id={panelId} role="group" aria-label={t('RESPONSES_STAFF.FILTERS_PANEL')} className="grid grid-cols-1 gap-3 rounded border border-black-300 bg-white p-4 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+                <div
+                    id={panelId}
+                    role="group"
+                    onKeyDown={(event) => {
+                        // Escape closes the panel and gives focus back to its button
+                        if (event.key === 'Escape') {
+                            setOpen(false);
+                            toggleRef.current?.focus();
+                        }
+                    }}
+                    aria-label={t('RESPONSES_STAFF.FILTERS_PANEL')}
+                    className="grid grid-cols-1 gap-3 rounded border border-black-300 bg-white p-4 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
+                >
                     <Field id={`${id}-from`} label={t(text.from)}>
-                        <input id={`${id}-from`} type="date" className={control} value={state.from ?? ''} max={state.to} onChange={(event) => onChange({ from: event.target.value || undefined })} />
+                        <input ref={fromRef} id={`${id}-from`} type="date" className={control} value={state.from ?? ''} max={state.to} onChange={(event) => onChange({ from: event.target.value || undefined })} />
                     </Field>
                     <Field id={`${id}-to`} label={t(text.to)}>
                         <input id={`${id}-to`} type="date" className={control} value={state.to ?? ''} min={state.from} onChange={(event) => onChange({ to: event.target.value || undefined })} />
@@ -166,7 +188,14 @@ export default function ResponseFilters({ state, currentVersion, onChange, onCle
                         </li>
                     ))}
                     <li>
-                        <button type="button" onClick={onClear} className="rounded text-sm font-medium text-brand-500 underline-offset-2 hover:underline focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onClear();
+                                toggleRef.current?.focus();
+                            }}
+                            className="rounded text-sm font-medium text-brand-500 underline-offset-2 hover:underline focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                        >
                             {t(text.clear)}
                         </button>
                     </li>

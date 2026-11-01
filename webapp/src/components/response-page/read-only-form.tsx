@@ -91,7 +91,7 @@ function ContentsList({ sections, theme, leaflet }: { sections: ContentsSection[
                             style={{ color: theme.primary }}
                         >
                             <span className="tabular-nums" style={{ fontFamily: leaflet ? leafletSerif.style.fontFamily : undefined, fontWeight: 600, color: numeralInk }}>
-                                <span className="sr-only">{t('RESPONSE_PAGE.PAGE_SR')}</span>
+                                <span className="sr-only">{t('RESPONSE_PAGE.PAGE_SR')}</span>{' '}
                                 {section.number}
                             </span>{' '}
                             <span className="[overflow-wrap:anywhere]">

@@ -188,6 +188,7 @@ export default function FormResponsesTable({ props }: any) {
     // server answers, even when older rows are still at hand; focus moves to
     // the results region so it does not fall to <body>.
     const resultsRef = useRef<HTMLDivElement>(null);
+    const filtersToggleRef = useRef<HTMLButtonElement>(null);
     // After a page link is followed, focus moves to the results once the new
     // page is in: a keyboard or screen reader user starts at the table, not
     // wherever the old link was; the count says which rows these are.
@@ -251,7 +252,15 @@ export default function FormResponsesTable({ props }: any) {
             </div>
         );
     } else if (!requestForDeletion && filtersActive) {
-        results = <NoFilterMatchComponent onClear={clearFilters} />;
+        results = (
+            <NoFilterMatchComponent
+                onClear={() => {
+                    clearFilters();
+                    // the empty state goes with the filters: focus goes to the Filters button, not to <body>
+                    filtersToggleRef.current?.focus();
+                }}
+            />
+        );
     } else if (searchText) {
         results = <NoMatchComponent searchText={searchText} requestForDeletion={requestForDeletion} />;
     } else {
@@ -306,7 +315,7 @@ export default function FormResponsesTable({ props }: any) {
     return (
         <div>
             {showFilters ? (
-                <ResponseFilters state={urlState} currentVersion={form.version} onChange={change} onClear={clearFilters} search={searchNode} trailing={exportNode} />
+                <ResponseFilters toggleRef={filtersToggleRef} state={urlState} currentVersion={form.version} onChange={change} onClear={clearFilters} search={searchNode} trailing={exportNode} />
             ) : (
                 <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     {searchNode ?? <span />}

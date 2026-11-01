@@ -314,7 +314,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                     <p className="text-black-600 text-xs">{t(requestForDeletion ? 'RESPONSES_STAFF.REQUESTED_ON' : 'RESPONSES_STAFF.SUBMITTED_AT', { time: when(response.createdAt) })}</p>
                     {requestForDeletion && (
                         <div className="flex flex-wrap items-start justify-between gap-2">
-                            <Status status={response?.status || t(formConstant.status.pending)} response={response} />
+                            {Status({ status: response?.status || t(formConstant.status.pending), response })}
                             <div className="text-black-700 text-xs">
                                 {isPendingRequest(response?.status) ? null : isDeclinedRequest(response?.status) ? t(deletionRequestLocale.notDeleted) : t('RESPONSES_STAFF.DELETED_ON', { time: when(response.updatedAt) })}
                             </div>
@@ -322,7 +322,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                     )}
                     {requestForDeletion && (
                         <div className="relative z-10 -ml-2">
-                            <RequestActions response={response} />
+                            {RequestActions({ response })}
                         </div>
                     )}
                 </li>

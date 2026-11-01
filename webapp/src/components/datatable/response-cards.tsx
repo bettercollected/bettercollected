@@ -35,17 +35,18 @@ export default function ResponseCards({ responses, hrefFor, previews }: Props) {
             {responses.map((response) => {
                 const rows = previews(response);
                 const owner = response.dataOwnerIdentifier;
+                const submitted = utcToLocalDateTimeIn(response.createdAt, i18n.language);
                 return (
-                    <li key={response.responseId} className="relative flex flex-col gap-2 rounded border border-black-300 bg-white p-3 focus-within:bg-black-100 hover:bg-black-100">
+                    <li key={response.responseId} className="relative flex flex-col gap-2 rounded border border-black-300 bg-white p-3 focus-within:bg-black-100 hover:bg-black-100 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500">
                         <Link
                             href={hrefFor(response)}
-                            aria-label={owner ? t('RESPONSES_STAFF.OPEN_NAMED', { name: owner }) : t('RESPONSES_STAFF.OPEN_ANONYMOUS')}
-                            className="flex w-fit max-w-full min-w-0 rounded after:absolute after:inset-0 after:content-[''] focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                            aria-label={owner ? t('RESPONSES_STAFF.OPEN_NAMED', { name: owner, time: submitted }) : t('RESPONSES_STAFF.OPEN_ANONYMOUS', { time: submitted })}
+                            className="flex w-fit max-w-full min-w-0 rounded after:absolute after:inset-0 after:content-[''] focus:outline-hidden"
                         >
                             {owner ? <span className="truncate text-sm font-medium text-black-900">{owner}</span> : <AnonymousBadge />}
                         </Link>
                         <p className="text-xs text-black-600">
-                            {t('RESPONSES_STAFF.SUBMITTED_AT', { time: utcToLocalDateTimeIn(response.createdAt, i18n.language) })}
+                            {t('RESPONSES_STAFF.SUBMITTED_AT', { time: submitted })}
                             {typeof response.formVersion === 'number' && <span> · {t('RESPONSES_STAFF.VERSION_SHORT', { n: response.formVersion })}</span>}
                         </p>
                         {rows.length > 0 && (

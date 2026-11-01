@@ -129,7 +129,7 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
                                 <NeighbourLink targetId={neighbours.previousId} href={neighbours.previousId && responsePageUrl(workspace?.workspaceName ?? '', formId, neighbours.previousId)} label={t('RESPONSE_PAGE.PREVIOUS')} icon={<ChevronLeft className="h-4 w-4" aria-hidden="true" />} />
                                 {neighbours.position && neighbours.total && (
                                     <span className="px-1 text-sm whitespace-nowrap text-black-700 tabular-nums" data-testid="response-position">
-                                        <span className="sr-only">{t('RESPONSE_PAGE.POSITION_SR')}</span>
+                                        <span className="sr-only">{t('RESPONSE_PAGE.POSITION_SR')}</span>{' '}
                                         {t('RESPONSE_PAGE.POSITION', { position: neighbours.position, total: neighbours.total })}
                                     </span>
                                 )}
