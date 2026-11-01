@@ -139,8 +139,9 @@ async def run(jobs_app: App) -> dict[str, int]:
     )
     if counts["left"]:
         logger.warning(
-            "{} waiting action jobs still carry response data: run this again "
-            "where the respondent identity key is configured",
+            "{} waiting action jobs still carry response data: restart the backend "
+            "with DB_AUTO_MIGRATE=true, or run `python -m backend.jobs.schema` in the "
+            "backend's container, where the settings are loaded",
             counts["left"],
         )
     return counts

@@ -1,1 +1,0 @@
-- `./deploy.sh` completes again on a new install and on an upgrade from 3.x: the job-queue step no longer needs the application's settings before the deploy has stored them.

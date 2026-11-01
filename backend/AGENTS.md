@@ -1163,9 +1163,8 @@ write-only secret) and per form choose the **variables** sent as a Generic JSON 
   fails closed until `python -m backend.jobs.schema` (every `deploy.sh`) has run again, so after upgrading procrastinate
   run it before starting the executor. `postgres/ensure-jobs-exec-role.sh` creates the role. Job arguments are kept out of every log line
   (`backend/jobs/log_safety.py`, installed when `backend.jobs.app` is imported; the executor has its own copy).
-  **Not isolated yet (executor track):** the executor's `exec` is not a sandbox, so code in it can read the process's
-  environment (job key, AES key, database URL), can mark an `actions` row `doing`, and with the job key and the AES key
-  can forge `X-User-Deletion`: it must never hold both. Keep form actions off until that is done.
+  **Not isolated yet (executor track):** the executor's `exec` is not a sandbox and not a security boundary; code in it
+  reaches the process's environment. Keep form actions off until the executor isolation work lands.
   Tests: `tests/app/jobs/test_action_runs.py`, `test_executor_role.py`, `test_ensure_jobs_exec_role.py`,
   `test_legacy_scrub.py`, `test_job_log_safety.py`.
   The workers call back into the internal job routes (`/temporal/*`, action update, template preview,

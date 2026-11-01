@@ -109,9 +109,8 @@ decrypted, the action's secrets) from the backend when it runs, against the toke
 none of it sits in the queue's rows. The executor runs code that form creators wrote, so its database role
 (`bc_jobs_exec`) reaches the `jobs` schema only, and within it only `run_action` rows of the `actions` queue (a
 row-level policy the backend applies); it refuses to start where that policy is missing. This narrows what the
-executor can reach; it does not isolate it. Its `exec` is not a sandbox, it holds the job key and the AES key, and
-keep form actions off until that is done (and the executor must never hold both the job key and the AES key: together
-they forge a deletion header).
+executor can reach; it does not isolate it. Its `exec` is not a sandbox and not a security boundary yet: keep form
+actions off until the executor isolation work lands.
 
 ## Example end-to-end flows
 

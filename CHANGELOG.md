@@ -13,6 +13,354 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-10-31
+
+4.2.0 adds logic and new question types to the form builder, self-service webhooks and email actions, save and continue later for respondents, and a responses list and export that stay fast at any size. Every new feature a form creator configures ships behind a setting that is **off by default**: an operator turns each one on when they are ready (see the settings below). Stored data keeps working whether a setting is on or off.
+
+**Upgrading from 4.1.x:** no new required secret and no manual data step. The changes that need your attention:
+
+- **New settings, all off by default:** `FIELD_RULES_ENABLED` (field rules: required if, set a value, lock, change a label), `CHOICE_LOGIC_ENABLED` (show, hide and filter options), `NEW_QUESTION_TYPES_ENABLED` (time, day, currency, date range and tags), `WEBHOOKS_ENABLED`, `EMAIL_ACTIONS_ENABLED` and `SAVE_DRAFTS_ENABLED`. Set them in `.env.deployment` on a compose stack (the backend and the jobs worker read it). On an orchestrated stack, set them on the backend, and give the jobs worker the same `WEBHOOKS_ENABLED` and `EMAIL_ACTIONS_ENABLED`.
+- **Job queues:** the jobs worker now serves `default,webhooks,emails,exports`. If you set `JOBS_QUEUES` yourself, include all four; the worker warns at start about a missing one. A second jobs worker with `JOBS_QUEUES=exports` keeps large exports from ever delaying deletion jobs.
+- **Database migrations** `0024` to `0028` run with the backend's usual migrate step (`./deploy.sh`, or `DB_AUTO_MIGRATE=true`).
+- **Old action jobs:** 4.1.x kept the response, the responder's address and the action's secrets in queued action jobs. `./deploy.sh` removes that data, and so does the backend's start with `DB_AUTO_MIGRATE=true`; look for `legacy action jobs scrubbed` in the backend's log.
+- **Actions executor on the Postgres queue, upgraded without `./deploy.sh`:** the executor's narrowed database access (row-level policy, `bc_jobs_def`) is set up by `./deploy.sh`. A stack that upgrades by changing image tags and runs the actions executor on the Postgres queue (`JOBS_BACKEND` not `temporal`) runs these once after the 4.2 backend is up: `postgres/ensure-jobs-exec-role.sh` as the database superuser, then `python -m backend.jobs.schema` in the backend's container. The executor refuses to start until the policy is in place. A stack whose executor runs on Temporal needs nothing now, but does this before it moves the executor to the Postgres queue.
+- **Mail:** email actions send with the backend's `MAIL_*` settings, from the jobs worker, and the "continue later" links go through the auth service. On a compose stack `.env.deployment` already gives them all the same `MAIL_*`. On an orchestrated stack, set `MAIL_*` on the backend and the jobs worker as well as on auth, and update the auth service together with the backend.
+- **Exports** run on the server now. The browser export and the `all-submissions/export` route are gone; a large export is built as a job and kept, encrypted, for 24 hours.
+- **The webapp image** is built on Node 26.
+
+### Added
+
+- Choice logic: single choice, multiple choice and dropdown questions can now
+  show or hide individual options depending on earlier answers ("offer Wine
+  only when the age is 18 or more"), and filter their options by an earlier
+  choice question's answer ("only the cities of the chosen country"). The
+  respondent page offers only the available options and clears a selection
+  that stops being available, saying so politely; the server refuses an
+  answer that selects an option that is not available, on submit and on the
+  respondent's own edit. A question with nothing to choose is never required.
+  Part of form spec v1 (`logic` on a choice, `optionFilter` on a question),
+  the edit operations `set_option_logic` and `set_option_filter`, the public
+  API, the MCP server and the SDKs. Creating or changing choice logic is off
+  until the new server setting `CHOICE_LOGIC_ENABLED` is turned on (saves that
+  bring new or changed choice logic answer 422 `choice_logic_disabled`);
+  choice logic already stored is enforced either way.
+- Email actions per form (off by default, `EMAIL_ACTIONS_ENABLED`). Owners and admins mail the form's team when a
+  response is submitted, from English and Dutch templates (plain text, placeholders for the questions they choose)
+  with a preview and a test mail to themselves. Team addresses must be members of the workspace, checked when saved
+  and again when sent, and a member removed from the workspace, deprovisioned by its SCIM directory or whose
+  account is deleted is taken off the team lists. A respondent can get a copy of their own answers only when they
+  are signed in: it goes to the verified email of the account they submitted with, read when the copy is sent, and
+  never to an address typed in an answer. Anonymous respondents (not signed in, or submitting anonymously) get no
+  copy, and the builder and the privacy panel say so. The copy uses fixed wording, with its labels and answers cut
+  short and without links (also links written with fullwidth or other look-alike characters). Team mail and copies
+  are rate limited per mailbox, form and workspace, each limit checked and counted in one locked step. Mails are
+  sent by the jobs worker on a new `emails` queue with retries, and the action log (ids, status and timings, no
+  addresses or content, 30 days) shows them. The respondent's privacy panel says who is mailed.
+  Upgrade note: see the 4.2.0 upgrade notes above for `JOBS_QUEUES` and the `MAIL_*` settings.
+- Webhooks and email actions can run only when a condition on the answers holds, built in the form's own logic
+  conditions and checked by the server when the submission arrives. A submission that does not match is logged as
+  cancelled, with no answers.
+- Form builder: a "Rules" section in a question's settings. A rule makes the
+  question required or optional, locks it, gives it a value (fixed, or from a
+  formula over other answers) or changes its label or description, while a
+  condition or a formula holds. Rules can be added, edited, reordered and
+  deleted, problems show next to the rule, and questions with rules are marked
+  in the outline and the flow view. The section is shown when the server
+  accepts rules (`FIELD_RULES_ENABLED` on the backend, which tells the webapp
+  with the workspace permissions); it stays off by default.
+- Field rules: a question can now carry rules that require it or make it
+  optional, make it read-only, set its value (a fixed value or a formula), or
+  change its title or description while a condition or formula holds. The
+  server replays them on every submission and response edit: it enforces
+  Required with the rules applied, computes set values itself and discards
+  what a respondent sent for a read-only question. Rules are part of form
+  spec v1 (`rules` on a question) and are checked whenever a form is saved.
+  Creating or changing rules is off until the new server setting
+  `FIELD_RULES_ENABLED` is turned on (saves that bring new or changed rules
+  answer 422 `field_rules_disabled`); no editor creates rules yet.
+- The respondent form now applies a form's field rules as it is filled in: a
+  question a rule makes required shows as required (asterisk, `aria-required`
+  and the required check on Continue), a question a rule sets or locks shows
+  its value as read-only (focusable, not greyed out), and a rule's title or
+  description replaces the question's text. Changes caused by an answer are
+  announced once in a polite status message. Forms without rules render as
+  before.
+- Field rules through the API: the operation `set_field_rules` sets the rules
+  of a question (public API, MCP `update_form`, and the AI assistant while
+  field rules are on), and `validate` warns about rules while they are off.
+  Every write path, the new operation included, holds the
+  `FIELD_RULES_ENABLED` setting, which stays off by default.
+- A form can open on a date and stop after a number of responses. Before its open
+  date, and once it holds as many responses as its limit, the server refuses new
+  responses (409 `form_not_open` / `form_full`), as it does for a closed form, and
+  respondents see a notice in their own time zone and language instead of the
+  questions. The limit is counted under a lock, so responses sent at the same
+  moment never pass it; deleting a response frees its place. Editing a response
+  and asking for its deletion are not affected. Both settings are in the form's
+  settings, and forms that are not open yet or full leave the public listing and
+  the search like closed ones.
+- Self-service webhooks per form (off by default, `WEBHOOKS_ENABLED`). Owners and admins send the answers of chosen
+  questions to an https address of their own, signed with a per-webhook secret that is shown once, with retries and
+  a "Deliveries" log (ids, status and timings only, kept 30 days). The respondent's privacy panel names the
+  destination host. Addresses are checked when saved and again at every call.
+  Upgrade note: the jobs worker now serves the `default` and `webhooks` queues; if you set `JOBS_QUEUES`,
+  include `webhooks`.
+- Two more question types: a date range (a first and a last day, the last not before the
+  first, with the same date rules as a date question for both ends) and tags (short
+  free-entry labels, with a lowest and a highest number of tags and a longest tag). They work
+  in the builder (in English and Dutch), the form respondents fill in, the response views, the
+  CSV export (a range as `start/end`, tags in one cell), logic conditions, field rules and
+  calculations (a range reads as its start and its end), the public API, the MCP server and
+  both SDKs. The server checks every answer. Like the other new question types, they are
+  behind `NEW_QUESTION_TYPES_ENABLED`, which is off by default.
+- Three new question types: a time (HH:MM, with an earliest and a latest time), a day
+  typed as day, month and year (with the same date rules as a date question) and an amount
+  of money with its currency (one or more currencies, a lowest and a highest amount). They
+  work in the builder (in English and Dutch), the form respondents fill in, the response
+  views, the CSV export, the public API, the MCP server and both SDKs, and as sources in
+  logic, field rules and calculations. The server checks every answer.
+- `NEW_QUESTION_TYPES_ENABLED` (off by default) switches the new question types on for
+  creators: while it is off, the Insert menu leaves them out, and saving a new one, or
+  changing the settings of one a form already has, is refused (422 `question_type_disabled`;
+  the same for the API, MCP, the AI assistant, templates and imports). Questions a form
+  already has keep working: they are shown, answered and exported.
+- Exporting a form's responses now runs on the server. Up to 5,000 matching responses download straight
+  away; a larger export is prepared by a background job and fetched through a short-lived signed link
+  (valid five minutes, for the person who asked, still needing `response.export`). The file is stored
+  encrypted and can be downloaded again until 24 hours after it was built, when it is deleted (sooner
+  with "Delete the file" on the page, or at once if responses of the form are deleted). Every export from the Export control, and every read of
+  `GET .../forms/{form_id}/all-submissions`, leaves an audit entry (who, when, form, row count, columns,
+  filters, whether it was a job; never an answer or the search text); API keys and MCP bulk reads are not
+  audited yet. Exports are limited to 10 per user and form per hour, one live export per user and form,
+  three jobs in flight per workspace, and 100,000 responses. The export takes the responses list's filters
+  and a choice of columns (`POST .../forms/{form_id}/exports`); a form whose repeating groups export as
+  tables comes as a ZIP of CSV files. Upgrade note: the jobs worker now also serves a new `exports` queue;
+  if you set `JOBS_QUEUES`, include `exports`, or large exports stay queued.
+- The responses list can now be filtered, sorted and paged on the server. Filter
+  by the day a response was submitted (a range in the viewer's own time zone), by
+  the state of its deletion request, by anonymous or identified responders and by
+  form version, combined with the responder-email search; sort by newest, oldest
+  or form version; pick 25, 50 or 100 rows. A pager with first, previous, nearby,
+  next and last pages (real links, reachable by keyboard) replaces the numbered
+  strip, a polite count says which rows are shown (a total above 10,000 reads
+  "10,000+", and then there is no last page), and the page scrolls as a whole
+  instead of inside a 65vh box. Filters, sort, size and page are in the address,
+  so a list can be shared and survives Back and Forward; the responder search
+  stays out of it on purpose. Dutch and English. Answers stay encrypted, so
+  there are no answer-level filters.
+- The list endpoint (`GET .../forms/{form_id}/submissions`) takes `paging=keyset`,
+  `submittedFrom`, `submittedTo` (UTC instants), `status`, `respondent`,
+  `formVersion` and `cursor`. It pages by keyset on the submitted time, so the
+  next, previous and nearby pages cost the same at any depth (a signed,
+  expiring cursor names where a page began; a tampered one or one from another
+  list is refused with 400 `invalid_cursor`). Without these parameters it
+  answers as before. Migration 0025 adds an index for the form-version sort and
+  one on the deletion requests' `response_id`; the build blocks writes to those
+  tables for a moment (the statements are in the migration for a manual,
+  concurrent build first).
+- Forms can show respondents a review page before they send their answers. The
+  new "Review answers before sending" switch in the builder's Form tab (off by
+  default; also `showReviewPage` in the form spec, the API, the edit operations
+  and the SDKs) adds a page after the last question that lists the answers of
+  the pages the respondent went through, with an "Edit" button per page and
+  "Back to review" on the page they return to. Answers to questions the form no
+  longer shows, and uploaded files of those, are still sent as before; the
+  page names them, and the values the link carried, in an "Also sent"
+  block. Nothing is sent or stored until the
+  respondent submits from it.
+- Save and continue later (a per-form setting, off by default). Respondents can save a draft and carry on later: signed-in
+  respondents from their account, others with a link sent to the address they enter (the address is not kept; the link
+  works for 7 days and opens that draft only). Drafts are encrypted, kept apart from the responses (they appear in no
+  list, export, count or response limit and start no action or webhook until the form is submitted), expire after 1 to
+  90 days (30 by default) and are deleted when the form is submitted or on request. The respondent's privacy panel says
+  so. Creators set it in the form's settings, the API, the spec and the AI/MCP operations.
+  Behind `SAVE_DRAFTS_ENABLED` (off by default): until it is on, the setting cannot be turned on and drafts are not
+  saved or opened. The link mail holds only fixed wording and the link.
+- After signing in, someone in two or more workspaces first picks one on a new
+  workspace selection screen: each workspace with its logo, the user's role and its
+  custom domain, the last-used one first, and a search for long lists. With exactly
+  one workspace the sign-in goes straight in. A link to a workspace page brings the
+  user back to that page after signing in when they are a member there, and to the
+  selection screen with "You don't have access to that workspace" otherwise. A
+  workspace that requires single sign-on, opened from a session that didn't use it,
+  says so and starts that sign-in. The workspace menu gains "Choose workspace".
+- Themes have a separate colour for the answers typed in the white input
+  boxes (`inputText`, a `#rrggbb` colour; Answer text in the theme editors,
+  also in form spec v1, the API and saved themes). A dark custom theme can now
+  keep light questions on a dark page with dark, readable answers. It is
+  checked on white like the other colours (4.5:1), and where it is left out
+  the answers keep the questions' colour, so no existing theme changes. The
+  suggested fix for a dark page now sets the answer text instead of turning
+  the whole page pale.
+
+### Changed
+
+- The whole repository is licensed under Apache 2.0, as the root `LICENSE` says. Old
+  `LICENSE` files in `auth/`, `backend/`, `common/`, `integrations/google/` and `webapp/`
+  that still carried an earlier licence are removed, and the `common` and Google
+  integration packages now declare Apache-2.0.
+- The web app image now runs on Node 26 (the current LTS line) instead of Node 22, and
+  the base image is pinned by digest. It is built in CI like before; no change to the
+  stack or its environment is needed. Building the web app from source needs Node 26
+  (22.12 or later works), and Yarn 1 is installed with `npm i -g yarn`, as Node 25 and
+  later no longer ship Corepack.
+- The web app's default description (search results, link previews and the app manifest) now
+  reads "Open-source, privacy-first form and data collection platform", instead of the old
+  "Build forms simply and quickly". Pages that set their own description keep it.
+- Action runs are retried up to three times in total, five and then twenty-five seconds
+  apart, and stopped after ninety seconds. A run that is already queued is not queued
+  twice, and a run that cannot be queued no longer fails the submission or keeps the
+  form's other actions from running (it is logged with ids). `deploy.sh` now also
+  creates or repairs the executor's database role (`postgres/ensure-jobs-exec-role.sh`),
+  so a database that predates it gets it.
+- The Export CSV button no longer builds the file in the browser from every response of the form. The
+  columns, the formula guard and the formats are the same, but the file now comes from the server and
+  rows without answers (deletion-only stubs) are no longer exported.
+- Publishing: the colour-contrast check now holds new forms, forms that were never published
+  and any colour change to WCAG 2.2 AA. A form made before the check that is already live
+  keeps publishing with the colours it went live with: the builder lists its hard-to-read
+  colours as a recommendation ("Publish anyway" stays available) instead of blocking, in
+  English and Dutch. Once its colours differ from the live version's, they have to pass like
+  any other form's. Forms are now created under publish-checks version 3; the "why we ask
+  this" and workspace-title rules keep the versions they had.
+- Colour contrast: an outlined button is measured by its real text and edge colours (its ink
+  on the page, 4.5:1 for the text and 3:1 for the edge) instead of as white text on the button
+  colour, in the builder and on the server (shared cases in
+  `docs/spec/theme-contrast.cases.json`). A mid-tone button colour that reads fine as an
+  outlined button is no longer refused, and the suggested colours move it only as far as the
+  chosen-answer colour needs.
+- Dutch mails to creators and team members (sign-in code, invitation, Google Sheets reconnect) now address them formally ("u", "uw"), like the dashboard; mails to respondents keep the informal "je".
+- A respondent's copy of their response is sent as "<workspace> via <instance name>" (the actions executor reads `ORGANIZATION_NAME`), also when a workspace uses its own SMTP server.
+- The deployment compose file no longer runs `:nightly` images by default. The
+  first-party images take `BC_IMAGE_TAG` (the shell's, else the root `.env`'s),
+  and by default one pinned release (`v4.1.2`). `deploy.sh` with no
+  `BC_IMAGE_TAG` set uses the release tag the checkout is on, so the images
+  match the compose file and scripts of that release; a checkout between
+  releases keeps the pinned default and says so. Set `BC_IMAGE_TAG=nightly`
+  to follow `develop` on purpose.
+
+### Removed
+
+- `GET /workspaces/{id}/forms/{form_id}/all-submissions/export`, which sent every response of a form as
+  JSON to the browser. Use `POST .../exports`; `.../all-submissions` is unchanged.
+
+### Fixed
+
+- `backend/.env.example` works as a starting point again: a copy no longer fails to load because of
+  empty values that are not valid (`API_ENABLE_EXPORT_CSV`, `AWS_PRE_SIGNED_URL_EXPIRY`,
+  `DEFAULT_WORKSPACE_ID`) or inline comments read as values (`VERIFIED_DOMAINS_NAMESERVERS`).
+- A form saved with a calculation or rule formula nested hundreds of levels
+  deep now gets a clear 422 instead of an internal "circular reference" error.
+- A read-only question left empty no longer has its placeholder dash read out
+  by screen readers, and the logic condition rows have accessible names.
+- With field rules switched off, changing the type of a question that already
+  has rules no longer makes every save fail: a type that still takes the rule
+  keeps it, and one that cannot carry rules drops them.
+- The form editor operation `replace_field` (the AI assistant and the builder's
+  chat preview) now drops the field rules that a replaced question leaves
+  dangling, with a note, instead of refusing the edit.
+- The form builder no longer gets stuck when a question that has field rules
+  is made internal: its rules are removed, and a save drops the rules of a
+  question that cannot have them instead of refusing every autosave.
+- A day typed with a year of fewer than four digits (such as "90") is no longer made into
+  an old year; it is refused until the year is written in full, and the server refuses
+  days in years before 1000. An amount of money is not below zero unless the question's
+  lowest amount allows it, and a zero written with a minus is written as zero. A day, an
+  amount or a time that a rule has locked can no longer be typed over. Days in the response
+  views and the responses table are written in the app's date style. Taking away the date
+  question that a day question's date rule compares with no longer leaves the day question
+  unsavable while the new question types are switched off.
+- A tags question only compares with "contains", "does not contain", "is empty" and "is not
+  empty" (in logic, in the form spec and in what the AI and API may write); a tags answer
+  with an entry that is not text is refused wherever the question is answered; the limits
+  of a tags question (up to 30 tags, 1 to 40 characters each, the fewest not above the
+  most) are kept on every path that saves a form; the same tag written two ways in Unicode
+  counts as one; a rule on a date range question can no longer read the question's own
+  start or end; a spreadsheet formula after leading whitespace is kept as text in the
+  Google Sheets action as well.
+- A condition that compares a date question with "is more than" or "is less than" now
+  compares the dates. Before, such a condition never held.
+- Field rules, the fixes the reviews asked for before `FIELD_RULES_ENABLED` is turned on:
+  a condition reads no text over 10,000 characters (it counts as empty), a condition on an
+  internal question is not active on the server either, values that set each other in a circle
+  have none (the page used to rewrite them for ever), an expression nested hundreds of levels
+  deep is refused instead of failing with a server error, an operation no longer checks every
+  rule of the form twice, and with the flag off moving a question that has rules to another
+  page or group no longer blocks the builder's autosave. Replacing or removing a choice
+  question's options says which rules went with them.
+- The respondent page decides field rules from the answers as they will be submitted (a skipped
+  page and a hidden group left out), no longer keeps a stale state after an answer is cleared,
+  shows the server's "required" message whatever the rules say, shows a dash instead of the
+  prompt in an empty read-only question, gives locked dropdowns and date pickers read-only
+  semantics, lets the arrow keys move between the options of a locked yes/no or choice
+  question, and stores question ids such as `__proto__` like any other. Headings, paragraphs
+  and dividers are not variables in the browser either. The Dutch "filled in for you" message
+  says "je".
+- The smoke test now deletes every form it creates, also when a step fails, and
+  only those forms (by the ids it was given). A key without `forms:delete` no
+  longer hides this: the run still passes, with a warning that names the scope
+  and the forms left behind. A new one-off cleanup (`python -m smoke.cleanup`,
+  or the production smoke workflow's `cleanup` choice) lists, and with
+  `--delete` removes, the forms earlier runs left behind.
+- The smoke test's report now says why a form could not be published (for
+  example a workspace without a title), and its dry-run stack's workspace gets
+  a title, so the dry run publishes again.
+
+### Security
+
+- Action runs on the job queue no longer put the response in it. The queued job holds
+  ids only (action, form, response, workspace) and a run token; the executor asks the
+  backend for the run's data when it runs, and the backend answers 410, so the run is
+  skipped, when the response was deleted, the action was switched off or removed, or
+  the run is more than a day old. Until now the whole response, the responder's address
+  and the action's stored secrets were written to the queue's table and kept there.
+  `python -m backend.jobs.schema`, which `deploy.sh` runs, now also removes that data
+  from rows queued by earlier releases, in any status: finished ones are deleted,
+  waiting ones are rewritten to ids only. Finished action jobs are deleted after a week
+  (a month for failed ones).
+- The route that serves a run's data needs the job key, the run's own token (signed by
+  the backend, expiring after a day) and the run's job in the queue, `doing`, with the
+  same ids and token. The shared job key alone no longer reads any response, and a token
+  read from the queue opens nothing once its run is over. The route returns only that
+  action's settings, not those of the form's other actions.
+- The actions executor's database role is narrowed, with these limits still open (see
+  below). It sees and writes only `run_action` jobs of the `actions` queue, with locks
+  that start with `action_`, so it can no longer read, queue or cancel the other queues'
+  jobs, or take the lock name of a response or account deletion. It cannot write the
+  events or periodic-defers tables: procrastinate's triggers write them for it as
+  SECURITY DEFINER functions of a dedicated login-less role (`bc_jobs_def`), with a
+  search path that ends in `pg_temp` so a temporary table cannot stand in for them. A row-level policy, applied by `python -m
+  backend.jobs.schema`, does this, and the executor refuses to start without it.
+- Job arguments no longer reach the logs: the call string procrastinate prints at start,
+  at the end and when a job fails for good is cut to the task name and the job id.
+  A failed action run is raised with the action and form ids and the kind of error only,
+  and the job's result is a single word instead of the action's log.
+- This narrows what a compromised executor can reach. It does not make form actions safe
+  to enable: the executor's sandbox is not a security boundary yet. Keep form actions off
+  until the executor isolation work lands.
+- The "send me a copy" address rule now also refuses an address that holds a format character (bidirectional
+  overrides and isolates, zero width characters) or an unassigned code point, so an address cannot render as another
+  one in a mail header.
+- A downgraded workspace is listed to its owners only, also for a member whose
+  membership was left enabled, and a workspace's dashboard and onboarding pages tell
+  someone who isn't a member the same thing whether the workspace exists or not.
+- The "send me a copy" action can only mail a current member of the form's workspace (the form's
+  creator only while they are still one). Any other receiving address is refused when the action is
+  added (422, `copy_recipient_not_allowed`), and again right before each mail is sent, so a member
+  removed or disabled later stops receiving copies. Before, any address could be set and the
+  instance's mail server sent response data to it. Addresses are compared after trimming
+  whitespace and ignoring case; plus tags and dots are not ignored.
+- Number-like answers (number, rating, linear rating and opinion scale questions) are now
+  parsed in linear time. The same numbers are accepted as before.
+- With `DB_AUTO_MIGRATE` on, the backend now also removes, at startup, the response data that 4.1.x left in queued action jobs, as `python -m backend.jobs.schema` does at deploy. A stack upgraded by swapping images no longer keeps that data until someone runs the command. The step is idempotent, logs counts only, and never stops the start.
+- The admin portal can take the client address from Cloudflare's
+  `CF-Connecting-IP` header, so its address allow-list can name the operators'
+  own addresses behind Cloudflare. It is off unless `ADMIN_TRUST_CLOUDFLARE` is
+  set, and then the header is believed only for a request that came through a
+  proxy in `ADMIN_TRUSTED_PROXIES` from a Cloudflare address
+  (`ADMIN_CLOUDFLARE_IPS` replaces the built-in ranges). From any other source,
+  sent twice or malformed, it is ignored.
+
 ## [4.1.2] - 2026-10-31
 
 4.1.2 is a security release. The server now enforces a form's close date, the public receipt routes are rate limited, and the sign-in page on the form host and custom domains only follows links to this site. The auth service keeps only a keyed hash of each email sign-in code and no longer hands pending codes to the backend, its access log or Elastic APM. Connecting Google Sheets to a form hands the consent result only to the dashboard, and an imported form's link to its original must be an http(s) address. The Python and TypeScript SDKs can now be published from this repository.
@@ -2488,7 +2836,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.1.2...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.2.0...HEAD
+[4.2.0]: https://github.com/bettercollected/bettercollected/compare/v4.1.2...v4.2.0
 [4.1.2]: https://github.com/bettercollected/bettercollected/compare/v4.1.1...v4.1.2
 [4.1.1]: https://github.com/bettercollected/bettercollected/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/bettercollected/bettercollected/compare/v4.0.14...v4.1.0
