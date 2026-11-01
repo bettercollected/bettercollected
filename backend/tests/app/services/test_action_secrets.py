@@ -100,14 +100,17 @@ class TestRefreshAndRemove:
             RecordId(workspace_form.form_id),
             RecordId(SECOND),
             FormActionsDto(
-                name="Credentials", value="second-refreshed", type="secrets"
+                name="Credentials",
+                value=container.crypto().encrypt("second-refreshed"),
+                type="secrets",
             ),
         )
 
-        assert await _secrets(workspace_form.form_id) == {
-            FIRST: {"Credentials": "first-cred"},
-            SECOND: {"Credentials": "second-refreshed"},
-        }
+        stored = await _secrets(workspace_form.form_id)
+        assert stored[FIRST] == {"Credentials": "first-cred"}
+        assert container.crypto().decrypt(stored[SECOND]["Credentials"]) == (
+            "second-refreshed"
+        )
 
     async def test_removing_an_action_from_a_form_keeps_the_others_secrets(
         self, workspace_form
@@ -198,13 +201,14 @@ class TestSecretsStayInside:
         await _add_credentials(workspace_form.form_id, FIRST, "first-cred")
         monkeypatch.setattr(settings.temporal_settings, "api_key", JOB_KEY)
         key = {"api-key": JOB_KEY}
+        sealed = container.crypto().encrypt("first-refreshed")
 
         refreshed = await client.patch(
             f"/api/v1/temporal/forms/{workspace_form.form_id}/actions/{FIRST}/secrets",
             headers=key,
             json={
                 "name": "Credentials",
-                "value": "first-refreshed",
+                "value": sealed,
                 "type": "secrets",
             },
         )
@@ -216,11 +220,10 @@ class TestSecretsStayInside:
 
         for response in (refreshed, disabled):
             assert response.status_code == 200, response.text
-            assert "first-refreshed" not in response.text
+            assert sealed not in response.text
             assert "secrets" not in response.text
-        assert (await _secrets(workspace_form.form_id))[FIRST] == {
-            "Credentials": "first-refreshed"
-        }
+        stored = (await _secrets(workspace_form.form_id))[FIRST]
+        assert container.crypto().decrypt(stored["Credentials"]) == "first-refreshed"
 
 
 # ---------------------------------------------------------------------------
@@ -463,3 +466,60 @@ class TestActionDeleteCleanup:
         copy = await actions.get_workspace_action(workspace.id, partner_action.id)
         assert copy is None
         assert await actions.get_action_by_id(partner_action.id) is None
+
+
+class TestExecutorWriteBack:
+    """The executor seals a refreshed credential with its own copy of the key
+    (docs/auth-key-rotation.md): the backend opens it with its ring and seals it
+    again with its current key; a value no key opens is refused."""
+
+    async def _write_back(self, form_id, value):
+        return await container.form_actions_service().update_form_secrets(
+            RecordId(form_id),
+            RecordId(FIRST),
+            FormActionsDto(name="Credentials", value=value, type="secrets"),
+        )
+
+    async def test_a_value_sealed_with_the_previous_key_is_stored_under_the_current_one(
+        self, workspace_form
+    ):
+        from cryptography.fernet import Fernet
+
+        from common.configs.crypto import Crypto
+
+        await _attach_actions(workspace_form.form_id, FIRST)
+        await _add_credentials(workspace_form.form_id, FIRST, "first-cred")
+        current = Fernet.generate_key().decode()
+        previous = Fernet.generate_key().decode()
+        stale = Crypto(previous).encrypt("refreshed-by-a-stale-executor")
+        service = container.form_actions_service()
+        ring = Crypto(f"{current},{previous}")
+        service.crypto = ring
+        try:
+            await self._write_back(workspace_form.form_id, stale)
+        finally:
+            service.crypto = container.crypto()
+        (secret,) = (await _form(workspace_form.form_id)).secrets[FIRST]
+        assert Crypto(current).decrypt(secret.value) == "refreshed-by-a-stale-executor"
+        with pytest.raises(Exception):
+            Crypto(previous).decrypt(secret.value)  # the current key alone seals it now
+
+    async def test_a_value_no_key_opens_is_refused_and_nothing_is_stored(
+        self, workspace_form, caplog
+    ):
+        from cryptography.fernet import Fernet
+
+        from common.configs.crypto import Crypto
+        from backend.app.exceptions import HTTPException
+
+        await _attach_actions(workspace_form.form_id, FIRST)
+        await _add_credentials(workspace_form.form_id, FIRST, "first-cred")
+        foreign = Crypto(Fernet.generate_key().decode()).encrypt("never-shown-value")
+        for value in (foreign, "not-a-token"):
+            with pytest.raises(HTTPException) as refused:
+                await self._write_back(workspace_form.form_id, value)
+            assert refused.value.status_code == 422
+        assert await _secrets(workspace_form.form_id) == {
+            FIRST: {"Credentials": "first-cred"}
+        }
+        assert "never-shown-value" not in caplog.text and foreign not in caplog.text

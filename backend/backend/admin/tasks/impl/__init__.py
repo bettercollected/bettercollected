@@ -12,6 +12,7 @@ from backend.admin.tasks.registry import Registry
 
 def load(registry: Registry, env: Mapping[str, str] = os.environ) -> Registry:
     """Register every implementation this build offers."""
+    from backend.admin.tasks.impl.authkeys_tasks import TASKS as AUTHKEYS_TASKS
     from backend.admin.tasks.impl.case_duplicates import ResolveCaseDuplicateAccounts
     from backend.admin.tasks.impl.google_purge import PurgeUnencryptedCredentials
     from backend.admin.tasks.impl.responses_backfill_task import BackfillWorkspaces
@@ -22,6 +23,7 @@ def load(registry: Registry, env: Mapping[str, str] = os.environ) -> Registry:
         CheckUndecryptable,
         BackfillWorkspaces,
         *KEYSET_TASKS,
+        *AUTHKEYS_TASKS,
         PurgeUnencryptedCredentials,
         ResolveCaseDuplicateAccounts,
     ):

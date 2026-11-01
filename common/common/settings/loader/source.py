@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, List, Optional, Protocol, Tuple, runtime_checkable
 
+from ..key_ring import REPORT_MARK
 from ..canonical import SettingRow
 from ..signing import Manifest
 from ..snapshot import ServiceState
@@ -273,7 +274,7 @@ class PgSnapshotSource:
                     list(report["env_overrides"]),
                     list(report["rejected_keys"]),
                     bool(report["restart_pending"]),
-                    str(report["keyset_fp"]),
+                    str(report["keyset_fp"]) + REPORT_MARK,
                 )
                 try:
                     await conn.execute(

@@ -285,8 +285,14 @@ async def test_the_history_keeps_the_previous_versions_sealed(world, store):
 
 # ------------------------------------------------------------------ guards
 async def test_the_runner_can_write_no_other_key(world, store):
-    code, message = await sqlstate(world.tasks, NULL_CALL, k="AUTH_JWT_SECRET")
-    assert code == "42501" and "not task-writable" in message
+    for other in ("AUTH_INTERNAL_NOTIFY_KEY", "TEMPORAL_API_KEY", "RESPONDENT_IDENTITY_KEY"):
+        code, message = await sqlstate(world.tasks, NULL_CALL, k=other)
+        assert code == "42501" and "not task-writable" in message, other
+    # the two auth key rings are on the allow-list since migration 0020 (rotated by
+    # the authkeys.* tasks): with no such row the call stops later, not at the list
+    for ring in ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY"):
+        code, message = await sqlstate(world.tasks, NULL_CALL, k=ring)
+        assert "not task-writable" not in message, ring
     code, _ = await sqlstate(world.tasks, NULL_CALL, k="AI_DEFAULT_PROVIDER")
     assert code == "42501"
     code, _ = await sqlstate(world.tasks, call().replace("CAST(:k AS text)", "NULL"))
