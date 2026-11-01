@@ -1382,6 +1382,7 @@
     "SHOW_WHEN": "Show this {{kind}} when…",
     "HIDE_WHEN": "Hide this {{kind}} when…",
     "REFUSED": "The server refused this layout",
+    "MOVE_REFUSED": "Not changed: it would break a layout container (panel, field set or tabs). {{reason}}",
     "COMPLETE_RULE": "Fill in every condition and the rule applies.",
     "FRAME_LABEL": "{{kind}}: {{title}}",
     "CANNOT_COPY": "A page with layout containers cannot be copied while the server does not take them yet.",
