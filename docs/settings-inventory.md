@@ -51,9 +51,9 @@ environment, whatever the tier.
 | `UMAMI_USERNAME` | analytics | backend | str max 200 |  | R | T2 |  |
 | `UMAMI_WEBSITE_ID` | analytics | backend, webapp | str max 100 |  | R | T2 |  |
 | `UMAMI_WEBSITE_NAME` | analytics | backend | str max 100 |  | R | T1 | `BetterCollected` |
-| `AUTH_AES_HEX_KEY` | auth_keys | backend, auth, google, temporal_worker | str fernet | yes | R | T4 |  |
+| `AUTH_AES_HEX_KEY` | auth_keys | backend, auth, google, temporal_worker, tasks | str fernet_ring | yes | R | T4 |  |
 | `AUTH_INTERNAL_NOTIFY_KEY` | auth_keys | backend, auth, google | str token | yes | R | T4 |  |
-| `AUTH_JWT_SECRET` | auth_keys | backend, auth, google | str token | yes | R | T4 |  |
+| `AUTH_JWT_SECRET` | auth_keys | backend, auth, google, tasks | str token_ring | yes | R | T4 |  |
 | `MASTER_ENCRYPTION_KEYSET` | auth_keys | backend, google, tasks | str tink_keyset | yes | R | T4 |  |
 | `RESPONDENT_IDENTITY_KEY` | auth_keys | backend | str identity_key | yes | R | T4 |  |
 | `TEMPORAL_API_KEY` | auth_keys | backend | str token | yes | R | T4 |  |
@@ -90,6 +90,7 @@ environment, whatever the tier.
 | `COUPON_ENABLED` | features | backend | bool |  | R | T1 | `false` |
 | `ENABLE_SUGGEST_PRICE` | features | backend | bool |  | R | T1 | `false` |
 | `FIELD_RULES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
+| `LAYOUT_CONTAINERS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `NEW_QUESTION_TYPES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `RESPONSE_VALIDATION_ENFORCE` | features | backend | bool |  | R | T2 | `true` |
 | `SAVE_DRAFTS_ENABLED` | features | backend | bool |  | R | T2 | `false` |

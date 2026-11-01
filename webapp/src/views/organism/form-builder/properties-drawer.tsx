@@ -2,18 +2,21 @@
 
 import { useEffect } from 'react';
 
+import { useAtom } from 'jotai';
+
 import { formFieldsList } from '@app/constants/form-fields';
 import { InspectorLevel, inspectorLevel } from '@app/lib/hooks/use-inspector-escape';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@app/shadcn/components/ui/tabs';
 import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
+import { activeContainerAtom, useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
 import { useField } from '@app/store/jotai/entity-hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { PropertiesTab, usePropertiesTab } from '@app/store/jotai/properties-tab';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import InspectorBreadcrumb, { InspectorCrumb } from '@app/views/molecules/form-builder/inspector-breadcrumb';
+import LayoutContainerSettings from '@app/views/molecules/form-builder/layout-container-settings';
 import FieldSettings from '@app/views/organism/field-settings';
 import AIChatTab from '@app/views/organism/form-builder/ai-chat-tab';
 import FormSettingsTab from '@app/views/organism/form-builder/form-settings-tab';
@@ -50,6 +53,12 @@ export default function PropertiesDrawer({}: {}) {
     const standardForm = useAppSelector(selectForm);
     const { formState } = useFormState();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
+    // A panel, field set or tabs strip selected on the canvas (no question is then)
+    const [activeContainer, setActiveContainer] = useAtom(activeContainerAtom);
+    // ... which belongs to the page it is on
+    useEffect(() => {
+        if (activeContainer && activeSlideComponent?.id !== activeContainer.pageId) setActiveContainer(null);
+    }, [activeContainer, activeSlideComponent?.id]);
 
     // Start-with-AI handoff: a pending prompt (stashed by the dashboard
     // dialog) opens the drawer on the AI tab; the tab itself consumes and
@@ -68,6 +77,7 @@ export default function PropertiesDrawer({}: {}) {
     const goTo = (target: InspectorLevel) => {
         if (target === 'question') return;
         setActiveFieldComponent(null);
+        setActiveContainer(null);
         setPropertiesTab(target === 'page' ? 'page' : 'form');
     };
 
@@ -75,7 +85,8 @@ export default function PropertiesDrawer({}: {}) {
         <div className="flex h-full flex-col border-l" data-inspector>
             {activeSlideComponent?.id && <InspectorBreadcrumb crumbs={crumbs} current={level} onSelect={goTo} />}
             {activeFieldComponent?.id && <FieldSettings />}
-            {!activeFieldComponent?.id && activeSlideComponent?.id && (
+            {!activeFieldComponent?.id && activeContainer && <LayoutContainerSettings />}
+            {!activeFieldComponent?.id && !activeContainer && activeSlideComponent?.id && (
                 <Tabs value={propertiesTab} onValueChange={(value) => setPropertiesTab(value as PropertiesTab)} className={cn('flex w-full flex-1 flex-col', propertiesTab === 'ai' && 'min-h-0')}>
                     <TabsList aria-label="Settings" className="mx-2 my-2 w-[calc(100%-16px)] shrink-0">
                         {TABS.map((tab) => (

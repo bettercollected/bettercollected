@@ -20,7 +20,7 @@ A test fails when the committed file is out of date.
 | `title`, `description` | The form's title and description. |
 | `language` | The language the form's own text is written in: `nl`, `en`, `de`, `fr`, `es`, `it`, `pt`, `pl`, `da`, `sv`, `nb` or `fi`. Respondent pages mark that text with it for screen readers and browsers. A document that replaces a form and leaves it out keeps the form's language; `null` clears it. The operation `set_form_language` sets it too. |
 | `welcomePage` | Title, description, layout, image and button text of the first screen. |
-| `pages` | The question pages in order. Each page has an `id`, an optional `sectionTitle`, `layout`, `imageUrl`, `theme` override, `showQuestionNumbers`, flow-view `position`, `jumps` (branching) and its `fields`. |
+| `pages` | The question pages in order. Each page has an `id`, an optional `sectionTitle`, `layout`, `imageUrl`, `theme` override, `showQuestionNumbers`, flow-view `position`, `jumps` (branching), `containers` (see [Layout containers](#layout-containers)) and its `fields`. |
 | `endings` | The pages shown after submitting. Each has an `id` (given when left out), an internal `name`, `isDefault` (at most one; else the first ending is the default), `title`, `message`, `buttonText`, `buttonLink`, `layout` and `imageUrl`. |
 | `theme` | Colours, background and style; optionally type and shape (`titleFont`, `bodyFont`, `dataFont` from `public-sans`, `atkinson-next`, `archivo`, `besley`, `rubik`, `atkinson-mono`; `titleWidth` `normal` or `expanded`; `radius` `sharp`, `soft` or `round`; `buttonStyle` `filled`, `outlined` or `pill`) a `highlight` colour (`#rrggbb`) and an `inputText` colour (`#rrggbb`, the answers typed in the white input boxes; absent: `primary`). A key left out keeps the look forms had before it existed. |
 | `hiddenFields` | URL parameter names captured with each response (names only). |
@@ -264,6 +264,72 @@ the message. A pattern a form already holds that RE2 cannot use is kept until
 it is changed (the server does not check it). When an operation, a form saved
 with the API or an Open Formulieren import brings such a pattern, it is
 refused (the import leaves it out and lists it as not carried).
+
+## Layout containers
+
+A page can group its questions into **panels**, **field sets** and **tabs**. The
+key is `containers` on a page; the page's `fields` stay a flat list, so answers,
+logic, field rules, calculations, piping, the review page, the exports and the
+API read the questions exactly as before. A container only says how respondents
+see them.
+
+```json
+"containers": [
+  { "id": "c1", "type": "panel", "title": "Contact details", "collapsed": false,
+    "fields": ["q1", "q2"] },
+  { "id": "c2", "type": "fieldset", "title": "Billing address", "fields": ["q3"] },
+  { "id": "c3", "type": "tabs", "logic": { "action": "SHOW", "conditions": [] },
+    "tabs": [ { "id": "t1", "title": "Home", "fields": ["q4"] },
+              { "id": "t2", "title": "Work", "fields": ["q5", "q6"] } ] }
+]
+```
+
+| Type | The respondent | Keys |
+|---|---|---|
+| `panel` | a titled group with a button that opens and closes it | `title` (1 to 120 characters of plain text: no control or format characters, except the joiners U+200C and U+200D that emoji sequences and some scripts need), `collapsed` (`true`: closed when the page opens), `fields` |
+| `fieldset` | a bordered group with the title as its legend | `title`, `fields` |
+| `tabs` | a strip of tabs, one group shown at a time | `tabs` (1 to 8, each `{id, title, fields}`; a tab may be empty); no title of its own |
+
+Every type may have `logic` (the shape of a question's `logic`: it shows or
+hides the whole container; the questions inside count as hidden by logic, so
+they are not required, and what they hold stays stored and sent, as for any
+question hidden by logic). Its conditions read only questions before the
+container.
+
+- `id`s (containers and tabs) are unique across the form; a question id in a list is at most 200 characters. At most 20 containers
+  per page and 100 questions per container.
+- The questions of a container are questions of that page, each in at most one
+  container, never an internal question and never a repeating group's child
+  (a repeating group can be a member as a whole). Containers do not nest.
+- They are **next to each other** on the page, in the order given (tabs in the
+  order of the strip, then each tab's questions); internal questions between
+  them do not count. So the order respondents see is the order of `fields`, and
+  rules that read "earlier" questions mean what they meant.
+- The spec check reports a broken container at `/pages/<n>/containers/<m>`.
+- An invalid container is a 422 `invalid_layout` on a save; the builder's
+  save repairs what a removal or a move left dangling (a member that is gone,
+  an emptied container) instead.
+
+**Operation.** `set_page_containers {pageId, containers | null}` replaces the
+page's list (null or `[]` removes the containers; the questions stay). Container
+and tab ids may be left out: they are made up (`c1`, `c2`, ... and `t1`, `t2`,
+... the smallest unused in the form, in the order given). A question can be
+named with `"$ref:<name>"` as everywhere. Other operations keep membership true
+by position: a question added or moved to the **inside** of a container (a
+member of it before and after) joins it, at its edge it does not; a question
+moved out of its container leaves it (a container's only question takes the
+container along); removing a question, moving it to another page or into a
+group, or making it internal takes it out, and a container left without
+questions goes. `duplicate_page` copies the containers with new ids.
+
+**Rollout.** Layout containers are behind the server setting
+`LAYOUT_CONTAINERS_ENABLED`, off by default. While it is off, every write that
+adds a container or changes one (its type, title, `collapsed`, rule, tabs, or
+more questions in it) is refused with 422 `layout_containers_disabled`: the
+builder's save, the spec API, the edit operations (the message names the
+setting), MCP, the assistant, templates and imports; the spec check warns.
+What a form already has keeps working: a container renders, a save that leaves
+it as it is passes, and a container may lose questions or be removed.
 
 ## Field rules
 
@@ -616,6 +682,12 @@ should pass every case.
   read it.
 - `addressQuestion` (optional, default `true`): the same for the `address`
   question and its own switch (`ADDRESS_QUESTION_ENABLED`; the message names it).
+- `layoutContainers` (optional, default `true`): the same for layout containers
+  (the server setting `LAYOUT_CONTAINERS_ENABLED`). With `false`, an operation that
+  adds a container, changes one or puts a question into one fails with a
+  message containing `LAYOUT_CONTAINERS_ENABLED`; containers `before` already
+  holds, and edits that only take questions out of them, still apply. Both
+  engines read it.
 - `signatureQuestion` (optional, default `true`): the same for the signature
   question (the server setting `SIGNATURE_QUESTION_ENABLED`). With `false`, an
   operation that adds a `signature` question, or turns a question into one, fails

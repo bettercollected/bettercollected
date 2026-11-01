@@ -391,6 +391,32 @@ async def _settings_restore(key: str, version: int, confirm: Optional[str]) -> i
     return 0
 
 
+GRANT_RUNNER_KEYS = ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY")
+
+
+async def _settings_grant_runner(keys: Sequence[str], apply: bool) -> int:
+    """Lists, and with ``--apply`` fixes, the key rings whose stored row does not
+    name the task runner among its readers (docs/auth-key-rotation.md)."""
+    settings = AdminSettings.from_env()
+    service = _service(settings)
+    pending = 0
+    try:
+        for key in keys:
+            change = await service.regrant_readers(key, _cli_actor(), apply=apply)
+            if change is None:
+                print(f"ok {key}")
+            elif change.changed:
+                print(f"granted {key} version={change.version}")
+            else:
+                pending += 1
+                print(f"would_grant {key} version={change.version}")
+    finally:
+        await service._engine.dispose()
+    if pending:
+        print(f"dry run: nothing written ({pending} to do; pass --apply)")
+    return 0
+
+
 async def _settings_history(key: str) -> int:
     settings = AdminSettings.from_env()
     service = _service(settings)
@@ -619,6 +645,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     restorer.add_argument("--version", type=int, required=True)
     restorer.add_argument("--confirm", metavar="KEY")
     restorer.add_argument("--yes", action="store_true")
+    grant = sub.add_parser(
+        "settings-grant-runner",
+        help="let the task runner read the auth key rings (a row written earlier lacks it); dry run unless --apply",
+    )
+    grant.add_argument("keys", nargs="*", metavar="KEY", help="default: AUTH_JWT_SECRET AUTH_AES_HEX_KEY")
+    grant.add_argument("--apply", action="store_true")
     history = sub.add_parser("settings-history", help="the kept versions of a setting (no values)")
     history.add_argument("key")
     mail = sub.add_parser(
@@ -685,6 +717,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             if args.command == "settings-clear":
                 return asyncio.run(_settings_clear(args.key, args.confirm))
             return asyncio.run(_settings_restore(args.key, args.version, args.confirm))
+        if args.command == "settings-grant-runner":
+            keys = list(args.keys) or list(GRANT_RUNNER_KEYS)
+            if any(key not in GRANT_RUNNER_KEYS for key in keys):
+                print("refused: only the auth key rings are granted here", file=sys.stderr)
+                return 2
+            return asyncio.run(_settings_grant_runner(keys, args.apply))
         if args.command == "settings-history":
             return asyncio.run(_settings_history(args.key))
         if args.command == "settings-mail-apply":

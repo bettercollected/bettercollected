@@ -28,6 +28,7 @@ import httpx
 import jwt
 from common.records import RecordId
 from common.models.user import User
+from common.services.jwt_service import decode_with_ring
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -99,9 +100,10 @@ def decode_token(token: Optional[str], *, verify_exp: bool = True) -> Optional[d
     if not token:
         return None
     try:
-        return jwt.decode(
+        # every member of the key ring verifies (docs/auth-key-rotation.md)
+        return decode_with_ring(
             token,
-            key=settings.auth_settings.JWT_SECRET,
+            settings.auth_settings.JWT_SECRET,
             algorithms=["HS256"],
             options={"verify_exp": verify_exp},
         )

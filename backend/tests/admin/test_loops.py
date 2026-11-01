@@ -156,6 +156,26 @@ async def test_every_admin_gets_exactly_one_mail_per_notification(
     assert len(transport.sent) == 4  # nothing is mailed twice
 
 
+async def test_an_auth_key_ring_change_is_named_not_called_the_response_keyset(
+    runtime_engine, superuser, now_clock
+):
+    transport = FakeTransport()
+    sender, _ = make_sender(runtime_engine, now_clock, transport)
+    ring = {"setting": "AUTH_AES_HEX_KEY", "action": "promote", "version": 3, "actor": "ops@example.org"}
+    await enqueue(runtime_engine, "settings.keyset_changed", ring)
+    await enqueue(runtime_engine, "settings.keyset_changed", {**ring, "setting": "MASTER_ENCRYPTION_KEYSET"})
+    assert await sender.run_once() == "sent 2, retry 0, failed 0, mails 4"
+    by_subject = {m.subject: m.body for m in transport.sent}
+    assert set(by_subject) == {
+        "Security notice: an auth key was changed",
+        "Security notice: the encryption keyset was changed",
+    }
+    ring_body = by_subject["Security notice: an auth key was changed"]
+    assert "Setting: AUTH_AES_HEX_KEY" in ring_body and "Action: promote" in ring_body
+    assert "response encryption keyset" not in ring_body
+    assert "response encryption keyset" in by_subject["Security notice: the encryption keyset was changed"]
+
+
 async def test_one_summary_audit_row_per_batch_with_counts_only(
     runtime_engine, superuser, now_clock
 ):

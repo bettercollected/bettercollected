@@ -13,7 +13,7 @@ import RatingIcon from '@Components/icons/rating-icon';
 import { TextIcon } from '@Components/icons/text';
 import UploadIcon from '@Components/icons/upload-icon';
 import { YesNoIcon } from '@Components/icons/yes-no-icon';
-import { AlignLeft, Banknote, Calculator, CalendarDays, CalendarRange, Clock, Image as ImageIcon, MapPin, PenLine, Repeat, Table2, Tags, Type, Video } from 'lucide-react';
+import { AlignLeft, Banknote, Calculator, CalendarDays, CalendarRange, Clock, Image as ImageIcon, MapPin, PanelTop, PenLine, Repeat, SquareDashed, Table2, Tags, Type, Video, Rows3 } from 'lucide-react';
 
 import { FieldTypes } from '@app/models/dtos/form';
 
@@ -97,6 +97,26 @@ export const insertCatalog: InsertCatalogItem[] = [
  * name starts with the query ("number" → Number, not Phone number), else
  * the first one.
  */
+/**
+ * The layout containers the Insert menu adds (a panel, a field set, tabs),
+ * offered while the server allows them (LAYOUT_CONTAINERS_ENABLED). Not field
+ * types: picking one adds a new question inside a new container
+ * (lib/hooks/use-layout-containers.ts). Their names and descriptions come from
+ * the builder's translations (`LAYOUT.*`), these are the English fallbacks.
+ */
+export const CONTAINER_ITEM_PREFIX = 'container:';
+export const containerCatalog: InsertCatalogItem[] = [
+    { type: `${CONTAINER_ITEM_PREFIX}panel` as unknown as FieldTypes, name: 'Panel', description: 'A titled group that opens and closes', category: 'Layout & content', keywords: ['collapsible', 'accordion', 'section', 'group', 'layout'], icon: <PanelTop className={ICON} strokeWidth={1.75} style={iconStyle} /> },
+    { type: `${CONTAINER_ITEM_PREFIX}tabs` as unknown as FieldTypes, name: 'Tabs', description: 'Show one group of questions at a time', category: 'Layout & content', keywords: ['tab', 'sections', 'group', 'layout'], icon: <Rows3 className={ICON} strokeWidth={1.75} style={iconStyle} /> },
+    { type: `${CONTAINER_ITEM_PREFIX}fieldset` as unknown as FieldTypes, name: 'Field set', description: 'A bordered group with a legend', category: 'Layout & content', keywords: ['fieldset', 'border', 'group', 'legend', 'layout'], icon: <SquareDashed className={ICON} strokeWidth={1.75} style={iconStyle} /> }
+];
+
+/** The kind of container an item of `containerCatalog` adds, or null for any other item. */
+export function containerKindOf(item: Pick<InsertCatalogItem, 'type'> | undefined): 'panel' | 'tabs' | 'fieldset' | null {
+    const type = String(item?.type ?? '');
+    return type.startsWith(CONTAINER_ITEM_PREFIX) ? (type.slice(CONTAINER_ITEM_PREFIX.length) as 'panel' | 'tabs' | 'fieldset') : null;
+}
+
 export function bestInsertMatch(items: InsertCatalogItem[], query: string): number {
     const q = query.trim().toLowerCase();
     if (!q) return 0;

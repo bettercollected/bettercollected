@@ -16,6 +16,8 @@ import secrets
 import unicodedata
 from typing import Optional, Tuple
 
+from common.settings import key_ring
+
 _KEY_LABEL = b"bettercollected form draft v1\0"
 TOKEN = "link"
 EDIT_KEY = "edit"
@@ -52,12 +54,24 @@ def normalised_address(address: str) -> str:
 
 
 class DraftKeys:
+    """``secret`` is the JWT secret's key ring (docs/auth-key-rotation.md): the
+    current member writes every hash; a stored hash made with the previous
+    member still matches, until that member is retired."""
+
     def __init__(self, secret: str):
-        self._key = hashlib.sha256(_KEY_LABEL + (secret or "").encode()).digest()
+        members = key_ring.token_members(secret) or [secret or ""]
+        self._keys = [
+            hashlib.sha256(_KEY_LABEL + member.encode()).digest() for member in members
+        ]
+        self._key = self._keys[0]
+
+    @staticmethod
+    def _mac_with(key: bytes, purpose: str, *parts: str) -> str:
+        message = "\0".join((purpose, *parts)).encode()
+        return hmac.new(key, message, hashlib.sha256).hexdigest()
 
     def _mac(self, purpose: str, *parts: str) -> str:
-        message = "\0".join((purpose, *parts)).encode()
-        return hmac.new(self._key, message, hashlib.sha256).hexdigest()
+        return self._mac_with(self._key, purpose, *parts)
 
     def hash_secret(self, purpose: str, draft_id, secret: str) -> str:
         return self._mac(purpose, str(draft_id), secret)
@@ -65,12 +79,25 @@ class DraftKeys:
     def matches(
         self, purpose: str, draft_id, secret: str, stored: Optional[str]
     ) -> bool:
-        """Constant time; False for a draft that has no such secret set."""
-        expected = self._mac(purpose, str(draft_id), secret)
-        return hmac.compare_digest(expected, stored or "0" * len(expected))
+        """Constant time; False for a draft that has no such secret set. Every
+        member of the key ring is tried (each one always computed)."""
+        right = False
+        for key in self._keys:
+            expected = self._mac_with(key, purpose, str(draft_id), secret)
+            right = hmac.compare_digest(expected, stored or "0" * len(expected)) or right
+        return right
 
     def address_key(self, form_id, address: str) -> str:
         """The keyed hash of a normalised address on one form: the local part
         folded (Unicode normal form C, case folded), the domain in its ASCII form
         (an internationalised domain and its punycode are one mailbox)."""
         return self._mac("address", str(form_id), normalised_address(address))
+
+    def address_keys(self, form_id, address: str) -> list:
+        """The same hash under every member of the key ring, current first (a
+        draft saved before a promote carries the previous member's)."""
+        normalised = normalised_address(address)
+        return [
+            self._mac_with(key, "address", str(form_id), normalised)
+            for key in self._keys
+        ]

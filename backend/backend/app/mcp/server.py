@@ -402,6 +402,12 @@ async def update_form(
     {"op":"set_page_jumps","pageId":str,"jumps":[{"operator":"AND"|"OR","conditions":[...],
     "target":"<page id or __SUBMIT__>","endingId"?:str}]|null} (branching; "__SUBMIT__"
     submits and shows the default ending, or the ending "endingId" names) ·
+    {"op":"set_page_containers","pageId":str,"containers":[{"type":"panel"|"fieldset","title":str,
+    "collapsed"?:bool,"fields":[str],"logic"?:{...as set_field_logic}} | {"type":"tabs","tabs":[{"title":str,
+    "fields":[str]}],"logic"?:{...}}]|null} (group the questions of a page into panels, field sets and
+    tabs; layout only; a container's questions must be next to each other on the page in the order
+    listed, page questions only, no nesting; the list replaces the page's containers, null clears;
+    refused while the server has layout containers switched off) ·
     {"op":"add_ending","name"?:str,"title"?:str,"message"?:str,"buttonText"?:str,
     "buttonLink"?:str,"isDefault"?:bool,"index"?:int} (a page shown after submitting; "name"
     is internal, at most 60 characters) ·
