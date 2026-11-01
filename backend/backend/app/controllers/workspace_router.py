@@ -20,6 +20,7 @@ from backend.app.services.new_question_types import (
 from backend.app.services.layout_containers import layout_containers_enabled
 from backend.app.services.option_logic import choice_logic_enabled
 from backend.app.services.form_drafts.mode import save_drafts_enabled
+from backend.app.services.form_versions.mode import form_revisions_ui_enabled
 from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
@@ -240,6 +241,7 @@ class WorkspaceRouter(Routable):
             address_lookup_enabled=address_lookup_enabled(),
             choice_logic_enabled=choice_logic_enabled(),
             save_drafts_enabled=save_drafts_enabled(),
+            form_revisions_ui_enabled=form_revisions_ui_enabled(),
         )
 
     @get("/{workspace_id}/ai-profile")

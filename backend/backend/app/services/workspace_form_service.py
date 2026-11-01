@@ -1610,7 +1610,9 @@ class WorkspaceFormService:
             ),
         )
         await self._upgrade_slug_from_title_on_publish(workspace_id, form_id)
-        published = await self.form_service.publish_form(form_id=form_id)
+        published = await self.form_service.publish_form(
+            form_id=form_id, published_by=str(user.id) if user and user.id else None
+        )
         # The logo the live form showed until now, if nothing shows it any more.
         if previous is not None and previous.logo != getattr(published, "logo", None):
             await self._release_logo(str(form_id), previous.logo)

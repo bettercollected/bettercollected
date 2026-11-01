@@ -689,7 +689,9 @@ class FormService:
     async def get_form_document_by_id(self, form_id: str):
         return await self._form_repo.get_form_document_by_id(form_id)
 
-    async def publish_form(self, form_id: RecordId):
+    async def publish_form(
+        self, form_id: RecordId, published_by: Optional[str] = None
+    ):
         form = await self._form_repo.get_form_document_by_id(str(form_id))
         latest_published_form = await self._form_repo.get_latest_version_of_form(
             form_id
@@ -699,6 +701,7 @@ class FormService:
         return await self._form_repo.publish_form(
             form=form,
             version=(latest_published_form.version + 1) if latest_published_form else 1,
+            published_by=published_by,
         )
 
     def has_form_been_updated(

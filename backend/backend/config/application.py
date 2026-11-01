@@ -126,6 +126,11 @@ class Application(StoreBackedSettings):
     # is refused with 422 save_drafts_disabled, and saving or opening a draft is
     # refused.
     SAVE_DRAFTS_ENABLED: bool = False
+    # Staff may list a form's published versions, compare two and restore one
+    # into the draft (services/form_versions). Off (the default, until it is
+    # released): those routes are refused with 422 form_revisions_disabled and
+    # the dashboard does not show the Versions page.
+    FORM_REVISIONS_UI_ENABLED: bool = False
     # The admin task runner presents this key to the internal admin-task
     # routes (controllers/admin_tasks_router.py; the runner's
     # ADMIN_TASKS_API_KEY). Empty: those routes answer 503.

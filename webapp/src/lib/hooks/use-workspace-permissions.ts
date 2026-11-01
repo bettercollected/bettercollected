@@ -63,5 +63,7 @@ export function useWorkspacePermissions() {
     const layoutContainersEnabled = !!userId && !isError && !!data?.layoutContainersEnabled;
     // ...and whether it lets respondents save drafts (its SAVE_DRAFTS_ENABLED): the setting is read-only while it is off.
     const saveDraftsEnabled = !!userId && !isError && !!data?.saveDraftsEnabled;
-    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, layoutContainersEnabled, saveDraftsEnabled };
+    // ...and the Versions page of a form (its FORM_REVISIONS_UI_ENABLED): list, compare and restore.
+    const formRevisionsUiEnabled = !!userId && !isError && !!data?.formRevisionsUiEnabled;
+    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, layoutContainersEnabled, saveDraftsEnabled, formRevisionsUiEnabled };
 }

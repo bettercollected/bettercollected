@@ -3716,7 +3716,7 @@
   "document": "FormTemplateDocument"
  },
  "form_versions/full": {
-  "checksum": "sha256:a84a9d9de76aacf5fd30e5723314c000ff28fe44d58bb72ae53fcd5611b42a17",
+  "checksum": "sha256:72edd34f7edce1f17004ad6374651b9468a13504c22268438f20d08e64260fba",
   "doc": {
    "_id": {
     "$oid": "4dba015f9787ef732cba733e"
@@ -3949,6 +3949,7 @@
     ]
    },
    "published_at": "2026-03-04T05:06:07.891234+02:00",
+   "published_by": "FormVersionsDocument.published_by tëxt ✓ \"quoted\" \\ line\nbreak",
    "row_titles": [
     "FormVersionsDocument.row_titles[0] tëxt ✓ \"quoted\" \\ line\nbreak",
     "FormVersionsDocument.row_titles[1] tëxt ✓ \"quoted\" \\ line\nbreak"
@@ -4210,7 +4211,7 @@
   "document": "FormVersionsDocument"
  },
  "form_versions/minimal": {
-  "checksum": "sha256:c6eeb423ed57d17982ce9a23460cfe9aa1748eac777a1a196ca45a41dc1f6dab",
+  "checksum": "sha256:697ba04d245334cb4ac66e305fb94207c6f367bfd34779d567fe9b14bacbdc0b",
   "doc": {
    "_id": {
     "$oid": "ef503a0ea7460d19f46fba0b"
@@ -4233,6 +4234,7 @@
    "logo_position": null,
    "parameters": null,
    "published_at": null,
+   "published_by": null,
    "row_titles": null,
    "secrets": null,
    "settings": {
@@ -4268,7 +4270,7 @@
   "document": "FormVersionsDocument"
  },
  "form_versions/naive": {
-  "checksum": "sha256:082fe5983371fb7255597aa36e5e86d23d5b008a02f81a199b53fc400ac3b49e",
+  "checksum": "sha256:918af0a425bd136564d6fcdfade01d33e3ec7493de67d62d380a54c387babb87",
   "doc": {
    "_id": {
     "$oid": "43be05d1a65c7a21699ae9d8"
@@ -4501,6 +4503,7 @@
     ]
    },
    "published_at": "2026-03-04T05:06:07.891234",
+   "published_by": "FormVersionsDocument.published_by tëxt ✓ \"quoted\" \\ line\nbreak",
    "row_titles": [
     "FormVersionsDocument.row_titles[0] tëxt ✓ \"quoted\" \\ line\nbreak",
     "FormVersionsDocument.row_titles[1] tëxt ✓ \"quoted\" \\ line\nbreak"
@@ -4762,7 +4765,7 @@
   "document": "FormVersionsDocument"
  },
  "form_versions/nulls": {
-  "checksum": "sha256:1e14ce6ddedf5cf5a90dd0ef52fe779459fda8a93b3d76145ac9cd169f136a22",
+  "checksum": "sha256:d7f8cb2fa894aa984e08775e2423aab4752b1e01608b1ea145e9b4d62f947e7e",
   "doc": {
    "_id": {
     "$oid": "e4f499a8acb5314161801160"
@@ -4785,6 +4788,7 @@
    "logo_position": null,
    "parameters": null,
    "published_at": null,
+   "published_by": null,
    "row_titles": null,
    "secrets": null,
    "settings": null,

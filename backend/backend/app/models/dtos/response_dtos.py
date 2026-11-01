@@ -65,6 +65,9 @@ class StandardFormCamelModel(StandardForm, CamelModel):
     model_config = {"extra": "allow"}
     # Action credentials: readable in-process, never serialized into a response.
     secrets: Optional[Dict[str, List[ParameterValue]]] = Field(None, exclude=True)
+    # Who published a version (a user id): staff see it through the versions
+    # page, as a name; no form response, to staff or respondents, carries it.
+    published_by: Optional[str] = Field(None, exclude=True)
     settings: Optional[FormSettingsCamelModel] = None
     responses: Optional[int] = 0
     version: Optional[int] = None

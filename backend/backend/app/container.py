@@ -176,6 +176,8 @@ from backend.app.services.copy_recipient import CopyRecipientService
 from backend.app.services.form_actions_service import FormActionsService
 from backend.app.services.form_spec.editor_ops import EditorOpsService
 from backend.app.services.form_spec.service import FormSpecService
+from backend.app.services.form_versions.service import FormVersionsService
+from backend.app.services.member_directory import MemberDirectory
 from backend.app.services.form_spec.writes import FormSpecWriter
 from backend.app.services.idempotency import IdempotencyService
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
@@ -1069,6 +1071,22 @@ class AppContainer(containers.DeclarativeContainer):
         authorization_service=authorization_service,
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
+    )
+    # Who a staff member is, for screens that name them (versions, history).
+    member_directory: MemberDirectory = providers.Singleton(
+        MemberDirectory,
+        workspace_repo=workspace_repo,
+        workspace_user_repo=workspace_user_repo,
+        http_client=http_client,
+    )
+    # A form's published versions: list, compare, restore (switch off by default).
+    form_versions_service: FormVersionsService = providers.Singleton(
+        FormVersionsService,
+        authorization_service=authorization_service,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+        form_service=form_service,
+        member_directory=member_directory,
     )
     open_formulieren_export_service: OpenFormulierenExportService = providers.Singleton(
         OpenFormulierenExportService,

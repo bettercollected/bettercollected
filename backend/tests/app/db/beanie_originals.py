@@ -931,6 +931,8 @@ class FormDocument(MongoDocument, StandardForm):
 class FormVersionsDocument(MongoDocument, StandardForm):
     version: int
     form_id: str
+    # added in 4.3 (4.0 data has none): kept in step so the wire check compares like with like
+    published_by: Optional[str] = None
 
     class Settings:
         name = "form_versions"

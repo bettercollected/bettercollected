@@ -182,6 +182,10 @@ SERVER: Tuple[SettingSpec, ...] = (
     _bool("SAVE_DRAFTS_ENABLED", "features", (BACKEND,), False,
           "Lets respondents save a draft and continue later (off: the per-form setting cannot be turned on and drafts are not saved or opened).",
           tier=T2),
+    _bool("FORM_REVISIONS_UI_ENABLED", "features", (BACKEND,), False,
+          "Lets staff list a form's published versions, compare two of them and restore one into the draft "
+          "(off: those routes answer 422 and the dashboard hides the Versions page).",
+          tier=T2),
     _bool("NEW_QUESTION_TYPES_ENABLED", "features", (BACKEND,), False,
           "Allows adding or changing the newer question types (time, day, currency, date range, tags); "
           "questions a form already has keep working either way.",
