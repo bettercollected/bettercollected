@@ -17,6 +17,9 @@ from backend.app.container import container
 from backend.app.controllers.workspace_forms import _parse_form_body
 from backend.app.services.address_lookup import provider, service as service_module
 from backend.config import settings
+from common.models.user import User
+from common.records import RecordId
+from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import testUser, testUser1
 
 T0 = 1_900_000_040.0  # 20s into a 60s window
@@ -73,6 +76,9 @@ def transport(monkeypatch):
     for name, value in (("_forms_cache", OrderedDict()), ("_unservable", OrderedDict()), ("_coarse", OrderedDict()), ("_in_flight", 0), ("_failures", 0), ("_open_until", 0.0), ("counts", {})):
         monkeypatch.setattr(lookup, name, value)
     monkeypatch.setattr(lookup, "_budget", service_module._CallBudget())
+    monkeypatch.setattr(lookup, "_form_budgets", OrderedDict())
+    monkeypatch.setattr(lookup, "_access", OrderedDict())
+    monkeypatch.setattr(lookup, "_budget_logged_at", None)
     monkeypatch.setattr(lookup, "_results", type(lookup._results)())
     return fake
 
@@ -237,6 +243,157 @@ async def test_a_form_that_takes_no_responses_for_the_public_answers_the_same_40
     for number in ("12", "13"):
         await _is_plain_404(client, url, _ask(number=number))
     assert len(transport.queries) == 1  # the one before the change
+
+
+# --- a private form answers the signed-in respondents its groups admit ---------------------
+
+
+def _cookies(user) -> dict:
+    token = access_token(user)
+    return {"Authorization": token, "RefreshToken": token}
+
+
+STRANGER = User(id=str(RecordId()), sub="stranger@elsewhere.test")
+
+
+async def _private_form(workspace, member=testUser1):
+    """A published private form whose one group admits ``member`` by email."""
+    form = await _published(workspace)
+    await _settings(workspace, form.form_id, private=True)
+    groups = container.responder_groups_repository()
+    group = await groups.create_group(workspace.id, "Neighbours")
+    await groups.add_emails_to_group(group.id, [member.sub])
+    await groups.add_groups_to_form(str(form.form_id), [group.id])
+    return form
+
+
+async def test_a_member_of_a_private_forms_group_can_look_up_an_address(
+    client: AsyncClient, workspace, transport
+):
+    form = await _private_form(workspace)
+    url = _url(workspace.id, form.form_id)
+    response = await client.post(url, json=_ask(), cookies=_cookies(testUser1))
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "found"
+    assert len(transport.queries) == 1
+
+
+async def test_anonymous_and_non_members_get_the_same_404_for_a_private_form(
+    client: AsyncClient, workspace, transport
+):
+    form = await _private_form(workspace)
+    url = _url(workspace.id, form.form_id)
+    await _is_plain_404(client, url, _ask())
+    for user in (STRANGER, testUser):  # signed in, not in the group (the owner is not either)
+        refused = await client.post(url, json=_ask(), cookies=_cookies(user))
+        assert refused.status_code == 404, refused.text
+        assert refused.json() == "Not found"
+    # a broken session counts as no one
+    await _is_plain_404(client, url, _ask())
+    bad = await client.post(url, json=_ask(), cookies={"Authorization": "x.y.z", "RefreshToken": "x.y.z"})
+    assert bad.status_code == 404 and bad.json() == "Not found"
+    assert transport.queries == []
+
+
+async def test_one_users_access_to_a_private_form_never_serves_another(
+    client: AsyncClient, workspace, transport
+):
+    form = await _private_form(workspace)
+    url = _url(workspace.id, form.form_id)
+    member, stranger = _cookies(testUser1), _cookies(STRANGER)
+    # the member is asked first and the form (and the member's access) is cached ...
+    assert (await client.post(url, json=_ask(), cookies=member)).status_code == 200
+    # ... and neither the cached form nor the cached access answers anyone else
+    await _is_plain_404(client, url, _ask(number="13"))
+    assert (await client.post(url, json=_ask(number="13"), cookies=stranger)).status_code == 404
+    assert (await client.post(url, json=_ask(number="14"), cookies=member)).status_code == 200
+    lookup = container.address_lookup_service()
+    assert {key[2] for key in lookup._access} == {testUser1.sub, STRANGER.sub}
+    # a refusal is remembered per user as well: the stranger stays out, the member in
+    assert [allowed for (_, _, who), (allowed, _) in lookup._access.items() if who == STRANGER.sub] == [False]
+    assert (await client.post(url, json=_ask(number="15"), cookies=member)).status_code == 200
+
+
+async def test_access_to_a_private_form_is_read_again_after_the_cache_time(
+    client: AsyncClient, workspace, transport, monkeypatch
+):
+    form = await _private_form(workspace)
+    url = _url(workspace.id, form.form_id)
+    lookup = container.address_lookup_service()
+    now = {"t": 1000.0}
+    monkeypatch.setattr(lookup, "_monotonic", lambda: now["t"])
+    member = _cookies(testUser1)
+    assert (await client.post(url, json=_ask(), cookies=member)).status_code == 200
+    # the group no longer admits the member
+    groups = container.responder_groups_repository()
+    await groups.add_groups_to_form(str(form.form_id), [])
+    assert (await client.post(url, json=_ask(number="13"), cookies=member)).status_code == 200
+    now["t"] += service_module.FORM_CACHE_S + 1
+    assert (await client.post(url, json=_ask(number="14"), cookies=member)).status_code == 404
+
+
+async def test_a_private_form_that_is_also_hidden_answers_nobody(
+    client: AsyncClient, workspace, transport
+):
+    form = await _private_form(workspace)
+    await _settings(workspace, form.form_id, hidden=True)
+    await _is_plain_404(client, _url(workspace.id, form.form_id), _ask())
+    refused = await client.post(_url(workspace.id, form.form_id), json=_ask(), cookies=_cookies(testUser1))
+    assert refused.status_code == 404
+    assert transport.queries == []
+
+
+async def test_the_user_is_read_only_for_a_private_form(client: AsyncClient, workspace, form, transport, monkeypatch):
+    from backend.app.controllers import workspace_responses
+
+    reads = []
+
+    async def spy(request, response):
+        reads.append(1)
+        return None
+
+    monkeypatch.setattr(workspace_responses, "get_user_if_logged_in", spy)
+    assert (await client.post(_url(workspace.id, form.form_id), json=_ask())).status_code == 200
+    assert reads == []  # a public form never looks at the session
+    await _settings(workspace, form.form_id, private=True)
+    container.address_lookup_service()._forms_cache.clear()
+    await _is_plain_404(client, _url(workspace.id, form.form_id), _ask(number="13"))
+    assert reads == [1]
+
+
+async def test_a_deleted_form_stops_answering_after_the_cache_time(
+    client: AsyncClient, workspace, form, transport, monkeypatch
+):
+    url = _url(workspace.id, form.form_id)
+    lookup = container.address_lookup_service()
+    now = {"t": 1000.0}
+    monkeypatch.setattr(lookup, "_monotonic", lambda: now["t"])
+    assert (await client.post(url, json=_ask())).status_code == 200
+    await container.workspace_form_repo().delete_form_in_workspace(workspace.id, str(form.form_id))
+    # the entry that was read is served for its 30 seconds ...
+    assert (await client.post(url, json=_ask(number="13"))).status_code == 200
+    # ... then the form is read again and is gone
+    now["t"] += service_module.FORM_CACHE_S + 1
+    await _is_plain_404(client, url, _ask(number="14"))
+
+
+async def test_a_form_whose_workspace_link_has_no_settings_is_servable(
+    client: AsyncClient, workspace, form, transport, monkeypatch
+):
+    from types import SimpleNamespace
+
+    lookup = container.address_lookup_service()
+    real = lookup._workspace_forms.get_workspace_form_with_custom_slug_form_id
+
+    async def without_settings(**kwargs):
+        link = await real(**kwargs)
+        return SimpleNamespace(form_id=link.form_id, settings=None)
+
+    monkeypatch.setattr(lookup._workspace_forms, "get_workspace_form_with_custom_slug_form_id", without_settings)
+    served = await client.post(_url(workspace.id, form.form_id), json=_ask())
+    assert served.status_code == 200, served.text
+    entry = next(iter(lookup._forms_cache.values()))
+    assert entry.private is False and entry.dates == (None, None)
 
 
 async def test_an_open_form_with_dates_around_now_answers(client: AsyncClient, workspace, form, transport):
@@ -692,6 +849,99 @@ async def test_over_the_call_rate_the_answer_is_unavailable_without_a_call(
     monkeypatch.setattr(lookup, "_monotonic", lambda: 1001.5)
     assert (await client.post(url, json=_ask(number="3"))).status_code == 200
     assert len(transport.queries) == 3
+
+
+async def test_one_form_cannot_use_up_the_process_budget(
+    client: AsyncClient, workspace, form, transport, monkeypatch
+):
+    monkeypatch.setattr(service_module, "FORM_CALLS_PER_MINUTE", 3)
+    lookup = container.address_lookup_service()
+    monkeypatch.setattr(lookup, "_monotonic", lambda: 1000.0)
+    other = await _published(workspace)
+    url = _url(workspace.id, form.form_id)
+    for number in ("1", "2", "3"):
+        assert (await client.post(url, json=_ask(number=number))).status_code == 200
+    over = await client.post(url, json=_ask(number="4"))
+    assert over.status_code == 503 and over.json()["code"] == "lookup_unavailable"
+    assert lookup.counts.get("budget") == 1
+    assert len(transport.queries) == 3
+    # a cached answer for the form is still served, another form still has its share
+    assert (await client.post(url, json=_ask(number="1"))).status_code == 200
+    assert (await client.post(_url(workspace.id, other.form_id), json=_ask(number="4"))).status_code == 200
+    # the form's share is a minute wide
+    monkeypatch.setattr(lookup, "_monotonic", lambda: 1061.0)
+    assert (await client.post(url, json=_ask(number="5"))).status_code == 200
+    # the process's window is a minute wide too: only the new call is in it
+    assert len(lookup._budget._made) == 1
+
+
+async def test_the_form_budgets_are_a_bounded_lru(client: AsyncClient, workspace, transport, monkeypatch):
+    monkeypatch.setattr(service_module, "FORM_BUDGET_SIZE", 2)
+    lookup = container.address_lookup_service()
+    forms = [await _published(workspace) for _ in range(3)]
+    for number, one in enumerate(forms, start=1):
+        assert (await client.post(_url(workspace.id, one.form_id), json=_ask(number=str(number)))).status_code == 200
+    assert list(lookup._form_budgets) == [str(forms[1].form_id), str(forms[2].form_id)]
+
+
+async def test_a_refusal_by_the_budget_has_its_own_outcome_and_one_warning_a_minute(
+    client: AsyncClient, workspace, form, transport, monkeypatch, caplog
+):
+    from loguru import logger
+
+    lines = []
+    handle = logger.add(lambda message: lines.append(message.record["message"]), level="WARNING")
+    try:
+        monkeypatch.setattr(service_module, "CALLS_PER_SECOND", 1)
+        lookup = container.address_lookup_service()
+        now = {"t": 1000.0}
+        monkeypatch.setattr(lookup, "_monotonic", lambda: now["t"])
+        url = _url(workspace.id, form.form_id)
+        assert (await client.post(url, json=_ask(number="1"))).status_code == 200
+        for number in ("2", "3", "4"):
+            assert (await client.post(url, json=_ask(number=number))).status_code == 503
+        assert lookup.counts["budget"] == 3
+        assert lookup.counts.get("unavailable", 0) == 0  # not a failure of the service
+        assert lookup._failures == 0
+        assert [m for m in lines if "budget" in m] == ["address lookup call budget reached: 1 refused so far"]
+        now["t"] += service_module.BUDGET_LOG_EVERY_S + 1
+        assert (await client.post(url, json=_ask(number="5"))).status_code == 200
+        assert (await client.post(url, json=_ask(number="6"))).status_code == 503
+        # the new refusal after the quiet minute is logged again (counts only)
+        assert [m for m in lines if "budget" in m][-1] == f"address lookup call budget reached: {lookup.counts['budget']} refused so far"
+        assert len([m for m in lines if "budget" in m]) == 2
+    finally:
+        logger.remove(handle)
+    for secret in ("1015", "Keizersgracht", "203.0.113"):
+        assert not any(secret in m for m in lines)
+
+
+async def test_a_refusal_by_the_budget_still_counts_as_a_lookup_of_the_client(
+    client: AsyncClient, workspace, form, transport, clock, limits, monkeypatch
+):
+    # documented: the limiter counts before the call and has no refund
+    monkeypatch.setattr(service_module, "CALLS_PER_SECOND", 1)
+    lookup = container.address_lookup_service()
+    monkeypatch.setattr(lookup, "_monotonic", lambda: 1000.0)
+    url = _url(workspace.id, form.form_id)
+    headers = {"X-Forwarded-For": "203.0.113.31"}
+    assert (await client.post(url, json=_ask(number="1"), headers=headers)).status_code == 200
+    assert (await client.post(url, json=_ask(number="2"), headers=headers)).status_code == 503
+    assert (await client.post(url, json=_ask(number="3"), headers=headers)).status_code == 503
+    assert (await client.post(url, json=_ask(number="1"), headers=headers)).status_code == 429
+
+
+async def test_a_client_over_the_coarse_limit_counts_as_recently_used(
+    client: AsyncClient, workspace, form, transport, limits, monkeypatch
+):
+    lookup = container.address_lookup_service()
+    heavy = {"X-Forwarded-For": "203.0.113.90"}
+    for index in range(3 * service_module.COARSE_FACTOR):
+        await client.post(_url(workspace.id, f"missing-{index}"), json=_ask(), headers=heavy)
+    await client.post(_url(workspace.id, "missing-x"), json=_ask(), headers={"X-Forwarded-For": "198.51.100.1"})
+    assert (await client.post(_url(workspace.id, "missing-y"), json=_ask(), headers=heavy)).status_code == 429
+    # the refused client's entry was moved to the recent end, behind the other client's
+    assert "203.0.113.90" in next(reversed(lookup._coarse))
 
 
 async def test_nothing_that_was_asked_is_stored_or_logged(

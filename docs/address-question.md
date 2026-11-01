@@ -39,9 +39,13 @@ Per client and form 30 lookups a minute, per form 600 a minute (`API_ADDRESS_LOO
 Before any of that, one client may send at most four times the per-client limit to one backend process per window
 (in memory, no database query; 429 beyond), and a form that cannot be looked up is remembered for 30 seconds, so
 guessing form addresses costs the database next to nothing.
-At most 8 lookups run at once per process, and one process makes at most 10 calls a second and 300 a minute to
-the service; past either, the answer is "unavailable" at once and the respondent types the address (answers from the
-cache are not calls and are still given). After five failures in a row the lookup pauses for 30 seconds.
+At most 8 lookups run at once per process. One process makes at most 10 calls a second and 300 a minute to the
+service, and one form at most 60 a minute of those, so a single busy form cannot use up the process's share; past
+either, the answer is "unavailable" at once and the respondent types the address (answers from the cache are not
+calls and are still given). A refusal by this budget is counted apart from a failure of the service (it never
+opens the pause below), is logged as one warning a minute with a count only, and still counts as one of the
+client's lookups (the per-client limit counts before the call and has no refund). After five failures in a row
+the lookup pauses for 30 seconds.
 When the service cannot answer, the respondent is told to type the address and nothing else changes.
 
 The in-memory tables (answers, forms that cannot be looked up, forms that can, the per-client counters) are bounded
@@ -50,13 +54,17 @@ used.
 
 ## Which forms answer
 
-The route is public like the form, and it answers for the same forms a respondent without an account may fill in
-right now, read the way the submit gate reads them: a form that is closed (from its close date on), not open yet
-(before its open date) or full (it holds as many responses as its limit) does not answer, and neither does a
-private form (restricted to responder groups) or a hidden one. All of them give the same 404 as an unknown form,
-and nothing is sent to the service. The dates are judged at every call; a form's state is read once per 30 seconds
-(a form whose limit was just reached answers for up to 30 seconds more). Respondents of a restricted form type
-their address.
+The route is public like the form, and it answers for the same forms a respondent may fill in right now, read the
+way the submit gate reads them: a form that is closed (from its close date on), not open yet (before its open date)
+or full (it holds as many responses as its limit) does not answer, and neither does a hidden one. A **private**
+form (restricted to responder groups) answers a signed-in respondent that one of its groups admits, and nobody else:
+the signed-in user is read only for a private form (a public form never looks at the session), and what the groups
+say is kept per user and form for 30 seconds, so one user's access never serves another. Everyone else gets the same
+404 as for an unknown form, and nothing is sent to the service.
+
+The dates are judged at every call. A form is read once per 30 seconds, so a change reaches the lookup within 30
+seconds: a form that was just deleted, hidden, made private or whose limit was just reached keeps answering for up
+to 30 seconds, as does a member just removed from a group.
 
 ## Before you turn the lookup on
 

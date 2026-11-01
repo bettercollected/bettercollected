@@ -252,7 +252,7 @@ async def test_address_lookup_limits_are_read_per_call(monkeypatch, key, field, 
 
     async def servable(workspace_id, form_ref):
         return SimpleNamespace(
-            form_id="form-1", fields=frozenset({"ad"}), is_open=lambda: True
+            form_id="form-1", fields=frozenset({"ad"}), is_open=lambda: True, private=False
         )
 
     monkeypatch.setattr(service, "_servable", servable)

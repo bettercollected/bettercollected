@@ -14,6 +14,7 @@ network: about 0.3 s on a quiet machine, more than a second on CI.
 test that drives them itself.
 """
 
+import hashlib
 from typing import Any, Dict, Iterator, Optional
 
 from botocore.exceptions import ClientError
@@ -25,6 +26,21 @@ def _missing(operation: str) -> ClientError:
     )
 
 
+def etag_of(data: bytes) -> str:
+    """The ETag S3 gives a single-part object: the quoted MD5 of its bytes."""
+    return '"' + hashlib.md5(data).hexdigest() + '"'  # noqa: S324 (not a secret)
+
+
+def _precondition_failed(operation: str) -> ClientError:
+    return ClientError(
+        {
+            "Error": {"Code": "PreconditionFailed", "Message": "At least one of the pre-conditions you specified did not hold"},
+            "ResponseMetadata": {"HTTPStatusCode": 412},
+        },
+        operation,
+    )
+
+
 class FakeStore:
     """bucket -> key -> (bytes, extra arguments of the put)."""
 
@@ -32,7 +48,9 @@ class FakeStore:
         self.objects: Dict[str, Dict[str, tuple]] = {}
 
     def put(self, bucket: str, key: str, body: Any, **extra: Any) -> None:
-        data = body if isinstance(body, bytes) else bytes(body or b"")
+        if hasattr(body, "read"):
+            body = body.read()
+        data = body.encode() if isinstance(body, str) else bytes(body or b"")
         self.objects.setdefault(bucket, {})[key] = (data, extra)
 
     def keys(self, bucket: str) -> list:
@@ -42,9 +60,28 @@ class FakeStore:
         self.objects.get(bucket, {}).pop(key, None)
 
 
+class _Body:
+    def __init__(self, data: bytes) -> None:
+        self._data = data
+        self.closed = False
+
+    def read(self, amount: Optional[int] = None) -> bytes:
+        return self._data if amount is None else self._data[:amount]
+
+    def close(self) -> None:
+        self.closed = True
+
+
 class _Object:
     def __init__(self, store: FakeStore, bucket: str, key: str) -> None:
         self._store, self._bucket, self.key = store, bucket, key
+
+    def get(self, **_: Any) -> dict:
+        found = self._store.objects.get(self._bucket, {}).get(self.key)
+        if found is None:
+            raise _missing("GetObject")
+        data, _extra = found
+        return {"Body": _Body(data), "ContentLength": len(data), "ETag": etag_of(data)}
 
     def delete(self) -> dict:
         self._store.remove(self._bucket, self.key)
@@ -82,14 +119,6 @@ class FakeResource:
         return _Object(self._store, bucket, key)
 
 
-class _Body:
-    def __init__(self, data: bytes) -> None:
-        self._data = data
-
-    def read(self, amount: Optional[int] = None) -> bytes:
-        return self._data if amount is None else self._data[:amount]
-
-
 class FakeClient:
     def __init__(self, store: FakeStore) -> None:
         self._store = store
@@ -102,11 +131,23 @@ class FakeClient:
 
     def head_object(self, Bucket: str, Key: str, **_: Any) -> dict:
         data, _extra = self._get(Bucket, Key, "HeadObject")
-        return {"ContentLength": len(data)}
+        return {"ContentLength": len(data), "ETag": etag_of(data)}
 
     def get_object(self, Bucket: str, Key: str, **_: Any) -> dict:
         data, _extra = self._get(Bucket, Key, "GetObject")
-        return {"Body": _Body(data), "ContentLength": len(data)}
+        return {"Body": _Body(data), "ContentLength": len(data), "ETag": etag_of(data)}
+
+    def put_object(self, Bucket: str, Key: str, Body: Any = b"", IfMatch: Optional[str] = None, **extra: Any) -> dict:
+        """``IfMatch``: the object must exist with that ETag (404 NoSuchKey
+        when it is gone, 412 PreconditionFailed when it changed), as S3 does."""
+        if IfMatch is not None:
+            found = self._store.objects.get(Bucket, {}).get(Key)
+            if found is None:
+                raise ClientError({"Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."}}, "PutObject")
+            if etag_of(found[0]) != IfMatch:
+                raise _precondition_failed("PutObject")
+        self._store.put(Bucket, Key, Body, **extra)
+        return {"ETag": etag_of(self._store.objects[Bucket][Key][0])}
 
     def copy_object(self, Bucket: str, Key: str, CopySource: dict, **extra: Any) -> dict:
         data, _extra = self._get(CopySource["Bucket"], CopySource["Key"], "CopyObject")
