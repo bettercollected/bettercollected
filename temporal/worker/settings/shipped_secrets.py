@@ -15,6 +15,7 @@ Standard library only: the Temporal workers, which do not depend on
 import base64
 import binascii
 import hashlib
+import logging
 from typing import Iterable, Mapping, Optional
 
 # SHA-256 of every value published for these keys, never the values
@@ -79,23 +80,25 @@ def is_fernet_key(value: Optional[str]) -> bool:
 
 
 def fernet_members(value: Optional[str]) -> list:
-    """The Fernet keys of a ring, current first (empty for no value)."""
+    """The Fernet keys of a ring, current first (empty for no value). The same
+    rule as ``common/settings/key_ring.py``."""
     text = normalize_secret(value)
     return [part.strip() for part in text.split(",")] if text else []
 
 
 def token_members(value: Optional[str]) -> list:
-    """The signing secrets of a ring, current first (empty for no value)."""
-    text = normalize_secret(value)
-    if not text:
+    """The signing secrets of a ring, current first (empty for no value). Any
+    value that is not two long secrets around one comma is ONE secret, returned
+    exactly as it is."""
+    if value is None or not value.strip():
         return []
-    parts = text.split(",")
+    parts = value.strip().split(",")
     if len(parts) == 2 and all(
         len(part) >= MIN_TOKEN_MEMBER and not any(c.isspace() for c in part)
         for part in parts
     ):
         return parts
-    return [text]
+    return [value]
 
 
 def secret_problems(
@@ -109,7 +112,7 @@ def secret_problems(
         members_of = token_members if kind == "jwt" else fernet_members
         for name, value in secrets.items():
             members = members_of(value)
-            if not members:
+            if not normalize_secret(value) or not members:
                 problems.append(f"{name} is not set")
             elif len(members) > MAX_RING_MEMBERS or len(set(members)) != len(members):
                 problems.append(
@@ -128,6 +131,35 @@ def secret_problems(
     return problems
 
 
+def _log_rings(jwt_secrets, fernet_keys) -> None:
+    """Say loudly what a key with a comma is read as: a ring of two (a rotation
+    under way, docs/auth-key-rotation.md) or, for a signing secret that only
+    looks like one, a single secret. Names only, never a value."""
+    log = logging.getLogger("common.shipped_secrets")
+    for name, value in jwt_secrets.items():
+        members = token_members(value)
+        if len(members) > 1:
+            log.warning(
+                "%s is read as a key ring of two: the first signs, both verify "
+                "(a rotation under way; a single secret must not contain a comma)",
+                name,
+            )
+        elif "," in (value or ""):
+            log.warning(
+                "%s contains a comma but is not a key ring (each side must be at "
+                "least %d characters): it is used as one secret, as it always was",
+                name,
+                MIN_TOKEN_MEMBER,
+            )
+    for name, value in fernet_keys.items():
+        if len(fernet_members(value)) > 1:
+            log.warning(
+                "%s is read as a key ring of two: the first encrypts, both decrypt "
+                "(a rotation under way)",
+                name,
+            )
+
+
 def require_secrets(
     service: str,
     jwt_secrets: Optional[Mapping[str, Optional[str]]] = None,
@@ -137,6 +169,7 @@ def require_secrets(
     """Raise InsecureSecretError, saying what to set, unless every key is usable."""
     problems = secret_problems(jwt_secrets, fernet_keys, denylist)
     if not problems:
+        _log_rings(jwt_secrets or {}, fernet_keys or {})
         return
     hints = [f"{name}: `{JWT_SECRET_HINT}`" for name in (jwt_secrets or {})]
     hints += [f"{name}: `{FERNET_KEY_HINT}`" for name in (fernet_keys or {})]

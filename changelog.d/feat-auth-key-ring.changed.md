@@ -4,3 +4,7 @@
   links). A single key works exactly as before. This is what lets the keys be rotated without
   losing data or signing everyone out; the Temporal worker and the actions executor accept the
   same ring in `AES_HEX_KEY`.
+- A secret the actions executor writes back (a refreshed Google Sheets credential) is opened
+  with the backend's key ring and sealed again with its current key; a value no key of the ring
+  opens is refused with a 422. The services now report in their heartbeat that they understand
+  key rings.

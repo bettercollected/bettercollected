@@ -616,7 +616,10 @@ class FormDraftService:
         )
         if created:
             saved = await self._drafts.create_for_address(
-                draft, limits.MAX_DRAFTS_PER_ADDRESS, now
+                draft,
+                limits.MAX_DRAFTS_PER_ADDRESS,
+                now,
+                email_keys=self._keys.address_keys(real_form_id, address),
             )
             if saved is None:
                 # lost a race for the last place: the mail went, its link is dead

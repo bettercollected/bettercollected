@@ -69,6 +69,8 @@ async def test_loads_verifies_polls_and_reports(server, migrated, tmp_path, svc,
             )
         ).one()
     assert row.revision_applied == 2 and row.rejected_keys == [] and row.keyset_fp
+    # a build with key-ring support says so in its heartbeat (authkeys.add_key reads it)
+    assert row.keyset_fp.endswith(".r1")
 
     assert rt.poll_once() is False
     await put(svc, T1, 9)
