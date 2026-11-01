@@ -211,6 +211,10 @@ SERVER: Tuple[SettingSpec, ...] = (
     _bool("DEFAULT_SHOW_TEMPLATES", "workspace", (BACKEND,), False, "Shows the template gallery."),
     _bool("DEFAULT_SEED_FLOW_TEMPLATES", "workspace", (BACKEND,), True,
           "Seeds the built-in flow templates at startup."),
+    _bool("FORM_EMBED_ENABLED", "features", (BACKEND,), False,
+          "Lets a workspace list the sites that may show its forms in a frame (docs/embed.md); "
+          "off: no site is listed or served, the pages keep their current framing.",
+          tier=T2),
 )
 
 # ----------------------------------------------------- rate limits, retention

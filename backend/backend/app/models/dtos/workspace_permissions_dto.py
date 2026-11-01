@@ -25,7 +25,10 @@ class WorkspacePermissionsDto(CamelModel):
     (``LAYOUT_CONTAINERS_ENABLED``).
     ``save_drafts_enabled`` is the same for ``SAVE_DRAFTS_ENABLED`` ("Let
     respondents save and continue later": the builder shows the setting
-    read-only while it is off)."""
+    read-only while it is off).
+    ``form_embed_enabled`` is the same for ``FORM_EMBED_ENABLED`` (embedding
+    forms in other sites: the share dialog's Embed tab and the Embedding
+    settings page are shown only while it is on)."""
 
     permissions: List[Permission] = []
     field_rules_enabled: bool = False
@@ -38,3 +41,4 @@ class WorkspacePermissionsDto(CamelModel):
     address_lookup_enabled: bool = False
     signature_question_enabled: bool = False
     layout_containers_enabled: bool = False
+    form_embed_enabled: bool = False

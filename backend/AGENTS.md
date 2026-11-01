@@ -1347,3 +1347,17 @@ feature switch). Docs: `docs/response-export.md`. Rules to keep:
 - The audit entry never holds an answer, the search text or a file name made from content. Do not add one.
 - Every route re-checks `response.export`, the job and the download too; an export is its requester's alone (someone
   else's is a 404). The export takes the responses list's filters (`ResponseListFilters`, SQL in `_list_filters`): a new list filter reaches the export by adding it to the request DTO (`models/dtos/response_export_dto.py`) and the audit summary.
+
+## Form embedding (`FORM_EMBED_ENABLED`, docs/embed.md)
+
+Router `controllers/form_embed_router.py`, service `services/form_embed.py`. Rules to keep:
+- Off (the default): `GET`/`PUT /workspaces/{id}/embed/settings` answer 404 *after* the permission check (a caller with no
+  place in the workspace gets 403), the public `GET /workspaces/embed/policy` says `enabled: false`, and the webapp serves
+  form pages with no framing header, as before. `form_embed_enabled` in `/permissions` is the one switch the webapp reads.
+- The allowed sites are `embed_allowed_origins` on the workspace record (no migration; **never** copy the field into
+  `WorkspaceResponseDto`: the public workspace answer must not list who embeds a form). They are written only through
+  `canonical_origin` / `normalize_origins` (https origins, `https://*.` only under a registrable domain by the Public
+  Suffix List, `http` for localhost only, at most 20): the webapp writes them into a `frame-ancestors` header, so
+  anything that could add a source or a directive must stay refused. A new entry kind needs a test in
+  `tests/app/embed/test_origins.py` for the injection cases first.
+- The policy route never distinguishes an unknown workspace from one with an empty list.

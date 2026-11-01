@@ -225,6 +225,11 @@ class Workspace(WorkspaceRequestDto):
     sso_required_changed_by: Optional[str] = None
     sso_required_changed_at: Optional[dt.datetime] = None
     sso_default_role: Optional[str] = None
+    # Sites that may show the workspace's forms in a frame (docs/embed.md,
+    # services/form_embed.py): canonical origins, none = no site. Changed
+    # through /workspaces/{id}/embed/settings; not part of the public
+    # workspace response.
+    embed_allowed_origins: Optional[List[str]] = None
 
 
 class WorkspaceFormSettings(BaseModel):
