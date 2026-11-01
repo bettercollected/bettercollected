@@ -102,7 +102,8 @@ def test_the_respondent_from_name(workspace, instance, expected):
 
 @pytest.mark.parametrize("own", [True, False])
 @pytest.mark.parametrize(
-    "title", ["=?utf-8?b?QmFuaw==?= <x@y.example>", "support@bank.example", "https://a.example"]
+    "title",
+    ["=?utf-8?b?QmFuaw==?= <x@y.example>", "support@bank.example", "https://a.example"],
 )
 def test_a_title_posing_as_an_address_or_encoded_name_is_not_in_from(
     monkeypatch, own, title
@@ -111,7 +112,7 @@ def test_a_title_posing_as_an_address_or_encoded_name_is_not_in_from(
         monkeypatch, title, "Survey", workspace_values=OWN_FULL_SMTP if own else None
     )
     _, parsed = _headers(raw)
-    (name, address), = getaddresses([str(parsed["From"])])
+    ((name, address),) = getaddresses([str(parsed["From"])])
     assert name == "BetterCollected"
     assert "=?" not in raw.split("\n\n", 1)[0].split("Subject:")[0]
 
@@ -282,7 +283,7 @@ def test_titles_cannot_inject_headers(monkeypatch, own):
     subject = " ".join(str(parsed["Subject"]).split())
     assert subject == "Copy of your response to Survey Bcc: other@example.net X-Evil: 2"
     # the From header is one address, the instance's tail intact
-    (name, address), = getaddresses([str(parsed["From"])])
+    ((name, address),) = getaddresses([str(parsed["From"])])
     assert " ".join(name.split()) == "Acme Bcc: victim X-Evil: 1 via BetterCollected"
     assert address == ("forms@acme.example" if own else "noreply@instance.example")
     assert parseaddr(parsed["To"])[1] == "respondent@example.org"

@@ -281,3 +281,17 @@ describe('QuestionWrapper — accessible name and description', () => {
         expect(screen.getByRole('textbox')).not.toHaveAttribute('aria-labelledby');
     });
 });
+
+describe('QuestionWrapper — a question whose answers other forms may show as choices', () => {
+    it('says so next to the question, in the respondent’s words, and the control is described by it', () => {
+        renderWrapper(field({ properties: { shareAsChoices: true } }), { children: <LabelledProbe /> });
+        const notice = screen.getByTestId('share-notice-f1');
+        expect(notice).toHaveTextContent('Your answer may be shown as a choice in other forms of this organisation.');
+        expect(screen.getByRole('textbox')).toHaveAttribute('aria-describedby', expect.stringContaining('q-share-f1'));
+    });
+
+    it('says nothing for a question that does not share', () => {
+        renderWrapper(field(), { children: <LabelledProbe /> });
+        expect(screen.queryByTestId('share-notice-f1')).toBeNull();
+    });
+});

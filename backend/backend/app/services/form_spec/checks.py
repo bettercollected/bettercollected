@@ -35,6 +35,10 @@ from backend.app.services.new_question_types import (
     new_question_types_enabled,
     signature_question_enabled,
 )
+from backend.app.services.option_sources.checks import (
+    structural_problems as option_source_problems,
+)
+from backend.app.services.option_sources.mode import option_sources_enabled
 from backend.app.services.option_logic import (
     CAN_END_EMPTY,
     SOURCE_OPTION_UNMAPPED,
@@ -462,6 +466,19 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
                         "refused. Choice logic the form already has is kept.",
                     )
                 )
+    if not option_sources_enabled():
+        # a write with a new or changed source is refused (422 option_sources_disabled)
+        for path, field, _ in index.questions.values():
+            if getattr(field, "option_source", None) is not None:
+                warnings.append(
+                    _problem(
+                        f"{path}/optionSource",
+                        "Options from a list or from another form's answers are "
+                        "switched off on this server (OPTION_SOURCES_ENABLED): "
+                        "saving a new or changed source is refused. A source the "
+                        "form already has is kept.",
+                    )
+                )
     for problem in publish_problems(form):
         if problem["code"] == MISSING_ENDING:
             continue  # already an error (_check_endings)
@@ -510,6 +527,18 @@ def _check_rules(form: Any, index: "_Index") -> List[Dict[str, str]]:
         entry = index.questions.get(problem.field_id)
         base = f"{entry[0]}/rules" if entry else ""
         problems.append(_problem(f"{base}{problem.path}", problem.message))
+    return problems
+
+
+def _check_option_sources(form: Any, index: "_Index") -> List[Dict[str, str]]:
+    """Option sources, as a save checks them (shape only: whether the list or
+    the other form exists, and whether the saver may read its answers, is
+    asked when the form is saved)."""
+    problems = []
+    for problem in option_source_problems(form):
+        entry = index.questions.get(problem["fieldId"])
+        path = f"{entry[0]}/optionSource" if entry else ""
+        problems.append(_problem(path, problem["message"]))
     return problems
 
 
@@ -636,6 +665,7 @@ def check_spec_document(raw: Any) -> Dict[str, Any]:
     errors += _check_calculations(form, index)
     errors += _check_rules(form, index)
     errors += _check_option_logic(form, index)
+    errors += _check_option_sources(form, index)
     errors += _check_layout(spec, form)
     result["errors"] = errors
     result["valid"] = not errors

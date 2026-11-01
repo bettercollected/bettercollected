@@ -105,12 +105,13 @@ workflows above, which stay for jobs queued there before the switch
 (see [postgres-cutover-runbook.md](postgres-cutover-runbook.md)).
 
 An action run is queued as **ids only** (and a run token): the actions-executor reads the run's data (the response
-decrypted, the action's secrets) from the backend when it runs, against the token and the run's job being `doing`, so
-none of it sits in the queue's rows. The executor runs code that form creators wrote, so its database role
-(`bc_jobs_exec`) reaches the `jobs` schema only, and within it only `run_action` rows of the `actions` queue (a
-row-level policy the backend applies); it refuses to start where that policy is missing. This narrows what the
-executor can reach; it does not isolate it. Its `exec` is not a sandbox and not a security boundary yet: keep form
-actions off until the executor isolation work lands.
+decrypted, the action's secrets, opened by the backend when the executor asks) from the backend when it runs, against the
+token and the run's job being `doing`, so none of it sits in the queue's rows. Its database role (`bc_jobs_exec`) reaches
+the `jobs` schema only, and within it only `run_action` rows of the `actions` queue (a row-level policy the backend applies);
+it refuses to start where that policy is missing. Custom action code (created by a platform admin; creators only set
+parameters and secrets) runs in a confined child process per run that holds no key, secret value, file or network and
+reaches the outside only through the executor's broker; every outgoing call of an action follows one set of egress rules,
+and the executor needs no encryption key. See [executor-isolation.md](executor-isolation.md).
 
 ## Example end-to-end flows
 

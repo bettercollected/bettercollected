@@ -75,7 +75,7 @@ _ISO_DATETIME = re.compile(
     r"([0-9]{4}-[0-9]{2}-[0-9]{2})[T ]([0-9]{2}):([0-9]{2})(?::([0-9]{2}))?(?:\.[0-9]+)?(Z|[+-][0-9]{2}:?[0-9]{2})?"
 )
 # characters XML 1.0 cannot carry (control characters, lone surrogates, U+FFFE/F)
-_XML_ILLEGAL = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff￾￿]")
+_XML_ILLEGAL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]")
 # ``_x0041_``: Excel reads this as the character U+0041 inside a string. Every
 # underscore that starts one (also overlapping ones, ``_x0041_x0042_``, and a
 # capital ``X``: whether the reader is case-sensitive is not ours to bet on)
@@ -143,7 +143,8 @@ def sheet_name(name: str, taken: Iterable[str]) -> str:
     """A worksheet name Excel accepts: at most 31 characters, none of
     ``[]:*?/\\``, not empty, not starting or ending with an apostrophe, not the
     reserved ``History``, unique among ``taken`` ignoring case."""
-    cleaned = _SHEET_NAME_BAD.sub(" ", name or "").strip().strip("'").strip()
+    # characters XML cannot carry go first: the name must stay unique once they are gone
+    cleaned = _SHEET_NAME_BAD.sub(" ", _XML_ILLEGAL.sub("", name or "")).strip().strip("'").strip()
     cleaned = _cut_utf16(cleaned, SHEET_NAME_MAX).strip().strip("'").strip() or "Sheet"
     if cleaned.lower() == "history":
         cleaned = "History (2)"
@@ -204,7 +205,10 @@ def cell_xml(ref: str, value: CellValue, kind: Optional[str] = None, header: boo
             value = number_text(value)
         else:
             return f'<c r="{ref}"><v>{number_text(value)}</v></c>'
-    text = str(value)
+    # characters XML cannot carry go before the formula check: "\x00=1" is written as "=1"
+    text = _XML_ILLEGAL.sub("", str(value))
+    if text == "":
+        return ""
     if kind in ("date", "datetime") and not header:
         serial = date_serial(text, kind)
         if serial is not None:

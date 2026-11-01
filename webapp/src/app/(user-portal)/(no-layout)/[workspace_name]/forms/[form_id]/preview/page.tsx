@@ -10,6 +10,7 @@ import FullScreenLoader from "@app/views/atoms/full-screen-loader";
 import TrustLayer from '@app/views/molecules/form/trust-layer';
 import Form from "@app/views/organism/form/form";
 import { hasSignatureQuestion } from '@app/utils/form-drafts';
+import { formSharesAnswers } from '@app/utils/option-sources';
 import { formLooksUpAddresses } from '@app/utils/address';
 import { layoutOfPage } from '@app/views/organism/layout/form-column';
 import { useResponderState, useShownSlide } from '@app/store/jotai/responder-form-state';
@@ -52,7 +53,7 @@ export default function FormPreview(props: { params: Promise<{ form_id: string }
             <Form isPreviewMode />
         </div>
         <div className="relative z-40 shrink-0">
-            <TrustLayer {...ownerProps(workspace)} ownerImage={workspace?.profileImage} settings={data?.settings} registrationDestination={data?.registrationDestination} webhookDestination={data?.webhookDestination} emailDestination={data?.emailDestination} addressLookup={formLooksUpAddresses(data)} addressLookupPreview hasSignature={hasSignatureQuestion(data?.fields)} layout={layoutOfPage(shownForm, shownSlide, endingId)} />
+            <TrustLayer {...ownerProps(workspace)} ownerImage={workspace?.profileImage} settings={data?.settings} registrationDestination={data?.registrationDestination} webhookDestination={data?.webhookDestination} emailDestination={data?.emailDestination} addressLookup={formLooksUpAddresses(data)} addressLookupPreview hasSignature={hasSignatureQuestion(data?.fields)} sharesAnswers={formSharesAnswers(data?.fields)} layout={layoutOfPage(shownForm, shownSlide, endingId)} />
         </div>
     </div>
 }

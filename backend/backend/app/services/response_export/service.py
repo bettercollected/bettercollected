@@ -332,10 +332,11 @@ class ResponseExportService:
         the bytes go out; one that cannot be stored fails the request.
 
         403/404 first (nothing is counted or recorded for them), then the
-        per-user budget (429 with ``Retry-After``; given back when the PDF is
-        refused as too large), at most ``PDF_PARALLEL`` drawings at once in this
-        process (429 ``export_busy`` after ``PDF_WAIT_SECONDS``), 413
-        ``pdf_too_large`` past the page limit."""
+        per-user budget (429 with ``Retry-After``; given back only when no
+        drawing started: no free slot, or a failure before it. A PDF refused as
+        too large has used the CPU and counts), at most ``PDF_PARALLEL`` drawings
+        at once in this process (429 ``export_busy`` after ``PDF_WAIT_SECONDS``),
+        413 ``pdf_too_large`` past the page limit."""
         response, form = await self._responses.get_response_for_pdf(workspace_id, response_id, user)
         scope = f"response-pdf:{workspace_id}"
         verdict = await self._limiter.admit(
@@ -351,10 +352,11 @@ class ResponseExportService:
         started = self._clock()
         try:
             document = build_document(form, to_export_response(response), lang, time_zone)
-            data = await self._draw(document)
+            await self._take_pdf_slot()
         except BaseException:
             await _settle(self._release_pdf_budget(scope, str(user.id)))
             raise
+        data = await self._draw(document)
         await self._exports.save(
             ResponseExportDocument(
                 workspace_id=workspace_id,
@@ -375,7 +377,7 @@ class ResponseExportService:
         title = str(form.get("title") or "").strip()
         return PdfFile(data=data, file_name=export_file_name(f"{title} - {short}" if title else short, extension="pdf"))
 
-    async def _draw(self, document) -> bytes:
+    async def _take_pdf_slot(self) -> None:
         try:
             await asyncio.wait_for(self._pdf_slots.acquire(), limits.PDF_WAIT_SECONDS)
         except asyncio.TimeoutError:
@@ -385,6 +387,9 @@ class ResponseExportService:
                 "Several PDFs are being prepared. Try again in a moment.",
                 **{"Retry-After": "5"},
             ) from None
+
+    async def _draw(self, document) -> bytes:
+        """Draws in the slot ``_take_pdf_slot`` took, and gives it back."""
         try:
             return await run_in_threadpool(render_pdf, document)
         except PdfTooLarge:
@@ -397,7 +402,7 @@ class ResponseExportService:
             self._pdf_slots.release()
 
     async def _release_pdf_budget(self, scope: str, actor_id: str) -> None:
-        """A PDF that was refused or failed was not made: it does not use up the budget."""
+        """A PDF that was never drawn does not use up the budget."""
         try:
             await self._limiter.release(scope, actor_id, limits.WINDOW_SECONDS)
         except Exception as error:  # noqa: BLE001 - only the budget is lost

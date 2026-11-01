@@ -17,6 +17,7 @@ from common.models.standard_form import (
     FieldPosition,
     FieldRule,
     OptionFilter,
+    OptionSource,
     FIELD_RULES_MAX,
     CONTAINERS_MAX,
     LayoutContainer,
@@ -157,6 +158,11 @@ class StandardFieldPropertyCamelModel(CamelModel):
     # Filter this question's options by an earlier choice question's answer
     # (common OptionFilter), checked on every save.
     option_filter: Optional[OptionFilter] = None
+    # Where this question's options come from instead of ``choices`` (common
+    # OptionSource), checked on every save (services/option_sources).
+    option_source: Optional[OptionSource] = None
+    # Answers may be shown as choices in other forms of the workspace (common StandardFieldProperty).
+    share_as_choices: Optional[bool] = None
 
     @model_validator(mode="after")
     def _check_type_settings(self):
