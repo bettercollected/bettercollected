@@ -1,9 +1,11 @@
 'use client';
 
+import i18n from 'i18next';
 import React, { useState } from 'react';
 
 import { X } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { BuildReport, clearBuildReport, findingText, readBuildReport } from '@app/utils/ai-build-report';
@@ -23,14 +25,14 @@ function plainTitle(title: unknown): string {
  * places in the form the person can go to. */
 function targetsOf(where: string[], slides: any[]): Target[] {
     const targets: Target[] = [];
-    const page = (slideIndex: number): Target => ({ label: `page ${slideIndex + 1}`, slide: { id: slides[slideIndex].id, index: slideIndex } });
+    const page = (slideIndex: number): Target => ({ label: i18n.t('builder:BUILD_CHECK.PAGE', { n: slideIndex + 1 }), slide: { id: slides[slideIndex].id, index: slideIndex } });
     for (const ref of where) {
         let found: Target | null = null;
         slides.forEach((slide, slideIndex) => {
             (slide?.properties?.fields ?? []).forEach((field: any, fieldIndex: number) => {
                 if (!found && field?.id === ref) {
                     const title = plainTitle(field.title);
-                    const label = title ? `“${title.length > 40 ? title.slice(0, 37) + '…' : title}”` : `page ${slideIndex + 1}, question ${fieldIndex + 1}`;
+                    const label = title ? `“${title.length > 40 ? title.slice(0, 37) + '…' : title}”` : i18n.t('builder:BUILD_CHECK.PAGE_QUESTION', { page: slideIndex + 1, question: fieldIndex + 1 });
                     found = { label, slide: { id: slide.id, index: slideIndex }, field: { id: field.id, index: fieldIndex } };
                 }
             });
@@ -61,6 +63,7 @@ export default function AIBuildChecklist({ formId }: { formId: string }) {
 
 /** The checklist while it shows: its "Go to" links follow the form. */
 function Checklist({ report, onDismiss: dismiss }: { report: BuildReport; onDismiss: () => void }) {
+    const { t } = useTranslation('builder');
     const { formFields } = useFormFieldsAtom();
     const { setActiveSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
@@ -75,13 +78,13 @@ function Checklist({ report, onDismiss: dismiss }: { report: BuildReport; onDism
         <section aria-labelledby="ai-build-checklist-title" className="w-[min(360px,calc(100vw-2rem))] rounded-lg border border-black-300 bg-white p-4 text-sm shadow-large">
             <div className="flex items-start justify-between gap-2">
                 <h2 id="ai-build-checklist-title" className="font-semibold text-black-900">
-                    Check before publishing
+                    {t('BUILD_CHECK.TITLE')}
                 </h2>
-                <button type="button" className="rounded p-1 text-black-600 hover:bg-black-200" aria-label="Dismiss the checklist" onClick={dismiss}>
+                <button type="button" className="rounded p-1 text-black-600 hover:bg-black-200" aria-label={t('BUILD_CHECK.DISMISS')} onClick={dismiss}>
                     <X size={16} aria-hidden="true" />
                 </button>
             </div>
-            <p className="mt-1 text-xs text-black-600">Your form was built from the AI outline. {report.findings.length ? 'These need a look:' : 'What changed on the way:'}</p>
+            <p className="mt-1 text-xs text-black-600">{t('BUILD_CHECK.INTRO')} {report.findings.length ? t('BUILD_CHECK.NEEDS_LOOK') : t('BUILD_CHECK.WHAT_CHANGED')}</p>
             {report.findings.length > 0 && (
                 <ul className="mt-2 flex flex-col gap-2">
                     {report.findings.map((finding, i) => {
@@ -93,7 +96,7 @@ function Checklist({ report, onDismiss: dismiss }: { report: BuildReport; onDism
                                     <span className="ml-1 inline-flex flex-wrap gap-x-2">
                                         {targets.map((target) => (
                                             <button key={`${target.slide.id}-${target.field?.id ?? ''}`} type="button" className="text-brand-600 underline" onClick={() => go(target)}>
-                                                Go to {target.label}
+                                                {t('BUILD_CHECK.GO_TO', { label: target.label })}
                                             </button>
                                         ))}
                                     </span>

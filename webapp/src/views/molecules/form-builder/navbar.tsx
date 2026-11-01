@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 
+import { useTranslation } from 'react-i18next';
 import { SheetClose } from '@app/shadcn/components/ui/sheet';
 
 import { useAppSelector } from '@app/store/hooks';
@@ -10,6 +11,7 @@ import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import BackButton from './back-button';
 
 const NavBar = ({ isModal = false }: { isModal?: boolean }) => {
+    const { t } = useTranslation('builder');
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
     const workspaceTitle = workspaceDisplayName(workspace);
@@ -19,7 +21,7 @@ const NavBar = ({ isModal = false }: { isModal?: boolean }) => {
                 same rule as the top navbar). Still the "back to forms" target. */}
             <button
                 type="button"
-                aria-label={`Back to ${workspaceTitle || 'workspace'} forms`}
+                aria-label={t('TOPBAR.BACK_TO', { name: workspaceTitle || t('TOPBAR.WORKSPACE') })}
                 className="mr-1 cursor-pointer"
                 onClick={() => {
                     router.push('/' + workspace.workspaceName + '/dashboard/forms');
@@ -35,11 +37,12 @@ const NavBar = ({ isModal = false }: { isModal?: boolean }) => {
             {isModal ? (
                 <SheetClose asChild>
                     <div>
-                        <BackButton />
+                        <BackButton label={t('BUTTON.BACK', { ns: 'common' })} />
                     </div>
                 </SheetClose>
             ) : (
                 <BackButton
+                    label={t('BUTTON.BACK', { ns: 'common' })}
                     handleClick={() => {
                         router.back();
                     }}

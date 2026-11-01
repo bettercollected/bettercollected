@@ -18,7 +18,7 @@ vi.mock('@app/store/redux/form-api', async (original) => ({
 const field = (validations: StandardFormFieldDto['validations'] = {}, type = FieldTypes.SHORT_TEXT): StandardFormFieldDto => ({ id: 'q', index: 0, type, title: 'Name', validations, properties: {} });
 const valid = { data: { valid: true, message: null, reason: null } };
 const invalid = (reason: string) => ({ data: { valid: false, message: `'x' is not a valid pattern (${reason}).`, reason } });
-const box = () => screen.getByLabelText('Regular expression') as HTMLInputElement;
+const box = () => screen.getByLabelText(i18n.language === 'nl' ? 'Reguliere expressie' : 'Regular expression') as HTMLInputElement;
 
 const renderRules = (onChange = vi.fn(), validations: StandardFormFieldDto['validations'] = {}) => {
     render(

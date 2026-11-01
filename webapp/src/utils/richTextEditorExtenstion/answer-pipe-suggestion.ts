@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { Extension } from '@tiptap/core';
 import Suggestion, { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion';
 
@@ -64,7 +65,7 @@ class PipeSuggestionList {
                 lastGroup = item.group;
                 const header = document.createElement('div');
                 header.className = 'text-black-600 px-3 py-1 text-xs uppercase tracking-wide';
-                header.textContent = item.group;
+                header.textContent = i18n.t(`builder:RTE.GROUP_${item.group}`, { defaultValue: item.group });
                 this.container.appendChild(header);
             }
             const row = document.createElement('div');

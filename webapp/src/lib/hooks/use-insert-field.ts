@@ -1,5 +1,6 @@
 'use client';
 
+import i18n from 'i18next';
 import { useEffect, useRef } from 'react';
 
 import { v4 } from 'uuid';
@@ -65,7 +66,7 @@ export function useInsertField() {
 
     const insert = (item: Pick<InsertCatalogItem, 'type' | 'name'>, placement: InsertPlacement = 'page', target?: InsertTarget | null): StandardFormFieldDto | null => {
         if (activeSlideComponent === null && !target) {
-            toast({ description: 'Add a page to add fields' });
+            toast({ description: i18n.t('builder:TOASTS.ADD_PAGE_FIRST') });
             return null;
         }
         const formFields = getFormFields();

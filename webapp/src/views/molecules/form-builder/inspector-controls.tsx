@@ -2,6 +2,7 @@
 
 import { ReactNode, useId, useState } from 'react';
 
+import { useTranslation } from 'react-i18next';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';
 
@@ -51,7 +52,7 @@ export function NumberSetting({
     max,
     step = 1,
     integer = true,
-    placeholder = 'No limit',
+    placeholder,
     invalid
 }: {
     label: string;
@@ -64,6 +65,7 @@ export function NumberSetting({
     placeholder?: string;
     invalid?: boolean;
 }) {
+    const { t } = useTranslation('builder');
     const id = useId();
     const [draft, setDraft] = useState(value === undefined || value === null ? '' : String(value));
     // A change from elsewhere (undo, another control) replaces the draft,
@@ -87,7 +89,7 @@ export function NumberSetting({
                 max={max}
                 step={step}
                 value={draft}
-                placeholder={placeholder}
+                placeholder={placeholder ?? t('INSPECTOR.NO_LIMIT')}
                 aria-invalid={invalid || undefined}
                 onChange={(event) => {
                     const text = event.target.value;

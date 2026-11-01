@@ -1,10 +1,13 @@
 'use client';
 
+import i18n from 'i18next';
 import { useEffect } from 'react';
 
 import { useAtom } from 'jotai';
 
+import { useTranslation } from 'react-i18next';
 import { formFieldsList } from '@app/constants/form-fields';
+import { fieldTypeChip } from '@app/lib/field-type-name';
 import { InspectorLevel, inspectorLevel } from '@app/lib/hooks/use-inspector-escape';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@app/shadcn/components/ui/tabs';
 import { cn } from '@app/shadcn/util/lib';
@@ -25,17 +28,17 @@ import PagePropertiesTab from '@app/views/organism/form-builder/page-properties-
 
 /** What the Page crumb says for the selected page; an ending by its name, else its title. */
 export function pageCrumbLabel(slide: { id?: string; index?: number } | null | undefined, ending?: { name?: string; title?: string } | null): string {
-    if (!slide) return 'Page';
-    if (slide.id === 'welcome-page') return 'Welcome page';
-    if (slide.id === 'thank-you-page') return ending?.name?.trim() || ending?.title?.trim() || 'Ending';
-    return `Page ${(slide.index ?? 0) + 1}`;
+    if (!slide) return i18n.t('builder:PAGE_PROPS.CRUMB_PAGE');
+    if (slide.id === 'welcome-page') return i18n.t('builder:PAGE_PROPS.CRUMB_WELCOME');
+    if (slide.id === 'thank-you-page') return ending?.name?.trim() || ending?.title?.trim() || i18n.t('builder:OUTLINE.ENDING');
+    return i18n.t('builder:OUTLINE.PAGE_N', { n: (slide.index ?? 0) + 1 });
 }
 
 const TABS: Array<{ value: PropertiesTab; label: string }> = [
-    { value: 'page', label: 'Page' },
-    { value: 'form', label: 'Form' },
-    { value: 'design', label: 'Design' },
-    { value: 'ai', label: 'AI' }
+    { value: 'page', label: 'PAGE_PROPS.TAB_PAGE' },
+    { value: 'form', label: 'PAGE_PROPS.TAB_FORM' },
+    { value: 'design', label: 'PAGE_PROPS.TAB_DESIGN' },
+    { value: 'ai', label: 'PAGE_PROPS.TAB_AI' }
 ];
 
 /**
@@ -45,6 +48,7 @@ const TABS: Array<{ value: PropertiesTab; label: string }> = [
  * that question's settings; otherwise the page and form settings, in tabs.
  */
 export default function PropertiesDrawer({}: {}) {
+    const { t } = useTranslation('builder');
     const { activeSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent, setActiveFieldComponent } = useActiveFieldComponent();
     const { propertiesTab, setPropertiesTab } = usePropertiesTab();
@@ -70,9 +74,9 @@ export default function PropertiesDrawer({}: {}) {
     }, [standardForm?.formId]);
 
     const level = inspectorLevel(!!activeFieldComponent?.id, propertiesTab);
-    const questionLabel = activeField ? extractTextfromJSON(activeField).trim() || formFieldsList.find((f) => f.type === activeField.type)?.name || 'Question' : 'Question';
+    const questionLabel = activeField ? extractTextfromJSON(activeField).trim() || fieldTypeChip(t, activeField.type, formFieldsList.find((f) => f.type === activeField.type)?.name || t('PAGE_PROPS.CRUMB_QUESTION')) : t('PAGE_PROPS.CRUMB_QUESTION');
     const ending = formState.thankyouPage?.[activeThankYouPageComponent?.index ?? 0];
-    const crumbs: InspectorCrumb[] = [{ level: 'form', label: 'Form' }, { level: 'page', label: pageCrumbLabel(activeSlideComponent, ending) }, ...(activeFieldComponent?.id ? [{ level: 'question' as const, label: questionLabel }] : [])];
+    const crumbs: InspectorCrumb[] = [{ level: 'form', label: t('PAGE_PROPS.CRUMB_FORM') }, { level: 'page', label: pageCrumbLabel(activeSlideComponent, ending) }, ...(activeFieldComponent?.id ? [{ level: 'question' as const, label: questionLabel }] : [])];
 
     const goTo = (target: InspectorLevel) => {
         if (target === 'question') return;
@@ -88,10 +92,10 @@ export default function PropertiesDrawer({}: {}) {
             {!activeFieldComponent?.id && activeContainer && <LayoutContainerSettings />}
             {!activeFieldComponent?.id && !activeContainer && activeSlideComponent?.id && (
                 <Tabs value={propertiesTab} onValueChange={(value) => setPropertiesTab(value as PropertiesTab)} className={cn('flex w-full flex-1 flex-col', propertiesTab === 'ai' && 'min-h-0')}>
-                    <TabsList aria-label="Settings" className="mx-2 my-2 w-[calc(100%-16px)] shrink-0">
+                    <TabsList aria-label={t('PAGE_PROPS.SETTINGS_TABS')} className="mx-2 my-2 w-[calc(100%-16px)] shrink-0">
                         {TABS.map((tab) => (
                             <TabsTrigger key={tab.value} value={tab.value} className="w-full">
-                                {tab.label}
+                                {t(tab.label)}
                             </TabsTrigger>
                         ))}
                     </TabsList>

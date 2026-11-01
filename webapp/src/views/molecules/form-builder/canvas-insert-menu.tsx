@@ -5,6 +5,7 @@ import { useRef } from 'react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { useSetAtom } from 'jotai';
 
+import { useTranslation } from 'react-i18next';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
@@ -25,6 +26,7 @@ export default function CanvasInsertMenu({ slide }: { slide: StandardFormFieldDt
 
 /** The menu while it is open: only then does it follow the form. */
 function OpenCanvasInsertMenu({ target: insertTarget }: { target: InsertTarget }) {
+    const { t } = useTranslation('builder');
     const setInsertTarget = useSetAtom(insertTargetAtom);
     const { formFields } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
@@ -53,7 +55,7 @@ function OpenCanvasInsertMenu({ target: insertTarget }: { target: InsertTarget }
                     align="start"
                     sideOffset={6}
                     collisionPadding={12}
-                    aria-label="Insert a field"
+                    aria-label={t('INSERT_MENU_ARIA')}
                     className="z-popover overflow-hidden rounded border border-black-300 bg-white shadow-large outline-hidden"
                     onCloseAutoFocus={(event) => {
                         // Inserting focuses the new field; cancelling goes back

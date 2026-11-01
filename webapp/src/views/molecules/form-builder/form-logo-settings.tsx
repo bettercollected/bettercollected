@@ -4,6 +4,7 @@ import { useId, useRef, useState } from 'react';
 
 import { ImageIcon } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';
@@ -16,9 +17,9 @@ import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import { LOGO_ACCEPT, LOGO_ALT_MAX_LENGTH, LogoPositionSetting, logoFileProblem, logoPositionFor, logoUploadError, resolveFormLogo } from '@app/utils/form-logo';
 
 const POSITIONS: Array<{ key: LogoPositionSetting; label: string }> = [
-    { key: 'auto', label: 'Automatic' },
-    { key: 'left', label: 'Left' },
-    { key: 'center', label: 'Centre' }
+    { key: 'auto', label: 'LOGO.POS_AUTO' },
+    { key: 'left', label: 'LOGO.POS_LEFT' },
+    { key: 'center', label: 'LOGO.POS_CENTER' }
 ];
 
 /**
@@ -28,6 +29,7 @@ const POSITIONS: Array<{ key: LogoPositionSetting; label: string }> = [
  * save with the form. Respondents see changes once the form is published.
  */
 export default function FormLogoSettings() {
+    const { t } = useTranslation('builder');
     const dispatch = useAppDispatch();
     const form = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
@@ -66,16 +68,16 @@ export default function FormLogoSettings() {
         setError(null);
         const reply: any = await removeLogo({ workspaceId: workspace.id, formId: form.formId });
         if (reply?.data) dispatch(setFormLogo(null));
-        else setError('The logo could not be removed. Try again.');
+        else setError(t('LOGO.REMOVE_FAILED'));
     };
 
     return (
         <section aria-labelledby="form-logo-heading" className="flex flex-col gap-3">
             <div>
                 <h3 id="form-logo-heading" className="text-xs font-semibold tracking-wide text-black-600 uppercase">
-                    Organisation logo
+                    {t('LOGO.TITLE')}
                 </h3>
-                <p className="mt-1 text-xs leading-relaxed text-black-600">Shown at the top of every page of the form, as you upload it.</p>
+                <p className="mt-1 text-xs leading-relaxed text-black-600">{t('LOGO.INTRO')}</p>
             </div>
 
             {/* What respondents will see, on the form's own page colour. */}
@@ -90,30 +92,30 @@ export default function FormLogoSettings() {
                 ) : (
                     <span className="flex items-center gap-2 text-xs text-black-600">
                         <ImageIcon className="h-4 w-4" aria-hidden="true" />
-                        No logo
+                        {t('LOGO.NONE')}
                     </span>
                 )}
             </div>
-            {shown?.fromWorkspace && <p className="-mt-1 text-[11px] text-black-600">Showing the workspace logo.</p>}
+            {shown?.fromWorkspace && <p className="-mt-1 text-[11px] text-black-600">{t('LOGO.WORKSPACE_SHOWN')}</p>}
 
             <input ref={fileRef} type="file" accept={LOGO_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(event) => pick(event.target.files?.[0])} />
             <div className="flex items-center gap-2">
                 <Button type="button" variant="v2Button" className="h-9 text-xs" disabled={removing} isLoading={uploading} onClick={() => fileRef.current?.click()} aria-describedby={ids.status}>
-                    {form?.logo ? 'Replace' : 'Upload logo'}
+                    {form?.logo ? t('LOGO.REPLACE') : t('LOGO.UPLOAD')}
                 </Button>
                 {form?.logo && (
                     <Button type="button" variant="v2GhostButton" className="h-9" disabled={uploading} isLoading={removing} onClick={remove}>
-                        Remove
+                        {t('LOGO.REMOVE')}
                     </Button>
                 )}
             </div>
             <p id={ids.status} className={cn('text-[11px] leading-relaxed', error ? 'text-[#C43D3D]' : 'text-black-600')} role={error ? 'alert' : undefined}>
-                {error ?? 'PNG, JPEG or WebP, up to 1 MB. Respondents see a new logo once you publish.'}
+                {error ?? t('LOGO.FILE_HINT')}
             </p>
 
             <div className="flex flex-col gap-2">
                 <span className="text-xs text-black-700" id={`${ids.status}-position`}>
-                    Position
+                    {t('LOGO.POSITION')}
                 </span>
                 <div className="flex overflow-hidden rounded-md border border-black-300" role="group" aria-labelledby={`${ids.status}-position`}>
                     {POSITIONS.map((option) => (
@@ -124,20 +126,22 @@ export default function FormLogoSettings() {
                             onClick={() => setLogoSettings({ ...settings, logoPosition: option.key })}
                             className={cn('flex-1 px-2 py-1.5 text-[11px] font-medium transition-colors', position === option.key ? 'bg-brand-100 text-brand-600' : 'bg-white text-black-600 hover:bg-black-100')}
                         >
-                            {option.label}
+                            {t(option.label)}
                         </button>
                     ))}
                 </div>
                 <p className="text-[11px] leading-relaxed text-black-600">
                     {position === 'auto'
-                        ? `Automatic follows the welcome page: ${followed === 'center' ? 'it is centred, so the logo is centred on every page' : 'it is left-aligned, so the logo sits on the left on every page'}.`
-                        : 'Used on every page of the form.'}
+                        ? followed === 'center'
+                            ? t('LOGO.AUTO_CENTER')
+                            : t('LOGO.AUTO_LEFT')
+                        : t('LOGO.EVERY_PAGE')}
                 </p>
             </div>
 
             <div className="flex flex-col gap-1.5">
                 <label htmlFor={ids.alt} className="text-xs text-black-700">
-                    Alt text
+                    {t('LOGO.ALT')}
                 </label>
                 <input
                     id={ids.alt}
@@ -150,13 +154,14 @@ export default function FormLogoSettings() {
                     className="h-9 w-full rounded-md border border-control bg-white px-2.5 text-xs text-black-900 placeholder:text-black-600"
                 />
                 <p id={ids.altHint} className="text-[11px] leading-relaxed text-black-600">
-                    Read out instead of the image, usually the organisation&apos;s name.{organisation ? ` Leave empty to use “${organisation}”.` : ''}
+                    {t('LOGO.ALT_HINT')}
+                    {organisation ? t('LOGO.ALT_EMPTY', { name: organisation }) : ''}
                 </p>
             </div>
 
             <div className="flex items-start justify-between gap-3">
                 <label htmlFor={ids.toggle} className="text-xs leading-relaxed text-black-700">
-                    Use workspace logo when the form has none
+                    {t('LOGO.USE_WORKSPACE')}
                 </label>
                 <Switch id={ids.toggle} checked={useWorkspaceLogo} onCheckedChange={(checked) => setLogoSettings({ ...settings, useWorkspaceLogo: checked })} className="mt-0.5" />
             </div>

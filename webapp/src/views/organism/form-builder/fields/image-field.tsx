@@ -5,6 +5,7 @@ import Image from 'next/image';
 
 import { ImageIcon } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
@@ -19,6 +20,7 @@ export function imageAltText(field: StandardFormFieldDto): string {
 
 /** Builder: pick the picture, describe it, or change it. */
 function ImageFieldEditor({ field, slide }: { field: StandardFormFieldDto; slide: StandardFormFieldDto }) {
+    const { t } = useTranslation('builder');
     const { updateFieldAttachment } = useFieldActions();
     const { openDialogModal } = useDialogModal();
     const altId = useId();
@@ -42,7 +44,7 @@ function ImageFieldEditor({ field, slide }: { field: StandardFormFieldDto; slide
                 className="flex h-40 w-full flex-col items-center justify-center gap-2 rounded border border-dashed border-black-400 bg-white/60 text-sm font-medium text-black-700 hover:border-black-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123FC9]"
             >
                 <ImageIcon className="h-6 w-6" aria-hidden="true" />
-                Choose an image
+                {t('CANVAS.CHOOSE_IMAGE')}
             </button>
         );
     }
@@ -54,20 +56,20 @@ function ImageFieldEditor({ field, slide }: { field: StandardFormFieldDto; slide
             <div className="flex items-end gap-2">
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <label htmlFor={altId} className="text-xs font-medium text-black-700">
-                        Description for screen readers
+                        {t('CANVAS.IMAGE_ALT_LABEL')}
                     </label>
                     <input
                         id={altId}
                         type="text"
                         value={alt}
                         maxLength={250}
-                        placeholder="What the image shows (leave empty if it is decoration)"
+                        placeholder={t('CANVAS.IMAGE_ALT_PLACEHOLDER')}
                         onChange={(event) => save({ description: event.target.value })}
                         className="rounded border border-black-300 bg-white px-2 py-1.5 text-sm text-black-900"
                     />
                 </div>
                 <button type="button" onClick={pick} className="rounded border border-black-400 bg-white px-3 py-1.5 text-sm font-medium text-black-800 hover:bg-black-100">
-                    Change image
+                    {t('CANVAS.CHANGE_IMAGE')}
                 </button>
             </div>
         </div>

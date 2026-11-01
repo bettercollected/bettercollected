@@ -5,6 +5,7 @@ import { useRef } from 'react';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { Copy, Ellipsis, PencilLine, Star, Trash2 } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@app/shadcn/components/ui/dropdown-menu';
 import { cn } from '@app/shadcn/util/lib';
 
@@ -38,11 +39,12 @@ export default function EndingOptions({
     onMakeDefault: () => void;
     onDelete: () => void;
 }) {
+    const { t } = useTranslation('builder');
     // Rename hands focus to the name field instead of back to this trigger.
     const renaming = useRef(false);
     return (
         <DropdownMenuPrimitive.Root>
-            <DropdownMenuPrimitive.Trigger aria-label={`Options for ${label}`} className={outlineMenuTriggerClass(visible)}>
+            <DropdownMenuPrimitive.Trigger aria-label={t('OUTLINE.MENU.OPTIONS_FOR', { label })} className={outlineMenuTriggerClass(visible)}>
                 <Ellipsis className="h-4 w-4" aria-hidden="true" />
             </DropdownMenuPrimitive.Trigger>
             <DropdownMenuContent
@@ -68,20 +70,20 @@ export default function EndingOptions({
                     }}
                 >
                     <PencilLine className="h-4 w-4" aria-hidden="true" />
-                    Rename
+                    {t('OUTLINE.MENU.RENAME')}
                 </DropdownMenuItem>
                 <DropdownMenuItem className={outlineMenuItemClass} disabled={!canDuplicate} onSelect={onDuplicate}>
                     <Copy className="h-4 w-4" aria-hidden="true" />
-                    Duplicate
+                    {t('OUTLINE.MENU.DUPLICATE')}
                 </DropdownMenuItem>
                 <DropdownMenuItem className={outlineMenuItemClass} disabled={isDefault} onSelect={onMakeDefault}>
                     <Star className="h-4 w-4" aria-hidden="true" />
-                    Make default
+                    {t('OUTLINE.MENU.MAKE_DEFAULT')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className={cn(outlineMenuItemClass, 'text-[#C43D3D] focus:bg-[#FBEFEF] focus:text-[#C43D3D]')} disabled={!canDelete} onSelect={onDelete}>
                     <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    {canDelete ? 'Delete' : 'Delete (a form keeps one ending)'}
+                    {canDelete ? t('OUTLINE.MENU.DELETE') : t('OUTLINE.MENU.DELETE_LAST')}
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenuPrimitive.Root>

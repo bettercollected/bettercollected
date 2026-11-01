@@ -2,7 +2,9 @@
 
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
 import { formFieldsList } from '@app/constants/form-fields';
+import { fieldTypeChip } from '@app/lib/field-type-name';
 import { typeIsOff } from '@app/lib/form-ops/new-question-types';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
@@ -30,7 +32,9 @@ const iconButton = 'text-black-600 hover:bg-black-100 rounded p-1 disabled:opaci
  * Limits and labels live in the settings panel (RepeatingGroupSettings).
  */
 export default function RepeatingGroupBuilder({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled?: boolean }) {
+    const { t } = useTranslation('builder');
     const { updateGroupChildren } = useBuilderActions();
+    const typeName = (option: { type: string; name: string }) => (option.type === FieldTypes.TEXT ? t('GROUP_BUILDER.STATEMENT') : fieldTypeChip(t, option.type, option.name));
     // The newer question types are offered while the server takes them (NEW_QUESTION_TYPES_ENABLED);
     // a child that already has one keeps it in its own list.
     const { newQuestionTypesEnabled, addressQuestionEnabled } = useWorkspacePermissions();
@@ -52,6 +56,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
         .join(',');
     const dateSources = useBuilderFieldsValue((formFields) => Object.fromEntries(dateChildIds.split(',').filter(Boolean).map((id) => [id, getDateRuleSources(formFields || [], id)])), [dateChildIds], jsonEqual);
     const { itemLabel, minItems, maxItems } = getRepeatSettings(field);
+    const item = itemLabel.toLowerCase();
 
     const commit = (next: StandardFormFieldDto[]) => updateGroupChildren(slide.index, field.id, next);
     const patchChild = (id: string, patch: Partial<StandardFormFieldDto>) => commit(children.map((child) => (child.id === id ? { ...child, ...patch } : child)));
@@ -67,7 +72,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
         ...children
             .slice(0, index)
             .filter((c) => c.type !== FieldTypes.TEXT)
-            .map((c) => ({ field: c, label: `This ${itemLabel.toLowerCase()} · ${fieldText(c)}` })),
+            .map((c) => ({ field: c, label: t('GROUP_BUILDER.THIS_ITEM', { item, text: fieldText(c) }) })),
         ...outerSources
     ];
 
@@ -93,10 +98,10 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
         <div className="border-black-300 flex w-full flex-col gap-3 rounded border border-dashed bg-white/60 p-3" onClick={(e) => e.stopPropagation()}>
             <div className="text-black-600 flex items-center justify-between text-xs">
                 <span className="font-semibold uppercase tracking-wide">
-                    Asked for each {itemLabel.toLowerCase()} · {minItems === maxItems ? maxItems : `${minItems}–${maxItems}`} times
+                    {t('GROUP_BUILDER.ASKED_FOR_EACH', { item, times: minItems === maxItems ? maxItems : `${minItems}–${maxItems}` })}
                 </span>
             </div>
-            {children.length === 0 && <p className="text-black-600 text-sm">Add the questions to ask for each {itemLabel.toLowerCase()}.</p>}
+            {children.length === 0 && <p className="text-black-600 text-sm">{t('GROUP_BUILDER.ADD_THE_QUESTIONS', { item })}</p>}
             {children.map((child, index) => {
                 const logic = child.properties?.logic as FieldConditionalLogic | undefined;
                 const sources = sourcesFor(index);
@@ -105,14 +110,14 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                         <div className="flex items-center gap-2">
                             <input
                                 key={`${child.id}-${typeof child.title === 'string' ? child.title : ''}`}
-                                aria-label="Question"
+                                aria-label={t('GROUP_BUILDER.QUESTION')}
                                 className={inputClass}
-                                placeholder="Question"
+                                placeholder={t('GROUP_BUILDER.QUESTION')}
                                 defaultValue={typeof child.title === 'string' ? child.title : fieldText(child)}
                                 onBlur={(e) => e.target.value !== child.title && patchChild(child.id, { title: e.target.value })}
                             />
                             <select
-                                aria-label="Question type"
+                                aria-label={t('GROUP_BUILDER.QUESTION_TYPE')}
                                 className={`${inputClass} w-36 shrink-0`}
                                 value={child.type}
                                 onChange={(e) => {
@@ -122,17 +127,17 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                             >
                                 {typesFor(child.type).map((option) => (
                                     <option key={option.type} value={option.type}>
-                                        {option.name}
+                                        {typeName(option)}
                                     </option>
                                 ))}
                             </select>
-                            <button type="button" className={iconButton} aria-label="Move question up" disabled={index === 0} onClick={() => move(index, -1)}>
+                            <button type="button" className={iconButton} aria-label={t('GROUP_BUILDER.MOVE_UP')} disabled={index === 0} onClick={() => move(index, -1)}>
                                 <ArrowUp className="h-4 w-4" />
                             </button>
-                            <button type="button" className={iconButton} aria-label="Move question down" disabled={index === children.length - 1} onClick={() => move(index, 1)}>
+                            <button type="button" className={iconButton} aria-label={t('GROUP_BUILDER.MOVE_DOWN')} disabled={index === children.length - 1} onClick={() => move(index, 1)}>
                                 <ArrowDown className="h-4 w-4" />
                             </button>
-                            <button type="button" className="rounded p-1 text-[#C43D3D] hover:bg-[#FBEFEF]" aria-label="Remove question" onClick={() => commit(children.filter((c) => c.id !== child.id))}>
+                            <button type="button" className="rounded p-1 text-[#C43D3D] hover:bg-[#FBEFEF]" aria-label={t('GROUP_BUILDER.REMOVE')} onClick={() => commit(children.filter((c) => c.id !== child.id))}>
                                 <Trash2 className="h-4 w-4" />
                             </button>
                         </div>
@@ -140,15 +145,15 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                             {child.type !== FieldTypes.TEXT && (
                                 <label className="flex items-center gap-1.5">
                                     <input type="checkbox" checked={!!child.validations?.required} onChange={(e) => patchChild(child.id, { validations: { ...(child.validations || {}), required: e.target.checked } })} />
-                                    Required in each {itemLabel.toLowerCase()}
+                                    {t('GROUP_BUILDER.REQUIRED_EACH', { item })}
                                 </label>
                             )}
                             {PLACEHOLDER_TYPES.includes(child.type) && (
                                 <input
                                     key={`${child.id}-placeholder-${child.properties?.placeholder ?? ''}`}
-                                    aria-label="Placeholder"
+                                    aria-label={t('GROUP_BUILDER.PLACEHOLDER')}
                                     className={`${inputClass} w-48 text-xs`}
-                                    placeholder="Placeholder (optional)"
+                                    placeholder={t('GROUP_BUILDER.PLACEHOLDER_OPTIONAL')}
                                     defaultValue={child.properties?.placeholder ?? ''}
                                     onBlur={(e) => e.target.value !== (child.properties?.placeholder ?? '') && patchProps(child, { placeholder: e.target.value })}
                                 />
@@ -156,9 +161,9 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                             {(asksForIdentity(child) || !!child.properties?.whyWeAsk) && (
                                 <input
                                     key={`${child.id}-why-${child.properties?.whyWeAsk ?? ''}`}
-                                    aria-label="Why we ask this"
+                                    aria-label={t('GROUP_BUILDER.WHY')}
                                     className={`${inputClass} w-full text-xs ${child.properties?.whyWeAsk?.trim() ? '' : 'border-amber-500'}`}
-                                    placeholder="Why we ask this (needed to publish)"
+                                    placeholder={t('GROUP_BUILDER.WHY_NEEDED')}
                                     maxLength={WHY_WE_ASK_MAX_LENGTH}
                                     defaultValue={child.properties?.whyWeAsk ?? ''}
                                     onBlur={(e) => e.target.value !== (child.properties?.whyWeAsk ?? '') && patchProps(child, { whyWeAsk: e.target.value })}
@@ -171,7 +176,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                                         checked={!!logic}
                                         onChange={(e) => patchProps(child, { logic: e.target.checked ? { action: 'SHOW', operator: LogicalOperator.AND, conditions: [newConditionFor(sources)] } : undefined })}
                                     />
-                                    Show only when…
+                                    {t('GROUP_BUILDER.SHOW_ONLY_WHEN')}
                                 </label>
                             )}
                         </div>
@@ -181,7 +186,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                                     <div key={choice.id} className="flex items-center gap-2">
                                         <input
                                             key={`${choice.id}-${choice.value ?? ''}`}
-                                            aria-label={`Option ${choiceIndex + 1}`}
+                                            aria-label={t('GROUP_BUILDER.OPTION_N', { n: choiceIndex + 1 })}
                                             className={`${inputClass} text-xs`}
                                             defaultValue={choice.value ?? ''}
                                             onBlur={(e) =>
@@ -191,7 +196,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                                         <button
                                             type="button"
                                             className={iconButton}
-                                            aria-label={`Remove option ${choiceIndex + 1}`}
+                                            aria-label={t('GROUP_BUILDER.REMOVE_OPTION_N', { n: choiceIndex + 1 })}
                                             disabled={(child.properties?.choices?.length ?? 0) <= 2}
                                             onClick={() => patchProps(child, { choices: (child.properties?.choices ?? []).filter((c) => c.id !== choice.id) })}
                                         >
@@ -207,7 +212,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                                         patchProps(child, { choices: [...(child.properties?.choices ?? []), { ...extra, value: `Option ${(child.properties?.choices?.length ?? 0) + 1}` }] });
                                     }}
                                 >
-                                    + Add option
+                                    {t('GROUP_BUILDER.ADD_OPTION')}
                                 </button>
                             </div>
                         )}
@@ -216,7 +221,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                                 field={child}
                                 sources={dateSources[child.id] ?? []}
                                 onChange={(patch) => patchProps(child, patch)}
-                                sourceHint={`Rules can compare with an earlier date question of the same ${itemLabel.toLowerCase()}.`}
+                                sourceHint={t('GROUP_BUILDER.DATE_HINT', { item })}
                             />
                         )}
                         {logic && (
@@ -237,7 +242,7 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
             <label className="text-black-700 flex w-fit items-center gap-2 text-sm">
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 <select
-                    aria-label="Add a question to the group"
+                    aria-label={t('GROUP_BUILDER.ADD_QUESTION_ARIA')}
                     className={`${inputClass} w-56`}
                     value=""
                     onChange={(e) => {
@@ -245,17 +250,17 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                         commit([...children, { ...newGroupChild(e.target.value, children.length), title: '' }]);
                     }}
                 >
-                    <option value="">Add a question to the group…</option>
+                    <option value="">{t('GROUP_BUILDER.ADD_QUESTION')}</option>
                     {typesFor().map((option) => (
                         <option key={option.type} value={option.type}>
-                            {option.name}
+                            {typeName(option)}
                         </option>
                     ))}
                 </select>
             </label>
             <div className="text-black-600 flex items-center gap-2 text-xs" aria-hidden="true">
-                <span className="rounded-md border border-dashed px-2 py-1">+ Add another {itemLabel}</span>
-                respondents see this below each group of answers
+                <span className="rounded-md border border-dashed px-2 py-1">{t('GROUP_BUILDER.ADD_ANOTHER', { item: itemLabel })}</span>
+                {t('GROUP_BUILDER.BELOW_EACH')}
             </div>
         </div>
     );

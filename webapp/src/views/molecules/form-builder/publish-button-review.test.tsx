@@ -245,7 +245,7 @@ describe('publishing a form that still needs review', () => {
             renderButton();
         });
         await act(async () => {
-            fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Publiceren' }));
         });
         const dialog = await screen.findByRole('dialog', { name: 'Dit formulier moet nog worden nagekeken' });
         expect(dialog).toHaveTextContent('U kunt pas publiceren nadat u het importrapport hebt doorgenomen');

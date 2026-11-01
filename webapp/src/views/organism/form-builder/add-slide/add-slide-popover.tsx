@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { useTranslation } from 'react-i18next';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -11,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './add-slice-tabs';
 import LayoutsTab from './layouts-tab';
 
 export default function AddSlidePopover() {
+    const { t } = useTranslation('builder');
     const [open, setOpen] = useState(false);
 
     const closePopover = () => {
@@ -26,7 +28,7 @@ export default function AddSlidePopover() {
                         setOpen(open);
                     }}
                 >
-                    <PopoverTrigger aria-label="Add page" className="hover:bg-black-200 flex h-7 w-7 items-center justify-center rounded-sm">
+                    <PopoverTrigger aria-label={t('ADD_PAGE.LABEL')} className="hover:bg-black-200 flex h-7 w-7 items-center justify-center rounded-sm">
                         <PlusIcon className=" text-black-600 hover:text-black-800 h-5 w-5 " strokeWidth={'1.5'} aria-hidden="true" />
                     </PopoverTrigger>
                     <PopoverContent side="right" align="start" asChild className="w-[391px] p-0">
@@ -42,8 +44,8 @@ export default function AddSlidePopover() {
                                 <div className="z-1000! max-h-[640px] w-full rounded border border-black-300 bg-white shadow-large">
                                     <Tabs defaultValue="layout" className="h-full w-full">
                                         <TabsList className=" flex h-auto w-full gap-2 p-4">
-                                            <TabsTrigger value="layout">Layout</TabsTrigger>
-                                            <TabsTrigger value="template">Template</TabsTrigger>
+                                            <TabsTrigger value="layout">{t('ADD_PAGE.TAB_LAYOUT')}</TabsTrigger>
+                                            <TabsTrigger value="template">{t('ADD_PAGE.TAB_TEMPLATE')}</TabsTrigger>
                                         </TabsList>
                                         <Separator />
                                         <TabsContent value="layout" className="p-4 pr-0!">

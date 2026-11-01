@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
 import { addressProblems } from '@app/utils/address';
@@ -388,40 +389,41 @@ export function answerRuleMessage(field: StandardFormFieldDto, problem: AnswerRu
 export function summarizeAnswerRules(field: StandardFormFieldDto): string[] {
     const rules: IFormFieldValidation = field?.validations ?? {};
     const lines: string[] = [];
-    const range = (min: number | undefined, max: number | undefined, unit: string) => {
-        if (isSet(min) && isSet(max)) return min === max ? `exactly ${min} ${unit}` : `between ${min} and ${max} ${unit}`;
-        if (isSet(min)) return `at least ${min} ${unit}`;
-        if (isSet(max)) return `at most ${max} ${unit}`;
+    const range = (min: number | undefined, max: number | undefined, unitKey: 'characters' | 'options' | 'tags') => {
+        const unit = i18n.t(`builder:RULES_SUMMARY.UNIT_${unitKey}`);
+        if (isSet(min) && isSet(max)) return min === max ? i18n.t('builder:RULES_SUMMARY.EXACTLY', { min, unit }) : i18n.t('builder:RULES_SUMMARY.BETWEEN', { min, max, unit });
+        if (isSet(min)) return i18n.t('builder:RULES_SUMMARY.AT_LEAST', { min, unit });
+        if (isSet(max)) return i18n.t('builder:RULES_SUMMARY.AT_MOST', { max, unit });
         return null;
     };
     switch (answerRuleKind(field)) {
         case 'text': {
             const length = range(rules.minLength, rules.maxLength, 'characters');
-            if (length) lines.push(`Answer is ${length}.`);
+            if (length) lines.push(i18n.t('builder:RULES_SUMMARY.ANSWER_IS', { range: length }));
             if (rules.regex) {
                 const preset = presetForPattern(rules.regex);
-                lines.push(preset ? `Answer must be ${preset.summary}, e.g. ${preset.example}.` : 'Answer must match a custom pattern.');
+                lines.push(preset ? i18n.t(`builder:RULES_SUMMARY.PRESET_${preset.id}`, { example: preset.example }) : i18n.t('builder:RULES_SUMMARY.CUSTOM'));
             }
             break;
         }
         case 'number': {
-            if (isSet(rules.minValue) && isSet(rules.maxValue)) lines.push(`Number from ${rules.minValue} to ${rules.maxValue}.`);
-            else if (isSet(rules.minValue)) lines.push(`Number of at least ${rules.minValue}.`);
-            else if (isSet(rules.maxValue)) lines.push(`Number of at most ${rules.maxValue}.`);
-            if (rules.regex === INTEGER_PATTERN) lines.push('Whole numbers only.');
-            else if (rules.regex) lines.push('Answer must match a custom pattern.');
+            if (isSet(rules.minValue) && isSet(rules.maxValue)) lines.push(i18n.t('builder:RULES_SUMMARY.NUMBER_RANGE', { min: rules.minValue, max: rules.maxValue }));
+            else if (isSet(rules.minValue)) lines.push(i18n.t('builder:RULES_SUMMARY.NUMBER_MIN', { min: rules.minValue }));
+            else if (isSet(rules.maxValue)) lines.push(i18n.t('builder:RULES_SUMMARY.NUMBER_MAX', { max: rules.maxValue }));
+            if (rules.regex === INTEGER_PATTERN) lines.push(i18n.t('builder:RULES_SUMMARY.WHOLE'));
+            else if (rules.regex) lines.push(i18n.t('builder:RULES_SUMMARY.CUSTOM'));
             break;
         }
         case 'choices': {
             const count = range(rules.minChoices, rules.maxChoices, 'options');
-            if (count) lines.push(`Pick ${count}.`);
+            if (count) lines.push(i18n.t('builder:RULES_SUMMARY.PICK', { range: count }));
             break;
         }
         case 'tags': {
             const limits = tagLimits(field);
             const count = range(limits.fewest || undefined, rules.maxChoices === undefined ? undefined : limits.most, 'tags');
-            if (count) lines.push(`Enter ${count}.`);
-            lines.push(`Each tag is at most ${limits.length} characters.`);
+            if (count) lines.push(i18n.t('builder:RULES_SUMMARY.ENTER', { range: count }));
+            lines.push(i18n.t('builder:RULES_SUMMARY.TAG_LENGTH', { n: limits.length }));
             break;
         }
     }
@@ -432,9 +434,9 @@ export function summarizeAnswerRules(field: StandardFormFieldDto): string[] {
 export function answerRuleConflicts(rules: IFormFieldValidation | undefined): string[] {
     const conflicts: string[] = [];
     if (!rules) return conflicts;
-    if (isSet(rules.minLength) && isSet(rules.maxLength) && rules.minLength > rules.maxLength) conflicts.push('The minimum length is more than the maximum.');
-    if (isSet(rules.minValue) && isSet(rules.maxValue) && rules.minValue > rules.maxValue) conflicts.push('The lowest value is more than the highest.');
-    if (isSet(rules.minChoices) && isSet(rules.maxChoices) && rules.minChoices > rules.maxChoices) conflicts.push('The minimum number of options is more than the maximum.');
-    if (rules.regex && rules.regex.length > PATTERN_MAX_LENGTH) conflicts.push(`The pattern is longer than ${PATTERN_MAX_LENGTH} characters. Shorten it.`);
+    if (isSet(rules.minLength) && isSet(rules.maxLength) && rules.minLength > rules.maxLength) conflicts.push(i18n.t('builder:RULES_SUMMARY.CONFLICT_LENGTH'));
+    if (isSet(rules.minValue) && isSet(rules.maxValue) && rules.minValue > rules.maxValue) conflicts.push(i18n.t('builder:RULES_SUMMARY.CONFLICT_VALUE'));
+    if (isSet(rules.minChoices) && isSet(rules.maxChoices) && rules.minChoices > rules.maxChoices) conflicts.push(i18n.t('builder:RULES_SUMMARY.CONFLICT_CHOICES'));
+    if (rules.regex && rules.regex.length > PATTERN_MAX_LENGTH) conflicts.push(i18n.t('builder:RULES_SUMMARY.CONFLICT_PATTERN', { max: PATTERN_MAX_LENGTH }));
     return conflicts;
 }

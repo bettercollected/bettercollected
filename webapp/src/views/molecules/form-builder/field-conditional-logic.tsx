@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
 import { FieldConditionalLogic, LogicalOperator, LogicCondition } from '@app/models/types/form-builder-shared';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { useAtomValue } from 'jotai';
@@ -9,6 +10,7 @@ import { useBuilderFieldsValue, useField, useFieldActions, usePageShell } from '
 import { buildSourceFields, ConditionRow, isConditionSource, newConditionFor, sameSourceFields, selectClass } from './condition-editor-shared';
 
 export default function FieldConditionalLogicEditor() {
+    const { t } = useTranslation('builder');
     const activeFieldComponent = useAtomValue(activeFieldAtom);
     const activeSlideComponent = useAtomValue(activeSlideAtom);
     // The selected question and its page's own settings only.
@@ -54,8 +56,8 @@ export default function FieldConditionalLogicEditor() {
     if (sources.length === 0) {
         return (
             <div className="border-black-300 flex flex-col gap-1 border-t pt-4">
-                <div className="text-black-700 text-xs font-medium">Logic</div>
-                <div className="text-black-600 text-xs">Add a question before this one to show or hide this field based on an earlier answer.</div>
+                <div className="text-black-700 text-xs font-medium">{t('LOGIC.TITLE')}</div>
+                <div className="text-black-600 text-xs">{t('LOGIC.FIELD_NEED_EARLIER')}</div>
             </div>
         );
     }
@@ -64,27 +66,27 @@ export default function FieldConditionalLogicEditor() {
         <div className="border-black-300 flex flex-col gap-3 border-t pt-4">
             <div className="flex w-full items-center justify-between">
                 <div>
-                    <div className="text-black-700 text-xs font-medium">Logic</div>
-                    <div className="text-black-600 text-[11px]">Show or hide this field based on answers</div>
+                    <div className="text-black-700 text-xs font-medium">{t('LOGIC.TITLE')}</div>
+                    <div className="text-black-600 text-[11px]">{t('LOGIC.FIELD_HINT')}</div>
                 </div>
-                <Switch aria-label="Show or hide this field based on answers" checked={enabled} onCheckedChange={toggle} />
+                <Switch aria-label={t('LOGIC.FIELD_HINT')} checked={enabled} onCheckedChange={toggle} />
             </div>
 
             {enabled && logic && (
                 <div className="flex flex-col gap-3">
                     <div className="text-black-600 flex flex-col gap-1.5 text-xs">
                         <select className={selectClass} value={logic.action} onChange={(e) => commit({ ...logic, action: e.target.value as any })}>
-                            <option value="SHOW">Show this field when…</option>
-                            <option value="HIDE">Hide this field when…</option>
+                            <option value="SHOW">{t('LOGIC.SHOW_WHEN')}</option>
+                            <option value="HIDE">{t('LOGIC.HIDE_WHEN')}</option>
                         </select>
                         {logic.conditions.length > 1 && (
                             <div className="flex items-center gap-1">
-                                <span className="shrink-0">Match</span>
+                                <span className="shrink-0">{t('LOGIC.MATCH')}</span>
                                 <select className={selectClass} value={logic.operator} onChange={(e) => commit({ ...logic, operator: e.target.value as LogicalOperator })}>
-                                    <option value={LogicalOperator.AND}>all</option>
-                                    <option value={LogicalOperator.OR}>any</option>
+                                    <option value={LogicalOperator.AND}>{t('LOGIC.ALL')}</option>
+                                    <option value={LogicalOperator.OR}>{t('LOGIC.ANY')}</option>
                                 </select>
-                                <span className="shrink-0">of these:</span>
+                                <span className="shrink-0">{t('LOGIC.OF_THESE')}</span>
                             </div>
                         )}
                     </div>
@@ -100,7 +102,7 @@ export default function FieldConditionalLogicEditor() {
                     ))}
 
                     <button className="text-brand-500 hover:text-brand-600 w-fit text-xs font-medium" onClick={() => commit({ ...logic, conditions: [...logic.conditions, newConditionFor(sources)] })}>
-                        + Add condition
+                        {t('LOGIC.ADD_CONDITION')}
                     </button>
                 </div>
             )}

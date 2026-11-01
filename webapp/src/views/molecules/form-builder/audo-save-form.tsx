@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import i18n from 'i18next';
 import { useStore } from 'jotai';
 
+import { useTranslation } from 'react-i18next';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader } from '@app/shadcn/components/ui/dialog';
@@ -199,6 +200,7 @@ function savedFormOf({ formState, fields, language }: SavedParts) {
 }
 
 export default function AutoSaveForm({ formId }: { formId: string }) {
+    const { t } = useTranslation('builder');
     // Autosave follows the form through store subscriptions, not renders:
     // typing does not re-render it.
     const store = useStore();
@@ -433,19 +435,19 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
 
     return (
         <Dialog open={conflict} onOpenChange={(open) => !open && setConflict(false)}>
-            <DialogContent className="max-w-md" title="This form changed elsewhere">
+            <DialogContent className="max-w-md" title={t('AUTOSAVE.CONFLICT_TITLE')}>
                 <DialogHeader>
                     <div aria-hidden="true" className="text-lg leading-none font-semibold tracking-tight">
-                        This form changed elsewhere
+                        {t('AUTOSAVE.CONFLICT_TITLE')}
                     </div>
-                    <DialogDescription>Someone saved this form in another tab or window after you opened it. Your latest changes here were not saved, so theirs are not overwritten. Reload to continue from the latest version.</DialogDescription>
+                    <DialogDescription>{t('AUTOSAVE.CONFLICT_BODY')}</DialogDescription>
                 </DialogHeader>
                 <div className="flex justify-end gap-2">
                     <Button variant="secondary" onClick={() => setConflict(false)}>
-                        Not now
+                        {t('AUTOSAVE.NOT_NOW')}
                     </Button>
                     <Button onClick={reloadLatest} className="text-white" data-testid="reload-latest">
-                        Reload latest
+                        {t('AUTOSAVE.RELOAD')}
                     </Button>
                 </div>
             </DialogContent>

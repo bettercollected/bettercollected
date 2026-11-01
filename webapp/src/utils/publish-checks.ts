@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { FormTheme, isHexColour } from '@app/constants/theme';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { PageJump } from '@app/models/types/form-builder-shared';
@@ -75,7 +76,7 @@ export function asksForIdentity(field: StandardFormFieldDto): boolean {
 function label(field: StandardFormFieldDto): string {
     let text = questionText(field);
     if (text.length > 60) text = text.slice(0, 57).trimEnd() + '...';
-    return text ? `"${text}"` : 'A question';
+    return text ? `"${text}"` : i18n.t('builder:PUBLISH_PROBLEM.A_QUESTION');
 }
 
 const choiceText = (choice: any) => String(choice?.value || choice?.label || '').trim();
@@ -98,12 +99,12 @@ export function hasPresetAnswer(field: StandardFormFieldDto): boolean {
 
 function unanswerableReason(field: StandardFormFieldDto): string | null {
     const type = field?.type;
-    if (DISPLAY_ONLY_TYPES.includes(type)) return 'it only shows content';
-    if (type === FieldTypes.GROUP && !field?.properties?.repeat) return 'it is only a group heading';
-    if (CHOICE_TYPES.includes(type) && !(field?.properties?.choices ?? []).some((choice) => choiceText(choice))) return 'it has no options to choose from';
+    if (DISPLAY_ONLY_TYPES.includes(type)) return i18n.t('builder:PUBLISH_PROBLEM.REASON_DISPLAY_ONLY');
+    if (type === FieldTypes.GROUP && !field?.properties?.repeat) return i18n.t('builder:PUBLISH_PROBLEM.REASON_GROUP_HEADING');
+    if (CHOICE_TYPES.includes(type) && !(field?.properties?.choices ?? []).some((choice) => choiceText(choice))) return i18n.t('builder:PUBLISH_PROBLEM.REASON_NO_OPTIONS');
     if (type === FieldTypes.MATRIX) {
         const rows = field?.properties?.fields ?? [];
-        if (rows.length && !rows.some((row) => (row?.properties?.choices ?? []).some((choice) => choiceText(choice)))) return 'its grid has no columns to choose from';
+        if (rows.length && !rows.some((row) => (row?.properties?.choices ?? []).some((choice) => choiceText(choice)))) return i18n.t('builder:PUBLISH_PROBLEM.REASON_NO_COLUMNS');
     }
     return null;
 }
@@ -114,9 +115,9 @@ function questions(slides: Array<StandardFormFieldDto> | undefined): Array<{ fie
     (slides ?? []).forEach((slide, pageIndex) => {
         const fields = slide?.type === FieldTypes.SLIDE ? (slide?.properties?.fields ?? []) : [slide];
         fields.forEach((field, fieldIndex) => {
-            out.push({ field, where: `Question ${fieldIndex + 1} on page ${pageIndex + 1}` });
+            out.push({ field, where: i18n.t('builder:PUBLISH_PROBLEM.WHERE_QUESTION', { n: fieldIndex + 1, page: pageIndex + 1 }) });
             if (field?.type === FieldTypes.GROUP) {
-                (field?.properties?.fields ?? []).forEach((child, childIndex) => out.push({ field: child, where: `Question ${childIndex + 1} of the group on page ${pageIndex + 1}` }));
+                (field?.properties?.fields ?? []).forEach((child, childIndex) => out.push({ field: child, where: i18n.t('builder:PUBLISH_PROBLEM.WHERE_GROUP_QUESTION', { n: childIndex + 1, page: pageIndex + 1 }) }));
             }
         });
     });
@@ -133,25 +134,25 @@ export function getPublishProblems(slides: Array<StandardFormFieldDto> | undefin
     questions(slides).forEach(({ field, where }) => {
         if (!field || field.internal) return;
         if (!DISPLAY_ONLY_TYPES.includes(field.type) && !ownTitleText(field)) {
-            problems.push({ code: 'untitled_question', fieldId: field.id, message: `${where} has no title. Write the question respondents should answer.` });
+            problems.push({ code: 'untitled_question', fieldId: field.id, message: i18n.t('builder:PUBLISH_PROBLEM.untitled_question', { where }) });
         }
         const name = label(field);
         if (hasPresetAnswer(field)) {
-            problems.push({ code: 'preset_answer', fieldId: field.id, message: `${name} starts with an answer already chosen. Respondents must choose for themselves: clear the preset answer.` });
+            problems.push({ code: 'preset_answer', fieldId: field.id, message: i18n.t('builder:PUBLISH_PROBLEM.preset_answer', { name }) });
         }
         if (field.validations?.required) {
             const reason = unanswerableReason(field);
-            if (reason) problems.push({ code: 'required_unanswerable', fieldId: field.id, message: `${name} is required, but ${reason}, so nobody could get past it. Turn off Required or complete the question.` });
+            if (reason) problems.push({ code: 'required_unanswerable', fieldId: field.id, message: i18n.t('builder:PUBLISH_PROBLEM.required_unanswerable', { name, reason }) });
         }
         if (asksForIdentity(field) && !field.properties?.whyWeAsk?.trim()) {
-            problems.push({ code: 'missing_why_we_ask', fieldId: field.id, message: `${name} asks for personal details. Add a short "Why we ask this" line to the question so respondents know why you need it.` });
+            problems.push({ code: 'missing_why_we_ask', fieldId: field.id, message: i18n.t('builder:PUBLISH_PROBLEM.missing_why_we_ask', { name }) });
         }
     });
     if (endings !== undefined) {
         const known = withEndingIds(endings);
         (slides ?? []).forEach((slide, index) => {
             ((slide?.properties?.jumps as PageJump[] | undefined) ?? []).forEach((jump) => {
-                if (isJumpEndingMissing(jump, known)) problems.push({ code: 'missing_ending', fieldId: slide.id, message: `A jump on page ${index + 1} goes to an ending that no longer exists. Choose another ending for it.` });
+                if (isJumpEndingMissing(jump, known)) problems.push({ code: 'missing_ending', fieldId: slide.id, message: i18n.t('builder:PUBLISH_PROBLEM.missing_ending', { page: index + 1 }) });
             });
         });
     }
@@ -219,12 +220,12 @@ export function themeContrastProblems(theme: Partial<FormTheme> | null | undefin
     if (gate === 'server' || !hasGuardedColours(theme)) return [];
     const { issues } = themeContrastGuard(theme as FormTheme);
     if (!issues.length) return [];
-    const words = issues.map((issue) => CONTRAST_WORDS[issue.key]);
-    const list = words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}` : words[0];
+    const words = issues.map((issue) => i18n.t(`builder:PUBLISH_CONTRAST.WORD_${issue.key}`, { defaultValue: CONTRAST_WORDS[issue.key] }));
+    const list = words.length > 1 ? `${words.slice(0, -1).join(', ')}${i18n.t('builder:PUBLISH_CONTRAST.AND')}${words[words.length - 1]}` : words[0];
     const advisory = gate === 'advisory';
     const message = advisory
         ? `The theme's colours are hard to read: ${list}. This form was made before the colour check, so it can still be published as it is; colours you change later will need to pass.`
-        : `The theme's colours are hard to read: ${list}. Use the suggested colours on the Design tab, or pick others.`;
+        : i18n.t('builder:PUBLISH_CONTRAST.BLOCK', { pairs: list });
     return [{ code: 'theme_contrast', fieldId: THEME_PROBLEM_ID, message, ...(advisory ? { advisory: true, contrastIssues: issues.map((issue) => issue.key) } : {}) }];
 }
 
@@ -266,7 +267,7 @@ export function requiresWorkspaceTitle(publishChecksVersion?: number | null): bo
 export function workspaceTitleProblems(workspace: { id?: string | null; title?: string | null } | null | undefined, publishChecksVersion?: number | null): PublishProblem[] {
     if (!requiresWorkspaceTitle(publishChecksVersion)) return [];
     if (!workspace?.id || hasWorkspaceTitle(workspace.title)) return [];
-    return [{ code: 'workspace_title_missing', fieldId: '', message: 'Your workspace has no title yet. Respondents see it as who receives their answers, so give it a title in the workspace settings.' }];
+    return [{ code: 'workspace_title_missing', fieldId: '', message: i18n.t('builder:PUBLISH_PROBLEM.workspace_title_missing') }];
 }
 
 /** The problems a refused publish (422 form_not_publishable) carries, if any. */

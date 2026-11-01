@@ -2,6 +2,7 @@
 
 import { useId } from 'react';
 
+import i18n from 'i18next';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -27,14 +28,20 @@ export const sameSourceFields = (a: SourceField[], b: SourceField[]) => a.length
 export function fieldText(field: StandardFormFieldDto | undefined): string {
     if (!field) return '';
     const t = extractTextfromJSON(field)?.trim();
-    return t || 'Untitled question';
+    return t || i18n.t('builder:INSPECTOR.UNTITLED');
 }
 
 /** Short, stable-ish page name used wherever logic refers to a page. */
 export function pageLabel(slide: StandardFormFieldDto | undefined, index: number): string {
     const first = slide?.properties?.fields?.[0];
     const text = first ? fieldText(first) : '';
-    return text ? `Page ${index + 1} · ${text}` : `Page ${index + 1}`;
+    return text ? i18n.t('builder:OUTLINE.PAGE_PREFIX', { n: index + 1 }) + text : i18n.t('builder:OUTLINE.PAGE_N', { n: index + 1 });
+}
+
+/** A page's name without the "Page n ·" prefix: the text of its first question, or "Page n" for a page without questions. */
+export function pageTitleOnly(slide: StandardFormFieldDto | undefined, index: number): string {
+    const first = slide?.properties?.fields?.[0];
+    return first ? fieldText(first) : i18n.t('builder:OUTLINE.PAGE_N', { n: index + 1 });
 }
 
 /**
@@ -49,7 +56,7 @@ export function buildSourceFields(slides: Array<StandardFormFieldDto>, predicate
         slide?.properties?.fields?.forEach((field) => {
             if (field?.internal || !predicate(slide, sIdx, field)) return;
             const text = fieldText(field);
-            sources.push({ field, label: multiPage ? `Page ${sIdx + 1} · ${text}` : text });
+            sources.push({ field, label: multiPage ? i18n.t('builder:OUTLINE.PAGE_PREFIX', { n: sIdx + 1 }) + text : text });
         });
     });
     return sources;

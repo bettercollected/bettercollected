@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { XIcon } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
 import { Button } from '@app/shadcn/components/ui/button';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
@@ -19,6 +20,7 @@ const VALID_NAME = /^[a-zA-Z0-9_-]+$/;
  * available to answer piping in question text via the "@ Answer" menu.
  */
 export default function HiddenFieldsEditor() {
+    const { t } = useTranslation('builder');
     const { formState, setHiddenFields } = useFormState();
     const { formFields, setFormFields } = useFormFieldsAtom();
     const [draft, setDraft] = useState('');
@@ -30,11 +32,11 @@ export default function HiddenFieldsEditor() {
         const name = draft.trim();
         if (!name) return;
         if (!VALID_NAME.test(name)) {
-            setError('Use only letters, numbers, dashes and underscores.');
+            setError(t('HIDDEN.ERR_CHARS'));
             return;
         }
         if (names.includes(name)) {
-            setError('That hidden field already exists.');
+            setError(t('HIDDEN.ERR_EXISTS'));
             return;
         }
         setHiddenFields([...names, name]);
@@ -51,15 +53,15 @@ export default function HiddenFieldsEditor() {
 
     return (
         <div className="px-4 py-6">
-            <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Hidden fields</div>
+            <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">{t('HIDDEN.TITLE')}</div>
             <div className="text-black-600 mt-1 text-xs">
-                Values passed in the share link (<span className="font-mono">?utm_source=…</span>) are saved with each response and can be piped into questions. Form-wide setting.
+                {t('HIDDEN.INTRO_PRE')}<span className="font-mono">?utm_source=…</span>{t('HIDDEN.INTRO_POST')}
             </div>
             <div className="mt-3 flex flex-col gap-2">
                 {names.map((name) => (
                     <div key={name} className="text-black-800 flex items-center justify-between rounded border px-2 py-1 text-xs">
                         <span className="truncate font-mono">{name}</span>
-                        <div role="button" tabIndex={0} aria-label={`Remove hidden field ${name}`} className="cursor-pointer p-0.5 hover:text-red-500" onClick={() => removeName(name)}>
+                        <div role="button" tabIndex={0} aria-label={t('HIDDEN.REMOVE', { name })} className="cursor-pointer p-0.5 hover:text-red-500" onClick={() => removeName(name)}>
                             <XIcon className="h-3.5 w-3.5" />
                         </div>
                     </div>
@@ -68,7 +70,7 @@ export default function HiddenFieldsEditor() {
             <div className="mt-2 flex items-center gap-2">
                 <input
                     type="text"
-                    placeholder="e.g. utm_source"
+                    placeholder={t('HIDDEN.PLACEHOLDER')}
                     value={draft}
                     onChange={(e) => {
                         setDraft(e.target.value);
@@ -80,7 +82,7 @@ export default function HiddenFieldsEditor() {
                     className="border-black-300 focus:border-black-300 min-w-0 flex-1 rounded-lg border p-2 text-xs"
                 />
                 <Button size="sm" variant="v2Button" onClick={addName} disabled={!draft.trim()}>
-                    Add
+                    {t('HIDDEN.ADD')}
                 </Button>
             </div>
             {error && <div className="mt-1 text-xs text-amber-700">{error}</div>}

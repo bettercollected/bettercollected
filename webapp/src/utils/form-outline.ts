@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { JSONContent } from '@tiptap/react';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
@@ -209,7 +210,7 @@ export function pageStatus(slide: StandardFormFieldDto, slideIds: Set<string>, e
 
 /** A page's name in the outline: its own section title, else "Page n". */
 export function outlinePageName(slide: StandardFormFieldDto | undefined, index: number): string {
-    return slide?.properties?.sectionTitle?.trim() || `Page ${index + 1}`;
+    return slide?.properties?.sectionTitle?.trim() || i18n.t('builder:OUTLINE.PAGE_N', { n: index + 1 });
 }
 
 /** Does a question's plain-text title contain `query` (case-insensitive)? */

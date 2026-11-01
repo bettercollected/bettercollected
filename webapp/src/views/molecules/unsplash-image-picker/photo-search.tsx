@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
+import { useTranslation } from 'react-i18next';
 import { Input } from '@app/shadcn/components/ui/input';
 import { SearchIcon } from 'lucide-react';
 import { useDebounceValue } from 'usehooks-ts';
@@ -13,6 +14,7 @@ interface Props {
     className?: string;
 }
 function PhotoSearch({ setQuery, query, onSearch, initialPhotoSearchQuery, placeholder, className }: Props) {
+    const { t } = useTranslation('builder');
     const [inputVal, setInputVal] = useState(query);
     const [debouncedInputValue] = useDebounceValue(inputVal, 500);
 
@@ -37,7 +39,7 @@ function PhotoSearch({ setQuery, query, onSearch, initialPhotoSearchQuery, place
                 <SearchIcon className="text-black-900 h-4 w-4 stroke-[2px] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <Input
                     className="placeholder:text-black-600 border-control focus-visible:ring-0 focus-visible:border-black-400 h-10 w-full rounded pl-9 py-2 pr-3 sm:text-sm bg-white"
-                    placeholder={placeholder ? placeholder : 'Search'}
+                    placeholder={placeholder ? placeholder : t('MEDIA.SEARCH')}
                     type="text"
                     name="search"
                     value={inputVal}

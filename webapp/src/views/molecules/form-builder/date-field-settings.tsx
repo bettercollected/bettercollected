@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { X } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { DateRule, DateRuleComparison } from '@app/models/types/form-builder-shared';
 import { DATE_RULES_MAX, DATE_RULE_COMPARISON_LABELS, DateRuleSource, isIsoDate, todayIso } from '@app/utils/date-rules';
@@ -34,13 +35,14 @@ export default function DateFieldSettings({
     field,
     sources,
     onChange,
-    sourceHint = 'Add a date question before this one to compare with its answer.'
+    sourceHint
 }: {
     field: StandardFormFieldDto;
     sources: DateRuleSource[];
     onChange: (patch: { label?: string; dateRules?: DateRule[] }) => void;
     sourceHint?: string;
 }) {
+    const { t } = useTranslation('builder');
     const rules = field.properties?.dateRules ?? [];
     const isRange = field.type === FieldTypes.DATE_RANGE;
     const [label, setLabel] = useState(field.properties?.label ?? '');
@@ -57,11 +59,11 @@ export default function DateFieldSettings({
         <div className="flex flex-col gap-3" data-testid="date-field-settings">
             {!isRange && (
                 <label className="flex flex-col gap-1 text-xs text-black-700">
-                    Label
+                    {t('DATE_RULES.LABEL')}
                     <input
                         className={selectClass}
                         value={label}
-                        placeholder="e.g. Start date"
+                        placeholder={t('DATE_RULES.LABEL_PLACEHOLDER')}
                         maxLength={120}
                         onChange={(e) => setLabel(e.target.value)}
                         onBlur={() => {
@@ -69,15 +71,16 @@ export default function DateFieldSettings({
                             if (next !== (field.properties?.label ?? '')) onChange({ label: next || undefined });
                         }}
                     />
-                    <span className="text-[11px] text-black-600">Shown above the date picker, apart from the question.</span>
+                    <span className="text-[11px] text-black-600">{t('DATE_RULES.LABEL_HINT')}</span>
                 </label>
             )}
 
             <div className="flex flex-col gap-2">
                 <div>
-                    <div className="text-xs font-medium text-black-700">Date rules</div>
+                    <div className="text-xs font-medium text-black-700">{t('DATE_RULES.TITLE')}</div>
                     <div className="text-[11px] text-black-600">
-                        {isRange ? 'Both days must meet the rules; days outside them can\u2019t be picked.' : 'Dates outside the rules can\u2019t be picked.'} A rule on another question applies once it is answered.
+                        {isRange ? t('DATE_RULES.HINT_RANGE') : t('DATE_RULES.HINT_DATE')}
+                        {t('DATE_RULES.HINT_APPLIES')}
                     </div>
                 </div>
                 {rules.map((rule, index) => {
@@ -85,21 +88,21 @@ export default function DateFieldSettings({
                     return (
                         <div key={index} className="flex flex-col gap-1.5 rounded-md border border-black-300 bg-white p-2" data-testid="date-rule">
                             <div className="flex items-center gap-1.5">
-                                <span className="shrink-0 text-xs text-black-600">Must be</span>
-                                <select aria-label={`Rule ${index + 1} comparison`} className={selectClass} value={rule.comparison} onChange={(e) => patchRule(index, { ...rule, comparison: e.target.value as DateRuleComparison })}>
+                                <span className="shrink-0 text-xs text-black-600">{t('DATE_RULES.MUST_BE')}</span>
+                                <select aria-label={t('DATE_RULES.RULE_COMPARISON', { n: index + 1 })} className={selectClass} value={rule.comparison} onChange={(e) => patchRule(index, { ...rule, comparison: e.target.value as DateRuleComparison })}>
                                     {COMPARISONS.map((comparison) => (
                                         <option key={comparison} value={comparison}>
-                                            {DATE_RULE_COMPARISON_LABELS[comparison]}
+                                            {t(`DATE_RULES.CMP_${comparison}`, { defaultValue: DATE_RULE_COMPARISON_LABELS[comparison] })}
                                         </option>
                                     ))}
                                 </select>
-                                <button type="button" className="shrink-0 rounded p-1 text-black-600 hover:text-black-800" aria-label={`Remove rule ${index + 1}`} onClick={() => saveRules(rules.filter((_, i) => i !== index))}>
+                                <button type="button" className="shrink-0 rounded p-1 text-black-600 hover:text-black-800" aria-label={t('DATE_RULES.REMOVE_RULE', { n: index + 1 })} onClick={() => saveRules(rules.filter((_, i) => i !== index))}>
                                     <X className="h-3.5 w-3.5" />
                                 </button>
                             </div>
-                            <select aria-label={`Rule ${index + 1} compares with`} className={selectClass} value={targetValue(rule)} onChange={(e) => patchRule(index, targetFromValue(e.target.value, rule))}>
+                            <select aria-label={t('DATE_RULES.RULE_COMPARES', { n: index + 1 })} className={selectClass} value={targetValue(rule)} onChange={(e) => patchRule(index, targetFromValue(e.target.value, rule))}>
                                 {sources.length > 0 && (
-                                    <optgroup label="The answer to">
+                                    <optgroup label={t('DATE_RULES.ANSWER_TO')}>
                                         {sources.map((source) => (
                                             <option key={source.id} value={`field:${source.id}`}>
                                                 {source.label}
@@ -107,23 +110,23 @@ export default function DateFieldSettings({
                                         ))}
                                     </optgroup>
                                 )}
-                                {!known && <option value={targetValue(rule)}>A question that can&apos;t be used here</option>}
-                                <option value="today">Today</option>
-                                <option value="date">A fixed date…</option>
+                                {!known && <option value={targetValue(rule)}>{t('DATE_RULES.UNUSABLE')}</option>}
+                                <option value="today">{t('DATE_RULES.TODAY')}</option>
+                                <option value="date">{t('DATE_RULES.FIXED')}</option>
                             </select>
                             {rule.target === 'date' && (
-                                <input type="date" aria-label={`Rule ${index + 1} date`} className={selectClass} value={rule.date ?? ''} onChange={(e) => isIsoDate(e.target.value) && patchRule(index, { ...rule, date: e.target.value })} />
+                                <input type="date" aria-label={t('DATE_RULES.RULE_DATE', { n: index + 1 })} className={selectClass} value={rule.date ?? ''} onChange={(e) => isIsoDate(e.target.value) && patchRule(index, { ...rule, date: e.target.value })} />
                             )}
-                            {!known && <span className="text-[11px] text-amber-700">Pick an earlier date question, today or a fixed date.</span>}
+                            {!known && <span className="text-[11px] text-amber-700">{t('DATE_RULES.PICK_OTHER')}</span>}
                         </div>
                     );
                 })}
                 {rules.length < DATE_RULES_MAX && (
                     <button type="button" className="w-fit text-xs font-medium text-brand-500 hover:text-brand-600" onClick={addRule}>
-                        + Add date rule
+                        {t('DATE_RULES.ADD')}
                     </button>
                 )}
-                {sources.length === 0 && <span className="text-[11px] text-black-600">{sourceHint}</span>}
+                {sources.length === 0 && <span className="text-[11px] text-black-600">{sourceHint ?? t('DATE_RULES.SOURCE_HINT')}</span>}
             </div>
         </div>
     );

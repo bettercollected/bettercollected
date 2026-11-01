@@ -2,6 +2,7 @@ import { useRef } from 'react';
 
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import i18n from 'i18next';
+import { useTranslation } from 'react-i18next';
 import { ArrowDown, ArrowUp, Copy, Ellipsis, Trash2 } from 'lucide-react';
 
 import { pageHoldsGatedQuestion } from '@app/lib/form-ops/new-question-types';
@@ -30,6 +31,7 @@ export const outlineMenuItemClass = 'text-black-800 gap-2 px-3 py-2 text-sm';
  * delete toast offers Undo, with its questions and the logic that used them).
  */
 export default function SlideOptions({ slideIndex, pageName, visible, onMoved }: { slideIndex: number; pageName: string; visible: boolean; onMoved: (outcome: MoveOutcome) => void }) {
+    const { t } = useTranslation('builder');
     const { duplicateSlide } = useBuilderActions();
     const pageCount = usePageIds().length;
     // A copy of a page with a time, day or currency question holds new ones: not while the server does not take them.
@@ -49,7 +51,7 @@ export default function SlideOptions({ slideIndex, pageName, visible, onMoved }:
 
     return (
         <DropdownMenuPrimitive.Root>
-            <DropdownMenuPrimitive.Trigger aria-label={`Options for ${pageName}`} className={outlineMenuTriggerClass(visible)}>
+            <DropdownMenuPrimitive.Trigger aria-label={t('OUTLINE.MENU.OPTIONS_FOR', { label: pageName })} className={outlineMenuTriggerClass(visible)}>
                 <Ellipsis className="h-4 w-4" aria-hidden="true" />
             </DropdownMenuPrimitive.Trigger>
             <DropdownMenuContent
@@ -63,15 +65,15 @@ export default function SlideOptions({ slideIndex, pageName, visible, onMoved }:
             >
                 <DropdownMenuItem className={outlineMenuItemClass} disabled={slideIndex === 0} onSelect={() => move(slideIndex - 1)}>
                     <ArrowUp className="h-4 w-4" aria-hidden="true" />
-                    Move up
+                    {t('OUTLINE.MENU.MOVE_UP')}
                 </DropdownMenuItem>
                 <DropdownMenuItem className={outlineMenuItemClass} disabled={slideIndex >= pageCount - 1} onSelect={() => move(slideIndex + 1)}>
                     <ArrowDown className="h-4 w-4" aria-hidden="true" />
-                    Move down
+                    {t('OUTLINE.MENU.MOVE_DOWN')}
                 </DropdownMenuItem>
                 <DropdownMenuItem className={outlineMenuItemClass} disabled={cannotCopy} title={holdsContainers ? i18n.t('builder:LAYOUT.CANNOT_COPY') : cannotCopy ? i18n.t('builder:NEW_TYPES.CANNOT_COPY') : undefined} onSelect={() => duplicateSlide(slideIndex)}>
                     <Copy className="h-4 w-4" aria-hidden="true" />
-                    Duplicate
+                    {t('OUTLINE.MENU.DUPLICATE')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {/* Deletes at once; the toast (and the toolbar's Undo) brings
@@ -79,7 +81,7 @@ export default function SlideOptions({ slideIndex, pageName, visible, onMoved }:
                     pointed at them. */}
                 <DropdownMenuItem className={cn(outlineMenuItemClass, 'text-[#C43D3D] focus:bg-[#FBEFEF] focus:text-[#C43D3D]')} onSelect={() => deletePage(slideIndex)}>
                     <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    Delete
+                    {t('OUTLINE.MENU.DELETE')}
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenuPrimitive.Root>

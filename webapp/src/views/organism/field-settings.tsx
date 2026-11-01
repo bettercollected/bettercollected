@@ -6,6 +6,7 @@ import { useAtomValue } from 'jotai';
 import { useTranslation } from 'react-i18next';
 
 import { formFieldsList } from '@app/constants/form-fields';
+import { fieldTypeChip } from '@app/lib/field-type-name';
 import globalConstants from '@app/constants/global';
 import { jsonEqual } from '@app/lib/form-ops/model';
 import { typeIsOff } from '@app/lib/form-ops/new-question-types';
@@ -40,11 +41,11 @@ const NON_IMAGE_FIELD_TYPES: Array<string | null | undefined> = [FieldTypes.TEXT
 // 12-column grid: Full = 12, 1/2 = 6, … adjacent fields whose spans fit
 // share a row on desktop; mobile always stacks.
 const WIDTH_OPTIONS = [
-    { label: 'Full', name: 'Full width', span: 12 },
-    { label: '2/3', name: 'Two thirds', span: 8 },
-    { label: '1/2', name: 'Half', span: 6 },
-    { label: '1/3', name: 'One third', span: 4 },
-    { label: '1/4', name: 'One quarter', span: 3 }
+    { label: 'Full', key: 'FULL', span: 12 },
+    { label: '2/3', key: 'TWO_THIRDS', span: 8 },
+    { label: '1/2', key: 'HALF', span: 6 },
+    { label: '1/3', key: 'THIRD', span: 4 },
+    { label: '1/4', key: 'QUARTER', span: 3 }
 ] as const;
 
 // Settings components that draw their own top rule: inside a section the
@@ -84,7 +85,7 @@ export default function FieldSettings() {
     // delete): every setting below writes to activeField, so show none (the
     // breadcrumb above still leads back).
     if (!activeField || !activeSlide) {
-        return <p className="px-4 py-6 text-xs text-black-600">This question is no longer on the page.</p>;
+        return <p className="px-4 py-6 text-xs text-black-600">{t('INSPECTOR.GONE')}</p>;
     }
 
     const field = activeField;
@@ -93,7 +94,7 @@ export default function FieldSettings() {
     const handleStepsChange = (e: any) => {
         setErrorMsg('');
         if (e.target.value <= 0 || e.target.value >= 50) {
-            setErrorMsg('Value cant be less than 1 or greater than 50.');
+            setErrorMsg(t('INSPECTOR.STEPS_RANGE'));
         } else {
             updateRatingSteps(slide.index, field.index, e.target.value, field.type);
         }
@@ -101,7 +102,7 @@ export default function FieldSettings() {
     };
 
     const lockedType = typeIsOff(field.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled });
-    const typeName = formFieldsList.find((f) => f.type === field.type)?.name ?? field.type?.replaceAll('_', ' ').toLowerCase();
+    const typeName = fieldTypeChip(t, field.type, formFieldsList.find((f) => f.type === field.type)?.name ?? field.type?.replaceAll('_', ' ').toLowerCase());
     const title = extractTextfromJSON(field);
     const isChoice = field.type === FieldTypes.MULTIPLE_CHOICE || field.type === FieldTypes.MATRIX;
     const isRating = field.type === FieldTypes.LINEAR_RATING || field.type === FieldTypes.RATING;
@@ -118,18 +119,18 @@ export default function FieldSettings() {
         <div className="flex flex-col">
             <div className="flex flex-col gap-1.5 px-4 pt-4">
                 <div className="truncate text-sm font-semibold text-black-800" title={title}>
-                    {title || 'Untitled question'}
+                    {title || t('INSPECTOR.UNTITLED')}
                 </div>
                 {field.type && <span className="w-fit rounded bg-black-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-black-600 uppercase">{typeName}</span>}
             </div>
 
-            <InspectorSection title="Basics">
-                <SettingSwitch label="Description" checked={field.description !== undefined && field.description !== null} onCheckedChange={(checked) => updateDescription(field.id, checked ? '' : undefined)} />
-                {showRequired && <SettingSwitch label={field.type === FieldTypes.MATRIX ? 'Require a response in each row' : 'Required'} checked={!!field.validations?.required} onCheckedChange={(checked) => updateFieldRequired(field.id, checked)} />}
-                {field.type === FieldTypes.MULTIPLE_CHOICE && <SettingSwitch label="“Other” option" checked={!!field.properties?.allowOtherChoice} onCheckedChange={(checked) => updateFieldProperty(field.id, 'allowOtherChoice', checked)} />}
+            <InspectorSection title={t('INSPECTOR.BASICS')}>
+                <SettingSwitch label={t('INSPECTOR.DESCRIPTION')} checked={field.description !== undefined && field.description !== null} onCheckedChange={(checked) => updateDescription(field.id, checked ? '' : undefined)} />
+                {showRequired && <SettingSwitch label={field.type === FieldTypes.MATRIX ? t('INSPECTOR.REQUIRED_EACH_ROW') : t('INSPECTOR.REQUIRED')} checked={!!field.validations?.required} onCheckedChange={(checked) => updateFieldRequired(field.id, checked)} />}
+                {field.type === FieldTypes.MULTIPLE_CHOICE && <SettingSwitch label={t('INSPECTOR.OTHER_OPTION')} checked={!!field.properties?.allowOtherChoice} onCheckedChange={(checked) => updateFieldProperty(field.id, 'allowOtherChoice', checked)} />}
                 {isChoice && (
                     <SettingSwitch
-                        label="Multiple selection"
+                        label={t('INSPECTOR.MULTIPLE_SELECTION')}
                         checked={!!field.properties?.allowMultipleSelection}
                         onCheckedChange={(checked) => {
                             if (field.type === FieldTypes.MATRIX) updateAllowMultipleSelectionMatrixField(checked);
@@ -141,7 +142,7 @@ export default function FieldSettings() {
                     <div className="flex flex-col gap-2">
                         <div className="flex flex-row items-center justify-between text-xs">
                             <label htmlFor={stepsId} className="text-black-700">
-                                Steps
+                                {t('INSPECTOR.STEPS')}
                             </label>
                             <input
                                 id={stepsId}
@@ -175,13 +176,13 @@ export default function FieldSettings() {
             )}
 
             {field.type === FieldTypes.CALCULATED && (
-                <InspectorSection title="Calculation">
+                <InspectorSection title={t('INSPECTOR.CALCULATION')}>
                     <CalculationSettings field={field} onChange={(property, value) => updateFieldProperty(field.id, property, value)} />
                 </InspectorSection>
             )}
 
             {(ruleKind || isDateRuleType(field.type)) && (
-                <InspectorSection title={field.type === FieldTypes.ADDRESS ? t('ADDRESS_SETTINGS.SECTION') : 'Answer rules'}>
+                <InspectorSection title={field.type === FieldTypes.ADDRESS ? t('ADDRESS_SETTINGS.SECTION') : t('INSPECTOR.ANSWER_RULES')}>
                     {lockedType && (
                         <p className="text-black-600 text-xs" role="note">
                             {t('NEW_TYPES.LOCKED')}
@@ -203,17 +204,17 @@ export default function FieldSettings() {
             )}
 
             {(showWhyWeAsk || canBeInternal(field)) && (
-                <InspectorSection title="Privacy">
+                <InspectorSection title={t('INSPECTOR.PRIVACY')}>
                     {showWhyWeAsk && <WhyWeAskSetting value={field.properties?.whyWeAsk ?? ''} required={asksForIdentity(field)} onChange={(value) => updateFieldProperty(field.id, 'whyWeAsk', value)} />}
                     {canBeInternal(field) && (
                         <SettingSwitch
-                            label="Internal (staff only)"
+                            label={t('INSPECTOR.INTERNAL')}
                             checked={!!field.internal}
                             onCheckedChange={(checked) => updateFieldInternal(field.index, slide.index, checked)}
                             hint={
                                 field.internal
-                                    ? 'Respondents never see this field. Your team fills it in on each response. Required applies to your team, not respondents.'
-                                    : 'For office use only: hide this field from respondents and fill it in on each response.'
+                                    ? t('INSPECTOR.INTERNAL_ON')
+                                    : t('INSPECTOR.INTERNAL_OFF')
                             }
                         />
                     )}
@@ -221,7 +222,7 @@ export default function FieldSettings() {
             )}
 
             {!field.internal && (
-                <InspectorSection title="Logic">
+                <InspectorSection title={t('INSPECTOR.LOGIC')}>
                     <div className={NO_OWN_RULE}>
                         <FieldConditionalLogicEditor />
                     </div>
@@ -234,10 +235,10 @@ export default function FieldSettings() {
 
             <FieldLayoutSection field={field} pageId={slide.id} />
 
-            <InspectorSection title="Appearance">
+            <InspectorSection title={t('INSPECTOR.APPEARANCE')}>
                 <div className="flex w-full flex-col gap-1.5">
                     <div id={widthId} className="text-xs text-black-700">
-                        Width
+                        {t('INSPECTOR.WIDTH')}
                     </div>
                     <div className="flex overflow-hidden rounded-md border border-control" role="group" aria-labelledby={widthId}>
                         {WIDTH_OPTIONS.map((option) => {
@@ -247,7 +248,7 @@ export default function FieldSettings() {
                                     key={option.span}
                                     type="button"
                                     aria-pressed={selected}
-                                    aria-label={option.name}
+                                    aria-label={t(`INSPECTOR.WIDTH_${option.key}`)}
                                     onClick={() => updateFieldColSpan(field.id, option.span)}
                                     className={`flex-1 px-1 py-1.5 text-[11px] font-medium transition-colors ${selected ? 'bg-brand-100 text-brand-600' : 'bg-white text-black-600 hover:bg-black-100'}`}
                                 >
@@ -256,9 +257,9 @@ export default function FieldSettings() {
                             );
                         })}
                     </div>
-                    <p className="text-[11px] leading-relaxed text-black-600">Fields that fit side by side share a row. Phones always stack.</p>
+                    <p className="text-[11px] leading-relaxed text-black-600">{t('INSPECTOR.WIDTH_HINT')}</p>
                 </div>
-                {!NON_IMAGE_FIELD_TYPES.includes(field.type) && <SettingSwitch label="Field image" checked={!!field.imageUrl} onCheckedChange={(checked) => updateFieldImage(checked ? field.imageUrl || globalConstants.defaultFieldImage : '')} />}
+                {!NON_IMAGE_FIELD_TYPES.includes(field.type) && <SettingSwitch label={t('INSPECTOR.FIELD_IMAGE')} checked={!!field.imageUrl} onCheckedChange={(checked) => updateFieldImage(checked ? field.imageUrl || globalConstants.defaultFieldImage : '')} />}
             </InspectorSection>
         </div>
     );
@@ -287,25 +288,26 @@ function DateRuleSettings({ field, onChange }: { field: StandardFormFieldDto; on
  * the form can be published (utils/publish-checks.ts).
  */
 export function WhyWeAskSetting({ value, required, onChange }: { value: string; required: boolean; onChange: (value: string) => void }) {
+    const { t } = useTranslation('builder');
     const missing = required && !value.trim();
     return (
         <div className="flex w-full flex-col gap-1">
             <label htmlFor="why-we-ask" className="text-xs font-medium text-black-700">
-                Why we ask this
+                {t('INSPECTOR.WHY_WE_ASK')}
             </label>
             <textarea
                 id="why-we-ask"
                 value={value}
                 maxLength={WHY_WE_ASK_MAX_LENGTH}
                 rows={2}
-                placeholder="e.g. So we can send you a copy of your answers."
+                placeholder={t('INSPECTOR.WHY_PLACEHOLDER')}
                 aria-invalid={missing}
                 aria-describedby="why-we-ask-help"
                 onChange={(e) => onChange(e.target.value)}
                 className={`w-full rounded-lg border p-2 text-xs ${missing ? 'border-amber-500' : 'border-control focus:border-brand-500'}`}
             />
             <span id="why-we-ask-help" className={`text-[11px] leading-relaxed ${missing ? 'text-amber-700' : 'text-black-600'}`}>
-                {missing ? 'This question asks for personal details. Say briefly why you need them; the form can’t be published without it.' : 'Shown to respondents under the question.'}
+                {missing ? t('INSPECTOR.WHY_MISSING') : t('INSPECTOR.WHY_HELP')}
             </span>
         </div>
     );

@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 
+import { useTranslation } from 'react-i18next';
 import DeleteIcon from '@Components/icons/delete';
 import SlideLayoutBackgroundImage from '@Components/icons/slide-layout-background-image';
 import SlideLayoutLeftImage from '@Components/icons/slide-layout-left-image';
@@ -11,7 +12,9 @@ import SlideLayoutRightImage from '@Components/icons/slide-layout-right-image';
 import { SwitchIcon } from '@Components/icons/switch-icon';
 import { PlusIcon } from 'lucide-react';
 
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { formFieldsList } from '@app/constants/form-fields';
+import { fieldTypeChip } from '@app/lib/field-type-name';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { useEndingActions } from '@app/lib/hooks/use-ending-actions';
 import useGetPageAttributes from '@app/lib/hooks/use-get-page-attributes';
@@ -40,6 +43,8 @@ const inputClass = 'border-control focus:border-brand-500 rounded border p-2 tex
  * their own description and button settings instead.
  */
 export default function PagePropertiesTab({}: {}) {
+    const { t } = useTranslation('builder');
+    const { t: tr } = useRespondentLanguage();
     const { getFormFields, updateSlideLayout, updateSlideImage, setFormFields, updateSlideSectionTitle } = useBuilderActions();
     const { activeSlideComponent } = useActiveSlideComponent();
     // The selected page only (its questions are listed below).
@@ -116,13 +121,13 @@ export default function PagePropertiesTab({}: {}) {
     const layoutOptions: Array<{ style: FormSlideLayout; Icon: any; label: string }> =
         layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND || layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
             ? [
-                  { style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN, Icon: SlideLayoutNoImageLeftAlign, label: 'Left aligned' },
-                  { style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND, Icon: SlideLayoutNoImage, label: 'Centered' }
+                  { style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN, Icon: SlideLayoutNoImageLeftAlign, label: t('PAGE_PROPS.LAYOUT_LEFT') },
+                  { style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND, Icon: SlideLayoutNoImage, label: t('PAGE_PROPS.LAYOUT_CENTER') }
               ]
             : [
-                  { style: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT, Icon: SlideLayoutRightImage, label: 'Image right' },
-                  { style: FormSlideLayout.TWO_COLUMN_IMAGE_LEFT, Icon: SlideLayoutLeftImage, label: 'Image left' },
-                  { style: FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND, Icon: SlideLayoutBackgroundImage, label: 'Image fill' }
+                  { style: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT, Icon: SlideLayoutRightImage, label: t('PAGE_PROPS.LAYOUT_IMAGE_RIGHT') },
+                  { style: FormSlideLayout.TWO_COLUMN_IMAGE_LEFT, Icon: SlideLayoutLeftImage, label: t('PAGE_PROPS.LAYOUT_IMAGE_LEFT') },
+                  { style: FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND, Icon: SlideLayoutBackgroundImage, label: t('PAGE_PROPS.LAYOUT_IMAGE_FILL') }
               ];
 
     const handleSlideLayoutChange = (newLayout: FormSlideLayout) => {
@@ -157,12 +162,12 @@ export default function PagePropertiesTab({}: {}) {
     return (
         <>
             {questionPage && (
-                <InspectorSection title="Section title">
+                <InspectorSection title={t('PAGE_PROPS.SECTION_TITLE')}>
                     <div className="-mt-2 flex flex-col gap-2">
                         <input
                             id="page-section-title"
                             type="text"
-                            aria-label="Section title"
+                            aria-label={t('PAGE_PROPS.SECTION_TITLE')}
                             maxLength={SECTION_TITLE_MAX}
                             value={questionPage.properties?.sectionTitle ?? ''}
                             placeholder={sectionFallback}
@@ -171,14 +176,14 @@ export default function PagePropertiesTab({}: {}) {
                             className={inputClass}
                         />
                         <p id="page-section-title-hint" className="text-xs leading-[1.5] text-black-600">
-                            Shown on the section bar and in the contents list when the form uses the Leaflet style; you can also edit it on the bar itself. Leave empty to use the page&apos;s opening heading, else its first question.
+                            {t('PAGE_PROPS.SECTION_HINT')}
                         </p>
                     </div>
                 </InspectorSection>
             )}
 
-            <InspectorSection title="Layout">
-                <div className="grid grid-cols-2 gap-2" role="group" aria-label="Page layout">
+            <InspectorSection title={t('PAGE_PROPS.LAYOUT')}>
+                <div className="grid grid-cols-2 gap-2" role="group" aria-label={t('PAGE_PROPS.PAGE_LAYOUT')}>
                     {layoutOptions.map((item) => {
                         const selected = layout === item.style;
                         return (
@@ -205,21 +210,21 @@ export default function PagePropertiesTab({}: {}) {
                     })}
                 </div>
                 <div className={cn('flex justify-between gap-2', slide?.imageUrl ? 'flex-col items-start' : 'flex-row items-center')}>
-                    <span className="text-xs text-black-700">Layout image</span>
+                    <span className="text-xs text-black-700">{t('PAGE_PROPS.LAYOUT_IMAGE')}</span>
                     {slide?.imageUrl ? (
                         <div className="group relative w-full">
                             <div className="absolute top-2 left-2 z-10 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                                <button type="button" aria-label="Remove layout image" className="rounded-md bg-white p-2 shadow-large" onClick={handleRemoveImage}>
+                                <button type="button" aria-label={t('PAGE_PROPS.REMOVE_IMAGE')} className="rounded-md bg-white p-2 shadow-large" onClick={handleRemoveImage}>
                                     <DeleteIcon width={16} height={16} aria-hidden="true" />
                                 </button>
-                                <button type="button" aria-label="Change layout image" className="rounded-md bg-white p-2 shadow-large" onClick={pickImage}>
+                                <button type="button" aria-label={t('PAGE_PROPS.CHANGE_IMAGE')} className="rounded-md bg-white p-2 shadow-large" onClick={pickImage}>
                                     <SwitchIcon width={16} height={16} aria-hidden="true" />
                                 </button>
                             </div>
                             <Image style={{ objectFit: 'contain', width: 'fit-content', maxHeight: '168px' }} sizes="100vw" {...firstPartyImageProps(slide.imageUrl)} alt="" height={0} width={0} priority />
                         </div>
                     ) : (
-                        <button type="button" aria-label="Add layout image" className="rounded border border-black-300 p-1 hover:bg-black-200" onClick={pickImage}>
+                        <button type="button" aria-label={t('PAGE_PROPS.ADD_IMAGE')} className="rounded border border-black-300 p-1 hover:bg-black-200" onClick={pickImage}>
                             <PlusIcon className="h-4 w-4" aria-hidden="true" />
                         </button>
                     )}
@@ -227,9 +232,9 @@ export default function PagePropertiesTab({}: {}) {
             </InspectorSection>
 
             {(isWelcome || isEnding) && (
-                <InspectorSection title="Settings">
+                <InspectorSection title={t('PAGE_PROPS.SETTINGS')}>
                     <SettingSwitch
-                        label="Description"
+                        label={t('PAGE_PROPS.DESCRIPTION')}
                         checked={!!(isWelcome ? IsValidString(formState?.welcomePage?.description) : ending && IsValidString(ending.message))}
                         onCheckedChange={(checked) => (isWelcome ? setFormDescription(checked ? '' : undefined) : setThankYouPageDescription(endingIndex, checked ? '' : undefined))}
                     />
@@ -237,38 +242,38 @@ export default function PagePropertiesTab({}: {}) {
                         <>
                             <div className="flex flex-col gap-1">
                                 <label htmlFor="ending-name" className="text-xs text-black-700">
-                                    Name
+                                    {t('PAGE_PROPS.NAME')}
                                 </label>
                                 <input
                                     id="ending-name"
                                     type="text"
                                     maxLength={ENDING_NAME_MAX_LENGTH}
-                                    placeholder="e.g. Eligible"
+                                    placeholder={t('PAGE_PROPS.NAME_PLACEHOLDER')}
                                     aria-describedby="ending-name-hint"
                                     value={ending?.name ?? ''}
                                     onChange={(e) => renameEnding(endingIndex, e.target.value)}
                                     className={inputClass}
                                 />
                                 <span id="ending-name-hint" className="text-[11px] text-black-600">
-                                    For you and page jumps; respondents never see it.
+                                    {t('PAGE_PROPS.NAME_HINT')}
                                 </span>
                             </div>
                             {endingActions.endings.length > 1 && (
                                 <SettingSwitch
-                                    label="Default ending"
+                                    label={t('PAGE_PROPS.DEFAULT_ENDING')}
                                     checked={defaultEndingIndex(endingActions.endings) === endingIndex}
-                                    hint="Shown after a plain submit, and when no jump chooses another ending. To change it, turn it on for another ending."
+                                    hint={t('PAGE_PROPS.DEFAULT_ENDING_HINT')}
                                     disabled={defaultEndingIndex(endingActions.endings) === endingIndex}
                                     onCheckedChange={(checked) => checked && makeDefault(endingIndex)}
                                 />
                             )}
-                            <SettingSwitch label="Button" checked={!!(ending && IsValidString(ending.buttonText))} onCheckedChange={(checked) => setThankYouPageButtonText(endingIndex, checked ? 'Try bettercollected' : undefined)} />
+                            <SettingSwitch label={t('PAGE_PROPS.BUTTON')} checked={!!(ending && IsValidString(ending.buttonText))} onCheckedChange={(checked) => setThankYouPageButtonText(endingIndex, checked ? 'Try bettercollected' : undefined)} />
                             {ending && IsValidString(ending.buttonText) && (
                                 <>
-                                    <input type="text" aria-label="Button text" placeholder="Try bettercollected" value={ending.buttonText ?? ''} onChange={(e) => setThankYouPageButtonText(endingIndex, e.target.value)} className={inputClass} />
-                                    <SettingSwitch label="Button link" checked={IsValidString(ending.buttonLink)} onCheckedChange={(checked) => setThankYouPageButtonLink(endingIndex, checked ? 'https://bettercollected.com' : undefined)} />
+                                    <input type="text" aria-label={t('PAGE_PROPS.BUTTON_TEXT')} placeholder="Try bettercollected" value={ending.buttonText ?? ''} onChange={(e) => setThankYouPageButtonText(endingIndex, e.target.value)} className={inputClass} />
+                                    <SettingSwitch label={t('PAGE_PROPS.BUTTON_LINK')} checked={IsValidString(ending.buttonLink)} onCheckedChange={(checked) => setThankYouPageButtonLink(endingIndex, checked ? 'https://bettercollected.com' : undefined)} />
                                     {IsValidString(ending.buttonLink) && (
-                                        <input type="text" aria-label="Button link" placeholder="Enter your link here" value={ending.buttonLink ?? ''} onChange={(e) => setThankYouPageButtonLink(endingIndex, e.target.value)} className={inputClass} />
+                                        <input type="text" aria-label={t('PAGE_PROPS.BUTTON_LINK')} placeholder={t('PAGE_PROPS.BUTTON_LINK_PLACEHOLDER')} value={ending.buttonLink ?? ''} onChange={(e) => setThankYouPageButtonLink(endingIndex, e.target.value)} className={inputClass} />
                                     )}
                                 </>
                             )}
@@ -276,27 +281,27 @@ export default function PagePropertiesTab({}: {}) {
                     ) : (
                         <div className="flex flex-col gap-1">
                             <label htmlFor="welcome-button-text" className="text-xs text-black-700">
-                                Button
+                                {t('PAGE_PROPS.BUTTON')}
                             </label>
-                            <input id="welcome-button-text" type="text" placeholder="Start" value={formState.welcomePage?.buttonText || ''} onChange={(e) => setWelcomePageButtonText(e.target.value)} className={inputClass} />
+                            <input id="welcome-button-text" type="text" placeholder={tr('WELCOME.START')} value={formState.welcomePage?.buttonText || ''} onChange={(e) => setWelcomePageButtonText(e.target.value)} className={inputClass} />
                         </div>
                     )}
                 </InspectorSection>
             )}
 
             {questionPage && pageQuestions.length > 0 && (
-                <InspectorSection title="Questions">
+                <InspectorSection title={t('PAGE_PROPS.QUESTIONS')}>
                     {/* A way to the questions, not a second place to edit them:
                         width, Required and the rest live in the question panel. */}
-                    <ol className="-mx-2 -mt-2 flex flex-col" aria-label="Questions on this page">
+                    <ol className="-mx-2 -mt-2 flex flex-col" aria-label={t('PAGE_PROPS.QUESTIONS_ON_PAGE')}>
                         {pageQuestions.map((field) => {
                             const title = extractTextfromJSON(field).trim();
-                            const typeName = formFieldsList.find((f) => f.type === field.type)?.name ?? '';
+                            const typeName = fieldTypeChip(t, field.type, formFieldsList.find((f) => f.type === field.type)?.name ?? '');
                             return (
                                 <li key={field.id}>
                                     <button type="button" onClick={() => selectQuestion(field)} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-black-200">
-                                        <span className="min-w-0 flex-1 truncate text-black-800">{title || typeName || 'Untitled'}</span>
-                                        {isAnswerableField(field) && field.validations?.required && <span className="shrink-0 text-[10px] text-black-600">Required</span>}
+                                        <span className="min-w-0 flex-1 truncate text-black-800">{title || typeName || t('PAGE_PROPS.UNTITLED')}</span>
+                                        {isAnswerableField(field) && field.validations?.required && <span className="shrink-0 text-[10px] text-black-600">{t('PAGE_PROPS.REQUIRED')}</span>}
                                     </button>
                                 </li>
                             );

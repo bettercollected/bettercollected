@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { Check, Copy, ExternalLink } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectForm } from '@app/store/forms/slice';
@@ -18,6 +19,7 @@ import getFormShareURL from '@app/utils/form-utils';
  * "go to dashboard" as the only exit.
  */
 export default function FormPublishedModal(props: any) {
+    const { t } = useTranslation('builder');
     const { toast } = useToast();
     const workspace = useAppSelector(selectWorkspace);
     const standardForm = useAppSelector(selectForm);
@@ -30,7 +32,7 @@ export default function FormPublishedModal(props: any) {
     const handleCopy = () => {
         navigator.clipboard.writeText(shareUrl);
         setCopied(true);
-        toast({ description: 'Link copied to clipboard' });
+        toast({ description: t('PUBLISHED_MODAL.COPIED_TOAST') });
         setTimeout(() => setCopied(false), 2000);
     };
 
@@ -44,10 +46,10 @@ export default function FormPublishedModal(props: any) {
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E7F4EE]">
                         <Check className="h-4 w-4 text-success" strokeWidth={3} />
                     </span>
-                    <h2 className="text-black-900 text-lg font-semibold leading-snug">Your form is live</h2>
+                    <h2 className="text-black-900 text-lg font-semibold leading-snug">{t('PUBLISHED_MODAL.TITLE')}</h2>
                 </div>
                 {/* Honest about what publishing means — same line the Share modal uses. */}
-                <p className="text-black-600 text-sm leading-relaxed">Anyone with this link can open and respond to your form.</p>
+                <p className="text-black-600 text-sm leading-relaxed">{t('PUBLISHED_MODAL.BODY')}</p>
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -59,7 +61,7 @@ export default function FormPublishedModal(props: any) {
                         href={shareUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label="Open form in a new tab"
+                        aria-label={t('PUBLISHED_MODAL.OPEN_NEW_TAB')}
                         data-umami-event={'PublishModal Open Form Link'}
                        
                         className="text-black-600 hover:text-brand-500 shrink-0 transition-colors"
@@ -76,18 +78,18 @@ export default function FormPublishedModal(props: any) {
                     data-umami-event={'PublishModal Copy Button'}
                    
                 >
-                    {copied ? 'Copied' : 'Copy link'}
+                    {copied ? t('PUBLISHED_MODAL.COPIED') : t('PUBLISHED_MODAL.COPY')}
                 </Button>
             </div>
 
             <div className="border-t-black-300 flex flex-col gap-2.5 border-t pt-5">
-                <span className="text-black-600 text-xs font-medium uppercase tracking-wide">Next steps</span>
+                <span className="text-black-600 text-xs font-medium uppercase tracking-wide">{t('PUBLISHED_MODAL.NEXT_STEPS')}</span>
                 <div className="text-black-700 flex flex-col gap-2 text-sm">
                     <a href={settingsUrl} data-umami-event={'PublishModal Goto Settings Link'} className="hover:text-brand-600 text-brand-500 w-fit font-medium underline-offset-2 hover:underline">
-                        Form settings — custom domain, privacy, integrations
+                        {t('PUBLISHED_MODAL.SETTINGS')}
                     </a>
                     <a href={dashboardUrl} data-umami-event={'PublishModal Goto Dashboard Link'} className="hover:text-brand-600 text-brand-500 w-fit font-medium underline-offset-2 hover:underline">
-                        Back to dashboard
+                        {t('PUBLISHED_MODAL.DASHBOARD')}
                     </a>
                 </div>
             </div>

@@ -4,6 +4,8 @@ import React, { use, useEffect, useRef, useState } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
+import { useTranslation } from 'react-i18next';
+
 import { NEEDS_REVIEW_BANNER_HEIGHT_PX, NeedsReviewBanner, useShowNeedsReviewBanner } from '@app/components/open-formulieren-import/needs-review';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { useInspectorEscape } from '@app/lib/hooks/use-inspector-escape';
@@ -38,6 +40,7 @@ import HelpMenuComponent from '@Components/sidebar/help-menu-component';
 import HelpMenuItem from '@Components/sidebar/help-menu-item';
 
 export default function FormEditPage(props: { params: Promise<{ form_id: string }> }) {
+    const { t } = useTranslation('builder');
     const params = use(props.params);
     // The page ids only: typing in a question does not re-render the page.
     const pageIds = usePageIds();
@@ -226,7 +229,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                                     ) : (
                                         <>
                                             {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && pageIds[activeSlideComponent.index] && <SlideBuilder pageId={pageIds[activeSlideComponent.index]} />}
-                                            {!activeSlideComponent?.id && <div>Add a slide to start</div>}
+                                            {!activeSlideComponent?.id && <div>{t('CANVAS.ADD_SLIDE_TO_START')}</div>}
                                             {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
 
                                             {activeSlideComponent?.id === 'thank-you-page' && <ThankYouSlide />}

@@ -43,7 +43,7 @@ export const PreviewFullModalView = () => {
     return (
         <div className="flex h-screen w-full flex-col bg-[#F5F7FB]">
             <header className="border-black-300 z-10 flex h-14 w-full shrink-0 items-center justify-between gap-2 border-b bg-white px-4">
-                <BackButton handleClick={handleClickClose} />
+                <BackButton label={t('BUTTON.BACK')} handleClick={handleClickClose} />
                 <div className="flex min-w-0 items-center gap-2 text-sm">
                     <span className="text-black-800 max-w-[200px] truncate font-medium sm:max-w-[320px]">{standardForm?.title || t('STAFF.COMMON.UNTITLED')}</span>
                     <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand-500">{t('STAFF.PREVIEW.TITLE')}</span>

@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 
+import { useTranslation } from 'react-i18next';
+
 /**
  * Error boundary for the form editor route.
  *
@@ -11,6 +13,7 @@ import { useEffect } from 'react';
  * first-class instead of a blank screen or a raw overlay.
  */
 export default function EditPageError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+    const { t } = useTranslation('builder');
     const isStaleChunk = /ChunkLoadError|Loading chunk|failed to fetch dynamically imported module/i.test(error?.message || '') || /ChunkLoadError/i.test(error?.name || '');
 
     useEffect(() => {
@@ -20,21 +23,21 @@ export default function EditPageError({ error, reset }: { error: Error & { diges
 
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center gap-3 bg-white px-6 text-center">
-            <div className="text-black-900 text-lg font-semibold">{isStaleChunk ? 'The editor was updated' : 'The editor hit a problem'}</div>
+            <div className="text-black-900 text-lg font-semibold">{isStaleChunk ? t('EDITOR_ERROR.UPDATED') : t('EDITOR_ERROR.PROBLEM')}</div>
             <p className="text-black-600 max-w-md text-sm">
                 {isStaleChunk
-                    ? 'This tab was open while a newer version was published. Reload to pick up the latest editor — your form is saved on the server.'
-                    : 'Your form is saved on the server — nothing is lost. Try again, or reload the editor.'}
+                    ? t('EDITOR_ERROR.STALE')
+                    : t('EDITOR_ERROR.GENERIC')}
             </p>
             {!isStaleChunk && error?.message && <code className="text-black-600 max-w-lg truncate rounded bg-black-100 px-2 py-1 text-xs">{error.message}</code>}
             <div className="mt-2 flex items-center gap-3">
                 {!isStaleChunk && (
                     <button onClick={reset} className="border-black-300 text-black-700 hover:border-brand-500 rounded-md border px-4 py-2 text-sm font-medium">
-                        Try again
+                        {t('EDITOR_ERROR.RETRY')}
                     </button>
                 )}
                 <button onClick={() => window.location.reload()} className="bg-action hover:bg-action-hover active:bg-action-pressed key-edge [--key-edge:var(--color-action-pressed)] rounded px-4 py-2 text-sm font-medium text-white transition-colors">
-                    Reload editor
+                    {t('EDITOR_ERROR.RELOAD')}
                 </button>
             </div>
         </div>

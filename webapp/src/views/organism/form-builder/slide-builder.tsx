@@ -2,6 +2,7 @@
 
 import React, { memo, useMemo, useState } from 'react';
 
+import { useTranslation } from 'react-i18next';
 import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 import cn from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -50,22 +51,22 @@ import renderFieldWrapper from './fields/render-field';
 // Human-readable name for the selected field's type, e.g. "Multiple choice".
 function fieldTypeLabel(type?: string) {
     const known = insertCatalogItem(type) ?? formFieldsList.find((f) => f.type === type);
-    if (known) return known.name;
-    return (type ?? 'Field').replaceAll('_', ' ').toLowerCase();
+    if (known) return i18n.t(`builder:FIELD_TYPES.${type}.NAME`, { defaultValue: known.name });
+    return type ? i18n.t(`builder:FIELD_TYPES.${type}.NAME`, { defaultValue: type.replaceAll('_', ' ').toLowerCase() }) : i18n.t('builder:CANVAS.FIELD');
 }
 
 // What an open AI proposal does to a question, on the canvas (ai-proposal.ts).
 const PROPOSAL_MARK = {
-    added: { label: 'AI · new', title: 'The AI proposes adding this question', ring: 'outline-dashed outline-2 outline-offset-4 outline-[#2E7D4F]', chip: 'bg-[#E7F4EC] text-[#1F5E39]' },
-    changed: { label: 'AI · changed', title: 'The AI proposes changing this question', ring: 'outline-dashed outline-2 outline-offset-4 outline-[#B25E09]', chip: 'bg-[#FDF3E7] text-[#8A4A08]' }
+    added: { label: 'CANVAS.AI_NEW', title: 'OUTLINE.AI_ADDED_TITLE', ring: 'outline-dashed outline-2 outline-offset-4 outline-[#2E7D4F]', chip: 'bg-[#E7F4EC] text-[#1F5E39]' },
+    changed: { label: 'CANVAS.AI_CHANGED', title: 'OUTLINE.AI_CHANGED_TITLE', ring: 'outline-dashed outline-2 outline-offset-4 outline-[#B25E09]', chip: 'bg-[#FDF3E7] text-[#8A4A08]' }
 };
 
 /** What a screen reader announces for a field on the canvas: its type and title. */
 export function canvasFieldName(field: StandardFormFieldDto) {
     const title = ownTitleText(field);
-    if (field.type === FieldTypes.TEXT) return title ? `Text block: ${title}` : 'Empty text block';
+    if (field.type === FieldTypes.TEXT) return title ? i18n.t('builder:CANVAS.TEXT_BLOCK_NAMED', { title }) : i18n.t('builder:CANVAS.TEXT_BLOCK_EMPTY');
     const type = fieldTypeLabel(field.type);
-    return title ? `${type}: ${title}` : `${type}: untitled`;
+    return title ? i18n.t('builder:CANVAS.TYPE_NAMED', { type, title }) : i18n.t('builder:CANVAS.TYPE_UNTITLED', { type });
 }
 
 /**
@@ -73,6 +74,7 @@ export function canvasFieldName(field: StandardFormFieldDto) {
  * that position. Shows on hover of the gap and on keyboard focus.
  */
 function InsertSlot({ slide, index, edge }: { slide: StandardFormFieldDto; index: number; edge: 'before' | 'after' }) {
+    const { t } = useTranslation('builder');
     const setInsertTarget = useSetAtom(insertTargetAtom);
     const id = edge === 'after' ? `canvas-end-${slide.id}` : `insert-slot-${slide.id}-${index}`;
     return (
@@ -81,8 +83,8 @@ function InsertSlot({ slide, index, edge }: { slide: StandardFormFieldDto; index
             <button
                 type="button"
                 id={id}
-                aria-label={edge === 'after' ? 'Add a field at the end of the page' : `Add a field before question ${index + 1}`}
-                title="Add a field here"
+                aria-label={edge === 'after' ? t('CANVAS.ADD_END') : t('CANVAS.ADD_BEFORE', { n: index + 1 })}
+                title={t('CANVAS.ADD_HERE')}
                 className="relative flex h-6 w-6 items-center justify-center rounded-full border border-[#123FC9] bg-white text-[#123FC9] opacity-0 transition-opacity group-hover/slot:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123FC9]"
                 onClick={(event) => {
                     event.stopPropagation();
@@ -211,6 +213,7 @@ interface CanvasFieldProps {
  * typing in it re-renders it (and not its page or the other questions).
  */
 const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, index, isLast, disabled, isScaledDown, editable, active, slideIn, number, plainNumber, mark: markKind, numberInk, primary, plainLanguage }: CanvasFieldProps) {
+    const { t } = useTranslation('builder');
     const stored = useField(given ? null : fieldId);
     const field = given ?? stored;
     const setActiveFieldComponent = useSetAtom(activeFieldAtom);
@@ -266,34 +269,34 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
             >
                 <div className={'relative flex flex-col items-start'}>
                     {mark && (
-                        <div data-testid={`ai-mark-${field.id}`} title={mark.title} className={`absolute -top-6 right-0 z-10 inline-flex items-center rounded px-1.5 py-[2px] text-[10px] font-semibold ${mark.chip}`}>
-                            {mark.label}
+                        <div data-testid={`ai-mark-${field.id}`} title={t(mark.title)} className={`absolute -top-6 right-0 z-10 inline-flex items-center rounded px-1.5 py-[2px] text-[10px] font-semibold ${mark.chip}`}>
+                            {t(mark.label)}
                         </div>
                     )}
                     {!isScaledDown && field.internal && (
-                        <div className="absolute -top-6 left-0 z-10 inline-flex items-center gap-1 rounded bg-black-200 px-1.5 py-[2px] text-[10px] font-semibold text-black-700" title="Respondents never see this field — your team fills it in on each response">
+                        <div className="absolute -top-6 left-0 z-10 inline-flex items-center gap-1 rounded bg-black-200 px-1.5 py-[2px] text-[10px] font-semibold text-black-700" title={t('CANVAS.INTERNAL_TITLE')}>
                             <LockIcon className="h-3 w-3" aria-hidden="true" />
-                            Internal · staff only
+                            {t('CANVAS.INTERNAL')}
                         </div>
                     )}
                     {!isScaledDown && !field.internal && fieldHasLogic(field) && (
-                        <div className="absolute -top-6 left-0 z-10 inline-flex items-center gap-1 rounded bg-brand-100 px-1.5 py-[2px] text-[10px] font-semibold text-brand-500" title="This field is shown/hidden by a logic rule">
+                        <div className="absolute -top-6 left-0 z-10 inline-flex items-center gap-1 rounded bg-brand-100 px-1.5 py-[2px] text-[10px] font-semibold text-brand-500" title={t('CANVAS.LOGIC_TITLE')}>
                             <LogicOutlinedIcon className="h-3 w-3" aria-hidden="true" />
-                            Logic
+                            {t('CANVAS.LOGIC')}
                         </div>
                     )}
                     {!isScaledDown && active && (
                         // Selection toolbar: what this field is, then what you can do
                         // with it. Delete is last and quiet-red — a destructive action
                         // shouldn't be the selection's only (or loudest) affordance.
-                        <div role="toolbar" aria-label="Question actions" className="absolute -top-12 right-0 z-20 flex items-center overflow-hidden rounded border border-black-300 bg-white shadow-large">
+                        <div role="toolbar" aria-label={t('CANVAS.ACTIONS')} className="absolute -top-12 right-0 z-20 flex items-center overflow-hidden rounded border border-black-300 bg-white shadow-large">
                             <span className="px-2.5 text-[11px] font-semibold tracking-wide text-black-600 uppercase">{fieldTypeLabel(field.type)}</span>
                             <span className="h-5 w-px bg-black-400" aria-hidden="true" />
                             <button
                                 type="button"
-                                aria-label="Duplicate question"
+                                aria-label={t('CANVAS.DUPLICATE')}
                                 aria-keyshortcuts="Control+D Meta+D"
-                                title={copyBlockedByLayout ? i18n.t('builder:LAYOUT.CANNOT_COPY_QUESTION') : cannotCopy ? i18n.t('builder:NEW_TYPES.CANNOT_COPY') : 'Duplicate question (Ctrl/Cmd+D)'}
+                                title={copyBlockedByLayout ? i18n.t('builder:LAYOUT.CANNOT_COPY_QUESTION') : cannotCopy ? i18n.t('builder:NEW_TYPES.CANNOT_COPY') : t('CANVAS.DUPLICATE_TITLE')}
                                 disabled={cannotCopy}
                                 className="p-2 text-black-700 hover:bg-black-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                                 onClick={(event) => {
@@ -306,9 +309,9 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                             </button>
                             <button
                                 type="button"
-                                aria-label="Delete question"
+                                aria-label={t('CANVAS.DELETE')}
                                 aria-keyshortcuts="Delete"
-                                title="Delete question (Delete)"
+                                title={t('CANVAS.DELETE_TITLE')}
                                 className="p-2 text-[#C43D3D] hover:bg-[#FBEFEF] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9]"
                                 onClick={(event) => {
                                     event.stopPropagation();
@@ -370,6 +373,7 @@ interface SlideBuilderProps {
  * question alone. With `slide` it shows that page as given.
  */
 const SlideBuilder = ({ pageId, slide: given, isScaledDown = false, disabled = false, themeOverride }: SlideBuilderProps) => {
+    const { t } = useTranslation('builder');
     const live = !given;
     const shell = usePageShell(live ? pageId : null);
     const storedIds = usePageFieldIds(live ? pageId : null);
@@ -523,8 +527,8 @@ const SlideBuilder = ({ pageId, slide: given, isScaledDown = false, disabled = f
                                     <span className="text-2xl leading-none" aria-hidden="true">
                                         ＋
                                     </span>
-                                    Add a question
-                                    <span className="text-xs font-normal text-black-600">Pick a field type, or press / on the page</span>
+                                    {t('CANVAS.ADD_QUESTION')}
+                                    <span className="text-xs font-normal text-black-600">{t('CANVAS.ADD_QUESTION_HINT')}</span>
                                 </button>
                             </div>
                         ) : (

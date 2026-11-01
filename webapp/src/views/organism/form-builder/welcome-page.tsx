@@ -1,5 +1,7 @@
 import cn from 'classnames';
 
+import { useTranslation } from 'react-i18next';
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { useBuilderFormLogo } from '@app/lib/hooks/use-form-logo';
 import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
@@ -16,6 +18,8 @@ import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '../layout
 import GreetingLayoutWrapper from '../layout/greeting-layout-wrapper';
 
 const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
+    const { t } = useTranslation('builder');
+    const { t: tr } = useRespondentLanguage();
     const { theme, formState, setFormDescription, setFormTitle } = useFormState();
     const logo = useBuilderFormLogo();
     // The pages, for the leaflet cover's contents.
@@ -40,8 +44,8 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         <div className={cn(FORM_COLUMN, columnPlacementClass(layout))}>
                             <AutosizeTextarea
                                 style={{ resize: 'none', fontFamily: leafletSerif.style.fontFamily, fontWeight: 600 }}
-                                placeholder="Form Title"
-                                aria-label="Form title"
+                                placeholder={t('PAGE_PROPS.FORM_TITLE_PLACEHOLDER')}
+                                aria-label={t('PAGE_PROPS.FORM_TITLE_LABEL')}
                                 className="w-full border-0 bg-transparent px-0 py-0 text-[30px] leading-[1.15] text-white placeholder:text-white/80 sm:text-[38px]"
                                 value={formState.title}
                                 onChange={(event) => {
@@ -54,10 +58,10 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         <div className="-mx-5 px-5 py-4 sm:-mx-8 sm:px-8" style={{ background: leafletColours(theme).band }}>
                             <div className={cn(FORM_COLUMN, columnPlacementClass(layout))}>
                                 <AutosizeTextarea
-                                    placeholder="Add description"
+                                    placeholder={t('PAGE_PROPS.ADD_DESCRIPTION')}
                                     style={{ resize: 'none', color: theme?.primary }}
                                     value={description}
-                                    aria-label="Description"
+                                    aria-label={t('PAGE_PROPS.DESCRIPTION')}
                                     className="ring-none w-full border-0 bg-transparent px-0 py-0 text-base leading-[1.6] outline-hidden"
                                     onChange={(e: any) => setDescription(e.target.value)}
                                 />
@@ -67,7 +71,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     <div className={cn(FORM_COLUMN, columnPlacementClass(layout), 'flex flex-col items-start pt-8')}>
                         <LeafletContents pages={form?.fields} theme={theme} />
                         <Button size={'medium'} className="z-10 mt-8 min-h-12 rounded-[4px] px-8 py-3 text-base font-semibold" style={canvasButtonStyle(theme, '4px')}>
-                            {formState.welcomePage?.buttonText || 'Start'}
+                            {formState.welcomePage?.buttonText || tr('WELCOME.START')}
                         </Button>
                     </div>
                 </div>
@@ -83,8 +87,8 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                 <div className={cn(FORM_COLUMN, columnPlacementClass(formState.welcomePage?.layout), 'flex flex-col pt-6', greetingAlignClass(formState.welcomePage?.layout))}>
                     <AutosizeTextarea
                         style={{ resize: 'none' }}
-                        placeholder="Form Title"
-                        aria-label="Form title"
+                        placeholder={t('PAGE_PROPS.FORM_TITLE_PLACEHOLDER')}
+                        aria-label={t('PAGE_PROPS.FORM_TITLE_LABEL')}
                         // Textareas don't inherit text-align; [text-align:inherit] follows the column.
                         // The theme's title face and width, as on the live page (theme-root.ts).
                         className="form-title-face form-display-title form-greeting-title w-full border-0 bg-transparent px-0 py-0 [text-align:inherit] text-[40px] leading-[48px] font-bold"
@@ -96,11 +100,11 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     {formState?.welcomePage?.description !== undefined && formState?.welcomePage?.description !== null ? (
                         <>
                             <AutosizeTextarea
-                                placeholder="Add description"
+                                placeholder={t('PAGE_PROPS.ADD_DESCRIPTION')}
                                 // On the cover (theme-artwork.tsx) in the cover's ink.
                                 style={{ resize: 'none', ...(cover ? { color: cover.theme.primary } : {}) }}
                                 value={description}
-                                aria-label="Description"
+                                aria-label={t('PAGE_PROPS.DESCRIPTION')}
                                 className="ring-none mt-4 w-full border-0 bg-transparent px-0 [text-align:inherit] text-base leading-relaxed text-black-700 outline-hidden"
                                 onChange={(e: any) => setDescription(e.target.value)}
                             />
@@ -109,7 +113,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         <></>
                     )}
                     <Button size={'medium'} className="z-10 mt-8 rounded px-8 py-3" style={canvasButtonStyle(theme, '8px')}>
-                        {formState.welcomePage?.buttonText || 'Start'}
+                        {formState.welcomePage?.buttonText || tr('WELCOME.START')}
                     </Button>
                 </div>
             </div>

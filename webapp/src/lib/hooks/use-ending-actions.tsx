@@ -2,6 +2,7 @@
 
 import { useSetAtom, useStore } from 'jotai';
 
+import { useTranslation } from 'react-i18next';
 import { DELETE_UNDO_MS } from '@app/lib/hooks/use-undoable-delete';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { ToastAction } from '@app/shadcn/components/ui/toast';
@@ -21,6 +22,7 @@ import { ENDING_NAME_MAX_LENGTH, Ending, MAX_ENDINGS, defaultEndingIndex, ending
  * step, endings and jumps together.
  */
 export function useEndingActions() {
+    const { t } = useTranslation('builder');
     const { formState, setFormState } = useFormState();
     // The pages are read when an ending is deleted, not subscribed to.
     const { getFormFields } = useBuilderActions();
@@ -100,18 +102,18 @@ export function useEndingActions() {
 
         const count = fallback?.count ?? 0;
         toast({
-            description: count ? `${label} deleted. ${count} jump${count === 1 ? ' now shows' : 's now show'} the default ending.` : `${label} deleted`,
+            description: count ? t('TOASTS.ENDING_DELETED_JUMPS', { label, count }) : t('TOASTS.ENDING_DELETED', { label }),
             duration: DELETE_UNDO_MS,
             action: (
                 <ToastAction
-                    altText="Undo deleting the ending"
+                    altText={t('TOASTS.UNDO_ENDING')}
                     onClick={() => {
                         // The step's own undo: the ending and its jumps come back together.
                         if (undoIfLatest(step)) select(index);
-                        else toast({ description: 'You changed the form since. Use Undo in the toolbar to step back.' });
+                        else toast({ description: t('TOASTS.CHANGED_SINCE') });
                     }}
                 >
-                    Undo
+                    {t('TOASTS.UNDO')}
                 </ToastAction>
             )
         });

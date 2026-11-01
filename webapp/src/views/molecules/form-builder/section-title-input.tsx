@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef } from 'react';
 
+import { useTranslation } from 'react-i18next';
 import { cn } from '@app/shadcn/util/lib';
 import { SECTION_TITLE_MAX } from '@app/utils/leaflet-sections';
 
@@ -15,6 +16,7 @@ import { SECTION_TITLE_MAX } from '@app/utils/leaflet-sections';
  * instead of adding a line break.
  */
 export default function SectionTitleInput({ value, placeholder, onChange, onFocusChange, className }: { value: string; placeholder: string; onChange: (value: string) => void; onFocusChange?: (focused: boolean) => void; className?: string }) {
+    const { t } = useTranslation('builder');
     const ref = useRef<HTMLTextAreaElement>(null);
     // Grow with the text, so a long title wraps on the bar as it will for respondents.
     useLayoutEffect(() => {
@@ -31,7 +33,7 @@ export default function SectionTitleInput({ value, placeholder, onChange, onFocu
             value={value}
             placeholder={placeholder}
             maxLength={SECTION_TITLE_MAX}
-            aria-label="Section title"
+            aria-label={t('SECTION_TITLE.LABEL')}
             data-testid="leaflet-section-title-input"
             spellCheck
             onChange={(event) => onChange(event.target.value.replace(/[\r\n]+/g, ' '))}

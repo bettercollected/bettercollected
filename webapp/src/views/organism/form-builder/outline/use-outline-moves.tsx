@@ -2,6 +2,7 @@
 
 import { useSetAtom, useStore } from 'jotai';
 
+import { useTranslation } from 'react-i18next';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { ToastAction } from '@app/shadcn/components/ui/toast';
 import { toast } from '@app/shadcn/components/ui/use-toast';
@@ -26,6 +27,7 @@ export type MoveOutcome = { message: string; pageId: string } | null;
  * too).
  */
 export function useOutlineMoves() {
+    const { t } = useTranslation('builder');
     // Moves read the form when they run; the outline does not re-render for them.
     const { getFormFields, movePage, moveFieldToPage } = useBuilderActions();
     const undoIfLatest = useSetAtom(undoIfLatestAtom);
@@ -44,17 +46,17 @@ export function useOutlineMoves() {
         if (!result?.prunedReferences) return;
         const count = result.prunedReferences;
         toast({
-            description: `Moved. ${count} logic rule${count === 1 ? '' : 's'} that would now use a later answer ${count === 1 ? 'was' : 'were'} removed.`,
+            description: t('OUTLINE.MOVED_LOGIC', { count }),
             duration: MOVE_UNDO_MS,
             action: (
                 <ToastAction
-                    altText="Undo the move"
+                    altText={t('OUTLINE.UNDO_MOVE')}
                     onClick={() => {
                         if (undoIfLatest(after)) followActiveField();
-                        else toast({ description: 'You changed the form since. Use Undo in the toolbar to step back.' });
+                        else toast({ description: t('OUTLINE.CHANGED_SINCE') });
                     }}
                 >
-                    Undo
+                    {t('OUTLINE.UNDO')}
                 </ToastAction>
             )
         });
@@ -65,14 +67,14 @@ export function useOutlineMoves() {
         if (!at) return null;
         const page = slides[at.pageIndex];
         const count = page.properties?.fields?.length ?? 0;
-        return { message: `Moved to ${outlinePageName(page, at.pageIndex)}, position ${at.fieldIndex + 1} of ${count}.`, pageId: page.id };
+        return { message: t('OUTLINE.MOVED_TO', { page: outlinePageName(page, at.pageIndex), position: at.fieldIndex + 1, total: count }), pageId: page.id };
     };
 
     const movePageTo = (from: number, to: number): MoveOutcome => {
         const [result, step] = withStep(() => movePage(from, to));
         if (!result) return null;
         offerUndo(result, step);
-        return { message: `Page moved to position ${to + 1} of ${result.next.length}.`, pageId: result.next[to].id };
+        return { message: t('OUTLINE.PAGE_MOVED', { position: to + 1, total: result.next.length }), pageId: result.next[to].id };
     };
 
     const moveQuestion = (fieldId: string, toPageIndex: number, toIndex: number): MoveOutcome => {

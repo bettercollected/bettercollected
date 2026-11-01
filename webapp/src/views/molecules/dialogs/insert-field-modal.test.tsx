@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import i18n from 'i18next';
 import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -389,5 +390,36 @@ describe('the newer question types and the server switch', () => {
         const box = await screen.findByDisplayValue('08:00');
         expect(box).not.toBeDisabled();
         expect(screen.queryByRole('note')).toBeNull();
+    });
+});
+
+describe('the builder in Dutch', () => {
+    afterEach(async () => {
+        await act(() => i18n.changeLanguage('en'));
+    });
+
+    it('names the insert menu, its groups and its types in Dutch, and finds a type by its Dutch name', async () => {
+        served.newQuestionTypesEnabled = true;
+        await act(() => i18n.changeLanguage('nl'));
+        renderEditor();
+        const box = await screen.findByRole('combobox', { name: 'Zoek een soort veld' });
+        expect(screen.getByRole('option', { name: /Kort antwoord/ })).toBeInTheDocument();
+        expect(screen.getByRole('group', { name: 'Tekst' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Aan deze pagina toevoegen/ })).toBeInTheDocument();
+        act(() => void fireEvent.change(box, { target: { value: 'meerkeuze' } }));
+        expect(screen.getAllByRole('option')).toHaveLength(1);
+        act(() => void fireEvent.change(box, { target: { value: 'nope' } }));
+        expect(screen.getByText(/Geen soort veld past bij/)).toBeInTheDocument();
+    });
+
+    it('shows the inspector of a question in Dutch', async () => {
+        await act(() => i18n.changeLanguage('nl'));
+        renderEditor({ settings: true });
+        const box = await screen.findByRole('combobox', { name: 'Zoek een soort veld' });
+        act(() => void fireEvent.change(box, { target: { value: 'meerkeuze' } }));
+        act(() => void fireEvent.keyDown(box, { key: 'Enter' }));
+        expect(await screen.findByRole('switch', { name: 'Verplicht' })).toBeInTheDocument();
+        expect(screen.getByText('Basis')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Volledige breedte' })).toBeInTheDocument();
     });
 });

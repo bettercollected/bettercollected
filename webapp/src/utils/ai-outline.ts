@@ -3,6 +3,8 @@
 // deleting or moving a question drops the show/hide rules and jumps that no
 // longer make sense, as the backend would on build.
 
+import i18n from 'i18next';
+
 export type OutlineQuestionType = 'short_text' | 'long_text' | 'email' | 'phone_number' | 'number' | 'url' | 'date' | 'yes_no' | 'multiple_choice' | 'dropdown' | 'rating' | 'linear_rating' | 'file_upload' | 'statement';
 
 export interface OutlineValidation {
@@ -250,12 +252,12 @@ export function pagesWithGaps(outline: FormOutline): string[] {
 /** What still has to be fixed before building (shown to the person). */
 export function outlineProblems(outline: FormOutline): string[] {
     const problems: string[] = [];
-    if (!outline.title.trim()) problems.push('Give the form a title.');
-    if (questionCount(outline) === 0) problems.push('Add at least one question.');
+    if (!outline.title.trim()) problems.push(i18n.t('builder:AI_OUTLINE.PROBLEM_TITLE'));
+    if (questionCount(outline) === 0) problems.push(i18n.t('builder:AI_OUTLINE.PROBLEM_EMPTY'));
     outline.pages.forEach((page, p) => {
-        if (page.questions.length > MAX_QUESTIONS_PER_PAGE) problems.push(`Page ${p + 1} has more than ${MAX_QUESTIONS_PER_PAGE} questions.`);
+        if (page.questions.length > MAX_QUESTIONS_PER_PAGE) problems.push(i18n.t('builder:AI_OUTLINE.PROBLEM_TOO_MANY', { page: p + 1, max: MAX_QUESTIONS_PER_PAGE }));
         page.questions.forEach((q, i) => {
-            if (!q.label.trim()) problems.push(`Page ${p + 1}, question ${i + 1} has no text.`);
+            if (!q.label.trim()) problems.push(i18n.t('builder:AI_OUTLINE.PROBLEM_NO_TEXT', { page: p + 1, question: i + 1 }));
         });
     });
     return problems;

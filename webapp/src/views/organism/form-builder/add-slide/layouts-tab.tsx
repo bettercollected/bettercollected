@@ -2,6 +2,7 @@ import React from 'react';
 
 import { v4 } from 'uuid';
 
+import { useTranslation } from 'react-i18next';
 import globalConstants from '@app/constants/global';
 import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
@@ -15,7 +16,7 @@ import { SlideLayoutNoImageLeftAlign } from '@Components/icons/slide-layout-no-i
 import SlideLayoutRightImage from '@Components/icons/slide-layout-right-image';
 import Image from 'next/image';
 
-const Layout = (props: { Icon: any; name: string; image: string; style?: FormSlideLayout; onClick?: (event?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void }) => {
+const Layout = (props: { Icon: any; name: string; label: string; image: string; style?: FormSlideLayout; onClick?: (event?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void }) => {
     return (
         <button data-umami-event={`${props.name} Button`}>
             <div className="cursor-pointer rounded-lg border border-transparent" onClick={props.onClick}>
@@ -26,16 +27,17 @@ const Layout = (props: { Icon: any; name: string; image: string; style?: FormSli
                         height: '94px'
                     }}
                 >
-                    <Image src={props.image} alt={props.name} fill sizes="(min-width 100px) 100%" />
+                    <Image src={props.image} alt={props.label} fill sizes="(min-width 100px) 100%" />
                     <div className="absolute inset-0 z-10 bg-transparent transition-all hover:bg-[#00000026]"></div>
                 </div>
-                <div className="text-black-600 text-xs">{props.name}</div>
+                <div className="text-black-600 text-xs">{props.label}</div>
             </div>
         </button>
     );
 };
 
 export default function LayoutsTab({ closePopover }: { closePopover: () => void }) {
+    const { t } = useTranslation('builder');
     const { formFields, addSlide } = useFormFieldsAtom();
     const { setActiveSlideComponent, activeSlideComponent } = useActiveSlideComponent();
 
@@ -84,7 +86,7 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
     return (
         <ScrollArea className="z-10 h-[495px] w-full overflow-auto pr-4">
             <div className="">
-                <div className="mb-2 text-sm font-medium">Blank</div>
+                <div className="mb-2 text-sm font-medium">{t('ADD_PAGE.BLANK')}</div>
                 <button data-umami-event={'Add Blank Page Button'}>
                     <div
                         className="hover:bg-black-200 border-black-300 w-fit cursor-pointer rounded-lg border px-[70px] py-8 transition-all"
@@ -95,31 +97,34 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
                         <BlankLayout />
                     </div>
                 </button>
-                <div className="text-black-600 mt-2 text-xs">Blank</div>
+                <div className="text-black-600 mt-2 text-xs">{t('ADD_PAGE.BLANK')}</div>
             </div>
             <div className="mt-12">
-                <div className="mb-2 text-sm font-medium">Without Image</div>
+                <div className="mb-2 text-sm font-medium">{t('ADD_PAGE.WITHOUT_IMAGE')}</div>
                 <div className="grid grid-cols-2 gap-4">
                     {[
                         {
                             style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN,
                             Icon: SlideLayoutNoImageLeftAlign,
                             name: 'Left Align',
+                            key: 'LEFT_ALIGN',
                             image: '/images/Left.png'
                         },
                         {
                             style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
                             Icon: SlideLayoutNoImage,
                             name: 'Center Align',
+                            key: 'CENTER_ALIGN',
                             image: '/images/center.png'
                         }
-                    ].map((item: { style: FormSlideLayout; Icon: any; name: string; image: string }) => (
+                    ].map((item: { style: FormSlideLayout; Icon: any; name: string; key: string; image: string }) => (
                         <Layout
                             key={item.name}
                             Icon={item.Icon}
                             style={item.style}
                             image={item.image}
                             name={item.name}
+                            label={t(`ADD_PAGE.${item.key}`)}
                             onClick={() => {
                                 addSlideOfStyle(item.style);
                             }}
@@ -128,34 +133,38 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
                 </div>
             </div>
             <div className=" mt-12">
-                <div className="mb-2 text-sm font-medium">With Image</div>
+                <div className="mb-2 text-sm font-medium">{t('ADD_PAGE.WITH_IMAGE')}</div>
                 <div className="grid grid-cols-2 gap-4">
                     {[
                         {
                             style: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
                             Icon: SlideLayoutRightImage,
                             name: 'Right Image',
+                            key: 'RIGHT_IMAGE',
                             image: '/images/right-image.png'
                         },
                         {
                             style: FormSlideLayout.TWO_COLUMN_IMAGE_LEFT,
                             Icon: SlideLayoutLeftImage,
                             name: 'Left Image',
+                            key: 'LEFT_IMAGE',
                             image: '/images/left-image.png'
                         },
                         {
                             style: FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND,
                             Icon: SlideLayoutBackgroundImage,
                             name: 'Fill Image',
+                            key: 'FILL_IMAGE',
                             image: '/images/image.png'
                         }
-                    ].map((item: { style: FormSlideLayout; Icon: any; name: string; image: string }) => (
+                    ].map((item: { style: FormSlideLayout; Icon: any; name: string; key: string; image: string }) => (
                         <Layout
                             key={item.name}
                             Icon={item.Icon}
                             style={item.style}
                             image={item.image}
                             name={item.name}
+                            label={t(`ADD_PAGE.${item.key}`)}
                             onClick={() => {
                                 addSlideOfStyle(item.style);
                             }}

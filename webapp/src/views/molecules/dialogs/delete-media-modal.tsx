@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { useSecondaryDialogModal } from '@app/lib/hooks/use-secondary-dialog-modal';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { useDeletePhotoFromWorkspaceMediaLibraryMutation } from '@app/store/media-library/api';
 
 const DeleteMediaModal = ({ workspace_id, media_id }: { workspace_id: string; media_id: string }) => {
+    const { t } = useTranslation('builder');
     const { closeSecondaryDialogModal } = useSecondaryDialogModal();
     const [deletePhotoInLibrary, { isLoading }] = useDeletePhotoFromWorkspaceMediaLibraryMutation();
     const handleClickDelete = () => {
@@ -15,17 +17,17 @@ const DeleteMediaModal = ({ workspace_id, media_id }: { workspace_id: string; me
 
     return (
         <div className="flex h-full w-full flex-col">
-            <span className=" text-black-800 p-2 font-medium">Delete Media</span>
+            <span className=" text-black-800 p-2 font-medium">{t('MEDIA.DELETE_TITLE')}</span>
             <Separator />
             <div className="flex flex-col gap-2 px-6 py-4">
-                <span className="p2-new">Are you sure you want to delete?</span>
-                <span className="p4-new text-black-600">Deleting this media will break the layout of all pages and forms using this image.</span>
+                <span className="p2-new">{t('MEDIA.DELETE_CONFIRM')}</span>
+                <span className="p4-new text-black-600">{t('MEDIA.DELETE_WARNING')}</span>
                 <div className="mt-2 flex flex-row gap-6">
                     <Button size="medium" className="w-full" variant="secondary" onClick={() => closeSecondaryDialogModal()}>
-                        Cancel
+                        {t('MEDIA.CANCEL')}
                     </Button>
                     <Button size="medium" className="w-full" isLoading={isLoading} variant="danger" onClick={handleClickDelete}>
-                        Delete
+                        {t('MEDIA.DELETE')}
                     </Button>
                 </div>
             </div>
