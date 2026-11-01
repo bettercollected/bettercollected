@@ -6,6 +6,7 @@ import { Parameters } from '@app/models/dtos/actions';
 import { UserStatus } from '@app/models/dtos/user-status';
 import { DateRule, FieldConditionalLogic, IFormFieldValidation, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
 import type { OptionFilter } from '@app/utils/option-logic';
+import type { OptionSource } from '@app/utils/option-sources';
 
 import { FormSlideLayout } from '../enums/form';
 import { FileMetadata } from '../types/file-types';
@@ -39,6 +40,8 @@ export interface StandardFormFieldProperties {
     rules?: FieldRule[];
     /** A choice question's options filtered by an earlier choice question's answer (see utils/option-logic.ts). */
     optionFilter?: OptionFilter;
+    /** The options come from a workspace list or another form's answers instead of `choices` (see utils/option-sources.ts). */
+    optionSource?: OptionSource;
     /** v2 page-jump / branching rules for this slide (see utils/conditional-logic). */
     jumps?: PageJump[];
     /** Flow-view canvas position of this page (cosmetic; auto-layout when absent). */
@@ -386,11 +389,14 @@ export interface AnswerDto {
     items?: Array<Record<string, any>>;
     choice?: {
         id?: string;
+        /** For a question whose options come from a source: the text of the chosen option (the server writes it). */
         label?: string;
         value?: string;
+        other?: string;
     };
     choices?: {
-        labels: Array<string>;
+        /** Option id -> text, for a question whose options come from a source (the server writes it). */
+        labels?: Record<string, string>;
         values?: Array<string>;
         other?: string;
     };

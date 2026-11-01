@@ -28,6 +28,7 @@ import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field
 import FieldRulesSection from '@app/views/molecules/form-builder/field-rules-section';
 import { InspectorSection, SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
 import OptionLogicSettings from '@app/views/molecules/form-builder/option-logic-settings';
+import OptionSourceSettings from '@app/views/molecules/form-builder/option-source-settings';
 import RepeatingGroupSettings from '@app/views/molecules/form-builder/repeating-group-settings';
 
 // Field types that show content and collect no answer.
@@ -182,7 +183,7 @@ export default function FieldSettings() {
             {(ruleKind || isDateRuleType(field.type)) && (
                 <InspectorSection title={field.type === FieldTypes.ADDRESS ? t('ADDRESS_SETTINGS.SECTION') : 'Answer rules'}>
                     {lockedType && (
-                        <p className="text-black-600 text-xs" role="note">
+                        <p className="text-xs text-black-600" role="note">
                             {t('NEW_TYPES.LOCKED')}
                         </p>
                     )}
@@ -194,9 +195,7 @@ export default function FieldSettings() {
                                 onPropertyChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(field.id, property, value))}
                             />
                         )}
-                        {isDateRuleType(field.type) && (
-                            <DateRuleSettings field={field} onChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(field.id, property, value))} />
-                        )}
+                        {isDateRuleType(field.type) && <DateRuleSettings field={field} onChange={(patch) => Object.entries(patch).forEach(([property, value]) => updateFieldProperty(field.id, property, value))} />}
                     </fieldset>
                 </InspectorSection>
             )}
@@ -226,6 +225,12 @@ export default function FieldSettings() {
                     </div>
                     {/* A choice question's options: each can have its own logic, and the list can follow an earlier answer */}
                     <OptionLogicSettings />
+                </InspectorSection>
+            )}
+
+            {(field.type === FieldTypes.DROP_DOWN || field.type === FieldTypes.MULTIPLE_CHOICE) && !field.internal && (
+                <InspectorSection title={t('SOURCES.SECTION')}>
+                    <OptionSourceSettings />
                 </InspectorSection>
             )}
 

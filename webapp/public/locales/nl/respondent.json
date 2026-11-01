@@ -482,5 +482,23 @@
         "DRAWN_ALT": "Je getekende handtekening",
         "REVIEW_DRAWN": "Getekende handtekening",
         "SUBMIT_UNAVAILABLE": "Je getekende handtekening kon nu niet worden verwerkt. Er is niets verstuurd. Probeer het zo opnieuw, of kies “Typ je naam”."
+    },
+    "SOURCE": {
+        "SEARCH": "Zoek in de keuzes",
+        "CHOICES": "Keuzes",
+        "COUNT_one": "{{count}} keuze",
+        "COUNT_other": "{{count}} keuzes",
+        "NO_MATCH": "Geen keuzes die bij uw zoekopdracht passen.",
+        "NONE": "Er zijn nu geen keuzes beschikbaar.",
+        "LOADING": "De keuzes laden…",
+        "FAILED": "De keuzes konden niet worden geladen. Probeer het opnieuw.",
+        "MORE": "Toon meer",
+        "CUT": "Alleen het eerste deel wordt getoond; typ verder om het te beperken.",
+        "SELECTED_one": "{{count}} gekozen",
+        "SELECTED_other": "{{count}} gekozen",
+        "SELECTED_LIST": "Uw keuzes",
+        "REMOVE": "{{option}} verwijderen",
+        "CLEARED": "Uw keuze is verwijderd omdat ze afhangt van een antwoord dat u hebt gewijzigd. Kies opnieuw.",
+        "ANSWERS_NOTE": "De keuzes komen uit antwoorden die anderen op een ander formulier van deze organisatie hebben gegeven."
     }
 }

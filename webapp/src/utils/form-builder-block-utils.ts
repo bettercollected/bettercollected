@@ -7,6 +7,7 @@ import { currencyExportText } from '@app/utils/currency';
 import { dateRangeExportText, dateRangeText } from '@app/utils/date-range';
 import { calendarDayIn } from '@app/utils/date-utils';
 import { answerSignature, signatureExportText } from '@app/utils/signature';
+import { sourcedAnswerTexts } from '@app/utils/option-sources';
 import { answerTags } from '@app/utils/tags';
 import { getFieldsFromV2Form } from './form-utils';
 import { getRepeatSettings, isRepeatingGroup } from './repeating-groups';
@@ -131,6 +132,8 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
 }
 
 function getChoicesValue(field: StandardFormFieldDto, answer: any, separator: string) {
+    // options from a list or another form's answers are not in the form: the text stored with the answer, never an id
+    if (field.properties?.optionSource) return sourcedAnswerTexts(answer).join(separator);
     const choices = field.properties?.allowMultipleSelection
         ? field?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.id))
         : field?.properties?.choices?.filter((choice: any) => answer?.choice?.value?.includes(choice.id));

@@ -3,8 +3,8 @@ import { useMemo } from 'react';
 import { atom, useAtom, useAtomValue } from 'jotai';
 
 import { FileMetadata } from '@app/models/types/field-types';
-import type { AddressParts } from '@app/utils/address';
 import { useGroupItemScope } from '@app/store/jotai/group-item-scope';
+import type { AddressParts } from '@app/utils/address';
 import { itemScopeAnswers, writeItemAnswers } from '@app/utils/repeating-groups';
 import { Invalidations } from '@app/utils/vvalidation-utils';
 
@@ -42,11 +42,15 @@ export interface ChoicesAnswer {
 export interface ChoiceAnswer {
     value?: string;
     other?: string;
+    /** The text of the chosen option of a question whose options come from a source (the server writes it again). */
+    label?: string;
 }
 
 export interface ChoicesAnswer {
     values?: Array<string>;
     other?: string;
+    /** Option id -> text, for a question whose options come from a source (the server writes it again). */
+    labels?: Record<string, string>;
 }
 
 export interface FormResponse {
@@ -141,6 +145,36 @@ export const useFormResponse = () => {
                     type: AnswerType.CHOICE,
                     choice: {
                         value: choice
+                    }
+                }
+            }
+        });
+    };
+
+    /** A question whose options come from a source: the id and the text of the chosen option (the server writes the stored text again). */
+    const addSourcedChoiceAnswer = (fieldId: string, id: string, label: string) => {
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse.answers || {}),
+                [fieldId]: { type: AnswerType.CHOICE, choice: { value: id, label } }
+            }
+        });
+    };
+
+    /** ... several options (a multiple choice), keeping an "Other" text already typed. */
+    const addSourcedChoicesAnswer = (fieldId: string, chosen: Array<{ id: string; label: string }>) => {
+        const other = formResponse.answers?.[fieldId]?.choices?.other;
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.CHOICES,
+                    choices: {
+                        values: chosen.map((option) => option.id),
+                        labels: Object.fromEntries(chosen.map((option) => [option.id, option.label])),
+                        ...(other ? { other } : {})
                     }
                 }
             }
@@ -446,6 +480,8 @@ export const useFormResponse = () => {
         addFieldPhoneNumberAnswer,
         addFieldURLAnswer,
         addFieldChoicesAnswer,
+        addSourcedChoiceAnswer,
+        addSourcedChoicesAnswer,
         addOtherChoiceAnswer,
         addOtherChoicesAnswer,
         addFieldFileAnswer,

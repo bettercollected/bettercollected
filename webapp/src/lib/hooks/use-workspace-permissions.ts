@@ -59,7 +59,9 @@ export function useWorkspacePermissions() {
     const addressLookupEnabled = !!userId && !isError && !!data?.addressLookupEnabled;
     // ...and the signature question (its SIGNATURE_QUESTION_ENABLED).
     const signatureQuestionEnabled = !!userId && !isError && !!data?.signatureQuestionEnabled;
+    // ...and options from a list or another form's answers (its OPTION_SOURCES_ENABLED): the lists page and the source picker.
+    const optionSourcesEnabled = !!userId && !isError && !!data?.optionSourcesEnabled;
     // ...and whether it lets respondents save drafts (its SAVE_DRAFTS_ENABLED): the setting is read-only while it is off.
     const saveDraftsEnabled = !!userId && !isError && !!data?.saveDraftsEnabled;
-    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, saveDraftsEnabled };
+    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, optionSourcesEnabled, saveDraftsEnabled };
 }

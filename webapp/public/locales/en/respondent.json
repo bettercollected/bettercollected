@@ -482,5 +482,23 @@
         "DRAWN_ALT": "Your drawn signature",
         "REVIEW_DRAWN": "Drawn signature",
         "SUBMIT_UNAVAILABLE": "Your drawn signature could not be processed right now. Nothing was sent. Try again in a moment, or choose “Type your name” instead."
+    },
+    "SOURCE": {
+        "SEARCH": "Search the choices",
+        "CHOICES": "Choices",
+        "COUNT_one": "{{count}} choice",
+        "COUNT_other": "{{count}} choices",
+        "NO_MATCH": "No choices match your search.",
+        "NONE": "No choices are available right now.",
+        "LOADING": "Loading the choices…",
+        "FAILED": "The choices could not be loaded. Try again.",
+        "MORE": "Show more",
+        "CUT": "Only the first part is shown; keep typing to narrow it down.",
+        "SELECTED_one": "{{count}} chosen",
+        "SELECTED_other": "{{count}} chosen",
+        "SELECTED_LIST": "Your choices",
+        "REMOVE": "Remove {{option}}",
+        "CLEARED": "Your choice was removed because it depends on an answer you changed. Choose again.",
+        "ANSWERS_NOTE": "The choices come from answers other people gave to another form of this organisation."
     }
 }

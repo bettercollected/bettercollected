@@ -6,6 +6,7 @@ import { isIsoDate } from '@app/utils/iso-date';
 import { answerTags, tagKey } from '@app/utils/tags';
 import { isTime } from '@app/utils/time-of-day';
 import { pruneOptionLogic } from '@app/utils/option-logic-checks';
+import { sourcedAnswerTexts } from '@app/utils/option-sources';
 import { Comparison, FieldConditionalLogic, JUMP_TARGET_SUBMIT, LogicalOperator, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
 
 export type { FieldConditionalLogic, LogicAction, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
@@ -170,6 +171,11 @@ function choiceTokens(chosen: string, source?: StandardFormFieldDto): string[] {
  * Several answers give a list; one answer a string.
  */
 export function choiceAnswerText(answer: any, field: StandardFormFieldDto | undefined): string | string[] | undefined {
+    // options from a source are not in the form: the text stored with the answer
+    if (field?.properties?.optionSource) {
+        const texts = sourcedAnswerTexts(answer);
+        return answer?.choices ? (texts.length ? texts : undefined) : texts[0];
+    }
     const choices = field?.properties?.choices ?? [];
     const text = (chosen: string): string => {
         const index = choices.findIndex((c) => c?.id === chosen);
