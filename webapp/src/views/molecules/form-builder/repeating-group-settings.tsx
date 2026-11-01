@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { useBuilderActions } from '@app/store/jotai/field-selectors';
@@ -13,6 +14,7 @@ import { fieldText, selectClass } from './condition-editor-shared';
  * answer) and how exports lay the items out.
  */
 export default function RepeatingGroupSettings({ field, slide }: { field: StandardFormFieldDto; slide: StandardFormFieldDto }) {
+    const { t } = useTranslation('builder');
     const { updateGroupRepeat } = useBuilderActions();
     const settings = getRepeatSettings(field);
     const stored = field.properties?.repeat ?? {};
@@ -36,11 +38,11 @@ export default function RepeatingGroupSettings({ field, slide }: { field: Standa
         const min = Math.floor(Number(minText));
         const max = Math.floor(Number(maxText));
         if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < 1 || max > REPEAT_MAX_ITEMS_LIMIT) {
-            setError(`Use 0–${REPEAT_MAX_ITEMS_LIMIT} for the minimum and 1–${REPEAT_MAX_ITEMS_LIMIT} for the maximum.`);
+            setError(t('GROUP_SETTINGS.ERR_RANGE', { max: REPEAT_MAX_ITEMS_LIMIT }));
             return;
         }
         if (min > max) {
-            setError('The minimum cannot be above the maximum.');
+            setError(t('GROUP_SETTINGS.ERR_ORDER'));
             return;
         }
         setError('');
@@ -53,35 +55,35 @@ export default function RepeatingGroupSettings({ field, slide }: { field: Standa
     return (
         <div className="border-black-300 flex flex-col gap-3 border-t pt-4">
             <div>
-                <div className="text-black-700 text-xs font-medium">Repeating group</div>
-                <div className="text-black-600 text-[11px]">Respondents answer the group&apos;s questions once per item.</div>
+                <div className="text-black-700 text-xs font-medium">{t('GROUP_SETTINGS.TITLE')}</div>
+                <div className="text-black-600 text-[11px]">{t('GROUP_SETTINGS.INTRO')}</div>
             </div>
             <label className="text-black-700 flex flex-col gap-1 text-xs">
-                One item is called
-                <input className={selectClass} value={label} placeholder="e.g. Applicant, Employer" maxLength={80} onChange={(e) => setLabel(e.target.value)} onBlur={() => save({ itemLabel: label.trim() || undefined })} />
-                <span className="text-black-600 text-[11px]">The add button reads “Add another {settings.itemLabel}”.</span>
+                {t('GROUP_SETTINGS.ITEM_CALLED')}
+                <input className={selectClass} value={label} placeholder={t('GROUP_SETTINGS.ITEM_PLACEHOLDER')} maxLength={80} onChange={(e) => setLabel(e.target.value)} onBlur={() => save({ itemLabel: label.trim() || undefined })} />
+                <span className="text-black-600 text-[11px]">{t('GROUP_SETTINGS.ADD_BUTTON', { item: settings.itemLabel })}</span>
             </label>
             <div className="flex gap-2">
                 <label className="text-black-700 flex flex-1 flex-col gap-1 text-xs">
-                    At least
+                    {t('GROUP_SETTINGS.AT_LEAST')}
                     <input className={selectClass} type="number" min={0} max={REPEAT_MAX_ITEMS_LIMIT} value={minText} onChange={(e) => setMinText(e.target.value)} onBlur={saveLimits} />
                 </label>
                 <label className="text-black-700 flex flex-1 flex-col gap-1 text-xs">
-                    At most
+                    {t('GROUP_SETTINGS.AT_MOST')}
                     <input className={selectClass} type="number" min={1} max={REPEAT_MAX_ITEMS_LIMIT} value={maxText} onChange={(e) => setMaxText(e.target.value)} onBlur={saveLimits} />
                 </label>
             </div>
             {error && <span className="text-[11px] text-amber-700">{error}</span>}
             <label className="text-black-700 flex flex-col gap-1 text-xs">
-                Item header
-                <input className={selectClass} value={title} placeholder="Optional, e.g. the name" maxLength={300} onChange={(e) => setTitle(e.target.value)} onBlur={() => save({ itemTitle: title.trim() || undefined })} />
+                {t('GROUP_SETTINGS.ITEM_HEADER')}
+                <input className={selectClass} value={title} placeholder={t('GROUP_SETTINGS.ITEM_HEADER_PLACEHOLDER')} maxLength={300} onChange={(e) => setTitle(e.target.value)} onBlur={() => save({ itemTitle: title.trim() || undefined })} />
                 <span className="text-black-600 text-[11px]">
-                    Shown after “{settings.itemLabel} 2:”. Insert an answer from the same item:
+                    {t('GROUP_SETTINGS.HEADER_HINT', { item: settings.itemLabel })}
                 </span>
                 {siblings.length > 0 && (
                     <select
                         className={selectClass}
-                        aria-label="Insert an answer into the item header"
+                        aria-label={t('GROUP_SETTINGS.INSERT_ANSWER')}
                         value=""
                         onChange={(e) => {
                             if (!e.target.value) return;
@@ -90,7 +92,7 @@ export default function RepeatingGroupSettings({ field, slide }: { field: Standa
                             save({ itemTitle: next });
                         }}
                     >
-                        <option value="">Insert answer…</option>
+                        <option value="">{t('GROUP_SETTINGS.INSERT_ANSWER_OPTION')}</option>
                         {siblings.map((c) => (
                             <option key={c.id} value={c.id}>
                                 {fieldText(c)}
@@ -100,11 +102,11 @@ export default function RepeatingGroupSettings({ field, slide }: { field: Standa
                 )}
             </label>
             <label className="text-black-700 flex flex-col gap-1 text-xs">
-                In exports
+                {t('GROUP_SETTINGS.IN_EXPORTS')}
                 <select className={selectClass} value={stored.exportLayout ?? ''} onChange={(e) => save({ exportLayout: (e.target.value || undefined) as any })}>
-                    <option value="">Automatic ({autoLayout === 'columns' ? 'columns per item' : 'separate table'})</option>
-                    <option value="columns">Columns per item (one row per response)</option>
-                    <option value="rows">Separate table (one row per item)</option>
+                    <option value="">{t('GROUP_SETTINGS.AUTOMATIC', { layout: autoLayout === 'columns' ? t('GROUP_SETTINGS.LAYOUT_COLUMNS_SHORT') : t('GROUP_SETTINGS.LAYOUT_TABLE_SHORT') })}</option>
+                    <option value="columns">{t('GROUP_SETTINGS.LAYOUT_COLUMNS')}</option>
+                    <option value="rows">{t('GROUP_SETTINGS.LAYOUT_ROWS')}</option>
                 </select>
             </label>
         </div>

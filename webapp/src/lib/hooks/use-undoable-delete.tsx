@@ -1,6 +1,7 @@
 'use client';
 
 import { useSetAtom, useStore } from 'jotai';
+import { useTranslation } from 'react-i18next';
 
 import { ToastAction } from '@app/shadcn/components/ui/toast';
 import { toast } from '@app/shadcn/components/ui/use-toast';
@@ -15,6 +16,7 @@ export const DELETE_UNDO_MS = 8000;
  * once, then offer "Undo" in a toast (Undo in the toolbar works too).
  */
 export function useUndoableDelete() {
+    const { t } = useTranslation('builder');
     const undoIfLatest = useSetAtom(undoIfLatestAtom);
     // Acts on the form as it is when a delete runs; never subscribes to it.
     const { getFormFields, deleteField, deleteSlide } = useBuilderActions();
@@ -35,24 +37,24 @@ export function useUndoableDelete() {
             duration: DELETE_UNDO_MS,
             action: (
                 <ToastAction
-                    altText="Undo the delete"
+                    altText={t('TOASTS.UNDO_DELETE')}
                     onClick={() => {
-                        if (!undoIfLatest(deleted)) toast({ description: 'You changed the form since. Use Undo in the toolbar to step back.' });
+                        if (!undoIfLatest(deleted)) toast({ description: t('TOASTS.CHANGED_SINCE') });
                     }}
                 >
-                    Undo
+                    {t('TOASTS.UNDO')}
                 </ToastAction>
             )
         });
     };
 
     const deleteQuestion = (slideIndex: number, fieldIndex: number) => {
-        offerUndo('Question deleted', stepOf(() => deleteField(slideIndex, fieldIndex)));
+        offerUndo(t('TOASTS.QUESTION_DELETED'), stepOf(() => deleteField(slideIndex, fieldIndex)));
     };
 
     const deletePage = (slideIndex: number) => {
         const questions = getFormFields()?.[slideIndex]?.properties?.fields?.length ?? 0;
-        const message = questions > 0 ? `Page deleted, with ${questions} question${questions === 1 ? '' : 's'}` : 'Page deleted';
+        const message = questions > 0 ? t('TOASTS.PAGE_DELETED_WITH', { count: questions }) : t('TOASTS.PAGE_DELETED');
         offerUndo(message, stepOf(() => deleteSlide(slideIndex)));
     };
 

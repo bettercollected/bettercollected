@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { DateRule, DateRuleComparison } from '@app/models/types/form-builder-shared';
 import { isFieldHiddenByLogic } from '@app/utils/conditional-logic';
@@ -363,6 +364,6 @@ export function getDateRuleSources(slides: Array<StandardFormFieldDto>, ownerId:
         .filter((q) => q && isUsableSource(owner, q) && !wouldCreateDateRuleCycle(slides, ownerId, q.field.id))
         .map((q) => {
             const name = dateQuestionTitle(q.field);
-            return { id: q.field.id, label: multiPage && !owner.groupId ? `Page ${pageOf(q.field.id) + 1} · ${name}` : name };
+            return { id: q.field.id, label: multiPage && !owner.groupId ? i18n.t('builder:OUTLINE.PAGE_PREFIX', { n: pageOf(q.field.id) + 1 }) + name : name };
         });
 }

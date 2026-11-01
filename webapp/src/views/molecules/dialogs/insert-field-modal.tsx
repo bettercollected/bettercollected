@@ -21,8 +21,7 @@ import { InsertTarget } from '@app/store/jotai/insert-target';
 const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown, target }: { formFields: StandardFormFieldDto[]; activeSlideComponent: { id: string; index: number } | null; closeDropdown: () => void; target?: InsertTarget | null }) => {
     const { insert } = useInsertField();
     const containers = useLayoutContainerActions();
-    // The names of the newer field types come in the builder's language; the rest of this menu is still English.
-    const { t } = useTranslation('builder');
+    const { t, i18n } = useTranslation('builder');
     const [query, setQuery] = useState('');
     const [activeIndex, setActiveIndex] = useState(0);
     const baseId = useId();
@@ -32,11 +31,19 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
     const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, layoutContainersEnabled } = useWorkspacePermissions();
     // ... and panels, tabs and field sets while LAYOUT_CONTAINERS_ENABLED is on
     const offered = useMemo(
-        () => [
-            ...insertCatalog.filter((item) => !typeIsOff(item.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled })),
-            ...(layoutContainersEnabled ? containerCatalog : [])
-        ],
-        [newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, layoutContainersEnabled]
+        () =>
+            [
+                ...insertCatalog.filter((item) => !typeIsOff(item.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled })),
+                ...(layoutContainersEnabled ? containerCatalog : [])
+            ].map((item) => {
+                // names and descriptions in the builder's language, so the search finds what the menu shows
+                const kind = containerKindOf(item);
+                return kind
+                    ? { ...item, name: t(`LAYOUT.${kind.toUpperCase()}`), description: t(`LAYOUT.${kind.toUpperCase()}_DESCRIPTION`) }
+                    : { ...item, name: t(`FIELD_TYPES.${item.type}.NAME`, { defaultValue: item.name }), description: t(`FIELD_TYPES.${item.type}.DESCRIPTION`, { defaultValue: item.description }) };
+            }),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, layoutContainersEnabled, i18n.language]
     );
     const results = useMemo(() => filterInsertCatalog(query, offered), [query, offered]);
     const active: InsertCatalogItem | undefined = results[Math.min(activeIndex, results.length - 1)];
@@ -100,7 +107,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
         <div id="fields-option" className="flex max-h-[min(560px,80vh)] w-[380px] flex-col bg-white">
             <div className="border-b border-black-300 p-3">
                 <label htmlFor={`${baseId}-search`} className="sr-only">
-                    Search field types
+                    {t('INSERT_UI.SEARCH')}
                 </label>
                 <div className="flex items-center gap-2 rounded border border-black-300 px-2.5 focus-within:border-brand-500">
                     <Search className="h-4 w-4 shrink-0 text-black-600" aria-hidden="true" />
@@ -115,7 +122,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
                         aria-controls={`${baseId}-list`}
                         aria-autocomplete="list"
                         aria-activedescendant={active ? optionId(results.indexOf(active)) : undefined}
-                        placeholder="Search field types"
+                        placeholder={t('INSERT_UI.SEARCH')}
                         autoComplete="off"
                         value={query}
                         onChange={(event) => {
@@ -127,8 +134,8 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
                     />
                 </div>
             </div>
-            <div id={`${baseId}-list`} role="listbox" aria-label="Field types" className="min-h-0 flex-1 overflow-y-auto py-1">
-                {results.length === 0 && <p className="px-4 py-6 text-center text-sm text-black-600">No field type matches &ldquo;{query}&rdquo;</p>}
+            <div id={`${baseId}-list`} role="listbox" aria-label={t('INSERT_UI.LIST')} className="min-h-0 flex-1 overflow-y-auto py-1">
+                {results.length === 0 && <p className="px-4 py-6 text-center text-sm text-black-600">{t('INSERT_UI.NO_MATCH', { query })}</p>}
                 {INSERT_CATEGORIES.map((category) => {
                     const items = results.filter((item) => item.category === category);
                     if (!items.length) return null;
@@ -136,7 +143,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
                     return (
                         <div key={category} role="group" aria-labelledby={headingId}>
                             <div id={headingId} className="px-4 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-black-600 uppercase">
-                                {category}
+                                {t(`INSERT_UI.CATEGORY.${category}`)}
                             </div>
                             {items.map((item) => {
                                 const index = results.indexOf(item);
@@ -162,10 +169,10 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
                                         <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded border bg-white', selected ? 'border-brand-500' : 'border-black-300')}>{item.icon}</span>
                                         <span className="min-w-0">
                                             <span id={`${optionId(index)}-name`} className="block text-sm font-medium">
-                                                {containerKindOf(item) ? t(`LAYOUT.${containerKindOf(item)!.toUpperCase()}`) : t(`FIELD_TYPES.${item.type}.NAME`, { defaultValue: item.name })}
+                                                {item.name}
                                             </span>
                                             <span id={`${optionId(index)}-desc`} className="block truncate text-xs text-black-600">
-                                                {containerKindOf(item) ? t(`LAYOUT.${containerKindOf(item)!.toUpperCase()}_DESCRIPTION`) : t(`FIELD_TYPES.${item.type}.DESCRIPTION`, { defaultValue: item.description })}
+                                                {item.description}
                                             </span>
                                         </span>
                                     </div>
@@ -178,16 +185,16 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
             {/* The two ways to add, as separate actions on the highlighted type. */}
             <div className="flex items-center gap-2 border-t border-black-300 bg-black-100 p-3">
                 <button type="button" disabled={!active} onClick={() => pick(active, 'page')} className="flex-1 rounded bg-brand-500 px-3 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-40">
-                    {hasPage ? (target ? 'Add here' : 'Add to this page') : 'Add on a new page'}
+                    {hasPage ? (target ? t('INSERT_UI.ADD_HERE') : t('INSERT_UI.ADD_TO_PAGE')) : t('INSERT_UI.ADD_NEW_PAGE')}
                     <kbd aria-hidden="true" className="ml-2 font-sans text-xs opacity-80">
-                        Enter
+                        {t('INSERT_UI.ENTER')}
                     </kbd>
                 </button>
                 {hasPage && !target && (
                     <button type="button" disabled={!active} onClick={() => pick(active, 'new-page')} className="flex-1 rounded border border-black-400 bg-white px-3 py-2 text-sm font-medium text-black-800 hover:bg-black-200 disabled:opacity-40">
-                        Add on a new page
+                        {t('INSERT_UI.ADD_NEW_PAGE')}
                         <kbd aria-hidden="true" className="ml-2 font-sans text-xs text-black-600">
-                            Shift+Enter
+                            {t('INSERT_UI.SHIFT_ENTER')}
                         </kbd>
                     </button>
                 )}
