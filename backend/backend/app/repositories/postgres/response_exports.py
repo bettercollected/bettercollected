@@ -34,6 +34,21 @@ class WorkspaceBusy(Exception):
     """The workspace already has its share of jobs in flight."""
 
 
+class StreamsBusy(Exception):
+    """The requester (``scope == "user"``) or the workspace (``"workspace"``)
+    already has its share of streamed exports in flight."""
+
+    def __init__(self, scope: str):
+        super().__init__(scope)
+        self.scope = scope
+
+
+def _workspace_lock_key(workspace_id) -> int:
+    """The advisory lock that serialises admissions (jobs and streams) of one workspace."""
+    digest = hashlib.sha1(("response-export|" + _id(workspace_id)).encode()).digest()
+    return int.from_bytes(digest[:8], "big", signed=True)
+
+
 CHUNK_OWNED, CHUNK_LOST, CHUNK_INVALIDATED = "owned", "lost", "invalidated"
 
 
@@ -60,19 +75,23 @@ class PostgresResponseExportRepository(RecordRepository):
         return await self.save_document(document)
 
     async def list_for_actor(
-        self, workspace_id, form_id, actor_id, limit: int = 10
+        self, workspace_id, form_id, actor_id, limit: int = 10, kind=None
     ) -> List[ResponseExportDocument]:
-        """The requester's own exports of the form, newest first."""
+        """The requester's own exports of the form, newest first; with ``kind``
+        only those of that kind (a job's row is not pushed out by the stream rows)."""
+        where = [
+            ResponseExportRow.workspace_id == _id(workspace_id),
+            ResponseExportRow.form_id == _id(form_id),
+            ResponseExportRow.actor_id == _id(actor_id),
+        ]
+        if kind is not None:
+            where.append(ResponseExportRow.doc["kind"].astext == kind.value)
         async with self._session() as session:
             docs = (
                 (
                     await session.execute(
                         select(self.row.doc)
-                        .where(
-                            ResponseExportRow.workspace_id == _id(workspace_id),
-                            ResponseExportRow.form_id == _id(form_id),
-                            ResponseExportRow.actor_id == _id(actor_id),
-                        )
+                        .where(*where)
                         .order_by(ResponseExportRow.created_at.desc(), ResponseExportRow.id.desc())
                         .limit(limit)
                     )
@@ -120,8 +139,7 @@ class PostgresResponseExportRepository(RecordRepository):
         transaction under a lock on the workspace, and the partial unique index
         of revision 0027 backs the second rule, so concurrent requests cannot
         both get in."""
-        digest = hashlib.sha1(("response-export|" + _id(document.workspace_id)).encode()).digest()
-        key = int.from_bytes(digest[:8], "big", signed=True)
+        key = _workspace_lock_key(document.workspace_id)
         document.ensure_id()
         values = row_values(document)
         try:
@@ -146,6 +164,50 @@ class PostgresResponseExportRepository(RecordRepository):
             raise OpenExportExists() from None
         return document
 
+    async def admit_stream(
+        self,
+        document: ResponseExportDocument,
+        per_user: int,
+        per_workspace: int,
+        since: dt.datetime,
+    ) -> ResponseExportDocument:
+        """Store the audit row of a streamed export (or bulk read) unless the
+        requester already has ``per_user`` streams in flight in the workspace or
+        the workspace has ``per_workspace`` (``StreamsBusy``). A stream is in
+        flight while its row is ``streaming`` and was last written (a heartbeat
+        of the stream, or its creation) at or after ``since``. The counts and the insert share one transaction under the
+        workspace's advisory lock (the one ``admit_job`` takes), so parallel
+        requests, on this process or on another replica, cannot all get in."""
+        key = _workspace_lock_key(document.workspace_id)
+        document.ensure_id()
+        values = row_values(document)
+        streaming = ResponseExportRow.status == ExportStatus.STREAMING.value
+        live = [
+            ResponseExportRow.workspace_id == _id(document.workspace_id),
+            streaming,
+            ResponseExportRow.updated_at >= since,
+        ]
+        async with self._session() as session, session.begin():
+            await session.execute(select(func.pg_advisory_xact_lock(key)))
+            in_workspace = (
+                await session.execute(
+                    select(func.count()).select_from(ResponseExportRow).where(*live)
+                )
+            ).scalar_one()
+            if in_workspace >= per_workspace:
+                raise StreamsBusy("workspace")
+            by_user = (
+                await session.execute(
+                    select(func.count())
+                    .select_from(ResponseExportRow)
+                    .where(*live, ResponseExportRow.actor_id == _id(document.actor_id))
+                )
+            ).scalar_one()
+            if by_user >= per_user:
+                raise StreamsBusy("user")
+            await session.execute(self._upsert_statement(values))
+        return document
+
     async def count_unfinished_in_workspace(self, workspace_id) -> int:
         return await self.count(
             ResponseExportRow.workspace_id == _id(workspace_id),
@@ -165,6 +227,7 @@ class PostgresResponseExportRepository(RecordRepository):
         self,
         export_id,
         change: Callable[[ResponseExportDocument], Optional[ResponseExportDocument]],
+        touch: bool = True,
     ) -> Optional[ResponseExportDocument]:
         """Apply ``change`` to the export row, locked until it is saved: the
         stored copy, never one read earlier. ``change`` returns the document to
@@ -184,7 +247,8 @@ class PostgresResponseExportRepository(RecordRepository):
             updated = change(document)
             if updated is None:
                 return None
-            updated.touch()
+            if touch:
+                updated.touch()
             await session.execute(self._upsert_statement(row_values(updated)))
             return updated
 
@@ -262,7 +326,9 @@ class PostgresResponseExportRepository(RecordRepository):
 
             # decided from the stored row under its lock, not from the copy read
             # above: a job may have made it READY since
-            updated = await self.update_locked(found.id, change)
+            # ``touch=False``: only the user is replaced, so a queued job keeps the
+            # time since it was queued (its maximum age) and a stream its heartbeat
+            updated = await self.update_locked(found.id, change, touch=False)
             if updated is not None:
                 changed += 1
                 if updated.status == ExportStatus.ERASED:
@@ -310,7 +376,7 @@ class PostgresResponseExportRepository(RecordRepository):
     ) -> str:
         """Store a chunk only while the run that wrote it still owns the export:
         the row is locked, still RUNNING, still on this claim (``attempt``) and not
-        invalidated; the same transaction records the heartbeat (``started_at``).
+        invalidated; the same transaction records the heartbeat (``heartbeat_at``).
         Returns ``CHUNK_OWNED``, ``CHUNK_LOST`` (another claim took over) or
         ``CHUNK_INVALIDATED`` (responses were deleted)."""
         async with self._session() as session, session.begin():
@@ -328,11 +394,37 @@ class PostgresResponseExportRepository(RecordRepository):
                 return CHUNK_LOST
             if document.invalidated_at is not None:
                 return CHUNK_INVALIDATED
-            document.started_at = now
+            document.heartbeat_at = now
             document.touch()
             await session.execute(self._upsert_statement(row_values(document)))
             await session.execute(self._upsert_statement(row_values(chunk), ResponseExportChunkRow))
             return CHUNK_OWNED
+
+    async def beat_if_owned(self, export_id, attempt: int, now: dt.datetime) -> str:
+        """Record a heartbeat of the run that holds claim ``attempt``, with no
+        chunk (a job reading rows that have not yet filled one). Same answers as
+        ``add_chunk_if_owned``."""
+
+        def change(document: ResponseExportDocument):
+            if document.status != ExportStatus.RUNNING or document.attempts != attempt:
+                return None
+            if document.invalidated_at is not None:
+                return None
+            document.heartbeat_at = now
+            return document
+
+        updated = await self.update_locked(export_id, change)
+        if updated is not None:
+            return CHUNK_OWNED
+        found = await self.get_by_id(export_id)
+        if (
+            found is not None
+            and found.status == ExportStatus.RUNNING
+            and found.attempts == attempt
+            and found.invalidated_at is not None
+        ):
+            return CHUNK_INVALIDATED
+        return CHUNK_LOST
 
     async def get_chunk(self, export_id, index: int) -> Optional[ResponseExportChunkDocument]:
         return await self.one_of(

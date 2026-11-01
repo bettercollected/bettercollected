@@ -1153,6 +1153,7 @@
     "ERROR_GENERIC": "The export did not work. Try again.",
     "ERROR_READY": "You already have an export of this form ready. Download it, or delete the file to start a new one.",
     "ERROR_BUSY": "Several exports of this workspace are being prepared. Try again in a few minutes.",
+    "ERROR_EXPORT_BUSY": "You already have exports of this workspace running. Try again when one has finished.",
     "DOWNLOADED_STAYS": "Downloaded. The file stays on our servers until {{time}}, so you can download it again.",
     "DISCARD": "Delete the file",
     "DISCARDING": "Deleting the file…",
