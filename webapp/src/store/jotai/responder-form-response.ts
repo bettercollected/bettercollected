@@ -20,6 +20,7 @@ enum AnswerType {
     CURRENCY = 'currency',
     DATE_RANGE = 'date_range',
     TAGS = 'tags',
+    SIGNATURE = 'signature',
     URL = 'url',
     PHONE_NUMBER = 'phone_number',
     FILE_URL = 'file_url',
@@ -59,6 +60,7 @@ export interface FormResponse {
             currency?: { code?: string; amount?: string };
             date_range?: { start?: string; end?: string };
             tags?: string[];
+            signature?: { method?: string; file_id?: string; name?: string; signed_at?: string; url?: string };
             phone_number?: string;
             url?: string;
             choice?: ChoiceAnswer;
@@ -294,6 +296,20 @@ export const useFormResponse = () => {
         });
     };
 
+    // A signature: typed (the name) or drawn (the id of the image, which goes along as a file part of the submission).
+    const addFieldSignatureAnswer = (fieldId: string, signature: { method: 'typed'; name: string } | { method: 'drawn'; file_id: string }) => {
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.SIGNATURE,
+                    signature
+                }
+            }
+        });
+    };
+
     const addFieldURLAnswer = (fieldId: string, url: string) => {
         setFormResponse({
             ...formResponse,
@@ -398,6 +414,7 @@ export const useFormResponse = () => {
         formResponse,
         setFormResponse,
         addFieldTextAnswer,
+        addFieldSignatureAnswer,
         addFieldBooleanAnswer,
         addFieldChoiceAnswer,
         addFieldDateAnswer,

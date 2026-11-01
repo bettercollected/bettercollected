@@ -1258,6 +1258,10 @@
     "tags": {
       "NAME": "Tags",
       "DESCRIPTION": "Korte labels die de respondent typt"
+    },
+    "signature": {
+      "NAME": "Handtekening",
+      "DESCRIPTION": "Een getekende of getypte handtekening, bewaard bij het antwoord"
     }
   },
   "TYPED_SETTINGS": {
@@ -1286,6 +1290,12 @@
   "NEW_TYPES": {
     "LOCKED": "Deze instellingen kunnen op deze server nog niet worden gewijzigd. Antwoorden blijven werken zoals ze zijn.",
     "SAVE_REFUSED": "Deze vraagtypen kunnen op deze server nog niet worden toegevoegd of gewijzigd. De wijziging is niet opgeslagen: verwijder de nieuwe vraag of zet de instellingen terug.",
-    "CANNOT_COPY": "Vragen van dit type kunnen op deze server nog niet worden gekopieerd."
+    "CANNOT_COPY": "Vragen van dit type kunnen op deze server nog niet worden gekopieerd.",
+    "SIGNATURE_SAVE_REFUSED": "De handtekeningvraag kan op deze server nog niet worden toegevoegd of gewijzigd. De wijziging is niet opgeslagen: verwijder de nieuwe handtekeningvraag."
+  },
+  "SIGNATURE": {
+    "SECTION": "Handtekening",
+    "NOTE": "Respondenten tekenen hun handtekening of typen hun naam; beide werken altijd. Dit legt een getekende of getypte naam vast. Het controleert niet wie er ondertekent.",
+    "PRIVACY_NOTE": "Een handtekening laat zien wie er ondertekent. Hij wordt bij het antwoord bewaard, net als de andere antwoorden, en samen met het antwoord verwijderd."
   }
 }

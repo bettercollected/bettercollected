@@ -12,7 +12,7 @@ import RatingIcon from '@Components/icons/rating-icon';
 import { TextIcon } from '@Components/icons/text';
 import UploadIcon from '@Components/icons/upload-icon';
 import { YesNoIcon } from '@Components/icons/yes-no-icon';
-import { Banknote, CalendarDays, CalendarRange, Clock, Repeat, Table2, Tags } from 'lucide-react';
+import { Banknote, CalendarDays, CalendarRange, Clock, PenLine, Repeat, Table2, Tags } from 'lucide-react';
 
 // One quiet treatment for every field type. The picker used to give each type
 // its own pastel tile + coloured icon — a rainbow, which is exactly what the
@@ -56,6 +56,7 @@ export const formFieldsList = [
     { name: 'Amount of money', type: FieldTypes.CURRENCY, icon: <Banknote size={32} strokeWidth={1.5} style={{ color: INK_2 }} /> },
     { name: 'Date range', type: FieldTypes.DATE_RANGE, icon: <CalendarRange size={32} strokeWidth={1.5} style={{ color: INK_2 }} /> },
     { name: 'Tags', type: FieldTypes.TAGS, icon: <Tags size={32} strokeWidth={1.5} style={{ color: INK_2 }} /> },
+    { name: 'Signature', type: FieldTypes.SIGNATURE, icon: <PenLine size={32} strokeWidth={1.5} style={{ color: INK_2 }} /> },
     {
         name: 'Rating',
         type: FieldTypes.RATING,

@@ -5,6 +5,7 @@ import { calculatedAnswerValue, formatCalculatedValue } from '@app/utils/calcula
 import { currencyExportText } from '@app/utils/currency';
 import { dateRangeExportText, dateRangeText } from '@app/utils/date-range';
 import { calendarDayIn } from '@app/utils/date-utils';
+import { signatureExportText } from '@app/utils/signature';
 import { answerTags } from '@app/utils/tags';
 import { getFieldsFromV2Form } from './form-utils';
 import { getRepeatSettings, isRepeatingGroup } from './repeating-groups';
@@ -99,6 +100,9 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
         case FormBuilderTagNames.INPUT_FILE_UPLOAD:
         case FieldTypes.FILE_UPLOAD:
             return answer?.file_metadata?.name;
+        case FieldTypes.SIGNATURE:
+            // the typed name, or a marker for a drawn one: never the image or a link
+            return signatureExportText(answer);
         case FieldTypes.CALCULATED: {
             // The value the server computed and stored, shown with the
             // field's format (currency, percent, decimals). Exports use

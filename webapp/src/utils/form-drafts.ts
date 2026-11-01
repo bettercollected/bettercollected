@@ -49,6 +49,9 @@ const savable = (field?: StandardFormFieldDto) => !!field && field.type !== Fiel
 
 export const hasFileQuestion = (slides?: StandardFormFieldDto[]): boolean => Array.from(questionsById(slides).values()).some((field) => field.type === FieldTypes.FILE_UPLOAD);
 
+/** Does the form have a signature question? A typed signature is kept in a draft, a drawn one (an image) is not. */
+export const hasSignatureQuestion = (slides?: StandardFormFieldDto[]): boolean => Array.from(questionsById(slides).values()).some((field) => field.type === FieldTypes.SIGNATURE);
+
 /** The answers a draft keeps: those of questions the form has now, without files and calculations. */
 export function answersForDraft(slides: StandardFormFieldDto[] | undefined, answers: Answers | undefined): Answers {
     return restorable(slides, answers ?? {}).answers;
@@ -65,6 +68,8 @@ function restorable(slides: StandardFormFieldDto[] | undefined, answers: Answers
             return;
         }
         if (!savable(field)) return;
+        // a drawn signature is an image, which a draft does not hold (files are not saved either)
+        if (field.type === FieldTypes.SIGNATURE && answer?.signature?.method === 'drawn') return;
         if (field.type === FieldTypes.GROUP && Array.isArray(answer?.items)) {
             const items = answer.items.map((item: Answers) => {
                 const keptItem: Answers = {};

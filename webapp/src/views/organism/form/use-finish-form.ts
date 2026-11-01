@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuth } from '@app/store/auth/slice';
 import { selectResponderForm } from '@app/store/forms/slice';
@@ -25,11 +26,17 @@ import { firstPageWithError, formRefusal, historyBackTo, serverAnswerErrors, ser
 /** The message for a submission the server refused because the form takes no responses. */
 export const SUBMIT_REFUSED = { closed: 'NAV.SUBMIT_CLOSED', not_yet_open: 'NAV.SUBMIT_NOT_OPEN', full: 'NAV.SUBMIT_FULL' } as const;
 
-/** `unmapped`: the server refused some answers (422) that belong to no page the respondent can go to. */
-export type SubmitError = false | 'failed' | 'unmapped' | 'closed' | 'not_yet_open' | 'full';
+/** Does this submission carry the drawing of a signature question? */
+export function sendsDrawnSignature(slides: StandardFormFieldDto[] | undefined, files: ReadonlyArray<{ fieldId: string }>): boolean {
+    const signatureIds = new Set((slides ?? []).flatMap((slide) => slide?.properties?.fields ?? []).filter((field) => field.type === FieldTypes.SIGNATURE).map((field) => field.id));
+    return files.some((file) => signatureIds.has(file.fieldId));
+}
+
+/** `unmapped`: the server refused some answers (422) that belong to no page the respondent can go to; `signature_unavailable`: it could not process a drawn signature just now (503). */
+export type SubmitError = false | 'failed' | 'unmapped' | 'closed' | 'not_yet_open' | 'full' | 'signature_unavailable';
 
 /** The message to keep by the button for a failed submission. */
-export const submitErrorKey = (error: Exclude<SubmitError, false>) => (error === 'failed' ? 'NAV.SUBMIT_ERROR' : error === 'unmapped' ? 'NAV.SUBMIT_UNMAPPED' : SUBMIT_REFUSED[error]);
+export const submitErrorKey = (error: Exclude<SubmitError, false>) => (error === 'failed' ? 'NAV.SUBMIT_ERROR' : error === 'unmapped' ? 'NAV.SUBMIT_UNMAPPED' : error === 'signature_unavailable' ? 'SIGNATURE.SUBMIT_UNAVAILABLE' : SUBMIT_REFUSED[error]);
 
 /**
  * Anonymous drop-off breadcrumb: page to page, never answers, never in preview.
@@ -179,6 +186,10 @@ export function useFinishForm(isPreviewMode: boolean) {
                     if (refusal) {
                         toast({ description: t(SUBMIT_REFUSED[refusal]), variant: 'destructive' });
                         setSubmitError(refusal);
+                    } else if (e?.response?.status === 503 && sendsDrawnSignature(standardForm?.fields, files)) {
+                        // the server could not process the drawn image just now: nothing was stored, the drawing is kept, typing works
+                        toast({ description: t('SIGNATURE.SUBMIT_UNAVAILABLE'), variant: 'destructive' });
+                        setSubmitError('signature_unavailable');
                     } else if (!showServerAnswerErrors(e?.response)) {
                         toast({ description: t('NAV.SUBMIT_ERROR'), variant: 'destructive' });
                         setSubmitError('failed');

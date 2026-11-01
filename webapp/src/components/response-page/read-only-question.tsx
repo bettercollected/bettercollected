@@ -24,6 +24,7 @@ import { legacyTitleText } from '@app/utils/legacy-title';
 import { getGroupChildren, getGroupItems, getItemHeader, getItemHiddenChildIds, isRepeatingGroup, itemScopeAnswers } from '@app/utils/repeating-groups';
 import { answered, choiceRows, fieldHasAnswer } from '@app/utils/response-page';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+import { TYPED_SIGNATURE_FONT, answerSignature } from '@app/utils/signature';
 import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
 import { ChoiceContent, choiceRowStyle } from '@app/views/atoms/choice';
 import { scaleCellStyle } from '@app/views/molecules/responder-form-fields/linear-rating';
@@ -312,6 +313,47 @@ function FileAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?: str
     );
 }
 
+/** When the server stored a signature, as a date and time in the form's language; empty when it is not a time. */
+function signedAtText(value: unknown, language: 'en' | 'nl'): string {
+    const time = typeof value === 'string' ? new Date(value) : null;
+    if (!time || Number.isNaN(time.getTime())) return '';
+    return time.toLocaleString(language === 'nl' ? 'nl-NL' : 'en-GB', { dateStyle: 'long', timeStyle: 'short' });
+}
+
+/**
+ * A signature as a person reads it: a drawn one as its image (the server's
+ * short-lived link is the only way to it), a typed one as the name in an
+ * italic serif (the text is the signature; the style is only a flourish),
+ * and when it was signed. This records a drawn or typed name: it does not
+ * say who signed.
+ */
+function SignatureAnswer({ answer, labelledBy, ctx }: { answer: any; labelledBy?: string; ctx: ReadOnlyContext }) {
+    const signature = answerSignature(answer);
+    if (!signature || (signature.method === 'typed' ? !signature.name : signature.method !== 'drawn')) return <NoAnswer ctx={ctx} />;
+    const at = signedAtText(signature.signed_at, ctx.formatLanguage);
+    return (
+        <div className="flex flex-col gap-1" role="group" {...nameProps(labelledBy)} data-signature={signature.method}>
+            <div className="flex min-h-24 w-full max-w-xl items-center border px-4 py-3" style={{ background: '#ffffff', color: INK_ON_WHITE, borderColor: 'var(--rp-edge)', borderRadius: 'var(--rp-field-radius)' }}>
+                {signature.method === 'typed' ? (
+                    <span className="min-w-0 text-3xl italic [overflow-wrap:anywhere]" style={{ fontFamily: TYPED_SIGNATURE_FONT }}>
+                        {signature.name}
+                    </span>
+                ) : signature.url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={signature.url} alt="Drawn signature" className="max-h-40 w-auto max-w-full object-contain" />
+                ) : (
+                    <span className="text-[15px] italic opacity-70">Drawn signature (the image is not available)</span>
+                )}
+            </div>
+            {at && (
+                <p className="m-0 text-sm" style={{ color: softInk(ctx.theme) }}>
+                    Signed {at}
+                </p>
+            )}
+        </div>
+    );
+}
+
 /** The date in the app's date style ("30 October 2026", "30 oktober 2026"), or the stored text when it is not a date. */
 const dateText = (value: string, language: 'en' | 'nl'): string => calendarDayIn(value, language);
 
@@ -352,6 +394,8 @@ function AnswerBody({ field, answers, labelledBy, ctx }: { field: StandardFormFi
         case FieldTypes.FILE_UPLOAD:
         case FieldTypes.INPUT_FILE_UPLOAD:
             return answer?.file_metadata ? <FileAnswer answer={answer} labelledBy={labelledBy} ctx={ctx} /> : <NoAnswer ctx={ctx} />;
+        case FieldTypes.SIGNATURE:
+            return answer?.signature ? <SignatureAnswer answer={answer} labelledBy={labelledBy} ctx={ctx} /> : <NoAnswer ctx={ctx} />;
         case FieldTypes.TABULAR_INPUT:
             return answered(answer) ? <TabularAnswer field={field} answer={answer} labelledBy={labelledBy} /> : <NoAnswer ctx={ctx} />;
         case FieldTypes.MATRIX:

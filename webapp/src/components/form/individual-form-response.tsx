@@ -6,6 +6,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { downloadFile } from '@app/utils/file-utils';
 import { resolvePipesInTitle, titleHasPipes } from '@app/utils/answer-piping';
 import { formFormatLanguage } from '@app/utils/response-page';
+import { TYPED_SIGNATURE_FONT, answerSignature } from '@app/utils/signature';
 import { DISPLAY_LIST_SEPARATOR, getAnswerDisplayText, getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
 import { getGroupChildren, getGroupItems, getItemHeader, isRepeatingGroup, itemScopeAnswers } from '@app/utils/repeating-groups';
 import { getItemAnswer } from '@app/utils/response-export';
@@ -134,6 +135,27 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                                     </TableBody>
                                 </Table>
                             </div>
+                        </div>
+                    );
+                }
+
+                if (field.type === FieldTypes.SIGNATURE) {
+                    const signature = answerSignature(ans);
+                    return (
+                        <div className="flex flex-col gap-1.5" key={field.id}>
+                            {getTitleForHeaderForTable(field)}
+                            {signature?.method === 'drawn' && signature.url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={signature.url} alt="Drawn signature" className="max-h-32 w-fit max-w-full rounded border border-gray-200 bg-white object-contain p-2" />
+                            ) : signature?.method === 'typed' && signature.name ? (
+                                <span className="text-black-900 text-2xl italic [overflow-wrap:anywhere]" style={{ fontFamily: TYPED_SIGNATURE_FONT }}>
+                                    {signature.name}
+                                </span>
+                            ) : signature?.method === 'drawn' ? (
+                                <span className="text-black-600 text-base">Drawn signature (the image is not available)</span>
+                            ) : (
+                                noAnswer
+                            )}
                         </div>
                     );
                 }

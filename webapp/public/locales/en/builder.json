@@ -1258,6 +1258,10 @@
     "tags": {
       "NAME": "Tags",
       "DESCRIPTION": "Short labels the respondent types"
+    },
+    "signature": {
+      "NAME": "Signature",
+      "DESCRIPTION": "A drawn or typed signature, stored with the response"
     }
   },
   "TYPED_SETTINGS": {
@@ -1286,6 +1290,12 @@
   "NEW_TYPES": {
     "LOCKED": "These settings can't be changed on this server yet. Answers keep working as they are.",
     "SAVE_REFUSED": "These question types can't be added or changed on this server yet. The change was not saved: remove the new question, or put its settings back.",
-    "CANNOT_COPY": "Questions of this type can't be copied on this server yet."
+    "CANNOT_COPY": "Questions of this type can't be copied on this server yet.",
+    "SIGNATURE_SAVE_REFUSED": "The signature question can't be added or changed on this server yet. The change was not saved: remove the new signature question."
+  },
+  "SIGNATURE": {
+    "SECTION": "Signature",
+    "NOTE": "Respondents draw their signature or type their name; both always work. This records a drawn or typed name. It does not check who signed.",
+    "PRIVACY_NOTE": "A signature identifies the person who signs. It is stored with the response, like the other answers, and deleted with it."
   }
 }

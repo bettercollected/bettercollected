@@ -61,6 +61,7 @@ const CHOICE_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Compar
 const MULTI_COMPARISONS = [Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 const DATE_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.GREATER_THAN, Comparison.GREATER_THAN_EQUAL, Comparison.LESS_THAN, Comparison.LESS_THAN_EQUAL, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 const BOOL_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL];
+const SIGNED_COMPARISONS = [Comparison.IS_NOT_EMPTY, Comparison.IS_EMPTY];
 // A date range includes a day, does not include it, starts after it or ends before it (compareDateRange); tags are asked like a multi-select.
 const RANGE_COMPARISONS = [Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN, Comparison.GREATER_THAN, Comparison.LESS_THAN, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 
@@ -84,6 +85,9 @@ export function comparisonsForField(field?: StandardFormFieldDto): Comparison[] 
             return RANGE_COMPARISONS;
         case FieldTypes.TAGS:
             return MULTI_COMPARISONS;
+        case FieldTypes.SIGNATURE:
+            // signed or not: nothing else can be asked of a signature
+            return SIGNED_COMPARISONS;
         case FieldTypes.MULTIPLE_CHOICE:
             return field?.properties?.allowMultipleSelection ? MULTI_COMPARISONS : CHOICE_COMPARISONS;
         case FieldTypes.DROP_DOWN:
@@ -241,7 +245,7 @@ export function newConditionFor(sources: SourceField[]): LogicCondition {
     const first = sources[0]?.field;
     if (first && isRepeatingGroup(first)) return groupConditionFor(first) as LogicCondition;
     // a date range or tags question is not asked "is equal to": its own first comparison
-    const comparison = first?.type === FieldTypes.DATE_RANGE || first?.type === FieldTypes.TAGS ? comparisonsForField(first)[0] : Comparison.IS_EQUAL;
+    const comparison = first?.type === FieldTypes.DATE_RANGE || first?.type === FieldTypes.TAGS || first?.type === FieldTypes.SIGNATURE ? comparisonsForField(first)[0] : Comparison.IS_EQUAL;
     return { fieldId: first?.id ?? '', fieldType: first?.type ?? '', comparison, value: '' };
 }
 

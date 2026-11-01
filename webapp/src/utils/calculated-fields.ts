@@ -51,6 +51,7 @@ const NOT_VARIABLE_TYPES = new Set<string>([
     FieldTypes.PAYMENT,
     FieldTypes.TABULAR_INPUT,
     FieldTypes.FILE_UPLOAD,
+    FieldTypes.SIGNATURE,
     FieldTypes.VIDEO_CONTENT,
     FieldTypes.IMAGE_CONTENT,
     'page_break',

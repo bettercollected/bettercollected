@@ -4,7 +4,7 @@ import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { INSERT_CATEGORIES, InsertCatalogItem, bestInsertMatch, filterInsertCatalog, insertCatalog } from '@app/constants/insert-field-catalog';
-import { GATED_TYPES } from '@app/lib/form-ops/new-question-types';
+import { typeIsOff } from '@app/lib/form-ops/new-question-types';
 import { InsertPlacement, useInsertField } from '@app/lib/hooks/use-insert-field';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
@@ -26,9 +26,9 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
     const baseId = useId();
     const optionId = (index: number) => `${baseId}-option-${index}`;
 
-    // The newer question types are offered only while the server takes them (NEW_QUESTION_TYPES_ENABLED).
-    const { newQuestionTypesEnabled } = useWorkspacePermissions();
-    const offered = useMemo(() => (newQuestionTypesEnabled ? insertCatalog : insertCatalog.filter((item) => !GATED_TYPES.has(item.type))), [newQuestionTypesEnabled]);
+    // The newer question types are offered only while the server takes them (NEW_QUESTION_TYPES_ENABLED), the signature question while SIGNATURE_QUESTION_ENABLED is on.
+    const { newQuestionTypesEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
+    const offered = useMemo(() => insertCatalog.filter((item) => !typeIsOff(item.type, { newQuestionTypes: newQuestionTypesEnabled, signatureQuestion: signatureQuestionEnabled })), [newQuestionTypesEnabled, signatureQuestionEnabled]);
     const results = useMemo(() => filterInsertCatalog(query, offered), [query, offered]);
     const active: InsertCatalogItem | undefined = results[Math.min(activeIndex, results.length - 1)];
     // A page to add to: the selected one, or the canvas target's.

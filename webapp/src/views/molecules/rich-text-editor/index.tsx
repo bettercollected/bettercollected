@@ -58,6 +58,8 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
             return 'Select the first and the last day';
         case FieldTypes.TAGS:
             return 'Type a tag and press Enter';
+        case FieldTypes.SIGNATURE:
+            return 'Sign here';
         case FieldTypes.LINEAR_RATING:
             return 'Rate from 1 to 10';
         case FieldTypes.MATRIX:
@@ -109,6 +111,8 @@ const answeredBefore = ({ field, slide }: PipeTarget, slideIndex: number, source
 function isPipeAnswer(target: PipeTarget, slideIndex: number, sourceField: StandardFormFieldDto): boolean {
     // calculated values pipe too, formatted as the field shows them
     // (not one kept from respondents: piping would show it to them)
+    // a signature is never piped into a title: not the typed name, nothing about the drawing
+    if (sourceField.type === FieldTypes.SIGNATURE) return false;
     if (!V2InputFields.includes(sourceField.type) && !(sourceField.type === FieldTypes.CALCULATED && !sourceField.properties?.hiddenFromRespondents)) return false;
     if (sourceField.id === target.field.id) return false;
     return answeredBefore(target, slideIndex, sourceField);

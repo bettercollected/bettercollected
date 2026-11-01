@@ -35,7 +35,9 @@
         "POLICY_LINK": "Privacyverklaring",
         "POWERED_BY": "Mogelijk gemaakt door <1>bettercollected</1>",
         "LANGUAGE": "Taal",
-        "OPENS_IN_NEW_TAB": "(opent in een nieuw tabblad)"
+        "OPENS_IN_NEW_TAB": "(opent in een nieuw tabblad)",
+        "SIGNATURE": "Handtekening",
+        "SIGNATURE_DETAIL": "Je handtekening wordt bewaard bij je antwoorden, net als je andere antwoorden."
     },
     "RETENTION": {
         "DAYS_one": "Bewaard gedurende {{count}} dag na het insturen.",
@@ -204,7 +206,9 @@
         "TOO_FEW_TAGS_one": "Vul minstens {{count}} tag in.",
         "TOO_FEW_TAGS_other": "Vul minstens {{count}} tags in.",
         "TOO_MANY_TAGS_one": "Vul hooguit {{count}} tag in.",
-        "TOO_MANY_TAGS_other": "Vul hooguit {{count}} tags in."
+        "TOO_MANY_TAGS_other": "Vul hooguit {{count}} tags in.",
+        "FORMAT_SIGNATURE": "Je naam bevat tekens die niet kunnen. Typ hem opnieuw.",
+        "SIGNATURE_IMAGE": "Je getekende handtekening kon niet worden verwerkt. Teken hem opnieuw of typ je naam."
     },
     "DATE": {
         "PICK": "Kies een datum",
@@ -375,7 +379,8 @@
             "FAILED": "We konden je concept niet openen. Controleer je verbinding en open de link opnieuw.",
             "DELETE_NOW": "Verwijder het concept nu",
             "DISMISS": "Sluiten"
-        }
+        },
+        "SIGNATURE_NOTE": "Een getekende handtekening wordt niet bewaard. Je tekent hem opnieuw als je verdergaat. Een getypte naam wordt wel bewaard."
     },
     "TIME": {
         "PICK": "Tijd",
@@ -416,5 +421,23 @@
         "DUPLICATE": "“{{tag}}” is al toegevoegd.",
         "AT_MOST_one": "Je kunt hooguit {{count}} tag toevoegen.",
         "AT_MOST_other": "Je kunt hooguit {{count}} tags toevoegen."
+    },
+    "SIGNATURE": {
+        "METHOD": "Hoe wil je ondertekenen?",
+        "DRAW": "Tekenen",
+        "TYPE": "Typ je naam",
+        "PAD_LABEL": "Tekenvlak voor je handtekening",
+        "PAD_HINT": "Teken je handtekening in het vak met je muis, vinger of pen. Wil je de pagina scrollen? Raak dan buiten het vak aan. Of kies “Typ je naam”.",
+        "PAD_UNAVAILABLE": "Tekenen kan in deze browser niet. Kies in plaats daarvan “Typ je naam”.",
+        "SIGN_HERE": "Onderteken hier",
+        "CLEAR": "Wissen",
+        "CLEAR_LABEL": "Handtekening wissen",
+        "NAME_LABEL": "Je volledige naam",
+        "NAME_HINT": "Je getypte naam is je handtekening.",
+        "ADDED": "Handtekening toegevoegd.",
+        "CLEARED": "Handtekening gewist.",
+        "DRAWN_ALT": "Je getekende handtekening",
+        "REVIEW_DRAWN": "Getekende handtekening",
+        "SUBMIT_UNAVAILABLE": "Je getekende handtekening kon nu niet worden verwerkt. Er is niets verstuurd. Probeer het zo opnieuw, of kies “Typ je naam”."
     }
 }

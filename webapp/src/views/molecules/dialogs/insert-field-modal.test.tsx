@@ -16,10 +16,11 @@ import FieldSettings from '@app/views/organism/field-settings';
 import InsertFieldComponent from './insert-field-modal';
 
 // What the server says about the newer question types (its NEW_QUESTION_TYPES_ENABLED).
-const served = vi.hoisted(() => ({ newQuestionTypesEnabled: false }));
-vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ newQuestionTypesEnabled: served.newQuestionTypesEnabled }) }));
+const served = vi.hoisted(() => ({ newQuestionTypesEnabled: false, signatureQuestionEnabled: false }));
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ newQuestionTypesEnabled: served.newQuestionTypesEnabled, signatureQuestionEnabled: served.signatureQuestionEnabled }) }));
 afterEach(() => {
     served.newQuestionTypesEnabled = false;
+    served.signatureQuestionEnabled = false;
 });
 
 const pages = (): StandardFormFieldDto[] => [
@@ -293,6 +294,31 @@ describe('the newer question types and the server switch', () => {
         fireEvent.change(await search(), { target: { value: 'keywords' } });
         await act(async () => fireEvent.click(screen.getByRole('option', { name: 'Tags' })));
         expect(pageFields()[4].type).toBe(FieldTypes.TAGS);
+    });
+
+    it('offers the signature question, and adds it, only while its own switch is on', async () => {
+        renderEditor();
+        fireEvent.change(await search(), { target: { value: 'sign' } });
+        expect(screen.queryByRole('option', { name: /Signature/ })).toBeNull();
+    });
+
+    it('does not tie the signature question to the newer types’ switch', async () => {
+        served.newQuestionTypesEnabled = true;
+        renderEditor();
+        fireEvent.change(await search(), { target: { value: 'sign' } });
+        expect(screen.queryByRole('option', { name: /Signature/ })).toBeNull();
+    });
+
+    it('adds a signature question while its switch is on, whatever the other says', async () => {
+        served.signatureQuestionEnabled = true;
+        renderEditor();
+        fireEvent.change(await search(), { target: { value: 'sign' } });
+        expect(screen.getByRole('option', { name: /Signature/ })).toHaveTextContent('A drawn or typed signature, stored with the response');
+        await act(async () => fireEvent.click(screen.getByRole('option', { name: /Signature/ })));
+        expect(pageFields()[3].type).toBe(FieldTypes.SIGNATURE);
+        // the newer types stay out
+        fireEvent.change(await search(), { target: { value: 'stay' } });
+        expect(screen.queryByRole('option', { name: 'Date range' })).toBeNull();
     });
 
     it('offers them, and adds one, while the server takes them', async () => {

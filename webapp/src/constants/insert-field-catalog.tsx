@@ -13,7 +13,7 @@ import RatingIcon from '@Components/icons/rating-icon';
 import { TextIcon } from '@Components/icons/text';
 import UploadIcon from '@Components/icons/upload-icon';
 import { YesNoIcon } from '@Components/icons/yes-no-icon';
-import { AlignLeft, Banknote, Calculator, CalendarDays, CalendarRange, Clock, Image as ImageIcon, Repeat, Table2, Tags, Type, Video } from 'lucide-react';
+import { AlignLeft, Banknote, Calculator, CalendarDays, CalendarRange, Clock, Image as ImageIcon, PenLine, Repeat, Table2, Tags, Type, Video } from 'lucide-react';
 
 import { FieldTypes } from '@app/models/dtos/form';
 
@@ -76,6 +76,7 @@ export const insertCatalog: InsertCatalogItem[] = [
         keywords: ['calculated', 'formula', 'total', 'sum', 'score', 'price', 'compute'],
         icon: <Calculator className={ICON} strokeWidth={1.75} style={iconStyle} />
     },
+    { type: FieldTypes.SIGNATURE, name: 'Signature', description: 'A drawn or typed signature, stored with the response', category: 'Files', keywords: ['sign', 'sign here', 'draw', 'name', 'agreement', 'consent', 'handtekening', 'ondertekenen'], icon: <PenLine className={ICON} strokeWidth={1.75} style={iconStyle} /> },
     { type: FieldTypes.FILE_UPLOAD, name: 'File upload', description: 'A document or photo, up to 25 MB', category: 'Files', keywords: ['upload', 'attachment', 'document', 'photo'], icon: <UploadIcon className={ICON} style={iconStyle} /> },
     {
         type: FieldTypes.TEXT,

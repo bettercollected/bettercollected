@@ -570,6 +570,12 @@ export interface ApplyOptions {
      */
     newQuestionTypes?: boolean;
     /**
+     * The server's SIGNATURE_QUESTION_ENABLED switch for the signature
+     * question, the same way: default true; false refuses an op that adds one
+     * or changes the type of one the form did not have.
+     */
+    signatureQuestion?: boolean;
+    /**
      * The batch comes from the form editor (default). False applies the
      * rules for everyone else (AI, API): editor ops are refused and titles
      * must be plain text. The backend refuses those when it parses a batch,

@@ -21,9 +21,14 @@ export default function useFormAtom() {
         setFiles(updatedFiles);
     };
 
+    // The file of one question only (a drawn signature that was cleared or typed over).
+    const removeFile = (fieldId: string) => {
+        setFiles(files.filter((item) => item.fieldId !== fieldId));
+    };
+
     const resetFormFiles = () => {
         setFiles([]);
     };
 
-    return { files, addFile, resetFormFiles };
+    return { files, addFile, removeFile, resetFormFiles };
 }

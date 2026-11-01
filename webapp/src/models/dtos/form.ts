@@ -363,6 +363,13 @@ export interface AnswerDto {
     dateRange?: { start?: string; end?: string };
     /** A tags question's answer: the labels, in the order they were entered. */
     tags?: string[];
+    /**
+     * A signature question's answer (utils/signature.ts): how it was given,
+     * the typed name or the id of the drawn image (a private stored file),
+     * when the server stored it, and the short-lived link to the image a
+     * read adds for people who may see it.
+     */
+    signature?: { method?: 'drawn' | 'typed' | string; file_id?: string; name?: string; signed_at?: string; url?: string };
     url?: string;
     file_metadata?: FileMetadata;
     phoneNumber?: string;
@@ -421,6 +428,8 @@ export enum FieldTypes {
     DATE_RANGE = 'date_range',
     /** Free-entry short labels (answer slot `tags`). */
     TAGS = 'tags',
+    /** A drawn or typed signature (answer slot `signature`). */
+    SIGNATURE = 'signature',
     PHONE_NUMBER = 'phone_number',
     EMAIL = 'email',
     NUMBER = 'number',
@@ -463,6 +472,7 @@ export const V2InputFields = [
     FieldTypes.CURRENCY,
     FieldTypes.DATE_RANGE,
     FieldTypes.TAGS,
+    FieldTypes.SIGNATURE,
     FieldTypes.YES_NO,
     FieldTypes.MULTIPLE_CHOICE,
     FieldTypes.RATING,
