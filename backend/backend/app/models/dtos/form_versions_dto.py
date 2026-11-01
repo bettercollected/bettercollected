@@ -33,6 +33,9 @@ class FormDraftStateDto(CamelModel):
 
 class FormVersionListDto(CamelModel):
     versions: List[FormVersionSummaryDto]
+    # older versions exist than the newest LIST_LIMIT listed (each is still
+    # reachable by number)
+    truncated: bool = False
     draft: Optional[FormDraftStateDto] = None
 
 

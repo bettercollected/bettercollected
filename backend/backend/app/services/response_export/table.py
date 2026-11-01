@@ -480,6 +480,7 @@ class ExportResponse:
     answers: Dict[str, Any]
     internal_answers: Dict[str, Any]
     hidden_fields: Dict[str, Any]
+    form_version: Optional[int] = None
 
 
 def submitted_at_cell(value: Optional[dt.datetime]) -> str:
@@ -507,10 +508,19 @@ class Column:
     # the headers this column writes when it is not just ``header`` (a repeating
     # group writes one per item and question, possibly none)
     headers: Optional[List[str]] = None
+    # the form field behind a question or internal column (the JSON file describes it)
+    source_field: Optional[Dict[str, Any]] = field(default=None, repr=False, compare=False)
+    # what each of ``all_headers`` holds when a spreadsheet should type it:
+    # ``datetime`` or ``date`` (None: text or number); same length as the headers
+    kinds: Optional[List[Optional[str]]] = field(default=None, repr=False, compare=False)
 
     @property
     def all_headers(self) -> List[str]:
         return self.headers if self.headers is not None else [self.header]
+
+    @property
+    def all_kinds(self) -> List[Optional[str]]:
+        return self.kinds if self.kinds is not None else [None] * len(self.all_headers)
 
 
 @dataclass
@@ -521,6 +531,11 @@ class GroupTable:
     name: str
     headers: List[str]
     rows: Callable[[ExportResponse], List[List[CellValue]]] = field(repr=False, compare=False)
+    kinds: Optional[List[Optional[str]]] = field(default=None, repr=False, compare=False)
+
+    @property
+    def all_kinds(self) -> List[Optional[str]]:
+        return self.kinds if self.kinds is not None else [None] * len(self.headers)
 
 
 @dataclass
@@ -531,6 +546,10 @@ class ExportPlan:
     @property
     def headers(self) -> List[str]:
         return [h for column in self.columns for h in column.all_headers]
+
+    @property
+    def kinds(self) -> List[Optional[str]]:
+        return [k for column in self.columns for k in column.all_kinds]
 
     def row(self, response: ExportResponse) -> List[CellValue]:
         return [value for column in self.columns for value in column.cells(response)]
@@ -561,6 +580,8 @@ def catalogue(form: Dict[str, Any]) -> List[Column]:
                 header=header,
                 kind="internal",
                 cells=lambda r, f=field_: [cell(answer_value(r.internal_answers, f, LIST_SEPARATOR))],
+                source_field=field_,
+                kinds=[_date_kind(field_)],
             )
         )
     # The response's own data goes at the END of the row. A new header that a
@@ -586,6 +607,7 @@ def catalogue(form: Dict[str, Any]) -> List[Column]:
             header=unique(SUBMITTED_AT_COLUMN),
             kind="meta",
             cells=lambda r: [submitted_at_cell(r.created_at)],
+            kinds=["datetime"],
         )
     )
     for name in hidden_names:
@@ -600,6 +622,12 @@ def catalogue(form: Dict[str, Any]) -> List[Column]:
     return columns
 
 
+def _date_kind(field_: Dict[str, Any]) -> Optional[str]:
+    """``date`` for a question whose answer is a calendar day (a spreadsheet may
+    hold it as a real date), else None."""
+    return "date" if field_.get("type") in ("date", "input_date", "day") else None
+
+
 def _question_column(form: Dict[str, Any], field_: Dict[str, Any]) -> Column:
     key = QUESTION_PREFIX + str(field_.get("id"))
     title = column_title(field_, form)
@@ -609,13 +637,15 @@ def _question_column(form: Dict[str, Any], field_: Dict[str, Any]) -> Column:
             value = calculated_value(_dict(r.answers).get(f.get("id")))
             return [cell(("Yes" if value else "No") if isinstance(value, bool) else value)]
 
-        return Column(key=key, header=title, kind="question", cells=calculated)
+        return Column(key=key, header=title, kind="question", cells=calculated, source_field=field_)
     if not is_repeating_group(field_):
         return Column(
             key=key,
             header=title,
             kind="question",
             cells=lambda r, f=field_: [cell(answer_value(r.answers, f, LIST_SEPARATOR))],
+            source_field=field_,
+            kinds=[_date_kind(field_)],
         )
     settings = repeat_settings(field_)
     children = _exportable_children(field_)
@@ -625,6 +655,7 @@ def _question_column(form: Dict[str, Any], field_: Dict[str, Any]) -> Column:
             header=f"{title} ({settings.item_label} count)",
             kind="question",
             cells=lambda r, f=field_: [len(_group_items(r.answers, f.get("id")))],
+            source_field=field_,
         )
     headers = [
         f"{settings.item_label} {i + 1} – {column_title(child, form)}"
@@ -640,7 +671,15 @@ def _question_column(form: Dict[str, Any], field_: Dict[str, Any]) -> Column:
             for child in kids
         ]
 
-    return Column(key=key, header=headers[0] if headers else title, kind="question", cells=per_item, headers=headers)
+    return Column(
+        key=key,
+        header=headers[0] if headers else title,
+        kind="question",
+        cells=per_item,
+        headers=headers,
+        source_field=field_,
+        kinds=[_date_kind(child) for _ in range(settings.max_items) for child in children],
+    )
 
 
 def _group_table(form: Dict[str, Any], group: Dict[str, Any]) -> GroupTable:
@@ -662,6 +701,7 @@ def _group_table(form: Dict[str, Any], group: Dict[str, Any]) -> GroupTable:
         name=column_title(group, form),
         headers=[RESPONSE_ID_COLUMN, settings.item_label, *(column_title(c, form) for c in children)],
         rows=rows,
+        kinds=[None, None, *(_date_kind(c) for c in children)],
     )
 
 
@@ -702,6 +742,15 @@ _NEGATIVE_NUMBER = re.compile(r"-[0-9]+(?:\.[0-9]+)?")
 _FORMULA_START = re.compile(rf"[\t\r]|[{_JS_SPACE}]*[=+\-@]")
 
 
+def formula_like(value: CellValue) -> bool:
+    """Would a spreadsheet read this text cell as a formula? (A string starting
+    with = + - @ after any whitespace, or with a tab or CR; plain negative
+    decimals are numbers, not formulas.)"""
+    if not isinstance(value, str) or _NEGATIVE_NUMBER.fullmatch(value):
+        return False
+    return bool(_FORMULA_START.match(value))
+
+
 def formula_safe_cell(value: CellValue) -> CellValue:
     """Spreadsheet apps run cells starting with = + - @ (also after leading
     whitespace) or a tab / CR as formulas. Respondent text must never become
@@ -709,12 +758,10 @@ def formula_safe_cell(value: CellValue) -> CellValue:
     "this is text". Numbers, and plain negative decimals, are left alone.
     Everything else is prefixed, phone numbers starting with ``+`` included: a
     visible apostrophe keeps the data intact, while a phone number a
-    spreadsheet evaluates (``+31-6-1234-5678`` is a subtraction) is corrupted."""
-    if not isinstance(value, str):
-        return value
-    if _NEGATIVE_NUMBER.fullmatch(value):
-        return value
-    return f"'{value}" if _FORMULA_START.match(value) else value
+    spreadsheet evaluates (``+31-6-1234-5678`` is a subtraction) is corrupted.
+    (The XLSX file marks such a cell as text with a flag instead: see
+    ``xlsx.py``.)"""
+    return f"'{value}" if formula_like(value) else value
 
 
 def csv_line(cells: Iterable[CellValue]) -> str:

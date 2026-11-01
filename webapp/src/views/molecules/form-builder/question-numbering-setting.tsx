@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
+
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { formNumberingState } from '@app/utils/question-numbering';
@@ -12,20 +14,21 @@ import { styleTokens } from '@app/views/molecules/theme/theme-shared';
  * utils/question-numbering.ts). The Leaflet style always numbers.
  */
 export default function QuestionNumberingSetting() {
+    const { t } = useTranslation('builder');
     const { formFields, setShowQuestionNumbersOnAllPages } = useFormFieldsAtom();
     const { theme } = useFormState();
     const state = formNumberingState(formFields);
     const leaflet = styleTokens(theme?.style).key === 'leaflet';
 
     const hint = leaflet
-        ? 'The Leaflet style always numbers questions by section (1.1, 1.2, …). This applies when you switch to another style.'
+        ? t('NUMBERING.HINT_LEAFLET')
         : state === 'mixed'
-          ? 'Some pages are numbered and others are not. Switch on to number every page.'
-          : 'Respondents see 1., 2., … before each question; with several pages, 2.1, 2.2, … by page.';
+          ? t('NUMBERING.HINT_MIXED')
+          : t('NUMBERING.HINT');
 
     return (
-        <InspectorSection title="Numbering">
-            <SettingSwitch label="Number questions" checked={state === 'on'} onCheckedChange={(checked) => setShowQuestionNumbersOnAllPages(checked)} hint={hint} />
+        <InspectorSection title={t('NUMBERING.TITLE')}>
+            <SettingSwitch label={t('NUMBERING.LABEL')} checked={state === 'on'} onCheckedChange={(checked) => setShowQuestionNumbersOnAllPages(checked)} hint={hint} />
         </InspectorSection>
     );
 }

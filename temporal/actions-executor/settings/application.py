@@ -35,6 +35,21 @@ class ApplicationSettings(BaseSettings):
     # "<workspace> via <organization_name>" (the auth service's ORGANIZATION_NAME)
     organization_name: str = DEFAULT_ORGANIZATION_NAME
     max_thread_pool_executors: int = 20
+    # Isolation of the executor (docs/executor-isolation.md). ``enforce`` (the
+    # default): custom action code runs in a confined child process that holds
+    # no key, secret or network (sandbox/), every outgoing call of an action
+    # goes through the egress rules (utilities/egress.py), and the run's
+    # secrets are read from the backend already opened, so this process needs no
+    # AES key. ``legacy``: the pre-4.3 in-process ``exec`` with the whole
+    # process reachable, kept only as a way back; it logs an error at start.
+    action_isolation: str = "enforce"
+    # hosts (``host`` or ``host:port``, comma separated) the operator allows
+    # actions to call although they are internal or not https
+    action_egress_allow: str = ""
+    action_sandbox_memory_mb: int = 256
+    action_sandbox_cpu_seconds: int = 10
+    action_sandbox_timeout_seconds: int = 30
+    action_sandbox_max_calls: int = 20
     apm_settings: APMSettings = APMSettings()
 
     @field_validator("organization_name", mode="before")
@@ -46,6 +61,14 @@ class ApplicationSettings(BaseSettings):
             return DEFAULT_ORGANIZATION_NAME
         return str(value).strip()
 
+    @field_validator("action_isolation", mode="before")
+    @classmethod
+    def _known_isolation(cls, value):
+        text = str(value or "enforce").strip().lower() or "enforce"
+        if text not in ("enforce", "legacy"):
+            raise ValueError("ACTION_ISOLATION must be enforce or legacy")
+        return text
+
     @field_validator("api_key")
     @classmethod
     def _no_placeholder_key(cls, value: str) -> str:
@@ -54,6 +77,12 @@ class ApplicationSettings(BaseSettings):
 
 
 settings = ApplicationSettings()
+
+
+def isolation_enforced(current: Optional[ApplicationSettings] = None) -> bool:
+    """Whether custom action code and outgoing calls run under the isolation
+    (``ACTION_ISOLATION=enforce``, the default)."""
+    return (current or settings).action_isolation == "enforce"
 
 
 def log_if_api_key_missing(current: Optional[ApplicationSettings] = None) -> bool:

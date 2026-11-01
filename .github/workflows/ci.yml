@@ -320,6 +320,9 @@ jobs:
             # scratch values for the settings the tests read (not secrets)
             API_KEY: ci-test-only-api-key
             AES_HEX_KEY: "O-_wZyOtEjETmtamsaMMQkHJ3UIR2YqG7KrcmcQsKU8="
+            # the sandbox tests run (and fail) instead of skipping when the runner's
+            # kernel cannot confine a child (tests/sandbox_support.py)
+            REQUIRE_SANDBOX_TESTS: "1"
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:

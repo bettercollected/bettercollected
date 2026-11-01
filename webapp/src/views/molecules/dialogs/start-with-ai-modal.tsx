@@ -5,6 +5,7 @@ import Image from 'next/image';
 
 import { ChevronDown } from 'lucide-react';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 
 import { AIOptIn, aiErrorMessage, isAINotEnabledError, useWorkspaceAI } from '@app/components/ai/ai-consent';
 import OutlineReview, { OutlineDeletion, UndoNotice } from '@app/components/ai/outline-review';
@@ -37,8 +38,6 @@ const GradiantBorderDiv = styled.div`
     }
 `;
 
-const examples = ["Contact form to gather user’s information. Include fields for the user's name, email address, and phone number among others.", 'A form to collect suggestions for improving the design and functionality of an marketing app.'];
-
 type Step = 'prompt' | 'outlining' | 'review' | 'building';
 
 function Waiting({ title, detail }: { title: string; detail: string }) {
@@ -63,6 +62,8 @@ function ErrorNotice({ message }: { message: string | null }) {
 }
 
 export default function StartWithAi() {
+    const { t } = useTranslation('builder');
+    const examples = [t('START_AI.EXAMPLE_1'), t('START_AI.EXAMPLE_2')];
     const [prompt, setPrompt] = React.useState('');
     const [isOpen, setIsOpen] = React.useState(false);
     const workspace = useAppSelector(selectWorkspace);
@@ -101,7 +102,7 @@ export default function StartWithAi() {
             return;
         }
         setStep('prompt');
-        failed(response.error, 'Could not draft an outline. Please try again.');
+        failed(response.error, t('START_AI.OUTLINE_FAILED'));
     };
 
     // Step 2: the reviewed outline becomes a draft form. What is left to
@@ -118,14 +119,14 @@ export default function StartWithAi() {
             return;
         }
         setStep('review');
-        failed(response.error, 'Could not build the form. Please try again.');
+        failed(response.error, t('START_AI.BUILD_FAILED'));
     };
 
     // "AI is off" stops being true the moment AI is on
     const shownError = error && !(error.code === 'ai_not_enabled' && aiEnabled) ? error.message : null;
 
-    if (step === 'outlining') return <Waiting title="Drafting an outline" detail="You can review and change it before anything is created" />;
-    if (step === 'building') return <Waiting title="Building your form" detail="Your draft opens in the editor when it is ready" />;
+    if (step === 'outlining') return <Waiting title={t('START_AI.DRAFTING')} detail={t('START_AI.DRAFTING_DETAIL')} />;
+    if (step === 'building') return <Waiting title={t('START_AI.BUILDING')} detail={t('START_AI.BUILDING_DETAIL')} />;
 
     if (step === 'review' && outline) {
         const problems = outlineProblems(outline);
@@ -134,19 +135,18 @@ export default function StartWithAi() {
             // Header and footer stay put; only the outline list scrolls, so
             // the dialog fits the screen (its max height: use-dialog-modal).
             <div className="flex min-h-0 flex-1 flex-col" data-testid="start-with-ai-review">
-                <div className="p2-new shrink-0 border-b border-b-black-300 p-4">Start with AI</div>
+                <div className="p2-new shrink-0 border-b border-b-black-300 p-4">{t('START_AI.TITLE')}</div>
                 <div className="flex shrink-0 flex-col gap-3 px-4 pt-4 sm:px-10">
                     <div>
-                        <div className="text-black-800 text-normal font-medium">Review the outline</div>
+                        <div className="text-black-800 text-normal font-medium">{t('START_AI.REVIEW')}</div>
                         <p className="mt-1 text-xs text-black-600">
-                            {outline.pages.length} page{outline.pages.length === 1 ? '' : 's'}, {questionCount(outline)} question{questionCount(outline) === 1 ? '' : 's'}. Rename, reorder, delete or add questions, then build the form. Nothing is created
-                            until you do.
+                            {t('START_AI.REVIEW_SUMMARY', { pages: t('START_AI.PAGES_COUNT', { count: outline.pages.length }), questions: t('START_AI.QUESTIONS_COUNT', { count: questionCount(outline) }) })}
                         </p>
                     </div>
                     <ErrorNotice message={shownError} />
                     <div>
                         <label htmlFor="outline-title" className="text-xs text-black-700">
-                            Form title
+                            {t('START_AI.FORM_TITLE')}
                         </label>
                         <input id="outline-title" className="w-full rounded-md border border-black-300 px-2 py-1.5 text-sm" value={outline.title} maxLength={200} onChange={(event) => setOutline({ ...outline, title: event.target.value })} />
                     </div>
@@ -175,12 +175,12 @@ export default function StartWithAi() {
                             <div className="flex flex-col gap-1 rounded-md bg-black-100 px-3 py-2 text-xs text-black-700">
                                 <label htmlFor="outline-fill-gaps" className="flex items-center gap-2 font-medium text-black-800">
                                     <input id="outline-fill-gaps" type="checkbox" aria-describedby="outline-fill-gaps-notice" checked={fillGaps} onChange={(event) => setFillGaps(event.target.checked)} />
-                                    Let AI fill in missing choices and reasons
+                                    {t('START_AI.FILL_GAPS')}
                                 </label>
                                 <p id="outline-fill-gaps-notice">
                                     {fillGaps
-                                        ? `Build form sends pages that are missing choices or a reason, together with your workspace AI profile, to ${providerName}, so it can suggest them.`
-                                        : 'Build form sends nothing to the AI. Choice questions without choices are asked as short text, and missing reasons are listed for you to add.'}
+                                        ? t('START_AI.FILL_GAPS_ON', { provider: providerName })
+                                        : t('START_AI.FILL_GAPS_OFF')}
                                 </p>
                             </div>
                         )}
@@ -193,12 +193,12 @@ export default function StartWithAi() {
                                     setStep('prompt');
                                 }}
                             >
-                                Back to prompt
+                                {t('START_AI.BACK_TO_PROMPT')}
                             </Button>
                             <Button data-umami-event={'Building Form from AI outline'} type="button" onClick={handleBuild} disabled={problems.length > 0 || !aiEnabled}>
                                 <div className="z-10 flex items-center gap-2">
                                     <AIIcon aria-hidden="true" />
-                                    Build form
+                                    {t('START_AI.BUILD')}
                                 </div>
                             </Button>
                         </div>
@@ -210,15 +210,15 @@ export default function StartWithAi() {
 
     return (
         <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto">
-            <div className="p2-new border-b border-b-black-300 p-4">Start with AI</div>
+            <div className="p2-new border-b border-b-black-300 p-4">{t('START_AI.TITLE')}</div>
             <div className="flex flex-col gap-4 px-4 py-6 sm:px-10">
-                <div className="text-black-800 text-normal font-medium">Create a new form with AI</div>
+                <div className="text-black-800 text-normal font-medium">{t('START_AI.CREATE')}</div>
                 <ErrorNotice message={shownError} />
-                {aiSettings && !aiEnabled && <AIOptIn feature="Start with AI" sends="your prompt, the workspace AI profile and your AI memory" onEnabled={() => setError(null)} />}
+                {aiSettings && !aiEnabled && <AIOptIn feature={t('START_AI.OPT_IN_FEATURE')} sends={t('START_AI.OPT_IN_SENDS')} onEnabled={() => setError(null)} />}
                 <div className="prompt-input-wrapper rounded-lg bg-black-200 p-[1px]">
                     <div className="rounded-lg bg-white">
                         <label htmlFor="start-with-ai-prompt" className="sr-only">
-                            Describe the form you need
+                            {t('START_AI.PROMPT_LABEL')}
                         </label>
                         <textarea
                             id="start-with-ai-prompt"
@@ -228,7 +228,7 @@ export default function StartWithAi() {
                             }}
                             rows={4}
                             value={prompt}
-                            placeholder="E.g. Design a contact form with fields for name, email, subject, message, and field to upload media."
+                            placeholder={t('START_AI.PROMPT_PLACEHOLDER')}
                             onChange={(event) => {
                                 setPrompt(event.target.value);
                             }}
@@ -240,7 +240,7 @@ export default function StartWithAi() {
                         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
                             <CollapsibleTrigger asChild>
                                 <div className="mb-2 flex cursor-pointer items-center gap-2 text-sm font-medium text-black-700">
-                                    Examples <ChevronDown />
+                                    {t('START_AI.EXAMPLES')} <ChevronDown />
                                 </div>
                             </CollapsibleTrigger>
                             <CollapsibleContent className={cn('flex flex-col gap-2 transition-all duration-300', isOpen ? 'h-auto' : 'h-0')}>
@@ -263,18 +263,18 @@ export default function StartWithAi() {
                     <Button data-umami-event={'Creating Form with AI'} className="group" type="submit" disabled={!aiEnabled || !prompt.trim()}>
                         <div className="z-10 flex items-center gap-2">
                             <AIIcon aria-hidden="true" />
-                            {outline ? 'Draft a new outline' : 'Draft outline'}
+                            {outline ? t('START_AI.DRAFT_AGAIN') : t('START_AI.DRAFT')}
                         </div>
                     </Button>
                 </div>
                 {outline && (
                     <button type="button" className="self-start text-xs font-medium text-black-700 underline" onClick={() => setStep('review')}>
-                        Back to the outline you were reviewing
+                        {t('START_AI.BACK_TO_OUTLINE')}
                     </button>
                 )}
                 {aiEnabled && (
                     <p className="text-xs leading-relaxed text-black-600">
-                        Draft outline sends your prompt, the workspace AI profile and your AI memory to {providerName}. You review the outline before anything is created, and building asks before it sends anything more.
+                        {t('START_AI.DRAFT_SENDS', { provider: providerName })}
                     </p>
                 )}
             </div>

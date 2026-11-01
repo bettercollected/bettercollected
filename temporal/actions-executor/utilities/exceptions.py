@@ -7,10 +7,10 @@ class HTTPException(Exception):
         return self.content
 
     def __init__(
-            self,
-            status_code: int,
-            content: Any = None,
-            headers: Optional[Dict[str, Any]] = None,
+        self,
+        status_code: int,
+        content: Any = None,
+        headers: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Initialize HTTPException class object instance.
 

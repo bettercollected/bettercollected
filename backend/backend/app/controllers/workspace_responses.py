@@ -61,8 +61,14 @@ from backend.app.services.receipt_limits import (
 from backend.app.services.respondent_feedback_service import (
     RespondentFeedbackService,
 )
+from backend.app.services.response_export.http import NO_STORE as EXPORT_NO_STORE
+from backend.app.services.response_export.http import attachment
 from backend.app.services.signatures import carry_headers, read_throttle
-from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
+from backend.app.services.user_service import (
+    get_full_user,
+    get_logged_user,
+    get_user_if_logged_in,
+)
 from backend.app.utils.client_ip import request_client_ip
 from backend.app.utils.custom_routable import CustomRoutable
 from backend.app.utils.flow_analytics import aggregate_flow_events
@@ -555,6 +561,38 @@ class WorkspaceResponsesRouter(CustomRoutable):
         )
         # A raw Response replaces the one FastAPI injects, which is where the
         # sign-in dependency puts a refreshed session's cookies: carry them over.
+        carry_headers(response, served)
+        return served
+
+    @get("/submissions/{submission_id}/pdf")
+    async def _get_submission_pdf(
+        self,
+        workspace_id: RecordId,
+        submission_id: str,
+        response: Response,
+        lang: str | None = Query(None, max_length=16),
+        tz: str | None = Query(None, max_length=64),
+        user: User = Depends(get_full_user),
+    ):
+        """The PDF of one response, drawn on demand and never stored, for
+        the people who may read it (``response.read``): the form's title, when
+        it was submitted (in ``tz``, an IANA zone, default UTC), the answers with
+        their questions, in ``lang`` (``en`` or ``nl``). Rate limited and audited
+        like an export (docs/response-export.md): who and which response, never
+        its content."""
+        file = await container.response_export_service().response_pdf(
+            workspace_id, submission_id, user, lang, tz
+        )
+        served = Response(
+            content=file.data,
+            media_type="application/pdf",
+            headers={
+                **EXPORT_NO_STORE,
+                "Content-Disposition": attachment(file.file_name),
+                "Content-Security-Policy": "default-src 'none'; sandbox",
+            },
+        )
+        # the sign-in dependency's refreshed-session cookies live on the injected response
         carry_headers(response, served)
         return served
 

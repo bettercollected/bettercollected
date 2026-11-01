@@ -120,6 +120,7 @@ export default function FormVersionsPage() {
                             </div>
                         )}
 
+                        {data?.truncated && <p className="text-sm text-black-700">{t('FORM_VERSIONS.LIST_TRUNCATED', { count: versions.length })}</p>}
                         {versions.length === 0 ? (
                             <p className="text-sm text-black-700">{t('FORM_VERSIONS.NO_VERSIONS')}</p>
                         ) : (

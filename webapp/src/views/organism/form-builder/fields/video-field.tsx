@@ -3,6 +3,7 @@
 import { useId, useRef, useState } from 'react';
 
 import { Play } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
@@ -137,6 +138,7 @@ export function VideoPlayer({ field }: { field: StandardFormFieldDto }) {
 /** Builder: paste the video's link; the canvas shows the respondent's click-to-play frame. */
 function VideoFieldEditor({ field, slide }: { field: StandardFormFieldDto; slide: StandardFormFieldDto }) {
     const { updateFieldAttachment } = useFieldActions();
+    const { t } = useTranslation('builder');
     const inputId = useId();
     const errorId = useId();
     const href: string = field?.attachment?.href ?? '';
@@ -153,7 +155,7 @@ function VideoFieldEditor({ field, slide }: { field: StandardFormFieldDto; slide
         <div className="flex w-full flex-col gap-2">
             {href && <VideoPlayer key={href} field={field} />}
             <label htmlFor={inputId} className="text-xs font-medium text-black-700">
-                YouTube or Vimeo link
+                {t('CANVAS.VIDEO_LABEL')}
             </label>
             <input
                 id={inputId}
@@ -172,7 +174,7 @@ function VideoFieldEditor({ field, slide }: { field: StandardFormFieldDto; slide
             />
             {invalid && (
                 <p id={errorId} className="text-xs text-[#C43D3D]">
-                    Paste a link to a YouTube or Vimeo video.
+                    {t('CANVAS.VIDEO_INVALID')}
                 </p>
             )}
         </div>

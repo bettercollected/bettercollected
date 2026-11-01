@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from camel_converter import to_camel
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -12,9 +12,9 @@ from backend.app.models.filter_queries.response_export import (
 
 
 class ResponseExportRequest(BaseModel):
-    """``POST .../exports``: which columns and which responses. Everything is
-    optional: no body asks for every column of every response. The filter names
-    are those of the responses list."""
+    """``POST .../exports``: which columns and which responses, and in which
+    ``format``. Everything is optional: no body asks for every column of every
+    response as CSV. The filter names are those of the responses list."""
 
     model_config = ConfigDict(
         alias_generator=to_camel, populate_by_name=True, extra="forbid"
@@ -28,6 +28,9 @@ class ResponseExportRequest(BaseModel):
     respondent: Optional[RespondentFilter] = None
     form_version: List[int] = Field(default_factory=list, max_length=50)
     search: Optional[str] = Field(default=None, max_length=320)
+    # the file: csv (a zip of CSVs when a repeating group is a table of its own),
+    # xlsx (one sheet per table) or json; everything else about the export is the same
+    format: Literal["csv", "xlsx", "json"] = "csv"
 
     @model_validator(mode="after")
     def _instants(self):

@@ -634,6 +634,42 @@ class FormResponseService:
             feedback=staff_view,
         )
 
+    async def get_response_for_pdf(
+        self, workspace_id: RecordId, response_id: str, user: User
+    ):
+        """One decrypted response of this workspace and the form version it was
+        answered on, for the PDF of a submission: staff who may read responses
+        only (``response.read``: 403), and the same 404 as the single-response
+        read for a response that is not this workspace's. A respondent's own copy
+        is not served here. Returns ``(response, form dict)``."""
+        await self._authorization.authorize(
+            user, Permission.RESPONSE_READ, workspace_id
+        )
+        copies = await self._form_response_repo.list_by_response_id(response_id)
+        if not copies:
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        response = await pick_in_workspace(
+            self._workspace_form_repo, copies, workspace_id
+        )
+        if response is None or not await self._workspace_form_repo.find_workspace_form(
+            workspace_id, response.form_id
+        ):
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        form = None
+        if response.form_version:
+            form = await self._form_repo.get_form_by_by_version(
+                response.form_id, response.form_version
+            )
+        if not form:
+            form = await self._form_repo.get_form_document_by_id(response.form_id)
+        if not form:
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        readable = self.decrypt_form_response(
+            workspace_id=workspace_id,
+            response=StandardFormResponseCamelModel(**response.model_dump()),
+        )
+        return readable, form.model_dump(mode="json", exclude_none=True)
+
     async def signature_image(
         self, workspace_id: RecordId, response_id: str, field_id: str, user: User
     ) -> bytes:

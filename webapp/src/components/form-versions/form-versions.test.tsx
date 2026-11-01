@@ -91,6 +91,12 @@ describe('the versions list', () => {
         expect(screen.getByText('Has changes that are not published yet')).toBeInTheDocument();
     });
 
+    it('says when older versions than the newest ones listed exist', () => {
+        list.data = { ...VERSIONS, truncated: true };
+        render(<FormVersionsPage />, { wrapper });
+        expect(screen.getByText('Only the newest 2 versions are listed.')).toBeInTheDocument();
+    });
+
     it('offers Restore only with form.edit', () => {
         permissions = new Set([WorkspacePermission.FORM_READ]);
         render(<FormVersionsPage />, { wrapper });

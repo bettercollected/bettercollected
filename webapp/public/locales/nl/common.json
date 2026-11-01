@@ -1187,7 +1187,7 @@
     "CLEANED_UP": "De vorige koppeling is verwijderd."
   },
   "RESPONSE_EXPORT": {
-    "BUTTON": "CSV exporteren",
+    "BUTTON": "{{format}} exporteren",
     "BUTTON_MATCHING": "Gevonden reacties exporteren",
     "STARTING": "Uw export wordt gestart…",
     "PREPARING": "We bereiden uw export voor. Dat kan een paar minuten duren. U kunt deze pagina openlaten of later terugkomen; de export wacht hier op u.",
@@ -1213,7 +1213,12 @@
     "DOWNLOADED_STAYS": "Gedownload. Het bestand blijft tot {{time}} op onze servers staan, dus u kunt het opnieuw downloaden.",
     "DISCARD": "Bestand verwijderen",
     "DISCARDING": "Bestand wordt verwijderd…",
-    "DISCARDED": "Het bestand is van onze servers verwijderd. U kunt een nieuwe export starten."
+    "DISCARDED": "Het bestand is van onze servers verwijderd. U kunt een nieuwe export starten.",
+    "FORMAT": "Bestandsindeling",
+    "FORMAT_CSV": "CSV",
+    "FORMAT_XLSX": "Excel",
+    "FORMAT_JSON": "JSON",
+    "ERROR_TOO_MANY_COLUMNS": "Dit formulier heeft meer kolommen dan een Excel-werkblad kan bevatten. Kies in plaats daarvan CSV of JSON."
   },
   "RESPONSES_LIST": {
     "FILTERS": "Reacties filteren en sorteren",
@@ -1414,7 +1419,16 @@
     "DELETE_FAILED": "De reactie kon niet worden verwijderd. Probeer het opnieuw.",
     "FORM_VERSION": "Formulierversie",
     "VERSION_N": "Versie {{n}}",
-    "FORM_VERSION_LINK": "Versie {{n}} van het formulier openen, alleen lezen"
+    "FORM_VERSION_LINK": "Versie {{n}} van het formulier openen, alleen lezen",
+    "PDF": "PDF downloaden",
+    "PDF_PREPARING": "De pdf wordt gemaakt…",
+    "PDF_DONE": "De pdf is gedownload.",
+    "PDF_ERROR_RATE_LIMITED": "U hebt veel pdf’s gedownload. Probeer het over {{minutes}} minuten opnieuw.",
+    "PDF_ERROR_TOO_LARGE": "Deze reactie is te lang voor een pdf.",
+    "PDF_ERROR_FORBIDDEN": "U mag deze reactie niet downloaden.",
+    "PDF_ERROR_MISSING": "Deze reactie is niet meer beschikbaar.",
+    "PDF_ERROR_BUSY": "Er worden meerdere pdf’s gemaakt. Probeer het zo opnieuw.",
+    "PDF_ERROR_GENERIC": "De pdf kon niet worden gemaakt. Probeer het opnieuw."
   },
   "RESPONSE_TEAM": {
     "INTERNAL_TITLE": "Intern · alleen voor medewerkers",
@@ -2296,7 +2310,8 @@
       "signature": "Handtekening",
       "IMAGE_CONTENT": "Afbeelding",
       "VIDEO_CONTENT": "Video"
-    }
+    },
+    "LIST_TRUNCATED": "Alleen de nieuwste {{count}} versies worden getoond."
   },
   "RESPONSE_EDIT": {
     "BUTTON": "Antwoorden bewerken",

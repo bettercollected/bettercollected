@@ -230,7 +230,7 @@ async def test_a_failed_build_is_marked_and_leaves_no_file(client: AsyncClient, 
     await submit_many(workspace, form, 4)
     export = await queued(client, workspace, form)
 
-    real = service_module.write_export
+    real = service_module.write_file
 
     async def broken(*args, **kwargs):
         count = 0
@@ -241,7 +241,7 @@ async def test_a_failed_build_is_marked_and_leaves_no_file(client: AsyncClient, 
                 raise RuntimeError("Person 1 could not be written")
 
     monkeypatch.setattr(writer, "PIECE_BYTES", 20)
-    monkeypatch.setattr(service_module, "write_export", broken)
+    monkeypatch.setattr(service_module, "write_file", broken)
     assert await build(export["id"]) == "failed"
     entry = await repo().get_by_id(export["id"])
     assert entry.status == ExportStatus.FAILED and entry.error_code == "build_failed"
@@ -458,7 +458,7 @@ async def test_a_job_that_is_building_when_responses_are_deleted_throws_its_file
     await submit_many(workspace, form, 6)
     export = await queued(client, workspace, form)
     victim = (await container.form_response_repo().many())[0]
-    real = service_module.write_export
+    real = service_module.write_file
     deleted = {"done": False}
 
     async def deleting(*args, **kwargs):
@@ -473,7 +473,7 @@ async def test_a_job_that_is_building_when_responses_are_deleted_throws_its_file
                 )
 
     monkeypatch.setattr(writer, "PIECE_BYTES", 20)
-    monkeypatch.setattr(service_module, "write_export", deleting)
+    monkeypatch.setattr(service_module, "write_file", deleting)
     assert await build(export["id"]) == "cancelled"
     entry = await repo().get_by_id(export["id"])
     assert entry.error_code == "responses_deleted" and entry.invalidated_at

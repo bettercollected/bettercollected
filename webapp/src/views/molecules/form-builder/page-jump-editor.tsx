@@ -6,11 +6,13 @@ import { useFormState } from '@app/store/jotai/form';
 import { isJumpTargetValid } from '@app/utils/conditional-logic';
 import { defaultEnding, endingLabel, isJumpEndingMissing, jumpChoiceValue, jumpEndingId, jumpFromChoice, withEndingIds } from '@app/utils/endings';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { buildSourceFields, ConditionRow, isConditionSource, newConditionFor, pageLabel, selectClass } from './condition-editor-shared';
 
 const MISSING = '__MISSING_TARGET__';
 
 export default function PageJumpEditor() {
+    const { t } = useTranslation('builder');
     const { formFields, activeSlide, updateSlideJumps } = useFormFieldsAtom();
     const { formState } = useFormState();
 
@@ -31,10 +33,10 @@ export default function PageJumpEditor() {
     // as "submit" (it follows the default), unless a jump names it itself.
     const namesDefault = ((activeSlide?.properties?.jumps as PageJump[] | undefined) ?? []).some((jump) => fallbackEnding && jumpEndingId(jump) === fallbackEnding.id);
     const endingTargets = [
-        { id: JUMP_TARGET_SUBMIT, label: fallbackEnding && endings.length > 1 ? `Submit · ${named(endings.indexOf(fallbackEnding))} (default)` : 'Submit' },
+        { id: JUMP_TARGET_SUBMIT, label: fallbackEnding && endings.length > 1 ? t('LOGIC.SUBMIT_ENDING_DEFAULT', { ending: named(endings.indexOf(fallbackEnding)) }) : t('LOGIC.SUBMIT') },
         ...(endings.length > 1
             ? endings
-                  .map((ending, i) => ({ ending, id: jumpChoiceValue({ target: JUMP_TARGET_SUBMIT, endingId: ending.id }), label: `Submit · ${named(i)}` }))
+                  .map((ending, i) => ({ ending, id: jumpChoiceValue({ target: JUMP_TARGET_SUBMIT, endingId: ending.id }), label: t('LOGIC.SUBMIT_ENDING', { ending: named(i) }) }))
                   .filter(({ ending }) => ending !== fallbackEnding || namesDefault)
                   .map(({ id, label }) => ({ id, label }))
             : [])
@@ -59,8 +61,8 @@ export default function PageJumpEditor() {
     if (sources.length === 0) {
         return (
             <div className="flex flex-col gap-1 px-4 py-4">
-                <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Logic</div>
-                <div className="text-black-600 text-xs">Add questions to this page (or an earlier one) to send people to another page based on their answers.</div>
+                <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">{t('LOGIC.TITLE')}</div>
+                <div className="text-black-600 text-xs">{t('LOGIC.JUMP_NEED_QUESTIONS')}</div>
             </div>
         );
     }
@@ -68,8 +70,11 @@ export default function PageJumpEditor() {
     return (
         <div className="flex flex-col gap-3 px-4 py-4">
             <div>
-                <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Logic</div>
-                <div className="text-black-600 text-[11px]">Send people to another page based on their answers.{jumps.length > 1 ? ' Checked top to bottom — first match wins.' : ''}</div>
+                <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">{t('LOGIC.TITLE')}</div>
+                <div className="text-black-600 text-[11px]">
+                    {t('LOGIC.JUMP_HINT')}
+                    {jumps.length > 1 ? t('LOGIC.FIRST_MATCH') : ''}
+                </div>
             </div>
 
             {jumps.map((jump, jIdx) => {
@@ -81,16 +86,16 @@ export default function PageJumpEditor() {
                         <div className="text-black-600 flex items-center gap-1">
                             {jumps.length > 1 && (
                                 <>
-                                    <span className="text-[11px] font-medium">Rule {jIdx + 1}</span>
-                                    <button aria-label="Move rule up" disabled={jIdx === 0} className="hover:text-black-700 disabled:opacity-30" onClick={() => moveJump(jIdx, -1)}>
+                                    <span className="text-[11px] font-medium">{t('LOGIC.RULE_N', { n: jIdx + 1 })}</span>
+                                    <button aria-label={t('LOGIC.MOVE_RULE_UP')} disabled={jIdx === 0} className="hover:text-black-700 disabled:opacity-30" onClick={() => moveJump(jIdx, -1)}>
                                         <ChevronUp className="h-3.5 w-3.5" />
                                     </button>
-                                    <button aria-label="Move rule down" disabled={jIdx === jumps.length - 1} className="hover:text-black-700 disabled:opacity-30" onClick={() => moveJump(jIdx, 1)}>
+                                    <button aria-label={t('LOGIC.MOVE_RULE_DOWN')} disabled={jIdx === jumps.length - 1} className="hover:text-black-700 disabled:opacity-30" onClick={() => moveJump(jIdx, 1)}>
                                         <ChevronDown className="h-3.5 w-3.5" />
                                     </button>
                                 </>
                             )}
-                            <button aria-label="Remove rule" className="hover:text-black-700 ml-auto" onClick={() => commit(jumps.filter((_, i) => i !== jIdx))}>
+                            <button aria-label={t('LOGIC.REMOVE_RULE')} className="hover:text-black-700 ml-auto" onClick={() => commit(jumps.filter((_, i) => i !== jIdx))}>
                                 <X className="h-3.5 w-3.5" />
                             </button>
                         </div>
@@ -98,15 +103,15 @@ export default function PageJumpEditor() {
                         <div className="text-black-600 flex flex-col gap-1.5 text-xs">
                             {jump.conditions.length > 1 ? (
                                 <div className="flex items-center gap-1">
-                                    <span className="shrink-0">When</span>
+                                    <span className="shrink-0">{t('LOGIC.WHEN')}</span>
                                     <select className={selectClass} value={jump.operator} onChange={(e) => patchJump(jIdx, { operator: e.target.value as LogicalOperator })}>
-                                        <option value={LogicalOperator.AND}>all</option>
-                                        <option value={LogicalOperator.OR}>any</option>
+                                        <option value={LogicalOperator.AND}>{t('LOGIC.ALL')}</option>
+                                        <option value={LogicalOperator.OR}>{t('LOGIC.ANY')}</option>
                                     </select>
-                                    <span className="shrink-0">match:</span>
+                                    <span className="shrink-0">{t('LOGIC.MATCH_COLON')}</span>
                                 </div>
                             ) : (
-                                <span>When this matches:</span>
+                                <span>{t('LOGIC.WHEN_THIS_MATCHES')}</span>
                             )}
                         </div>
 
@@ -121,14 +126,14 @@ export default function PageJumpEditor() {
                         ))}
 
                         <button className="text-brand-500 hover:text-brand-600 w-fit text-xs font-medium" onClick={() => patchJump(jIdx, { conditions: [...jump.conditions, newConditionFor(sources)] })}>
-                            + Add condition
+                            {t('LOGIC.ADD_CONDITION')}
                         </button>
 
                         <div className="text-black-600 flex items-center gap-1 text-xs">
-                            <span className="shrink-0">→ go to</span>
+                            <span className="shrink-0">{t('LOGIC.GO_TO')}</span>
                             <select
                                 className={targetValid ? selectClass : selectClass.replace('border-control', 'border-amber-400')}
-                                aria-label={`Destination of rule ${jIdx + 1}`}
+                                aria-label={t('LOGIC.DESTINATION', { n: jIdx + 1 })}
                                 aria-invalid={targetValid ? undefined : true}
                                 aria-describedby={targetValid ? undefined : `jump-target-hint-${activeSlide.id}-${jIdx}`}
                                 value={targetValid ? jumpChoiceValue(jump) : MISSING}
@@ -138,20 +143,20 @@ export default function PageJumpEditor() {
                                     commit(jumps.map((j, i) => (i === jIdx ? { ...rest, target, ...(endingId ? { endingId } : {}) } : j)));
                                 }}
                             >
-                                {!targetValid && <option value={MISSING}>{endingMissing ? '⚠ Deleted ending — pick a target' : '⚠ Deleted page — pick a target'}</option>}
+                                {!targetValid && <option value={MISSING}>{endingMissing ? t('LOGIC.DELETED_ENDING_OPTION') : t('LOGIC.DELETED_PAGE_OPTION')}</option>}
                                 {pageTargets.length > 0 && (
-                                    <optgroup label="Go to page">
-                                        {pageTargets.map((t) => (
-                                            <option key={t.id} value={t.id}>
-                                                {t.label}
+                                    <optgroup label={t('LOGIC.GO_TO_PAGE')}>
+                                        {pageTargets.map((target) => (
+                                            <option key={target.id} value={target.id}>
+                                                {target.label}
                                             </option>
                                         ))}
                                     </optgroup>
                                 )}
-                                <optgroup label="Submit and show">
-                                    {endingTargets.map((t) => (
-                                        <option key={t.id} value={t.id}>
-                                            {t.label}
+                                <optgroup label={t('LOGIC.SUBMIT_AND_SHOW')}>
+                                    {endingTargets.map((target) => (
+                                        <option key={target.id} value={target.id}>
+                                            {target.label}
                                         </option>
                                     ))}
                                 </optgroup>
@@ -159,16 +164,16 @@ export default function PageJumpEditor() {
                         </div>
                         {!targetValid && (
                             <span id={`jump-target-hint-${activeSlide.id}-${jIdx}`} className="text-[11px] text-amber-700">
-                                {endingMissing ? 'This rule shows an ending that was deleted. Pick a new destination.' : 'This rule points to a page that was deleted. Pick a new destination.'}
+                                {endingMissing ? t('LOGIC.DELETED_ENDING_HINT') : t('LOGIC.DELETED_PAGE_HINT')}
                             </span>
                         )}
-                        {isNoOp && <span className="text-black-600 text-[11px]">This is already the next page, so the rule has no effect.</span>}
+                        {isNoOp && <span className="text-black-600 text-[11px]">{t('LOGIC.NO_EFFECT')}</span>}
                     </div>
                 );
             })}
 
             <button className="text-brand-500 hover:text-brand-600 w-fit text-xs font-medium" onClick={addJump}>
-                + Add rule
+                {t('LOGIC.ADD_RULE')}
             </button>
         </div>
     );
