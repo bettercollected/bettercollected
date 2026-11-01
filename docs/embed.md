@@ -148,6 +148,6 @@ opens the form on its own address, not in the frame.
   its `/preview`) and `/forms/<form>` on custom domains from `GET /workspaces/embed/policy` (public: it answers
   only what the header itself shows; unknown workspaces get an empty list). If the backend cannot be asked the
   header is the strict default, never an open one.
-- The dashboard pages now carry `frame-ancestors 'self'`.
+- Every other page carries `frame-ancestors 'self' <dashboard origin>` (see "Who may frame a page" in the developers guide).
 - API: `GET`/`PUT /workspaces/{id}/embed/settings` (`form.share` or `workspace.manage` reads, `workspace.manage`
   writes; 404 while the switch is off). No migration: the list is a field of the workspace record.

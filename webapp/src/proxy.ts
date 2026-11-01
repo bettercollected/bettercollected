@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import environments from '@app/configs/environments';
+import { frameAncestorsFor } from '@app/lib/frame-ancestors';
 import { ASSERTION_HEADER, customDomainTarget } from '@app/lib/server/custom-domain';
 import { EmbedPolicy, PolicyQuery, fetchEmbedPolicy, frameAncestorsValue } from '@app/lib/server/embed-policy';
 
@@ -81,19 +82,23 @@ function dashboardOrigin(): string {
 }
 
 /**
- * Framing, by page. The dashboard is never framed by another site (`frame-ancestors 'self'`). A published
- * form's page is answered from the workspace's embed policy (docs/embed.md): with the server's switch off
- * no header at all (as before); on, this site, the dashboard's preview and the workspace's allowed sites.
- * The sign-in redirect stays dashboard-only.
+ * Framing, by page, at request time (next.config.js `headers()` is evaluated when the image is built, without
+ * the running server's domains, which is how the old `X-Frame-Options: ALLOW-FROM` named an undefined host).
+ * A published form's page is answered from the workspace's embed policy (docs/embed.md): with the server's
+ * switch off no header at all (as before); on, this site, the dashboard's preview and the workspace's allowed
+ * sites. Every other page says `frame-ancestors 'self' <dashboard origin>` (lib/frame-ancestors.ts). The two
+ * branches are exclusive, so a response carries one policy at most: a form page that has no embed target
+ * (a custom-domain request whose assertion fails) is answered by the first branch with the strict default,
+ * never by both. The matcher covers every route but `_next/` and files with a static-file extension (a
+ * workspace handle may contain a dot), the 404 page included. A link to a dashboard page without a session
+ * goes to sign-in.
  */
 export function proxy(request: NextRequest): NextResponse | Promise<NextResponse> {
     const { pathname } = request.nextUrl;
-    if (DASHBOARD_PATH.test(pathname)) {
-        return withFrameAncestors(signInRedirect(request) ?? NextResponse.next(), "frame-ancestors 'self'");
-    }
-    const target = embedPolicyQuery(request);
-    if (!target) return NextResponse.next();
-    return answerForm(target.query);
+    const target = DASHBOARD_PATH.test(pathname) ? null : embedPolicyQuery(request);
+    if (target) return answerForm(target.query);
+    const response = (DASHBOARD_PATH.test(pathname) ? signInRedirect(request) : null) ?? NextResponse.next();
+    return withFrameAncestors(response, frameAncestorsFor(pathname, dashboardOrigin()));
 }
 
 async function answerForm(query: PolicyQuery | null): Promise<NextResponse> {
@@ -102,5 +107,5 @@ async function answerForm(query: PolicyQuery | null): Promise<NextResponse> {
 }
 
 export const config = {
-    matcher: ['/:workspace_name/dashboard', '/:workspace_name/dashboard/:path*', '/:workspace_name/forms/:form_id', '/:workspace_name/forms/:form_id/preview', '/forms/:form_id']
+    matcher: ['/((?!_next/|.*\\.(?:png|jpe?g|gif|svg|ico|webp|avif|css|js|mjs|map|json|txt|xml|woff2?|ttf|otf|webmanifest|mp4|pdf)$).*)']
 };

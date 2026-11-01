@@ -27,11 +27,11 @@ describe('proxy: who may frame a page', () => {
         vi.unstubAllEnvs();
     });
 
-    it('keeps the dashboard to itself', async () => {
+    it("keeps the dashboard to itself and the dashboard's own origin", async () => {
         const reply = proxy(request('/acme/dashboard/forms', 'admin.example.test', { cookie: 'Authorization=x' }));
-        expect(await csp(reply)).toBe("frame-ancestors 'self'");
+        expect(await csp(reply)).toBe("frame-ancestors 'self' https://admin.example.test");
         // the sign-in redirect carries it too
-        expect(await csp(proxy(request('/acme/dashboard', 'admin.example.test')))).toBe("frame-ancestors 'self'");
+        expect(await csp(proxy(request('/acme/dashboard', 'admin.example.test')))).toBe("frame-ancestors 'self' https://admin.example.test");
     });
 
     it('sends no framing header on a form page while the switch is off, and asks by workspace name', async () => {
@@ -79,13 +79,15 @@ describe('proxy: who may frame a page', () => {
         expect(fetcher).toHaveBeenCalledTimes(2);
     });
 
-    it('leaves every other page alone, and the dashboard host never gets a form policy', async () => {
+    it('gives every other page the plain rule, and the dashboard host never gets a form policy', async () => {
         const fetcher = policyOf({ enabled: true, origins: [] });
         vi.stubGlobal('fetch', fetcher);
         expect(await csp(proxy(request('/acme/forms/contact', 'admin.example.test')))).toBeNull();
-        expect(await csp(proxy(request('/acme', 'forms.example.test')))).toBeNull();
-        expect(await csp(proxy(request('/acme/forms', 'forms.example.test')))).toBeNull();
-        expect(await csp(proxy(request('/acme/forms/contact/extra', 'forms.example.test')))).toBeNull();
+        // any other page has the plain rule (lib/frame-ancestors.ts), not a policy
+        const plain = "frame-ancestors 'self' https://admin.example.test";
+        expect(await csp(proxy(request('/acme', 'forms.example.test')))).toBe(plain);
+        expect(await csp(proxy(request('/acme/forms', 'forms.example.test')))).toBe(plain);
+        expect(await csp(proxy(request('/acme/forms/contact/extra', 'forms.example.test')))).toBe(plain);
         expect(fetcher).not.toHaveBeenCalled();
     });
 
