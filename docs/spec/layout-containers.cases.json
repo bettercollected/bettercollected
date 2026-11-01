@@ -1853,6 +1853,475 @@
      }
     ]
    }
+  },
+  {
+   "name": "a container id that is a question id",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c1"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "a",
+        "b"
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "c1",
+      "message": "The id 'c1' is also the id of a question or page."
+     }
+    ]
+   }
+  },
+  {
+   "name": "a container id that is a question id on another page",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b"
+     ],
+     "containers": [
+      {
+       "id": "x",
+       "type": "panel",
+       "title": "X",
+       "fields": [
+        "a",
+        "b"
+       ]
+      }
+     ]
+    },
+    {
+     "fields": [
+      "x"
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "x",
+      "message": "The id 'x' is also the id of a question or page."
+     }
+    ]
+   }
+  },
+  {
+   "name": "a tab id that is a question id",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "t1"
+     ],
+     "containers": [
+      {
+       "id": "k",
+       "type": "tabs",
+       "tabs": [
+        {
+         "id": "t1",
+         "title": "One",
+         "fields": [
+          "a"
+         ]
+        },
+        {
+         "id": "t2",
+         "title": "Two",
+         "fields": [
+          "b"
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "k",
+      "message": "The id 't1' is also the id of a question or page."
+     }
+    ]
+   }
+  },
+  {
+   "name": "a tab id that is a repeating group's child",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      {
+       "id": "g",
+       "group": [
+        "t1"
+       ]
+      }
+     ],
+     "containers": [
+      {
+       "id": "k",
+       "type": "tabs",
+       "tabs": [
+        {
+         "id": "t1",
+         "title": "One",
+         "fields": [
+          "a"
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "k",
+      "message": "The id 't1' is also the id of a question or page."
+     }
+    ]
+   }
+  },
+  {
+   "name": "a container id that is a page id",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b"
+     ],
+     "containers": [
+      {
+       "id": "p2",
+       "type": "panel",
+       "title": "P2",
+       "fields": [
+        "a",
+        "b"
+       ]
+      }
+     ]
+    },
+    {
+     "fields": [
+      "x"
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "p2",
+      "message": "The id 'p2' is also the id of a question or page."
+     }
+    ]
+   }
+  },
+  {
+   "name": "a rule with the most conditions allowed",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "b",
+        "c"
+       ],
+       "logic": {
+        "action": "SHOW",
+        "operator": "OR",
+        "conditions": [
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "0"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "1"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "2"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "3"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "4"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "5"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "6"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "7"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "8"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "9"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "10"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "11"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "12"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "13"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "14"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "15"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "16"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "17"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "18"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "19"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": []
+   }
+  },
+  {
+   "name": "a rule with more conditions than allowed",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "b",
+        "c"
+       ],
+       "logic": {
+        "action": "SHOW",
+        "operator": "OR",
+        "conditions": [
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "0"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "1"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "2"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "3"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "4"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "5"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "6"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "7"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "8"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "9"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "10"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "11"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "12"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "13"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "14"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "15"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "16"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "17"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "18"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "19"
+         },
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "20"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "c1",
+      "message": "A container's rule can have at most 20 conditions."
+     }
+    ]
+   }
   }
  ]
 }

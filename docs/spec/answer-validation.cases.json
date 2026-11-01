@@ -20321,6 +20321,519 @@
           "rule": "format"
         }
       ]
+    },
+    {
+      "name": "required questions in a container hidden by its rule are not required",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              },
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3",
+                "validations": {
+                  "required": true
+                }
+              },
+              {
+                "id": "q4",
+                "type": "short_text",
+                "title": "q4",
+                "validations": {
+                  "required": true
+                }
+              }
+            ],
+            "containers": [
+              {
+                "id": "k1",
+                "type": "panel",
+                "title": "Details",
+                "fields": [
+                  "q2",
+                  "q3"
+                ],
+                "logic": {
+                  "action": "SHOW",
+                  "operator": "AND",
+                  "conditions": [
+                    {
+                      "fieldId": "q1",
+                      "fieldType": "yes_no",
+                      "comparison": "IS_EQUAL",
+                      "value": "Yes"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": false
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q4",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "required questions in a container shown by its rule are required",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              },
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3",
+                "validations": {
+                  "required": true
+                }
+              }
+            ],
+            "containers": [
+              {
+                "id": "k1",
+                "type": "panel",
+                "title": "Details",
+                "fields": [
+                  "q2",
+                  "q3"
+                ],
+                "logic": {
+                  "action": "SHOW",
+                  "operator": "AND",
+                  "conditions": [
+                    {
+                      "fieldId": "q1",
+                      "fieldType": "yes_no",
+                      "comparison": "IS_EQUAL",
+                      "value": "Yes"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        },
+        "q3": {
+          "type": "text",
+          "text": "x"
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q2",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "a repeating group inside a container hidden by its rule is not checked",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              },
+              {
+                "id": "g1",
+                "type": "group",
+                "title": "People",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "itemLabel": "Person"
+                  },
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "short_text",
+                      "title": "c1",
+                      "validations": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "containers": [
+              {
+                "id": "k1",
+                "type": "fieldset",
+                "title": "People",
+                "fields": [
+                  "q2",
+                  "g1"
+                ],
+                "logic": {
+                  "action": "HIDE",
+                  "operator": "AND",
+                  "conditions": [
+                    {
+                      "fieldId": "q1",
+                      "fieldType": "yes_no",
+                      "comparison": "IS_EQUAL",
+                      "value": "Yes"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "a repeating group inside a container shown by its rule is checked",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              },
+              {
+                "id": "g1",
+                "type": "group",
+                "title": "People",
+                "properties": {
+                  "repeat": {
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "itemLabel": "Person"
+                  },
+                  "fields": [
+                    {
+                      "id": "c1",
+                      "type": "short_text",
+                      "title": "c1",
+                      "validations": {
+                        "required": true
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "containers": [
+              {
+                "id": "k1",
+                "type": "fieldset",
+                "title": "People",
+                "fields": [
+                  "q2",
+                  "g1"
+                ],
+                "logic": {
+                  "action": "HIDE",
+                  "operator": "AND",
+                  "conditions": [
+                    {
+                      "fieldId": "q1",
+                      "fieldType": "yes_no",
+                      "comparison": "IS_EQUAL",
+                      "value": "Yes"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": false
+        },
+        "q2": {
+          "type": "text",
+          "text": "x"
+        },
+        "g1": {
+          "type": "group",
+          "items": [
+            {
+              "c1": {
+                "type": "text",
+                "text": "Ann"
+              }
+            },
+            {}
+          ]
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "c1",
+          "rule": "required",
+          "item": 1
+        }
+      ]
+    },
+    {
+      "name": "a hidden tabs strip hides the questions of every tab but not the ones after it",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "short_text",
+                "title": "q2",
+                "validations": {
+                  "required": true
+                }
+              },
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3",
+                "validations": {
+                  "required": true
+                }
+              },
+              {
+                "id": "q4",
+                "type": "short_text",
+                "title": "q4",
+                "validations": {
+                  "required": true
+                }
+              }
+            ],
+            "containers": [
+              {
+                "id": "k1",
+                "type": "tabs",
+                "tabs": [
+                  {
+                    "id": "k1t1",
+                    "title": "One",
+                    "fields": [
+                      "q2"
+                    ]
+                  },
+                  {
+                    "id": "k1t2",
+                    "title": "Two",
+                    "fields": [
+                      "q3"
+                    ]
+                  }
+                ],
+                "logic": {
+                  "action": "HIDE",
+                  "operator": "AND",
+                  "conditions": [
+                    {
+                      "fieldId": "q1",
+                      "fieldType": "yes_no",
+                      "comparison": "IS_EQUAL",
+                      "value": "Yes"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        }
+      },
+      "errors": [
+        {
+          "fieldId": "q4",
+          "rule": "required"
+        }
+      ]
+    },
+    {
+      "name": "a question in a shown container still obeys its own rule",
+      "checks": [
+        "required"
+      ],
+      "form": [
+        {
+          "id": "p1",
+          "type": "slide",
+          "properties": {
+            "fields": [
+              {
+                "id": "q1",
+                "type": "yes_no",
+                "title": "q1"
+              },
+              {
+                "id": "q2",
+                "type": "yes_no",
+                "title": "q2"
+              },
+              {
+                "id": "q3",
+                "type": "short_text",
+                "title": "q3",
+                "validations": {
+                  "required": true
+                },
+                "properties": {
+                  "logic": {
+                    "action": "SHOW",
+                    "operator": "AND",
+                    "conditions": [
+                      {
+                        "fieldId": "q2",
+                        "fieldType": "yes_no",
+                        "comparison": "IS_EQUAL",
+                        "value": "Yes"
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            "containers": [
+              {
+                "id": "k1",
+                "type": "panel",
+                "title": "Details",
+                "fields": [
+                  "q2",
+                  "q3"
+                ],
+                "logic": {
+                  "action": "SHOW",
+                  "operator": "AND",
+                  "conditions": [
+                    {
+                      "fieldId": "q1",
+                      "fieldType": "yes_no",
+                      "comparison": "IS_EQUAL",
+                      "value": "Yes"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "answers": {
+        "q1": {
+          "type": "boolean",
+          "boolean": true
+        },
+        "q2": {
+          "type": "boolean",
+          "boolean": false
+        }
+      },
+      "errors": []
     }
   ]
 }
