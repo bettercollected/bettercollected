@@ -1199,5 +1199,9 @@
     "TOO_DEEP_TITLE": "That page is too far to open directly",
     "TOO_DEEP_BODY": "Move through the list with the pager, or start from the first page.",
     "GO_FIRST": "Go to the first page"
+  },
+  "STAFF_LANGUAGE": {
+    "LABEL": "Language",
+    "GROUP": "Language of the dashboard"
   }
 }

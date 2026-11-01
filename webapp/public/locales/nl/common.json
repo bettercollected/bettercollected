@@ -1199,5 +1199,9 @@
     "TOO_DEEP_TITLE": "Die pagina is te ver om direct te openen",
     "TOO_DEEP_BODY": "Blader door de lijst met de paginering, of begin bij de eerste pagina.",
     "GO_FIRST": "Naar de eerste pagina"
+  },
+  "STAFF_LANGUAGE": {
+    "LABEL": "Taal",
+    "GROUP": "Taal van het dashboard"
   }
 }
