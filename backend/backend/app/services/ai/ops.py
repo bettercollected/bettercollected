@@ -175,11 +175,9 @@ from backend.app.services.option_logic import (
 from backend.app.services.policy_url import checked_button_link, checked_policy_url
 from backend.app.services.rich_text import style_value_problem
 from common.layout_containers import (
-    all_containers,
     container_tabs,
     fresh_id,
     join_by_position,
-    members_of,
     repair_form,
     TAB_ID_PREFIX,
     CONTAINER_ID_PREFIX,
