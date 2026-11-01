@@ -13,7 +13,7 @@ import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { formFieldsList } from '@app/constants/form-fields';
 import { insertCatalogItem } from '@app/constants/insert-field-catalog';
 import { jsonEqual } from '@app/lib/form-ops/model';
-import { isGatedQuestion } from '@app/lib/form-ops/new-question-types';
+import { typeIsOff } from '@app/lib/form-ops/new-question-types';
 import { useBuilderFormLogo } from '@app/lib/hooks/use-form-logo';
 import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
@@ -215,8 +215,8 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
     const { duplicateField, getFormFields } = useBuilderActions();
     const { deleteQuestion } = useUndoableDelete();
     // A copy of a time, day or currency question is a new one: not while the server does not take them.
-    const { newQuestionTypesEnabled } = useWorkspacePermissions();
-    const cannotCopy = isGatedQuestion(field) && !newQuestionTypesEnabled;
+    const { newQuestionTypesEnabled, addressQuestionEnabled } = useWorkspacePermissions();
+    const cannotCopy = typeIsOff(field?.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled });
     // The toolbar acts on the question where it is now, found by id.
     const locate = () => (field ? locateField(getFormFields(), field.id) : null);
     if (!field) return null;

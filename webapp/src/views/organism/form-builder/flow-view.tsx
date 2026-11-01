@@ -273,7 +273,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const [showInsights, setShowInsights] = useState(false);
     const workspace = useAppSelector(selectWorkspace);
     const standardForm = useAppSelector(selectForm);
-    const { can, newQuestionTypesEnabled } = useWorkspacePermissions();
+    const { can, newQuestionTypesEnabled, addressQuestionEnabled } = useWorkspacePermissions();
     const insightsTarget = !showInsights || !workspace?.id || !standardForm?.formId ? null : { workspaceId: workspace.id, formId: standardForm.formId };
     const { data: paths, isFetching: pathsFetching } = useGetFormSubmissionPathsQuery(insightsTarget ? { ...insightsTarget, savedAt: autosaveStatus.savedAt } : skipToken, {
         skip: !can(WorkspacePermission.RESPONSE_READ)
@@ -289,7 +289,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const selectedIndex = slides.findIndex((s) => s.id === selectedId);
     const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : undefined;
     // A copy of a page with a time, day or currency question holds new ones: not while the server does not take them.
-    const cannotCopyPage = !newQuestionTypesEnabled && pageHoldsGatedQuestion(selectedSlide);
+    const cannotCopyPage = pageHoldsGatedQuestion(selectedSlide, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled });
 
     // Click-to-connect: click a right dot to start a jump FROM that page (then
     // click any destination node), or a left dot to start one INTO it (then

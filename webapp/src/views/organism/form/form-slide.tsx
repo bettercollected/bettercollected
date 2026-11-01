@@ -37,6 +37,7 @@ import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import BackButton from '@app/views/molecules/form-builder/back-button';
 import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/views/molecules/form/leaflet-section';
+import AddressField from '@app/views/molecules/responder-form-fields/address-field';
 import CalculatedField from '@app/views/molecules/responder-form-fields/calculated-field';
 import CurrencyField from '@app/views/molecules/responder-form-fields/currency-field';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
@@ -52,6 +53,7 @@ import LinearRatingField from '@app/views/molecules/responder-form-fields/linear
 import MultipleChoiceField from '@app/views/molecules/responder-form-fields/multiple-choice-field';
 import MultipleChoiceWithMultipleSelection from '@app/views/molecules/responder-form-fields/multiple-choice-with-multiple-selections';
 import PhoneNumberField from '@app/views/molecules/responder-form-fields/phone-number-field';
+import { PreviewModeContext } from '@app/views/molecules/responder-form-fields/preview-mode-context';
 import { QuestionNumberContext } from '@app/views/molecules/responder-form-fields/question-number-context';
 import QuestionWrapper from '@app/views/molecules/responder-form-fields/question-wrapper';
 import RatingField from '@app/views/molecules/responder-form-fields/rating-field';
@@ -119,6 +121,8 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
             return <DateRangeField field={field} />;
         case FieldTypes.TAGS:
             return <TagsField field={field} />;
+        case FieldTypes.ADDRESS:
+            return <AddressField field={field} />;
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} />;
         case FieldTypes.IMAGE_CONTENT:
@@ -366,6 +370,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     48px between questions (~6× the 8px inside a question). */}
                 <div className={cn(FORM_COLUMN, columnPlacementClass(formSlide?.properties?.layout), 'relative flex flex-col lg:grid lg:grid-cols-12 lg:gap-x-6', leaflet ? 'gap-10 pt-7 lg:gap-y-10' : 'gap-12 pt-12 lg:gap-y-12')} style={marginVar}>
                     <QuestionNumberContext.Provider value={numbering}>
+                        <PreviewModeContext.Provider value={isPreviewMode}>
                         {pageFields.map((field: StandardFormFieldDto, position: number) => (
                             // 12-grid width on desktop: adjacent spans that fit pack
                             // into one row (two 6s sit side by side); mobile stays a
@@ -374,6 +379,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                 <FormFieldComponent field={field} slideIndex={formSlide!.index} />
                             </div>
                         ))}
+                        </PreviewModeContext.Provider>
                     </QuestionNumberContext.Provider>
                     {/* The button belongs to the last answer: 32px above it,
                         a little closer than the 48px between questions. */}

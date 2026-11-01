@@ -20,6 +20,9 @@
         "WEBHOOKS": "Ook automatisch verstuurd naar",
         "WEBHOOKS_DESTINATION": "Je antwoorden op een aantal vragen worden ook automatisch verstuurd naar: {{hosts}}.",
         "WEBHOOKS_NO_DELETION": "Als je je antwoorden hier verwijdert, wordt de kopie daar niet verwijderd. Neem daarvoor contact op met het team achter dit formulier.",
+        "ADDRESS": "Adres opzoeken",
+        "ADDRESS_DETAIL": "Om je straat en plaats in te vullen sturen we je postcode en huisnummer naar de adresservice PDOK Locatieserver. Je browser en IP-adres worden daar niet mee gedeeld en er wordt verder niets verstuurd.",
+        "ADDRESS_DETAIL_PREVIEW": "In het gepubliceerde formulier worden je postcode en huisnummer, als het opzoeken van adressen is ingeschakeld, naar de adresservice PDOK Locatieserver gestuurd om je straat en plaats in te vullen. Deze preview zoekt niets op en verstuurt niets.",
         "DRAFTS": "Opgeslagen concepten",
         "DRAFTS_DETAIL_one": "Als je opslaat en later verdergaat, wordt je concept {{count}} dag na je laatste keer opslaan versleuteld bewaard en daarna binnen een dag verwijderd. De eigenaar van het formulier kan het pas zien als je het formulier verstuurt. Vraag je een link aan, dan wordt je e-mailadres niet bij het concept bewaard: het wordt gebruikt om het bericht te versturen, dat de mailservice die het bezorgt afhandelt.",
         "DRAFTS_DETAIL_other": "Als je opslaat en later verdergaat, wordt je concept {{count}} dagen na je laatste keer opslaan versleuteld bewaard en daarna binnen een dag verwijderd. De eigenaar van het formulier kan het pas zien als je het formulier verstuurt. Vraag je een link aan, dan wordt je e-mailadres niet bij het concept bewaard: het wordt gebruikt om het bericht te versturen, dat de mailservice die het bezorgt afhandelt.",
@@ -204,7 +207,11 @@
         "TOO_FEW_TAGS_one": "Vul minstens {{count}} tag in.",
         "TOO_FEW_TAGS_other": "Vul minstens {{count}} tags in.",
         "TOO_MANY_TAGS_one": "Vul hooguit {{count}} tag in.",
-        "TOO_MANY_TAGS_other": "Vul hooguit {{count}} tags in."
+        "TOO_MANY_TAGS_other": "Vul hooguit {{count}} tags in.",
+        "FORMAT_ADDRESS": "Controleer het adres: een Nederlandse postcode ziet eruit als 1015 CS en een Nederlands huisnummer is een getal, zoals 12.",
+        "ADDRESS_INCOMPLETE": "Maak het adres compleet: straat, huisnummer, postcode en plaats.",
+        "ADDRESS_TOO_LONG": "Een deel van het adres is te lang. Maak het korter.",
+        "COUNTRY": "Kies een van deze landen: {{countries}}."
     },
     "DATE": {
         "PICK": "Kies een datum",
@@ -416,5 +423,39 @@
         "DUPLICATE": "“{{tag}}” is al toegevoegd.",
         "AT_MOST_one": "Je kunt hooguit {{count}} tag toevoegen.",
         "AT_MOST_other": "Je kunt hooguit {{count}} tags toevoegen."
+    },
+    "ADDRESS": {
+        "POSTCODE": "Postcode",
+        "HOUSE_NUMBER": "Huisnummer",
+        "HOUSE_NUMBER_ADDITION": "Toevoeging",
+        "OPTIONAL": "optioneel",
+        "STREET": "Straat",
+        "CITY": "Plaats",
+        "COUNTRY": "Land",
+        "POSTCODE_EXAMPLE": "1015 CS",
+        "HOUSE_NUMBER_EXAMPLE": "12",
+        "LOOKUP_HINT": "Vul je postcode en huisnummer in, dan vullen wij de straat en plaats in. Je kunt ze aanpassen.",
+        "STATUS": {
+            "LOOKING": "Je adres wordt opgezocht…",
+            "FOUND": "Straat en plaats zijn ingevuld. Controleer ze en pas ze aan als dat nodig is.",
+            "FOUND_KEPT": "We hebben een straat en plaats bij dit adres gevonden. Wat je zelf hebt getypt, is blijven staan.",
+            "NOT_FOUND": "We konden dit adres niet vinden. Vul de straat en plaats zelf in.",
+            "UNAVAILABLE": "Adressen opzoeken is nu niet beschikbaar. Vul de straat en plaats zelf in."
+        },
+        "ERR": {
+            "REQUIRED_STREET": "Vul de straat in.",
+            "REQUIRED_HOUSE_NUMBER": "Vul het huisnummer in.",
+            "REQUIRED_POSTCODE": "Vul de postcode in.",
+            "REQUIRED_CITY": "Vul de plaats in.",
+            "REQUIRED_COUNTRY": "Kies een land.",
+            "FORMAT_POSTCODE_NL": "Vul een Nederlandse postcode in, zoals 1015 CS.",
+            "FORMAT_POSTCODE": "Controleer de postcode.",
+            "FORMAT_HOUSE_NUMBER": "Vul het huisnummer in met cijfers, zoals 12.",
+            "FORMAT_ADDITION": "Een toevoeging bestaat uit letters of cijfers, hooguit 10 tekens, zoals A of 2.",
+            "FORMAT_TEXT": "Controleer dit vak: het mag geen speciale tekens bevatten.",
+            "COUNTRY": "Kies een van de aangeboden landen.",
+            "TOO_LONG_one": "Gebruik hooguit {{count}} teken.",
+            "TOO_LONG_other": "Gebruik hooguit {{count}} tekens."
+        }
     }
 }

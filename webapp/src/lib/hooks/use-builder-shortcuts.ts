@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 
 import i18n from 'i18next';
 
-import { isGatedQuestion } from '@app/lib/form-ops/new-question-types';
+import { typeIsOff } from '@app/lib/form-ops/new-question-types';
 import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { toast } from '@app/shadcn/components/ui/use-toast';
@@ -89,7 +89,7 @@ export function useBuilderShortcuts({ openHelp }: { openHelp: () => void }) {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     const { setInsertTarget } = useInsertTarget();
     // The newer question types cannot be copied while the server does not take them (a copy is a new question there).
-    const { newQuestionTypesEnabled } = useWorkspacePermissions();
+    const { newQuestionTypesEnabled, addressQuestionEnabled } = useWorkspacePermissions();
 
     // One window listener; after each render it is handed the current
     // selection and the actions over the current builder state.
@@ -127,7 +127,7 @@ export function useBuilderShortcuts({ openHelp }: { openHelp: () => void }) {
             }
             case 'duplicate':
                 if (fieldIndex < 0) return;
-                if (!newQuestionTypesEnabled && isGatedQuestion(fields[fieldIndex])) {
+                if (typeIsOff(fields[fieldIndex]?.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled })) {
                     toast({ description: i18n.t('builder:NEW_TYPES.CANNOT_COPY') });
                     return;
                 }

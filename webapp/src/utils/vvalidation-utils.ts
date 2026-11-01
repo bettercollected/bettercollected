@@ -8,6 +8,7 @@ import { AnswerDto, StandardFormDto, StandardFormFieldDto } from '@app/models/dt
 import { FormBuilderTagNames } from '@app/models/enums/form-builder';
 import { FormValidationError } from '@app/models/enums/form-validation';
 import { ActionType, Comparison, Condition, ConditionalActions, FieldType, LogicalOperator } from '@app/models/types/form-builder-shared';
+import { isBlankAddressAnswer } from '@app/utils/address';
 import { compilePattern } from '@app/utils/answer-rules';
 import type { OptionStates } from '@app/utils/option-logic';
 import { hasAnswerValue } from '@app/utils/repeating-groups';
@@ -315,7 +316,7 @@ export function validateSlide(slide: StandardFormFieldDto, answers: Record<strin
                     }
                 }
             });
-        } else if ((states ? states.isRequired(field.id, !!field?.validations?.required) : field?.validations?.required) && !options?.isNoneLeft(field.id) && !hasAnswerValue(answers[field.id])) {
+        } else if ((states ? states.isRequired(field.id, !!field?.validations?.required) : field?.validations?.required) && !options?.isNoneLeft(field.id) && (!hasAnswerValue(answers[field.id]) || ((field.type as string) === 'address' && isBlankAddressAnswer(answers[field.id])))) {
             invalidFields[field.id] = [Invalidations.REQUIRED];
         }
     });
