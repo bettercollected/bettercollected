@@ -76,6 +76,13 @@ from backend.app.router import router
 from backend.app.services.form_concurrency import parse_expected_updated_at
 from backend.app.services.form_service import FormService
 from backend.app.services.openai_service import OpenAIService
+from backend.app.services.option_sources import share_token as share_notice_token
+from backend.app.services.option_sources.checks import (
+    shared_ids as shared_question_ids,
+)
+from backend.app.services.option_sources.share_token import (
+    MAX_TOKEN_LENGTH as SHARE_TOKEN_MAX_LENGTH,
+)
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_service import (
     get_logged_user,
@@ -94,6 +101,23 @@ def _is_stub(form) -> bool:
         return bool(form.get("unauthorized") or form.get("unavailable"))
     return bool(
         getattr(form, "unauthorized", None) or getattr(form, "unavailable", None)
+    )
+
+
+def _share_notice_token(workspace_id, form) -> Optional[str]:
+    """The token for the questions of this served form whose answers may be
+    offered as choices elsewhere (their notice is on the page), or None."""
+    form_id = (
+        form.get("form_id") or form.get("formId")
+        if isinstance(form, dict)
+        else getattr(form, "form_id", None)
+    )
+    if not form_id:
+        return None
+    return share_notice_token.issue_token(
+        workspace_id=workspace_id,
+        form_id=form_id,
+        question_ids=shared_question_ids(form),
     )
 
 
@@ -460,6 +484,14 @@ class WorkspaceFormsRouter(Routable):
                     form["aiNoticeToken"] = token
                 else:
                     form.ai_notice_token = token
+            # The questions whose answers may be offered as choices in other
+            # forms show a notice; the token proves which, on submit.
+            share_token = _share_notice_token(workspace_id, form)
+            if share_token:
+                if isinstance(form, dict):
+                    form["shareNoticeToken"] = share_token
+                else:
+                    form.share_notice_token = share_token
             # the privacy panel names where answers are also sent
             try:
                 destination = await container.registration_service().destination_for(
@@ -650,6 +682,9 @@ class WorkspaceFormsRouter(Routable):
         file_ids: list[str] = Form(None),
         response: str = Form(None),
         ai_notice_token: Optional[str] = Form(None),
+        share_notice_token: Optional[str] = Form(
+            None, max_length=SHARE_TOKEN_MAX_LENGTH
+        ),
         # the respondent's local date (YYYY-MM-DD) their calculations used
         today: Optional[str] = Form(None),
         # the edit key or magic-link token of the draft this submission
@@ -680,6 +715,7 @@ class WorkspaceFormsRouter(Routable):
             form_files=form_files,
             user=user,
             ai_notice_token=ai_notice_token,
+            share_notice_token=share_notice_token,
             client_today=today,
             # a closed form is judged at the time the request arrived
             received_at=getattr(request.state, "received_at", None),
