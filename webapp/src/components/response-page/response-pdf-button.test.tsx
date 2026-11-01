@@ -10,7 +10,7 @@ import commonNl from '../../../public/locales/nl/common.json';
 import ResponsePdfButton, { pdfFailureMessage } from './response-pdf-button';
 
 // The "server": what the PDF route answers, and every call made to it.
-const server: { result: any; error: any; calls: any[]; saved: Array<{ blob: Blob; name: string }>; release?: () => void } = { result: undefined, error: undefined, calls: [], saved: [] };
+const server: { result: any; error: any; resets: number; calls: any[]; saved: Array<{ blob: Blob; name: string }>; release?: () => void } = { result: undefined, error: undefined, resets: 0, calls: [], saved: [] };
 const toast = vi.fn();
 vi.mock('@app/shadcn/components/ui/use-toast', () => ({ useToast: () => ({ toast }) }));
 vi.mock('@app/utils/response-export', async (importOriginal) => {
@@ -30,7 +30,7 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
                     return server.result;
                 }
             }),
-            { isLoading: false }
+            { isLoading: false, reset: () => (server.resets += 1) }
         ]
     };
 });
@@ -42,7 +42,7 @@ const tree = () => (
 );
 
 beforeEach(() => {
-    Object.assign(server, { result: { blob: new Blob(['%PDF']), fileName: 'Summer meeting - resp-1.pdf' }, error: undefined, calls: [], saved: [], release: undefined });
+    Object.assign(server, { result: { blob: new Blob(['%PDF']), fileName: 'Summer meeting - resp-1.pdf' }, error: undefined, calls: [], saved: [], resets: 0, release: undefined });
     toast.mockReset();
 });
 
@@ -57,6 +57,8 @@ describe('Download PDF', () => {
         expect(typeof server.calls[0].lang).toBe('string');
         expect(server.calls[0].tz).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
         expect(toast).toHaveBeenCalledWith({ description: 'The PDF was downloaded.' });
+        // the PDF is not kept in the store once saved
+        expect(server.resets).toBe(1);
     });
 
     it('names the file after the form when the server offers no name', async () => {
@@ -88,6 +90,7 @@ describe('Download PDF', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Download PDF' }));
         await waitFor(() => expect(toast).toHaveBeenCalledWith({ description: 'This response is too long for a PDF.', variant: 'destructive' }));
         expect(server.saved).toHaveLength(0);
+        expect(server.resets).toBe(1);
         // and it can be tried again
         expect(screen.getByRole('button', { name: 'Download PDF' })).not.toBeDisabled();
     });

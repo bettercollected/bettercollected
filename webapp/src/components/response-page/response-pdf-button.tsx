@@ -31,7 +31,7 @@ export function pdfFailureMessage(error: any): { key: string; values?: Record<st
 export default function ResponsePdfButton({ workspaceId, responseId, formTitle }: { workspaceId: string; responseId: string; formTitle: string }) {
     const { t, i18n } = useTranslation();
     const { toast } = useToast();
-    const [download, { isLoading }] = useDownloadResponsePdfMutation();
+    const [download, { isLoading, reset }] = useDownloadResponsePdfMutation();
     const [busy, setBusy] = useState(false);
     // a second click while the first PDF is being made is ignored (the button is disabled, but a held key repeats)
     const running = useRef(false);
@@ -50,9 +50,12 @@ export default function ResponsePdfButton({ workspaceId, responseId, formTitle }
             const file = await download({ workspaceId, responseId, lang: i18n.language, tz: zone }).unwrap();
             downloadBlob(file.blob, file.fileName || exportFileName(formTitle, 'pdf'));
             toast({ description: t('RESPONSE_PAGE.PDF_DONE') });
+            // the store keeps a mutation's result: let go of the response's PDF now it is saved
+            reset();
         } catch (error: any) {
             const failure = pdfFailureMessage(error);
             toast({ description: t(failure.key, failure.values), variant: 'destructive' });
+            reset();
         } finally {
             running.current = false;
             setBusy(false);
