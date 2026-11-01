@@ -156,7 +156,12 @@ def test_the_schema_describes_each_shape():
     assert props["price"]["properties"]["code"] == {"type": "string", "pattern": body.CURRENCY_CODE_PATTERN}
     assert props["price"]["properties"]["amount"]["type"] == "string"
     assert props["stay"]["properties"]["start"] == {"type": "string", "format": "date"}
-    assert props["labels"] == {"title": "Labels", "type": "array", "items": {"type": "string"}}
+    assert props["labels"] == {
+        "title": "Labels",
+        "type": "array",
+        "items": {"type": "string", "minLength": 1, "maxLength": 40},
+        "maxItems": 30,
+    }
     # unanswered: the schema says null is possible (tags are a list, never null)
     _values, empty = body.build_values(
         body.variables_of(form_of()), [(s, s) for s in SOURCES], {}, None, [], None
@@ -479,3 +484,70 @@ def test_control_characters_in_a_tag_never_break_a_line_of_the_team_mail():
         "{{labels}}", entries, form_title="t", submitted_at="", language="en", subject=True
     )
     assert "\n" not in subject and "\r" not in subject
+
+
+# ----------------------------------------------------------- caps and dates
+
+
+def test_tags_are_capped_like_the_question_itself():
+    jsonschema = pytest.importorskip("jsonschema")
+    from common.tags import TAG_LENGTH_MAX, TAGS_MAX
+
+    many = [f"t{n}" for n in range(TAGS_MAX + 5)]
+    got = data_of({"labels": {"tags": many}}, ["labels"])["labels"]
+    assert got == many[:TAGS_MAX] and len(got) == TAGS_MAX
+    exact = "x" * TAG_LENGTH_MAX
+    got = data_of({"labels": {"tags": ["ok", "y" * (TAG_LENGTH_MAX + 1), "", exact]}}, ["labels"])["labels"]
+    assert got == ["ok", exact]  # a tag that is empty or too long is left out, the rest stays
+    values, schema = body.build_values(
+        body.variables_of(form_of()),
+        [("labels", "labels")],
+        {"labels": {"tags": many + ["z" * 500]}},
+        None,
+        [],
+        None,
+    )
+    entry = schema["properties"]["labels"]
+    assert entry["maxItems"] == TAGS_MAX
+    assert entry["items"] == {"type": "string", "minLength": 1, "maxLength": TAG_LENGTH_MAX}
+    jsonschema.validate(values, schema)
+    assert len(values["labels"]) == TAGS_MAX
+
+
+def test_a_currency_amount_over_the_longest_a_question_takes_is_null():
+    jsonschema = pytest.importorskip("jsonschema")
+    longest = "-" + "9" * 12 + ".123"  # a sign, 12 digits, the point, the most decimals any currency has
+    assert len(longest) == body.CURRENCY_AMOUNT_MAX_LENGTH
+    got = data_of({"price": {"currency": {"code": "EUR", "amount": longest}}}, ["price"])
+    assert got == {"price": {"code": "EUR", "amount": longest}}
+    for amount in (longest + "4", "1" * 5000, "0." + "0" * 40):
+        got = data_of({"price": {"currency": {"code": "EUR", "amount": amount}}}, ["price"])
+        assert got == {"price": {"code": "EUR", "amount": None}}, len(amount)
+    values, schema = body.build_values(
+        body.variables_of(form_of()),
+        [("price", "price")],
+        {"price": {"currency": {"code": "EUR", "amount": longest}}},
+        None,
+        [],
+        None,
+    )
+    assert schema["properties"]["price"]["properties"]["amount"]["maxLength"] == body.CURRENCY_AMOUNT_MAX_LENGTH
+    jsonschema.validate(values, schema)
+
+
+@pytest.mark.parametrize("kind", ["date", "day"])
+def test_a_date_that_is_not_a_calendar_date_is_null_whatever_the_type(kind):
+    form = form_of([{"id": "d", "type": kind, "title": "D"}])
+    for stored, expected in [
+        ("2026-01-31", "2026-01-31"),
+        ("", None),
+        ("garbage", None),
+        ("2026-02-30", None),
+        ("2026-1-5", None),
+        ("2026-01-31\n", None),
+        ("2026-01-31T10:00:00Z", None),
+        (20260131, None),
+    ]:
+        answers = {"d": {"type": "date", "date": stored}}
+        assert data_of(answers, ["d"], form) == {"d": expected}, stored
+        assert answers == {"d": {"type": "date", "date": stored}}  # what is stored is not changed

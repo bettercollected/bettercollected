@@ -18,8 +18,9 @@ import re
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
-from common.currencies import is_time
+from common.currencies import AMOUNT_MAX_INTEGER_DIGITS, CURRENCY_DECIMALS, is_time
 from common.models.standard_form import is_iso_date
+from common.tags import TAG_LENGTH_MAX, TAGS_MAX
 
 SCHEMA_DRAFT = "https://json-schema.org/draft/2020-12/schema"
 KEY_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
@@ -58,6 +59,11 @@ SUPPORTED_TYPES = (
 TIME_PATTERN = r"^([01][0-9]|2[0-3]):[0-5][0-9]$"
 CURRENCY_CODE_PATTERN = r"^[A-Z]{3}$"
 CURRENCY_AMOUNT_PATTERN = r"^-?[0-9]+(\.[0-9]+)?$"
+# a sign, the integer digits an amount may have, the point and the most decimals
+# any currency has: the longest amount a question can be answered with
+CURRENCY_AMOUNT_MAX_LENGTH = (
+    1 + AMOUNT_MAX_INTEGER_DIGITS + 1 + max(CURRENCY_DECIMALS.values())
+)
 
 # fixed metadata, always sent; the creator may add more from EXTRA_METADATA
 FIXED_METADATA = ("public_reference", "form_version", "registration_timestamp")
@@ -318,7 +324,11 @@ def _is_code(value: Any) -> bool:
 
 
 def _is_amount(value: Any) -> bool:
-    return isinstance(value, str) and _CURRENCY_AMOUNT.fullmatch(value) is not None
+    return (
+        isinstance(value, str)
+        and len(value) <= CURRENCY_AMOUNT_MAX_LENGTH
+        and _CURRENCY_AMOUNT.fullmatch(value) is not None
+    )
 
 
 def _text_parts(
@@ -381,7 +391,11 @@ def _currency_value(field: Any, answer: Optional[dict]) -> Tuple[Any, dict]:
         parts,
         {
             "code": {"type": "string", "pattern": CURRENCY_CODE_PATTERN},
-            "amount": {"type": "string", "pattern": CURRENCY_AMOUNT_PATTERN},
+            "amount": {
+                "type": "string",
+                "pattern": CURRENCY_AMOUNT_PATTERN,
+                "maxLength": CURRENCY_AMOUNT_MAX_LENGTH,
+            },
         },
     )
 
@@ -431,9 +445,10 @@ def scalar(
         value = value if isinstance(value, bool) else None
         return value, _nullable({"title": title, "type": "boolean"}, value)
     if type_ in ("date", "day"):
-        value = _slot(answer, "date") or None
-        if type_ == "day" and not is_iso_date(value):
-            value = None
+        value = _slot(answer, "date")
+        # empty or not a calendar date (a hidden or skipped answer is stored with
+        # its type checked only): not an answer
+        value = value if is_iso_date(value) else None
         return value, _nullable(
             {"title": title, "type": "string", "format": "date"}, value
         )
@@ -449,8 +464,19 @@ def scalar(
         return _date_range_value(field, answer)
     if type_ == "tags":
         raw = (answer or {}).get("tags")
-        tags = [t for t in raw if isinstance(t, str)] if isinstance(raw, list) else []
-        return tags, {"title": title, "type": "array", "items": {"type": "string"}}
+        # at most TAGS_MAX tags of 1 to TAG_LENGTH_MAX characters, the limits of
+        # the question itself: a longer one is left out (a list cannot hold null)
+        tags = (
+            [t for t in raw if isinstance(t, str) and 1 <= len(t) <= TAG_LENGTH_MAX]
+            if isinstance(raw, list)
+            else []
+        )[:TAGS_MAX]
+        return tags, {
+            "title": title,
+            "type": "array",
+            "items": {"type": "string", "minLength": 1, "maxLength": TAG_LENGTH_MAX},
+            "maxItems": TAGS_MAX,
+        }
     if type_ in CHOICE_TYPES:
         options = _option_titles(field)
         picked = _picked(answer)
