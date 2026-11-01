@@ -206,6 +206,19 @@ async def sso_release_retry(timestamp: int) -> str:
     return f"{result['released']} released, {result['failed']} failed"
 
 
+@app.periodic(cron="53 3 * * *", periodic_id="sso_audit_purge")
+@app.task(
+    name="sso_audit_purge",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="sso_audit_purge",
+)
+async def sso_audit_purge(timestamp: int) -> str:
+    """Daily: delete the workspaces' security audit entries (owner break-glass:
+    ids only) older than a year. Counts only."""
+    deleted = await _container().sso_policy_service().purge_audit()
+    return f"{deleted} deleted"
+
+
 DOMAIN_RECHECK_BATCH = 100
 DOMAIN_RECHECK_MAX_BATCHES = 20
 

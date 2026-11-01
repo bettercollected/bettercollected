@@ -220,7 +220,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                     <p className="h3-new font-semibold">
                         {t(workspaceConstant.allResponders)} {data && ' (' + data.total + ')'}{' '}
                     </p>
-                    <div className="p2-new text-black-700 mt-2 max-w-[420px]">People who have filled in your forms. They can view or ask you to delete their responses at any time.</div>
+                    <div className="p2-new text-black-700 mt-2 max-w-[420px]">{t('STAFF.RESPONDERS.INTRO')}</div>
                 </div>
                 <div className="w-full md:w-[282px]">
                     <SearchInput handleSearch={handleSearch} />

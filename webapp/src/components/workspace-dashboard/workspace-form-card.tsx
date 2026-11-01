@@ -126,7 +126,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                 const questionCount = Array.isArray(form?.fields) ? getFormFields(form).length : 0;
                                 return questionCount > 0 ? (
                                     <span>
-                                        {questionCount} question{questionCount === 1 ? '' : 's'}
+                                        {t('STAFF.FORM_CARD.QUESTIONS', { count: questionCount })}
                                     </span>
                                 ) : null;
                             })()}
@@ -142,7 +142,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                         {showProviderChip && <FormProviderIcon provider={providerForIcon} />}
                         {showVisibility && (
                             <Tooltip label={form?.settings?.private ? t(toolTipConstant.hideForm) : ''}>
-                                <div className="fap-2 flex items-center">
+                                <div className="gap-2 flex items-center">
                                     {showProviderChip && <DotIcon />}
                                     {form?.isPublished || isResponderPortal ? (
                                         <div className="text-black-600 flex items-center">
@@ -218,8 +218,8 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                             event.stopPropagation();
                             event.preventDefault();
                             openModal('DELETE_CONFIRMATION', {
-                                positiveText: 'Remove',
-                                headerTitle: 'Remove Form',
+                                positiveText: t('BUTTON.REMOVE'),
+                                headerTitle: t('STAFF.MODALS.REMOVE_FORM_HEADER'),
                                 title: t(localesCommon.remove) + ' ' + form.title,
                                 handleDelete: () => deleteFormFromGroup({ group, workspaceId: workspace.id, form })
                             });

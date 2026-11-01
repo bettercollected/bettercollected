@@ -430,6 +430,10 @@ async def test_the_executors_startup_check_follows_the_policy(db):
     assert guard.POLICY == EXECUTOR_POLICY  # the two sides name the same policy
     exec_conn = await db.connect("jobs_exec")
     try:
+        # TEMPORARY is granted to PUBLIC on a new database, so the role has it
+        # until ensure-jobs-exec-role.sh (or ensure-admin-roles.sh) revokes it there
+        assert await (await exec_conn.execute(isolation_sql)).fetchone() == (False,)
+        await _execute(db.url(), f'REVOKE TEMPORARY ON DATABASE "{db.name}" FROM PUBLIC')
         assert await (await exec_conn.execute(isolation_sql)).fetchone() == (
             True,
         )
@@ -588,6 +592,47 @@ async def _definer_functions(db):
         " WHERE n.nspname = 'jobs' AND (p.proname LIKE 'procrastinate\\_trigger\\_%%'"
         " OR p.proname = 'procrastinate_unlink_periodic_defers_v1') ORDER BY 1",
     )
+
+
+async def test_the_startup_check_refuses_temp_memberships_and_a_wide_definer(db):
+    guard = _executor_guard()
+    isolation_sql = guard.isolation_sql(db.definer_role)
+    admin_url = db.url()
+    await _execute(admin_url, f'REVOKE TEMPORARY ON DATABASE "{db.name}" FROM PUBLIC')
+    exec_conn = await db.connect("jobs_exec")
+
+    async def passes():
+        return (await (await exec_conn.execute(isolation_sql)).fetchone())[0]
+
+    try:
+        assert await passes()
+        # (statement that breaks it, statement that repairs it)
+        cases = [
+            (f'GRANT TEMPORARY ON DATABASE "{db.name}" TO "{db.exec_role}"',
+             f'REVOKE TEMPORARY ON DATABASE "{db.name}" FROM "{db.exec_role}"'),
+            # a membership of the definer role lets the role SET ROLE to it
+            (f'GRANT "{db.definer_role}" TO "{db.exec_role}"',
+             f'REVOKE "{db.definer_role}" FROM "{db.exec_role}"'),
+            (f'GRANT "bc_app_{db.suffix}" TO "{db.exec_role}"',
+             f'REVOKE "bc_app_{db.suffix}" FROM "{db.exec_role}"'),
+            (f'GRANT TEMPORARY ON DATABASE "{db.name}" TO "{db.definer_role}"',
+             f'REVOKE TEMPORARY ON DATABASE "{db.name}" FROM "{db.definer_role}"'),
+            (f'GRANT "bc_auth_{db.suffix}" TO "{db.definer_role}"',
+             f'REVOKE "bc_auth_{db.suffix}" FROM "{db.definer_role}"'),
+            (f'GRANT USAGE ON SCHEMA app TO "{db.definer_role}"',
+             f'REVOKE USAGE ON SCHEMA app FROM "{db.definer_role}"'),
+            (f'GRANT USAGE ON SCHEMA auth TO "{db.definer_role}";'
+             f' GRANT SELECT ON auth.canary TO "{db.definer_role}"',
+             f'REVOKE ALL ON auth.canary FROM "{db.definer_role}";'
+             f' REVOKE USAGE ON SCHEMA auth FROM "{db.definer_role}"'),
+        ]
+        for breaks, repairs in cases:
+            await _execute(admin_url, breaks)
+            assert not await passes(), breaks
+            await _execute(admin_url, repairs)
+            assert await passes(), repairs
+    finally:
+        await exec_conn.close()
 
 
 async def test_the_trigger_functions_belong_to_the_definer_role_and_end_in_pg_temp(db):

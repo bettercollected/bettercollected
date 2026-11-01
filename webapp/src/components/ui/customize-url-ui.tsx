@@ -64,7 +64,7 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
         <form onSubmit={handleUpdate} className="flex w-full flex-col gap-6">
             <div className="flex flex-col gap-1.5">
                 <h2 className="text-black-900 text-lg font-semibold leading-snug">{t(customize.form.title)}</h2>
-                <p className="text-black-600 text-sm leading-relaxed">Pick a short, memorable link for this form. Responses already collected aren&apos;t affected.</p>
+                <p className="text-black-600 text-sm leading-relaxed">{t('STAFF.FORM.SLUG_INTRO')}</p>
             </div>
 
             <ul className="text-black-600 flex list-disc flex-col gap-1.5 pl-5 text-sm">

@@ -61,7 +61,7 @@ export default function FormIntegrations() {
         <div className="mb-5">
             {addedActions && addedActions.length > 0 && (
                 <div className="mb-10 flex flex-col gap-2">
-                    <div className="h3-new text-black-800 mb-5">Integrations added to form</div>
+                    <div className="h3-new text-black-800 mb-5">{t('STAFF.INTEGRATIONS.ADDED_TITLE')}</div>
                     {data?.map((integration, index) => (
                         <>
                             {addedActions.includes(integration.id) && (
@@ -72,7 +72,7 @@ export default function FormIntegrations() {
                                         {/* Title and description */}
                                         <div className="mt-2 sm:mt-0">
                                             <div className="flex flex-wrap items-center gap-2">
-                                                <h3 className="text-base font-semibold sm:text-lg">{integration?.title || 'Untitled Integration'}</h3>
+                                                <h3 className="text-base font-semibold sm:text-lg">{integration?.title || t('STAFF.INTEGRATIONS.UNTITLED')}</h3>
                                                 <ReconnectBadge workspaceId={workspace?.id} formId={form?.formId} action={integration} />
                                             </div>
                                             <p className="text-sm text-gray-600">{integration.description}</p>
@@ -98,7 +98,7 @@ export default function FormIntegrations() {
                                     {/* Connect Button */}
                                     <div className="mt-4 flex items-center gap-2 sm:mt-0">
                                         <Switch
-                                            aria-label={t(localesCommon.turnOnOff, { name: integration?.title || 'Untitled Integration' })}
+                                            aria-label={t(localesCommon.turnOnOff, { name: integration?.title || t('STAFF.INTEGRATIONS.UNTITLED') })}
                                             checked={getIntegrationEnabled(integration)}
                                             onCheckedChange={async (checked) => {
                                                 const update_type = checked ? 'enable' : 'disable';
@@ -113,15 +113,15 @@ export default function FormIntegrations() {
 
                                                 if (response?.data) {
                                                     router.refresh();
-                                                    toast({ description: 'Updated' });
+                                                    toast({ description: t('STAFF.INTEGRATIONS.UPDATED') });
                                                 } else if (response?.error) {
-                                                    toast({ description: 'Could not update', variant: 'destructive' });
+                                                    toast({ description: t('STAFF.INTEGRATIONS.UPDATE_FAILED'), variant: 'destructive' });
                                                 }
                                             }}
                                         />
                                         {/* Three dots dropdown */}
                                         <DeleteDropDown
-                                            itemName={integration?.title || 'Untitled Integration'}
+                                            itemName={integration?.title || t('STAFF.INTEGRATIONS.UNTITLED')}
                                             onDropDownItemClick={async () => {
                                                 const response: any = await removeActionFromForm({
                                                     workspaceId: workspace.id,
@@ -131,9 +131,9 @@ export default function FormIntegrations() {
 
                                                 if (response?.data) {
                                                     dispatch(setForm({ ...form, actions: response?.data }));
-                                                    toast({ description: 'Removed' });
+                                                    toast({ description: t('STAFF.INTEGRATIONS.REMOVED') });
                                                 } else if (response?.error) {
-                                                    toast({ description: 'Error', variant: 'destructive' });
+                                                    toast({ description: t('STAFF.COMMON.SOMETHING_WRONG'), variant: 'destructive' });
                                                 }
                                             }}
                                         />
@@ -162,7 +162,7 @@ export default function FormIntegrations() {
                                         <Image src={integration?.url || '/integration/default.svg'} alt="" width={50} height={50} className="mr-4" />
                                         {/* title and description */}
                                         <div className="mt-2 sm:mt-0">
-                                            <h3 className="text-base font-semibold sm:text-lg">{integration?.title || 'Untitled Integration'}</h3>
+                                            <h3 className="text-base font-semibold sm:text-lg">{integration?.title || t('STAFF.INTEGRATIONS.UNTITLED')}</h3>
                                             <p className="text-sm text-gray-600">{integration.description}</p>
                                         </div>
                                     </div>
@@ -175,7 +175,7 @@ export default function FormIntegrations() {
                                             }}
                                         >
                                             {' '}
-                                            Add to Form
+                                            {t('STAFF.INTEGRATIONS.ADD')}
                                         </Button>
                                     </div>
                                 </div>
@@ -186,7 +186,7 @@ export default function FormIntegrations() {
             )}
             {Array.isArray(data) && data.length == 0 && (
                 <div>
-                    <EmptyFormsView description="No integrations available yet — once you connect one, it will appear here." />
+                    <EmptyFormsView description={t('STAFF.INTEGRATIONS.NONE')} />
                 </div>
             )}
         </div>

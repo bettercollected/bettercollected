@@ -25,7 +25,8 @@ Each is a standalone Python service with its own `main.py`, `requirements.txt`, 
 `actions` queue as the `bc_jobs_exec` role (`DATABASE_URL`). The role sees only the `actions` queue's rows and writes
 only `run_action` rows with `action_` locks; it cannot write the events or periodic-defers tables. The executor
 refuses to start where the backend has not applied that (`utilities/queue_isolation.py`: policy, no superuser or
-bypass or table ownership, no write on those tables, SECURITY DEFINER triggers). The job carries **ids and a run
+bypass or table ownership, no write on those tables, no TEMPORARY on the database and no role membership for it, a minimal
+`bc_jobs_def`, SECURITY DEFINER triggers; `postgres/ensure-jobs-exec-role.sh` itself revokes TEMPORARY from PUBLIC). The job carries **ids and a run
 token only**; `utilities/run_context.py` fetches the run's data from the backend's in-network route when it runs,
 presenting the job's `run_token` (the route also checks the job is `doing`; the job key alone reads nothing; 410 =
 the run no longer applies or is over a day old, skipped). Three runs at most (waits of 5 s and 25 s), cut off after

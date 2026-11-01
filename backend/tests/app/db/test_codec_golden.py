@@ -96,6 +96,8 @@ NO_DOCUMENT_CLASS = {
     "form_email_actions",
     "workspace_option_lists",
     "option_source_erasures",
+    # and the workspaces' security events (break-glass audit)
+    "workspace_audit_events",
 }
 
 # The document classes, all on ``Record`` (every group is served from Postgres

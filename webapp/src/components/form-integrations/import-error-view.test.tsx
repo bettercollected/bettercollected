@@ -4,9 +4,15 @@
 import React from 'react';
 
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from 'i18next';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ImportErrorView from './import-error-view';
+
+// This suite asserts the translation keys: i18next's `cimode` language answers every `t()` with its key.
+beforeAll(async () => {
+    await i18n.changeLanguage('cimode');
+});
 
 vi.mock('@app/components/modal-views/context', () => ({ useModal: () => ({ closeModal: vi.fn() }) }));
 

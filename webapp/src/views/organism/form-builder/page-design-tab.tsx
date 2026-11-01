@@ -138,12 +138,12 @@ export default function PageDesignTab() {
                         <div className="flex flex-col gap-2.5 px-1">
                             {THEME_ROLE_FIELDS.map((field) => (
                                 <div key={field.key} className="flex items-center justify-between gap-3">
-                                    <span className="text-black-700 text-xs">{field.label}</span>
+                                    <span className="text-black-700 text-xs">{t(field.labelKey)}</span>
                                     <span className="flex items-center gap-2">
                                         <span className="text-black-600 text-[11px] uppercase tabular-nums">{custom[field.key]}</span>
                                         <input
                                             type="color"
-                                            aria-label={field.label}
+                                            aria-label={t(field.labelKey)}
                                             value={custom[field.key]}
                                             onChange={(e) => applyCustom({ ...custom, title: CUSTOM_TITLE, [field.key]: e.target.value })}
                                             className="border-black-300 h-7 w-9 cursor-pointer rounded border bg-white p-0.5"

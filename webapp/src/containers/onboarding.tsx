@@ -142,13 +142,13 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
         if (formData.title && formData.workspaceName) {
             await onClickDone();
         } else {
-            if (!formData.title) setErrors({ ...errors, title: 'Please enter a workspace name' });
+            if (!formData.title) setErrors({ ...errors, title: t('STAFF.ONBOARDING.NAME_REQUIRED') });
         }
     };
 
     const onWorkspaceTitleBlur = async (event: any) => {
         if (!event.target.value) {
-            setErrors({ ...errors, title: 'Please enter a workspace name' });
+            setErrors({ ...errors, title: t('STAFF.ONBOARDING.NAME_REQUIRED') });
             return;
         }
         if (createWorkspace && !formData.workspaceName) {
@@ -185,13 +185,13 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
                     {/* Workspace name input section */}
                     <div className="flex flex-col gap-1.5 w-full relative">
                         <Label htmlFor="title" className="text-sm font-medium ml-1 mb-1 text-gray-700">
-                            Workspace name
+                            {t('STAFF.ONBOARDING.NAME')}
                         </Label>
                         <AppInput
                             onBlur={onWorkspaceTitleBlur}
                             required
                             id="title"
-                            placeholder="Enter name of your workspace"
+                            placeholder={t('STAFF.ONBOARDING.NAME_PLACEHOLDER')}
                             value={formData.title}
                             onChange={handleOnchange}
                             className={!!errors?.title ? 'border-red-500 focus-visible:ring-red-500 w-full' : 'w-full'}
@@ -210,11 +210,11 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
                     {/* Description Textarea Section */}
                     <div className="flex flex-col gap-1.5 w-full">
                         <Label htmlFor="description" className="text-sm font-medium ml-1 mb-1 text-gray-700">
-                            Add a workspace description
+                            {t('STAFF.ONBOARDING.DESCRIPTION')}
                         </Label>
                         <Textarea
                             id="description"
-                            placeholder="Write Description"
+                            placeholder={t('STAFF.ONBOARDING.DESCRIPTION_PLACEHOLDER')}
                             value={formData.description}
                             onChange={handleOnchange}
                         />

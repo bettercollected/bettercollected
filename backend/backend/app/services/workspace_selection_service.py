@@ -218,6 +218,11 @@ class WorkspaceSelectionService:
         if self._sso_policy is None:
             return None
         workspace = await self._sso_policy.unmet_requirement(
-            user.sub, user.auth_method, user.session_scope, user.id
+            user.sub,
+            user.auth_method,
+            user.session_scope,
+            user.id,
+            sso_workspace_id=user.sso_workspace_id,
+            sso_connection_id=user.sso_connection_id,
         )
         return str(workspace.id) if workspace is not None else None

@@ -12,7 +12,20 @@
 #                 procrastinate migration adds). It is not a superuser, cannot
 #                 create roles, databases or objects, and holds no privilege in
 #                 `app`, `auth`, `google`, `admin`, `tasks` or `settings`; those
-#                 are revoked here, so a drifted grant is repaired.
+#                 are revoked here, so a drifted grant is repaired. It may not
+#                 create temporary tables and is a member of no role (a
+#                 membership in bc_jobs_def, or any other role, would let it
+#                 SET ROLE to it): both are repaired here and checked by the
+#                 executor at start.
+#   bc_jobs_def   the NOLOGIN owner of the queue's trigger functions. Its grants
+#                 are reset to exactly what the triggers need (below), nothing
+#                 in the other schemas, no temporary tables, no memberships.
+#
+# TEMPORARY on the database is granted to PUBLIC by default, which no role-level
+# REVOKE undoes. It is revoked from PUBLIC here, as postgres/ensure-admin-roles.sh
+# does, and given back by name to the service roles that exist (bc_app, bc_auth,
+# bc_google), so this script alone leaves the executor without it. A role of your
+# own that relied on the PUBLIC grant needs a named GRANT TEMPORARY.
 #
 # Which rows of the queue it may touch is not decided here but by a row-level
 # policy on jobs.procrastinate_jobs that the backend applies (`python -m
@@ -55,6 +68,7 @@ DECLARE
     owner_name text;
     owner_seq text;
     s text;
+    m record;
 BEGIN
     IF NOT (SELECT rolsuper FROM pg_catalog.pg_roles WHERE rolname = current_user) THEN
         RAISE EXCEPTION 'run this as the database superuser';
@@ -75,6 +89,19 @@ BEGIN
     END IF;
     ALTER ROLE bc_jobs_exec SET search_path = jobs;
     EXECUTE format('GRANT CONNECT ON DATABASE %I TO bc_jobs_exec', current_database());
+
+    -- a member of any role could SET ROLE to it (bc_jobs_def owns the trigger
+    -- functions and may write the events): none, whatever an earlier grant said
+    -- (each grant is revoked as its own grantor: a plain REVOKE only removes
+    -- what the current role granted)
+    FOR m IN
+        SELECT pg_catalog.pg_get_userbyid(am.roleid) AS role_name,
+               pg_catalog.pg_get_userbyid(am.grantor) AS grantor_name
+          FROM pg_catalog.pg_auth_members am
+         WHERE am.member = 'bc_jobs_exec'::regrole
+    LOOP
+        EXECUTE format('REVOKE %I FROM bc_jobs_exec GRANTED BY %I', m.role_name, m.grantor_name);
+    END LOOP;
 
     -- nothing of the other services, whatever an earlier grant said
     FOREACH s IN ARRAY ARRAY['app', 'auth', 'google', 'admin', 'tasks', 'settings'] LOOP
@@ -107,6 +134,31 @@ BEGIN
     END IF;
     ALTER ROLE bc_jobs_def NOLOGIN NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
     ALTER ROLE bc_jobs_def SET search_path = pg_catalog;
+    -- reset to what the triggers need: nothing in the other schemas, nothing
+    -- else in `jobs`, no membership of any role (the backend's role is a member
+    -- of this one, never the reverse)
+    FOREACH s IN ARRAY ARRAY['app', 'auth', 'google', 'admin', 'tasks', 'settings'] LOOP
+        IF EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = s) THEN
+            EXECUTE format('REVOKE ALL ON SCHEMA %I FROM bc_jobs_def', s);
+            EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA %I FROM bc_jobs_def', s);
+            EXECUTE format('REVOKE ALL ON ALL SEQUENCES IN SCHEMA %I FROM bc_jobs_def', s);
+            EXECUTE format('REVOKE ALL ON ALL FUNCTIONS IN SCHEMA %I FROM bc_jobs_def', s);
+        END IF;
+    END LOOP;
+    REVOKE CREATE ON SCHEMA public FROM bc_jobs_def;
+    REVOKE ALL ON ALL TABLES IN SCHEMA jobs FROM bc_jobs_def;
+    REVOKE ALL ON ALL SEQUENCES IN SCHEMA jobs FROM bc_jobs_def;
+    REVOKE CREATE ON SCHEMA jobs FROM bc_jobs_def;
+    -- (each grant is revoked as its own grantor: a plain REVOKE only removes
+    -- what the current role granted)
+    FOR m IN
+        SELECT pg_catalog.pg_get_userbyid(am.roleid) AS role_name,
+               pg_catalog.pg_get_userbyid(am.grantor) AS grantor_name
+          FROM pg_catalog.pg_auth_members am
+         WHERE am.member = 'bc_jobs_def'::regrole
+    LOOP
+        EXECUTE format('REVOKE %I FROM bc_jobs_def GRANTED BY %I', m.role_name, m.grantor_name);
+    END LOOP;
     GRANT USAGE ON SCHEMA jobs TO bc_jobs_def;
     GRANT SELECT, INSERT ON jobs.procrastinate_events TO bc_jobs_def;
     GRANT SELECT, UPDATE ON jobs.procrastinate_periodic_defers TO bc_jobs_def;
@@ -137,8 +189,18 @@ BEGIN
         EXECUTE 'ALTER FUNCTION ' || s || ' SECURITY DEFINER SET search_path = jobs, pg_catalog, pg_temp';
     END LOOP;
     REVOKE ALL ON jobs.procrastinate_events, jobs.procrastinate_periodic_defers FROM bc_jobs_exec;
-    -- nothing the executor does needs temporary tables
+    -- nothing the executor does needs temporary tables. TEMPORARY is granted to
+    -- PUBLIC by default, so revoke it there and give it back by name to the
+    -- service roles (the same as ensure-admin-roles.sh), then by name from the
+    -- two roles of this script
+    EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM PUBLIC', current_database());
     EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM bc_jobs_exec', current_database());
+    EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM bc_jobs_def', current_database());
+    FOREACH s IN ARRAY ARRAY['bc_app', 'bc_auth', 'bc_google'] LOOP
+        IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = s) THEN
+            EXECUTE format('GRANT TEMPORARY ON DATABASE %I TO %I', current_database(), s);
+        END IF;
+    END LOOP;
 
     -- and those a later procrastinate migration creates, for every role that owns objects in `jobs`
     FOR owner_name IN
@@ -155,6 +217,18 @@ BEGIN
         EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA jobs GRANT USAGE, SELECT ON SEQUENCES TO bc_jobs_exec', owner_name);
         EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA jobs GRANT EXECUTE ON FUNCTIONS TO bc_jobs_exec', owner_name);
     END LOOP;
+
+    -- a revoke that did not take (a grant made by a role this session cannot
+    -- act as, a database default this script does not know) must fail the
+    -- script, not exit 0: the executor's start check would refuse later
+    FOREACH s IN ARRAY ARRAY['bc_jobs_exec', 'bc_jobs_def'] LOOP
+        IF EXISTS (SELECT 1 FROM pg_catalog.pg_auth_members am WHERE am.member = s::regrole) THEN
+            RAISE EXCEPTION 'role % is still a member of another role after the revoke: check pg_auth_members', s;
+        END IF;
+        IF pg_catalog.has_database_privilege(s, current_database(), 'TEMPORARY') THEN
+            RAISE EXCEPTION 'role % can still create temporary tables after the revoke: check the database''s privileges and revoke TEMPORARY from whatever grants it', s;
+        END IF;
+    END LOOP;
 END
 $do$;
 
@@ -164,6 +238,10 @@ $do$;
 SELECT 'bc_jobs_exec: login=' || rolcanlogin || ' superuser=' || rolsuper
        || ' password_set=' || (rolpassword IS NOT NULL)
   FROM pg_catalog.pg_authid WHERE rolname = 'bc_jobs_exec';
+SELECT 'temp=' || has_database_privilege('bc_jobs_exec', current_database(), 'TEMPORARY')
+       || ' member_of_roles=' || (SELECT count(*) FROM pg_catalog.pg_auth_members m
+                                   WHERE m.member = 'bc_jobs_exec'::regrole)
+       || ' definer_temp=' || has_database_privilege('bc_jobs_def', current_database(), 'TEMPORARY');
 SELECT 'queue_rw=' || has_table_privilege('bc_jobs_exec', 'jobs.procrastinate_jobs', 'UPDATE')
        || ' app_schema=' || has_schema_privilege('bc_jobs_exec', 'app', 'USAGE')
        || ' auth_schema=' || has_schema_privilege('bc_jobs_exec', 'auth', 'USAGE')

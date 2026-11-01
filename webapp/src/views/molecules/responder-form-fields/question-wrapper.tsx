@@ -1,4 +1,4 @@
-import { KeyboardEvent, MouseEvent, useContext, useEffect, useMemo, useRef } from 'react';
+import { CSSProperties, KeyboardEvent, MouseEvent, useContext, useEffect, useMemo, useRef } from 'react';
 
 import parse from 'html-react-parser';
 import { AlertCircle } from 'lucide-react';
@@ -25,6 +25,7 @@ import { legacyTitleText } from '@app/utils/legacy-title';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import { isServerProblem, serverProblemMessage } from '@app/utils/server-answer-errors';
 import { HEADING_CLASSES, TEXT_BLOCK_BODY_CLASSES } from '@app/utils/text-headings';
+import { mutedLabelInk } from '@app/utils/theme-contrast';
 import { Invalidations } from '@app/utils/vvalidation-utils';
 import { themed } from '@app/views/molecules/theme/theme-root';
 import { contrast, invalidEdge, requiredMarkColour, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
@@ -126,6 +127,9 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     const number = numbering?.numbers[field.id];
     const leaflet = tokens.key === 'leaflet';
     // Numerals wear the action colour where it reads as text on the page, else the ink.
+    // The muted labels ("Optional", "Read only") wear a colour derived from the theme (utils/theme-contrast.ts),
+    // read by `.form-note-accent` (tailwind.css); a form without a themed page keeps the app's grey.
+    const mutedStyle = theme?.primary && theme?.accent ? ({ '--form-muted-ink': mutedLabelInk(theme) } as CSSProperties) : undefined;
     const numberColour = theme?.secondary && theme?.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme?.primary;
 
     // While the error shows, the field's own controls say so too: they are
@@ -260,9 +264,13 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                             </>
                         )}
                     </div>
-                    {isAnswerable && !isRequired && !locked && <span className="form-note-accent text-[13px] font-normal text-black-700">{t('FIELD.OPTIONAL')}</span>}
+                    {isAnswerable && !isRequired && !locked && (
+                        <span className="form-note-accent text-[13px] font-normal" style={mutedStyle}>
+                            {t('FIELD.OPTIONAL')}
+                        </span>
+                    )}
                     {locked && (
-                        <span id={lockedId} className="form-note-accent text-[13px] font-normal text-black-700">
+                        <span id={lockedId} className="form-note-accent text-[13px] font-normal" style={mutedStyle}>
                             {t('FIELD.READ_ONLY')}
                         </span>
                     )}

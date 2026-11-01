@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { ThemeColors } from '@app/constants/theme';
 
 import { AA_NON_TEXT, AA_TEXT, contrast } from './color-contrast';
-import { contrastKey, themeContrastGuard } from './theme-contrast';
+import { contrastKey, mutedLabelInk, themeContrastChecks, themeContrastGuard } from './theme-contrast';
 
 /**
  * The colour pairs and themes shared with the server's publish check
@@ -34,7 +34,7 @@ interface ThemeCase {
     imageGround: boolean;
 }
 
-const corpus = JSON.parse(readFileSync(resolve(__dirname, '../../../docs/spec/theme-contrast.cases.json'), 'utf-8')) as { pairs: PairCase[]; themes: ThemeCase[]; keys: Array<{ name: string; a: Record<string, any>; b: Record<string, any>; same: boolean }> };
+const corpus = JSON.parse(readFileSync(resolve(__dirname, '../../../docs/spec/theme-contrast.cases.json'), 'utf-8')) as { pairs: PairCase[]; themes: ThemeCase[]; keys: Array<{ name: string; a: Record<string, any>; b: Record<string, any>; same: boolean }>; muted: Array<{ name: string; theme: Record<string, any>; ink: string }> };
 
 /** A ratio as the guard shows it: one decimal, rounded down. */
 const display = (ratio: number) => (Math.floor(ratio * 10) / 10).toFixed(1);
@@ -93,5 +93,40 @@ describe('contrastKey', () => {
             expect(a.issues, shared.name).toEqual(b.issues);
             expect(a.imageGround, shared.name).toBe(b.imageGround);
         }
+    });
+});
+
+describe.each(corpus.muted.map((shared) => [shared.name, shared] as const))('mutedLabelInk: %s', (_name, shared) => {
+    it('is the colour the server derives', () => {
+        expect(mutedLabelInk(shared.theme)).toBe(shared.ink);
+    });
+});
+
+describe('the muted labels', () => {
+    const onAPage = corpus.muted.filter((c) => c.theme.accent && c.theme.primary && c.theme.background?.type !== 'image');
+
+    it('are a derived check on the page colour, and read there (a gradient has more grounds than that check shows)', () => {
+        for (const shared of onAPage.filter((c) => c.theme.background?.type !== 'gradient')) {
+            const check = themeContrastChecks(shared.theme as Parameters<typeof themeContrastChecks>[0]).find((c) => c.key === 'muted-label');
+            expect(check, shared.name).toBeDefined();
+            expect(check!.kind).toBe('derived');
+            expect(check!.foreground).toBe(shared.ink);
+            expect(check!.passes, shared.name).toBe(true);
+        }
+    });
+
+    it('are softer than the questions but not under 4.5:1 (nor under the questions where those fail)', () => {
+        for (const shared of onAPage) {
+            const theme = shared.theme as Parameters<typeof themeContrastGuard>[0];
+            const grounds = [theme.accent, ...(theme.background?.type === 'gradient' ? [theme.background.gradientFrom!, theme.background.gradientTo!] : []), ...(theme.background?.type === 'pattern' && theme.background.pattern === 'margin' && contrast(theme.primary, '#FFFFFF') >= AA_TEXT ? ['#FFFFFF'] : [])];
+            const lowest = (colour: string) => Math.min(...grounds.map((ground) => contrast(colour, ground)));
+            expect(lowest(shared.ink), shared.name).toBeGreaterThanOrEqual(Math.min(AA_TEXT, lowest(theme.primary)) - 1e-9);
+            if (!themeContrastGuard(theme).issues.some((issue) => issue.key === 'text')) expect(lowest(shared.ink), shared.name).toBeGreaterThanOrEqual(AA_TEXT);
+        }
+    });
+
+    it('are measured by the guard as text: a theme whose ink does not read fails once, as text', () => {
+        const result = themeContrastGuard({ primary: '#E8ECF8', secondary: '#1649E2', tertiary: '#818CA0', accent: '#FFFFFF', inputText: '#101828' });
+        expect(result.issues.map((issue) => issue.key)).toEqual(['text']);
     });
 });

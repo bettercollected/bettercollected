@@ -35,8 +35,8 @@ export default function DeleteCustomDomainModal() {
         <GenericHalfModal
             loading={result?.isLoading}
             type="danger"
-            headerTitle="Reset Custom Domain"
-            positiveText="Yes"
+            headerTitle={t('STAFF.MODALS.RESET_DOMAIN_HEADER')}
+            positiveText={t('STAFF.MODALS.YES')}
             positiveAction={deleteCustomDomain}
             title={t(updateWorkspace.settings.domain.confirmationTitle)}
             subTitle={t(updateWorkspace.settings.domain.confirmationDesc)}
