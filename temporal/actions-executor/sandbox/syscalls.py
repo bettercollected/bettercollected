@@ -329,3 +329,15 @@ DENIED: Tuple[Tuple[str, str, Dict[str, int]], ...] = (
 
 # open/openat: denied only when they ask to write (see confine.py)
 OPEN = {"x86_64": {"open": 2, "openat": 257}, "aarch64": {"openat": 56}}
+
+# calls refused only for some values of one argument (see confine.py): name,
+# the argument's index, the refused values (compared on its low 32 bits, which is
+# all the kernel reads of a command), the numbers
+ARG_DENIED = (
+    # F_SETOWN, F_SETOWN_EX, F_SETSIG: an owner of a pipe set to O_ASYNC gets a
+    # chosen signal on every write, a way to SIGKILL any process of the same user
+    # that ``kill`` itself refuses
+    ("fcntl", 1, (8, 15, 10), {"x86_64": 72, "aarch64": 25}),
+    # FIOSETOWN, SIOCSPGRP: the same owner, set through ioctl
+    ("ioctl", 1, (0x8901, 0x8902), {"x86_64": 16, "aarch64": 29}),
+)

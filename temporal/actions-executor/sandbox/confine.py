@@ -23,7 +23,8 @@ In order:
    needed) that makes the system calls in ``syscalls.DENIED`` fail with EPERM:
    no socket of any kind, no ``execve``, no ``fork``/``clone``, no signal to
    another process by any call (``kill``, ``tgkill``, ``rt_sigqueueinfo``,
-   ``pidfd_send_signal`` ...), no change to another process's limits or
+   ``pidfd_send_signal`` ..., and no ``fcntl``/``ioctl`` that makes another
+   process the owner of an O_ASYNC descriptor: ``syscalls.ARG_DENIED``), no change to another process's limits or
    scheduling (``prlimit64``, ``setpriority``, ``sched_set*``), no ``ptrace``, no
    mounts or namespaces, no System V or POSIX IPC, no changes to the
    filesystem, and ``open`` only read-only. It is a **deny list** (everything
@@ -41,7 +42,7 @@ import resource
 import struct
 from typing import Dict, List, Optional, Tuple
 
-from sandbox.syscalls import DENIED, OPEN
+from sandbox.syscalls import ARG_DENIED, DENIED, OPEN
 
 UNPRIVILEGED_ID = 65534
 
@@ -132,7 +133,19 @@ def build_filter(arch: Optional[str] = None) -> bytes:
     for name, flags_arg in (("open", 1), ("openat", 2)):
         if name in open_numbers:
             emit(JEQ_K, jt=f"flags_{name}", jf=None, k=open_numbers[name])
+    # fcntl / ioctl: refused only for the commands that make another process a
+    # signal's target
+    for name, _arg, _values, numbers in ARG_DENIED:
+        if arch in numbers:
+            emit(JEQ_K, jt=f"args_{name}", jf=None, k=numbers[arch])
     emit(RET_K, k=RET_ALLOW)
+    for name, arg, values, numbers in ARG_DENIED:
+        if arch in numbers:
+            label(f"args_{name}")
+            emit(LD_W_ABS, k=16 + 8 * arg)  # low word of args[arg]
+            for value in values:
+                emit(JEQ_K, jt="deny", jf=None, k=value)
+            emit(RET_K, k=RET_ALLOW)
     for name, flags_arg in (("open", 1), ("openat", 2)):
         if name in open_numbers:
             label(f"flags_{name}")

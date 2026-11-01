@@ -11,7 +11,7 @@ import struct
 import pytest
 
 from sandbox import confine
-from sandbox.syscalls import DENIED, OPEN
+from sandbox.syscalls import ARG_DENIED, DENIED, OPEN
 
 ALLOW, KILL, EPERM = confine.RET_ALLOW, confine.RET_KILL_PROCESS, confine.RET_ERRNO | 1
 ARCHES = ("x86_64", "aarch64")
@@ -157,6 +157,27 @@ def test_open_is_refused_only_when_it_asks_to_write_or_create(arch):
         assert run_filter(program, audit, number, high) == ALLOW
 
 
+@pytest.mark.parametrize("arch", ARCHES)
+def test_fcntl_and_ioctl_cannot_make_another_process_a_signal_target(arch):
+    program = confine.build_filter(arch)
+    audit = confine.AUDIT_ARCH[arch]
+    numbers = {name: nums[arch] for name, _arg, _values, nums in ARG_DENIED}
+
+    def call(name, command, high=0):
+        return run_filter(program, audit, numbers[name], [3, command | high, 0, 0, 0, 0])
+
+    for command in (8, 15, 10):  # F_SETOWN, F_SETOWN_EX, F_SETSIG
+        assert call("fcntl", command) == EPERM, command
+        # the kernel reads the low 32 bits of the command: so does the filter
+        assert call("fcntl", command, high=1 << 33) == EPERM, command
+    for command in (0x8901, 0x8902):  # FIOSETOWN, SIOCSPGRP
+        assert call("ioctl", command) == EPERM, command
+    # what Python itself uses stays allowed
+    for command in (0, 1, 2, 3, 4, 9):  # F_DUPFD, F_GETFD, F_SETFD, F_GETFL, F_SETFL, F_GETOWN
+        assert call("fcntl", command) == ALLOW, command
+    assert call("ioctl", 0x5401) == ALLOW  # TCGETS
+
+
 def test_the_filter_fits_in_one_jump_range():
     for arch in ARCHES:
         assert len(confine.build_filter(arch)) // 8 < 255 * 2
@@ -185,6 +206,8 @@ def test_the_x86_64_numbers_are_the_kernels():
             assert header.get(name) == numbers["x86_64"], name
     assert header["open"] == OPEN["x86_64"]["open"]
     assert header["openat"] == OPEN["x86_64"]["openat"]
+    for name, _arg, _values, numbers in ARG_DENIED:
+        assert header.get(name) == numbers["x86_64"], name
 
 
 @pytest.mark.skipif(
@@ -200,3 +223,5 @@ def test_the_aarch64_numbers_are_the_generic_tables():
         if "aarch64" in numbers:
             assert header.get(name) == numbers["aarch64"], name
     assert header["openat"] == OPEN["aarch64"]["openat"]
+    for name, _arg, _values, numbers in ARG_DENIED:
+        assert header.get(name) == numbers["aarch64"], name

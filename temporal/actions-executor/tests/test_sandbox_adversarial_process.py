@@ -457,10 +457,22 @@ attempt("shmget", lambda: raw(NR["shmget"], 0, 4096, 0o1600))
 attempt("msgget", lambda: raw(NR["msgget"], 0, 0o1600))
 attempt("semget", lambda: raw(NR["semget"], 0, 1, 0o1600))
 attempt("mq_open", lambda: raw(NR["mq_open"], 0, 0, 0, 0))
+# an O_ASYNC pipe whose owner is the executor: every write would send it the
+# signal F_SETSIG names (SIGKILL), which ``kill`` itself refuses
+FCNTL = {"x86_64": 72, "aarch64": 25}[MACHINE]
+IOCTL = {"x86_64": 16, "aarch64": 29}[MACHINE]
+fds = (ctypes.c_int * 2)()
+assert libc.pipe2(fds, 0) == 0
+owner = ctypes.c_int(os.getppid())
+attempt("fcntl_setown_executor", lambda: raw(FCNTL, fds[0], 8, os.getppid()))
+attempt("fcntl_setown_ex_executor", lambda: raw(FCNTL, fds[0], 15, ctypes.addressof(old)))
+attempt("fcntl_setsig_kill", lambda: raw(FCNTL, fds[0], 10, 9))
+attempt("ioctl_fiosetown_executor", lambda: raw(IOCTL, fds[0], 0x8901, ctypes.addressof(owner)))
+attempt("ioctl_siocspgrp_executor", lambda: raw(IOCTL, fds[0], 0x8902, ctypes.addressof(owner)))
 """,
     )
     assert_denied_by_seccomp(results, list(results))
-    assert len(results) >= 19
+    assert len(results) >= 24
 
 
 def test_the_executor_keeps_its_limits_and_signals_are_not_delivered():
