@@ -39,8 +39,22 @@ SECURITY DEFINER function of the queue's schema: owner `bc_jobs_def` (NOLOGIN) a
 runs again). `JOBS_BACKEND=temporal` runs the
 workflow below instead.
 
-**Not isolated (open, executor track):** the `exec` that runs creator code is not a sandbox and not a security
-boundary; code in it reaches the process's environment. Keep form actions off until the executor isolation work lands.
+**Isolation** (`ACTION_ISOLATION=enforce`, the default; `docs/executor-isolation.md`): custom action code (only a platform
+admin can create it; creators set parameters and secrets, never code) runs in one confined child per run
+(`sandbox/`: `policy.py` AST refusal, `confine.py` Landlock + seccomp + `no_new_privs` + rlimits + chroot/uid drop when
+root, `child.py`, `broker.py` which refuses a child that did not confine itself and answers its calls from the table
+built in `utilities/custom_action.py`). The child gets no secret value (handles the broker substitutes), no environment, no
+file, no socket. Every outgoing call (built-in actions too) goes through `utilities/egress.py` (https/443, every resolved
+address public, connect to the checked address, no redirects; the action's own parameters and `ACTION_EGRESS_ALLOW` are the
+only exceptions); a workspace's SMTP server is checked the same way. The executor asks the backend for the run's secrets
+**opened** (`{"secrets": "plain"}`, `secrets_plain` in the answer), so it needs no `AES_HEX_KEY` (`configs/cipher.py` builds
+the cipher only when a sealed value shows up: the Temporal path, or a backend older than 4.3); a refreshed Google credential
+goes back in plain over the run-scoped `PATCH .../runs/{r}/secrets`. `configs/crypto.py` stays an identical copy of the
+worker's (`common/tests/test_key_ring.py`). Tests: `tests/test_sandbox_adversarial_process.py` (policy layer off, the process
+must hold), `test_sandbox_adversarial_language.py`, `test_custom_action.py`, `test_egress.py`, `test_action_isolation.py`; the
+process tests skip only where the kernel cannot confine a child. Add a name to the child's namespace only with a handler
+that checks its arguments against this run; never hand it a live object (a function's `__globals__` is the whole process).
+Mail from custom code: the code gives the subject and recipients only; the broker builds the SMTP group itself (`prepare_mail`), derives the copy kind from the recipient and sends through `utilities/pinned_mail.py` (connect to the checked address, hand the socket to aiosmtplib). Built-in sends, name lookups and slow calls run off the event loop (`blocking()`), custom-code calls on `custom_action.call_pool`. A secret stored on the action itself only goes to an origin in the action's own parameters. Only the executor's own Google call (never the code's say-so) switches an action off. The image runs as a non-root user (Landlock); root with `cap_drop: ALL` is not supported. `ACTION_ISOLATION=legacy` is the old in-process `exec`, a way back only (error at start, warning per run).
 
 ## Tech
 
