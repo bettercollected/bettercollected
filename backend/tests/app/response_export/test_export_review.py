@@ -126,7 +126,7 @@ async def test_every_stored_chunk_is_a_heartbeat(client: AsyncClient, workspace,
 
     async def watching(chunk, attempt, now):
         result = await real(chunk, attempt, now)
-        stamps.append((await repo().get_by_id(export["id"])).started_at)
+        stamps.append((await repo().get_by_id(export["id"])).heartbeat_at)
         return result
 
     monkeypatch.setattr(repo(), "add_chunk_if_owned", watching)
@@ -486,7 +486,7 @@ async def test_a_job_that_finishes_while_an_account_is_forgotten_leaves_no_chunk
     real = repo().update_locked
     done = {}
 
-    async def finishing(export_id, change):
+    async def finishing(export_id, change, **kwargs):
         if not done:
             done["yes"] = True
 
@@ -497,7 +497,7 @@ async def test_a_job_that_finishes_while_an_account_is_forgotten_leaves_no_chunk
                 return row
 
             await real(export_id, ready)
-        return await real(export_id, change)
+        return await real(export_id, change, **kwargs)
 
     monkeypatch.setattr(repo(), "update_locked", finishing)
     assert await repo().forget_actor(invited_user.id) == 1

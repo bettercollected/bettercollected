@@ -27,7 +27,13 @@ from typing import Any, Dict, List, Optional, Tuple
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.webhook import ActionCondition
 from backend.app.services.registration import body as body_builder
-from backend.app.services.repeating_groups import evaluate_conditions, logic_sources
+from backend.app.services.repeating_groups import (
+    ADDRESS_COMPARISONS,
+    DATE_RANGE_COMPARISONS,
+    TAGS_COMPARISONS,
+    evaluate_conditions,
+    logic_sources,
+)
 from backend.app.services.field_rules import COMPARISONS, GROUP_MODES
 
 CONDITIONS_MAX = 10
@@ -37,6 +43,18 @@ TEXT_MAX = 10_000
 NOT_MET = "condition_not_met"
 INVALID = "condition_invalid"
 ERROR_CODE = "invalid_condition"
+# what a condition on these questions may ask (the form's logic and the AI ops
+# refuse the rest; one that was saved would never fire)
+ALLOWED_COMPARISONS = {
+    "tags": TAGS_COMPARISONS,
+    "date_range": DATE_RANGE_COMPARISONS,
+    "address": ADDRESS_COMPARISONS,
+}
+
+
+def _comparison_fits(question_type: Optional[str], comparison: Any) -> bool:
+    allowed = ALLOWED_COMPARISONS.get(question_type or "")
+    return allowed is None or comparison in allowed
 
 
 def _refused(message: str) -> HTTPException:
@@ -66,6 +84,11 @@ def checked_condition(form: Any, condition: Optional[ActionCondition]) -> Option
             raise _refused("A condition reads a question this form does not have.")
         if item.comparison not in COMPARISONS:
             raise _refused("A condition has a comparison that is not known.")
+        if not _comparison_fits(variable.type, item.comparison):
+            raise _refused(
+                f"A condition on a {variable.type.replace('_', ' ')} question uses "
+                f"one of {', '.join(ALLOWED_COMPARISONS[variable.type])}."
+            )
         try:
             size = len(json.dumps(item.value, default=str))
         except (TypeError, ValueError):
@@ -86,6 +109,11 @@ def checked_condition(form: Any, condition: Optional[ActionCondition]) -> Option
                 if child is None or not child.supported:
                     raise _refused("A condition reads a question the group does not have.")
                 change["child_field_type"] = child.type
+                if not _comparison_fits(child.type, item.comparison):
+                    raise _refused(
+                        f"A condition on a {child.type.replace('_', ' ')} question "
+                        f"uses one of {', '.join(ALLOWED_COMPARISONS[child.type])}."
+                    )
         else:
             if item.group_mode:
                 raise _refused("Only a repeating group takes COUNT, ANY or ALL.")

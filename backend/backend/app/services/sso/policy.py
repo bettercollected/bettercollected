@@ -21,11 +21,17 @@ workspace permissions, no creator or admin role).
 **Refresh:** while the requirement holds, a session for an address on those
 domains that did not sign in with SSO ends at its next refresh, member or
 not, except the owners' email-code sessions and respondent-scoped ones.
-See docs/sso.md.
+
+**Every request:** the same rule is also applied when a request is authorised
+for the workspace (``blocks_session``, called by ``AuthorizationService``),
+so a session that does not meet the requirement is refused at once and not
+only at its next refresh. API keys are machine credentials issued inside the
+workspace and are not subject to it. See docs/sso.md.
 """
 
+import time
 from http import HTTPStatus
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from common.records import RecordId
 from loguru import logger
@@ -53,6 +59,19 @@ from backend.config import settings
 
 SSO_REQUIRED = "sso_required"
 
+# The sign-in method of an API key's acting user (``api_access.acting_user``).
+API_KEY_METHOD = "api_key"
+
+# How long a workspace's answer to "does this address's domain require SSO
+# here" (a verified domain claim plus an enabled connection) is reused by the
+# per-request check. Whether the workspace requires SSO at all is never
+# cached: it comes from the workspace row the authorisation already reads. So
+# switching the requirement on or off takes effect on the next request; only
+# a domain claim or connection that changed in the last few seconds can be
+# seen late (and a changed one is only ever acted on a little late).
+REQUIREMENT_CACHE_SECONDS = 30.0
+REQUIREMENT_CACHE_MAX = 2048
+
 # The role a first SSO sign-in gets unless the workspace chose another.
 # The accepted design's default (docs/enterprise-access-model.md): Viewer.
 DEFAULT_SSO_ROLE = WorkspaceRoles.VIEWER
@@ -64,6 +83,19 @@ SSO_ASSIGNABLE_ROLES = (
     WorkspaceRoles.REVIEWER,
     WorkspaceRoles.VIEWER,
 )
+
+
+def session_exempt(
+    method: Optional[str], scope: Optional[str], is_owner: bool = False
+) -> bool:
+    """The one rule of who meets (or is outside) a workspace's single
+    sign-on requirement, by how the session was made: SSO sessions, API keys
+    (machine credentials), respondent-scoped sessions, and an owner's
+    email-code session (break-glass). Used by the refresh, the selection
+    screen and the per-request check, so they cannot drift."""
+    if method in (SSO_METHOD, API_KEY_METHOD) or scope == RESPONDENT_SCOPE:
+        return True
+    return method == OTP_METHOD and is_owner
 
 
 def assignable_sso_roles() -> List[str]:
@@ -106,6 +138,10 @@ class SsoPolicyService:
         self._http_client = http_client
         # the memberships: who the owners are (an enabled one each)
         self._workspace_users = workspace_user_repo
+        # (workspace id, domain) -> (expires at, whether the domain requires
+        # SSO there), per process; see REQUIREMENT_CACHE_SECONDS
+        self._requirement_cache: Dict[Tuple[str, str], Tuple[float, bool]] = {}
+        self._clock = time.monotonic
 
     async def requiring_workspace(self, email: str) -> Optional[WorkspaceDocument]:
         """The workspace whose SSO requirement covers ``email``, if any."""
@@ -170,14 +206,69 @@ class SsoPolicyService:
         respondent-scoped, or is an owner's email-code session
         (break-glass). The one rule behind ``session_must_end`` and the
         workspace selection screen."""
-        if method == SSO_METHOD or scope == RESPONDENT_SCOPE:
+        if session_exempt(method, scope):
             return None
         workspace = await self.requiring_workspace(email or "")
         if workspace is None:
             return None
-        if method == OTP_METHOD and await self._is_owner(workspace, user_id):
+        if session_exempt(
+            method,
+            scope,
+            is_owner=method == OTP_METHOD and await self._is_owner(workspace, user_id),
+        ):
             return None
         return workspace
+
+    async def blocks_session(
+        self,
+        workspace: Optional[WorkspaceDocument],
+        email: Optional[str],
+        method: Optional[str],
+        scope: Optional[str],
+        is_owner: bool,
+    ) -> bool:
+        """Whether a request to ``workspace`` by a session signed in with
+        ``method`` must be refused for want of single sign-on: the rule of
+        ``unmet_requirement`` (``is_owner``: an owner with an active
+        membership, for the email-code break-glass), applied to the one
+        workspace being accessed. The caller already holds the workspace row,
+        so nothing is read unless the workspace requires SSO and the session
+        could fall short; then at most the domain claim and the connection,
+        reused for ``REQUIREMENT_CACHE_SECONDS``.
+
+        Not covered, on purpose: API keys (machine credentials issued in the
+        workspace; the key's creator still has to hold the permission),
+        guests whose address is not on this workspace's SSO domains, and
+        every workspace but the one that requires SSO."""
+        if not settings.sso.ENABLED or workspace is None:
+            return False
+        if workspace.disabled or not workspace.sso_required:
+            return False
+        if session_exempt(method, scope, is_owner):
+            return False
+        return await self._domain_requires_sso(workspace.id, email)
+
+    async def _domain_requires_sso(self, workspace_id, email: Optional[str]) -> bool:
+        """Whether ``email``'s domain is a verified SSO domain of the
+        workspace and the workspace has an enabled connection."""
+        domain = domain_of(email or "")
+        if domain is None:
+            return False
+        key = (str(workspace_id), domain)
+        now = self._clock()
+        cached = self._requirement_cache.get(key)
+        if cached is not None and cached[0] > now:
+            return cached[1]
+        claim = await self._domains.sso_domain_claim(domain)
+        answer = (
+            claim is not None
+            and str(claim.workspace_id) == str(workspace_id)
+            and await self._connections.find_enabled(workspace_id) is not None
+        )
+        if len(self._requirement_cache) >= REQUIREMENT_CACHE_MAX:
+            self._requirement_cache.clear()
+        self._requirement_cache[key] = (now + REQUIREMENT_CACHE_SECONDS, answer)
+        return answer
 
     async def session_must_end(self, email: str, session, user_id: str) -> bool:
         """Whether a session has to end at refresh because its address's

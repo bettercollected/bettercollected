@@ -93,7 +93,7 @@ A respondent-supplied address is the one place the system mails someone nobody o
 
 Both email actions and webhooks take an optional condition: `{operator: AND|OR, conditions: [...]}` in the model the form's logic uses (`FieldLogicCondition`, the same comparisons;
 at most 10). Saved only when each condition reads a question of the form's pages (not an internal one, not a file, not a question inside a repeating group: use the group with
-`COUNT`, `ANY` or `ALL`); the question's type is written from the form. The server evaluates it **when the submission is queued, on the submitted answers** (calculated values the
+`COUNT`, `ANY` or `ALL`); the question's type is written from the form. A tags question takes `CONTAINS`, `DOES_NOT_CONTAIN`, `IS_EMPTY` and `IS_NOT_EMPTY`, a date range those and `GREATER_THAN` / `LESS_THAN`, an address compares its postcode as text with `IS_EQUAL`, `IS_NOT_EQUAL`, `STARTS_WITH`, `IS_EMPTY` and `IS_NOT_EMPTY` (the form's own logic refuses the rest, and a condition saved with one would never hold; the API answers 422 `invalid_condition`). A currency question is compared by its amount only (the code is ignored, and `IS_EQUAL` compares the amount as written, `12.50` is not `12.5`). The server evaluates it **when the submission is queued, on the submitted answers** (calculated values the
 server computed included), in memory. A condition that does not hold writes a `cancelled` log row (`condition_not_met`) and queues nothing; one that cannot be read (its question
 was removed) never runs the action (`condition_invalid`). A condition cannot be used to learn about other submissions: it reads this submission only.
 

@@ -24,6 +24,9 @@ import re
 import unicodedata
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
+from common.address import PARTS as ADDRESS_PARTS
+from common.address import one_line as address_line
+
 PLACEHOLDER = re.compile(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]{0,63})\s*\}\}")
 BUILT_INS_SUBJECT = ("form_title", "submitted_at")
 BUILT_INS_BODY = ("form_title", "submitted_at", "answers")
@@ -133,9 +136,17 @@ _YES = {"en": "Yes", "nl": "Ja"}
 _NO = {"en": "No", "nl": "Nee"}
 
 
+def _row(row: Dict[str, Any], language: str) -> str:
+    return " / ".join(
+        format_value(v, language) for v in row.values() if v not in (None, "", [], {})
+    )
+
+
 def format_value(value: Any, language: str = DEFAULT_LANGUAGE) -> str:
     """An answer as text: a list joined with ``, ``, the items of a repeating
-    group one per line (``1. a / b``), a yes/no in the form's language."""
+    group one per line (``1. a / b``), a yes/no in the form's language, a currency
+    ``EUR 12.50``, a date range ``2026-01-31/2026-02-03`` and an address
+    ``Keizersgracht 12 A, 1015 CS Amsterdam``."""
     if value is None:
         return ""
     if isinstance(value, bool):
@@ -145,12 +156,24 @@ def format_value(value: Any, language: str = DEFAULT_LANGUAGE) -> str:
     if isinstance(value, str):
         return value
     if isinstance(value, dict):
-        return " / ".join(format_value(v, language) for v in value.values() if v not in (None, ""))
+        if set(value) == {"code", "amount"}:
+            # a currency answer: "EUR 12.50", as the export writes it; no amount,
+            # nothing to say (a code alone is not an answer)
+            if value["amount"] in (None, ""):
+                return ""
+            return f"{value['code']} {value['amount']}" if value["code"] else str(value["amount"])
+        if set(value) == {"start", "end"}:
+            # a date range: an ISO 8601 interval, as the export writes it
+            return f"{value['start'] or ''}/{value['end'] or ''}"
+        if set(value) == set(ADDRESS_PARTS):
+            # an address: one line, as the export writes it
+            return address_line(value)
+        return _row(value, language)
     if isinstance(value, (list, tuple)):
         if value and all(isinstance(item, dict) for item in value):
-            return "\n".join(
-                f"{n}. {format_value(item, language)}" for n, item in enumerate(value, 1)
-            )
+            # an item of a repeating group: a question may be called "start"
+            # or "code", so a row is never read as a currency or a range
+            return "\n".join(f"{n}. {_row(item, language)}" for n, item in enumerate(value, 1))
         return ", ".join(format_value(item, language) for item in value)
     return str(value)
 

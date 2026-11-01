@@ -3,6 +3,7 @@ export const workspaceSelect = {
     title: 'WORKSPACE_SELECT.TITLE',
     description: 'WORKSPACE_SELECT.DESCRIPTION',
     noAccess: 'WORKSPACE_SELECT.NO_ACCESS',
+    ssoNotice: 'WORKSPACE_SELECT.SSO_NOTICE',
     listLabel: 'WORKSPACE_SELECT.LIST_LABEL',
     count: 'WORKSPACE_SELECT.COUNT',
     searchLabel: 'WORKSPACE_SELECT.SEARCH_LABEL',

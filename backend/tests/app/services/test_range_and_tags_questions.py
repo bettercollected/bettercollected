@@ -414,6 +414,37 @@ def test_the_spec_check_refuses_a_comparison_a_tags_or_range_question_cannot_mak
     assert bool(refused) is (not allowed), result["errors"]
 
 
+@pytest.mark.parametrize("kind,comparison,value,allowed", [
+    ("tags", "IS_EMPTY", None, True),
+    ("tags", "IS_NOT_EMPTY", None, True),
+    ("tags", "CONTAINS", "vegan", True),
+    ("tags", "IS_EQUAL", "vegan", False),
+    ("date_range", "IS_EMPTY", None, True),
+    ("date_range", "IS_NOT_EMPTY", None, True),
+    ("date_range", "CONTAINS", "2026-01-01", True),
+    ("date_range", "DOES_NOT_CONTAIN", "2026-01-01", True),
+    ("date_range", "GREATER_THAN", "2026-01-01", True),
+    ("date_range", "LESS_THAN", "2026-01-01", True),
+    ("date_range", "IS_EQUAL", "2026-01-01", False),
+    ("date_range", "GREATER_THAN_EQUAL", "2026-01-01", False),
+])
+def test_the_ai_ops_take_the_same_comparisons_as_the_spec_check(kind, comparison, value, allowed):
+    from common.models.standard_form import StandardFormField
+
+    from backend.app.services.ai import ops
+    from backend.app.services.repeating_groups import DATE_RANGE_COMPARISONS, TAGS_COMPARISONS
+
+    source = StandardFormField(id="src", type=kind, title="Source")
+    if allowed:
+        assert ops._validated_value(source, comparison, value) == (None if comparison.startswith("IS_") else value)
+    else:
+        with pytest.raises(ops.OpError):
+            ops._validated_value(source, comparison, value)
+    # one list for the date range: the ops, the form logic and the action conditions
+    assert ops.DATE_RANGE_COMPARISONS == DATE_RANGE_COMPARISONS
+    assert set(TAGS_COMPARISONS) == set(ops.TAGS_VALUE_COMPARISONS) | {"IS_EMPTY", "IS_NOT_EMPTY"}
+
+
 # --- a rule may not read its own range ----------------------------------------------
 
 

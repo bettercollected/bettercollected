@@ -15,6 +15,7 @@ Headers: ``X-Bettercollected-Signature``, ``-Timestamp`` (Unix seconds),
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import hmac
 import json
@@ -60,7 +61,12 @@ def build_data(
 ) -> Dict[str, Any]:
     """``{key: value}`` of the mapped questions of one response. A question the
     form no longer has is left out; a multiple choice question is a list of the
-    chosen options' texts."""
+    chosen options' texts. The newer types follow the public API's answers
+    (``registration/body.py`` ``scalar``): ``time`` "HH:MM", ``day`` a date,
+    ``currency`` ``{"code", "amount"}`` (the amount a decimal string),
+    ``date_range`` ``{"start", "end"}``, ``tags`` a list of strings, ``address``
+    its six parts (``street``, ``house_number``, ``house_number_addition``,
+    ``postcode``, ``city``, ``country``)."""
     index = body_builder.variables_of(form)
     values, _schema = body_builder.build_values(
         index,
@@ -105,6 +111,18 @@ _SAMPLES = {
     "opinion_scale": 7,
     "yes_no": True,
     "date": "2026-01-31",
+    "day": "2026-01-31",
+    "time": "09:30",
+    "date_range": {"start": "2026-01-31", "end": "2026-02-03"},
+    "tags": ["example", "tags"],
+    "address": {
+        "street": "Example street",
+        "house_number": "1",
+        "house_number_addition": None,
+        "postcode": "1234 AB",
+        "city": "Example city",
+        "country": "NL",
+    },
     "calculated": 42,
 }
 
@@ -114,6 +132,12 @@ def _multiple(field: Any) -> bool:
     if isinstance(properties, dict):
         return bool(properties.get("allow_multiple_selection"))
     return bool(getattr(properties, "allow_multiple_selection", False))
+
+
+def _sample_currency(field: Any) -> str:
+    """The question's default currency (the first it offers), else EUR."""
+    offered = body_builder.currencies_of(field)
+    return offered[0] if offered else "EUR"
 
 
 def sample_data(form: Any, mapping: Iterable[Tuple[str, str]]) -> Dict[str, Any]:
@@ -131,6 +155,8 @@ def sample_data(form: Any, mapping: Iterable[Tuple[str, str]]) -> Dict[str, Any]
         elif variable.type in ("multiple_choice", "dropdown"):
             multiple = variable.type == "multiple_choice" and _multiple(variable.field)
             data[key] = ["Example option"] if multiple else "Example option"
+        elif variable.type == "currency":
+            data[key] = {"code": _sample_currency(variable.field), "amount": "12.50"}
         else:
-            data[key] = _SAMPLES.get(variable.type, "Example")
+            data[key] = copy.deepcopy(_SAMPLES.get(variable.type, "Example"))
     return data

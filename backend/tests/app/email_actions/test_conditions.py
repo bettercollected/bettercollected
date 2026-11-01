@@ -226,3 +226,139 @@ async def test_a_not_met_row_is_replayed_as_a_no_op(workspace, memory_jobs):
     assert again == [] and len(await queued(form, response, workspace)) == 1
     (row,) = await queued(form, response, workspace)
     assert (await container.email_action_service().run_delivery(str(row.id))).status == "skipped"
+
+
+# ----------------------------------------------- the newer question types
+
+
+NEWER = [
+    {"id": "labels", "type": "tags", "title": "Labels"},
+    {"id": "stay", "type": "date_range", "title": "Stay"},
+    {"id": "price", "type": "currency", "title": "Price"},
+    {"id": "at", "type": "time", "title": "At"},
+    {
+        "id": "trips",
+        "type": "group",
+        "title": "Trips",
+        "properties": {
+            "repeat": {"minItems": 0, "maxItems": 3, "itemLabel": "Trip"},
+            "fields": [
+                {"id": "tlabels", "type": "tags", "title": "Trip labels"},
+                {"id": "tstay", "type": "date_range", "title": "Trip stay"},
+            ],
+        },
+    },
+]
+TAGS_OK = ("CONTAINS", "DOES_NOT_CONTAIN", "IS_EMPTY", "IS_NOT_EMPTY")
+RANGE_OK = ("CONTAINS", "DOES_NOT_CONTAIN", "GREATER_THAN", "LESS_THAN", "IS_EMPTY", "IS_NOT_EMPTY")
+
+
+def newer_form():
+    from common.models.standard_form import StandardForm
+
+    from tests.app.registration.helpers import FIELDS
+
+    return StandardForm(
+        builder_version="v2",
+        title="t",
+        fields=[{"id": "s1", "type": "slide", "properties": {"fields": [*FIELDS, *NEWER]}}],
+    )
+
+
+def checked(*items):
+    return action_conditions.checked_condition(newer_form(), condition(*items))
+
+
+def refuses(*items):
+    with pytest.raises(HTTPException) as raised:
+        checked(*items)
+    assert raised.value.status_code == 422 and raised.value.content["code"] == "invalid_condition"
+
+
+@pytest.mark.parametrize("comparison", TAGS_OK)
+def test_a_tags_condition_keeps_each_comparison_that_can_fire(comparison):
+    kept = checked(c("labels", comparison, "x"))
+    assert kept.conditions[0].comparison == comparison and kept.conditions[0].field_type == "tags"
+
+
+@pytest.mark.parametrize("comparison", RANGE_OK)
+def test_a_date_range_condition_keeps_each_comparison_that_can_fire(comparison):
+    kept = checked(c("stay", comparison, "2026-01-31"))
+    assert kept.conditions[0].comparison == comparison and kept.conditions[0].field_type == "date_range"
+
+
+@pytest.mark.parametrize("comparison", ["IS_EQUAL", "IS_NOT_EQUAL", "GREATER_THAN", "STARTS_WITH"])
+def test_a_tags_condition_refuses_a_comparison_that_never_fires(comparison):
+    refuses(c("labels", comparison, "x"))
+
+
+@pytest.mark.parametrize("comparison", ["IS_EQUAL", "IS_NOT_EQUAL", "GREATER_THAN_EQUAL", "STARTS_WITH"])
+def test_a_date_range_condition_refuses_a_comparison_that_never_fires(comparison):
+    refuses(c("stay", comparison, "2026-01-31"))
+
+
+@pytest.mark.parametrize("mode", ["ANY", "ALL"])
+@pytest.mark.parametrize(
+    "child, allowed, refused_one",
+    [("tlabels", TAGS_OK, "IS_EQUAL"), ("tstay", RANGE_OK, "IS_EQUAL")],
+)
+def test_a_group_child_condition_follows_the_children_type(mode, child, allowed, refused_one):
+    for comparison in allowed:
+        kept = checked(c("trips", comparison, "x", group_mode=mode, child_field_id=child))
+        assert kept.conditions[0].child_field_type in ("tags", "date_range")
+    refuses(c("trips", refused_one, "x", group_mode=mode, child_field_id=child))
+    # COUNT reads the number of items: a numeric comparison is fine there
+    kept = checked(c("trips", "GREATER_THAN_EQUAL", 1, group_mode="COUNT"))
+    assert kept.conditions[0].group_mode == "COUNT"
+
+
+def test_currency_and_time_conditions_take_every_known_comparison():
+    for field in ("price", "at"):
+        for comparison in ("IS_EQUAL", "GREATER_THAN", "IS_NOT_EMPTY"):
+            assert checked(c(field, comparison, "1")).conditions[0].comparison == comparison
+
+
+@pytest.fixture()
+def newer_types(monkeypatch):
+    from backend.config import settings
+
+    monkeypatch.setattr(settings, "NEW_QUESTION_TYPES_ENABLED", True)
+
+
+async def test_the_service_and_a_webhook_refuse_the_same_comparisons(workspace, newer_types, public_dns_on):
+    from tests.app.registration.helpers import FIELDS
+
+    form = await publish(workspace, fields=[*FIELDS, *NEWER])
+    for make in (make_action, make_webhook):
+        error = await refused(make(workspace, form, condition=condition(c("labels", "IS_EQUAL", "x"))))
+        assert error.status_code == 422 and error.content["code"] == "invalid_condition"
+    kept = await make_webhook(workspace, form, condition=condition(c("labels", "CONTAINS", "x")))
+    assert kept.condition.conditions[0].field_type == "tags"
+
+
+def test_these_conditions_read_the_stored_answers():
+    form = newer_form()
+    answers = {
+        "labels": {"type": "tags", "tags": ["alpha", "beta"]},
+        "stay": {"type": "date_range", "date_range": {"start": "2026-01-31", "end": "2026-02-03"}},
+        "price": {"type": "currency", "currency": {"code": "USD", "amount": "12.50"}},
+        "trips": {"type": "group", "items": [{"tlabels": {"tags": ["x"]}}, {"tlabels": {"tags": ["y", "z"]}}]},
+    }
+
+    def holds(*items):
+        runs, _code = action_conditions.conditions_hold(checked(*items), form, answers)
+        return runs
+
+    assert holds(c("labels", "CONTAINS", "alpha"))
+    assert not holds(c("labels", "CONTAINS", "gamma"))
+    assert holds(c("labels", "DOES_NOT_CONTAIN", "gamma"))
+    assert holds(c("labels", "IS_NOT_EMPTY")) and not holds(c("labels", "IS_EMPTY"))
+    assert holds(c("stay", "IS_NOT_EMPTY")) and not holds(c("at", "IS_NOT_EMPTY"))
+    # a currency compares its amount only: the code is ignored, and IS_EQUAL is a text comparison
+    assert holds(c("price", "IS_EQUAL", "12.50"))
+    assert not holds(c("price", "IS_EQUAL", "12.5"))
+    assert not holds(c("price", "IS_EQUAL", "USD 12.50"))
+    # a group: ANY item has the tag; ALL items must
+    assert holds(c("trips", "CONTAINS", "z", group_mode="ANY", child_field_id="tlabels"))
+    assert not holds(c("trips", "CONTAINS", "z", group_mode="ALL", child_field_id="tlabels"))
+    assert holds(c("trips", "IS_NOT_EMPTY", group_mode="ALL", child_field_id="tlabels"))

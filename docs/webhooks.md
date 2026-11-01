@@ -19,7 +19,7 @@ One webhook belongs to one form (at most 5 per form). It has:
 | Part | Rule |
 |---|---|
 | Address | https only, port 443 only, no user name or password; a fragment (`#...`) is dropped. Stored and used in its ASCII (IDNA) form. See the SSRF rules below. May carry a query (some receivers put a token there), so the address is **sealed** at rest like the secret (bound to the workspace, the webhook and its purpose). Only the host is kept in clear. The list shows the host only; the owner-facing detail read (`workspace.manage`) and the delivery job are the only places it is opened. Never logged or queued. |
-| Questions | Which questions are sent and the name each gets in the body (`^[A-Za-z_][A-Za-z0-9_]{0,63}$`, unique). Hidden fields can be sent too. File questions cannot (webhooks never carry files); calculated values can; a repeating group is one list. A multiple choice answer is a list of the chosen options' texts. |
+| Questions | Which questions are sent and the name each gets in the body (`^[A-Za-z_][A-Za-z0-9_]{0,63}$`, unique). Hidden fields can be sent too. File questions cannot (webhooks never carry files); calculated values can; a repeating group is one list. A multiple choice answer is a list of the chosen options' texts. The newer question types are sent too, in the shape the public API answers them in (see [Values](#values)). |
 | Secret | Generated (`whsec_` + 256 random bits), shown **once**, when the webhook is created or its secret rotated, and stored encrypted (the same credential encryption as other secrets, bound to the workspace and the webhook). No other response returns it. |
 | Condition | Optional: it runs only when a condition on the answers holds, built in the form's logic conditions and evaluated by the server when the submission is queued (see [email actions](email-actions.md#conditions)). One that does not hold writes a `cancelled` log row (`condition_not_met`) and queues nothing. |
 | On or off | A switched-off webhook sends nothing; a test event may still be sent to it. |
@@ -38,6 +38,38 @@ answers).
 
 Only the mapped questions are in `data`; nothing else about the response is. The answers are decrypted inside the delivery job, reduced to those
 questions and sent: they are never stored, queued or logged. A **test event** has `"event":"test"`, `response_id` and `submitted_at` null and made-up values.
+
+### Values
+
+Each mapped question is one value under its key. Every question that was not answered is `null`, except text-like questions (`""`) and tags (`[]`). The
+registration (Objects API / Generic JSON) body and the text of an email action read the same values; `values_schema` of a registration body describes them.
+
+| Question | Value | Example | Not answered |
+|---|---|---|---|
+| Short text, long text, email, link, phone number | text | `"Ada"` | `""` |
+| Number, rating, scales | number | `36` | `null` |
+| Yes / no | boolean | `true` | `null` |
+| Date | `"YYYY-MM-DD"` | `"2026-01-31"` | `null` |
+| Day (a date typed as day, month and year) | `"YYYY-MM-DD"`, the same as a date (an empty string reads as not answered) | `"1990-01-02"` | `null` |
+| Time | `"HH:MM"`, 24-hour | `"09:30"` | `null` |
+| Currency | `{"code": "<ISO 4217>", "amount": "<decimal>"}`; the amount is the decimal string as it was entered (a dot, at most the currency's decimals), never a float, so no digit is lost | `{"code":"EUR","amount":"12.50"}` | `null` |
+| Date range | `{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}` | `{"start":"2026-01-31","end":"2026-02-03"}` | `null` |
+| Tags | list of strings, in the order entered | `["alpha","beta"]` | `[]` |
+| Address | `{"street", "house_number", "house_number_addition", "postcode", "city", "country"}`, each text or `null`; the country an ISO 3166-1 alpha-2 code (the question's one allowed country when the answer has none). Street and city may have been filled in by the lookup and are not verified | `{"street":"Keizersgracht","house_number":"12","house_number_addition":null,"postcode":"1015 CS","city":"Amsterdam","country":"NL"}` | `null` |
+| Single choice, dropdown | the option's text | `"Red"` | `""` |
+| Multiple choice (several allowed) | list of the options' texts | `["Red","Blue"]` | `[]` |
+| Repeating group | list with one object per item, keyed by the question's id | `[{"pname":"Bo"}]` | `[]` |
+
+These are the keys and values of the public API's answers (`code`, `amount`, `start`, `end`), flattened to one value per question. A currency or a
+date range answered in part keeps both keys, the missing one `null`. Every part must be in the format named here, or it is sent as `null`: a date or day that is not a calendar
+date (an empty string included), a time that is not `HH:MM`, a currency code that is not three capital letters, an amount that is not a plain decimal or is longer
+than 17 characters (a sign, 12 digits, the point, 3 decimals), and a range whose end is before its start (`null` as a whole, not half a range). The form checks these when a question is shown; an answer that logic hid or a jump skipped is stored
+with its type checked only, and this keeps it from reaching a receiver in a shape the published schema refuses. What is stored is not changed, and such answers are
+still sent. Tags are cut to what the question allows: at most 30, each 1 to 40 characters (a tag outside that is left out, since a list holds no `null`). The
+**test event** carries made-up values of the same shapes (a currency question's sample uses its first offered currency, EUR when it offers none). A
+question that is no longer one of these types when a delivery runs is left out of `data`, as before. In an email action's text a currency reads `EUR 12.50`
+and a date range `2026-01-31/2026-02-03`, as in the response export; an address reads `Keizersgracht 12, 1015 CS Amsterdam` (the
+country code added when it is not `NL`).
 
 Headers:
 

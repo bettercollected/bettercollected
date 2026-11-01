@@ -65,7 +65,8 @@ failed delivery (`form.edit`), and members who can read responses see the delive
 ## Which variables
 
 A variable is a question of the form (the name is its id), a repeating group (sent as a list of items), a hidden field
-(a captured URL parameter) or a calculated value. Content blocks, internal (staff-only) fields, matrices, payment and
+(a captured URL parameter) or a calculated value; time, day, currency, date range, tags and address questions are sent too, as listed in
+[webhooks](webhooks.md#values). Content blocks, internal (staff-only) fields, matrices, payment and
 table questions can't be sent yet. Each variable gets a **key** in the body (letters, digits and `_`, unique; by
 default the variable's name).
 
