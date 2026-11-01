@@ -298,14 +298,26 @@ _TYPES_WITHOUT_NEW = """phone_number, date, yes_no, multiple_choice, dropdown, r
 file_upload, text (a display-only statement), calculated (a computed value)."""
 
 
+_SIGNATURE_TYPE = (
+    ", signature (a drawn or typed signature, no settings; a condition on it "
+    "uses IS_EMPTY or IS_NOT_EMPTY)"
+)
+
+
 def ops_guide() -> str:
     """OPS_GUIDE, without the newer question types while they are switched
-    off (services/new_question_types.py)."""
-    from backend.app.services.new_question_types import new_question_types_enabled
+    off, and with the signature question only while its own switch is on
+    (services/new_question_types.py)."""
+    from backend.app.services.new_question_types import (
+        new_question_types_enabled,
+        signature_question_enabled,
+    )
 
-    if new_question_types_enabled():
-        return OPS_GUIDE
-    return OPS_GUIDE.replace(_TYPES_WITH_NEW, _TYPES_WITHOUT_NEW)
+    types = _TYPES_WITH_NEW if new_question_types_enabled() else _TYPES_WITHOUT_NEW
+    guide = OPS_GUIDE.replace(_TYPES_WITH_NEW, types)
+    if signature_question_enabled():
+        guide = guide.replace(types, types[:-1] + _SIGNATURE_TYPE + ".")
+    return guide
 
 
 def _project_condition(c) -> dict:

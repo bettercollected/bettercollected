@@ -591,6 +591,17 @@ class FormResponseService:
                         decrypted_answer["file_metadata"].get("id"),
                     )
                 )
+            signature = decrypted_answer.get("signature")
+            if isinstance(signature, dict) and signature.get("file_id"):
+                # a drawn signature: a short-lived link to the image, on this
+                # one-response read only (never in a list)
+                signature["url"] = self.signature_download_url(
+                    workspace_id,
+                    response.form_id,
+                    response.response_id,
+                    signature["file_id"],
+                )
+                decrypted_response.answers[key] = decrypted_answer
 
         return SingleSubmissionResponse(
             form=form,
@@ -694,17 +705,31 @@ class FormResponseService:
             await self.scope(workspace_id, form_ids)
         )
 
+    def _forget_stored_files(self, prefix: str, keep: str = "") -> None:
+        """Remove the files stored under ``prefix`` (an uploaded file or a
+        drawn signature's image). A storage failure never fails the deletion
+        of the response itself; only the prefix's ids are logged."""
+        try:
+            self._aws_service.delete_folder_from_s3(prefix, keep=keep)
+        except Exception:  # noqa: BLE001
+            logger.warning("Stored files under {} could not be removed", prefix)
+
     async def delete_workspace_form_responses(
         self, workspace_id: RecordId, form_id: str
     ):
         """A form unlinked from one of several workspaces: the responses and
-        deletion requests collected through that workspace go with it."""
+        deletion requests collected through that workspace go with it, and
+        so do their stored files (the import's original stays: it is not a
+        response's)."""
         deleted = await self._form_response_repo.delete_in_scope(
             ResponseScope(
                 workspace_id=RecordId(workspace_id), form_ids=(str(form_id),)
             )
         )
         await self._forget_export_files([form_id], workspace_id)
+        self._forget_stored_files(
+            f"private/{workspace_id}/{form_id}/", keep="/imports/"
+        )
         return deleted
 
     async def _forget_export_files(self, form_ids, workspace_id=None) -> None:
@@ -1003,12 +1028,14 @@ class FormResponseService:
 
     async def delete_response(self, response_id: str):
         # read first: the webhook log rows are scoped by workspace and form
-        existing = (
-            await self._form_response_repo.get_response(response_id)
-            if self._webhook_logs is not None or self._response_exports is not None
-            else None
-        )
+        existing = await self._form_response_repo.get_response(response_id)
         deleted = await self._form_response_repo.delete_response(response_id=response_id)
+        if existing is not None and existing.workspace_id is not None:
+            # the stored files of the response go with it: the retention
+            # period running out is a deletion like any other
+            self._forget_stored_files(
+                f"private/{existing.workspace_id}/{existing.form_id}/{response_id}/"
+            )
         if existing is not None and existing.workspace_id is not None:
             await self._forget_export_files([existing.form_id], existing.workspace_id)
         elif existing is not None:
@@ -1318,6 +1345,16 @@ class FormResponseService:
         ):
             if self._aws_service.check_if_key_exists(key):
                 return self._aws_service.generate_presigned_url(key=key)
+        return ""
+
+    def signature_download_url(self, workspace_id, form_id, response_id, file_id) -> str:
+        """A short-lived link to a drawn signature's image, which lives only in
+        its response's folder. An empty string when it is not there."""
+        if not is_plain_file_id(file_id):
+            return ""
+        key = f"private/{workspace_id}/{form_id}/{response_id}/{file_id}"
+        if self._aws_service.check_if_key_exists(key):
+            return self._aws_service.generate_presigned_url(key=key)
         return ""
 
     def generate_presigned_url_for_each_response(

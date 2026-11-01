@@ -169,7 +169,8 @@ CHOICE_TYPES: FrozenSet[str] = frozenset({"select", "radio", "selectboxes"})
 LAYOUT_TYPES: FrozenSet[str] = frozenset({"fieldset", "columns"})
 GROUP_TYPES: FrozenSet[str] = frozenset({"editgrid"})
 # kept apart: types that need a register lookup, a map, a second signer or a
-# signature: no equivalent in our questions
+# signature: a signature question exists now, but its image would have to come
+# with the import and go through the document sandbox: not imported
 UNSUPPORTED_TYPES: FrozenSet[str] = frozenset(
     {
         "signature",

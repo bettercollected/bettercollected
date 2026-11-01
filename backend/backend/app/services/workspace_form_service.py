@@ -94,6 +94,7 @@ from backend.app.services.field_rules import (
     rule_keys_affected,
 )
 from backend.app.services.new_question_types import ensure_question_types_allowed
+from backend.app.services.signatures import delete_stored_images, prepare_signatures
 from backend.app.services.option_logic import (
     ensure_choice_logic_allowed,
     ensure_valid_option_logic,
@@ -1155,11 +1156,13 @@ class WorkspaceFormService:
         # Date rules against the answers as they will be after the edit, but
         # only for what this edit touches; "today" is the submission day.
         merged = {}
+        stored_answers = {}
         stored_hidden_fields = None
         if existing.answers:
             decrypted = self.form_response_service.decrypt_form_response(
                 workspace_id=workspace_id, response=existing.model_copy(deep=True)
             )
+            stored_answers = dict(decrypted.answers or {})
             merged.update(decrypted.answers or {})
             stored_hidden_fields = decrypted.hidden_fields
         merged.update(response.answers or {})
@@ -1215,6 +1218,13 @@ class WorkspaceFormService:
             skip=locked,
         )
 
+        # A signature question's drawn image is checked and re-encoded, and a
+        # changed signature is stamped by the server (services/signatures.py).
+        prepared = await prepare_signatures(
+            form, response.answers, form_files, stored=stored_answers
+        )
+        response.answers, form_files = prepared.answers, prepared.form_files
+
         if form_files:
             # stored with the response's other files, where downloads look first
             response.response_id = str(response_id)
@@ -1236,6 +1246,14 @@ class WorkspaceFormService:
             document_id=existing.id,
             response=response,
             user=user,
+        )
+        # the images the edit replaced go only once the edit is stored
+        delete_stored_images(
+            self._aws_service,
+            workspace_id,
+            form_id,
+            response_id,
+            prepared.replaced,
         )
 
         return form_response.submission_uuid
@@ -1376,6 +1394,11 @@ class WorkspaceFormService:
         anonymous_identity = None
         if bool(getattr(response, "anonymize", False)) and user:
             anonymous_identity = identity_of(user.sub)
+        # A signature question's drawn image is checked and re-encoded, and
+        # every signature is stamped by the server (services/signatures.py);
+        # before anything is stored.
+        prepared = await prepare_signatures(filled, response.answers, form_files)
+        response.answers, form_files = prepared.answers, prepared.form_files
         # Files go up only once the submission is known to be accepted, so a
         # rejected one leaves no orphan uploads behind.
         if form_files:

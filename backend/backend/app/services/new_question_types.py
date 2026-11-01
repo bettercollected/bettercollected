@@ -16,19 +16,29 @@ question changed) passes. Stored data is never touched.
 ``GATED_TYPES`` is the one list of types behind the switch (time, day, currency,
 date range and tags), and ``signature`` is what
 counts as "the question's type and settings".
+
+The signature question has a switch of its own, ``SIGNATURE_QUESTION_ENABLED``
+(``SIGNATURE_TYPES``, refusal code ``signature_question_disabled``). It runs
+through the same checks: a ``Gate`` names a switch, its types and its refusal,
+``GATES`` lists both, and every entry point below looks at each gate that is
+off. A new gated type with its own switch is one more ``Gate``.
 """
 
 import json
+from dataclasses import dataclass
 from http import HTTPStatus
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Optional, Tuple
 
 from backend.app.exceptions import HTTPException
 from backend.app.services.calculated_fields import _get, _type
 
 DISABLED_CODE = "question_type_disabled"
+SIGNATURE_DISABLED_CODE = "signature_question_disabled"
 # Types behind the switch. Keep in step with GATED_TYPES in
 # webapp/src/lib/form-ops/new-question-types.ts.
 GATED_TYPES = frozenset({"time", "day", "currency", "date_range", "tags"})
+# The signature question's own switch (SIGNATURE_QUESTION_ENABLED).
+SIGNATURE_TYPES = frozenset({"signature"})
 # Operations that can give a form such a question or change one.
 GATED_OPS = frozenset(
     {
@@ -52,11 +62,60 @@ DISABLED_MESSAGE = (
 )
 
 
+SIGNATURE_DISABLED_MESSAGE = (
+    "The signature question cannot be added or changed on this server yet "
+    "(SIGNATURE_QUESTION_ENABLED is off). A signature question that a form "
+    "already has is kept."
+)
+
+
 def new_question_types_enabled() -> bool:
     """Is ``NEW_QUESTION_TYPES_ENABLED`` on?"""
     from backend.config import settings
 
     return bool(getattr(settings, "NEW_QUESTION_TYPES_ENABLED", False))
+
+
+def signature_question_enabled() -> bool:
+    """Is ``SIGNATURE_QUESTION_ENABLED`` on?"""
+    from backend.config import settings
+
+    return bool(getattr(settings, "SIGNATURE_QUESTION_ENABLED", False))
+
+
+@dataclass(frozen=True)
+class Gate:
+    """A switch, the question types behind it and what a refused write says."""
+
+    setting: str
+    types: FrozenSet[str]
+    code: str
+    message: str
+    enabled: Callable[[], bool]
+
+
+NEW_TYPES_GATE = Gate(
+    "NEW_QUESTION_TYPES_ENABLED",
+    GATED_TYPES,
+    DISABLED_CODE,
+    DISABLED_MESSAGE,
+    lambda: new_question_types_enabled(),
+)
+SIGNATURE_GATE = Gate(
+    "SIGNATURE_QUESTION_ENABLED",
+    SIGNATURE_TYPES,
+    SIGNATURE_DISABLED_CODE,
+    SIGNATURE_DISABLED_MESSAGE,
+    lambda: signature_question_enabled(),
+)
+GATES = (NEW_TYPES_GATE, SIGNATURE_GATE)
+# Every type behind a switch.
+ALL_GATED_TYPES = GATED_TYPES | SIGNATURE_TYPES
+
+
+def gates_off() -> List[Gate]:
+    """The gates whose switch is off."""
+    return [gate for gate in GATES if not gate.enabled()]
 
 
 def _walk(form: Any) -> Iterable[Any]:
@@ -122,7 +181,7 @@ def gated_signatures(form: Any) -> Signatures:
     list, because a document may carry one id twice: each copy counts)."""
     found: Signatures = {}
     for field in _walk(form):
-        if _type(field) in GATED_TYPES:
+        if _type(field) in ALL_GATED_TYPES:
             found.setdefault(str(_get(field, "id")), []).append(signature_parts(field))
     return found
 
@@ -136,21 +195,24 @@ def _covers(stored: Tuple[str, Tuple[str, ...]], now: Tuple[str, Tuple[str, ...]
 
 
 def new_or_changed_questions(
-    form: Any, existing: Any = None, stored: Optional[Signatures] = None
+    form: Any,
+    existing: Any = None,
+    stored: Optional[Signatures] = None,
+    gate: Gate = NEW_TYPES_GATE,
 ) -> List[Tuple[str, str]]:
     """``(question id, type)`` of the gated questions of ``form`` that
     ``existing`` (the stored version, or None) does not have, on a question of
     the same id, with the same type and settings (a date rule may be fewer, not
     more). ``stored`` is ``gated_signatures(existing)`` when the caller has it.
     A stored question covers one question of ``form`` only: a second one with
-    the same id reads as new."""
+    the same id reads as new. ``gate``: which types to look at."""
     if stored is None:
         stored = gated_signatures(existing) if existing is not None else {}
     remaining = {key: list(values) for key, values in stored.items()}
     changed: List[Tuple[str, str]] = []
     # the walk order is the document's: copies of an id are told apart by it
     for field in _walk(form):
-        if _type(field) not in GATED_TYPES:
+        if _type(field) not in gate.types:
             continue
         key, parts = str(_get(field, "id")), signature_parts(field)
         match = next((i for i, kept in enumerate(remaining.get(key, [])) if _covers(kept, parts)), None)
@@ -162,28 +224,28 @@ def new_or_changed_questions(
 
 
 def ensure_question_types_allowed(form: Any, existing: Any = None) -> None:
-    """While the switch is off, refuse (422 ``question_type_disabled``) a save
-    that brings a new gated question or changes the type or settings of one.
-    Questions stored and unchanged pass."""
-    if new_question_types_enabled():
-        return
-    changed = new_or_changed_questions(form, existing)
-    if changed:
-        raise HTTPException(
-            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-            content={
-                "code": DISABLED_CODE,
-                "message": DISABLED_MESSAGE,
-                "errors": [
-                    {
-                        "fieldId": field_id,
-                        "type": field_type,
-                        "message": f"The {field_type} question '{field_id}' is new or changed.",
-                    }
-                    for field_id, field_type in changed[:PROBLEMS_MAX]
-                ],
-            },
-        )
+    """While a switch is off, refuse (422 ``question_type_disabled`` or
+    ``signature_question_disabled``) a save that brings a new gated question
+    or changes the type or settings of one. Questions stored and unchanged
+    pass."""
+    for gate in gates_off():
+        changed = new_or_changed_questions(form, existing, gate=gate)
+        if changed:
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                content={
+                    "code": gate.code,
+                    "message": gate.message,
+                    "errors": [
+                        {
+                            "fieldId": field_id,
+                            "type": field_type,
+                            "message": f"The {field_type} question '{field_id}' is new or changed.",
+                        }
+                        for field_id, field_type in changed[:PROBLEMS_MAX]
+                    ],
+                },
+            )
 
 
 def _mentions_gated_type(value: Any) -> bool:
@@ -195,7 +257,7 @@ def _mentions_gated_type(value: Any) -> bool:
         if isinstance(node, dict):
             kind = node.get("type")
             # a type is text: `type` may be anything in a payload (an expression)
-            if isinstance(kind, str) and kind in GATED_TYPES:
+            if isinstance(kind, str) and kind in ALL_GATED_TYPES:
                 return True
             pending.extend(node.values())
         elif isinstance(node, list):
@@ -235,7 +297,10 @@ def question_type_problem(
     """For the edit operations: the refusal an operation earns when it left
     ``form`` with a gated question that is new or changed against ``stored``
     (``gated_signatures`` of the form the batch started from), or None. Always
-    None while the switch is on or for an operation that cannot do it."""
-    if op_name not in GATED_OPS or new_question_types_enabled():
+    None while the switches are on or for an operation that cannot do it."""
+    if op_name not in GATED_OPS:
         return None
-    return DISABLED_MESSAGE if new_or_changed_questions(form, None, stored) else None
+    for gate in gates_off():
+        if new_or_changed_questions(form, None, stored, gate):
+            return gate.message
+    return None

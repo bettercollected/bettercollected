@@ -15,6 +15,8 @@ class WorkspacePermissionsDto(CamelModel):
     ``choice_logic_enabled`` is the same for option logic and filters.
     ``new_question_types_enabled`` is the same for the newer question types
     (``NEW_QUESTION_TYPES_ENABLED``): the builder offers them from it.
+    ``signature_question_enabled`` is the same for the signature question
+    (``SIGNATURE_QUESTION_ENABLED``).
     ``save_drafts_enabled`` is the same for ``SAVE_DRAFTS_ENABLED`` ("Let
     respondents save and continue later": the builder shows the setting
     read-only while it is off)."""
@@ -26,3 +28,4 @@ class WorkspacePermissionsDto(CamelModel):
     choice_logic_enabled: bool = False
     save_drafts_enabled: bool = False
     new_question_types_enabled: bool = False
+    signature_question_enabled: bool = False

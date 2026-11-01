@@ -289,6 +289,8 @@ class StandardFormFieldType(str, Enum):
     # A start and an end day, and free-entry short labels.
     DATE_RANGE = "date_range"
     TAGS = "tags"
+    # A drawn or typed signature (``common/signature.py``).
+    SIGNATURE = "signature"
     SHORT_TEXT = "short_text"
     LONG_TEXT = "long_text"
     MULTIPLE_CHOICE = "multiple_choice"
@@ -380,6 +382,7 @@ class StandardResponseType(str, Enum):
     CURRENCY = "currency"
     DATE_RANGE = "date_range"
     TAGS = "tags"
+    SIGNATURE = "signature"
     # A repeating group: the answer carries one answers-dict per item in
     # ``StandardFormResponseAnswer.items``.
     GROUP = "group"
@@ -458,6 +461,21 @@ class StandardDateRangeAnswer(BaseModel):
 
     start: Optional[str] = None
     end: Optional[str] = None
+
+
+class StandardSignatureAnswer(BaseModel):
+    """The answer of a ``signature`` question (see ``common/signature.py``):
+    how it was given (``method``: ``drawn`` or ``typed``), the typed ``name``
+    or the ``file_id`` of the drawn image (a private stored object, never the
+    image itself) and when the server stored it (``signed_at``, UTC).
+    ``url`` is the short-lived link to the drawn image that a read adds for
+    people who may see the response; it is never stored."""
+
+    method: Optional[str] = None
+    file_id: Optional[str] = None
+    name: Optional[str] = None
+    signed_at: Optional[str] = None
+    url: Optional[str] = None
 
 
 class StandardChoiceAnswer(BaseModel):
@@ -1760,6 +1778,8 @@ class StandardFormResponseAnswer(BaseModel):
     # A ``date_range`` question's two days; a ``tags`` question's labels.
     date_range: Optional[StandardDateRangeAnswer] = None
     tags: Optional[List[str]] = None
+    # A ``signature`` question's answer.
+    signature: Optional[StandardSignatureAnswer] = None
     file_metadata: Optional[FileMetadata] = None
     tabular_value: Optional[List[List[str]]] = None
     # Repeating group answer (type ``group``): one answers-dict per item, keyed

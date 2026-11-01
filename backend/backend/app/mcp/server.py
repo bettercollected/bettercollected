@@ -443,8 +443,9 @@ async def update_form(
     (a date typed as day, month and year), time (HH:MM; minTime and maxTime), currency
     (an amount; currencies as ISO 4217 codes, minValue and maxValue), date_range (a first and
     a last day; date rules apply to both) and tags (short free-entry labels; minChoices and
-    maxChoices limit how many, maxLength one tag's length) can be added only where the server
-    has turned them on: an op that adds one says so when it has not."""
+    maxChoices limit how many, maxLength one tag's length) and signature (a drawn or typed
+    signature) can be added only where the server has turned them on: an op that adds one
+    says so when it has not."""
     key = await _key("forms:write")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)

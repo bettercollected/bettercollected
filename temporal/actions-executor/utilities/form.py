@@ -21,6 +21,7 @@ FieldTypes = {
     'CURRENCY': 'currency',
     'DATE_RANGE': 'date_range',
     'TAGS': 'tags',
+    'SIGNATURE': 'signature',
     'YES_NO': 'yes_no',
     'MULTIPLE_CHOICE': 'multiple_choice',
     'DROP_DOWN': 'dropdown',
@@ -158,6 +159,12 @@ def get_answer_for_field(response: Dict[str, Any], field: Dict[str, Any]) -> Any
         return ', '.join(choice['value'] for choice in answer.get('choices', {}).get('values', []))
     if field['type'] in [FormBuilderTagNames['INPUT_FILE_UPLOAD'], FieldTypes['FILE_UPLOAD']]:
         return answer.get('file_metadata', {}).get('name')
+    if field['type'] == FieldTypes['SIGNATURE']:
+        # the typed name, or a marker for a drawn one: never the image or a link
+        signature = answer.get('signature') or {}
+        if signature.get('method') == 'typed':
+            return signature.get('name') or ''
+        return '[drawn signature]' if signature.get('method') == 'drawn' else ''
     if field['type'] == FieldTypes['CALCULATED']:
         return format_calculated_value(answer, (field.get('properties') or {}).get('format'))
     return ''
@@ -245,6 +252,7 @@ def get_placeholder_value_for_title(field_type):
         'currency': 'Enter an amount',
         'date_range': 'Select the first and the last day',
         'tags': 'Type a tag and press Enter',
+        'signature': 'Sign here',
         'linear_rating': 'Rate from 1 to 10',
         'matrix': 'Matrix Field',
         'tabular_input': 'Tabular Input Field'

@@ -136,7 +136,7 @@ from backend.app.services.new_question_types import (
     GATED_OPS,
     Signatures,
     gated_signatures,
-    new_question_types_enabled,
+    gates_off,
     op_may_gate,
     question_type_problem,
 )
@@ -200,6 +200,7 @@ ADDABLE_FIELD_TYPES = {
     StandardFormFieldType.CURRENCY,
     StandardFormFieldType.DATE_RANGE,
     StandardFormFieldType.TAGS,
+    StandardFormFieldType.SIGNATURE,
     StandardFormFieldType.YES_NO,
     StandardFormFieldType.MULTIPLE_CHOICE,
     StandardFormFieldType.DROPDOWN,
@@ -1886,6 +1887,14 @@ COUNT_COMPARISONS = {"IS_EQUAL", "IS_NOT_EQUAL", "GREATER_THAN", "GREATER_THAN_E
 
 
 def _validated_value(source: StandardFormField, comparison: str, raw: Any) -> Any:
+    if source.type == StandardFormFieldType.SIGNATURE and comparison not in (
+        "IS_EMPTY",
+        "IS_NOT_EMPTY",
+    ):
+        # signed or not: nothing else can be asked of a signature
+        raise OpError(
+            "A condition on a signature question uses IS_EMPTY or IS_NOT_EMPTY."
+        )
     if comparison in VALUELESS_COMPARISONS:
         return None
     if source.type == StandardFormFieldType.TAGS and comparison not in TAGS_VALUE_COMPARISONS:
@@ -3925,7 +3934,7 @@ def apply_form_ops(
             # day or currency question new or changed against the form the
             # batch started from is refused and undone.
             types_snapshot = None
-            if op.op in GATED_OPS and not new_question_types_enabled():
+            if op.op in GATED_OPS and gates_off():
                 if started_types is None:
                     started_types = gated_signatures(form)
                 if op_may_gate(op, started_types):

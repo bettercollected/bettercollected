@@ -230,6 +230,7 @@ export interface FormField {
         | "currency"
         | "date_range"
         | "tags"
+        | "signature"
         | "short_text"
         | "long_text"
         | "multiple_choice"

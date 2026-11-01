@@ -91,6 +91,12 @@ class Application(StoreBackedSettings):
     # that turns them on): those saves are refused with 422
     # question_type_disabled; questions already stored keep working.
     NEW_QUESTION_TYPES_ENABLED: bool = False
+    # The signature question (a drawn or typed signature, services/signatures.py)
+    # may be added or changed through the same paths. Off (the default, until
+    # the release that turns it on): those saves are refused with 422
+    # signature_question_disabled; a signature question already stored keeps
+    # being shown, answered and exported.
+    SIGNATURE_QUESTION_ENABLED: bool = False
     # Choice logic (services/option_logic.py: options shown or hidden by
     # answers, options filtered by an earlier answer) may be created or
     # changed through the API, the builder save, edit operations, templates and

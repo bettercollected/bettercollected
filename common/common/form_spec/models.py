@@ -135,6 +135,7 @@ CURRENT_FIELD_TYPES = frozenset(
         "currency",
         "date_range",
         "tags",
+        "signature",
         "yes_no",
         "multiple_choice",
         "dropdown",

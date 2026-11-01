@@ -89,6 +89,11 @@ def comparable_answer_value(answer: Any, field_type: Optional[str]) -> Any:
     if field_type == "tags":
         tags = answer.get("tags")
         return [tag for tag in tags if isinstance(tag, str)] if isinstance(tags, list) else None
+    if field_type == "signature":
+        # only "is it signed" is ever asked (is empty / is not empty): a
+        # marker, never the typed name or anything about the image
+        signature = answer.get("signature")
+        return "signed" if isinstance(signature, dict) and signature else None
     if field_type == "phone_number":
         return answer.get("phoneNumber") or answer.get("phone_number")
     if field_type == "calculated":
@@ -331,6 +336,8 @@ DATE_RANGE_COMPARISONS = (
     "IS_EMPTY",
     "IS_NOT_EMPTY",
 )
+# A signature is either there or not: nothing else can be asked of it.
+SIGNATURE_COMPARISONS = ("IS_EMPTY", "IS_NOT_EMPTY")
 ORDERED_COMPARISONS = (
     "GREATER_THAN",
     "GREATER_THAN_EQUAL",
@@ -421,6 +428,17 @@ def evaluate_condition(
     field_type = get("field_type", "fieldType")
     if field_type == "date_range":
         return _date_range_condition(answers.get(field_id), comparison, target)
+    if field_type == "signature":
+        # only "is it signed" can be asked (the spec check and the operations
+        # refuse the other comparisons)
+        if comparison not in SIGNATURE_COMPARISONS:
+            return False
+        return compare(
+            comparable_answer_value(answers.get(field_id), field_type),
+            comparison,
+            None,
+            text_max,
+        )
     if field_type == "tags":
         # a list of labels has no beginning, end or order to compare: only
         # these hold (the spec check and the operations refuse the others)

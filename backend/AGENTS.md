@@ -365,6 +365,29 @@ prompt leaves the types out (`ops_guide()`). Never add a parallel check. Stored 
 answers and exporting: answer validation and exports do not read the switch. The shared ops corpus runs a case with
 the switch off through `newQuestionTypes: false`. A test that needs such a form builds it with the switch on, then
 turns it off.
+**Signature question** (`signature`; spec section "Signature question"): a drawn image or a typed name,
+behind its own switch `SIGNATURE_QUESTION_ENABLED` (default off, 422 `signature_question_disabled`, permissions
+`signatureQuestionEnabled`). `new_question_types.py` holds one `Gate` per switch (`GATES`: setting, types, code,
+message) and every entry point (`ensure_question_types_allowed`, `question_type_problem`, `gates_off()` in the op
+loop) looks at each gate that is off: a new gated type with its own switch is one more `Gate`, never a parallel
+check. The answer slot is `signature` (`{method, file_id | name, signed_at}`, model `StandardSignatureAnswer`, name
+rules in `common/signature.py`, twin `webapp/src/utils/signature.ts`); rule codes `format`, `too_long`,
+`signature_image` next to `required`/`type` (`answer_validation.signature_problem`). The drawn PNG is a file part
+of the submission stored under `private/<ws>/<form>/<response>/<file_id>` like an upload, but **never taken
+as sent**: `services/signatures.py` (`prepare_signatures`, called by `submit_response` and `patch_response` after
+the answers are validated and before the upload) checks size and the PNG signature, hands it to the document
+sandbox's `image` mode (the API never decodes an image; no sandbox is a 503, a typed signature needs none),
+re-checks what the sandbox returns, binds the answer's `file_id` to a part for that question (or the image the
+response already holds), drops parts nobody names, and stamps `signed_at` (the client's is ignored). A replaced
+image is deleted after the edit is stored (`delete_stored_images`). The single-response read adds a presigned
+`signature.url` (`signature_download_url`, response folder only); lists never do. Not a formula variable
+(`NOT_VARIABLES`), not a webhook/registration/email variable (`SUPPORTED_TYPES`), no field rule sets or locks it
+(`NOT_RULE_TARGETS` keeps it a target for required/title/description only), conditions only
+`IS_EMPTY`/`IS_NOT_EMPTY` (`SIGNATURE_COMPARISONS`), not in a repeating group, not internal. Exports write the typed
+name or `[drawn signature]`, insights `[signed]`, action code the name or the marker. Deleting a response removes its
+stored files on every path: `delete_response` (the retention job) and `delete_workspace_form_responses` (a form
+unlinked from one of several workspaces, keeping `/imports/`) now do too. The shared ops corpus runs a case with the
+switch off through `signatureQuestion: false`.
 **Date range and tags** (`date_range`, `tags`; spec section "Date range and tags questions"): answer slots
 `date_range` (`{start, end}`) and `tags` (list of text); rule codes `range_order` and `duplicate` next to `format`,
 `required` (one end only), `too_long` (a tag), `too_few_choices`/`too_many_choices` (the tags), checked in

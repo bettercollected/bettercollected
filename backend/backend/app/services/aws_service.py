@@ -190,9 +190,15 @@ class AWSS3Service:
         except ClientError:
             raise HTTPException(404, "INFO: Failed to delete file")
 
-    def delete_folder_from_s3(self, prefix: str, bucket: str = aws_settings.BUCKET):
+    def delete_folder_from_s3(
+        self, prefix: str, bucket: str = aws_settings.BUCKET, keep: str = ""
+    ):
+        """Delete every object under ``prefix``, except keys that contain
+        ``keep`` (a sub-folder to leave, e.g. ``/imports/``)."""
         try:
             for object_summary in self._s3.Bucket(bucket).objects.filter(Prefix=prefix):
+                if keep and keep in object_summary.key:
+                    continue
                 object_summary.delete()
         except ClientError:
             return
