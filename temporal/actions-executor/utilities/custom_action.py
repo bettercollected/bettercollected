@@ -8,25 +8,36 @@ secrets and does the work; the sandbox holds nothing and can reach nothing:
 - ``send_data_webhook`` / ``send_data_discord`` / ``send_data_slack``: only to
   an address this run is configured with (a parameter or secret of the action,
   the workspace or the form, or an operator-allowed host), and then through the
-  egress rules (public https, the address checked, no redirects);
-- ``send_mail_action``: the SMTP settings must be the configured ones (a value
-  of this run's parameters or secrets), the server is checked like any other
-  destination, and the recipients are the respondent or a current member of the
-  workspace, at most five;
+  egress rules (public https, the address checked, no redirects). A secret the
+  instance's administrators stored on the action itself (not overridden by the
+  workspace or the form) can only go to an origin those administrators set: a
+  creator who points a parameter at their own host gets no instance secret;
+- ``send_mail_action``: the code gives the **subject and the recipients, nothing
+  else**. The login, server, port and sender are always the action's configured
+  SMTP group, the transport settings are the executor's, the body is the executor's
+  own template, and the copy kind follows the recipient (the respondent gets the
+  respondent's copy, a current workspace member the team's copy). The respondent's
+  address is the one the executor holds, never the text the code passed. At most
+  five recipients;
 - ``append_in_sheet``: the sheet is one this run is configured with and the
-  credential is the run's own stored credential;
-- a secret is passed by name (a handle the code cannot read) in headers, a body
-  or a mail login, and replaced by its value here.
+  credential is the run's own stored credential. A sheet or grant that is gone
+  switches the action off, decided here from the Google call, never from what the
+  code says;
+- a secret is passed by name (a handle the code cannot read) in headers or a
+  body, and replaced by its value here.
 
-The number of calls, their size, the time and the memory are limited.
+The number of calls, their size, the time and the memory are limited; the calls
+run on a pool of their own, so a slow destination holds up this run only.
 """
 
 import asyncio
 import copy
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Sequence, Set, Tuple
 
+from models.exception_enum import ExceptionType
 from sandbox import broker
 from sandbox.broker import CallRefused, Outcome
 from settings.application import settings
@@ -40,26 +51,14 @@ MAX_RECIPIENTS = 5
 MAX_SUBJECT = 300
 MAX_SHEET_ROWS = 500
 REPLY_TEXT_MAX = 4096
-MAIL_KEYS = (
-    "smtp_username",
-    "smtp_password",
-    "smtp_sender",
-    "smtp_port",
-    "smtp_server",
-    "org_name",
-    "tls",
-    "ssl",
-    "use_credentials",
-    "validate_certs",
+BROKEN_SIGNALS = (
+    ExceptionType.GOOGLE_SHEET_MISSING,
+    ExceptionType.OAUTH_TOKEN_MISSING,
 )
-# the settings of a mail login: each must be one the run is configured with
-MAIL_CONFIGURED = (
-    "smtp_username",
-    "smtp_password",
-    "smtp_sender",
-    "smtp_port",
-    "smtp_server",
-)
+
+# calls of custom code run here, never on the default pool of the event loop: a
+# bounded number at once, whatever the destinations do
+call_pool = ThreadPoolExecutor(max_workers=8, thread_name_prefix="action-call")
 
 
 def without_secrets(
@@ -93,33 +92,54 @@ def resolve_secrets(value: Any, secrets: Dict[str, str]) -> Any:
     return value
 
 
+def secret_names_in(value: Any) -> Set[str]:
+    """The names of the secrets ``value`` refers to."""
+    if isinstance(value, dict):
+        if set(value) == {SECRET_KEY}:
+            return {value[SECRET_KEY]} if isinstance(value[SECRET_KEY], str) else set()
+        names: Set[str] = set()
+        for item in value.values():
+            names |= secret_names_in(item)
+        return names
+    if isinstance(value, list):
+        names = set()
+        for item in value:
+            names |= secret_names_in(item)
+        return names
+    return set()
+
+
 @dataclass
 class Toolbox:
     """What the broker's handlers use, all of it built by ``run_action`` from
-    the run's own data. Every callable is synchronous, as the action functions
-    are; the handlers run the blocking ones off the event loop."""
+    the run's own data. The callables are the action's own functions; the
+    handlers run the blocking ones on ``call_pool``."""
 
     parameters: Dict[str, str]
     secrets: Dict[str, str]
-    trusted_hosts: List[str]
-    smtp_trusted: bool
+    # origins (scheme, host, port) of the addresses in the action's own parameters
+    trusted_origins: List[Tuple[str, str, int]]
+    # secrets stored on the action itself and not overridden below it
+    instance_secrets: Set[str]
     respondent_email: Optional[str]
     webhook: Callable[..., Any]
     discord: Callable[..., Any]
     slack: Callable[..., Any]
-    config_mail: Callable[..., Any]
-    send_mail: Callable[..., Any]
+    # blocking: the action's SMTP group (``respondent``: the respondent's copy,
+    # else the team's) checked and turned into a mail configuration
+    prepare_mail: Callable[[bool], Any]
+    # a coroutine function: (configuration, subject, recipients, creator_mail)
+    deliver_mail: Callable[..., Awaitable[Any]]
     append_sheet: Callable[..., Any]
     approved_recipient: Callable[[str], str]
+    # blocking: tell the backend this action's sheet or credential is gone
+    mark_broken: Callable[[], Any]
     allow: List[Tuple[str, Optional[int]]] = field(default_factory=list)
 
     def configured_hosts(self) -> List[str]:
         return egress.trusted_hosts_of(
             [*self.parameters.values(), *self.secrets.values()]
         )
-
-    def configured_values(self) -> set:
-        return {str(v) for v in [*self.parameters.values(), *self.secrets.values()]}
 
 
 def _reply(result: Any) -> Dict[str, Any]:
@@ -139,14 +159,16 @@ def build_handlers(toolbox: Toolbox) -> Dict[str, Callable[..., Awaitable[Any]]]
     """The calls the sandbox may make, as the broker's handler table."""
 
     async def off_loop(function, *args):
-        return await asyncio.get_running_loop().run_in_executor(None, function, *args)
+        return await asyncio.get_running_loop().run_in_executor(
+            call_pool, function, *args
+        )
 
-    def configured_address(url: Any) -> None:
+    def configured_address(url: Any) -> egress.Destination:
         if not isinstance(url, str):
             raise CallRefused(400, "the address must be text")
         try:
             destination = egress.check_url(
-                url, allow=toolbox.allow, trusted=toolbox.trusted_hosts
+                url, allow=toolbox.allow, trusted=toolbox.trusted_origins
             )
         except egress.EgressRefused as error:
             raise _refusal(error)
@@ -156,12 +178,21 @@ def build_handlers(toolbox: Toolbox) -> Dict[str, Callable[..., Awaitable[Any]]]
             raise CallRefused(
                 403, "that address is not one this action is configured with"
             )
+        return destination
 
     async def outgoing(function, url, params, data, headers) -> Dict[str, Any]:
-        configured_address(url)
+        destination = configured_address(url)
         for name, value in (("params", params), ("headers", headers)):
             if value is not None and not isinstance(value, dict):
                 raise CallRefused(400, f"{name} must be a dict")
+        names = secret_names_in([params, data, headers])
+        if names & toolbox.instance_secrets and not destination.exempt:
+            # an instance-level secret goes only where the administrators said
+            raise CallRefused(
+                403,
+                "a secret of the instance can only go to an address the instance's "
+                "administrators set",
+            )
         try:
             result = await off_loop(
                 function,
@@ -187,30 +218,10 @@ def build_handlers(toolbox: Toolbox) -> Dict[str, Callable[..., Awaitable[Any]]]
     async def send_data_slack(url, params=None, data=None, headers=None):
         return await outgoing(toolbox.slack, url, params, data, headers)
 
-    async def send_mail_action(config, subject, recipient, creator_mail=False):
-        if not isinstance(config, dict) or set(config) - set(MAIL_KEYS):
-            raise CallRefused(400, "the mail settings are not valid")
-        resolved = resolve_secrets(config, toolbox.secrets)
-        configured = toolbox.configured_values()
-        for key in MAIL_CONFIGURED:
-            value = resolved.get(key)
-            if value is None or str(value) not in configured:
-                raise CallRefused(
-                    403, f"{key} is not one of this action's configured settings"
-                )
-        try:
-            port = int(resolved["smtp_port"])
-        except (TypeError, ValueError):
-            raise CallRefused(400, "the port is not a number")
-        try:
-            egress.check_smtp(
-                resolved["smtp_server"],
-                port,
-                allow=toolbox.allow,
-                trusted=toolbox.smtp_trusted,
-            )
-        except egress.EgressRefused as error:
-            raise _refusal(error)
+    async def send_mail_action(subject=None, recipient=None):
+        # only the subject and the recipients come from the code
+        if not isinstance(subject, str) or not subject or len(subject) > MAX_SUBJECT:
+            raise CallRefused(400, "the subject is not valid")
         recipients = [recipient] if isinstance(recipient, str) else recipient
         if (
             not isinstance(recipients, list)
@@ -219,34 +230,41 @@ def build_handlers(toolbox: Toolbox) -> Dict[str, Callable[..., Awaitable[Any]]]
             or not all(isinstance(r, str) for r in recipients)
         ):
             raise CallRefused(400, "the recipients are not valid")
-        approved: List[str] = []
+        to_respondent = False
+        members: List[str] = []
         for address in recipients:
             if (
                 toolbox.respondent_email
                 and address.strip().casefold() == toolbox.respondent_email.casefold()
             ):
-                approved.append(address)
+                to_respondent = True
                 continue
             try:
-                approved.append(await off_loop(toolbox.approved_recipient, address))
+                approved = await off_loop(toolbox.approved_recipient, address)
             except Exception:  # noqa: BLE001 - refused or unavailable: not sent
                 raise CallRefused(403, "that recipient is not allowed")
-        if not isinstance(subject, str) or len(subject) > MAX_SUBJECT:
-            raise CallRefused(400, "the subject is not valid")
-        mail_config = toolbox.config_mail(
-            resolved["smtp_username"],
-            resolved["smtp_password"],
-            resolved["smtp_sender"],
-            port,
-            resolved["smtp_server"],
-            str(resolved.get("org_name") or ""),
-            bool(resolved.get("tls", True)),
-            bool(resolved.get("ssl", False)),
-            bool(resolved.get("use_credentials", True)),
-            bool(resolved.get("validate_certs", True)),
-        )
-        # on the event loop: the mail is sent by a task it schedules
-        return toolbox.send_mail(mail_config, subject, approved, bool(creator_mail))
+            if approved not in members:
+                members.append(approved)
+        try:
+            if to_respondent:
+                config = await off_loop(toolbox.prepare_mail, True)
+                # the address held here, not the text the code passed
+                await toolbox.deliver_mail(
+                    config, subject, [toolbox.respondent_email], False
+                )
+            if members:
+                config = await off_loop(toolbox.prepare_mail, False)
+                await toolbox.deliver_mail(config, subject, members, True)
+        except egress.EgressRefused as error:
+            raise _refusal(error)
+        except CallRefused:
+            raise
+        except Exception as error:  # noqa: BLE001 - class only, no message
+            logger.warning(
+                "a mail of action code was not sent: %s", type(error).__name__
+            )
+            raise CallRefused(502, "the mail was not sent")
+        return "ok"
 
     async def append_in_sheet(google_sheet_id=None, credentials=None, data=None):
         if not isinstance(google_sheet_id, str) or not any(
@@ -279,7 +297,10 @@ def build_handlers(toolbox: Toolbox) -> Dict[str, Callable[..., Awaitable[Any]]]
         try:
             return await off_loop(toolbox.append_sheet, google_sheet_id, resolved, rows)
         except ActionHTTPException as error:
-            # the sheet or the grant is gone: the code sees the same exception
+            # The executor's own Google call found the sheet or the grant gone:
+            # only that signal switches the action off, never a code's say-so.
+            if str(error) in BROKEN_SIGNALS:
+                await off_loop(toolbox.mark_broken)
             raise CallRefused(error.status_code, str(error))
 
     return {

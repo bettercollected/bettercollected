@@ -103,9 +103,40 @@ async def _readline(process, timeout: float) -> Optional[dict]:
         return None
     try:
         message = json.loads(line)
-    except ValueError:
+    except (ValueError, RecursionError):  # not JSON, or nested past the parser
         return None
     return message if isinstance(message, dict) else None
+
+
+MAX_LOG_LINES = 1000
+MAX_LOG_LINE = 2000
+MAX_ERROR_MESSAGE = 1000
+ERROR_KINDS = ("refused", "http", "memory", "error", "killed", "quota", "timeout")
+
+
+def clean_log(lines) -> List[str]:
+    """What the child says is capped by the broker too (the child's own cap is
+    a courtesy): at most ``MAX_LOG_LINES`` lines of ``MAX_LOG_LINE`` characters."""
+    if not isinstance(lines, list):
+        return []
+    return [str(line)[:MAX_LOG_LINE] for line in lines[:MAX_LOG_LINES]]
+
+
+def clean_error(error) -> Optional[Dict[str, Any]]:
+    """The child's error, as a dict of known keys with bounded text, or a
+    generic one when it is not shaped like one."""
+    if error is None:
+        return None
+    if not isinstance(error, dict):
+        return {"kind": "error", "message": ""}
+    kind = error.get("kind")
+    cleaned: Dict[str, Any] = {
+        "kind": kind if kind in ERROR_KINDS else "error",
+        "message": str(error.get("message") or "")[:MAX_ERROR_MESSAGE],
+    }
+    if error.get("class"):
+        cleaned["class"] = str(error["class"])[:100]
+    return cleaned
 
 
 async def _write(process, message: dict) -> None:
@@ -214,8 +245,8 @@ async def run_code(
                     return
                 kind = message.get("t")
                 if kind == "done":
-                    outcome.log = [str(line) for line in message.get("log") or []]
-                    outcome.error = message.get("error")
+                    outcome.log = clean_log(message.get("log"))
+                    outcome.error = clean_error(message.get("error"))
                     return
                 if kind != "call":
                     outcome.error = {"kind": "killed", "message": "protocol violation"}

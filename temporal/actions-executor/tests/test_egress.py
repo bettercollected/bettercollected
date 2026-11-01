@@ -138,8 +138,8 @@ def test_an_internal_name_set_by_the_operator_may_be_called(monkeypatch):
     assert d.exempt
 
 
-def test_the_hosts_of_the_action_itself_are_trusted_only_by_name():
-    hosts = egress.trusted_hosts_of(
+def test_the_origins_of_the_action_itself_are_trusted_not_the_host():
+    origins = egress.trusted_origins_of(
         [
             "https://Hooks.Corp.Example/path",
             "plain text",
@@ -147,12 +147,31 @@ def test_the_hosts_of_the_action_itself_are_trusted_only_by_name():
             None,
             "587",
             "http://a.b:81/",
+            "ftp://c.d/",
         ]
     )
-    assert hosts == ["hooks.corp.example", "a.b"]
-    d = egress.check_url("https://hooks.corp.example/x", trusted=hosts)
+    assert origins == [
+        ("https", "hooks.corp.example", 443),
+        ("http", "a.b", 81),
+    ]
+    assert egress.trusted_hosts_of(["https://Hooks.Corp.Example/p"]) == [
+        "hooks.corp.example"
+    ]
+    d = egress.check_url("https://hooks.corp.example/x", trusted=origins)
     assert d.exempt
-    assert not egress.check_url("https://other.example/x", trusted=hosts).exempt
+    assert not egress.check_url("https://other.example/x", trusted=origins).exempt
+    # the same host on another scheme or port is not what the administrators set
+    refused(
+        "not_https", egress.check_url, "http://hooks.corp.example/x", trusted=origins
+    )
+    refused(
+        "invalid_url",
+        egress.check_url,
+        "https://hooks.corp.example:8443/x",
+        trusted=origins,
+    )
+    assert egress.check_url("http://a.b:81/x", trusted=origins).exempt
+    refused("not_https", egress.check_url, "http://a.b:82/x", trusted=origins)
 
 
 def test_smtp_destinations(monkeypatch):

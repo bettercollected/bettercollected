@@ -38,6 +38,7 @@ import json
 import re
 import socket
 import ssl
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from urllib.parse import urlencode, urlsplit
@@ -49,6 +50,9 @@ MAX_URL_LENGTH = 2048
 MAX_BODY_BYTES = 1024 * 1024
 MAX_REPLY_BYTES = 64 * 1024
 TIMEOUTS = {"connect": 5.0, "read": 10.0, "write": 10.0, "pool": 5.0}
+# the whole call, whatever the per-operation times: a server that sends a byte
+# every few seconds is cut off here
+TOTAL_TIMEOUT_SECONDS = 20.0
 SMTP_PORTS = (25, 465, 587, 2525)
 USER_AGENT = "bettercollected-actions/1"
 _NAT64 = ipaddress.ip_network("64:ff9b::/96")
@@ -158,22 +162,35 @@ def _allowed(host: str, port: int, allow: Sequence[Tuple[str, Optional[int]]]) -
 
 
 def trusted_hosts_of(values: Iterable[Any]) -> List[str]:
-    """The host names of the addresses among ``values`` (an action's own
-    parameters): what the administrators who created the action chose."""
-    hosts: List[str] = []
+    """The host names of the addresses among ``values``."""
+    return [host for _scheme, host, _port in trusted_origins_of(values)]
+
+
+def trusted_origins_of(values: Iterable[Any]) -> List[Tuple[str, str, int]]:
+    """The ``(scheme, host, port)`` of the addresses among ``values`` (an
+    action's own parameters): what the administrators who created the action
+    chose. An origin, not a host: ``https://a.example`` does not make
+    ``http://a.example`` or ``https://a.example:8443`` trusted."""
+    origins: List[Tuple[str, str, int]] = []
     for value in values:
         if not isinstance(value, str) or "://" not in value:
             continue
         try:
-            host = urlsplit(value.strip()).hostname
+            parts = urlsplit(value.strip())
+            port = parts.port
         except ValueError:
             continue
-        if host:
-            try:
-                hosts.append(_ascii_host(host))
-            except EgressRefused:
-                continue
-    return hosts
+        scheme = parts.scheme.lower()
+        if scheme not in ("http", "https") or not parts.hostname:
+            continue
+        try:
+            host = _ascii_host(parts.hostname)
+        except EgressRefused:
+            continue
+        origin = (scheme, host, port or (443 if scheme == "https" else 80))
+        if origin not in origins:
+            origins.append(origin)
+    return origins
 
 
 @dataclass(frozen=True)
@@ -189,7 +206,7 @@ def check_url(
     url: Any,
     *,
     allow: Sequence[Tuple[str, Optional[int]]] = (),
-    trusted: Sequence[str] = (),
+    trusted: Sequence[Tuple[str, str, int]] = (),
 ) -> Destination:
     """The destination for ``url`` (syntax only, no network), or
     :class:`EgressRefused`."""
@@ -218,7 +235,7 @@ def check_url(
         raise invalid
     host = _ascii_host(raw_host)
     port = port or (443 if scheme == "https" else 80)
-    exempt = _allowed(host, port, allow) or (host in trusted)
+    exempt = _allowed(host, port, allow) or ((scheme, host, port) in trusted)
     if not exempt:
         if scheme != "https":
             raise EgressRefused("not_https")
@@ -258,21 +275,18 @@ def checked_address(destination: Destination) -> str:
     return addresses[0]
 
 
-def check_smtp(
+def smtp_address(
     server: Any,
     port: Any,
     *,
     allow: Sequence[Tuple[str, Optional[int]]] = (),
     trusted: bool = False,
-) -> None:
-    """Whether the executor may open an SMTP connection to ``server:port``.
-    ``trusted``: the settings are the instance's own (the administrators'),
-    which are not judged. Otherwise: a plain host name, a mail submission port,
-    every address public. (The mail library resolves the name again when it
-    connects; a rebinding in that moment is not caught here: keep the executor
-    on a network that cannot reach internal services, docs/executor-isolation.md.)"""
-    if trusted:
-        return
+) -> str:
+    """The address to open an SMTP connection to for ``server:port``, or
+    :class:`EgressRefused`. ``trusted``: the settings are the instance's own (the
+    administrators'): the name is resolved, its answer is not judged. Otherwise:
+    a plain host name, a mail submission port (or an operator entry), every
+    answer public."""
     try:
         number = int(port)
     except (TypeError, ValueError):
@@ -280,20 +294,55 @@ def check_smtp(
     if not isinstance(server, str):
         raise EgressRefused("invalid_url")
     host = _ascii_host(server.strip().rstrip("."))
-    if any(ch.isspace() or ch in "/@:\\" for ch in host) or _is_ip_literal(host):
+    if any(ch.isspace() or ch in "/@:\\" for ch in host):
         raise EgressRefused("invalid_url")
-    if not _valid_name(host):
-        raise EgressRefused("invalid_url")
-    entry_allowed = any(
-        entry_host == host and entry_port in (None, number)
-        for entry_host, entry_port in allow
+    if trusted:
+        exempt = True
+    else:
+        if _is_ip_literal(host) or not _valid_name(host):
+            raise EgressRefused("invalid_url")
+        exempt = any(
+            entry_host == host and entry_port in (None, number)
+            for entry_host, entry_port in allow
+        )
+        if not exempt and number not in SMTP_PORTS:
+            raise EgressRefused("not_allowed")
+    return checked_address(
+        Destination(f"smtp://{host}:{number}", "smtp", host, number, exempt)
     )
-    if entry_allowed:
-        return
-    if number not in SMTP_PORTS:
-        raise EgressRefused("not_allowed")
-    destination = Destination(f"smtp://{host}:{number}", "smtp", host, number, False)
-    checked_address(destination)
+
+
+def check_smtp(
+    server: Any,
+    port: Any,
+    *,
+    allow: Sequence[Tuple[str, Optional[int]]] = (),
+    trusted: bool = False,
+) -> None:
+    """Whether the executor may open an SMTP connection to ``server:port``
+    (:func:`smtp_address`, which resolves the name: not for the event loop)."""
+    smtp_address(server, port, allow=allow, trusted=trusted)
+
+
+def connect_smtp(
+    server: Any,
+    port: Any,
+    *,
+    allow: Sequence[Tuple[str, Optional[int]]] = (),
+    trusted: bool = False,
+    timeout: float = 10.0,
+) -> socket.socket:
+    """A connected socket to the address that was checked. The mail library is
+    given this socket (and the host name for TLS), so it never resolves the name
+    itself: a name that changes its answer after the check reaches nothing else.
+    Blocking: run it off the event loop."""
+    address = smtp_address(server, port, allow=allow, trusted=trusted)
+    try:
+        connection = socket.create_connection((address, int(port)), timeout=timeout)
+    except OSError:
+        raise EgressRefused("unreachable") from None
+    connection.setblocking(False)
+    return connection
 
 
 class PinnedBackend(httpcore.NetworkBackend):
@@ -360,7 +409,7 @@ def post(
     content: Optional[bytes] = None,
     headers: Optional[Dict[str, Any]] = None,
     allow: Sequence[Tuple[str, Optional[int]]] = (),
-    trusted: Sequence[str] = (),
+    trusted: Sequence[Tuple[str, str, int]] = (),
 ) -> Reply:
     """POST to ``url`` under the rules above. Raises :class:`EgressRefused`."""
     destination = check_url(url, allow=allow, trusted=trusted)
@@ -383,6 +432,7 @@ def post(
         target += ("&" if "?" in target else "?") + urlencode(
             {str(k): str(v) for k, v in params.items()}
         )
+    deadline = time.monotonic() + TOTAL_TIMEOUT_SECONDS
     pool = httpcore.ConnectionPool(
         ssl_context=ssl_context(),
         network_backend=PinnedBackend(destination.host, address),
@@ -402,9 +452,13 @@ def post(
             status = response.status
             if 300 <= status < 400:
                 raise EgressRefused("redirect_refused")
+            if time.monotonic() > deadline:
+                raise EgressRefused("timeout")
             chunks: List[bytes] = []
             size = 0
             for chunk in response.iter_stream():
+                if time.monotonic() > deadline:
+                    raise EgressRefused("timeout")
                 size += len(chunk)
                 if size > MAX_REPLY_BYTES:
                     break  # the rest is dropped: a reply is only read for its status

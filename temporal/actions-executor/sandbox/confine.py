@@ -21,9 +21,15 @@ In order:
 4. ``no_new_privs`` and a non-dumpable process;
 5. a seccomp filter (installed by this module with ``prctl``, no library
    needed) that makes the system calls in ``syscalls.DENIED`` fail with EPERM:
-   no socket of any kind, no ``execve``, no ``fork``/``clone``, no signals to
-   other processes, no ``ptrace``, no mounts or namespaces, no changes to the
-   filesystem, and ``open`` only read-only.
+   no socket of any kind, no ``execve``, no ``fork``/``clone``, no signal to
+   another process by any call (``kill``, ``tgkill``, ``rt_sigqueueinfo``,
+   ``pidfd_send_signal`` ...), no change to another process's limits or
+   scheduling (``prlimit64``, ``setpriority``, ``sched_set*``), no ``ptrace``, no
+   mounts or namespaces, no System V or POSIX IPC, no changes to the
+   filesystem, and ``open`` only read-only. It is a **deny list** (everything
+   not listed is allowed): the child's footprint is small enough for an allow
+   list, which is a follow-up; the list is generated from the kernel headers and
+   evaluated in tests/test_sandbox_syscalls.py.
 
 ``apply`` returns what actually took effect; the broker refuses to send code to a
 child that did not confine itself as required.
@@ -70,6 +76,8 @@ WRITE_FLAGS = O_WRONLY | O_RDWR | O_CREAT | O_TRUNC | O_APPEND | O_TMPFILE_BIT
 SYS_LANDLOCK_CREATE_RULESET = 444
 SYS_LANDLOCK_RESTRICT_SELF = 446
 LANDLOCK_CREATE_RULESET_VERSION = 1
+SCOPE_ABSTRACT_UNIX_SOCKET = 1 << 0  # ABI 6
+SCOPE_SIGNAL = 1 << 1  # ABI 6
 
 
 class ConfinementError(Exception):
@@ -195,7 +203,12 @@ def landlock_abi() -> int:
 def deny_all_filesystem_access() -> bool:
     """Restrict this process (and what it starts) to no filesystem access:
     a ruleset that handles every file access right and holds no rule. Files
-    already open stay usable. False when the kernel has no Landlock."""
+    already open stay usable. False when the kernel has no Landlock.
+
+    From Landlock ABI 6 the ruleset also scopes signals (the process can signal
+    only processes in its own Landlock domain) and abstract Unix sockets, a second
+    wall behind the seccomp filter against signalling the executor or another
+    run's child. If the kernel refuses the scoped form, the plain one is used."""
     abi = landlock_abi()
     if abi < 1:
         return False
@@ -206,17 +219,28 @@ def deny_all_filesystem_access() -> bool:
         rights |= 1 << 14  # truncate
     if abi >= 5:
         rights |= 1 << 15  # ioctl on devices
-    attr = ctypes.create_string_buffer(struct.pack("<Q", rights), 8)
+    # struct landlock_ruleset_attr: handled_access_fs, handled_access_net, scoped
+    attempts = []
+    if abi >= 6:
+        attempts.append(
+            struct.pack("<QQQ", rights, 0, SCOPE_SIGNAL | SCOPE_ABSTRACT_UNIX_SOCKET)
+        )
+    attempts.append(struct.pack("<Q", rights))
     libc = _libc()
-    fd = _syscall(libc, SYS_LANDLOCK_CREATE_RULESET, ctypes.addressof(attr), 8, 0)
-    if fd < 0:
-        return False
-    try:
-        if _syscall(libc, SYS_LANDLOCK_RESTRICT_SELF, fd, 0):
-            return False
-    finally:
-        os.close(fd)
-    return True
+    for packed in attempts:
+        attr = ctypes.create_string_buffer(packed, len(packed))
+        fd = _syscall(
+            libc, SYS_LANDLOCK_CREATE_RULESET, ctypes.addressof(attr), len(packed), 0
+        )
+        if fd < 0:
+            continue
+        try:
+            if _syscall(libc, SYS_LANDLOCK_RESTRICT_SELF, fd, 0):
+                return False
+        finally:
+            os.close(fd)
+        return True
+    return False
 
 
 def _chroot_and_drop(scratch: str) -> bool:

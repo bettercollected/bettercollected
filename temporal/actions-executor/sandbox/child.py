@@ -220,13 +220,11 @@ def _api(data, log):
         }
 
     def send_mail_action(config, subject, recipient, creator_mail=False):
-        return _call(
-            "send_mail_action",
-            config=config,
-            subject=subject,
-            recipient=recipient,
-            creator_mail=creator_mail,
-        )
+        # Only the subject and the recipients are the code's. The login, server,
+        # port and sender are the action's configured ones whatever ``config``
+        # says, and the kind of copy follows the recipient (``config`` and
+        # ``creator_mail`` are accepted for the old signature and not sent).
+        return _call("send_mail_action", subject=subject, recipient=recipient)
 
     def append_in_sheet(google_sheet_id=None, credentials=None, data=None):
         return _call(

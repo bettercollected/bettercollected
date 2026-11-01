@@ -8,7 +8,7 @@ and the broker that performs every effect (``broker.py``). The checks here only
 turn the usual tricks into a clear refusal before anything runs, and make the
 next layer something an attacker has to find a hole in as well.
 
-Refused: ``import``, classes, ``async``/``await``/``yield``, any attribute that
+Refused: ``import``, classes, ``async``/``await``/``yield``, ``match`` (a class pattern reads attributes by keyword), any attribute that
 starts with an underscore and any name that starts with two (``__class__``,
 ``__globals__``, ``__subclasses__``, ``__import__`` ...), attributes of frames, generators, coroutines,
 tracebacks and code objects (``f_globals``, ``gi_frame``, ``tb_frame``,
@@ -33,6 +33,9 @@ FORBIDDEN_NODES = (
     ast.Await,
     ast.Yield,
     ast.YieldFrom,
+    # a class pattern reads attributes by name without an Attribute node
+    # (``case Exception(__traceback__=tb)``)
+    ast.Match,
 )
 
 FORBIDDEN_ATTRIBUTES = frozenset(

@@ -63,6 +63,11 @@ ESCAPES = {
     "random_class": "x = random.__init__.__globals__",
     "http_exception_class": "x = HTTPException.__init__.__globals__",
     "decorator_trick": "@log.__globals__.get\ndef f():\n    pass",
+    "match_class_pattern_reads_a_dunder": (
+        "try:\n    1 / 0\nexcept Exception as e:\n"
+        "    match e:\n        case Exception(__traceback__=tb):\n            x = tb"
+    ),
+    "match_statement": "match 1:\n    case 1:\n        pass",
     "match_attribute": ("match 1:\n    case log.__globals__:\n        pass"),
 }
 

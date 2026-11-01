@@ -14,9 +14,7 @@ from utilities import run_context
 from utilities.google_service import RunScope as GoogleRunScope
 from utilities.run_context import RunContextUnavailable, context_url, fetch_run_context
 
-IDS = dict(
-    workspace_id="w1", form_id="f1", action_id="a1", response_id="r1"
-)
+IDS = dict(workspace_id="w1", form_id="f1", action_id="a1", response_id="r1")
 RUN_TOKEN = "t0k3n-of-this-run"
 JOB = dict(**IDS, run_token=RUN_TOKEN)
 CONTEXT = {
@@ -226,7 +224,8 @@ def test_a_legacy_isolation_executor_asks_for_nothing_new(monkeypatch):
     monkeypatch.setattr(run_context.settings, "action_isolation", "legacy")
     with_backend(
         monkeypatch,
-        lambda request: seen.append(request.content) or httpx.Response(200, json=CONTEXT),
+        lambda request: seen.append(request.content)
+        or httpx.Response(200, json=CONTEXT),
     )
     asyncio.run(fetch_run_context(**IDS, run_token=RUN_TOKEN))
     assert seen == [b""]
@@ -238,9 +237,7 @@ def test_410_means_the_run_no_longer_applies(monkeypatch):
 
 
 @pytest.mark.parametrize("status", [401, 403, 404, 500, 503])
-def test_any_other_answer_is_unavailable_and_says_only_the_status(
-    monkeypatch, status
-):
+def test_any_other_answer_is_unavailable_and_says_only_the_status(monkeypatch, status):
     with_backend(
         monkeypatch, lambda request: httpx.Response(status, text="THE-ANSWER body")
     )
@@ -276,7 +273,9 @@ def test_an_incomplete_answer_is_unavailable(monkeypatch, body):
 @pytest.mark.parametrize("token", [None, ""])
 def test_a_job_without_a_run_token_is_not_asked_for(monkeypatch, token):
     asked = []
-    with_backend(monkeypatch, lambda request: asked.append(request) or httpx.Response(200))
+    with_backend(
+        monkeypatch, lambda request: asked.append(request) or httpx.Response(200)
+    )
     with pytest.raises(RunContextUnavailable):
         asyncio.run(fetch_run_context(**IDS, run_token=token))
     assert asked == []
