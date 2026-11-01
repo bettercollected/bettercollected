@@ -11,6 +11,7 @@ from starlette.responses import Response
 __all__ = ("include_middlewares",)
 
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
+from backend.app.services.request_context import bind_request, unbind_request
 from backend.app.middlewares.request_privacy import (
     NO_STORE_HEADERS,
     carries_response_data,
@@ -46,7 +47,12 @@ def include_middlewares(app: "FastAPI"):
         (X-Forwarded-For).
         """
         logger.info("Request : {}", loggable_request(request.method, request.url.path))
-        response: Response = await call_next(request)
+        # lets the SSO break-glass audit name the route (template only)
+        token = bind_request(request.scope)
+        try:
+            response: Response = await call_next(request)
+        finally:
+            unbind_request(token)
         logger.info(response.status_code)
         return response
 

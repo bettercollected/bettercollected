@@ -178,16 +178,16 @@ export function useBuilderShortcuts({ openHelp }: { openHelp: () => void }) {
 }
 
 /** The shortcuts the help popover lists. */
-export const BUILDER_SHORTCUTS: Array<{ keys: string[]; label: string }> = [
-    { keys: ['/'], label: 'Insert a field (on the canvas, or in an empty question or text block)' },
-    { keys: ['Ctrl/⌘', 'K'], label: 'Insert a field after the selected question' },
-    { keys: ['Alt', '↑'], label: 'Move the selected question up' },
-    { keys: ['Alt', '↓'], label: 'Move the selected question down' },
-    { keys: ['Ctrl/⌘', 'D'], label: 'Duplicate the selected question' },
-    { keys: ['Delete'], label: 'Delete the selected question (Undo in the message)' },
-    { keys: ['Ctrl/⌘', 'Alt', '↑'], label: 'Previous page' },
-    { keys: ['Ctrl/⌘', 'Alt', '↓'], label: 'Next page' },
-    { keys: ['Ctrl/⌘', 'Z'], label: 'Undo' },
-    { keys: ['Ctrl/⌘', 'Shift', 'Z'], label: 'Redo' },
-    { keys: ['?'], label: 'Show these shortcuts' }
+export const BUILDER_SHORTCUTS: Array<{ keys: string[]; label: string; labelKey: string }> = [
+    { keys: ['/'], label: 'Insert a field (on the canvas, or in an empty question or text block)', labelKey: 'SHORTCUTS.INSERT_SLASH' },
+    { keys: ['Ctrl/⌘', 'K'], label: 'Insert a field after the selected question', labelKey: 'SHORTCUTS.INSERT_AFTER' },
+    { keys: ['Alt', '↑'], label: 'Move the selected question up', labelKey: 'SHORTCUTS.MOVE_UP' },
+    { keys: ['Alt', '↓'], label: 'Move the selected question down', labelKey: 'SHORTCUTS.MOVE_DOWN' },
+    { keys: ['Ctrl/⌘', 'D'], label: 'Duplicate the selected question', labelKey: 'SHORTCUTS.DUPLICATE' },
+    { keys: ['Delete'], label: 'Delete the selected question (Undo in the message)', labelKey: 'SHORTCUTS.DELETE' },
+    { keys: ['Ctrl/⌘', 'Alt', '↑'], label: 'Previous page', labelKey: 'SHORTCUTS.PREV_PAGE' },
+    { keys: ['Ctrl/⌘', 'Alt', '↓'], label: 'Next page', labelKey: 'SHORTCUTS.NEXT_PAGE' },
+    { keys: ['Ctrl/⌘', 'Z'], label: 'Undo', labelKey: 'SHORTCUTS.UNDO' },
+    { keys: ['Ctrl/⌘', 'Shift', 'Z'], label: 'Redo', labelKey: 'SHORTCUTS.REDO' },
+    { keys: ['?'], label: 'Show these shortcuts', labelKey: 'SHORTCUTS.HELP' }
 ];

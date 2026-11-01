@@ -40,6 +40,7 @@ from backend.app.services.theme_contrast import (
     contrast,
     contrast_key,
     display_ratio,
+    muted_label_ink,
     theme_contrast_guard,
 )
 from tests.app.controllers.data import testUser
@@ -107,6 +108,44 @@ def test_the_contrast_key_reads_what_the_guard_reads():
                 (i.key, i.ratio) for i in b.issues
             ], case["name"]
             assert a.image_ground is b.image_ground
+
+
+@pytest.mark.parametrize("case", CASES["muted"], ids=lambda case: case["name"])
+def test_the_muted_label_ink_of_the_shared_cases(case):
+    assert muted_label_ink(case["theme"]) == case["ink"]
+
+
+def _lowest_on_the_grounds(colour, theme):
+    from backend.app.services.theme_contrast import _page_grounds, _plain
+
+    return min(contrast(colour, ground) for ground in _page_grounds(_plain(theme)))
+
+
+def test_the_muted_labels_read_wherever_the_questions_do():
+    """Measured by the guard as ``text``: where the questions read, the label
+    does too (softer, not under 4.5:1); where they do not, the label is not
+    worse than the ink."""
+    for case in CASES["muted"]:
+        theme = case["theme"]
+        if not theme.get("accent") or not theme.get("primary"):
+            continue
+        if (theme.get("background") or {}).get("type") == "image":
+            continue
+        ink = muted_label_ink(theme)
+        lowest = _lowest_on_the_grounds(ink, theme)
+        # softer than the questions, but never under 4.5:1 (or the questions' own ratio, where that is lower)
+        questions = _lowest_on_the_grounds(theme["primary"], theme)
+        assert lowest >= min(AA_TEXT, questions) - 1e-9, case["name"]
+        if "text" not in [i.key for i in theme_contrast_guard(theme).issues]:
+            assert lowest >= AA_TEXT, case["name"]
+
+
+def test_a_label_that_cannot_read_is_a_text_failure_not_a_new_issue():
+    failing = {
+        "primary": "#E8ECF8", "secondary": "#1649E2", "tertiary": "#818CA0",
+        "accent": "#FFFFFF", "inputText": "#101828",
+    }
+    assert [i.key for i in theme_contrast_guard(failing).issues] == ["text"]
 
 
 def test_the_ratio_is_shown_rounded_down():

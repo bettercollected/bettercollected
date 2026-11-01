@@ -115,6 +115,10 @@ class SourceOptions:
 GONE = SourceOptions(available=False)
 
 
+def _aware(value: dt.datetime) -> dt.datetime:
+    return value if value.tzinfo else value.replace(tzinfo=dt.timezone.utc)
+
+
 def narrow(
     options: Sequence[Option], parent_keys: Optional[Set[str]]
 ) -> Tuple[Option, ...]:
@@ -488,56 +492,90 @@ class OptionSourceService:
             if not self._redaction_again:
                 return
 
-    async def redact_erased(self, limit: int = 200) -> Dict[str, int]:
+    async def redact_erased(
+        self, limit: int = 200, now: Optional[dt.datetime] = None
+    ) -> Dict[str, int]:
         """Work through the notes of erased answers that were offered as
         options (``option_source_erasures``): an option that no eligible
         response still offers is redacted (its label snapshot becomes
-        ``[removed]``) in every consuming response of the workspace; then the
-        note is removed. Idempotent; a source that cannot be read leaves its
-        note for the next run. Counts only (``notes``, ``redacted``,
-        ``failed``)."""
-        counts = {"notes": 0, "redacted": 0, "failed": 0}
+        ``[removed]``) in every consuming response of the workspace.
+
+        A note is **kept for ``erasure.NOTE_GRACE``** and works on every pass
+        until then: a submission that took the option while the erased
+        response still offered it can commit a little later (signature checks
+        and uploads sit between its check and its commit), and the next pass
+        redacts it. Only a note older than the grace that was worked through
+        successfully is removed. Idempotent; a source that cannot be read
+        leaves its note for the next run. Counts only (``notes`` worked
+        through, ``redacted``, ``failed``, ``expired`` removed)."""
+        counts = {"notes": 0, "redacted": 0, "failed": 0, "expired": 0}
         if self._erasures is None:
             return counts
+        cutoff = _aware(now or utcnow()) - erasure.NOTE_GRACE
         async with self._redact_lock:
-            notes = await self._erasures.pending(limit)
-            groups: Dict[Tuple[str, str, str], List[Any]] = {}
-            for note in notes:
-                key = (str(note.workspace_id), str(note.form_id), str(note.question_id))
-                groups.setdefault(key, []).append(note)
-            for (workspace_id, form_id, question_id), group in groups.items():
-                option_ids = {i for note in group for i in note.option_ids}
-                try:
-                    if await self._workspace_forms.check_if_form_exists_in_workspace(
-                        workspace_id, form_id
-                    ):
-                        offered = await self._answer_options(
-                            workspace_id, form_id, question_id, strict=True
-                        )
-                    else:
-                        offered = GONE
-                    gone = option_ids - set(offered.by_id)
-                    if gone:
-                        counts["redacted"] += await self._redact_consumers(
-                            workspace_id, form_id, question_id, gone
-                        )
-                    await self._erasures.remove([str(note.id) for note in group])
-                    counts["notes"] += len(group)
-                except Exception as error:  # noqa: BLE001 - retried on the next run
-                    counts["failed"] += len(group)
-                    logger.warning(
-                        "option sources: redaction of an erased answer failed ({})",
-                        type(error).__name__,
-                    )
-        if counts["notes"] or counts["failed"]:
+            after = None
+            while True:
+                notes = await self._erasures.pending(limit, after)
+                if not notes:
+                    break
+                after = str(notes[-1].id)
+                await self._work_notes(notes, cutoff, counts)
+                if len(notes) < limit:
+                    break
+        if counts["notes"] or counts["failed"] or counts["expired"]:
             logger.info(
-                "option sources: redaction run, {} note(s) done, {} choice(s) "
-                "redacted, {} failed",
+                "option sources: redaction run, {} note(s) worked, {} choice(s) "
+                "redacted, {} failed, {} expired",
                 counts["notes"],
                 counts["redacted"],
                 counts["failed"],
+                counts["expired"],
             )
         return counts
+
+    async def _work_notes(self, notes, cutoff: dt.datetime, counts) -> None:
+        groups: Dict[Tuple[str, str, str], List[Any]] = {}
+        for note in notes:
+            key = (str(note.workspace_id), str(note.form_id), str(note.question_id))
+            groups.setdefault(key, []).append(note)
+        for (workspace_id, form_id, question_id), group in groups.items():
+            option_ids = {i for note in group for i in note.option_ids}
+            try:
+                if await self._workspace_forms.check_if_form_exists_in_workspace(
+                    workspace_id, form_id
+                ):
+                    offered = await self._answer_options(
+                        workspace_id, form_id, question_id, strict=True
+                    )
+                else:
+                    offered = GONE
+                # an option still offered is offered under its id of every
+                # ring member (a note holds an id per member)
+                still = {
+                    alias
+                    for option in offered.options
+                    for alias in ids.answer_option_ids(
+                        workspace_id, form_id, question_id, option.key
+                    )
+                }
+                gone = option_ids - still
+                if gone:
+                    counts["redacted"] += await self._redact_consumers(
+                        workspace_id, form_id, question_id, gone
+                    )
+                expired = [
+                    str(note.id) for note in group if _aware(note.created_at) <= cutoff
+                ]
+                if expired:
+                    await self._erasures.remove(expired)
+                    counts["expired"] += len(expired)
+                counts["notes"] += len(group)
+            except Exception as error:  # noqa: BLE001 - retried on the next run
+                counts["failed"] += len(group)
+                logger.warning(
+                    "option sources: redaction of an erased answer failed ({})",
+                    type(error).__name__,
+                )
 
     async def _consumers(
         self, workspace_id, form_id: str, question_id: str
@@ -546,7 +584,9 @@ class OptionSourceService:
         take their options from ``form_id``'s ``question_id``: in the draft and
         in every published version (a response holds the snapshot whatever the
         version it was filled on)."""
-        drafts, versions = await self._forms.documents_naming_source(form_id)
+        drafts, versions = await self._forms.documents_naming_source(
+            form_id, workspace_id
+        )
         found: Dict[str, Set[str]] = {}
         for document in [*drafts, *versions]:
             for question, source in read.sourced_questions(document):

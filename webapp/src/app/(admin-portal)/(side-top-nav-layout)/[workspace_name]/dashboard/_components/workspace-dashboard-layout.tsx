@@ -98,15 +98,15 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const navGroups: Array<INavGroup> = [
         {
-            label: 'Collection',
+            label: t('STAFF.NAV.COLLECTION'),
             items: collectionItems
         },
         {
-            label: 'Your site',
+            label: t('STAFF.NAV.YOUR_SITE'),
             items: [
                 {
                     key: 'site',
-                    name: 'Site',
+                    name: t('STAFF.NAV.SITE'),
                     url: commonWorkspaceUrl,
                     // The dashboard root prefixes every other route (exact
                     // match only) — and when the settings view covers the
@@ -125,7 +125,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     key: 'site-settings',
                     // Settings live inside the site frame (behind the
                     // address-bar gear) — this entry opens that view directly.
-                    name: 'Site settings',
+                    name: t('STAFF.NAV.SITE_SETTINGS'),
                     url: `${commonWorkspaceUrl}/site-settings`,
                     // saved through the workspace PATCH (workspace.manage)
                     permission: WorkspacePermission.WORKSPACE_MANAGE,
@@ -141,7 +141,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     key: 'custom-domain',
                     name: (
                         <div className="flex items-center gap-2">
-                            Custom domain <ProLogo />
+                            {t('STAFF.NAV.CUSTOM_DOMAIN')} <ProLogo />
                         </div>
                     ),
                     icon: <Globe />,
@@ -159,7 +159,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
             ]
         },
         {
-            label: 'Workspace',
+            label: t('STAFF.NAV.WORKSPACE'),
             items: workspaceNavItems({ workspaceName: workspace?.workspaceName, t, can, ssoEnabled, registrationEnabled, optionSourcesEnabled })
         }
     ];
@@ -167,18 +167,18 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
     const allNavList = navGroups.flatMap((group) => group.items);
 
     const getHeader = () => {
-        if (!pathname) return 'My Workspace';
+        if (!pathname) return t('MY_WORKSPACE');
         // Longest matching path wins (lib/nav-items.ts): the Site item's URL
         // (the dashboard root) is a prefix of every other route, and a
         // section such as AI titles every one of its tabs.
         const current = navItemForPath(pathname, allNavList);
         if (current) {
-            return current.key === 'site' ? (settingsViewOpen ? 'Site settings' : 'Your site') : current.name;
+            return current.key === 'site' ? (settingsViewOpen ? t('STAFF.NAV.SITE_SETTINGS') : t('STAFF.NAV.YOUR_SITE')) : current.name;
         }
         // Routes not represented in the sidebar nav still need a correct title.
-        if (pathname.includes('/dashboard/templates')) return 'Templates';
-        if (pathname.includes('/dashboard/account-settings')) return 'Account Settings';
-        return 'My Workspace';
+        if (pathname.includes('/dashboard/templates')) return t('TEMPLATE.TEMPLATES');
+        if (pathname.includes('/dashboard/account-settings')) return t('PROFILE_MENU.ACCOUNT_SETTINGS');
+        return t('MY_WORKSPACE');
     };
 
     return (

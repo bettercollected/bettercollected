@@ -8,6 +8,7 @@ import { AlertTriangle, RefreshCw, ShieldCheck, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import SsoSelfHostingGuide from '@app/components/workspace-sso/sso-self-hosting-guide';
+import { useIntlLocale } from '@app/lib/hooks/use-intl-locale';
 import { CopyField, Section, errorMessage, formatTime, inputClass } from '@app/components/workspace-sso/workspace-sso-section';
 import { scim } from '@app/constants/locales/scim';
 import { workspaceSectionLabels, workspaceSectionUrls } from '@app/lib/workspace-sections';
@@ -143,6 +144,7 @@ function GroupRow({ group, overview, workspaceId }: { group: ScimGroupDto; overv
  */
 export default function WorkspaceScimSection() {
     const { t } = useTranslation();
+    const locale = useIntlLocale();
     const workspace = useAppSelector(selectWorkspace);
     const workspaceId: string = workspace?.id;
     const { toast } = useToast();
@@ -251,12 +253,12 @@ export default function WorkspaceScimSection() {
                                     <span className="text-sm font-semibold text-black-900">{directory.typeLabel}</span>
                                     <span className="rounded bg-[#E7F6EE] px-1.5 py-0.5 text-[11px] font-medium text-success-700">{t(scim.SYNCING)}</span>
                                 </div>
-                                <span className="text-xs text-black-600">{directory.lastEventAt ? t(scim.LAST_CHANGE, { time: formatTime(directory.lastEventAt), type: directory.lastEventType }) : t(scim.NO_CHANGE)}</span>
+                                <span className="text-xs text-black-600">{directory.lastEventAt ? t(scim.LAST_CHANGE, { time: formatTime(directory.lastEventAt, locale), type: directory.lastEventType }) : t(scim.NO_CHANGE)}</span>
                                 {directory.lastResyncAt && (
                                     <span className="text-xs text-black-600">
                                         {directory.lastResyncError
-                                            ? t(scim.LAST_RESYNC_FAILED, { time: formatTime(directory.lastResyncAt), reason: t(RESYNC_ERRORS[directory.lastResyncError] ?? RESYNC_ERRORS.resync_failed) })
-                                            : t(scim.LAST_RESYNC, { time: formatTime(directory.lastResyncAt) })}
+                                            ? t(scim.LAST_RESYNC_FAILED, { time: formatTime(directory.lastResyncAt, locale), reason: t(RESYNC_ERRORS[directory.lastResyncError] ?? RESYNC_ERRORS.resync_failed) })
+                                            : t(scim.LAST_RESYNC, { time: formatTime(directory.lastResyncAt, locale) })}
                                     </span>
                                 )}
                             </div>
@@ -284,7 +286,7 @@ export default function WorkspaceScimSection() {
                                 )}
                             </div>
                         )}
-                        {directory.rotationGraceUntil && <p className="text-xs text-black-600">{t(scim.ROTATION_GRACE, { time: formatTime(directory.rotationGraceUntil) })}</p>}
+                        {directory.rotationGraceUntil && <p className="text-xs text-black-600">{t(scim.ROTATION_GRACE, { time: formatTime(directory.rotationGraceUntil, locale) })}</p>}
                         <CopyField label={t(scim.BASE_URL)} value={directory.scimEndpoint} hint={t(scim.TOKEN_HINT)} />
                         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                             {COUNT_KEYS.map((key) => (

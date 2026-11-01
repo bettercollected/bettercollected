@@ -2,7 +2,8 @@ import React from 'react';
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from 'i18next';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import AddActionToFormModal from '@app/components/modals/dialog-modals/add-action-to-form-modal';
 import { IntegrationType } from '@app/models/enums/integration-type';
@@ -10,6 +11,11 @@ import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
 import WorkspaceDashboardForms, { isGoogleForm } from './workspace-dashboard-forms';
+
+// This suite asserts the translation keys: i18next's `cimode` language answers every `t()` with its key.
+beforeAll(async () => {
+    await i18n.changeLanguage('cimode');
+});
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 vi.mock('@app/components/workspace-dashboard/workspace-dashboard-form-cards', () => ({ default: () => <p>form cards</p> }));

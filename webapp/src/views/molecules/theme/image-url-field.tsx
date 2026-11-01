@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useAppSelector } from '@app/store/hooks';
 import { useImportImageFromUrlMutation } from '@app/store/media-library/api';
@@ -10,9 +11,9 @@ export const COPY_FAILED_MESSAGE = "We couldn't copy that image. Upload it inste
 
 /** What to tell the person when a copy fails: the server's plain-language
  * message when it sent one, else the generic one. */
-export function importErrorMessage(error: unknown): string {
+export function importErrorMessage(error: unknown, fallback: string = COPY_FAILED_MESSAGE): string {
     const message = (error as { data?: { message?: unknown } } | undefined)?.data?.message;
-    return typeof message === 'string' && message.trim() ? message : COPY_FAILED_MESSAGE;
+    return typeof message === 'string' && message.trim() ? message : fallback;
 }
 
 /**
@@ -21,7 +22,8 @@ export function importErrorMessage(error: unknown): string {
  * it from the address's own host. The field shows the stored address; a new
  * one takes effect only once copied.
  */
-export default function ImageUrlField({ value, onChange, label = 'Background image URL' }: { value: string; onChange: (url: string) => void; label?: string }) {
+export default function ImageUrlField({ value, onChange, label }: { value: string; onChange: (url: string) => void; label?: string }) {
+    const { t } = useTranslation('builder');
     const workspace = useAppSelector(selectWorkspace);
     const [importImage, { isLoading }] = useImportImageFromUrlMutation();
     const [draft, setDraft] = useState(value);
@@ -43,7 +45,7 @@ export default function ImageUrlField({ value, onChange, label = 'Background ima
             return;
         }
         if (!workspace?.id) {
-            setError(COPY_FAILED_MESSAGE);
+            setError(t('THEME_EDITOR.COPY_FAILED'));
             return;
         }
         const result: any = await importImage({ workspace_id: workspace.id, url });
@@ -51,7 +53,7 @@ export default function ImageUrlField({ value, onChange, label = 'Background ima
             onChange(result.data.url);
             setDraft(result.data.url);
         } else {
-            setError(importErrorMessage(result?.error));
+            setError(importErrorMessage(result?.error, t('THEME_EDITOR.COPY_FAILED')));
         }
     };
 
@@ -60,7 +62,7 @@ export default function ImageUrlField({ value, onChange, label = 'Background ima
             <div className="flex gap-1.5">
                 <input
                     type="url"
-                    aria-label={label}
+                    aria-label={label ?? t('THEME_EDITOR.URL_LABEL')}
                     aria-invalid={!!error}
                     placeholder="https://…"
                     value={draft}
@@ -83,7 +85,7 @@ export default function ImageUrlField({ value, onChange, label = 'Background ima
                     disabled={isLoading || !pending}
                     className="border-black-300 text-black-800 hover:bg-black-100 shrink-0 rounded-md border bg-white px-2.5 py-1.5 text-xs font-medium disabled:cursor-default disabled:opacity-50"
                 >
-                    {isLoading ? 'Copying…' : 'Use image'}
+                    {isLoading ? t('THEME_EDITOR.COPYING') : t('THEME_EDITOR.USE_IMAGE')}
                 </button>
             </div>
             {error && (
@@ -91,7 +93,7 @@ export default function ImageUrlField({ value, onChange, label = 'Background ima
                     {error}
                 </p>
             )}
-            <p className="text-black-600 text-[11px] leading-relaxed">Paste an image address. We copy the image into this workspace, so respondents load it from here. The background colour shows while it loads.</p>
+            <p className="text-black-600 text-[11px] leading-relaxed">{t('THEME_EDITOR.URL_HELP')}</p>
         </div>
     );
 }

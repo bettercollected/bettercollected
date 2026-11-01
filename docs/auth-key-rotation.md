@@ -67,6 +67,17 @@ signature images and exports use the keyset, not this key.
   They cannot be re-derived, so they stop working when the old key is dropped. `drop_old` counts the
   unexpired drafts that hold one.
 
+* **Option-source ids and notice tokens** (choices built from another form's answers,
+  [option-sources.md](option-sources.md)). The id of an option is an HMAC of its label, keyed with the
+  **primary** member of the ring only, and is stored in the answers of the forms that offer it. Adding a key or
+  dropping the old one changes no id; a **promote** does: options built afterwards have new ids, while a stored
+  answer keeps the id (and the label snapshot) it was made with, so a form's list shows the same label under a new id
+  and a respondent's earlier choice still reads correctly. Erasure notes hold each option's id under **every** member
+  of the ring at the time of the erasure, so a redaction still finds choices made under the previous key; after
+  `drop_old` the dropped key's ids are no longer recognised (a choice made under it is redacted if its source answer
+  was erased, even if another response still offers the same label). The signed "answer may be offered" notice
+  tokens (24 hours) are signed with the first member and verified against all, so none is lost in a rotation.
+
 So: **adding and promoting a key signs nobody out.** Dropping the old signing secret does so only
 for what the dry run counted, and only if you accept it.
 

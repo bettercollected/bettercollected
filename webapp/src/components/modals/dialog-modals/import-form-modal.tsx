@@ -67,7 +67,7 @@ export default function ImportFormModal() {
                 setRefused(refusal);
                 return;
             }
-            toast({ description: 'Error fetching form', variant: 'destructive' });
+            toast({ description: t('STAFF.IMPORT.FETCH_ERROR'), variant: 'destructive' });
             return;
             closeModal();
         }
@@ -82,11 +82,11 @@ export default function ImportFormModal() {
             return;
         }
         if (response.error) {
-            toast({ description: 'Something went wrong!!', variant: 'destructive' });
+            toast({ description: t('STAFF.IMPORT.WRONG'), variant: 'destructive' });
             closeModal();
         }
         if (response.data) {
-            toast({ description: 'Form Imported Successfully' });
+            toast({ description: t('STAFF.IMPORT.IMPORTED_TOAST') });
             setForm(response.data);
             fireworks();
         }
@@ -166,7 +166,7 @@ export default function ImportFormModal() {
                         openGoogleFilePicker();
                     }}
                 >
-                    Open Google File Picker
+                    {t('STAFF.IMPORT.OPEN_PICKER')}
                 </Button>
             )}
             {form?.formId && <ImportSuccessfulComponent form={form} />}

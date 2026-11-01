@@ -156,6 +156,21 @@ class SsoUsedStateRow(Base, BaseRow):
     __table_args__ = (UniqueConstraint("nonce_hash"), Index(None, "expires_at"))
 
 
+class WorkspaceAuditEventRow(Base, BaseRow):
+    """Security events of a workspace (revision 0030): who got in through
+    break-glass, one entry per request. Ids and route templates only."""
+
+    __tablename__ = "workspace_audit_events"
+    workspace_id = S.text("workspace_id")
+    session_id = S.text("session_id")
+    event = S.text("event")
+    __table_args__ = (
+        Index(None, "workspace_id", "created_at"),
+        # the daily purge
+        Index(None, "created_at"),
+    )
+
+
 class ScimDirectoryRow(Base, BaseRow):
     __tablename__ = "scim_directories"
     workspace_id = S.text("workspace_id")
@@ -656,7 +671,7 @@ class WorkspaceOptionListRow(Base, BaseRow):
     workspace_id = S.text("workspace_id")
     name_key = S.text("name_key")
     __table_args__ = (
-        # a list name once per workspace (revision 0029)
+        # a list name once per workspace (revision 0031)
         Index("uq_workspace_option_lists_name", "workspace_id", "name_key", unique=True),
     )
 

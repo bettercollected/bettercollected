@@ -120,19 +120,19 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
     return (
         <div className="min-h-screen bg-white">
             <NavBar />
-            <div className="px-auto h-body-content overflow-auto">
+            <div className="mx-auto h-body-content overflow-auto">
                 <div className="mx-auto flex w-full max-w-[1330px] flex-col px-5 md:px-10">
-                    <div className="h3-new mb-4 mt-6 text-black-800">New Form</div>
+                    <div className="h3-new mb-4 mt-6 text-black-800">{t('STAFF.CREATE.TITLE')}</div>
                     <div className="flex w-full flex-col flex-wrap gap-6 lg:flex-row">
                         {isMobile ? (
-                            <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => {}} desktopOnly />
+                            <Card variant={'blue'} icon={<PlusIcon />} content={t('STAFF.CREATE.CREATE_NEW')} eventName="Create New Form" onClick={() => {}} desktopOnly />
                         ) : (
                             <Sheet>
                                 <SheetTrigger asChild>
-                                    <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => {}} desktopOnly />
+                                    <Card variant={'blue'} icon={<PlusIcon />} content={t('STAFF.CREATE.CREATE_NEW')} eventName="Create New Form" onClick={() => {}} desktopOnly />
                                 </SheetTrigger>
                                 <SheetContent className="h-full w-full p-0" side={'top'} hideCloseIcon>
-                                    <SheetTitle className="sr-only">Select form type</SheetTitle>
+                                    <SheetTitle className="sr-only">{t('STAFF.CREATE.SELECT_TYPE')}</SheetTitle>
                                     <div className="h-full w-full bg-white">
                                         <NavBar isModal />
                                         <FormTypeSelectionComponent handleCreateForm={handleCreateForm} />
@@ -145,20 +145,22 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                             <Card
                                 variant={'purple'}
                                 icon={<GoogleFormIcon width={30} height={30} className="mb-2 w-full text-brand-500" />}
-                                content={'Import Google Form'}
+                                content={t('STAFF.CREATE.IMPORT_GOOGLE')}
+                                eventName="Import Google Form"
                                 onClick={() => {
                                     openModal('IMPORT_FORMS', { nonClosable: true });
                                 }}
                             />
                         )}
-                        <Card variant={'blue'} icon={<FileText className="mb-2 h-[30px] w-full text-brand-500" />} content={'Import a PDF form'} onClick={() => setPdfImportOpen(true)} />
+                        <Card variant={'blue'} icon={<FileText className="mb-2 h-[30px] w-full text-brand-500" />} content={t('STAFF.CREATE.IMPORT_PDF')} eventName="Import a PDF form" onClick={() => setPdfImportOpen(true)} />
                         {showOpenFormulierenImport && (
                             <Card variant={'blue'} icon={<FileArchive aria-hidden className="mb-2 h-[30px] w-full text-brand-500" />} content={importText('CARD.TITLE')} onClick={() => setOpenFormulierenImportOpen(true)} />
                         )}
                         <Card
                             variant={'pink'}
                             icon={<AIIcon className="text-brand-500" />}
-                            content={'Start with AI'}
+                            content={t('STAFF.CREATE.START_AI')}
+                            eventName="Start with AI"
                             // The dialog and its outline review fit a 375px screen.
                             onClick={() => openDialogModal('START_WITH_AI')}
                         />
@@ -170,7 +172,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                     {showOpenFormulierenImport && <ImportOpenFormulierenDialog open={openFormulierenImportOpen} onOpenChange={setOpenFormulierenImportOpen} workspaceId={workspace?.id} workspaceName={workspace?.workspaceName} />}
                     {!isMobile && (
                         <>
-                            <div className="h3-new mb-4 mt-12 text-black-800">Templates</div>
+                            <div className="h3-new mb-4 mt-12 text-black-800">{t('STAFF.CREATE.TEMPLATES')}</div>
                             <div className="flex w-full flex-row flex-wrap gap-x-6 gap-y-10">
                                 {templates?.map((template) => (
                                     // Plain div: the scaled WelcomePage preview inside contains buttons,
@@ -212,13 +214,16 @@ interface CardWrapperProps {
     soonMsg?: string;
     /** Says so below the desktop breakpoint (the blank-form builder). */
     desktopOnly?: boolean;
+    /** The analytics event: always the English name, whatever language the card is read in. */
+    eventName?: string;
 }
 
-const Card = ({ icon, content, onClick, variant, addSoon, soonMsg, desktopOnly }: CardWrapperProps) => {
+const Card = ({ icon, content, onClick, variant, addSoon, soonMsg, desktopOnly, eventName }: CardWrapperProps) => {
+    const { t } = useTranslation();
 
     return (
         <div
-            data-umami-event={content}
+            data-umami-event={eventName ?? (typeof content === 'string' ? content : undefined)}
            
             className={cn('relative flex h-[170px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded border border-black-400 bg-white lg:h-[117px] lg:w-[220px]', CardVariants[variant])}
             onClick={onClick}
@@ -236,20 +241,22 @@ const Card = ({ icon, content, onClick, variant, addSoon, soonMsg, desktopOnly }
             <span className="p3-new mb-1 mt-2 text-black-800">{content}</span>
             {desktopOnly && <OnlyAvailableInDesktopVersion />}
             {addSoon && <SoonComponent msg={soonMsg} />}
-            {content === 'Start with AI' && <div className="absolute right-2 top-2 flex rounded bg-brand-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-brand-600">beta</div>}
+            {eventName === 'Start with AI' && <div className="absolute right-2 top-2 flex rounded bg-brand-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-brand-600">{t('STAFF.CREATE.BETA')}</div>}
         </div>
     );
 };
 
 const SoonComponent = ({ msg }: { msg?: string }) => {
+    const { t } = useTranslation();
     return (
-        <div className="absolute right-2 top-2 rounded bg-black-200 px-1.5 py-0.5 text-[11px] font-medium text-black-700">{msg || 'Soon'}</div>
+        <div className="absolute right-2 top-2 rounded bg-black-200 px-1.5 py-0.5 text-[11px] font-medium text-black-700">{msg || t('STAFF.CREATE.SOON')}</div>
     );
 };
 
 const OnlyAvailableInDesktopVersion = () => {
+    const { t } = useTranslation();
     return (
-        <div className="absolute bottom-2 text-xs text-black-600 lg:hidden">Only available on desktop</div>
+        <div className="absolute bottom-2 text-xs text-black-600 lg:hidden">{t('STAFF.CREATE.DESKTOP_ONLY')}</div>
     );
 };
 

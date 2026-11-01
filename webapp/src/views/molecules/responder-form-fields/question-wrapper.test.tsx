@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 // Registers the respondent translations, as the app layout does.
 import '@app/shared/hocs/i18n-provider';
+import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { store } from '@app/store/store';
@@ -52,6 +53,34 @@ const renderWrapper = (f: StandardFormFieldDto, opts: { invalid?: Record<string,
         </ReduxProvider>
     );
 };
+
+describe('QuestionWrapper — the muted labels follow the theme', () => {
+    const withTheme = (theme: Record<string, any>) => {
+        const Harness = () => {
+            const { updateFormTheme } = useFormState();
+            const [ready, setReady] = React.useState(false);
+            React.useEffect(() => {
+                updateFormTheme(theme as any, { undoable: false });
+                setReady(true);
+            }, []);
+            return ready ? <QuestionWrapper field={field({ title: 'Anything else?' })} /> : null;
+        };
+        return render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <Harness />
+                </Provider>
+            </ReduxProvider>
+        );
+    };
+
+    it('draws "Optional" in a light colour on a dark page, not a fixed dark grey', async () => {
+        withTheme({ primary: '#FFFFFF', secondary: '#60A5FA', tertiary: '#94A3B8', accent: '#0B1020', inputText: '#101828' });
+        const label = await screen.findByText('Optional');
+        expect(label.getAttribute('style')).toContain('--form-muted-ink: #D3D4D7');
+        expect(label.className).not.toContain('text-black-700');
+    });
+});
 
 describe('QuestionWrapper — no-dark-patterns contracts (DESIGN.md §5)', () => {
     it('marks optional answerable fields explicitly — optionality is never hidden', () => {

@@ -1,4 +1,5 @@
 import { CSSProperties } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { FormTheme, ThemeArtwork, ThemeBackground, ThemePattern, ThemeStyle, isHexColour } from '@app/constants/theme';
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
@@ -10,24 +11,24 @@ import { formButtonStyle, inputTextOf, themeRootProps } from '@app/views/molecul
 
 // Each editable colour, labelled by what it actually controls on the responder
 // form (not by its internal role name), so the choice is legible to a creator.
-export const THEME_ROLE_FIELDS: Array<{ key: 'accent' | 'primary' | 'secondary' | 'tertiary'; label: string }> = [
-    { key: 'accent', label: 'Background' },
-    { key: 'primary', label: 'Questions & text' },
-    { key: 'secondary', label: 'Buttons' },
-    { key: 'tertiary', label: 'Input borders' }
+export const THEME_ROLE_FIELDS: Array<{ key: 'accent' | 'primary' | 'secondary' | 'tertiary'; labelKey: string }> = [
+    { key: 'accent', labelKey: 'THEME.ROLE_ACCENT' },
+    { key: 'primary', labelKey: 'THEME.ROLE_PRIMARY' },
+    { key: 'secondary', labelKey: 'THEME.ROLE_SECONDARY' },
+    { key: 'tertiary', labelKey: 'THEME.ROLE_TERTIARY' }
 ];
 
 const PATTERNS: Array<{ key: ThemePattern; label: string }> = [
-    { key: 'dots', label: 'Dots' },
-    { key: 'grid', label: 'Grid' },
-    { key: 'stripes', label: 'Stripes' },
-    { key: 'columns', label: 'Columns' },
-    { key: 'margin', label: 'Margin' }
+    { key: 'dots', label: 'THEME_EDITOR.PATTERN_DOTS' },
+    { key: 'grid', label: 'THEME_EDITOR.PATTERN_GRID' },
+    { key: 'stripes', label: 'THEME_EDITOR.PATTERN_STRIPES' },
+    { key: 'columns', label: 'THEME_EDITOR.PATTERN_COLUMNS' },
+    { key: 'margin', label: 'THEME_EDITOR.PATTERN_MARGIN' }
 ];
 
 const ARTWORKS: Array<{ key: ThemeArtwork | null; label: string }> = [
-    { key: null, label: 'None' },
-    { key: 'marble', label: 'Marbled paper' }
+    { key: null, label: 'THEME_EDITOR.ARTWORK_NONE' },
+    { key: 'marble', label: 'THEME_EDITOR.ARTWORK_MARBLE' }
 ];
 
 /**
@@ -105,9 +106,10 @@ export interface ThemePreviewSample {
 }
 
 export const ThemePreview = ({ color, sample }: { color: FormTheme; /** Words from the form itself, so a thumbnail shows this form. */ sample?: ThemePreviewSample }) => {
+    const { t } = useTranslation('builder');
     const { primary, secondary, tertiary } = color;
-    const question = sample?.question?.trim() || 'Question';
-    const answer = sample?.answer?.trim() || 'Answer';
+    const question = sample?.question?.trim() || t('THEME_EDITOR.SAMPLE_QUESTION');
+    const answer = sample?.answer?.trim() || t('THEME_EDITOR.SAMPLE_ANSWER');
     const tokens = styleTokens(color.style);
     if (tokens.key === 'leaflet') {
         // The Leaflet miniature: section bar with its serif numeral, a
@@ -129,7 +131,7 @@ export const ThemePreview = ({ color, sample }: { color: FormTheme; /** Words fr
                         1
                     </span>
                     <span className="text-[12px] leading-tight" style={serif}>
-                        Section
+                        {t('THEME_EDITOR.SAMPLE_SECTION')}
                     </span>
                 </span>
                 <span className="form-title-face grid grid-cols-[20px_1fr] items-baseline px-4 pt-2 text-[12px] leading-tight font-semibold" style={{ color: primary }}>
@@ -143,7 +145,7 @@ export const ThemePreview = ({ color, sample }: { color: FormTheme; /** Words fr
                     <span className="truncate">{answer}</span>
                 </span>
                 <span style={formButtonStyle(secondary, '2px')} className="mt-2 ml-9 self-start px-2 py-0.5 text-[10px] leading-tight font-semibold text-white">
-                    Continue
+                    {t('THEME_EDITOR.SAMPLE_BUTTON')}
                 </span>
             </div>
         );
@@ -162,7 +164,7 @@ export const ThemePreview = ({ color, sample }: { color: FormTheme; /** Words fr
                 {answer}
             </span>
             <span style={formButtonStyle(secondary, tokens.inputRadius)} className="px-2 py-0.5 text-[10px] font-semibold leading-tight text-white">
-                Continue
+                {t('THEME_EDITOR.SAMPLE_BUTTON')}
             </span>
         </div>
     );
@@ -337,42 +339,43 @@ export function leafletColours(theme?: Partial<FormTheme>) {
 }
 
 const STYLE_OPTIONS: Array<{ key: ThemeStyle; label: string; hint: string }> = [
-    { key: 'classic', label: 'Classic', hint: 'Clean and quiet — the default.' },
-    { key: 'sheet', label: 'Sheet', hint: 'Like a printed document: serif questions, ruled rows.' },
-    { key: 'studio', label: 'Studio', hint: 'Bold and graphic: heavy type, square edges.' },
-    { key: 'leaflet', label: 'Leaflet', hint: 'Like a clear information leaflet: numbered sections, margin notes.' }
+    { key: 'classic', label: 'THEME_EDITOR.STYLE_CLASSIC', hint: 'THEME_EDITOR.STYLE_CLASSIC_HINT' },
+    { key: 'sheet', label: 'THEME_EDITOR.STYLE_SHEET', hint: 'THEME_EDITOR.STYLE_SHEET_HINT' },
+    { key: 'studio', label: 'THEME_EDITOR.STYLE_STUDIO', hint: 'THEME_EDITOR.STYLE_STUDIO_HINT' },
+    { key: 'leaflet', label: 'THEME_EDITOR.STYLE_LEAFLET', hint: 'THEME_EDITOR.STYLE_LEAFLET_HINT' }
 ];
 
 /** Shared style picker for the theme editors (builder Design tab, Themes page). */
 export const ThemeStyleEditor = ({ value, onChange }: { value?: ThemeStyle; onChange: (style: ThemeStyle) => void }) => {
+    const { t } = useTranslation('builder');
     const current = value ?? 'classic';
     return (
         <div className="flex flex-col gap-2">
-            <span className="text-black-700 text-xs">Style</span>
-            <div className="border-black-300 flex overflow-hidden rounded-md border" role="group" aria-label="Form style">
+            <span className="text-black-700 text-xs">{t('THEME_EDITOR.STYLE')}</span>
+            <div className="border-black-300 flex overflow-hidden rounded-md border" role="group" aria-label={t('THEME_EDITOR.FORM_STYLE')}>
                 {STYLE_OPTIONS.map((option) => (
                     <button
                         key={option.key}
                         type="button"
                         aria-pressed={current === option.key}
-                        title={option.hint}
+                        title={t(option.hint)}
                         onClick={() => onChange(option.key)}
                         className={cn('flex-1 px-2 py-1.5 text-[11px] font-medium transition-colors', current === option.key ? 'bg-brand-100 text-brand-600' : 'text-black-600 hover:bg-black-100 bg-white')}
                     >
-                        {option.label}
+                        {t(option.label)}
                     </button>
                 ))}
             </div>
-            <p className="text-black-600 text-[11px] leading-relaxed">{STYLE_OPTIONS.find((o) => o.key === current)?.hint}</p>
+            <p className="text-black-600 text-[11px] leading-relaxed">{t(STYLE_OPTIONS.find((o) => o.key === current)?.hint ?? '')}</p>
         </div>
     );
 };
 
 const BACKGROUND_TYPES: Array<{ key: ThemeBackground['type']; label: string }> = [
-    { key: 'color', label: 'Colour' },
-    { key: 'gradient', label: 'Gradient' },
-    { key: 'pattern', label: 'Pattern' },
-    { key: 'image', label: 'Image' }
+    { key: 'color', label: 'THEME_EDITOR.BG_COLOR' },
+    { key: 'gradient', label: 'THEME_EDITOR.BG_GRADIENT' },
+    { key: 'pattern', label: 'THEME_EDITOR.BG_PATTERN' },
+    { key: 'image', label: 'THEME_EDITOR.BG_IMAGE' }
 ];
 
 /**
@@ -381,6 +384,7 @@ const BACKGROUND_TYPES: Array<{ key: ThemeBackground['type']; label: string }> =
  * keeping legacy themes byte-identical).
  */
 export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; onChange: (background?: ThemeBackground) => void }) => {
+    const { t } = useTranslation('builder');
     const bg = theme.background;
     const type = bg?.type ?? 'color';
 
@@ -409,8 +413,8 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
 
     return (
         <div className="flex flex-col gap-2.5">
-            <span className="text-black-700 text-xs">Page background</span>
-            <div className="border-black-300 flex overflow-hidden rounded-md border" role="group" aria-label="Background type">
+            <span className="text-black-700 text-xs">{t('THEME_EDITOR.PAGE_BACKGROUND')}</span>
+            <div className="border-black-300 flex overflow-hidden rounded-md border" role="group" aria-label={t('THEME_EDITOR.BACKGROUND_TYPE')}>
                 {BACKGROUND_TYPES.map((option) => (
                     <button
                         key={option.key}
@@ -419,33 +423,33 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                         onClick={() => setType(option.key)}
                         className={cn('flex-1 px-2 py-1.5 text-[11px] font-medium transition-colors', type === option.key ? 'bg-brand-100 text-brand-600' : 'text-black-600 hover:bg-black-100 bg-white')}
                     >
-                        {option.label}
+                        {t(option.label)}
                     </button>
                 ))}
             </div>
 
-            {type === 'color' && <p className="text-black-600 text-[11px] leading-relaxed">Uses the background colour above.</p>}
+            {type === 'color' && <p className="text-black-600 text-[11px] leading-relaxed">{t('THEME_EDITOR.USES_BACKGROUND_COLOR')}</p>}
 
             {type === 'gradient' && bg?.type === 'gradient' && (
                 <div className="flex flex-col gap-2">
                     {(
                         [
-                            { key: 'gradientFrom', label: 'From' },
-                            { key: 'gradientTo', label: 'To' }
+                            { key: 'gradientFrom', label: 'THEME_EDITOR.GRADIENT_FROM', aria: 'THEME_EDITOR.GRADIENT_FROM_ARIA' },
+                            { key: 'gradientTo', label: 'THEME_EDITOR.GRADIENT_TO', aria: 'THEME_EDITOR.GRADIENT_TO_ARIA' }
                         ] as const
                     ).map((stop) => (
                         <div key={stop.key} className="flex items-center justify-between gap-3">
-                            <span className="text-black-700 text-xs">{stop.label}</span>
+                            <span className="text-black-700 text-xs">{t(stop.label)}</span>
                             <span className="flex items-center gap-2">
                                 <span className="text-black-600 text-[11px] uppercase tabular-nums">{bg[stop.key]}</span>
-                                <input type="color" aria-label={`Gradient ${stop.label.toLowerCase()} colour`} value={bg[stop.key]} onChange={(e) => onChange({ ...bg, [stop.key]: e.target.value })} className="border-black-300 h-7 w-9 cursor-pointer rounded border bg-white p-0.5" />
+                                <input type="color" aria-label={t(stop.aria)} value={bg[stop.key]} onChange={(e) => onChange({ ...bg, [stop.key]: e.target.value })} className="border-black-300 h-7 w-9 cursor-pointer rounded border bg-white p-0.5" />
                             </span>
                         </div>
                     ))}
                     <div className="flex items-center justify-between gap-3">
-                        <span className="text-black-700 text-xs">Angle</span>
+                        <span className="text-black-700 text-xs">{t('THEME_EDITOR.ANGLE')}</span>
                         <span className="flex items-center gap-2">
-                            <input type="range" min={0} max={360} step={45} aria-label="Gradient angle" value={bg.gradientAngle ?? 135} onChange={(e) => onChange({ ...bg, gradientAngle: Number(e.target.value) })} className="w-24 accent-[#123FC9]" />
+                            <input type="range" min={0} max={360} step={45} aria-label={t('THEME_EDITOR.GRADIENT_ANGLE')} value={bg.gradientAngle ?? 135} onChange={(e) => onChange({ ...bg, gradientAngle: Number(e.target.value) })} className="w-24 accent-[#123FC9]" />
                             <span className="text-black-600 w-8 text-right text-[11px] tabular-nums">{bg.gradientAngle ?? 135}°</span>
                         </span>
                     </div>
@@ -453,7 +457,7 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
             )}
 
             {type === 'pattern' && bg?.type === 'pattern' && (
-                <div className="grid grid-cols-3 gap-2" role="group" aria-label="Pattern">
+                <div className="grid grid-cols-3 gap-2" role="group" aria-label={t('THEME_EDITOR.PATTERN')}>
                     {PATTERNS.map((pattern) => (
                         <button
                             key={pattern.key}
@@ -463,7 +467,7 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                             className={cn('flex-1 overflow-hidden rounded-md border text-center', bg.pattern === pattern.key ? 'border-brand-500 ring-1 ring-brand-500' : 'border-black-300 hover:border-black-400')}
                         >
                             <span className="block h-8 w-full" style={themeBackgroundStyle({ ...theme, background: { type: 'pattern', pattern: pattern.key } }, { compact: true })} aria-hidden="true" />
-                            <span className="text-black-700 block bg-white py-1 text-[10px] font-medium">{pattern.label}</span>
+                            <span className="text-black-700 block bg-white py-1 text-[10px] font-medium">{t(pattern.label)}</span>
                         </button>
                     ))}
                 </div>
@@ -473,8 +477,8 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                 <ImageUrlField value={bg.imageUrl ?? ''} onChange={(imageUrl) => onChange({ ...bg, imageUrl })} />
             )}
 
-            <span className="text-black-700 mt-1 text-xs">Artwork</span>
-            <div className="border-black-300 flex overflow-hidden rounded-md border" role="group" aria-label="Artwork">
+            <span className="text-black-700 mt-1 text-xs">{t('THEME_EDITOR.ARTWORK')}</span>
+            <div className="border-black-300 flex overflow-hidden rounded-md border" role="group" aria-label={t('THEME_EDITOR.ARTWORK')}>
                 {ARTWORKS.map((option) => (
                     <button
                         key={option.key ?? 'none'}
@@ -483,11 +487,11 @@ export const ThemeBackgroundEditor = ({ theme, onChange }: { theme: FormTheme; o
                         onClick={() => setArtwork(option.key)}
                         className={cn('flex-1 px-2 py-1.5 text-[11px] font-medium transition-colors', (bg?.artwork ?? null) === option.key ? 'bg-brand-100 text-brand-600' : 'text-black-600 hover:bg-black-100 bg-white')}
                     >
-                        {option.label}
+                        {t(option.label)}
                     </button>
                 ))}
             </div>
-            <p className="text-black-600 text-[11px] leading-relaxed">Fills the picture half of a welcome or ending page set beside an image, when the page has no image of its own. Served by bettercollected itself.</p>
+            <p className="text-black-600 text-[11px] leading-relaxed">{t('THEME_EDITOR.ARTWORK_HINT')}</p>
         </div>
     );
 };

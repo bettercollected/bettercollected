@@ -22,7 +22,7 @@ from backend.jobs.app import libpq_url
 from backend.jobs.schema import ensure_schema
 from common.db.engine import normalise_url
 from tests.app.db.test_auto_migrate import ROLES, _execute, _with_database, init_sql
-from tests.app.jobs.test_executor_role import Db
+from tests.app.jobs.test_executor_role import Db, _executor_guard
 
 pytestmark = [
     pytest.mark.skipif(
@@ -56,9 +56,13 @@ async def db(tmp_path):
         script = tmp_path / "ensure-jobs-exec-role.sh"
         script.write_text(
             re.sub(
-                r"\bbc_jobs_def\b",
-                database.definer_role,
-                re.sub(r"\bbc_jobs_exec\b", database.exec_role, SCRIPT.read_text()),
+                r"\bbc_(app|auth|google)\b",
+                rf"bc_\1_{suffix}",
+                re.sub(
+                    r"\bbc_jobs_def\b",
+                    database.definer_role,
+                    re.sub(r"\bbc_jobs_exec\b", database.exec_role, SCRIPT.read_text()),
+                ),
             )
         )
         database.script = script
@@ -200,3 +204,172 @@ async def test_it_keeps_the_role_from_writing_the_events_and_periodic_defers(db)
         assert row == (True,)
     finally:
         await owner.close()
+
+
+async def _scalar(db, sql, *args):
+    conn = await psycopg.AsyncConnection.connect(libpq_url(db.url()), autocommit=True)
+    try:
+        return (await (await conn.execute(sql, args)).fetchone())[0]
+    finally:
+        await conn.close()
+
+
+def _can_temp(db, role):
+    return _scalar(
+        db, "SELECT has_database_privilege(%s, %s, 'TEMPORARY')", role, db.name
+    )
+
+
+async def test_the_script_alone_takes_temporary_away_from_public_and_the_executor(db):
+    """TEMPORARY is granted to PUBLIC on every new database; revoking it from the
+    role alone changes nothing. The script revokes it from PUBLIC, and gives it
+    back by name to the service roles."""
+    assert await _can_temp(db, db.definer_role)  # the starting point: via PUBLIC
+
+    done = run_script(db, secrets.token_hex(12))
+
+    assert done.returncode == 0, done.stderr
+    assert "temp=false member_of_roles=0 definer_temp=false" in done.stdout
+    assert not await _can_temp(db, db.exec_role)
+    assert not await _can_temp(db, db.definer_role)
+    for service in ("app", "auth", "google"):
+        assert await _can_temp(db, f"bc_{service}_{db.suffix}"), service
+
+
+async def test_the_executor_cannot_create_a_temporary_table_after_the_script(db):
+    password = secrets.token_hex(12)
+    assert run_script(db, password).returncode == 0
+    conn = await _exec_connect(db, password)
+    try:
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            await conn.execute("CREATE TEMP TABLE procrastinate_events (id int)")
+    finally:
+        await conn.close()
+
+
+async def test_it_repairs_temporary_and_memberships_of_both_roles(db):
+    assert run_script(db, secrets.token_hex(12)).returncode == 0
+    await _execute(
+        db.url(),
+        f'GRANT TEMPORARY ON DATABASE "{db.name}" TO "{db.exec_role}", "{db.definer_role}";'
+        f' GRANT "{db.definer_role}" TO "{db.exec_role}";'
+        f' GRANT "bc_app_{db.suffix}" TO "{db.exec_role}";'
+        f' GRANT "bc_auth_{db.suffix}" TO "{db.definer_role}"',
+    )
+    assert await _can_temp(db, db.exec_role) and await _can_temp(db, db.definer_role)
+
+    done = run_script(db)
+
+    assert done.returncode == 0, done.stderr
+    assert not await _can_temp(db, db.exec_role)
+    assert not await _can_temp(db, db.definer_role)
+    members = await _scalar(
+        db,
+        "SELECT count(*) FROM pg_auth_members m WHERE m.member = ANY"
+        " (ARRAY[%s::regrole, %s::regrole])",
+        db.exec_role,
+        db.definer_role,
+    )
+    assert members == 0
+    # the backend's role still hands the trigger functions to the definer role
+    assert await _scalar(
+        db, "SELECT pg_has_role(%s, %s, 'MEMBER')", f"bc_app_{db.suffix}", db.definer_role
+    )
+
+
+async def test_the_definer_role_is_reset_to_what_the_triggers_need(db):
+    assert run_script(db, secrets.token_hex(12)).returncode == 0
+    await _execute(
+        db.url(),
+        "CREATE TABLE auth.extra (v text);"
+        f' GRANT USAGE ON SCHEMA app TO "{db.definer_role}";'
+        f' GRANT SELECT ON app.canary TO "{db.definer_role}";'
+        f' GRANT USAGE ON SCHEMA auth TO "{db.definer_role}";'
+        f' GRANT SELECT, UPDATE ON auth.extra TO "{db.definer_role}";'
+        f' GRANT SELECT, UPDATE, DELETE ON jobs.procrastinate_jobs TO "{db.definer_role}";'
+        f' GRANT CREATE ON SCHEMA jobs TO "{db.definer_role}"',
+    )
+
+    assert run_script(db).returncode == 0
+
+    role = db.definer_role
+    assert not await _scalar(db, "SELECT has_schema_privilege(%s, 'app', 'USAGE')", role)
+    assert not await _scalar(db, "SELECT has_table_privilege(%s, 'app.canary', 'SELECT')", role)
+    assert not await _scalar(db, "SELECT has_schema_privilege(%s, 'auth', 'USAGE')", role)
+    assert not await _scalar(db, "SELECT has_table_privilege(%s, 'auth.extra', 'SELECT')", role)
+    assert not await _scalar(
+        db, "SELECT has_table_privilege(%s, 'jobs.procrastinate_jobs', 'SELECT,UPDATE,DELETE')", role
+    )
+    assert not await _scalar(db, "SELECT has_schema_privilege(%s, 'jobs', 'CREATE')", role)
+    # what the triggers write stays
+    assert await _scalar(
+        db, "SELECT has_table_privilege(%s, 'jobs.procrastinate_events', 'INSERT')", role
+    )
+    assert await _scalar(
+        db,
+        "SELECT has_table_privilege(%s, 'jobs.procrastinate_periodic_defers', 'UPDATE')",
+        role,
+    )
+
+
+async def test_the_executors_start_check_passes_after_the_script_and_a_job_still_runs(db):
+    password = secrets.token_hex(12)
+    assert run_script(db, password).returncode == 0
+    await db.ensure()  # the row restriction
+    guard = _executor_guard()
+    conn = await _exec_connect(db, password)
+    try:
+        assert await (await conn.execute(guard.isolation_sql(db.definer_role))).fetchone() == (True,)
+        # a queued job writes its event through the definer role's triggers
+        await conn.execute(
+            "INSERT INTO jobs.procrastinate_jobs (queue_name, task_name, args, lock, queueing_lock)"
+            " VALUES ('actions', 'run_action', '{}', 'action_x', 'action_x')"
+        )
+    finally:
+        await conn.close()
+    assert await _scalar(db, "SELECT count(*) FROM jobs.procrastinate_events") == 1
+
+
+async def test_it_revokes_a_membership_granted_by_another_role(db):
+    assert run_script(db, secrets.token_hex(12)).returncode == 0
+    await _execute(
+        db.url(),
+        f'GRANT "bc_auth_{db.suffix}" TO "bc_app_{db.suffix}" WITH ADMIN OPTION;'
+        f' GRANT "bc_auth_{db.suffix}" TO "{db.exec_role}" GRANTED BY "bc_app_{db.suffix}"',
+    )
+    assert await _scalar(
+        db, "SELECT pg_has_role(%s, %s, 'MEMBER')", db.exec_role, f"bc_auth_{db.suffix}"
+    )
+
+    done = run_script(db)
+
+    assert done.returncode == 0, done.stderr
+    assert "member_of_roles=0" in done.stdout
+
+
+async def test_it_fails_instead_of_exiting_zero_when_temporary_is_still_there(db):
+    """A revoke that did not take must fail the script. Simulated by taking the
+    revoke from PUBLIC out of a copy of it."""
+    text = db.script.read_text()
+    revoke = "EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM PUBLIC', current_database());"
+    assert revoke in text
+    db.script.write_text(text.replace(revoke, "NULL;"))
+
+    done = run_script(db, secrets.token_hex(12))
+
+    assert done.returncode != 0
+    assert "can still create temporary tables" in done.stderr
+
+
+async def test_it_fails_when_a_membership_survives(db):
+    assert run_script(db, secrets.token_hex(12)).returncode == 0
+    await _execute(db.url(), f'GRANT "bc_auth_{db.suffix}" TO "{db.exec_role}"')
+    text = db.script.read_text()
+    revoke = f"EXECUTE format('REVOKE %I FROM {db.exec_role} GRANTED BY %I', m.role_name, m.grantor_name);"
+    assert revoke in text
+    db.script.write_text(text.replace(revoke, "NULL;"))
+
+    done = run_script(db)
+
+    assert done.returncode != 0
+    assert "still a member" in done.stderr

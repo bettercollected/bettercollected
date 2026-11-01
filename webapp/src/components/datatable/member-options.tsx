@@ -71,9 +71,9 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                 locale: browserMailLocale()
             }).unwrap();
 
-            toast({ description: 'Invitation resent successfully!' });
+            toast({ description: t('STAFF.MEMBERS.RESENT') });
         } catch (error: any) {
-            toast({ description: `Error resending invitation: ${error.message}`, variant: 'destructive' });
+            toast({ description: t('STAFF.MEMBERS.RESEND_FAILED', { message: error.message }), variant: 'destructive' });
         } finally {
             setLoading(false);
             handleCloseConfirmDialog();

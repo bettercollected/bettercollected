@@ -94,7 +94,7 @@ describe('the New Form page and the Google Forms import switch', () => {
         providers.data = [{ providerName: 'google', importMode: 'readonly' }];
         await renderPage();
         expect(screen.queryByText('Import Google Form')).toBeNull();
-        expect(screen.getByText('GOOGLE_FORMS_IMPORT.READONLY.CREATE_PAGE')).toBeTruthy();
+        expect(screen.getByText('Importing from Google Forms is no longer available. Forms imported earlier stay in your forms list.')).toBeTruthy();
         expect(screen.getByText('Import a PDF form')).toBeTruthy();
     });
 
@@ -102,7 +102,7 @@ describe('the New Form page and the Google Forms import switch', () => {
         providers.data = [];
         await renderPage();
         expect(screen.queryByText('Import Google Form')).toBeNull();
-        expect(screen.queryByText('GOOGLE_FORMS_IMPORT.READONLY.CREATE_PAGE')).toBeNull();
+        expect(screen.queryByText('Importing from Google Forms is no longer available. Forms imported earlier stay in your forms list.')).toBeNull();
     });
 
     it('waits for the mode before offering the Google import', async () => {
@@ -116,7 +116,7 @@ describe('the New Form page and the Google Forms import switch', () => {
         providers.data = undefined;
         await renderPage();
         expect(screen.getByText('Import Google Form')).toBeTruthy();
-        expect(screen.queryByText('GOOGLE_FORMS_IMPORT.READONLY.CREATE_PAGE')).toBeNull();
+        expect(screen.queryByText('Importing from Google Forms is no longer available. Forms imported earlier stay in your forms list.')).toBeNull();
     });
 
     it('opens the import for ?modal=true while imports are on', async () => {
@@ -129,7 +129,7 @@ describe('the New Form page and the Google Forms import switch', () => {
         providers.data = [{ providerName: 'google', importMode: 'readonly' }];
         await renderPage({ modal: 'true' });
         expect(openModal).not.toHaveBeenCalled();
-        expect(screen.getByText('GOOGLE_FORMS_IMPORT.READONLY.CREATE_PAGE')).toBeTruthy();
+        expect(screen.getByText('Importing from Google Forms is no longer available. Forms imported earlier stay in your forms list.')).toBeTruthy();
     });
 
     it('does not open the import for ?modal=true when imports are off', async () => {

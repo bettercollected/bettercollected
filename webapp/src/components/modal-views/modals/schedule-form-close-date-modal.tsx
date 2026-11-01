@@ -5,6 +5,9 @@ import dayjs from 'dayjs';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import moment from 'moment/moment';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import { dateFnsLocale } from '@app/lib/date-fns-locale';
 
 import { Calendar } from '@app/shadcn/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
@@ -16,6 +19,7 @@ interface IScheduleFormCloseDateModalProps {
 }
 
 const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = ({ onFormClosedChange, closeDate }) => {
+    const { t, i18n } = useTranslation();
     const [value, setValue] = React.useState<Date | null>(closeDate ? new Date(closeDate) : null);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
@@ -28,15 +32,15 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
         <BottomSheetModalWrapper>
             <div className="flex w-full max-w-[660px] flex-col items-start gap-[72px]">
                 <div>
-                    <div className="h2-new">Close Form</div>
+                    <div className="h2-new">{t('STAFF.MODALS.SCHEDULE_TITLE')}</div>
                     <div className="flex w-full flex-row items-center justify-between gap-4">
-                        <div className="text-black-700! text-sm">This action will ensure that no one can access or fill out the form. You can either schedule a closing date or choose to close it immediately.</div>
+                        <div className="text-black-700! text-sm">{t('STAFF.MODALS.SCHEDULE_INTRO')}</div>
                     </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
                     <div id="close-date-label" className="h4-new">
-                        Select form closing date
+                        {t('STAFF.MODALS.SCHEDULE_LABEL')}
                     </div>
                     <Popover
                         open={isDatePickerOpen}
@@ -53,7 +57,7 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                             >
                                 <CalendarIcon aria-hidden="true" className="text-black-600 absolute left-2 h-4 w-4" />
                                 <span id="close-date-value" className="text-black-900 ml-8">
-                                    {value ? format(value, 'PPP') : <span className="text-black-600">Pick a date</span>}
+                                    {value ? format(value, 'PPP', { locale: dateFnsLocale(i18n.language) }) : <span className="text-black-600">{t('STAFF.MODALS.PICK_DATE')}</span>}
                                 </span>
                             </button>
                         </PopoverTrigger>
@@ -67,6 +71,7 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                                     setIsDatePickerOpen(false);
                                 }}
                                 autoFocus
+                                locale={dateFnsLocale(i18n.language)}
                                 disabled={{ before: minDate }} // Set the minimum date to tomorrow
                             />
                         </PopoverContent>
@@ -80,7 +85,7 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                             closeBottomSheetModal();
                         }}
                     >
-                        Schedule Now
+                        {t('STAFF.MODALS.SCHEDULE_NOW')}
                     </Button>
                 </div>
             </div>
