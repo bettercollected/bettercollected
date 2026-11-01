@@ -245,7 +245,7 @@ export interface paths {
         head?: never;
         /**
          * Change answers of a response this key made
-         * @description Partial: the questions sent replace their stored answers, the others stay. Same value shapes and the same checks as a respondent's own edit, against the form's latest published version. Only a response made through this same API key can be changed (404 for any other). Needs `submissions:write`.
+         * @description Partial: the questions sent replace their stored answers, the others stay. Same value shapes and the same checks as a respondent's own edit, against the form's latest published version. Only a response made through this same API key can be changed (404 for any other), and not once the form is closed (409 `form_closed`), not open yet (409 `form_not_open`), needs a verified respondent or is private (422 `respondent_identity_required`). A `null` is refused (422, rule `clear_not_supported`). Needs `submissions:write`.
          */
         patch: operations["updateSubmission"];
         trace?: never;

@@ -8,6 +8,7 @@ nothing of the cookie-authenticated API (sessions, CSRF) applies to it.
 """
 
 import json
+import re
 from http import HTTPStatus
 
 from fastapi import FastAPI
@@ -44,6 +45,16 @@ has turned that on; the endpoints answer 404 otherwise).
   submissions.
 - Rate limits per API key and per workspace: 429 with `Retry-After`.
 """
+
+
+_AUDIT_ID = re.compile(r"[A-Za-z0-9_-]{1,64}")
+
+
+def _audit_id(value) -> str:
+    """A path id as the audit row keeps it: an id-shaped segment as it is,
+    anything else (text a caller chose) only as ``invalid``."""
+    text = str(value)
+    return text if _AUDIT_ID.fullmatch(text) else "invalid"
 
 
 class AuditAndErrors:
@@ -96,7 +107,8 @@ class AuditAndErrors:
             if audit is not None:
                 key, operation = audit
                 ids = " ".join(
-                    f"{k}={v}" for k, v in (scope.get("path_params") or {}).items()
+                    f"{k}={_audit_id(v)}"
+                    for k, v in (scope.get("path_params") or {}).items()
                 )
                 # ids the endpoint added (the response a submission made)
                 extra = state.get(AUDIT_EXTRA)

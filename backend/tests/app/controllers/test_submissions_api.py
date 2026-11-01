@@ -25,7 +25,20 @@ from backend.app.services.api_responses import list_response_summaries, response
 from backend.app.services.webhooks import payload as webhook_payload
 from backend.config import settings
 from tests.app.controllers.data import testUser
-from tests.app.controllers.submission_cases import CASES, SPEC, choice, text
+from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.schemas.workspace_user import WorkspaceUserDocument
+from common.ids import RecordId
+from common.models.user import User
+from tests.app.controllers.submission_cases import (
+    CASES,
+    RICH_CASES,
+    RICH_SPEC,
+    SPEC,
+    choice,
+    guests,
+    number,
+    text,
+)
 
 BASE = "/api/v1/public/v1"
 SCOPES = ["forms:read", "forms:write", "responses:read", "submissions:write"]
@@ -82,15 +95,23 @@ def _body(answers, consent=True, **extra):
     return body
 
 
-def _error_set(response):
-    """{(question, rule)} of a 422 invalid_answers, from either path."""
+def _api_errors(response) -> set:
+    """{(question, rule)} of a 422 ``invalid_answers`` of the API: the path is
+    ``/answers/<id>`` (or ``/answers/<group>/items/<n>/<id>``), the message
+    starts with the rule."""
+    errors = response.json()["errors"]
+    return {(e["path"].rsplit("/", 1)[-1], e["message"].split(":")[0]) for e in errors}
+
+
+def _form_errors(response) -> set:
+    """The same of the respondent route's answer."""
     body = response.json()
-    if "errors" in body and body["errors"] and "path" in body["errors"][0]:
-        # the API: /answers/<id>, "<rule>: text"
-        return {
-            (e["path"].split("/")[2], e["message"].split(":")[0]) for e in body["errors"]
-        }
-    return {(e["fieldId"], e["rule"]) for e in body.get("detail", body).get("errors", [])}
+    assert body["code"] == "invalid_answers"
+    return {(e["fieldId"], e["rule"]) for e in body["errors"]}
+
+
+def _error_set(response):
+    return _api_errors(response)
 
 
 async def _only_response(workspace, form_id):
@@ -128,8 +149,8 @@ class TestParity:
         assert via_api.status_code == (201 if status == 201 else status), via_api.text
         assert via_form.status_code == (200 if status == 201 else status), via_form.text
         if status == 422:
-            assert _error_set(via_api) == problems
-            assert _error_set(via_form) == problems
+            assert _api_errors(via_api) == problems
+            assert _form_errors(via_form) == problems
             _, total = await _only_response(workspace, form_id)
             assert total == 0
             return
@@ -946,3 +967,529 @@ class TestDocument:
         assert {"CreateSubmission", "UpdateSubmission"} <= set(
             document["components"]["schemas"]
         )
+
+
+# -- malformed answers: a 422 with the question named, never a 500 -----------------------
+
+
+class TestMalformedAnswers:
+    @pytest.mark.parametrize(
+        "answers",
+        [
+            {"age": 36.5},
+            {"age": {"type": "number", "number": 36.5}},
+            {"name": {"type": "text", "text": 5}},
+            {"name": {"type": "bogus", "text": "x"}},
+            {"name": {"type": "text", "text": {"nested": ["x"]}}},
+            {"name": {"type": "text", "text": "x", "items": [{}]}},
+            {"name": {"type": "text", "text": "x", "tags": "nope"}},
+            {"name": ["a", "b"]},
+            {"name": {"type": "text", "text": "x" * 100_000}},
+        ],
+        ids=[
+            "decimal shorthand",
+            "decimal typed",
+            "wrong slot type",
+            "unknown type",
+            "nested slot",
+            "items on a text",
+            "tags not a list",
+            "list for a text",
+            "huge text",
+        ],
+    )
+    async def test_never_a_500(self, client: AsyncClient, workspace, answers):
+        form_id = await _form(client, workspace)
+        token = await _key(workspace)
+        base = {"name": text("Ada")}
+        refused = await _submit(client, token, form_id, _body({**base, **answers}))
+        assert refused.status_code < 500, refused.text
+        # whatever it is, it is the same verdict the respondent route gives
+        via_form = await client.post(
+            f"/api/v1/workspaces/{workspace.id}/forms/{form_id}/response",
+            data={"response": json.dumps({"answers": {**base, **answers}})},
+        )
+        if refused.status_code == 422:
+            assert refused.json()["code"] == "invalid_answers"
+            assert all(
+                e["path"].startswith("/answers/") for e in refused.json().get("errors", [])
+            )
+
+    async def test_a_deeply_nested_body_is_a_422(self, client: AsyncClient, workspace):
+        form_id = await _form(client, workspace)
+        token = await _key(workspace)
+        nested = "[" * 50_000 + "]" * 50_000
+        refused = await client.post(
+            f"{BASE}/forms/{form_id}/submissions",
+            content='{"answers": {"name": ' + nested + "}}",
+            headers=_auth(token, **{"Content-Type": "application/json"}),
+        )
+        assert refused.status_code == 422, refused.text
+        # (the same code any unreadable JSON body gets on this API)
+        assert refused.json()["code"] in {"invalid_request", "invalid_answers", "unprocessable"}
+        assert (await _only_response(workspace, form_id))[1] == 0
+
+
+# -- parity on a richer form --------------------------------------------------------------
+
+
+@pytest.fixture()
+def rich_switches(monkeypatch):
+    monkeypatch.setattr(settings, "FIELD_RULES_ENABLED", True)
+    monkeypatch.setattr(settings, "NEW_QUESTION_TYPES_ENABLED", True)
+
+
+class TestRichParity:
+    @pytest.mark.parametrize("case", RICH_CASES, ids=[c[0] for c in RICH_CASES])
+    async def test_both_paths_judge_the_same(
+        self, client: AsyncClient, workspace, rich_switches, case
+    ):
+        _, answers, status, problems = case
+        form_id = await _form(client, workspace, RICH_SPEC)
+        token = await _key(workspace)
+        via_api = await _submit(client, token, form_id, _body(answers))
+        via_form = await client.post(
+            f"/api/v1/workspaces/{workspace.id}/forms/{form_id}/response",
+            data={"response": json.dumps({"answers": answers})},
+        )
+        assert via_api.status_code == status, via_api.text
+        assert via_form.status_code == (200 if status == 201 else status), via_form.text
+        if status == 422:
+            if problems is None:
+                assert via_api.json()["code"] == "invalid_answers"
+            else:
+                assert _api_errors(via_api) == problems
+                assert _form_errors(via_form) == problems
+            assert (await _only_response(workspace, form_id))[1] == 0
+            return
+        items, total = await _only_response(workspace, form_id)
+        assert total == 2
+        stored = [await _answers_of(workspace, i["responseId"]) for i in items]
+        assert stored[0] == stored[1]
+
+    async def test_the_calculated_value_is_the_servers(
+        self, client: AsyncClient, workspace, rich_switches
+    ):
+        form_id = await _form(client, workspace, RICH_SPEC)
+        token = await _key(workspace)
+        created = await _submit(
+            client,
+            token,
+            form_id,
+            _body(
+                {
+                    "name": text("Ada"),
+                    "qty": number(3),
+                    "extra": number(4),
+                    "total": number(999),
+                }
+            ),
+        )
+        assert created.status_code == 201, created.text
+        answers = await _answers_of(workspace, created.json()["responseId"])
+        assert answers["total"]["number"] == 7
+
+    async def test_too_many_items_in_a_group_are_refused_as_for_a_respondent(
+        self, client: AsyncClient, workspace, rich_switches
+    ):
+        form_id = await _form(client, workspace, RICH_SPEC)
+        token = await _key(workspace)
+        crowd = {"name": text("Ada"), "guests": guests(*[{"gname": text("A")}] * 4)}
+        via_api = await _submit(client, token, form_id, _body(crowd))
+        via_form = await client.post(
+            f"/api/v1/workspaces/{workspace.id}/forms/{form_id}/response",
+            data={"response": json.dumps({"answers": crowd})},
+        )
+        assert via_api.status_code == via_form.status_code == 422
+        assert (await _only_response(workspace, form_id))[1] == 0
+        # and 70 items (over the model's own cap) are a 422 as well
+        many = {"name": text("Ada"), "guests": guests(*[{"gname": text("A")}] * 70)}
+        assert (await _submit(client, token, form_id, _body(many))).status_code == 422
+
+    async def test_shorthand_is_the_same_as_the_typed_answer(
+        self, client: AsyncClient, workspace, rich_switches
+    ):
+        form_id = await _form(client, workspace, RICH_SPEC)
+        token = await _key(workspace)
+        shorthand = await _submit(
+            client,
+            token,
+            form_id,
+            _body(
+                {
+                    "name": "Ada",
+                    "labels": ["vip", "late"],
+                    "price": {"code": "EUR", "amount": "12.50"},
+                    "stay": {"start": "2026-05-01", "end": "2026-05-04"},
+                    "guests": [{"gname": "Bo", "gage": 30}, {"gname": "Cy"}],
+                }
+            ),
+        )
+        typed = await _submit(
+            client,
+            token,
+            form_id,
+            _body(
+                {
+                    "name": text("Ada"),
+                    "labels": {"type": "tags", "tags": ["vip", "late"]},
+                    "price": {
+                        "type": "currency",
+                        "currency": {"code": "EUR", "amount": "12.50"},
+                    },
+                    "stay": {
+                        "type": "date_range",
+                        "date_range": {"start": "2026-05-01", "end": "2026-05-04"},
+                    },
+                    "guests": guests(
+                        {"gname": text("Bo"), "gage": number(30)}, {"gname": text("Cy")}
+                    ),
+                }
+            ),
+        )
+        assert shorthand.status_code == typed.status_code == 201, shorthand.text
+        assert await _answers_of(workspace, shorthand.json()["responseId"]) == (
+            await _answers_of(workspace, typed.json()["responseId"])
+        )
+
+    async def test_a_problem_inside_a_group_item_is_named(
+        self, client: AsyncClient, workspace, rich_switches
+    ):
+        form_id = await _form(client, workspace, RICH_SPEC)
+        token = await _key(workspace)
+        refused = await _submit(
+            client,
+            token,
+            form_id,
+            _body({"name": "Ada", "guests": [{"gname": "Bo"}, {"gage": 5}]}),
+        )
+        assert refused.status_code == 422
+        assert refused.json()["code"] == "invalid_answers"
+        # the respondent route names the question and the item in text
+        assert "Guest name" in refused.json()["message"]
+
+
+ADDRESS_SPEC = json.loads(json.dumps(SPEC))
+ADDRESS_SPEC["pages"][0]["fields"].append(
+    {
+        "id": "home",
+        "type": "address",
+        "title": "Home address",
+        "whyWeAsk": "To send the programme.",
+        "countries": ["NL"],
+    }
+)
+
+
+class TestAddressShorthand:
+    async def test_an_address_object_is_the_typed_answer(
+        self, client: AsyncClient, workspace, monkeypatch
+    ):
+        monkeypatch.setattr(settings, "ADDRESS_QUESTION_ENABLED", True)
+        form_id = await _form(client, workspace, ADDRESS_SPEC)
+        token = await _key(workspace)
+        parts = {
+            "street": "Keizersgracht",
+            "house_number": "12",
+            "postcode": "1015 CS",
+            "city": "Amsterdam",
+            "country": "NL",
+        }
+        shorthand = await _submit(
+            client, token, form_id, _body({"name": "Ada", "home": parts})
+        )
+        typed = await _submit(
+            client,
+            token,
+            form_id,
+            _body({"name": text("Ada"), "home": {"type": "address", "address": parts}}),
+        )
+        assert shorthand.status_code == typed.status_code == 201, shorthand.text
+        assert await _answers_of(workspace, shorthand.json()["responseId"]) == (
+            await _answers_of(workspace, typed.json()["responseId"])
+        )
+
+
+# -- a private form, and updates after the form's gates changed --------------------------------
+
+
+async def _lock(workspace, form_id, **values):
+    link = await container.workspace_form_repo().find_workspace_form(
+        workspace.id, form_id
+    )
+    for key, value in values.items():
+        setattr(link.settings, key, value)
+    await container.workspace_form_repo().update(link.id, link)
+
+
+class TestPrivateAndLockedForms:
+    async def test_a_private_form_refuses_keys(self, client: AsyncClient, workspace):
+        form_id = await _form(client, workspace)
+        await _lock(workspace, form_id, private=True)
+        token = await _key(workspace)
+        refused = await _submit(client, token, form_id, _body({"name": text("Ada")}))
+        assert refused.status_code == 422
+        assert refused.json()["code"] == "respondent_identity_required"
+        assert (await _only_response(workspace, form_id))[1] == 0
+
+    @pytest.mark.parametrize(
+        "change, status, code",
+        [
+            ({"require_verified_identity": True}, 422, "respondent_identity_required"),
+            ({"private": True}, 422, "respondent_identity_required"),
+            (
+                {
+                    "form_close_date": (
+                        dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=1)
+                    ).isoformat()
+                },
+                409,
+                "form_closed",
+            ),
+            (
+                {
+                    "form_open_date": (
+                        dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=2)
+                    ).isoformat()
+                },
+                409,
+                "form_not_open",
+            ),
+        ],
+        ids=["identity required", "private", "closed", "not open yet"],
+    )
+    async def test_a_form_that_was_locked_since_takes_no_update(
+        self, client: AsyncClient, workspace, change, status, code
+    ):
+        form_id = await _form(client, workspace)
+        token = await _key(workspace)
+        created = await _submit(client, token, form_id, _body({"name": text("Ada")}))
+        response_id = created.json()["responseId"]
+        await _lock(workspace, form_id, **change)
+        refused = await client.patch(
+            f"{BASE}/forms/{form_id}/submissions/{response_id}",
+            json={"answers": {"name": "Rewritten"}},
+            headers=_auth(token),
+        )
+        assert refused.status_code == status, refused.text
+        assert refused.json()["code"] == code
+        assert (await _answers_of(workspace, response_id))["name"]["text"] == "Ada"
+
+
+# -- the creator must still be able to edit forms ---------------------------------------------
+
+
+async def _member(workspace, role) -> User:
+    user = User(id=str(RecordId()), sub="submissions-member@example.com")
+    await container.workspace_user_repo().save(
+        WorkspaceUserDocument(workspace_id=workspace.id, user_id=user.id, roles=[role])
+    )
+    return user
+
+
+async def _set_role(workspace, user: User, role) -> None:
+    repo = container.workspace_user_repo()
+    membership = await repo.find_workspace_user(workspace.id, RecordId(user.id))
+    membership.roles = [role]
+    await repo.save(membership)
+
+
+class TestCreatorStillEdits:
+    @pytest.mark.parametrize(
+        "role",
+        [WorkspaceRoles.VIEWER, WorkspaceRoles.REVIEWER, WorkspaceRoles.PRIVACY_OFFICER],
+    )
+    async def test_a_demoted_creators_key_stops_writing(
+        self, client: AsyncClient, workspace, role
+    ):
+        form_id = await _form(client, workspace)
+        admin = await _member(workspace, WorkspaceRoles.ADMIN)
+        token = await _key(workspace, user=admin)
+        made = await _submit(client, token, form_id, _body({"name": text("Ada")}))
+        assert made.status_code == 201, made.text
+        await _set_role(workspace, admin, role)
+        for call in (
+            _submit(client, token, form_id, _body({"name": text("Bo")})),
+            client.patch(
+                f"{BASE}/forms/{form_id}/submissions/{made.json()['responseId']}",
+                json={"answers": {"name": "Rewritten"}},
+                headers=_auth(token),
+            ),
+        ):
+            refused = await call
+            assert refused.status_code == 403, refused.text
+            assert refused.json()["code"] == "key_creator_lacks_permission"
+        assert (await _only_response(workspace, form_id))[1] == 1
+        assert (await _answers_of(workspace, made.json()["responseId"]))["name"][
+            "text"
+        ] == "Ada"
+
+    async def test_an_editor_creator_works_and_a_disabled_workspace_does_not(
+        self, client: AsyncClient, workspace
+    ):
+        form_id = await _form(client, workspace)
+        token = await _key(workspace)
+        assert (
+            await _submit(client, token, form_id, _body({"name": text("Ada")}))
+        ).status_code == 201
+        await container.workspace_repo().set_fields(workspace, {"disabled": True})
+        refused = await _submit(client, token, form_id, _body({"name": text("Bo")}))
+        assert refused.status_code == 403
+        assert refused.json()["code"] == "key_creator_lacks_permission"
+        assert (await _only_response(workspace, form_id))[1] == 1
+
+
+# -- a failure after the commit never makes a retry store a second response -------------------
+
+
+class TestFailureAfterTheCommit:
+    async def test_a_hook_that_raises_changes_nothing_for_the_caller(
+        self, client: AsyncClient, workspace
+    ):
+        form_id = await _form(client, workspace)
+        token = await _key(workspace)
+        service = container.workspace_form_service()
+        headers = {"Idempotency-Key": "after-1"}
+        with patch.object(
+            service.action_service,
+            "start_actions_for_submission",
+            new=AsyncMock(side_effect=RuntimeError("boom")),
+        ), patch.object(
+            service._webhook_service,
+            "queue_for_submission",
+            new=AsyncMock(side_effect=RuntimeError("boom")),
+        ):
+            first = await _submit(
+                client, token, form_id, _body({"name": text("Ada")}), **headers
+            )
+        assert first.status_code == 201, first.text
+        again = await _submit(
+            client, token, form_id, _body({"name": text("Ada")}), **headers
+        )
+        assert again.status_code == 201
+        assert again.headers["Idempotent-Replayed"] == "true"
+        assert again.json() == first.json()
+        assert (await _only_response(workspace, form_id))[1] == 1
+
+    async def test_a_failure_right_after_the_insert_is_still_a_success(
+        self, client: AsyncClient, workspace
+    ):
+        form_id = await _form(client, workspace)
+        token = await _key(workspace)
+        headers = {"Idempotency-Key": "after-2"}
+        with patch.object(
+            container.form_response_service(),
+            "decrypt_form_response",
+            side_effect=RuntimeError("boom"),
+        ):
+            first = await _submit(
+                client, token, form_id, _body({"name": text("Ada")}), **headers
+            )
+        assert first.status_code == 201, first.text
+        retry = await _submit(
+            client, token, form_id, _body({"name": text("Ada")}), **headers
+        )
+        assert retry.status_code == 201 and retry.json() == first.json()
+        assert (await _only_response(workspace, form_id))[1] == 1
+
+    async def test_a_failure_before_the_commit_is_a_5xx_and_frees_the_key(
+        self, client: AsyncClient, workspace
+    ):
+        form_id = await _form(client, workspace)
+        token = await _key(workspace)
+        headers = {"Idempotency-Key": "before-1"}
+        with patch.object(
+            container.form_response_service(),
+            "submit_form_response",
+            new=AsyncMock(side_effect=RuntimeError("boom")),
+        ):
+            failed = await _submit(
+                client, token, form_id, _body({"name": text("Ada")}), **headers
+            )
+        assert failed.status_code == 500
+        retry = await _submit(
+            client, token, form_id, _body({"name": text("Ada")}), **headers
+        )
+        assert retry.status_code == 201, retry.text
+        assert (await _only_response(workspace, form_id))[1] == 1
+
+
+# -- small things the review found ----------------------------------------------------------
+
+
+class TestSmallThings:
+    @pytest.mark.parametrize("consent", ["true", "yes", 1, "1"])
+    async def test_consent_is_literally_true(
+        self, client: AsyncClient, workspace, consent
+    ):
+        form_id = await _form(client, workspace)
+        token = await _key(workspace)
+        refused = await _submit(
+            client, token, form_id, {"answers": {"name": text("Ada")}, "consent": consent}
+        )
+        assert refused.status_code == 422, refused.text
+        assert (await _only_response(workspace, form_id))[1] == 0
+
+    async def test_an_update_cannot_clear_an_answer_with_null(
+        self, client: AsyncClient, workspace
+    ):
+        form_id = await _form(client, workspace)
+        token = await _key(workspace)
+        created = await _submit(client, token, form_id, _body({"name": text("Ada")}))
+        response_id = created.json()["responseId"]
+        refused = await client.patch(
+            f"{BASE}/forms/{form_id}/submissions/{response_id}",
+            json={"answers": {"name": None}},
+            headers=_auth(token),
+        )
+        assert refused.status_code == 422
+        assert refused.json()["errors"][0]["message"].startswith("clear_not_supported")
+        assert (await _answers_of(workspace, response_id))["name"]["text"] == "Ada"
+
+    async def test_a_404_is_not_kept_for_the_key(self, client: AsyncClient, workspace):
+        form_id = await _form(client, workspace, publish=False)
+        token = await _key(workspace)
+        headers = {"Idempotency-Key": "late-1"}
+        body = _body({"name": text("Ada")})
+        assert (await _submit(client, token, form_id, body, **headers)).status_code == 404
+        # published since: the same key and request now work
+        await client.post(
+            f"{BASE}/forms/{form_id}/publish",
+            headers=_auth(await _key(workspace, ["forms:write"])),
+        )
+        retried = await _submit(client, token, form_id, body, **headers)
+        assert retried.status_code == 201, retried.text
+
+    async def test_a_key_without_the_scope_does_not_spend_the_submissions_budget(
+        self, client: AsyncClient, workspace, monkeypatch
+    ):
+        form_id = await _form(client, workspace)
+        monkeypatch.setattr(settings.api_settings, "PUBLIC_API_REQUESTS_PER_WINDOW", 100)
+        monkeypatch.setattr(
+            settings.api_settings, "PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW", 2
+        )
+        monkeypatch.setattr(settings.api_settings, "PUBLIC_API_WINDOW_SECONDS", 3600)
+        reader = await _key(workspace, ["forms:read"])
+        for _ in range(5):
+            refused = await _submit(client, reader, form_id, _body({"name": text("A")}))
+            assert refused.status_code == 403
+        writer = await _key(workspace)
+        assert (
+            await _submit(client, writer, form_id, _body({"name": text("Ada")}))
+        ).status_code == 201
+
+    async def test_the_audit_row_keeps_only_an_id_shaped_segment(
+        self, client: AsyncClient, workspace
+    ):
+        form_id = await _form(client, workspace)
+        token = await _key(workspace)
+        hostile = "x" * 80 + "script"
+        await client.patch(
+            f"{BASE}/forms/{form_id}/submissions/{hostile}",
+            json={"answers": {}},
+            headers=_auth(token),
+        )
+        logs = await container.mcp_audit_log_repo().list_by_workspace(workspace.id)
+        rows = [l for l in logs if l.tool == "api:update_submission"]
+        assert rows and all("script" not in l.detail for l in rows)
+        assert any("response_id=invalid" in l.detail for l in rows)
