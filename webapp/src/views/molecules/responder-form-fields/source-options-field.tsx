@@ -140,6 +140,11 @@ export default function SourceOptionsField({ field, slideIndex }: Props) {
         inputRef.current?.focus();
     };
 
+    // keep the option the keys are on in view, without moving the page
+    useEffect(() => {
+        if (open && walked && active >= 0) document.getElementById(`${id}-opt-${active}`)?.scrollIntoView?.({ block: 'nearest' });
+    }, [open, walked, active, id]);
+
     const walk = (to: number) => {
         setActive(Math.max(0, Math.min(to, items.length - 1)));
         setWalked(true);
@@ -202,7 +207,7 @@ export default function SourceOptionsField({ field, slideIndex }: Props) {
         : failed
           ? t('SOURCE.FAILED')
           : !available
-            ? t('SOURCE.NONE')
+            ? t('SOURCE.UNAVAILABLE')
             : loading && !items.length
               ? t('SOURCE.LOADING')
               : !items.length

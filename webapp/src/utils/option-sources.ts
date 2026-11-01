@@ -124,3 +124,14 @@ export function parentLabelsOf(field: StandardFormFieldDto, answers: Record<stri
         })
         .filter((text): text is string => !!text);
 }
+
+/**
+ * The share notice token to send back with a submission, or null. The backend hands one out with the published form
+ * while a question shares its answers; it goes back only when this page shows that notice (a question with
+ * `shareAsChoices` on), so an answer is offered to other forms only when the notice was part of the page.
+ */
+export function shareNoticeTokenToSend(form?: { fields?: StandardFormFieldDto[]; shareNoticeToken?: string | null } | null): string | null {
+    if (!form?.fields || !form.fields.some((slide) => (slide?.properties?.fields ?? []).some((question) => question?.properties?.shareAsChoices === true))) return null;
+    const token = form.shareNoticeToken;
+    return typeof token === 'string' && token.length > 0 ? token : null;
+}

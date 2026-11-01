@@ -1373,7 +1373,8 @@
     "NOT_SHARED": "De maker van die vraag heeft niet toegestaan dat haar antwoorden als keuze worden getoond in andere formulieren.",
     "SHARE_LABEL": "Antwoorden mogen als keuze worden getoond",
     "SHARE_HINT": "Andere formulieren van deze werkruimte mogen de antwoorden op deze vraag als keuzes tonen, zonder te zeggen wie ze gaf. Wie invult krijgt dat bij de vraag te horen. Alleen antwoorden die zijn gegeven terwijl dit aanstaat worden ooit getoond; uitzetten stopt elk gebruik meteen.",
-    "SHARE_LOCKED": "Aanzetten vraagt een server die opties uit antwoorden op andere formulieren haalt."
+    "SHARE_LOCKED": "Aanzetten vraagt een server die opties uit antwoorden op andere formulieren haalt.",
+    "SHARE_NO_LONGER": "Deze vraag kan haar antwoorden niet meer delen (alleen korte tekst, keuzelijst en meerkeuzevragen op een pagina kunnen dat), maar de instelling staat nog aan en wie invult krijgt er nog steeds over te horen. Zet haar uit."
   },
   "LISTS": {
     "TITLE": "Lijsten",
@@ -1413,7 +1414,9 @@
     "SAVE": "Opslaan",
     "SAVED": "Lijst opgeslagen.",
     "SAVE_FAILED": "Kon de lijst niet opslaan.",
-    "CHANGED_ELSEWHERE": "Iemand anders heeft deze lijst gewijzigd terwijl u bezig was. Ga terug en open haar opnieuw.",
+    "CHANGED_ELSEWHERE": "Iemand anders heeft deze lijst gewijzigd terwijl u bezig was. Laad de pagina opnieuw om die versie te zien; uw niet-opgeslagen wijzigingen gaan verloren.",
+    "IMPORT_TOO_LARGE": "Dit bestand is groter dan 1 MB. Splits het op in kleinere bestanden of verwijder items die u niet nodig hebt.",
+    "RELOAD": "Opnieuw laden",
     "IMPORTED_one": "{{count}} item geïmporteerd.",
     "IMPORTED_other": "{{count}} items geïmporteerd.",
     "IMPORT_FAILED": "Kon het bestand niet importeren.",

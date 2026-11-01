@@ -101,6 +101,8 @@ export function useSourceOptions(field: StandardFormFieldDto, { query, parentIds
     }, [enabled, fetchPage, source, retry]);
 
     const loadMore = useCallback(() => {
+        // one page at a time: a held ArrowDown must not start a request per key press
+        if (loading) return;
         const mine = ++request.current;
         setLoading(true);
         fetchPage(page.items.length)
@@ -119,7 +121,7 @@ export function useSourceOptions(field: StandardFormFieldDto, { query, parentIds
                 }
                 setFailed(true);
             });
-    }, [fetchPage, page.items.length]);
+    }, [fetchPage, loading, page.items.length]);
 
     return { ...page, loading, failed, limited, canLoadMore: page.items.length < page.total, loadMore };
 }

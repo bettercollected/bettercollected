@@ -116,7 +116,11 @@ export default function FieldSettings() {
     const showWhyWeAsk = !field.internal && (asksForIdentity(field) || !!field.properties?.whyWeAsk);
     // "Answers may be shown as choices": for a question that can share; turning it on needs a server that takes sources
     const shareable = pageLevel && canShareAsChoices(field);
-    const showShare = shareable && (optionSourcesEnabled || field.properties?.shareAsChoices === true);
+    // The switch stays for as long as the setting is on, even when the question stopped qualifying (its type
+    // changed, it moved into a group): the respondent notice shows for any question with it on, so the creator
+    // must always be able to turn it off. The server refuses it there, so the hint says why it no longer applies.
+    const sharing = field.properties?.shareAsChoices === true;
+    const showShare = (shareable && (optionSourcesEnabled || sharing)) || sharing;
     const colSpan = Math.min(12, Math.max(1, field.properties?.colSpan ?? 12));
     const stepsId = `${baseId}-steps`;
     const widthId = `${baseId}-width`;
@@ -217,7 +221,7 @@ export default function FieldSettings() {
                             // turning it off is always possible; turning it on needs the server's switch
                             disabled={!optionSourcesEnabled && field.properties?.shareAsChoices !== true}
                             onCheckedChange={(checked) => updateFieldProperty(field.id, 'shareAsChoices', checked ? true : undefined)}
-                            hint={optionSourcesEnabled ? t('SOURCES.SHARE_HINT') : t('SOURCES.SHARE_LOCKED')}
+                            hint={!shareable ? t('SOURCES.SHARE_NO_LONGER') : optionSourcesEnabled ? t('SOURCES.SHARE_HINT') : t('SOURCES.SHARE_LOCKED')}
                         />
                     )}
                     {canBeInternal(field) && (

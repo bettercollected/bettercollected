@@ -14,6 +14,9 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import { refusalText } from './option-lists-client';
 
+/** The most the server takes in one CSV import (1 MB). */
+const CSV_MAX_BYTES = 1_000_000;
+
 interface Props {
     listId: string;
     canEdit: boolean;
@@ -37,6 +40,8 @@ export default function OptionListEditor({ listId, canEdit, onClose }: Props) {
     const [items, setItems] = useState<OptionListItem[]>([]);
     const [revision, setRevision] = useState<number | undefined>();
     const [error, setError] = useState('');
+    // someone else saved first: the way on is to reload and see their version
+    const [conflict, setConflict] = useState(false);
     const [dirty, setDirty] = useState(false);
 
     // a fresh copy replaces the draft only while nothing was edited (a save, an import)
@@ -60,11 +65,15 @@ export default function OptionListEditor({ listId, canEdit, onClose }: Props) {
 
     const save = async () => {
         setError('');
+        setConflict(false);
         const result: any = await update({ workspaceId, listId, name, order, items: items.map((item) => ({ id: item.id, label: item.label, group: item.group || null })), expectedRevision: revision });
         if (result.data) {
             setDirty(false);
             toast({ description: t('LISTS.SAVED') });
-        } else if (result.error?.status === 409 && result.error?.data?.code === 'list_changed') setError(t('LISTS.CHANGED_ELSEWHERE'));
+        } else if (result.error?.status === 409 && result.error?.data?.code === 'list_changed') {
+            setError(t('LISTS.CHANGED_ELSEWHERE'));
+            setConflict(true);
+        }
         else setError(refusalText(result.error, t('LISTS.SAVE_FAILED')));
     };
 
@@ -75,6 +84,9 @@ export default function OptionListEditor({ listId, canEdit, onClose }: Props) {
         // an import replaces the items: edits that are not saved would be lost
         if (dirty && !window.confirm(t('LISTS.CONFIRM_IMPORT'))) return;
         setError('');
+        setConflict(false);
+        // the server takes at most 1 MB: say so before reading a large file into memory
+        if (file.size > CSV_MAX_BYTES) return setError(t('LISTS.IMPORT_TOO_LARGE'));
         const result: any = await importCsv({ workspaceId, listId, csv: await file.text(), expectedRevision: revision });
         if (result.data) {
             setDirty(false);
@@ -201,9 +213,14 @@ export default function OptionListEditor({ listId, canEdit, onClose }: Props) {
             )}
 
             {error && (
-                <p role="alert" className="text-sm text-red-700">
-                    {error}
-                </p>
+                <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-red-700">
+                    <p>{error}</p>
+                    {conflict && (
+                        <Button type="button" variant="secondary" className="min-h-11" onClick={() => window.location.reload()}>
+                            {t('LISTS.RELOAD')}
+                        </Button>
+                    )}
+                </div>
             )}
             {canEdit && (
                 <div className="flex flex-wrap items-center gap-3 border-t border-black-300 pt-4">

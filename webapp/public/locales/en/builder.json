@@ -1373,7 +1373,8 @@
     "NOT_SHARED": "The creator of that question has not allowed its answers to be shown as choices in other forms.",
     "SHARE_LABEL": "Answers may be shown as choices",
     "SHARE_HINT": "Other forms of this workspace may offer the answers to this question as choices, without saying who gave them. Respondents are told next to the question. Only answers given while this is on are ever offered; turning it off stops all use at once.",
-    "SHARE_LOCKED": "Turning this on needs a server that takes options from other forms' answers."
+    "SHARE_LOCKED": "Turning this on needs a server that takes options from other forms' answers.",
+    "SHARE_NO_LONGER": "This question can no longer share its answers (only short text, dropdown and multiple choice questions on a page can), but the setting is still on and respondents are still told about it. Turn it off."
   },
   "LISTS": {
     "TITLE": "Lists",
@@ -1413,7 +1414,9 @@
     "SAVE": "Save",
     "SAVED": "List saved.",
     "SAVE_FAILED": "Could not save the list.",
-    "CHANGED_ELSEWHERE": "Someone else changed this list while you were editing. Go back and open it again.",
+    "CHANGED_ELSEWHERE": "Someone else changed this list while you were editing. Reload to see their version; your unsaved changes will be lost.",
+    "IMPORT_TOO_LARGE": "This file is larger than 1 MB. Split it into smaller files or remove items you do not need.",
+    "RELOAD": "Reload",
     "IMPORTED_one": "Imported {{count}} item.",
     "IMPORTED_other": "Imported {{count}} items.",
     "IMPORT_FAILED": "Could not import the file.",

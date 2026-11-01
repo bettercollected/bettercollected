@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { choiceAnswerText } from '@app/utils/conditional-logic';
 import { getAnswerForField } from '@app/utils/form-builder-block-utils';
-import { answerLabels, answerSourceQuestions, chosenOptionIds, formSharesAnswers, parentCandidates, parentKey, parentLabelsOf, parentOptionIds, shareableQuestions, sourcedAnswerTexts } from '@app/utils/option-sources';
+import { answerLabels, answerSourceQuestions, chosenOptionIds, formSharesAnswers, parentCandidates, parentKey, parentLabelsOf, parentOptionIds, shareNoticeTokenToSend, shareableQuestions, sourcedAnswerTexts } from '@app/utils/option-sources';
 import { choiceRows } from '@app/utils/response-page';
 import { serverAnswerErrors } from '@app/utils/server-answer-errors';
 
@@ -105,5 +105,21 @@ describe('the server refusing an option', () => {
     it('is a problem on the question, in the words of the options rule', () => {
         const error = { status: 422, data: { code: 'invalid_answers', errors: [{ fieldId: 'city', rule: 'option_unavailable' }] } };
         expect(serverAnswerErrors(error)).toEqual([{ fieldId: 'city', rule: 'option_unavailable' }]);
+    });
+});
+
+describe('the share notice token a submission carries', () => {
+    const page = (shares: boolean | undefined): StandardFormFieldDto[] => [{ id: 's', index: 0, type: FieldTypes.SLIDE, properties: { fields: [{ id: 'name', index: 0, type: FieldTypes.SHORT_TEXT, title: 'Name', properties: { shareAsChoices: shares } }] } } as StandardFormFieldDto];
+
+    it('goes back only from a page that shows the notice', () => {
+        expect(shareNoticeTokenToSend({ fields: page(true), shareNoticeToken: 'tok' })).toBe('tok');
+        expect(shareNoticeTokenToSend({ fields: page(undefined), shareNoticeToken: 'tok' })).toBeNull();
+        expect(shareNoticeTokenToSend({ fields: page(false), shareNoticeToken: 'tok' })).toBeNull();
+    });
+
+    it('is never made up: no token, an empty one or no form sends nothing', () => {
+        expect(shareNoticeTokenToSend({ fields: page(true) })).toBeNull();
+        expect(shareNoticeTokenToSend({ fields: page(true), shareNoticeToken: '' })).toBeNull();
+        expect(shareNoticeTokenToSend(undefined)).toBeNull();
     });
 });

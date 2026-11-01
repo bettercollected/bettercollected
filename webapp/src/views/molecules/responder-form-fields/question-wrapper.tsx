@@ -291,7 +291,13 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                     </p>
                 )}
                 {sharesAnswer && (
-                    <p id={`q-share-${field.id}`} data-testid={`share-notice-${field.id}`} className="mt-2 max-w-[62ch] border-l-2 pl-3 text-[14px] leading-relaxed text-black-700" style={{ borderColor: themed('--form-highlight-rule', theme?.tertiary ?? '#818CA0') }} lang={language}>
+                    <p
+                        id={`q-share-${field.id}`}
+                        data-testid={`share-notice-${field.id}`}
+                        className={cn('mt-2 max-w-[62ch] text-[14px]', leaflet ? 'border-l-[3px] pl-2.5 leading-normal' : 'border-l-2 pl-3 leading-relaxed text-black-700')}
+                        style={leaflet ? { borderColor: themed('--form-highlight-rule', theme?.secondary), color: softInk(theme) } : { borderColor: themed('--form-highlight-rule', theme?.tertiary ?? '#818CA0') }}
+                        lang={language}
+                    >
                         {t('QUESTION.SHARE_AS_CHOICES')}
                     </p>
                 )}

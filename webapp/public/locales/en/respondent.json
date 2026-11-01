@@ -42,7 +42,7 @@
         "SIGNATURE": "Signature",
         "SIGNATURE_DETAIL": "Your signature is stored with your response, like your other answers.",
         "SHARE_AS_CHOICES": "Answers shown as choices",
-        "SHARE_AS_CHOICES_DETAIL": "Some answers to this form may be shown, without your name, as choices in other forms of this organisation. The question says which. Answers from people who asked for deletion are left out."
+        "SHARE_AS_CHOICES_DETAIL": "Some answers to this form may be shown, without your name, as choices in other forms of this organisation. The question says which. Answers from people who asked for deletion are left out. A choice someone else made from your answer may stay in that person's response until your own answer is erased."
     },
     "RETENTION": {
         "DAYS_one": "Kept for {{count}} day after you submit.",
@@ -52,7 +52,7 @@
     },
     "QUESTION": {
         "WHY_WE_ASK": "Why we ask this:",
-        "SHARE_AS_CHOICES": "Your answer may be shown as a choice in other forms of this organisation."
+        "SHARE_AS_CHOICES": "Your answer may be shown as a choice in other forms of this organisation. A choice someone makes from it stays in their response until your answer is erased."
     },
     "NAV": {
         "BACK": "Back",
@@ -502,6 +502,7 @@
         "COUNT_other": "{{count}} choices",
         "NO_MATCH": "No choices match your search.",
         "NONE": "No choices are available right now.",
+        "UNAVAILABLE": "These choices are not available right now. Try again later or contact the organisation.",
         "LOADING": "Loading the choices…",
         "FAILED": "The choices could not be loaded. Try again.",
         "MORE": "Show more",

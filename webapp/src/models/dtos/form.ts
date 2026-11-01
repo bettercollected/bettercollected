@@ -322,6 +322,14 @@ export interface StandardFormDto {
      * submit. Only responses carrying a valid one are ever analysed.
      */
     aiNoticeToken?: string | null;
+    /**
+     * Signed proof of which questions' "may be shown as a choice" notice this
+     * page shows: the backend hands it out with the published form while a
+     * question shares its answers, and the page sends it back on submit
+     * (`share_notice_token`). An answer is only ever offered to other forms
+     * when it was submitted with a token naming its question.
+     */
+    shareNoticeToken?: string | null;
 }
 
 export type UnavailableReason = 'closed' | 'not_yet_open' | 'full';
