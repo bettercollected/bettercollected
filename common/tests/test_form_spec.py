@@ -333,6 +333,8 @@ def test_every_stored_property_is_covered_or_excluded_on_purpose():
         "unanswered_as_zero",
         "rules",
         "option_filter",
+        "option_source",
+        "share_as_choices",
     }
     assert (
         set(StandardFieldProperty.model_fields)
@@ -594,3 +596,49 @@ def test_default_ending_is_the_marked_one_else_the_first():
     assert ending_by_id(endings, "b") is endings[1]
     assert ending_by_id(endings, "gone") is None
     assert ending_by_id(endings, None) is None
+
+
+def test_an_option_source_round_trips_and_is_checked():
+    list_source = {"kind": "list", "listId": "li1", "parentFieldId": "country"}
+    answers_source = {"kind": "form_answers", "formId": "f1", "questionId": "q1"}
+    document = {
+        "specVersion": "1",
+        "title": "Sources",
+        "pages": [
+            {
+                "id": "p1",
+                "fields": [
+                    {"id": "city", "type": "dropdown", "optionSource": list_source},
+                    {"id": "name", "type": "short_text", "shareAsChoices": True},
+                    {
+                        "id": "who",
+                        "type": "multiple_choice",
+                        "optionSource": answers_source,
+                    },
+                ],
+            }
+        ],
+    }
+    assert _problems(document) == []
+    stored = spec_to_form(FormSpec.model_validate(document))
+    back = form_to_spec_dict(stored)["pages"][0]["fields"]
+    assert back[0]["optionSource"] == list_source
+    assert back[1]["shareAsChoices"] is True
+    assert back[2]["optionSource"] == answers_source
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        {"kind": "list"},
+        {"kind": "list", "listId": "a", "formId": "b"},
+        {"kind": "form_answers", "formId": "b"},
+        {"kind": "form_answers", "formId": "b", "questionId": "c", "listId": "a"},
+        {"kind": "url", "listId": "a"},
+    ],
+)
+def test_a_malformed_option_source_is_refused(source):
+    errors = _problems(
+        _spec_with({"id": "d", "type": "dropdown", "optionSource": source})
+    )
+    assert errors and any("optionSource" in error["path"] or "pages" in error["path"] for error in errors)

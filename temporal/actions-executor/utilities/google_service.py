@@ -3,12 +3,16 @@ import logging
 from http import HTTPStatus
 from datetime import datetime, timedelta
 
+from dataclasses import dataclass
+from typing import Callable, Optional
+from urllib.parse import quote
+
 import httpx
 import google.oauth2.credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from configs.crypto import crypto
+from configs.cipher import crypto
 from models.date import GOOGLE_DATETIME_FORMAT
 from models.exception_enum import ExceptionType
 from utilities.exceptions import HTTPException
@@ -64,7 +68,56 @@ def dict_to_credential(credentials_dict, action_id=None):
     return credentials
 
 
-def fetch_oauth_token(oauth_credential, action_id, form_id):
+@dataclass(frozen=True)
+class RunScope:
+    """Whose run this is, as the backend's run-scoped routes name it."""
+
+    workspace_id: str
+    form_id: str
+    action_id: str
+    response_id: str
+    run_token: str
+
+
+def writeback_for(scope: RunScope) -> Callable[[dict], None]:
+    """What hands a refreshed credential back to the backend when this process
+    holds no key: the plain JSON over the run's own route (the run token, and
+    the run's job being ``doing``), which seals it with the backend's key."""
+
+    def write(credentials: dict) -> None:
+        segments = [
+            quote(str(part), safe="")
+            for part in (
+                scope.workspace_id,
+                scope.form_id,
+                scope.action_id,
+                scope.response_id,
+            )
+        ]
+        res = httpx.patch(
+            url=f"{settings.server_url}/temporal/workspaces/{segments[0]}"
+            f"/forms/{segments[1]}/actions/{segments[2]}"
+            f"/runs/{segments[3]}/secrets",
+            headers={"api-key": settings.api_key, "run-token": scope.run_token},
+            json={
+                "name": "Credentials",
+                "value": json.dumps(credentials),
+                "type": "secrets",
+            },
+            timeout=20,
+        )
+        if res.status_code != 200:
+            logger.warning(
+                "the refreshed credential was not stored: the backend answered %s "
+                "(action %s)",
+                res.status_code,
+                scope.action_id,
+            )
+
+    return write
+
+
+def fetch_oauth_token(oauth_credential, action_id, form_id, writeback=None):
     try:
         credentials = dict_to_credential(oauth_credential, action_id)
         expiry_datetime = credentials.expiry
@@ -74,7 +127,10 @@ def fetch_oauth_token(oauth_credential, action_id, form_id):
                 oauth_credential=oauth_credential, action_id=action_id
             )
             # todo call backend to update creds
-            update_credentials_in_form(updated_creds, action_id, form_id)
+            if writeback is not None:
+                writeback(updated_creds)
+            else:
+                update_credentials_in_form(updated_creds, action_id, form_id)
             return updated_creds
         return oauth_credential
     except HttpError:
