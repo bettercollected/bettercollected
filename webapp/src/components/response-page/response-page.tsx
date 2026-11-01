@@ -28,6 +28,7 @@ import { responseOriginListUrl, responsePageSections, responsePageUrl } from '@a
 import { ResponseOrigin } from '@app/utils/response-urls';
 
 import ReadOnlyForm, { CONTENTS_HEADING_ID, CONTENTS_ID, followInPageLink } from './read-only-form';
+import ResponsePdfButton from './response-pdf-button';
 
 /** The message keys for a failed load. A 403 and a 404 are answers, not faults: no Retry for them. */
 function failureOf(error: any): { kind: 'forbidden' | 'missing' | 'error'; title: string; detail: string } {
@@ -48,7 +49,7 @@ let focusDetailsOf: string | null = null;
 
 /**
  * One response on its own page, for staff: a toolbar (back to the list,
- * previous and next, print, delete), who answered and when, then the response
+ * previous and next, PDF, print, delete), who answered and when, then the response
  * drawn like the form (ReadOnlyForm), then the staff-only parts (the team's
  * updates to the respondent and the internal fields).
  *
@@ -147,6 +148,7 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
                                 <span className="sr-only sm:not-sr-only">{t('RESPONSE_PAGE.CONTENTS')}</span>
                             </a>
                         )}
+                        {loaded && can(WorkspacePermission.RESPONSE_READ) && <ResponsePdfButton workspaceId={workspaceId} responseId={response.responseId} formTitle={formTitle} />}
                         {loaded && (
                             <Button variant="ghost" className="min-w-9 px-2!" title={t('RESPONSE_PAGE.PRINT')} onClick={() => window.print()}>
                                 <Printer className="h-4 w-4 shrink-0 sm:mr-1.5" aria-hidden="true" />

@@ -122,6 +122,26 @@ describe('the response page', () => {
         expect(document.title).toBe('Response · Summer meeting registration');
     });
 
+    it('offers the PDF of the response to people who may read it, next to Print', () => {
+        renderPage();
+        const actions = screen.getByTestId('response-actions');
+        const names = within(actions).getAllByRole('button').map((b) => b.textContent);
+        expect(within(actions).getByRole('button', { name: 'Download PDF' })).toBeInTheDocument();
+        expect(names.indexOf('Download PDF')).toBeLessThan(names.indexOf('Print'));
+    });
+
+    it('does not offer the PDF to someone who cannot read responses', () => {
+        access.permissions = [];
+        renderPage();
+        expect(screen.queryByRole('button', { name: 'Download PDF' })).toBeNull();
+    });
+
+    it('does not offer the PDF while the response is loading or failed', () => {
+        server.result = { currentData: undefined, isError: false };
+        renderPage();
+        expect(screen.queryByRole('button', { name: 'Download PDF' })).toBeNull();
+    });
+
     it('goes back to the list with a real link', () => {
         renderPage();
         const back = screen.getByRole('link', { name: /Responses/ });

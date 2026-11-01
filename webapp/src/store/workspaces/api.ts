@@ -14,6 +14,7 @@ import { DeclineReason, DeletionRequestOutcome } from '@app/models/enums/deletio
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 import { SubmissionPath } from '@app/utils/conditional-logic';
+import { fileNameFromDisposition } from '@app/utils/content-disposition';
 import { OpenFormulierenExport, openFormulierenExportOf } from '@app/utils/open-formulieren-export';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
@@ -25,7 +26,7 @@ export interface ResponseExportDto {
     formId: string;
     kind: 'stream' | 'job';
     status: ResponseExportStatus;
-    format: 'csv' | 'zip';
+    format: 'csv' | 'zip' | 'xlsx' | 'json';
     createdAt?: string;
     rows?: number | null;
     fileName?: string | null;
@@ -50,6 +51,8 @@ export interface StartResponseExportRequest {
     respondent?: 'anonymous' | 'known';
     formVersion?: number[];
     search?: string;
+    /** the file: csv when missing (a ZIP of CSVs when a repeating group is a table of its own) */
+    format?: 'csv' | 'xlsx' | 'json';
 }
 
 /** What starting an export answers: the file itself, or the job to follow. */
@@ -78,6 +81,17 @@ async function responseExportHandler(response: Response): Promise<any> {
 /** Fetching a ready export: the file, or the refusal's JSON. */
 async function responseExportFileHandler(response: Response): Promise<any> {
     return response.ok ? response.blob() : refusalOf(response);
+}
+
+/** The PDF of one response: its bytes and the name the server offered, or the refusal's JSON. */
+export interface ResponsePdf {
+    blob: Blob;
+    fileName?: string;
+}
+
+async function responsePdfHandler(response: Response): Promise<any> {
+    if (!response.ok) return refusalOf(response);
+    return { blob: await response.blob(), fileName: fileNameFromDisposition(response.headers.get('Content-Disposition')) } satisfies ResponsePdf;
 }
 
 const WORKSPACE_TAGS = 'WORKSPACE_TAG';
@@ -296,6 +310,16 @@ export const workspacesApi = createApi({
         // The file of a ready export, through the link its status gave; it can be fetched again until it is deleted.
         downloadResponseExport: builder.mutation<Blob, { downloadUrl: string }>({
             query: ({ downloadUrl }) => ({ url: downloadUrl, method: 'GET', responseHandler: responseExportFileHandler })
+        }),
+        // The PDF of one response (response.read, docs/response-export.md): drawn when asked,
+        // never stored; the language and the time zone are the viewer's.
+        downloadResponsePdf: builder.mutation<ResponsePdf, { workspaceId: string; responseId: string; lang?: string; tz?: string }>({
+            query: ({ workspaceId, responseId, lang, tz }) => ({
+                url: `/workspaces/${pathSegment(workspaceId)}/submissions/${pathSegment(responseId)}/pdf`,
+                method: 'GET',
+                params: { ...(lang ? { lang } : {}), ...(tz ? { tz } : {}) },
+                responseHandler: responsePdfHandler
+            })
         }),
         getWorkspaceSubmissions: builder.query<Page<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
             query: (query) => ({
@@ -892,6 +916,7 @@ export const {
     useGetResponseExportQuery,
     useDownloadResponseExportMutation,
     useDiscardResponseExportMutation,
+    useDownloadResponsePdfMutation,
     useVerifyWorkspaceDomainQuery,
     useRecheckWorkspaceDomainMutation,
     useUpdateInternalAnswersMutation,
