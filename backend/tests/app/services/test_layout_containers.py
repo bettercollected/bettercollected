@@ -10,7 +10,6 @@ import json
 import pytest
 from common.form_spec import form_to_spec_dict, spec_to_form
 from common.layout_containers import (
-    container_problems,
     form_problems,
     join_by_position,
     members_of,
@@ -31,7 +30,6 @@ from backend.app.services.layout_containers import (
     new_or_changed_containers,
 )
 from backend.app.services.repeating_groups import (
-    evaluate_conditions,
     is_hidden_by_logic,
     logic_sources,
 )
@@ -609,7 +607,7 @@ def test_duplicate_page_copies_containers_with_new_ids():
     )
     after, results = apply(form, {"op": "duplicate_page", "pageId": "p1"})
     assert all(r.ok for r in results)
-    original, copy = after.fields[0], after.fields[1]
+    copy = after.fields[1]
     assert copy.properties.containers[0].id == "c2"
     new_ids = [f.id for f in copy.properties.fields]
     assert members_of(copy.properties.containers[0]) == new_ids

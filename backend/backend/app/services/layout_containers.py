@@ -32,7 +32,6 @@ from common.layout_containers import (
     all_containers,
     container_tabs,
     form_problems,
-    members_of,
     repair_form,
 )
 
@@ -182,15 +181,3 @@ def layout_problem_texts(form: Any) -> List[str]:
     """The problems of the form's containers as plain sentences (the spec
     check and the operations use them)."""
     return [message for _, _, message in form_problems(form)]
-
-
-def has_containers(form: Any) -> bool:
-    return any(True for _ in all_containers(form))
-
-
-def member_ids(form: Any) -> set:
-    """Ids of every question that is in a container."""
-    found: set = set()
-    for _, container in all_containers(form):
-        found.update(members_of(container))
-    return found
