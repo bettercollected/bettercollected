@@ -30,6 +30,7 @@ import { useNavbarState } from '@app/store/jotai/navbar';
 import { fieldHasLogic } from '@app/utils/conditional-logic';
 import { locateField } from '@app/utils/form-outline';
 import { leafletMarginWidth, leafletSection, pageSectionTitle, questionNumbers } from '@app/utils/leaflet-sections';
+import { canvasBlocks } from '@app/utils/layout-containers';
 import { ownTitleText } from '@app/utils/publish-checks';
 import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
 import CanvasInsertMenu from '@app/views/molecules/form-builder/canvas-insert-menu';
@@ -42,6 +43,7 @@ import { actionInk, leafletColours, styleTokens } from '@app/views/molecules/the
 import { RichTextEditor } from '../../molecules/rich-text-editor';
 import { FORM_COLUMN, clampSpan, columnPlacementClass, fieldSpacingClass } from '../layout/form-column';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
+import LayoutContainerFrame from './layout-container-frame';
 import FieldDescription, { FieldDescriptionHints } from './fields/field-description';
 import renderFieldWrapper from './fields/render-field';
 
@@ -421,6 +423,31 @@ const SlideBuilder = ({ pageId, slide: given, isScaledDown = false, disabled = f
     const sectionNumber = (slide?.index ?? 0) + 1;
     const marginVar = leaflet ? ({ ['--leaflet-margin' as string]: `${leafletMarginWidth(numbers, sectionNumber)}px` } as React.CSSProperties) : undefined;
     const slideIn = !!navbarState.insertClicked && activeSlideComponent?.id === slide.id;
+    // One question on the canvas (alone or inside a layout container's frame).
+    const renderField = (fieldId: string) => {
+        const index = fieldIds.indexOf(fieldId);
+        return openingId && fieldId === openingId ? null : (
+            <CanvasField
+                key={fieldId}
+                fieldId={fieldId}
+                field={givenById.get(fieldId)}
+                slide={slide}
+                index={index}
+                isLast={index === fieldIds.length - 1}
+                disabled={disabled}
+                isScaledDown={isScaledDown}
+                editable={editable}
+                active={activeFieldComponent?.id === fieldId}
+                slideIn={slideIn}
+                number={numbers[fieldId]}
+                plainNumber={plainNumbers[fieldId]}
+                mark={proposalMarks[fieldId] as keyof typeof PROPOSAL_MARK | undefined}
+                numberInk={numberInk}
+                primary={theme?.primary}
+                plainLanguage={plainLanguage}
+            />
+        );
+    };
 
     return (
         <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined} topAligned={leaflet} logo={logo}>
@@ -467,27 +494,14 @@ const SlideBuilder = ({ pageId, slide: given, isScaledDown = false, disabled = f
                 >
                     <AnimatePresence>
                         {fieldIds.length ? (
-                            fieldIds.map((fieldId, index) =>
-                                openingId && fieldId === openingId ? null : (
-                                    <CanvasField
-                                        key={fieldId}
-                                        fieldId={fieldId}
-                                        field={givenById.get(fieldId)}
-                                        slide={slide}
-                                        index={index}
-                                        isLast={index === fieldIds.length - 1}
-                                        disabled={disabled}
-                                        isScaledDown={isScaledDown}
-                                        editable={editable}
-                                        active={activeFieldComponent?.id === fieldId}
-                                        slideIn={slideIn}
-                                        number={numbers[fieldId]}
-                                        plainNumber={plainNumbers[fieldId]}
-                                        mark={proposalMarks[fieldId] as keyof typeof PROPOSAL_MARK | undefined}
-                                        numberInk={numberInk}
-                                        primary={theme?.primary}
-                                        plainLanguage={plainLanguage}
-                                    />
+                            canvasBlocks(fieldIds, slide.properties?.containers).map((block) =>
+                                block.kind === 'field' ? (
+                                    renderField(block.id)
+                                ) : (
+                                    // a layout container: a frame around its questions, the page's full width
+                                    <div key={block.container.id} className="min-w-0 @min-[448px]/page:col-span-12">
+                                        <LayoutContainerFrame page={slide} container={block.container} members={block.ids} editable={editable} renderMembers={(ids) => ids.map(renderField)} />
+                                    </div>
                                 )
                             )
                         ) : !disabled && !isScaledDown ? (

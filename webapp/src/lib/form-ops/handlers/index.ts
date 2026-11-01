@@ -1,4 +1,5 @@
 import type { FormOp, FormOpName } from '../types';
+import { setPageContainers } from './containers';
 import type { Handler } from './context';
 import { addChoice, insertField, insertPage, moveChoice, removeChoice, replaceField, setChoice, setHiddenFields, updateLogo, updatePage, updateWelcomePage } from './editor';
 import { addEnding, removeEnding, setEndings, updateEnding } from './endings';
@@ -24,6 +25,7 @@ export const HANDLERS: { [K in FormOpName]: Handler<Extract<FormOp, { op: K }>> 
     set_option_filter: setOptionFilter,
     set_field_rules: setFieldRules,
     set_page_jumps: setPageJumps,
+    set_page_containers: setPageContainers,
     duplicate_page: duplicatePage,
     update_theme: updateTheme,
     set_theme_preset: setThemePreset,

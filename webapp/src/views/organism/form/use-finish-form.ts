@@ -18,9 +18,9 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { aiNoticeTokenToSend } from '@app/utils/ai-notice';
 import { localToday } from '@app/utils/calculated-fields';
 import { getFlowSessionId } from '@app/utils/flow-session';
-import { normalizeGroupAnswersForSubmit, parseScopedFieldId } from '@app/utils/repeating-groups';
+import { normalizeGroupAnswersForSubmit } from '@app/utils/repeating-groups';
 import { REVIEW_SLIDE, pathPages } from '@app/utils/review-page';
-import { focusQuestionInGroup, scrollToDivById } from '@app/utils/scroll-utils';
+import useFocusProblem from './focus-problem';
 import { firstPageWithError, formRefusal, historyBackTo, serverAnswerErrors, serverInvalidations } from '@app/utils/server-answer-errors';
 
 /** The message for a submission the server refused because the form takes no responses. */
@@ -68,6 +68,7 @@ export function useFinishForm(isPreviewMode: boolean) {
     const { currentSlide, setCurrentSlideToThankyouPage, setResponderState, responderState } = useResponderState();
     const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
     const { hiddenValues } = useHiddenFieldValues();
+    const focusProblem = useFocusProblem();
     const visited = useVisitedSlides();
     const workspace = useAppSelector(selectWorkspace);
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
@@ -156,10 +157,7 @@ export function useFinishForm(isPreviewMode: boolean) {
         const firstKey = Object.keys(invalid)[0];
         // after the page change has rendered; as onNext does
         if (firstKey)
-            setTimeout(() => {
-                if (parseScopedFieldId(firstKey)) focusQuestionInGroup(firstKey);
-                else scrollToDivById(firstKey, undefined, { focusControl: true });
-            }, 600);
+            setTimeout(() => focusProblem(slides[page >= 0 ? page : currentSlide], firstKey), 600);
         return true;
     };
 

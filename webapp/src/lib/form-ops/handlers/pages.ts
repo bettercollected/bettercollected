@@ -1,5 +1,6 @@
 /** Page ops: add, remove, move, duplicate, jumps, section titles, numbering. */
 import { FieldTypes } from '@app/models/dtos/form';
+import { CONTAINER_ID_PREFIX, TAB_ID_PREFIX, freshId, usedIds } from '@app/utils/layout-containers';
 
 import { JUMP_TARGET_SUBMIT, MAX_NEW_PAGE_FIELDS, OpError, SECTION_TITLE_MAX_LENGTH, childrenOf, clone, collapseWhitespace, findPage, isRepeatingGroup, locateField, pagesOf, pyLen, subtreeIds, titleText } from '../model';
 import type { AddPageOp, DuplicatePageOp, FormField, MovePageOp, RemovePageOp, SetPageJumpsOp, SetQuestionNumberingOp, SetSectionTitleOp } from '../types';
@@ -95,6 +96,21 @@ export const duplicatePage: Handler<DuplicatePageOp> = (ctx, op) => {
         for (const choice of field.properties?.choices ?? []) delete (choice as any).logic;
         const repeat = field.properties?.repeat;
         if (repeat?.itemTitle) for (const [oldId, newId] of idMap) repeat.itemTitle = repeat.itemTitle.split(oldId).join(newId);
+    }
+    // Layout containers follow the copy: new container and tab ids, members and rule conditions on the copied questions.
+    if (page.properties?.containers?.length) {
+        const taken = usedIds(pagesOf(ctx.state));
+        for (const container of page.properties.containers) {
+            container.id = freshId(CONTAINER_ID_PREFIX, taken);
+            for (const tab of container.tabs ?? []) tab.id = freshId(TAB_ID_PREFIX, taken);
+            const remap = (ids?: string[]) => (ids ? ids.map((id) => idMap.get(id) ?? id) : ids);
+            if (container.fields) container.fields = remap(container.fields);
+            for (const tab of container.tabs ?? []) tab.fields = remap(tab.fields);
+            for (const condition of container.logic?.conditions ?? []) {
+                if (idMap.has(condition.fieldId)) condition.fieldId = idMap.get(condition.fieldId)!;
+                if (condition.childFieldId && idMap.has(condition.childFieldId)) condition.childFieldId = idMap.get(condition.childFieldId)!;
+            }
+        }
     }
     // Copied jumps would re-branch from the copy in surprising ways: dropped.
     if (page.properties) {

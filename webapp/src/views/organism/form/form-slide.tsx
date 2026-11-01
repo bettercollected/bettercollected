@@ -27,16 +27,17 @@ import { isShownToRespondents } from '@app/utils/calculated-fields';
 import { getHiddenFieldIds, logicSourcesById, resolveJump } from '@app/utils/conditional-logic';
 import { ResolvedFormLogo } from '@app/utils/form-logo';
 import { leafletMarginWidth, leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
+import { blocksOf } from '@app/utils/layout-containers';
 import { pageInvalidations } from '@app/utils/page-validation';
 import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
-import { isRepeatingGroup, parseScopedFieldId } from '@app/utils/repeating-groups';
+import { isRepeatingGroup } from '@app/utils/repeating-groups';
 import { isReviewEnabled, walkReviewPath } from '@app/utils/review-page';
-import { focusQuestionInGroup, scrollToDivById } from '@app/utils/scroll-utils';
 import { actionText } from '@app/utils/theme-contrast';
 import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import BackButton from '@app/views/molecules/form-builder/back-button';
 import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/views/molecules/form/leaflet-section';
+import useFocusProblem from './focus-problem';
 import AddressField from '@app/views/molecules/responder-form-fields/address-field';
 import CalculatedField from '@app/views/molecules/responder-form-fields/calculated-field';
 import CurrencyField from '@app/views/molecules/responder-form-fields/currency-field';
@@ -49,6 +50,7 @@ import TimeField from '@app/views/molecules/responder-form-fields/time-field';
 import DropDownField from '@app/views/molecules/responder-form-fields/drop-down-field';
 import FieldRuleAnnouncer from '@app/views/molecules/responder-form-fields/field-rule-announcer';
 import FileUploadField from '@app/views/molecules/responder-form-fields/file-upload-field';
+import LayoutContainerBlock from '@app/views/molecules/responder-form-fields/layout-container';
 import InputField from '@app/views/molecules/responder-form-fields/input-field';
 import LinearRatingField from '@app/views/molecules/responder-form-fields/linear-rating';
 import MultipleChoiceField from '@app/views/molecules/responder-form-fields/multiple-choice-field';
@@ -179,6 +181,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     // Sending the form (here on the last page, or from the review page), and what shows when it fails.
     const { finishForm, isLoading, submitError, setSubmitError, effectiveAnonymize } = useFinishForm(isPreviewMode);
     const emitFlow = useEmitFlow(isPreviewMode);
+    const focusProblem = useFocusProblem();
     // With a review page the form is not sent from here: the last page goes on to the review.
     const reviewOn = isReviewEnabled(standardForm);
     const finishOrReview = (endingId?: string) => (reviewOn ? goToReview(endingId) : finishForm(endingId));
@@ -214,6 +217,17 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         : formSlide?.properties?.showQuestionNumbers
           ? { numbers: plainQuestionNumbers(pageFields, index + 1, hasSeveralPages(standardForm?.fields)), hang: false, plain: true }
           : null;
+    // The page as blocks: plain questions, and layout containers (panels,
+    // tabs, field sets) with their questions (utils/layout-containers.ts).
+    const blocks = blocksOf(formSlide, pageFields);
+    // 12-grid width on desktop: adjacent spans that fit pack into one row
+    // (two 6s sit side by side); mobile stays a flex column, where the span
+    // style is inert.
+    const cell = (field: StandardFormFieldDto, isLast: boolean) => (
+        <div key={field.id} className={cn('min-w-0', fieldSpacingClass(field, isLast))} style={{ gridColumn: `span ${clampSpan(field)} / span ${clampSpan(field)}` }}>
+            <FormFieldComponent field={field} slideIndex={formSlide!.index} />
+        </div>
+    );
     const theme = standardForm?.theme;
     const marginVar = numbering ? ({ ['--leaflet-margin' as string]: `${leafletMarginWidth(numbering.numbers, index + 1)}px` } as React.CSSProperties) : undefined;
     // The header's words in the action colour where it reads as text on the page.
@@ -238,9 +252,9 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         // find their scroll position.
         const firstKey = Object.keys(invalidations)[0];
         // Focus goes to the first question with a problem, so a keyboard or
-        // screen reader user lands on it and hears its error.
-        if (parseScopedFieldId(firstKey)) focusQuestionInGroup(firstKey);
-        else scrollToDivById(firstKey, undefined, { focusControl: true });
+        // screen reader user lands on it and hears its error. A panel or tab
+        // that hides it opens first (and says so).
+        focusProblem(formSlide, firstKey);
         return false;
     };
 
@@ -374,14 +388,16 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                 <div className={cn(FORM_COLUMN, columnPlacementClass(formSlide?.properties?.layout), 'relative flex flex-col lg:grid lg:grid-cols-12 lg:gap-x-6', leaflet ? 'gap-10 pt-7 lg:gap-y-10' : 'gap-12 pt-12 lg:gap-y-12')} style={marginVar}>
                     <QuestionNumberContext.Provider value={numbering}>
                         <PreviewModeContext.Provider value={isPreviewMode}>
-                        {pageFields.map((field: StandardFormFieldDto, position: number) => (
-                            // 12-grid width on desktop: adjacent spans that fit pack
-                            // into one row (two 6s sit side by side); mobile stays a
-                            // flex column, where the span style is inert.
-                            <div key={field.id} className={cn('min-w-0', fieldSpacingClass(field, position === pageFields.length - 1))} style={{ gridColumn: `span ${clampSpan(field)} / span ${clampSpan(field)}` }}>
-                                <FormFieldComponent field={field} slideIndex={formSlide!.index} />
-                            </div>
-                        ))}
+                        {blocks.map((block, blockPosition) =>
+                            block.kind === 'field' ? (
+                                cell(block.field, blockPosition === blocks.length - 1)
+                            ) : (
+                                // A layout container takes the page's full width; its questions lay out on a grid of their own.
+                                <div key={block.container.id} className="min-w-0" style={{ gridColumn: 'span 12 / span 12' }}>
+                                    <LayoutContainerBlock page={formSlide} block={block} renderMembers={(members) => members.map((member, position) => cell(member, position === members.length - 1))} />
+                                </div>
+                            )
+                        )}
                         </PreviewModeContext.Provider>
                     </QuestionNumberContext.Provider>
                     {/* The button belongs to the last answer: 32px above it,

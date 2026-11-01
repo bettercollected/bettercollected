@@ -115,6 +115,11 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                     {data.questionCount} question{data.questionCount === 1 ? '' : 's'}
                 </span>
                 {data.showHideCount > 0 && <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium">{data.showHideCount} show/hide</span>}
+                {data.containersCount > 0 && (
+                    <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium" data-testid="flow-containers-badge">
+                        {t('LAYOUT.FLOW_BADGE', { count: data.containersCount })}
+                    </span>
+                )}
                 {data.rulesCount > 0 && (
                     <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium" data-testid="flow-rules-badge">
                         {t('FIELD_RULES.FLOW_BADGE', { count: data.rulesCount })}
@@ -383,6 +388,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 questions: (slide.properties?.fields ?? []).slice(1, 3).map((f) => fieldText(f)),
                 moreCount: Math.max(0, (slide.properties?.fields?.length ?? 0) - 3),
                 showHideCount: slide.properties?.fields?.filter((f) => fieldHasLogic(f)).length ?? 0,
+                containersCount: slide.properties?.containers?.length ?? 0,
                 rulesCount: (slide.properties?.fields ?? []).reduce((count, f) => count + ((f.properties?.rules?.length ?? 0) > 0 ? 1 : 0) + (f.properties?.fields ?? []).filter((child) => (child.properties?.rules?.length ?? 0) > 0).length, 0),
                 brokenCount: ((slide.properties?.jumps as PageJump[] | undefined) ?? []).filter((j) => j?.conditions?.length && !jumpTargetNode(j)).length,
                 visits: traffic ? traffic.nodeVisits.get(slide.id) ?? 0 : undefined,
@@ -475,7 +481,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         () =>
             JSON.stringify(
                 [
-                    slides.map((s, i) => [s.id, pageLabel(s, i), s.properties?.fields?.length, s.properties?.position, s.properties?.jumps, s.properties?.fields?.map((f) => !!f.properties?.logic), s.properties?.fields?.map((f) => [f.properties?.rules?.length ?? 0, f.properties?.fields?.map((child) => child.properties?.rules?.length ?? 0)])]),
+                    slides.map((s, i) => [s.id, pageLabel(s, i), s.properties?.fields?.length, s.properties?.position, s.properties?.jumps, s.properties?.containers?.length, s.properties?.fields?.map((f) => !!f.properties?.logic), s.properties?.fields?.map((f) => [f.properties?.rules?.length ?? 0, f.properties?.fields?.map((child) => child.properties?.rules?.length ?? 0)])]),
                     endings.map((e) => [e.id, e.name, e.isDefault])
                 ]
             ),

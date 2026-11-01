@@ -64,6 +64,14 @@
         "SUBMIT_NOT_OPEN": "Dit formulier is nog niet open, dus je antwoorden zijn niet verstuurd.",
         "SUBMIT_FULL": "Dit formulier had al alle antwoorden binnen die het aanneemt voordat de jouwe werden verstuurd. Je antwoorden zijn niet verstuurd."
     },
+    "LAYOUT": {
+        "TABS": "Onderdelen",
+        "NEED_ATTENTION_one": "{{count}} vraag heeft aandacht nodig",
+        "NEED_ATTENTION_other": "{{count}} vragen hebben aandacht nodig",
+        "OPENED": "\"{{title}}\" is geopend: er staat een vraag in die aandacht nodig heeft.",
+        "SHOWING_TAB": "Tabblad \"{{title}}\" wordt getoond: er staat een vraag in die aandacht nodig heeft.",
+        "PAGE_PART": "Onderdeel van de pagina"
+    },
     "REVIEW": {
         "TITLE": "Controleer je antwoorden",
         "INTRO": "Controleer je antwoorden voordat je ze verstuurt. Er is nog niets verstuurd: je antwoorden blijven in deze browser tot je op Antwoorden versturen kiest.",

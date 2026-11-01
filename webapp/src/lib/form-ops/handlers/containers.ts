@@ -1,0 +1,81 @@
+/** Layout containers: the op that sets a page's containers, and the joins other ops make by position. */
+import type { LayoutContainer, LayoutTab } from '@app/models/dtos/form';
+import { CONTAINERS_MAX, CONTAINER_ID_PREFIX, TAB_ID_PREFIX, containerProblems, freshId, usedIds } from '@app/utils/layout-containers';
+import { CONTAINER_MEMBERS_MAX, CONTAINER_TITLE_MAX, LAYOUT_ID_PATTERN, TABS_MAX } from '@app/utils/layout-containers';
+
+import { OpError, childrenOf, findPage, pagesOf } from '../model';
+import type { SetPageContainersOp } from '../types';
+import { type Handler, ensureProperties, setKey } from './context';
+import { validatedConditions } from './fields';
+
+/** pydantic's message for a payload shape the backend refuses on parsing. */
+function shapeProblem(spec: SetPageContainersOp['containers'] extends Array<infer T> | null | undefined ? T : never): string | null {
+    if (!['panel', 'fieldset', 'tabs'].includes(spec.type)) return "Input should be 'panel', 'fieldset' or 'tabs'";
+    for (const id of [spec.id, ...(spec.tabs ?? []).map((tab) => tab.id)]) if (id != null && !LAYOUT_ID_PATTERN.test(id)) return `String should match pattern '${LAYOUT_ID_PATTERN.source}'`;
+    if (spec.title != null && [...spec.title].length > CONTAINER_TITLE_MAX) return `String should have at most ${CONTAINER_TITLE_MAX} characters`;
+    if ((spec.fields?.length ?? 0) > CONTAINER_MEMBERS_MAX || (spec.tabs ?? []).some((tab) => (tab.fields?.length ?? 0) > CONTAINER_MEMBERS_MAX)) return `List should have at most ${CONTAINER_MEMBERS_MAX} items after validation`;
+    if ((spec.tabs?.length ?? 0) > TABS_MAX) return `List should have at most ${TABS_MAX} items after validation`;
+    return null;
+}
+
+const plainTitle = (value: string, what: string): string => {
+    const text = value.trim();
+    if (!text) throw new OpError('A title cannot be empty.');
+    if (/[\p{Cc}\p{Cf}]/u.test(text)) throw new OpError('A title cannot contain control characters.');
+    void what;
+    return text;
+};
+
+/** The stored container for a spec (the backend's LayoutContainer validation, message for message). */
+function buildContainer(spec: any, reserved: Set<string>, logic: LayoutContainer['logic'] | undefined): LayoutContainer {
+    const tabs: LayoutTab[] = (spec.tabs ?? []).map((tab: any) => ({ id: tab.id || freshId(TAB_ID_PREFIX, reserved), title: plainTitle(String(tab.title ?? ''), 'tab'), fields: [...(tab.fields ?? [])] }));
+    const id = spec.id || freshId(CONTAINER_ID_PREFIX, reserved);
+    if (spec.type === 'tabs') {
+        if (spec.fields != null || spec.title != null || spec.collapsed != null) throw new OpError('A tabs container has tabs only: no title, collapsed flag or fields of its own.');
+        if (!tabs.length) throw new OpError('A tabs container needs at least one tab.');
+        if (new Set(tabs.map((t) => t.id)).size !== tabs.length) throw new OpError('The tabs of a container need unique ids.');
+        return { id, type: 'tabs', ...(logic ? { logic } : {}), tabs };
+    }
+    if (tabs.length) throw new OpError('Only a tabs container has tabs.');
+    if (spec.title == null) throw new OpError(`A ${spec.type} needs a title.`);
+    const title = plainTitle(spec.title, spec.type);
+    if (spec.type === 'fieldset' && spec.collapsed != null) throw new OpError('A field set cannot be collapsed.');
+    if (!(spec.fields?.length ?? 0)) throw new OpError(`A ${spec.type} needs at least one question.`);
+    return { id, type: spec.type, title, ...(spec.collapsed != null ? { collapsed: spec.collapsed } : {}), ...(logic ? { logic } : {}), fields: [...spec.fields] };
+}
+
+export const setPageContainers: Handler<SetPageContainersOp> = (ctx, op) => {
+    const { page, pos } = findPage(ctx.state, op.pageId);
+    const properties = ensureProperties(ctx.draft.fields![pos], false);
+    if (!op.containers?.length) {
+        setKey(properties, 'containers', undefined);
+        return `Removed the layout containers on page '${op.pageId}'`;
+    }
+    if (op.containers.length > CONTAINERS_MAX) throw new OpError(`List should have at most ${CONTAINERS_MAX} items after validation, not ${op.containers.length}`);
+    for (const spec of op.containers) {
+        const problem = shapeProblem(spec);
+        if (problem) throw new OpError(problem);
+    }
+    // ids on the other pages, and the questions of the pages before this one
+    const others = pagesOf(ctx.state).filter((p) => p !== page);
+    const taken = usedIds(others);
+    const earlier = new Set<string>();
+    for (const other of pagesOf(ctx.state)) {
+        if (other === page) break;
+        for (const field of childrenOf(other)) {
+            earlier.add(field.id);
+            for (const child of childrenOf(field)) earlier.add(child.id);
+        }
+    }
+    const explicit = [...op.containers.map((spec) => spec.id), ...op.containers.flatMap((spec) => (spec.tabs ?? []).map((tab) => tab.id))].filter((id): id is string => !!id);
+    if (new Set(explicit).size !== explicit.length || explicit.some((id) => taken.has(id))) throw new OpError('Container and tab ids must be unique in the form.');
+    const reserved = new Set([...taken, ...explicit]);
+    const built: LayoutContainer[] = op.containers.map((spec) => {
+        const logic = spec.logic ? ({ action: spec.logic.action, operator: spec.logic.operator ?? 'AND', conditions: validatedConditions(ctx.state, spec.logic.conditions) } as any) : undefined;
+        return buildContainer(spec, reserved, logic);
+    });
+    const problems = containerProblems({ ...page, properties: { ...page.properties, containers: built } }, new Set(taken), earlier);
+    if (problems.length) throw new OpError(problems[0][1]);
+    properties.containers = built as any;
+    return `Set ${built.length} layout container(s) on page '${op.pageId}' (${built.map((c) => c.type).join(', ')})`;
+};
