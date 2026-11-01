@@ -133,7 +133,8 @@ async def test_a_stale_or_foreign_option_is_refused_with_a_clear_code(
             items=[
                 ItemDto(id=ids["Utrecht"], label="Utrecht"),
                 ItemDto(id=ids["Anywhere"], label="Anywhere"),
-            ]
+            ],
+            expected_revision=1,
         ),
         testUser,
     )
@@ -239,7 +240,9 @@ async def test_an_edit_rechecks_only_a_changed_choice(workspace, city_form):
     await container.option_list_service().update_list(
         workspace.id,
         created.id,
-        OptionListUpdateDto(items=[ItemDto(id=ids["Berlin"], label="Berlin")]),
+        OptionListUpdateDto(
+            items=[ItemDto(id=ids["Berlin"], label="Berlin")], expected_revision=1
+        ),
         testUser,
     )
     # the same choice sent again (with a forged label) keeps the stored label and passes
@@ -298,7 +301,9 @@ async def test_an_answer_of_another_form_is_a_valid_choice_and_its_label_is_kept
     workspace,
 ):
     registered = await publish(
-        workspace, [question("name", "short_text", "Name")], title="People"
+        workspace,
+        [question("name", "short_text", "Name", share_as_choices=True)],
+        title="People",
     )
     for name in ("Alice", "Bob"):
         await submit(workspace, registered, {"name": text_answer(name)})

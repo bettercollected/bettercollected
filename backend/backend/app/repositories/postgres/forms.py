@@ -26,7 +26,7 @@ and friends consume dicts), rebuilt from the row's canonical ``doc``.
 
 from datetime import datetime
 from http import HTTPStatus
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
@@ -745,6 +745,25 @@ class PostgresFormRepository(RecordRepository):
             stored.logo = logo
             await session.execute(self._upsert_statement(row_values(stored)))
         return stored
+
+    async def revision_of(self, form_id: str) -> Tuple[Optional[str], Optional[int]]:
+        """``(last change of the draft, latest published version)`` of a form,
+        without reading either document (the cache token of what is built from
+        the form's questions)."""
+        async with self._session() as session:
+            changed = (
+                await session.execute(
+                    select(FormRow.updated_at).where(FormRow.form_id == str(form_id))
+                )
+            ).scalar_one_or_none()
+            version = (
+                await session.execute(
+                    select(func.max(FormVersionRow.version)).where(
+                        FormVersionRow.form_id == str(form_id)
+                    )
+                )
+            ).scalar_one_or_none()
+        return (changed.isoformat() if changed is not None else None, version)
 
     async def get_form_document_by_id(self, form_id: str):
         return await self.one(FormRow.form_id == form_id)

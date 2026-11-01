@@ -1325,6 +1325,11 @@ class StandardFieldProperty(BaseModel):
     option_filter: Optional[OptionFilter] = None
     # The options come from a source instead of ``choices`` (see OptionSource).
     option_source: Optional[OptionSource] = None
+    # A short text, dropdown or multiple choice question whose answers other
+    # forms of the workspace may show as choices (``OptionSource`` of kind
+    # form_answers). Off unless true; only answers given while a version with
+    # it on was filled count (``shared_as_choices`` of the response).
+    share_as_choices: Optional[bool] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
@@ -1949,6 +1954,10 @@ class StandardFormResponse(BaseModel):
     # notice token the form page echoes back; AI insights analyse only
     # responses carrying it.
     ai_notice_shown_at: Optional[dt.datetime] = None
+    # The questions whose answers this response gave while the version it was
+    # filled said they may be shown as choices in other forms (set by the
+    # server on submission from ``share_as_choices``; never from a client).
+    shared_as_choices: Optional[List[str]] = None
     ai_notice_provider_name: Optional[str] = None
     # The ending the respondent reached, replayed by the server from the
     # answers (never taken from the request). None for responses submitted

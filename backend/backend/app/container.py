@@ -366,6 +366,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
         rate_limiter=rate_limiter,
+        response_repo=form_response_repo,
     )
     # rate limits and the daily budget of the AI endpoints
     ai_usage_guard: AIUsageGuard = providers.Singleton(
@@ -748,6 +749,7 @@ class AppContainer(containers.DeclarativeContainer):
         draft_service=form_draft_service,
         response_export_service=response_export_service,
         email_action_service=email_action_service,
+        option_list_repo=option_list_repo,
     )
 
     ai_profile_service: AIProfileService = providers.Singleton(

@@ -4531,6 +4531,18 @@
             }
           ],
           "default": null
+        },
+        "shareAsChoices": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shareaschoices"
         }
       },
       "title": "StandardFieldProperty",
@@ -5132,6 +5144,18 @@
             }
           ],
           "default": null
+        },
+        "shareAsChoices": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shareaschoices"
         }
       },
       "title": "StandardFieldPropertyCamelModel",

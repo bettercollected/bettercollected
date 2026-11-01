@@ -40,7 +40,18 @@ API: `GET/POST /workspaces/{id}/option-lists`, `GET/PATCH/DELETE .../{list_id}`,
 
 ## Another form's answers
 
-A creator who points a question at another form's answers needs `response.read` on **that** form (checked when the
+Another form's answers are used only when the **source question opted in**. On the question of the form that collects
+the answers there is a setting, "Answers may be shown as choices in other forms of this workspace" (`shareAsChoices`),
+off by default. While it is on, the people who fill in that form are told next to the question ("Your answer may be
+shown as a choice in other forms of this organisation") and the form's privacy panel says so too. Only answers given
+**while a published version with the setting on was filled** are ever offered: answers given before the setting,
+answers given on a version without it, and every answer once the setting is turned off are never used. The server
+records on each response which of its questions were shared when it was submitted (a client cannot set that), checks it
+for every answer it offers, and refuses to save a question that points at a question that does not share (422
+`option_source_not_shared`). Turning the setting off in the builder stops all use at once; turning it on again brings
+back only the answers that were given while it was on.
+
+A creator who points a question at another form's answers also needs `response.read` on **that** form (checked when the
 source is added or changed; a form that already has one is not asked again, so others can keep editing it). The
 question must be a short text, dropdown or multiple choice question of another form in the same workspace: never an
 email, phone, number, address or file question, never an internal question, and never one whose options come from a
@@ -49,9 +60,10 @@ source themselves. An API key never sets such a source (it is set in the builder
 **The people who open the form see these answers as choices, without being told who gave them.** Use it only for
 answers those people agreed to share, such as a participant list. The builder says so and asks for confirmation.
 
-- Which answers count: those of responses that have answers, in this workspace, with **no deletion request of any
-  status** (a respondent who asked to be erased is not shown), not submitted with the anonymous choice, and not past
-  their retention.
+- Which answers count: those of responses that have answers to a question that shared them (above), in this workspace,
+  with **no deletion request of any status** (a respondent who asked to be erased is not shown), not submitted with the
+  anonymous choice, not past their retention, and not hidden by logic (a stored answer to a question the respondent was
+  not asked is left out).
 - What is offered: the text of each answer (the labels of the chosen options, for a dropdown or multiple choice),
   once per distinct text (compared ignoring case and spacing; the first spelling is shown), alphabetically, at most
   1,000 of them and from at most 10,000 responses. A form says when the options were cut.
@@ -60,9 +72,17 @@ answers those people agreed to share, such as a participant list. The builder sa
   that holds one reveals no label. The form a respondent loads does not name the other form or its question, and the
   page says under the question that "the choices come from answers other people gave to another form of this
   organisation".
-- Freshness: the server rebuilds the options whenever the eligible responses change (a new, edited, deleted, expired
-  or deletion-requested response), in every process; there is no stale copy to wait out. The options are kept in
-  memory only and never stored.
+- Freshness: the server rebuilds the options whenever the eligible responses or the source question change (an edited,
+  deleted, expired or deletion-requested response, a retyped or renamed question, the setting turned off), in every
+  process, at once. A source that only gained responses is served as it was for at most 5 seconds by the respondent
+  endpoint (never by a submission, which checks against the current set), so a burst of sign-ups does not rebuild it
+  for every request. There is no other timer. The options are kept in memory only and never stored: at most 256
+  sources and 200,000 options in all, at most two rebuilds at a time per process, and one response that cannot be read
+  is skipped, not a failure.
+- **Erasure and snapshots.** When a response of the source form is erased, its label leaves the options at once. A
+  label already copied into a response of a consuming form (the snapshot beside the chosen id), and into that form's
+  exports, webhooks and emails, is **not** rewritten or removed: it is that respondent's own answer, stored for them.
+  Erase those responses too if the label itself must go.
 - Anonymous submissions: a respondent who chose to submit anonymously is left out, because a name in a public list
   would defeat that choice. Respondents who are simply not signed in count.
 
@@ -80,9 +100,14 @@ choice as it was does not check it again. A question the respondent does not see
 as for every hidden answer.
 
 `GET /workspaces/{id}/forms/{form_id}/options/{field_id}` serves the options (`q`, `limit` up to 100, `offset`,
-`parent` for a dependent list): public like the form, published forms only, labels only, never cached, 120 requests
-a minute per client and form and 3,000 per form (429 beyond). Unknown, unpublished and unsourced questions all answer
-the same 404.
+`parent` for a dependent list): public like the form, labels only, never cached. It answers only for a form a
+respondent may fill in **right now**, judged at every call as the submit does: not hidden, open (not before its open
+date, not from its close date), not full, a signed-in respondent where the form asks for a verified identity, and for
+a private form a signed-in member of one of its responder groups (read only for such a form; one user's access never
+serves another). Unknown, unpublished, closed, hidden, full, unauthorised and unsourced all answer the same 404.
+It is limited from memory per client before any query (four times the per-client limit per process), then 120
+requests a minute per client and form and 3,000 per form (429 with `Retry-After`). Behind a reverse proxy set
+`TRUSTED_PROXIES` first: the limits count client addresses, and without it every respondent shares one.
 
 ## Limits of this version
 
@@ -92,5 +117,7 @@ the same 404.
   sources, a duplicate keeps a list source and loses another form's answers).
 - The edit operations of the AI chat and MCP do not set a source (the builder and the form spec API do, for lists;
   another form's answers only the builder).
+- Replacing the items of a list (a save of the items or a CSV import) must name the revision that was read
+  (`expectedRevision`; 422 `revision_required` without it, 409 `list_changed` when it is stale).
 - No per-change history of a list: the last editor and revision are kept, and every change is logged with ids and
   counts only.

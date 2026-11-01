@@ -698,6 +698,14 @@ class FormField(_Spec):
         "a workspace list or from another form's answers instead of choices "
         "(see OptionSource).",
     )
+    share_as_choices: Optional[bool] = Field(
+        None,
+        description="A short text, dropdown or multiple choice question: its answers "
+        "may be shown as choices in other forms of the same workspace (an "
+        "optionSource of kind form_answers). Off unless true. Respondents are told "
+        "next to the question; only answers given while a version with it on was "
+        "filled are ever offered.",
+    )
     rules: Optional[List[Rule]] = Field(
         None,
         max_length=FIELD_RULES_MAX,

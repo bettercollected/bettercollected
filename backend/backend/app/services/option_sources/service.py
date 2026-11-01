@@ -28,7 +28,18 @@ import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from http import HTTPStatus
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 from bson.errors import InvalidId
 from common.clock import utcnow
@@ -41,6 +52,7 @@ from backend.app.services.option_sources import ids, read, text
 from backend.app.utils.client_ip import rate_limit_key
 
 OPTION_UNAVAILABLE = "option_unavailable"
+NOT_SHARED_CODE = "option_source_not_shared"
 
 # the public options endpoint (constants, not settings: one inventory row)
 RATE_LIMIT_SCOPE = "option-sources"
@@ -54,9 +66,19 @@ PARENTS_MAX = 50
 ID_MAX = 200
 FORM_CACHE_SECONDS = 30.0
 FORM_CACHE_SIZE = 1024
-SOURCE_CACHE_SECONDS = 60.0
+ACCESS_CACHE_SIZE = 2048
+# options kept in memory: by entries and by the options in all of them
 SOURCE_CACHE_SIZE = 256
+SOURCE_CACHE_ITEMS = 200_000
+# a source whose eligible responses only grew is served as it was for this long
+# (an edit or a withdrawal is rebuilt at once); a submission checks afresh
+GROWTH_DEBOUNCE_SECONDS = 5.0
+# rebuilds running at once in this process (each reads and decrypts responses)
+REBUILDS_AT_ONCE = 2
 BATCH = 500
+# before any query: what one client may send to this process per window
+COARSE_FACTOR = 4
+COARSE_SIZE = 4096
 
 
 @dataclass(frozen=True)
@@ -128,6 +150,9 @@ class _Question:
 
 @dataclass
 class _Servable:
+    """The sourced questions of a form's published version (nothing about who
+    may use the form: that is judged at every call, ``_judge``)."""
+
     form_id: str
     questions: Dict[str, _Question]
     loaded_at: float
@@ -138,6 +163,8 @@ class _Cached:
     token: Any
     value: SourceOptions
     at: float
+    # eligible responses when it was built (a growing source is debounced)
+    count: int = 0
 
 
 class OptionSourceService:
@@ -164,13 +191,28 @@ class OptionSourceService:
         self._now = now
         self._servable_cache: Dict[Tuple[str, str], _Servable] = {}
         self._cache: "OrderedDict[Tuple, _Cached]" = OrderedDict()
+        self._items = 0
         self._locks: Dict[Tuple, asyncio.Lock] = {}
+        self._rebuilds = asyncio.Semaphore(REBUILDS_AT_ONCE)
+        # client key -> (window start, requests in it): in memory, no query
+        self._coarse: "OrderedDict[str, Tuple[float, int]]" = OrderedDict()
+        # (workspace, form id, user) -> (may the user fill the form, when read)
+        self._access: "OrderedDict[Tuple[str, str, str], Tuple[bool, float]]" = (
+            OrderedDict()
+        )
 
     # ------------------------------------------------------------------ options
 
-    async def options(self, workspace_id, source: Mapping[str, Any]) -> SourceOptions:
+    async def options(
+        self,
+        workspace_id,
+        source: Mapping[str, Any],
+        tolerate_growth: bool = False,
+    ) -> SourceOptions:
         """The options of ``source`` (a dict: kind, list_id / form_id,
-        question_id) in this workspace, as they are now."""
+        question_id) in this workspace, as they are now (``tolerate_growth``:
+        the public endpoint may serve a source that only grew a moment ago as
+        it was; a submission never does)."""
         kind = source.get("kind")
         if kind == "list":
             return await self._list_options(workspace_id, str(source.get("list_id")))
@@ -179,22 +221,48 @@ class OptionSourceService:
                 workspace_id,
                 str(source.get("form_id")),
                 str(source.get("question_id")),
+                tolerate_growth,
             )
         return GONE
 
-    def _remember(self, key: Tuple, token: Any, value: SourceOptions) -> None:
-        self._cache[key] = _Cached(token, value, self._monotonic())
-        self._cache.move_to_end(key)
-        while len(self._cache) > SOURCE_CACHE_SIZE:
-            dropped, _ = self._cache.popitem(last=False)
+    def _remember(
+        self, key: Tuple, token: Any, value: SourceOptions, count: int = 0
+    ) -> None:
+        old = self._cache.pop(key, None)
+        if old is not None:
+            self._items -= len(old.value.options)
+        self._cache[key] = _Cached(token, value, self._monotonic(), count)
+        self._items += len(value.options)
+        # bounded by entries and by the options held in all of them
+        while self._cache and (
+            len(self._cache) > SOURCE_CACHE_SIZE or self._items > SOURCE_CACHE_ITEMS
+        ):
+            dropped, gone = self._cache.popitem(last=False)
+            self._items -= len(gone.value.options)
             self._locks.pop(dropped, None)
 
-    def _fresh(self, key: Tuple, token: Any) -> Optional[SourceOptions]:
+    def _fresh(
+        self,
+        key: Tuple,
+        token: Any,
+        count: Optional[int] = None,
+        tolerate_growth: bool = False,
+    ) -> Optional[SourceOptions]:
+        """The cached options when ``token`` is still the source's. With
+        ``tolerate_growth`` a source whose eligible set only grew (more
+        responses than when it was built) is served as it was for
+        ``GROWTH_DEBOUNCE_SECONDS``; any other change rebuilds at once."""
         cached = self._cache.get(key)
+        if cached is None:
+            return None
+        if cached.token == token:
+            self._cache.move_to_end(key)
+            return cached.value
         if (
-            cached is not None
-            and cached.token == token
-            and self._monotonic() - cached.at < SOURCE_CACHE_SECONDS
+            tolerate_growth
+            and count is not None
+            and count > cached.count
+            and self._monotonic() - cached.at < GROWTH_DEBOUNCE_SECONDS
         ):
             self._cache.move_to_end(key)
             return cached.value
@@ -202,7 +270,9 @@ class OptionSourceService:
 
     def forget(self, workspace_id, list_id: str) -> None:
         """A list was written in this process: its cached copy goes."""
-        self._cache.pop(("list", str(workspace_id), str(list_id)), None)
+        old = self._cache.pop(("list", str(workspace_id), str(list_id)), None)
+        if old is not None:
+            self._items -= len(old.value.options)
 
     async def _list_options(self, workspace_id, list_id: str) -> SourceOptions:
         revision = await self._lists.revision(workspace_id, list_id)
@@ -220,31 +290,42 @@ class OptionSourceService:
         return value
 
     async def _answer_options(
-        self, workspace_id, form_id: str, question_id: str
+        self,
+        workspace_id,
+        form_id: str,
+        question_id: str,
+        tolerate_growth: bool = False,
     ) -> SourceOptions:
         try:
             scope = await self._response_service.scope(workspace_id, [form_id])
             now_iso = _iso(self._now())
-            token = await self._responses.option_source_token(scope, now_iso)
+            count, digest = await self._responses.option_source_token(
+                scope, now_iso, question_id
+            )
+            # the questions' own revision: a retyped, renamed or no longer shared
+            # question rebuilds (or goes) at once
+            revision = await self._forms.revision_of(form_id)
         except Exception as error:  # the source cannot be read: offer nothing
             logger.warning(
                 "option sources: a source could not be read ({})",
                 type(error).__name__,
             )
             return GONE
+        token = (count, digest, revision)
         key = ("answers", str(workspace_id), form_id, question_id)
-        hit = self._fresh(key, token)
+        hit = self._fresh(key, token, count, tolerate_growth)
         if hit is not None:
             return hit
         lock = self._locks.setdefault(key, asyncio.Lock())
         async with lock:
-            hit = self._fresh(key, token)
+            hit = self._fresh(key, token, count, tolerate_growth)
             if hit is not None:
                 return hit
-            value = await self._rebuild(
-                workspace_id, form_id, question_id, scope, now_iso, token[0]
-            )
-            self._remember(key, token, value)
+            async with self._rebuilds:
+                value = await self._rebuild(
+                    workspace_id, form_id, question_id, scope, now_iso, count
+                )
+            self._remember(key, token, value, count)
             return value
 
     async def _rebuild(
@@ -263,90 +344,117 @@ class OptionSourceService:
             ),
             None,
         )
+        # the question must still be one that can be shared: turning the setting
+        # off stops every use at once
         if question is None or answer_question_problem(question) is not None:
+            return GONE
+        try:
+            ids.answer_option_id(workspace_id, form_id, question_id, "x")
+        except ids.NoIdKey:
             return GONE
         kind = read.field_type(question)
         choice_labels = read.static_labels(question) if kind != "short_text" else {}
+        # answers a logic rule hid are stored but were not asked: left out
+        published = await self._forms.get_latest_version_of_form(RecordId(form_id))
         found: Dict[str, str] = {}
-        truncated = False
         read_count = 0
+        skipped = 0
+        cut = False
         after: Optional[str] = None
         while True:
             batch = await self._responses.option_source_batch(
-                scope, now_iso, after_id=after, limit=BATCH
+                scope, now_iso, question_id, after_id=after, limit=BATCH
             )
             if not batch:
                 break
             after = str(batch[-1].id)
             read_count += len(batch)
-            labels = await run_in_threadpool(
-                self._labels, workspace_id, batch, question_id, kind, choice_labels
+            labels, bad = await run_in_threadpool(
+                self._labels,
+                workspace_id,
+                batch,
+                question_id,
+                kind,
+                choice_labels,
+                published,
             )
+            skipped += bad
             for label in labels:
-                key = text.fold(label)
-                if key in found:
-                    continue
-                if len(found) >= text.ANSWER_OPTIONS_MAX:
-                    truncated = True
-                    break
-                found[key] = label
-            if truncated or len(batch) < BATCH:
+                found.setdefault(text.fold(label), label)
+            if len(batch) < BATCH:
                 break
             if read_count >= text.ANSWER_RESPONSES_MAX:
-                truncated = True
+                cut = True
                 break
+        # alphabetical first, then cut: the options offered are the first 1,000
+        keys = sorted(found)
+        truncated = cut or len(keys) > text.ANSWER_OPTIONS_MAX
         options = tuple(
             Option(
                 id=ids.answer_option_id(workspace_id, form_id, question_id, key),
                 label=found[key],
                 key=key,
             )
-            for key in sorted(found)
+            for key in keys[: text.ANSWER_OPTIONS_MAX]
         )
         logger.info(
-            "option sources: built {} option(s) from {} response(s){}",
+            "option sources: built {} option(s) from {} response(s){}{}",
             len(options),
             read_count,
             " (cut)" if truncated else "",
+            f", {skipped} unreadable" if skipped else "",
         )
         return SourceOptions(options=options, truncated=truncated, responses=eligible)
 
     def _labels(
-        self, workspace_id, batch, question_id: str, kind: str, choice_labels
-    ) -> List[str]:
-        """The labels one batch of responses gives (off the event loop)."""
+        self, workspace_id, batch, question_id: str, kind: str, choice_labels, published
+    ) -> Tuple[List[str], int]:
+        """The labels one batch of responses gives and how many responses could
+        not be read (off the event loop). One response that cannot be decrypted
+        or read is skipped, never a failure of the source."""
         found: List[str] = []
+        unreadable = 0
         for response in batch:
             if response.answers is None:
                 continue
-            decrypted = self._response_service.decrypt_form_response(
-                workspace_id=workspace_id, response=response
-            )
-            answers = decrypted.answers if isinstance(decrypted.answers, dict) else {}
-            raw = answers.get(question_id)
-            if hasattr(raw, "model_dump"):
-                raw = raw.model_dump(exclude_none=True)
-            if not isinstance(raw, dict):
-                continue
-            if kind == "short_text":
-                candidates = [raw.get("text")]
-            else:
-                chosen: List[Any] = []
-                single = raw.get("choice")
-                multiple = raw.get("choices")
-                if isinstance(single, dict):
-                    chosen.append(single.get("value"))
-                if isinstance(multiple, dict):
-                    values = multiple.get("values")
-                    chosen.extend(values if isinstance(values, list) else [])
-                candidates = [
-                    choice_labels.get(c) for c in chosen if isinstance(c, str)
-                ]
-            for candidate in candidates:
-                label = text.clean(candidate, text.LABEL_MAX)
-                if label is not None:
-                    found.append(label)
-        return found
+            try:
+                decrypted = self._response_service.decrypt_form_response(
+                    workspace_id=workspace_id, response=response
+                )
+                answers = (
+                    decrypted.answers if isinstance(decrypted.answers, dict) else {}
+                )
+                if not answers:
+                    unreadable += 1
+                    continue
+                if published is not None and question_id not in _shown_questions(
+                    published, {str(k): _plain(v) for k, v in answers.items()}
+                ):
+                    continue
+                raw = _plain(answers.get(question_id))
+                if not isinstance(raw, dict):
+                    continue
+                if kind == "short_text":
+                    candidates = [raw.get("text")]
+                else:
+                    chosen: List[Any] = []
+                    single = raw.get("choice")
+                    multiple = raw.get("choices")
+                    if isinstance(single, dict):
+                        chosen.append(single.get("value"))
+                    if isinstance(multiple, dict):
+                        values = multiple.get("values")
+                        chosen.extend(values if isinstance(values, list) else [])
+                    candidates = [
+                        choice_labels.get(c) for c in chosen if isinstance(c, str)
+                    ]
+                for candidate in candidates:
+                    label = text.clean(candidate, text.LABEL_MAX)
+                    if label is not None:
+                        found.append(label)
+            except Exception:  # noqa: BLE001 - one response never fails the source
+                unreadable += 1
+        return found, unreadable
 
     # ------------------------------------------------------------- save checks
 
@@ -393,6 +501,17 @@ class OptionSourceService:
                     "form builder, not with an API key.",
                 },
             )
+        try:
+            ids.answer_option_id("", "", "", "")
+        except ids.NoIdKey:
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                content={
+                    "code": INVALID_CODE,
+                    "message": "This server has no secret to key option ids with "
+                    "(AUTH_JWT_SECRET is empty), so another form's answers cannot be used.",
+                },
+            )
         form_id = str(source.get("form_id"))
         if own_form_id is not None and form_id == str(own_form_id):
             raise invalid("A form cannot take its options from its own answers.")
@@ -423,8 +542,42 @@ class OptionSourceService:
         if question is None:
             raise invalid("That question does not exist in that form.")
         problem = answer_question_problem(question)
+        if problem == NOT_SHARED:
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                content={
+                    "code": NOT_SHARED_CODE,
+                    "message": "The creator of that question has not allowed its "
+                    "answers to be shown as choices in other forms.",
+                },
+            )
         if problem is not None:
             raise invalid(f"The answers to {problem} cannot be used as options.")
+
+    async def ensure_lists_belong(self, workspace_id, form: Any, existing: Any) -> None:
+        """For every list source the form brings new or changed: the list is
+        one of this workspace (the writers that cannot ask who the saver is, and
+        so cannot take another form's answers, can still check this)."""
+        from backend.app.services.option_sources.checks import (
+            INVALID_CODE,
+            new_or_changed,
+        )
+
+        changed = set(new_or_changed(form, existing))
+        for question, source in read.sourced_questions(form):
+            if str(read.get(question, "id")) not in changed:
+                continue
+            if source.get("kind") == "list" and (
+                await self._lists.revision(workspace_id, str(source.get("list_id")))
+                is None
+            ):
+                raise HTTPException(
+                    status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                    content={
+                        "code": INVALID_CODE,
+                        "message": "That list does not exist in this workspace.",
+                    },
+                )
 
     async def ensure_resolved(
         self, workspace_id, form: Any, existing: Any, user, own_form_id=None
@@ -443,34 +596,24 @@ class OptionSourceService:
 
     # ------------------------------------------------------------ respondent API
 
-    async def _servable(
-        self, workspace_id, form_ref: str, fresh: bool = False
-    ) -> Optional[_Servable]:
-        key = (str(workspace_id), form_ref)
-        cached = self._servable_cache.get(key)
+    async def _structure(self, workspace_id, link) -> Optional[_Servable]:
+        """The sourced questions of the form's published version, kept for
+        ``FORM_CACHE_SECONDS`` (no judgement of who may use the form is kept
+        here: see ``_judge``)."""
+        key = (str(workspace_id), str(link.form_id))
         now = self._monotonic()
-        if (
-            cached is not None
-            and not fresh
-            and now - cached.loaded_at < FORM_CACHE_SECONDS
-        ):
+        cached = self._servable_cache.get(key)
+        if cached is not None and now - cached.loaded_at < FORM_CACHE_SECONDS:
             return cached
         self._servable_cache.pop(key, None)
-        loaded = await self._load_servable(workspace_id, form_ref, now)
+        loaded = await self._load_structure(link, now)
         if loaded is not None:
             if len(self._servable_cache) >= FORM_CACHE_SIZE:
                 self._servable_cache.clear()
             self._servable_cache[key] = loaded
         return loaded
 
-    async def _load_servable(
-        self, workspace_id, form_ref: str, now: float
-    ) -> Optional[_Servable]:
-        link = await self._workspace_forms.get_workspace_form_with_custom_slug_form_id(
-            workspace_id=workspace_id, custom_url=form_ref
-        )
-        if link is None:
-            return None
+    async def _load_structure(self, link, now: float) -> Optional[_Servable]:
         try:
             form_id = RecordId(link.form_id)
         except (InvalidId, TypeError, ValueError):
@@ -499,6 +642,112 @@ class OptionSourceService:
             questions[question_id] = info
         return _Servable(form_id=str(link.form_id), questions=questions, loaded_at=now)
 
+    async def _judge(
+        self,
+        workspace_id,
+        form_ref: str,
+        field_id: str,
+        user_loader: Optional[Callable[[], Awaitable[Any]]],
+    ) -> Tuple[str, _Question]:
+        """Is this form one a respondent may fill in right now, as the submit
+        gate reads it, and does it have this sourced question? Judged at every
+        call from the workspace's link to the form (nothing about access is
+        taken from a cache): not hidden, open (not before its open date, not
+        from its close date), not full (its response limit), a signed-in
+        respondent where the form asks for a verified identity, and, for a
+        private form (restricted to responder groups), a signed-in respondent
+        one of its groups admits. Anything else is one and the same 404."""
+        from backend.app.services import form_availability
+
+        link = await self._workspace_forms.get_workspace_form_with_custom_slug_form_id(
+            workspace_id=workspace_id, custom_url=form_ref
+        )
+        if link is None:
+            raise _not_found()
+        settings = link.settings
+        if settings is not None and settings.hidden:
+            raise _not_found()
+        if (
+            form_availability.date_unavailability(
+                {
+                    "form_open_date": getattr(settings, "form_open_date", None),
+                    "form_close_date": getattr(settings, "form_close_date", None),
+                }
+            )
+            is not None
+        ):
+            raise _not_found()
+        if form_availability.response_limit(settings) is not None:
+            count = await self._response_service.count_for_form(
+                workspace_id, str(link.form_id)
+            )
+            if form_availability.is_full(settings, count):
+                raise _not_found()
+        structure = await self._structure(workspace_id, link)
+        info = structure.questions.get(field_id) if structure else None
+        if structure is None or info is None:
+            raise _not_found()
+        private = bool(getattr(settings, "private", False))
+        verified = bool(getattr(settings, "require_verified_identity", False))
+        if private or verified:
+            user = await user_loader() if user_loader is not None else None
+            sub = getattr(user, "sub", None)
+            if not sub or not isinstance(sub, str):
+                raise _not_found()
+            if private and not await self._admitted(
+                workspace_id, form_ref, structure.form_id, user, sub
+            ):
+                raise _not_found()
+        return structure.form_id, info
+
+    async def _admitted(
+        self, workspace_id, form_ref: str, form_id: str, user: Any, sub: str
+    ) -> bool:
+        """The submit gate's own question for a private form (the groups of
+        this workspace that admit the user), kept per user and form for
+        ``FORM_CACHE_SECONDS``: one user's access never serves another's."""
+        key = (str(workspace_id), form_id, sub)
+        now = self._monotonic()
+        known = self._access.get(key)
+        if known is not None and now - known[1] < FORM_CACHE_SECONDS:
+            self._access.move_to_end(key)
+            return known[0]
+        admitted = await self._workspace_forms.get_form_ids_in_workspace(
+            workspace_id=workspace_id,
+            is_not_admin=True,
+            user=user,
+            form_id_or_slug=form_ref,
+        )
+        allowed = form_id in {str(found) for found in admitted}
+        self._access[key] = (allowed, now)
+        self._access.move_to_end(key)
+        while len(self._access) > ACCESS_CACHE_SIZE:
+            self._access.popitem(last=False)
+        return allowed
+
+    def _coarse_limit(self, client: Optional[str]) -> None:
+        """Before anything is read from the database: a client that sends far
+        more than the per-client limit allows is answered 429 from memory (a
+        bounded table of rate-limit keys, never what was asked)."""
+        window = float(RATE_WINDOW_SECONDS)
+        limit = RATE_PER_CLIENT * COARSE_FACTOR
+        now = self._monotonic()
+        who = rate_limit_key(client)
+        started, used = self._coarse.get(who, (now, 0))
+        if now - started >= window:
+            started, used = now, 0
+        if used >= limit:
+            self._coarse.move_to_end(who)
+            raise HTTPException(
+                status_code=HTTPStatus.TOO_MANY_REQUESTS,
+                content="Too many requests; try again later.",
+                headers={"Retry-After": str(max(1, int(window - (now - started))))},
+            )
+        self._coarse[who] = (started, used + 1)
+        self._coarse.move_to_end(who)
+        while len(self._coarse) > COARSE_SIZE:
+            self._coarse.popitem(last=False)
+
     async def serve(
         self,
         workspace_id,
@@ -509,17 +758,17 @@ class OptionSourceService:
         offset: int,
         parent_ids: Sequence[str],
         client: Optional[str],
+        user_loader: Optional[Callable[[], Awaitable[Any]]] = None,
     ) -> Dict[str, Any]:
         """One page of the labels a respondent may choose from (``{id,
-        label}`` only). 404 (the same) unless the form is published in the
-        workspace and has this sourced question."""
-        if len(form_ref) > 64 or len(field_id) > ID_MAX:
+        label}`` only). 404 (the same) unless the form is one the respondent
+        may fill in right now (``_judge``) and has this sourced question. The
+        client is limited from memory before any query."""
+        self._coarse_limit(client)
+        if not form_ref or len(form_ref) > 64 or len(field_id) > ID_MAX:
             raise _not_found()
-        servable = await self._servable(workspace_id, form_ref)
-        info = servable.questions.get(field_id) if servable else None
-        if servable is None or info is None:
-            raise _not_found()
-        await self._limit(servable.form_id, client)
+        form_id, info = await self._judge(workspace_id, form_ref, field_id, user_loader)
+        await self._limit(form_id, client)
         return await self._page(
             workspace_id, info, query, limit, offset, list(parent_ids)
         )
@@ -550,7 +799,7 @@ class OptionSourceService:
     ) -> Dict[str, Any]:
         limit = max(1, min(int(limit), PAGE_MAX))
         offset = max(0, int(offset))
-        offered = await self.options(workspace_id, info.source)
+        offered = await self.options(workspace_id, info.source, tolerate_growth=True)
         if not offered.available:
             return {"items": [], "total": 0, "truncated": False, "available": False}
         parent_keys = await self._parent_keys(workspace_id, info, parent_ids)
@@ -911,11 +1160,16 @@ def _shown_questions(form: Any, answers: Mapping[str, Any]) -> Set[str]:
     return shown
 
 
+NOT_SHARED = "a question whose answers may not be shown as choices"
+
+
 def answer_question_problem(question: Any) -> Optional[str]:
     """Why a question of another form cannot be a source of options (None
     when it can): only text, dropdown and multiple choice questions, never an
     internal one, one with its own source, or an answer that identifies
-    someone (email, phone, address, file ...)."""
+    someone (email, phone, address, file ...), and only a question its
+    creator opted in (``shareAsChoices``: its answers may be shown as choices
+    in other forms; ``NOT_SHARED`` otherwise)."""
     if read.get(question, "internal"):
         return "an internal question"
     kind = read.field_type(question)
@@ -923,4 +1177,6 @@ def answer_question_problem(question: Any) -> Optional[str]:
         return f"a {kind} question"
     if read.has_source(question):
         return "a question whose options come from a source"
+    if read.get(read.props(question), "share_as_choices") is not True:
+        return NOT_SHARED
     return None

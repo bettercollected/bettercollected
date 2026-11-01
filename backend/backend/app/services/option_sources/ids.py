@@ -30,10 +30,17 @@ def is_source_id(value: object) -> bool:
     return isinstance(value, str) and _SHAPE.fullmatch(value) is not None
 
 
+class NoIdKey(RuntimeError):
+    """The server has no secret to key option ids with (an empty
+    ``AUTH_JWT_SECRET``): options from another form's answers are not built."""
+
+
 def _key() -> bytes:
     from backend.config import settings
 
     secret = settings.auth_settings.JWT_SECRET or ""
+    if not secret:
+        raise NoIdKey("no secret to key option ids with")
     return hmac.new(secret.encode("utf-8"), _PURPOSE, hashlib.sha256).digest()
 
 

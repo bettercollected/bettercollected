@@ -63,14 +63,21 @@ async def registered(workspace):
     return await publish(
         workspace,
         [
-            question("name", "short_text", "Name"),
-            question("role", "dropdown", "Role", choices=ROLE_CHOICES),
+            question("name", "short_text", "Name", share_as_choices=True),
+            question(
+                "role",
+                "dropdown",
+                "Role",
+                choices=ROLE_CHOICES,
+                share_as_choices=True,
+            ),
             question(
                 "roles",
                 "multiple_choice",
                 "Roles",
                 choices=ROLE_CHOICES,
                 allow_multiple_selection=True,
+                share_as_choices=True,
             ),
             question("mail", "email", "Email", why_we_ask="To reply to you"),
         ],
@@ -300,7 +307,9 @@ async def test_a_list_is_served_in_its_order_and_a_change_shows_at_once(workspac
         workspace.id,
         created.id,
         OptionListUpdateDto(
-            order="manual", items=[ItemDto(label="z"), ItemDto(label="y")]
+            order="manual",
+            items=[ItemDto(label="z"), ItemDto(label="y")],
+            expected_revision=1,
         ),
         testUser,
     )
@@ -371,11 +380,13 @@ async def test_the_source_must_be_a_usable_question_of_another_form_of_this_work
     workspace, workspace_1, registered
 ):
     own = await publish(
-        workspace, [question("name", "short_text", "Name")], title="Own"
+        workspace,
+        [question("name", "short_text", "Name", share_as_choices=True)],
+        title="Own",
     )
     other = await publish(
         workspace_1,
-        [question("name", "short_text", "Name")],
+        [question("name", "short_text", "Name", share_as_choices=True)],
         user=testUser1,
         title="Theirs",
     )
@@ -383,7 +394,7 @@ async def test_the_source_must_be_a_usable_question_of_another_form_of_this_work
         workspace,
         [
             question("hidden_q", "short_text", "Staff note"),
-            question("name", "short_text", "N"),
+            question("name", "short_text", "N", share_as_choices=True),
         ],
         title="Internal",
     )

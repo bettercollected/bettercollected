@@ -56,7 +56,7 @@ from backend.app.services.respondent_feedback_service import (
     RespondentFeedbackService,
 )
 from backend.app.services.signatures import carry_headers, read_throttle
-from backend.app.services.user_service import get_logged_user
+from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.utils.client_ip import request_client_ip
 from backend.app.utils.custom_routable import CustomRoutable
 from backend.app.utils.flow_analytics import aggregate_flow_events
@@ -308,8 +308,10 @@ class WorkspaceResponsesRouter(CustomRoutable):
         Street and city of a Dutch postcode and house number, for an address
         question of a published form (the respondent's form fills them in; the
         respondent can change them). Public, like the form. 404 unless the
-        server has the lookup on, the form is published in this workspace and
-        the question asks for a lookup (all the same 404); 422 for input that
+        server has the lookup on, the form is published in this workspace, takes
+        responses now (not closed, not open yet, not full, not hidden; a private
+        form only for a signed-in member of its responder groups) and the
+        question asks for a lookup (all the same 404); 422 for input that
         is not a postcode and a house number; 429 per client and form and per
         form; 503 when the service cannot answer (type the address instead).
         Nothing is stored or logged of what was asked.
@@ -322,6 +324,8 @@ class WorkspaceResponsesRouter(CustomRoutable):
             postcode=body.postcode,
             house_number=body.house_number,
             client=request_client_ip(request),
+            # read only for a private form, once the cheap limits have held
+            user_loader=lambda: get_user_if_logged_in(request, response),
         )
 
     @get("/forms/{form_id}/options/{field_id}")
@@ -342,8 +346,10 @@ class WorkspaceResponsesRouter(CustomRoutable):
         options come from a workspace list or from another form's answers
         (``{items: [{id, label}], total, truncated, available}``: labels only).
         Public, like the form: 404 (the same) unless the form is published in
-        this workspace and has that question with a source; 429 per client and
-        form and per form. ``parent``: the ids the respondent chose in the
+        this workspace, is one a respondent may fill in now (not hidden, open,
+        not full, signed in where it asks for a verified identity, a member of
+        its responder groups when private) and has that question with a source;
+        429 per client and form and per form. ``parent``: the ids the respondent chose in the
         question this one depends on. Never cached.
         """
         response.headers["Cache-Control"] = "no-store"
@@ -356,6 +362,8 @@ class WorkspaceResponsesRouter(CustomRoutable):
             offset=offset,
             parent_ids=parent,
             client=request_client_ip(request),
+            # read only for a form that asks for a signed-in respondent
+            user_loader=lambda: get_user_if_logged_in(request, response),
         )
 
     @post("/forms/{form_id}/flow-events")

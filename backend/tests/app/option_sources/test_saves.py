@@ -187,7 +187,9 @@ async def test_the_source_must_exist_in_this_workspace_and_be_readable_by_the_sa
     # another form's answers: the saver needs response.read on it (every role that edits forms has it; the
     # privacy officer, who has not, edits none, and a key never does: see test_sources)
     people = await publish(
-        workspace, [question("name", "short_text", "Name")], title="People"
+        workspace,
+        [question("name", "short_text", "Name", share_as_choices=True)],
+        title="People",
     )
     source = {"kind": "form_answers", "form_id": people.form_id, "question_id": "name"}
     created = await service.create_form(
@@ -411,7 +413,9 @@ async def test_a_duplicate_keeps_a_list_source_and_loses_another_forms_answers(
     workspace, city_list
 ):
     people = await publish(
-        workspace, [question("name", "short_text", "Name")], title="People"
+        workspace,
+        [question("name", "short_text", "Name", share_as_choices=True)],
+        title="People",
     )
     form = await container.workspace_form_service().create_form(
         workspace.id,
@@ -450,3 +454,35 @@ async def test_a_duplicate_keeps_a_list_source_and_loses_another_forms_answers(
 async def test_a_provider_import_never_carries_a_source():
     form = new_form(list_q(type("L", (), {"id": "x" * 24})()))
     assert strip_option_sources(form) == 1 and not list(read.sourced_questions(form))
+
+
+async def test_persist_form_checks_that_a_list_belongs_to_the_callers_workspace(
+    workspace, workspace_1, city_list
+):
+    theirs = await make_list(workspace_1, name="Theirs", user=testUser1)
+    stored = new_form(question("plain", "short_text"))
+    stored.form_id = "f"
+    service = container.option_source_service()
+
+    async def check(new, old):
+        await service.ensure_lists_belong(workspace.id, new, old)
+
+    await persist_form(
+        Repo(stored),
+        stored,
+        new_form(list_q(city_list)),
+        parts=["fields"],
+        lists_check=check,
+    )
+    fresh = new_form(question("plain", "short_text"))
+    fresh.form_id = "f"
+    error = await refused(
+        persist_form(
+            Repo(fresh),
+            fresh,
+            new_form(list_q(theirs)),
+            parts=["fields"],
+            lists_check=check,
+        )
+    )
+    assert code_of(error) == "option_source_invalid"

@@ -209,6 +209,15 @@ async def persist_ops_to_form(
             form_document,
             new_form,
             expected_updated_at=expected_updated_at,
+            lists_check=(
+                (
+                    lambda new, stored: _c()
+                    .option_source_service()
+                    .ensure_lists_belong(workspace_id, new, stored)
+                )
+                if workspace_id is not None
+                else None
+            ),
         )
         if not written:
             # the form went away (deleted) since it was read

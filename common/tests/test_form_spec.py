@@ -333,6 +333,7 @@ def test_every_stored_property_is_covered_or_excluded_on_purpose():
         "rules",
         "option_filter",
         "option_source",
+        "share_as_choices",
     }
     assert (
         set(StandardFieldProperty.model_fields)
@@ -607,6 +608,7 @@ def test_an_option_source_round_trips_and_is_checked():
                 "id": "p1",
                 "fields": [
                     {"id": "city", "type": "dropdown", "optionSource": list_source},
+                    {"id": "name", "type": "short_text", "shareAsChoices": True},
                     {
                         "id": "who",
                         "type": "multiple_choice",
@@ -620,7 +622,8 @@ def test_an_option_source_round_trips_and_is_checked():
     stored = spec_to_form(FormSpec.model_validate(document))
     back = form_to_spec_dict(stored)["pages"][0]["fields"]
     assert back[0]["optionSource"] == list_source
-    assert back[1]["optionSource"] == answers_source
+    assert back[1]["shareAsChoices"] is True
+    assert back[2]["optionSource"] == answers_source
 
 
 @pytest.mark.parametrize(
