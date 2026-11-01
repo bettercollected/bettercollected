@@ -177,10 +177,11 @@ async def test_the_counts_role_reads_columns_and_writes_nothing(laid_out, server
                 )
             ).scalar_one()
 
-        for column in ("id", "revoked_at", "expires_at", "doc"):
+        for column in ("revoked_at", "expires_at", "doc"):
             assert await can("app.sessions", column)
-        for column in ("id", "expires_at", "doc"):
+        for column in ("expires_at", "doc"):
             assert await can("app.form_drafts", column)
+        assert not await can("app.sessions", "id") and not await can("app.form_drafts", "id")
         assert not await can("app.sessions", "user_id")
         assert not await can("app.form_drafts", "owner_id")
         for table in ("app.sessions", "app.form_drafts"):

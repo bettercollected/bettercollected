@@ -549,22 +549,15 @@ async def test_the_whole_jwt_rotation_with_the_signing_counts(world, flow, no_qu
     # the count runs from when every service was proven to sign with the new key (this
     # verify), never from the promote's own write: until the last service restarted it
     # still signed with the previous key
-    async with world.owner.connect() as conn:
-        started = (
-            await conn.execute(
-                text("SELECT min(started_at) FROM tasks.runs WHERE task = 'authkeys.verify' "
-                     "AND state = 'succeeded' AND params ->> 'which' = 'jwt'")
-            )
-        ).scalar_one()
-        promote_started = (
-            await conn.execute(
-                text("SELECT max(started_at) FROM tasks.runs WHERE task = 'authkeys.promote' AND NOT dry_run")
-            )
-        ).scalar_one()
-    assert promote_started < started
+    result = meta.ScanResult.model_validate(verified["result"])
+    assert result.ring_version == (await flow.stored("jwt")).version and result.ready_at_ms > 0
+    before = len(no_queue["cutoffs"])
     _, dry = await flow.run("authkeys.drop_old", drop, dry_run=True)
     assert dry["state"] == "succeeded" and dry["result"]["ready"] is False
     assert dry["result"]["gates"]["sessions_on_previous"] == 4
+    # counted from the database clock the verify recorded when its readiness check passed
+    assert no_queue["cutoffs"][-1].timestamp() * 1000 == pytest.approx(result.ready_at_ms, abs=1)
+    assert len(no_queue["cutoffs"]) > before
     _, undried = await flow.run("authkeys.drop_old", drop)  # needs a succeeded dry run first
     assert undried["state"] == "refused"
     accepted = {**drop, "accept_sign_out": True}
@@ -942,19 +935,58 @@ async def test_the_signing_counts_run_from_the_verify_not_from_the_promote(world
     assert first["state"] == "succeeded"
     _, later = await flow.run("authkeys.verify", {"which": "jwt"})  # a later verify does not move it
     assert later["state"] == "succeeded"
-    async with world.owner.connect() as conn:
-        rows = (
-            await conn.execute(
-                text("SELECT id, started_at FROM tasks.runs WHERE task = 'authkeys.verify' "
-                     "AND state = 'succeeded' ORDER BY started_at")
-            )
-        ).all()
-    assert len(rows) == 3  # the pre-promote one, the first and the later
+    results = []
+    for run_id in (first["id"], later["id"]):
+        results.append(meta.ScanResult.model_validate((await world.run(run_id))["result"]))
+    assert results[0].ready_at_ms <= results[1].ready_at_ms
+    stored = await flow.stored("jwt")
+    assert results[0].ring_version == results[1].ring_version == stored.version
     _, dry = await flow.run("authkeys.drop_old", drop, dry_run=True)
     assert dry["state"] == "succeeded"
-    # the count was asked from the first verify after the promote (not the pre-promote one)
-    assert no_queue["cutoffs"][-1] == rows[1].started_at
-    assert rows[0].started_at < rows[1].started_at < rows[2].started_at
+    # counted from the FIRST verify of the promoted version, not the later one, and not
+    # from the verify made before the promote (another version of the ring)
+    assert no_queue["cutoffs"][-1].timestamp() * 1000 == pytest.approx(results[0].ready_at_ms, abs=1)
+
+
+async def test_a_promote_that_wrote_the_ring_and_then_failed_is_the_same_promote(world, flow, no_queue, monkeypatch):
+    """The cutoff comes from the ring version, not from a promote run's outcome: a
+    promote whose write committed and whose run then failed must not make the drop
+    fall back to an earlier moment."""
+    from backend.admin.tasks.impl import authkeys_tasks
+
+    await flow.beat("jwt")
+    _, added = await flow.both("authkeys.add_key", add("jwt"))
+    new_id = added["result"]["added_key_id"]
+    await flow.beat("jwt")
+    _, early = await flow.run("authkeys.verify", {"which": "jwt"})  # of the pre-promote ring
+    assert early["state"] == "succeeded"
+    params = {"which": "jwt", "new_primary_id": new_id}
+    await flow.run("authkeys.promote", params, dry_run=True)
+    real = authkeys_tasks.Promote._write
+
+    async def write_then_crash(self, *args, **kwargs):
+        await real(self, *args, **kwargs)
+        raise RuntimeError("the runner died after the write")
+
+    with monkeypatch.context() as patched:
+        patched.setattr(authkeys_tasks.Promote, "_write", write_then_crash)
+        _, crashed = await flow.run("authkeys.promote", params)
+    assert crashed["state"] == "failed"
+    stored, ring = await flow.ring("jwt")
+    assert ring.primary_id == new_id  # the ring was written
+    drop = {"which": "jwt", "keep_id": new_id}
+    # no succeeded promote run exists, and the verify of the earlier version does not count
+    await flow.beat("jwt")
+    await refused(flow, "authkeys.drop_old", drop, "promotion_not_verified")
+    _, verified = await flow.run("authkeys.verify", {"which": "jwt"})
+    assert verified["state"] == "succeeded", verified
+    ready = meta.ScanResult.model_validate(verified["result"])
+    assert ready.ring_version == stored.version
+    early_result = meta.ScanResult.model_validate(early["result"])
+    assert early_result.ring_version != stored.version
+    _, dry = await flow.run("authkeys.drop_old", drop, dry_run=True)
+    assert dry["state"] == "succeeded", dry
+    assert no_queue["cutoffs"][-1].timestamp() * 1000 == pytest.approx(ready.ready_at_ms, abs=1)
 
 
 async def test_add_key_refuses_while_a_service_runs_a_build_without_ring_support(world, flow):

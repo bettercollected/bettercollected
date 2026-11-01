@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import secrets
 from contextlib import asynccontextmanager
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from cryptography.fernet import Fernet
 
@@ -364,22 +364,25 @@ class Verify(_Base):
 
     async def _gate(self, ctx, params):
         keys, stored, ring = await self._ring(ctx, params)
-        config = targets = None
+        config = targets = ready_ms = None
         if params.which is Which.aes:
             config = self._data()
             targets = _selected(params.targets)
             await self._ping(config, targets)
         elif len(ring.members) > 1:
             # a verify of a ring under rotation proves every service holds it: the
-            # moment it runs is what the drop of the previous signing key counts from
+            # moment the check passes is what the drop of the previous signing key
+            # counts from (the database clock, recorded in the result)
             await self._ready(ctx, params, stored)
-        return stored, ring, config, targets
+            async with ctx.connection() as conn:
+                ready_ms = await ring_state.clock_ms(conn)
+        return stored, ring, config, targets, ready_ms
 
     async def precheck(self, ctx, params) -> None:
         await self._gate(ctx, params)
 
     async def run(self, ctx, params) -> catalog.ScanResult:
-        stored, ring, config, targets = await self._gate(ctx, params)
+        stored, ring, config, targets, ready_ms = await self._gate(ctx, params)
         out: dict = {}
         complete = True
         stale = unopenable = base = 0
@@ -408,7 +411,7 @@ class Verify(_Base):
                         break
         if len(ring.members) > 1 and complete:
             # what a drop of the previous key would cost now (after the promote)
-            gates = await _gates(ctx, params.which, stored, allow_self=True)
+            gates = await _gates(ctx, params.which, stored, own_ms=ready_ms)
             await ctx.emit(Events.counted, _gate_counts(gates), [params.which.value])
         return catalog.ScanResult(
             complete=complete,
@@ -417,20 +420,22 @@ class Verify(_Base):
             values_stale=stale,
             values_unopenable=unopenable,
             gates=gates,
+            ring_version=stored.version if ready_ms else 0,
+            ready_at_ms=ready_ms or 0,
             **out,
         )
 
 
-async def _gates(ctx, which: Which, stored, *, allow_self: bool = False) -> catalog.Gates:
+async def _gates(ctx, which: Which, stored, *, own_ms: Optional[int] = None) -> catalog.Gates:
     """The counts a drop of the previous key depends on. For the signing secret
     they run from the moment every service was proven to sign with the new key
-    (``ring_state.ready_since``, a verify made after the promote), not from the
-    promote's own write: until the last service restarted it still signed with
-    the previous key."""
+    (``ring_state.ready_since``: the earliest verify that checked this ring
+    version), not from the promote's own write: until the last service restarted
+    it still signed with the previous key."""
     async with ctx.connection() as conn:
         if which is Which.aes:
             return catalog.Gates(checked=True, jobs_pending=await ring_state.jobs_pending(conn))
-        at = await ring_state.ready_since(conn, which, allow_self=allow_self)
+        at = await ring_state.ready_since(conn, which, stored.version, own_ms=own_ms)
         if at is None:
             raise Refusal("promotion_not_verified")
         return catalog.Gates(

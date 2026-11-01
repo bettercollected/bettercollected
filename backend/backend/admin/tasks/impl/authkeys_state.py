@@ -18,7 +18,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Sequence
 
 from cryptography.fernet import Fernet
@@ -197,39 +197,39 @@ async def drafts_on_previous(conn, cutoff: datetime) -> int:
     return value
 
 
-async def ready_since(conn, which: Which, *, allow_self: bool):
-    """When every service was last PROVEN to sign with the new key: the start of the
-    earliest succeeded ``authkeys.verify`` run of this ring that began after the
-    start of the last applied ``authkeys.promote`` (a verify refuses unless every
-    instance has restarted onto the promote's settings revision). Until then an
-    instance may still have been signing with the previous key, so every session
-    issued before this moment counts as on it. Both times are the runner's own
-    clock, so they compare with each other. ``allow_self``: the running verify
-    itself is such a proof (the database clock now) when no earlier one exists.
-    ``None`` when there is none (``promotion_not_verified``)."""
-    promoted = (
-        await conn.execute(
-            text(
-                "SELECT max(started_at) FROM tasks.runs WHERE task = 'authkeys.promote' "
-                "AND state = 'succeeded' AND NOT dry_run AND params ->> 'which' = :w"
-            ),
-            {"w": which.value},
-        )
-    ).scalar()
-    if promoted is None:  # never promoted: nothing to prove yet (a verify may still count)
-        return (await conn.execute(text("SELECT clock_timestamp()"))).scalar() if allow_self else None
+async def clock_ms(conn) -> int:
+    """The database clock now, in epoch milliseconds."""
+    return int(
+        (await conn.execute(text("SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint"))).scalar()
+    )
+
+
+async def ready_since(conn, which: Which, version: int, *, own_ms: Optional[int] = None):
+    """When every service was last PROVEN to hold the ring at ``version`` (the
+    stored row's version, i.e. the very write of the promote): the earliest
+    ``ready_at_ms`` among the succeeded ``authkeys.verify`` runs that checked that
+    version (a verify refuses unless every instance has restarted onto the
+    settings revision of the version it read). Until then an instance may still
+    have been signing with the previous key, so every session issued before this
+    moment counts as on it. Taken from the write's version, not from a promote
+    run's outcome: a promote that wrote the ring and then failed is the same
+    promote. ``own_ms``: the running verify's own proof. ``None`` when there is
+    none (``promotion_not_verified``)."""
     earliest = (
         await conn.execute(
             text(
-                "SELECT min(started_at) FROM tasks.runs WHERE task = 'authkeys.verify' "
-                "AND state = 'succeeded' AND params ->> 'which' = :w AND started_at >= :t"
+                "SELECT min((result ->> 'ready_at_ms')::bigint) FROM tasks.runs "
+                "WHERE task = 'authkeys.verify' AND state = 'succeeded' "
+                "AND params ->> 'which' = :w AND (result ->> 'ring_version')::integer = :v "
+                "AND coalesce((result ->> 'ready_at_ms')::bigint, 0) > 0"
             ),
-            {"w": which.value, "t": promoted},
+            {"w": which.value, "v": version},
         )
     ).scalar()
-    if earliest is None and allow_self:
-        earliest = (await conn.execute(text("SELECT clock_timestamp()"))).scalar()
-    return earliest
+    candidates = [m for m in (earliest, own_ms) if m]
+    if not candidates:
+        return None
+    return datetime.fromtimestamp(min(candidates) / 1000, tz=timezone.utc)
 
 
 def event_ids(ids: Sequence[int]) -> List[str]:

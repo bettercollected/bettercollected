@@ -757,10 +757,31 @@ BEGIN
           FROM app.sessions s
          WHERE s.revoked_at IS NULL
            AND s.expires_at > pg_catalog.now()
-           -- the date helpers of the schema read every stored form of a date; a
-           -- session with neither date counts as old (it cannot be shown to be new)
-           AND coalesce(app.bc_ts(s.doc -> 'rotated_at'), app.bc_ts(s.doc -> 'created_at'),
-                        '-infinity'::timestamptz) < p_before
+           -- every stored form of a date is read here (the same rule as the schema's
+           -- bc_ts helper, inlined: this function runs as bc_count_app and calls nothing of
+           -- another owner); a session with neither date counts as old
+           AND coalesce(
+                 CASE
+                      WHEN jsonb_typeof((s.doc -> 'rotated_at')) = 'object' AND jsonb_typeof((s.doc -> 'rotated_at') -> '$date') = 'string'
+                        THEN ((s.doc -> 'rotated_at') ->> '$date')::timestamptz
+                      WHEN jsonb_typeof((s.doc -> 'rotated_at')) = 'object' AND jsonb_typeof((s.doc -> 'rotated_at') -> '$date') = 'object'
+                        THEN to_timestamp((((s.doc -> 'rotated_at') -> '$date' ->> '$numberLong')::bigint) / 1000.0)
+                      WHEN jsonb_typeof((s.doc -> 'rotated_at')) = 'string' AND ((s.doc -> 'rotated_at') #>> '{}') ~ '(Z|[+-]\d\d:?\d\d)$'
+                        THEN ((s.doc -> 'rotated_at') #>> '{}')::timestamptz
+                      WHEN jsonb_typeof((s.doc -> 'rotated_at')) = 'string' AND ((s.doc -> 'rotated_at') #>> '{}') ~ '^\d{4}-\d\d-\d\d'
+                        THEN (((s.doc -> 'rotated_at') #>> '{}')::timestamp AT TIME ZONE 'UTC')
+                 END,
+                 CASE
+                      WHEN jsonb_typeof((s.doc -> 'created_at')) = 'object' AND jsonb_typeof((s.doc -> 'created_at') -> '$date') = 'string'
+                        THEN ((s.doc -> 'created_at') ->> '$date')::timestamptz
+                      WHEN jsonb_typeof((s.doc -> 'created_at')) = 'object' AND jsonb_typeof((s.doc -> 'created_at') -> '$date') = 'object'
+                        THEN to_timestamp((((s.doc -> 'created_at') -> '$date' ->> '$numberLong')::bigint) / 1000.0)
+                      WHEN jsonb_typeof((s.doc -> 'created_at')) = 'string' AND ((s.doc -> 'created_at') #>> '{}') ~ '(Z|[+-]\d\d:?\d\d)$'
+                        THEN ((s.doc -> 'created_at') #>> '{}')::timestamptz
+                      WHEN jsonb_typeof((s.doc -> 'created_at')) = 'string' AND ((s.doc -> 'created_at') #>> '{}') ~ '^\d{4}-\d\d-\d\d'
+                        THEN (((s.doc -> 'created_at') #>> '{}')::timestamp AT TIME ZONE 'UTC')
+                 END,
+                 '-infinity'::timestamptz) < p_before
     );
 END
 $fn$;
@@ -778,7 +799,18 @@ BEGIN
           FROM app.form_drafts d
          WHERE d.expires_at > pg_catalog.now()
            AND (d.doc ->> 'token_hash' IS NOT NULL OR d.doc ->> 'edit_key_hash' IS NOT NULL)
-           AND coalesce(app.bc_ts(d.doc -> 'created_at'), '-infinity'::timestamptz) < p_before
+           AND coalesce(
+                 CASE
+                      WHEN jsonb_typeof((d.doc -> 'created_at')) = 'object' AND jsonb_typeof((d.doc -> 'created_at') -> '$date') = 'string'
+                        THEN ((d.doc -> 'created_at') ->> '$date')::timestamptz
+                      WHEN jsonb_typeof((d.doc -> 'created_at')) = 'object' AND jsonb_typeof((d.doc -> 'created_at') -> '$date') = 'object'
+                        THEN to_timestamp((((d.doc -> 'created_at') -> '$date' ->> '$numberLong')::bigint) / 1000.0)
+                      WHEN jsonb_typeof((d.doc -> 'created_at')) = 'string' AND ((d.doc -> 'created_at') #>> '{}') ~ '(Z|[+-]\d\d:?\d\d)$'
+                        THEN ((d.doc -> 'created_at') #>> '{}')::timestamptz
+                      WHEN jsonb_typeof((d.doc -> 'created_at')) = 'string' AND ((d.doc -> 'created_at') #>> '{}') ~ '^\d{4}-\d\d-\d\d'
+                        THEN (((d.doc -> 'created_at') #>> '{}')::timestamp AT TIME ZONE 'UTC')
+                 END,
+                 '-infinity'::timestamptz) < p_before
     );
 END
 $fn$;
@@ -894,10 +926,10 @@ BEGIN
     -- admin.sessions_on_old_key() and admin.drafts_on_old_key() (auth key rotation): the
     -- dates and flags they count on; the functions return a number, never a row
     IF to_regclass('app.sessions') IS NOT NULL THEN
-        GRANT SELECT (id, revoked_at, expires_at, doc) ON app.sessions TO bc_count_app;
+        GRANT SELECT (revoked_at, expires_at, doc) ON app.sessions TO bc_count_app;
     END IF;
     IF to_regclass('app.form_drafts') IS NOT NULL THEN
-        GRANT SELECT (id, expires_at, doc) ON app.form_drafts TO bc_count_app;
+        GRANT SELECT (expires_at, doc) ON app.form_drafts TO bc_count_app;
     END IF;
     IF to_regclass('auth.users') IS NOT NULL THEN
         GRANT SELECT (id, doc, plan) ON auth.users TO bc_count_auth;

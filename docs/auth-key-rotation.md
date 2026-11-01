@@ -178,16 +178,23 @@ two-day delay). The queue is the only place counted: a job routed to Temporal (`
 | 6 | `authkeys.drop_old` | `which: jwt`, `keep_id` = `added_key_id`; `accept_sign_out` and `accept_draft_link_loss` when the counts above are not zero |
 | 7 | restart the services | |
 
-Step 5 is required: the counts start from the **first `verify` that succeeded after the promote**. A
-`verify` refuses unless every instance has restarted onto the promote's settings revision, so that run is the
-proof that no service signs with the old secret any more. (Counting from the promote itself would miss a
-session refreshed after it by a service that had not restarted yet: it still signs with the old key.)
+Step 5 is required: the counts start from the moment of the **first `verify` of the promoted ring** (the
+verify records the database clock when its readiness check passes and the ring version it read, so a promote that
+wrote the ring and then failed is the same promote). A `verify` refuses unless every instance has restarted onto
+the settings revision of that version, so that run is the proof that no service signs with the old secret any
+more. (Counting from the promote itself would miss a session refreshed after it by a service that had not
+restarted yet: it still signs with the old key.)
 Sessions refreshed between the promote and that verify are counted as old, so run it as soon as the restarts are
 done; without one `drop_old` refuses (`promotion_not_verified`). Step 5 is also the choice. Waiting `REFRESH_TOKEN_EXPIRY_IN_DAYS` days after the promote leaves nobody on the old
 key (every older refresh token has expired and unexpired drafts are bounded by their retention). Dropping
 sooner signs out `sessions_on_previous` people and ends `drafts_on_previous` saved-draft links; the dry
 run result says `ready: false` until you tick what you accept, and the real run refuses
 (`sign_out_not_accepted`, `draft_links_not_accepted`) without it.
+
+**An action-code compromise is not fixed by rotating the encryption key.** The actions executor runs creator
+code and holds a copy of the key (`AES_HEX_KEY`); rotating `AUTH_AES_HEX_KEY` while the executor still
+receives the new key gives whoever controls that code the new key too. Fix the executor first (isolate it, take
+the key away from it, or redeploy it clean), then rotate.
 
 **If a key leaked.** Do not wait: run steps 1 to 4, then `drop_old` with both statements. Everyone is
 signed out at their next request and has to sign in again; the dry run shows how many. For the
@@ -206,7 +213,7 @@ encryption key, run all eight steps; until `drop_old` the old key is still in th
 | `store_not_configured`, `store_unreachable`, `store_empty` | the data store is not configured for the runner, does not answer, or holds no sealed value | see the runner's environment in [admin-service.md](admin-service.md) |
 | `values_on_previous`, `values_not_readable` | values are still on the previous key, or no key opens them | run `reencrypt`; find the values (counts per table in the events) |
 | `scan_incomplete`, `stale_version` | the scan was cancelled; the settings changed during the run | run again |
-| `records_left_behind` (a failed `reencrypt`) | a record changed during the walk or did not read back as written, and still holds a value on the old key | run `reencrypt` again; the counts are in the run's events |
+| `records_left_behind` (a failed `reencrypt`) | a record changed during the walk or did not read back as written, and still holds a value on the old key | start `reencrypt` again as a new run (a dry run first), not a resume of the failed one; the counts are in the run's events |
 | `consumer_old_build` | a running instance reports a build without key-ring support | deploy the release to it |
 | `promotion_not_verified` | no `verify` of this ring succeeded after the promote | restart the services, run `authkeys.verify` |
 | `jobs_routing_unconfirmed` | the statement about Temporal-routed jobs was not ticked | tick it once it is true |
@@ -226,6 +233,14 @@ encryption key, run all eight steps; until `drop_old` the old key is still in th
   settings master key (keep `SETTINGS_MASTER_KEY` as long as such a backup is kept).
 * A stack that still holds a Mongo volume from the 4.0 import: values left in it are sealed with the old key.
   Keep the old key (stop before step 7) for as long as a rollback to 4.0 from that volume is possible.
+
+## Upgrading to the release with key rings
+
+The sign-in code hash and the PKCE verifiers of the Sheets and Google Forms OAuth flows are derived from the
+encryption key as one parser now reads it: surrounding spaces and one pair of quotes removed. A key stored with
+quotes or spaces therefore gives different codes and verifiers across the upgrade: a sign-in code or an OAuth
+authorization started before it and finished after fails once and is started again. A key without them is
+unchanged, and so is a single signing secret (it is used exactly as configured).
 
 ## Limits and notes
 

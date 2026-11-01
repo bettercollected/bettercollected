@@ -269,6 +269,12 @@ class ScanResult(Result):
     values_stale: int = 0
     values_unopenable: int = 0
     gates: Optional[Gates] = None
+    # a verify of a ring under rotation: the ring version it checked and the
+    # database clock (epoch milliseconds) at the moment every service was found
+    # ready for it. ``drop_old`` counts the signing secret's sessions and drafts
+    # from the earliest such moment of the version it drops.
+    ring_version: int = 0
+    ready_at_ms: int = 0
 
 
 class DropOldResult(Result):
