@@ -36,10 +36,20 @@ service replies with the street and the city, which fill the two boxes; the resp
 
 Per client and form 30 lookups a minute, per form 600 a minute (`API_ADDRESS_LOOKUP_PER_WINDOW`,
 `API_ADDRESS_LOOKUP_FORM_PER_WINDOW`, `API_ADDRESS_LOOKUP_WINDOW_SECONDS`; 429 with `Retry-After` beyond).
+Before any of that, one client may send at most four times the per-client limit to one backend process per window
+(in memory, no database query; 429 beyond), and a form that cannot be looked up is remembered for 30 seconds, so
+guessing form addresses costs the database next to nothing.
 At most 8 lookups run at once per process, and after five failures in a row the lookup pauses for 30 seconds.
 When the service cannot answer, the respondent is told to type the address and nothing else changes.
 
 ## Before you turn the lookup on
+
+Behind a reverse proxy or a load balancer, set `TRUSTED_PROXIES` to the proxy's address (or the network between
+the proxy and the backend) first. The limits above are counted per client address, and without it the backend sees
+only the proxy: every respondent then shares one bucket, so a busy form is refused after 30 lookups a minute for
+everybody. The same happens for requests whose client address cannot be read at all: they count together as
+"unknown". The backend logs a warning once when it sees forwarding headers from a private address while
+`TRUSTED_PROXIES` is empty.
 
 Check it once by hand with an address you know: publish a form with an address question, open it, type the
 postcode and the house number and see the street and the city fill in. The query and the reply follow the

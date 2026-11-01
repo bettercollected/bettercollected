@@ -1,5 +1,5 @@
 {
-  "description": "Countries an address question can take: ISO 3166-1 alpha-2 codes. The Python list (common/common/countries.py) and the webapp's (webapp/src/utils/countries.ts) are each compared with this file by their tests, so they cannot drift apart.",
+  "description": "Countries an address question can take: ISO 3166-1 alpha-2 codes. The Python list (common/common/countries.py) is compared with this file by its tests, so they cannot drift apart; any other implementation should do the same.",
   "maxCountries": 30,
   "codes": [
     "AD",

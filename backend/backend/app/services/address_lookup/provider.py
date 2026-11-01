@@ -18,7 +18,7 @@ the service (docs/address-question.md names it for operators):
   bounded. One attempt: the lookup is on a respondent's request path;
 - the reply is untrusted: JSON, ``response.docs`` a list, and a document only
   counts when its postcode and house number are the ones asked for and its
-  street and place are clean text. Several different (street, place) pairs are
+  street and place are clean text (trimmed, in Unicode form C). Several different (street, place) pairs are
   "not found": the lookup never guesses.
 
 Errors are our codes (:class:`LookupUnavailable`), never the service's text, a
@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Awaitable, Callable, List, Optional, Sequence, Tuple
 
@@ -124,7 +125,13 @@ async def http_transport(query: Query) -> bytes:
 
 
 def _clean(value: object, limit: int) -> Optional[str]:
-    return value if isinstance(value, str) and is_clean_text(value, limit) else None
+    """``value`` trimmed and in Unicode form C when that is clean text of an
+    address part, else None (the service's spelling of a place is not ours to
+    keep byte for byte: a stored part is always trimmed and in form C)."""
+    if not isinstance(value, str):
+        return None
+    value = unicodedata.normalize("NFC", value.strip())
+    return value if is_clean_text(value, limit) else None
 
 
 def parse_reply(body: bytes, postcode: str, number: str) -> Optional[Place]:

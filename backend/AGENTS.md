@@ -1109,8 +1109,9 @@ write-only secret) and per form choose the **variables** sent as a Generic JSON 
 
 Field type `address` (answer slot `address`: `street`, `house_number`, `house_number_addition`, `postcode`, `city`,
 `country`; settings `properties.countries` (ISO 3166-1 alpha-2, default NL only) and `properties.address_lookup`).
-The rules of a value are the pure functions of `common/address.py` (twin `webapp/src/utils/address.ts`; country list
-`common/countries.py`, twin `utils/countries.ts`, both compared with `docs/spec/countries-v1.json`):
+The rules of a value are the pure functions of `common/address.py` (the webapp's twins, `utils/address.ts` and
+`utils/countries.ts`, land with the webapp change; the country list `common/countries.py` is compared with
+`docs/spec/countries-v1.json`):
 `answer_validation` calls `address.hard_problem` (any stored answer) and `address.problems` (an answered, shown
 question: `required`, `format`, `country`, `too_long`). Spec section "Address question" in `docs/spec/README.md`; operator
 notes in `docs/address-question.md`. Behind `ADDRESS_QUESTION_ENABLED` (default off): a second `Gate` in

@@ -104,7 +104,7 @@ def test_clean_text(value):
 
 
 @pytest.mark.parametrize(
-    "value", ["", " x", "x ", "x\n", "x​", "x‮", "x­", "﻿x", "x y", "é", "x" * 101, None, 5]
+    "value", ["", " x", "x ", "x\n", "x​", "x‮", "x­", "﻿x", "x y", "é", "x" * 101, None, 5, "\ud800", "x\udc00y", "x\ue000", "x\u0378"]
 )
 def test_not_clean_text(value):
     assert not address.is_clean_text(value, 100)
@@ -147,7 +147,6 @@ def test_nothing_is_said_about_an_address_that_is_not_there():
 
 def test_a_missing_part_is_required_once():
     assert address.problems(_parts(street=None, city=None, postcode=None)) == ["required"]
-    assert address.problems({"country": "NL"}) == ["required"]
     assert address.problems(_parts(country=None), ["NL", "BE"]) == ["required"]
 
 
@@ -175,6 +174,20 @@ def test_a_rule_is_reported_once_however_many_parts_break_it():
 def test_a_long_part_is_too_long_and_not_also_a_format_problem():
     assert address.problems(_parts(street="x" * 101)) == ["too_long"]
     assert address.problems(_parts(postcode="1" * 13)) == ["too_long"]
+
+
+def test_a_country_alone_is_no_answer_for_the_rules():
+    assert address.problems({"country": "NL"}) == []
+    assert address.problems({"country": "NL", "street": ""}) == []
+    assert address.problems({"country": "XX"}) == []
+    assert address.problems({"country": "NL", "street": "x"}) != []
+
+
+def test_a_part_that_cannot_be_written_as_utf8_is_refused():
+    for bad in ("\ud800", "Keizers\udfffgracht"):
+        assert address.hard_problem(_parts(street=bad)) == "format"
+        with pytest.raises(UnicodeEncodeError):
+            bad.encode()
 
 
 def test_any_part_but_the_country():

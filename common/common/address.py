@@ -10,9 +10,9 @@ below. A Dutch address (``NL``) is held to the Dutch forms: a postcode written
 and a house number of one to five digits.
 
 Nothing here knows whether an address exists: a street and a city that a lookup
-filled in are as unverified as ones typed. The webapp keeps the same rules
-(``webapp/src/utils/address.ts``); the shared answer-validation corpus
-(``docs/spec/answer-validation.cases.json``) runs against both.
+filled in are as unverified as ones typed. The shared answer-validation corpus
+(``docs/spec/answer-validation.cases.json``) holds the cases; the webapp's twin of these
+rules (``webapp/src/utils/address.ts``) comes with the webapp change and runs the same corpus.
 """
 
 import re
@@ -47,9 +47,11 @@ PART_MAX = {
 }
 
 # Control (Cc), format (Cf: zero-width and bidirectional marks, the byte order
-# mark, the soft hyphen) and line/paragraph separators (Zl, Zp) never belong in
-# an address: they reverse or hide text in a view and defeat a comparison.
-_FORBIDDEN_CATEGORIES = frozenset({"Cc", "Cf", "Zl", "Zp"})
+# mark, the soft hyphen), line/paragraph separators (Zl, Zp), lone surrogates
+# (Cs: they cannot be encoded as UTF-8, so a JSON write or an export would
+# fail), private use (Co) and unassigned code points (Cn) never belong in an
+# address: they reverse or hide text in a view and defeat a comparison.
+_FORBIDDEN_CATEGORIES = frozenset({"Cc", "Cf", "Cn", "Co", "Cs", "Zl", "Zp"})
 
 NL = "NL"
 # 1234 AB: the first digit is never 0; the letters are never SA, SD or SS.
@@ -145,7 +147,7 @@ def one_line(value: Any) -> str:
     """The address as one line for a table, an export or a message:
     ``street number addition, postcode city`` and the country code when it is
     not ``NL``. A part that is missing is left out; not an address: ``""``.
-    (Twin of the webapp's ``addressLine``.)"""
+    (The webapp's ``addressLine`` follows the same shape.)"""
     if not isinstance(value, dict):
         return ""
 
@@ -214,8 +216,9 @@ def problems(value: Any, allowed_countries: Optional[List[str]] = None) -> List[
     ``format`` (a part is not what its country writes, the country not a
     code), ``country`` (not one the question allows), ``too_long``. A single
     allowed country is assumed when none is given. Nothing for something that
-    is not an address answer or has no part at all (Required's to say)."""
-    if not is_shape(value) or not any(value.values()):
+    is not an address answer or has no part at all (a country alone counts as none:
+    Required's to say)."""
+    if not is_shape(value) or not has_any_part(value):
         return []
     allowed = list(allowed_countries or [NL])
     found: List[str] = []

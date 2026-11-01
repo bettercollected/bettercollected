@@ -1,8 +1,8 @@
 """Countries an ``address`` question can take: ISO 3166-1 alpha-2 codes.
 
-An address answer carries its country as one of these codes (``NL``). The
-webapp keeps the same list (``webapp/src/utils/countries.ts``);
-``docs/spec/countries-v1.json`` is the copy both tests compare with. Names are
+An address answer carries its country as one of these codes (``NL``). ``docs/spec/countries-v1.json`` is the copy the tests compare with; the
+webapp's list (``webapp/src/utils/countries.ts``, with the webapp change) is
+compared with it too. Names are
 not kept here: a browser writes them in the respondent's language
 (``Intl.DisplayNames``), and the server only ever needs the code.
 """

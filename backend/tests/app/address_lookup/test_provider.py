@@ -176,12 +176,21 @@ def test_a_fuzzy_match_is_not_the_address_asked_for():
         _doc(straatnaam=12),
         _doc(straatnaam="x" * 101),
         _doc(woonplaatsnaam="Amster​dam"),
-        _doc(straatnaam=" Keizersgracht"),
+        _doc(straatnaam="\ud800"),
+        _doc(woonplaatsnaam="Amster\ue000dam"),
+        _doc(woonplaatsnaam="Amster\u0378dam"),
         _doc(woonplaatsnaam=["Amsterdam"]),
     ],
 )
 def test_text_that_is_not_clean_is_dropped(doc):
     assert provider.parse_reply(_body(doc), "1015CS", "12") is None
+
+
+def test_the_services_spelling_is_trimmed_and_put_in_unicode_form_c():
+    # "Café" with a combining accent, and a space around the street
+    docs = [_doc(straatnaam=" Keizersgracht ", woonplaatsnaam="Cafe\u0301")]
+    place = provider.parse_reply(_body(*docs), "1015CS", "12")
+    assert place == provider.Place(street="Keizersgracht", city="Caf\u00e9")
 
 
 @pytest.mark.parametrize(

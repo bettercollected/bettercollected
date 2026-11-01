@@ -367,7 +367,7 @@ def answer_value(answers: Dict[str, Any], field_: Dict[str, Any], separator: Opt
         return _join((t for t in tags if isinstance(t, str)), separator if separator is not None else "; ") if isinstance(tags, list) else ""
     if kind == "address":
         # one cell, one line: "street number addition, postcode city" and the
-        # country code unless NL (webapp ``addressLine``)
+        # country code unless NL
         return address_line(_get(answer, "address"))
     if kind == "yes_no":
         flag = answer.get("boolean")

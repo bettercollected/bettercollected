@@ -228,8 +228,8 @@ def new_or_changed_questions(
 
 
 def ensure_question_types_allowed(form: Any, existing: Any = None) -> None:
-    """While a switch is off, refuse (422 ``question_type_disabled`` or
-    ``signature_question_disabled``) a save that brings a new gated question
+    """While a switch is off, refuse (422, with the code of the gate that is
+    off, e.g. ``question_type_disabled`` or ``address_question_disabled``) a save that brings a new gated question
     or changes the type or settings of one. Questions stored and unchanged
     pass."""
     for gate in gates_off():
