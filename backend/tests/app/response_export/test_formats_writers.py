@@ -118,6 +118,21 @@ def test_sheet_names_follow_excels_rules():
     assert len(sheet_name("\U0001f600" * 20, [emoji]).encode("utf-16-le")) // 2 <= 31
 
 
+def test_a_name_left_equal_once_illegal_characters_are_gone_is_still_unique():
+    taken: List[str] = []
+    for raw in ["A\ufffe", "A", "a\uffff", "\x00"]:
+        taken.append(sheet_name(raw, taken))
+    assert taken == ["A", "A (2)", "a (3)", "Sheet"]
+
+
+def test_illegal_characters_go_before_the_formula_check():
+    for value in ("\x00=1+1", "\ufffe@SUM(A1)", "\x01\x02-2+3"):
+        xml = xlsx_module.cell_xml("A1", value)
+        assert f's="{xlsx_module.STYLE_TEXT}"' in xml, value
+        assert "\x00" not in xml and "\ufffe" not in xml
+    assert xlsx_module.cell_xml("A1", "\x00\x01") == ""
+
+
 def test_dates_are_serials_only_when_they_are_iso_dates():
     assert date_serial("2026-10-01", "date") == 46296.0
     assert date_serial("2026-10-01T12:00:00Z", "datetime") == 46296.5

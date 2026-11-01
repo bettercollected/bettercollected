@@ -224,8 +224,9 @@ read. A respondent's own copy is not served by this route.
   reading order, the document language and title, and its page numbers are artifacts. It has not been
   validated against PDF/UA and is not claimed to conform.
 * **Limits and audit.** `PDF_REQUESTS_PER_WINDOW` (60) per user and workspace per hour, apart from the 10
-  exports an hour (a reviewer reads many responses); 429 `rate_limited` with `Retry-After`. A PDF that is
-  refused or fails does not use up the budget. One audit entry like an export's (channel `response_pdf`, kind
+  exports an hour (a reviewer reads many responses); 429 `rate_limited` with `Retry-After`. A request is
+  given back only when no drawing started (no free slot, 429 `export_busy`, or a failure before it); a PDF
+  refused as too large (413 `pdf_too_large`) was drawn and counts. One audit entry like an export's (channel `response_pdf`, kind
   `stream`, format `pdf`, the response id in `filters`, one row; no title, name or answer) is stored
   **before** the bytes are sent: if it cannot be stored the request fails. A request refused for 403, 404 or
   by the budget writes none. Nothing of the response is logged.

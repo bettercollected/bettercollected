@@ -434,17 +434,18 @@ async def test_the_pdf_has_its_own_budget_apart_from_the_exports(client, workspa
     assert len(mine) == 2
 
 
-async def test_a_pdf_that_is_too_long_is_refused_and_does_not_use_up_the_budget(client, workspace, monkeypatch):
+async def test_a_pdf_that_is_too_long_is_refused_and_still_uses_up_the_budget(client, workspace, monkeypatch):
+    # its drawing cost the CPU: giving the request back would let refusals repeat for free
     monkeypatch.setattr(render, "MAX_PAGES", 1)
     monkeypatch.setattr(limits, "PDF_REQUESTS_PER_WINDOW", 1)
     form = await publish(workspace)
     stored = await submit(workspace, form, {"name": {"type": "text", "text": "word " * 4000}})
-    for _ in range(2):
-        refused = await fetch_pdf(client, workspace, stored.response_id)
-        assert refused.status_code == 413 and refused.json()["code"] == "pdf_too_large"
-    assert await audit(workspace, form) == []
+    refused = await fetch_pdf(client, workspace, stored.response_id)
+    assert refused.status_code == 413 and refused.json()["code"] == "pdf_too_large"
     monkeypatch.setattr(render, "MAX_PAGES", 200)
-    assert (await fetch_pdf(client, workspace, stored.response_id)).status_code == 200
+    again = await fetch_pdf(client, workspace, stored.response_id)
+    assert again.status_code == 429 and again.json()["code"] == "rate_limited"
+    assert await audit(workspace, form) == []
 
 
 async def test_a_pdf_whose_audit_entry_cannot_be_stored_is_not_handed_out(client, workspace, monkeypatch):
@@ -524,6 +525,29 @@ def test_a_document_of_unbroken_answers_is_refused_quickly_not_laid_out_for_ever
     except render.PdfTooLarge:
         pass  # (the page cap may say so first)
     assert time.monotonic() - started < 5.0
+
+
+def test_a_long_title_is_cut_for_the_footer_in_linear_time():
+    import time
+
+    started = time.monotonic()
+    cut = render.ellipsize("W" * 200_000, render.REGULAR, render.FOOTER_SIZE, render.CONTENT_WIDTH - 90)
+    assert time.monotonic() - started < 1.0
+    assert cut.endswith("\u2026") and cut[:-1] == "W" * (len(cut) - 1)
+    assert render.text_width(cut, render.REGULAR, render.FOOTER_SIZE) <= render.CONTENT_WIDTH - 90
+    assert render.ellipsize("short", render.REGULAR, render.FOOTER_SIZE, 200) == "short"
+    assert render.ellipsize("W", render.REGULAR, render.FOOTER_SIZE, 1.0) == "\u2026"
+
+
+def test_a_form_title_of_any_length_draws_its_footer_quickly():
+    import time
+
+    fields = [{"id": f"q{i}", "type": "long_text", "title": f"Q{i}"} for i in range(8)]
+    given = {f"q{i}": text("word " * 4000) for i in range(8)}
+    started = time.monotonic()
+    data = render_of(fields, given, title="T" * 10_000)
+    assert time.monotonic() - started < 10.0
+    assert len(PdfReader(io.BytesIO(data)).pages) > 20
 
 
 def test_the_total_text_and_the_layout_time_are_bounded(monkeypatch):

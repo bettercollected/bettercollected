@@ -160,12 +160,18 @@ def text_width(text: str, font: str, size: float) -> float:
 
 
 def ellipsize(text: str, font: str, size: float, width: float) -> str:
-    """``text`` cut with an ellipsis so that it fits ``width``."""
-    if text_width(text, font, size) <= width:
-        return text
-    while text and text_width(text + "\u2026", font, size) > width:
-        text = text[:-1]
-    return text.rstrip() + "\u2026"
+    """``text`` cut with an ellipsis so that it fits ``width``, in one pass over
+    it (a form title has no length limit)."""
+    room = width - _char_width("\u2026", font, size)
+    used = 0.0
+    cut = None
+    for index, ch in enumerate(text):
+        used += _char_width(ch, font, size)
+        if cut is None and used > room:
+            cut = index
+        if used > width:
+            return text[:cut].rstrip() + "\u2026"
+    return text
 
 
 def _break_word(word: str, font: str, size: float, width: float) -> List[str]:
@@ -369,6 +375,7 @@ def _draw(document: PdfDocument, layout: Layout) -> bytes:
     pdf.setCreator("BetterCollected")
     pdf.setProducer("BetterCollected")
     total = len(layout.pages)
+    footer = ellipsize(clean_text(document.footer.replace("\n", " ")), REGULAR, FOOTER_SIZE, CONTENT_WIDTH - 90)
     for index, page in enumerate(layout.pages):
         mcid = 0
         for line in page:
@@ -387,7 +394,6 @@ def _draw(document: PdfDocument, layout: Layout) -> bytes:
         pdf._code.append("/Artifact << /Type /Pagination >> BDC")
         pdf.setFont(REGULAR, FOOTER_SIZE)
         pdf.setFillColorRGB(*MUTED)
-        footer = ellipsize(clean_text(document.footer.replace("\n", " ")), REGULAR, FOOTER_SIZE, CONTENT_WIDTH - 90)
         pdf.drawString(MARGIN, FOOTER_Y, footer)
         number = clean_text(document.page_label.format(n=index + 1, total=total))
         pdf.drawRightString(PAGE_WIDTH - MARGIN, FOOTER_Y, number)
