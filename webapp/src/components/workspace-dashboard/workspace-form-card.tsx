@@ -142,7 +142,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                         {showProviderChip && <FormProviderIcon provider={providerForIcon} />}
                         {showVisibility && (
                             <Tooltip label={form?.settings?.private ? t(toolTipConstant.hideForm) : ''}>
-                                <div className="fap-2 flex items-center">
+                                <div className="gap-2 flex items-center">
                                     {showProviderChip && <DotIcon />}
                                     {form?.isPublished || isResponderPortal ? (
                                         <div className="text-black-600 flex items-center">
