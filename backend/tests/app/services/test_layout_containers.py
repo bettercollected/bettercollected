@@ -860,6 +860,236 @@ def test_ensure_valid_layout_repairs_and_refuses():
     assert error.value.content["errors"][0]["pageId"] == "p1"
 
 
+# --- guards: moves, ids and the size of a rule ------------------------------------
+
+RULE_ON_A = {
+    "action": "SHOW",
+    "operator": "AND",
+    "conditions": [{"fieldId": "a", "comparison": "IS_EQUAL", "value": "x"}],
+}
+
+
+def guarded_form():
+    """A page ``a b [c d] e`` whose panel shows when ``a`` says so."""
+    return form_of(
+        {
+            "fields": [q("a"), q("b"), q("c"), q("d"), q("e")],
+            "containers": [panel("c1", "c", "d", logic=RULE_ON_A)],
+        }
+    )
+
+
+def test_a_move_that_would_break_a_container_rule_is_refused_and_leaves_no_trace():
+    form = guarded_form()
+    before = form.model_dump(mode="json")
+    for op, text in (
+        # the question the rule reads goes below the container
+        (
+            {"op": "move_field", "fieldId": "a", "index": 4},
+            "can only read questions before",
+        ),
+        # ... or inside it, where it becomes one of its own questions
+        (
+            {"op": "move_field", "fieldId": "a", "index": 2},
+            "cannot read one of its own",
+        ),
+    ):
+        after, results = apply(form, op, atomic=True)
+        assert not results[0].ok
+        assert "would break a layout container" in results[0].message, results[
+            0
+        ].message
+        assert text in results[0].message
+        assert after.model_dump(mode="json") == before
+    # the engine's own copy is untouched too: a partial batch carries on
+    after, results = apply(
+        form,
+        {"op": "move_field", "fieldId": "a", "index": 4},
+        {"op": "move_field", "fieldId": "b", "index": 4},
+    )
+    assert [r.ok for r in results] == [False, True]
+    assert ids_of(after) == ["a", "c", "d", "e", "b"]
+    assert members_of(containers_of(after)[0]) == ["c", "d"]
+    assert containers_of(after)[0].logic is not None
+
+
+def test_a_move_the_rule_does_not_care_about_still_applies():
+    form = guarded_form()
+    # out of the container: the rule goes with the container, which keeps c
+    after, results = apply(form, {"op": "move_field", "fieldId": "d", "index": 0})
+    assert all(r.ok for r in results)
+    assert members_of(containers_of(after)[0]) == ["c"]
+    # the rule's question moved up, still before the container
+    after, results = apply(form, {"op": "move_field", "fieldId": "b", "index": 0})
+    assert all(r.ok for r in results)
+    assert form_problems(after) == []
+
+
+def test_a_move_in_a_form_that_already_has_a_problem_is_not_blamed_for_it():
+    form = guarded_form()
+    # a rule that reads a question that does not exist: stored as it was
+    containers_of(form)[0].logic.conditions.append(
+        containers_of(form)[0]
+        .logic.conditions[0]
+        .model_copy(update={"field_id": "gone"})
+    )
+    assert form_problems(form)
+    _, results = apply(form, {"op": "move_field", "fieldId": "b", "index": 4})
+    assert results[0].ok
+
+
+def test_a_page_move_that_would_break_a_container_rule_is_refused():
+    form = form_of(
+        [q("a")],
+        {
+            "fields": [q("b"), q("c")],
+            "containers": [panel("c1", "b", "c", logic=RULE_ON_A)],
+        },
+        [q("z")],
+    )
+    before = form.model_dump(mode="json")
+    for page_id, index in (("p1", 2), ("p2", 0)):
+        after, results = apply(
+            form, {"op": "move_page", "pageId": page_id, "index": index}, atomic=True
+        )
+        assert not results[0].ok
+        assert "would break a layout container" in results[0].message
+        assert after.model_dump(mode="json") == before
+    after, results = apply(form, {"op": "move_page", "pageId": "p3", "index": 0})
+    assert results[0].ok
+
+
+def test_a_container_or_tab_id_is_never_the_id_of_a_question_or_page():
+    fields = [q("a"), q("b"), q("c1")]
+    clash = problems(form_of({"fields": fields, "containers": [panel("c1", "a", "b")]}))
+    assert any("also the id of a question or page" in m for m in clash)
+    group = {
+        "id": "g",
+        "type": "group",
+        "title": "People",
+        "properties": {"repeat": {"minItems": 1, "maxItems": 3}, "fields": [q("t1")]},
+    }
+    tab_clash = problems(
+        form_of(
+            {
+                "fields": [q("a"), group],
+                "containers": [
+                    {
+                        "id": "k",
+                        "type": "tabs",
+                        "tabs": [{"id": "t1", "title": "One", "fields": ["a"]}],
+                    }
+                ],
+            }
+        )
+    )
+    assert any("also the id of a question or page" in m for m in tab_clash)
+    page_clash = problems(
+        form_of(
+            {"fields": [q("a"), q("b")], "containers": [panel("p2", "a", "b")]},
+            [q("x")],
+        )
+    )
+    assert any("also the id of a question or page" in m for m in page_clash)
+    with pytest.raises(HTTPException) as error:
+        ensure_valid_layout(
+            form_of({"fields": fields, "containers": [panel("c1", "a", "b")]})
+        )
+    assert error.value.content["code"] == "invalid_layout"
+
+
+def test_made_up_ids_and_page_copies_skip_the_ids_of_questions():
+    form = form_of([q("c1"), q("t1"), q("x")])
+    after, results = apply(
+        form,
+        {
+            "op": "set_page_containers",
+            "pageId": "p1",
+            "containers": [
+                {
+                    "type": "tabs",
+                    "tabs": [
+                        {"title": "One", "fields": ["c1"]},
+                        {"title": "Two", "fields": ["t1"]},
+                    ],
+                },
+                {"type": "panel", "title": "Rest", "fields": ["x"]},
+            ],
+        },
+    )
+    assert results[0].ok, results[0].message
+    ids = [c.id for c in containers_of(after)]
+    assert ids == ["c2", "c3"]
+    assert [t.id for t in containers_of(after)[0].tabs] == ["t2", "t3"]
+    assert form_problems(after) == []
+    # a question named like the next free id
+    form = form_of(
+        {"fields": [q("a"), q("b")], "containers": [panel("c1", "a", "b")]},
+        [q("c2")],
+    )
+    after, results = apply(form, {"op": "duplicate_page", "pageId": "p1"})
+    assert results[0].ok
+    assert after.fields[1].properties.containers[0].id == "c3"
+    assert form_problems(after) == []
+    refused = apply(
+        form_of([q("a")]),
+        {
+            "op": "set_page_containers",
+            "pageId": "p1",
+            "containers": [{"id": "a", "type": "panel", "title": "A", "fields": ["a"]}],
+        },
+        atomic=True,
+    )[1]
+    assert not refused[0].ok and "also the id" in refused[0].message
+
+
+def test_a_container_rule_has_a_cap_on_its_conditions():
+    def rule(n):
+        return {
+            "action": "SHOW",
+            "operator": "OR",
+            "conditions": [
+                {"fieldId": "a", "comparison": "IS_EQUAL", "value": str(i)}
+                for i in range(n)
+            ],
+        }
+
+    LayoutContainer.model_validate(panel("c1", "b", logic=rule(20)))
+    with pytest.raises(ValidationError, match="at most 20 conditions"):
+        LayoutContainer.model_validate(panel("c1", "b", logic=rule(21)))
+    # the structure check says it too, for a container built without the model
+    page = StandardFormField.model_validate(
+        {
+            "id": "p1",
+            "type": "slide",
+            "properties": {"fields": [q("a"), q("b")]},
+        }
+    )
+    page.properties.containers = [
+        LayoutContainer.model_construct(
+            **{
+                **panel("c1", "b"),
+                "logic": {"action": "SHOW", "conditions": rule(21)["conditions"]},
+            }
+        )
+    ]
+    from common.layout_containers import container_problems
+
+    assert any("at most 20 conditions" in m for _, m in container_problems(page))
+    after, results = apply(
+        form_of([q("a"), q("b"), q("c")]),
+        {
+            "op": "set_page_containers",
+            "pageId": "p1",
+            "containers": [
+                {"type": "panel", "title": "T", "fields": ["b", "c"], "logic": rule(21)}
+            ],
+        },
+        atomic=True,
+    )
+    assert not results[0].ok and "at most 20 conditions" in results[0].message
+
+
 # --- the paths a save goes through (database) -------------------------------------
 
 
