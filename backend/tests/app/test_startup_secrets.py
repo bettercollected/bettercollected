@@ -56,6 +56,33 @@ def test_starts_with_its_own_values():
     assert result.returncode == 0, result.stderr[-2000:]
 
 
+OTHER_JWT = "c" * 64
+OTHER_FERNET = base64.urlsafe_b64encode(b"g" * 32).decode()
+
+
+def test_starts_with_a_key_ring_of_two():
+    """A rotation under way: ``<current>,<previous>`` for both keys (docs/auth-key-rotation.md)."""
+    result = start(f"{GOOD_JWT},{OTHER_JWT}", f"{GOOD_FERNET},{OTHER_FERNET}")
+    assert result.returncode == 0, result.stderr[-2000:]
+
+
+@pytest.mark.parametrize(
+    "jwt_secret, fernet_key, problem",
+    [
+        (GOOD_JWT, f"{GOOD_FERNET},not-a-key", "AUTH_AES_HEX_KEY is not a Fernet key"),
+        (GOOD_JWT, f"{GOOD_FERNET},{GOOD_FERNET}", "AUTH_AES_HEX_KEY holds more than two keys or the same key twice"),
+        (GOOD_JWT, f"{GOOD_FERNET},{OTHER_FERNET},{GOOD_FERNET}", "AUTH_AES_HEX_KEY holds more than two keys"),
+        (f"{GOOD_JWT},{GOOD_JWT}", GOOD_FERNET, "AUTH_JWT_SECRET holds more than two keys or the same key twice"),
+    ],
+    ids=["ring-bad-member", "ring-same-twice", "ring-three", "jwt-ring-same-twice"],
+)
+def test_a_bad_ring_is_refused(jwt_secret, fernet_key, problem):
+    result = start(jwt_secret, fernet_key)
+    assert result.returncode != 0
+    assert problem in result.stderr
+    assert GOOD_FERNET not in result.stderr and OTHER_FERNET not in result.stderr
+
+
 @pytest.mark.parametrize(
     "jwt_secret, fernet_key, problem",
     [

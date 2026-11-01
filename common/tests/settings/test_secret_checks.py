@@ -182,8 +182,8 @@ def test_formats_belong_to_the_right_kind_of_setting():
 def test_the_inventory_names_a_format_for_exactly_the_key_material():
     with_format = {s.key: s.format for s in inventory.INVENTORY if s.is_secret and s.format}
     assert with_format == {
-        "AUTH_JWT_SECRET": "token",
-        "AUTH_AES_HEX_KEY": "fernet",
+        "AUTH_JWT_SECRET": "token_ring",
+        "AUTH_AES_HEX_KEY": "fernet_ring",
         "AUTH_INTERNAL_NOTIFY_KEY": "token",
         "TEMPORAL_API_KEY": "token",
         "MASTER_ENCRYPTION_KEYSET": "tink_keyset",
