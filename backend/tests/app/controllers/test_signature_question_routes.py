@@ -371,6 +371,32 @@ async def test_an_edit_that_redraws_or_retypes_deletes_the_replaced_image(
     assert forged.status_code == 422, forged.text
 
 
+async def test_an_edit_cannot_replace_the_stored_drawing_through_another_question(
+    client, workspace, signed_form, store, test_user_cookies
+):
+    form_id = signed_form.form_id
+    common_url = f"{API}/workspaces/{workspace.id}"
+    await _allow_editing(client, common_url, form_id, test_user_cookies)
+    submitted = await _submit(client, workspace, form_id, _answers(method="drawn", file_id="img-1"), files=[("sig", "img-1", _png())], cookies=test_user_cookies)
+    assert submitted.status_code == 200, submitted.text
+    response_id = await _response_id(workspace, form_id)
+    key = f"private/{workspace.id}/{form_id}/{response_id}/img-1"
+    clean = store.objects[key]
+    for field_id in ("name", "no-such-question"):
+        forged = await client.patch(
+            f"{common_url}/forms/{form_id}/response/{response_id}",
+            data={
+                "response": json.dumps({"answers": {"name": {"type": "text", "text": "Ada"}}}),
+                "file_field_ids": [field_id],
+                "file_ids": ["img-1"],
+            },
+            files=[("files", ("x.svg", b"<svg onload=alert(1)>", "image/svg+xml"))],
+            cookies=test_user_cookies,
+        )
+        assert forged.status_code == 422, forged.text
+        assert list(store.objects) == [key] and store.objects[key] == clean
+
+
 # --- the switch on every write path ---------------------------------------------------------
 
 

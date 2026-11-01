@@ -94,7 +94,11 @@ from backend.app.services.field_rules import (
     rule_keys_affected,
 )
 from backend.app.services.new_question_types import ensure_question_types_allowed
-from backend.app.services.signatures import delete_stored_images, prepare_signatures
+from backend.app.services.signatures import (
+    delete_stored_images,
+    prepare_signatures,
+    signature_throttle,
+)
 from backend.app.services.option_logic import (
     ensure_choice_logic_allowed,
     ensure_valid_option_logic,
@@ -1091,6 +1095,7 @@ class WorkspaceFormService:
         form_files: Optional[Any],
         response: StandardFormResponseCamelModel,
         user: User,
+        client_ip: Optional[str] = None,
     ):
         workspace_forms = (
             await self.workspace_form_repository.get_workspace_forms_in_workspace(
@@ -1221,7 +1226,11 @@ class WorkspaceFormService:
         # A signature question's drawn image is checked and re-encoded, and a
         # changed signature is stamped by the server (services/signatures.py).
         prepared = await prepare_signatures(
-            form, response.answers, form_files, stored=stored_answers
+            form,
+            response.answers,
+            form_files,
+            stored=stored_answers,
+            throttle=lambda: signature_throttle(workspace_id, form_id, client_ip),
         )
         response.answers, form_files = prepared.answers, prepared.form_files
 
@@ -1248,7 +1257,7 @@ class WorkspaceFormService:
             user=user,
         )
         # the images the edit replaced go only once the edit is stored
-        delete_stored_images(
+        await delete_stored_images(
             self._aws_service,
             workspace_id,
             form_id,
@@ -1268,6 +1277,7 @@ class WorkspaceFormService:
         ai_notice_token: Optional[str] = None,
         client_today: Optional[str] = None,
         received_at: Optional[dt.datetime] = None,
+        client_ip: Optional[str] = None,
     ):
         # Internal fields are filled in by staff afterwards — values a
         # respondent submission carries for them are dropped, never stored.
@@ -1397,7 +1407,13 @@ class WorkspaceFormService:
         # A signature question's drawn image is checked and re-encoded, and
         # every signature is stamped by the server (services/signatures.py);
         # before anything is stored.
-        prepared = await prepare_signatures(filled, response.answers, form_files)
+        prepared = await prepare_signatures(
+            filled,
+            response.answers,
+            form_files,
+            also=[form],
+            throttle=lambda: signature_throttle(workspace_id, form_id, client_ip),
+        )
         response.answers, form_files = prepared.answers, prepared.form_files
         # Files go up only once the submission is known to be accepted, so a
         # rejected one leaves no orphan uploads behind.

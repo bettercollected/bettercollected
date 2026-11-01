@@ -724,12 +724,15 @@ class FormResponseService:
             await self.scope(workspace_id, form_ids)
         )
 
-    def _forget_stored_files(self, prefix: str, keep: str = "") -> None:
+    async def _forget_stored_files(self, prefix: str, keep: str = "") -> None:
         """Remove the files stored under ``prefix`` (an uploaded file or a
         drawn signature's image). A storage failure never fails the deletion
         of the response itself; only the prefix's ids are logged."""
         try:
-            self._aws_service.delete_folder_from_s3(prefix, keep=keep)
+            # many blocking storage calls: off the event loop
+            await run_in_threadpool(
+                self._aws_service.delete_folder_from_s3, prefix, keep=keep
+            )
         except Exception:  # noqa: BLE001
             logger.warning("Stored files under {} could not be removed", prefix)
 
@@ -746,7 +749,7 @@ class FormResponseService:
             )
         )
         await self._forget_export_files([form_id], workspace_id)
-        self._forget_stored_files(
+        await self._forget_stored_files(
             f"private/{workspace_id}/{form_id}/", keep="/imports/"
         )
         return deleted
@@ -1052,7 +1055,7 @@ class FormResponseService:
         if existing is not None and existing.workspace_id is not None:
             # the stored files of the response go with it: the retention
             # period running out is a deletion like any other
-            self._forget_stored_files(
+            await self._forget_stored_files(
                 f"private/{existing.workspace_id}/{existing.form_id}/{response_id}/"
             )
         if existing is not None and existing.workspace_id is not None:

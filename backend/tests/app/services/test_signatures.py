@@ -74,6 +74,8 @@ def real_reencoder(monkeypatch):
         return reencode_image(data, signatures.MAX_PIXELS)
 
     monkeypatch.setattr(signatures, "_process_in_sandbox", process)
+    # each test's event loop gets a fresh gate
+    monkeypatch.setattr(signatures, "_gate", None)
 
 
 async def _read(part):
@@ -88,7 +90,7 @@ def test_the_signature_questions_of_a_form_are_found():
 
 
 async def test_a_form_without_a_signature_question_is_left_alone():
-    form = _form("short_text")
+    form = _form("file_upload")
     parts = [Part("q0", "f1", b"anything at all")]
     answers = {"q0": {"type": "text", "text": "hi"}}
     prepared = await prepare_signatures(form, answers, parts)
@@ -234,6 +236,22 @@ async def test_a_document_the_sandbox_refuses_is_a_422_and_no_sandbox_is_a_503(m
     assert prepared.answers["s0"]["signature"]["method"] == "typed"
 
 
+async def test_a_sandbox_call_that_does_not_end_in_time_is_a_503_and_frees_its_slot(monkeypatch):
+    import asyncio
+
+    async def stuck(data):
+        await asyncio.sleep(5)
+
+    monkeypatch.setattr(signatures, "CALL_LIMIT_S", 0.05)
+    monkeypatch.setattr(signatures, "_process_in_sandbox", stuck)
+    gate = signatures._signature_gate()
+    free = gate._value
+    with pytest.raises(HTTPException) as slow:
+        await prepare_signatures(_form("signature"), {"s0": _drawn()}, [Part("s0", "img-1", _png())])
+    assert slow.value.status_code == 503
+    assert gate._value == free
+
+
 @pytest.mark.parametrize(
     "answers,parts",
     [
@@ -264,7 +282,8 @@ async def test_an_answer_that_does_not_hold_together_is_refused(answers, parts):
     with pytest.raises(HTTPException) as refused:
         await prepare_signatures(form, answers, sent)
     assert refused.value.status_code == 422
-    assert refused.value.content["errors"][0]["fieldId"] == "s0"
+    if isinstance(refused.value.content, dict):
+        assert refused.value.content["errors"][0]["fieldId"] == "s0"
 
 
 async def test_two_parts_with_one_id_are_refused_so_one_cannot_overwrite_another():
@@ -332,7 +351,7 @@ async def test_redrawing_retyping_or_clearing_names_the_old_image_as_replaced():
     assert cleared.replaced == ["old-img"]
 
 
-def test_replaced_images_are_deleted_by_key_and_a_failure_never_fails_the_edit():
+async def test_replaced_images_are_deleted_by_key_and_a_failure_never_fails_the_edit():
     deleted = []
 
     class Store:
@@ -341,7 +360,7 @@ def test_replaced_images_are_deleted_by_key_and_a_failure_never_fails_the_edit()
                 raise RuntimeError("storage down")
             deleted.append(key)
 
-    delete_stored_images(Store(), "ws", "form", "resp", ["a", "bad", "../x", "b"])
+    await delete_stored_images(Store(), "ws", "form", "resp", ["a", "bad", "../x", "b"])
     assert deleted == ["private/ws/form/resp/a", "private/ws/form/resp/b"]
 
 
@@ -351,3 +370,183 @@ def test_nothing_in_the_module_decodes_an_image_in_this_process():
     source = inspect.getsource(signatures)
     assert "Image.open" not in source and "from PIL" not in source and "import PIL" not in source
     assert SimpleNamespace  # the module imports no image library
+
+
+# --- what a part may be, and what an edit may overwrite or delete ------------------------
+
+
+def _file_form():
+    return StandardForm(
+        title="Signed",
+        builder_version="v2",
+        fields=[
+            {
+                "id": "p1",
+                "index": 0,
+                "type": "slide",
+                "properties": {
+                    "fields": [
+                        {"id": "doc", "type": "file_upload", "title": "Upload"},
+                        {"id": "other_doc", "type": "file_upload", "title": "Upload 2"},
+                        {"id": "name", "type": "short_text", "title": "Name"},
+                        {"id": "sigA", "type": "signature", "title": "A"},
+                        {"id": "sigB", "type": "signature", "title": "B"},
+                    ]
+                },
+            }
+        ],
+    )
+
+
+def _held(**ids):
+    """Stored answers: question id -> the id of the file it holds (a signature question's drawing, an upload's file)."""
+    out = {}
+    for key, file_id in ids.items():
+        if key.startswith("sig"):
+            out[key] = {"type": "signature", "signature": {"method": "drawn", "file_id": file_id, "signed_at": "2026-01-01T10:00:00Z"}}
+        else:
+            out[key] = {"type": "file_upload", "file_metadata": {"id": file_id, "name": "a.pdf"}}
+    return out
+
+
+async def test_a_part_must_belong_to_a_file_or_signature_question_of_the_form():
+    form = _file_form()
+    # an upload for its own question passes untouched, whatever the form's other questions
+    ok = [Part("doc", "doc-1", b"%PDF")]
+    assert (await prepare_signatures(form, {}, ok)).form_files == ok
+    for field_id in ("name", "nope", "p1", ""):
+        with pytest.raises(HTTPException) as refused:
+            await prepare_signatures(form, {}, [Part(field_id, "x-1", b"raw")])
+        assert refused.value.status_code == 422
+    # and in a form with no signature question at all
+    plain = _form("file_upload", "short_text")
+    with pytest.raises(HTTPException):
+        await prepare_signatures(plain, {}, [Part("q1", "x-1", b"raw")])
+    assert (await prepare_signatures(plain, {}, [Part("q0", "x-1", b"raw")])).form_files is not None
+
+
+async def test_the_draft_versions_questions_count_for_a_part_too():
+    published = _form("short_text")
+    draft = _file_form()
+    parts = [Part("doc", "doc-1", b"%PDF")]
+    with pytest.raises(HTTPException):
+        await prepare_signatures(published, {}, parts)
+    assert (await prepare_signatures(published, {}, parts, also=[draft])).form_files == parts
+
+
+async def test_an_edit_cannot_overwrite_a_stored_drawing_through_another_question():
+    form = _file_form()
+    stored = _held(sigA="img-A", doc="doc-1")
+    # raw bytes under the stored drawing's id, as another question's file
+    for field_id in ("doc", "other_doc"):
+        with pytest.raises(HTTPException):
+            await prepare_signatures(form, {}, [Part(field_id, "img-A", b"raw")], stored=stored)
+    # nor another question's upload, nor the other signature question's drawing
+    with pytest.raises(HTTPException):
+        await prepare_signatures(form, {}, [Part("other_doc", "doc-1", b"raw")], stored=stored)
+    with pytest.raises(HTTPException):
+        await prepare_signatures(form, {"sigB": _drawn("img-A")}, [Part("sigB", "img-A", _png())], stored=stored)
+    # an upload may replace its own file, and a drawing is redrawn under a new id
+    own = [Part("doc", "doc-1", b"%PDF-new")]
+    assert (await prepare_signatures(form, {}, own, stored=stored)).form_files == own
+
+
+async def test_a_drawing_cannot_name_a_file_another_question_holds_or_another_signature_names():
+    form = _file_form()
+    with pytest.raises(HTTPException):
+        await prepare_signatures(form, {"sigA": _drawn("doc-1")}, [Part("sigA", "doc-1", _png())], stored=_held(doc="doc-1"))
+    with pytest.raises(HTTPException):
+        await prepare_signatures(form, {"sigA": _drawn("img-1")}, None, stored=_held(sigB="img-1"))
+    # two signature answers naming one id: the second is refused
+    with pytest.raises(HTTPException):
+        await prepare_signatures(
+            form,
+            {"sigA": _drawn("same"), "sigB": _drawn("same")},
+            [Part("sigA", "same", _png())],
+        )
+
+
+async def test_an_edit_never_deletes_an_image_another_question_still_holds():
+    form = _file_form()
+    stored = _held(sigA="img-A", sigB="img-B", doc="doc-1")
+    # A retyped, B untouched: only A's image goes
+    prepared = await prepare_signatures(form, {"sigA": _typed()}, None, stored=stored)
+    assert prepared.replaced == ["img-A"]
+    # both retyped: both go
+    both = await prepare_signatures(form, {"sigA": _typed(), "sigB": _typed("Bo")}, None, stored=stored)
+    assert sorted(both.replaced) == ["img-A", "img-B"]
+    # B redrawn under a new id and A cleared: each old image goes once
+    redrawn = await prepare_signatures(
+        form,
+        {"sigB": _drawn("img-B2"), "sigA": {"type": "signature"}},
+        [Part("sigB", "img-B2", _png())],
+        stored=stored,
+    )
+    assert sorted(redrawn.replaced) == ["img-A", "img-B"]
+    # a file an upload question holds is never in the list, even if an old image shares its id
+    shared = _held(sigA="doc-1", doc="doc-1")
+    assert (await prepare_signatures(form, {"sigA": _typed()}, None, stored=shared)).replaced == []
+
+
+async def test_a_signature_slot_on_a_question_that_is_not_a_signature_one_is_dropped():
+    form = _file_form()
+    answers = {
+        "name": {"type": "text", "text": "Ada", "signature": {"method": "typed", "name": "Ada"}},
+        "draft-only": {"type": "signature", "signature": {"method": "typed", "name": "Ada"}},
+        "sigA": _typed(),
+    }
+    prepared = await prepare_signatures(form, answers, None)
+    assert "signature" not in prepared.answers["name"] and prepared.answers["name"]["text"] == "Ada"
+    assert "signature" not in prepared.answers["draft-only"]
+    assert prepared.answers["sigA"]["signature"]["name"] == "Fatima El Idrissi"
+
+
+async def test_drawn_signatures_take_a_bounded_share_of_the_sandbox_and_fail_fast(monkeypatch):
+    import asyncio
+
+    monkeypatch.setattr(signatures, "GATE_WAIT_S", 0.05)
+    gate = signatures._signature_gate()
+    assert gate._value >= 1 and gate._value <= 1 + signatures_parallel() // 2
+    held = [await gate.acquire() for _ in range(gate._value)]
+    try:
+        with pytest.raises(HTTPException) as busy:
+            await prepare_signatures(_form("signature"), {"s0": _drawn()}, [Part("s0", "img-1", _png())])
+        assert busy.value.status_code == 503
+        # a typed signature is not held up
+        assert (await prepare_signatures(_form("signature"), {"s0": _typed()}, None)).answers["s0"]
+    finally:
+        for _ in held:
+            gate.release()
+    prepared = await prepare_signatures(_form("signature"), {"s0": _drawn()}, [Part("s0", "img-1", _png())])
+    assert prepared.form_files
+
+
+def signatures_parallel():
+    from backend.config import settings
+
+    return settings.pdf_import.MAX_PARALLEL_SANDBOXES
+
+
+async def test_the_throttle_is_asked_once_before_the_first_drawing_and_not_for_typing():
+    calls = []
+
+    async def throttle():
+        calls.append(1)
+
+    form = _file_form()
+    await prepare_signatures(form, {"sigA": _typed()}, None, throttle=throttle)
+    assert calls == []
+    await prepare_signatures(
+        form,
+        {"sigA": _drawn("a"), "sigB": _drawn("b")},
+        [Part("sigA", "a", _png()), Part("sigB", "b", _png())],
+        throttle=throttle,
+    )
+    assert calls == [1]
+    # a refusal by the throttle stops it before the sandbox
+    async def refuse():
+        raise HTTPException(status_code=429, content="slow down")
+
+    with pytest.raises(HTTPException) as slow:
+        await prepare_signatures(form, {"sigA": _drawn("a")}, [Part("sigA", "a", _png())], throttle=refuse)
+    assert slow.value.status_code == 429

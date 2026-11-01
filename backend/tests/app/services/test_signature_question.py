@@ -122,6 +122,34 @@ def test_the_name_helpers():
     assert is_plain_image_id("abc-1_2.png") and not is_plain_image_id("a/b") and not is_plain_image_id("..")
 
 
+@pytest.mark.parametrize(
+    "name",
+    [
+        "ㅤ",  # Hangul filler
+        "ᅟᅠ",  # Hangul choseong / jungseong fillers
+        "ﾠﾠ",  # halfwidth Hangul filler
+        "⠀⠀⠀",  # blank braille pattern
+        "Adaㅤ",  # a filler inside a name
+        "-- .",  # punctuation only: no letter or digit
+        "Ada",  # private use (Co)
+        "Ada͸",  # unassigned (Cn)
+        "x́́́́́",  # five combining marks in a row
+    ],
+)
+def test_a_name_draws_something_and_holds_a_letter_or_digit(name):
+    assert not is_signature_name(name)
+    assert normalised_name(name) is None
+
+
+@pytest.mark.parametrize(
+    "name", ["Zoë", "李小龍", "7", "O'Brien-Smith", "x́́́́"]
+)
+def test_ordinary_names_still_pass(name):
+    import unicodedata
+
+    assert normalised_name(name) == unicodedata.normalize("NFC", name)
+
+
 # --- logic ------------------------------------------------------------------------------
 
 
