@@ -165,6 +165,17 @@ read. Runbook of the move: `docs/postgres-cutover-runbook.md`. What that means w
   `store_retired` before anything connects, no write mode is read, and `keyset.drop_old` needs the signed
   `mongo_retired` param (`store_retired` without it) and a finished 4.0 import (`import_incomplete`:
   `MONGO_URI` set on the runner, or an unfinished backfill in `migration_progress`).
+- **Key rings (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`):** each setting holds `<current>[,<previous>]`
+  (`common/settings/key_ring.py`; docs/auth-key-rotation.md). The first member signs and encrypts, every member
+  verifies and decrypts, so a rotation (`authkeys.*` tasks, `admin/tasks/impl/authkeys_*.py`) never leaves a value
+  unreadable. In code: sign with `signing_secret(ring)` and verify with `decode_with_ring` (`common/services/jwt_service.py`);
+  `Crypto(ring)` (`common/configs/crypto.py`) seals with the first Fernet key and opens with any (`decrypt(token, ttl)`
+  honours the ttl, `opening_member` gives the key that opened a token); a value derived from a key (an HMAC) is minted
+  with member 0 and checked against every member (`key_ring.derive_all`; the draft hashes keep their old members
+  until the old key is dropped). Never read `settings.auth_settings.JWT_SECRET` / `AES_HEX_KEY` as one key. A new
+  place that seals a stored value with `Crypto` must also be a target of `authkeys.reencrypt`
+  (`admin/tasks/impl/authkeys_core.py` `TARGETS`, plus the roles script's column grants); a new value derived from the
+  signing secret that is stored cannot be re-derived, so say so in docs/auth-key-rotation.md.
 - **Migration CLI:** `python -m backend.migrate {preflight,backfill,verify,reconcile,status,resolve-outbox,jobs-sweep}` (auth and
   google have `python -m auth.migrate` / `python -m googleform.migrate`), the engine in `common/db/migrate/`. Raw
   pymongo + SQLAlchemy Core, never Beanie, never decrypts. Backfill is resumable (checkpoints in `migration_progress`,
