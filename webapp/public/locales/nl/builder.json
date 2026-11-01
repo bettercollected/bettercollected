@@ -1358,7 +1358,7 @@
     "TAB_TITLE": "Titel van het tabblad",
     "EMPTY_TAB": "Nog geen vragen in dit tabblad",
     "ONE_TAB": "Tabbladen met één tabblad laten niets te kiezen: voeg een tabblad toe of maak los.",
-    "OFF": "Indelingen zijn op deze server uitgeschakeld. Die dit formulier al heeft blijven zoals ze zijn; je kunt er vragen uit halen of ze verwijderen.",
+    "OFF": "Indelingen zijn op deze server uitgeschakeld. Die dit formulier al heeft blijven zoals ze zijn; u kunt er vragen uit halen of ze verwijderen.",
     "VISIBILITY": "Zichtbaarheid",
     "VISIBILITY_NOTE": "Toon of verberg het hele onderdeel ({{kind}}) op basis van eerdere antwoorden",
     "VISIBILITY_NONE": "Zet eerst een vraag vóór dit onderdeel ({{kind}}) om het te tonen of te verbergen op basis van een eerder antwoord.",
