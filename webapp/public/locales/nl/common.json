@@ -1061,7 +1061,22 @@
   "SSO": {
     "NOT_ENABLED": "Single sign-on is niet ingeschakeld op deze installatie. De beheerder schakelt het in (SSO_ENABLED, zie docs/sso.md).",
     "NOT_CONFIGURED": "Single sign-on staat aan, maar is op deze installatie nog niet helemaal ingesteld. Vraag de beheerder of de supportafdeling van deze installatie om de instelling af te maken.",
-    "SELF_HOSTING": "Beheert u deze installatie zelf? Zie de <1>handleiding voor single sign-on</1>."
+    "SELF_HOSTING": "Beheert u deze installatie zelf? Zie de <1>handleiding voor single sign-on</1>.",
+    "LOCKOUT_TITLE": "Uw eigen sessie wordt uitgelogd",
+    "LOCKOUT_BODY": "U bent ingelogd op een manier die single sign-on niet accepteert voor adressen op {{domains}} (geen SSO, geen e-mailcode). Zodra het verplicht is, wordt uw volgende verzoek geweigerd en moet u opnieuw inloggen met SSO, of als eigenaar met een e-mailcode.",
+    "LOCKOUT_CONFIRM": "Toch verplichten",
+    "LOCKOUT_CANCEL": "Annuleren",
+    "KEYS_TITLE": "API-sleutels om na te lopen",
+    "KEYS_INTRO_one": "{{count}} API-sleutel is gemaakt voordat single sign-on verplicht werd. Sleutels zijn machine-inloggegevens: de verplichting geldt er niet voor en ze blijven werken. Controleer of hij nog nodig is en trek hem anders in.",
+    "KEYS_INTRO_other": "{{count}} API-sleutels zijn gemaakt voordat single sign-on verplicht werd. Sleutels zijn machine-inloggegevens: de verplichting geldt er niet voor en ze blijven werken. Controleer of elke sleutel nog nodig is en trek de overige in.",
+    "KEY_CREATED_BY": "Gemaakt door {{who}}",
+    "KEY_CREATED_AT": "op {{date}}",
+    "KEY_LAST_USED": "Laatst gebruikt {{date}}",
+    "KEY_NEVER_USED": "Nooit gebruikt",
+    "KEY_REVOKE": "Intrekken",
+    "KEY_REVOKE_LABEL": "Sleutel {{name}} intrekken",
+    "KEY_REVOKED": "Sleutel ingetrokken.",
+    "KEY_REVOKE_FAILED": "De sleutel kon niet worden ingetrokken."
   },
   "SCIM": {
     "TITLE": "Synchronisatie met gebruikersbeheer (SCIM)",

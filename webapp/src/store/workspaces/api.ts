@@ -572,7 +572,8 @@ export const workspacesApi = createApi({
                 method: 'DELETE',
                 credentials: 'include'
             }),
-            invalidatesTags: ['API_KEYS_TAG']
+            // the SSO page lists the keys that predate the requirement
+            invalidatesTags: ['API_KEYS_TAG', 'SSO_TAG']
         }),
         // Verified email domains (docs/verified-domains.md); owner/admins only.
         getEmailDomains: builder.query<Array<WorkspaceDomainDto>, string>({

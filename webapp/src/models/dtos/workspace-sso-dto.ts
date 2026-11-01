@@ -32,6 +32,20 @@ export interface SsoServiceProviderDto {
     oidcRedirectUri: string;
 }
 
+// A workspace API key the owners review once single sign-on is required: keys
+// are machine credentials and stay valid. No secret is ever part of it.
+export interface SsoApiKeyDto {
+    id: string;
+    name: string;
+    prefix: string;
+    scopes: string[];
+    createdBy?: string | null;
+    // the creator's name (or address), when auth could say
+    createdByLabel?: string | null;
+    createdAt?: string | null;
+    lastUsedAt?: string | null;
+}
+
 export interface SsoSettingsDto {
     ssoRequired: boolean;
     ssoRequiredChangedAt?: string | null;
@@ -39,6 +53,10 @@ export interface SsoSettingsDto {
     assignableRoles: string[];
     ownerBreakGlass: boolean;
     revokedSessions?: number | null;
+    // with the requirement on: the live API keys created before it was switched on
+    apiKeys?: SsoApiKeyDto[] | null;
+    // with the requirement off: switching it on would refuse the caller's own session
+    callerWouldBeLockedOut?: boolean;
 }
 
 export type SsoUnavailableReason = 'disabled' | 'not_configured';
@@ -70,4 +88,6 @@ export interface UpdateSsoSettingsRequest {
     ssoRequired?: boolean;
     defaultRole?: string;
     revokeSessions?: boolean;
+    // the owner confirmed that their own session would be refused afterwards
+    confirmLockout?: boolean;
 }

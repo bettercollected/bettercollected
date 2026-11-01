@@ -20,6 +20,7 @@ const createMock = vi.fn();
 const enableMock = vi.fn();
 const deleteMock = vi.fn();
 const settingsMock = vi.fn();
+const revokeKeyMock = vi.fn();
 vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
@@ -28,7 +29,8 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
         useCreateSsoConnectionMutation: () => [createMock, { isLoading: false }],
         useSetSsoConnectionEnabledMutation: () => [enableMock, { isLoading: false }],
         useDeleteSsoConnectionMutation: () => [deleteMock, { isLoading: false }],
-        useUpdateSsoSettingsMutation: () => [settingsMock, { isLoading: false }]
+        useUpdateSsoSettingsMutation: () => [settingsMock, { isLoading: false }],
+        useRevokeAPIKeyMutation: () => [revokeKeyMock, { isLoading: false }]
     };
 });
 
@@ -102,6 +104,97 @@ describe('WorkspaceSsoSection', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Require single sign-on' }));
         await waitFor(() => expect(settingsMock).toHaveBeenCalledWith({ workspace_id: 'ws1', body: { ssoRequired: true, revokeSessions: true } }));
         expect(toastMock).toHaveBeenCalledWith({ description: 'Single sign-on is now required. 2 sessions were signed out.' });
+    });
+
+    describe('before locking the owner out', () => {
+        const lockedOut = () => overview({ settings: { ...overview().settings, callerWouldBeLockedOut: true } });
+
+        it('warns and asks before requiring SSO from a session it would refuse', async () => {
+            query.data = lockedOut();
+            settingsMock.mockResolvedValue({ data: { ssoRequired: true } });
+            renderSection();
+            fireEvent.click(screen.getByRole('button', { name: 'Require single sign-on' }));
+            // nothing saved yet
+            expect(settingsMock).not.toHaveBeenCalled();
+            const warning = screen.getByTestId('sso-lockout-warning');
+            expect(within(warning).getByText('Your own session would be signed out')).toBeTruthy();
+            expect(warning.textContent).toContain('acme.com');
+            fireEvent.click(within(warning).getByRole('button', { name: 'Require anyway' }));
+            await waitFor(() => expect(settingsMock).toHaveBeenCalledWith({ workspace_id: 'ws1', body: { ssoRequired: true, revokeSessions: true, confirmLockout: true } }));
+        });
+
+        it('can be cancelled without saving', () => {
+            query.data = lockedOut();
+            renderSection();
+            fireEvent.click(screen.getByRole('button', { name: 'Require single sign-on' }));
+            fireEvent.click(within(screen.getByTestId('sso-lockout-warning')).getByRole('button', { name: 'Cancel' }));
+            expect(screen.queryByTestId('sso-lockout-warning')).toBeNull();
+            expect(settingsMock).not.toHaveBeenCalled();
+        });
+
+        it('shows the warning when only the server knows the session would be refused', async () => {
+            settingsMock.mockResolvedValueOnce({ error: { data: { code: 'sso_lockout_unconfirmed', message: 'x' } } });
+            renderSection();
+            fireEvent.click(screen.getByRole('button', { name: 'Require single sign-on' }));
+            await waitFor(() => expect(screen.getByTestId('sso-lockout-warning')).toBeTruthy());
+            // not reported as a failure
+            expect(toastMock).not.toHaveBeenCalled();
+        });
+
+        it('does not ask when the session is fine', async () => {
+            settingsMock.mockResolvedValue({ data: { ssoRequired: true } });
+            renderSection();
+            fireEvent.click(screen.getByRole('button', { name: 'Require single sign-on' }));
+            await waitFor(() => expect(settingsMock).toHaveBeenCalledTimes(1));
+            expect(screen.queryByTestId('sso-lockout-warning')).toBeNull();
+        });
+    });
+
+    describe('API keys that predate the requirement', () => {
+        const key = (overrides = {}) => ({ id: 'k1', name: 'Zapier', prefix: 'bc_1a2b3c4d', scopes: ['forms:read', 'responses:read'], createdBy: 'u1', createdByLabel: 'Sam Owner', createdAt: '2026-09-01T10:00:00Z', lastUsedAt: null, ...overrides });
+        const required = (keys: any[]) => overview({ settings: { ...overview().settings, ssoRequired: true, ssoRequiredChangedAt: '2026-10-04T10:00:00Z', apiKeys: keys } });
+
+        it('lists them with creator and last use, and revokes one', async () => {
+            query.data = required([key(), key({ id: 'k2', name: 'Reports', createdByLabel: null, lastUsedAt: '2026-10-03T09:00:00Z' })]);
+            revokeKeyMock.mockResolvedValue({ data: [] });
+            renderSection();
+            const box = screen.getByTestId('sso-api-keys');
+            expect(within(box).getByText(/2 API keys were created before single sign-on was required/)).toBeTruthy();
+            expect(box.textContent).toContain('Zapier');
+            expect(box.textContent).toContain('Created by Sam Owner');
+            expect(box.textContent).toContain('Never used');
+            // no label: the creator id; used key: its last use
+            expect(box.textContent).toContain('Created by u1');
+            expect(box.textContent).toContain('Last used');
+            fireEvent.click(within(box).getByRole('button', { name: 'Revoke key Zapier' }));
+            await waitFor(() => expect(revokeKeyMock).toHaveBeenCalledWith({ workspace_id: 'ws1', key_id: 'k1' }));
+            expect(toastMock).toHaveBeenCalledWith({ description: 'Key revoked.' });
+        });
+
+        it('uses the singular for one key', () => {
+            query.data = required([key()]);
+            renderSection();
+            expect(within(screen.getByTestId('sso-api-keys')).getByText(/1 API key was created/)).toBeTruthy();
+        });
+
+        it('shows nothing without keys, or without the requirement', () => {
+            query.data = required([]);
+            renderSection();
+            expect(screen.queryByTestId('sso-api-keys')).toBeNull();
+        });
+
+        it('shows nothing while SSO is not required', () => {
+            query.data = overview({ settings: { ...overview().settings, apiKeys: [key()] } });
+            renderSection();
+            expect(screen.queryByTestId('sso-api-keys')).toBeNull();
+        });
+
+        it('lets an admin who cannot manage see the keys but not revoke them here', () => {
+            query.data = { ...required([key()]), canManage: false };
+            renderSection();
+            expect(screen.getByTestId('sso-api-keys')).toBeTruthy();
+            expect(screen.queryByRole('button', { name: 'Revoke key Zapier' })).toBeNull();
+        });
     });
 
     it('cannot require SSO without a tested, enabled connection', () => {
@@ -274,6 +367,21 @@ describe('WorkspaceSsoSection', () => {
             expect(locale.SSO.SELF_HOSTING).toMatch(/<1>.+<\/1>/);
         }
         expect(nl.SSO.NOT_CONFIGURED).toContain('nog niet helemaal ingesteld');
+    });
+});
+
+describe('hardening texts', () => {
+    const keys = ['LOCKOUT_TITLE', 'LOCKOUT_BODY', 'LOCKOUT_CONFIRM', 'LOCKOUT_CANCEL', 'KEYS_TITLE', 'KEYS_INTRO_one', 'KEYS_INTRO_other', 'KEY_CREATED_BY', 'KEY_CREATED_AT', 'KEY_LAST_USED', 'KEY_NEVER_USED', 'KEY_REVOKE', 'KEY_REVOKE_LABEL', 'KEY_REVOKED', 'KEY_REVOKE_FAILED'];
+
+    it('exist in English and Dutch with the same placeholders', () => {
+        for (const key of keys) {
+            const english = (en as any).SSO[key];
+            const dutch = (nl as any).SSO[key];
+            expect(english, key).toBeTruthy();
+            expect(dutch, key).toBeTruthy();
+            expect(dutch.match(/{{\w+}}/g)?.sort(), key).toEqual(english.match(/{{\w+}}/g)?.sort());
+        }
+        expect((nl as any).SSO.KEYS_INTRO_other).toContain('blijven werken');
     });
 });
 
