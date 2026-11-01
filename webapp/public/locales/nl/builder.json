@@ -303,6 +303,7 @@
         "currency": "Geldbedrag",
         "date_range": "Periode (van - tot)",
         "tags": "Tags",
+        "address": "Adres",
         "file_upload": "Bestandsupload",
         "calculated": "Berekende waarde",
         "group": "Herhaalgroep",

@@ -92,6 +92,7 @@ export const VARIABLE_TYPES = [
     'currency',
     'date_range',
     'tags',
+    'address',
     'file_upload',
     'calculated',
     'group',

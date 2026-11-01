@@ -303,6 +303,7 @@
         "currency": "Amount of money",
         "date_range": "Date range",
         "tags": "Tags",
+        "address": "Address",
         "file_upload": "File upload",
         "calculated": "Calculated value",
         "group": "Repeating group",
