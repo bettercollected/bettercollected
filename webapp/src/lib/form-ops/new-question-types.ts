@@ -7,6 +7,10 @@
  * Pass `newQuestionTypes: false` in the apply options to apply the switch (the
  * webapp learns it from the workspace permissions). The server checks every
  * save either way.
+ *
+ * The address question has a switch of its own (`ADDRESS_QUESTION_ENABLED`,
+ * `addressQuestion: false` in the apply options): a `Gate` names a switch's
+ * types and its refusal, and everything below looks at each gate that is off.
  */
 import { childrenOf, pagesOf } from './model';
 import type { FormDoc, FormField } from './types';
@@ -14,11 +18,38 @@ import type { FormDoc, FormField } from './types';
 // Types behind the switch. Keep in step with GATED_TYPES in the backend module.
 export const GATED_TYPES = new Set<string>(['time', 'day', 'currency', 'date_range', 'tags']);
 
+// The address question's own switch (backend ADDRESS_TYPES).
+export const ADDRESS_TYPES = new Set<string>(['address']);
+const ALL_GATED_TYPES = new Set<string>([...GATED_TYPES, ...ADDRESS_TYPES]);
+
 /** Ops that can give a form such a question or change one (backend GATED_OPS). */
 export const GATED_OPS = new Set<string>(['add_field', 'add_group', 'add_page', 'duplicate_page', 'update_field', 'set_field_validation', 'insert_field', 'insert_page', 'replace_field']);
 
 export const NEW_QUESTION_TYPES_DISABLED_MESSAGE =
     'These question types (time, day, currency, date range and tags) cannot be added or changed on this server yet (NEW_QUESTION_TYPES_ENABLED is off). Questions of these types that a form already has are kept.';
+
+export const ADDRESS_QUESTION_DISABLED_MESSAGE =
+    'The address question cannot be added or changed on this server yet (ADDRESS_QUESTION_ENABLED is off). An address question that a form already has is kept.';
+
+/** A switch, the question types behind it and what a refused op says (backend `Gate`). */
+export interface Gate {
+    types: ReadonlySet<string>;
+    message: string;
+}
+export const NEW_TYPES_GATE: Gate = { types: GATED_TYPES, message: NEW_QUESTION_TYPES_DISABLED_MESSAGE };
+export const ADDRESS_GATE: Gate = { types: ADDRESS_TYPES, message: ADDRESS_QUESTION_DISABLED_MESSAGE };
+
+/** The state of the switches (the workspace permissions tell them): default on. */
+export interface TypeSwitches {
+    newQuestionTypes?: boolean;
+    addressQuestion?: boolean;
+}
+
+/** The gates whose switch is off. */
+export const gatesOff = (switches: TypeSwitches): Gate[] => [...(switches.newQuestionTypes === false ? [NEW_TYPES_GATE] : []), ...(switches.addressQuestion === false ? [ADDRESS_GATE] : [])];
+
+/** Is this type behind a switch that is off? */
+export const typeIsOff = (type: unknown, switches: TypeSwitches): boolean => gatesOff(switches).some((gate) => gate.types.has(String(type)));
 
 /** Keys sorted, null and undefined left out: what makes two settings the same. */
 function stable(value: unknown): unknown {
@@ -49,6 +80,9 @@ export function signatureParts(field: FormField): SignatureParts {
             minTime: props.minTime,
             maxTime: props.maxTime,
             currencies: props.currencies,
+            // an address question: the countries and whether street and city are looked up
+            countries: props.countries,
+            addressLookup: props.addressLookup,
             minValue: validations.minValue,
             maxValue: validations.maxValue,
             // a tags question: the number of tags and the length of one
@@ -79,13 +113,13 @@ function* walk(fields: FormField[]): Generator<FormField> {
     }
 }
 
-/** Is this question of a type behind the switch? */
-export const isGatedQuestion = (field: FormField | undefined | null): boolean => !!field && GATED_TYPES.has(String(field.type));
+/** Is this question of a type behind a switch? */
+export const isGatedQuestion = (field: FormField | undefined | null): boolean => !!field && ALL_GATED_TYPES.has(String(field.type));
 
-/** Does this page, or the group in it, hold a question of a type behind the switch? */
-export function pageHoldsGatedQuestion(page: FormField | undefined | null): boolean {
+/** Does this page, or the group in it, hold a question of a type behind a switch that is off? (`switches` default: every switch off.) */
+export function pageHoldsGatedQuestion(page: FormField | undefined | null, switches: TypeSwitches = { newQuestionTypes: false, addressQuestion: false }): boolean {
     if (!page) return false;
-    for (const field of walk(childrenOf(page))) if (GATED_TYPES.has(String(field.type))) return true;
+    for (const field of walk(childrenOf(page))) if (typeIsOff(field.type, switches)) return true;
     return false;
 }
 
@@ -93,7 +127,7 @@ export function pageHoldsGatedQuestion(page: FormField | undefined | null): bool
 export function gatedSignatures(doc: FormDoc): GatedSignatures {
     const out: GatedSignatures = new Map();
     for (const field of walk(pagesOf(doc))) {
-        if (!GATED_TYPES.has(String(field.type))) continue;
+        if (!ALL_GATED_TYPES.has(String(field.type))) continue;
         const key = String(field.id);
         out.set(key, [...(out.get(key) ?? []), signatureParts(field)]);
     }
@@ -106,11 +140,11 @@ export function gatedSignatures(doc: FormDoc): GatedSignatures {
  * of `doc` only: a second one with the same id reads as new (backend
  * `new_or_changed_questions`).
  */
-export function newOrChangedQuestions(doc: FormDoc, stored: GatedSignatures): string[] {
+export function newOrChangedQuestions(doc: FormDoc, stored: GatedSignatures, gate: Gate = NEW_TYPES_GATE): string[] {
     const remaining = new Map([...stored].map(([key, values]) => [key, [...values]]));
     const ids: string[] = [];
     for (const field of walk(pagesOf(doc))) {
-        if (!GATED_TYPES.has(String(field.type))) continue;
+        if (!gate.types.has(String(field.type))) continue;
         const key = String(field.id);
         const parts = signatureParts(field);
         const left = remaining.get(key) ?? [];
@@ -121,8 +155,9 @@ export function newOrChangedQuestions(doc: FormDoc, stored: GatedSignatures): st
     return ids;
 }
 
-/** The refusal an op earns when it left `doc` with a gated question new or changed against `stored`, or null (backend `question_type_problem`). */
-export function questionTypeProblem(doc: FormDoc, stored: GatedSignatures, opName: string): string | null {
+/** The refusal an op earns when it left `doc` with a question new or changed against `stored` that is behind one of `gates` (the ones that are off; default the newer question types'), or null (backend `question_type_problem`). */
+export function questionTypeProblem(doc: FormDoc, stored: GatedSignatures, opName: string, gates: Gate[] = [NEW_TYPES_GATE]): string | null {
     if (!GATED_OPS.has(opName)) return null;
-    return newOrChangedQuestions(doc, stored).length ? NEW_QUESTION_TYPES_DISABLED_MESSAGE : null;
+    for (const gate of gates) if (newOrChangedQuestions(doc, stored, gate).length) return gate.message;
+    return null;
 }

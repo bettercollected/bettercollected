@@ -1,4 +1,5 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import AddressField from '@app/views/molecules/responder-form-fields/address-field';
 import CurrencyField from '@app/views/molecules/responder-form-fields/currency-field';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
 import DateRangeField from '@app/views/molecules/responder-form-fields/date-range-field';
@@ -99,6 +100,8 @@ function renderField(field: StandardFormFieldDto, slide: StandardFormFieldDto, d
             return <DateRangeField field={field} slide={slide} isBuilder={true} />;
         case FieldTypes.TAGS:
             return <TagsField field={field} slide={slide} isBuilder={true} />;
+        case FieldTypes.ADDRESS:
+            return <AddressField field={field} slide={slide} isBuilder={true} />;
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} slide={slide} isBuilder={true} />;
         case FieldTypes.IMAGE_CONTENT:

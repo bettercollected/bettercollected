@@ -2,6 +2,7 @@
 import type { Draft } from 'immer';
 
 import { FieldTypes } from '@app/models/dtos/form';
+import { COUNTRIES_MAX, isCountryCode } from '@app/utils/countries';
 import { CURRENCIES_MAX, isCurrencyCode } from '@app/utils/currency';
 import { isIsoDate } from '@app/utils/iso-date';
 import { TAGS_MAX, TAG_LENGTH_MAX } from '@app/utils/tags';
@@ -60,8 +61,14 @@ export function checkCurrencyCount(currencies: string[] | null | undefined): voi
     if (Array.isArray(currencies) && currencies.length > CURRENCIES_MAX) throw new OpError(`List should have at most ${CURRENCIES_MAX} items after validation, not ${currencies.length}`);
 }
 
+/** At most COUNTRIES_MAX countries, as pydantic words it. */
+export function checkCountryCount(countries: string[] | null | undefined): void {
+    if (Array.isArray(countries) && countries.length > COUNTRIES_MAX) throw new OpError(`List should have at most ${COUNTRIES_MAX} items after validation, not ${countries.length}`);
+}
+
 function checkSpec(spec: NewFieldSpec): void {
     checkCurrencyCount(spec.currencies);
+    checkCountryCount(spec.countries);
     checkColSpan(spec.colSpan);
     checkMaxLength(spec.label, LABEL_MAX_LENGTH);
     checkMaxLength(spec.whyWeAsk, WHY_WE_ASK_MAX_LENGTH);
@@ -124,7 +131,7 @@ export function buildField(spec: NewFieldSpec, index: number, newId: () => strin
         if (!LABEL_FIELD_TYPES.has(spec.type)) throw new OpError('A label only applies to date, day and time questions.');
         properties.label = spec.label;
     }
-    applyTypeSettings(spec.type, properties, spec.minTime, spec.maxTime, spec.currencies);
+    applyTypeSettings(spec.type, properties, spec.minTime, spec.maxTime, spec.currencies, spec.countries, spec.addressLookup);
     setCalculation(spec.type, properties, spec);
     if (spec.type === FieldTypes.CALCULATED && spec.required) throw new OpError(REQUIRED_CALCULATION_MESSAGE);
     const validations = spec.required != null ? { required: spec.required } : {};
@@ -136,11 +143,20 @@ export function buildField(spec: NewFieldSpec, index: number, newId: () => strin
 }
 
 /**
- * Set a time question's limits and a currency question's codes on
- * `properties` (backend `_apply_type_settings`): "" clears a time limit, []
- * the currency list. Returns the change fragments.
+ * Set a time question's limits, a currency question's codes and an address
+ * question's countries and lookup on `properties` (backend
+ * `_apply_type_settings`): "" clears a time limit, [] the currency list or the
+ * country list. Returns the change fragments.
  */
-function applyTypeSettings(type: string, properties: Record<string, any>, minTime: string | null | undefined, maxTime: string | null | undefined, currencies: string[] | null | undefined): string[] {
+function applyTypeSettings(
+    type: string,
+    properties: Record<string, any>,
+    minTime: string | null | undefined,
+    maxTime: string | null | undefined,
+    currencies: string[] | null | undefined,
+    countries?: string[] | null,
+    addressLookup?: boolean | null
+): string[] {
     const changed: string[] = [];
     for (const [key, value] of [
         ['minTime', minTime],
@@ -163,6 +179,20 @@ function applyTypeSettings(type: string, properties: Record<string, any>, minTim
         if (new Set(currencies).size !== currencies.length) throw new OpError('A currency is listed twice.');
         setKey(properties, 'currencies', currencies.length ? [...currencies] : undefined);
         changed.push('currencies');
+    }
+    if (countries != null) {
+        if (type !== FieldTypes.ADDRESS) throw new OpError('Countries only apply to address questions.');
+        for (const code of countries) {
+            if (!isCountryCode(code)) throw new OpError(`'${code}' is not a country the form offers (use an ISO 3166-1 alpha-2 code such as NL, BE or DE, in capitals).`);
+        }
+        if (new Set(countries).size !== countries.length) throw new OpError('A country is listed twice.');
+        setKey(properties, 'countries', countries.length ? [...countries] : undefined);
+        changed.push('countries');
+    }
+    if (addressLookup != null) {
+        if (type !== FieldTypes.ADDRESS) throw new OpError('The address lookup only applies to address questions.');
+        properties.addressLookup = addressLookup;
+        changed.push('address lookup');
     }
     return changed;
 }
@@ -229,7 +259,7 @@ function patchField(target: Draft<FormField>, plain: FormField, patch: FieldPatc
         setKey(properties, 'label', patch.label.trim() || undefined);
         changed.push('label');
     }
-    changed.push(...applyTypeSettings(type, properties, patch.minTime, patch.maxTime, patch.currencies));
+    changed.push(...applyTypeSettings(type, properties, patch.minTime, patch.maxTime, patch.currencies, patch.countries, patch.addressLookup));
     if (patch.dateRules != null) {
         // checked against the form by updateField beforehand
         const rules = checkedDateRules(patch.dateRules);
@@ -351,6 +381,7 @@ export const updateField: Handler<UpdateFieldOp> = (ctx, op) => {
     checkTitle(patch.title);
     checkColSpan(patch.colSpan);
     checkCurrencyCount(patch.currencies);
+    checkCountryCount(patch.countries);
     checkMaxLength(patch.label, LABEL_MAX_LENGTH);
     checkMaxLength(patch.whyWeAsk, WHY_WE_ASK_MAX_LENGTH);
     if (patch.internal && parent !== null) throw new OpError(INTERNAL_IN_GROUP_MESSAGE);
@@ -574,6 +605,9 @@ export const setFieldValidation: Handler<SetFieldValidationOp> = (ctx, op) => {
 // ---------------------------------------------------------------------------
 
 export const VALUELESS_COMPARISONS = new Set(['IS_EMPTY', 'IS_NOT_EMPTY']);
+/** What a condition on an address question may ask: about its postcode (backend ADDRESS_COMPARISONS). */
+const ADDRESS_COMPARISONS = new Set(['IS_EQUAL', 'IS_NOT_EQUAL', 'STARTS_WITH', 'IS_EMPTY', 'IS_NOT_EMPTY']);
+
 /** What a condition on a date range question may ask (backend DATE_RANGE_COMPARISONS, `compareDateRange`). */
 const DATE_RANGE_COMPARISONS = new Set(['CONTAINS', 'DOES_NOT_CONTAIN', 'GREATER_THAN', 'LESS_THAN']);
 /** What a condition on a tags question may ask with a value (backend TAGS_VALUE_COMPARISONS). */
@@ -582,6 +616,10 @@ const COUNT_COMPARISONS = new Set(['IS_EQUAL', 'IS_NOT_EQUAL', 'GREATER_THAN', '
 
 function validatedValue(source: FormField, comparison: string, raw: any): any {
     if (VALUELESS_COMPARISONS.has(comparison)) return undefined;
+    if (source.type === FieldTypes.ADDRESS && !ADDRESS_COMPARISONS.has(comparison)) {
+        // only the postcode is compared, as text
+        throw new OpError('A condition on an address question compares its postcode: IS_EQUAL, IS_NOT_EQUAL, STARTS_WITH, IS_EMPTY or IS_NOT_EMPTY.');
+    }
     if (source.type === FieldTypes.TAGS && !TAGS_VALUE_COMPARISONS.has(comparison)) {
         // a list of labels has no beginning, end or order to compare
         throw new OpError('A condition on a tags question uses CONTAINS, DOES_NOT_CONTAIN, IS_EMPTY or IS_NOT_EMPTY.');

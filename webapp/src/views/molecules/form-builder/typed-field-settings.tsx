@@ -7,15 +7,17 @@ import { useTranslation } from 'react-i18next';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { questionCurrencies } from '@app/utils/answer-rules';
+import { COUNTRIES_MAX, COUNTRY_CODES, DEFAULT_COUNTRY, countryName, questionCountries } from '@app/utils/countries';
 import { CURRENCIES_MAX, CURRENCY_CODES } from '@app/utils/currency';
 import { TAGS_MAX, TAG_LENGTH_MAX } from '@app/utils/tags';
 import { isTime } from '@app/utils/time-of-day';
 
 import { selectClass } from './condition-editor-shared';
-import { NumberSetting } from './inspector-controls';
+import { NumberSetting, SettingSwitch } from './inspector-controls';
 
-type PropertyPatch = { minTime?: string; maxTime?: string; currencies?: string[]; label?: string };
+type PropertyPatch = { minTime?: string; maxTime?: string; currencies?: string[]; label?: string; countries?: string[]; addressLookup?: boolean };
 
 /** The window of a time question: its earliest and latest time (native time boxes; empty = no limit). */
 function TimeWindowSettings({ field, onPropertyChange }: { field: StandardFormFieldDto; onPropertyChange: (patch: PropertyPatch) => void }) {
@@ -140,6 +142,71 @@ function CurrencySettings({ field, onChange, onPropertyChange }: { field: Standa
 }
 
 /**
+ * An address question: the countries a respondent may give (the Netherlands when none is listed; with one the
+ * respondent sees no country box) and whether street and city are filled in from a Dutch postcode and house
+ * number. The lookup is the server's to offer: the setting stays, with a note that says when it will do nothing.
+ */
+function AddressSettings({ field, onPropertyChange }: { field: StandardFormFieldDto; onPropertyChange: (patch: PropertyPatch) => void }) {
+    const { t, i18n } = useTranslation('builder');
+    const { addressLookupEnabled } = useWorkspacePermissions();
+    const id = useId();
+    const countries = questionCountries(field);
+    const language = i18n.language?.split('-')[0] ?? 'en';
+    const name = (code: string) => countryName(code, language);
+    const available = COUNTRY_CODES.filter((code) => !countries.includes(code)).sort((a, b) => name(a).localeCompare(name(b), language));
+    // the Netherlands stand in when none is chosen: saving the default as no list keeps what the respondent sees
+    const save = (next: string[]) => onPropertyChange({ countries: next.length === 1 && next[0] === DEFAULT_COUNTRY ? undefined : next });
+    const dutch = countries.includes(DEFAULT_COUNTRY);
+    const lookupOn = field.properties?.addressLookup !== false;
+    return (
+        <div className="flex flex-col gap-3" data-testid="address-settings">
+            <div className="flex flex-col gap-1.5">
+                <div id={`${id}-title`} className="text-xs font-medium text-black-700">
+                    {t('ADDRESS_SETTINGS.COUNTRIES')}
+                </div>
+                <ul aria-labelledby={`${id}-title`} className="flex flex-col gap-1">
+                    {countries.map((code) => (
+                        <li key={code} className="flex items-center gap-1.5 rounded border border-black-300 bg-white px-2 py-1 text-xs">
+                            <span className="font-medium text-black-800">{name(code)}</span>
+                            {countries.length > 1 && (
+                                <button type="button" className="ml-auto rounded p-1 text-black-600 hover:text-black-800" aria-label={t('ADDRESS_SETTINGS.REMOVE_COUNTRY', { country: name(code) })} title={t('ADDRESS_SETTINGS.REMOVE_COUNTRY', { country: name(code) })} onClick={() => save(countries.filter((c) => c !== code))}>
+                                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                                </button>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+                {countries.length < COUNTRIES_MAX && (
+                    <>
+                        <label htmlFor={`${id}-add`} className="sr-only">
+                            {t('ADDRESS_SETTINGS.ADD_COUNTRY')}
+                        </label>
+                        <select id={`${id}-add`} className={selectClass} value="" onChange={(event) => event.target.value && save([...countries, event.target.value])}>
+                            <option value="">{t('ADDRESS_SETTINGS.ADD_COUNTRY')}</option>
+                            {available.map((code) => (
+                                <option key={code} value={code}>
+                                    {name(code)}
+                                </option>
+                            ))}
+                        </select>
+                    </>
+                )}
+                <p className="text-[11px] leading-relaxed text-black-600">{t('ADDRESS_SETTINGS.COUNTRIES_HINT')}</p>
+            </div>
+            {dutch && (
+                <SettingSwitch
+                    label={t('ADDRESS_SETTINGS.LOOKUP')}
+                    checked={lookupOn}
+                    onCheckedChange={(checked) => onPropertyChange({ addressLookup: checked ? undefined : false })}
+                    hint={lookupOn && !addressLookupEnabled ? t('ADDRESS_SETTINGS.LOOKUP_SERVER_OFF') : t('ADDRESS_SETTINGS.LOOKUP_HINT')}
+                />
+            )}
+            <p className="text-[11px] leading-relaxed text-black-600">{t('ADDRESS_SETTINGS.UNVERIFIED')}</p>
+        </div>
+    );
+}
+
+/**
  * A tags question's limits: the fewest and the most tags (never above
  * TAGS_MAX) and the longest one tag may be (never above TAG_LENGTH_MAX).
  * Left empty, the caps themselves apply.
@@ -169,7 +236,7 @@ function TagsSettings({ field, onChange }: { field: StandardFormFieldDto; onChan
     );
 }
 
-/** The answer rules of the time, currency and tags types, in the builder's language (the day and date range types have only date rules). */
+/** The answer rules of the time, currency, tags and address types, in the builder's language (the day and date range types have only date rules). */
 export default function TypedFieldSettings({ field, onChange, onPropertyChange }: { field: StandardFormFieldDto; onChange: (patch: Partial<IFormFieldValidation>) => void; onPropertyChange: (patch: PropertyPatch) => void }) {
     switch (field.type) {
         case 'time':
@@ -178,6 +245,8 @@ export default function TypedFieldSettings({ field, onChange, onPropertyChange }
             return <CurrencySettings field={field} onChange={onChange} onPropertyChange={onPropertyChange} />;
         case 'tags':
             return <TagsSettings field={field} onChange={onChange} />;
+        case 'address':
+            return <AddressSettings field={field} onPropertyChange={onPropertyChange} />;
         default:
             return null;
     }

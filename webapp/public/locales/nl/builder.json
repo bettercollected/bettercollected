@@ -1258,6 +1258,10 @@
     "tags": {
       "NAME": "Tags",
       "DESCRIPTION": "Korte labels die de respondent typt"
+    },
+    "address": {
+      "NAME": "Adres",
+      "DESCRIPTION": "Een postadres; Nederlandse adressen kunnen op postcode worden opgezocht"
     }
   },
   "TYPED_SETTINGS": {
@@ -1286,6 +1290,18 @@
   "NEW_TYPES": {
     "LOCKED": "Deze instellingen kunnen op deze server nog niet worden gewijzigd. Antwoorden blijven werken zoals ze zijn.",
     "SAVE_REFUSED": "Deze vraagtypen kunnen op deze server nog niet worden toegevoegd of gewijzigd. De wijziging is niet opgeslagen: verwijder de nieuwe vraag of zet de instellingen terug.",
-    "CANNOT_COPY": "Vragen van dit type kunnen op deze server nog niet worden gekopieerd."
+    "CANNOT_COPY": "Vragen van dit type kunnen op deze server nog niet worden gekopieerd.",
+    "ADDRESS_SAVE_REFUSED": "De adresvraag kan op deze server nog niet worden toegevoegd of gewijzigd. De wijziging is niet opgeslagen: verwijder de vraag of zet de instellingen terug."
+  },
+  "ADDRESS_SETTINGS": {
+    "SECTION": "Adres",
+    "COUNTRIES": "Landen",
+    "ADD_COUNTRY": "Land toevoegen",
+    "REMOVE_COUNTRY": "Verwijder {{country}}",
+    "COUNTRIES_HINT": "Respondenten kiezen uit deze landen. Bij één land zien ze geen landkeuze.",
+    "LOOKUP": "Straat en plaats invullen vanaf de postcode",
+    "LOOKUP_HINT": "Voor Nederlandse adressen, zodra postcode en huisnummer zijn getypt. Respondenten kunnen ze altijd aanpassen.",
+    "LOOKUP_SERVER_OFF": "Het opzoeken staat op deze server uit, dus adressen worden getypt en respondenten horen niets over een opzoekdienst.",
+    "UNVERIFIED": "Een opgezochte straat en plaats worden niet gecontroleerd: respondenten kunnen ze aanpassen."
   }
 }

@@ -67,6 +67,11 @@ export function isQuestionTypeDisabled(response: any): boolean {
     return response?.error?.status === 422 && response.error.data?.code === 'question_type_disabled';
 }
 
+/** Did the server refuse the save because the address question is switched off (422 `address_question_disabled`)? */
+export function isAddressQuestionDisabled(response: any): boolean {
+    return response?.error?.status === 422 && response.error.data?.code === 'address_question_disabled';
+}
+
 /** Did the server refuse the save because field rules are switched off (422 `field_rules_disabled`)? */
 export function isFieldRulesDisabled(response: any): boolean {
     return response?.error?.status === 422 && response.error.data?.code === 'field_rules_disabled';
@@ -226,6 +231,7 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                         if (isChoiceLogicDisabled(response)) toast({ description: i18n.t('builder:OPTION_LOGIC.DISABLED') });
                         // The same for the newer question types (NEW_QUESTION_TYPES_ENABLED is off there).
                         if (isQuestionTypeDisabled(response)) toast({ description: i18n.t('builder:NEW_TYPES.SAVE_REFUSED') });
+                        if (isAddressQuestionDisabled(response)) toast({ description: i18n.t('builder:NEW_TYPES.ADDRESS_SAVE_REFUSED') });
                         if (outcome.kind === 'saved') {
                             contextRef.current.dispatch(setForm({ ...response.data, settings: contextRef.current.settings }));
                             // The language the server stored: it keeps its own

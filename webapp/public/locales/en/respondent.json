@@ -20,6 +20,8 @@
         "WEBHOOKS": "Also sent to (automatically)",
         "WEBHOOKS_DESTINATION": "Your answers to some questions are also sent automatically to: {{hosts}}.",
         "WEBHOOKS_NO_DELETION": "Deleting your answers here does not delete the copy there. Contact the form's team to have it deleted.",
+        "ADDRESS": "Address lookup",
+        "ADDRESS_DETAIL": "To fill in your street and city, we send your postcode and house number to the PDOK Locatieserver address service. Your browser and IP address are not shared with it, and nothing else is sent.",
         "DRAFTS": "Saved drafts",
         "DRAFTS_DETAIL_one": "If you save and continue later, your draft is kept encrypted for {{count}} day after your last save, and deleted within a day after that. The form owner cannot see it until you submit. If you ask for a link, your email address is not stored with the draft: it is used to send the message, which the mail service that delivers it handles.",
         "DRAFTS_DETAIL_other": "If you save and continue later, your draft is kept encrypted for {{count}} days after your last save, and deleted within a day after that. The form owner cannot see it until you submit. If you ask for a link, your email address is not stored with the draft: it is used to send the message, which the mail service that delivers it handles.",
@@ -204,7 +206,11 @@
         "TOO_FEW_TAGS_one": "Enter at least {{count}} tag.",
         "TOO_FEW_TAGS_other": "Enter at least {{count}} tags.",
         "TOO_MANY_TAGS_one": "Enter at most {{count}} tag.",
-        "TOO_MANY_TAGS_other": "Enter at most {{count}} tags."
+        "TOO_MANY_TAGS_other": "Enter at most {{count}} tags.",
+        "FORMAT_ADDRESS": "Check the address: a Dutch postcode looks like 1015 CS and a Dutch house number is a number, like 12.",
+        "ADDRESS_INCOMPLETE": "Complete the address: street, house number, postcode and city.",
+        "ADDRESS_TOO_LONG": "A part of the address is too long. Shorten it.",
+        "COUNTRY": "Choose one of these countries: {{countries}}."
     },
     "DATE": {
         "PICK": "Pick a date",
@@ -416,5 +422,39 @@
         "DUPLICATE": "“{{tag}}” is already added.",
         "AT_MOST_one": "You can add at most {{count}} tag.",
         "AT_MOST_other": "You can add at most {{count}} tags."
+    },
+    "ADDRESS": {
+        "POSTCODE": "Postcode",
+        "HOUSE_NUMBER": "House number",
+        "HOUSE_NUMBER_ADDITION": "Addition",
+        "OPTIONAL": "optional",
+        "STREET": "Street",
+        "CITY": "City",
+        "COUNTRY": "Country",
+        "POSTCODE_EXAMPLE": "1015 CS",
+        "HOUSE_NUMBER_EXAMPLE": "12",
+        "LOOKUP_HINT": "Enter your postcode and house number and we fill in the street and city. You can change them.",
+        "STATUS": {
+            "LOOKING": "Looking up your address…",
+            "FOUND": "Street and city filled in. Check them and change them if needed.",
+            "FOUND_KEPT": "We found a street and city for this address. We kept the ones you typed.",
+            "NOT_FOUND": "We could not find this address. Fill in the street and city yourself.",
+            "UNAVAILABLE": "Looking up addresses is not available right now. Fill in the street and city yourself."
+        },
+        "ERR": {
+            "REQUIRED_STREET": "Enter the street.",
+            "REQUIRED_HOUSE_NUMBER": "Enter the house number.",
+            "REQUIRED_POSTCODE": "Enter the postcode.",
+            "REQUIRED_CITY": "Enter the city.",
+            "REQUIRED_COUNTRY": "Choose a country.",
+            "FORMAT_POSTCODE_NL": "Enter a Dutch postcode, like 1015 CS.",
+            "FORMAT_POSTCODE": "Check the postcode.",
+            "FORMAT_HOUSE_NUMBER": "Enter the house number in digits, like 12.",
+            "FORMAT_ADDITION": "An addition has letters or numbers, up to 10 characters, like A or 2.",
+            "FORMAT_TEXT": "Check this box: it cannot hold special characters.",
+            "COUNTRY": "Choose one of the countries offered.",
+            "TOO_LONG_one": "Use at most {{count}} character.",
+            "TOO_LONG_other": "Use at most {{count}} characters."
+        }
     }
 }

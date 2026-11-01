@@ -91,6 +91,14 @@ export const formsApi = createApi({
                 body: { sessionId, fromPage, toPage }
             })
         }),
+        // Street and city of a Dutch postcode and house number, through the server (public, like the form). The addition is never sent.
+        lookUpAddress: builder.mutation<{ status: 'found'; street: string; city: string } | { status: 'not_found' }, { workspaceId: string; formId: string; fieldId: string; postcode: string; houseNumber: string }>({
+            query: ({ workspaceId, formId, fieldId, postcode, houseNumber }) => ({
+                url: `/workspaces/${workspaceId}/forms/${formId}/address-lookup`,
+                method: 'POST',
+                body: { fieldId, postcode, houseNumber }
+            })
+        }),
         getFlowAnalytics: builder.query<{ totalSessions: number; submittedSessions: number; dropOffs: Record<string, number>; transitions: Array<{ from: string; to: string; count: number }> }, { workspaceId: string; formId: string }>({
             query: ({ workspaceId, formId }) => ({
                 url: `/workspaces/${workspaceId}/forms/${formId}/flow-analytics`,
@@ -193,6 +201,7 @@ export const {
     useLazyGetPublishedFormQuery,
     useSubmitResponseMutation,
     useSendFlowEventMutation,
+    useLookUpAddressMutation,
     useGetFlowAnalyticsQuery,
     useLazyLogOutQuery,
     useCreateFormWithAIMutation,

@@ -114,6 +114,8 @@ export function resolvePipeValue(kind: PipeKind | string, pipeKey: string, conte
     // An amount is shown as people write it in the form's language, with its currency.
     if (field.type === FieldTypes.CURRENCY) return formatAmount(context.answers?.[pipeKey]?.currency, context.language) || undefined;
     // A date range reads "start – end" (one day when only one is given); tags read as a comma separated list.
+    // An address is personal data and no title's business: it is never piped (it reads as unanswered, as on the server).
+    if (field.type === FieldTypes.ADDRESS) return undefined;
     if (field.type === FieldTypes.DATE_RANGE) {
         const { start, end } = dateRangeDays(context.answers?.[pipeKey]);
         return start && end ? `${start} – ${end}` : (start ?? end);

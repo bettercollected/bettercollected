@@ -37,6 +37,7 @@ import { workspaceDisplayName } from '@app/utils/workspace-display-name';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import BackButton from '@app/views/molecules/form-builder/back-button';
 import { LeafletIntroBand, LeafletSectionBar, leafletNumbersHang } from '@app/views/molecules/form/leaflet-section';
+import AddressField from '@app/views/molecules/responder-form-fields/address-field';
 import CalculatedField from '@app/views/molecules/responder-form-fields/calculated-field';
 import CurrencyField from '@app/views/molecules/responder-form-fields/currency-field';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
@@ -119,6 +120,8 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
             return <DateRangeField field={field} />;
         case FieldTypes.TAGS:
             return <TagsField field={field} />;
+        case FieldTypes.ADDRESS:
+            return <AddressField field={field} />;
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} />;
         case FieldTypes.IMAGE_CONTENT:

@@ -14,6 +14,8 @@ import { cn } from '@app/shadcn/util/lib';
 import { PipeContext, resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
 import { calculatedAnswerValue, formatCalculatedValue, isShownToRespondents } from '@app/utils/calculated-fields';
 import { LogicSources, getHiddenFieldIds } from '@app/utils/conditional-logic';
+import { addressLines } from '@app/utils/address';
+import { countryName } from '@app/utils/countries';
 import { formatAmount } from '@app/utils/currency';
 import { dateRangeText } from '@app/utils/date-range';
 import { calendarDayIn } from '@app/utils/date-utils';
@@ -368,6 +370,17 @@ function AnswerBody({ field, answers, labelledBy, ctx }: { field: StandardFormFi
             // two dates as the form shows them ("3 November 2026 – 7 November 2026")
             const range = dateRangeText(answer, ctx.formatLanguage);
             return range ? <ReadOnlyBox labelledBy={labelledBy}>{range}</ReadOnlyBox> : <NoAnswer ctx={ctx} />;
+        }
+        case FieldTypes.ADDRESS: {
+            // the address on lines, as a letter would carry it
+            const lines = addressLines(answer?.address, (code) => countryName(code, ctx.formatLanguage));
+            return lines.length ? (
+                <ReadOnlyBox labelledBy={labelledBy} multiline>
+                    {lines.join('\n')}
+                </ReadOnlyBox>
+            ) : (
+                <NoAnswer ctx={ctx} />
+            );
         }
         case FieldTypes.TAGS:
             // the tags, in the order they were entered

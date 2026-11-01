@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { atom, useAtom, useAtomValue } from 'jotai';
 
 import { FileMetadata } from '@app/models/types/field-types';
+import type { AddressParts } from '@app/utils/address';
 import { useGroupItemScope } from '@app/store/jotai/group-item-scope';
 import { itemScopeAnswers, writeItemAnswers } from '@app/utils/repeating-groups';
 import { Invalidations } from '@app/utils/vvalidation-utils';
@@ -20,6 +21,7 @@ enum AnswerType {
     CURRENCY = 'currency',
     DATE_RANGE = 'date_range',
     TAGS = 'tags',
+    ADDRESS = 'address',
     URL = 'url',
     PHONE_NUMBER = 'phone_number',
     FILE_URL = 'file_url',
@@ -59,6 +61,7 @@ export interface FormResponse {
             currency?: { code?: string; amount?: string };
             date_range?: { start?: string; end?: string };
             tags?: string[];
+            address?: AddressParts;
             phone_number?: string;
             url?: string;
             choice?: ChoiceAnswer;
@@ -281,6 +284,20 @@ export const useFormResponse = () => {
         });
     };
 
+    // An address: only the parts that are given are stored (a country alone is no answer: the field keeps it until a part is typed).
+    const addFieldAddressAnswer = (fieldId: string, address: AddressParts) => {
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.ADDRESS,
+                    address
+                }
+            }
+        });
+    };
+
     const addFieldTagsAnswer = (fieldId: string, tags: string[]) => {
         setFormResponse({
             ...formResponse,
@@ -405,6 +422,7 @@ export const useFormResponse = () => {
         addFieldCurrencyAnswer,
         addFieldDateRangeAnswer,
         addFieldTagsAnswer,
+        addFieldAddressAnswer,
         addFieldEmailAnswer,
         addFieldNumberAnswer,
         addFieldPhoneNumberAnswer,

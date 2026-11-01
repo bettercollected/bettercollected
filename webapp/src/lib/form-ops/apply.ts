@@ -23,7 +23,7 @@ import { DROPPED_HIDDEN_REFERENCES_MARK, DROPPED_REFERENCES_MARK, DROPPED_RULES_
 import { editorGrowth } from './handlers/editor';
 import { buildInverse, touchedEntities } from './inverse';
 import { MAX_OPS_PER_BATCH, OpError, SIZE_LIMIT_SKIPPED, SizeLimitReached, countFields, findPage, formSize, hasOwn, isRepeatingGroup, isSlide, sizeProblem, titleText, tryLocateField } from './model';
-import { GATED_OPS, type GatedSignatures, gatedSignatures, questionTypeProblem } from './new-question-types';
+import { GATED_OPS, type GatedSignatures, gatedSignatures, gatesOff, questionTypeProblem } from './new-question-types';
 import { referenceFixes } from './references';
 import { type RefTable, refsDefined, resolveRefs } from './refs';
 import type { ApplyOptions, ApplyResult, FormDoc, FormField, FormOp, OpResult } from './types';
@@ -243,9 +243,10 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
             // The newer question types (new-question-types.ts): with the switch
             // off, an op that leaves one new or changed against the form the
             // batch started from is refused and undone.
-            if (options.newQuestionTypes === false && GATED_OPS.has(name)) {
+            const gatesOffNow = gatesOff(options);
+            if (gatesOffNow.length && GATED_OPS.has(name)) {
                 startedTypes ??= gatedSignatures(doc);
-                const refusal = questionTypeProblem(working, startedTypes, name);
+                const refusal = questionTypeProblem(working, startedTypes, name, gatesOffNow);
                 if (refusal) {
                     working = state;
                     throw new OpError(refusal);

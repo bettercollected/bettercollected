@@ -9,6 +9,7 @@ import { ownerProps } from '@app/utils/workspace-display-name';
 import FullScreenLoader from "@app/views/atoms/full-screen-loader";
 import TrustLayer from '@app/views/molecules/form/trust-layer';
 import Form from "@app/views/organism/form/form";
+import { formLooksUpAddresses } from '@app/utils/address';
 import { layoutOfPage } from '@app/views/organism/layout/form-column';
 import { useResponderState, useShownSlide } from '@app/store/jotai/responder-form-state';
 import { use, useEffect } from "react";
@@ -50,7 +51,7 @@ export default function FormPreview(props: { params: Promise<{ form_id: string }
             <Form isPreviewMode />
         </div>
         <div className="relative z-40 shrink-0">
-            <TrustLayer {...ownerProps(workspace)} ownerImage={workspace?.profileImage} settings={data?.settings} registrationDestination={data?.registrationDestination} webhookDestination={data?.webhookDestination} emailDestination={data?.emailDestination} layout={layoutOfPage(shownForm, shownSlide, endingId)} />
+            <TrustLayer {...ownerProps(workspace)} ownerImage={workspace?.profileImage} settings={data?.settings} registrationDestination={data?.registrationDestination} webhookDestination={data?.webhookDestination} emailDestination={data?.emailDestination} addressLookup={formLooksUpAddresses(data)} layout={layoutOfPage(shownForm, shownSlide, endingId)} />
         </div>
     </div>
 }
