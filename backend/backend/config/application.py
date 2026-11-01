@@ -108,6 +108,12 @@ class Application(StoreBackedSettings):
     # signature_question_disabled; a signature question already stored keeps
     # being shown, answered and exported.
     SIGNATURE_QUESTION_ENABLED: bool = False
+    # Layout containers (panels, tabs and field sets that group the questions
+    # of a page, services/layout_containers.py) may be added or changed through
+    # the same paths. Off (the default, until the release that turns it on):
+    # those saves are refused with 422 layout_containers_disabled; containers a
+    # form already has keep being shown and may lose questions or be removed.
+    LAYOUT_CONTAINERS_ENABLED: bool = False
     # Choice logic (services/option_logic.py: options shown or hidden by
     # answers, options filtered by an earlier answer) may be created or
     # changed through the API, the builder save, edit operations, templates and

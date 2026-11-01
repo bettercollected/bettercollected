@@ -376,6 +376,23 @@ prompt leaves the types out (`ops_guide()`). Never add a parallel check. Stored 
 answers and exporting: answer validation and exports do not read the switch. The shared ops corpus runs a case with
 the switch off through `newQuestionTypes: false`. A test that needs such a form builds it with the switch on, then
 turns it off.
+**Layout containers** (panel, field set, tabs; spec section "Layout containers"): `properties.containers` of a page
+(`standard_form.LayoutContainer`) groups questions of the page's flat list; layout only, nothing that reads answers
+changes. Structure rules, repair and membership by position are in `common/common/layout_containers.py` (webapp twin
+`webapp/src/utils/layout-containers.ts`, shared cases `docs/spec/layout-containers.cases.json`); the switch and the
+save checks are in `services/layout_containers.py`. Switch `LAYOUT_CONTAINERS_ENABLED` (default off, 422
+`layout_containers_disabled`, permissions `layoutContainersEnabled`): `ensure_question_types_allowed` calls
+`ensure_layout_allowed` (so every save path that ends there is covered: builder save, `write_form_parts`, templates,
+import, spec API) and `apply_form_ops` checks `layout_problem` after each op in `LAYOUT_OPS`; with the switch off a
+stored container renders and may lose questions or go, any other change is refused. Every save runs
+`ensure_valid_layout` first: dangling members, an emptied container, one out of page order are repaired, a real
+structure error is 422 `invalid_layout`. `is_hidden_by_logic` also reads the container's rule through
+`logic_sources(...).container_logic` (a dict subclass: the keys stay the questions), so hidden-by-container questions
+are exempt from Required like any hidden question and their answers stay stored. The op `set_page_containers`
+replaces a page's list; `add_field`, `add_group`, `insert_field` and `move_field` call `join_by_position`
+(inside a container joins it, the edge does not); `finished_form` repairs what a removal left. Never add a parallel
+check.
+
 **Signature question** (`signature`; spec section "Signature question"): a drawn image or a typed name,
 behind its own switch `SIGNATURE_QUESTION_ENABLED` (default off, 422 `signature_question_disabled`, permissions
 `signatureQuestionEnabled`). `new_question_types.py` holds one `Gate` per switch (`GATES`: setting, types, code,

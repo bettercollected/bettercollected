@@ -2002,6 +2002,128 @@
         "title": "Condition",
         "description": "One condition of a visibility rule or a page jump: the answer of\n``fieldId`` compared with ``value`` (a choice's value, \"Yes\"/\"No\" for a\nyes/no question). On a repeating group, ``groupMode`` COUNT compares\nthe number of items; ANY / ALL test ``childFieldId`` in the items."
       },
+      "Container": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "panel",
+              "fieldset",
+              "tabs"
+            ],
+            "title": "Type"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "collapsed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collapsed"
+          },
+          "logic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Logic"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "type": "array",
+                "maxItems": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fields"
+          },
+          "tabs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ContainerTab"
+                },
+                "type": "array",
+                "maxItems": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tabs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "Container",
+        "description": "A layout container on a page: ``panel`` (a titled group that opens and\ncloses; ``collapsed``: closed when the page opens), ``fieldset`` (a\nbordered group with a legend) or ``tabs`` (a strip of ``tabs``, no title\nof its own). A panel and a field set list their questions in ``fields``;\nthe questions of one container are next to each other on the page, in the\norder given, and are questions of the page itself (never a repeating\ngroup's children). ``logic`` shows or hides the whole container. Layout\nonly: answers, logic, rules and exports see the questions as before."
+      },
+      "ContainerTab": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "fields": {
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Fields"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "ContainerTab",
+        "description": "One tab of a ``tabs`` container: its title and its questions (ids, in\npage order). A tab may be empty."
+      },
       "CreatedForm": {
         "properties": {
           "formId": {
@@ -3536,6 +3658,22 @@
               }
             ],
             "title": "Jumps"
+          },
+          "containers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Container"
+                },
+                "type": "array",
+                "maxItems": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Containers",
+            "description": "Panels, field sets and tabs that group questions of this page."
           },
           "fields": {
             "items": {

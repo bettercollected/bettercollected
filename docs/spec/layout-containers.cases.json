@@ -1,0 +1,1858 @@
+{
+ "description": "Layout container structure: repair, membership by position and the problem check. Pages list `fields` (an id, {id, internal}, or {id, group: [child ids]}) and `containers`. The Python (common/common/layout_containers.py) and TypeScript (webapp/src/utils/layout-containers.ts) implementations must give every expected result.",
+ "cases": [
+  {
+   "name": "a valid container is left alone",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     "b",
+     "c",
+     "d"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b"
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b"
+      ]
+     }
+    ],
+    "changed": 0
+   }
+  },
+  {
+   "name": "a member that is gone is dropped",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     "b",
+     "c",
+     "d"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "gone",
+       "b"
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b"
+      ]
+     }
+    ],
+    "changed": 1
+   }
+  },
+  {
+   "name": "a question between the members joins",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     "b",
+     "c",
+     "d"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "c"
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b",
+       "c"
+      ]
+     }
+    ],
+    "changed": 1
+   }
+  },
+  {
+   "name": "an emptied container goes",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     "b",
+     "c",
+     "d"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "x",
+       "y"
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": null,
+    "changed": 3
+   }
+  },
+  {
+   "name": "a container out of page order is dissolved",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     "b",
+     "c",
+     "d"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "c",
+       "a"
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": null,
+    "changed": 1
+   }
+  },
+  {
+   "name": "a tab keeps its place when emptied",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     "b",
+     "c",
+     "d"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "tabs",
+      "tabs": [
+       {
+        "id": "c1t1",
+        "title": "Tab 1",
+        "fields": [
+         "a",
+         "b"
+        ]
+       },
+       {
+        "id": "c1t2",
+        "title": "Tab 2",
+        "fields": []
+       }
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "tabs",
+      "tabs": [
+       {
+        "id": "c1t1",
+        "title": "Tab 1",
+        "fields": [
+         "a",
+         "b"
+        ]
+       },
+       {
+        "id": "c1t2",
+        "title": "Tab 2",
+        "fields": []
+       }
+      ]
+     }
+    ],
+    "changed": 0
+   }
+  },
+  {
+   "name": "a gap in a tabs strip joins the tab of the member before it",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     "b",
+     "c",
+     "d"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "tabs",
+      "tabs": [
+       {
+        "id": "c1t1",
+        "title": "Tab 1",
+        "fields": [
+         "a"
+        ]
+       },
+       {
+        "id": "c1t2",
+        "title": "Tab 2",
+        "fields": [
+         "c",
+         "d"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "tabs",
+      "tabs": [
+       {
+        "id": "c1t1",
+        "title": "Tab 1",
+        "fields": [
+         "a",
+         "b"
+        ]
+       },
+       {
+        "id": "c1t2",
+        "title": "Tab 2",
+        "fields": [
+         "c",
+         "d"
+        ]
+       }
+      ]
+     }
+    ],
+    "changed": 1
+   }
+  },
+  {
+   "name": "tabs out of page order are dissolved",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     "b",
+     "c",
+     "d"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "tabs",
+      "tabs": [
+       {
+        "id": "c1t1",
+        "title": "Tab 1",
+        "fields": [
+         "c"
+        ]
+       },
+       {
+        "id": "c1t2",
+        "title": "Tab 2",
+        "fields": [
+         "a"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": null,
+    "changed": 1
+   }
+  },
+  {
+   "name": "an internal member is dropped",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     {
+      "id": "o",
+      "internal": true
+     },
+     "b"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "o",
+       "b"
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b"
+      ]
+     }
+    ],
+    "changed": 1
+   }
+  },
+  {
+   "name": "an internal question between the members is not taken in",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     {
+      "id": "o",
+      "internal": true
+     },
+     "b"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b"
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b"
+      ]
+     }
+    ],
+    "changed": 0
+   }
+  },
+  {
+   "name": "a question in two containers stays in the first",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     "b",
+     "c",
+     "d"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b"
+      ]
+     },
+     {
+      "id": "c2",
+      "type": "panel",
+      "title": "C2",
+      "fields": [
+       "b",
+       "c"
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b"
+      ]
+     },
+     {
+      "id": "c2",
+      "type": "panel",
+      "title": "C2",
+      "fields": [
+       "c"
+      ]
+     }
+    ],
+    "changed": 1
+   }
+  },
+  {
+   "name": "a repeated member is listed once",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     "b",
+     "c",
+     "d"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "a",
+       "b"
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b"
+      ]
+     }
+    ],
+    "changed": 1
+   }
+  },
+  {
+   "name": "a group's child is not a page question",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     {
+      "id": "g",
+      "group": [
+       "name"
+      ]
+     },
+     "b"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "name"
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a"
+      ]
+     }
+    ],
+    "changed": 1
+   }
+  },
+  {
+   "name": "a repeating group is a member whole",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     {
+      "id": "g",
+      "group": [
+       "name"
+      ]
+     },
+     "b"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "g",
+       "b"
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "g",
+       "b"
+      ]
+     }
+    ],
+    "changed": 0
+   }
+  },
+  {
+   "name": "no containers",
+   "kind": "repair",
+   "page": {
+    "fields": [
+     "a",
+     "b",
+     "c",
+     "d"
+    ]
+   },
+   "expect": {
+    "containers": null,
+    "changed": 0
+   }
+  },
+  {
+   "name": "a question inserted inside joins",
+   "kind": "join",
+   "page": {
+    "fields": [
+     "a",
+     "n",
+     "b",
+     "c"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b",
+       "c"
+      ]
+     }
+    ]
+   },
+   "fieldId": "n",
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "n",
+       "b",
+       "c"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "a question at the end is outside",
+   "kind": "join",
+   "page": {
+    "fields": [
+     "a",
+     "b",
+     "c",
+     "n"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b",
+       "c"
+      ]
+     }
+    ]
+   },
+   "fieldId": "n",
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b",
+       "c"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "a question at the start is outside",
+   "kind": "join",
+   "page": {
+    "fields": [
+     "n",
+     "a",
+     "b",
+     "c"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b",
+       "c"
+      ]
+     }
+    ]
+   },
+   "fieldId": "n",
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b",
+       "c"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "a member moved within stays",
+   "kind": "join",
+   "page": {
+    "fields": [
+     "b",
+     "a",
+     "c"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b",
+       "c"
+      ]
+     }
+    ]
+   },
+   "fieldId": "a",
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "b",
+       "a",
+       "c"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "a member moved to the edge leaves",
+   "kind": "join",
+   "page": {
+    "fields": [
+     "b",
+     "c",
+     "a"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b",
+       "c"
+      ]
+     }
+    ]
+   },
+   "fieldId": "a",
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "b",
+       "c"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "a member moved to the front leaves and does not pull the next question in",
+   "kind": "join",
+   "page": {
+    "fields": [
+     "a",
+     "x",
+     "b"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b"
+      ]
+     }
+    ]
+   },
+   "fieldId": "a",
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "b"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "the only member takes its container along",
+   "kind": "join",
+   "page": {
+    "fields": [
+     "x",
+     "y",
+     "a"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a"
+      ]
+     }
+    ]
+   },
+   "fieldId": "a",
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "the only member lands inside another container and goes there",
+   "kind": "join",
+   "page": {
+    "fields": [
+     "x",
+     "m",
+     "a",
+     "n"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a"
+      ]
+     },
+     {
+      "id": "c2",
+      "type": "panel",
+      "title": "C2",
+      "fields": [
+       "m",
+       "n"
+      ]
+     }
+    ]
+   },
+   "fieldId": "a",
+   "expect": {
+    "containers": [
+     {
+      "id": "c2",
+      "type": "panel",
+      "title": "C2",
+      "fields": [
+       "m",
+       "a",
+       "n"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "a question inside a tab joins the tab of the member before it",
+   "kind": "join",
+   "page": {
+    "fields": [
+     "a",
+     "b",
+     "c",
+     "n",
+     "d"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "tabs",
+      "tabs": [
+       {
+        "id": "c1t1",
+        "title": "Tab 1",
+        "fields": [
+         "a",
+         "b"
+        ]
+       },
+       {
+        "id": "c1t2",
+        "title": "Tab 2",
+        "fields": [
+         "c",
+         "d"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "fieldId": "n",
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "tabs",
+      "tabs": [
+       {
+        "id": "c1t1",
+        "title": "Tab 1",
+        "fields": [
+         "a",
+         "b"
+        ]
+       },
+       {
+        "id": "c1t2",
+        "title": "Tab 2",
+        "fields": [
+         "c",
+         "n",
+         "d"
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "a question between two tabs joins the first of them",
+   "kind": "join",
+   "page": {
+    "fields": [
+     "a",
+     "n",
+     "c"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "tabs",
+      "tabs": [
+       {
+        "id": "c1t1",
+        "title": "Tab 1",
+        "fields": [
+         "a"
+        ]
+       },
+       {
+        "id": "c1t2",
+        "title": "Tab 2",
+        "fields": [
+         "c"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "fieldId": "n",
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "tabs",
+      "tabs": [
+       {
+        "id": "c1t1",
+        "title": "Tab 1",
+        "fields": [
+         "a",
+         "n"
+        ]
+       },
+       {
+        "id": "c1t2",
+        "title": "Tab 2",
+        "fields": [
+         "c"
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "a question made internal leaves",
+   "kind": "join",
+   "page": {
+    "fields": [
+     "a",
+     {
+      "id": "n",
+      "internal": true
+     },
+     "b"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "n",
+       "b"
+      ]
+     }
+    ]
+   },
+   "fieldId": "n",
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "a member moved from one container into another",
+   "kind": "join",
+   "page": {
+    "fields": [
+     "m",
+     "a",
+     "n",
+     "b",
+     "c"
+    ],
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "b",
+       "c"
+      ]
+     },
+     {
+      "id": "c2",
+      "type": "panel",
+      "title": "C2",
+      "fields": [
+       "m",
+       "n"
+      ]
+     }
+    ]
+   },
+   "fieldId": "n",
+   "expect": {
+    "containers": [
+     {
+      "id": "c1",
+      "type": "panel",
+      "title": "C1",
+      "fields": [
+       "a",
+       "n",
+       "b",
+       "c"
+      ]
+     },
+     {
+      "id": "c2",
+      "type": "panel",
+      "title": "C2",
+      "fields": [
+       "m"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "no problems",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "a",
+        "b"
+       ]
+      },
+      {
+       "id": "c2",
+       "type": "fieldset",
+       "title": "C2",
+       "fields": [
+        "c",
+        "d"
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": []
+   }
+  },
+  {
+   "name": "members must be next to each other",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "a",
+        "c"
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "c1",
+      "message": "The questions of a container must be next to each other on the page, in the order of the container; move them first (move_field)."
+     }
+    ]
+   }
+  },
+  {
+   "name": "members must be in page order",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "b",
+        "a"
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "c1",
+      "message": "The questions of a container must be next to each other on the page, in the order of the container; move them first (move_field)."
+     }
+    ]
+   }
+  },
+  {
+   "name": "an internal question between members is fine",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      {
+       "id": "o",
+       "internal": true
+      },
+      "b"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "a",
+        "b"
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": []
+   }
+  },
+  {
+   "name": "an internal member is refused",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      {
+       "id": "o",
+       "internal": true
+      }
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "a",
+        "o"
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "c1",
+      "message": "The internal question 'o' cannot be in a container."
+     }
+    ]
+   }
+  },
+  {
+   "name": "an unknown member is refused",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "a",
+        "zz"
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "c1",
+      "message": "The question 'zz' is not on this page."
+     }
+    ]
+   }
+  },
+  {
+   "name": "a group's child is refused",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      {
+       "id": "g",
+       "group": [
+        "name"
+       ]
+      }
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "name"
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "c1",
+      "message": "The question 'name' is not on this page (it is inside a repeating group, which a container cannot split)."
+     }
+    ]
+   }
+  },
+  {
+   "name": "a repeating group is a member whole",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      {
+       "id": "g",
+       "group": [
+        "name"
+       ]
+      },
+      "b"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "a",
+        "g",
+        "b"
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": []
+   }
+  },
+  {
+   "name": "an id used twice",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "a",
+        "b"
+       ]
+      },
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "c"
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "c1",
+      "message": "The id 'c1' is used more than once."
+     }
+    ]
+   }
+  },
+  {
+   "name": "a tab id used twice across containers",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "containers": [
+      {
+       "id": "k",
+       "type": "tabs",
+       "tabs": [
+        {
+         "id": "kt1",
+         "title": "Tab 1",
+         "fields": [
+          "a"
+         ]
+        },
+        {
+         "id": "kt2",
+         "title": "Tab 2",
+         "fields": [
+          "b"
+         ]
+        }
+       ]
+      },
+      {
+       "id": "j",
+       "type": "tabs",
+       "tabs": [
+        {
+         "id": "kt1",
+         "title": "x",
+         "fields": [
+          "c"
+         ]
+        },
+        {
+         "id": "jt2",
+         "title": "y",
+         "fields": [
+          "d"
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "j",
+      "message": "The id 'kt1' is used more than once."
+     }
+    ]
+   }
+  },
+  {
+   "name": "a question in two containers",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "a",
+        "b"
+       ]
+      },
+      {
+       "id": "c2",
+       "type": "panel",
+       "title": "C2",
+       "fields": [
+        "b",
+        "c"
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "c2",
+      "message": "The question 'b' is already in the container 'c1'."
+     }
+    ]
+   }
+  },
+  {
+   "name": "an id used on another page",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "a"
+       ]
+      }
+     ]
+    },
+    {
+     "fields": [
+      "x"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "x"
+       ]
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p2",
+      "containerId": "c1",
+      "message": "The id 'c1' is used more than once."
+     }
+    ]
+   }
+  },
+  {
+   "name": "a rule that reads an earlier question",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "c",
+        "d"
+       ],
+       "logic": {
+        "action": "SHOW",
+        "conditions": [
+         {
+          "fieldId": "a",
+          "comparison": "IS_EQUAL",
+          "value": "x"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": []
+   }
+  },
+  {
+   "name": "a rule that reads a later question",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "a",
+        "b"
+       ],
+       "logic": {
+        "action": "SHOW",
+        "conditions": [
+         {
+          "fieldId": "c",
+          "comparison": "IS_EQUAL",
+          "value": "x"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "c1",
+      "message": "A container's rule can only read questions before the container."
+     }
+    ]
+   }
+  },
+  {
+   "name": "a rule that reads its own question",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "c",
+        "d"
+       ],
+       "logic": {
+        "action": "SHOW",
+        "conditions": [
+         {
+          "fieldId": "d",
+          "comparison": "IS_EQUAL",
+          "value": "x"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "c1",
+      "message": "A container's rule cannot read one of its own questions."
+     }
+    ]
+   }
+  },
+  {
+   "name": "a rule that reads an unknown question",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "c",
+        "d"
+       ],
+       "logic": {
+        "action": "SHOW",
+        "conditions": [
+         {
+          "fieldId": "zz",
+          "comparison": "IS_EQUAL",
+          "value": "x"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "c1",
+      "message": "A container's rule reads the unknown question 'zz'."
+     }
+    ]
+   }
+  },
+  {
+   "name": "a rule that reads a question of an earlier page",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "x"
+     ]
+    },
+    {
+     "fields": [
+      "y",
+      "z"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "y",
+        "z"
+       ],
+       "logic": {
+        "action": "SHOW",
+        "conditions": [
+         {
+          "fieldId": "x",
+          "comparison": "IS_EQUAL",
+          "value": "x"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "problems": []
+   }
+  },
+  {
+   "name": "a rule that reads a question of a later page",
+   "kind": "problems",
+   "pages": [
+    {
+     "fields": [
+      "y",
+      "z"
+     ],
+     "containers": [
+      {
+       "id": "c1",
+       "type": "panel",
+       "title": "C1",
+       "fields": [
+        "y",
+        "z"
+       ],
+       "logic": {
+        "action": "SHOW",
+        "conditions": [
+         {
+          "fieldId": "x",
+          "comparison": "IS_EQUAL",
+          "value": "x"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "fields": [
+      "x"
+     ]
+    }
+   ],
+   "expect": {
+    "problems": [
+     {
+      "pageId": "p1",
+      "containerId": "c1",
+      "message": "A container's rule reads the unknown question 'x'."
+     }
+    ]
+   }
+  }
+ ]
+}
