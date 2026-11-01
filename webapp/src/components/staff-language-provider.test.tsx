@@ -78,6 +78,39 @@ describe('the staff dashboard language', () => {
         expect(screen.getByRole('radiogroup', { name: 'Taal' })).toBeInTheDocument();
     });
 
+    it('is one tab stop (the checked radio) and moves with the arrow keys, Home and End, as a radio group does', () => {
+        browserSays('en');
+        render(tree());
+        const english = screen.getByRole('radio', { name: 'English' });
+        const dutch = screen.getByRole('radio', { name: 'Nederlands' });
+        expect(english).toHaveAttribute('tabindex', '0');
+        expect(dutch).toHaveAttribute('tabindex', '-1');
+        english.focus();
+        fireEvent.keyDown(english, { key: 'ArrowRight' });
+        expect(dutch).toBeChecked();
+        expect(dutch).toHaveFocus();
+        expect(dutch).toHaveAttribute('tabindex', '0');
+        expect(english).toHaveAttribute('tabindex', '-1');
+        expect(screen.getByTestId('probe')).toHaveTextContent('Sorteren op');
+        expect(document.documentElement.lang).toBe('nl');
+        // the ends wrap
+        fireEvent.keyDown(dutch, { key: 'ArrowDown' });
+        expect(english).toBeChecked();
+        expect(english).toHaveFocus();
+        fireEvent.keyDown(english, { key: 'ArrowLeft' });
+        expect(dutch).toBeChecked();
+        fireEvent.keyDown(dutch, { key: 'Home' });
+        expect(english).toBeChecked();
+        expect(english).toHaveFocus();
+        fireEvent.keyDown(english, { key: 'End' });
+        expect(dutch).toBeChecked();
+        fireEvent.keyDown(dutch, { key: 'ArrowUp' });
+        expect(english).toBeChecked();
+        // other keys leave it alone
+        fireEvent.keyDown(english, { key: 'a' });
+        expect(english).toBeChecked();
+    });
+
     it('names each language in itself and marks it, so it can be found from the other one', () => {
         browserSays('en');
         render(tree());

@@ -62,6 +62,16 @@ describe('the account menu\'s language switch', () => {
         expect(window.localStorage.getItem(STAFF_LANGUAGE_STORAGE_KEY)).toBe('nl');
     });
 
+    it('keeps the menu open when the radio is used from the keyboard (Enter or Space is a click on the button)', () => {
+        render(dashboard());
+        fireEvent.click(document.getElementById('account-menu')!);
+        const dutch = screen.getByRole('radio', { name: 'Nederlands' });
+        dutch.focus();
+        fireEvent.keyDown(screen.getByRole('radio', { name: 'English' }), { key: 'ArrowRight' });
+        fireEvent.click(dutch);
+        expect(screen.getByRole('radiogroup', { name: 'Taal' })).toBeInTheDocument();
+    });
+
     it('is not in the menu outside the dashboard (a client domain\'s account menu)', () => {
         render(outside());
         fireEvent.click(document.getElementById('account-menu')!);
