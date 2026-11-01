@@ -60,6 +60,11 @@ the keyset tasks refuse them (docs/response-keyset-rotation.md, "The store
 rule"). Values left in Mongo are not touched.
 ``--dry-run`` counts only.
 
+``reencrypt`` exits 1 (after printing the report) when an image written for a
+response that lost its signature could not be removed again
+(``images_removal_failed``): the report lists those response ids
+(``images_removal_failed_responses``, ids only) and what to do.
+
 ``reencrypt`` (apart from ``--dry-run``) and ``drop-old`` only work with the
 keyset the services run with: the primary key of ``--keyset-file`` must be the
 primary of ``MASTER_ENCRYPTION_KEYSET`` in the environment, so nothing is ever
@@ -117,7 +122,12 @@ from common.services.keyset import (
     parse_keyset,
     published_key_ids,
 )
-from scripts.rotate_images import DrawnImages, S3Objects, blocking
+from scripts.rotate_images import (
+    REMOVAL_FAILED_NOTE,
+    DrawnImages,
+    S3Objects,
+    blocking,
+)
 
 logger = logging.getLogger("rotate_response_keyset")
 
@@ -508,6 +518,19 @@ async def _main(argv: List[str]) -> int:
         report["dropped_key_ids"] = [
             key.key_id for key in keyset.key if key.key_id != keyset.primary_key_id
         ]
+    removal_failed = getattr(images, "removal_failed", None)
+    if args.command == "reencrypt" and removal_failed:
+        # an image of an erased signature may still be stored: not a clean run
+        report["images_removal_failed_responses"] = list(removal_failed)
+        report["images_removal_failed_action"] = REMOVAL_FAILED_NOTE
+        print(json.dumps(report, indent=2, sort_keys=True))
+        print(
+            f"{len(removal_failed)} response(s) may still have a stored "
+            "signature image that must be deleted: see "
+            "images_removal_failed_responses in the report.",
+            file=sys.stderr,
+        )
+        return 1
     print(json.dumps(report, indent=2, sort_keys=True))
     return 0
 

@@ -12,6 +12,7 @@ import DashboardIcon from '@Components/icons/dashboard';
 import WorkspaceAdminSelector from '@Components/hocs/workspace-admin-selector';
 
 import BillingOwnerNote from '@app/components/member/billing-owner-note';
+import StaffLanguageSwitch from '@app/components/auth/staff-language-switch';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { useModal } from '@app/components/modal-views/context';
@@ -169,6 +170,10 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                             </div>
                         </ActiveLink>
                     </li>
+                    <li className="list-none">
+                        <Separator className="my-2" />
+                    </li>
+                    <StaffLanguageSwitch />
                     <li className="list-none">
                         <Separator className="my-2" />
                     </li>

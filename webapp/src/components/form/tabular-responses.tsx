@@ -14,13 +14,15 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceFormVersionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { utcToLocalDateTIme } from '@app/utils/date-utils';
+import { useIsPhone } from '@app/lib/hooks/use-breakpoint';
+import { utcToLocalDateTimeIn } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
 import { formFormatLanguage, responsePageUrl } from '@app/utils/response-page';
 import { DISPLAY_LIST_SEPARATOR, getAnswerDisplayText, getAnswerForField, getFormFields, getTitleForHeader, mergeFieldsAcrossVersions } from '@app/utils/form-builder-block-utils';
 import { getInternalAnswerText, getInternalColumnTitle, getInternalFields } from '@app/utils/internal-fields';
 import AnonymousBadge from '@Components/datatable/anonymous-badge';
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
+import ResponseCards from '@Components/datatable/response-cards';
 import { ExpandIcon } from '@Components/icons/expanded-icon';
 
 /**
@@ -64,14 +66,15 @@ export default function TabularResponses({ form, data }: TabularResponsesProps) 
     // other form versions the listed responses were submitted against
     const [versionForms, setVersionForms] = useState<Record<number, StandardFormDto>>({});
 
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const isPhone = useIsPhone();
 
     const downloadFormFile = async (ans: any) => {
         try {
             if (!ans?.file_metadata?.url) return;
             await downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
         } catch (err) {
-            toast({ description: 'Error downloading file', variant: 'destructive' });
+            toast({ description: t('RESPONSES_STAFF.FILE_ERROR'), variant: 'destructive' });
         }
     };
 
@@ -100,7 +103,7 @@ export default function TabularResponses({ form, data }: TabularResponsesProps) 
             ) : (
                 <AnonymousBadge />
             )}
-            <span className="text-black-600 text-[10px] font-normal">{utcToLocalDateTIme(response?.createdAt)}</span>
+            <span className="text-black-600 text-[10px] font-normal">{utcToLocalDateTimeIn(response?.createdAt, i18n.language)}</span>
         </div>
     );
 
@@ -151,13 +154,13 @@ export default function TabularResponses({ form, data }: TabularResponsesProps) 
     const columns: any = [
         {
             // visually hidden header: the column holds the "Open response" buttons
-            name: <span className="sr-only">Open</span>,
+            name: <span className="sr-only">{t('RESPONSES_STAFF.COLUMN_OPEN')}</span>,
             cell: (response: StandardFormResponseDto) => (
                 // A real link: reachable with Tab, announced, opens with Enter, and
                 // cmd/ctrl-click opens it in a new tab.
                 <Link
                     href={responseUrl(response)}
-                    aria-label="Open response"
+                    aria-label={t('RESPONSES_STAFF.OPEN_RESPONSE')}
                     className="hover:bg-black-200 focus-visible:ring-brand-500 flex h-8 w-8 items-center justify-center rounded focus:outline-hidden focus-visible:ring-2"
                     onClick={(event) => event.stopPropagation()}
                 >
@@ -169,7 +172,7 @@ export default function TabularResponses({ form, data }: TabularResponsesProps) 
             minWidth: '0px'
         },
         {
-            name: t('FORM.RESPONDER') + ' ID',
+            name: t('RESPONSES_STAFF.COLUMN_RESPONDER'),
             cell: (response: StandardFormResponseDto) => responseDataOwnerField(response),
             style: cellStyle,
             width: '224px'
@@ -193,6 +196,20 @@ export default function TabularResponses({ form, data }: TabularResponsesProps) 
             width: '200px'
         }))
     ];
+
+    // The first two answers that are there, to tell one card from the next.
+    const previews = (response: StandardFormResponseDto) => {
+        const rows: Array<{ key: string; title: string; text: string }> = [];
+        for (const field of tableFields as StandardFormFieldDto[]) {
+            if (rows.length === 2) break;
+            if (field.type === FieldTypes.FILE_UPLOAD || field.type === FieldTypes.INPUT_FILE_UPLOAD || field.type === FieldTypes.SIGNATURE) continue;
+            const text = getAnswerDisplayText(response, field, formFormatLanguage(form.settings?.language), t('SIGNATURE.VIEW_DRAWN_MARK'));
+            if (typeof text === 'string' && text.trim()) rows.push({ key: field.id, title: getTitleForHeader(field, form), text });
+        }
+        return rows;
+    };
+
+    if (isPhone && Array.isArray(data?.items)) return <ResponseCards responses={data?.items ?? []} hrefFor={responseUrl} previews={previews} />;
 
     return (
         <>

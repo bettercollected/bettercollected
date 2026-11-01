@@ -231,7 +231,12 @@ byte of an image):
   step 4) and expect this to be 0.
 - `images_written_then_removed`: a response lost its signature while its image was written again,
   and the image was removed. `images_removal_failed`: that removal failed, so an image of an
-  erased signature is back in the store (logged at error level by response id): delete it by hand.
+  erased signature may still be in the store (logged at error level by response id). The run then
+  ends with exit code 1 even though everything else was done; the report lists
+  `images_removal_failed_responses` (response ids only) and an `images_removal_failed_action` line:
+  delete the objects in each listed response's folder in the file store
+  (`private/<workspace>/<form>/<response id>/`), then run `reencrypt` again to confirm a clean run.
+  A clean run exits 0.
 - `images_answers_unopenable`: the answers of a response no workspace of its form opens, so its
   images cannot be found (the same records as `records_unopenable`). Stops step 5: an image may
   still be on an old key behind them.

@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import SignatureImage from '@app/components/response-page/signature-image';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
@@ -14,20 +16,19 @@ import { getGroupChildren, getGroupItems, getItemHeader, isRepeatingGroup, itemS
 import { getItemAnswer } from '@app/utils/response-export';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@app/shadcn/components/ui/table';
 
-/** The stored parts of a response that could not be decrypted, in words. */
-export const UNREADABLE_LABELS: Record<string, string> = { answers: 'answers', hidden_fields: 'hidden fields', internal_answers: 'staff fields' };
-export const UNREADABLE_MESSAGE = 'This response could not be decrypted';
-// per question, when the notice above already says why
-export const UNREADABLE_SHORT = 'Could not be decrypted';
+/** The stored parts of a response that could not be decrypted, in words (message keys: RESPONSE_PAGE.UNREADABLE_<part>). */
+export const UNREADABLE_PARTS = ['answers', 'hidden_fields', 'internal_answers'];
 
 /** Said once at the top of a response whose stored data did not decrypt; per question the text stays short. */
 export const UnreadableNotice = ({ unreadable }: { unreadable: string[] }) => {
+    const { t } = useTranslation();
     if (unreadable.length === 0) return null;
     const answersUnreadable = unreadable.includes('answers');
+    const parts = unreadable.map((name) => (UNREADABLE_PARTS.includes(name) ? t(`RESPONSE_PAGE.UNREADABLE_${name}`) : name)).join(', ');
     return (
         <div className="rounded border border-[#E8C7C7] bg-[#FBEFEF] p-3 text-sm text-[#8A2D2D]" data-unreadable-notice>
-            <p className="font-medium">{answersUnreadable ? UNREADABLE_MESSAGE : 'Some data in this response could not be decrypted'}</p>
-            <p className="mt-1">The stored data is not readable ({unreadable.map((name) => UNREADABLE_LABELS[name] ?? name).join(', ')}). It is not shown as empty answers.</p>
+            <p className="font-medium">{answersUnreadable ? t('RESPONSE_PAGE.UNREADABLE_TITLE') : t('RESPONSE_PAGE.UNREADABLE_TITLE_PARTS')}</p>
+            <p className="mt-1">{t('RESPONSE_PAGE.UNREADABLE_BODY', { parts })}</p>
         </div>
     );
 };
@@ -36,6 +37,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
 
     const { toast } = useToast();
     const { t } = useBuilderTranslation();
+    const { t: tc } = useTranslation();
 
     const reduxForm = useAppSelector(selectForm);
     const standardForm = form ? form : reduxForm;
@@ -51,7 +53,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
     // answer then means "could not be read", never "no answer".
     const unreadable = response?.unreadableFields ?? [];
     const answersUnreadable = unreadable.includes('answers');
-    const noAnswer = <span className="text-black-600 text-sm italic">{answersUnreadable ? UNREADABLE_SHORT : 'No answer'}</span>;
+    const noAnswer = <span className="text-black-600 text-sm italic">{answersUnreadable ? tc('RESPONSE_PAGE.UNREADABLE_SHORT') : tc('RESPONSE_PAGE.NO_ANSWER')}</span>;
     function getTitleForHeaderForTable(field: StandardFormFieldDto) {
         const resolvedField = titleHasPipes(field?.title) ? ({ ...field, title: resolvePipesInTitle(field.title, pipeContext) } as StandardFormFieldDto) : field;
         const title = getTitleForHeader(resolvedField, standardForm);
@@ -65,7 +67,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
             if (!ans?.file_metadata?.url) return;
             await downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
         } catch (err) {
-            toast({ description: 'Error downloading file', variant: 'destructive' });
+            toast({ description: tc('RESPONSE_PAGE.FILE_ERROR'), variant: 'destructive' });
         }
     };
     return (
@@ -186,7 +188,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
             })}
             {response.hiddenFields && Object.keys(response.hiddenFields).length > 0 && (
                 <div className="flex flex-col gap-3 border-t pt-4">
-                    <span className="p4-new text-black-600">Hidden fields (from the share link)</span>
+                    <span className="p4-new text-black-600">{tc('RESPONSE_PAGE.HIDDEN_FIELDS')}</span>
                     {Object.entries(response.hiddenFields).map(([name, value]) => (
                         <div className="flex flex-col gap-1" key={name}>
                             <span className="p4-new text-black-600 font-mono">{name}</span>

@@ -8,6 +8,7 @@ import { store } from '@app/store/store';
 
 import InternalFieldsPanel from './internal-fields-panel';
 import ResponseSegments from './response-segments';
+import '@app/shared/hocs/i18n-provider';  // the catalogue's English text
 
 // Reviewer, Viewer and Privacy officer see the response views without the
 // controls their role can't use (the backend refuses them anyway).
