@@ -33,6 +33,7 @@ import { formImageUrls } from '@app/lib/form-ops/images';
 import { clone, isSlide, jsonEqual } from '@app/lib/form-ops/model';
 import { StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { toast } from '@app/shadcn/components/ui/use-toast';
+import { newLayoutProblem } from '@app/utils/layout-containers';
 import { isStorageImageUrl, rememberStorageImageUrls } from '@app/utils/storage-image-urls';
 
 import { initialFieldsState, initialFormState } from './form-defaults';
@@ -572,6 +573,21 @@ function noteRuleGuard(guard: { refusal?: string; questions: number }) {
     else if (guard.questions) toast({ description: i18n.t('builder:FIELD_RULES.DROPPED', { count: guard.questions }) });
 }
 
+/**
+ * A container problem the edit would bring in (a move that puts a question a
+ * container's rule reads after the container, say): the edit is not made,
+ * since every save would otherwise be refused (422 `invalid_layout`) until it
+ * was undone. The reason, or undefined.
+ */
+function layoutRefusal(doc: FormDocument, fields: StandardFormFieldDto[]): string | undefined {
+    return newLayoutProblem((doc.fields ?? []) as any, fields as any)?.message;
+}
+
+/** Say that an edit was not made because it would break a layout container. */
+function noteLayoutRefusal(reason: string) {
+    toast({ description: i18n.t('builder:LAYOUT.MOVE_REFUSED', { reason }) });
+}
+
 /** The builder's copy of the pages back to what the document holds (an edit that was not made). */
 function restoreBuilderCopy(set: Setter, doc: FormDocument) {
     const fresh = (doc.fields ?? []).map(copyOf);
@@ -585,6 +601,12 @@ function restoreBuilderCopy(set: Setter, doc: FormDocument) {
  */
 export const commitBuilderFieldsAtom = atom(null, (get, set, fields: StandardFormFieldDto[], meta?: string | CommitMeta) => {
     const doc = get(formDocAtom);
+    const layoutReason = layoutRefusal(doc, fields);
+    if (layoutReason) {
+        restoreBuilderCopy(set as Setter, doc);
+        noteLayoutRefusal(layoutReason);
+        return false;
+    }
     const guard = guardFieldRules(doc, fields);
     if (guard.refusal) {
         restoreBuilderCopy(set as Setter, doc);
@@ -623,6 +645,12 @@ export interface CommitTogetherArgs extends CommitMeta {
  */
 export const commitTogetherAtom = atom(null, (get, set, { fields, formValues, fieldsFirst = true, ...meta }: CommitTogetherArgs) => {
     const doc = get(formDocAtom);
+    const layoutReason = fields ? layoutRefusal(doc, fields) : undefined;
+    if (layoutReason) {
+        restoreBuilderCopy(set as Setter, doc);
+        noteLayoutRefusal(layoutReason);
+        return false;
+    }
     const guard = fields ? guardFieldRules(doc, fields) : { questions: 0 };
     if (guard.refusal) {
         restoreBuilderCopy(set as Setter, doc);

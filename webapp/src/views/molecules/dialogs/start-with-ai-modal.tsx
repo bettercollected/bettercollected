@@ -138,7 +138,7 @@ export default function StartWithAi() {
                 <div className="p2-new shrink-0 border-b border-b-black-300 p-4">{t('START_AI.TITLE')}</div>
                 <div className="flex shrink-0 flex-col gap-3 px-4 pt-4 sm:px-10">
                     <div>
-                        <div className="tex-black-800 text-normal font-medium">{t('START_AI.REVIEW')}</div>
+                        <div className="text-black-800 text-normal font-medium">{t('START_AI.REVIEW')}</div>
                         <p className="mt-1 text-xs text-black-600">
                             {t('START_AI.REVIEW_SUMMARY', { pages: t('START_AI.PAGES_COUNT', { count: outline.pages.length }), questions: t('START_AI.QUESTIONS_COUNT', { count: questionCount(outline) }) })}
                         </p>
@@ -212,7 +212,7 @@ export default function StartWithAi() {
         <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto">
             <div className="p2-new border-b border-b-black-300 p-4">{t('START_AI.TITLE')}</div>
             <div className="flex flex-col gap-4 px-4 py-6 sm:px-10">
-                <div className="tex-black-800 text-normal font-medium">{t('START_AI.CREATE')}</div>
+                <div className="text-black-800 text-normal font-medium">{t('START_AI.CREATE')}</div>
                 <ErrorNotice message={shownError} />
                 {aiSettings && !aiEnabled && <AIOptIn feature={t('START_AI.OPT_IN_FEATURE')} sends={t('START_AI.OPT_IN_SENDS')} onEnabled={() => setError(null)} />}
                 <div className="prompt-input-wrapper rounded-lg bg-black-200 p-[1px]">

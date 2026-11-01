@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -15,12 +15,12 @@ import environments from '@app/configs/environments';
 import { sso } from '@app/constants/locales/sso';
 import { navigateWithReferrer, ssoTestMessage } from '@app/lib/sso';
 import { workspaceSectionUrls } from '@app/lib/workspace-sections';
-import { SsoConnectionDto, SsoConnectionType, SsoOverviewDto, SsoServiceProviderDto } from '@app/models/dtos/workspace-sso-dto';
+import { SsoApiKeyDto, SsoAuditEntryDto, SsoConnectionDto, SsoConnectionType, SsoOverviewDto, SsoServiceProviderDto } from '@app/models/dtos/workspace-sso-dto';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { useAppSelector } from '@app/store/hooks';
-import { useCreateSsoConnectionMutation, useDeleteSsoConnectionMutation, useGetWorkspaceSsoQuery, useSetSsoConnectionEnabledMutation, useUpdateSsoSettingsMutation } from '@app/store/workspaces/api';
+import { useCreateSsoConnectionMutation, useDeleteSsoConnectionMutation, useGetWorkspaceSsoQuery, useLazyGetSsoAuditPageQuery, useRevokeAPIKeyMutation, useSetSsoConnectionEnabledMutation, useUpdateSsoSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export const inputClass = 'h-10 w-full rounded-md border border-control bg-white px-3.5 py-0 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-600 focus:border-brand-500';
@@ -379,23 +379,144 @@ export function EntraSetupHelp({ sp }: { sp: SsoServiceProviderDto }) {
     );
 }
 
+/**
+ * The API keys created before single sign-on was required (docs/sso.md). They
+ * are machine credentials, exempt from the requirement and still valid, so the
+ * owners are shown them and can revoke the ones that are no longer needed.
+ */
+function ApiKeysReview({ keys, workspaceId, canManage }: { keys: SsoApiKeyDto[]; workspaceId: string; canManage: boolean }) {
+    const { t } = useTranslation();
+    const locale = useIntlLocale();
+    const { toast } = useToast();
+    const [revoke, { isLoading }] = useRevokeAPIKeyMutation();
+    const older = keys.filter((key) => !key.createdAfterRequirement).length;
+    const who = (key: SsoApiKeyDto) => (!key.createdBy ? t('SSO.KEY_CREATOR_UNKNOWN') : key.createdByFormerMember ? t('SSO.KEY_FORMER_MEMBER', { id: key.createdBy }) : key.createdByLabel || key.createdBy);
+    const onRevoke = async (key: SsoApiKeyDto) => {
+        const response: any = await revoke({ workspace_id: workspaceId, key_id: key.id });
+        toast(response.error ? { description: t('SSO.KEY_REVOKE_FAILED'), variant: 'destructive' } : { description: t('SSO.KEY_REVOKED') });
+    };
+    return (
+        <div data-testid="sso-api-keys" className="mt-1 flex flex-col gap-3 rounded-md border border-[#D6E2F5] bg-[#F3F7FD] p-3 text-xs leading-relaxed text-black-700">
+            <div className="flex items-start gap-2">
+                <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
+                <div className="flex flex-col gap-1">
+                    <h3 className="text-xs font-semibold text-black-900">{t('SSO.KEYS_TITLE')}</h3>
+                    <p>{older ? t('SSO.KEYS_INTRO', { count: older }) : t('SSO.KEYS_INTRO_NONE_OLD')}</p>
+                </div>
+            </div>
+            <ul className="flex flex-col divide-y divide-black-200 rounded border border-black-200 bg-white">
+                {keys.map((key) => (
+                    <li key={key.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                            <span className="break-words text-[13px] font-semibold text-black-900">
+                                {key.name} <code className="font-normal text-black-600">{key.prefix}…</code>
+                            </span>
+                            <span className="text-black-600">{key.scopes.join(', ')}</span>
+                            {key.createdAfterRequirement ? <span className="w-fit rounded bg-black-200 px-1.5 py-0.5 text-[11px] text-black-700">{t('SSO.KEY_CREATED_AFTER')}</span> : null}
+                            <span className="text-black-600">
+                                {t('SSO.KEY_CREATED_BY', { who: who(key) })}
+                                {key.createdAt ? ` ${t('SSO.KEY_CREATED_AT', { date: formatTime(key.createdAt, locale) })}` : ''}
+                                {' · '}
+                                {key.lastUsedAt ? t('SSO.KEY_LAST_USED', { date: formatTime(key.lastUsedAt, locale) }) : t('SSO.KEY_NEVER_USED')}
+                            </span>
+                        </div>
+                        {canManage ? (
+                            <Button size="sm" variant="v2Button" disabled={isLoading} aria-label={t('SSO.KEY_REVOKE_LABEL', { name: key.name })} onClick={() => onRevoke(key)}>
+                                {t('SSO.KEY_REVOKE')}
+                            </Button>
+                        ) : null}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+/** Owner break-glass sign-ins (docs/sso.md): ids only, the name is a current member's. */
+function BreakGlassLog({ entries, nextCursor, workspaceId }: { entries: SsoAuditEntryDto[]; nextCursor?: string | null; workspaceId: string }) {
+    const { t } = useTranslation();
+    const locale = useIntlLocale();
+    const { toast } = useToast();
+    const [loadPage, { isFetching }] = useLazyGetSsoAuditPageQuery();
+    // older pages, appended below the first one (which the overview refreshes)
+    const [older, setOlder] = useState<SsoAuditEntryDto[]>([]);
+    const [cursor, setCursor] = useState<string | null | undefined>(nextCursor);
+    const firstId = entries[0]?.id;
+    useEffect(() => {
+        setOlder([]);
+        setCursor(nextCursor);
+    }, [firstId, nextCursor]);
+    const more = async () => {
+        if (!cursor) return;
+        const response: any = await loadPage({ workspace_id: workspaceId, cursor });
+        if (response.error || !response.data) {
+            toast({ description: t('SSO.AUDIT_MORE_FAILED'), variant: 'destructive' });
+            return;
+        }
+        setOlder((previous) => [...previous, ...response.data.entries]);
+        setCursor(response.data.nextCursor);
+    };
+    const shown = [...entries, ...older];
+    return (
+        <div data-testid="sso-break-glass-log" className="mt-1 flex flex-col gap-2 rounded-md border border-black-300 p-3 text-xs leading-relaxed text-black-700">
+            <h3 className="text-xs font-semibold text-black-900">{t('SSO.AUDIT_TITLE')}</h3>
+            <p>{t('SSO.AUDIT_INTRO')}</p>
+            {shown.length === 0 ? (
+                <p className="text-black-600">{t('SSO.AUDIT_EMPTY')}</p>
+            ) : (
+                <ul className="flex flex-col divide-y divide-black-200 rounded border border-black-200 bg-white">
+                    {shown.map((entry) => (
+                        <li key={entry.id} className="flex flex-col gap-0.5 p-3">
+                            <span className="text-[13px] font-semibold text-black-900">{entry.event === 'sso_break_glass_sign_in' ? t('SSO.AUDIT_EVENT_SIGN_IN') : t('SSO.AUDIT_EVENT_REQUEST')}</span>
+                            <span className="break-words text-black-600">
+                                {entry.userIsMember ? entry.userLabel || entry.userId : t('SSO.AUDIT_USER_FORMER', { id: entry.userId })}
+                                {entry.sessionId ? ` · ${t('SSO.AUDIT_SESSION', { id: entry.sessionId })}` : ''}
+                                {entry.at ? ` · ${formatTime(entry.at, locale)}` : ''}
+                            </span>
+                            {entry.path ? (
+                                <code className="break-all text-[11px] text-black-600">
+                                    {entry.method ? `${entry.method} ` : ''}
+                                    {entry.path}
+                                </code>
+                            ) : null}
+                        </li>
+                    ))}
+                </ul>
+            )}
+            {cursor ? (
+                <Button size="sm" variant="v2Button" className="w-fit" isLoading={isFetching} onClick={more}>
+                    {t('SSO.AUDIT_MORE')}
+                </Button>
+            ) : null}
+        </div>
+    );
+}
+
 function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; workspaceId: string }) {
     const { t } = useTranslation();
     const locale = useIntlLocale();
     const { toast } = useToast();
     const [update, { isLoading }] = useUpdateSsoSettingsMutation();
     const [revokeSessions, setRevokeSessions] = useState(true);
+    // the owner's own session would be refused once required: ask first
+    const [confirmingLockout, setConfirmingLockout] = useState(false);
     const { settings, connections, domains, canManage } = overview;
     const enabled = connections.find((c) => c.status === 'enabled');
     const canRequire = !!enabled && enabled.tested && domains.length > 0;
     const domainList = domains.join(', ');
 
-    const save = async (body: { ssoRequired?: boolean; defaultRole?: string; revokeSessions?: boolean }) => {
+    const save = async (body: { ssoRequired?: boolean; defaultRole?: string; revokeSessions?: boolean; confirmLockout?: boolean }) => {
         const response: any = await update({ workspace_id: workspaceId, body });
         if (response.error) {
+            if (response.error?.data?.code === 'sso_lockout_unconfirmed') {
+                // the server knows better than the page's last read
+                setConfirmingLockout(true);
+                return;
+            }
             toast({ description: errorMessage(response.error, t('SSO_UI.SAVE_FAILED')), variant: 'destructive' });
             return;
         }
+        setConfirmingLockout(false);
         if (body.ssoRequired === true) {
             const revoked = response.data?.revokedSessions;
             toast({ description: revoked ? t('SSO_UI.REQUIRED_NOW', { count: revoked }) : t('SSO_UI.REQUIRED_NOW_PLAIN') });
@@ -434,11 +555,30 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
                                 {t('SSO_UI.STOP_REQUIRING')}
                             </Button>
                         ) : (
-                            <Button size="sm" variant="primary" isLoading={isLoading} disabled={!canRequire} onClick={() => save({ ssoRequired: true, revokeSessions })}>
+                            <Button size="sm" variant="primary" isLoading={isLoading} disabled={!canRequire || confirmingLockout} onClick={() => (settings.callerWouldBeLockedOut ? setConfirmingLockout(true) : save({ ssoRequired: true, revokeSessions }))}>
                                 {t('SSO_UI.REQUIRE')}
                             </Button>
                         )}
                     </div>
+                    {confirmingLockout && !settings.ssoRequired ? (
+                        <div role="alert" data-testid="sso-lockout-warning" className="flex flex-col gap-3 rounded-md border border-[#F3D1D1] bg-[#FBEFEF] p-3 text-xs leading-relaxed text-[#9E2F2F]">
+                            <div className="flex items-start gap-2">
+                                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#C43D3D]" />
+                                <div className="flex flex-col gap-1">
+                                    <strong>{t('SSO.LOCKOUT_TITLE')}</strong>
+                                    <span>{t('SSO.LOCKOUT_BODY', { domains: domainList })}</span>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                <Button size="sm" variant="danger" isLoading={isLoading} onClick={() => save({ ssoRequired: true, revokeSessions, confirmLockout: true })}>
+                                    {t('SSO.LOCKOUT_CONFIRM')}
+                                </Button>
+                                <Button size="sm" variant="v2Button" disabled={isLoading} onClick={() => setConfirmingLockout(false)}>
+                                    {t('SSO.LOCKOUT_CANCEL')}
+                                </Button>
+                            </div>
+                        </div>
+                    ) : null}
                     {settings.ssoRequired ? (
                         <p className="flex items-center gap-2 text-xs text-success-700">
                             <CircleCheck className="h-4 w-4" /> {t('SSO_UI.REQUIRED_SINCE', { time: formatTime(settings.ssoRequiredChangedAt, locale) })}
@@ -453,6 +593,8 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
                     ) : (
                         <p className="text-xs text-black-600">{t('SSO_UI.REQUIRE_PRECONDITION')}</p>
                     )}
+                    {settings.ssoRequired && settings.apiKeys?.length ? <ApiKeysReview keys={settings.apiKeys} workspaceId={workspaceId} canManage={canManage} /> : null}
+                    <BreakGlassLog entries={overview.audit ?? []} nextCursor={overview.auditNextCursor} workspaceId={workspaceId} />
                     <div className="mt-1 flex items-start gap-2 rounded-md border border-[#D6E2F5] bg-[#F3F7FD] p-3 text-xs leading-relaxed text-black-700">
                         <LifeBuoy className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
                         <span>

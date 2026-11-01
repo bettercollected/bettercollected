@@ -43,7 +43,7 @@ export default function AddFormTitleModal() {
         >
             <div className="p2-new border-b-black-300 border-b p-4 ">{t('NEW_FORM_MODAL.HEADING')}</div>
             <div className="px-10 py-6">
-                <div className="tex-black-800 text-normal font-semibold">{t('NEW_FORM_MODAL.NAME_IT')}</div>
+                <div className="text-black-800 text-normal font-semibold">{t('NEW_FORM_MODAL.NAME_IT')}</div>
                 <div className="text-black-700 mb-2 text-xs">{t('NEW_FORM_MODAL.CHANGE_LATER')}</div>
                 <Input
                     type="text"

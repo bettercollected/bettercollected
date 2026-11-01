@@ -44,6 +44,7 @@ from backend.app.schemas.sso_connection import (
 )
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.domains.names import display_domain, domain_of
+from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.session_service import RevokeReason, SessionService
 from backend.app.services.sso.polis_client import (
     PolisAdminClient,
@@ -101,6 +102,11 @@ class UpdateSsoSettingsDto(_CamelModel):
     # (their sessions from before the requirement); the owners and the
     # caller's own session are kept
     revoke_sessions: bool = False
+    # the owner's own session would be refused once the requirement is on
+    # (a non-SSO, non-email-code session on an SSO domain) and they confirmed
+    # that (docs/sso.md); without it the save is refused with 409
+    # ``sso_lockout_unconfirmed``
+    confirm_lockout: bool = False
 
 
 class SsoConnectionDto(_CamelModel):
@@ -156,6 +162,51 @@ class ServiceProviderDto(_CamelModel):
     oidc_redirect_uri: str
 
 
+class SsoApiKeyDto(_CamelModel):
+    """An API key shown to the owners for review when the workspace requires
+    single sign-on: keys are machine credentials and stay valid (docs/sso.md),
+    so the owner has to see them. No secret, ever: ids and labels only."""
+
+    id: str
+    name: str
+    prefix: str
+    scopes: List[str]
+    created_by: Optional[str] = None
+    # the creator's name, only for a current member of the workspace (and only
+    # when auth could say); never an address
+    created_by_label: Optional[str] = None
+    # the creator is no longer a member: shown as a former member, by id
+    created_by_former_member: bool = False
+    created_at: Optional[dt.datetime] = None
+    last_used_at: Optional[dt.datetime] = None
+    # created after the requirement was switched on (so not one it "predates")
+    created_after_requirement: bool = False
+
+
+class SsoAuditEntryDto(_CamelModel):
+    """An owner break-glass entry (docs/sso.md): who, which session and when;
+    ids only (the name is the current member's, never an address)."""
+
+    id: str
+    event: str
+    at: Optional[dt.datetime] = None
+    user_id: str
+    user_label: Optional[str] = None
+    user_is_member: bool = False
+    session_id: Optional[str] = None
+    # request entries: the HTTP method and the route's path template
+    method: Optional[str] = None
+    path: Optional[str] = None
+
+
+class SsoAuditPageDto(_CamelModel):
+    """One page of the break-glass log, newest first; ``next_cursor`` asks for
+    the next (older) one, None at the end."""
+
+    entries: List[SsoAuditEntryDto] = []
+    next_cursor: Optional[str] = None
+
+
 class SsoSettingsDto(_CamelModel):
     sso_required: bool = False
     sso_required_changed_at: Optional[dt.datetime] = None
@@ -164,6 +215,13 @@ class SsoSettingsDto(_CamelModel):
     # owners can always sign in with an email code (docs/sso.md)
     owner_break_glass: bool = True
     revoked_sessions: Optional[int] = None
+    # with the requirement on: all live API keys (``createdAfterRequirement``
+    # tells the newer ones apart); the requirement does not cover any of them
+    # (None: not applicable)
+    api_keys: Optional[List[SsoApiKeyDto]] = None
+    # with the requirement off (an owner reading): switching it on would
+    # refuse the caller's own session on the next request
+    caller_would_be_locked_out: bool = False
 
 
 class SsoOverviewDto(_CamelModel):
@@ -178,6 +236,9 @@ class SsoOverviewDto(_CamelModel):
     connections: List[SsoConnectionDto] = []
     settings: SsoSettingsDto
     max_connections: int
+    # the latest owner break-glass entries, newest first
+    audit: List[SsoAuditEntryDto] = []
+    audit_next_cursor: Optional[str] = None
     # the caller may change the configuration (an owner of the workspace)
     can_manage: bool = False
 
@@ -186,6 +247,9 @@ class SsoOverviewDto(_CamelModel):
 # attribute names (often URIs) or OIDC claim names, never values.
 _CLAIM_NAME = re.compile(r"^[A-Za-z0-9_.:/#-]{1,160}$")
 MAX_TEST_CLAIMS = 50
+
+# how many break-glass entries the SSO page lists
+AUDIT_LIST_LIMIT = 20  # the first page; see policy.AUDIT_PAGE_MAX
 
 
 def failed_test_domain(value: Optional[str]) -> Optional[str]:
@@ -221,6 +285,13 @@ def _now() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
 
 
+def _aware(value: Optional[dt.datetime]) -> dt.datetime:
+    """Comparable: naive datetimes are UTC; none sorts first."""
+    if value is None:
+        return dt.datetime.min.replace(tzinfo=dt.timezone.utc)
+    return value if value.tzinfo else value.replace(tzinfo=dt.timezone.utc)
+
+
 def _polis_error(error: PolisError) -> HTTPException:
     if isinstance(error, PolisUnavailable):
         return _refused(
@@ -253,7 +324,12 @@ class SsoConnectionService:
         resolver: Optional[Resolver] = None,
         fetch_transport=None,
         on_default_role_changed=None,
+        api_key_repo=None,
+        http_client=None,
     ):
+        # the workspace's API keys, shown for review (docs/sso.md)
+        self._api_keys = api_key_repo
+        self._http_client = http_client
         # SCIM: re-apply roles of directory members without a mapped group
         self._on_default_role_changed = on_default_role_changed
         self._authorization = authorization_service
@@ -322,6 +398,10 @@ class SsoConnectionService:
         workspace = await self._workspace_repo.find_by_id(workspace_id)
         available = settings.sso.is_configured
         sso = settings.sso
+        audit = await self._audit_page(workspace_id)
+        can_manage = await self._authorization.is_owner(
+            user, workspace_id, raise_sso_required=True
+        )
         return SsoOverviewDto(
             available=available,
             reason=None if available else sso_unavailable_reason(),
@@ -342,11 +422,14 @@ class SsoConnectionService:
                 SsoConnectionDto.of(c)
                 for c in await self._connections.list_by_workspace(workspace_id)
             ],
-            settings=self._settings_dto(workspace),
-            max_connections=sso.MAX_CONNECTIONS_PER_WORKSPACE,
-            can_manage=await self._authorization.is_owner(
-                user, workspace_id, raise_sso_required=True
+            settings=await self._settings_with_review(
+                workspace,
+                user=user if can_manage else None,
             ),
+            max_connections=sso.MAX_CONNECTIONS_PER_WORKSPACE,
+            audit=audit.entries,
+            audit_next_cursor=audit.next_cursor,
+            can_manage=can_manage,
         )
 
     @staticmethod
@@ -358,6 +441,135 @@ class SsoConnectionService:
             assignable_roles=assignable_sso_roles(),
             revoked_sessions=revoked,
         )
+
+    async def _settings_with_review(
+        self,
+        workspace,
+        revoked: Optional[int] = None,
+        user: Optional[User] = None,
+    ) -> SsoSettingsDto:
+        """The settings, plus what the owner has to see: the API keys that
+        predate the requirement (with it on), and whether switching it on
+        would lock the caller (``user``, an owner) out (with it off)."""
+        dto = self._settings_dto(workspace, revoked)
+        if dto.sso_required:
+            dto.api_keys = await self._keys_to_review(workspace)
+        elif user is not None and workspace is not None:
+            dto.caller_would_be_locked_out = (
+                await self._policy.session_would_be_blocked(workspace, user, is_owner=True)
+            )
+        return dto
+
+    async def _keys_to_review(self, workspace) -> List[SsoApiKeyDto]:
+        """The workspace's live API keys, oldest first: machine credentials
+        the requirement does not cover. ``created_after_requirement`` marks
+        the ones made since it was switched on."""
+        if self._api_keys is None:
+            return []
+        since = getattr(workspace, "sso_required_changed_at", None)
+        keys = [
+            key
+            for key in await self._api_keys.list_by_workspace(workspace.id)
+            if not key.revoked
+        ]
+        keys.sort(key=lambda key: _aware(key.created_at))
+        members, names = await self._member_names(
+            workspace.id, [k.created_by for k in keys]
+        )
+        return [
+            SsoApiKeyDto(
+                id=str(key.id),
+                name=key.name,
+                prefix=key.prefix,
+                scopes=list(key.scopes or []),
+                created_by=str(key.created_by) if key.created_by else None,
+                created_by_label=names.get(str(key.created_by)),
+                created_by_former_member=bool(key.created_by) and str(key.created_by) not in members,
+                created_at=key.created_at,
+                last_used_at=key.last_used_at,
+                created_after_requirement=(
+                    since is not None and _aware(key.created_at) > _aware(since)
+                ),
+            )
+            for key in keys
+        ]
+
+    async def audit_page(
+        self,
+        workspace_id: RecordId,
+        user: User,
+        cursor: Optional[str] = None,
+        limit: int = AUDIT_LIST_LIMIT,
+    ) -> SsoAuditPageDto:
+        """A page of the break-glass log (anyone who can open the page)."""
+        await self._authorize(workspace_id, user)
+        return await self._audit_page(workspace_id, cursor, limit)
+
+    async def _audit_page(
+        self,
+        workspace_id,
+        cursor: Optional[str] = None,
+        limit: int = AUDIT_LIST_LIMIT,
+    ) -> SsoAuditPageDto:
+        entries, next_cursor = await self._policy.audit_page(workspace_id, limit, cursor)
+        members, names = await self._member_names(
+            workspace_id, [e.user_id for e in entries]
+        )
+        return SsoAuditPageDto(
+            entries=[
+                SsoAuditEntryDto(
+                    id=str(e.id),
+                    event=e.event,
+                    at=e.created_at,
+                    user_id=e.user_id,
+                    user_label=names.get(e.user_id),
+                    user_is_member=e.user_id in members,
+                    session_id=e.session_id,
+                    method=e.method,
+                    path=e.path,
+                )
+                for e in entries
+            ],
+            next_cursor=next_cursor,
+        )
+
+    async def _member_names(self, workspace_id, user_ids) -> tuple:
+        """(the ids among ``user_ids`` that are current members of the
+        workspace, their names by id). Only current members are looked up:
+        what auth knows about anyone else is not shown here. The names are
+        best effort (a failed or slow lookup shows ids only), never
+        addresses."""
+        wanted = {str(u) for u in user_ids if u}
+        if not wanted:
+            return set(), {}
+        members = {
+            str(m.user_id)
+            for m in await self._workspace_users.get_workspace_users(
+                workspace_id=workspace_id
+            )
+            if not m.disabled
+        } & wanted
+        if not members or self._http_client is None:
+            return members, {}
+        try:
+            reply = await self._http_client.get(
+                settings.auth_settings.BASE_URL + "/users",
+                params={"user_ids": sorted(members)},
+                headers=auth_service_headers(),
+                timeout=10,
+            )
+        except Exception as error:  # noqa: BLE001
+            logger.warning("Member names lookup failed: {}", type(error).__name__)
+            return members, {}
+        names = {}
+        for info in (reply or {}).get("users_info") or []:
+            name = " ".join(
+                p for p in (info.get("first_name"), info.get("last_name")) if p
+            ).strip()
+            user_id = str(info.get("_id") or info.get("id") or "")
+            if name and user_id in members:
+                names[user_id] = name
+        return members, names
 
     # -- connections ----------------------------------------------------------
     async def create_connection(
@@ -710,6 +922,16 @@ class SsoConnectionService:
         ):
             if request.sso_required:
                 await self._check_can_require(workspace_id)
+                if not request.confirm_lockout and (
+                    await self._policy.session_would_be_blocked(workspace, user, is_owner=True)
+                ):
+                    raise _refused(
+                        HTTPStatus.CONFLICT,
+                        "sso_lockout_unconfirmed",
+                        "Your current session would be refused once single "
+                        "sign-on is required. Sign in with SSO or an email "
+                        "code first, or confirm that you want to continue.",
+                    )
             fields.update(
                 {
                     "sso_required": request.sso_required,
@@ -732,7 +954,7 @@ class SsoConnectionService:
         revoked = None
         if request.revoke_sessions and (switching_on or workspace.sso_required):
             revoked = await self._revoke_member_sessions(workspace, user)
-        return self._settings_dto(workspace, revoked)
+        return await self._settings_with_review(workspace, revoked)
 
     async def _check_can_require(self, workspace_id: RecordId) -> None:
         self._require_available()
@@ -788,6 +1010,8 @@ class SsoConnectionService:
         connection Polis could not delete is kept (``release_pending``) so it
         never holds the IdP's entity ID unseen: the daily retry
         (:meth:`retry_pending_releases`) releases it later."""
+        # the workspaces' security audit entries go with them
+        await self._policy.delete_audit_for_workspaces(workspace_ids or [])
         released, pending = [], []
         for workspace_id in workspace_ids or []:
             if not await self._connections.count_by_workspace(workspace_id):

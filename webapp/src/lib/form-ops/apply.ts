@@ -13,7 +13,7 @@
 import { Immer } from 'immer';
 import { v4 as uuidv4 } from 'uuid';
 
-import { repairContainers } from '@app/utils/layout-containers';
+import { newLayoutProblem, repairContainers } from '@app/utils/layout-containers';
 import { formHasOptionLogic, optionLogicProblems, pruneOptionLogic } from '@app/utils/option-logic';
 
 import { calculationsTouched, newCalculationProblem } from './calculations';
@@ -251,6 +251,16 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
             });
             if (failure) throw failure;
             [working, message] = settleMarks(working, message, opContext);
+            // A container's rule reads questions before the container: a move
+            // may not break that (the save would refuse the form and leave the
+            // builder stuck), as in the backend.
+            if (name === 'move_field' || name === 'move_page') {
+                const broken = newLayoutProblem(state.fields as any, working.fields as any);
+                if (broken) {
+                    working = state;
+                    throw new OpError(name === 'move_field' ? `Moving '${movedTitle(state, (op as any).fieldId)}' there would break a layout container: ${broken.message}` : `Moving that page would break a layout container: ${broken.message}`);
+                }
+            }
             // The newer question types (new-question-types.ts): with the switch
             // off, an op that leaves one new or changed against the form the
             // batch started from is refused and undone.
