@@ -80,7 +80,7 @@ export default function FormDashboardLayoutClient({
         if (form?.isPublished) {
             if (canReadResponses) {
                 tabs.push({
-                    title: 'Responses',
+                    title: t('FORM_SHELL.RESPONSES_TAB'),
                     path: 'responses',
                     count: form.responses ?? 0,
                     matches: ['responses', 'deletion-requests']
@@ -90,8 +90,8 @@ export default function FormDashboardLayoutClient({
                 tabs.push({ title: t(formConstant.deletionRequests), path: 'deletion-requests', matches: ['deletion-requests'] });
             }
             if (isFormOpen) {
-                tabs.push({ title: 'Analytics', path: 'analytics', matches: ['analytics'] });
-                tabs.push({ title: 'Share', path: 'links', matches: ['links'] });
+                tabs.push({ title: t('FORM_SHELL.ANALYTICS_TAB'), path: 'analytics', matches: ['analytics'] });
+                tabs.push({ title: t('FORM_SHELL.SHARE_TAB'), path: 'links', matches: ['links'] });
             }
         }
         if (canEditForm) {
@@ -104,7 +104,7 @@ export default function FormDashboardLayoutClient({
         router.push(`/${workspace?.workspaceName}/dashboard/forms`);
     };
 
-    const formTitle = form?.title?.trim() || 'Untitled form';
+    const formTitle = form?.title?.trim() || t('FORM_SHELL.UNTITLED');
 
     // Keep the active tab visible: the tab bar scrolls horizontally when it
     // overflows, so center the current tab within its scroll container on
@@ -139,16 +139,16 @@ export default function FormDashboardLayoutClient({
             <div className="my-2 w-full">
                 <div className="mt-6 flex flex-col gap-1 sm:mt-12">
                     <FormPageLayer className="px-4 md:px-10 lg:px-28">
-                        <div className="flex justify-between">
-                            <div className="flex flex-col gap-1">
-                                <nav aria-label="Breadcrumb" className="text-black-600 flex w-fit items-center gap-1.5 text-[13px]">
+                        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+                            <div className="flex min-w-0 flex-col gap-1">
+                                <nav aria-label={t('FORM_SHELL.BREADCRUMB')} className="text-black-600 flex w-fit items-center gap-1.5 text-[13px]">
                                     <button type="button" onClick={handleBackClick} className="hover:text-black-900 hover:underline">
-                                        Forms
+                                        {t('FORM_SHELL.FORMS')}
                                     </button>
                                     <span className="text-black-600">/</span>
                                     <span className="text-black-800 max-w-[320px] truncate font-medium">{formTitle}</span>
                                 </nav>
-                                {isMobile ? <h1 className="hp3-new">{formTitle}</h1> : <h1 className="h2-new">{formTitle}</h1>}
+                                {isMobile ? <h1 className="hp3-new break-words">{formTitle}</h1> : <h1 className="h2-new">{formTitle}</h1>}
                             </div>
                             <div className="hidden gap-4 lg:flex">
                                 {canEditForm && form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
@@ -192,7 +192,7 @@ export default function FormDashboardLayoutClient({
                                         className="text-[10px]"
                                         variant={'v2Button'}
                                     >
-                                        Preview
+                                        {t('FORM_SHELL.PREVIEW')}
                                     </Button>
                                 )}
 
@@ -209,7 +209,7 @@ export default function FormDashboardLayoutClient({
                                                 })
                                             }
                                         >
-                                            <span className="">{'Share'}</span>
+                                            <span className="">{t('FORM_SHELL.SHARE')}</span>
                                         </Button>
                                     </PrivateFormButtonWrapper>
                                 ) : (
@@ -220,13 +220,13 @@ export default function FormDashboardLayoutClient({
                         {!isMobile && (
                             <div className="text-black-700 mb-4 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
                                 {form?.isPublished ? (
-                                    <span className="rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-semibold text-success-700">Published</span>
+                                    <span className="rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-semibold text-success-700">{t('FORM_SHELL.PUBLISHED')}</span>
                                 ) : (
-                                    <span className="bg-black-200 text-black-700 rounded-full px-2 py-0.5 text-xs font-semibold">Draft</span>
+                                    <span className="bg-black-200 text-black-700 rounded-full px-2 py-0.5 text-xs font-semibold">{t('FORM_SHELL.DRAFT')}</span>
                                 )}
-                                <span className="tabular-nums">{form?.responses ?? 0} responses</span>
+                                <span className="tabular-nums">{t('FORM_SHELL.RESPONSES', { count: form?.responses ?? 0 })}</span>
                                 <span className="text-black-600">·</span>
-                                <span>{formProvenance(form)}</span>
+                                <span>{t(formProvenance(form))}</span>
                             </div>
                         )}
                         <Divider className="mt-6 hidden md:flex" />
@@ -254,10 +254,10 @@ export default function FormDashboardLayoutClient({
                     </div>
                     {form?.isPublished && (
                         <div className="border-black-300 text-black-600 mx-4 mt-16 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t py-4 text-[13px] md:mx-10 lg:mx-28">
-                            {typeof (form as any)?.version === 'number' && <span>Version {(form as any).version}</span>}
+                            {typeof (form as any)?.version === 'number' && <span>{t('FORM_SHELL.VERSION', { n: (form as any).version })}</span>}
                             {typeof (form as any)?.version === 'number' && <span className="text-black-600">·</span>}
                             <a href={getFormShareURL(workspaceForm ?? form, workspace)} target="_blank" rel="noopener noreferrer" className="hover:text-black-900 underline decoration-dotted underline-offset-2">
-                                Open form ↗
+                                {t('FORM_SHELL.OPEN_FORM')}
                             </a>
                         </div>
                     )}
@@ -271,10 +271,10 @@ const FormPageLayer = ({ children, className }: any) => {
     return <div className={className}>{children}</div>;
 };
 
-/** Plain-words provenance for the header meta line. */
+/** Message key of the plain-words provenance for the header meta line. */
 function formProvenance(form: StandardFormDto): string {
     const provider = form?.settings?.provider;
-    if (provider === 'google') return 'Imported from Google Forms';
-    if (provider === 'typeform') return 'Imported from Typeform';
-    return 'bettercollected form';
+    if (provider === 'google') return 'FORM_SHELL.FROM_GOOGLE';
+    if (provider === 'typeform') return 'FORM_SHELL.FROM_TYPEFORM';
+    return 'FORM_SHELL.NATIVE';
 }

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 
-import { RefreshCw, Sparkles } from 'lucide-react';
+import { ChevronDown, RefreshCw, Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { AIOptIn, aiErrorMessage, isAINotEnabledError, useWorkspaceAI } from '@app/components/ai/ai-consent';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -45,7 +46,8 @@ interface Insight {
  * they summarise. The AI reads answer content ONLY when someone clicks
  * Summarize; free-text answers are sent as written, and the copy says so.
  */
-export default function AIInsightsCard() {
+function AIInsightsBody() {
+    const { t } = useTranslation();
     const dispatch = useAppDispatch();
     const workspace = useAppSelector(selectWorkspace);
     const form = useAppSelector(selectForm);
@@ -100,11 +102,8 @@ export default function AIInsightsCard() {
     const importedForm = !!form?.settings?.provider && form.settings.provider !== 'self';
     if (importedForm) {
         return (
-            <div className="mb-6 flex flex-col gap-2 rounded border border-black-300 bg-white p-5">
-                <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-brand-500" />
-                    <h2 className="text-sm font-semibold text-black-900">AI summary</h2>
-                </div>
+            <div className="flex flex-col gap-2 rounded border border-black-300 bg-white p-5">
+                <h2 className="sr-only">{t('RESPONSES_STAFF.AI_SUMMARY')}</h2>
                 <p className="max-w-[68ch] text-[13px] text-black-600">AI summaries are only available for forms collected with BetterCollected. This form&apos;s respondents answered on another service and never saw the AI notice.</p>
             </div>
         );
@@ -112,25 +111,19 @@ export default function AIInsightsCard() {
 
     if (!canReadResponses) {
         return (
-            <div className="mb-6 flex flex-col gap-2 rounded border border-black-300 bg-white p-5">
-                <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-brand-500" />
-                    <h2 className="text-sm font-semibold text-black-900">AI summary</h2>
-                </div>
+            <div className="flex flex-col gap-2 rounded border border-black-300 bg-white p-5">
+                <h2 className="sr-only">{t('RESPONSES_STAFF.AI_SUMMARY')}</h2>
                 <p className="text-[13px] text-black-600">Only members who can read this form&apos;s responses can run AI summaries of them.</p>
             </div>
         );
     }
 
     return (
-        <div className="mb-6 flex flex-col gap-3 rounded border border-black-300 bg-white p-5">
+        <div className="flex flex-col gap-3 rounded border border-black-300 bg-white p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-brand-500" />
-                    <h2 className="text-sm font-semibold text-black-900">AI summary</h2>
-                </div>
+                <h2 className="sr-only">{t('RESPONSES_STAFF.AI_SUMMARY')}</h2>
                 {insight && aiEnabled && formAllows && (
-                    <button type="button" disabled={isGenerating} onClick={handleGenerate} className="flex items-center gap-1 text-xs text-black-600 transition-colors disabled:opacity-60 hover:text-black-800">
+                    <button type="button" disabled={isGenerating} onClick={handleGenerate} className="ml-auto flex items-center gap-1 text-xs text-black-600 transition-colors disabled:opacity-60 hover:text-black-800">
                         <RefreshCw className={`h-3 w-3 ${isGenerating ? 'animate-spin' : ''}`} />
                         {isGenerating ? 'Summarizing…' : 'Refresh'}
                     </button>
@@ -207,5 +200,36 @@ export default function AIInsightsCard() {
                 </div>
             )}
         </div>
+    );
+}
+
+/**
+ * The AI summary as a bar of its own: a button in the row of the response
+ * tabs, closed unless the page asks for it open. Nothing is asked of the server
+ * (the cached summary, the workspace's AI settings) until it is opened, and the
+ * summary opens full width under the row.
+ */
+export default function AIInsightsCard({ defaultOpen = false }: { defaultOpen?: boolean }) {
+    const { t } = useTranslation();
+    const [open, setOpen] = useState(defaultOpen);
+    return (
+        <>
+            <button
+                type="button"
+                aria-expanded={open}
+                aria-controls="ai-summary-panel"
+                onClick={() => setOpen((value) => !value)}
+                className="border-black-300 text-black-700 hover:bg-black-200 hover:text-black-900 focus-visible:ring-brand-500 ml-auto flex h-9 items-center gap-2 rounded border bg-white px-3 text-sm font-medium focus:outline-hidden focus-visible:ring-2"
+            >
+                <Sparkles className="text-brand-500 h-4 w-4" aria-hidden="true" />
+                {t('RESPONSES_STAFF.AI_SUMMARY')}
+                <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+            </button>
+            {open && (
+                <div id="ai-summary-panel" className="w-full basis-full">
+                    <AIInsightsBody />
+                </div>
+            )}
+        </>
     );
 }

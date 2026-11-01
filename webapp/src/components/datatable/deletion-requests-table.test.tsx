@@ -109,7 +109,7 @@ describe('deletion requests of imported forms', () => {
     it('opens the response on its own page from "View" (a real link), for staff who may read responses', () => {
         access.permissions = ['response.read', 'response.delete'];
         renderTable([request('r1', { provider: 'self', formId: 'form-s' })]);
-        const link = within(rowOf('r1@example.com')).getByRole('link', { name: 'View' });
+        const link = within(rowOf('r1@example.com')).getByRole('link', { name: 'RESPONSES_STAFF.VIEW' });
         // the page goes back (and, after a delete, returns) to the workspace's deletion requests
         expect(link).toHaveAttribute('href', '/acme/dashboard/forms/form-s/responses/r1?from=deletion-requests');
         expect(link.getAttribute('href')).not.toContain('sub_id');
@@ -118,7 +118,7 @@ describe('deletion requests of imported forms', () => {
     it('from a form\'s own deletion requests, the page goes back to that list', () => {
         access.permissions = ['response.read'];
         renderTable([request('r1', { provider: 'self', formId: 'form-s' })], 'form-s');
-        expect(within(rowOf('r1@example.com')).getByRole('link', { name: 'View' })).toHaveAttribute('href', '/acme/dashboard/forms/form-s/responses/r1?from=form-deletion-requests');
+        expect(within(rowOf('r1@example.com')).getByRole('link', { name: 'RESPONSES_STAFF.VIEW' })).toHaveAttribute('href', '/acme/dashboard/forms/form-s/responses/r1?from=form-deletion-requests');
     });
 
     it('never puts the full receipt number (a bearer token) in a tooltip', () => {
@@ -132,7 +132,7 @@ describe('deletion requests of imported forms', () => {
     it('offers no "View" without response.read (a Privacy officer completes the request without reading it)', () => {
         access.permissions = ['privacy.manage', 'response.delete'];
         renderTable([request('r1', { provider: 'self', formId: 'form-s' })]);
-        expect(within(rowOf('r1@example.com')).queryByRole('link', { name: 'View' })).toBeNull();
+        expect(within(rowOf('r1@example.com')).queryByRole('link', { name: 'RESPONSES_STAFF.VIEW' })).toBeNull();
     });
 
     it('offers nothing to close without privacy.manage', () => {

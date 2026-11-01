@@ -20,7 +20,8 @@ import { Button, buttonClassName } from '@app/shadcn/components/ui/button';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { utcToLocalDateTIme } from '@app/utils/date-utils';
+import { useIsPhone } from '@app/lib/hooks/use-breakpoint';
+import { utcToLocalDateTimeIn } from '@app/utils/date-utils';
 import { shortReceiptNumber } from '@app/utils/receipt-number';
 import { deletionRequestLocale } from '@app/constants/locales/deletion-request';
 import { isDeclineReason, isDeclinedRequest, isPendingRequest } from '@app/models/enums/deletion-request';
@@ -72,7 +73,9 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
     };
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const isPhone = useIsPhone();
+    const when = (value: unknown) => (value ? utcToLocalDateTimeIn(value, i18n.language) : '');
     // A response is read on its own page.
     const onRowClicked = (response: StandardFormResponseDto) => {
         if (!requestForDeletion) router.push(responsePageUrl(workspace?.workspaceName ?? '', response.formId ?? formId ?? '', response.responseId));
@@ -80,8 +83,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
             <div className={cn('text-black-900! body3 truncate', !requestForDeletion && 'hover:text-brand-500! cursor-pointer hover:underline')}>
-                {!requestForDeletion && <span onClick={() => onRowClicked(response)}>{response?.dataOwnerIdentifier ?? 'Anonymous'}</span>}
-                {requestForDeletion && (response?.dataOwnerIdentifier ?? 'Anonymous')}
+                {!requestForDeletion && <span onClick={() => onRowClicked(response)}>{response?.dataOwnerIdentifier ?? t('RESPONSES_STAFF.ANONYMOUS')}</span>}
+                {requestForDeletion && (response?.dataOwnerIdentifier ?? t('RESPONSES_STAFF.ANONYMOUS'))}
             </div>
             {/* The receipt number is the only handle a responder (especially an
                 anonymous one) has on their submission — its start lets the
@@ -93,7 +96,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     const responseFormTitle = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
             <div className="text-black-900! body3 truncate">
-                {response?.formTitle ?? 'Untitled'}
+                {response?.formTitle ?? t('RESPONSES_STAFF.UNTITLED')}
             </div>
         </div>
     );
@@ -129,7 +132,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 ) : isDeclinedRequest(response?.status) ? (
                     <span className="text-black-600 text-sm">{t(deletionRequestLocale.notDeleted)}</span>
                 ) : (
-                    <span className="text-black-700 text-sm font-medium">{utcToLocalDateTIme(response.updatedAt)}</span>
+                    <span className="text-black-700 text-sm font-medium">{when(response.updatedAt)}</span>
                 )}
             </div>
         );
@@ -153,12 +156,12 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                         // a real link: opens the response's page, also in a new tab; the page goes back
                         // (and, after a delete, returns) to this list: the workspace's or the form's
                         <Link href={responsePageUrl(workspace?.workspaceName ?? '', response.formId ?? formId ?? '', response.responseId, formId ? 'form-deletion-requests' : 'deletion-requests')} className={buttonClassName({ variant: 'ghost', className: 'px-2!' })}>
-                            View
+                            {t('RESPONSES_STAFF.VIEW')}
                         </Link>
                     )}
                     {canDeleteResponses && (
                     <Button variant="dangerGhost" className="px-2!" onClick={() => openConfirmModal('DELETE_RESPONSE', { workspace, formId: response.formId, responseId: response.responseId })}>
-                        Delete response
+                        {t('RESPONSES_STAFF.DELETE_RESPONSE')}
                     </Button>
                     )}
                 </div>
@@ -219,7 +222,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         },
         {
             name: requestForDeletion ? t(formConstant.requestedOn) : t(formConstant.respondedOn),
-            selector: (row: StandardFormResponseDto) => (!!row?.createdAt ? `${utcToLocalDateTIme(row.createdAt)}` : ''),
+            selector: (row: StandardFormResponseDto) => (!!row?.createdAt ? when(row.createdAt) : ''),
             style: {
                 color: 'rgba(77, 77, 77, 1)',
                 paddingLeft: '8px',
@@ -293,7 +296,54 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         dataTableResponseColumns.splice(1, 0, ...formToAdd);
     }
 
+    const Cards = () => (
+        <ul aria-label={t(requestForDeletion ? 'RESPONSES_STAFF.REQUEST_LIST' : 'RESPONSES_STAFF.RESPONSE_LIST')} className="flex flex-col gap-2">
+            {submissions.items.map((response) => (
+                <li key={response.responseId} className="border-black-300 relative flex flex-col gap-2 rounded border bg-white p-3">
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                        {requestForDeletion ? (
+                            <span className="text-black-900 truncate text-sm font-medium">{response?.dataOwnerIdentifier ?? t('RESPONSES_STAFF.ANONYMOUS')}</span>
+                        ) : (
+                            <Link href={responsePageUrl(workspace?.workspaceName ?? '', response.formId ?? formId ?? '', response.responseId)} className="text-black-900 focus-visible:ring-brand-500 w-fit max-w-full truncate rounded text-sm font-medium after:absolute after:inset-0 after:content-[''] focus:outline-hidden focus-visible:ring-2">
+                                {response?.dataOwnerIdentifier ?? t('RESPONSES_STAFF.ANONYMOUS')}
+                            </Link>
+                        )}
+                        {requestForDeletion && response?.submissionUuid && <span className="text-black-600 font-mono text-[11px]">{shortReceiptNumber(response.submissionUuid)}</span>}
+                        {!formId && <span className="text-black-700 truncate text-xs">{response?.formTitle ?? t('RESPONSES_STAFF.UNTITLED')}</span>}
+                    </div>
+                    <p className="text-black-600 text-xs">{t(requestForDeletion ? 'RESPONSES_STAFF.REQUESTED_ON' : 'RESPONSES_STAFF.SUBMITTED_AT', { time: when(response.createdAt) })}</p>
+                    {requestForDeletion && (
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                            <Status status={response?.status || t(formConstant.status.pending)} response={response} />
+                            <div className="text-black-700 text-xs">
+                                {isPendingRequest(response?.status) ? null : isDeclinedRequest(response?.status) ? t(deletionRequestLocale.notDeleted) : t('RESPONSES_STAFF.DELETED_ON', { time: when(response.updatedAt) })}
+                            </div>
+                        </div>
+                    )}
+                    {requestForDeletion && (
+                        <div className="relative z-10 -ml-2">
+                            <RequestActions response={response} />
+                        </div>
+                    )}
+                </li>
+            ))}
+        </ul>
+    );
+
+    const pager = Array.isArray(submissions?.items) && submissions?.total > globalConstants.pageSize && (
+        <div className="mt-8 flex justify-center">
+            <StyledPagination shape="rounded" count={submissions?.pages || 0} page={page} onChange={handlePageChange} />
+        </div>
+    );
+
     const Response: any = () => {
+        if (submissions.items && submissions.items.length > 0 && isPhone)
+            return (
+                <>
+                    {Cards()}
+                    {pager}
+                </>
+            );
         if (submissions.items && submissions.items.length > 0)
             return (
                 <>
@@ -306,11 +356,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                         pointerOnHover={false}
                         onRowClicked={onRowClicked}
                     />
-                    {Array.isArray(submissions?.items) && submissions?.total > globalConstants.pageSize && (
-                        <div className="mt-8 flex justify-center">
-                            <StyledPagination shape="rounded" count={submissions?.pages || 0} page={page} onChange={handlePageChange} />
-                        </div>
-                    )}
+                    {pager}
                 </>
             );
         return (

@@ -5,6 +5,7 @@ import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setForm } from '@app/store/forms/slice';
+import '@app/shared/hocs/i18n-provider'; // the catalogue's English text
 import { store } from '@app/store/store';
 
 import AIInsightsCard from './ai-insights-card';
@@ -68,7 +69,7 @@ const INSIGHT = {
 const renderCard = () =>
     render(
         <ReduxProvider store={store}>
-            <AIInsightsCard />
+            <AIInsightsCard defaultOpen />
         </ReduxProvider>
     );
 
@@ -80,6 +81,21 @@ describe('AIInsightsCard', () => {
         access.permissions = ADMIN_PERMISSIONS;
         updateInsightsSettingsMock.mockReset();
         withFormSettings({ ...ALLOWED });
+    });
+
+    it('is a closed bar until it is opened, and its summary is not even asked for before', () => {
+        cachedQueryMock.data = INSIGHT;
+        render(
+            <ReduxProvider store={store}>
+                <AIInsightsCard />
+            </ReduxProvider>
+        );
+        const bar = screen.getByRole('button', { name: 'AI summary' });
+        expect(bar).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.queryByRole('button', { name: /Refresh/ })).toBeNull();
+        fireEvent.click(bar);
+        expect(bar).toHaveAttribute('aria-expanded', 'true');
+        expect(document.getElementById(bar.getAttribute('aria-controls')!)).toContainElement(screen.getByRole('button', { name: /Refresh/ }));
     });
 
     it('empty state states the opt-in contract and offers one explicit action', () => {
