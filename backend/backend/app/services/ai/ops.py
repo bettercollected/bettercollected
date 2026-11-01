@@ -62,6 +62,7 @@ from common.models.standard_form import (
     FieldPosition,
     CONTAINERS_MAX,
     CONTAINER_MEMBERS_MAX,
+    LAYOUT_MEMBER_ID_MAX,
     CONTAINER_TITLE_MAX,
     FieldRule,
     LAYOUT_ID_PATTERN,
@@ -724,7 +725,9 @@ class ContainerTabSpec(_CamelModel):
 
     id: Optional[str] = Field(None, pattern=LAYOUT_ID_PATTERN)
     title: str = Field(..., min_length=1, max_length=CONTAINER_TITLE_MAX)
-    fields: List[str] = Field(default_factory=list, max_length=CONTAINER_MEMBERS_MAX)
+    fields: List[Annotated[str, Field(max_length=LAYOUT_MEMBER_ID_MAX)]] = Field(
+        default_factory=list, max_length=CONTAINER_MEMBERS_MAX
+    )
 
 
 class ContainerSpec(_CamelModel):
@@ -739,7 +742,9 @@ class ContainerSpec(_CamelModel):
     title: Optional[str] = Field(None, max_length=CONTAINER_TITLE_MAX)
     collapsed: Optional[bool] = None
     logic: Optional[FieldLogicSpec] = None
-    fields: Optional[List[str]] = Field(None, max_length=CONTAINER_MEMBERS_MAX)
+    fields: Optional[List[Annotated[str, Field(max_length=LAYOUT_MEMBER_ID_MAX)]]] = Field(
+        None, max_length=CONTAINER_MEMBERS_MAX
+    )
     tabs: Optional[List[ContainerTabSpec]] = Field(None, max_length=8)
 
 

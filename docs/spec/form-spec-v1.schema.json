@@ -369,6 +369,7 @@
           "anyOf": [
             {
               "items": {
+                "maxLength": 200,
                 "type": "string"
               },
               "maxItems": 100,
@@ -422,6 +423,7 @@
         },
         "fields": {
           "items": {
+            "maxLength": 200,
             "type": "string"
           },
           "maxItems": 100,
