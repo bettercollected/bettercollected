@@ -106,6 +106,7 @@
         "VERIFY_AND_START": "Verify and Start",
         "VERIFY_REQUIRED": "To fill this form you need to verify your identity.",
         "VERIFY_NOW": "Verify Now",
+        "EMBED_NEW_TAB": "This form opens in a new tab to sign you in.",
         "VIEW_LATER": "Want to see your answers later?",
         "VERIFY_EMAIL": "Verify your email address.",
         "PRIVATE": "Private Form",

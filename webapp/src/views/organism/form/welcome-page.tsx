@@ -12,6 +12,8 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
 import { selectResponderForm } from '@app/store/forms/slice';
+import { openOutside } from '@app/lib/embed/embed-links';
+import { useEmbed } from '@app/lib/embed/use-embed';
 import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useSendFlowEventMutation } from '@app/store/redux/form-api';
@@ -63,6 +65,8 @@ export default function WelcomePage({
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
     const responderSignInUrl = respondentSignInUrl(workspace.id, pathname, language);
+    // In another site's frame signing in happens in a new tab (docs/embed.md): cookies are not dependable there.
+    const { embedded } = useEmbed();
 
     const welcomePage = welcomePageData || standardForm.welcomePage;
     const formTheme = theme || standardForm?.theme;
@@ -129,6 +133,7 @@ export default function WelcomePage({
                     {standardForm?.settings?.requireVerifiedIdentity ? (
                         <>
                             {t('WELCOME.VERIFY_REQUIRED')} {verifyLink(t('WELCOME.VERIFY_NOW'))}
+                            {embedded && <span className="mt-1 block text-sm">{t('WELCOME.EMBED_NEW_TAB')}</span>}
                         </>
                     ) : (
                         <>
@@ -173,7 +178,8 @@ export default function WelcomePage({
                         size="medium"
                         onClick={() => {
                             if (!auth.id && standardForm?.settings?.requireVerifiedIdentity) {
-                                router.push(responderSignInUrl);
+                                if (embedded) openOutside(responderSignInUrl);
+                                else router.push(responderSignInUrl);
                             } else {
                                 emitStart();
                                 nextSlide();

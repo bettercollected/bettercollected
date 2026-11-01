@@ -1,7 +1,7 @@
 import React from 'react';
 
 import MembersIcon from '@Components/icons/members';
-import { LockKeyhole, Palette, SendToBack, ShieldCheck, Sparkles } from 'lucide-react';
+import { Code2, LockKeyhole, Palette, SendToBack, ShieldCheck, Sparkles } from 'lucide-react';
 
 import { members } from '@app/constants/locales/members';
 import { Can, dashboardUrl, defaultAiTabUrl, workspaceSectionLabels, workspaceSectionUrls } from '@app/lib/workspace-sections';
@@ -15,15 +15,18 @@ interface WorkspaceNavOptions {
     ssoEnabled: boolean;
     /** Sending submissions to a case system is on for this server. */
     registrationEnabled?: boolean;
+    /** Embedding forms in other sites is on for this server. */
+    embedEnabled?: boolean;
 }
 
 /**
  * The sidebar's Workspace group: Members, Themes, Single sign-on, Case system
- * (only while this server sends to case systems), AI. The
+ * (only while this server sends to case systems), Embedding (only while this
+ * server has embedding on), AI. The
  * drawer hides an item from members without its permission (the API refuses
  * them anyway); AI has no permission, every member has Memory and Settings.
  */
-export function workspaceNavItems({ workspaceName, t, can, ssoEnabled, registrationEnabled = false }: WorkspaceNavOptions): Array<INavbarItem> {
+export function workspaceNavItems({ workspaceName, t, can, ssoEnabled, registrationEnabled = false, embedEnabled = false }: WorkspaceNavOptions): Array<INavbarItem> {
     const base = dashboardUrl(workspaceName);
     const urls = workspaceSectionUrls(workspaceName);
     const iconClass = 'h-5 w-5 stroke-2';
@@ -69,6 +72,17 @@ export function workspaceNavItems({ workspaceName, t, can, ssoEnabled, registrat
                       url: urls.caseSystem,
                       permission: WorkspacePermission.WORKSPACE_MANAGE,
                       icon: <SendToBack className={iconClass} />
+                  }
+              ]
+            : []),
+        ...(embedEnabled
+            ? [
+                  {
+                      key: 'embedding',
+                      name: t(workspaceSectionLabels.embedding),
+                      url: urls.embedding,
+                      permission: WorkspacePermission.WORKSPACE_MANAGE,
+                      icon: <Code2 className={iconClass} />
                   }
               ]
             : []),

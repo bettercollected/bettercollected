@@ -167,3 +167,20 @@ export async function resolveCustomDomainWorkspace(): Promise<ResolvedCustomDoma
     const workspace = await getWorkspaceById(decision.assertion.reference);
     return { workspace: workspace?.id ? workspace : null, assertion: decision.assertion };
 }
+
+/**
+ * Which workspace a custom-domain request is for, decided from its headers alone (the proxy has no
+ * `headers()`): the same decision as `resolveCustomDomainWorkspace`, without the lookup. `workspaceId`: the
+ * edge's verified assertion names it; `host`: the legacy lookup by host applies (no service configured, or
+ * migration mode and no assertion); `refused`: an assertion that does not verify.
+ */
+export type CustomDomainTarget = { kind: 'workspaceId'; workspaceId: string } | { kind: 'host'; host: string } | { kind: 'refused' };
+
+export function customDomainTarget(host: string, assertionHeader: string | null): CustomDomainTarget {
+    const config = customDomainConfig();
+    if (!config) return { kind: 'host', host };
+    const decision = decideAssertion(assertionHeader, config, host);
+    if (decision.kind === 'legacy') return { kind: 'host', host };
+    if (decision.kind === 'refused') return { kind: 'refused' };
+    return { kind: 'workspaceId', workspaceId: decision.assertion.reference };
+}

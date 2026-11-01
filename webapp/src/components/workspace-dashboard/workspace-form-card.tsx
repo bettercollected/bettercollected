@@ -57,7 +57,8 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
         event.stopPropagation();
         openModal('SHARE_VIEW', {
             url: getFormShareURL(form, workspace),
-            title: t(formConstant.shareThisForm)
+            title: t(formConstant.shareThisForm),
+            formTitle: form?.title
         });
     };
 

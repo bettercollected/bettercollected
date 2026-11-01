@@ -285,3 +285,13 @@ div::-webkit-scrollbar-thumb:hover {
 .react-flow__controls-button svg {
     fill: var(--color-black-700);
 }
+
+/* A respondent page shown in another site's frame (docs/embed.md, set by the embed reporter): the page's
+   content measures itself instead of stretching to the frame, so the height it reports is the height it
+   needs and shrinking the frame does not change the answer. */
+html[data-bc-embed] [data-slide] [data-radix-scroll-area-viewport] > div {
+    min-height: 0;
+}
+html[data-bc-embed] [data-slide] [data-radix-scroll-area-viewport] > div > div {
+    flex-grow: 0;
+}
