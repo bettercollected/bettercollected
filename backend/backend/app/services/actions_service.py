@@ -297,6 +297,21 @@ class ActionService:
                         key: self._opened(values, action.id)
                         for key, values in owner.secrets.items()
                     }
+            # the hand-out is on record: which run, how many, never a value
+            handed = len(action.secrets or []) + sum(
+                len(values or [])
+                for owner in (form, workspace)
+                for values in (owner.secrets or {}).values()
+            )
+            logger.info(
+                "run secrets handed to the executor opened: workspace={} form={} "
+                "action={} response={} count={}",
+                workspace_id,
+                form_id,
+                action_id,
+                response_id,
+                handed,
+            )
         else:
             plain_secrets = False
         answer = {

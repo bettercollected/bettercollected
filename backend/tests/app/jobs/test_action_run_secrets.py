@@ -124,6 +124,34 @@ class TestSecretsOpenedForTheExecutor:
         )
         assert got.status_code == 200 and "secrets_plain" not in got.json()
 
+    async def test_the_hand_out_is_logged_with_ids_and_a_count_never_a_value(
+        self, client, workspace, configured_form, partner_action, memory_jobs
+    ):
+        from loguru import logger
+
+        await _seal_credentials(workspace, configured_form, partner_action)
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        lines = []
+        sink = logger.add(lambda m: lines.append(str(m)), level="INFO")
+        try:
+            got = await _ask_for(
+                client,
+                workspace,
+                configured_form,
+                partner_action,
+                response.response_id,
+                {"secrets": "plain"},
+            )
+        finally:
+            logger.remove(sink)
+        assert got.status_code == 200
+        text = "".join(lines)
+        assert "run secrets handed to the executor opened" in text
+        assert response.response_id in text and str(partner_action.id) in text
+        assert "count=3" in text  # the action's own, the form's and the workspace's
+        for value in (FORM_CRED, WORKSPACE_CRED, ACTION_SECRET, ANSWER):
+            assert value not in text
+
     @pytest.mark.parametrize("body", [{"secrets": "everything"}, {"secrets": 1}])
     async def test_an_unknown_request_is_refused(
         self, client, workspace, configured_form, partner_action, memory_jobs, body
@@ -287,7 +315,40 @@ class TestTheRefreshedCredentialGoesBackInPlain:
     async def test_a_secret_the_action_does_not_hold_is_not_created(
         self, client, workspace, configured_form, partner_action, memory_jobs
     ):
+        # the form's action holds a Token and no Credentials
+        action_id = str(partner_action.id)
+        stored = await container.form_repo().get_form_document_by_id(
+            configured_form.form_id
+        )
+        stored.secrets = {action_id: [ParameterValue(name="Token", value=sealed("t"))]}
+        await container.form_repo().save_form(stored)
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        before = await _stored_credentials(configured_form.form_id, partner_action)
+
+        got = await _write(
+            client, workspace, configured_form, partner_action, response.response_id
+        )
+
+        assert got.status_code == 200
+        assert (
+            await _stored_credentials(configured_form.form_id, partner_action) == before
+        )
+        assert "Credentials" not in before
+
+    @pytest.mark.parametrize("name", ["Token", "Another", "credentials", "Password"])
+    async def test_only_the_credential_can_be_written(
+        self, client, workspace, configured_form, partner_action, memory_jobs, name
+    ):
+        # even a secret the action holds is not the executor's to replace
         await _seal_credentials(workspace, configured_form, partner_action)
+        action_id = str(partner_action.id)
+        stored = await container.form_repo().get_form_document_by_id(
+            configured_form.form_id
+        )
+        stored.secrets[action_id].append(
+            ParameterValue(name=name, value=sealed("keep"))
+        )
+        await container.form_repo().save_form(stored)
         response, _ = await _submitted(workspace, configured_form, memory_jobs)
         before = await _stored_credentials(configured_form.form_id, partner_action)
 
@@ -297,10 +358,10 @@ class TestTheRefreshedCredentialGoesBackInPlain:
             configured_form,
             partner_action,
             response.response_id,
-            name="Another",
+            name=name,
         )
 
-        assert got.status_code == 200
+        assert got.status_code == 422
         assert (
             await _stored_credentials(configured_form.form_id, partner_action) == before
         )

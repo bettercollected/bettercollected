@@ -1267,8 +1267,9 @@ form, in `controllers/workspace_responses.py`) fills in street and city from a D
   (`ActionService.action_run_context(plain_secrets=True)`, `secrets_plain: true` in the answer; a value no key opens is a 500
   with ids in the log, never the value), so the executor needs no key. A refreshed Google credential comes back in plain on
   `PATCH /temporal/workspaces/{w}/forms/{f}/actions/{a}/runs/{r}/secrets` (same job key + run token + job `doing` as the context
-  route via `TemporalRouter._authorise_run`, run still in force, only a secret the form's action already holds, sealed with the
-  current key in `FormActionsService.update_run_secret`). The key-only `PATCH /temporal/forms/{f}/actions/{a}/secrets` stays for
+  route via `TemporalRouter._authorise_run`, run still in force, only the `Credentials` secret (`RunSecretDto`: any other name is a 422) and only when the form's
+  action already holds one, sealed with the current key in `FormActionsService.update_run_secret`). The hand-out of opened
+  secrets is logged with ids and a count, never a value. The key-only `PATCH /temporal/forms/{f}/actions/{a}/secrets` stays for
   executors before 4.3 and lets any holder of the job key write any form's secret: do not add routes like it. Tests:
   `tests/app/jobs/test_action_run_secrets.py`.
   Tests: `tests/app/jobs/test_action_runs.py`, `test_executor_role.py`, `test_ensure_jobs_exec_role.py`,
