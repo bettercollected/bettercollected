@@ -283,7 +283,25 @@ def test_custom_action_code_gets_the_same_rule():
             workspace=json.dumps({}),
         )
     )
-    assert no_override["log"] == "instance-user\n" + INSTANCE_PASSWORD
+    # in the sandbox the code holds a handle to the password, never its value
+    assert no_override["log"] == "instance-user\n<secret Password>"
+    assert INSTANCE_PASSWORD not in no_override["log"]
+
+
+def test_custom_action_code_in_process_under_legacy_isolation(monkeypatch):
+    monkeypatch.setattr(settings, "action_isolation", "legacy")
+    action = _action()
+    action["predefined"] = False
+    action["action_code"] = "log(get_secret('Password'))\n"
+    result = asyncio.run(
+        actions.run_action(
+            json.dumps(action),
+            json.dumps({"builder_version": "v2", "title": "Survey"}),
+            json.dumps({"answers": {}}),
+            workspace=json.dumps({}),
+        )
+    )
+    assert result["log"] == INSTANCE_PASSWORD
 
 
 def test_the_refusal_names_settings_never_values(capsys):

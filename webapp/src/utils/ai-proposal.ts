@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 
@@ -170,15 +171,16 @@ function pageChangeText(key: string[], change: DiffChange, number: number): stri
 
 type GroupKey = { key: string; label: string; pageId?: string; order: number };
 
-const FORM_GROUP: GroupKey = { key: 'form', label: 'Form and theme', order: 0 };
-const WELCOME_GROUP: GroupKey = { key: 'welcome', label: 'Welcome page', order: 1 };
-const ENDING_GROUP: GroupKey = { key: 'ending', label: 'Ending', order: 100000 };
-const SETTINGS_GROUP: GroupKey = { key: 'settings', label: 'Privacy and settings', order: 100001 };
-const OTHER_GROUP: GroupKey = { key: 'other', label: 'Other changes', order: 100002 };
+// the headings are read when the card is drawn, in the builder's language (the change lines under them are written in English)
+const FORM_GROUP: GroupKey = { key: 'form', get label() { return i18n.t('builder:AI_PROPOSAL.GROUP_FORM'); }, order: 0 };
+const WELCOME_GROUP: GroupKey = { key: 'welcome', get label() { return i18n.t('builder:AI_PROPOSAL.GROUP_WELCOME'); }, order: 1 };
+const ENDING_GROUP: GroupKey = { key: 'ending', get label() { return i18n.t('builder:AI_PROPOSAL.GROUP_ENDING'); }, order: 100000 };
+const SETTINGS_GROUP: GroupKey = { key: 'settings', get label() { return i18n.t('builder:AI_PROPOSAL.GROUP_SETTINGS'); }, order: 100001 };
+const OTHER_GROUP: GroupKey = { key: 'other', get label() { return i18n.t('builder:AI_PROPOSAL.GROUP_OTHER'); }, order: 100002 };
 
 function pageGroup(form: any, index: number): GroupKey {
     const page = slides(form)[index];
-    return { key: `page:${page?.id ?? index}`, label: `Page ${index + 1}`, pageId: page?.id, order: 10 + index };
+    return { key: `page:${page?.id ?? index}`, label: i18n.t('builder:OUTLINE.PAGE_N', { n: index + 1 }), pageId: page?.id, order: 10 + index };
 }
 
 function formChangeLines(changes: DiffChange[]): Array<{ group: GroupKey; text: string }> {
@@ -223,16 +225,16 @@ function stepLines(diff: SpecDiff, before: any, after: any): Line[] {
     const pages = diff.pages;
     for (const item of pages?.added ?? []) {
         const index = pageIndexOf(item.path) ?? 0;
-        lines.push({ group: pageGroup(after, index), text: `Added page ${index + 1}`, kind: 'added', pageId: item.id });
+        lines.push({ group: pageGroup(after, index), text: i18n.t('builder:AI_PROPOSAL.PAGE_ADDED', { n: index + 1 }), kind: 'added', pageId: item.id });
     }
     for (const item of pages?.removed ?? []) {
         const index = pageIndexOf(item.path) ?? 0;
-        lines.push({ group: { ...pageGroup(before, index), label: `Page ${index + 1} (removed)` }, text: `Removed page ${index + 1}`, kind: 'removed', pageId: item.id });
+        lines.push({ group: { ...pageGroup(before, index), label: i18n.t('builder:AI_PROPOSAL.PAGE_REMOVED_GROUP', { n: index + 1 }) }, text: i18n.t('builder:AI_PROPOSAL.PAGE_REMOVED', { n: index + 1 }), kind: 'removed', pageId: item.id });
     }
     for (const item of pages?.moved ?? []) {
         const from = (pageIndexOf(item.from) ?? 0) + 1;
         const to = pageIndexOf(item.to) ?? 0;
-        lines.push({ group: pageGroup(after, to), text: `Moved page ${from} to position ${to + 1}`, kind: 'moved', pageId: item.id });
+        lines.push({ group: pageGroup(after, to), text: i18n.t('builder:AI_PROPOSAL.PAGE_MOVED', { from, to: to + 1 }), kind: 'moved', pageId: item.id });
     }
     for (const item of pages?.changed ?? []) {
         const index = pageIndexOf(item.path) ?? 0;

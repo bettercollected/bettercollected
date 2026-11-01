@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useAIProposalPreview } from '@app/store/jotai/ai-proposal';
@@ -28,10 +29,11 @@ function usePreviewPage(activeSlideId?: string | null) {
  * state, and ``inert`` keeps every editor inside it from taking input.
  */
 export function AIProposalPreviewCanvas({ activeSlideId }: { activeSlideId?: string | null }) {
+    const { t } = useTranslation('builder');
     const { on, page, proposal } = usePreviewPage(activeSlideId);
     if (!on || !page) return null;
     return (
-        <div inert aria-label="Preview of the proposed changes, read-only" data-testid="ai-proposal-preview" className="h-full w-full">
+        <div inert aria-label={t('AI_PROPOSAL.PREVIEW_ARIA')} data-testid="ai-proposal-preview" className="h-full w-full">
             <SlideBuilder slide={page} disabled themeOverride={proposal?.form?.theme ?? undefined} />
         </div>
     );
@@ -39,21 +41,22 @@ export function AIProposalPreviewCanvas({ activeSlideId }: { activeSlideId?: str
 
 /** Says the canvas shows a proposal, pages through it, and leaves it. */
 export function AIProposalPreviewBar({ activeSlideId }: { activeSlideId?: string | null }) {
+    const { t } = useTranslation('builder');
     const { on, pages, index, setPreview } = usePreviewPage(activeSlideId);
     if (!on) return null;
     const go = (to: number) => setPreview({ on: true, pageId: pages[to]?.id });
     return (
         <div role="status" className="flex items-center gap-2 rounded border border-[#E7C9A1] bg-[#FDF3E7] px-3 py-1.5 text-xs text-[#5C3A0A]">
-            <span className="font-semibold">Previewing the AI&apos;s proposal</span>
-            <span>Read-only · page {index + 1} of {pages.length}</span>
-            <button type="button" aria-label="Previous proposed page" disabled={index === 0} onClick={() => go(index - 1)} className="rounded p-0.5 hover:bg-white/60 disabled:opacity-40">
+            <span className="font-semibold">{t('AI_PROPOSAL.PREVIEWING')}</span>
+            <span>{t('AI_PROPOSAL.READ_ONLY', { n: index + 1, total: pages.length })}</span>
+            <button type="button" aria-label={t('AI_PROPOSAL.PREV')} disabled={index === 0} onClick={() => go(index - 1)} className="rounded p-0.5 hover:bg-white/60 disabled:opacity-40">
                 <ChevronLeft className="h-3.5 w-3.5" />
             </button>
-            <button type="button" aria-label="Next proposed page" disabled={index >= pages.length - 1} onClick={() => go(index + 1)} className="rounded p-0.5 hover:bg-white/60 disabled:opacity-40">
+            <button type="button" aria-label={t('AI_PROPOSAL.NEXT')} disabled={index >= pages.length - 1} onClick={() => go(index + 1)} className="rounded p-0.5 hover:bg-white/60 disabled:opacity-40">
                 <ChevronRight className="h-3.5 w-3.5" />
             </button>
             <button type="button" onClick={() => setPreview({ on: false })} className="ml-1 rounded border border-[#E7C9A1] bg-white px-2 py-0.5 font-medium hover:bg-[#FFF8EF]">
-                Exit preview
+                {t('AI_PROPOSAL.EXIT_PREVIEW')}
             </button>
         </div>
     );

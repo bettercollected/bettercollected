@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import i18n from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 
@@ -17,9 +19,9 @@ const MAX_QUERY_LENGTH = 100;
 
 // what the picker says when a search fails, by the route's status (0: no answer)
 function searchErrorMessage(status: number): string {
-    if (status === 401) return 'Sign in again to search images. You can still upload an image.';
-    if (status === 429) return 'Too many image searches. Try again in a few minutes.';
-    return 'Image search is unavailable right now. You can still upload an image.';
+    if (status === 401) return i18n.t('builder:MEDIA.SEARCH_401');
+    if (status === 429) return i18n.t('builder:MEDIA.SEARCH_429');
+    return i18n.t('builder:MEDIA.SEARCH_DOWN');
 }
 
 interface IUnsplashImagePickerProps {
@@ -30,6 +32,7 @@ interface IUnsplashImagePickerProps {
 }
 
 export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPhotoSelect = (_: any) => { }, ...props }: IUnsplashImagePickerProps) {
+    const { t } = useTranslation('builder');
     const [pics, setPics] = React.useState<any[]>([]);
     const [total, setTotal] = React.useState<number | undefined>();
     const [query, setQuery] = React.useState('');
@@ -121,15 +124,15 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
         <div className="ImagePicker border border-black-300 h-full w-full items-center rounded! bg-white">
             <div className="h-full w-full rounded-lg bg-white">
                 <div className="Picker relative h-full">
-                    <div className="p2-new text-black-800 flex items-center gap-4 rounded-t-lg px-4 py-[10px]">Media</div>
+                    <div className="p2-new text-black-800 flex items-center gap-4 rounded-t-lg px-4 py-[10px]">{t('MEDIA.TITLE')}</div>
                     <Separator />
                     <Tabs defaultValue="upload" className="h-full w-full">
                         <TabsList className=" flex h-auto w-full gap-4 px-6 py-2">
-                            <TabsTrigger value="upload">Upload</TabsTrigger>
+                            <TabsTrigger value="upload">{t('MEDIA.TAB_UPLOAD')}</TabsTrigger>
                             <TabsTrigger value="unsplash" className="flex gap-1">
                                 {/* <Link href="https://unsplash.com/?utm_source=bettercollected&utm_medium=referral" target="_blank" referrerPolicy="no-referrer" className="flex items-center gap-4 bg-white px-4 pt-4 text-lg font-bold"> */}
                                 {/* <Unsplash /> */}
-                                Images
+                                {t('MEDIA.TAB_IMAGES')}
                                 {/* </Link> */}
                             </TabsTrigger>
                         </TabsList>
@@ -141,7 +144,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                             <div className="mr-2 flex h-[430px] flex-col">
                                 <div className="mb-6 mr-2 ">
                                     <SearchBar
-                                        placeholder="Search free high-resolution images from Unsplash"
+                                        placeholder={t('MEDIA.SEARCH_PLACEHOLDER')}
                                         className="md:w-full"
                                         initialPhotoSearchQuery={initialPhotoSearchQuery}
                                         onSearch={(query: string) => {

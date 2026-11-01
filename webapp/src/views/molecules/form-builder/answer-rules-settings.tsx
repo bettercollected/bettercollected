@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
-
 import { useTranslation } from 'react-i18next';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
@@ -24,6 +23,7 @@ export const PATTERN_CHECK_DELAY_MS = 400;
  * page before Continue/Submit.
  */
 export default function AnswerRulesSettings({ field, onChange, onPropertyChange }: { field: StandardFormFieldDto; onChange: (patch: Patch) => void; onPropertyChange?: (patch: { minTime?: string; maxTime?: string; currencies?: string[]; countries?: string[]; addressLookup?: boolean }) => void }) {
+    const { t } = useTranslation('builder');
     const kind = answerRuleKind(field);
     const rules = field.validations ?? {};
     const summary = summarizeAnswerRules(field);
@@ -41,20 +41,20 @@ export default function AnswerRulesSettings({ field, onChange, onPropertyChange 
             {kind === 'number' && (
                 <>
                     <div className="flex gap-2">
-                        <NumberSetting label="Lowest" integer={false} step="any" value={rules.minValue} onChange={(minValue) => onChange({ minValue })} invalid={valueConflict} />
-                        <NumberSetting label="Highest" integer={false} step="any" value={rules.maxValue} onChange={(maxValue) => onChange({ maxValue })} invalid={valueConflict} />
+                        <NumberSetting label={t('RULES_UI.LOWEST')} integer={false} step="any" value={rules.minValue} onChange={(minValue) => onChange({ minValue })} invalid={valueConflict} />
+                        <NumberSetting label={t('RULES_UI.HIGHEST')} integer={false} step="any" value={rules.maxValue} onChange={(maxValue) => onChange({ maxValue })} invalid={valueConflict} />
                     </div>
                     {rules.regex && rules.regex !== INTEGER_PATTERN ? (
-                        <p className="text-[11px] leading-relaxed text-black-600">This question has a custom pattern from an import; the server checks it when the answer is sent.</p>
+                        <p className="text-[11px] leading-relaxed text-black-600">{t('RULES_UI.CUSTOM_FROM_IMPORT')}</p>
                     ) : (
-                        <SettingSwitch label="Whole numbers only" checked={rules.regex === INTEGER_PATTERN} onCheckedChange={(checked) => onChange({ regex: checked ? INTEGER_PATTERN : undefined })} />
+                        <SettingSwitch label={t('RULES_UI.WHOLE')} checked={rules.regex === INTEGER_PATTERN} onCheckedChange={(checked) => onChange({ regex: checked ? INTEGER_PATTERN : undefined })} />
                     )}
                 </>
             )}
             {kind === 'choices' && (
                 <div className="flex gap-2">
-                    <NumberSetting label="Pick at least" min={1} max={field.properties?.choices?.length} value={rules.minChoices} onChange={(minChoices) => onChange({ minChoices: minChoices !== undefined ? Math.max(1, minChoices) : undefined })} />
-                    <NumberSetting label="Pick at most" min={1} max={field.properties?.choices?.length} value={rules.maxChoices} onChange={(maxChoices) => onChange({ maxChoices: maxChoices !== undefined ? Math.max(1, maxChoices) : undefined })} />
+                    <NumberSetting label={t('RULES_UI.PICK_AT_LEAST')} min={1} max={field.properties?.choices?.length} value={rules.minChoices} onChange={(minChoices) => onChange({ minChoices: minChoices !== undefined ? Math.max(1, minChoices) : undefined })} />
+                    <NumberSetting label={t('RULES_UI.PICK_AT_MOST')} min={1} max={field.properties?.choices?.length} value={rules.maxChoices} onChange={(maxChoices) => onChange({ maxChoices: maxChoices !== undefined ? Math.max(1, maxChoices) : undefined })} />
                 </div>
             )}
 
@@ -67,13 +67,13 @@ export default function AnswerRulesSettings({ field, onChange, onPropertyChange 
             )}
             <div id={summaryId} aria-live="polite" className="rounded border border-black-300 bg-black-100 px-3 py-2 text-[11px] leading-relaxed">
                 {summary.length ? (
-                    <ul className="flex flex-col gap-0.5 text-black-700" aria-label="Active answer rules">
+                    <ul className="flex flex-col gap-0.5 text-black-700" aria-label={t('RULES_UI.ACTIVE')}>
                         {summary.map((line) => (
                             <li key={line}>{line}</li>
                         ))}
                     </ul>
                 ) : (
-                    <span className="text-black-600">No rules: any answer is accepted.</span>
+                    <span className="text-black-600">{t('RULES_UI.NONE')}</span>
                 )}
             </div>
         </div>
@@ -134,12 +134,12 @@ function TextRules({ rules, onChange }: { rules: IFormFieldValidation; onChange:
     return (
         <>
             <div className="flex gap-2">
-                <NumberSetting label="Min. characters" min={0} value={rules.minLength} onChange={(minLength) => onChange({ minLength: minLength !== undefined ? Math.max(0, minLength) : undefined })} invalid={lengthConflict} />
-                <NumberSetting label="Max. characters" min={1} value={rules.maxLength} onChange={(maxLength) => onChange({ maxLength: maxLength !== undefined ? Math.max(1, maxLength) : undefined })} invalid={lengthConflict} />
+                <NumberSetting label={t('RULES_UI.MIN_CHARS')} min={0} value={rules.minLength} onChange={(minLength) => onChange({ minLength: minLength !== undefined ? Math.max(0, minLength) : undefined })} invalid={lengthConflict} />
+                <NumberSetting label={t('RULES_UI.MAX_CHARS')} min={1} value={rules.maxLength} onChange={(maxLength) => onChange({ maxLength: maxLength !== undefined ? Math.max(1, maxLength) : undefined })} invalid={lengthConflict} />
             </div>
             <div className="flex flex-col gap-1">
                 <label htmlFor={formatId} className="text-xs text-black-700">
-                    Format
+                    {t('RULES_UI.FORMAT')}
                 </label>
                 <select
                     id={formatId}
@@ -160,20 +160,20 @@ function TextRules({ rules, onChange }: { rules: IFormFieldValidation; onChange:
                     }}
                     className="h-8 w-full rounded border border-control bg-white px-2 py-0 text-xs focus:border-brand-500"
                 >
-                    <option value="">Any text</option>
+                    <option value="">{t('RULES_UI.ANY_TEXT')}</option>
                     {FORMAT_PRESETS.map((p) => (
                         <option key={p.id} value={p.id}>
-                            {p.label} (e.g. {p.example})
+                            {t('RULES_SUMMARY.OPTION', { label: t(`RULES_SUMMARY.LABEL_${p.id}`), example: p.example })}
                         </option>
                     ))}
-                    <option value="custom">Custom pattern</option>
+                    <option value="custom">{t('RULES_UI.CUSTOM_OPTION')}</option>
                 </select>
             </div>
             <details open={advancedOpen} onToggle={(event) => setAdvancedOpen((event.currentTarget as HTMLDetailsElement).open)} className="group">
-                <summary className="w-fit cursor-pointer text-xs font-medium text-black-600 hover:text-black-900">Advanced: custom pattern</summary>
+                <summary className="w-fit cursor-pointer text-xs font-medium text-black-600 hover:text-black-900">{t('RULES_UI.ADVANCED')}</summary>
                 <div className="mt-2 flex flex-col gap-1">
                     <label htmlFor={patternId} className="text-xs text-black-700">
-                        Regular expression
+                        {t('RULES_UI.REGEX')}
                     </label>
                     <input
                         id={patternId}
@@ -194,7 +194,7 @@ function TextRules({ rules, onChange }: { rules: IFormFieldValidation; onChange:
                         </p>
                     )}
                     <p id={`${patternId}-hint`} className="text-[11px] leading-relaxed text-black-600">
-                        Answers must match it (use ^ and $ to match the whole answer). It is checked when the answer is sent, not while it is typed. Respondents see a general “not in the expected format” message, so say in the description what you expect.
+                        {t('RULES_UI.PATTERN_HINT')}
                     </p>
                 </div>
             </details>

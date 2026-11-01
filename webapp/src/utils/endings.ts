@@ -1,4 +1,5 @@
 import { v4 } from 'uuid';
+import i18n from 'i18next';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
@@ -81,7 +82,7 @@ export function endingToShow<T extends Ending>(endings: T[] | null | undefined, 
  * ("Ending 2"), or "Thank you" when it is the form's only ending.
  */
 export function endingLabel(ending: Ending | undefined, index: number, total: number): string {
-    return ending?.name?.trim() || (total > 1 ? `Ending ${index + 1}` : 'Thank you');
+    return ending?.name?.trim() || (total > 1 ? i18n.t('builder:OUTLINE.ENDING_N', { n: index + 1 }) : i18n.t('builder:OUTLINE.THANK_YOU'));
 }
 
 export function newEndingId(): string {

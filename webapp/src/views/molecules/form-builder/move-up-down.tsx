@@ -1,5 +1,6 @@
 import Divider from '@Components/common/divider';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { jsonEqual } from '@app/lib/form-ops/model';
 import { useDocValue } from '@app/store/jotai/entity-hooks';
@@ -10,6 +11,7 @@ const BUTTON = 'flex items-center justify-center hover:bg-black-400 hover:text-w
 
 /** Move a question up or down on its page, found by id (where it is now, not where it was rendered). */
 export default function MoveUpDown({ fieldId }: { fieldId: string }) {
+    const { t } = useTranslation('builder');
     const { moveFieldInASlide } = useBuilderActions();
     // Where the question is and how many its page has; a new value only when that changes.
     const at = useDocValue(
@@ -29,15 +31,15 @@ export default function MoveUpDown({ fieldId }: { fieldId: string }) {
     const canMoveDown = at.fieldIndex !== at.count - 1;
 
     return (
-        <div className="relative flex flex-col rounded border border-black-400" role="group" aria-label="Question order">
+        <div className="relative flex flex-col rounded border border-black-400" role="group" aria-label={t('MOVE.ORDER')}>
             {canMoveUp && (
-                <button type="button" aria-label="Move question up" aria-keyshortcuts="Alt+ArrowUp" title="Move up (Alt+↑)" className={BUTTON} onClick={() => moveFieldInASlide(at.pageIndex, at.fieldIndex, at.fieldIndex - 1)}>
+                <button type="button" aria-label={t('MOVE.UP')} aria-keyshortcuts="Alt+ArrowUp" title={t('MOVE.UP_TITLE')} className={BUTTON} onClick={() => moveFieldInASlide(at.pageIndex, at.fieldIndex, at.fieldIndex - 1)}>
                     <ChevronUp aria-hidden="true" />
                 </button>
             )}
             {canMoveUp && canMoveDown && <Divider />}
             {canMoveDown && (
-                <button type="button" aria-label="Move question down" aria-keyshortcuts="Alt+ArrowDown" title="Move down (Alt+↓)" className={BUTTON} onClick={() => moveFieldInASlide(at.pageIndex, at.fieldIndex, at.fieldIndex + 1)}>
+                <button type="button" aria-label={t('MOVE.DOWN')} aria-keyshortcuts="Alt+ArrowDown" title={t('MOVE.DOWN_TITLE')} className={BUTTON} onClick={() => moveFieldInASlide(at.pageIndex, at.fieldIndex, at.fieldIndex + 1)}>
                     <ChevronDown aria-hidden="true" />
                 </button>
             )}

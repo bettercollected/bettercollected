@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { ChevronLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { useBuilderActions } from '@app/store/jotai/field-selectors';
@@ -12,6 +13,7 @@ import WelcomePage from '@app/views/organism/form/welcome-page';
 import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
 
 export default function TemplateTab({ closePopover }: { closePopover: () => void }) {
+    const { t } = useTranslation('builder');
     const [selectedTemplate, setSelectedTemplate] = useState<IFormTemplateDto | undefined>();
 
     const { addSlideFormTemplate } = useBuilderActions();
@@ -30,7 +32,7 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                                 setSelectedTemplate(undefined);
                             }}
                         />
-                        <span className="text-xs font-medium ">{selectedTemplate?.title || 'Untitled'}</span>
+                        <span className="text-xs font-medium ">{selectedTemplate?.title || t('ADD_PAGE.UNTITLED')}</span>
                     </div>
                     <ScrollArea className="h-[495px] overflow-auto">
                         <div className="flex h-full! w-full flex-row flex-wrap gap-2 overflow-auto">
@@ -49,7 +51,7 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                                             </div>
                                             <div className="absolute inset-0 z-10 bg-transparent transition-all hover:bg-[#00000026]"></div>
                                         </div>
-                                        <span className="text-black-600 text-[10px]">Page {index + 1}</span>
+                                        <span className="text-black-600 text-[10px]">{t('OUTLINE.PAGE_N', { n: index + 1 })}</span>
                                     </div>
                                 </button>
                             ))}
@@ -59,7 +61,7 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
             )}
             {!selectedTemplate && (
                 <>
-                    <div className="mb-2 flex h-6 items-center text-xs font-medium">Templates</div>
+                    <div className="mb-2 flex h-6 items-center text-xs font-medium">{t('ADD_PAGE.TEMPLATES')}</div>
                     <ScrollArea className="h-[495px] overflow-auto">
                         <div className="flex w-full flex-row flex-wrap ">
                             {templates?.map((template) => (

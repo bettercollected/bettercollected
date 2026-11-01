@@ -11,11 +11,10 @@ import pytest
 
 import procrastinate_worker as worker
 from utilities import run_context
+from utilities.google_service import RunScope as GoogleRunScope
 from utilities.run_context import RunContextUnavailable, context_url, fetch_run_context
 
-IDS = dict(
-    workspace_id="w1", form_id="f1", action_id="a1", response_id="r1"
-)
+IDS = dict(workspace_id="w1", form_id="f1", action_id="a1", response_id="r1")
 RUN_TOKEN = "t0k3n-of-this-run"
 JOB = dict(**IDS, run_token=RUN_TOKEN)
 CONTEXT = {
@@ -60,8 +59,18 @@ def test_a_run_is_fetched_by_ids_then_run(monkeypatch, ran):
             response=CONTEXT["response"],
             user_email="responder@example.org",
             workspace=CONTEXT["workspace"],
+            secrets_plain=False,
+            run_scope=GoogleRunScope("w1", "f1", "a1", "r1", RUN_TOKEN),
+            log_ref="a1",
         )
     ]
+
+
+def test_secrets_the_backend_opened_are_run_as_such(monkeypatch, ran):
+    serve(monkeypatch, {**CONTEXT, "secrets_plain": True})
+    assert job(**JOB) == "ok"
+    assert ran[0]["secrets_plain"] is True
+    assert ran[0]["run_scope"].run_token == RUN_TOKEN
 
 
 def test_the_job_returns_no_run_data(monkeypatch, ran):
@@ -132,6 +141,9 @@ def test_a_job_queued_before_the_change_still_runs_once(monkeypatch, ran):
         == "ok"
     )
     assert ran[0]["user_email"] == "e@example.org"
+    # a 4.1.x job has no run scope, and its secrets are sealed
+    assert ran[0]["secrets_plain"] is False and ran[0]["run_scope"] is None
+    assert ran[0]["log_ref"] is None
 
 
 def test_retries_grow_in_wait_and_stop_after_three_attempts():
@@ -184,12 +196,41 @@ def test_context_is_asked_in_network_with_the_job_key_and_returned(monkeypatch):
     monkeypatch.setattr(run_context.settings, "api_key", "job-key")
     with_backend(monkeypatch, handler)
     got = asyncio.run(fetch_run_context(**IDS, run_token=RUN_TOKEN))
-    assert got == CONTEXT
+    assert got == {**CONTEXT, "secrets_plain": False}
     assert seen["method"] == "POST" and seen["key"] == "job-key"
     assert seen["token"] == RUN_TOKEN
     assert seen["url"].endswith(
         "/temporal/workspaces/w1/forms/f1/actions/a1/runs/r1/context"
     )
+
+
+def test_the_executor_asks_for_its_secrets_opened_and_notes_the_answer(monkeypatch):
+    bodies = []
+
+    def handler(request):
+        bodies.append(request.content)
+        if len(bodies) == 1:
+            return httpx.Response(200, json={**CONTEXT, "secrets_plain": True})
+        return httpx.Response(200, json=CONTEXT)  # an older backend: sealed
+
+    with_backend(monkeypatch, handler)
+    got = asyncio.run(fetch_run_context(**IDS, run_token=RUN_TOKEN))
+    assert bodies[0] == b'{"secrets":"plain"}' or bodies[0] == b'{"secrets": "plain"}'
+    assert got["secrets_plain"] is True
+    older = asyncio.run(fetch_run_context(**IDS, run_token=RUN_TOKEN))
+    assert older["secrets_plain"] is False  # the executor must open them itself
+
+
+def test_a_legacy_isolation_executor_asks_for_nothing_new(monkeypatch):
+    seen = []
+    monkeypatch.setattr(run_context.settings, "action_isolation", "legacy")
+    with_backend(
+        monkeypatch,
+        lambda request: seen.append(request.content)
+        or httpx.Response(200, json=CONTEXT),
+    )
+    asyncio.run(fetch_run_context(**IDS, run_token=RUN_TOKEN))
+    assert seen == [b""]
 
 
 def test_410_means_the_run_no_longer_applies(monkeypatch):
@@ -198,9 +239,7 @@ def test_410_means_the_run_no_longer_applies(monkeypatch):
 
 
 @pytest.mark.parametrize("status", [401, 403, 404, 500, 503])
-def test_any_other_answer_is_unavailable_and_says_only_the_status(
-    monkeypatch, status
-):
+def test_any_other_answer_is_unavailable_and_says_only_the_status(monkeypatch, status):
     with_backend(
         monkeypatch, lambda request: httpx.Response(status, text="THE-ANSWER body")
     )
@@ -236,7 +275,9 @@ def test_an_incomplete_answer_is_unavailable(monkeypatch, body):
 @pytest.mark.parametrize("token", [None, ""])
 def test_a_job_without_a_run_token_is_not_asked_for(monkeypatch, token):
     asked = []
-    with_backend(monkeypatch, lambda request: asked.append(request) or httpx.Response(200))
+    with_backend(
+        monkeypatch, lambda request: asked.append(request) or httpx.Response(200)
+    )
     with pytest.raises(RunContextUnavailable):
         asyncio.run(fetch_run_context(**IDS, run_token=token))
     assert asked == []

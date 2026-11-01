@@ -1,7 +1,8 @@
 """Exporting a form's responses (docs/response-export.md).
 
-``POST .../exports`` answers with the CSV itself (a ZIP when the form's
-repeating groups export as tables) for a small set, or ``202`` and an export to
+``POST .../exports`` answers with the file itself (CSV, a ZIP when the form's
+repeating groups export as CSV tables, an Excel workbook or JSON, as asked in
+``format``) for a small set, or ``202`` and an export to
 follow for a large one, built by a background job; ``GET .../exports/{id}``
 reports it and, once ready, hands its requester a short-lived signed link to
 ``.../download`` (as often as wanted until the file is deleted, 24 hours after it was
@@ -10,7 +11,6 @@ requester's alone. The old whole-set JSON route is gone.
 """
 
 from typing import Any, Dict, List
-from urllib.parse import quote
 
 from classy_fastapi import Routable, delete, get, post
 from common.ids import RecordId
@@ -22,18 +22,13 @@ from starlette.responses import JSONResponse, Response, StreamingResponse
 from backend.app.container import container
 from backend.app.models.dtos.response_export_dto import ResponseExportRequest
 from backend.app.router import router
+from backend.app.services.response_export.formats import media_type
+from backend.app.services.response_export.http import NO_STORE, attachment
 from backend.app.services.response_export.service import StreamStart
 from backend.app.services.user_service import get_full_user
 
-_NO_STORE = {"Cache-Control": "no-store", "Pragma": "no-cache", "X-Content-Type-Options": "nosniff"}
-
-
-def _attachment(file_name: str) -> str:
-    """``Content-Disposition`` for a name made from a form title: a plain ASCII
-    fallback and the full name percent-encoded (never a raw character of the
-    title in the header)."""
-    ascii_name = "".join(c if c.isascii() and c.isprintable() and c not in '"\\;' else "_" for c in file_name)
-    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(file_name, safe='')}"
+_NO_STORE = NO_STORE
+_attachment = attachment
 
 
 @router(
@@ -71,11 +66,11 @@ class ResponseExportsRouter(Routable):
     @post(
         "",
         responses={
-            200: {"description": "The file (text/csv, or application/zip)."},
+            200: {"description": "The file (text/csv, application/zip, the .xlsx or application/json, as asked in format)."},
             202: {"description": "A large export: poll the export it names."},
             409: {"description": "export_in_progress"},
             413: {"description": "too_many_rows"},
-            422: {"description": "unknown_column, no_columns, or an invalid filter."},
+            422: {"description": "unknown_column, no_columns, too_many_columns (xlsx), or an invalid filter."},
             429: {"description": "rate_limited (Retry-After)"},
         },
     )
@@ -88,7 +83,7 @@ class ResponseExportsRouter(Routable):
     ):
         service = container.response_export_service()
         started: Any = await service.request(
-            workspace_id, form_id, user, body.columns, body.filters()
+            workspace_id, form_id, user, body.columns, body.filters(), body.format
         )
         if isinstance(started, StreamStart):
             return StreamingResponse(
@@ -155,6 +150,6 @@ class ResponseExportsRouter(Routable):
         )
         return StreamingResponse(
             body,
-            media_type="application/zip" if export.format == "zip" else "text/csv; charset=utf-8",
-            headers={**_NO_STORE, "Content-Disposition": _attachment(export.file_name or "export.csv")},
+            media_type=media_type(export.format),
+            headers={**_NO_STORE, "Content-Disposition": _attachment(export.file_name or f"export.{export.format}")},
         )

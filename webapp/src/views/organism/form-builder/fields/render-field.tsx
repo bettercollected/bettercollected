@@ -17,6 +17,7 @@ import DeleteIcon from '@Components/icons/delete';
 import { SwitchIcon } from '@Components/icons/switch-icon';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import Image from 'next/image';
+import { useTranslation } from 'react-i18next';
 import CalculatedFieldBuilder from './calculated-field-builder';
 import DropDownField from './drop-down-field';
 import FileUpload from './file-upload-field';
@@ -30,6 +31,7 @@ import VideoField from './video-field';
 import YesNoField from './yes-no-field';
 
 export const RenderImage = ({ field, isBuilder = false }: { field: StandardFormFieldDto; isBuilder?: boolean }) => {
+    const { t } = useTranslation('builder');
     const { updateFieldImage } = useBuilderActions();
     const { openDialogModal } = useDialogModal();
     const handleRemoveImage = () => {
@@ -45,10 +47,10 @@ export const RenderImage = ({ field, isBuilder = false }: { field: StandardFormF
             {/* Builder only: shown on hover, and while a button has keyboard focus. */}
             {isBuilder && (
                 <div className={cn('absolute z-10 flex h-full w-full items-start justify-start gap-4 p-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100')}>
-                    <button type="button" aria-label="Remove image" title="Remove image" className="shadow-large cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
+                    <button type="button" aria-label={t('CANVAS.REMOVE_IMAGE')} title={t('CANVAS.REMOVE_IMAGE')} className="shadow-large cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
                         <DeleteIcon width={16} height={16} aria-hidden="true" />
                     </button>
-                    <button type="button" aria-label="Change image" title="Change image" className="shadow-large cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
+                    <button type="button" aria-label={t('CANVAS.CHANGE_IMAGE')} title={t('CANVAS.CHANGE_IMAGE')} className="shadow-large cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
                         <SwitchIcon width={16} height={16} aria-hidden="true" />
                     </button>
                 </div>
