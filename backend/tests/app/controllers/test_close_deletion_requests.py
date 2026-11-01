@@ -17,7 +17,6 @@ from backend.app.schemas.standard_form_response import (
     DeclineReason,
     DeletionRequestStatus,
 )
-from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from tests.app.controllers.data import testUser
 
@@ -287,8 +286,13 @@ class TestReviewFollowUps:
     ):
         # the workspace's copy can't be resolved (e.g. a legacy copy without a
         # workspace on a form linked to several): the data would stay
+        # patched on the singleton itself: a patch of the class is shadowed by
+        # any instance attribute an earlier test left behind (tests/conftest.py,
+        # ``_no_stale_service_patches``)
         with patch.object(
-            FormResponseService, "workspace_response", AsyncMock(return_value=None)
+            container.form_response_service(),
+            "workspace_response",
+            AsyncMock(return_value=None),
         ):
             response = await client.post(
                 _close_url(workspace, imported),

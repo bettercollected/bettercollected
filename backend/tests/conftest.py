@@ -392,6 +392,24 @@ def in_memory_storage(request, _initialized_app, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_stale_service_patches(_initialized_app):
+    """``monkeypatch.setattr(service, "method", fake)`` on a singleton service
+    puts the original back as an *instance* attribute (the bound method), not by
+    deleting the fake. That attribute then shadows the class for every later
+    test of the worker: a ``patch.object(ServiceClass, "method", ...)`` is
+    silently ignored (the flaky ``test_completed_is_refused_while_an_
+    unattributed_copy_remains``, which ran after the registration tests that
+    patch ``workspace_response`` this way). After each test the services that
+    tests patch lose any instance attribute the test added."""
+    services = (container.form_response_service(), container.registration_service())
+    before = [set(vars(service)) for service in services]
+    yield
+    for service, names in zip(services, before):
+        for name in set(vars(service)) - names:
+            delattr(service, name)
+
+
+@pytest.fixture(autouse=True)
 def rate_limit_clock(_initialized_app, monkeypatch):
     """The shared rate limiter's clock, held still for the test.
 
