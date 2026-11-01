@@ -527,7 +527,7 @@ def signatures_parallel():
     return settings.pdf_import.MAX_PARALLEL_SANDBOXES
 
 
-async def test_the_throttle_is_asked_once_before_the_first_drawing_and_not_for_typing():
+async def test_the_throttle_is_asked_once_per_drawn_image_and_not_for_typing():
     calls = []
 
     async def throttle():
@@ -542,7 +542,7 @@ async def test_the_throttle_is_asked_once_before_the_first_drawing_and_not_for_t
         [Part("sigA", "a", _png()), Part("sigB", "b", _png())],
         throttle=throttle,
     )
-    assert calls == [1]
+    assert calls == [1, 1]
     # a refusal by the throttle stops it before the sandbox
     async def refuse():
         raise HTTPException(status_code=429, content="slow down")
@@ -550,3 +550,69 @@ async def test_the_throttle_is_asked_once_before_the_first_drawing_and_not_for_t
     with pytest.raises(HTTPException) as slow:
         await prepare_signatures(form, {"sigA": _drawn("a")}, [Part("sigA", "a", _png())], throttle=refuse)
     assert slow.value.status_code == 429
+
+
+async def test_a_part_for_a_signature_question_is_never_passed_through_raw():
+    form = _file_form()
+    stored = _held(sigA="img-A")
+    raw = b"<svg onload=alert(1)>"
+    # no answers at all (an edit that sends none): the stored drawing's own id
+    for answers in (None, "x", []):
+        with pytest.raises(HTTPException) as refused:
+            await prepare_signatures(form, answers, [Part("sigA", "img-A", raw)], stored=stored)
+        assert refused.value.status_code == 422
+    # any part for a signature question, with no answers to bind it
+    with pytest.raises(HTTPException):
+        await prepare_signatures(form, None, [Part("sigB", "new-1", raw)])
+    # uploads of other questions still pass when there are no answers
+    ok = [Part("doc", "doc-2", b"%PDF")]
+    assert (await prepare_signatures(form, None, ok, stored=stored)).form_files == ok
+    # with answers that do not name it, the part is dropped, never stored
+    kept = await prepare_signatures(form, {}, [Part("sigA", "img-A", raw)], stored=stored)
+    assert not kept.form_files
+
+
+async def test_a_part_for_a_signature_question_of_another_version_only_is_refused():
+    published = _form("short_text", "file_upload")
+    draft = _file_form()  # has the signature questions the published version lacks
+    raw = b"<svg onload=alert(1)>"
+    for answers in ({}, {"q0": {"type": "text", "text": "a"}}):
+        with pytest.raises(HTTPException) as refused:
+            await prepare_signatures(published, answers, [Part("sigA", "x-1", raw)], also=[draft])
+        assert refused.value.status_code == 422
+    # a file upload question of the published version keeps its parts, even when
+    # an older version had a signature question with that id
+    old = _form("signature")
+    old_id = next(iter(signature_fields(old)))
+    clash = StandardForm(
+        title="t",
+        builder_version="v2",
+        fields=[{"id": "p1", "index": 0, "type": "slide", "properties": {"fields": [
+            {"id": old_id, "type": "file_upload", "title": "now an upload"}]}}],
+    )
+    ok = [Part(old_id, "f-1", b"%PDF")]
+    assert (await prepare_signatures(clash, {}, ok, also=[old])).form_files == ok
+
+
+async def test_clients_with_no_readable_address_share_a_small_bucket_per_form_only(monkeypatch):
+    from backend.app.container import container
+
+    hits = []
+
+    class Limiter:
+        async def hit(self, scope, key, limit, window):
+            hits.append((scope, key, limit))
+            return SimpleNamespace(allowed=True, retry_after=1)
+
+    monkeypatch.setattr(container, "rate_limiter", lambda: Limiter())
+    await signatures.signature_throttle("w1", "f1", None)
+    await signatures.signature_throttle("w1", "f1", "not an address")
+    await signatures.signature_throttle("w1", "f1", "203.0.113.7")
+    await signatures.signature_throttle("w1", "f1", "2001:db8:1:2:3:4:5:6")
+    unknown = [("signature_unknown_client", "w1:f1", signatures.PER_UNKNOWN_PER_FORM_PER_MINUTE)]
+    assert hits[0] == hits[2] == unknown[0]
+    assert hits[1] == ("signature_form", "w1:f1", signatures.PER_FORM_PER_MINUTE)
+    # a known address has its own bucket, never the shared "unknown" one
+    assert hits[4] == ("signature_client", "203.0.113.7", signatures.PER_CLIENT_PER_MINUTE)
+    assert hits[6][1] == "2001:db8:1:2::/64"
+    assert all(h[1] != "unknown" for h in hits)

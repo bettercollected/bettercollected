@@ -1376,7 +1376,14 @@ class FormResponseService:
             return ""
         key = f"private/{workspace_id}/{form_id}/{response_id}/{file_id}"
         if self._aws_service.check_if_key_exists(key):
-            return self._aws_service.generate_presigned_url(key=key)
+            # served as the PNG it is and downloaded, never rendered in place
+            return self._aws_service.generate_presigned_url(
+                key=key,
+                response_headers={
+                    "ResponseContentType": "image/png",
+                    "ResponseContentDisposition": "attachment",
+                },
+            )
         return ""
 
     def generate_presigned_url_for_each_response(

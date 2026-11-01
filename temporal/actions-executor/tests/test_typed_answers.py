@@ -38,9 +38,10 @@ def test_tags_are_one_cell_joined_with_semicolons():
     assert _answer("tags", {}) == ""
 
 
-def test_a_signature_is_the_typed_name_or_a_marker_never_the_image():
+def test_a_signature_is_only_ever_a_signed_marker_never_the_name_the_image_or_a_link():
     typed = {"type": "signature", "signature": {"method": "typed", "name": "Fatima El Idrissi", "signed_at": "2026-11-01T09:30:00Z"}}
     drawn = {"type": "signature", "signature": {"method": "drawn", "file_id": "abc", "url": "https://example.test/x", "signed_at": "2026-11-01T09:30:00Z"}}
-    assert _answer("signature", typed) == "Fatima El Idrissi"
-    assert _answer("signature", drawn) == "[drawn signature]"
+    assert _answer("signature", typed) == "[signed]"
+    assert _answer("signature", drawn) == "[signed]"
     assert _answer("signature", {}) == ""
+    assert _answer("signature", {"type": "signature", "signature": {"method": "other"}}) == ""

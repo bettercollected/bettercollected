@@ -83,9 +83,13 @@ SANDBOX_MEMORY_MB = 512
 GATE_WAIT_S = 2
 CALL_LIMIT_S = 20
 # Drawn signatures one client address (a /64 for IPv6) and one form may send
-# in a minute (429 beyond); a browser sends one per signature question.
+# in a minute (429 beyond); a browser sends one per signature question. The
+# limit counts images, not submissions. Clients with no readable address share
+# a small per-form bucket instead of one for everybody.
 PER_CLIENT_PER_MINUTE = 20
 PER_FORM_PER_MINUTE = 300
+# All clients of a form whose address is unknown, together (see signature_throttle).
+PER_UNKNOWN_PER_FORM_PER_MINUTE = 10
 
 BUSY_MESSAGE = (
     "Too many drawn signatures are being processed. Try again in a moment, or "
@@ -166,14 +170,27 @@ def _signature_gate() -> asyncio.Semaphore:
 
 async def signature_throttle(workspace_id: Any, form_id: Any, client: Optional[str]) -> None:
     """429 when this client or this form sent too many drawn signatures in
-    the last minute (services/rate_limiter.py; counters are keyed hashes)."""
+    the last minute (services/rate_limiter.py; counters are keyed hashes).
+    Called once per drawn image.
+
+    A client whose address can't be told (``rate_limit_key`` gives "unknown")
+    never shares a bucket with every other such client on the platform: it is
+    counted under its form, with the small cap PER_UNKNOWN_PER_FORM_PER_MINUTE
+    for all unknown clients of that form together, so it fails closed for that
+    form only."""
     from backend.app.container import container
     from backend.app.utils.client_ip import rate_limit_key
 
     limiter = container.rate_limiter()
+    form = f"{workspace_id}:{form_id}"
+    address = rate_limit_key(client)
+    if address == "unknown":
+        client_bucket = ("signature_unknown_client", form, PER_UNKNOWN_PER_FORM_PER_MINUTE)
+    else:
+        client_bucket = ("signature_client", address, PER_CLIENT_PER_MINUTE)
     for scope, key, limit in (
-        ("signature_client", rate_limit_key(client) or "unknown", PER_CLIENT_PER_MINUTE),
-        ("signature_form", f"{workspace_id}:{form_id}", PER_FORM_PER_MINUTE),
+        client_bucket,
+        ("signature_form", form, PER_FORM_PER_MINUTE),
     ):
         verdict = await limiter.hit(scope, key, limit, 60)
         if not verdict.allowed:
@@ -280,6 +297,7 @@ def _replacement(part: Any, data: bytes) -> Any:
         field_id=part.field_id,
         filename=f"{part.file_id}.png",
         file=UploadFile(file=io.BytesIO(data), filename=f"{part.file_id}.png"),
+        content_type="image/png",
     )
 
 
@@ -295,6 +313,14 @@ def part_fields(*forms: Any) -> Set[str]:
             kind = getattr(item, "type", None)
             if getattr(kind, "value", kind) in (SIGNATURE, *FILE_QUESTIONS) and getattr(item, "id", None):
                 found.add(str(item.id))
+    return found
+
+
+def signature_ids_of(*forms: Any) -> Set[str]:
+    """The ids of the signature questions of the forms given."""
+    found: Set[str] = set()
+    for form in forms:
+        found.update(signature_fields(form))
     return found
 
 
@@ -353,7 +379,7 @@ async def prepare_signatures(
     use), and a part never carries the id of a file another question of this
     response holds: a stored drawing is only ever replaced by the sandbox's
     re-encoding of a drawing for its own question. ``throttle`` is awaited
-    once before the first drawing goes to the sandbox."""
+    before each drawing goes to the sandbox (the limit counts images)."""
     fields = signature_fields(form)
     answers = _without_foreign_signatures(answers, fields)
     parts = list(form_files or [])
@@ -370,6 +396,20 @@ async def prepare_signatures(
             owner = next((k for k, v in stored_ids.items() if v == str(part.file_id)), None)
             if owner is not None and owner != str(part.field_id):
                 raise _refuse_files("Invalid file id.")
+    # A part for a signature question is only ever stored as the sandbox's
+    # re-encoding of a drawing a drawn answer of the form names. Without such an
+    # answer to bind it (no answers at all, as in an edit that sends none, or a
+    # question that exists only in another version of the form) it is refused:
+    # passing it through would store its raw bytes, possibly over the stored image.
+    other_versions = signature_ids_of(*also)
+    uploads = part_fields(form) - set(fields)
+    for part in parts:
+        field_id = str(part.field_id)
+        if field_id in fields:
+            if not isinstance(answers, dict):
+                raise _refuse_files()
+        elif field_id in other_versions and field_id not in uploads:
+            raise _refuse_files()
     if not fields or not isinstance(answers, dict):
         return PreparedSignatures(answers, form_files)
     by_field: Dict[str, list] = {}
@@ -383,7 +423,6 @@ async def prepare_signatures(
     out = dict(answers)
     replaced: List[str] = []
     named: Dict[str, str] = {}
-    throttled = False
     for field_id in fields:
         mine = by_field.get(field_id, [])
         if field_id not in answers:
@@ -428,8 +467,7 @@ async def prepare_signatures(
             if len(mine) > 1 or (mine and not matching):
                 raise _problem(field_id)
             if matching:
-                if throttle is not None and not throttled:
-                    throttled = True
+                if throttle is not None:
                     await throttle()
                 data = await checked_image(await _read(matching[0]), field_id)
                 kept.append(_replacement(matching[0], data))

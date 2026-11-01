@@ -160,11 +160,10 @@ def get_answer_for_field(response: Dict[str, Any], field: Dict[str, Any]) -> Any
     if field['type'] in [FormBuilderTagNames['INPUT_FILE_UPLOAD'], FieldTypes['FILE_UPLOAD']]:
         return answer.get('file_metadata', {}).get('name')
     if field['type'] == FieldTypes['SIGNATURE']:
-        # the typed name, or a marker for a drawn one: never the image or a link
+        # a marker only, for both methods: an action never carries the typed
+        # name (personal data), the image or a link
         signature = answer.get('signature') or {}
-        if signature.get('method') == 'typed':
-            return signature.get('name') or ''
-        return '[drawn signature]' if signature.get('method') == 'drawn' else ''
+        return '[signed]' if signature.get('method') in ('typed', 'drawn') else ''
     if field['type'] == FieldTypes['CALCULATED']:
         return format_calculated_value(answer, (field.get('properties') or {}).get('format'))
     return ''
