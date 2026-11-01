@@ -525,23 +525,43 @@ class ResponseExportService:
     ) -> AsyncIterator[bytes]:
         counter = RowCount()
         finished = False
-        # a live stream keeps its slot however slowly its client takes the bytes
-        # (the generator is suspended while the client drains): its own task beats
-        beater = asyncio.ensure_future(self._beat_while_streaming(export.id))
+        # the stream's own task beats while the consumer is taking pieces (the
+        # generator is suspended while a slow client drains, so the loop below
+        # cannot do it); it stops when the consumer stops pulling (a generator the
+        # server left open after a disconnect must not keep its slot for ever) and
+        # at the latest ``STALE_STREAMING_AFTER`` after the start
+        pulled = [0]
+        beater = asyncio.ensure_future(self._beat_while_streaming(export.id, lambda: pulled[0]))
         try:
             async for piece in write_export(
                 plan, title, self._source(workspace_id, scope, filters), counter
             ):
                 yield piece
+                # back here: the consumer asked for more, so it is alive
+                pulled[0] += 1
             finished = True
         finally:
             beater.cancel()
             await _settle(self._finish_stream(export, counter.rows, finished))
 
-    async def _beat_while_streaming(self, export_id) -> None:
+    async def _beat_while_streaming(self, export_id, pulled: Callable[[], int]) -> None:
+        """Beat the stream's row every ``STREAM_BEAT_EVERY`` while its consumer made
+        progress (took a piece) since the last beat. Stops for good when there was
+        none for ``STREAM_SLOT_TTL`` (the row then ages out of the slot count and the
+        sweep ends it) and after ``STALE_STREAMING_AFTER`` whatever happens."""
+        loop = asyncio.get_running_loop()
+        began = last_progress = loop.time()
+        seen = pulled()
         while True:
             await asyncio.sleep(limits.STREAM_BEAT_EVERY.total_seconds())
-            await self._beat_stream(export_id)
+            now = loop.time()
+            if now - began >= limits.STALE_STREAMING_AFTER.total_seconds():
+                return
+            if pulled() != seen:
+                seen, last_progress = pulled(), now
+                await self._beat_stream(export_id)
+            elif now - last_progress >= limits.STREAM_SLOT_TTL.total_seconds():
+                return
 
     async def _beat_stream(self, export_id) -> None:
         def beat(document: ResponseExportDocument):
@@ -855,7 +875,11 @@ class ResponseExportService:
         them: unfinished, with a file to fetch, or that ended without one in the
         last day."""
         await self._authorize(user, workspace_id, form_id)
-        found = await self._exports.list_for_actor(workspace_id, form_id, user.id, limit=limit)
+        # job rows only: streamed exports and bulk reads of the same person are
+        # audit entries and must not push a job out of the few rows shown
+        found = await self._exports.list_for_actor(
+            workspace_id, form_id, user.id, limit=limit, kind=ExportKind.JOB
+        )
         views = []
         for export in found:
             export = await self._expire_if_due(export)

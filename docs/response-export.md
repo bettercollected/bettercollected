@@ -72,10 +72,11 @@ formatting (`temporal/actions-executor/utilities/form.py`).
   `workspace_busy`). They are counted in Postgres, on the audit rows that are `streaming`, under the same
   per-workspace lock the jobs take, so the bound holds with several backend replicas. A stream frees its
   slot when it ends (finished or cut off). A live stream beats (`heartbeat_at`, every
-  `STREAM_BEAT_EVERY`, 30 seconds, from a task of its own, so a slow client does not matter) and counts for
-  as long as it beats; one that has not beaten for `STREAM_SLOT_TTL` (3 minutes), such as a stream whose
-  client left before the body started, stops counting, and the sweep ends its row after
-  `STALE_STREAMING_AFTER` without a beat. A request refused because no slot was free is given back to the
+  `STREAM_BEAT_EVERY`, 30 seconds, from a task of its own) while its client keeps taking pieces, and counts
+  for as long as it beats. It stops beating when no piece was taken for `STREAM_SLOT_TTL` (a client that
+  left, or a generator the server left open after a disconnect) and in any case `STALE_STREAMING_AFTER`
+  (1 hour) after it started; a row that has not beaten for `STREAM_SLOT_TTL` (3 minutes) stops counting, and
+  the sweep ends it after `STALE_STREAMING_AFTER` without a beat. A request refused because no slot was free is given back to the
   rate limit below: it does not use up the person's budget.
 * **A queued job has a maximum age.** One that no worker has taken in `QUEUED_MAX_AGE` (2 hours since it
   was queued) is failed with `queue_timeout` by the hourly sweep: the Export control shows it as a failed

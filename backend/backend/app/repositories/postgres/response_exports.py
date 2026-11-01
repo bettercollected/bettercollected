@@ -75,19 +75,23 @@ class PostgresResponseExportRepository(RecordRepository):
         return await self.save_document(document)
 
     async def list_for_actor(
-        self, workspace_id, form_id, actor_id, limit: int = 10
+        self, workspace_id, form_id, actor_id, limit: int = 10, kind=None
     ) -> List[ResponseExportDocument]:
-        """The requester's own exports of the form, newest first."""
+        """The requester's own exports of the form, newest first; with ``kind``
+        only those of that kind (a job's row is not pushed out by the stream rows)."""
+        where = [
+            ResponseExportRow.workspace_id == _id(workspace_id),
+            ResponseExportRow.form_id == _id(form_id),
+            ResponseExportRow.actor_id == _id(actor_id),
+        ]
+        if kind is not None:
+            where.append(ResponseExportRow.doc["kind"].astext == kind.value)
         async with self._session() as session:
             docs = (
                 (
                     await session.execute(
                         select(self.row.doc)
-                        .where(
-                            ResponseExportRow.workspace_id == _id(workspace_id),
-                            ResponseExportRow.form_id == _id(form_id),
-                            ResponseExportRow.actor_id == _id(actor_id),
-                        )
+                        .where(*where)
                         .order_by(ResponseExportRow.created_at.desc(), ResponseExportRow.id.desc())
                         .limit(limit)
                     )
@@ -223,6 +227,7 @@ class PostgresResponseExportRepository(RecordRepository):
         self,
         export_id,
         change: Callable[[ResponseExportDocument], Optional[ResponseExportDocument]],
+        touch: bool = True,
     ) -> Optional[ResponseExportDocument]:
         """Apply ``change`` to the export row, locked until it is saved: the
         stored copy, never one read earlier. ``change`` returns the document to
@@ -242,7 +247,8 @@ class PostgresResponseExportRepository(RecordRepository):
             updated = change(document)
             if updated is None:
                 return None
-            updated.touch()
+            if touch:
+                updated.touch()
             await session.execute(self._upsert_statement(row_values(updated)))
             return updated
 
@@ -320,7 +326,9 @@ class PostgresResponseExportRepository(RecordRepository):
 
             # decided from the stored row under its lock, not from the copy read
             # above: a job may have made it READY since
-            updated = await self.update_locked(found.id, change)
+            # ``touch=False``: only the user is replaced, so a queued job keeps the
+            # time since it was queued (its maximum age) and a stream its heartbeat
+            updated = await self.update_locked(found.id, change, touch=False)
             if updated is not None:
                 changed += 1
                 if updated.status == ExportStatus.ERASED:

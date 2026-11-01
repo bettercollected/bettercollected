@@ -486,7 +486,7 @@ async def test_a_job_that_finishes_while_an_account_is_forgotten_leaves_no_chunk
     real = repo().update_locked
     done = {}
 
-    async def finishing(export_id, change):
+    async def finishing(export_id, change, **kwargs):
         if not done:
             done["yes"] = True
 
@@ -497,7 +497,7 @@ async def test_a_job_that_finishes_while_an_account_is_forgotten_leaves_no_chunk
                 return row
 
             await real(export_id, ready)
-        return await real(export_id, change)
+        return await real(export_id, change, **kwargs)
 
     monkeypatch.setattr(repo(), "update_locked", finishing)
     assert await repo().forget_actor(invited_user.id) == 1

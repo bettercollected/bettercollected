@@ -489,28 +489,82 @@ async def test_a_refused_job_slot_does_not_use_up_the_rate_limit(workspace, monk
     assert (await ask(workspace, forms[-1])).status == ExportStatus.QUEUED
 
 
-async def test_a_stream_keeps_its_slot_while_it_lives_however_slow_its_client(workspace, monkeypatch):
-    """Longer than the slot time, with a client that does not read: the stream's own
-    heartbeat keeps it counted, and it stops counting once it is read to its end."""
+async def test_a_slow_but_progressing_stream_keeps_its_slot(workspace, monkeypatch):
+    """Longer than the slot time in all, a client that keeps taking pieces (slowly)
+    keeps its slot through the stream's own heartbeat, and gives it back at the end."""
     monkeypatch.setattr(limits, "STREAM_MAX_ROWS", 50)
     monkeypatch.setattr(limits, "STREAMS_PER_USER", 1)
     monkeypatch.setattr(limits, "STREAM_SLOT_TTL", dt.timedelta(seconds=1))
-    monkeypatch.setattr(limits, "STREAM_BEAT_EVERY", dt.timedelta(seconds=0.2))
+    monkeypatch.setattr(limits, "STREAM_BEAT_EVERY", dt.timedelta(seconds=0.1))
     monkeypatch.setattr(writer, "PIECE_BYTES", 40)
     form = await publish(workspace)
-    await submit_many(workspace, form, 4)
+    await submit_many(workspace, form, 8)
     started = await ask(workspace, form)
-    body = started.body.__aiter__()
-    await body.__anext__()
-    await asyncio.sleep(1.6)  # well past the slot time, nobody pulling
-    with pytest.raises(Exception) as busy:
-        await ask(workspace, form)
-    assert busy.value.content["code"] == "export_busy"
-    async for _ in body:
-        pass
+    pieces = 0
+    began = asyncio.get_running_loop().time()
+    async for _ in started.body:
+        pieces += 1
+        await asyncio.sleep(0.4)
+        if pieces == 5:
+            assert asyncio.get_running_loop().time() - began > limits.STREAM_SLOT_TTL.total_seconds() * 1.5
+            with pytest.raises(Exception) as busy:
+                await ask(workspace, form)
+            assert busy.value.content["code"] == "export_busy"
+    assert pieces > 5
     done = await repo().get_by_id(started.export.id)
     assert done.status == ExportStatus.COMPLETED and done.heartbeat_at is not None
     assert (await ask(workspace, form)).export.status == ExportStatus.STREAMING
+
+
+async def test_a_stream_left_open_by_its_consumer_stops_counting_after_the_slot_time(workspace, monkeypatch):
+    """The server may leave the generator of a disconnected client open until it is
+    collected: with no piece taken, nothing beats, and the row ages out of the count."""
+    monkeypatch.setattr(limits, "STREAM_MAX_ROWS", 50)
+    monkeypatch.setattr(limits, "STREAMS_PER_USER", 1)
+    monkeypatch.setattr(limits, "STREAM_SLOT_TTL", dt.timedelta(seconds=1))
+    monkeypatch.setattr(limits, "STREAM_BEAT_EVERY", dt.timedelta(seconds=0.1))
+    monkeypatch.setattr(writer, "PIECE_BYTES", 40)
+    form = await publish(workspace)
+    await submit_many(workspace, form, 8)
+    started = await ask(workspace, form)
+    body = started.body.__aiter__()
+    await body.__anext__()  # taken one piece, then never again; never closed
+    await asyncio.sleep(0.3)
+    with pytest.raises(Exception) as busy:
+        await ask(workspace, form)
+    assert busy.value.content["code"] == "export_busy"
+    await asyncio.sleep(1.4)
+    frozen = (await repo().get_by_id(started.export.id)).updated_at
+    assert (await repo().get_by_id(started.export.id)).status == ExportStatus.STREAMING
+    taken = await ask(workspace, form)
+    assert taken.export.status == ExportStatus.STREAMING
+    await asyncio.sleep(0.5)
+    assert (await repo().get_by_id(started.export.id)).updated_at == frozen
+    await body.aclose()
+
+
+async def test_a_stream_stops_beating_after_its_hard_maximum_even_while_taken(workspace, monkeypatch):
+    monkeypatch.setattr(limits, "STREAM_MAX_ROWS", 80)
+    monkeypatch.setattr(limits, "STREAM_SLOT_TTL", dt.timedelta(seconds=1))
+    monkeypatch.setattr(limits, "STREAM_BEAT_EVERY", dt.timedelta(seconds=0.1))
+    monkeypatch.setattr(limits, "STALE_STREAMING_AFTER", dt.timedelta(seconds=0.6))
+    monkeypatch.setattr(writer, "PIECE_BYTES", 20)
+    form = await publish(workspace)
+    await submit_many(workspace, form, 40)
+    started = await ask(workspace, form)
+    stamps = []
+    loop = asyncio.get_running_loop()
+    began = loop.time()
+    async for _ in started.body:
+        await asyncio.sleep(0.1)
+        stamps.append((loop.time() - began, (await repo().get_by_id(started.export.id)).updated_at))
+        if loop.time() - began > 2.2:
+            break
+    later = [t for t, _ in stamps if t > 1.0]
+    assert len(later) >= 5, "the consumer kept taking pieces"
+    # after the maximum no beat moved the row any more, though the consumer went on
+    assert len({u for t, u in stamps if t > 1.0}) == 1
+    assert len({u for t, u in stamps}) > 1
 
 
 async def test_a_stream_that_stopped_beating_stops_counting(workspace, monkeypatch):
@@ -640,3 +694,54 @@ async def test_a_read_that_returns_nothing_writes_no_audit_entry(client: AsyncCl
     assert not listed.get("isError") and json.loads(listed["content"][0]["text"]) == []
     assert [e for e in await repo().many() if e.channel == "mcp"] == []
     assert response.response_id
+
+
+# ----------------------------------------- follow-ups of the review of the pull request
+
+
+async def test_a_worker_cannot_claim_a_row_that_just_aged_out(workspace, monkeypatch):
+    form = await publish(workspace)
+    await submit_many(workspace, form, 3)
+    job = await queued_job(workspace, form)
+    monkeypatch.setattr(service(), "_clock", lambda: utcnow() + limits.QUEUED_MAX_AGE + dt.timedelta(minutes=1))
+    assert await service().fail_overdue_queued() == 1
+    ended = await repo().get_by_id(job.id)
+    assert ended.status == ExportStatus.FAILED and ended.error_code == "queue_timeout"
+    # the claim itself refuses it (what a worker that dequeues the job meets)
+    assert await repo().update_locked(job.id, service()._claim) is None
+    assert await service().run_job(str(job.id)) == "failed"
+    after = await repo().get_by_id(job.id)
+    assert after.status == ExportStatus.FAILED and after.attempts == 0 and after.error_code == "queue_timeout"
+    assert await repo().count_chunks(job.id) == 0
+
+
+async def test_deleting_an_account_keeps_the_time_a_job_has_been_queued(workspace, monkeypatch):
+    form = await publish(workspace)
+    await submit_many(workspace, form, 3)
+    job = await ask(workspace, form, user=invited_user)
+    before = await repo().get_by_id(job.id)
+    await asyncio.sleep(0.05)
+    assert await repo().forget_actor(invited_user.id) == 1
+    after = await repo().get_by_id(job.id)
+    assert after.actor_id != invited_user.id
+    assert after.updated_at == before.updated_at
+    # so the maximum age still counts from when it was queued
+    monkeypatch.setattr(service(), "_clock", lambda: before.updated_at + limits.QUEUED_MAX_AGE + dt.timedelta(minutes=1))
+    assert await service().fail_overdue_queued() == 1
+
+
+async def test_stream_and_bulk_rows_never_hide_a_job_from_the_export_control(client: AsyncClient, workspace):
+    form = await publish(workspace)
+    await submit_many(workspace, form, 3)
+    job = await queued_job(workspace, form)
+    # more audit rows of the same person than the control looks at
+    for _ in range(limits.REQUESTS_PER_WINDOW - 2):
+        assert len(await service().bulk_read(workspace.id, form.form_id, testUser)) == 3
+    rows = await repo().list_for_actor(workspace.id, form.form_id, testUser.id, limit=5)
+    assert job.id not in [r.id for r in rows], "the newest rows are the bulk reads"
+    shown = await service().recent(workspace.id, form.form_id, testUser)
+    assert [v["id"] for v in shown] == [str(job.id)]
+    response = await client.get(
+        f"/api/v1/workspaces/{workspace.id}/forms/{form.form_id}/exports", cookies=_cookies(testUser)
+    )
+    assert response.status_code == 200 and [v["id"] for v in response.json()] == [str(job.id)]
