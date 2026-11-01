@@ -169,8 +169,10 @@ export function useLayoutContainerActions() {
             const members = tabs.flatMap((tab) => tab.fields ?? []);
             const old = membersOf(container);
             const all = pageFieldsOf(target);
-            const start = all.findIndex((f) => f.id === old[0]);
-            const reordered = [...all.slice(0, start), ...members.map((id) => all.find((f) => f.id === id)!), ...all.slice(start + old.length)];
+            // the strip's questions take the places the strip's questions had, in the new order: whatever sits between them (an internal question) stays where it is
+            const slots = old.map((id) => all.findIndex((f) => f.id === id));
+            const reordered = [...all];
+            slots.forEach((slot, i) => (reordered[slot] = all.find((f) => f.id === members[i])!));
             const ops: unknown[] = [];
             // moves that put the strip's questions in their new order, then the strip itself
             const working = all.map((f) => f.id);

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { skipToken } from '@reduxjs/toolkit/query/react';
 
 import { pageHoldsGatedQuestion } from '@app/lib/form-ops/new-question-types';
+import { pageHasContainers } from '@app/utils/layout-containers';
 import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { FieldTypes, V2InputFields } from '@app/models/dtos/form';
@@ -278,7 +279,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const [showInsights, setShowInsights] = useState(false);
     const workspace = useAppSelector(selectWorkspace);
     const standardForm = useAppSelector(selectForm);
-    const { can, newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
+    const { can, newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, layoutContainersEnabled } = useWorkspacePermissions();
     const insightsTarget = !showInsights || !workspace?.id || !standardForm?.formId ? null : { workspaceId: workspace.id, formId: standardForm.formId };
     const { data: paths, isFetching: pathsFetching } = useGetFormSubmissionPathsQuery(insightsTarget ? { ...insightsTarget, savedAt: autosaveStatus.savedAt } : skipToken, {
         skip: !can(WorkspacePermission.RESPONSE_READ)
@@ -294,7 +295,9 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const selectedIndex = slides.findIndex((s) => s.id === selectedId);
     const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : undefined;
     // A copy of a page with a time, day or currency question holds new ones: not while the server does not take them.
-    const cannotCopyPage = pageHoldsGatedQuestion(selectedSlide, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled });
+    // (a page with layout containers cannot be copied either while the server does not take them)
+    const copyBlockedByLayout = !layoutContainersEnabled && pageHasContainers(selectedSlide);
+    const cannotCopyPage = copyBlockedByLayout || pageHoldsGatedQuestion(selectedSlide, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled });
 
     // Click-to-connect: click a right dot to start a jump FROM that page (then
     // click any destination node), or a left dot to start one INTO it (then
@@ -773,7 +776,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                     </button>
                                     <button
                                         disabled={cannotCopyPage}
-                                        title={cannotCopyPage ? tBuilder('NEW_TYPES.CANNOT_COPY') : undefined}
+                                        title={copyBlockedByLayout ? tBuilder('LAYOUT.CANNOT_COPY') : cannotCopyPage ? tBuilder('NEW_TYPES.CANNOT_COPY') : undefined}
                                         onClick={() => {
                                             const newId = duplicateSlide(selectedIndex);
                                             if (newId) setSelectedId(newId);

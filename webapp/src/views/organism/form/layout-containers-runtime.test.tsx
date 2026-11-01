@@ -185,4 +185,34 @@ describe('layout containers on the respondent page', () => {
         expect(screen.getAllByRole('tab')).toHaveLength(2);
         expect(screen.getByRole('button', { name: /Hidden panel/ })).toBeVisible();
     });
+
+    it('says it again when a closed panel or other tab has to be opened a second time, not once only', async () => {
+        open([question('a', 'Home phone'), question('b', 'Work phone', true)], [tabs('c1', ['Home', ['a']], ['Work', ['b']])]);
+        const work = await screen.findByRole('tab', { name: /Work/ });
+        const status = () => document.querySelector('[data-layout-container="c1"] [role="status"]')!;
+        submit();
+        expect(status()).toHaveTextContent('Showing the tab "Work"');
+        // the respondent goes back to the first tab by hand: the old message goes with it
+        act(() => void fireEvent.click(screen.getByRole('tab', { name: /Home/ })));
+        expect(status()).toHaveTextContent('');
+        expect(work).toHaveAttribute('aria-selected', 'false');
+        submit();
+        expect(work).toHaveAttribute('aria-selected', 'true');
+        expect(status()).toHaveTextContent('Showing the tab "Work"');
+    });
+
+    it('names several tab strips on a page apart, and makes a panel with nothing to tab to a tab stop', async () => {
+        const text = (id: string, title: string): StandardFormFieldDto => ({ ...question(id, title), type: FieldTypes.TEXT });
+        open([text('a', 'Intro one'), text('b', 'Intro two'), question('c', 'Phone'), question('d', 'Mobile')], [tabs('c1', ['One', ['a']], ['Two', ['b']]), tabs('c2', ['Three', ['c']], ['Four', ['d']])]);
+        const lists = await screen.findAllByRole('tablist');
+        expect(lists.map((list) => list.getAttribute('aria-label'))).toEqual(['Sections 1', 'Sections 2']);
+        // only text in this tab: nothing inside can take focus, so the panel itself does
+        expect(screen.getByRole('tabpanel', { name: 'One' })).toHaveAttribute('tabindex', '0');
+        expect(screen.getByRole('tabpanel', { name: 'Three' })).not.toHaveAttribute('tabindex');
+    });
+
+    it('calls a single tab strip just that', async () => {
+        open([question('a', 'Home phone'), question('b', 'Work phone')], [tabs('c1', ['Home', ['a']], ['Work', ['b']])]);
+        expect(await screen.findByRole('tablist', { name: 'Sections' })).toBeInTheDocument();
+    });
 });

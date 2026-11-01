@@ -1,7 +1,7 @@
 /** Layout containers: the op that sets a page's containers, and the joins other ops make by position. */
 import type { LayoutContainer, LayoutTab } from '@app/models/dtos/form';
-import { CONTAINERS_MAX, CONTAINER_ID_PREFIX, TAB_ID_PREFIX, containerProblems, freshId, usedIds } from '@app/utils/layout-containers';
-import { CONTAINER_MEMBERS_MAX, CONTAINER_TITLE_MAX, LAYOUT_ID_PATTERN, TABS_MAX } from '@app/utils/layout-containers';
+import { CONTAINERS_MAX, CONTAINER_ID_PREFIX, TAB_ID_PREFIX, containerProblems, freshId, stripTitle, titleProblem, usedIds } from '@app/utils/layout-containers';
+import { CONTAINER_MEMBERS_MAX, CONTAINER_TITLE_MAX, LAYOUT_ID_PATTERN, LAYOUT_MEMBER_ID_MAX, TABS_MAX } from '@app/utils/layout-containers';
 
 import { OpError, childrenOf, findPage, pagesOf } from '../model';
 import type { SetPageContainersOp } from '../types';
@@ -13,22 +13,29 @@ function shapeProblem(spec: SetPageContainersOp['containers'] extends Array<infe
     if (!['panel', 'fieldset', 'tabs'].includes(spec.type)) return "Input should be 'panel', 'fieldset' or 'tabs'";
     for (const id of [spec.id, ...(spec.tabs ?? []).map((tab) => tab.id)]) if (id != null && !LAYOUT_ID_PATTERN.test(id)) return `String should match pattern '${LAYOUT_ID_PATTERN.source}'`;
     if (spec.title != null && [...spec.title].length > CONTAINER_TITLE_MAX) return `String should have at most ${CONTAINER_TITLE_MAX} characters`;
+    // a tab's title is 1 to CONTAINER_TITLE_MAX characters (the backend's ContainerTabSpec); blank text is plainTitle's
+    for (const tab of spec.tabs ?? []) {
+        const length = [...String(tab.title ?? '')].length;
+        if (length < 1) return 'String should have at least 1 character';
+        if (length > CONTAINER_TITLE_MAX) return `String should have at most ${CONTAINER_TITLE_MAX} characters`;
+    }
+    if ([...(spec.fields ?? []), ...(spec.tabs ?? []).flatMap((tab) => tab.fields ?? [])].some((id) => [...String(id)].length > LAYOUT_MEMBER_ID_MAX)) return `String should have at most ${LAYOUT_MEMBER_ID_MAX} characters`;
     if ((spec.fields?.length ?? 0) > CONTAINER_MEMBERS_MAX || (spec.tabs ?? []).some((tab) => (tab.fields?.length ?? 0) > CONTAINER_MEMBERS_MAX)) return `List should have at most ${CONTAINER_MEMBERS_MAX} items after validation`;
     if ((spec.tabs?.length ?? 0) > TABS_MAX) return `List should have at most ${TABS_MAX} items after validation`;
     return null;
 }
 
-const plainTitle = (value: string, what: string): string => {
-    const text = value.trim();
-    if (!text) throw new OpError('A title cannot be empty.');
-    if (/[\p{Cc}\p{Cf}]/u.test(text)) throw new OpError('A title cannot contain control characters.');
-    void what;
-    return text;
+const TITLE_MESSAGES = { blank: 'A title cannot be empty.', format: 'A title cannot contain control characters.' };
+
+const plainTitle = (value: string): string => {
+    const problem = titleProblem(value);
+    if (problem) throw new OpError(TITLE_MESSAGES[problem]);
+    return stripTitle(value);
 };
 
 /** The stored container for a spec (the backend's LayoutContainer validation, message for message). */
 function buildContainer(spec: any, reserved: Set<string>, logic: LayoutContainer['logic'] | undefined): LayoutContainer {
-    const tabs: LayoutTab[] = (spec.tabs ?? []).map((tab: any) => ({ id: tab.id || freshId(TAB_ID_PREFIX, reserved), title: plainTitle(String(tab.title ?? ''), 'tab'), fields: [...(tab.fields ?? [])] }));
+    const tabs: LayoutTab[] = (spec.tabs ?? []).map((tab: any) => ({ id: tab.id || freshId(TAB_ID_PREFIX, reserved), title: plainTitle(String(tab.title ?? '')), fields: [...(tab.fields ?? [])] }));
     const id = spec.id || freshId(CONTAINER_ID_PREFIX, reserved);
     if (spec.type === 'tabs') {
         if (spec.fields != null || spec.title != null || spec.collapsed != null) throw new OpError('A tabs container has tabs only: no title, collapsed flag or fields of its own.');
@@ -38,7 +45,7 @@ function buildContainer(spec: any, reserved: Set<string>, logic: LayoutContainer
     }
     if (tabs.length) throw new OpError('Only a tabs container has tabs.');
     if (spec.title == null) throw new OpError(`A ${spec.type} needs a title.`);
-    const title = plainTitle(spec.title, spec.type);
+    const title = plainTitle(spec.title);
     if (spec.type === 'fieldset' && spec.collapsed != null) throw new OpError('A field set cannot be collapsed.');
     if (!(spec.fields?.length ?? 0)) throw new OpError(`A ${spec.type} needs at least one question.`);
     return { id, type: spec.type, title, ...(spec.collapsed != null ? { collapsed: spec.collapsed } : {}), ...(logic ? { logic } : {}), fields: [...spec.fields] };

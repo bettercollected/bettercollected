@@ -86,18 +86,18 @@ export default function LayoutContainerSettings() {
                         {logic && (
                             <div className="flex flex-col gap-3">
                                 <div className="flex flex-col gap-1.5 text-xs text-black-600">
-                                    <select className={selectClass} value={logic.action} disabled={!editable} onChange={(event) => commit({ ...logic, action: event.target.value as any })}>
-                                        <option value="SHOW">{t('LAYOUT.SHOW_WHEN', { kind })}</option>
-                                        <option value="HIDE">{t('LAYOUT.HIDE_WHEN', { kind })}</option>
+                                    <select aria-label={t('LAYOUT.SHOW_OR_HIDE')} className={selectClass} value={logic.action} disabled={!editable} onChange={(event) => commit({ ...logic, action: event.target.value as any })}>
+                                        <option value="SHOW">{t(`LAYOUT.SHOW_WHEN_${container.type.toUpperCase()}`)}</option>
+                                        <option value="HIDE">{t(`LAYOUT.HIDE_WHEN_${container.type.toUpperCase()}`)}</option>
                                     </select>
                                     {logic.conditions.length > 1 && (
                                         <div className="flex items-center gap-1">
-                                            <span className="shrink-0">Match</span>
-                                            <select className={selectClass} value={logic.operator} disabled={!editable} onChange={(event) => commit({ ...logic, operator: event.target.value as LogicalOperator })}>
-                                                <option value={LogicalOperator.AND}>all</option>
-                                                <option value={LogicalOperator.OR}>any</option>
+                                            <span className="shrink-0">{t('LAYOUT.MATCH')}</span>
+                                            <select aria-label={t('LAYOUT.MATCH_LABEL')} className={selectClass} value={logic.operator} disabled={!editable} onChange={(event) => commit({ ...logic, operator: event.target.value as LogicalOperator })}>
+                                                <option value={LogicalOperator.AND}>{t('LAYOUT.ALL')}</option>
+                                                <option value={LogicalOperator.OR}>{t('LAYOUT.ANY')}</option>
                                             </select>
-                                            <span className="shrink-0">of these:</span>
+                                            <span className="shrink-0">{t('LAYOUT.OF_THESE')}</span>
                                         </div>
                                     )}
                                 </div>
@@ -113,7 +113,7 @@ export default function LayoutContainerSettings() {
                                 {!complete && <p className="text-[11px] text-black-600">{t('LAYOUT.COMPLETE_RULE')}</p>}
                                 {editable && (
                                     <button type="button" className="w-fit text-xs font-medium text-brand-500 hover:text-brand-600" onClick={() => commit({ ...logic, conditions: [...logic.conditions, newConditionFor(sources)] })}>
-                                        + Add condition
+                                        {t('LAYOUT.ADD_CONDITION')}
                                     </button>
                                 )}
                             </div>

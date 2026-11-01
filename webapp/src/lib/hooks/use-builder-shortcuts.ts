@@ -11,6 +11,7 @@ import { toast } from '@app/shadcn/components/ui/use-toast';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useInsertTarget } from '@app/store/jotai/insert-target';
+import { containerOfField } from '@app/utils/layout-containers';
 
 /** Is focus somewhere typing goes: a text field, a select or a rich-text editor? */
 export function isTypingTarget(target: EventTarget | null): boolean {
@@ -89,7 +90,7 @@ export function useBuilderShortcuts({ openHelp }: { openHelp: () => void }) {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     const { setInsertTarget } = useInsertTarget();
     // The newer question types cannot be copied while the server does not take them (a copy is a new question there).
-    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
+    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, layoutContainersEnabled } = useWorkspacePermissions();
 
     // One window listener; after each render it is handed the current
     // selection and the actions over the current builder state.
@@ -129,6 +130,10 @@ export function useBuilderShortcuts({ openHelp }: { openHelp: () => void }) {
                 if (fieldIndex < 0) return;
                 if (typeIsOff(fields[fieldIndex]?.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled })) {
                     toast({ description: i18n.t('builder:NEW_TYPES.CANNOT_COPY') });
+                    return;
+                }
+                if (!layoutContainersEnabled && containerOfField(slide, fields[fieldIndex].id)) {
+                    toast({ description: i18n.t('builder:LAYOUT.CANNOT_COPY_QUESTION') });
                     return;
                 }
                 duplicateField(slideIndex, fieldIndex);

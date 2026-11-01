@@ -10,8 +10,10 @@ import { resolve } from 'path';
 import { describe, expect, it } from 'vitest';
 
 import type { LayoutContainer, StandardFormFieldDto } from '@app/models/dtos/form';
+import { getInputFieldsById } from '@app/utils/answer-piping';
 import { CONTAINER_LOGIC, isFieldHiddenByLogic, logicSourcesById } from '@app/utils/conditional-logic';
-import { blocksOf, containerLogicIndex, joinByPosition, layoutProblems, membersOf, repairContainers, runHeadings } from '@app/utils/layout-containers';
+import { getDateRuleViolations } from '@app/utils/date-rules';
+import { blocksOf, containerLogicIndex, joinByPosition, layoutProblems, membersOf, repairContainers, runHeadings, titleProblem } from '@app/utils/layout-containers';
 
 const CORPUS = resolve(__dirname, '../../../docs/spec/layout-containers.cases.json');
 const corpus = existsSync(CORPUS) ? JSON.parse(readFileSync(CORPUS, 'utf8')) : null;
@@ -27,7 +29,13 @@ function pageOf(spec: { fields: Item[]; containers?: LayoutContainer[] }, id = '
     return { id, type: 'slide', properties: { fields, ...(spec.containers ? { containers: spec.containers } : {}) } } as any;
 }
 
-describe.skipIf(!corpus)('layout container structure cases', () => {
+describe('layout container structure cases', () => {
+    // a missing corpus is a failure, never a skipped suite
+    it('has its shared cases', () => {
+        expect(corpus, `${CORPUS} is missing`).not.toBeNull();
+        expect(corpus.cases.length).toBeGreaterThan(40);
+    });
+
     it.each((corpus?.cases ?? []).map((c: any) => [c.name, c]))('%s', (_name, c: any) => {
         if (c.kind === 'repair') {
             const { containers, changed } = repairContainers(pageOf(c.page));
@@ -111,5 +119,43 @@ describe('runHeadings', () => {
     it('starts from the questions it is given (some may be left out)', () => {
         expect(runHeadings(page, ['c', 'd'])).toEqual(['c1', 'Tab 1']);
         expect(runHeadings(pageOf({ fields: ['a', 'b'] }), ['a', 'b'])).toEqual([undefined, undefined]);
+    });
+});
+
+describe('titleProblem', () => {
+    it('refuses a blank title and control or format characters, as the server does', () => {
+        expect(titleProblem('Contact')).toBeNull();
+        expect(titleProblem('   ')).toBe('blank');
+        expect(titleProblem('')).toBe('blank');
+        for (const bad of ['T\u202e', 'T\u200b', 'T\ufeff', 'T\u2066', 'T\u0007']) expect(titleProblem(bad), JSON.stringify(bad)).toBe('format');
+    });
+
+    it('keeps the joiners of emoji sequences and of Persian, Hindi and other scripts', () => {
+        for (const ok of ['Team \u{1F469}\u200d\u{1F4BB}', '\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645', '\u0915\u094d\u200d\u0937']) expect(titleProblem(ok), JSON.stringify(ok)).toBeNull();
+    });
+});
+
+describe('date rules and a container that hides the date they compare with', () => {
+    const rule = { action: 'SHOW', operator: 'AND', conditions: [{ fieldId: 'gate', fieldType: 'short_text', comparison: 'IS_EQUAL', value: 'yes' }] } as any;
+    const date = (id: string, extra: any = {}) => ({ id, type: 'date', title: id, properties: { fields: [], ...extra } }) as any;
+    const slides = [
+        {
+            id: 'p1',
+            type: 'slide',
+            properties: {
+                fields: [{ id: 'gate', type: 'short_text', title: 'Gate', properties: { fields: [] } }, date('start'), date('end', { dateRules: [{ comparison: 'after', target: 'field', fieldId: 'start' }] })],
+                containers: [{ id: 'c1', type: 'panel', title: 'P', fields: ['start'], logic: rule }]
+            }
+        }
+    ] as any[];
+    const end = slides[0].properties.fields[2];
+    const context = (gate: string) => ({ answers: { gate: { type: 'text', text: gate }, start: { date: '2026-05-10' } }, fieldsById: getInputFieldsById(slides), today: '2026-06-01' });
+
+    it('applies the rule while the container shows the date', () => {
+        expect(getDateRuleViolations(end, '2026-05-01', context('yes'))).toHaveLength(1);
+    });
+
+    it('does not apply it while the container hides the date (as the server does)', () => {
+        expect(getDateRuleViolations(end, '2026-05-01', context('no'))).toHaveLength(0);
     });
 });

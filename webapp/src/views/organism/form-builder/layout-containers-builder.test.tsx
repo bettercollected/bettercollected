@@ -11,11 +11,12 @@ import { useLayoutContainerActions } from '@app/lib/hooks/use-layout-containers'
 import { FieldTypes, LayoutContainer, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
 import { activeContainerAtom } from '@app/store/jotai/active-builder-component';
-import { dispatchAtom, formDocAtom, redoAtom, resetFromServerAtom, undoAtom } from '@app/store/jotai/form-document';
+import { dispatchAtom, formDocAtom, redoAtom, resetFromServerAtom, setLayoutContainersSwitch, undoAtom } from '@app/store/jotai/form-document';
 import { containersOf, layoutProblems, membersOf } from '@app/utils/layout-containers';
 import FieldLayoutSection from '@app/views/molecules/form-builder/field-layout-section';
 import LayoutContainerSettings from '@app/views/molecules/form-builder/layout-container-settings';
 import LayoutContainerFrame from '@app/views/organism/form-builder/layout-container-frame';
+import SlideOptions from '@app/views/organism/form-builder/slide-options';
 
 const served = vi.hoisted(() => ({ layoutContainersEnabled: true }));
 vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ layoutContainersEnabled: served.layoutContainersEnabled }) }));
@@ -131,6 +132,38 @@ describe('the builder actions on containers', () => {
         expect(layoutProblems(store.get(formDocAtom).fields as any)).toEqual([]);
     });
 
+    it('moves a tab past an internal question without taking it along', () => {
+        const office = { ...q('x'), internal: true } as StandardFormFieldDto;
+        mount(form([q('a'), office, q('b')], [tabs('c1', ['One', ['a']], ['Two', ['b']])]));
+        act(() => void actions.moveTab('p1', 'c1', 'c1t2', -1));
+        expect(containersOf(page())[0].tabs!.map((t) => [t.title, t.fields])).toEqual([
+            ['Two', ['b']],
+            ['One', ['a']]
+        ]);
+        // the questions of the strip swapped places; the internal one stayed where it was
+        expect(ids()).toEqual(['b', 'x', 'a']);
+        expect(layoutProblems(store.get(formDocAtom).fields as any)).toEqual([]);
+    });
+
+    it('while the server does not take containers, an edit that would add or change one is refused, taking questions out is not', () => {
+        mount(form([q('a'), q('b'), q('c'), q('d')], [panel('c1', 'P', ['a', 'b', 'c'])]));
+        setLayoutContainersSwitch(false);
+        try {
+            let ok = true;
+            // a question moved to the inside of the container would join it
+            act(() => void (ok = store.set(dispatchAtom, { ops: [{ op: 'move_field', fieldId: 'd', index: 1 }] as any, label: 'x' })));
+            expect(ok).toBe(false);
+            act(() => void (ok = store.set(dispatchAtom, { ops: [{ op: 'add_field', pageId: 'p1', index: 1, field: { title: 'N', type: 'short_text' } }] as any, label: 'x' })));
+            expect(ok).toBe(false);
+            expect(membersOf(containersOf(page())[0])).toEqual(['a', 'b', 'c']);
+            act(() => void (ok = store.set(dispatchAtom, { ops: [{ op: 'move_field', fieldId: 'c', index: 3 }] as any, label: 'x' })));
+            expect(ok).toBe(true);
+            expect(membersOf(containersOf(page())[0])).toEqual(['a', 'b']);
+        } finally {
+            setLayoutContainersSwitch(undefined);
+        }
+    });
+
     it('a title is saved as it is typed, one undo step for the burst', () => {
         mount(form([q('a')], [panel('c1', 'P', ['a'])]));
         act(() => void actions.update('p1', 'c1', { title: 'Co' }, 'Edit title', 'container-title-c1'));
@@ -180,6 +213,19 @@ describe('the frame on the canvas', () => {
         expect(containersOf(page())[0].title).toBe('People');
         expect(input).toHaveAttribute('aria-invalid', 'true');
         expect(screen.getByText('A title is needed')).toBeInTheDocument();
+    });
+
+    it('never stores a title with a control character and says why, but keeps the joiners of emoji', () => {
+        const container = panel('c1', 'Contact', ['a']);
+        mount(form([q('a')], [container]));
+        render(<Provider store={store}>{frame(container)}</Provider>);
+        const input = screen.getByRole('textbox', { name: 'Title Panel' });
+        act(() => void fireEvent.change(input, { target: { value: 'Who\u202e' } }));
+        expect(containersOf(page())[0].title).toBe('Contact');
+        expect(input).toHaveAttribute('aria-invalid', 'true');
+        expect(screen.getByText('A title cannot hold control characters')).toBeInTheDocument();
+        act(() => void fireEvent.change(input, { target: { value: 'Team \u{1F469}\u200d\u{1F4BB}' } }));
+        expect(containersOf(page())[0].title).toBe('Team \u{1F469}\u200d\u{1F4BB}');
     });
 
     it('ungroups from the frame', () => {
@@ -256,5 +302,37 @@ describe('the question and container inspectors', () => {
         // turned off again
         act(() => void fireEvent.click(screen.getByRole('switch')));
         expect(containersOf(page())[0].logic).toBeUndefined();
+    });
+
+    it('labels the rule selects, names the container in the wording and translates the rest', () => {
+        mount(form([q('gate'), q('a'), q('b')], [tabs('c1', ['One', ['a']], ['Two', ['b']])]), <LayoutContainerSettings />);
+        act(() => void store.set(activeContainerAtom, { pageId: 'p1', id: 'c1' }));
+        act(() => void fireEvent.click(screen.getByRole('switch')));
+        const action = screen.getByRole('combobox', { name: 'Show or hide' });
+        expect(within(action).getByRole('option', { name: 'Show the tabs when…' })).toBeInTheDocument();
+        expect(within(action).getByRole('option', { name: 'Hide the tabs when…' })).toBeInTheDocument();
+        act(() => void fireEvent.change(screen.getByRole('textbox', { name: /value/i }), { target: { value: 'yes' } }));
+        act(() => void fireEvent.click(screen.getByRole('button', { name: '+ Add condition' })));
+        expect(screen.getByRole('combobox', { name: 'Match all or any condition' })).toBeInTheDocument();
+        expect(screen.getByText('Match')).toBeInTheDocument();
+        expect(screen.getByText('of these:')).toBeInTheDocument();
+    });
+});
+
+describe('copying while the server does not take containers', () => {
+    it('cannot copy a page that has containers, and says so', () => {
+        served.layoutContainersEnabled = false;
+        mount(form([q('a'), q('b')], [panel('c1', 'P', ['a', 'b'])]), <SlideOptions slideIndex={0} pageName="Page 1" visible onMoved={() => {}} />);
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Options for Page 1' }), { key: 'Enter' });
+        const copy = screen.getByRole('menuitem', { name: /Duplicate/ });
+        expect(copy).toHaveAttribute('aria-disabled', 'true');
+        expect(copy).toHaveAttribute('title', expect.stringContaining('layout containers cannot be copied'));
+    });
+
+    it('can copy it while they are on', () => {
+        served.layoutContainersEnabled = true;
+        mount(form([q('a'), q('b')], [panel('c1', 'P', ['a', 'b'])]), <SlideOptions slideIndex={0} pageName="Page 1" visible onMoved={() => {}} />);
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Options for Page 1' }), { key: 'Enter' });
+        expect(screen.getByRole('menuitem', { name: /Duplicate/ })).not.toHaveAttribute('aria-disabled', 'true');
     });
 });

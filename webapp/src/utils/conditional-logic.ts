@@ -4,7 +4,7 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { dateRangeDays } from '@app/utils/date-range';
 import { isIsoDate } from '@app/utils/iso-date';
 import { answerTags, tagKey } from '@app/utils/tags';
-import { containerLogicIndex, formHasContainers } from '@app/utils/layout-containers';
+import { CONTAINER_LOGIC, containerLogicIndex, formHasContainers } from '@app/utils/layout-containers';
 import { isTime } from '@app/utils/time-of-day';
 import { pruneOptionLogic } from '@app/utils/option-logic-checks';
 import { Comparison, FieldConditionalLogic, JUMP_TARGET_SUBMIT, LogicalOperator, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
@@ -34,15 +34,7 @@ export type { FieldConditionalLogic, LogicAction, LogicCondition, PageJump } fro
 /** The form's questions by id (page questions and the questions of repeating groups). */
 export type LogicSources = Record<string, StandardFormFieldDto>;
 
-/**
- * Where `logicSourcesById` keeps the logic of the layout containers each
- * question is in (member id -> logic): a symbol, so the map's keys stay the
- * form's questions and nothing that walks it changes. `isFieldHiddenByLogic`
- * reads it, so a container that hides its questions needs no change at the
- * call sites that already pass `sources` (twin of the backend's
- * `LogicSources.container_logic`).
- */
-export const CONTAINER_LOGIC = Symbol('containerLogic');
+export { CONTAINER_LOGIC };
 
 /** Every question of a form by id, as the evaluators read a choice condition's options from it. */
 export function logicSourcesById(slides: Array<StandardFormFieldDto> | undefined | null): LogicSources {

@@ -11,15 +11,16 @@ import { useLayoutContainerActions } from '@app/lib/hooks/use-layout-containers'
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import type { LayoutContainer, LayoutTab, StandardFormFieldDto } from '@app/models/dtos/form';
 import { activeContainerAtom, activeFieldAtom } from '@app/store/jotai/active-builder-component';
-import { TABS_MAX } from '@app/utils/layout-containers';
+import { TABS_MAX, titleProblem } from '@app/utils/layout-containers';
 
 const kindName = (t: (key: string) => string, container: LayoutContainer) => t(container.type === 'tabs' ? 'LAYOUT.TABS' : container.type === 'fieldset' ? 'LAYOUT.FIELDSET' : 'LAYOUT.PANEL');
 
 /**
  * A title the creator types. It is saved as it is typed (one undo step per
- * burst) while it is not blank; a blank title is never stored (a panel,
- * field set and tab need one for their accessible name), so the stored title
- * comes back when the box is left empty.
+ * burst) while it is valid. A blank title, or one with a control character,
+ * is never stored (a panel, field set and tab need a plain title for their
+ * accessible name): the box says why, and the stored title comes back when it
+ * is left.
  */
 function TitleInput({ value, label, onCommit, disabled }: { value: string; label: string; onCommit: (title: string) => void; disabled?: boolean }) {
     const { t } = useTranslation('builder');
@@ -31,7 +32,9 @@ function TitleInput({ value, label, onCommit, disabled }: { value: string; label
         setShown(value);
         setDraft(value);
     }
-    const blank = !draft.trim();
+    // what is wrong with the box now: never stored, said in words next to it (a title the server would refuse must not break autosave)
+    const problem = titleProblem(draft);
+    const blank = problem !== null;
     return (
         <span className="flex min-w-0 flex-1 flex-col">
             <input
@@ -44,7 +47,7 @@ function TitleInput({ value, label, onCommit, disabled }: { value: string; label
                 aria-describedby={blank ? needed : undefined}
                 onChange={(event) => {
                     setDraft(event.target.value);
-                    if (event.target.value.trim()) onCommit(event.target.value);
+                    if (titleProblem(event.target.value) === null) onCommit(event.target.value);
                 }}
                 onBlur={() => blank && setDraft(value)}
                 onClick={(event) => event.stopPropagation()}
@@ -52,7 +55,7 @@ function TitleInput({ value, label, onCommit, disabled }: { value: string; label
             />
             {blank && (
                 <span id={needed} className="text-[11px] text-[#B42318]">
-                    {t('LAYOUT.TITLE_NEEDED')}
+                    {t(problem === 'format' ? 'LAYOUT.TITLE_BAD' : 'LAYOUT.TITLE_NEEDED')}
                 </span>
             )}
         </span>

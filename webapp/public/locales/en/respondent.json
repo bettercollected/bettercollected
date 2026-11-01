@@ -66,6 +66,7 @@
     },
     "LAYOUT": {
         "TABS": "Sections",
+        "TABS_NUMBERED": "Sections {{n}}",
         "NEED_ATTENTION_one": "{{count}} question needs attention",
         "NEED_ATTENTION_other": "{{count}} questions need attention",
         "OPENED": "Opened \"{{title}}\": it has a question that needs attention.",

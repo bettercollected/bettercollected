@@ -20,6 +20,15 @@
  */
 import type { LayoutContainer, LayoutTab, StandardFormFieldDto } from '@app/models/dtos/form';
 
+/**
+ * Where a map of the form's questions by id keeps the logic of the layout
+ * containers each question is in (member id -> logic): a symbol, so the map's
+ * keys stay the questions. `logicSourcesById` and `getInputFieldsById` set it;
+ * `isFieldHiddenByLogic` reads it (twin of the backend's
+ * `LogicSources.container_logic`).
+ */
+export const CONTAINER_LOGIC = Symbol('containerLogic');
+
 export const CONTAINER_ID_PREFIX = 'c';
 export const TAB_ID_PREFIX = 't';
 export const LAYOUT_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
@@ -27,8 +36,29 @@ export const CONTAINERS_MAX = 20;
 export const CONTAINER_MEMBERS_MAX = 100;
 export const TABS_MAX = 8;
 export const CONTAINER_TITLE_MAX = 120;
+/** One question id in a container's list. */
+export const LAYOUT_MEMBER_ID_MAX = 200;
 
 type Page = Pick<StandardFormFieldDto, 'id' | 'type' | 'properties'>;
+
+// Python's str.strip() whitespace (not U+FEFF, which JavaScript's trim() removes; and U+001C to U+001F, which it does not), so a title reads the same here and on the server.
+const PY_SPACE_START = /^[\t-\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/;
+const PY_SPACE_END = /[\t-\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$/;
+
+/** A title as the server stores it: stripped as Python strips. */
+export const stripTitle = (title: string): string => title.replace(PY_SPACE_START, '').replace(PY_SPACE_END, '');
+
+/**
+ * What is wrong with a container's or tab's title, if anything: blank, or a
+ * control or format character in it (they hide or reverse text). The joiners
+ * of emoji sequences and of Persian, Hindi and other scripts (U+200C, U+200D)
+ * are fine. Twin of the server's `_plain_title`.
+ */
+export function titleProblem(title: string): 'blank' | 'format' | null {
+    const text = stripTitle(title);
+    if (!text) return 'blank';
+    return /[\p{Cc}\p{Cf}]/u.test(text.replace(/[\u200c\u200d]/g, '')) ? 'format' : null;
+}
 
 /** The questions of a page, in order. */
 export const pageFieldsOf = (page: Page | undefined | null): StandardFormFieldDto[] => (page?.properties?.fields as StandardFormFieldDto[] | undefined) ?? [];
@@ -309,6 +339,9 @@ export function containerLogicIndex(pages: Array<Page | undefined | null> | unde
     }
     return index;
 }
+
+/** Does the page hold a container? */
+export const pageHasContainers = (page: Page | undefined | null): boolean => containersOf(page).length > 0;
 
 /** Does any page hold a container? */
 export const formHasContainers = (pages: Array<Page | undefined | null> | undefined | null): boolean => (pages ?? []).some((page) => containersOf(page).length > 0);

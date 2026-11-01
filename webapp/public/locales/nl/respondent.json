@@ -66,6 +66,7 @@
     },
     "LAYOUT": {
         "TABS": "Onderdelen",
+        "TABS_NUMBERED": "Onderdelen {{n}}",
         "NEED_ATTENTION_one": "{{count}} vraag heeft aandacht nodig",
         "NEED_ATTENTION_other": "{{count}} vragen hebben aandacht nodig",
         "OPENED": "\"{{title}}\" is geopend: er staat een vraag in die aandacht nodig heeft.",

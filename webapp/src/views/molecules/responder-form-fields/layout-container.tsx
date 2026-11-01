@@ -7,17 +7,17 @@ import { ChevronDown } from 'lucide-react';
 
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
-import type { LayoutContainer, LayoutTab, StandardFormFieldDto } from '@app/models/dtos/form';
+import { FieldTypes, type LayoutContainer, type LayoutTab, type StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useContainerView, useSetContainerView } from '@app/store/jotai/responder-layout-state';
-import { memberIdOfKey } from '@app/utils/layout-containers';
+import { containersOf, memberIdOfKey } from '@app/utils/layout-containers';
 import type { PageBlock } from '@app/utils/layout-containers';
 import { actionText } from '@app/utils/theme-contrast';
 import { QuestionNumberContext } from '@app/views/molecules/responder-form-fields/question-number-context';
-import { styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 type ContainerBlock = Extract<PageBlock<StandardFormFieldDto>, { kind: 'container' }>;
 
@@ -34,6 +34,9 @@ function useAttention(page: StandardFormFieldDto | undefined, members: StandardF
     }
     return flagged.size;
 }
+
+/** What shows but takes no input: a panel of tab with only these has nothing to tab to, so the panel itself is a tab stop (WAI-ARIA tabs). */
+const CONTENT_ONLY = new Set<FieldTypes>([FieldTypes.TEXT, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT]);
 
 const CARD = 'rounded-xl border bg-white/70 p-4 md:p-6';
 /** Leaflet numbers hang in a margin left of the questions on a wide page: the card leaves room for them inside its border. */
@@ -89,12 +92,12 @@ function PanelBlock({ page, container, members, renderMembers }: { page: Standar
     const bodyId = `layout-${container.id}-body`;
     return (
         <section aria-labelledby={headingId} data-layout-container={container.id} data-layout-type="panel" className={cardClass} style={border}>
-            <Heading id={headingId} className="m-0 text-base font-semibold text-black-900">
+            <Heading id={headingId} className="m-0 text-base font-semibold" style={{ color: theme?.primary }}>
                 <button
                     type="button"
                     aria-expanded={open}
                     aria-controls={bodyId}
-                    onClick={() => setView(container.id, { open: !open })}
+                    onClick={() => setView(container.id, { open: !open, notice: undefined })}
                     className="-m-1 flex min-h-11 w-[calc(100%+0.5rem)] items-center justify-between gap-3 rounded-lg p-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
                 >
                     <span lang={contentLang}>{container.title}</span>
@@ -117,12 +120,13 @@ function PanelBlock({ page, container, members, renderMembers }: { page: Standar
 }
 
 function FieldsetBlock({ container, members, renderMembers }: { page: StandardFormFieldDto | undefined; container: LayoutContainer; members: StandardFormFieldDto[]; renderMembers: (members: StandardFormFieldDto[]) => ReactNode }) {
+    const { theme } = useFormState();
     const contentLang = useFormContentLanguage();
     const border = useBorder();
     const cardClass = useCardClass();
     return (
         <fieldset data-layout-container={container.id} data-layout-type="fieldset" className={cn(cardClass, 'm-0 min-w-0')} style={border}>
-            <legend className="px-2 text-base font-semibold text-black-900" lang={contentLang}>
+            <legend className="px-2 text-base font-semibold" style={{ color: theme?.primary }} lang={contentLang}>
                 {container.title}
             </legend>
             <div className={cn(INNER_GRID, 'pt-4')}>{renderMembers(members)}</div>
@@ -152,11 +156,13 @@ function TabsBlock({
     const shown = tabs.find((entry) => entry.tab.id === view?.tab) ?? tabs[0];
     const refs = useRef<Array<HTMLButtonElement | null>>([]);
     const border = useBorder();
+    // several strips on a page are told apart by their number
+    const strips = containersOf(page).filter((c) => c.type === 'tabs');
     if (!tabs.length) return null;
 
     const select = (index: number) => {
         const next = tabs[(index + tabs.length) % tabs.length];
-        setView(container.id, { tab: next.tab.id });
+        setView(container.id, { tab: next.tab.id, notice: undefined });
         refs.current[(index + tabs.length) % tabs.length]?.focus();
     };
     // Left and Right (swapped for right-to-left text), Home and End move to a tab and show it.
@@ -173,7 +179,7 @@ function TabsBlock({
     };
     return (
         <div data-layout-container={container.id} data-layout-type="tabs">
-            <div role="tablist" aria-label={t('LAYOUT.TABS')} className="flex flex-wrap gap-x-1 border-b" style={border}>
+            <div role="tablist" aria-label={strips.length > 1 ? t('LAYOUT.TABS_NUMBERED', { n: strips.findIndex((strip) => strip.id === container.id) + 1 }) : t('LAYOUT.TABS')} className="flex flex-wrap gap-x-1 border-b" style={border}>
                 {tabs.map(({ tab, members }, index) => {
                     const selected = tab === shown.tab;
                     return (
@@ -186,15 +192,25 @@ function TabsBlock({
                             selected={selected}
                             lang={contentLang}
                             ink={actionText(theme)}
+                            textInk={theme?.primary}
+                            quiet={softInk(theme)}
                             setRef={(el) => (refs.current[index] = el)}
-                            onClick={() => setView(container.id, { tab: tab.id })}
+                            onClick={() => setView(container.id, { tab: tab.id, notice: undefined })}
                             onKeyDown={(event) => onKeyDown(event, index)}
                         />
                     );
                 })}
             </div>
             {tabs.map(({ tab, members }) => (
-                <div key={tab.id} role="tabpanel" id={`layout-${container.id}-${tab.id}-panel`} aria-labelledby={`layout-${container.id}-${tab.id}-tab`} hidden={tab !== shown.tab} className="pt-8">
+                <div
+                    key={tab.id}
+                    role="tabpanel"
+                    id={`layout-${container.id}-${tab.id}-panel`}
+                    aria-labelledby={`layout-${container.id}-${tab.id}-tab`}
+                    hidden={tab !== shown.tab}
+                    tabIndex={members.some((m) => !CONTENT_ONLY.has(m.type as FieldTypes)) ? undefined : 0}
+                    className="pt-8"
+                >
                     <div className={INNER_GRID}>{renderMembers(members)}</div>
                 </div>
             ))}
@@ -211,6 +227,8 @@ function TabButton({
     selected,
     lang,
     ink,
+    textInk,
+    quiet,
     setRef,
     onClick,
     onKeyDown
@@ -222,6 +240,8 @@ function TabButton({
     selected: boolean;
     lang?: string;
     ink: string;
+    textInk?: string;
+    quiet: string;
     setRef: (element: HTMLButtonElement | null) => void;
     onClick: () => void;
     onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
@@ -239,11 +259,8 @@ function TabButton({
             tabIndex={selected ? 0 : -1}
             onClick={onClick}
             onKeyDown={onKeyDown}
-            className={cn(
-                '-mb-px flex min-h-11 items-center gap-2 border-b-2 px-3 py-2 text-base font-semibold focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-500',
-                selected ? 'text-black-900' : 'border-transparent text-black-700'
-            )}
-            style={selected ? { borderColor: ink } : undefined}
+            className={cn('-mb-px flex min-h-11 items-center gap-2 border-b-2 px-3 py-2 text-base font-semibold focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-500', !selected && 'border-transparent')}
+            style={selected ? { borderColor: ink, color: textInk } : { color: quiet }}
         >
             <span lang={lang}>{tab.title}</span>
             {attention > 0 && !selected && (
