@@ -19,15 +19,29 @@ export function getItemAnswer(item: Record<string, any> | undefined, child: Stan
     return cell(getAnswerForField({ answers: item ?? {} } as StandardFormResponseDto, child, listSeparator));
 }
 
+/** The formats the Export control offers (the server's `format`). */
+export type ExportFormat = 'csv' | 'xlsx' | 'json';
+export const EXPORT_FORMATS: ExportFormat[] = ['csv', 'xlsx', 'json'];
+export type ExportExtension = 'csv' | 'zip' | 'xlsx' | 'json' | 'pdf';
+
+export function isExportFormat(value: unknown): value is ExportFormat {
+    return typeof value === 'string' && (EXPORT_FORMATS as string[]).includes(value);
+}
+
 /** A file-name-safe name made from the form's title (and a table's name); the extension follows the file the server sent. */
-export function exportFileName(formTitle: string, extension: 'csv' | 'zip' = 'csv'): string {
+export function exportFileName(formTitle: string, extension: ExportExtension = 'csv'): string {
     const safe = (text: string) => text.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').trim() || 'export';
     return `${safe(formTitle)}.${extension}`;
 }
 
-/** The extension of what the server sent: a ZIP when a repeating group is a table of its own, else a CSV. */
-export function exportExtension(mediaType: string | null | undefined): 'csv' | 'zip' {
-    return (mediaType ?? '').toLowerCase().startsWith('application/zip') ? 'zip' : 'csv';
+/** The extension of what the server sent: a ZIP when a repeating group is a table of its own, a workbook, JSON, else a CSV. */
+export function exportExtension(mediaType: string | null | undefined): ExportExtension {
+    const type = (mediaType ?? '').toLowerCase();
+    if (type.startsWith('application/zip')) return 'zip';
+    if (type.startsWith('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) return 'xlsx';
+    if (type.startsWith('application/json')) return 'json';
+    if (type.startsWith('application/pdf')) return 'pdf';
+    return 'csv';
 }
 
 /** Hands a file to the browser's download. */

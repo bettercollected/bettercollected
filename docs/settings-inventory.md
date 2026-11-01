@@ -301,11 +301,13 @@ environment, whatever the tier.
 | `PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX` | pdf_import | backend | bool |  | R | T5 | `false` |
 | `PDF_IMPORT_SANDBOX_SOCKET` | pdf_import | backend | str |  | R | T5 |  |
 | `ACTION_EGRESS_ALLOW` | services | actions_executor | str |  | R | T5 |  |
+| `ACTION_EXECUTOR_KEY_ALLOWED` | services | actions_executor | bool |  | R | T5 | `true` |
 | `ACTION_ISOLATION` | services | actions_executor | enum enforce/legacy |  | R | T5 | `enforce` |
 | `ACTION_SANDBOX_CPU_SECONDS` | services | actions_executor | int 1..120 |  | R | T5 | `10` |
 | `ACTION_SANDBOX_MAX_CALLS` | services | actions_executor | int 1..500 |  | R | T5 | `20` |
 | `ACTION_SANDBOX_MEMORY_MB` | services | actions_executor | int 32..4096 |  | R | T5 | `256` |
 | `ACTION_SANDBOX_TIMEOUT_SECONDS` | services | actions_executor | int 1..120 |  | R | T5 | `30` |
+| `ACTION_SECRETS_SEALED_ALLOWED` | services | backend | bool |  | R | T5 | `true` |
 | `AES_HEX_KEY` | services | temporal_worker | str | yes | R | T5 |  |
 | `API_KEY` | services | temporal_worker | str | yes | R | T5 |  |
 | `AUTH_BASE_URL` | services | backend | url |  | R | T5 |  |

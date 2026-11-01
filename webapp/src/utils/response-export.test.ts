@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { getAnswerForField } from '@app/utils/form-builder-block-utils';
-import { exportExtension, exportFileName, getItemAnswer } from '@app/utils/response-export';
+import { fileNameFromDisposition } from '@app/utils/content-disposition';
+import { EXPORT_FORMATS, exportExtension, exportFileName, getItemAnswer, isExportFormat } from '@app/utils/response-export';
 
 const colours: StandardFormFieldDto = {
     id: 'colours',
@@ -63,6 +64,33 @@ describe('the file the server sent', () => {
         expect(exportExtension('application/zip')).toBe('zip');
         expect(exportExtension('text/csv; charset=utf-8')).toBe('csv');
         expect(exportExtension(undefined)).toBe('csv');
+    });
+    it('is a workbook, JSON or a PDF when the server says so', () => {
+        expect(exportExtension('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')).toBe('xlsx');
+        expect(exportExtension('application/json; charset=utf-8')).toBe('json');
+        expect(exportExtension('application/pdf')).toBe('pdf');
+        expect(exportFileName('Survey', 'xlsx')).toBe('Survey.xlsx');
+        expect(exportFileName('Survey', 'json')).toBe('Survey.json');
+    });
+    it('offers CSV, Excel and JSON, and nothing else', () => {
+        expect(EXPORT_FORMATS).toEqual(['csv', 'xlsx', 'json']);
+        expect(['csv', 'xlsx', 'json'].every(isExportFormat)).toBe(true);
+        expect([undefined, null, '', 'pdf', 'zip', 'XLSX', 3].some(isExportFormat)).toBe(false);
+    });
+});
+
+describe('the name a download offers', () => {
+    it('is the UTF-8 name when there is one, else the plain one', () => {
+        expect(fileNameFromDisposition(`attachment; filename="Etude _2026_.pdf"; filename*=UTF-8''%C3%89tude%20%222026%22.pdf`)).toBe('Étude  2026 .pdf');
+        expect(fileNameFromDisposition('attachment; filename="Survey - 1234abcd.pdf"')).toBe('Survey - 1234abcd.pdf');
+        expect(fileNameFromDisposition('attachment; filename=plain.pdf')).toBe('plain.pdf');
+    });
+    it('is made safe to save under, and absent when there is nothing usable', () => {
+        expect(fileNameFromDisposition(`attachment; filename*=UTF-8''..%2F..%2Fevil.pdf`)).toBe('.. .. evil.pdf');
+        expect(fileNameFromDisposition(`attachment; filename*=UTF-8''%E0%A4%A`)).toBeUndefined();
+        expect(fileNameFromDisposition('attachment')).toBeUndefined();
+        expect(fileNameFromDisposition(null)).toBeUndefined();
+        expect(fileNameFromDisposition(undefined)).toBeUndefined();
     });
 });
 

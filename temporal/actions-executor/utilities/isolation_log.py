@@ -5,7 +5,11 @@ code fails closed when the child cannot confine itself)."""
 import logging
 
 from sandbox import broker
-from settings.application import isolation_enforced, settings
+from settings.application import (
+    isolation_enforced,
+    refuse_key_when_not_allowed,
+    settings,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +24,15 @@ async def log_isolation(key_needed: bool) -> None:
             "Unset it unless you are rolling back."
         )
         return
+    if not key_needed:
+        # exits when ACTION_EXECUTOR_KEY_ALLOWED is off and the key is set
+        refuse_key_when_not_allowed()
     broker.harden_parent()
     if settings.aes_hex_key and not key_needed:
         logger.warning(
             "AES_HEX_KEY is set on the executor: it is not used while the backend "
-            "(4.3 or later) opens the run's secrets; remove it from this service"
+            "(4.3 or later) opens the run's secrets; remove it from this service "
+            "and set ACTION_EXECUTOR_KEY_ALLOWED=false"
         )
     try:
         facts = await broker.probe()

@@ -1,6 +1,7 @@
 'use client';
 
 import { Shield } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -34,6 +35,7 @@ export function BuilderTrustStrip() {
  * Disappears as soon as any of purpose / retention / privacy link is set.
  */
 export function TrustStripNudge() {
+    const { t } = useTranslation('builder');
     const standardForm = useAppSelector(selectForm);
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { setPropertiesTab } = usePropertiesTab();
@@ -53,8 +55,8 @@ export function TrustStripNudge() {
             className="border-black-400 hover:border-brand-500 flex max-w-[90%] items-center gap-2 rounded-full border bg-white px-4 py-2 text-xs transition-colors"
         >
             <Shield className="h-3.5 w-3.5 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
-            <span className="text-black-700 truncate">Responders see this footer on every page — say why you&apos;re collecting and how long you keep answers.</span>
-            <span className="shrink-0 font-semibold text-brand-500">Add it →</span>
+            <span className="text-black-700 truncate">{t('TRUST.NUDGE')}</span>
+            <span className="shrink-0 font-semibold text-brand-500">{t('TRUST.NUDGE_ADD')}</span>
         </button>
     );
 }

@@ -858,6 +858,15 @@ CASES = [
         refused_not_found=MESSAGE_NOT_FOUND,
     ),
     Case(
+        # the PDF of one response: drawn for the people who may read it
+        # (a respondent's own copy is not served by this route)
+        "responses.one.pdf",
+        "GET",
+        W + "/submissions/{response}/pdf",
+        P.RESPONSE_READ,
+        ok=200,
+    ),
+    Case(
         # a deletion request for any response is the privacy programme;
         # otherwise only the response's own respondent files one
         "responses.one.request_deletion",

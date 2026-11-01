@@ -1187,7 +1187,7 @@
     "CLEANED_UP": "The previous directory was deleted."
   },
   "RESPONSE_EXPORT": {
-    "BUTTON": "Export CSV",
+    "BUTTON": "Export {{format}}",
     "BUTTON_MATCHING": "Export matching responses",
     "STARTING": "Starting your export…",
     "PREPARING": "We're preparing your export. This can take a few minutes. You can leave this page open or come back later; it will be waiting here.",
@@ -1213,7 +1213,12 @@
     "DOWNLOADED_STAYS": "Downloaded. The file stays on our servers until {{time}}, so you can download it again.",
     "DISCARD": "Delete the file",
     "DISCARDING": "Deleting the file…",
-    "DISCARDED": "The file was deleted from our servers. You can start a new export."
+    "DISCARDED": "The file was deleted from our servers. You can start a new export.",
+    "FORMAT": "File format",
+    "FORMAT_CSV": "CSV",
+    "FORMAT_XLSX": "Excel",
+    "FORMAT_JSON": "JSON",
+    "ERROR_TOO_MANY_COLUMNS": "This form has more columns than an Excel sheet can hold. Choose CSV or JSON instead."
   },
   "RESPONSES_LIST": {
     "FILTERS": "Filter and sort responses",
@@ -1415,7 +1420,16 @@
     "DELETE_TITLE": "Delete this response permanently?",
     "DELETE_BODY": "The response and any uploaded files are removed and can't be recovered. If the responder asked for this deletion, their request is marked as completed.",
     "DELETED_TOAST": "Response deleted",
-    "DELETE_FAILED": "Could not delete the response. Try again."
+    "DELETE_FAILED": "Could not delete the response. Try again.",
+    "PDF": "Download PDF",
+    "PDF_PREPARING": "Preparing the PDF…",
+    "PDF_DONE": "The PDF was downloaded.",
+    "PDF_ERROR_RATE_LIMITED": "You downloaded many PDFs. Try again in {{minutes}} minutes.",
+    "PDF_ERROR_TOO_LARGE": "This response is too long for a PDF.",
+    "PDF_ERROR_FORBIDDEN": "You are not allowed to download this response.",
+    "PDF_ERROR_MISSING": "This response is no longer available.",
+    "PDF_ERROR_BUSY": "Several PDFs are being prepared. Try again in a moment.",
+    "PDF_ERROR_GENERIC": "The PDF could not be made. Try again."
   },
   "RESPONSE_TEAM": {
     "INTERNAL_TITLE": "Internal · staff only",

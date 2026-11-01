@@ -50,6 +50,7 @@ dependencies = [
     "publicsuffixlist>=1.1.2.20261023",
     "google-re2==1.1.20251105",
     "segno>=1.6.6",
+    "reportlab==5.0.1",
 ]
 
 [dependency-groups]
@@ -62,6 +63,7 @@ dev = [
     "httpx>=0.28.1",
     "pytest-xdist>=3.8.0",
     "pytest-split>=0.10",
+    "openpyxl==3.1.5",
 ]
 
 [tool.uv.sources]
