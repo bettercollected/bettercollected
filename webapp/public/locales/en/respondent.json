@@ -435,6 +435,8 @@
         "NAME_LABEL": "Your full name",
         "NAME_HINT": "Your typed name is your signature.",
         "ADDED": "Signature added.",
+        "ON_FILE": "A signature is on file for this response. Draw again to replace it, or choose “Type your name”.",
+        "TOO_DETAILED": "Your drawing is too detailed to send. Please draw it again, with fewer strokes.",
         "CLEARED": "Signature cleared.",
         "DRAWN_ALT": "Your drawn signature",
         "REVIEW_DRAWN": "Drawn signature",

@@ -176,7 +176,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                         </div>
                     );
                 }
-                const answerText = getAnswerDisplayText(response, field, formFormatLanguage(standardForm?.settings?.language));
+                const answerText = getAnswerDisplayText(response, field, formFormatLanguage(standardForm?.settings?.language), t('SIGNATURE.VIEW_DRAWN_MARK'));
                 return (
                     <div className="flex flex-col gap-1.5" key={field.id}>
                         {getTitleForHeaderForTable(field)}

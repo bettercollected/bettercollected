@@ -10,7 +10,7 @@ import { useFormState } from '@app/store/jotai/form';
 import useFormAtom from '@app/store/jotai/form-file';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { SIGNATURE_NAME_MAX, TYPED_SIGNATURE_FONT, answerSignature, normalisedName } from '@app/utils/signature';
-import { PAD_HEIGHT, PAD_SCALE, PAD_WIDTH, SIGNATURE_FILE_NAME, Stroke, beginStroke, canvasToPng, extendStroke, hasInk, paintStrokes, pointFrom } from '@app/utils/signature-pad';
+import { PAD_HEIGHT, PAD_SCALE, PAD_WIDTH, SIGNATURE_FILE_NAME, SIGNATURE_MAX_BYTES, Stroke, beginStroke, canvasToPng, extendStroke, hasInk, paintStrokes, pointFrom } from '@app/utils/signature-pad';
 import { ChoiceContent, choiceRowStyle } from '@app/views/atoms/choice';
 import { invalidEdge } from '@app/views/molecules/theme/theme-shared';
 
@@ -48,7 +48,7 @@ const cutToCharacters = (value: string, max: number) => {
  */
 function SignatureFieldSection({ field, isBuilder }: ISignatureField) {
     const { theme } = useFormState();
-    const { formResponse, addFieldSignatureAnswer, removeAnswer } = useFormResponse();
+    const { formResponse, setFormResponse, addFieldSignatureAnswer, removeAnswer } = useFormResponse();
     const { files, addFile, removeFile } = useFormAtom();
     const { t } = useRespondentLanguage();
     const onKeyDown = useEnterToNextQuestion(field);
@@ -66,6 +66,10 @@ function SignatureFieldSection({ field, isBuilder }: ISignatureField) {
     const [draft, setDraft] = useState(stored?.method === 'typed' ? (stored.name ?? '') : '');
     const [status, setStatus] = useState('');
     const [padUnavailable, setPadUnavailable] = useState(false);
+    // The drawing made a PNG over the size the server takes (too many strokes): said next to the box until the next stroke.
+    const [tooDetailed, setTooDetailed] = useState(false);
+    // "Signature added" is said once per drawing: not again for each further stroke, until it is cleared or the way of signing changes.
+    const announced = useRef(false);
     // What is drawn (kept while the person looks at the other way of signing) and the box it is drawn in.
     const strokes = useRef<Stroke[]>([]);
     const [inked, setInked] = useState(false);
@@ -88,6 +92,17 @@ function SignatureFieldSection({ field, isBuilder }: ISignatureField) {
         };
     }, [heldUrl]);
     const showHeld = method === 'drawn' && stored?.method === 'drawn' && !!heldUrl && !inked;
+    // A drawn signature the response already has but this browser does not hold (editing a submitted response): it stays until a new one is drawn.
+    const onFile = method === 'drawn' && stored?.method === 'drawn' && !held && !inked;
+
+    /** The question's "please answer" mark goes as soon as the person starts to answer (it is only re-set by the next Continue). */
+    const clearFlag = () => {
+        if (!formResponse.invalidFields?.[field.id]) return;
+        setFormResponse((previous) => {
+            const { [field.id]: _gone, ...rest } = previous.invalidFields ?? {};
+            return { ...previous, invalidFields: rest };
+        });
+    };
 
     const repaint = () => {
         const context = canvasRef.current?.getContext('2d');
@@ -126,12 +141,28 @@ function SignatureFieldSection({ field, isBuilder }: ISignatureField) {
             setPadUnavailable(true);
             return;
         }
+        if (blob.size > SIGNATURE_MAX_BYTES) {
+            // too detailed for the server: nothing is sent; the box is emptied so the next drawing starts clean
+            overHeld.current = false;
+            strokes.current = [];
+            announced.current = false;
+            setInked(false);
+            removeFile(field.id);
+            removeAnswer(field.id);
+            setTooDetailed(true);
+            setStatus('');
+            repaint();
+            return;
+        }
         overHeld.current = false;
         setAside.current = null;
         const fileId = v4();
         addFile(field.id, fileId, SIGNATURE_FILE_NAME, new File([blob], SIGNATURE_FILE_NAME, { type: 'image/png' }));
         addFieldSignatureAnswer(field.id, { method: 'drawn', file_id: fileId });
-        setStatus(t('SIGNATURE.ADDED'));
+        if (!announced.current) {
+            announced.current = true;
+            setStatus(t('SIGNATURE.ADDED'));
+        }
     };
 
     const pointerOf = (event: React.PointerEvent<HTMLCanvasElement>) => event.pointerId ?? -1;
@@ -141,6 +172,8 @@ function SignatureFieldSection({ field, isBuilder }: ISignatureField) {
         const rect = event.currentTarget.getBoundingClientRect();
         activePointer.current = pointerOf(event);
         if (showHeld) overHeld.current = true;
+        setTooDetailed(false);
+        clearFlag();
         try {
             event.currentTarget.setPointerCapture(event.pointerId);
         } catch {
@@ -167,6 +200,8 @@ function SignatureFieldSection({ field, isBuilder }: ISignatureField) {
         setAside.current = null;
         overHeld.current = false;
         strokes.current = [];
+        announced.current = false;
+        setTooDetailed(false);
         setInked(false);
         removeFile(field.id);
         removeAnswer(field.id);
@@ -179,6 +214,8 @@ function SignatureFieldSection({ field, isBuilder }: ISignatureField) {
         commitSeq.current++;
         methodRef.current = next;
         activePointer.current = null;
+        announced.current = false;
+        setTooDetailed(false);
         setMethod(next);
         setStatus('');
         if (next === 'typed') {
@@ -209,6 +246,7 @@ function SignatureFieldSection({ field, isBuilder }: ISignatureField) {
     const type = (typed: string) => {
         const value = cutToCharacters(typed, SIGNATURE_NAME_MAX);
         setDraft(value);
+        clearFlag();
         const name = normalisedName(value);
         if (name) {
             addFieldSignatureAnswer(field.id, { method: 'typed', name });
@@ -276,6 +314,16 @@ function SignatureFieldSection({ field, isBuilder }: ISignatureField) {
                             </span>
                         )}
                     </div>
+                    {onFile && (
+                        <p data-signature-on-file className="m-0 text-sm font-medium" style={{ color: theme?.primary }}>
+                            {t('SIGNATURE.ON_FILE')}
+                        </p>
+                    )}
+                    {tooDetailed && (
+                        <p role="alert" data-signature-too-detailed className="m-0 text-[15px] leading-snug font-medium" style={{ color: theme?.primary }}>
+                            {t('SIGNATURE.TOO_DETAILED')}
+                        </p>
+                    )}
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <p id={hintId} className="m-0 text-sm text-[#667085]">
                             {padUnavailable ? t('SIGNATURE.PAD_UNAVAILABLE') : t('SIGNATURE.PAD_HINT')}

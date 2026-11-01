@@ -90,7 +90,7 @@ export default function TabularResponses({ form, data }: TabularResponsesProps) 
                 </div>
             );
         }
-        return <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getAnswerDisplayText(response, field, formFormatLanguage(form.settings?.language))}</div>;
+        return <div className={cn('text-black-600! p2-new w-[180px] truncate')}>{getAnswerDisplayText(response, field, formFormatLanguage(form.settings?.language), t('SIGNATURE.VIEW_DRAWN_MARK'))}</div>;
     };
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (

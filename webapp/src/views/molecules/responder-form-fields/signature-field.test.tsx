@@ -27,12 +27,14 @@ const sign: StandardFormFieldDto = { id: 'sig', index: 0, type: FieldTypes.SIGNA
 let latest: Record<string, any> = {};
 let held: Array<{ fieldId: string; fileId: string; fileName: string; file: File }> = [];
 let flag: (codes: Record<string, string[]>) => void = () => undefined;
+let flagged: Record<string, unknown> = {};
 
 function Spy() {
     const { formResponse, setFormResponse } = useFormResponse();
     const { files } = useFormAtom();
     latest = formResponse.answers ?? {};
     held = files;
+    flagged = formResponse.invalidFields ?? {};
     // what Continue does: the page flags the question
     flag = (codes) => setFormResponse({ ...formResponse, invalidFields: codes });
     return null;
@@ -404,5 +406,78 @@ describe('SignatureField', () => {
         fireEvent.change(screen.getByLabelText('Your full name'), { target: { value: 'Ada' } });
         results = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } });
         expect(results.violations.map((v) => v.id)).toEqual([]);
+    });
+    describe('follow-ups', () => {
+        it('refuses a drawing whose PNG is over the size the server takes, tells the person, and sends nothing', async () => {
+            show();
+            const canvas = await screen.findByRole('img', { name: 'Signature drawing area' });
+            vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(((cb: BlobCallback) => cb(new Blob([new Uint8Array(150 * 1024 + 1)], { type: 'image/png' }))) as any);
+            await drawLine(canvas);
+            expect(held).toHaveLength(0);
+            expect(latest.sig).toBeUndefined();
+            expect(screen.getByRole('alert')).toHaveTextContent('too detailed');
+            // the box is empty again (clear is off) and the next stroke goes on from nothing, taking the message away
+            expect(screen.getByRole('button', { name: 'Clear signature' })).toBeDisabled();
+            vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(((cb: BlobCallback) => cb(new Blob([new Uint8Array(150 * 1024)], { type: 'image/png' }))) as any);
+            await drawLine(canvas);
+            expect(screen.queryByRole('alert')).toBeNull();
+            expect(latest.sig.signature.method).toBe('drawn');
+            expect(held).toHaveLength(1);
+        });
+
+        it('takes the "please answer" mark away on the first stroke, and on typed input', async () => {
+            show();
+            const canvas = await screen.findByRole('img', { name: 'Signature drawing area' });
+            act(() => flag({ sig: ['REQUIRED'], other: ['REQUIRED'] }));
+            expect(flagged.sig).toEqual(['REQUIRED']);
+            await act(async () => {
+                pointer(canvas, 'pointerdown', 10, 10);
+            });
+            // before the stroke ends: the mark of this question is gone, another question's stays
+            expect(flagged.sig).toBeUndefined();
+            expect(flagged.other).toEqual(['REQUIRED']);
+            await act(async () => {
+                pointer(canvas, 'pointerup', 10, 10);
+            });
+            fireEvent.click(screen.getByRole('radio', { name: 'Type your name' }));
+            act(() => flag({ sig: ['REQUIRED'] }));
+            fireEvent.change(screen.getByLabelText('Your full name'), { target: { value: 'A' } });
+            expect(flagged.sig).toBeUndefined();
+            expect(latest.sig.signature).toMatchObject({ method: 'typed', name: 'A' });
+        });
+
+        it('says a signature is on file for a drawn answer the browser does not hold (an edit), until a new one is drawn', async () => {
+            show({ sig: { type: 'signature', signature: { method: 'drawn', file_id: 'img-1', signed_at: '2026-11-01T10:00:00Z' } } });
+            const canvas = await screen.findByRole('img', { name: 'Signature drawing area' });
+            expect(screen.getByText(/A signature is on file for this response/)).toBeInTheDocument();
+            await drawLine(canvas);
+            expect(screen.queryByText(/A signature is on file/)).toBeNull();
+            expect(latest.sig.signature.file_id).not.toBe('img-1');
+        });
+
+        it('says nothing is on file when a drawing is held, for a typed name, or for no answer', async () => {
+            show({ sig: { type: 'signature', signature: { method: 'drawn', file_id: 'img-1' } } }, sign, false, [{ fieldId: 'sig', fileId: 'img-1' }]);
+            await screen.findByRole('img', { name: 'Signature drawing area' });
+            expect(screen.queryByText(/A signature is on file/)).toBeNull();
+        });
+
+        it('announces "Signature added" once per drawing, not for each stroke, and again after clearing', async () => {
+            show();
+            const canvas = await screen.findByRole('img', { name: 'Signature drawing area' });
+            const status = screen.getByRole('status');
+            const seen: string[] = [];
+            const watch = new MutationObserver(() => seen.push(status.textContent ?? ''));
+            watch.observe(status, { childList: true, characterData: true, subtree: true });
+            await drawLine(canvas);
+            await drawLine(canvas);
+            await act(async () => undefined);
+            expect(seen.filter((text) => text === 'Signature added.')).toHaveLength(1);
+            expect(status).toHaveAttribute('role', 'status');
+            fireEvent.click(screen.getByRole('button', { name: 'Clear signature' }));
+            await drawLine(canvas);
+            await act(async () => undefined);
+            watch.disconnect();
+            expect(seen.filter((text) => text === 'Signature added.')).toHaveLength(2);
+        });
     });
 });

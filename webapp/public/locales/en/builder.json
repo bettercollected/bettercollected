@@ -1303,6 +1303,7 @@
     "NOTE": "Respondents draw their signature or type their name; both always work. This records a drawn or typed name. It does not check who signed.",
     "PRIVACY_NOTE": "A signature identifies the person who signs. It is stored with the response, like the other answers, and deleted with it.",
     "VIEW_DRAWN_ALT": "Drawn signature",
+    "VIEW_DRAWN_MARK": "[drawn signature]",
     "VIEW_IMAGE_UNAVAILABLE": "Drawn signature (the image is not available)",
     "VIEW_SIGNED": "Signed {{date}}"
   }

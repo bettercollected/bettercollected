@@ -435,6 +435,8 @@
         "NAME_LABEL": "Je volledige naam",
         "NAME_HINT": "Je getypte naam is je handtekening.",
         "ADDED": "Handtekening toegevoegd.",
+        "ON_FILE": "Er staat al een handtekening bij deze reactie. Teken opnieuw om hem te vervangen, of kies “Typ je naam”.",
+        "TOO_DETAILED": "Je tekening is te gedetailleerd om te versturen. Teken hem opnieuw, met minder lijnen.",
         "CLEARED": "Handtekening gewist.",
         "DRAWN_ALT": "Je getekende handtekening",
         "REVIEW_DRAWN": "Getekende handtekening",

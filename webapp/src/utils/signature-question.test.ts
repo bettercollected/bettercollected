@@ -76,6 +76,14 @@ describe('where it shows', () => {
         expect(getAnswerForField(response(undefined), sign)).toBe('');
     });
 
+    it('reads the drawn marker in the screen\'s language in the table, and keeps the server\'s marker for the CSV', () => {
+        expect(getAnswerDisplayText(response(drawn), sign, 'nl', '[getekende handtekening]')).toBe('[getekende handtekening]');
+        expect(getAnswerDisplayText(response(typed), sign, 'nl', '[getekende handtekening]')).toBe('Ada Lovelace');
+        expect(getAnswerDisplayText(response(undefined), sign, 'nl', '[getekende handtekening]')).toBe('');
+        // the export path takes no translation
+        expect(getAnswerForField(response(drawn), sign)).toBe('[drawn signature]');
+    });
+
     it('is the name, or that it is drawn, on the review page', () => {
         expect(answerLines(sign, { sig: typed }, 'en', t)).toEqual(['Ada Lovelace']);
         expect(answerLines(sign, { sig: drawn }, 'en', t)).toEqual(['SIGNATURE.REVIEW_DRAWN']);

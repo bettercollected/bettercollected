@@ -129,5 +129,8 @@ export function canvasToPng(canvas: Pick<HTMLCanvasElement, 'toBlob'>): Promise<
     });
 }
 
+/** What the server takes of a drawn image (backend services/signatures.py UPLOAD_MAX_BYTES). A drawing with very many strokes can exceed it. */
+export const SIGNATURE_MAX_BYTES = 150 * 1024;
+
 /** The name the drawn image is sent under (its id is what the answer holds). */
 export const SIGNATURE_FILE_NAME = 'signature.png';

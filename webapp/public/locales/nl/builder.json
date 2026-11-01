@@ -1303,6 +1303,7 @@
     "NOTE": "Respondenten tekenen hun handtekening of typen hun naam; beide werken altijd. Dit legt een getekende of getypte naam vast. Het controleert niet wie er ondertekent.",
     "PRIVACY_NOTE": "Een handtekening laat zien wie er ondertekent. Hij wordt bij het antwoord bewaard, net als de andere antwoorden, en samen met het antwoord verwijderd.",
     "VIEW_DRAWN_ALT": "Getekende handtekening",
+    "VIEW_DRAWN_MARK": "[getekende handtekening]",
     "VIEW_IMAGE_UNAVAILABLE": "Getekende handtekening (de afbeelding is niet beschikbaar)",
     "VIEW_SIGNED": "Ondertekend op {{date}}"
   }
