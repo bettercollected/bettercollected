@@ -22,7 +22,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import ast  # noqa: E402,F401
 import builtins  # noqa: E402
 import ctypes  # noqa: E402,F401
+import encodings.ascii  # noqa: E402,F401
+import encodings.cp1252  # noqa: E402,F401
 import encodings.idna  # noqa: E402,F401
+import encodings.latin_1  # noqa: E402,F401
+import encodings.punycode  # noqa: E402,F401
+import encodings.utf_16  # noqa: E402,F401
+import encodings.utf_32  # noqa: E402,F401
 import encodings.utf_8  # noqa: E402,F401
 import json  # noqa: E402
 import math  # noqa: E402,F401

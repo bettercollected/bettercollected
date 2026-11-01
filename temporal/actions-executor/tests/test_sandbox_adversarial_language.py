@@ -162,6 +162,23 @@ except HTTPException as e:
 
 
 @needs_confinement
+def test_what_the_code_needs_is_loaded_before_the_filesystem_goes():
+    # nothing can be imported once the child is confined: the usual codecs,
+    # unseeded randomness and json are loaded first
+    outcome = run(
+        "log(str('é'.encode('latin-1')))\nlog(str('é'.encode('utf-16')))\n"
+        "log(str(0 <= random().random() < 1))\nlog(json.dumps({'é': 1}))"
+    )
+    assert outcome.error is None, outcome.error
+    assert outcome.log == [
+        "b'\\xe9'",
+        "b'\\xff\\xfe\\xe9\\x00'",
+        "True",
+        '{"\\u00e9": 1}',
+    ]
+
+
+@needs_confinement
 def test_a_code_that_loops_forever_or_recurses_ends():
     outcome = run("def f():\n    return f()\nf()")
     assert outcome.error["class"] == "RecursionError"
