@@ -67,7 +67,7 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = 
                     }}
                 >
                     <div className="flex justify-between font-semibold! mb-4">
-                        <h1 className="body1 text-black-900">Logo</h1>
+                        <h1 className="body1 text-black-900">{t('STAFF.WORKSPACE.LOGO')}</h1>
                         <Close
                             onClick={() => {
                                 setShowDropdown(false);

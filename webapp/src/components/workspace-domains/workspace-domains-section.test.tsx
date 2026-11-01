@@ -188,8 +188,8 @@ describe('WorkspaceDomainsSection', () => {
 
     it('maps every check error to a message', () => {
         for (const code of ['no_record', 'token_mismatch', 'dns_timeout', 'dns_error', 'verified_by_another_workspace', 'something_new']) {
-            expect(checkErrorMessage(domain({ lastCheckError: code }))).toBeTruthy();
+            expect(checkErrorMessage(domain({ lastCheckError: code }), (key: string) => key)).toBeTruthy();
         }
-        expect(checkErrorMessage(domain())).toBeNull();
+        expect(checkErrorMessage(domain(), (key: string) => key)).toBeNull();
     });
 });

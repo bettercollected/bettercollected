@@ -17,14 +17,14 @@ export const cleanStatus = (status: string): string => status.split(/\s+/).filte
  * The status list as the backend will store it, or the reason it would be
  * refused: at most 10, each 1–40 characters, unique ignoring case.
  */
-export function validateFeedbackStatuses(statuses: string[]): { statuses: string[]; error?: string } {
+export function validateFeedbackStatuses(statuses: string[]): { statuses: string[]; error?: string; errorKey?: string; errorValues?: Record<string, string | number> } {
     const cleaned = statuses.map(cleanStatus);
-    if (cleaned.length > MAX_FEEDBACK_STATUSES) return { statuses: cleaned, error: `At most ${MAX_FEEDBACK_STATUSES} statuses.` };
+    if (cleaned.length > MAX_FEEDBACK_STATUSES) return { statuses: cleaned, error: `At most ${MAX_FEEDBACK_STATUSES} statuses.`, errorKey: 'STAFF.FEEDBACK.ERR_MAX', errorValues: { max: MAX_FEEDBACK_STATUSES } };
     const seen = new Set<string>();
     for (const status of cleaned) {
-        if (status.length < 1 || status.length > MAX_FEEDBACK_STATUS_LENGTH) return { statuses: cleaned, error: `Each status must be 1 to ${MAX_FEEDBACK_STATUS_LENGTH} characters.` };
+        if (status.length < 1 || status.length > MAX_FEEDBACK_STATUS_LENGTH) return { statuses: cleaned, error: `Each status must be 1 to ${MAX_FEEDBACK_STATUS_LENGTH} characters.`, errorKey: 'STAFF.FEEDBACK.ERR_LENGTH', errorValues: { max: MAX_FEEDBACK_STATUS_LENGTH } };
         const key = status.toLocaleLowerCase();
-        if (seen.has(key)) return { statuses: cleaned, error: `"${status}" is listed twice.` };
+        if (seen.has(key)) return { statuses: cleaned, error: `"${status}" is listed twice.`, errorKey: 'STAFF.FEEDBACK.ERR_TWICE', errorValues: { status } };
         seen.add(key);
     }
     return { statuses: cleaned };

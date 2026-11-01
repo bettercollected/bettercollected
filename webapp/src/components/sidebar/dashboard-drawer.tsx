@@ -46,7 +46,7 @@ const Drawer = ({ navGroups, can }: any) => {
                         upgrade upsell. */}
                     <div className="px-4 pb-6 pt-4">
                         <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-600 hover:text-brand-600 flex items-center justify-center px-4 text-xs">
-                            Powered by&nbsp;<span className="font-semibold">bettercollected</span>
+                            {t('STAFF.SHELL.POWERED_BY')}&nbsp;<span className="font-semibold">bettercollected</span>
                         </a>
                         {/* The build this stack runs, for the signed-in team
                             only: respondent pages keep just the attribution. */}

@@ -113,7 +113,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                             <AuthAccountProfileImage size={40} image={user?.profileImage} name={profileName ?? user?.email ?? ''} />
                         </div>
                         <div className="flex flex-col m-0">
-                            <span className="text-black-900 text-[16px] font-normal leading-[24px]">{profileName ?? 'Signed in as'}</span>
+                            <span className="text-black-900 text-[16px] font-normal leading-[24px]">{profileName ?? t('STAFF.SHELL.SIGNED_IN_AS_PLAIN')}</span>
                             <span className="text-black-600 text-[12px] font-normal leading-[20px]">{user?.email}</span>
                         </div>
                     </li>

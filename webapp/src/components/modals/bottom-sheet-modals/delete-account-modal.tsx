@@ -118,7 +118,7 @@ export default function DeleteAccountModal() {
                 <div className="w-full">
                     <Select value={dropdownValue} onValueChange={(val) => setDropdownValue(val)}>
                         <SelectTrigger className="w-full min-w-[167px] rounded-md! border-gray-600! mb-0! text-black-900 bg-white!">
-                            <SelectValue placeholder="Select a reason" />
+                            <SelectValue placeholder={t('STAFF.ACCOUNT.DELETE_SELECT_REASON')} />
                         </SelectTrigger>
                         <SelectContent>
                             {Reasons.map((reason: any, index: number) => (

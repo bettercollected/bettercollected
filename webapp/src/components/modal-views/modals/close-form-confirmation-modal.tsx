@@ -1,14 +1,17 @@
+import { useTranslation } from 'react-i18next';
+
 import GenericHalfModal from '@Components/common/generic-half-modal';
 
 export default function CloseFormConfirmationModal({ closeForm }: any) {
+    const { t } = useTranslation();
     return (
         <>
             <GenericHalfModal
-                headerTitle="Close form"
-                title="Are you sure to close this form?"
-                subTitle="After this action is complete no one will be able to respond to this form."
-                positiveText="Close form"
-                negativeText="Cancel"
+                headerTitle={t('STAFF.MODALS.CLOSE_FORM_HEADER')}
+                title={t('STAFF.MODALS.CLOSE_FORM_TITLE')}
+                subTitle={t('STAFF.MODALS.CLOSE_FORM_SUB')}
+                positiveText={t('STAFF.MODALS.CLOSE_FORM_HEADER')}
+                negativeText={t('BUTTON.CANCEL')}
                 positiveAction={closeForm}
             />
         </>

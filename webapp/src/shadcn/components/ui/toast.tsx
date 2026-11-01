@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import * as ToastPrimitives from '@radix-ui/react-toast';
 import { type VariantProps, cva } from 'class-variance-authority';
+import i18n from 'i18next';
 import { X } from 'lucide-react';
 
 import { cn } from '@app/shadcn/util/lib';
@@ -80,7 +81,7 @@ const ToastClose = React.forwardRef<
         )}
         toast-close=""
         // Same fallback name as the dialog close button; callers may override.
-        aria-label="Close"
+        aria-label={i18n.t('BUTTON.CLOSE')}
         {...props}
     >
         <X aria-hidden="true" className="h-4 w-4" />

@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useTranslation } from 'react-i18next';
+
 import { ChevronRight } from 'lucide-react';
 
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
@@ -10,9 +12,10 @@ interface BreadcrumbRendererProps {
 }
 
 function BreadcrumbRenderer({ items }: BreadcrumbRendererProps) {
+    const { t } = useTranslation();
     return (
         <div data-testid="breadcrumbs-renderer" className="overflow-auto h-[56px]">
-            <nav className="flex h-full" aria-label="Breadcrumb">
+            <nav className="flex h-full" aria-label={t('STAFF.BREADCRUMB')}>
                 <ol className="flex items-center">
                     {!!items &&
                         Array.isArray(items) &&

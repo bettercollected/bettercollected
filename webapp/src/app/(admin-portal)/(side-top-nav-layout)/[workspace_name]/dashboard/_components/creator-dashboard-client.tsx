@@ -74,12 +74,12 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                     </span>
                     <button
                         type="button"
-                        title="Copy link"
-                        aria-label="Copy your site’s link"
+                        title={t('TOOLTIP.COPY_LINK')}
+                        aria-label={t('STAFF.SITE.COPY_ARIA')}
                         className="text-black-600 hover:text-black-900 ml-auto shrink-0"
                         onClick={() => {
                             navigator.clipboard.writeText(publicUrl);
-                            toast({ description: 'Copied' });
+                            toast({ description: t('STAFF.SITE.COPIED') });
                         }}
                     >
                         <Copy className="h-3.5 w-3.5" />
@@ -89,16 +89,16 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                     href={publicUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    title="Open the live page"
-                    aria-label="Open your live site"
+                    title={t('STAFF.SITE.OPEN_LIVE')}
+                    aria-label={t('STAFF.SITE.OPEN_LIVE_ARIA')}
                     className="text-black-600 hover:text-black-900 hover:bg-black-100 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
                 >
                     <OpenLinkIcon />
                 </a>
                 <button
                     type="button"
-                    title="Site settings"
-                    aria-label="Site settings"
+                    title={t('STAFF.NAV.SITE_SETTINGS')}
+                    aria-label={t('STAFF.NAV.SITE_SETTINGS')}
                     aria-pressed={settingsViewOpen}
                     onClick={() => setSettingsViewOpen(!settingsViewOpen)}
                     className={cn(
@@ -117,7 +117,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                 <div className="bg-white py-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
                     <button type="button" onClick={() => setSettingsViewOpen(false)} className="text-black-600 hover:text-black-900 mb-4 flex items-center gap-1 px-5 text-sm font-medium md:px-10">
                         <ChevronLeft className="h-4 w-4" />
-                        Back to site
+                        {t('STAFF.SITE.BACK')}
                     </button>
                     <WorkspaceSettingsContent showUrlRow={false} />
                 </div>

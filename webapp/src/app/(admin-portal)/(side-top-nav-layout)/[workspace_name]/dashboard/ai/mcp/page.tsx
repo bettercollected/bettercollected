@@ -2,7 +2,11 @@
 
 import { useState } from 'react';
 
+import { useTranslation } from 'react-i18next';
+
 import { Check, Copy, KeyRound } from 'lucide-react';
+
+import { useIntlLocale } from '@app/lib/hooks/use-intl-locale';
 
 import environments from '@app/configs/environments';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -25,12 +29,12 @@ interface APIKey {
 
 // Mirrors the backend's VALID_SCOPES — what a key is allowed to do.
 const SCOPES: Array<{ key: string; label: string; hint: string }> = [
-    { key: 'forms:read', label: 'Read forms', hint: 'List forms and read their structure' },
-    { key: 'forms:write', label: 'Create & edit forms', hint: 'Create forms with AI, edit and publish them' },
-    { key: 'forms:delete', label: 'Delete forms', hint: 'Deletes forms and their responses' },
-    { key: 'responses:read', label: 'Read responses', hint: 'List and read form responses, in full' },
-    { key: 'deletion_requests:read', label: 'Read deletion requests', hint: 'See pending response-deletion requests' },
-    { key: 'deletion_requests:write', label: 'Act on deletion requests', hint: 'Process response-deletion requests' }
+    { key: 'forms:read', label: 'STAFF.API_KEYS.SCOPE_FORMS_READ', hint: 'STAFF.API_KEYS.SCOPE_FORMS_READ_HINT' },
+    { key: 'forms:write', label: 'STAFF.API_KEYS.SCOPE_FORMS_WRITE', hint: 'STAFF.API_KEYS.SCOPE_FORMS_WRITE_HINT' },
+    { key: 'forms:delete', label: 'STAFF.API_KEYS.SCOPE_FORMS_DELETE', hint: 'STAFF.API_KEYS.SCOPE_FORMS_DELETE_HINT' },
+    { key: 'responses:read', label: 'STAFF.API_KEYS.SCOPE_RESPONSES_READ', hint: 'STAFF.API_KEYS.SCOPE_RESPONSES_READ_HINT' },
+    { key: 'deletion_requests:read', label: 'STAFF.API_KEYS.SCOPE_DELETIONS_READ', hint: 'STAFF.API_KEYS.SCOPE_DELETIONS_READ_HINT' },
+    { key: 'deletion_requests:write', label: 'STAFF.API_KEYS.SCOPE_DELETIONS_WRITE', hint: 'STAFF.API_KEYS.SCOPE_DELETIONS_WRITE_HINT' }
 ];
 
 function CopyButton({ value, label }: { value: string; label: string }) {
@@ -58,6 +62,8 @@ function CopyButton({ value, label }: { value: string; label: string }) {
  * The token is shown exactly once at creation; only its prefix is kept.
  */
 export default function APIKeysPage() {
+    const { t } = useTranslation();
+    const locale = useIntlLocale();
     const workspace = useAppSelector(selectWorkspace);
     const { can } = useWorkspacePermissions();
     const canManageKeys = can(WorkspacePermission.SECURITY_MANAGE);
@@ -89,24 +95,24 @@ export default function APIKeysPage() {
             setScopes(['forms:read']);
             setAcknowledged(false);
         } else {
-            toast({ description: response.error?.data || 'Could not create the API key. Please try again.', variant: 'destructive' });
+            toast({ description: response.error?.data || t('STAFF.API_KEYS.CREATE_FAILED'), variant: 'destructive' });
         }
     };
 
     const handleRevoke = async (key: APIKey) => {
-        if (!window.confirm(`Revoke "${key.name}"? Anything using it loses access immediately.`)) return;
+        if (!window.confirm(t('STAFF.API_KEYS.REVOKE_CONFIRM', { name: key.name }))) return;
         const response: any = await revokeKey({ workspace_id: workspace.id, key_id: key.id });
         if (response.data) {
-            toast({ description: `Revoked "${key.name}"` });
+            toast({ description: t('STAFF.API_KEYS.REVOKED_TOAST', { name: key.name }) });
         } else {
-            toast({ description: 'Could not revoke the key. Please try again.', variant: 'destructive' });
+            toast({ description: t('STAFF.API_KEYS.REVOKE_FAILED'), variant: 'destructive' });
         }
     };
 
     if (!canManageKeys) {
         return (
             <div className="pb-10">
-                <p className="text-black-600 text-sm">Only workspace admins can manage API keys.</p>
+                <p className="text-black-600 text-sm">{t('STAFF.API_KEYS.ONLY_ADMINS')}</p>
             </div>
         );
     }
@@ -115,41 +121,41 @@ export default function APIKeysPage() {
         <div className="flex w-full max-w-[760px] flex-col gap-8 pb-10">
             <div className="flex flex-col gap-1.5">
                 <p className="text-black-600 max-w-[62ch] text-sm leading-relaxed">
-                    API keys let external AI tools — Claude, ChatGPT, or anything that speaks MCP — work with this workspace: create and edit forms, read responses, and check deletion requests. The same keys authenticate the public REST API and the SDKs. Every action a key takes is scoped, attributed, and logged.
+                    {t('STAFF.API_KEYS.INTRO')}
                 </p>
             </div>
 
             <div className="flex flex-col gap-2">
-                <h2 className="text-black-900 text-sm font-semibold">MCP endpoint</h2>
-                <p className="text-black-600 text-xs leading-relaxed">Point your AI tool&apos;s MCP configuration at this URL, using an API key below as the Bearer token.</p>
+                <h2 className="text-black-900 text-sm font-semibold">{t('STAFF.API_KEYS.ENDPOINT')}</h2>
+                <p className="text-black-600 text-xs leading-relaxed">{t('STAFF.API_KEYS.ENDPOINT_HELP')}</p>
                 <div className="border-black-400 bg-black-50 flex items-center justify-between gap-3 rounded-md border px-3.5 py-2.5">
                     <code className="text-black-800 truncate text-[13px]">{mcpUrl}</code>
-                    <CopyButton value={mcpUrl} label="Copy MCP endpoint URL" />
+                    <CopyButton value={mcpUrl} label={t('STAFF.API_KEYS.COPY_ENDPOINT')} />
                 </div>
             </div>
 
             {freshToken && (
                 <div className="flex flex-col gap-2 rounded-md border border-[#B7E0CD] bg-[#F0FAF5] p-4">
-                    <p className="text-black-900 text-sm font-semibold">Copy the key for “{freshToken.name}” now</p>
-                    <p className="text-black-600 text-xs leading-relaxed">This is the only time it will be shown. Store it somewhere safe — if you lose it, revoke this key and create a new one.</p>
+                    <p className="text-black-900 text-sm font-semibold">{t('STAFF.API_KEYS.COPY_NOW', { name: freshToken.name })}</p>
+                    <p className="text-black-600 text-xs leading-relaxed">{t('STAFF.API_KEYS.ONLY_ONCE')}</p>
                     <div className="border-black-300 flex items-center justify-between gap-3 rounded-md border bg-white px-3.5 py-2.5">
                         <code className="text-black-800 truncate text-[13px]">{freshToken.token}</code>
-                        <CopyButton value={freshToken.token} label="Copy API key" />
+                        <CopyButton value={freshToken.token} label={t('STAFF.API_KEYS.COPY_KEY')} />
                     </div>
                     <div>
                         <Button size="sm" variant="v2GhostButton" onClick={() => setFreshToken(null)}>
-                            Done — I saved it
+                            {t('STAFF.API_KEYS.SAVED')}
                         </Button>
                     </div>
                 </div>
             )}
 
             <div className="flex flex-col gap-3">
-                <h2 className="text-black-900 text-sm font-semibold">Create a key</h2>
+                <h2 className="text-black-900 text-sm font-semibold">{t('STAFF.API_KEYS.CREATE_TITLE')}</h2>
                 <input
                     value={name}
                     maxLength={60}
-                    placeholder="What will use this key? e.g. “Claude Desktop”"
+                    placeholder={t('STAFF.API_KEYS.NAME_PLACEHOLDER')}
                     onChange={(e) => setName(e.target.value)}
                     className="border-control text-black-900 placeholder:text-black-600 focus:border-brand-500 h-10 w-full rounded-md border bg-white px-3.5 text-sm outline-hidden transition duration-150"
                 />
@@ -158,38 +164,37 @@ export default function APIKeysPage() {
                         <label key={scope.key} className="flex cursor-pointer items-start gap-2.5">
                             <input type="checkbox" checked={scopes.includes(scope.key)} onChange={() => toggleScope(scope.key)} className="mt-0.5 h-4 w-4 cursor-pointer" />
                             <span className="flex flex-col">
-                                <span className="text-black-800 text-[13px] font-medium">{scope.label}</span>
-                                <span className="text-black-600 text-xs">{scope.hint}</span>
+                                <span className="text-black-800 text-[13px] font-medium">{t(scope.label)}</span>
+                                <span className="text-black-600 text-xs">{t(scope.hint)}</span>
                             </span>
                         </label>
                     ))}
                 </div>
                 {readsResponses && (
                     <div className="flex flex-col gap-2 rounded-md border border-[#F0D9B5] bg-[#FDF8EF] p-3" role="alert">
-                        <p className="text-black-900 text-[13px] font-semibold">This key gives an external AI client your respondents&apos; full answers</p>
+                        <p className="text-black-900 text-[13px] font-semibold">{t('STAFF.API_KEYS.WARN_TITLE')}</p>
                         <p className="text-black-700 text-xs leading-relaxed">
-                            With “Read responses”, the AI tool that holds this key (and the AI provider behind it) receives every answer in full: names, email addresses, phone numbers and anything typed into free-text answers, plus staff-only answers. Nothing is
-                            redacted. Only create it if your respondents&apos; consent and your data processing agreements allow that.
+                            {t('STAFF.API_KEYS.WARN_BODY')}
                         </p>
                         <label className="text-black-800 flex cursor-pointer items-start gap-2 text-xs">
                             <input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} className="mt-0.5 h-4 w-4" />
-                            <span>I understand that this key shares full, unredacted answers with an external AI client. My acknowledgement is recorded with the key.</span>
+                            <span>{t('STAFF.API_KEYS.ACKNOWLEDGE')}</span>
                         </label>
                     </div>
                 )}
                 <div>
                     <Button size="medium" variant="primary" isLoading={isCreating} disabled={!name.trim() || scopes.length === 0 || (readsResponses && !acknowledged)} onClick={handleCreate}>
-                        Create key
+                        {t('STAFF.API_KEYS.CREATE')}
                     </Button>
                 </div>
             </div>
 
             <div className="flex flex-col gap-3">
-                <h2 className="text-black-900 text-sm font-semibold">Your keys</h2>
+                <h2 className="text-black-900 text-sm font-semibold">{t('STAFF.API_KEYS.YOUR_KEYS')}</h2>
                 {isLoading ? (
-                    <p className="text-black-600 text-xs">Loading…</p>
+                    <p className="text-black-600 text-xs">{t('STAFF.COMMON.LOADING')}</p>
                 ) : keys.length === 0 ? (
-                    <p className="text-black-600 border-black-400 rounded-md border border-dashed px-3 py-4 text-center text-xs">No keys yet — create one above to connect an AI tool.</p>
+                    <p className="text-black-600 border-black-400 rounded-md border border-dashed px-3 py-4 text-center text-xs">{t('STAFF.API_KEYS.NONE')}</p>
                 ) : (
                     <ul className="flex flex-col gap-2">
                         {(keys as APIKey[]).map((key) => (
@@ -199,7 +204,7 @@ export default function APIKeysPage() {
                                         <KeyRound className="text-black-600 h-3.5 w-3.5 shrink-0" />
                                         <span className="text-black-900 truncate text-[13px] font-medium">{key.name}</span>
                                         <code className="text-black-600 text-xs">{key.prefix}…</code>
-                                        {key.revoked && <span className="rounded bg-[#FBEFEF] px-1.5 py-0.5 text-[10.5px] font-medium text-[#C43D3D]">Revoked</span>}
+                                        {key.revoked && <span className="rounded bg-[#FBEFEF] px-1.5 py-0.5 text-[10.5px] font-medium text-[#C43D3D]">{t('STAFF.API_KEYS.REVOKED')}</span>}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-1.5">
                                         {key.scopes.map((scope) => (
@@ -207,13 +212,13 @@ export default function APIKeysPage() {
                                                 {scope}
                                             </span>
                                         ))}
-                                        <span className="text-black-600 text-[10.5px]">{key.lastUsedAt ? `Last used ${new Date(key.lastUsedAt).toLocaleString()}` : 'Never used'}</span>
-                                        {key.responsesReadAcknowledgedAt && <span className="text-black-600 text-[10.5px]">· unredacted answers acknowledged {new Date(key.responsesReadAcknowledgedAt).toLocaleDateString()}</span>}
+                                        <span className="text-black-600 text-[10.5px]">{key.lastUsedAt ? t('STAFF.API_KEYS.LAST_USED', { date: new Date(key.lastUsedAt).toLocaleString(locale) }) : t('STAFF.API_KEYS.NEVER_USED')}</span>
+                                        {key.responsesReadAcknowledgedAt && <span className="text-black-600 text-[10.5px]">· {t('STAFF.API_KEYS.ACKNOWLEDGED_ON', { date: new Date(key.responsesReadAcknowledgedAt).toLocaleDateString(locale) })}</span>}
                                     </div>
                                 </div>
                                 {!key.revoked && (
                                     <button type="button" onClick={() => handleRevoke(key)} className="text-black-600 shrink-0 rounded px-2 py-1 text-xs transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]">
-                                        Revoke
+                                        {t('STAFF.API_KEYS.REVOKE')}
                                     </button>
                                 )}
                             </li>
