@@ -3,13 +3,16 @@ from http import HTTPStatus
 from common.ids import RecordId
 from classy_fastapi import Routable, delete, get, post, put
 from common.models.user import User
-from fastapi import Depends, Request, Response
+from typing import Optional
+
+from fastapi import Depends, Query, Request, Response
 from starlette.responses import RedirectResponse
 
 from backend.app.container import container
 from backend.app.router import router
 from backend.app.services.sso.connection_service import (
     CreateSsoConnectionDto,
+    SsoAuditPageDto,
     SsoConnectionDto,
     SsoOverviewDto,
     SsoSettingsDto,
@@ -115,6 +118,20 @@ class WorkspaceSsoRouter(Routable):
         redirect = RedirectResponse(url)
         set_nonce_cookie(redirect, nonce)
         return redirect
+
+    @get("/{workspace_id}/sso/audit")
+    async def audit(
+        self,
+        workspace_id: RecordId,
+        cursor: Optional[str] = Query(None, max_length=200),
+        limit: int = Query(20, ge=1, le=100),
+        user: User = Depends(get_full_user),
+    ) -> SsoAuditPageDto:
+        """A page of the owner break-glass log, newest first (the same people
+        who can open the SSO page); ``nextCursor`` asks for the next one."""
+        return await container.sso_connection_service().audit_page(
+            workspace_id, user, cursor, limit
+        )
 
     @put("/{workspace_id}/sso/settings")
     async def update_settings(

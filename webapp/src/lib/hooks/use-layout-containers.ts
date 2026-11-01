@@ -7,7 +7,7 @@ import type { ContainerSpec } from '@app/lib/form-ops/types';
 import { FieldTypes, LayoutContainer, LayoutTab, StandardFormFieldDto } from '@app/models/dtos/form';
 import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { dispatchAtom, formDocAtom } from '@app/store/jotai/form-document';
-import { CONTAINER_ID_PREFIX, TABS_MAX, TAB_ID_PREFIX, containersOf, freshId, membersOf, pageFieldsOf, respondentIds, usedIds } from '@app/utils/layout-containers';
+import { CONTAINER_ID_PREFIX, TABS_MAX, TAB_ID_PREFIX, containersOf, freshId, membersOf, pageFieldsOf, reservedIds, respondentIds } from '@app/utils/layout-containers';
 
 export type ContainerKind = LayoutContainer['type'];
 
@@ -46,7 +46,7 @@ export function useLayoutContainerActions() {
     const change = (pageId: string, label: string, update: (containers: LayoutContainer[], taken: Set<string>) => LayoutContainer[], coalesceKey?: string): boolean => {
         const target = page(pageId);
         if (!target) return false;
-        const taken = usedIds(doc().fields ?? []);
+        const taken = reservedIds(doc().fields ?? []);
         const next = inPageOrder(target, update(containersOf(target), taken));
         return send([{ op: 'set_page_containers', pageId, containers: next.length ? next.map(spec) : null }], label, coalesceKey);
     };
@@ -71,7 +71,7 @@ export function useLayoutContainerActions() {
             const target = page(pageId);
             if (!target) return null;
             const fieldId = v4();
-            const taken = usedIds(doc().fields ?? []);
+            const taken = reservedIds(doc().fields ?? []);
             const field = newQuestion(fieldId, index);
             // the new question sits at an edge, so the container is set explicitly right after it
             const container = newContainer(kind, [fieldId], taken, names);
