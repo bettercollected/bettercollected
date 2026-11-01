@@ -7,7 +7,12 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from activities.run_action_code import run_action_code
-from settings.application import log_if_api_key_missing, settings
+from settings.application import (
+    log_if_api_key_missing,
+    require_aes_hex_key,
+    settings,
+)
+from utilities.isolation_log import log_isolation
 from workflows.run_action_code import RunActionCode
 
 
@@ -32,6 +37,7 @@ async def run_worker():
 
 
 async def main():
+    await log_isolation(key_needed=True)
     workers = [run_worker() for i in range(0, settings.workers)]
     await asyncio.gather(*workers)
 
@@ -65,8 +71,13 @@ if __name__ == "__main__":
     # JOBS_BACKEND=temporal keeps the workflow.
     if jobs_backend() == "postgres":
         require_database_url()
+        if settings.aes_hex_key:
+            # still validated when set; not needed since 4.3 (see below)
+            require_aes_hex_key()
         from procrastinate_worker import main as run_procrastinate
 
         asyncio.run(run_procrastinate())
     else:
+        # the Temporal path hands over sealed secrets: it needs the key
+        require_aes_hex_key()
         asyncio.run(main())

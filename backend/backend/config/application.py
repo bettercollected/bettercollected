@@ -128,6 +128,12 @@ class Application(StoreBackedSettings):
     # release): those saves are refused with 422 choice_logic_disabled;
     # stored choice logic is kept and still enforced.
     CHOICE_LOGIC_ENABLED: bool = False
+    # Questions may take their options from a workspace list or from another
+    # form's answers (services/option_sources), and lists may be created. Off
+    # (the default, until it is released): a save that adds or changes a
+    # source is refused with 422 option_sources_disabled; sources already
+    # stored keep working.
+    OPTION_SOURCES_ENABLED: bool = False
     # Respondents may save a draft and continue later (services/form_drafts).
     # Off (the default, until it is released): turning the per-form setting on
     # is refused with 422 save_drafts_disabled, and saving or opening a draft is

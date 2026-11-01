@@ -7,16 +7,24 @@ from random import Random
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi_mail import ConnectionConfig, MessageSchema, FastMail, MessageType
+from fastapi_mail import ConnectionConfig, MessageSchema, MessageType
 from google.auth.exceptions import RefreshError
 from googleapiclient.errors import HttpError
 from pydantic import EmailStr
 
-from configs.crypto import crypto
+from configs.cipher import crypto
 from models.exception_enum import ExceptionType
-from settings.application import settings
+from settings.application import isolation_enforced, settings
+from utilities import egress
+from utilities.custom_action import Toolbox, run_custom_code
+from utilities.pinned_mail import PinnedFastMail as FastMail
 from utilities.exceptions import HTTPException
-from utilities.google_service import build_google_service, fetch_oauth_token
+from utilities.google_service import (
+    RunScope,
+    build_google_service,
+    fetch_oauth_token,
+    writeback_for,
+)
 from wrappers.thread_pool_executor import thread_pool_executor
 from utilities.form import (
     column_letter,
@@ -45,7 +53,16 @@ async def run_action(
     response: Any,
     user_email: Optional[EmailStr] = None,
     workspace: Optional[str] = None,
+    secrets_plain: bool = False,
+    run_scope: Optional[RunScope] = None,
+    log_ref: Optional[str] = None,
 ):
+    """Run one action. ``secrets_plain``: the backend already opened the run's
+    secrets (the executor then holds no key); otherwise they are sealed and are
+    opened with this process's key, as 4.2 did. ``run_scope``: the ids and token
+    of the run, used to hand a refreshed credential back to the backend.
+    ``log_ref``: the action id the job was queued with, for log lines (never read
+    from the run's payload, which carries the secrets)."""
     workspace = json.loads(workspace)
     action = json.loads(action)
     form = json.loads(form)
@@ -53,6 +70,13 @@ async def run_action(
 
     if form.get("builder_version") != "v2":
         return
+
+    if not isolation_enforced():
+        logger.warning(
+            "ACTION_ISOLATION=legacy: action %s runs without isolation "
+            "(custom code in this process, no egress rules)",
+            log_ref or "-",
+        )
 
     def get_state():
         if response.state and response.state.global_state:
@@ -62,25 +86,26 @@ async def run_action(
     def get_workspace_details():
         return workspace
 
+    def process_item(variable, decrypt=False):
+        item_name = variable.get("name")
+        item_value = variable.get("value")
+        if item_name is not None and item_value is not None and item_value != "":
+            return item_name, (
+                item_value if not decrypt else crypto.decrypt(item_value)
+            )
+        return None, None
+
+    def collect(items, decrypt) -> Dict[str, str]:
+        values = {}
+        for item in items or []:
+            name, value = process_item(item, decrypt)
+            if name is not None:
+                values[name] = value
+        return values
+
     def get_extra_data(key: str) -> Dict[str, str]:
-        def process_item(variable, decrypt=False):
-            item_name = variable.get("name")
-            item_value = variable.get("value")
-            if item_name is not None and item_value is not None and item_value != "":
-                return item_name, (
-                    item_value if not decrypt else crypto.decrypt(item_value)
-                )
-            return None, None
-
-        def collect(items, decrypt) -> Dict[str, str]:
-            values = {}
-            for item in items or []:
-                name, value = process_item(item, decrypt)
-                if name is not None:
-                    values[name] = value
-            return values
-
-        decrypt = key == "secrets"
+        # a secret is opened here unless the backend already opened it
+        decrypt = key == "secrets" and not secrets_plain
         action_id = action.get("id")
 
         # the action's own values (the instance's defaults)
@@ -106,6 +131,40 @@ async def run_action(
             form_values,
             smtp_overridden(action, workspace, form),
         )
+
+    # What the administrators who created the action configured (its own
+    # parameters; its secrets too when they arrive opened): their addresses are
+    # trusted destinations, a workspace's or a form's are not (utilities/egress.py)
+    smtp_trusted = not smtp_overridden(action, workspace, form)
+    trusted_origins = egress.trusted_origins_of(
+        [
+            *collect(action.get("parameters", []), False).values(),
+            *(
+                collect(action.get("secrets", []), False).values()
+                if secrets_plain
+                else []
+            ),
+        ]
+    )
+
+    def names_of(items):
+        return {
+            item.get("name")
+            for item in items or []
+            if item.get("name") is not None and item.get("value") not in (None, "")
+        }
+
+    # secrets stored on the action itself and not overridden by the workspace or
+    # the form: the administrators', which only go to the addresses they set
+    _action_id = action.get("id")
+    instance_secrets = names_of(action.get("secrets", [])) - (
+        names_of(((workspace.get("secrets") or {}).get(_action_id)))
+        | names_of(((form.get("secrets") or {}).get(_action_id)))
+    )
+    egress_allow = egress.parse_allow(settings.action_egress_allow)
+    # a refreshed Google credential goes back to the backend as plain text for it
+    # to seal, when the secrets came opened (this process holds no key then)
+    writeback = writeback_for(run_scope) if (secrets_plain and run_scope) else None
 
     def get_parameters() -> Dict[str, str]:
         return get_extra_data("parameters")
@@ -152,6 +211,12 @@ async def run_action(
             TEMPLATE_FOLDER="templates",
         )
 
+    def check_smtp_destination(server, port):
+        """A mail server a workspace or a form named must be a public one; the
+        instance's own (the action's defaults) is not judged."""
+        if isolation_enforced():
+            egress.check_smtp(server, port, allow=egress_allow, trusted=smtp_trusted)
+
     def get_simple_form_response(respondent: bool = False):
         # a copy the respondent receives leaves out calculations kept from them
         extracted_question_answers = get_questions_and_answers(
@@ -159,12 +224,8 @@ async def run_action(
         )
         return extracted_question_answers
 
-    def send_mail_action(
-        config, subject, recipient: List[str], creator_mail: Optional[bool] = False
-    ):
-        mail_config = config
-
-        message = MessageSchema(
+    def build_mail(subject, recipient: List[str], creator_mail):
+        return MessageSchema(
             subject=one_line(subject, SUBJECT_MAX),
             recipients=recipient,
             subtype=MessageType.html,
@@ -175,11 +236,57 @@ async def run_action(
                 description=form.get("welcome_page", {}).get("description", ""),
             ),
         )
+
+    def mailer(mail_config):
         fast_mail = FastMail(mail_config)
-        asyncio.ensure_future(
-            fast_mail.send_message(message, template_name="response-mail.html")
+        pin = getattr(fast_mail, "pin", None)
+        if pin is not None:
+            # connect to the address the egress rules checked (utilities/pinned_mail.py)
+            pin(allow=egress_allow, trusted=smtp_trusted or not isolation_enforced())
+        return fast_mail
+
+    async def deliver_mail(
+        mail_config, subject, recipient: List[str], creator_mail: bool = False
+    ):
+        """Send one mail and wait for the server: a failure is the run's failure."""
+        await mailer(mail_config).send_message(
+            build_mail(subject, recipient, creator_mail),
+            template_name="response-mail.html",
         )
         return "ok"
+
+    def send_mail_action(
+        config, subject, recipient: List[str], creator_mail: Optional[bool] = False
+    ):
+        """The in-process (legacy) code's mail: sent in the background."""
+        asyncio.ensure_future(deliver_mail(config, subject, recipient, creator_mail))
+        return "ok"
+
+    def prepare_mail(respondent: bool):
+        """The action's SMTP group, checked, as a mail configuration (blocking:
+        the destination's name is resolved). ``respondent``: the copy a
+        respondent gets, sent as "<workspace> via <instance>"."""
+        username, password, sender, port, server = smtp_settings(
+            get_parameters(), get_secrets()
+        )
+        check_smtp_destination(server, port)
+        from_name = (
+            respondent_from_name(
+                get_workspace_details().get("title"), settings.organization_name
+            )
+            if respondent
+            else ""
+        )
+        if respondent:
+            return config_mail(username, password, sender, port, server, from_name)
+        return config_mail(username, password, sender, port, server)
+
+    async def blocking(function, *args):
+        """A blocking step (a name lookup, a call to the backend, a slow
+        destination) off the event loop."""
+        return await asyncio.get_running_loop().run_in_executor(
+            thread_pool_executor, function, *args
+        )
 
     def append_in_sheet(
         google_sheet_id: str = None, credentials: str = None, data=None
@@ -189,6 +296,7 @@ async def run_action(
             oauth_credential=credentials,
             action_id=action["id"],
             form_id=form["form_id"],
+            writeback=writeback,
         )
         credential["scopes"] = credential.get("scopes").split(" ")[1:]
 
@@ -346,6 +454,26 @@ async def run_action(
         if data is None:
             data = {}
 
+        if isolation_enforced():
+            # the address was typed by a form creator: public https only, the
+            # checked address is the one connected to (utilities/egress.py)
+            if headers["Content-Type"] == "application/json":
+                return egress.post(
+                    url,
+                    params=params,
+                    json_body=data,
+                    headers=headers,
+                    allow=egress_allow,
+                    trusted=trusted_origins,
+                )
+            return egress.post(
+                url,
+                params=params,
+                form=data,
+                headers=headers,
+                allow=egress_allow,
+                trusted=trusted_origins,
+            )
         if headers["Content-Type"] == "application/json":
             res = httpx.post(
                 url=url, params=params, content=json.dumps(data), headers=headers
@@ -354,37 +482,24 @@ async def run_action(
             res = httpx.post(url=url, params=params, data=data, headers=headers)
         return res
 
-    def send_webhook_action():
+    async def send_webhook_action():
         URL = get_parameter("Webhook URL")
         data = get_simple_form_response()
-        send_data_webhook(URL, data=data)
+        await blocking(lambda: send_data_webhook(URL, data=data))
 
-    def send_responder_a_copy_of_mail():
+    async def send_responder_a_copy_of_mail():
         form = get_form()
         response = get_response()
-        workspace = get_workspace_details()
 
         if response.get("dataOwnerIdentifier"):
-            username, password, sender, port, server = smtp_settings(
-                get_parameters(), get_secrets()
-            )
-            # "<workspace> via <instance>", whichever SMTP server sends it: the
-            # instance is named as the sender, the workspace as on whose behalf
-            from_name = respondent_from_name(
-                workspace.get("title"), settings.organization_name
-            )
-
-            mail_config = config_mail(
-                username, password, sender, port, server, from_name
-            )
-
-            send_mail_action(
+            mail_config = await blocking(prepare_mail, True)
+            await deliver_mail(
                 mail_config,
                 "Copy of your response to " + form.get("title", "Untitled Form"),
                 [response.get("dataOwnerIdentifier")],
             )
 
-    def send_me_a_copy_of_response():
+    async def send_me_a_copy_of_response():
         form = get_form()
 
         receiving_mail = get_parameter("Receiving Mail Address")
@@ -393,19 +508,15 @@ async def run_action(
             # Only a current member of the workspace (the creator while one):
             # checked now, not as of when the action was saved (a refusal or a
             # failed check raises, so nothing is sent and the job shows why)
-            receiving_mail = approved_copy_recipient(
+            receiving_mail = await blocking(
+                approved_copy_recipient,
                 receiving_mail,
                 get_workspace_details().get("id"),
                 form.get("form_id"),
                 action.get("id"),
             )
-            username, password, sender, port, server = smtp_settings(
-                get_parameters(), get_secrets()
-            )
-
-            mail_config = config_mail(username, password, sender, port, server)
-
-            send_mail_action(
+            mail_config = await blocking(prepare_mail, False)
+            await deliver_mail(
                 mail_config,
                 "You have got a new response in " + form.get("title", "Untitled Form"),
                 [receiving_mail],
@@ -473,6 +584,15 @@ async def run_action(
         }
 
         # Optional: add better error logging in development
+        if isolation_enforced():
+            return egress.post(
+                url,
+                params=params,
+                json_body=payload,
+                headers=headers,
+                allow=egress_allow,
+                trusted=trusted_origins,
+            )
         try:
             res = httpx.post(
                 url=url, params=params, json=payload, headers=headers, timeout=10.0
@@ -513,18 +633,27 @@ async def run_action(
                 }
             ]
         }
+        if isolation_enforced():
+            return egress.post(
+                url,
+                params=params,
+                json_body=payload,
+                headers=headers,
+                allow=egress_allow,
+                trusted=trusted_origins,
+            )
         res = httpx.post(url=url, params=params, json=payload, headers=headers)
         return res
 
-    def send_message_to_discord():
+    async def send_message_to_discord():
         URL = get_parameter("Discord Webhook URL")
         data = get_simple_form_response()
-        send_data_discord(URL, data=data)
+        await blocking(lambda: send_data_discord(URL, data=data))
 
-    def send_message_to_slack():
+    async def send_message_to_slack():
         URL = get_parameter("Slack Webhook URL")
         data = get_simple_form_response()
-        send_data_slack(URL, data=data)
+        await blocking(lambda: send_data_slack(URL, data=data))
 
     def append_group_tables_in_sheet(google_sheet_id: str, credentials: str, tables):
         """Rows-layout repeating groups: one tab per group, one row per item."""
@@ -534,6 +663,7 @@ async def run_action(
             oauth_credential=json.loads(credentials),
             action_id=action["id"],
             form_id=form["form_id"],
+            writeback=writeback,
         )
         credential["scopes"] = credential.get("scopes").split(" ")[1:]
         try:
@@ -606,18 +736,54 @@ async def run_action(
     if action.get("predefined"):
         match action.get("name"):
             case "send_webhook":
-                return send_webhook_action()
+                return await send_webhook_action()
             case "responder_copy_mail":
-                return send_responder_a_copy_of_mail()
+                return await send_responder_a_copy_of_mail()
             case "creator_copy_mail":
-                return send_me_a_copy_of_response()
+                return await send_me_a_copy_of_response()
             case "send_to_discord":
-                return send_message_to_discord()
+                return await send_message_to_discord()
             case "send_to_slack":
-                return send_message_to_slack()
+                return await send_message_to_slack()
             case "integrate_google_sheets":
-                return integrate_google_sheets_append_action()
+                return await blocking(integrate_google_sheets_append_action)
         return
+    if isolation_enforced():
+        return await run_isolated_code(
+            action_ref=log_ref or "-",
+            action_code=action.get("action_code"),
+            data={
+                "action": action,
+                "form": form,
+                "response": response,
+                "workspace": workspace,
+                "simple_response": get_simple_form_response(),
+            },
+            toolbox=Toolbox(
+                parameters=get_parameters(),
+                secrets=get_secrets(),
+                trusted_origins=trusted_origins,
+                instance_secrets=instance_secrets,
+                respondent_email=response.get("dataOwnerIdentifier"),
+                webhook=send_data_webhook,
+                discord=send_data_discord,
+                slack=send_data_slack,
+                prepare_mail=prepare_mail,
+                deliver_mail=deliver_mail,
+                append_sheet=lambda sheet_id, credentials, rows: append_in_sheet(
+                    sheet_id, credentials, rows
+                ),
+                approved_recipient=lambda address: approved_copy_recipient(
+                    address,
+                    workspace.get("id"),
+                    form.get("form_id"),
+                    action.get("id"),
+                ),
+                mark_broken=lambda: mark_action_broken(workspace, form, action),
+                allow=egress_allow,
+            ),
+        )
+    # ACTION_ISOLATION=legacy: the code runs in this process, which it can reach
     loop = asyncio.get_event_loop()
     result = await asyncio.wait_for(
         loop.run_in_executor(
@@ -647,6 +813,36 @@ async def run_action(
         timeout=30,
     )
     return result
+
+
+def mark_action_broken(workspace, form, action) -> None:
+    """The action's stored sheet or credential is gone: tell the backend, which
+    switches the action off."""
+    httpx.patch(
+        url=f"{settings.server_url}/workspaces/{workspace.get('id')}/forms/{form.get('form_id')}/action/{action.get('id')}/update",
+        headers={"api-key": settings.api_key},
+    )
+
+
+async def run_isolated_code(*, action_code, data, toolbox, action_ref):
+    """Custom action code in the sandbox (sandbox/, utilities/custom_action.py).
+    The result and the failure look as the in-process run's did: the code's log,
+    or a RuntimeError holding the log; the class of an error, never a traceback.
+    What the code says never switches an action off (only the executor's own
+    Google call does, in ``custom_action.py``)."""
+    outcome = await run_custom_code(action_code, data=data, toolbox=toolbox)
+    log_lines = list(outcome.log)
+    error = outcome.error
+    if error is None:
+        return {"status": True, "log": "\n".join(log_lines)}
+    log_lines.append("Exception While running action")
+    log_lines.append(str(error.get("message") or ""))
+    logger.error(
+        "action %s failed in its code: %s",
+        action_ref,
+        error.get("class") or error.get("kind"),
+    )
+    raise RuntimeError("\n".join(log_lines))
 
 
 def execute_action_code(

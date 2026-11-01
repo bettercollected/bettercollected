@@ -21,6 +21,9 @@ class WorkspacePermissionsDto(CamelModel):
     are on): the builder says so next to the question's lookup setting.
     ``signature_question_enabled`` is the same for the signature question
     (``SIGNATURE_QUESTION_ENABLED``).
+    ``option_sources_enabled`` is the same for options taken from a workspace
+    list or another form's answers (``OPTION_SOURCES_ENABLED``): the builder
+    offers the source picker and the workspace its lists page from it.
     ``layout_containers_enabled`` is the same for panels, tabs and field sets
     (``LAYOUT_CONTAINERS_ENABLED``).
     ``submissions_api_enabled`` is the same for ``SUBMISSIONS_API_ENABLED``
@@ -39,5 +42,6 @@ class WorkspacePermissionsDto(CamelModel):
     address_question_enabled: bool = False
     address_lookup_enabled: bool = False
     signature_question_enabled: bool = False
+    option_sources_enabled: bool = False
     layout_containers_enabled: bool = False
     submissions_api_enabled: bool = False

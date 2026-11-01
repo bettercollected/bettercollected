@@ -19,7 +19,9 @@ def _form():
                             "id": "total",
                             "type": "calculated",
                             "title": "Total",
-                            "properties": {"format": {"style": "currency", "decimals": 2}},
+                            "properties": {
+                                "format": {"style": "currency", "decimals": 2}
+                            },
                         },
                         {
                             "id": "risk",
@@ -44,7 +46,9 @@ RESPONSE = {
 
 
 def test_creator_payloads_show_every_calculation_formatted():
-    answers = {e["field_id"]: e["answer"] for e in get_questions_and_answers(_form(), RESPONSE)}
+    answers = {
+        e["field_id"]: e["answer"] for e in get_questions_and_answers(_form(), RESPONSE)
+    }
     assert answers == {"qty": 3, "total": "€1,234.50", "risk": "7"}
 
 
