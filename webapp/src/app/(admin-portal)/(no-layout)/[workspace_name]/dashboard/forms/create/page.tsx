@@ -120,7 +120,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
     return (
         <div className="min-h-screen bg-white">
             <NavBar />
-            <div className="px-auto h-body-content overflow-auto">
+            <div className="mx-auto h-body-content overflow-auto">
                 <div className="mx-auto flex w-full max-w-[1330px] flex-col px-5 md:px-10">
                     <div className="h3-new mb-4 mt-6 text-black-800">{t('STAFF.CREATE.TITLE')}</div>
                     <div className="flex w-full flex-col flex-wrap gap-6 lg:flex-row">
