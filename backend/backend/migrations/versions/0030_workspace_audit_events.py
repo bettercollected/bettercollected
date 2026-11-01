@@ -5,7 +5,8 @@ Revises: 0028
 Create Date: 2026-11-01
 
 One new table (``backend/app/services/sso/policy.py``): who got into a workspace
-that requires single sign-on through the owners' break-glass. Ids only. New
+that requires single sign-on through the owners' break-glass, one entry per
+request (session, user, method and route template; ids only). New
 table only, so expand-only. Written by hand in the shape autogenerate produces
 for a BaseRow table.
 
@@ -77,18 +78,9 @@ def upgrade() -> None:
         unique=False,
         schema=SCHEMA,
     )
-    op.create_index(
-        "uq_workspace_audit_events_session",
-        TABLE,
-        ["workspace_id", "session_id", "event"],
-        unique=True,
-        schema=SCHEMA,
-        postgresql_where=sa.text("session_id IS NOT NULL"),
-    )
 
 
 def downgrade() -> None:
-    op.drop_index("uq_workspace_audit_events_session", table_name=TABLE, schema=SCHEMA)
     op.drop_index(op.f(f"ix_app_{TABLE}_created_at"), table_name=TABLE, schema=SCHEMA)
     op.drop_index(
         op.f(f"ix_app_{TABLE}_workspace_id"), table_name=TABLE, schema=SCHEMA

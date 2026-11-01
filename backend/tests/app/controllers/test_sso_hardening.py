@@ -4,6 +4,7 @@ break-glass is audited, the owners see the API keys that predate the
 requirement, and an owner is asked before switching it on from a session the
 requirement would refuse."""
 
+import asyncio
 import datetime as dt
 
 import pytest
@@ -31,6 +32,7 @@ from tests.app.controllers.test_sso_every_request import (  # noqa: F401 — fix
     _require,
     _sso_required,
     forms_url,
+    permissions_url,
     required,
     sso_workspace,
 )
@@ -253,10 +255,10 @@ async def test_break_glass_is_audited_once_per_session_and_hour(
     now["t"] += policy_module.BREAK_GLASS_AUDIT_SECONDS + 1
     assert (await client.get(forms_url(required), cookies=cookies)).status_code == 200
     assert len(_audits(audit_lines)) == 3
-    # the table holds one entry per session, however often it comes back
-    rows = await container.workspace_audit_repo().recent(required.id)
-    assert sorted(r.session_id for r in rows) == sorted([owner.sid, other.sid])
-    assert {r.event for r in rows} == {"sso_break_glass_session"}
+    # the table has one row per request: 4 + 1 + 1 (the log line is the throttled one)
+    rows = await container.workspace_audit_repo().page(required.id, 50)
+    assert sorted(r.session_id for r in rows) == sorted([owner.sid] * 5 + [other.sid])
+    assert {r.event for r in rows} == {"sso_break_glass_request"}
     assert {r.user_id for r in rows} == {owner.id}
     assert "boss@" not in str([r.model_dump() for r in rows])
 
@@ -584,43 +586,100 @@ async def test_switching_the_requirement_off_never_asks(client, sso_workspace):
 
 # -- the persisted break-glass audit -------------------------------------------------
 async def _entries(workspace):
-    return await container.workspace_audit_repo().recent(workspace.id, 50)
+    return await container.workspace_audit_repo().page(workspace.id, 50)
 
 
-async def test_the_first_break_glass_use_is_stored_once_across_restarts(
+async def test_every_break_glass_request_writes_one_row_with_a_path_template(
     client, required
 ):
-    policy = container.sso_policy_service()
-    policy._break_glass_recorded.clear()
     owner = User(
         id=testUser.id, sub="boss@" + DOMAIN, auth_method="otp", sid=str(RecordId())
     )
     cookies = _cookies(owner)
     for _ in range(3):
-        assert (await client.get(forms_url(required), cookies=cookies)).status_code == 200
-    # another process (or a restart) has no memory of it: the table decides
-    policy._break_glass_recorded.clear()
-    assert (await client.get(forms_url(required), cookies=cookies)).status_code == 200
-    (entry,) = await _entries(required)
-    assert entry.event == "sso_break_glass_session"
-    assert (entry.user_id, entry.session_id) == (owner.id, owner.sid)
-    assert str(entry.workspace_id) == str(required.id)
+        # a query string with a value that must never be stored
+        reply = await client.get(
+            forms_url(required) + "?search=secret-value", cookies=cookies
+        )
+        assert reply.status_code == 200, reply.text
+    rows = await _entries(required)
+    assert len(rows) == 3
+    for row in rows:
+        assert row.event == "sso_break_glass_request"
+        assert (row.user_id, row.session_id) == (owner.id, owner.sid)
+        assert str(row.workspace_id) == str(required.id)
+        assert row.method == "GET"
+        # the template, not the workspace id and not the query
+        assert row.path == "/workspaces/{workspace_id}/forms"
+        assert str(required.id) not in row.path
+        assert "secret-value" not in str(row.model_dump())
+        assert row.created_at is not None
 
 
-async def test_a_failing_audit_never_breaks_the_request(client, required, monkeypatch):
+async def test_a_request_authorised_several_times_still_writes_one_row(
+    client, required
+):
+    owner = User(
+        id=testUser.id, sub="boss@" + DOMAIN, auth_method="otp", sid=str(RecordId())
+    )
+    # the permissions route and the forms route each authorise more than once
+    for url in (permissions_url(required), forms_url(required)):
+        assert (await client.get(url, cookies=_cookies(owner))).status_code == 200
+    assert len(await _entries(required)) == 2
+
+
+async def test_a_failing_audit_never_blocks_is_logged_and_retried(
+    client, required, monkeypatch, audit_lines
+):
     policy = container.sso_policy_service()
-    policy._break_glass_recorded.clear()
+    policy._audit_pending.clear()
+    repo = policy._audit
+    original = repo.record
+    outage = {"on": True}
 
-    async def broken(document):
-        raise RuntimeError("database down")
+    async def flaky(document):
+        if outage["on"]:
+            raise RuntimeError("database down")
+        return await original(document)
 
-    monkeypatch.setattr(policy._audit, "record", broken)
+    monkeypatch.setattr(repo, "record", flaky)
+    owner = User(
+        id=testUser.id, sub="boss@" + DOMAIN, auth_method="otp", sid=str(RecordId())
+    )
+    cookies = _cookies(owner)
+    # access is never refused for want of an audit write
+    assert (await client.get(forms_url(required), cookies=cookies)).status_code == 200
+    assert await _entries(required) == []
+    assert len(policy._audit_pending) == 1
+    errors = [m for m in audit_lines if m.startswith("AUDIT sso_break_glass NOT STORED")]
+    assert errors and owner.id in errors[0] and owner.sid in errors[0]
+    assert "boss@" not in errors[0]
+    # the next request stores the missed row and its own
+    outage["on"] = False
+    assert (await client.get(forms_url(required), cookies=cookies)).status_code == 200
+    assert len(await _entries(required)) == 2
+    assert len(policy._audit_pending) == 0
+
+
+async def test_a_slow_audit_write_is_cut_short_and_queued(
+    client, required, monkeypatch
+):
+    policy = container.sso_policy_service()
+    policy._audit_pending.clear()
+    monkeypatch.setattr(policy_module, "AUDIT_WRITE_TIMEOUT_SECONDS", 0.05)
+
+    async def slow(document):
+        await asyncio.sleep(1)
+
+    monkeypatch.setattr(policy._audit, "record", slow)
     owner = User(
         id=testUser.id, sub="boss@" + DOMAIN, auth_method="otp", sid=str(RecordId())
     )
     assert (
         await client.get(forms_url(required), cookies=_cookies(owner))
     ).status_code == 200
+    assert len(policy._audit_pending) == 1
+    policy._audit_pending.clear()
 
 
 async def test_an_owners_email_code_sign_in_is_recorded_without_a_workspace_request(
@@ -634,6 +693,7 @@ async def test_an_owners_email_code_sign_in_is_recorded_without_a_workspace_requ
     (entry,) = await _entries(workspace)
     assert entry.event == "sso_break_glass_sign_in"
     assert entry.user_id == owner_id and entry.session_id is None
+    assert (entry.method, entry.path) == ("POST", "/auth/otp/validate")
     assert owner_email not in str(entry.model_dump())
 
 
@@ -665,7 +725,7 @@ async def test_the_sso_page_lists_the_entries_with_member_names(client, required
                 workspace_id=required.id,
                 user_id=user_id,
                 session_id=sid,
-                event="sso_break_glass_session",
+                event="sso_break_glass_request",
             )
         )
     for cookies in (
@@ -698,24 +758,24 @@ async def test_the_audit_is_kept_a_year_and_goes_with_the_workspace(
             workspace_id=required.id,
             user_id="u",
             session_id=sid,
-            event="sso_break_glass_session",
+            event="sso_break_glass_request",
         )
         document.created_at = now - dt.timedelta(days=age_days)
         await repo.record(document)
     assert await policy.purge_audit(now) == 1
-    assert [e.session_id for e in await repo.recent(required.id)] == ["new"]
+    assert [e.session_id for e in await repo.page(required.id, 50)] == ["new"]
     await repo.record(
         WorkspaceAuditEventDocument(
             id=RecordId(),
             workspace_id=workspace_1.id,
             user_id="u",
             session_id="x",
-            event="sso_break_glass_session",
+            event="sso_break_glass_request",
         )
     )
     await container.sso_connection_service().release_workspaces([required.id])
-    assert await repo.recent(required.id) == []
-    assert len(await repo.recent(workspace_1.id)) == 1
+    assert await repo.page(required.id, 50) == []
+    assert len(await repo.page(workspace_1.id, 50)) == 1
 
 
 # -- a replaced identity provider ends its sessions ----------------------------------
@@ -899,3 +959,95 @@ async def test_the_selection_marks_a_workspace_the_session_was_not_signed_in_thr
     rows = {w["workspaceName"]: w for w in body["workspaces"]}
     assert rows[workspace_1.workspace_name]["ssoRequired"] is True
     assert body["next"] is None
+
+
+# -- the audit list is paged -----------------------------------------------------------
+async def _fill_audit(workspace, count):
+    repo = container.workspace_audit_repo()
+    base = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=1)
+    ids = []
+    for i in range(count):
+        document = WorkspaceAuditEventDocument(
+            id=RecordId(),
+            workspace_id=workspace.id,
+            user_id="u",
+            session_id=f"s{i}",
+            event="sso_break_glass_request",
+            method="GET",
+            path="/x/{id}",
+        )
+        document.created_at = base + dt.timedelta(seconds=i)
+        await repo.record(document)
+        ids.append(f"s{i}")
+    return ids
+
+
+def audit_url(workspace):
+    return f"/api/v1/workspaces/{workspace.id}/sso/audit"
+
+
+async def test_the_audit_list_is_paged_newest_first(client, required):
+    await _fill_audit(required, 45)
+    first = await client.get(overview_url(required), cookies=_cookies(testUser))
+    body = first.json()
+    assert [e["sessionId"] for e in body["audit"]][:2] == ["s44", "s43"]
+    assert len(body["audit"]) == 20 and body["auditNextCursor"]
+    seen = [e["sessionId"] for e in body["audit"]]
+    cursor = body["auditNextCursor"]
+    while cursor:
+        page = await client.get(
+            audit_url(required), params={"cursor": cursor}, cookies=_cookies(testUser)
+        )
+        assert page.status_code == 200, page.text
+        data = page.json()
+        seen += [e["sessionId"] for e in data["entries"]]
+        cursor = data["nextCursor"]
+    # every entry once, newest first, nothing repeated or skipped
+    assert seen == [f"s{i}" for i in range(44, -1, -1)]
+
+
+async def test_the_page_size_has_a_ceiling_and_a_bad_cursor_is_refused(client, required):
+    await _fill_audit(required, 3)
+    too_big = await client.get(
+        audit_url(required), params={"limit": 1000}, cookies=_cookies(testUser)
+    )
+    assert too_big.status_code == 422
+    one = await client.get(
+        audit_url(required), params={"limit": 1}, cookies=_cookies(testUser)
+    )
+    assert len(one.json()["entries"]) == 1 and one.json()["nextCursor"]
+    bad = await client.get(
+        audit_url(required), params={"cursor": "not-a-cursor"}, cookies=_cookies(testUser)
+    )
+    assert bad.status_code == 422
+    assert bad.json()["code"] == "invalid_cursor" if "code" in bad.json() else True
+
+
+async def test_the_audit_pages_are_for_those_who_manage_security(client, required):
+    await _fill_audit(required, 2)
+    _, admin = await _member(required, "adm@partner-corp.org", "otp", WorkspaceRoles.ADMIN)
+    assert (await client.get(audit_url(required), cookies=admin)).status_code == 200
+    _, viewer = await _member(required, "v@partner-corp.org", "otp", WorkspaceRoles.VIEWER)
+    assert (await client.get(audit_url(required), cookies=viewer)).status_code == 403
+
+
+async def test_a_page_never_shows_another_workspaces_entries(
+    client, required, workspace_1
+):
+    await _fill_audit(workspace_1, 3)
+    reply = await client.get(audit_url(required), cookies=_cookies(testUser))
+    assert reply.json()["entries"] == []
+
+
+async def test_a_key_without_a_creator_is_not_called_a_former_member(
+    client, sso_workspace
+):
+    created = await _key(sso_workspace, "ops")
+    repo = container.workspace_api_key_repo()
+    document = await repo.get_or_404(RecordId(created.id))
+    document.created_by = ""
+    await repo.save(document)
+    await _require(client, sso_workspace)
+    reply = await client.get(overview_url(sso_workspace), cookies=_cookies(testUser))
+    (key,) = reply.json()["settings"]["apiKeys"]
+    assert not key["createdBy"] and key["createdByFormerMember"] is False

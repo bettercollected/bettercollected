@@ -194,6 +194,17 @@ class SsoAuditEntryDto(_CamelModel):
     user_label: Optional[str] = None
     user_is_member: bool = False
     session_id: Optional[str] = None
+    # request entries: the HTTP method and the route's path template
+    method: Optional[str] = None
+    path: Optional[str] = None
+
+
+class SsoAuditPageDto(_CamelModel):
+    """One page of the break-glass log, newest first; ``next_cursor`` asks for
+    the next (older) one, None at the end."""
+
+    entries: List[SsoAuditEntryDto] = []
+    next_cursor: Optional[str] = None
 
 
 class SsoSettingsDto(_CamelModel):
@@ -227,6 +238,7 @@ class SsoOverviewDto(_CamelModel):
     max_connections: int
     # the latest owner break-glass entries, newest first
     audit: List[SsoAuditEntryDto] = []
+    audit_next_cursor: Optional[str] = None
     # the caller may change the configuration (an owner of the workspace)
     can_manage: bool = False
 
@@ -237,7 +249,7 @@ _CLAIM_NAME = re.compile(r"^[A-Za-z0-9_.:/#-]{1,160}$")
 MAX_TEST_CLAIMS = 50
 
 # how many break-glass entries the SSO page lists
-AUDIT_LIST_LIMIT = 20
+AUDIT_LIST_LIMIT = 20  # the first page; see policy.AUDIT_PAGE_MAX
 
 
 def failed_test_domain(value: Optional[str]) -> Optional[str]:
@@ -386,6 +398,7 @@ class SsoConnectionService:
         workspace = await self._workspace_repo.find_by_id(workspace_id)
         available = settings.sso.is_configured
         sso = settings.sso
+        audit = await self._audit_page(workspace_id)
         can_manage = await self._authorization.is_owner(
             user, workspace_id, raise_sso_required=True
         )
@@ -414,7 +427,8 @@ class SsoConnectionService:
                 user=user if can_manage else None,
             ),
             max_connections=sso.MAX_CONNECTIONS_PER_WORKSPACE,
-            audit=await self._audit_entries(workspace_id),
+            audit=audit.entries,
+            audit_next_cursor=audit.next_cursor,
             can_manage=can_manage,
         )
 
@@ -470,7 +484,7 @@ class SsoConnectionService:
                 scopes=list(key.scopes or []),
                 created_by=str(key.created_by) if key.created_by else None,
                 created_by_label=names.get(str(key.created_by)),
-                created_by_former_member=str(key.created_by) not in members,
+                created_by_former_member=bool(key.created_by) and str(key.created_by) not in members,
                 created_at=key.created_at,
                 last_used_at=key.last_used_at,
                 created_after_requirement=(
@@ -480,23 +494,44 @@ class SsoConnectionService:
             for key in keys
         ]
 
-    async def _audit_entries(self, workspace_id) -> List[SsoAuditEntryDto]:
-        entries = await self._policy.recent_audit(workspace_id, AUDIT_LIST_LIMIT)
+    async def audit_page(
+        self,
+        workspace_id: RecordId,
+        user: User,
+        cursor: Optional[str] = None,
+        limit: int = AUDIT_LIST_LIMIT,
+    ) -> SsoAuditPageDto:
+        """A page of the break-glass log (anyone who can open the page)."""
+        await self._authorize(workspace_id, user)
+        return await self._audit_page(workspace_id, cursor, limit)
+
+    async def _audit_page(
+        self,
+        workspace_id,
+        cursor: Optional[str] = None,
+        limit: int = AUDIT_LIST_LIMIT,
+    ) -> SsoAuditPageDto:
+        entries, next_cursor = await self._policy.audit_page(workspace_id, limit, cursor)
         members, names = await self._member_names(
             workspace_id, [e.user_id for e in entries]
         )
-        return [
-            SsoAuditEntryDto(
-                id=str(e.id),
-                event=e.event,
-                at=e.created_at,
-                user_id=e.user_id,
-                user_label=names.get(e.user_id),
-                user_is_member=e.user_id in members,
-                session_id=e.session_id,
-            )
-            for e in entries
-        ]
+        return SsoAuditPageDto(
+            entries=[
+                SsoAuditEntryDto(
+                    id=str(e.id),
+                    event=e.event,
+                    at=e.created_at,
+                    user_id=e.user_id,
+                    user_label=names.get(e.user_id),
+                    user_is_member=e.user_id in members,
+                    session_id=e.session_id,
+                    method=e.method,
+                    path=e.path,
+                )
+                for e in entries
+            ],
+            next_cursor=next_cursor,
+        )
 
     async def _member_names(self, workspace_id, user_ids) -> tuple:
         """(the ids among ``user_ids`` that are current members of the

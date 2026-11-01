@@ -1,10 +1,9 @@
 """The repository of workspace security events (Postgres only, new in 4.3)."""
 
 import datetime as dt
-from typing import List, Sequence
+from typing import List, Optional, Sequence, Tuple
 
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select, tuple_
 
 from backend.app.schemas.workspace_audit_event import WorkspaceAuditEventDocument
 from backend.db.models import WorkspaceAuditEventRow
@@ -20,25 +19,30 @@ class PostgresWorkspaceAuditRepository(RecordRepository):
     row = WorkspaceAuditEventRow
     document = WorkspaceAuditEventDocument
 
-    async def record(self, document: WorkspaceAuditEventDocument) -> bool:
-        """Store the entry; False when this session already has one for this
-        workspace and event (the unique index decides, so it holds across
-        processes and restarts)."""
-        try:
-            await self.upsert(document)
-        except IntegrityError:
-            return False
-        return True
+    async def record(self, document: WorkspaceAuditEventDocument) -> None:
+        """One plain INSERT: no read first, no uniqueness to check."""
+        await self.upsert(document)
 
-    async def recent(
-        self, workspace_id, limit: int = 20
+    async def page(
+        self,
+        workspace_id,
+        limit: int,
+        before: Optional[Tuple[dt.datetime, str]] = None,
     ) -> List[WorkspaceAuditEventDocument]:
+        """Newest first (keyset: ``before`` is the (time, id) of the last
+        entry of the previous page); at most ``limit`` entries."""
+        where = [WorkspaceAuditEventRow.workspace_id == _id(workspace_id)]
+        if before is not None:
+            where.append(
+                tuple_(WorkspaceAuditEventRow.created_at, WorkspaceAuditEventRow.id)
+                < tuple_(before[0], before[1])
+            )
         async with self._session() as session:
             docs = (
                 (
                     await session.execute(
                         select(self.row.doc)
-                        .where(WorkspaceAuditEventRow.workspace_id == _id(workspace_id))
+                        .where(*where)
                         .order_by(
                             WorkspaceAuditEventRow.created_at.desc(),
                             WorkspaceAuditEventRow.id.desc(),

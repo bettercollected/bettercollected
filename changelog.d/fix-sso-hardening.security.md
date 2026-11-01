@@ -3,6 +3,7 @@
   single sign-on, or the workspace replaces its identity provider, the old sessions
   no longer count and people sign in again. Sessions from before this change have
   no workspace recorded and sign in once more where single sign-on is required.
-  Owner break-glass sign-ins to a workspace that requires single sign-on are now
-  recorded in an audit table (ids only, kept for a year), shown on the single
-  sign-on page, and written to the log.
+  Every request an owner makes through the email-code break-glass into a workspace
+  that requires single sign-on is now recorded (session, user, method and route
+  template, ids only, kept for a year) and shown, paged, on the single sign-on page;
+  a failing audit write never blocks the owner.

@@ -35,14 +35,18 @@ so a session that does not meet the requirement is refused at once and not
 only at its next refresh. API keys are machine credentials issued inside the
 workspace and are not subject to it (the owners are shown the keys that
 predate the requirement). Each time an owner's email-code session is let in by
-break-glass, an audit line is written (once per session and hour). See
+break-glass, an audit row is written for the request (session, user, method
+and route template; ids only), and a log line once per session and hour. See
 docs/sso.md.
 """
 
+import asyncio
+import base64
+import collections
 import datetime as dt
 import time
 from http import HTTPStatus
-from typing import Dict, List, Optional, Tuple
+from typing import Deque, Dict, List, Optional, Tuple
 
 from common.records import RecordId
 from loguru import logger
@@ -59,12 +63,13 @@ from backend.app.repositories.postgres.identity import (
 )
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_audit_event import (
-    SSO_BREAK_GLASS_SESSION,
+    SSO_BREAK_GLASS_REQUEST,
     SSO_BREAK_GLASS_SIGN_IN,
     WorkspaceAuditEventDocument,
 )
 from backend.app.services.domains.names import display_domain, domain_of
 from backend.app.services.internal_auth import auth_service_headers
+from backend.app.services.request_context import current_request, method_and_template
 from backend.app.services.session_service import (
     OTP_METHOD,
     RESPONDENT_SCOPE,
@@ -88,10 +93,19 @@ API_KEY_METHOD = "api_key"
 REQUIREMENT_CACHE_SECONDS = 30.0
 REQUIREMENT_CACHE_MAX = 2048
 
-# Owner break-glass is audited once per session and workspace per hour, so a
-# busy dashboard does not flood the log.
+# The break-glass log line (not the audit rows, which are one per request) is
+# written once per session and workspace per hour, so a busy dashboard does not
+# flood the log.
 BREAK_GLASS_AUDIT_SECONDS = 3600.0
 BREAK_GLASS_AUDIT_MAX = 4096
+
+# The break-glass write is a single INSERT; if the database cannot take it within
+# this, the request goes on and the entry is queued for the next write.
+AUDIT_WRITE_TIMEOUT_SECONDS = 2.0
+AUDIT_PENDING_MAX = 500
+# The audit list: page size and the most a client may ask for.
+AUDIT_PAGE_SIZE = 20
+AUDIT_PAGE_MAX = 100
 
 # How long the workspace audit entries are kept: a year, then the daily purge
 # (``sso_audit_purge``) deletes them; they go with the workspace too.
@@ -163,6 +177,30 @@ def session_exempt(
     return method == OTP_METHOD and is_owner
 
 
+def encode_audit_cursor(entry: WorkspaceAuditEventDocument) -> str:
+    """An opaque keyset cursor: where the next page starts (this entry's time
+    and id: nothing secret, and nothing it could be abused with)."""
+    raw = f"{entry.created_at.isoformat()}|{entry.id}"
+    return base64.urlsafe_b64encode(raw.encode()).decode().rstrip("=")
+
+
+def decode_audit_cursor(cursor: str):
+    try:
+        raw = base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)).decode()
+        stamp, _, entry_id = raw.partition("|")
+        at = dt.datetime.fromisoformat(stamp)
+        if at.tzinfo is None:
+            at = at.replace(tzinfo=dt.timezone.utc)
+        if not entry_id or len(entry_id) > 64:
+            raise ValueError("id")
+        return at, entry_id
+    except (ValueError, UnicodeError) as error:
+        raise HTTPException(
+            HTTPStatus.UNPROCESSABLE_ENTITY,
+            {"code": "invalid_cursor", "message": "That page of the audit log is not valid."},
+        ) from error
+
+
 def assignable_sso_roles() -> List[str]:
     return [role.value for role in SSO_ASSIGNABLE_ROLES]
 
@@ -212,9 +250,8 @@ class SsoPolicyService:
         self._clock = time.monotonic
         # (workspace id, session) -> when its break-glass was last audited
         self._break_glass_seen: Dict[Tuple[str, str], float] = {}
-        # (workspace, session) pairs already written to the audit table by this
-        # process: a shortcut only, the table's unique index decides
-        self._break_glass_recorded: set = set()
+        # audit entries a failed write did not store, retried with the next one
+        self._audit_pending: Deque = collections.deque(maxlen=AUDIT_PENDING_MAX)
         # workspace id -> (expires at, id of its enabled connection or None)
         self._enabled_cache: Dict[str, Tuple[float, Optional[str]]] = {}
 
@@ -325,7 +362,7 @@ class SsoPolicyService:
         workspace being accessed. An SSO session passes only when it was
         signed in through this workspace (``sso_workspace_id``). When an
         owner's email-code session is let in by break-glass, that is audited
-        (``session_id`` and ``user_id`` name it; once per hour). The caller already holds the workspace row,
+        (``session_id`` and ``user_id`` name it; one row per request). The caller already holds the workspace row,
         so nothing is read unless the workspace requires SSO and the session
         could fall short; then at most the domain claim and the connection,
         reused for ``REQUIREMENT_CACHE_SECONDS``.
@@ -362,9 +399,12 @@ class SsoPolicyService:
 
     async def _audit_break_glass(self, workspace_id, session_id, user_id) -> None:
         """An owner's non-SSO session let into the SSO-required workspace:
-        one log line (ids only) per session, workspace and hour per process,
-        and one audit entry per session and workspace, ever (the table's
-        unique index, so it holds across processes)."""
+        one audit row per request (however often the request is authorised):
+        session, workspace, user, time, HTTP method and the route's path
+        template. Plus one log line (ids only) per session, workspace and hour
+        per process, for log-based alerting. Never raises, never refuses:
+        break-glass is the incident path, so a failing audit is logged at ERROR
+        and retried with the next write, not allowed to block access."""
         who = str(session_id or user_id or "")
         key = (str(workspace_id), who)
         now = self._clock()
@@ -379,39 +419,76 @@ class SsoPolicyService:
                 user_id,
                 session_id,
             )
-        if session_id and user_id and key not in self._break_glass_recorded:
-            if len(self._break_glass_recorded) >= BREAK_GLASS_AUDIT_MAX:
-                self._break_glass_recorded.clear()
-            await self._record_audit(
-                SSO_BREAK_GLASS_SESSION, workspace_id, user_id, session_id
-            )
-            self._break_glass_recorded.add(key)
+        if not user_id:
+            return
+        context = current_request()
+        if context is not None:
+            if context.audited:
+                return
+            context.audited = True
+        await self._record_audit(
+            SSO_BREAK_GLASS_REQUEST, workspace_id, user_id, session_id, context
+        )
 
     async def _record_audit(
-        self, event: str, workspace_id, user_id, session_id: Optional[str]
+        self,
+        event: str,
+        workspace_id,
+        user_id,
+        session_id: Optional[str],
+        context=None,
     ) -> None:
-        """One entry in the workspace's audit table (ids only). Never raises:
-        the audit must not break a sign-in or a request."""
+        """Store one audit entry (ids and a route template only), after any
+        entry an earlier write failed to store. One INSERT each, no read, under
+        a short timeout. A failure is logged at ERROR and the entries not stored
+        stay queued (bounded) for the next write; it never raises."""
         if self._audit is None:
             return
+        method, path = method_and_template(context or current_request())
+        document = WorkspaceAuditEventDocument(
+            id=RecordId(),
+            workspace_id=RecordId(str(workspace_id)),
+            user_id=str(user_id),
+            session_id=str(session_id) if session_id else None,
+            event=event,
+            method=method,
+            path=path,
+        )
+        batch = [*self._audit_pending, document]
+        self._audit_pending.clear()
+        stored = 0
         try:
-            await self._audit.record(
-                WorkspaceAuditEventDocument(
-                    id=RecordId(),
-                    workspace_id=RecordId(str(workspace_id)),
-                    user_id=str(user_id),
-                    session_id=str(session_id) if session_id else None,
-                    event=event,
-                )
+            async with asyncio.timeout(AUDIT_WRITE_TIMEOUT_SECONDS):
+                for entry in batch:
+                    await self._audit.record(entry)
+                    stored += 1
+        except Exception as error:  # noqa: BLE001 — fail open on the audit
+            self._audit_pending.extend(batch[stored:])
+            logger.bind(audit=True).error(
+                "AUDIT sso_break_glass NOT STORED workspace={} user={} session={} "
+                "event={} queued={} ({})",
+                workspace_id,
+                user_id,
+                session_id,
+                event,
+                len(self._audit_pending),
+                type(error).__name__,
             )
-        except Exception as error:  # noqa: BLE001
-            logger.warning("SSO break-glass audit failed: {}", type(error).__name__)
 
-    async def recent_audit(self, workspace_id, limit: int = 20):
-        """The latest audit entries of the workspace, newest first."""
+    async def audit_page(
+        self, workspace_id, limit: int = AUDIT_PAGE_SIZE, cursor: Optional[str] = None
+    ):
+        """One page of the workspace's audit entries, newest first, and the
+        cursor of the next page (None at the end). ``limit`` is capped at
+        ``AUDIT_PAGE_MAX``; an unreadable cursor is 422."""
         if self._audit is None:
-            return []
-        return await self._audit.recent(workspace_id, limit)
+            return [], None
+        limit = max(1, min(int(limit or AUDIT_PAGE_SIZE), AUDIT_PAGE_MAX))
+        before = decode_audit_cursor(cursor) if cursor else None
+        entries = await self._audit.page(workspace_id, limit + 1, before)
+        more = len(entries) > limit
+        entries = entries[:limit]
+        return entries, (encode_audit_cursor(entries[-1]) if more and entries else None)
 
     async def delete_audit_for_workspaces(self, workspace_ids) -> int:
         if self._audit is None:

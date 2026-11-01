@@ -158,7 +158,7 @@ class SsoUsedStateRow(Base, BaseRow):
 
 class WorkspaceAuditEventRow(Base, BaseRow):
     """Security events of a workspace (revision 0030): who got in through
-    break-glass. Ids only; written once per session and event."""
+    break-glass, one entry per request. Ids and route templates only."""
 
     __tablename__ = "workspace_audit_events"
     workspace_id = S.text("workspace_id")
@@ -166,17 +166,8 @@ class WorkspaceAuditEventRow(Base, BaseRow):
     event = S.text("event")
     __table_args__ = (
         Index(None, "workspace_id", "created_at"),
+        # the daily purge
         Index(None, "created_at"),
-        # one entry per session, workspace and event (the deduplication lives
-        # here, not in a process); events without a session are never deduplicated
-        Index(
-            "uq_workspace_audit_events_session",
-            "workspace_id",
-            "session_id",
-            "event",
-            unique=True,
-            postgresql_where=text("session_id IS NOT NULL"),
-        ),
     )
 
 
