@@ -60,7 +60,8 @@ formatting (`temporal/actions-executor/utilities/form.py`).
 * **One live export per requester and form** (a job in flight, or whose file waits to be fetched: 409
   `export_in_progress` or `export_ready`), enforced by a partial unique index, so two requests at once
   make one job. **At most `WORKSPACE_MAX_JOBS` (3) jobs in flight per workspace** (429 `workspace_busy`);
-  the count and the insert run under a lock on the workspace.
+  the count and the insert run under a lock on the workspace. A request refused for either reason is
+  given back to the rate limit below: it does not use up the person's budget.
 * **A run owns the export only while its claim is current.** Each stored chunk is written under the row
   lock together with a heartbeat (`started_at`), and refused once the export is no longer running on that
   claim; the final state is checked the same way. A job that is merely slow is therefore never taken for
@@ -146,4 +147,4 @@ Not covered yet (later, in the UI): narrowing an export of more than 100,000 res
 
 ## Rate limit
 
-10 requests per user and form per hour (exports and `all-submissions` reads together), one live export per user and form, three jobs in flight per workspace.
+10 requests per user and form per hour (exports and `all-submissions` reads together), one live export per user and form, three jobs in flight per workspace. A request refused because a slot was busy (429 `export_busy` / `workspace_busy`) or because the person's export of the form is still open (409 `export_in_progress` / `export_ready`) is given back and does not count; one refused by the rate limit itself (429 `rate_limited`) changes nothing.
