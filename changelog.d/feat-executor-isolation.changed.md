@@ -4,3 +4,5 @@
   `build_google_service`, and `get_secret()` returns a handle to pass to a call rather than the value. Once the backend
   and the executor are both upgraded, remove `AES_HEX_KEY` from the executor service. `ACTION_ISOLATION=legacy` restores
   the previous in-process run.
+  The executor image now runs as a non-root user (the sandbox then confines its child with Landlock); a container
+  that runs it as root with `cap_drop: [ALL]` is not supported.

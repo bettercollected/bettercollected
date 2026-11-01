@@ -17,11 +17,11 @@ operator does. Design background and the test list are at the end.
 
 | | Built-in action | Custom code |
 |---|---|---|
-| Outgoing calls | only through the egress rules below | only to a host **this run is configured with** (a parameter or secret of the action, the workspace or the form) or one the operator allows, and then through the egress rules |
+| Outgoing calls | only through the egress rules below | only to a host **this run is configured with** (a parameter or secret of the action, the workspace or the form) or one the operator allows, and then through the egress rules. A secret stored on the action itself by the instance's administrators (not overridden by the workspace or the form) can only go to an origin those administrators set |
 | Keys, environment, files | none reached: the executor needs no encryption key | none: the code runs in a child process with an empty environment, no file access and no network |
 | Secrets | opened by the backend for this one run and used inside the executor | the code holds a **handle** (`get_secret("Token")` prints `<secret Token>`); passing it in a call's headers, body or mail login makes the executor substitute the value |
 | Other runs | none | none: one child per run, with only that run's data |
-| Time and memory | the job's 90 s limit | per child: address space (`ACTION_SANDBOX_MEMORY_MB`), CPU (`ACTION_SANDBOX_CPU_SECONDS`), wall clock (`ACTION_SANDBOX_TIMEOUT_SECONDS`), number of calls (`ACTION_SANDBOX_MAX_CALLS`), log size |
+| Time and memory | the job's 90 s limit; every outgoing call also has a 20 s deadline of its own, and name lookups, calls and mail sends run off the event loop | per child: address space (`ACTION_SANDBOX_MEMORY_MB`), CPU (`ACTION_SANDBOX_CPU_SECONDS`), wall clock (`ACTION_SANDBOX_TIMEOUT_SECONDS`), number of calls (`ACTION_SANDBOX_MAX_CALLS`), log size |
 
 ### The egress rules (every outgoing call of an action)
 
@@ -30,10 +30,13 @@ operator does. Design background and the test list are at the end.
   including cloud metadata addresses, carrier-grade NAT, multicast or reserved, nor any of those inside an IPv6 form).
   The connection goes to the address that was checked.
 - No redirects, a capped request and reply, bounded time.
-- A workspace's or form's own SMTP server must be a plain public host name on port 25, 465, 587 or 2525.
-- Exceptions, both chosen by the operator and never by a creator: the addresses in the **action's own parameters** (the
-  defaults set when the instance's administrators created the action, including the instance's SMTP settings), and the hosts
-  listed in `ACTION_EGRESS_ALLOW`.
+- A workspace's or form's own SMTP server must be a plain public host name on port 25, 465, 587 or 2525. The mail connection
+  is made to the address that was checked, and the SMTP client is handed that socket (the host name is kept for TLS), so it
+  never resolves the name again.
+- Exceptions, both chosen by the operator and never by a creator: the **origins** (scheme, host and port) of the addresses
+  in the **action's own parameters** (the defaults set when the instance's administrators created the action, including the
+  instance's SMTP settings), and the hosts listed in `ACTION_EGRESS_ALLOW`. The same host on another scheme or port is not
+  an exception.
 
 A webhook that used to point at a private or plain-http address is therefore refused; list its host (or `host:port`) in
 `ACTION_EGRESS_ALLOW` on the executor if that is deliberate.
@@ -43,8 +46,10 @@ A webhook that used to point at a private or plain-http address is therefore ref
 The code may use: the run's `form`, `response`, `workspace`, `action` (without any secret), `get_parameter(s)`,
 `get_secret(s)` (handles), `get_simple_form_response()`, `get_state()`, `log()`/`print()`, `json.dumps/loads`, `random(seed)`,
 `HTTPException`, a handful of builtins (`len`, `sum`, `sorted`, `range`, `str`, `int`, `list`, `dict` ...), and the calls
-`send_data_webhook`, `send_data_discord`, `send_data_slack`, `config_mail` + `send_mail_action` (the SMTP settings must be
-the configured ones; recipients are the respondent or a current member of the workspace, at most five),
+`send_data_webhook`, `send_data_discord`, `send_data_slack`, `send_mail_action(config, subject, recipients)` (the code gives
+the subject and the recipients only; the login, server, port, sender and TLS settings are always the action's configured SMTP
+group, whatever `config_mail(...)` was given, the body is the executor's own template, and the kind of copy follows the
+recipient: the respondent gets the respondent's copy, a current workspace member the team's; at most five recipients),
 `append_in_sheet` (a configured sheet, the run's own credential, at most 500 rows).
 
 It may not: `import`, define classes, use `async`/`yield`, touch attributes starting with `_`, frame, generator, traceback
@@ -64,11 +69,21 @@ run with a message naming the line.
    These are Linux kernel features applied by the child to itself: nothing is needed from the container runtime, the
    orchestrator or the operator, on a compose stack, on Docker Swarm or on a bare host.
 3. The executor (the **broker**, `sandbox/broker.py`) refuses to send code to a child that did not report all of that, answers
-   the child's calls from a fixed table, enforces the quotas, and kills the child at the end. The executor process also
+   the child's calls from a fixed table, enforces the quotas and caps what the child says, and kills the child at the end. The executor process also
    makes itself non-dumpable, so its `/proc` entries are not readable by another process of its user.
 
 A host the kernel cannot confine (no Landlock and not root: kernel before 5.13, rootless without the feature) runs built-in
-actions as usual, and **refuses custom code**. The start log says which it is:
+actions as usual, and **refuses custom code**. Supported ways to run the executor container:
+
+| Container | Confinement of the child |
+|---|---|
+| non-root (the image's default user) | Landlock (kernel 5.13 or later) |
+| root with the default capabilities | `chroot` into an empty directory, a user drop and Landlock where the kernel has it |
+| root with `cap_drop: [ALL]` | **not supported**: it cannot `chroot` or drop the user; the child reports it and custom code is refused. Use a non-root user instead |
+
+The tests run unprivileged in CI (`REQUIRE_SANDBOX_TESTS=1` makes them fail, not skip, on a runner that cannot confine a
+child); the root path has one test that runs only as root, and was also run by hand in root, non-root and chroot-only
+containers. The start log says which it is:
 `action sandbox ready: filesystem=chroot+landlock seccomp=True unprivileged=True` or `action sandbox NOT available`.
 
 ## Operator steps
@@ -81,12 +96,13 @@ actions as usual, and **refuses custom code**. The start log says which it is:
    working with it.)
 4. Optionally list internal hosts your actions deliberately call in `ACTION_EGRESS_ALLOW`.
 5. Keep the container as tight as your orchestrator allows (defence in depth, not relied on): a read-only root filesystem,
-   `cap_drop: [ALL]` with a non-root user (the sandbox then uses Landlock alone), memory and CPU limits, an internal network with
+   `cap_drop: [ALL]` with the image's non-root user (the sandbox then uses Landlock alone; never `cap_drop: [ALL]` as root), memory and CPU limits, an internal network with
    a route to the backend's internal listener, the job database and the public internet only. Docker Swarm stack files do not apply every
    option a compose file can (`network_mode`, a custom seccomp profile, `tmpfs`); nothing here depends on them.
 
 `ACTION_ISOLATION=legacy` restores the pre-4.3 in-process run. It is a way back only: the code then runs inside the executor
-process and can reach everything the process can. It logs an error at start.
+process and can reach everything the process can, and calls follow no egress rules. It logs an error at start (on both the
+Postgres and the Temporal entry points) and a warning at every run.
 
 ## Settings (executor environment)
 
@@ -101,10 +117,11 @@ process and can reach everything the process can. It logs an error at start.
 
 ## Known limits
 
-- The seccomp filter is a deny list. A permitted system call that has a kernel flaw is not stopped by it; the unprivileged
-  user, the container's own default profile and a dedicated host are the answer for the most exposed setups.
-- An SMTP server a workspace named is checked when the executor is about to connect, but the mail library resolves the name
-  again; a name that changes its answer in between is not pinned. A network that cannot reach internal services closes that.
+- The seccomp filter is a deny list (generated from the kernel headers; every entry is evaluated in tests, and the calls that
+  signal or re-limit another process, queue signals, or use IPC are in it). A permitted system call that has a kernel flaw is
+  not stopped by it; an allow list is possible, because the child's footprint after start is small, and is a follow-up. The
+  unprivileged user, the container's own default profile and a dedicated host are the answer for the most exposed setups. On
+  Landlock ABI 6 kernels the child's ruleset also scopes signals.
 - Built-in actions run inside the executor process with that one action's secrets for the length of the run.
 - Creator-authored code is not a feature; this isolation was built so that it could become one.
 
@@ -112,7 +129,9 @@ process and can reach everything the process can. It logs an error at start.
 
 `temporal/actions-executor/tests/test_sandbox_adversarial_process.py` (code with the parse layer switched off: environment,
 files, network, processes, privileges, descriptors, other runs, CPU, memory, output), `test_sandbox_adversarial_language.py`
-(the usual escapes, refused and leak-free), `test_custom_action.py` (every call and its refusals), `test_egress.py`
-and `test_action_isolation.py` (addresses, pinning, redirects, the built-in actions against internal targets), and in the
+(the usual escapes, refused and leak-free), `test_custom_action.py` (every call and its refusals), `test_egress.py`,
+`test_egress_time.py` (deadline, slow-drip server, event loop not stalled), `test_pinned_mail.py` (the SMTP connection),
+`test_sandbox_syscalls.py` (the filter evaluated for both architectures), `test_sandbox_broker.py` (an unconfined child gets no
+code) and `test_action_isolation.py` (addresses, pinning, redirects, the built-in actions against internal targets), and in the
 backend `tests/app/jobs/test_action_run_secrets.py`. The process-level tests run the real child and skip only where the
 kernel cannot confine one.

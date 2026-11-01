@@ -54,7 +54,7 @@ worker's (`common/tests/test_key_ring.py`). Tests: `tests/test_sandbox_adversari
 must hold), `test_sandbox_adversarial_language.py`, `test_custom_action.py`, `test_egress.py`, `test_action_isolation.py`; the
 process tests skip only where the kernel cannot confine a child. Add a name to the child's namespace only with a handler
 that checks its arguments against this run; never hand it a live object (a function's `__globals__` is the whole process).
-`ACTION_ISOLATION=legacy` is the old in-process `exec`, a way back only.
+Mail from custom code: the code gives the subject and recipients only; the broker builds the SMTP group itself (`prepare_mail`), derives the copy kind from the recipient and sends through `utilities/pinned_mail.py` (connect to the checked address, hand the socket to aiosmtplib). Built-in sends, name lookups and slow calls run off the event loop (`blocking()`), custom-code calls on `custom_action.call_pool`. A secret stored on the action itself only goes to an origin in the action's own parameters. Only the executor's own Google call (never the code's say-so) switches an action off. The image runs as a non-root user (Landlock); root with `cap_drop: ALL` is not supported. `ACTION_ISOLATION=legacy` is the old in-process `exec`, a way back only (error at start, warning per run).
 
 ## Tech
 
