@@ -390,8 +390,12 @@ structure error is 422 `invalid_layout`. `is_hidden_by_logic` also reads the con
 `logic_sources(...).container_logic` (a dict subclass: the keys stay the questions), so hidden-by-container questions
 are exempt from Required like any hidden question and their answers stay stored. The op `set_page_containers`
 replaces a page's list; `add_field`, `add_group`, `insert_field` and `move_field` call `join_by_position`
-(inside a container joins it, the edge does not); `finished_form` repairs what a removal left. Never add a parallel
-check.
+(inside a container joins it, the edge does not); `finished_form` repairs what a removal left. `move_field` and
+`move_page` refuse (and undo) a move that leaves a new container problem once repaired (a rule reading a question that is
+no longer before the container; webapp twin: `newLayoutProblem` in `apply.ts` and the builder's hand-over in
+`form-document.ts`), as they do for option logic. Container and tab ids are never the id of a page, question or group
+child (`form_item_ids`; made-up ids skip them) and a container's rule has at most `CONTAINER_CONDITIONS_MAX` (20)
+conditions (model, `container_problems`, `set_page_containers`). Never add a parallel check.
 
 **Signature question** (`signature`; spec section "Signature question"): a drawn image or a typed name,
 behind its own switch `SIGNATURE_QUESTION_ENABLED` (default off, 422 `signature_question_disabled`, permissions

@@ -294,9 +294,10 @@ Every type may have `logic` (the shape of a question's `logic`: it shows or
 hides the whole container; the questions inside count as hidden by logic, so
 they are not required, and what they hold stays stored and sent, as for any
 question hidden by logic). Its conditions read only questions before the
-container.
+container, and there are at most 20 of them.
 
-- `id`s (containers and tabs) are unique across the form; a question id in a list is at most 200 characters. At most 20 containers
+- `id`s (containers and tabs) are unique across the form and are never the id of
+  a page, a question or a repeating group's child; a question id in a list is at most 200 characters. At most 20 containers
   per page and 100 questions per container.
 - The questions of a container are questions of that page, each in at most one
   container, never an internal question and never a repeating group's child
@@ -320,7 +321,11 @@ member of it before and after) joins it, at its edge it does not; a question
 moved out of its container leaves it (a container's only question takes the
 container along); removing a question, moving it to another page or into a
 group, or making it internal takes it out, and a container left without
-questions goes. `duplicate_page` copies the containers with new ids.
+questions goes. `duplicate_page` copies the containers with new ids. A
+`move_field` or `move_page` that would leave a container's rule reading a
+question that is not before the container (the question moved below it, into
+it, or onto a later page) is refused with a message starting "would break a
+layout container", and changes nothing.
 
 **Rollout.** Layout containers are behind the server setting
 `LAYOUT_CONTAINERS_ENABLED`, off by default. While it is off, every write that
