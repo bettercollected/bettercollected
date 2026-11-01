@@ -82,8 +82,8 @@ actions as usual, and **refuses custom code**. The start log says which it is:
 4. Optionally list internal hosts your actions deliberately call in `ACTION_EGRESS_ALLOW`.
 5. Keep the container as tight as your orchestrator allows (defence in depth, not relied on): a read-only root filesystem,
    `cap_drop: [ALL]` with a non-root user (the sandbox then uses Landlock alone), memory and CPU limits, an internal network with
-   a route to the backend's internal listener, the job database and the public internet only. Docker Swarm stack files ignore
-   `network_mode`, `security_opt` and `tmpfs`; nothing here depends on them.
+   a route to the backend's internal listener, the job database and the public internet only. Docker Swarm stack files do not apply every
+   option a compose file can (`network_mode`, a custom seccomp profile, `tmpfs`); nothing here depends on them.
 
 `ACTION_ISOLATION=legacy` restores the pre-4.3 in-process run. It is a way back only: the code then runs inside the executor
 process and can reach everything the process can. It logs an error at start.
