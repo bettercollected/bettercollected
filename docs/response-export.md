@@ -64,7 +64,7 @@ seek in). It has no way to write a formula, macro, defined name or external link
   value that is not stays text). Numbers stay numbers, except integers of 16 digits or more (Excel keeps
   15): those are text.
 * The file is kept openable: characters XML cannot carry are removed, the `_xHHHH_` escape Excel decodes
-  inside strings is escaped, text over Excel's 32,767 characters is cut, sheet names follow Excel's rules.
+  inside strings is escaped, text over Excel's 32,767 characters is cut, sheet names follow Excel's rules (31 UTF-16 units).
   A sheet cannot hold more than 1,048,576 rows: a job whose repeating-group table would pass it fails with
   `too_large`. More than 16,384 columns is refused (`too_many_columns`).
 * The header row is bold, frozen and filterable.
@@ -79,12 +79,15 @@ seek in). It has no way to write a formula, macro, defined name or external link
                 "internalAnswers": {}, "hiddenFields": {}}]}
 ```
 
-The shape follows the REST API's response (`responseId`, `submittedAt`, `answers` keyed by question id with
-the stored answer objects, `internalAnswers`), plus `questions` so the ids can be read. Only the selected
+The shape is close to the REST API's response: the same names (`responseId`, `submittedAt`, `answers` keyed by
+question id with the stored answer objects, `internalAnswers`) and the same answer objects, plus `questions` so the
+ids can be read and `formVersion`. The differences: `submittedAt` ends in `Z` (the CSV's form) where the API writes
+`+00:00`, and `responder`, `internalAnswers` and `hiddenFields` appear only when their columns are chosen (the API
+never returns who answered). Only the selected
 columns appear (`responder`, `internalAnswers` and `hiddenFields` only when chosen). A repeating group
 stays nested (`{"items": [{"<child id>": ...}]}`); the `rows`/`columns` layout is a spreadsheet matter.
 No link to a stored file leaves: an answer's `file_url`, a file's `url` and a drawn signature's `file_id`
-are removed (the CSV never carries them either).
+and `url` are removed (the CSV never carries them either).
 
 ## Streaming and jobs
 
@@ -215,7 +218,8 @@ read. A respondent's own copy is not served by this route.
   attachment is written. This is not done in the document sandbox: the sandbox exists to *open* hostile
   files with native decoders; nothing hostile is parsed here. At most `PDF_PARALLEL` (2) are drawn at once
   in a process (a request waits `PDF_WAIT_SECONDS`, then 429 `export_busy`), an answer is cut at 20,000
-  characters (`[shortened]`) and a document past 200 pages is refused (413 `pdf_too_large`).
+  characters (`[shortened]`), and a document past 200 pages, 500,000 characters in all or 10 seconds of layout
+  is refused (413 `pdf_too_large`; wrapping is linear in the text, even for one word wider than the line).
 * **Tagged.** The PDF carries a structure tree (`Document` > `H1`, `H2`, `L` > `LI` > `Lbl` + `LBody`) in
   reading order, the document language and title, and its page numbers are artifacts. It has not been
   validated against PDF/UA and is not claimed to conform.

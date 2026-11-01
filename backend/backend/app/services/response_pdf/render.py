@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import io
 import threading
+import time
 import unicodedata
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -66,6 +67,10 @@ MUTED = (0.35, 0.35, 0.35)
 
 MAX_PAGES = 200
 MAX_VALUE_CHARS = 20_000
+# all the text one document may lay out, and how long laying it out may take: a
+# document past either is refused (``PdfTooLarge``), so no input holds a worker
+MAX_TOTAL_CHARS = 500_000
+MAX_LAYOUT_SECONDS = 10.0
 
 _lock = threading.Lock()
 _registered = False
@@ -163,6 +168,22 @@ def ellipsize(text: str, font: str, size: float, width: float) -> str:
     return text.rstrip() + "\u2026"
 
 
+def _break_word(word: str, font: str, size: float, width: float) -> List[str]:
+    """``word`` cut between characters into pieces that fit ``width`` (one
+    character at least per piece), in one pass over it."""
+    pieces: List[str] = []
+    used = 0.0
+    start = 0
+    for index, ch in enumerate(word):
+        step = _char_width(ch, font, size)
+        if used + step > width and index > start:
+            pieces.append(word[start:index])
+            start, used = index, 0.0
+        used += step
+    pieces.append(word[start:])
+    return pieces
+
+
 def wrap(text: str, font: str, size: float, width: float) -> List[str]:
     """Break ``text`` into lines that fit ``width``: at spaces, a word wider than
     a line broken between characters; newlines are kept."""
@@ -177,17 +198,10 @@ def wrap(text: str, font: str, size: float, width: float) -> List[str]:
             if current:
                 lines.append(current)
                 current = ""
-            while text_width(word, font, size) > width:
-                used = 0.0
-                cut = 0
-                for ch in word:
-                    step = _char_width(ch, font, size)
-                    if used + step > width and cut:
-                        break
-                    used += step
-                    cut += 1
-                lines.append(word[:cut])
-                word = word[cut:]
+            if text_width(word, font, size) > width:
+                pieces = _break_word(word, font, size, width)
+                lines.extend(pieces[:-1])
+                word = pieces[-1]
             current = word
         lines.append(current)
     return lines
@@ -226,6 +240,14 @@ class Layout:
     root: Node = field(default_factory=lambda: Node("Document"))
     pages: List[List[Placed]] = field(default_factory=lambda: [[]])
     y: float = PAGE_HEIGHT - MARGIN
+    chars: int = 0
+    started: float = field(default_factory=time.monotonic)
+
+    def spend(self, text: str) -> None:
+        """Count ``text`` against the document's budget of characters and time."""
+        self.chars += len(text)
+        if self.chars > MAX_TOTAL_CHARS or time.monotonic() - self.started > MAX_LAYOUT_SECONDS:
+            raise PdfTooLarge()
 
     def room(self, height: float) -> bool:
         return self.y - height >= BOTTOM
@@ -259,8 +281,11 @@ class Layout:
         """Place ``text`` line by line under ``node``; the first ``keep`` lines
         stay together on a page, with ``reserve`` more room after them (a label
         never ends a page without the start of its answer)."""
+        self.spend(text)
         rows = wrap(clean_text(text), font, size, width)
         for index, row in enumerate(rows):
+            if index % 200 == 199:
+                self.spend("")
             needed = leading * (min(keep, len(rows) - index) if index == 0 else 1)
             if index == 0:
                 needed += reserve
@@ -290,6 +315,8 @@ def _entry_inline(layout: Layout, parent: Node, entry: Entry) -> None:
     item = parent.child("LI")
     label = item.child("Lbl")
     body = item.child("LBody")
+    layout.spend(entry.label)
+    layout.spend(str(entry.body or ""))
     label_lines = wrap(clean_text(entry.label), BOLD, BODY_SIZE, LABEL_COLUMN - 8)
     value_lines = wrap(clean_text(str(entry.body or "")), REGULAR, BODY_SIZE, CONTENT_WIDTH - LABEL_COLUMN)
     rows = max(len(label_lines), len(value_lines))
@@ -348,6 +375,9 @@ def _draw(document: PdfDocument, layout: Layout) -> bytes:
             pdf.setFont(line.font, line.size)
             pdf.setFillColorRGB(*line.color)
             tag = line.node.tag
+            # ``Canvas._code`` is private: marked content has no public hook in ReportLab.
+            # The version is pinned (pyproject.toml) and ``test_the_private_canvas_hook_still_exists``
+            # fails when an upgrade moves it
             pdf._code.append(f"/{tag} << /MCID {mcid} >> BDC")
             pdf.drawString(line.x, line.y, line.text)
             pdf._code.append("EMC")

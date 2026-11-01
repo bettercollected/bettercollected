@@ -93,6 +93,10 @@ def test_xml_text_keeps_the_text_and_drops_what_xml_cannot_carry():
     # Excel decodes ``_x0041_`` inside a string: it is escaped so the text survives
     assert xml_text("_x0041_") == "_x005F_x0041_"
     assert xml_text("x_y_x41_") == "x_y_x41_"
+    # overlapping escapes (the closing underscore of one opens the next), and a capital X
+    assert xml_text("_x0041_x0042_") == "_x005F_x0041_x005F_x0042_"
+    assert xml_text("_X0041_") == "_x005F_X0041_"
+    assert xml_text("_x004") == "_x004"
     assert len(xml_text("a" * 40_000)) == xlsx_module.MAX_CELL_CHARS
 
 
@@ -108,6 +112,10 @@ def test_sheet_names_follow_excels_rules():
     assert taken[6] == "History (2)"
     assert len({t.lower() for t in taken}) == len(taken)
     assert all(len(t) <= 31 for t in taken)
+    # Excel counts UTF-16 units: an emoji is two
+    emoji = sheet_name("\U0001f600" * 20, [])
+    assert emoji == "\U0001f600" * 15 and len(emoji.encode("utf-16-le")) // 2 == 30
+    assert len(sheet_name("\U0001f600" * 20, [emoji]).encode("utf-16-le")) // 2 <= 31
 
 
 def test_dates_are_serials_only_when_they_are_iso_dates():
@@ -398,7 +406,7 @@ async def test_json_never_carries_a_link_to_a_stored_file():
         ]
     )
     answers = {
-        "sig": {"type": "signature", "signature": {"method": "drawn", "file_id": "abc123", "signed_at": "2026-10-01T10:00:00Z"}},
+        "sig": {"type": "signature", "signature": {"method": "drawn", "file_id": "abc123", "url": "/workspaces/w/submissions/r/signatures/sig", "signed_at": "2026-10-01T10:00:00Z"}},
         "up": {
             "type": "file_url",
             "file_url": "https://storage.example/obj?sig=secret",
@@ -406,7 +414,7 @@ async def test_json_never_carries_a_link_to_a_stored_file():
         },
     }
     raw = (await collect("json", build_plan(form), form, [one_response(answers)])).decode()
-    assert "https://" not in raw and "secret" not in raw and "abc123" not in raw
+    assert "https://" not in raw and "secret" not in raw and "abc123" not in raw and "/signatures/" not in raw
     document = json.loads(raw)
     answer = document["responses"][0]["answers"]
     assert answer["sig"]["signature"] == {"method": "drawn", "signed_at": "2026-10-01T10:00:00Z"}
