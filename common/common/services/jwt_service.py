@@ -15,9 +15,11 @@ def decode_with_ring(token: str, secret_ring: str, **options: Any) -> dict:
     docs/auth-key-rotation.md). A token signed with any member verifies; one
     signed with none raises ``InvalidSignatureError`` like a single key would.
     Expiry and other claim errors are raised as PyJWT raises them (only after
-    the signature checked out)."""
+    the signature checked out). The algorithm is pinned to HS256 here, whatever the
+    caller passes: a ring member is an HMAC secret, never a public key."""
     members: Sequence[str] = token_members(secret_ring) or [secret_ring]
-    options.setdefault("algorithms", ["HS256"])
+    options.pop("algorithms", None)
+    options["algorithms"] = ["HS256"]
     failure: Exception = jwt.InvalidSignatureError("Signature verification failed")
     for member in members:
         try:

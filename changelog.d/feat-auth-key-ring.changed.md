@@ -8,3 +8,8 @@
   with the backend's key ring and sealed again with its current key; a value no key of the ring
   opens is refused with a 422. The services now report in their heartbeat that they understand
   key rings.
+- Upgrade note: the sign-in code hash and the PKCE verifiers of the Google Sheets and Google Forms
+  OAuth flows are now derived from the encryption key as the one key parser reads it (surrounding
+  spaces and one pair of quotes removed). A key stored with quotes or spaces gives different codes
+  and verifiers than before: a sign-in code or an OAuth authorization started before the upgrade
+  and finished after it fails once and is simply started again. A key without them is unchanged.

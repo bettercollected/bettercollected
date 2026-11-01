@@ -259,3 +259,16 @@ def test_a_quoted_encryption_key_gives_the_same_pkce_verifier_at_the_start_and_t
     unquoted = f"{NEW_F},{OLD_F}"
     _aes(monkeypatch, unquoted)
     assert sheets.pkce_code_verifier(state) == started  # the same as the unquoted ring
+
+
+def test_the_algorithm_is_pinned_to_hs256_inside_decode_with_ring():
+    claims = {"id": "u", "exp": int(time.time()) + 60}
+    hs512 = jwt.encode(claims, OLD, algorithm="HS512")
+    unsigned = jwt.encode(claims, None, algorithm="none")
+    for token in (hs512, unsigned):
+        # a caller cannot widen it
+        for algorithms in (None, ["HS256"], ["HS512"], ["HS256", "HS512", "none"]):
+            extra = {} if algorithms is None else {"algorithms": algorithms}
+            with pytest.raises(jwt.PyJWTError):
+                decode_with_ring(token, f"{NEW},{OLD}", **extra)
+    assert decode_with_ring(jwt.encode(claims, OLD, algorithm="HS256"), f"{NEW},{OLD}", algorithms=["HS512"])["id"] == "u"
