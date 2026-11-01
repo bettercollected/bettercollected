@@ -431,3 +431,212 @@ async def test_a_key_read_that_cannot_be_audited_does_not_return_the_answers(
     monkeypatch.setattr(service(), "audit_key_read", broken)
     refused = await client.get(f"{BASE}/forms/{published_form.form_id}/responses", headers=_auth(token))
     assert refused.status_code == 500 and "responseId" not in refused.text
+
+
+# ================================================== review round: fixes and gaps
+
+
+async def test_a_refused_slot_does_not_use_up_the_rate_limit(workspace, monkeypatch):
+    monkeypatch.setattr(limits, "STREAM_MAX_ROWS", 50)
+    monkeypatch.setattr(limits, "REQUESTS_PER_WINDOW", 3)
+    form = await publish(workspace)
+    await submit_many(workspace, form, 2)
+    held = [await ask(workspace, form) for _ in range(limits.STREAMS_PER_USER)]
+    for _ in range(4):
+        with pytest.raises(Exception) as busy:
+            await ask(workspace, form)
+        assert busy.value.content["code"] == "export_busy"
+    # four refusals later the person still has the budget the admitted ones left
+    await drain(held[0])
+    assert (await ask(workspace, form)).export.status == ExportStatus.STREAMING
+    await drain(held[1])
+    with pytest.raises(Exception) as limited:
+        await ask(workspace, form)
+    assert limited.value.content["code"] == "rate_limited"
+
+
+async def test_a_refused_slot_of_a_bulk_read_does_not_use_up_the_rate_limit(workspace, monkeypatch):
+    monkeypatch.setattr(limits, "STREAM_MAX_ROWS", 50)
+    monkeypatch.setattr(limits, "REQUESTS_PER_WINDOW", 3)
+    monkeypatch.setattr(limits, "STREAMS_PER_USER", 1)
+    form = await publish(workspace)
+    await submit_many(workspace, form, 2)
+    held = await ask(workspace, form)
+    for _ in range(4):
+        with pytest.raises(Exception) as busy:
+            await service().bulk_read(workspace.id, form.form_id, testUser)
+        assert busy.value.status_code == 429 and busy.value.content["code"] == "export_busy"
+    await drain(held)
+    assert len(await service().bulk_read(workspace.id, form.form_id, testUser)) == 2
+
+
+async def test_a_refused_job_slot_does_not_use_up_the_rate_limit(workspace, monkeypatch):
+    monkeypatch.setattr(limits, "REQUESTS_PER_WINDOW", 4)
+    forms = []
+    for _ in range(limits.WORKSPACE_MAX_JOBS + 1):
+        form = await publish(workspace)
+        await submit_many(workspace, form, 3)
+        forms.append(form)
+    for form in forms[: limits.WORKSPACE_MAX_JOBS]:
+        await ask(workspace, form, user=invited_user)
+    for _ in range(5):
+        with pytest.raises(Exception) as busy:
+            await ask(workspace, forms[-1])
+        assert busy.value.content["code"] == "workspace_busy"
+    # testUser's own budget for that form is untouched (a limit of 4, five refusals)
+    (first,) = [e for e in await repo().many() if e.form_id == forms[0].form_id]
+    await service().run_job(str(first.id))
+    assert (await ask(workspace, forms[-1])).status == ExportStatus.QUEUED
+
+
+async def test_a_stream_keeps_its_slot_while_it_lives_however_slow_its_client(workspace, monkeypatch):
+    """Longer than the slot time, with a client that does not read: the stream's own
+    heartbeat keeps it counted, and it stops counting once it is read to its end."""
+    monkeypatch.setattr(limits, "STREAM_MAX_ROWS", 50)
+    monkeypatch.setattr(limits, "STREAMS_PER_USER", 1)
+    monkeypatch.setattr(limits, "STREAM_SLOT_TTL", dt.timedelta(seconds=1))
+    monkeypatch.setattr(limits, "STREAM_BEAT_EVERY", dt.timedelta(seconds=0.2))
+    monkeypatch.setattr(writer, "PIECE_BYTES", 40)
+    form = await publish(workspace)
+    await submit_many(workspace, form, 4)
+    started = await ask(workspace, form)
+    body = started.body.__aiter__()
+    await body.__anext__()
+    await asyncio.sleep(1.6)  # well past the slot time, nobody pulling
+    with pytest.raises(Exception) as busy:
+        await ask(workspace, form)
+    assert busy.value.content["code"] == "export_busy"
+    async for _ in body:
+        pass
+    done = await repo().get_by_id(started.export.id)
+    assert done.status == ExportStatus.COMPLETED and done.heartbeat_at is not None
+    assert (await ask(workspace, form)).export.status == ExportStatus.STREAMING
+
+
+async def test_a_stream_that_stopped_beating_stops_counting(workspace, monkeypatch):
+    """The abandoned stream (the client left before the body started) is back to its
+    requester within the slot time, not after the sweep's hour."""
+    monkeypatch.setattr(limits, "STREAM_MAX_ROWS", 50)
+    monkeypatch.setattr(limits, "STREAMS_PER_USER", 1)
+    monkeypatch.setattr(limits, "STREAM_SLOT_TTL", dt.timedelta(seconds=1))
+    form = await publish(workspace)
+    await submit_many(workspace, form, 2)
+    await ask(workspace, form)
+    with pytest.raises(Exception):
+        await ask(workspace, form)
+    await asyncio.sleep(1.3)
+    assert (await ask(workspace, form)).export.status == ExportStatus.STREAMING
+
+
+async def test_a_stream_the_sweep_ended_is_not_reopened_by_its_late_finish(workspace, monkeypatch):
+    monkeypatch.setattr(limits, "STREAM_MAX_ROWS", 50)
+    form = await publish(workspace)
+    await submit_many(workspace, form, 2)
+    started = await ask(workspace, form)
+    monkeypatch.setattr(service(), "_clock", lambda: utcnow() + limits.STALE_STREAMING_AFTER + dt.timedelta(minutes=1))
+    await service().redefer_pending()
+    swept = await repo().get_by_id(started.export.id)
+    assert swept.status == ExportStatus.CANCELLED and swept.error_code == "interrupted"
+    await drain(started)
+    after = await repo().get_by_id(started.export.id)
+    assert after.status == ExportStatus.CANCELLED and after.error_code == "interrupted"
+    # the same for the close of a bulk read
+    other = await ask(workspace, form, user=invited_user)
+    await service().redefer_pending()
+    await service()._end_bulk(other.export.id, ExportStatus.COMPLETED, 2, None)
+    assert (await repo().get_by_id(other.export.id)).status == ExportStatus.CANCELLED
+
+
+async def test_a_bulk_read_holds_its_slot_until_its_answer_is_built(workspace, monkeypatch):
+    """FastAPI serialises the answer after the service returns: the row is closed by
+    a task that runs after the response, not before it."""
+    from fastapi import BackgroundTasks
+
+    monkeypatch.setattr(limits, "STREAMS_PER_USER", 1)
+    form = await publish(workspace)
+    await submit_many(workspace, form, 2)
+    background = BackgroundTasks()
+    answer = await service().bulk_read(workspace.id, form.form_id, testUser, background)
+    assert len(answer) == 2
+    (entry,) = await in_flight(workspace)
+    with pytest.raises(Exception) as busy:
+        await ask(workspace, form)
+    assert busy.value.content["code"] == "export_busy"
+    await background()
+    closed = await repo().get_by_id(entry.id)
+    assert closed.status == ExportStatus.COMPLETED and closed.row_count == 2 and closed.expected_rows == 2
+    assert (await ask(workspace, form)).export.status == ExportStatus.STREAMING
+
+
+async def test_a_failure_to_close_a_bulk_read_row_does_not_turn_a_good_read_into_an_error(
+    client: AsyncClient, workspace, monkeypatch
+):
+    form = await publish(workspace)
+    await submit_many(workspace, form, 2)
+
+    async def broken(*args, **kwargs):
+        raise RuntimeError("database gone")
+
+    monkeypatch.setattr(repo(), "update_locked", broken)
+    path = f"/api/v1/workspaces/{workspace.id}/forms/{form.form_id}/all-submissions"
+    response = await client.get(path, cookies=_cookies(testUser))
+    assert response.status_code == 200 and len(response.json()) == 2
+    monkeypatch.undo()
+    # the row stays open until its heartbeat runs out; the sweep ends it
+    assert len(await in_flight(workspace)) == 1
+
+
+async def test_a_cancelled_bulk_read_still_closes_its_row(workspace, monkeypatch):
+    form = await publish(workspace)
+    await submit_many(workspace, form, 2)
+    entered = asyncio.Event()
+
+    async def slow(*args, **kwargs):
+        entered.set()
+        await asyncio.sleep(30)
+
+    monkeypatch.setattr(container.form_response_service(), "get_workspace_form_all_submissions", slow)
+    task = asyncio.create_task(service().bulk_read(workspace.id, form.form_id, testUser))
+    await entered.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    (entry,) = [e for e in await repo().many() if e.channel == "all_submissions"]
+    assert entry.status == ExportStatus.FAILED and entry.error_code == "interrupted"
+
+
+async def test_a_failing_queue_sweep_does_not_stop_the_file_purge(workspace, monkeypatch):
+    form = await publish(workspace)
+    await submit_many(workspace, form, 3)
+    job = await queued_job(workspace, form)
+    assert await service().run_job(str(job.id)) == "ready"
+    assert await repo().count_chunks(job.id) > 0
+
+    async def broken():
+        raise RuntimeError("database gone")
+
+    monkeypatch.setattr(service(), "fail_overdue_queued", broken)
+    monkeypatch.setattr(service(), "_clock", lambda: utcnow() + limits.FILE_TTL + dt.timedelta(minutes=1))
+    assert await service().purge_expired() == 1
+    gone = await repo().get_by_id(job.id)
+    assert gone.status == ExportStatus.EXPIRED and await repo().count_chunks(job.id) == 0
+
+
+async def test_a_read_that_returns_nothing_writes_no_audit_entry(client: AsyncClient, workspace, published_form):
+    response = await _submit(workspace, published_form)
+    token = await _token(workspace.id)
+    url = f"{BASE}/forms/{published_form.form_id}/responses"
+    # a page past the end is empty
+    empty = await client.get(url + "?page=5", headers=_auth(token))
+    assert empty.status_code == 200 and empty.json()["items"] == []
+    assert [e for e in await repo().many() if e.channel == "api_key"] == []
+    assert (await client.get(url, headers=_auth(token))).status_code == 200
+    assert len([e for e in await repo().many() if e.channel == "api_key"]) == 1
+
+    # MCP: a form with no responses
+    mcp = await _make_key(workspace.id, ["responses:read"])
+    other = await publish(workspace)
+    listed = await _call_tool(client, mcp, "list_responses", {"form_id": other.form_id})
+    assert not listed.get("isError") and json.loads(listed["content"][0]["text"]) == []
+    assert [e for e in await repo().many() if e.channel == "mcp"] == []
+    assert response.response_id

@@ -4,7 +4,7 @@ from typing import Any, List
 from common.ids import RecordId
 from classy_fastapi import delete, get, patch, post
 from common.models.user import User
-from fastapi import Depends, Query
+from fastapi import BackgroundTasks, Depends, Query
 from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import Response
@@ -171,6 +171,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
         self,
         workspace_id: RecordId,
         form_id: str,
+        background_tasks: BackgroundTasks,
         user: User = Depends(get_logged_user),
     ):
         """Every response of the form, decrypted and unpaginated: a bulk
@@ -179,7 +180,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
         rate limited the same way (``services/response_export``); the flow view
         reads ``.../submission-paths``."""
         return await container.response_export_service().bulk_read(
-            workspace_id, form_id, user
+            workspace_id, form_id, user, background_tasks
         )
 
     @get(

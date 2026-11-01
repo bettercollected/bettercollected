@@ -6,3 +6,6 @@
   holding the workspace's export slots. A running export job now records its own
   heartbeat, also while it reads rows, so a stuck job is told apart without losing when
   it started.
+  While a rolling update is under way, a backend still on the previous version reads a
+  running export job's start time as its heartbeat, so it may queue a job again after 30
+  minutes; update every backend replica promptly (the job itself stays safe).

@@ -71,8 +71,12 @@ formatting (`temporal/actions-executor/utilities/form.py`).
   requester and workspace (429 `export_busy`) and `STREAMS_PER_WORKSPACE` (6) per workspace (429
   `workspace_busy`). They are counted in Postgres, on the audit rows that are `streaming`, under the same
   per-workspace lock the jobs take, so the bound holds with several backend replicas. A stream frees its
-  slot when it ends (finished or cut off); one that nobody ever read stops counting after
-  `STREAM_SLOT_TTL` (15 minutes), and the sweep ends its row after `STALE_STREAMING_AFTER`.
+  slot when it ends (finished or cut off). A live stream beats (`heartbeat_at`, every
+  `STREAM_BEAT_EVERY`, 30 seconds, from a task of its own, so a slow client does not matter) and counts for
+  as long as it beats; one that has not beaten for `STREAM_SLOT_TTL` (3 minutes), such as a stream whose
+  client left before the body started, stops counting, and the sweep ends its row after
+  `STALE_STREAMING_AFTER` without a beat. A request refused because no slot was free is given back to the
+  rate limit below: it does not use up the person's budget.
 * **A queued job has a maximum age.** One that no worker has taken in `QUEUED_MAX_AGE` (2 hours since it
   was queued) is failed with `queue_timeout` by the hourly sweep: the Export control shows it as a failed
   export, its sealed filters are removed and the workspace's slot and the requester's open export are
@@ -124,8 +128,10 @@ scripts) takes the same permission, shares the rate limit and writes the same au
 `all_submissions`, format `json`). Its answer is built in memory, so it holds at most
 `BULK_JSON_MAX_ROWS` (5,000) responses: a form with more is refused with 413 `too_many_rows` (the
 response for smaller forms is unchanged), and the message points to the export, which takes up to
-100,000. It counts as a stream in flight while it reads, and a refused or failed read leaves its row as
-`failed` with a code and no rows.
+100,000. It counts as a stream in flight until its answer has been built and sent (the row is closed by a task
+after the response; a failure to close it never turns a good read into an error, and the row stops
+counting after `STREAM_SLOT_TTL`), and a refused or failed read leaves its row as `failed` with a code
+and no rows.
 
 Reads of responses through a **workspace API key** (the REST API's `GET .../responses` and
 `.../responses/{id}`, and MCP `list_responses` and `get_response`) write the same kind of entry, one per

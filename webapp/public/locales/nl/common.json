@@ -1153,6 +1153,7 @@
     "ERROR_GENERIC": "De export is niet gelukt. Probeer het opnieuw.",
     "ERROR_READY": "Er staat al een export van dit formulier klaar. Download die, of verwijder het bestand om een nieuwe te starten.",
     "ERROR_BUSY": "Er worden meerdere exports van deze werkruimte voorbereid. Probeer het over een paar minuten opnieuw.",
+    "ERROR_EXPORT_BUSY": "U hebt al exports van deze werkruimte lopen. Probeer het opnieuw wanneer er een klaar is.",
     "DOWNLOADED_STAYS": "Gedownload. Het bestand blijft tot {{time}} op onze servers staan, dus u kunt het opnieuw downloaden.",
     "DISCARD": "Bestand verwijderen",
     "DISCARDING": "Bestand wordt verwijderd…",

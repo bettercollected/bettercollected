@@ -31,7 +31,7 @@ HEARTBEAT_EVERY = dt.timedelta(seconds=30)
 # workspace's slots and the sealed filters for ever
 QUEUED_MAX_AGE = dt.timedelta(hours=2)
 MAX_ATTEMPTS = 3
-# a streamed export still "streaming" after this long was cut off (the process died)
+# a streamed export that has not beaten for this long was cut off (the process died)
 STALE_STREAMING_AFTER = dt.timedelta(hours=1)
 # jobs in flight (queued or running) per workspace; more wait for these to end
 WORKSPACE_MAX_JOBS = 3
@@ -40,10 +40,14 @@ WORKSPACE_MAX_JOBS = 3
 # at a time, so they are counted in Postgres (every backend replica sees the same)
 STREAMS_PER_USER = 2
 STREAMS_PER_WORKSPACE = 6
-# a stream counts toward those limits for this long at most: one whose client
-# vanished before the body started never closes its row (the sweep ends it after
-# ``STALE_STREAMING_AFTER``), and must not lock its requester out meanwhile
-STREAM_SLOT_TTL = dt.timedelta(minutes=15)
+# a live stream beats (``heartbeat_at``, which also moves ``updated_at``), from a
+# task of its own, this often, and counts toward those limits for as long as it beats; one
+# that has not beaten for ``STREAM_SLOT_TTL`` no longer counts. A slow client of
+# a live stream keeps its slot, and one whose client vanished before the body
+# started (its row is never closed; the sweep ends it after
+# ``STALE_STREAMING_AFTER`` without a beat) gives it back within minutes
+STREAM_BEAT_EVERY = dt.timedelta(seconds=30)
+STREAM_SLOT_TTL = dt.timedelta(minutes=3)
 # most responses the bulk JSON read (GET .../all-submissions) builds in memory;
 # a bigger form is read with an export (POST .../exports: streamed, or a job)
 BULK_JSON_MAX_ROWS = 5_000

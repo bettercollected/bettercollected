@@ -170,8 +170,8 @@ class PostgresResponseExportRepository(RecordRepository):
         """Store the audit row of a streamed export (or bulk read) unless the
         requester already has ``per_user`` streams in flight in the workspace or
         the workspace has ``per_workspace`` (``StreamsBusy``). A stream is in
-        flight while its row is ``streaming`` and was created at or after
-        ``since``. The counts and the insert share one transaction under the
+        flight while its row is ``streaming`` and was last written (a heartbeat
+        of the stream, or its creation) at or after ``since``. The counts and the insert share one transaction under the
         workspace's advisory lock (the one ``admit_job`` takes), so parallel
         requests, on this process or on another replica, cannot all get in."""
         key = _workspace_lock_key(document.workspace_id)
@@ -181,7 +181,7 @@ class PostgresResponseExportRepository(RecordRepository):
         live = [
             ResponseExportRow.workspace_id == _id(document.workspace_id),
             streaming,
-            ResponseExportRow.created_at >= since,
+            ResponseExportRow.updated_at >= since,
         ]
         async with self._session() as session, session.begin():
             await session.execute(select(func.pg_advisory_xact_lock(key)))

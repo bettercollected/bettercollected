@@ -32,6 +32,7 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional
 
+from fastapi import BackgroundTasks
 from loguru import logger
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
@@ -233,10 +234,44 @@ class ResponseExportService:
         await self._authorize(user, workspace_id, form_id)
         return column_catalogue(await self._form(form_id))
 
+    @staticmethod
+    def _rate_scope(workspace_id: RecordId, form_id: str) -> str:
+        return f"response-export:{workspace_id}:{form_id}"
+
+    async def _take_rate_limit(self, workspace_id: RecordId, form_id: str, actor_id: str) -> None:
+        """Count one request against the requester's budget for the form (429 with
+        ``Retry-After`` when it is spent). A refused request changes nothing."""
+        verdict = await self._limiter.admit(
+            self._rate_scope(workspace_id, form_id),
+            actor_id,
+            limits.REQUESTS_PER_WINDOW,
+            limits.WINDOW_SECONDS,
+        )
+        if not verdict.allowed:
+            raise _error(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                "rate_limited",
+                f"Too many exports of this form. Try again in {verdict.retry_after} seconds.",
+                **{"Retry-After": str(verdict.retry_after)},
+            )
+
+    async def _give_back_rate_limit(self, workspace_id: RecordId, form_id: str, actor_id: str) -> None:
+        """A request that found no free slot was not an export: it does not use
+        up the budget of requests the person may make."""
+        try:
+            await self._limiter.release(
+                self._rate_scope(workspace_id, form_id), actor_id, limits.WINDOW_SECONDS
+            )
+        except Exception as error:  # noqa: BLE001 - only the budget is lost
+            logger.warning("could not give back an export request ({})", type(error).__name__)
+
     async def _admit_stream(self, export: ResponseExportDocument) -> None:
         """Store the audit row of a stream unless the requester or the workspace
-        already has its share in flight (429). The row is the slot: it is freed
-        when the stream ends, or ``STREAM_SLOT_TTL`` after it began."""
+        already has its share in flight (429; the refused request is given back
+        to the rate limit). The row is the slot: it is freed when the stream ends,
+        and while the stream lives its heartbeat (``updated_at``, beaten by the
+        stream) keeps it counted; one that stops beating for ``STREAM_SLOT_TTL``
+        no longer counts."""
         try:
             await self._exports.admit_stream(
                 export,
@@ -245,6 +280,7 @@ class ResponseExportService:
                 self._clock() - limits.STREAM_SLOT_TTL,
             )
         except StreamsBusy as busy:
+            await self._give_back_rate_limit(export.workspace_id, export.form_id, export.actor_id)
             if busy.scope == "workspace":
                 raise _error(
                     HTTPStatus.TOO_MANY_REQUESTS,
@@ -260,30 +296,30 @@ class ResponseExportService:
             ) from None
 
     # ----------------------------------------------------------- the bulk JSON route
-    async def bulk_read(self, workspace_id: RecordId, form_id: str, user: User):
+    async def bulk_read(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        user: User,
+        background: Optional[BackgroundTasks] = None,
+    ):
         """``GET .../all-submissions``: every response of the form as decrypted
         JSON. It is an export like any other, so it takes the same permission,
         rate limit and audit entry (channel ``all_submissions``, one row per
-        read, never an answer), counts as a stream in flight while it reads, and
-        holds at most ``BULK_JSON_MAX_ROWS`` responses (413 ``too_many_rows``
-        above that: the answer is built in memory)."""
+        read, never an answer), counts as a stream in flight, and holds at most
+        ``BULK_JSON_MAX_ROWS`` responses (413 ``too_many_rows`` above that: the
+        answer is built in memory).
+
+        The slot is held until the answer has been built and sent: with
+        ``background`` the audit row is closed by a task that runs after the
+        response (FastAPI serialises up to ``BULK_JSON_MAX_ROWS`` responses after
+        this returns); a failure to close it is logged and never turns a good
+        read into an error. The row is closed by the sweep if that never runs."""
         # the permission first (403 for a role that may not export), then the
         # form's own 404, before any audit row is made for it
         await self._authorization.authorize(user, Permission.RESPONSE_EXPORT, workspace_id)
         await self._responses.ensure_form_in_workspace(workspace_id, form_id)
-        verdict = await self._limiter.hit(
-            f"response-export:{workspace_id}:{form_id}",
-            str(user.id),
-            limits.REQUESTS_PER_WINDOW,
-            limits.WINDOW_SECONDS,
-        )
-        if not verdict.allowed:
-            raise _error(
-                HTTPStatus.TOO_MANY_REQUESTS,
-                "rate_limited",
-                f"Too many exports of this form. Try again in {verdict.retry_after} seconds.",
-                **{"Retry-After": str(verdict.retry_after)},
-            )
+        await self._take_rate_limit(workspace_id, form_id, str(user.id))
         export = ResponseExportDocument(
             workspace_id=workspace_id,
             form_id=form_id,
@@ -305,24 +341,31 @@ class ResponseExportService:
                 if isinstance(error, HTTPException) and error.status_code == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
                 else "interrupted"
             )
-            await _settle(self._exports.update_locked(export.id, self._ended_stream(ExportStatus.FAILED, 0, code)))
+            await _settle(self._end_bulk(export.id, ExportStatus.FAILED, 0, code))
             raise
-
-        def done(document: ResponseExportDocument):
-            document.expected_rows = document.row_count = len(responses)
-            document.finished_at = self._clock()
-            document.status = ExportStatus.COMPLETED
-            return document
-
-        await self._exports.update_locked(export.id, done)
+        if background is not None:
+            background.add_task(self._end_bulk, export.id, ExportStatus.COMPLETED, len(responses), None)
+        else:
+            await _settle(self._end_bulk(export.id, ExportStatus.COMPLETED, len(responses), None))
         return responses
 
-    def _ended_stream(self, status: ExportStatus, rows: int, code: str):
+    async def _end_bulk(self, export_id, status: ExportStatus, rows: int, code: Optional[str]) -> None:
+        """Close the audit row of a bulk read (only while it is still ``streaming``:
+        one the sweep ended is left as it is). Never raises: bookkeeping."""
+        try:
+            await self._exports.update_locked(export_id, self._ended_stream(status, rows, code))
+        except Exception as error:  # noqa: BLE001 - the sweep closes the row
+            logger.warning("could not finish bulk read {} ({})", export_id, type(error).__name__)
+
+    def _ended_stream(self, status: ExportStatus, rows: int, code: Optional[str]):
         def change(document: ResponseExportDocument):
+            # only a stream still open: one the sweep ended stays as it is
             if document.status != ExportStatus.STREAMING:
                 return None
             document.status = status
             document.row_count = rows
+            if status == ExportStatus.COMPLETED:
+                document.expected_rows = rows
             document.error_code = code
             document.finished_at = self._clock()
             return document
@@ -342,7 +385,11 @@ class ResponseExportService:
         who is the key (``api-key:<id>``, never the key's secret, name or
         creator), what is the form and how many responses were returned. No
         answer, no search text. Raises when it cannot be stored, so the read
-        fails rather than leaves unrecorded."""
+        fails rather than leaves unrecorded. A read that returned nothing (an
+        empty list, a page past the end) is not a read of a response and writes no
+        entry."""
+        if rows <= 0:
+            return
         now = self._clock()
         await self._exports.save(
             ResponseExportDocument(
@@ -384,19 +431,7 @@ class ResponseExportService:
         if not plan.columns:
             raise _error(HTTPStatus.UNPROCESSABLE_ENTITY, "no_columns", "Choose at least one column.")
 
-        verdict = await self._limiter.hit(
-            f"response-export:{workspace_id}:{form_id}",
-            str(user.id),
-            limits.REQUESTS_PER_WINDOW,
-            limits.WINDOW_SECONDS,
-        )
-        if not verdict.allowed:
-            raise _error(
-                HTTPStatus.TOO_MANY_REQUESTS,
-                "rate_limited",
-                f"Too many exports of this form. Try again in {verdict.retry_after} seconds.",
-                **{"Retry-After": str(verdict.retry_after)},
-            )
+        await self._take_rate_limit(workspace_id, form_id, str(user.id))
 
         scope = await self._responses.scope(workspace_id, [form_id])
         count = await self._response_repo.count_for_export(scope, filters)
@@ -458,6 +493,7 @@ class ResponseExportService:
                 "An export of this form is already being prepared.",
             ) from None
         except WorkspaceBusy:
+            await self._give_back_rate_limit(workspace_id, form_id, str(user.id))
             raise _error(
                 HTTPStatus.TOO_MANY_REQUESTS,
                 "workspace_busy",
@@ -489,6 +525,9 @@ class ResponseExportService:
     ) -> AsyncIterator[bytes]:
         counter = RowCount()
         finished = False
+        # a live stream keeps its slot however slowly its client takes the bytes
+        # (the generator is suspended while the client drains): its own task beats
+        beater = asyncio.ensure_future(self._beat_while_streaming(export.id))
         try:
             async for piece in write_export(
                 plan, title, self._source(workspace_id, scope, filters), counter
@@ -496,10 +535,31 @@ class ResponseExportService:
                 yield piece
             finished = True
         finally:
+            beater.cancel()
             await _settle(self._finish_stream(export, counter.rows, finished))
+
+    async def _beat_while_streaming(self, export_id) -> None:
+        while True:
+            await asyncio.sleep(limits.STREAM_BEAT_EVERY.total_seconds())
+            await self._beat_stream(export_id)
+
+    async def _beat_stream(self, export_id) -> None:
+        def beat(document: ResponseExportDocument):
+            if document.status != ExportStatus.STREAMING:
+                return None
+            document.heartbeat_at = self._clock()
+            return document
+
+        try:
+            await self._exports.update_locked(export_id, beat)
+        except Exception as error:  # noqa: BLE001 - the stream goes on
+            logger.warning("could not beat export {} ({})", export_id, type(error).__name__)
 
     async def _finish_stream(self, export: ResponseExportDocument, rows: int, finished: bool) -> None:
         def done(document: ResponseExportDocument):
+            # only a stream still open: one the sweep ended stays as it is
+            if document.status != ExportStatus.STREAMING:
+                return None
             document.row_count = rows
             document.finished_at = self._clock()
             document.status = ExportStatus.COMPLETED if finished else ExportStatus.CANCELLED
@@ -897,13 +957,18 @@ class ResponseExportService:
     async def purge_expired(self) -> int:
         """Delete the files that outlived ``FILE_TTL``, and fail the queued exports
         that outlived ``QUEUED_MAX_AGE`` (the hourly sweep). Returns the files deleted."""
-        await self.fail_overdue_queued()
         now = self._clock()
         purged = 0
         for export in await self._exports.list_by_status([ExportStatus.READY]):
             if export.expires_at is not None and export.expires_at <= now:
                 if await self._drop_file(export.id, ExportStatus.EXPIRED) is not None:
                     purged += 1
+        # after the files (decrypted answers must go on time), and never able to
+        # stop the sweep
+        try:
+            await self.fail_overdue_queued()
+        except Exception as error:  # noqa: BLE001 - tried again next hour
+            logger.warning("could not fail overdue queued exports ({})", type(error).__name__)
         return purged
 
     @staticmethod
@@ -947,8 +1012,9 @@ class ResponseExportService:
         now = self._clock()
         queued = rescued = failed = 0
         for export in await self._exports.list_by_status([ExportStatus.STREAMING]):
-            if export.created_at and export.created_at < now - limits.STALE_STREAMING_AFTER:
-                # a streamed export whose process died: it was cut off
+            beat = export.updated_at or export.created_at
+            if beat and beat < now - limits.STALE_STREAMING_AFTER:
+                # a streamed export whose process died (it stopped beating): it was cut off
                 await self._exports.update_locked(export.id, self._interrupted)
         for export in await self._exports.list_by_status([ExportStatus.QUEUED]):
             if self._overdue(export, now):
