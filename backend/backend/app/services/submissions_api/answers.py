@@ -174,6 +174,19 @@ def _answer(
     if _kind(field) in UNSUPPORTED_TYPES:
         problems.add(field_id, NOT_SUPPORTED, item)
         return None
+    simple = _SIMPLE.get(_kind(field))
+    if (
+        isinstance(value, dict)
+        and simple is not None
+        and simple[2] == (dict,)
+        and not set(value) & (_TYPED_SLOTS | FORBIDDEN_SLOTS | {"type"})
+    ):
+        # an object of the question's own parts (a currency's code and amount,
+        # a range's start and end, an address's street ...): the shorthand
+        answer, code = _shorthand(field, value)
+        if code:
+            problems.add(field_id, code, item)
+        return answer
     if isinstance(value, dict):
         code = _typed(value)
         if code:
@@ -217,19 +230,26 @@ def _group(
     return {"type": "group", "items": built}
 
 
+CLEAR_NOT_SUPPORTED = "clear_not_supported"
+
+
 def build_answers(
-    form: Any, raw: Dict[str, Any]
+    form: Any, raw: Dict[str, Any], allow_null: bool = True
 ) -> Tuple[Dict[str, Dict[str, Any]], List[Dict[str, Any]]]:
     """(typed answers, problems) for the caller's ``raw`` answers against
     ``form`` (the published version). A ``None`` value is an unanswered
-    question and is left out. An id that is not a question of the form is
-    reported as ``unknown_field``, as for a respondent."""
+    question and is left out (``allow_null=False``, for an update, where a
+    ``null`` would silently change nothing: reported as ``clear_not_supported``).
+    An id that is not a question of the form is reported as
+    ``unknown_field``, as for a respondent."""
     problems = _Problems()
     index = question_index(form)
     answers: Dict[str, Dict[str, Any]] = {}
     for key, value in raw.items():
         field_id = str(key)
         if value is None:
+            if not allow_null:
+                problems.add(field_id, CLEAR_NOT_SUPPORTED)
             continue
         field = index.get(field_id)
         if field is None:

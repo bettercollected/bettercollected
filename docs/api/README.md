@@ -33,7 +33,7 @@ cannot be used against this API.
 | `forms:delete` | delete forms, and with them their responses (`forms:write` does not allow it) | `form.delete` |
 | `responses:read` | list and read responses | `response.read` and `response.export` |
 | `deletion_requests:write` | close a respondent's deletion request | `privacy.manage` |
-| `submissions:write` | create responses, and change those this key made ([submissions](../submissions-api.md); off unless the server turns it on) | `form.read` |
+| `submissions:write` | create responses, and change those this key made ([submissions](../submissions-api.md); off unless the server turns it on) | `form.edit` |
 
 The creator's permissions are checked on every call: a key never does more
 than the person who created it may do at that moment. Every call is recorded

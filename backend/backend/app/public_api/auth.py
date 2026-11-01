@@ -20,7 +20,11 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.services.ai.api_keys import APIKeyService
-from backend.app.services.api_access import acting_user, require_key_scope
+from backend.app.services.api_access import (
+    acting_user,
+    require_key_has_scope,
+    require_key_scope,
+)
 from backend.config import settings  # noqa: F401  (builds the settings and the live() groups)
 from common.settings.loader import live
 
@@ -140,6 +144,10 @@ def api_key(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         setattr(request.state, AUDIT_STATE, (key, operation))
+        if submissions:
+            # the scope first: a key that may not submit never spends (or
+            # exhausts) the workspace's submissions budget
+            require_key_has_scope(key, scope)
         await _rate_limit(key, submissions)
         await require_key_scope(key, scope)
         return ApiCaller(key=key, user=acting_user(key))

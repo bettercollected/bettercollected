@@ -28,13 +28,14 @@ from common.ids import RecordId
 from common.models.consent import ConsentType, ConsentResponse
 from common.models.standard_form import SubmissionSource
 from loguru import logger
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, ValidationError
 from pydantic.alias_generators import to_camel
 
 from backend.app.constants.consents import default_consents
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
+from backend.app.services.form_availability import ensure_accepting_responses
 from backend.app.services.answer_validation import (
     ERROR_CODE,
     ERROR_MESSAGE,
@@ -72,7 +73,7 @@ class CreateSubmission(_Body):
         "share link's query string would carry), by name; names the form "
         "does not declare are left out.",
     )
-    consent: Optional[bool] = Field(
+    consent: Optional[StrictBool] = Field(
         None,
         description="true: you assert that the respondent has given the "
         "consent the form asks for. Required when the form has a consent "
@@ -100,11 +101,32 @@ def _invalid(code: str, message: str, status: int = HTTPStatus.UNPROCESSABLE_ENT
     )
 
 
+# a submission's JSON nests at most this deep (answers, a typed answer, a
+# group's items, an item's answer, a slot): deeper is never a real answer
+MAX_BODY_DEPTH = 12
+
+
+def _too_deep(value: Any, limit: int = MAX_BODY_DEPTH) -> bool:
+    """Whether ``value`` nests deeper than ``limit`` (iterative: a crafted
+    body can't recurse the checker)."""
+    stack = [(value, 1)]
+    while stack:
+        item, depth = stack.pop()
+        if isinstance(item, (dict, list)):
+            if depth > limit:
+                return True
+            children = item.values() if isinstance(item, dict) else item
+            stack.extend((child, depth + 1) for child in children)
+    return False
+
+
 def parse_body(model: type, raw: Any):
     """The request body as ``model``, 422 ``invalid_request`` with the
     problem's JSON pointer when it does not fit."""
     if not isinstance(raw, dict):
         raise _invalid("invalid_request", "The body must be a JSON object.")
+    if _too_deep(raw):
+        raise _invalid("invalid_request", "The body is nested too deeply.")
     try:
         return model.model_validate(raw)
     except ValidationError as error:
@@ -138,6 +160,44 @@ async def _workspace_form(workspace_id: RecordId, form_id: str):
     if association is None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found")
     return association
+
+
+def ensure_acts_as_nobody_allowed(form_settings: Any) -> None:
+    """A form that asks for a verified respondent, or is limited to admitted
+    responders, has someone to be: an API key is nobody (no identity, no
+    receipt, no OTP), so those forms refuse it, for a new response and for a
+    change to one it made."""
+    if form_settings and (
+        form_settings.require_verified_identity or form_settings.private
+    ):
+        raise _invalid(
+            IDENTITY_REQUIRED,
+            "This form needs a signed-in respondent, so it does not take "
+            "submissions from an API key.",
+        )
+
+
+def _request_model(published: Any, **values: Any) -> StandardFormResponseCamelModel:
+    """The respondent's request object; a body the model can't take is a 422
+    (a backstop: the answers were read into typed objects before)."""
+    try:
+        return StandardFormResponseCamelModel(**values)
+    except ValidationError as error:
+        problems = []
+        for e in error.errors():
+            loc = e.get("loc") or ()
+            key = str(loc[1]) if len(loc) > 1 and loc[0] == "answers" else ""
+            problems.append(
+                {"path": f"/answers/{key}", "message": "type: " + RULE_TEXT["type"]}
+            )
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content={
+                "code": ERROR_CODE,
+                "message": ERROR_MESSAGE,
+                "errors": problems,
+            },
+        ) from error
 
 
 async def _published(form_id: str):
@@ -209,6 +269,7 @@ RULE_TEXT = {
     "choice": "the answer is not one of the options",
     "unknown_field": "the form has no question with this id",
     "question_not_supported": "this kind of question can't be answered through the API",
+    "clear_not_supported": "an update can't clear an answer: send a new value",
 }
 
 
@@ -248,6 +309,20 @@ def _api_errors(form: Any, error: HTTPException) -> HTTPException:
     """The respondent path's refusal of the answers, with the API's error
     shape: per question, located in the request body."""
     content = error.content
+    if error.status_code == HTTPStatus.UNPROCESSABLE_ENTITY and (
+        isinstance(content, str) or (isinstance(content, dict) and not content.get("code"))
+    ):
+        # a check of the respondent path that names no question (a group
+        # answer on the wrong question): the API's code, the check's text
+        message = content if isinstance(content, str) else content.get("message")
+        return HTTPException(
+            status_code=error.status_code,
+            content={
+                "code": ERROR_CODE,
+                "message": str(message or ERROR_MESSAGE),
+            },
+            headers=error.headers,
+        )
     if (
         isinstance(content, dict)
         and content.get("code") == ERROR_CODE
@@ -265,6 +340,17 @@ def _api_errors(form: Any, error: HTTPException) -> HTTPException:
     return error
 
 
+async def _already_stored(workspace_id: RecordId, response_id: str):
+    """The workspace's stored response ``response_id``, or None when it is
+    not there (or cannot be looked up: the original failure stands)."""
+    try:
+        return await _c().form_response_service().workspace_response(
+            workspace_id, response_id
+        )
+    except Exception:  # noqa: BLE001
+        return None
+
+
 async def create_submission(
     key: WorkspaceAPIKeyDocument, form_id: str, body: CreateSubmission
 ) -> Dict[str, Any]:
@@ -276,23 +362,13 @@ async def create_submission(
     workspace_id = key.workspace_id
     association = await _workspace_form(workspace_id, form_id)
     ensure_form_allowed(key, form_id)
-    form_settings = association.settings
-    # A form that asks for a verified respondent, or is limited to admitted
-    # responders, has someone to be: an API key is nobody (no identity, no
-    # receipt, no OTP), so those forms refuse it.
-    if form_settings and (
-        form_settings.require_verified_identity or form_settings.private
-    ):
-        raise _invalid(
-            IDENTITY_REQUIRED,
-            "This form needs a signed-in respondent, so it does not take "
-            "submissions from an API key.",
-        )
+    ensure_acts_as_nobody_allowed(association.settings)
     published = await _published(form_id)
     consent = _consent_given(published, body.consent)
     answers, problems = build_answers(published, body.answers)
     _refuse_problems(published, problems)
-    request = StandardFormResponseCamelModel(
+    request = _request_model(
+        published,
         answers=answers,
         hidden_fields=_hidden_values(published, body.hidden_fields) or None,
         consent=consent,
@@ -300,12 +376,16 @@ async def create_submission(
         # page sends it: staff open the response in the form it was given in
         form_version=getattr(published, "version", None),
     )
+    # the response's id is ours to know before anything is stored, so that a
+    # failure after the commit can be told from one before it
+    response_id = str(RecordId())
     try:
         stored = await _c().workspace_form_service().submit_response(
             workspace_id=workspace_id,
             form_id=RecordId(form_id),
             response=request,
             user=None,
+            response_id=response_id,
             source=SubmissionSource(
                 channel="api",
                 key_id=str(key.id),
@@ -315,6 +395,18 @@ async def create_submission(
         )
     except HTTPException as refused:
         raise _api_errors(published, refused) from refused
+    except Exception as error:  # noqa: BLE001
+        # Stored already? Then the caller must be told so, never given a 5xx
+        # that releases its Idempotency-Key and makes a retry store a second
+        # response (and run the actions, webhooks and mails again).
+        stored = await _already_stored(workspace_id, response_id)
+        if stored is None:
+            raise
+        logger.error(
+            "submission {} stored, a step after it failed ({})",
+            response_id,
+            type(error).__name__,
+        )
     # the retention the form states, as the respondent route schedules it
     # (never fails the submission)
     try:
@@ -347,8 +439,13 @@ async def update_submission(
     if not settings.api_settings.ENABLE_FORM_CREATION:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Not found")
     workspace_id = key.workspace_id
-    await _workspace_form(workspace_id, form_id)
+    association = await _workspace_form(workspace_id, form_id)
     ensure_form_allowed(key, form_id)
+    # the create's own gates: a machine caller can't change data on a form that
+    # now needs a verified respondent, is private, is closed or is not open
+    # (a respondent's edit is judged by the respondent: this one has none)
+    ensure_acts_as_nobody_allowed(association.settings)
+    ensure_accepting_responses(association.settings)
     try:
         RecordId(response_id)
     except (InvalidId, TypeError, ValueError):
@@ -356,14 +453,14 @@ async def update_submission(
             status_code=HTTPStatus.NOT_FOUND, content="Response not found"
         )
     published = await _published(form_id)
-    answers, problems = build_answers(published, body.answers)
+    answers, problems = build_answers(published, body.answers, allow_null=False)
     _refuse_problems(published, problems)
     try:
         stored = await _c().workspace_form_service().patch_response_as_key(
             workspace_id=workspace_id,
             form_id=RecordId(form_id),
             response_id=RecordId(response_id),
-            response=StandardFormResponseCamelModel(answers=answers),
+            response=_request_model(published, answers=answers),
             key_id=str(key.id),
         )
     except HTTPException as refused:

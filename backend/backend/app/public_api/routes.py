@@ -252,6 +252,11 @@ async def _idempotent(
     try:
         response = await run()
     except HTTPException as error:
+        if error.status_code == HTTPStatus.NOT_FOUND:
+            # depends on state that can change (a form not yet published, a
+            # response not yet made): never kept, so the same key works later
+            await service.abandon(caller.key_id, idempotency_key)
+            raise
         payload = error_payload(error.status_code, error.content)
         await service.finish(
             caller.key_id,
@@ -797,7 +802,10 @@ async def create_submission_endpoint(
     "the others stay. Same value shapes and the same checks as a "
     "respondent's own edit, against the form's latest published version. Only "
     "a response made through this same API key can be changed (404 for any "
-    "other). Needs `submissions:write`.",
+    "other), and not once the form is closed (409 `form_closed`), not open yet "
+    "(409 `form_not_open`), needs a verified respondent or is private (422 "
+    "`respondent_identity_required`). A `null` is refused (422, rule "
+    "`clear_not_supported`). Needs `submissions:write`.",
     response_model=SubmissionUpdated,
     responses=_errors(401, 403, 404, 409, 413, 422, 429),
     openapi_extra=_json_body("UpdateSubmission", {"answers": {"dinner": False}}),

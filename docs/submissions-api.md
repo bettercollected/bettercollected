@@ -89,7 +89,7 @@ Answers `201`:
     multiple selection); a list of texts for tags; an object for a currency,
     date range or address; a list of objects for a repeating group. Other
     kinds (matrix, ranking, table) take the typed object.
-  `null` leaves a question unanswered.
+  `null` leaves a question unanswered when creating.
 - `hiddenFields` are values for the form's declared hidden fields; names the
   form does not declare are left out.
 - Nothing else is accepted: a body with another member (an owner, a source, a
@@ -103,11 +103,16 @@ Answers `201`:
 
 Partial: the questions sent replace their stored answers, the others stay;
 same value shapes, same checks as a respondent's own edit (against the form's
-latest published version, for what the edit touches). Answers `200`
-`{"responseId": "…", "updatedAt": "…"}`. **A key can only change a response it
-made itself** (404 for any other: a respondent's, another key's, an imported
-one). As for a respondent's edit, the form's open and close dates and response
-limit do not apply to an update.
+latest published version, for what the edit touches). A `null` is refused
+(422, `clear_not_supported`): an update can't clear an answer, it replaces it.
+Answers `200` `{"responseId": "…", "updatedAt": "…"}`. **A key can only change a
+response it made itself** (404 for any other: a respondent's, another key's,
+an imported one). Unlike a respondent's edit, an update by a key is also
+refused when the form **now** asks for a verified respondent or is private
+(422 `respondent_identity_required`), is closed (409 `form_closed`) or has not
+opened yet (409 `form_not_open`): nobody can gate a machine caller any other
+way, so closing a form freezes what keys made. (The response limit does not
+apply to an update.)
 
 ## Errors
 
@@ -126,10 +131,14 @@ a JSON pointer into your body and `message` starting with the rule's code:
 }
 ```
 
+A repeating group's structure and the Required questions inside its items come
+back as `invalid_answers` with the text of the problem in `message` (the
+respondent route's own wording) and no `errors` list.
+
 Rule codes: `required`, `too_short`, `too_long`, `pattern`, `too_small`,
 `too_large`, `not_integer`, `too_few_choices`, `too_many_choices`, `format`,
 `currency`, `range_order`, `duplicate`, `type`, `choice`, `unknown_field`,
-`question_not_supported`.
+`question_not_supported`, `clear_not_supported` (an update with `null`).
 
 Other codes: `form_not_allowed` (403: the key is limited to other forms),
 `missing_scope` and `key_creator_lacks_permission` (403), `consent_required`,
@@ -143,8 +152,10 @@ scope is offered only while the server has the feature on, and is never
 implied by another scope (not even `forms:write`). A key can be limited to
 some of the workspace's forms (`submissionFormIds` when created through the
 API); with no list it may submit to every form of its workspace. The creator
-must still be able to read forms (`form.read`): a key never outlives its
-creator's membership.
+must still be able to **edit forms** (`form.edit`: an Editor, Admin or Owner),
+checked on every call: a creator who is demoted to Viewer, Reviewer or Privacy
+officer, or whose workspace is disabled (read-only), no longer has a key that
+writes.
 
 ## Retries, limits and audit
 
@@ -153,11 +164,15 @@ creator's membership.
   true`, and nothing runs twice; the same key with another request is 422
   `idempotency_key_reused`; while the first is still running, 409
   `idempotency_in_progress`. Only a summary (the status and the response id) is
-  kept, never an answer.
+  kept, never an answer. A 404 is not kept (a form that is not published yet
+  works with the same key once it is), nor a 5xx. If a step after the response
+  was stored fails (an action, a webhook, a mail queue), the call still answers
+  `201` and the failure is logged: a retry never makes a second response.
 - Submissions count against their **own** rate budget per key and per
   workspace (the same ceilings as reads, `API_PUBLIC_API_REQUESTS_PER_WINDOW`
   and `API_PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW`): reads never use it up,
-  nor the other way round.
+  nor the other way round. A key without the scope is refused before it
+  spends any of it.
 - Every write is one row in the workspace's API audit log: the key, the
   operation, the status, the form id and the response id. Never an answer.
 

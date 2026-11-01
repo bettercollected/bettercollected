@@ -6,5 +6,7 @@
   ask for a verified respondent refuse it, the caller asserts the respondent's consent, and the
   response records that the key made it (staff see it, respondents never do). Files and signatures
   are not accepted yet. The Python and TypeScript SDKs and the command line have `submit` and
-  `update-submission`. It is behind `SUBMISSIONS_API_ENABLED`, which is off by default (the endpoints
-  answer 404 and the scope can't be granted).
+  `update-submission`. A webhook body has a new `source` member (`"api"`) for such a response. A key's
+  update is refused once the form is closed, not open yet, needs a verified respondent or is private.
+  It is behind `SUBMISSIONS_API_ENABLED`, which is off by default (the endpoints answer 404 and the
+  scope can't be granted).

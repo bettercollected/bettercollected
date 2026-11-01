@@ -1453,10 +1453,16 @@ class WorkspaceFormService:
         received_at: Optional[dt.datetime] = None,
         client_ip: Optional[str] = None,
         source: Optional[SubmissionSource] = None,
+        response_id: Optional[str] = None,
     ):
         """``source``: set by the public API's submissions endpoint for a
         response an API key makes (``user`` None then, as for any anonymous
-        respondent); the respondent route never passes one."""
+        respondent); the respondent route never passes one. ``response_id``:
+        the id that endpoint made up front (so it can tell whether a failure
+        came after the commit); with a ``source``, what runs after the commit
+        (actions, registration, webhooks, email actions) is logged and never
+        fails the call: the response is stored, and a retry must not make a
+        second one."""
         # Internal fields are filled in by staff afterwards — values a
         # respondent submission carries for them are dropped, never stored.
         drop_respondent_internal_answers(
@@ -1465,7 +1471,7 @@ class WorkspaceFormService:
         )
         # Feedback is the staff's to write, never part of a submission.
         response.respondent_feedback = None
-        response.response_id = str(RecordId())
+        response.response_id = response_id or str(RecordId())
 
         workspace_form_ids = (
             await self.workspace_form_repository.get_form_ids_in_workspace(
@@ -1662,46 +1668,52 @@ class WorkspaceFormService:
         # workspace = await self.workspace_repo.get_workspace_with_action_by_id(workspace_id)
         # Actions reach respondents (their email copy) and third parties
         # (webhooks, chat posts): they get the respondent view of the form.
-        await self.action_service.start_actions_for_submission(
-            form=strip_internal_fields(latest_version_of_form.model_copy(deep=True)),
-            response=form_response,
-            workspace_id=workspace_id,
-        )
+        with _after_commit(source, "actions", form_response):
+            await self.action_service.start_actions_for_submission(
+                form=strip_internal_fields(
+                    latest_version_of_form.model_copy(deep=True)
+                ),
+                response=form_response,
+                workspace_id=workspace_id,
+            )
         if self._registration_service is not None:
             # a delivery row and a job by id: nothing external, never fails
             # the submission (services/registration/service.py)
-            await self._registration_service.queue_for_submission(
-                workspace_id=workspace_id,
-                form_id=str(form_id),
-                response_id=str(form_response.response_id),
-            )
+            with _after_commit(source, "registration", form_response):
+                await self._registration_service.queue_for_submission(
+                    workspace_id=workspace_id,
+                    form_id=str(form_id),
+                    response_id=str(form_response.response_id),
+                )
         if self._webhook_service is not None:
             # one log row and one job (by log id) per enabled webhook: nothing
             # external, never fails the submission (services/webhooks/service.py)
-            await self._webhook_service.queue_for_submission(
-                workspace_id=workspace_id,
-                form_id=str(form_id),
-                response_id=str(form_response.response_id),
-                form=latest_version_of_form,
-                answers=form_response.answers,
-            )
+            with _after_commit(source, "webhooks", form_response):
+                await self._webhook_service.queue_for_submission(
+                    workspace_id=workspace_id,
+                    form_id=str(form_id),
+                    response_id=str(form_response.response_id),
+                    form=latest_version_of_form,
+                    answers=form_response.answers,
+                )
         if self._email_action_service is not None:
             # one log row and one job (by log id) per mail: nothing external,
             # never fails the submission (services/email_actions/service.py);
             # the submitted answers are read in memory for the actions'
             # conditions and are not kept
-            await self._email_action_service.queue_for_submission(
-                workspace_id=workspace_id,
-                form_id=str(form_id),
-                response_id=str(form_response.response_id),
-                form=latest_version_of_form,
-                answers=form_response.answers,
-                # the copy goes only to the verified account email of a signed-in
-                # respondent who did not submit anonymously
-                verified_account_id=verified_account_id_of(
-                    user, anonymous=bool(getattr(response, "anonymize", False))
-                ),
-            )
+            with _after_commit(source, "email_actions", form_response):
+                await self._email_action_service.queue_for_submission(
+                    workspace_id=workspace_id,
+                    form_id=str(form_id),
+                    response_id=str(form_response.response_id),
+                    form=latest_version_of_form,
+                    answers=form_response.answers,
+                    # the copy goes only to the verified account email of a
+                    # signed-in respondent who did not submit anonymously
+                    verified_account_id=verified_account_id_of(
+                        user, anonymous=bool(getattr(response, "anonymize", False))
+                    ),
+                )
         return form_response
 
     async def delete_form_response(
@@ -2144,6 +2156,33 @@ class WorkspaceFormService:
         form_action.enabled = False
         await self._form_repo.save_form(form)
         return form
+
+
+class _after_commit:
+    """What runs after a response is stored. For a response an API key made
+    (``source``), a failure here is logged (the step and the error class, never
+    a value) and swallowed: the response is stored, so the call must still
+    answer success, or the caller's retry would store a second one. For a
+    respondent's it is raised as before."""
+
+    def __init__(self, source, step: str, response):
+        self._soft = source is not None
+        self._step = step
+        self._response_id = getattr(response, "response_id", None)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, kind, error, _traceback):
+        if error is not None and self._soft and isinstance(error, Exception):
+            logger.error(
+                "after submission {}: {} failed ({})",
+                self._response_id,
+                self._step,
+                kind.__name__,
+            )
+            return True
+        return False
 
 
 def _question_ids(fields) -> set:
