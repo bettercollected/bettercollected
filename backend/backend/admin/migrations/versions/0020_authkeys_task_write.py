@@ -13,10 +13,12 @@ over it are untouched) with exactly two changes:
 
 * the allow-list holds the two ring keys beside the keyset;
 * the run binding ties each key to its own task family: the keyset to
-  ``keyset.<action>``, a ring key to ``authkeys.<action>``. A ``keyset.*`` run
-  can therefore never write a ring and an ``authkeys.*`` run can never write
-  the keyset. Which of the two rings an ``authkeys.*`` run writes is recorded
-  in the audit row (the setting name), not in the database's check.
+  ``keyset.<action>``, a ring key to ``authkeys.<action>`` and, within that family,
+  ``AUTH_JWT_SECRET`` to a run whose signed parameter ``which`` is ``jwt`` and
+  ``AUTH_AES_HEX_KEY`` to ``which`` ``aes`` (``tasks.runs.params``, signed and
+  immutable). A ``keyset.*`` run can therefore never write a ring, an
+  ``authkeys.*`` run never the keyset, and an ``authkeys.*`` run for one ring
+  never the other.
 
 Everything else is unchanged: reader check, version and revision compare-and-swap,
 signed manifest, an audit row built from validated parts, the run must be
@@ -137,11 +139,12 @@ def upgrade() -> None:
 
             -- the write is bound to a running APPLY run of the matching keyset task
             -- whose start the runner's audit function recorded; once per run
-            SELECT r.task, r.state, r.dry_run INTO run FROM tasks.runs r WHERE r.id = p_run_id::uuid;
+            SELECT r.task, r.state, r.dry_run, r.params INTO run FROM tasks.runs r WHERE r.id = p_run_id::uuid;
             IF NOT FOUND OR run.state <> 'running' OR run.dry_run
                OR NOT ((p_key = 'MASTER_ENCRYPTION_KEYSET' AND run.task = 'keyset.' || p_action)
-                       OR (p_key = ANY (ARRAY['AUTH_JWT_SECRET', 'AUTH_AES_HEX_KEY'])
-                           AND run.task = 'authkeys.' || p_action)) THEN
+                       OR (run.task = 'authkeys.' || p_action
+                           AND ((p_key = 'AUTH_JWT_SECRET' AND run.params ->> 'which' = 'jwt')
+                                OR (p_key = 'AUTH_AES_HEX_KEY' AND run.params ->> 'which' = 'aes')))) THEN
                 RAISE EXCEPTION 'settings.task_write_keyset: no running apply run for this write'
                     USING ERRCODE = 'insufficient_privilege';
             END IF;

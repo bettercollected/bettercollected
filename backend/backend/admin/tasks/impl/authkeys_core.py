@@ -186,8 +186,14 @@ class PostgresStore:
         return None if row is None else _doc(row[0])
 
     async def write(self, record_id: str, updates: Sequence[Update]) -> bool:
-        """Compare-and-set under a row lock; the checksum follows the document.
-        False when the row is gone or a value is not the one that was read."""
+        """Compare-and-set under a row lock. Only the sealed values change, each by
+        its own path (``jsonb_set``): the rest of the stored document is not
+        re-serialised, so no number, date or key order in it can move. The
+        checksum follows the document (computed from the document as read, with
+        the new values in place). False when the row is gone or a value is not
+        the one that was read."""
+        import copy
+
         from sqlalchemy import text
 
         from common.db.canonical import checksum
@@ -202,19 +208,29 @@ class PostgresStore:
             if row is None:
                 return False
             document = _doc(row[0])
+            changed = copy.deepcopy(document)
             for path, old, new in updates:
                 try:
                     if _get(document, path) != old:
                         return False
                 except (KeyError, IndexError, TypeError):
                     return False
-                _set(document, path, new)
+                _set(changed, path, new)
+            expression = "doc"
+            params: Dict[str, Any] = {"id": record_id, "sum": checksum(changed)}
+            for index, (path, _old, new) in enumerate(updates):
+                expression = (
+                    f"jsonb_set({expression}, CAST(:p{index} AS text[]), "
+                    f"to_jsonb(CAST(:v{index} AS text)), false)"
+                )
+                params[f"p{index}"] = [str(part) for part in path]
+                params[f"v{index}"] = new
             await conn.execute(
                 text(
-                    f"UPDATE {self._table} SET doc = CAST(:doc AS jsonb), "
+                    f"UPDATE {self._table} SET doc = {expression}, "
                     "_bc_checksum = :sum WHERE id = :id"
                 ),
-                {"doc": json.dumps(document, allow_nan=False), "sum": checksum(document), "id": record_id},
+                params,
             )
         return True
 

@@ -1202,7 +1202,13 @@ backend's own (`DATABASE_URL`, the same role as the responses tasks: column gran
 `form_versions`, `actions`, `workspace_actions`, `scim_directories`, `registration_services` and
 `form_webhooks`, their `doc` and checksum only); the counts a drop of the previous key is gated on
 (`admin.sealed_jobs_pending()`, `admin.sessions_on_old_key(ts)`, `admin.drafts_on_old_key(ts)`) are
-definer functions only the runner may execute. The ring is written through the same
+definer functions only the runner may execute. What these grants allow, stated plainly: the runner
+holds both rings (it reads section `auth_keys`, like the keyset) and, through the data role, can
+read and rewrite the `doc` of those seven tables and nothing else of them, so it can decrypt and
+re-seal exactly the values listed in [auth-key-rotation.md](auth-key-rotation.md) (it writes only values
+it just re-encrypted, one path each, never the rest of a document, and every write is compared with the
+value it read); the count functions read a session's and a draft's `doc` (for its dates and whether it
+has a link or an edit key) and only ever return a number. The ring is written through the same
 `settings.task_write_keyset` function as the keyset (migration 0020 lets it write the two rings for
 an `authkeys.*` run and the keyset for a `keyset.*` run, each bound to its own family). Services need
 no new heartbeat: a service that has restarted onto the settings revision that wrote the ring

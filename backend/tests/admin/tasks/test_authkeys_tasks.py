@@ -36,6 +36,7 @@ from backend.app.services.registration import secrets as registration_secrets
 from backend.app.services.webhooks import sealing as webhook_sealing
 from common.configs.crypto import Crypto
 from common.db.canonical import canonical_document, checksum
+from common.settings.key_ring import REPORT_MARK
 from tests.admin.conftest import needs_postgres
 from tests.admin.tasks.keyset_support import admin_keys, generated_keyset, heartbeat
 from tests.conftest import TEST_DATABASE_URL
@@ -79,12 +80,13 @@ async def _clean_data(data_env):
 def no_queue(monkeypatch):
     """The counts the rotation gates on come from definer functions over tables the
     admin test database does not have (tested for real in test_authkeys_counts)."""
-    counts = {"jobs": 0, "sessions": 0, "drafts": 0}
+    counts = {"jobs": 0, "sessions": 0, "drafts": 0, "cutoffs": []}
 
     async def jobs(conn):
         return counts["jobs"]
 
     async def sessions(conn, at):
+        counts["cutoffs"].append(at)
         return counts["sessions"]
 
     async def drafts(conn, at):
@@ -270,6 +272,7 @@ class Flow:
         """Every service restarted onto the store's current revision."""
         stored = await self.stored(which)
         kw.setdefault("revision", stored.revision)
+        kw.setdefault("fp", "ks-000000000000" + REPORT_MARK)  # a build with ring support
         await heartbeat(self.world.owner, "backend", KEYSET, **kw)
         await heartbeat(self.world.owner, "backend", KEYSET, instance="i2", **kw)
         await heartbeat(self.world.owner, "auth", KEYSET, **kw)
@@ -346,6 +349,7 @@ def test_no_parameter_or_result_can_carry_a_key():
                 "which", "ring_build_deployed", "google_in_use", "new_primary_id",
                 "external_consumers_updated", "primary_id", "targets", "batch_size",
                 "keep_id", "accept_sign_out", "accept_draft_link_loss", "allow_empty",
+                "jobs_on_postgres",
             }, name
     for extra in ({"ring": "x"}, {"secret": "x"}, {"member": "x"}):
         with pytest.raises(Exception):
@@ -429,6 +433,9 @@ async def test_the_whole_aes_rotation_moves_every_value_and_the_old_key_is_not_n
 
     # drop_old: only now, with the kept key named
     drop = {"which": "aes", "keep_id": new_id, "external_consumers_updated": True}
+    _, unconfirmed = await flow.run("authkeys.drop_old", drop, dry_run=True)
+    assert unconfirmed["refusal_code"] == "jobs_routing_unconfirmed"  # Temporal-routed jobs are not counted
+    drop = {**drop, "jobs_on_postgres": True}
     _, dry = await flow.run("authkeys.drop_old", drop, dry_run=True)
     assert dry["state"] == "succeeded" and dry["result"]["dropped_count"] == 1
     assert dry["result"]["changed"] is False and dry["result"]["ready"] is True
@@ -531,17 +538,35 @@ async def test_the_whole_jwt_rotation_with_the_signing_counts(world, flow, no_qu
     )
     assert none["state"] == "refused" and none["refusal_code"] == "nothing_to_reencrypt"
 
+    # the drop counts from a verify made after the promote: without one it is refused
+    drop = {"which": "jwt", "keep_id": new_id}
+    await refused(flow, "authkeys.drop_old", drop, "promotion_not_verified")
     # sessions made before the promote are counted; the drop needs the statement
     no_queue["sessions"], no_queue["drafts"] = 4, 2
     _, verified = await flow.run("authkeys.verify", {"which": "jwt"})
     gates = meta.ScanResult.model_validate(verified["result"]).gates
     assert (gates.sessions_on_previous, gates.drafts_on_previous) == (4, 2)
-    drop = {"which": "jwt", "keep_id": new_id}
+    # the count runs from when every service was proven to sign with the new key (this
+    # verify), never from the promote's own write: until the last service restarted it
+    # still signed with the previous key
+    async with world.owner.connect() as conn:
+        started = (
+            await conn.execute(
+                text("SELECT min(started_at) FROM tasks.runs WHERE task = 'authkeys.verify' "
+                     "AND state = 'succeeded' AND params ->> 'which' = 'jwt'")
+            )
+        ).scalar_one()
+        promote_started = (
+            await conn.execute(
+                text("SELECT max(started_at) FROM tasks.runs WHERE task = 'authkeys.promote' AND NOT dry_run")
+            )
+        ).scalar_one()
+    assert promote_started < started
     _, dry = await flow.run("authkeys.drop_old", drop, dry_run=True)
     assert dry["state"] == "succeeded" and dry["result"]["ready"] is False
     assert dry["result"]["gates"]["sessions_on_previous"] == 4
-    _, refused = await flow.run("authkeys.drop_old", drop)  # needs a succeeded dry run first
-    assert refused["state"] == "refused"
+    _, undried = await flow.run("authkeys.drop_old", drop)  # needs a succeeded dry run first
+    assert undried["state"] == "refused"
     accepted = {**drop, "accept_sign_out": True}
     await flow.run("authkeys.drop_old", accepted, dry_run=True)
     _, still = await flow.run("authkeys.drop_old", accepted)
@@ -568,6 +593,8 @@ async def test_a_jwt_drop_with_nothing_on_the_old_key_needs_no_statement(world, 
     await flow.beat("jwt")
     await flow.both("authkeys.promote", {"which": "jwt", "new_primary_id": new_id})
     await flow.beat("jwt")
+    _, verified = await flow.run("authkeys.verify", {"which": "jwt"})
+    assert verified["state"] == "succeeded", verified
     _, dropped = await flow.both("authkeys.drop_old", {"which": "jwt", "keep_id": new_id})
     assert dropped["state"] == "succeeded" and dropped["result"]["changed"], dropped
 
@@ -684,7 +711,10 @@ async def test_every_service_must_confirm_before_a_step_that_depends_on_it(world
     params = {
         "authkeys.promote": {"which": "aes", "new_primary_id": new_id, "external_consumers_updated": True},
         "authkeys.reencrypt": {"which": "aes", "primary_id": new_id, "external_consumers_updated": True},
-        "authkeys.drop_old": {"which": "aes", "keep_id": new_id, "external_consumers_updated": True},
+        "authkeys.drop_old": {
+            "which": "aes", "keep_id": new_id, "external_consumers_updated": True,
+            "jobs_on_postgres": True,
+        },
     }[task]
 
     async def expect(code):
@@ -767,7 +797,8 @@ async def promoted_flow(flow):
 
 
 DROP = lambda new_id, **extra: {  # noqa: E731
-    "which": "aes", "keep_id": new_id, "external_consumers_updated": True, **extra
+    "which": "aes", "keep_id": new_id, "external_consumers_updated": True,
+    "jobs_on_postgres": True, **extra
 }
 
 
@@ -825,7 +856,10 @@ async def test_an_unavailable_count_refuses_instead_of_reading_as_zero(world):
     await flow.beat("jwt")
     await flow.both("authkeys.promote", {"which": "jwt", "new_primary_id": new_id})
     await flow.beat("jwt")
-    await refused(flow, "authkeys.drop_old", {"which": "jwt", "keep_id": new_id}, "counts_unavailable")
+    # the verify itself counts, so it is the one that is refused; with no verify
+    # on record the drop is refused too
+    await refused(flow, "authkeys.verify", {"which": "jwt"}, "counts_unavailable")
+    await refused(flow, "authkeys.drop_old", {"which": "jwt", "keep_id": new_id}, "promotion_not_verified")
 
 
 async def test_resume_continues_after_the_walked_records(world, flow, monkeypatch):
@@ -888,3 +922,169 @@ async def test_a_keyset_run_cannot_write_a_ring_and_an_authkeys_run_cannot_write
         assert run["state"] == "failed", run
     assert (await flow.stored("aes")).version == 1
     assert await world.audit_rows("settings.task_set") == []
+
+
+async def test_the_signing_counts_run_from_the_verify_not_from_the_promote(world, flow, no_queue):
+    await flow.beat("jwt")
+    _, added = await flow.both("authkeys.add_key", add("jwt"))
+    new_id = added["result"]["added_key_id"]
+    await flow.beat("jwt")
+    # a verify made before the promote proves nothing about it
+    await flow.run("authkeys.verify", {"which": "jwt"})
+    await flow.both("authkeys.promote", {"which": "jwt", "new_primary_id": new_id})
+    drop = {"which": "jwt", "keep_id": new_id}
+    # restarted? not yet: the verify refuses, and no drop can count from it
+    await flow.beat("jwt", restart_pending=True)
+    await refused(flow, "authkeys.verify", {"which": "jwt"}, "consumer_restart_pending")
+    await flow.beat("jwt")
+    await refused(flow, "authkeys.drop_old", drop, "promotion_not_verified")
+    _, first = await flow.run("authkeys.verify", {"which": "jwt"})
+    assert first["state"] == "succeeded"
+    _, later = await flow.run("authkeys.verify", {"which": "jwt"})  # a later verify does not move it
+    assert later["state"] == "succeeded"
+    async with world.owner.connect() as conn:
+        rows = (
+            await conn.execute(
+                text("SELECT id, started_at FROM tasks.runs WHERE task = 'authkeys.verify' "
+                     "AND state = 'succeeded' ORDER BY started_at")
+            )
+        ).all()
+    assert len(rows) == 3  # the pre-promote one, the first and the later
+    _, dry = await flow.run("authkeys.drop_old", drop, dry_run=True)
+    assert dry["state"] == "succeeded"
+    # the count was asked from the first verify after the promote (not the pre-promote one)
+    assert no_queue["cutoffs"][-1] == rows[1].started_at
+    assert rows[0].started_at < rows[1].started_at < rows[2].started_at
+
+
+async def test_add_key_refuses_while_a_service_runs_a_build_without_ring_support(world, flow):
+    await flow.beat("aes", fp="ks-000000000000")  # no mark: a build from before key rings
+    await refused(flow, "authkeys.add_key", add("aes"), "consumer_old_build")
+    await flow.beat("aes")
+    _, ok = await flow.run("authkeys.add_key", add("aes"), dry_run=True)
+    assert ok["state"] == "succeeded", ok
+
+
+# ------------------------------ a re-encryption that left records behind is not a success
+async def _promoted_with_data(flow):
+    seeded = await seed()
+    new_id = await promoted_flow(flow)
+    return seeded, new_id
+
+
+async def test_a_record_changed_under_the_walk_fails_the_run_and_the_rerun_finishes(world, flow, monkeypatch):
+    seeded, new_id = await _promoted_with_data(flow)
+    params = {"which": "aes", "primary_id": new_id, "external_consumers_updated": True}
+    await flow.run("authkeys.reencrypt", params, dry_run=True)
+    real = core.PostgresStore.write
+    changed = []
+
+    async def interleaved(self, record_id, updates):
+        if not changed and self.target.name == "scim_directories":
+            changed.append(record_id)
+            # the application changes the sealed value between the read and the write
+            fresh = Crypto(OLD_F).encrypt("whsec-rewritten-by-the-application")
+            engine = await app_engine()
+            try:
+                async with engine.begin() as conn:
+                    await conn.execute(
+                        text("UPDATE app.scim_directories SET doc = jsonb_set(doc, '{webhook_secret}', "
+                             "to_jsonb(CAST(:v AS text))) WHERE id = :i"),
+                        {"v": fresh, "i": record_id},
+                    )
+            finally:
+                await engine.dispose()
+        return await real(self, record_id, updates)
+
+    with monkeypatch.context() as patched:
+        patched.setattr(core.PostgresStore, "write", interleaved)
+        run_id, failed = await flow.run("authkeys.reencrypt", params)
+    assert changed and failed["state"] == "failed" and failed["refusal_code"] == "records_left_behind", failed
+    events = await world.events(run_id)
+    assert any(e["counts"].get("records_changed_concurrently") == 1 for e in events), events
+    # the rewritten value is still on the previous key; a rerun moves it
+    doc = await doc_of("scim_directories", seeded.ids["scim_directories"])
+    assert Crypto(OLD_F).opening_position(doc["webhook_secret"]) == 0  # still on the previous key
+    _, again = await flow.run("authkeys.reencrypt", params)
+    assert again["state"] == "succeeded", again
+    doc = await doc_of("scim_directories", seeded.ids["scim_directories"])
+    new_ring = (await flow.stored("aes")).value
+    assert Crypto(new_ring.split(",")[0]).decrypt(doc["webhook_secret"]) == "whsec-rewritten-by-the-application"
+
+
+async def test_a_record_that_does_not_read_back_fails_the_run(world, flow, monkeypatch):
+    await _promoted_with_data(flow)
+    new_id = ring_state.parse_ring(meta.Which.aes, (await flow.stored("aes")).value).primary_id
+    params = {"which": "aes", "primary_id": new_id, "external_consumers_updated": True}
+    await flow.run("authkeys.reencrypt", params, dry_run=True)
+
+    async def never(store, record_id, updates):
+        return False
+
+    with monkeypatch.context() as patched:
+        patched.setattr(core, "_read_back", never)
+        _, failed = await flow.run("authkeys.reencrypt", params)
+    assert failed["state"] == "failed" and failed["refusal_code"] == "records_left_behind", failed
+    _, again = await flow.run("authkeys.reencrypt", params)
+    assert again["state"] == "succeeded", again
+
+
+# ----------------------- an authkeys run writes only the ring its signed parameter names
+async def test_a_run_for_one_ring_cannot_write_the_other(world, flow, monkeypatch):
+    real = state.write_stored
+
+    def into(other):
+        async def write(conn, keys, current, new_value, **kw):
+            kw["name"] = other
+            return await real(conn, keys, current, new_value, **kw)
+
+        return write
+
+    for which, other in (("aes", "AUTH_JWT_SECRET"), ("jwt", "AUTH_AES_HEX_KEY")):
+        await flow.beat(which)
+        with monkeypatch.context() as patched:
+            patched.setattr(ring_state.state, "write_stored", into(other))
+            _, dry = await flow.run("authkeys.add_key", add(which), dry_run=True)
+            assert dry["state"] == "succeeded", dry
+            _, run = await flow.run("authkeys.add_key", add(which))
+        assert run["state"] == "failed", (which, run)
+    assert (await flow.stored("aes")).version == 1 and (await flow.stored("jwt")).version == 1
+    assert await world.audit_rows("settings.task_set") == []
+
+
+# ------------------------------- only the sealed values change, not the rest of a document
+async def test_the_rest_of_a_document_is_left_exactly_as_stored(world, flow):
+    crypto = Crypto(OLD_F)
+    engine = await app_engine()
+    raw = (
+        '{"_id": {"$oid": "65e5501d00000000000000c9"}, "form_id": "f-precision", '
+        '"price": 1.10, "huge": 12345678901234567890123, "tiny": 1e-7, "name": "x", '
+        '"secrets": {"a1": [{"name": "Token", "value": "%s"}]}}' % crypto.encrypt("token-plain-1")
+    )
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(
+                text("INSERT INTO app.forms (id, doc, _bc_checksum) VALUES ('65e5501d00000000000000c9', "
+                     "CAST(:d AS jsonb), 'c')"),
+                {"d": raw},
+            )
+    finally:
+        await engine.dispose()
+    new_id = await promoted_flow(flow)
+    params = {"which": "aes", "primary_id": new_id, "external_consumers_updated": True}
+    await flow.both("authkeys.reencrypt", params)
+    engine = await app_engine()
+    try:
+        async with engine.connect() as conn:
+            row = (
+                await conn.execute(
+                    text("SELECT doc ->> 'price', doc ->> 'huge', doc ->> 'tiny', "
+                         "doc #>> '{secrets,a1,0,value}' FROM app.forms WHERE id = '65e5501d00000000000000c9'")
+                )
+            ).one()
+    finally:
+        await engine.dispose()
+    assert str(row[0]) == "1.10" and str(row[1]) == "12345678901234567890123"
+    assert str(row[2]) in ("0.0000001", "1e-7")
+    ring_head = (await flow.stored("aes")).value.split(",")[0]
+    assert Crypto(ring_head).decrypt(row[3]) == "token-plain-1"

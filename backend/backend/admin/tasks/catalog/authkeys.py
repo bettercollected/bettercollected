@@ -66,6 +66,12 @@ class Refusals(str, enum.Enum):
     consumer_env_override = "consumer_env_override"
     consumer_restart_pending = "consumer_restart_pending"
     consumer_behind = "consumer_behind"
+    # a live instance runs a build without key-ring support
+    consumer_old_build = "consumer_old_build"
+    # drop_old of the signing secret needs a verify run made after the promote,
+    # which proves every service signs with the new key from that moment on
+    promotion_not_verified = "promotion_not_verified"
+    jobs_routing_unconfirmed = "jobs_routing_unconfirmed"
     store_not_configured = "store_not_configured"
     store_unreachable = "store_unreachable"
     store_empty = "store_empty"
@@ -134,7 +140,16 @@ class ReencryptParams(Params):
     primary_id: MemberId
     targets: Annotated[list[Targets], Field(max_length=7)] = []  # empty: all
     batch_size: Annotated[int, Field(ge=50, le=1000)] = 200
-    external_consumers_updated: bool = False
+    external_consumers_updated: Annotated[
+        bool,
+        Field(
+            description=(
+                "Tick to confirm that the Temporal worker and the actions executor, if "
+                "you run them, hold the ring with the NEW key first (AES_HEX_KEY): what "
+                "they write back must be sealed with the new key."
+            )
+        ),
+    ] = False
     google_in_use: bool = True
 
 
@@ -142,6 +157,7 @@ class VerifyParams(Params):
     which: Which
     targets: Annotated[list[Targets], Field(max_length=7)] = []
     batch_size: Annotated[int, Field(ge=50, le=1000)] = 500
+    google_in_use: bool = True
 
 
 class DropOldParams(Params):
@@ -149,7 +165,28 @@ class DropOldParams(Params):
     # the member that stays (the new key): it must be first in the ring now, which
     # is how a drop before the promote is refused
     keep_id: MemberId
-    external_consumers_updated: bool = False
+    external_consumers_updated: Annotated[
+        bool,
+        Field(
+            description=(
+                "Tick to confirm that the Temporal worker and the actions executor, if "
+                "you run them, hold the ring with the NEW key first (AES_HEX_KEY)."
+            )
+        ),
+    ] = False
+    # aes: the sealed arguments of the purge, revocation and deletion jobs are
+    # counted in the Postgres queue only; a job routed to Temporal (JOBS_BACKEND
+    # or JOBS_BACKEND__<job> set to temporal, off by default) is not visible here
+    jobs_on_postgres: Annotated[
+        bool,
+        Field(
+            description=(
+                "Tick to confirm that no credential purge, grant revocation or account "
+                "deletion is routed to Temporal (JOBS_BACKEND is postgres, the default) "
+                "and none is running there."
+            )
+        ),
+    ] = False
     google_in_use: bool = True
     # jwt: sessions whose refresh token was issued before the promote lose their
     # session at their next refresh (sign in again); saved-draft links and edit

@@ -35,6 +35,7 @@ from common.services.keyset import (
     parse_keyset,
 )
 from common.settings.canonical import SettingRow, canonical_manifest
+from common.settings.key_ring import REPORT_MARK
 from common.settings.keys import SectionKeys
 from common.settings.loader import keyset_fingerprint
 from common.settings.signing import Manifest, sign_manifest
@@ -354,7 +355,8 @@ async def check_consumers(
         raise Refusal("consumer_env_override")
     if any(c.restart_pending for c in live):
         raise Refusal("consumer_restart_pending")
-    if any(c.keyset_fp != expected for c in live):
+    # a build with key-ring support appends its mark to the fingerprint
+    if any(c.keyset_fp.removesuffix(REPORT_MARK) != expected for c in live):
         raise Refusal("consumer_missing_key")
     if any(c.revision_applied < min_revision for c in live):
         raise Refusal("consumer_behind")

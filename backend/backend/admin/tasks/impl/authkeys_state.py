@@ -122,7 +122,12 @@ async def read_ring(ctx, which: Which):
 
 # -------------------------------------------------------------- consumers
 async def check_ring_consumers(
-    conn, *, name: str, min_revision: int, google_in_use: bool
+    conn,
+    *,
+    name: str,
+    min_revision: int,
+    google_in_use: bool,
+    require_mark: bool = False,
 ) -> int:
     """Every service that reads the ring reports (a heartbeat newer than 2 minutes
     on every instance seen in the last 15), has restarted onto the settings
@@ -148,6 +153,9 @@ async def check_ring_consumers(
         raise Refusal("consumer_restart_pending")
     if any(c.revision_applied < min_revision for c in live):
         raise Refusal("consumer_behind")
+    if require_mark and any(not c.keyset_fp.endswith(key_ring.REPORT_MARK) for c in live):
+        # a build from before key rings would read "<old>,<new>" as one key
+        raise Refusal("consumer_old_build")
     return len(live)
 
 
@@ -171,22 +179,57 @@ async def jobs_pending(conn) -> int:
     return value
 
 
-async def sessions_on_previous(conn, promoted_at: datetime) -> int:
-    """Live sessions whose refresh token was issued before ``promoted_at``, so it
+async def sessions_on_previous(conn, cutoff: datetime) -> int:
+    """Live sessions whose refresh token was issued before ``cutoff``, so it
     is signed with the previous key (``admin.sessions_on_old_key``)."""
-    value = await _scalar(conn, "SELECT admin.sessions_on_old_key(:t)", t=promoted_at)
+    value = await _scalar(conn, "SELECT admin.sessions_on_old_key(:t)", t=cutoff)
     if value is None:
         raise Refusal("counts_unavailable")
     return value
 
 
-async def drafts_on_previous(conn, promoted_at: datetime) -> int:
+async def drafts_on_previous(conn, cutoff: datetime) -> int:
     """At most this many unexpired saved drafts hold a link or an edit key hashed
     with the previous key (``admin.drafts_on_old_key``)."""
-    value = await _scalar(conn, "SELECT admin.drafts_on_old_key(:t)", t=promoted_at)
+    value = await _scalar(conn, "SELECT admin.drafts_on_old_key(:t)", t=cutoff)
     if value is None:
         raise Refusal("counts_unavailable")
     return value
+
+
+async def ready_since(conn, which: Which, *, allow_self: bool):
+    """When every service was last PROVEN to sign with the new key: the start of the
+    earliest succeeded ``authkeys.verify`` run of this ring that began after the
+    start of the last applied ``authkeys.promote`` (a verify refuses unless every
+    instance has restarted onto the promote's settings revision). Until then an
+    instance may still have been signing with the previous key, so every session
+    issued before this moment counts as on it. Both times are the runner's own
+    clock, so they compare with each other. ``allow_self``: the running verify
+    itself is such a proof (the database clock now) when no earlier one exists.
+    ``None`` when there is none (``promotion_not_verified``)."""
+    promoted = (
+        await conn.execute(
+            text(
+                "SELECT max(started_at) FROM tasks.runs WHERE task = 'authkeys.promote' "
+                "AND state = 'succeeded' AND NOT dry_run AND params ->> 'which' = :w"
+            ),
+            {"w": which.value},
+        )
+    ).scalar()
+    if promoted is None:  # never promoted: nothing to prove yet (a verify may still count)
+        return (await conn.execute(text("SELECT clock_timestamp()"))).scalar() if allow_self else None
+    earliest = (
+        await conn.execute(
+            text(
+                "SELECT min(started_at) FROM tasks.runs WHERE task = 'authkeys.verify' "
+                "AND state = 'succeeded' AND params ->> 'which' = :w AND started_at >= :t"
+            ),
+            {"w": which.value, "t": promoted},
+        )
+    ).scalar()
+    if earliest is None and allow_self:
+        earliest = (await conn.execute(text("SELECT clock_timestamp()"))).scalar()
+    return earliest
 
 
 def event_ids(ids: Sequence[int]) -> List[str]:

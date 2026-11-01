@@ -84,13 +84,14 @@ class _Base:
     async def _ring(self, ctx, params):
         return await ring_state.read_ring(ctx, params.which)
 
-    async def _ready(self, ctx, params, stored) -> int:
+    async def _ready(self, ctx, params, stored, *, require_mark: bool = False) -> int:
         async with ctx.connection() as conn:
             return await ring_state.check_ring_consumers(
                 conn,
                 name=ring_state.SETTING[params.which],
                 min_revision=stored.revision,
                 google_in_use=params.google_in_use,
+                require_mark=require_mark,
             )
 
     @staticmethod
@@ -172,7 +173,8 @@ class AddKey(_Base):
         if params.which is Which.jwt and "," in ring.primary:
             # "<secret with a comma>,<new>" could not be told from a ring
             raise Refusal("secret_has_separator")
-        await self._ready(ctx, params, stored)
+        # every running instance must report a build that understands rings
+        await self._ready(ctx, params, stored, require_mark=True)
         return keys, stored, ring
 
     async def precheck(self, ctx, params) -> None:
@@ -337,6 +339,15 @@ class Reencrypt(_Base):
             raise TaskError("resume_mismatch")
         stale = sum(c.get("values_stale", 0) for c in tallies) if ctx.dry_run else 0
         unopenable = sum(c.get("values_unopenable", 0) for c in tallies)
+        left = sum(
+            c.get("records_changed_concurrently", 0) + c.get("records_readback_failed", 0)
+            for c in tallies
+        )
+        if left and not ctx.dry_run:
+            # not "succeeded": a record changed under the walk, or did not read back
+            # as written, and still holds a value on the previous key. Counts are in
+            # the events; run again (idempotent).
+            raise TaskError("records_left_behind")
         return catalog.ScanResult(
             complete=complete,
             primary_id=ring.primary_id,
@@ -358,6 +369,10 @@ class Verify(_Base):
             config = self._data()
             targets = _selected(params.targets)
             await self._ping(config, targets)
+        elif len(ring.members) > 1:
+            # a verify of a ring under rotation proves every service holds it: the
+            # moment it runs is what the drop of the previous signing key counts from
+            await self._ready(ctx, params, stored)
         return stored, ring, config, targets
 
     async def precheck(self, ctx, params) -> None:
@@ -369,6 +384,8 @@ class Verify(_Base):
         complete = True
         stale = unopenable = base = 0
         gates = None
+        if params.which is Which.jwt and len(ring.members) > 1:
+            await ctx.emit(Events.consumers_ready, {}, [params.which.value])
         if params.which is Which.aes:
             rotation = core.Rotation(ring.text())
             async with _open_stores(config, targets, read_only=True) as stores:
@@ -391,7 +408,7 @@ class Verify(_Base):
                         break
         if len(ring.members) > 1 and complete:
             # what a drop of the previous key would cost now (after the promote)
-            gates = await _gates(ctx, params.which, stored)
+            gates = await _gates(ctx, params.which, stored, allow_self=True)
             await ctx.emit(Events.counted, _gate_counts(gates), [params.which.value])
         return catalog.ScanResult(
             complete=complete,
@@ -404,15 +421,18 @@ class Verify(_Base):
         )
 
 
-async def _gates(ctx, which: Which, stored) -> catalog.Gates:
-    """The counts a drop of the previous key depends on, with the time the
-    previous key stopped signing (the stored row's write: the promote)."""
+async def _gates(ctx, which: Which, stored, *, allow_self: bool = False) -> catalog.Gates:
+    """The counts a drop of the previous key depends on. For the signing secret
+    they run from the moment every service was proven to sign with the new key
+    (``ring_state.ready_since``, a verify made after the promote), not from the
+    promote's own write: until the last service restarted it still signed with
+    the previous key."""
     async with ctx.connection() as conn:
         if which is Which.aes:
             return catalog.Gates(checked=True, jobs_pending=await ring_state.jobs_pending(conn))
-        at = stored.updated_at
+        at = await ring_state.ready_since(conn, which, allow_self=allow_self)
         if at is None:
-            raise Refusal("counts_unavailable")
+            raise Refusal("promotion_not_verified")
         return catalog.Gates(
             checked=True,
             sessions_on_previous=await ring_state.sessions_on_previous(conn, at),
@@ -439,6 +459,8 @@ class DropOld(_Base):
         if len(ring.members) < 2:
             return keys, stored, ring, None, None
         self._external(params)
+        if params.which is Which.aes and not params.jobs_on_postgres:
+            raise Refusal("jobs_routing_unconfirmed")
         # every service must already sign/encrypt with the kept key: otherwise
         # one could still write a value under the key about to be dropped
         await self._ready(ctx, params, stored)

@@ -75,6 +75,9 @@ for what the dry run counted, and only if you accept it.
 1. **Every service runs a release with key-ring support** (4.3 or later): the backend, its jobs worker,
    the auth service and the Google Forms integration, and, if you run them, the Temporal worker and
    the actions executor. A service from before this release would read `<old>,<new>` as one key.
+   The services report it in their heartbeat and `add_key` refuses while a running instance does not
+   (`consumer_old_build`); the worker and the executor cannot report, so you confirm them
+   (`ring_build_deployed`).
 2. **Both keys are in the settings store** (they are, for a stack deployed with `deploy.sh`). A stack
    whose keys are only in environment files has to import them first (`settings-import`, see
    [admin-service.md](admin-service.md)); the tasks refuse `key_not_in_store`.
@@ -91,7 +94,9 @@ for what the dry run counted, and only if you accept it.
 
    It re-seals each key as its next version, unchanged, with the runner as a reader, and audits it.
    Run it **after** every service runs the new release: an older service refuses a row with a reader
-   it does not know.
+   it does not know. It writes a new settings revision, so **restart every service afterwards**
+   (backend, jobs worker, auth, Google Forms): the next task refuses `consumer_behind` or
+   `consumer_restart_pending` until each one reports the new revision.
 4. **No service takes the key from its own environment.** An `AUTH_JWT_SECRET` or `AUTH_AES_HEX_KEY` in
    a service's environment wins over the store, so the new key would never reach it (the tasks refuse
    `consumer_env_override`). Remove it from the stack file or `.env` (`settings-drift`, `settings-prune`).
@@ -124,17 +129,20 @@ Open Tasks in the portal. Every mutating task needs a succeeded dry run with the
 |---|---|---|
 | 1 | `authkeys.add_key` | `which: aes`, tick `ring_build_deployed`. Note `added_key_id` in the result. |
 | 2 | restart the services; give the workers and the executor the ring (below) | |
-| 3 | `authkeys.promote` | `which: aes`, `new_primary_id` = `added_key_id`, tick `external_consumers_updated` |
+| 3 | `authkeys.promote` | `which: aes`, `new_primary_id` = `added_key_id`, tick `external_consumers_updated` (the workers and the executor hold the ring with the new key) |
 | 4 | restart the services again; update the workers and the executor again | |
-| 5 | back up; `authkeys.reencrypt` | `which: aes`, `primary_id` = `added_key_id`, tick `external_consumers_updated` |
+| 5 | back up; set the workers and the executor to `AES_HEX_KEY=<new>,<old>`; `authkeys.reencrypt` | `which: aes`, `primary_id` = `added_key_id`, tick `external_consumers_updated` (they hold the ring with the **new key first**) |
 | 6 | `authkeys.verify` | `which: aes`: every value opens, counts per target, `jobs_pending` |
-| 7 | `authkeys.drop_old` | `which: aes`, `keep_id` = `added_key_id`, tick `external_consumers_updated` |
+| 7 | `authkeys.drop_old` | `which: aes`, `keep_id` = `added_key_id`, tick `external_consumers_updated` and `jobs_on_postgres` |
 | 8 | restart the services; set the workers and the executor to the single key | |
 
 **The workers and the executor.** The Temporal worker and the actions executor each hold a copy of the
 key as `AES_HEX_KEY` in their own environment; they cannot report to the store and are not restarted by
 the steps above. The executor reads form-action secrets and writes a refreshed Google credential back,
-so it must hold the ring from step 2 until step 8. To read the ring from the store:
+so it must hold the ring from step 2 until step 8. What it writes back is sealed with its own key: the
+backend opens it with its ring and seals it again with its current key (a value no key of the ring
+opens is refused with a 422 and logged by ids), so an executor that still has the old key first does no
+harm, but one that does not hold the new key cannot read what `reencrypt` moved. To read the ring from the store:
 
 ```bash
 ./deploy.sh settings-env-export --keys AUTH_AES_HEX_KEY --out key-rotation/ring.env
@@ -153,7 +161,10 @@ means the application changed a value meanwhile: run again.
 **What `drop_old` checks.** A full scan with the ring finds every value on the new key; none is unopenable;
 the scan is not empty (an empty scan looks like a wrong database: `store_empty`, unless you tick
 `allow_empty` for a stack that never stored such a value); no purge, revocation or deletion job is
-queued or running (`jobs_pending`: wait a few minutes, or for the revocation's two-day delay).
+queued or running in the Postgres queue (`jobs_pending`: wait a few minutes, or for the revocation's
+two-day delay). The queue is the only place counted: a job routed to Temporal (`JOBS_BACKEND` or
+`JOBS_BACKEND__<job>` set to `temporal`, off by default) is invisible to the task, so you confirm that none is
+(`jobs_on_postgres`; `jobs_routing_unconfirmed` without it).
 
 ## Rotating the signing secret (`which: jwt`)
 
@@ -163,11 +174,16 @@ queued or running (`jobs_pending`: wait a few minutes, or for the revocation's t
 | 2 | restart the services | |
 | 3 | `authkeys.promote` | `which: jwt`, `new_primary_id` = `added_key_id` |
 | 4 | restart the services again | |
-| 5 | wait; look at `authkeys.verify` | `which: jwt`: `sessions_on_previous`, `drafts_on_previous` |
+| 5 | once every service has restarted: `authkeys.verify`, then wait and run it again to look | `which: jwt`: `sessions_on_previous`, `drafts_on_previous` |
 | 6 | `authkeys.drop_old` | `which: jwt`, `keep_id` = `added_key_id`; `accept_sign_out` and `accept_draft_link_loss` when the counts above are not zero |
 | 7 | restart the services | |
 
-Step 5 is the choice. Waiting `REFRESH_TOKEN_EXPIRY_IN_DAYS` days after the promote leaves nobody on the old
+Step 5 is required: the counts start from the **first `verify` that succeeded after the promote**. A
+`verify` refuses unless every instance has restarted onto the promote's settings revision, so that run is the
+proof that no service signs with the old secret any more. (Counting from the promote itself would miss a
+session refreshed after it by a service that had not restarted yet: it still signs with the old key.)
+Sessions refreshed between the promote and that verify are counted as old, so run it as soon as the restarts are
+done; without one `drop_old` refuses (`promotion_not_verified`). Step 5 is also the choice. Waiting `REFRESH_TOKEN_EXPIRY_IN_DAYS` days after the promote leaves nobody on the old
 key (every older refresh token has expired and unexpired drafts are bounded by their retention). Dropping
 sooner signs out `sessions_on_previous` people and ends `drafts_on_previous` saved-draft links; the dry
 run result says `ready: false` until you tick what you accept, and the real run refuses
@@ -190,6 +206,10 @@ encryption key, run all eight steps; until `drop_old` the old key is still in th
 | `store_not_configured`, `store_unreachable`, `store_empty` | the data store is not configured for the runner, does not answer, or holds no sealed value | see the runner's environment in [admin-service.md](admin-service.md) |
 | `values_on_previous`, `values_not_readable` | values are still on the previous key, or no key opens them | run `reencrypt`; find the values (counts per table in the events) |
 | `scan_incomplete`, `stale_version` | the scan was cancelled; the settings changed during the run | run again |
+| `records_left_behind` (a failed `reencrypt`) | a record changed during the walk or did not read back as written, and still holds a value on the old key | run `reencrypt` again; the counts are in the run's events |
+| `consumer_old_build` | a running instance reports a build without key-ring support | deploy the release to it |
+| `promotion_not_verified` | no `verify` of this ring succeeded after the promote | restart the services, run `authkeys.verify` |
+| `jobs_routing_unconfirmed` | the statement about Temporal-routed jobs was not ticked | tick it once it is true |
 | `jobs_pending`, `counts_unavailable` | queued jobs hold a sealed argument; a count could not be read | wait; re-run the roles script (`postgres/ensure-admin-roles.sh`) if the count stays unavailable |
 | `sign_out_not_accepted`, `draft_links_not_accepted` | the old signing secret still covers sessions or drafts | wait, or tick what you accept |
 

@@ -64,6 +64,24 @@ async def insert(superuser, table: str, **fields):
         )
 
 
+async def insert_stored(superuser, table: str, **doc):
+    """A document exactly as a store may hold it (any Extended JSON form of a date)."""
+    oid = ObjectId()
+    async with superuser.begin() as conn:
+        await conn.execute(
+            text(f"INSERT INTO app.{table} (id, doc, _bc_checksum) VALUES (:i, CAST(:d AS jsonb), 'c')"),
+            {"i": str(oid), "d": json.dumps({"_id": {"$oid": str(oid)}, **doc})},
+        )
+
+
+def millis(value: dt.datetime) -> dict:
+    return {"$date": {"$numberLong": str(int(value.timestamp() * 1000))}}
+
+
+def iso(value: dt.datetime) -> dict:
+    return {"$date": value.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"}
+
+
 async def job(superuser, task: str, status: str):
     async with superuser.begin() as conn:
         await conn.execute(
@@ -175,3 +193,39 @@ async def test_the_counts_role_reads_columns_and_writes_nothing(laid_out, server
             ).scalar_one()
         # the queue's arguments stay unread
         assert not await can("jobs.procrastinate_jobs", "args")
+
+
+async def test_every_stored_form_of_a_date_is_read_and_a_missing_date_counts_as_old(laid_out, tasks, superuser):
+    day = dt.timedelta(days=1)
+    common = {"user_id": "u1", "refresh_jti": "j", "expires_at": iso(NOW + 10 * day)}
+    # $numberLong milliseconds, before and after the cutoff
+    await insert_stored(superuser, "sessions", **common, created_at=millis(NOW - 5 * day))
+    await insert_stored(superuser, "sessions", **common, created_at=millis(NOW - 9 * day), rotated_at=millis(NOW - day))
+    # an ISO string date
+    await insert_stored(superuser, "sessions", **common, created_at=iso(NOW - 5 * day))
+    # neither date: it cannot be shown to be new, so it counts as old
+    await insert_stored(superuser, "sessions", **common)
+    assert await one(tasks, "SELECT admin.sessions_on_old_key(:t)", t=PROMOTED) == 3
+    live = {"form_id": "f1", "workspace_id": "65e5501d00000000000000a1", "expires_at": iso(NOW + 5 * day)}
+    await insert_stored(superuser, "form_drafts", **live, token_hash="a" * 64, created_at=millis(NOW - 4 * day))
+    await insert_stored(superuser, "form_drafts", **live, token_hash="b" * 64, created_at=millis(NOW - dt.timedelta(hours=1)))
+    await insert_stored(superuser, "form_drafts", **live, edit_key_hash="c" * 64)  # no date: old
+    assert await one(tasks, "SELECT admin.drafts_on_old_key(:t)", t=PROMOTED) == 2
+
+
+async def test_a_session_issued_in_the_gap_between_the_promote_and_the_restart_is_counted_from_the_verify(
+    laid_out, tasks, superuser
+):
+    """A service keeps signing with the previous key until it restarts. A refresh
+    in that gap is on the previous key, so the count runs from the moment every
+    service was proven restarted (the verify), not from the promote's write."""
+    promote = NOW - dt.timedelta(minutes=30)
+    verified = NOW - dt.timedelta(minutes=10)
+    common = {"user_id": "u1", "refresh_jti": "j", "expires_at": NOW + dt.timedelta(days=9)}
+    await insert(superuser, "sessions", **common, created_at=NOW - dt.timedelta(days=3), rotated_at=promote - dt.timedelta(minutes=5))
+    # rotated in the gap: signed by a service that had not restarted yet
+    await insert(superuser, "sessions", **common, created_at=NOW - dt.timedelta(days=3), rotated_at=promote + dt.timedelta(minutes=5))
+    # rotated after every service restarted: signed with the new key
+    await insert(superuser, "sessions", **common, created_at=NOW - dt.timedelta(days=3), rotated_at=verified + dt.timedelta(minutes=1))
+    assert await one(tasks, "SELECT admin.sessions_on_old_key(:t)", t=promote) == 1  # misses the gap
+    assert await one(tasks, "SELECT admin.sessions_on_old_key(:t)", t=verified) == 2  # the gap is covered

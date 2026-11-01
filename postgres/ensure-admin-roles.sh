@@ -757,8 +757,10 @@ BEGIN
           FROM app.sessions s
          WHERE s.revoked_at IS NULL
            AND s.expires_at > pg_catalog.now()
-           AND coalesce((s.doc -> 'rotated_at' ->> '$date')::timestamptz,
-                        (s.doc -> 'created_at' ->> '$date')::timestamptz) < p_before
+           -- the date helpers of the schema read every stored form of a date; a
+           -- session with neither date counts as old (it cannot be shown to be new)
+           AND coalesce(app.bc_ts(s.doc -> 'rotated_at'), app.bc_ts(s.doc -> 'created_at'),
+                        '-infinity'::timestamptz) < p_before
     );
 END
 $fn$;
@@ -776,7 +778,7 @@ BEGIN
           FROM app.form_drafts d
          WHERE d.expires_at > pg_catalog.now()
            AND (d.doc ->> 'token_hash' IS NOT NULL OR d.doc ->> 'edit_key_hash' IS NOT NULL)
-           AND (d.doc -> 'created_at' ->> '$date')::timestamptz < p_before
+           AND coalesce(app.bc_ts(d.doc -> 'created_at'), '-infinity'::timestamptz) < p_before
     );
 END
 $fn$;
