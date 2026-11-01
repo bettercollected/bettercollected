@@ -26,7 +26,10 @@ from typing import Optional
 
 from procrastinate import App, PsycopgConnector, RetryStrategy
 
+from sandbox import broker
+from settings.application import isolation_enforced, settings
 from utilities.actions import run_action
+from utilities.google_service import RunScope
 from utilities.job_logging import scrub_job_logging
 from utilities.queue_isolation import require_isolated_queue
 from utilities.run_context import RunContextUnavailable, fetch_run_context
@@ -101,6 +104,17 @@ async def run_action_job(
                 context["workspace"],
             )
             user_email = context.get("user_email") or None
+            secrets_plain = bool(context.get("secrets_plain"))
+            run_scope = RunScope(
+                workspace_id=str(workspace_id),
+                form_id=str(form_id),
+                action_id=str(action_id),
+                response_id=str(response_id),
+                run_token=str(run_token),
+            )
+        else:
+            # a job queued by 4.1.x: the secrets in it are sealed
+            secrets_plain, run_scope = False, None
         await asyncio.wait_for(
             run_action(
                 action=action,
@@ -108,6 +122,8 @@ async def run_action_job(
                 response=response,
                 user_email=user_email,
                 workspace=workspace,
+                secrets_plain=secrets_plain,
+                run_scope=run_scope,
             ),
             timeout=RUN_TIMEOUT_SECONDS,
         )
@@ -123,7 +139,40 @@ async def run_action_job(
     return "ok"
 
 
+async def log_isolation() -> None:
+    """Say at start what the custom-code sandbox can do here (never fatal: a
+    stack that runs only the built-in actions has no use for it, and a run of
+    custom code fails closed when the child cannot confine itself)."""
+    if not isolation_enforced():
+        logger.error(
+            "ACTION_ISOLATION=legacy: custom action code runs inside this process "
+            "and can reach its keys. Unset it unless you are rolling back."
+        )
+        return
+    broker.harden_parent()
+    if settings.aes_hex_key:
+        logger.warning(
+            "AES_HEX_KEY is set on the executor: it is not used while the backend "
+            "(4.3 or later) opens the run's secrets; remove it from this service"
+        )
+    try:
+        facts = await broker.probe()
+        logger.info(
+            "action sandbox ready: filesystem=%s seccomp=%s unprivileged=%s",
+            facts.get("filesystem"),
+            facts.get("seccomp"),
+            facts.get("unprivileged"),
+        )
+    except broker.SandboxUnavailable as error:
+        logger.error(
+            "action sandbox NOT available, custom action code will not run: %s "
+            "(docs/executor-isolation.md)",
+            error,
+        )
+
+
 async def main() -> None:
+    await log_isolation()
     async with app.open_async():
         # fail closed: this role only runs where the database keeps it to its own queue
         await require_isolated_queue(app.connector)

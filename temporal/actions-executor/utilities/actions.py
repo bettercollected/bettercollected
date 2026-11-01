@@ -12,11 +12,18 @@ from google.auth.exceptions import RefreshError
 from googleapiclient.errors import HttpError
 from pydantic import EmailStr
 
-from configs.crypto import crypto
+from configs.cipher import crypto
 from models.exception_enum import ExceptionType
-from settings.application import settings
+from settings.application import isolation_enforced, settings
+from utilities import egress
+from utilities.custom_action import Toolbox, run_custom_code
 from utilities.exceptions import HTTPException
-from utilities.google_service import build_google_service, fetch_oauth_token
+from utilities.google_service import (
+    RunScope,
+    build_google_service,
+    fetch_oauth_token,
+    writeback_for,
+)
 from wrappers.thread_pool_executor import thread_pool_executor
 from utilities.form import (
     column_letter,
@@ -45,7 +52,13 @@ async def run_action(
     response: Any,
     user_email: Optional[EmailStr] = None,
     workspace: Optional[str] = None,
+    secrets_plain: bool = False,
+    run_scope: Optional[RunScope] = None,
 ):
+    """Run one action. ``secrets_plain``: the backend already opened the run's
+    secrets (the executor then holds no key); otherwise they are sealed and are
+    opened with this process's key, as 4.2 did. ``run_scope``: the ids and token
+    of the run, used to hand a refreshed credential back to the backend."""
     workspace = json.loads(workspace)
     action = json.loads(action)
     form = json.loads(form)
@@ -62,25 +75,26 @@ async def run_action(
     def get_workspace_details():
         return workspace
 
+    def process_item(variable, decrypt=False):
+        item_name = variable.get("name")
+        item_value = variable.get("value")
+        if item_name is not None and item_value is not None and item_value != "":
+            return item_name, (
+                item_value if not decrypt else crypto.decrypt(item_value)
+            )
+        return None, None
+
+    def collect(items, decrypt) -> Dict[str, str]:
+        values = {}
+        for item in items or []:
+            name, value = process_item(item, decrypt)
+            if name is not None:
+                values[name] = value
+        return values
+
     def get_extra_data(key: str) -> Dict[str, str]:
-        def process_item(variable, decrypt=False):
-            item_name = variable.get("name")
-            item_value = variable.get("value")
-            if item_name is not None and item_value is not None and item_value != "":
-                return item_name, (
-                    item_value if not decrypt else crypto.decrypt(item_value)
-                )
-            return None, None
-
-        def collect(items, decrypt) -> Dict[str, str]:
-            values = {}
-            for item in items or []:
-                name, value = process_item(item, decrypt)
-                if name is not None:
-                    values[name] = value
-            return values
-
-        decrypt = key == "secrets"
+        # a secret is opened here unless the backend already opened it
+        decrypt = key == "secrets" and not secrets_plain
         action_id = action.get("id")
 
         # the action's own values (the instance's defaults)
@@ -106,6 +120,25 @@ async def run_action(
             form_values,
             smtp_overridden(action, workspace, form),
         )
+
+    # What the administrators who created the action configured (its own
+    # parameters; its secrets too when they arrive opened): their addresses are
+    # trusted destinations, a workspace's or a form's are not (utilities/egress.py)
+    smtp_trusted = not smtp_overridden(action, workspace, form)
+    trusted_hosts = egress.trusted_hosts_of(
+        [
+            *collect(action.get("parameters", []), False).values(),
+            *(
+                collect(action.get("secrets", []), False).values()
+                if secrets_plain
+                else []
+            ),
+        ]
+    )
+    egress_allow = egress.parse_allow(settings.action_egress_allow)
+    # a refreshed Google credential goes back to the backend as plain text for it
+    # to seal, when the secrets came opened (this process holds no key then)
+    writeback = writeback_for(run_scope) if (secrets_plain and run_scope) else None
 
     def get_parameters() -> Dict[str, str]:
         return get_extra_data("parameters")
@@ -152,6 +185,12 @@ async def run_action(
             TEMPLATE_FOLDER="templates",
         )
 
+    def check_smtp_destination(server, port):
+        """A mail server a workspace or a form named must be a public one; the
+        instance's own (the action's defaults) is not judged."""
+        if isolation_enforced():
+            egress.check_smtp(server, port, allow=egress_allow, trusted=smtp_trusted)
+
     def get_simple_form_response(respondent: bool = False):
         # a copy the respondent receives leaves out calculations kept from them
         extracted_question_answers = get_questions_and_answers(
@@ -189,6 +228,7 @@ async def run_action(
             oauth_credential=credentials,
             action_id=action["id"],
             form_id=form["form_id"],
+            writeback=writeback,
         )
         credential["scopes"] = credential.get("scopes").split(" ")[1:]
 
@@ -346,6 +386,26 @@ async def run_action(
         if data is None:
             data = {}
 
+        if isolation_enforced():
+            # the address was typed by a form creator: public https only, the
+            # checked address is the one connected to (utilities/egress.py)
+            if headers["Content-Type"] == "application/json":
+                return egress.post(
+                    url,
+                    params=params,
+                    json_body=data,
+                    headers=headers,
+                    allow=egress_allow,
+                    trusted=trusted_hosts,
+                )
+            return egress.post(
+                url,
+                params=params,
+                form=data,
+                headers=headers,
+                allow=egress_allow,
+                trusted=trusted_hosts,
+            )
         if headers["Content-Type"] == "application/json":
             res = httpx.post(
                 url=url, params=params, content=json.dumps(data), headers=headers
@@ -368,6 +428,7 @@ async def run_action(
             username, password, sender, port, server = smtp_settings(
                 get_parameters(), get_secrets()
             )
+            check_smtp_destination(server, port)
             # "<workspace> via <instance>", whichever SMTP server sends it: the
             # instance is named as the sender, the workspace as on whose behalf
             from_name = respondent_from_name(
@@ -402,6 +463,7 @@ async def run_action(
             username, password, sender, port, server = smtp_settings(
                 get_parameters(), get_secrets()
             )
+            check_smtp_destination(server, port)
 
             mail_config = config_mail(username, password, sender, port, server)
 
@@ -473,6 +535,15 @@ async def run_action(
         }
 
         # Optional: add better error logging in development
+        if isolation_enforced():
+            return egress.post(
+                url,
+                params=params,
+                json_body=payload,
+                headers=headers,
+                allow=egress_allow,
+                trusted=trusted_hosts,
+            )
         try:
             res = httpx.post(
                 url=url, params=params, json=payload, headers=headers, timeout=10.0
@@ -513,6 +584,15 @@ async def run_action(
                 }
             ]
         }
+        if isolation_enforced():
+            return egress.post(
+                url,
+                params=params,
+                json_body=payload,
+                headers=headers,
+                allow=egress_allow,
+                trusted=trusted_hosts,
+            )
         res = httpx.post(url=url, params=params, json=payload, headers=headers)
         return res
 
@@ -534,6 +614,7 @@ async def run_action(
             oauth_credential=json.loads(credentials),
             action_id=action["id"],
             form_id=form["form_id"],
+            writeback=writeback,
         )
         credential["scopes"] = credential.get("scopes").split(" ")[1:]
         try:
@@ -618,6 +699,43 @@ async def run_action(
             case "integrate_google_sheets":
                 return integrate_google_sheets_append_action()
         return
+    if isolation_enforced():
+        return await run_isolated_code(
+            action_code=action.get("action_code"),
+            data={
+                "action": action,
+                "form": form,
+                "response": response,
+                "workspace": workspace,
+                "simple_response": get_simple_form_response(),
+            },
+            toolbox=Toolbox(
+                parameters=get_parameters(),
+                secrets=get_secrets(),
+                trusted_hosts=trusted_hosts,
+                smtp_trusted=smtp_trusted,
+                respondent_email=response.get("dataOwnerIdentifier"),
+                webhook=send_data_webhook,
+                discord=send_data_discord,
+                slack=send_data_slack,
+                config_mail=config_mail,
+                send_mail=send_mail_action,
+                append_sheet=lambda sheet_id, credentials, rows: append_in_sheet(
+                    sheet_id, credentials, rows
+                ),
+                approved_recipient=lambda address: approved_copy_recipient(
+                    address,
+                    workspace.get("id"),
+                    form.get("form_id"),
+                    action.get("id"),
+                ),
+                allow=egress_allow,
+            ),
+            action=action,
+            form=form,
+            workspace=workspace,
+        )
+    # ACTION_ISOLATION=legacy: the code runs in this process, which it can reach
     loop = asyncio.get_event_loop()
     result = await asyncio.wait_for(
         loop.run_in_executor(
@@ -647,6 +765,42 @@ async def run_action(
         timeout=30,
     )
     return result
+
+
+def mark_action_broken(workspace, form, action) -> None:
+    """The action's stored sheet or credential is gone: tell the backend, which
+    switches the action off."""
+    httpx.patch(
+        url=f"{settings.server_url}/workspaces/{workspace.get('id')}/forms/{form.get('form_id')}/action/{action.get('id')}/update",
+        headers={"api-key": settings.api_key},
+    )
+
+
+async def run_isolated_code(*, action_code, data, toolbox, action, form, workspace):
+    """Custom action code in the sandbox (sandbox/, utilities/custom_action.py).
+    The result and the failure look as the in-process run's did: the code's log,
+    or a RuntimeError holding the log; the class of an error, never a traceback."""
+    outcome = await run_custom_code(action_code, data=data, toolbox=toolbox)
+    log_lines = list(outcome.log)
+    error = outcome.error
+    if error is None:
+        return {"status": True, "log": "\n".join(log_lines)}
+    message = str(error.get("message") or "")
+    log_lines.append("Exception While running action")
+    log_lines.append(message)
+    if message in (
+        ExceptionType.GOOGLE_SHEET_MISSING,
+        ExceptionType.OAUTH_TOKEN_MISSING,
+    ):
+        await asyncio.get_running_loop().run_in_executor(
+            None, mark_action_broken, workspace, form, action
+        )
+    logger.error(
+        "action %s failed in its code: %s",
+        action.get("id"),
+        error.get("class") or error.get("kind"),
+    )
+    raise RuntimeError("\n".join(log_lines))
 
 
 def execute_action_code(

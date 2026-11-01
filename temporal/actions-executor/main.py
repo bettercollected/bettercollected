@@ -3,11 +3,17 @@ import os
 import random
 import string
 
+from sandbox import broker as sandbox_broker
 from temporalio.client import Client
 from temporalio.worker import Worker
 
 from activities.run_action_code import run_action_code
-from settings.application import log_if_api_key_missing, settings
+from settings.application import (
+    isolation_enforced,
+    log_if_api_key_missing,
+    require_aes_hex_key,
+    settings,
+)
 from workflows.run_action_code import RunActionCode
 
 
@@ -65,8 +71,15 @@ if __name__ == "__main__":
     # JOBS_BACKEND=temporal keeps the workflow.
     if jobs_backend() == "postgres":
         require_database_url()
+        if settings.aes_hex_key:
+            # still validated when set; not needed since 4.3 (see below)
+            require_aes_hex_key()
         from procrastinate_worker import main as run_procrastinate
 
         asyncio.run(run_procrastinate())
     else:
+        # the Temporal path hands over sealed secrets: it needs the key
+        require_aes_hex_key()
+        if isolation_enforced():
+            sandbox_broker.harden_parent()
         asyncio.run(main())
