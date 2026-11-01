@@ -186,9 +186,22 @@ KEYSET = [
     "keyset.verify",
     "keyset.drop_old",
 ]
+AUTHKEYS = [
+    "authkeys.add_key",
+    "authkeys.promote",
+    "authkeys.reencrypt",
+    "authkeys.verify",
+    "authkeys.drop_old",
+]
 GOOGLE = ["google.purge_unencrypted_credentials", "auth.resolve_case_duplicate_accounts"]
 REAL = sorted(
-    ["responses.backfill_workspaces", "responses.check_undecryptable", *KEYSET, *GOOGLE]
+    [
+        "responses.backfill_workspaces",
+        "responses.check_undecryptable",
+        *KEYSET,
+        *AUTHKEYS,
+        *GOOGLE,
+    ]
 )
 
 
@@ -197,12 +210,14 @@ def test_selftest_tasks_are_registered_only_when_flagged():
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
         *KEYSET,
+        *AUTHKEYS,
         *GOOGLE,
     ]
     assert [m.name for m in catalog.all_meta({"ADMIN_TASKS_SELFTEST": "0"})] == [
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
         *KEYSET,
+        *AUTHKEYS,
         *GOOGLE,
     ]
     assert impl_package.build_registry({}).names() == REAL
@@ -211,6 +226,7 @@ def test_selftest_tasks_are_registered_only_when_flagged():
         "responses.check_undecryptable",
         "responses.backfill_workspaces",
         *KEYSET,
+        *AUTHKEYS,
         *GOOGLE,
         "selftest",
         "selftest_slow",

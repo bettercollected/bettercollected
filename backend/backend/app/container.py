@@ -1047,7 +1047,7 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     form_actions_service: FormActionsService = providers.Singleton(
-        FormActionsService, form_repo=form_repo
+        FormActionsService, form_repo=form_repo, crypto=crypto
     )
 
     refresh_allowed_origins = providers.Callable(
