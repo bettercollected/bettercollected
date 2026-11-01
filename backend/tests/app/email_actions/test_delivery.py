@@ -35,6 +35,13 @@ pytestmark = pytest.mark.asyncio
 PERSONAL = ["Ada Example", "ada@example.test", "Synthetic story.", "1990-01-02"]
 
 
+def _mentions_personal(document) -> bool:
+    """Whether a log row holds any of the respondent's details. Checked by whole value:
+    a short needle such as "ada" is made of hex letters and turns up in random ids."""
+    text = json.dumps(document).lower()
+    return any(value.lower() in text for value in PERSONAL)
+
+
 @pytest.fixture()
 def lines():
     seen = []
@@ -873,7 +880,7 @@ async def test_an_account_that_is_gone_when_the_copy_is_sent_gets_nothing_and_th
     assert (outcome.status, outcome.retry) == ("cancelled", False)
     assert row.status is LogStatus.CANCELLED and row.last_error_code == "account_gone"
     assert setup.transport.sent == [] and await _budgets_untouched(setup) == [0, 0, 0, 0]
-    assert "ada" not in json.dumps(row.model_dump(mode="json")).lower()
+    assert not _mentions_personal(row.model_dump(mode="json"))
 
 
 async def test_an_anonymous_respondent_gets_no_copy_and_the_log_says_why(setup):
@@ -885,7 +892,7 @@ async def test_an_anonymous_respondent_gets_no_copy_and_the_log_says_why(setup):
     copy = rows["respondent"]
     assert copy.status is LogStatus.CANCELLED and copy.last_error_code == "not_verified"
     assert copy.finished_at is not None and copy.attempts == 0 and copy.account_id is None
-    assert "ada" not in json.dumps(copy.model_dump(mode="json")).lower()  # ids and status only
+    assert not _mentions_personal(copy.model_dump(mode="json"))  # ids and status only
     # no job for it (the team's mail is queued as ever), nothing sent, no budget used
     assert [j["args"]["log_id"] for j in setup.jobs.jobs.values()] == [str(rows["team"].id)]
     assert (await run(copy)).status == "skipped" and setup.transport.sent == []
