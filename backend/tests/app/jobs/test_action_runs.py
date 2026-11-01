@@ -274,11 +274,20 @@ class TestWhatTheExecutorGets:
     async def test_a_deleted_response_is_gone(
         self, client, workspace, configured_form, partner_action, memory_jobs
     ):
-        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        response, job = await _submitted(workspace, configured_form, memory_jobs)
         await container.form_response_service().delete_response(response.response_id)
 
+        # the executor presents the token the job carries (minted at queue time,
+        # in whole seconds): a token minted again here could differ from it when
+        # the deletion above takes more than a second, which is a 403, not the
+        # 410 under test
         got = await _ask(
-            client, workspace, configured_form, partner_action, response.response_id
+            client,
+            workspace,
+            configured_form,
+            partner_action,
+            response.response_id,
+            token=dict(job["args"])["run_token"],
         )
 
         assert got.status_code == 410
