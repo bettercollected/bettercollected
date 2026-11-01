@@ -286,7 +286,7 @@ see them.
 
 | Type | The respondent | Keys |
 |---|---|---|
-| `panel` | a titled group with a button that opens and closes it | `title` (1 to 120 characters, plain text), `collapsed` (`true`: closed when the page opens), `fields` |
+| `panel` | a titled group with a button that opens and closes it | `title` (1 to 120 characters of plain text: no control or format characters, except the joiners U+200C and U+200D that emoji sequences and some scripts need), `collapsed` (`true`: closed when the page opens), `fields` |
 | `fieldset` | a bordered group with the title as its legend | `title`, `fields` |
 | `tabs` | a strip of tabs, one group shown at a time | `tabs` (1 to 8, each `{id, title, fields}`; a tab may be empty); no title of its own |
 
@@ -296,7 +296,7 @@ they are not required, and what they hold stays stored and sent, as for any
 question hidden by logic). Its conditions read only questions before the
 container.
 
-- `id`s (containers and tabs) are unique across the form. At most 20 containers
+- `id`s (containers and tabs) are unique across the form; a question id in a list is at most 200 characters. At most 20 containers
   per page and 100 questions per container.
 - The questions of a container are questions of that page, each in at most one
   container, never an internal question and never a repeating group's child
