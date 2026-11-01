@@ -393,3 +393,64 @@ async def test_an_unreachable_store_is_the_same_404(
     missing = await client.get(_route(workspace, "0" * 24), cookies=test_user_cookies)
     assert got.status_code == 404 and got.text == missing.text
     assert got.headers["cache-control"] == "no-store"
+
+
+# --- a refreshed session survives ----------------------------------------------------------
+
+
+class _FakeAuth:
+    """The auth service's answer to the status check a refresh makes."""
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def get(self, url, params=None, headers=None, **kwargs):
+        class Reply:
+            status_code = 200
+
+            @staticmethod
+            def json():
+                return {"id": testUser.id, "email": testUser.sub, "roles": ["FORM_CREATOR"]}
+
+        return Reply()
+
+
+async def test_a_session_refreshed_for_this_request_keeps_its_cookies_on_the_image(
+    client, workspace, signed_form, store, test_user_cookies, monkeypatch
+):
+    import http.cookies
+
+    from starlette.responses import Response as StarletteResponse
+
+    import backend.app.services.session_service as session_service
+
+    response_id = await _drawn_response(client, workspace, signed_form.form_id)
+    # an expired access token with a live refresh token: the sign-in dependency
+    # refreshes the session and sets new cookies on the response it is given
+    signed_in = StarletteResponse()
+    await container.session_service().start(
+        User(id=testUser.id, sub=testUser.sub, roles=["FORM_CREATOR"]), signed_in
+    )
+    refresh = next(
+        http.cookies.SimpleCookie(h)["RefreshToken"].value
+        for h in signed_in.headers.getlist("set-cookie")
+        if "RefreshToken" in http.cookies.SimpleCookie(h)
+    )
+    monkeypatch.setattr(session_service.httpx, "AsyncClient", _FakeAuth)
+    got = await client.get(
+        _route(workspace, response_id),
+        cookies={"Authorization": "expired", "RefreshToken": refresh},
+    )
+    assert got.status_code == 200 and got.content.startswith(b"\x89PNG")
+    cookies = [http.cookies.SimpleCookie(h) for h in got.headers.get_list("set-cookie")]
+    assert any("Authorization" in c for c in cookies)
+    # and the image's own headers are untouched by the carried ones
+    assert got.headers["cache-control"] == "no-store"
+    assert got.headers["content-type"] == "image/png"
+    assert int(got.headers["content-length"]) == len(got.content)

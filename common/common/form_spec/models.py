@@ -772,7 +772,16 @@ class Retention(_Spec):
     (YYYY-MM-DD), or forever."""
 
     type: Literal["days", "date", "forever"]
-    value: Optional[Union[int, str]] = None
+    # The order of the alternatives is pinned: ``typing`` caches a Union by its
+    # members, not their order, so whichever module built an equal Union first
+    # (psycopg's ``Union[str, int, None]``) decided it, and with it the
+    # generated schemas, depending on the import order.
+    value: Optional[Union[int, str]] = Field(
+        None,
+        json_schema_extra={
+            "anyOf": [{"type": "integer"}, {"type": "string"}, {"type": "null"}]
+        },
+    )
 
 
 class Trust(_Spec):

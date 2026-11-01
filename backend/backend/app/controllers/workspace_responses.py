@@ -54,7 +54,7 @@ from backend.app.services.receipt_limits import (
 from backend.app.services.respondent_feedback_service import (
     RespondentFeedbackService,
 )
-from backend.app.services.signatures import read_throttle
+from backend.app.services.signatures import carry_headers, read_throttle
 from backend.app.services.user_service import get_logged_user
 from backend.app.utils.client_ip import request_client_ip
 from backend.app.utils.custom_routable import CustomRoutable
@@ -416,6 +416,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
         workspace_id: RecordId,
         submission_id: str,
         field_id: str,
+        response: Response,
         user: User = Depends(get_logged_user),
     ):
         """A drawn signature's image, decrypted for the people who may read
@@ -425,7 +426,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
         image = await self._form_response_service.signature_image(
             workspace_id, submission_id, field_id, user
         )
-        return Response(
+        served = Response(
             content=image,
             media_type="image/png",
             headers={
@@ -436,6 +437,10 @@ class WorkspaceResponsesRouter(CustomRoutable):
                 "Cross-Origin-Resource-Policy": "same-site",
             },
         )
+        # A raw Response replaces the one FastAPI injects, which is where the
+        # sign-in dependency puts a refreshed session's cookies: carry them over.
+        carry_headers(response, served)
+        return served
 
     # The receipt routes need no sign-in: the number is the credential, so
     # each lookup is rate limited per client address, unknown numbers more

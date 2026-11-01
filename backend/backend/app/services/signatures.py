@@ -194,6 +194,18 @@ def signature_image_path(workspace_id: Any, response_id: Any, field_id: Any) -> 
     )
 
 
+def carry_headers(source: Any, target: Any) -> None:
+    """Add the headers ``source`` (the response FastAPI injected, which the
+    sign-in dependency sets cookies on) holds to ``target``, a response the
+    route built itself. Never replaces a header ``target`` already has, so the
+    image's own headers (and its length and type) stay; cookies are added
+    whatever else is there."""
+    held = {name for name, _ in target.raw_headers}
+    for name, value in source.raw_headers:
+        if name == b"set-cookie" or (name not in held and name != b"content-length"):
+            target.raw_headers.append((name, value))
+
+
 async def read_throttle(user_id: Any) -> None:
     """429 when this user fetched too many drawn images in the last minute."""
     from backend.app.container import container
