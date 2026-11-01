@@ -4,8 +4,9 @@ import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import i18n from 'i18next';
 import { Provider as ReduxProvider } from 'react-redux';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { setAuth } from '@app/store/auth/slice';
@@ -14,7 +15,11 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 import { axeViolations } from '@app/test/axe';
 import { ANONYMOUS_RESPONSE, FORM, RESPONSE } from '@app/test/response-fixtures';
 
+import commonEn from '../../../public/locales/en/common.json';
+import commonNl from '../../../public/locales/nl/common.json';
+
 import ResponsePage from './response-page';
+import '@app/shared/hocs/i18n-provider';  // the catalogue's English text
 
 // The "server": what the submission endpoint answers for the response asked for.
 const server: { result: any; calls: any[]; refetch: ReturnType<typeof vi.fn> } = { result: {}, calls: [], refetch: vi.fn() };
@@ -430,8 +435,8 @@ describe('the response page', () => {
         // Contents and Print are icons below sm, "Delete response" says "Delete"
         expect(within(contents).getByText('Contents').className).toContain('sr-only sm:not-sr-only');
         expect(within(print).getByText('Print').className).toContain('sr-only sm:not-sr-only');
-        expect(within(remove).getByText('response').className).toBe('hidden sm:inline');
-        expect(remove).toHaveTextContent(/^Delete response$/);
+        expect(within(remove).getByText('Delete', { exact: true }).className).toBe('sm:hidden');
+        expect(within(remove).getByText('Delete response').className).toBe('hidden sm:inline');
         expect(contents).toHaveAttribute('title', 'Contents');
         expect(print).toHaveAttribute('title', 'Print');
     });
@@ -463,6 +468,61 @@ describe('the response page', () => {
         server.result = { currentData: undefined, isError: true, error: { status: 500 } };
         renderPage();
         expect(await axeViolations(document, { page: true })).toEqual([]);
+    });
+});
+
+describe('the response page in Dutch', () => {
+    beforeEach(async () => {
+        i18n.addResourceBundle('nl', 'common', commonNl, true, true);
+        await i18n.changeLanguage('nl');
+    });
+    afterEach(async () => {
+        await i18n.changeLanguage('en');
+    });
+
+    it('has the toolbar, the details and the dates in Dutch (formal), the time in the viewer\'s language', () => {
+        access.permissions = [WorkspacePermission.RESPONSE_READ, WorkspacePermission.RESPONSE_DELETE];
+        neighbours.value = { previousId: 'x1', nextId: 'x3', position: 2, total: 3 };
+        renderPage();
+        const toolbar = screen.getByRole('navigation', { name: 'Acties voor de reactie' });
+        expect(within(toolbar).getByRole('link', { name: /Reacties/ })).toBeInTheDocument();
+        expect(within(toolbar).getByRole('link', { name: 'Vorige reactie' })).toBeInTheDocument();
+        expect(within(toolbar).getByRole('link', { name: 'Volgende reactie' })).toBeInTheDocument();
+        expect(within(toolbar).getByRole('button', { name: 'Afdrukken' })).toBeInTheDocument();
+        expect(within(toolbar).getByRole('button', { name: 'Reactie verwijderen' })).toBeInTheDocument();
+        expect(within(toolbar).getByTestId('response-position')).toHaveTextContent('2 van 3');
+        const details = screen.getByRole('region', { name: /Gegevens van de reactie/ });
+        expect(within(details).getByText('Respondent')).toBeInTheDocument();
+        expect(within(details).getByText('Ingediend')).toBeInTheDocument();
+        expect(within(details).getByText('Ontvangstnummer')).toBeInTheDocument();
+        expect(within(details).getByText(/^30 oktober 2026 om \d{2}:\d{2}:\d{2} \S+$/)).toBeInTheDocument();
+    });
+
+    it('says an anonymous responder in Dutch', () => {
+        server.result = loaded(ANONYMOUS_RESPONSE);
+        renderPage('resp-2');
+        expect(within(screen.getByRole('region', { name: /Gegevens van de reactie/ })).getByText('Anoniem')).toBeInTheDocument();
+    });
+
+    it('says a failed load in Dutch, with the way back', () => {
+        server.result = { currentData: undefined, isError: true, error: { status: 404 } };
+        renderPage();
+        expect(screen.getByRole('alert')).toHaveTextContent('Deze reactie is niet gevonden');
+        expect(screen.getByRole('link', { name: 'Terug naar reacties' })).toBeInTheDocument();
+    });
+
+    it('has the answers\' own labels in Dutch', () => {
+        renderPage();
+        expect(screen.getAllByText('Geen antwoord').length).toBeGreaterThan(0);
+        expect(screen.queryByText('No answer')).toBeNull();
+    });
+
+    it('has every response-page key in both languages, with the same placeholders', () => {
+        const en = (commonEn as any).RESPONSE_PAGE as Record<string, string>;
+        const nl = (commonNl as any).RESPONSE_PAGE as Record<string, string>;
+        expect(Object.keys(nl).sort()).toEqual(Object.keys(en).sort());
+        const placeholders = (value: string) => (value.match(/{{\w+}}/g) ?? []).sort();
+        Object.keys(en).forEach((key) => expect(placeholders(nl[key]), key).toEqual(placeholders(en[key])));
     });
 });
 

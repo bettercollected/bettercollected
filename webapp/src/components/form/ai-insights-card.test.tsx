@@ -2,10 +2,14 @@ import React from 'react';
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from 'i18next';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setForm } from '@app/store/forms/slice';
+import '@app/shared/hocs/i18n-provider'; // the catalogue's English text
 import { store } from '@app/store/store';
+
+import commonNl from '../../../public/locales/nl/common.json';
 
 import AIInsightsCard from './ai-insights-card';
 
@@ -68,7 +72,7 @@ const INSIGHT = {
 const renderCard = () =>
     render(
         <ReduxProvider store={store}>
-            <AIInsightsCard />
+            <AIInsightsCard defaultOpen />
         </ReduxProvider>
     );
 
@@ -80,6 +84,21 @@ describe('AIInsightsCard', () => {
         access.permissions = ADMIN_PERMISSIONS;
         updateInsightsSettingsMock.mockReset();
         withFormSettings({ ...ALLOWED });
+    });
+
+    it('is a closed bar until it is opened, and its summary is not even asked for before', () => {
+        cachedQueryMock.data = INSIGHT;
+        render(
+            <ReduxProvider store={store}>
+                <AIInsightsCard />
+            </ReduxProvider>
+        );
+        const bar = screen.getByRole('button', { name: 'AI summary' });
+        expect(bar).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.queryByRole('button', { name: /Refresh/ })).toBeNull();
+        fireEvent.click(bar);
+        expect(bar).toHaveAttribute('aria-expanded', 'true');
+        expect(document.getElementById(bar.getAttribute('aria-controls')!)).toContainElement(screen.getByRole('button', { name: /Refresh/ }));
     });
 
     it('empty state states the opt-in contract and offers one explicit action', () => {
@@ -180,5 +199,59 @@ describe('AIInsightsCard', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /Summarize responses/ }));
         await waitFor(() => expect(screen.getByText(/no responses to summarize/)).toBeDefined());
+    });
+});
+
+describe('AIInsightsCard in Dutch', () => {
+    beforeEach(async () => {
+        cachedQueryMock.data = undefined;
+        aiSettingsMock.data = { ...AI_ON };
+        access.permissions = ADMIN_PERMISSIONS;
+        withFormSettings({ ...ALLOWED });
+        i18n.addResourceBundle('nl', 'common', commonNl, true, true);
+        await i18n.changeLanguage('nl');
+    });
+    afterEach(async () => {
+        await i18n.changeLanguage('en');
+    });
+
+    it('says what is sent, to whom and when, in Dutch (formal), with the same facts as the English notice', () => {
+        renderCard();
+        expect(screen.getByRole('button', { name: 'AI-samenvatting' })).toBeDefined();
+        expect(screen.getByText('alleen wanneer u klikt')).toBeDefined();
+        const notice = screen.getByText(/Antwoorden worden naar OpenAI gestuurd/);
+        // the provider, the notice, the cut-off and what is left out
+        expect(notice.textContent).toMatch(/AI-melding stond \(sinds 1 juli 2026 om \d\d:\d\d getoond\)\. Reacties die eerder zijn ingediend/);
+        expect(notice.textContent).toMatch(/komt bij OpenAI terecht/);
+        expect(notice.textContent).toMatch(/velden voor medewerkers blijven weg/);
+        expect(screen.getByRole('button', { name: 'Reacties samenvatten' })).toBeDefined();
+        expect(screen.getByRole('button', { name: 'AI-inzichten niet meer toestaan' })).toBeDefined();
+    });
+
+    it('says the summary, how many responses it is based on and what was sent, in Dutch', () => {
+        cachedQueryMock.data = { ...INSIGHT, responseCount: 2, totalResponses: 5, noticeShownResponses: 2, analysedSince: '2026-07-01T09:00:00Z' };
+        renderCard();
+        expect(screen.getByRole('button', { name: /Vernieuwen/ })).toBeDefined();
+        expect(screen.getByText('Waar u iets mee moet doen:')).toBeDefined();
+        const footer = screen.getByText(/^Gebaseerd op 2 van 5 reacties/);
+        expect(footer.textContent).toMatch(/\(ingediend met de AI-melding, sinds 1 juli 2026 om \d\d:\d\d getoond\)/);
+        expect(footer.textContent).toMatch(/3 van 5 zijn ingediend zonder de AI-melding en worden nooit geanalyseerd/);
+        expect(footer.textContent).toMatch(/gemaakt op 9 juli 2026 om \d\d:\d\d/);
+        expect(footer.textContent).toMatch(/gestuurd naar OpenAI: de vragen van dit formulier/);
+    });
+
+    it('says AI is off for the workspace in Dutch', () => {
+        aiSettingsMock.data = { ...AI_ON, enabled: false };
+        renderCard();
+        expect(screen.getByRole('region', { name: 'AI staat uit voor deze werkruimte' })).toBeDefined();
+        expect(screen.getByText(/De AI-samenvatting gebruikt een externe AI-aanbieder/)).toBeDefined();
+        expect(screen.getByRole('button', { name: 'AI aanzetten met OpenAI' })).toBeDefined();
+    });
+
+    it('says the form has AI summaries off in Dutch', () => {
+        withFormSettings({});
+        renderCard();
+        expect(screen.getByText(/AI-samenvattingen staan uit voor dit formulier/)).toBeDefined();
+        expect(screen.getByRole('button', { name: 'AI-inzichten op reacties toestaan' })).toBeDefined();
     });
 });

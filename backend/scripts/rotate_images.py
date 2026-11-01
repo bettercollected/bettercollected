@@ -268,6 +268,10 @@ class DrawnImages:
 
     def __init__(self, objects: Any = None):
         self.objects = objects if objects is not None else S3Objects()
+        # ids of the responses whose image could not be removed again after the
+        # response lost its signature (``images_removal_failed``): an erased
+        # signature may still be stored. Ids only, in the order met.
+        self.removal_failed: List[str] = []
 
     async def _look(self, rotation, image: Image) -> Found:
         failed = False
@@ -400,6 +404,8 @@ class DrawnImages:
                     await self.objects.delete(key)
                 except ObjectStoreError as failure:
                     counts["images_removal_failed"] += 1
+                    if image.response_id not in self.removal_failed:
+                        self.removal_failed.append(image.response_id)
                     logger.error(
                         "response %s: a signature image written again for a "
                         "response that no longer names it could not be removed (%s)",
@@ -433,6 +439,14 @@ class DrawnImages:
             )
             return
         counts["images_resealed"] += 1
+
+
+REMOVAL_FAILED_NOTE = (
+    "An image written for a response that lost its signature could not be removed, "
+    "so an erased signature may still be stored. For each response id listed, delete "
+    "the objects in that response's folder in the file store (private/<workspace>/"
+    "<form>/<response id>/), then run reencrypt again to confirm the run ends clean."
+)
 
 
 def blocking(counts: Dict[str, int]) -> Dict[str, int]:

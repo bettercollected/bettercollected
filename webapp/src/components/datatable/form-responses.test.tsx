@@ -155,6 +155,11 @@ const renderTable = (props: any = {}) => {
 const pagerLink = (name: string | RegExp) => screen.getAllByRole('link', { name })[0];
 const next = () => fireEvent.click(pagerLink('Next page'));
 const urlParams = () => new URLSearchParams(nav.search);
+// the filters sit behind the Filters button (what is in force shows as chips beside it)
+const openFilters = () => {
+    const toggle = screen.getByRole('button', { name: /^Filters(,|$)/ });
+    if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle);
+};
 
 const search = (text: string) => {
     fireEvent.change(screen.getByPlaceholderText('Search by responder email'), { target: { value: text } });
@@ -757,7 +762,10 @@ describe('responses table: search and honest states', () => {
             nav.search = query;
             return render(tree());
         };
-        const select = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+        const select = (label: string, value: string) => {
+            if (label !== 'Sort by') openFilters();
+            fireEvent.change(screen.getByLabelText(label), { target: { value } });
+        };
 
         it('asks the server for what the URL says', () => {
             server.items = many(120);
@@ -770,6 +778,7 @@ describe('responses table: search and honest states', () => {
 
         it('shows the state in the controls', () => {
             openAt('sort=version-high&from=2026-01-05&to=2026-01-09&status=none&who=anonymous&version=1');
+            openFilters();
             expect(screen.getByLabelText('Submitted from')).toHaveValue('2026-01-05');
             expect(screen.getByLabelText('Submitted until')).toHaveValue('2026-01-09');
             expect(screen.getByLabelText('Deletion request')).toHaveValue('none');
@@ -799,6 +808,7 @@ describe('responses table: search and honest states', () => {
 
         it('keeps each filter in the URL and clears them all with one button', () => {
             openAt('page=2&sort=oldest');
+            openFilters();
             fireEvent.change(screen.getByLabelText('Submitted from'), { target: { value: '2026-03-01' } });
             select('Deletion request', 'pending');
             select('Form version', '1');
@@ -813,6 +823,7 @@ describe('responses table: search and honest states', () => {
 
         it('does not let the end date go before the start date', () => {
             openAt('from=2026-03-10');
+            openFilters();
             expect(screen.getByLabelText('Submitted until')).toHaveAttribute('min', '2026-03-10');
             expect(screen.getByLabelText('Submitted from')).not.toHaveAttribute('min');
         });
@@ -866,6 +877,7 @@ describe('responses table: search and honest states', () => {
         it('offers the form versions that exist, the current one marked', () => {
             store.dispatch(setForm({ ...store.getState().form, version: 3 } as any));
             renderTable();
+            openFilters();
             const options = Array.from((screen.getByLabelText('Form version') as HTMLSelectElement).options).map((option) => option.textContent);
             expect(options).toEqual(['All versions', 'Version 3 (current)', 'Version 2', 'Version 1']);
         });
@@ -1023,6 +1035,7 @@ describe('responses table: search and honest states', () => {
         it('says that no response matches the filters, with a way out, never "No responses yet"', () => {
             server.items = [item('r1', 'a@example.com', 'blue'), item('r2', 'b@example.com', 'blue')];
             renderTable();
+            openFilters();
             fireEvent.change(screen.getByLabelText('Responder'), { target: { value: 'anonymous' } });
             expect(screen.getByText('No responses match these filters')).toBeInTheDocument();
             expect(screen.queryByText('No responses yet')).toBeNull();
@@ -1078,8 +1091,144 @@ describe('responses table: search and honest states', () => {
 
         it('labels every filter and the sort', () => {
             renderTable();
+            openFilters();
             ['Submitted from', 'Submitted until', 'Responder', 'Deletion request', 'Form version', 'Sort by', 'Rows per page'].forEach((label) => expect(screen.getByLabelText(label)).toBeInTheDocument());
-            expect(screen.getByRole('search', { name: 'Filter and sort responses' })).toBeInTheDocument();
+            expect(screen.getByRole('search', { name: 'Search, filter and sort responses' })).toBeInTheDocument();
+        });
+    });
+
+    describe('the head: one row, the filters behind a button, what is in force as chips', () => {
+        it('puts search, Filters, sort and export in one toolbar, with the filter fields closed', () => {
+            renderTable();
+            const toolbar = screen.getByRole('search', { name: 'Search, filter and sort responses' });
+            expect(within(toolbar).getByPlaceholderText('Search by responder email')).toBeInTheDocument();
+            const toggle = within(toolbar).getByRole('button', { name: 'Filters' });
+            expect(toggle).toHaveAttribute('aria-expanded', 'false');
+            expect(within(toolbar).getByLabelText('Sort by')).toBeInTheDocument();
+            // the fields are not drawn until the button opens them
+            expect(screen.queryByLabelText('Submitted from')).toBeNull();
+            expect(screen.queryByRole('list', { name: 'Active filters' })).toBeNull();
+            fireEvent.click(toggle);
+            expect(toggle).toHaveAttribute('aria-expanded', 'true');
+            const panel = document.getElementById(toggle.getAttribute('aria-controls')!)!;
+            expect(within(panel).getByLabelText('Submitted from')).toBeInTheDocument();
+            expect(within(panel).getByLabelText('Form version')).toBeInTheDocument();
+            fireEvent.click(toggle);
+            expect(screen.queryByLabelText('Submitted from')).toBeNull();
+        });
+
+        it('lists what is in force as chips, also while the fields are closed, and counts it on the button', () => {
+            nav.search = 'from=2026-01-05&to=2026-01-09&who=known&status=pending&version=1';
+            render(tree());
+            const chips = within(screen.getByRole('list', { name: 'Active filters' }));
+            ['From 5 January 2026', 'Until 9 January 2026', 'Responder: Identified', 'Deletion request: Deletion requested', 'Version 1 (current)'].forEach((label) => expect(chips.getByText(label)).toBeInTheDocument());
+            expect(screen.getByRole('button', { name: 'Filters, 5 active filters' })).toBeInTheDocument();
+        });
+
+        it('removes one filter with its chip, leaves the rest and puts focus back on the Filters button', () => {
+            nav.search = 'who=known&status=pending&sort=oldest';
+            render(tree());
+            fireEvent.click(screen.getByRole('button', { name: 'Remove filter: Responder: Identified' }));
+            expect(nav.search).toBe('sort=oldest&status=pending');
+            expect(screen.queryByText('Responder: Identified')).toBeNull();
+            expect(screen.getByRole('button', { name: /^Filters(,|$)/ })).toHaveFocus();
+            fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+            expect(nav.search).toBe('sort=oldest');
+            expect(screen.queryByRole('list', { name: 'Active filters' })).toBeNull();
+        });
+
+        it('moves focus to the Filters button when "Clear filters" is used, and when the empty state\'s button is', () => {
+            nav.search = 'who=known&status=pending';
+            const { unmount } = render(tree());
+            fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+            expect(screen.getByRole('button', { name: /^Filters(,|$)/ })).toHaveFocus();
+            unmount();
+            // nothing matches: the empty state's own button goes with the filters, and focus must not fall to <body>
+            server.items = [item('r1', 'a@example.com', 'blue')];
+            nav.search = 'who=anonymous';
+            render(tree());
+            const clear = screen.getAllByRole('button', { name: 'Clear filters' }).at(-1)!;
+            clear.focus();
+            fireEvent.click(clear);
+            expect(screen.getByRole('button', { name: /^Filters(,|$)/ })).toHaveFocus();
+        });
+
+        it('opens the panel with focus on its first field, and Escape closes it back onto the button', () => {
+            renderTable();
+            const toggle = screen.getByRole('button', { name: /^Filters(,|$)/ });
+            fireEvent.click(toggle);
+            expect(screen.getByLabelText('Submitted from')).toHaveFocus();
+            fireEvent.keyDown(screen.getByLabelText('Submitted from'), { key: 'Escape' });
+            expect(screen.queryByLabelText('Submitted from')).toBeNull();
+            expect(toggle).toHaveFocus();
+        });
+
+        it('has no WCAG A/AA violations with the fields open and chips showing', async () => {
+            vi.useRealTimers();
+            nav.search = 'who=known&version=1';
+            const { container } = render(tree());
+            openFilters();
+            expect(await axeViolations(container)).toEqual([]);
+            vi.useFakeTimers();
+        });
+    });
+
+    describe('on a phone: a card for each response', () => {
+        const phone = () => {
+            window.innerWidth = 375;
+        };
+        afterEach(() => {
+            window.innerWidth = 1024;
+        });
+
+        it('draws cards instead of the table, each a link named by who answered', () => {
+            phone();
+            const { container } = renderTable();
+            expect(container.querySelector('[role="table"]')).toBeNull();
+            const list = screen.getByRole('list', { name: 'Responses on this page' });
+            expect(within(list).getAllByRole('listitem')).toHaveLength(4);
+            const link = within(list).getByRole('link', { name: /^Open response from known\.a@example\.com, submitted 2 January 2026 at \d\d:\d\d$/ });
+            expect(link).toHaveAttribute('href', '/acme/dashboard/forms/form-1/responses/r1');
+            expect(within(list).getByRole('link', { name: /^Open anonymous response, submitted 2 January 2026 at \d\d:\d\d$/ })).toHaveAttribute('href', '/acme/dashboard/forms/form-1/responses/r4');
+        });
+
+        it('gives every card its own link name, also for anonymous responses (the time tells them apart)', () => {
+            phone();
+            server.items = [
+                { ...item('a1', null, 'blue'), createdAt: '2026-01-02T03:04:05Z' },
+                { ...item('a2', null, 'blue'), createdAt: '2026-01-03T09:30:00Z' }
+            ];
+            renderTable();
+            const names = within(screen.getByRole('list', { name: 'Responses on this page' })).getAllByRole('link').map((link) => link.getAttribute('aria-label'));
+            expect(new Set(names).size).toBe(2);
+            names.forEach((name) => expect(name).toMatch(/^Open anonymous response, submitted \d+ January 2026 at \d\d:\d\d$/));
+        });
+
+        it('says when it was submitted, in the viewer\'s time, and the first answer', () => {
+            phone();
+            renderTable();
+            const card = within(screen.getByRole('list', { name: 'Responses on this page' }).firstElementChild as HTMLElement);
+            expect(card.getByText(/^Submitted 2 January 2026 at \d\d:\d\d/)).toBeInTheDocument();
+            expect(card.getByText('Favourite colour')).toBeInTheDocument();
+            expect(card.getByText('blue')).toBeInTheDocument();
+        });
+
+        it('keeps the head, the count and the pager usable and the page free of a sideways scroll', () => {
+            phone();
+            server.items = Array.from({ length: 60 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
+            renderTable();
+            expect(screen.getByRole('button', { name: /^Filters(,|$)/ })).toBeInTheDocument();
+            expect(screen.getByRole('status')).toHaveTextContent('Showing 1–25 of 60');
+            next();
+            expect(lastQuery().page).toBe(2);
+        });
+
+        it('has no WCAG A/AA violations', async () => {
+            vi.useRealTimers();
+            phone();
+            const { container } = renderTable();
+            expect(await axeViolations(container)).toEqual([]);
+            vi.useFakeTimers();
         });
     });
 
@@ -1093,6 +1242,7 @@ describe('responses table: search and honest states', () => {
             await i18n.changeLanguage('nl');
             server.items = Array.from({ length: 60 }, (_, index) => item(`p${index}`, `person${index}@example.com`, 'blue'));
             renderTable();
+            openFilters();
             expect(screen.getByLabelText('Ingediend vanaf')).toBeInTheDocument();
             expect(screen.getByLabelText('Ingediend tot en met')).toBeInTheDocument();
             expect(screen.getByLabelText('Verwijderverzoek')).toBeInTheDocument();
@@ -1101,6 +1251,89 @@ describe('responses table: search and honest states', () => {
             expect(screen.getByLabelText('Rijen per pagina')).toBeInTheDocument();
             expect(screen.getByRole('status')).toHaveTextContent('1–25 van 60 getoond');
             expect(screen.getAllByLabelText('Volgende pagina').length).toBeGreaterThan(0);
+        });
+
+        const nlBundle = async () => {
+            i18n.addResourceBundle('nl', 'common', commonNl, true, true);
+            await i18n.changeLanguage('nl');
+        };
+
+        it('has the head, the chips, the table and its dates in Dutch', async () => {
+            await nlBundle();
+            nav.search = 'from=2026-01-05&who=known&version=1';
+            render(tree());
+            const toolbar = screen.getByRole('search', { name: 'Reacties zoeken, filteren en sorteren' });
+            expect(within(toolbar).getByPlaceholderText('Zoeken op e-mailadres van de respondent')).toBeInTheDocument();
+            expect(within(toolbar).getByRole('button', { name: /^Filters(,|$)/ })).toBeInTheDocument();
+            const chips = within(screen.getByRole('list', { name: 'Actieve filters' }));
+            ['Vanaf 5 januari 2026', 'Respondent: Geïdentificeerd', 'Versie 1 (huidig)'].forEach((label) => expect(chips.getByText(label)).toBeInTheDocument());
+            expect(screen.getByRole('button', { name: 'Filter verwijderen: Respondent: Geïdentificeerd' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Filters wissen' })).toBeInTheDocument();
+            expect(screen.getByText('Respondent-ID')).toBeInTheDocument();
+            expect(screen.getAllByText(/^2 januari 2026 om \d\d:\d\d$/).length).toBeGreaterThan(0);
+            expect(screen.getAllByRole('link', { name: 'Reactie openen' }).length).toBeGreaterThan(0);
+            expect(screen.getByRole('region', { name: 'Reacties' })).toBeInTheDocument();
+            // nothing of the table's chrome is left in English
+            ['Anonymous', 'Open response', 'Responder ID', 'Filters and', 'Clear filters'].forEach((text) => expect(screen.queryByText(text)).toBeNull());
+        });
+
+        it('has the empty, no-match and error states in Dutch', async () => {
+            await nlBundle();
+            server.items = [];
+            store.dispatch(setForm({ ...store.getState().form, responses: 0 } as any));
+            const { unmount } = renderTable();
+            expect(screen.getByText('Nog geen reacties')).toBeInTheDocument();
+            expect(screen.getByText('Reacties verschijnen hier zodra iemand uw formulier invult.')).toBeInTheDocument();
+            unmount();
+            server.items = [item('r1', 'a@example.com', 'blue')];
+            store.dispatch(setForm({ ...store.getState().form, responses: 1 } as any));
+            renderTable();
+            fireEvent.change(screen.getByPlaceholderText('Zoeken op e-mailadres van de respondent'), { target: { value: 'nobody' } });
+            act(() => {
+                vi.advanceTimersByTime(600);
+            });
+            expect(screen.getByText('Geen reacties gevonden')).toBeInTheDocument();
+            expect(screen.getByText(/Niets komt overeen met/)).toHaveTextContent('nobody');
+        });
+
+        it('has the error state in Dutch with its Retry', async () => {
+            await nlBundle();
+            server.error = true;
+            renderTable();
+            expect(screen.getByRole('alert')).toHaveTextContent('Reacties konden niet worden geladen');
+            expect(screen.getByRole('button', { name: 'Opnieuw proberen' })).toBeInTheDocument();
+        });
+
+        it('has the cards of a phone in Dutch', async () => {
+            await nlBundle();
+            window.innerWidth = 375;
+            try {
+                renderTable();
+                const list = screen.getByRole('list', { name: 'Reacties op deze pagina' });
+                expect(within(list).getByRole('link', { name: /^Reactie van known\.a@example\.com, ingediend 2 januari 2026 om \d\d:\d\d, openen$/ })).toBeInTheDocument();
+                expect(within(list).getByRole('link', { name: /^Anonieme reactie, ingediend 2 januari 2026 om \d\d:\d\d, openen$/ })).toBeInTheDocument();
+                expect(within(list).getAllByText(/^Ingediend 2 januari 2026 om \d\d:\d\d/).length).toBe(4);
+            } finally {
+                window.innerWidth = 1024;
+            }
+        });
+
+        it('has no WCAG A/AA violations in Dutch', async () => {
+            await nlBundle();
+            vi.useRealTimers();
+            nav.search = 'who=known';
+            const { container } = render(tree());
+            openFilters();
+            expect(await axeViolations(container)).toEqual([]);
+            vi.useFakeTimers();
+        });
+
+        it('has every staff key in Dutch, and the same placeholders', () => {
+            const placeholders = (value: string) => (value.match(/{{\w+}}/g) ?? []).sort();
+            const en = (commonEn as any).RESPONSES_STAFF as Record<string, string>;
+            const nl = (commonNl as any).RESPONSES_STAFF as Record<string, string>;
+            expect(Object.keys(nl).sort()).toEqual(Object.keys(en).sort());
+            Object.keys(en).forEach((key) => expect(placeholders(nl[key]), key).toEqual(placeholders(en[key])));
         });
 
         it('has every new English key in Dutch, and the same placeholders', () => {

@@ -51,6 +51,20 @@ describe('plural keys', () => {
         interpolation: { escapeValue: false }
     });
 
+    it('the responses screen: filter counts, response counts, skipped questions and required fields, in both languages', () => {
+        const en = instance.getFixedT('en');
+        const nl = instance.getFixedT('nl');
+        expect(en('RESPONSES_STAFF.FILTERS_COUNT', { count: 1 })).toBe('1 active filter');
+        expect(en('RESPONSES_STAFF.FILTERS_COUNT', { count: 3 })).toBe('3 active filters');
+        expect(nl('RESPONSES_STAFF.FILTERS_COUNT', { count: 1 })).toBe('1 actief filter');
+        expect(nl('RESPONSES_STAFF.FILTERS_COUNT', { count: 3 })).toBe('3 actieve filters');
+        expect(en('FORM_SHELL.RESPONSES', { count: 1 })).toBe('1 response');
+        expect(nl('FORM_SHELL.RESPONSES', { count: 57 })).toBe('57 reacties');
+        expect(nl('RESPONSE_PAGE.SHOW_QUESTIONS_ANSWERED', { count: 3, answered: 1 })).toBe('Toon de 3 vragen op deze pagina (1 beantwoord)');
+        expect(en('RESPONSE_TEAM.INTERNAL_MISSING', { count: 2 })).toBe('2 required fields still empty');
+        expect(nl('RESPONSE_TEAM.INTERNAL_CLASH', { count: 1, fields: 'Notitie' })).toContain('Notitie is zojuist gewijzigd');
+    });
+
     it('English: the forms count and the export note', () => {
         const en = instance.getFixedT('en');
         expect(en('FORMS_TOOLBAR.COUNT', { count: 1 })).toBe('1 form');
