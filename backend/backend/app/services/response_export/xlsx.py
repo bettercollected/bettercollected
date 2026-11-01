@@ -75,7 +75,7 @@ _ISO_DATETIME = re.compile(
     r"([0-9]{4}-[0-9]{2}-[0-9]{2})[T ]([0-9]{2}):([0-9]{2})(?::([0-9]{2}))?(?:\.[0-9]+)?(Z|[+-][0-9]{2}:?[0-9]{2})?"
 )
 # characters XML 1.0 cannot carry (control characters, lone surrogates, U+FFFE/F)
-_XML_ILLEGAL = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff￾￿]")
+_XML_ILLEGAL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]")
 # ``_x0041_``: Excel reads this as the character U+0041 inside a string. Every
 # underscore that starts one (also overlapping ones, ``_x0041_x0042_``, and a
 # capital ``X``: whether the reader is case-sensitive is not ours to bet on)
