@@ -9,6 +9,7 @@ import CopyIcon from '@Components/icons/copy';
 import OpenLinkIcon from '@Components/icons/open-link';
 import { RefreshCcw } from 'lucide-react';
 import DataTable from 'react-data-table-component';
+import { Trans, useTranslation } from 'react-i18next';
 
 import environments from '@app/configs/environments';
 import { CustomDomainCheck, CustomDomainDnsRecord, WorkspaceDto } from '@app/models/dtos/workspace-dto';
@@ -30,6 +31,7 @@ import DeleteDomainDropdown from './delete-domain-dropdown';
  * server answers with an A/TXT record check. Both end in the "verified" view.
  */
 const WorkspaceDomainStatus = () => {
+    const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
     const pathname = usePathname();
@@ -76,14 +78,14 @@ const WorkspaceDomainStatus = () => {
             type: 'A',
             value: data?.records?.[0]?.expected,
             resolved: data?.records?.[0]?.resolved ?? [],
-            status: data?.domain_verified ? <StatusPill tone="ok">Success</StatusPill> : <StatusPill tone="pending">Pending</StatusPill>
+            status: data?.domain_verified ? <StatusPill tone="ok">{t('CUSTOM_DOMAIN_UI.SUCCESS')}</StatusPill> : <StatusPill tone="pending">{t('CUSTOM_DOMAIN_UI.PENDING')}</StatusPill>
         },
         {
             name: workspace.customDomain,
             type: 'TXT',
             value: data?.records?.[1]?.expected,
             resolved: data?.records?.[1]?.resolved ?? [],
-            status: data?.txt_verified ? <StatusPill tone="ok">Success</StatusPill> : <StatusPill tone="pending">Pending</StatusPill>
+            status: data?.txt_verified ? <StatusPill tone="ok">{t('CUSTOM_DOMAIN_UI.SUCCESS')}</StatusPill> : <StatusPill tone="pending">{t('CUSTOM_DOMAIN_UI.PENDING')}</StatusPill>
         }
     ];
     return <DomainVerificationPending workspace={workspace} dnsData={legacyRecords} isFetching={isFetching} refetch={refetch} />;
@@ -94,43 +96,47 @@ const StatusPill = ({ tone, children }: { tone: 'ok' | 'pending' | 'bad'; childr
 );
 
 const STATUS_LABEL: Record<string, { label: string; tone: 'ok' | 'pending' | 'bad' }> = {
-    pending_dns: { label: 'Waiting for DNS records', tone: 'pending' },
-    provisioning: { label: 'DNS verified, issuing certificate', tone: 'pending' },
-    ready: { label: 'Production', tone: 'ok' },
-    attention_required: { label: 'Needs attention', tone: 'bad' },
-    suspended: { label: 'Suspended', tone: 'bad' },
-    deleting: { label: 'Removed', tone: 'bad' }
+    pending_dns: { label: 'CUSTOM_DOMAIN_UI.STATUS_pending_dns', tone: 'pending' },
+    provisioning: { label: 'CUSTOM_DOMAIN_UI.STATUS_provisioning', tone: 'pending' },
+    ready: { label: 'CUSTOM_DOMAIN_UI.STATUS_ready', tone: 'ok' },
+    attention_required: { label: 'CUSTOM_DOMAIN_UI.STATUS_attention_required', tone: 'bad' },
+    suspended: { label: 'CUSTOM_DOMAIN_UI.STATUS_suspended', tone: 'bad' },
+    deleting: { label: 'CUSTOM_DOMAIN_UI.STATUS_deleting', tone: 'bad' }
 };
 
 const CHECK_LABEL: Record<string, string> = {
-    ownership: 'Ownership (TXT record)',
-    routing: 'Routing (CNAME record)',
-    certificate: 'HTTPS certificate',
-    origin: 'Serving your workspace'
+    ownership: 'CUSTOM_DOMAIN_UI.CHECK_ownership',
+    routing: 'CUSTOM_DOMAIN_UI.CHECK_routing',
+    certificate: 'CUSTOM_DOMAIN_UI.CHECK_certificate',
+    origin: 'CUSTOM_DOMAIN_UI.CHECK_origin'
 };
 
-const CopyCell = ({ value, toast }: { value: string; toast: (v: { description: string }) => void }) => (
-    <div
-        className="flex cursor-pointer gap-2"
-        onClick={() => {
-            navigator.clipboard.writeText(value);
-            toast({ description: 'Copied' });
-        }}
-    >
-        <ToolTip label={value} triggerClassName="max-w-[220px]! truncate">
-            <span>{value}</span>
-        </ToolTip>
-        <div>
-            <CopyIcon className="min-w-fit" width={12} height={12} />
+const CopyCell = ({ value, toast }: { value: string; toast: (v: { description: string }) => void }) => {
+    const { t } = useTranslation();
+    return (
+        <div
+            className="flex cursor-pointer gap-2"
+            onClick={() => {
+                navigator.clipboard.writeText(value);
+                toast({ description: t('CUSTOM_DOMAIN_UI.COPIED') });
+            }}
+        >
+            <ToolTip label={value} triggerClassName="max-w-[220px]! truncate">
+                <span>{value}</span>
+            </ToolTip>
+            <div>
+                <CopyIcon className="min-w-fit" width={12} height={12} />
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const DomainVerifiedStatus = ({ workspace, txtRecord }: { workspace: WorkspaceDto; txtRecord?: CustomDomainDnsRecord }) => {
+    const { t } = useTranslation();
     const { toast } = useToast();
     return (
         <div className="flex flex-col">
-            <span className="mt-4 text-xs text-black-700">You can use your own domain name to have a custom URL for your published forms. Consider using a subdomain, such as : forms.yourdomain.com</span>
+            <span className="mt-4 text-xs text-black-700">{t('CUSTOM_DOMAIN_UI.VERIFIED_INTRO')}</span>
             <div className="mt-4 flex flex-wrap gap-2">
                 <div className="flex flex-1 items-center rounded-lg bg-black-100 px-3 py-2 text-xs text-black-800">
                     {environments.HTTP_SCHEME}
@@ -143,28 +149,28 @@ const DomainVerifiedStatus = ({ workspace, txtRecord }: { workspace: WorkspaceDt
                     variant={'v2Button'}
                     onClick={() => {
                         navigator.clipboard.writeText(`${environments.HTTP_SCHEME}${workspace.customDomain}`);
-                        toast({ description: 'Copied' });
+                        toast({ description: t('CUSTOM_DOMAIN_UI.COPIED') });
                     }}
                 >
                     {' '}
-                    Copy
+                    {t('CUSTOM_DOMAIN_UI.COPY')}
                 </Button>
                 <DeleteDomainDropdown />
             </div>
             <div className="mt-2 flex items-center gap-2">
-                Status:{' '}
+                {t('CUSTOM_DOMAIN_UI.STATUS')}{' '}
                 <div className="flex items-center gap-1 text-green-600">
                     <div className="h-3 w-3 rounded-full bg-green-600 text-sm font-medium" />
-                    Production
+                    {t('CUSTOM_DOMAIN_UI.PRODUCTION')}
                 </div>
             </div>
             {txtRecord && (
                 <div className="mt-3 text-xs text-black-700">
-                    Keep the ownership record in place:{' '}
+                    {t('CUSTOM_DOMAIN_UI.KEEP_RECORD')}{' '}
                     <span className="font-mono">
                         {txtRecord.type} {txtRecord.name}
                     </span>
-                    . If it is removed, the domain stops serving after 24 hours.
+                    {t('CUSTOM_DOMAIN_UI.KEEP_RECORD_AFTER')}
                 </div>
             )}
         </div>
@@ -179,23 +185,23 @@ const DomainVerifiedStatus = ({ workspace, txtRecord }: { workspace: WorkspaceDt
  *  releases it on both systems, and adding it again registers it and shows the
  *  DNS records. */
 const ServiceDomainGone = ({ workspace, status }: { workspace: WorkspaceDto; status: 'removed' | 'unregistered' }) => {
+    const { t } = useTranslation();
     const { toast } = useToast();
     return (
         <div className="mt-4 flex flex-col text-sm">
             <div className="flex items-center gap-2">
-                <span className="text-black-600">Your domain: </span>
+                <span className="text-black-600">{t('CUSTOM_DOMAIN_UI.YOUR_DOMAIN')} </span>
                 <span className="font-semibold text-blue-500">{workspace.customDomain}</span>
-                {status === 'removed' ? <StatusPill tone="bad">Removed</StatusPill> : <StatusPill tone="pending">Being migrated</StatusPill>}
+                {status === 'removed' ? <StatusPill tone="bad">{t('CUSTOM_DOMAIN_UI.REMOVED')}</StatusPill> : <StatusPill tone="pending">{t('CUSTOM_DOMAIN_UI.MIGRATING')}</StatusPill>}
                 <DeleteDomainDropdown />
             </div>
             {status === 'removed' ? (
-                <div className="mt-4 text-xs text-black-700">This domain was removed from the custom domain service, so it no longer serves your forms. Remove it from the menu above and add it again to get the DNS records to publish.</div>
+                <div className="mt-4 text-xs text-black-700">{t('CUSTOM_DOMAIN_UI.REMOVED_BODY')}</div>
             ) : (
                 <div className="mt-4 flex flex-col gap-2 text-xs text-black-700">
-                    <span>Your domain keeps working as before. We are moving custom domains to a new setup; you will receive the DNS records to update by email, and this page will show them once your domain has been moved. Nothing to do right now.</span>
+                    <span>{t('CUSTOM_DOMAIN_UI.MIGRATING_1')}</span>
                     <span>
-                        To move it now instead, delete it from the menu above and add it again: you will get the two DNS records to publish. Your forms stop being served on <span className="font-semibold">{workspace.customDomain}</span> until those records
-                        are in place.
+                        <Trans i18nKey="CUSTOM_DOMAIN_UI.MIGRATING_2" values={{ domain: workspace.customDomain }} components={{ 1: <span className="font-semibold" /> }} />
                     </span>
                     <div className="flex flex-wrap gap-2">
                         <Link href={`${environments.HTTP_SCHEME}${workspace.customDomain}`} target={'_blank'} referrerPolicy="no-referrer">
@@ -205,10 +211,10 @@ const ServiceDomainGone = ({ workspace, status }: { workspace: WorkspaceDto; sta
                             variant={'v2Button'}
                             onClick={() => {
                                 navigator.clipboard.writeText(`${environments.HTTP_SCHEME}${workspace.customDomain}`);
-                                toast({ description: 'Copied' });
+                                toast({ description: t('CUSTOM_DOMAIN_UI.COPIED') });
                             }}
                         >
-                            Copy
+                            {t('CUSTOM_DOMAIN_UI.COPY')}
                         </Button>
                     </div>
                 </div>
@@ -218,33 +224,35 @@ const ServiceDomainGone = ({ workspace, status }: { workspace: WorkspaceDto; sta
 };
 
 const ServiceDomainPending = ({ workspace, status, records, checks, isFetching, refetch }: { workspace: WorkspaceDto; status?: string; records: CustomDomainDnsRecord[]; checks: CustomDomainCheck[]; isFetching: boolean; refetch: () => void }) => {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const [recheck, { isLoading: isRechecking }] = useRecheckWorkspaceDomainMutation();
-    const statusInfo = STATUS_LABEL[status || ''] || { label: status || 'Unknown', tone: 'pending' as const };
+    const statusInfo = STATUS_LABEL[status || ''] || { label: status ? '' : 'CUSTOM_DOMAIN_UI.STATUS_unknown', tone: 'pending' as const };
+    const statusText = statusInfo.label ? t(statusInfo.label) : status;
 
     const checkAgain = async () => {
         const response: any = await recheck(workspace.id);
         if (response.error) {
             const data = response.error.data;
-            const message = data?.retry_after ? `Please wait ${data.retry_after} seconds before checking again.` : data?.message || data || 'Could not check the domain right now.';
+            const message = data?.retry_after ? t('CUSTOM_DOMAIN_UI.WAIT_SECONDS', { seconds: data.retry_after }) : data?.message || data || t('CUSTOM_DOMAIN_UI.CHECK_FAILED');
             toast({ description: String(message), variant: 'destructive' });
             return;
         }
-        toast({ description: 'Checking your DNS records. Results appear here within a minute.' });
+        toast({ description: t('CUSTOM_DOMAIN_UI.CHECKING') });
         refetch();
     };
 
     const columns: any = [
-        { name: 'Type', selector: (record: CustomDomainDnsRecord) => record.type, width: '90px' },
-        { name: 'Name', grow: 2, selector: (record: CustomDomainDnsRecord) => <CopyCell value={record.name} toast={toast} /> },
-        { name: 'Value', grow: 2, selector: (record: CustomDomainDnsRecord) => <CopyCell value={record.value} toast={toast} /> },
+        { name: t('CUSTOM_DOMAIN_UI.COL_TYPE'), selector: (record: CustomDomainDnsRecord) => record.type, width: '90px' },
+        { name: t('CUSTOM_DOMAIN_UI.COL_NAME'), grow: 2, selector: (record: CustomDomainDnsRecord) => <CopyCell value={record.name} toast={toast} /> },
+        { name: t('CUSTOM_DOMAIN_UI.COL_VALUE'), grow: 2, selector: (record: CustomDomainDnsRecord) => <CopyCell value={record.value} toast={toast} /> },
         {
-            name: 'Status',
+            name: t('CUSTOM_DOMAIN_UI.COL_STATUS'),
             selector: (record: CustomDomainDnsRecord) => {
                 const check = checks.find((c) => (record.purpose === 'ownership' ? c.type === 'ownership' : c.type === 'routing'));
-                if (check?.status === 'passing') return <StatusPill tone="ok">Found</StatusPill>;
-                if (check?.status === 'failing') return <StatusPill tone="bad">Not found</StatusPill>;
-                return <StatusPill tone="pending">Pending</StatusPill>;
+                if (check?.status === 'passing') return <StatusPill tone="ok">{t('CUSTOM_DOMAIN_UI.FOUND')}</StatusPill>;
+                if (check?.status === 'failing') return <StatusPill tone="bad">{t('CUSTOM_DOMAIN_UI.NOT_FOUND')}</StatusPill>;
+                return <StatusPill tone="pending">{t('CUSTOM_DOMAIN_UI.PENDING')}</StatusPill>;
             }
         }
     ];
@@ -252,14 +260,14 @@ const ServiceDomainPending = ({ workspace, status, records, checks, isFetching, 
     return (
         <div className="mt-4 flex flex-col text-sm">
             <div className="flex items-center gap-2">
-                <span className="text-black-600">Your domain: </span>
+                <span className="text-black-600">{t('CUSTOM_DOMAIN_UI.YOUR_DOMAIN')} </span>
                 <span className="font-semibold text-blue-500">{workspace.customDomain}</span>
-                <StatusPill tone={statusInfo.tone}>{statusInfo.label}</StatusPill>
+                <StatusPill tone={statusInfo.tone}>{statusText}</StatusPill>
                 <DeleteDomainDropdown />
             </div>
             <div className="mb-2 mt-4 text-xs text-black-700">
-                Visit the admin console of your DNS provider (eg. Cloudflare) and add these two records exactly as shown. The TXT record proves you own the name; the CNAME sends traffic to us. <br />
-                Note: turn off proxying (the orange cloud on Cloudflare) for the CNAME record.
+                {t('CUSTOM_DOMAIN_UI.ADD_RECORDS')} <br />
+                {t('CUSTOM_DOMAIN_UI.NO_PROXY')}
             </div>
             <DataTable className="" columns={columns} data={records} customStyles={simpleDataTableStyles} />
             {records.some((r) => r.help) && (
@@ -275,16 +283,16 @@ const ServiceDomainPending = ({ workspace, status, records, checks, isFetching, 
                 {checks.map((check) => (
                     <div key={check.type} className="flex flex-wrap items-center gap-2 text-xs">
                         <span className={cn('h-2 w-2 rounded-full', check.status === 'passing' && 'bg-success', check.status === 'failing' && 'bg-red-500', check.status === 'pending' && 'bg-brand-accent')} />
-                        <span className="font-medium text-black-800">{CHECK_LABEL[check.type] || check.type}</span>
+                        <span className="font-medium text-black-800">{CHECK_LABEL[check.type] ? t(CHECK_LABEL[check.type]) : check.type}</span>
                         {check.message && <span className="text-black-600">— {check.message}</span>}
                     </div>
                 ))}
             </div>
             <div className="mt-4 flex items-center gap-3">
                 <Button variant={'v2Button'} size="sm" isLoading={isRechecking} onClick={checkAgain}>
-                    Check again
+                    {t('CUSTOM_DOMAIN_UI.CHECK_AGAIN')}
                 </Button>
-                <span className="text-xs text-black-600">Records are checked automatically; DNS changes can take up to an hour to be seen.</span>
+                <span className="text-xs text-black-600">{t('CUSTOM_DOMAIN_UI.AUTO_CHECK')}</span>
                 <RefreshCcw
                     width={20}
                     height={20}
@@ -301,25 +309,26 @@ const ServiceDomainPending = ({ workspace, status, records, checks, isFetching, 
 };
 
 const DomainVerificationPending = ({ workspace, dnsData, isFetching, refetch }: { workspace: WorkspaceDto; dnsData: Array<any>; isFetching: boolean; refetch: () => void }) => {
+    const { t } = useTranslation();
     const { toast } = useToast();
 
     const columns: any = [
         {
-            name: 'Name',
+            name: t('CUSTOM_DOMAIN_UI.COL_NAME'),
             grow: 2,
             selector: (record: any) => <CopyCell value={record.name} toast={toast} />
         },
         {
-            name: 'Type',
+            name: t('CUSTOM_DOMAIN_UI.COL_TYPE'),
             selector: (record: any) => record.type
         },
         {
-            name: 'Value',
+            name: t('CUSTOM_DOMAIN_UI.COL_VALUE'),
             selector: (record: any) => <CopyCell value={record.value} toast={toast} />,
             grow: 2
         },
         {
-            name: 'Resolved',
+            name: t('CUSTOM_DOMAIN_UI.COL_RESOLVED'),
             grow: 2,
             selector: (record: any) =>
                 record.resolved?.length > 0 ? (
@@ -330,7 +339,7 @@ const DomainVerificationPending = ({ workspace, dnsData, isFetching, refetch }: 
                                 className="cursor-pointer rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-700"
                                 onClick={() => {
                                     navigator.clipboard.writeText(ip);
-                                    toast({ description: 'Copied' });
+                                    toast({ description: t('CUSTOM_DOMAIN_UI.COPIED') });
                                 }}
                             >
                                 {ip}
@@ -342,24 +351,24 @@ const DomainVerificationPending = ({ workspace, dnsData, isFetching, refetch }: 
                 )
         },
         {
-            name: 'Status',
+            name: t('CUSTOM_DOMAIN_UI.COL_STATUS'),
             selector: (record: any) => record.status
         }
     ];
     return (
         <div className="mt-4 flex flex-col text-sm">
             <div className="flex items-center gap-2">
-                <span className="text-black-600">Your domain: </span>
+                <span className="text-black-600">{t('CUSTOM_DOMAIN_UI.YOUR_DOMAIN')} </span>
                 <span className="font-semibold text-blue-500">{workspace.customDomain}</span>
                 <DeleteDomainDropdown />
             </div>
             <div className="mb-2 mt-4 text-xs text-black-700">
-                Visit the admin console of your DNS Provider (eg. Cloudflare) and add the following DNS entries. <br />
-                Note: Proxied DNS is not supported
+                {t('CUSTOM_DOMAIN_UI.LEGACY_ADD')} <br />
+                {t('CUSTOM_DOMAIN_UI.LEGACY_NO_PROXY')}
             </div>
             <DataTable className="" columns={columns} data={dnsData} customStyles={simpleDataTableStyles} />
             <div className="mt-4 flex items-center gap-2">
-                Once you are done press here to check the status.{' '}
+                {t('CUSTOM_DOMAIN_UI.LEGACY_PRESS')}{' '}
                 <span>
                     <RefreshCcw
                         width={24}

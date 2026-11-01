@@ -2,11 +2,17 @@ import React from 'react';
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from 'i18next';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { store } from '@app/store/store';
 
 import ImportFormModal from './import-form-modal';
+
+// This suite asserts the translation keys: i18next's `cimode` language answers every `t()` with its key.
+beforeAll(async () => {
+    await i18n.changeLanguage('cimode');
+});
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock('@fyelci/react-google-drive-picker', () => ({ default: () => [vi.fn()] }));

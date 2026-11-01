@@ -24,13 +24,13 @@ export default function DeleteTemplateConfirmationModalView({ template }: { temp
                 template_id: template?.id
             });
             if (response?.data) {
-                toast({ description: 'Deleted Successfully' });
+                toast({ description: t('STAFF.MODALS.DELETED') });
                 router.replace(`/${workspace.workspaceName}/dashboard/templates`);
             } else {
-                toast({ description: 'Error Occurred', variant: 'destructive' });
+                toast({ description: t('STAFF.MODALS.ERROR'), variant: 'destructive' });
             }
         } catch (err) {
-            toast({ description: 'Error Occurred', variant: 'destructive' });
+            toast({ description: t('STAFF.MODALS.ERROR'), variant: 'destructive' });
         }
     };
     return <GenericHalfModal headerTitle={t('TEMPLATE.DELETE_MODAL.HEADER')} positiveAction={handleDeleteTemplate} positiveText={t('BUTTON.DELETE')} type="danger" title={t('TEMPLATE.DELETE_MODAL.TITLE')} subTitle={t('TEMPLATE.DELETE_MODAL.SUBTITLE')} />;

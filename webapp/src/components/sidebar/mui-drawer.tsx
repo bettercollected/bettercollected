@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetTitle } from '@app/shadcn/components/ui/sheet
 import { cn } from '@app/shadcn/util/lib';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface IMuiDrawerProps {
     drawerWidth?: number;
@@ -18,6 +19,7 @@ interface IMuiDrawerProps {
 
 export default function MuiDrawer({ drawerWidth = 289, mobileOpen, children, handleDrawerToggle, anchor = 'left' }: IMuiDrawerProps) {
 
+    const { t } = useTranslation();
     const isMobile = useIsMobile()
     const pathname = usePathname();
 
@@ -32,7 +34,7 @@ export default function MuiDrawer({ drawerWidth = 289, mobileOpen, children, han
             <div className="lg:hidden">
                 <Sheet open={mobileOpen} onOpenChange={(open) => !open && handleDrawerToggle()} >
                     <SheetContent hideCloseIcon side={anchor === 'right' ? 'right' : 'left'} className="p-0 bg-white border-r border-r-black-300" style={{ width: drawerWidth, maxWidth: '100vw' }}>
-                        <SheetTitle className="sr-only">Menu</SheetTitle>
+                        <SheetTitle className="sr-only">{t('STAFF.SHELL.MENU')}</SheetTitle>
                         {children}
                     </SheetContent>
                 </Sheet>

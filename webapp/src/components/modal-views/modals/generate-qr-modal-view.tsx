@@ -46,7 +46,7 @@ const GenerateQRModalView = ({ form }: IGenerateQR) => {
             link.click();
             document.body.removeChild(link);
         } catch (error) {
-            toast({ description: "Couldn't download because of the error." });
+            toast({ description: t('STAFF.MODALS.QR_DOWNLOAD_FAILED') });
             console.log(error);
         }
     };
@@ -62,28 +62,28 @@ const GenerateQRModalView = ({ form }: IGenerateQR) => {
                         navigator.clipboard.write([item]);
                     }
                 }, 'image/png');
-            toast({ description: 'QR Image Copied.' });
+            toast({ description: t('STAFF.MODALS.QR_COPIED') });
         } catch (error) {
-            toast({ description: 'Error Occured' });
+            toast({ description: t('STAFF.MODALS.QR_FAILED') });
             console.log(error);
         }
     };
     return (
         <div className=" rounded-[8px] bg-white md:w-[466px]">
             <div className={'flex justify-between px-2 py-[18px] md:px-4'}>
-                <h1 className={'p2-new'}>QR Code</h1>
+                <h1 className={'p2-new'}>{t('STAFF.MODALS.QR_TITLE')}</h1>
                 <ModalCloseButton onClick={closeModal} className="absolute right-5 top-3 h-8 w-8" iconClassName="h-6 w-6" />
             </div>
             <Divider />
             <div className={'flex flex-col items-center justify-center gap-4 p-4 pt-6 md:p-10'}>
                 <QRGenerator form={currentForm} />
-                <span className="p4-new w-[266px] text-center">Scan this QR code to get access to the form or </span>
+                <span className="p4-new w-[266px] text-center">{t('STAFF.MODALS.QR_INTRO')}</span>
                 <div className={'flex gap-2 '}>
                     <Button variant={'v2Button'} onClick={onDownload} data-umami-event="Download QR button">
-                        Download
+                        {t('STAFF.MODALS.QR_DOWNLOAD')}
                     </Button>
                     <Button variant={'v2Button'} onClick={handleCopyImageToClipboard} data-umami-event="Copy QR button">
-                        Copy
+                        {t('STAFF.MODALS.QR_COPY')}
                     </Button>
                 </div>
             </div>

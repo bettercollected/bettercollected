@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import AnchorLink from '../ui/links/anchor-link';
 import ContactSupportIcon from './icons/contact-support-icon';
 import ReportProblemIcon from './icons/report-problem-icon';
@@ -5,23 +7,24 @@ import RequestFeatureIcon from './icons/request-feature-icon';
 import WhatsNewIcon from './icons/what-new-icon';
 
 const HelpMenuItem = () => {
+    const { t } = useTranslation();
     return (
         <>
             <MenuItemWrapper href="https://bettercollected.com/whats-new/">
                 <WhatsNewIcon />
-                What&apos;s New
+                {t('STAFF.SHELL.WHATS_NEW')}
             </MenuItemWrapper>
             <MenuItemWrapper href="https://forms.bettercollected.com/support/forms/report-problem">
                 <ReportProblemIcon />
-                Report Problem
+                {t('STAFF.SHELL.REPORT_PROBLEM')}
             </MenuItemWrapper>
             <MenuItemWrapper href="https://forms.bettercollected.com/support/forms/feature-request">
                 <RequestFeatureIcon />
-                Request Feature
+                {t('STAFF.SHELL.REQUEST_FEATURE')}
             </MenuItemWrapper>{' '}
             <MenuItemWrapper href="https://forms.bettercollected.com/support/forms/contact">
                 <ContactSupportIcon />
-                Contact Support
+                {t('STAFF.SHELL.CONTACT_SUPPORT')}
             </MenuItemWrapper>
         </>
     );

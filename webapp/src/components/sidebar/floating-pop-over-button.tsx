@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from 'react-i18next';
 
 const FloatingPopOverButton = ({ content, children, className }: { content: React.ReactNode; children: React.ReactNode; className?: string }) => {
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+    const { t } = useTranslation();
     const popoverRef = useRef<any>(null);
 
     const handleClickOutside = (event: any) => {
@@ -31,7 +33,7 @@ const FloatingPopOverButton = ({ content, children, className }: { content: Reac
             </button>
             {!isPopoverOpen && hovered && (
                 <div className="bg-black-800 absolute bottom-0 right-10 rounded-lg p-1 px-2">
-                    <span className="text-xs font-medium text-white">Help</span>
+                    <span className="text-xs font-medium text-white">{t('STAFF.SHELL.HELP')}</span>
                 </div>
             )}
             {isPopoverOpen && <div className={`shadow-large border border-black-300 absolute bottom-16 right-0 flex w-[172px] cursor-pointer flex-col gap-1 rounded bg-white p-2 ${className}`}>{children}</div>}

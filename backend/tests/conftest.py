@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 from pathlib import Path
 import os
 import re
@@ -389,6 +390,57 @@ def in_memory_storage(request, _initialized_app, monkeypatch):
         monkeypatch.setattr(aws, "_s3", FakeResource(store))
         monkeypatch.setattr(aws, "_s3_client", FakeClient(store))
     return store
+
+
+class _MonkeyPatch(pytest.MonkeyPatch):
+    """``pytest.MonkeyPatch`` that leaves an instance as it found it.
+
+    ``monkeypatch.setattr(service, "method", fake)`` on an *instance* whose
+    ``method`` lives on the class restores the original as an *instance
+    attribute* (the bound method) instead of deleting the fake. On a singleton
+    (the container's services live for the whole worker) that attribute then
+    shadows the class for every later test: a ``patch.object(ServiceClass,
+    "method", ...)`` is silently ignored. That made
+    ``test_completed_is_refused_while_an_unattributed_copy_remains`` flaky, after
+    the registration tests that patch ``workspace_response`` this way.
+    Here, an attribute the instance did not have before the patch is deleted
+    again on undo. It covers every object a test patches (the rate limiter, the
+    email, SSO and SCIM services, ...), not a fixed list; class and module
+    targets behave as before."""
+
+    def __init__(self):
+        super().__init__()
+        self._added = []
+
+    def setattr(self, target, *args, **kwargs):
+        # ``setattr(obj, "name", value)`` patches an instance; the string form
+        # ``setattr("module.attr", value)`` and class targets are left alone
+        if not isinstance(target, str) and not inspect.isclass(target):
+            name = args[0] if args else kwargs["name"]
+            try:
+                local = name in vars(target)
+            except TypeError:  # no __dict__ (slots, builtins): nothing to restore
+                local = True
+            if not local:
+                self._added.append((target, name))
+        return super().setattr(target, *args, **kwargs)
+
+    def undo(self):
+        super().undo()
+        for target, name in reversed(self._added):
+            if name in getattr(target, "__dict__", {}):
+                delattr(target, name)
+        self._added.clear()
+
+
+@pytest.fixture
+def monkeypatch():
+    """The built-in fixture, with the instance clean-up of ``_MonkeyPatch``."""
+    patcher = _MonkeyPatch()
+    try:
+        yield patcher
+    finally:
+        patcher.undo()
 
 
 @pytest.fixture(autouse=True)

@@ -45,9 +45,9 @@ export const PreviewFullModalView = () => {
             <header className="border-black-300 z-10 flex h-14 w-full shrink-0 items-center justify-between gap-2 border-b bg-white px-4">
                 <BackButton handleClick={handleClickClose} />
                 <div className="flex min-w-0 items-center gap-2 text-sm">
-                    <span className="text-black-800 max-w-[200px] truncate font-medium sm:max-w-[320px]">{standardForm?.title || 'Untitled'}</span>
-                    <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand-500">Preview</span>
-                    <span className="text-black-600 hidden text-xs md:inline">Answers aren&apos;t saved</span>
+                    <span className="text-black-800 max-w-[200px] truncate font-medium sm:max-w-[320px]">{standardForm?.title || t('STAFF.COMMON.UNTITLED')}</span>
+                    <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand-500">{t('STAFF.PREVIEW.TITLE')}</span>
+                    <span className="text-black-600 hidden text-xs md:inline">{t('STAFF.PREVIEW.NOT_SAVED')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     {standardForm?.isPublished ? (
@@ -62,7 +62,7 @@ export const PreviewFullModalView = () => {
                                 })
                             }
                         >
-                            <span className="hidden text-xs font-medium sm:inline">Share</span>
+                            <span className="hidden text-xs font-medium sm:inline">{t('STAFF.PREVIEW.SHARE')}</span>
                         </Button>
                     ) : (
                         <PublishButton refresh />

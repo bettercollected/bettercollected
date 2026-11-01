@@ -15,6 +15,7 @@ import FieldSettings from '@app/views/organism/field-settings';
 
 import InsertFieldComponent from './insert-field-modal';
 
+
 // What the server says about the newer question types (its NEW_QUESTION_TYPES_ENABLED).
 // ...and about the address and signature questions, which have switches of their own (ADDRESS_QUESTION_ENABLED, SIGNATURE_QUESTION_ENABLED).
 const served = vi.hoisted(() => ({ newQuestionTypesEnabled: false, addressQuestionEnabled: true, signatureQuestionEnabled: false }));
@@ -374,7 +375,7 @@ describe('the newer question types and the server switch', () => {
     it('shows the settings of a question a form already has read-only while the server does not take them', async () => {
         renderExisting();
         // (the text itself is builder.json NEW_TYPES.LOCKED, English and Dutch)
-        expect(await screen.findByRole('note')).toHaveTextContent('NEW_TYPES.LOCKED');
+        expect(await screen.findByRole('note')).toHaveTextContent("These settings can't be changed on this server yet. Answers keep working as they are.");
         const box = screen.getByDisplayValue('08:00');
         expect(box).toBeDisabled();
         expect(box.closest('fieldset')).toBeDisabled();

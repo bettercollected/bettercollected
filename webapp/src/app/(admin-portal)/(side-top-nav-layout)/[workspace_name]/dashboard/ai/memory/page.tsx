@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
+
 import AIMemorySection from '@app/components/account-settings/ai-memory-section';
 
 /**
@@ -9,11 +11,11 @@ import AIMemorySection from '@app/components/account-settings/ai-memory-section'
  * remembers is listed here, deletable, and the user can add their own.
  */
 export default function AIMemoryPage() {
+    const { t } = useTranslation();
     return (
         <div className="flex w-full max-w-[760px] flex-col gap-6 pb-10">
             <p className="text-black-600 max-w-[62ch] text-sm leading-relaxed">
-                While you build forms with the assistant, it picks up durable style preferences — and only those. Everything it remembers is listed below; nothing is stored that you can&apos;t see and delete here. These apply at the lowest priority: your request and
-                your organization&apos;s AI profile always win.
+                {t('STAFF.AI_MEMORY.PAGE_INTRO')}
             </p>
             <AIMemorySection />
         </div>

@@ -37,9 +37,9 @@ const WorkspaceNameInputHandler = ({ formData, setFormData, handleOnChange, crea
         const availability = await getAvailabilityStatusOfWorkspaceName(value);
         if (!availability) {
             if (checkIfPredefinedWorkspaceName(value)) {
-                setErrorMessage('It is predefined name. Please take another name.');
+                setErrorMessage(t('STAFF.WORKSPACE.PREDEFINED_TAKE_OTHER'));
             } else {
-                setErrorMessage('Handle name already taken. Try another.');
+                setErrorMessage(t('STAFF.WORKSPACE.HANDLE_TAKEN'));
             }
             fetchSuggestionsForWorkspaceHandle(formData.title);
         } else {
@@ -127,12 +127,12 @@ const WorkspaceNameInputHandler = ({ formData, setFormData, handleOnChange, crea
     return (
         <div className="flex flex-col gap-1.5 w-full relative">
             <Label htmlFor="workspaceName" className="text-sm font-medium ml-1 mb-1 text-gray-700">
-                Handle Name
+                {t('STAFF.ONBOARDING.HANDLE')}
             </Label>
             <AppInput
                 required
                 id="workspaceName"
-                placeholder="Enter workspace handle name"
+                placeholder={t('STAFF.ONBOARDING.HANDLE_PLACEHOLDER')}
                 value={formData.workspaceName?.toLowerCase() ?? ''}
                 onChange={handleOnChange}
                 className={errorMessage && formData.workspaceName ? 'border-red-500 focus-visible:ring-red-500 w-full' : 'w-full'}

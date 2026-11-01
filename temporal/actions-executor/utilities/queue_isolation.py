@@ -35,18 +35,28 @@ def _q(text: str) -> str:
 _NORMALISE = r"::(text|character varying)|[ ()\n]"
 
 DEFINER_ROLE = "bc_jobs_def"
+
+# The schemas of the other services: the definer role may hold no privilege in
+# them (the same list postgres/ensure-jobs-exec-role.sh revokes).
+OTHER_SCHEMAS = ("app", "auth", "google", "admin", "tasks", "settings")
+_OTHER_SCHEMAS_SQL = "ARRAY[" + ", ".join(f"'{n}'" for n in OTHER_SCHEMAS) + "]::name[]"
 DEFINER_SEARCH_PATH = "search_path=jobs, pg_catalog, pg_temp"
 
 # True when, for the role this connection is: row-level security is on for the
 # queue table and a restrictive policy of that name, for all commands and with
 # exactly the expressions above, applies to the role; the role is no superuser,
 # bypasses no policy and does not own the table (an owner skips policies); it
-# cannot write the events or periodic-defers tables; and every SECURITY DEFINER
+# cannot write the events or periodic-defers tables; it holds no TEMPORARY
+# privilege on the database (granted to PUBLIC by default, so a database where
+# only a role-level revoke ran fails here) and is a member of no role (it could
+# SET ROLE to the definer role); and every SECURITY DEFINER
 # function of the queue's schema (the triggers that write those tables) belongs to
 # the dedicated definer role (NOLOGIN, no superuser, no bypass) and has a search
 # path that ends in pg_temp. Without pg_temp last the session's temporary schema is
 # searched first: this role may create temp tables, shadow ``procrastinate_events``
 # with one of its own, and have a trigger of its own run as the function's owner.
+# The definer role's own grants are minimal as well: no temporary tables, no
+# membership of any role, no privilege in another service's schema or tables.
 # A later ``CREATE OR REPLACE FUNCTION`` by procrastinate resets a function to
 # SECURITY INVOKER with no path: this then fails closed until
 # ``python -m backend.jobs.schema`` has run again.
@@ -70,6 +80,9 @@ SELECT EXISTS (
        AND NOT r.rolsuper
        AND NOT r.rolbypassrls
        AND c.relowner <> r.oid
+       AND NOT has_database_privilege(current_user, current_database(), 'TEMPORARY')
+       AND NOT EXISTS (
+               SELECT 1 FROM pg_catalog.pg_auth_members m WHERE m.member = r.oid)
        AND NOT has_table_privilege(
                current_user, 'jobs.procrastinate_events', 'INSERT,UPDATE,DELETE')
        AND NOT has_table_privilege(
@@ -94,7 +107,22 @@ SELECT EXISTS (
        AND EXISTS (
                SELECT 1 FROM pg_catalog.pg_roles d
                 WHERE d.rolname = '{definer}' AND NOT d.rolcanlogin
-                  AND NOT d.rolsuper AND NOT d.rolbypassrls AND NOT d.rolcreaterole)
+                  AND NOT d.rolsuper AND NOT d.rolbypassrls AND NOT d.rolcreaterole
+                  AND NOT has_database_privilege(d.oid, current_database(), 'TEMPORARY')
+                  AND NOT EXISTS (
+                          SELECT 1 FROM pg_catalog.pg_auth_members m WHERE m.member = d.oid)
+                  AND NOT EXISTS (
+                          SELECT 1 FROM pg_catalog.pg_namespace n
+                           WHERE n.nspname = ANY ({_OTHER_SCHEMAS_SQL})
+                             AND has_schema_privilege(d.oid, n.oid, 'USAGE,CREATE'))
+                  AND NOT EXISTS (
+                          SELECT 1 FROM pg_catalog.pg_class c
+                            JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                           WHERE n.nspname = ANY ({_OTHER_SCHEMAS_SQL})
+                             AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
+                             AND has_table_privilege(
+                                     d.oid, c.oid,
+                                     'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')))
 )
 """
 
@@ -104,10 +132,15 @@ ISOLATION_SQL = isolation_sql()
 REFUSAL = (
     "the job queue does not restrict this database role to running action jobs "
     f"(the '{POLICY}' policy on jobs.procrastinate_jobs, no write on the events and "
-    "periodic-defers tables, or the role is more than a plain login role). Run "
+    "periodic-defers tables, or the role is more than a plain login role), or the "
+    "database role can create temporary tables (TEMPORARY is granted to PUBLIC by "
+    "default) or is a member of another role, or the trigger-function owner "
+    f"'{DEFINER_ROLE}' holds more than the queue's triggers need. Run "
     "`python -m backend.jobs.schema` with the backend's configuration (it is a "
     "no-op for the tables and applies the restriction), and "
-    "postgres/ensure-jobs-exec-role.sh, then start the executor again."
+    "postgres/ensure-jobs-exec-role.sh (it revokes TEMPORARY from PUBLIC, removes "
+    "the memberships and resets the definer role's grants), then start the "
+    "executor again."
 )
 
 

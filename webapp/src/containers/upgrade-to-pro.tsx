@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
 import BillingOwnerNote from '@app/components/member/billing-owner-note';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
@@ -78,9 +78,9 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                     upgrade has no expiry in code, so the 90-day line was a
                     surprise waiting to be discovered (DESIGN.md §5). */}
                 <div className="h2-new mb-2 text-center">
-                    bettercollected PRO is <span className="text-brand-500">currently free</span>
+                    <Trans i18nKey="STAFF.UPGRADE.TITLE" components={{ 1: <span className="text-brand-500" /> }} />
                 </div>
-                <div className="p2-new text-black-700 max-w-[426px] text-center">No card needed and nothing is charged. Tell us what PRO would be worth to you — future pricing will be based on these suggestions.</div>
+                <div className="p2-new text-black-700 max-w-[426px] text-center">{t('STAFF.UPGRADE.NOTE')}</div>
                 {/* An owner who isn't the billing owner upgrades only their
                     own account: this workspace's plan is someone else's. */}
                 <BillingOwnerNote className="mt-3 max-w-[426px] text-center" />
@@ -115,7 +115,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                                 setCustomPrice(event.target.value);
                             }}
                             className={cn('placeholder-black-500 w-[82px] rounded-r-lg border-0 bg-white p-2! text-left text-sm font-medium outline-hidden')}
-                            placeholder="Amount"
+                            placeholder={t('STAFF.UPGRADE.AMOUNT')}
                         />
                     </div>
                 </div>
@@ -125,7 +125,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                         className="mb-2"
                         onClick={async () => {
                             if (activeSuggestion === null && !customPrice) {
-                                toast({ description: 'Please select a price first' });
+                                toast({ description: t('STAFF.UPGRADE.SELECT_PRICE') });
                                 return;
                             }
                             let price = 0;
@@ -145,21 +145,21 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                                     } else {
                                         router.refresh();
                                     }
-                                    toast({ description: 'Congratulations! You have been upgraded to PRO' });
+                                    toast({ description: t('STAFF.UPGRADE.DONE') });
                                 }
                                 if (response.error) {
                                     // Say what actually failed — a 503 "Service is
                                     // not enabled" is actionable; "Something went
                                     // wrong" is not.
                                     toast({
-                                        description: typeof response.error?.data === 'string' ? response.error.data : 'Could not activate PRO — please try again.',
+                                        description: typeof response.error?.data === 'string' ? response.error.data : t('STAFF.UPGRADE.FAILED'),
                                         variant: 'destructive'
                                     });
                                 }
                             });
                         }}
                     >
-                        Activate PRO for free
+                        {t('STAFF.UPGRADE.ACTIVATE')}
                     </Button>
                 </div>
             </>

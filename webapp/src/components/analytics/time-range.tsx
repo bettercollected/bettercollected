@@ -1,5 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+import { useTranslation } from 'react-i18next';
+
+/** The range names are keys (the analytics page and the chart switch on them); the person reads a translation. */
+export const rangeLabelKey = (range: string) => `ANALYTICS.RANGE.${range.toUpperCase().replace(/ /g, '_')}`;
+
 const timeRanges = ['Today', 'Last 24 hours', 'This week', 'Last 7 days', 'This month', 'Last 30 days', 'Last 90 days', 'This year', 'Last 6 months', 'Last 12 months', 'All time'];
 
 interface TimeRangeSelectorProps {
@@ -8,6 +13,7 @@ interface TimeRangeSelectorProps {
 }
 
 const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({ onRangeSelect, selectedRange }) => {
+    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -40,8 +46,8 @@ const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({ onRangeSelect, se
 
     return (
         <div ref={dropdownRef} className="relative inline-block py-4 text-left">
-            <button type="button" onClick={toggleDropdown} className="inline-flex w-full justify-between rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-hidden">
-                {selectedRange}
+            <button type="button" aria-label={`${t('ANALYTICS.RANGE.LABEL')}: ${t(rangeLabelKey(selectedRange))}`} aria-haspopup="true" aria-expanded={isOpen} onClick={toggleDropdown} className="inline-flex w-full justify-between rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-hidden">
+                {t(rangeLabelKey(selectedRange))}
                 <svg className="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
@@ -55,7 +61,7 @@ const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({ onRangeSelect, se
                                 onClick={() => handleRangeChange(range)}
                                 className={`block w-full px-4 py-2 text-left text-sm ${selectedRange === range ? 'bg-gray-100 text-gray-900' : 'text-gray-700'} hover:bg-gray-100 hover:text-gray-900`}
                             >
-                                {range}
+                                {t(rangeLabelKey(range))}
                             </button>
                         ))}
                     </div>

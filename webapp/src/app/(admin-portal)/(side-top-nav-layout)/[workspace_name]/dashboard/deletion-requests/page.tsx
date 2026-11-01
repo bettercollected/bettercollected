@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import SearchInput from '@Components/common/search-input';
 
@@ -13,6 +14,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 
 export default function DeletionRequests() {
+    const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
     const [page, setPage] = useState(1);
 
@@ -75,12 +77,12 @@ export default function DeletionRequests() {
                     <p className="body1 text-black-900 mb-10 mt-2">
                         {(workspaceStats?.data?.deletionRequests.pending || 0) === 0
                             ? (workspaceStats?.data?.deletionRequests.total || 0) === 0
-                                ? 'No deletion requests yet.'
-                                : 'All deletion requests handled.'
-                            : `${workspaceStats?.data?.deletionRequests.pending} of ${workspaceStats?.data?.deletionRequests.total} requests pending — deleting the response completes a request.`}
+                                ? t('STAFF.DELETIONS.NONE')
+                                : t('STAFF.DELETIONS.ALL_HANDLED')
+                            : t('STAFF.DELETIONS.PENDING', { pending: workspaceStats?.data?.deletionRequests.pending, count: workspaceStats?.data?.deletionRequests.total })}
                     </p>
                     <div className="w-full md:w-[282px] mb-8">
-                        <SearchInput placeholder="Search by responder email" handleSearch={handleSearch} />
+                        <SearchInput placeholder={t('STAFF.DELETIONS.SEARCH')} handleSearch={handleSearch} />
                     </div>
                     <ResponsesTable requestForDeletion={true} page={page} setPage={setPage} submissions={data} />
                 </>

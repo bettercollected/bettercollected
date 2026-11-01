@@ -15,7 +15,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useUpdateWorkspaceMemberRoleMutation } from '@app/store/workspaces/members-n-invitations-api';
-import { utcToLocalDate, utcToLocalTime } from '@app/utils/date-utils';
+import { utcToLocalDateTimeIn } from '@app/utils/date-utils';
 
 const customDataTableStyles = { ...dataTableCustomStyles };
 
@@ -91,7 +91,7 @@ function MemberRole({ member }: { member: WorkspaceMembersDto }) {
 export default function MembersTable({ data }: any) {
     const workspace = useAppSelector((state) => state.workspace);
     const { can } = useWorkspacePermissions();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const canManageMembers = can(WorkspacePermission.MEMBERS_MANAGE);
     // every owner holds workspace.billing
     const isWorkspaceOwner = can(WorkspacePermission.WORKSPACE_BILLING);
@@ -120,7 +120,7 @@ export default function MembersTable({ data }: any) {
 
         {
             name: t(members.join),
-            selector: (member: any) => (!!member?.joined ? `${utcToLocalDate(member?.joined)} - ${utcToLocalTime(member?.joined)}` : ''),
+            selector: (member: any) => (!!member?.joined ? utcToLocalDateTimeIn(member?.joined, i18n.language) : ''),
             style: {
                 color: '#344054',
                 paddingLeft: '16px',
