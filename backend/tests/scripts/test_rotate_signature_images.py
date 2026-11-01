@@ -483,8 +483,27 @@ async def test_an_image_that_cannot_be_removed_after_an_erasure_is_reported(
     objects.before_write = erase
     code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
     counts = counts_of(report)
-    assert code == 0 and counts["images_removal_failed"] == 1
+    # an erased signature may still be stored: not a clean run
+    assert code == 1 and counts["images_removal_failed"] == 1
     assert "images_written_then_removed" not in counts
+    assert report["images_removal_failed_responses"] == [str(response_id)]
+    assert "delete" in report["images_removal_failed_action"]
+    assert "reencrypt again" in report["images_removal_failed_action"]
+    # ids only: neither the object key nor the file id is in the output
+    text = json.dumps(report)
+    assert key not in text and key.rsplit("/", 1)[-1] not in text
+    assert "ClientError" not in text
+
+
+async def test_a_clean_reencrypt_exits_zero_and_lists_no_failed_removals(
+    client, workspace, signed_form, objects, rotation_env, tmp_path, capsys, monkeypatch,
+):
+    await signed_response(client, workspace, signed_form)
+    rotated_file, _, _ = await rotate(capsys, monkeypatch, tmp_path)
+    code, report = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    assert code == 0 and counts_of(report)["images_resealed"] == 1
+    assert "images_removal_failed_responses" not in report
+    assert "images_removal_failed_action" not in report
 
 
 async def test_a_normal_conditional_write_is_not_counted_as_unconditional(

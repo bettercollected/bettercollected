@@ -10,6 +10,7 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 import { axeViolations } from '@app/test/axe';
 
 import ReadOnlyForm from './read-only-form';
+import '@app/shared/hocs/i18n-provider';  // the catalogue's English text
 
 const field = (id: string, index: number, type: FieldTypes, title: string, properties: Record<string, any> = {}) => ({ id, index, type, title, properties });
 const form = (language?: string) =>

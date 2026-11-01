@@ -188,6 +188,7 @@ export default function FormResponsesTable({ props }: any) {
     // server answers, even when older rows are still at hand; focus moves to
     // the results region so it does not fall to <body>.
     const resultsRef = useRef<HTMLDivElement>(null);
+    const filtersToggleRef = useRef<HTMLButtonElement>(null);
     // After a page link is followed, focus moves to the results once the new
     // page is in: a keyboard or screen reader user starts at the table, not
     // wherever the old link was; the count says which rows these are.
@@ -234,7 +235,7 @@ export default function FormResponsesTable({ props }: any) {
     const waiting = isFetching && currentData === undefined && !hasItems;
     if (isLoading || !workspace?.id || pastTheEnd || retrying || waiting) {
         results = (
-            <div role="status" aria-label="Loading responses" className=" flex w-full justify-center py-10">
+            <div role="status" aria-label={t('RESPONSES_STAFF.LOADING')} className=" flex w-full justify-center py-10">
                 <Loader />
             </div>
         );
@@ -251,7 +252,15 @@ export default function FormResponsesTable({ props }: any) {
             </div>
         );
     } else if (!requestForDeletion && filtersActive) {
-        results = <NoFilterMatchComponent onClear={clearFilters} />;
+        results = (
+            <NoFilterMatchComponent
+                onClear={() => {
+                    clearFilters();
+                    // the empty state goes with the filters: focus goes to the Filters button, not to <body>
+                    filtersToggleRef.current?.focus();
+                }}
+            />
+        );
     } else if (searchText) {
         results = <NoMatchComponent searchText={searchText} requestForDeletion={requestForDeletion} />;
     } else {
@@ -289,28 +298,30 @@ export default function FormResponsesTable({ props }: any) {
     };
     const showFilters = !requestForDeletion && isSubmission && (!!form.responses || filtersActive);
 
+    const hasSearch = (isSubmission && form.responses) || (!isSubmission && form.deletionRequests);
+    const searchNode = hasSearch ? (
+        <div className="w-full sm:w-[320px]">
+            <SearchInput
+                handleSearch={handleSearch}
+                defaultValue={searchText}
+                placeholder={t('RESPONSES_STAFF.SEARCH_PLACEHOLDER')}
+                ariaLabel={t(requestForDeletion ? 'RESPONSES_STAFF.SEARCH_LABEL_DELETION' : 'RESPONSES_STAFF.SEARCH_LABEL')}
+                maxLength={320}
+            />
+        </div>
+    ) : null;
+    const exportNode = isSubmission && canExport ? <ResponseExportControl workspaceId={workspace?.id} formId={form.formId} formTitle={form.title} search={searchText} filters={exportFilters} /> : null;
+
     return (
         <div>
-            <div className={`mb-6 flex flex-col gap-2 lg:flex-row lg:justify-between`}>
-                <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-between">
-                    {(isSubmission && form.responses) || (!isSubmission && form.deletionRequests) ? (
-                        <div className="flex w-full flex-row items-center gap-4 ">
-                            <SearchInput
-                                handleSearch={handleSearch}
-                                defaultValue={searchText}
-                                placeholder={'Search by responder email'}
-                                ariaLabel={requestForDeletion ? 'Search deletion requests by responder email' : 'Search responses by responder email'}
-                                className="md:w-[282px]"
-                                maxLength={320}
-                            />
-                        </div>
-                    ) : (
-                        <></>
-                    )}
-                    {isSubmission && canExport && <ResponseExportControl workspaceId={workspace?.id} formId={form.formId} formTitle={form.title} search={searchText} filters={exportFilters} />}
+            {showFilters ? (
+                <ResponseFilters toggleRef={filtersToggleRef} state={urlState} currentVersion={form.version} onChange={change} onClear={clearFilters} search={searchNode} trailing={exportNode} />
+            ) : (
+                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    {searchNode ?? <span />}
+                    {exportNode}
                 </div>
-            </div>
-            {showFilters && <ResponseFilters state={urlState} currentVersion={form.version} onChange={change} onClear={clearFilters} />}
+            )}
             {!requestForDeletion && (
                 <div className="mb-3 flex min-h-9 flex-wrap items-center justify-between gap-2">
                     {/* a polite live region: the new count is announced when a page, filter or sort has loaded */}
@@ -320,7 +331,7 @@ export default function FormResponsesTable({ props }: any) {
                     {pagerProps && <ResponsePager label={t(text.pagerTop)} {...pagerProps} />}
                 </div>
             )}
-            <div ref={resultsRef} tabIndex={-1} role="region" aria-label={requestForDeletion ? 'Deletion requests' : 'Responses'} className="focus:outline-hidden">
+            <div ref={resultsRef} tabIndex={-1} role="region" aria-label={t(requestForDeletion ? 'RESPONSES_STAFF.REGION_DELETION' : 'RESPONSES_STAFF.REGION')} className="focus:outline-hidden">
                 {results}
             </div>
             {pagerProps && (
@@ -332,16 +343,19 @@ export default function FormResponsesTable({ props }: any) {
     );
 }
 
-const ResponsesErrorComponent = ({ onRetry }: { onRetry: () => void }) => (
-    <div role="alert" className={'flex flex-col items-center gap-2 py-10'}>
-        <EmptyResponseIcon />
-        <span className={'p3-new text-black'}>Could not load responses</span>
-        <span className={'p4-new text-black-600 max-w-[420px] text-center'}>Something went wrong, or you may not have access. Your responses are not affected.</span>
-        <Button type="button" variant="v2Button" onClick={() => onRetry()} className="mt-2">
-            Retry
-        </Button>
-    </div>
-);
+const ResponsesErrorComponent = ({ onRetry }: { onRetry: () => void }) => {
+    const { t } = useTranslation();
+    return (
+        <div role="alert" className={'flex flex-col items-center gap-2 py-10'}>
+            <EmptyResponseIcon />
+            <span className={'p3-new text-black'}>{t('RESPONSES_STAFF.ERROR_TITLE')}</span>
+            <span className={'p4-new text-black-600 max-w-[420px] text-center'}>{t('RESPONSES_STAFF.ERROR_BODY')}</span>
+            <Button type="button" variant="v2Button" onClick={() => onRetry()} className="mt-2">
+                {t('RESPONSES_STAFF.RETRY')}
+            </Button>
+        </div>
+    );
+};
 
 const NoFilterMatchComponent = ({ onClear }: { onClear: () => void }) => {
     const { t } = useTranslation();
@@ -371,33 +385,35 @@ const TooDeepComponent = ({ onFirst }: { onFirst: () => void }) => {
     );
 };
 
-const NoMatchComponent = ({ searchText, requestForDeletion }: { searchText: string; requestForDeletion?: boolean }) => (
-    <div role="status" className={'flex flex-col items-center gap-2 py-10'}>
-        <EmptyResponseIcon />
-        <span className={'p3-new text-black'}>{requestForDeletion ? 'No deletion requests match' : 'No responses match'}</span>
-        <span className={'p4-new text-black-600 max-w-[420px] break-words text-center'}>
-            Nothing matches &ldquo;{searchText}&rdquo;. The search looks at the responder&apos;s email address; anonymous responses cannot be found by it.
-        </span>
-    </div>
-);
+const NoMatchComponent = ({ searchText, requestForDeletion }: { searchText: string; requestForDeletion?: boolean }) => {
+    const { t } = useTranslation();
+    return (
+        <div role="status" className={'flex flex-col items-center gap-2 py-10'}>
+            <EmptyResponseIcon />
+            <span className={'p3-new text-black'}>{t(requestForDeletion ? 'RESPONSES_STAFF.NO_MATCH_TITLE_DELETION' : 'RESPONSES_STAFF.NO_MATCH_TITLE')}</span>
+            <span className={'p4-new text-black-600 max-w-[420px] break-words text-center'}>{t('RESPONSES_STAFF.NO_MATCH_BODY', { search: searchText })}</span>
+        </div>
+    );
+};
 
 const EmptyTabularResponseComponent = ({ requestForDeletion }: { requestForDeletion?: boolean }) => {
+    const { t } = useTranslation();
     // Deletion requests are a GDPR feature — the empty state should teach that,
     // not borrow the responses copy (which can be factually wrong here).
     if (requestForDeletion) {
         return (
             <div className={'flex flex-col items-center gap-2 py-10'}>
                 <EmptyResponseIcon />
-                <span className={'p3-new text-black'}>No deletion requests</span>
-                <span className={'p4-new text-black-600 max-w-[420px] text-center'}>When a responder asks for their response to be deleted, it shows up here for you to act on.</span>
+                <span className={'p3-new text-black'}>{t('RESPONSES_STAFF.EMPTY_DELETION_TITLE')}</span>
+                <span className={'p4-new text-black-600 max-w-[420px] text-center'}>{t('RESPONSES_STAFF.EMPTY_DELETION_BODY')}</span>
             </div>
         );
     }
     return (
         <div className={'flex flex-col items-center gap-2 py-10'}>
             <EmptyResponseIcon />
-            <span className={'p3-new text-black'}>No responses yet</span>
-            <span className={'p4-new text-black-600'}>Responses appear here as soon as someone fills out your form.</span>
+            <span className={'p3-new text-black'}>{t('RESPONSES_STAFF.EMPTY_TITLE')}</span>
+            <span className={'p4-new text-black-600 max-w-[420px] text-center'}>{t('RESPONSES_STAFF.EMPTY_BODY')}</span>
         </div>
     );
 };
