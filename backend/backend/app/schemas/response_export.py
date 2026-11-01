@@ -62,12 +62,14 @@ class ResponseExportDocument(Record):
     # who asked (the user's id; DELETED_ACTOR once that account was deleted)
     actor_id: str
     # how the data left: "export" (the export control, POST .../exports) or
-    # "all_submissions" (the bulk JSON route, audited the same way), or "api_key" /
-    # "mcp" (a workspace API key's reads of responses; ``actor_id`` is ``api-key:<key id>``)
+    # "all_submissions" (the bulk JSON route, audited the same way), "response_pdf" (the PDF
+    # of one response: ``filters`` holds its id), or "api_key" / "mcp" (a workspace API key's
+    # reads of responses; ``actor_id`` is ``api-key:<key id>``)
     channel: str = "export"
     kind: ExportKind
     status: ExportStatus
-    # "csv", or "zip" when the form's repeating groups export as tables
+    # "csv", "zip" (a CSV export of a form whose repeating groups are tables), "xlsx",
+    # "json", or "pdf" (the PDF of one response)
     format: str = "csv"
     # the keys of the columns exported (see services/response_export/table.py)
     columns: List[str] = []

@@ -487,6 +487,48 @@ what it repaired (`droppedOptionLogic`, toasted by autosave); a question with mo
 evaluation budget (`worst_case_cost`) or over the caps refuses (never wiped). The server never clears an answer; the
 respondent page does (`clearUnavailableOptions`).
 
+**Option sources — opt-in (`shareAsChoices`)**: another form's answers are used only from a question with
+`properties.shareAsChoices` true; the server stamps `shared_as_choices` (question ids) on each response at submit as the
+questions of the signed notice token the form fetch issued (`option_sources/share_token.py`, `shareNoticeToken` /
+`share_notice_token`) ∩ `checks.shared_ids(latest version)`; never from the body, a provider import or an edit; copies
+strip the flag (`strip_share_as_choices`), the eligibility SQL
+(`PostgresFormResponseRepository._option_source_where`) requires the stamp, and `answer_question_problem` /
+`_rebuild` require the flag on the current document (422 `option_source_not_shared` at save; off = nothing offered at once).
+The options route judges access per call (`OptionSourceService._judge`: hidden, dates, limit, verified identity, private
+groups) and limits from memory first (`_coarse_limit`); the cache token is `(count, hash sum of id+updated_at, form
+revision)` with a 5 s growth debounce for the public route only. `OPTION_SOURCES_ENABLED` off is also a kill switch for
+`form_answers` (`OptionSourceService.options` returns nothing; lists unaffected). AI insights replace a `form_answers`
+choice by a placeholder (`insights._sourced_label`). **Erasure:** every delete of a response goes through
+`PostgresFormResponseRepository._delete_recorded`, which notes the option ids the erased responses offered in
+`option_source_erasures` (same transaction); `OptionSourceService.redact_erased` (started after the erasure and by the
+`redact_erased_options` job every two minutes) sets the label snapshots of options no eligible response still offers to
+`[removed]` in the consuming forms' responses (`services/option_sources/erasure.py`). A note is kept `NOTE_GRACE` (15
+min) and worked on every pass until then (a submit racing the erasure commits late), notes hold each option's id under
+every JWT ring member, and the option ids themselves (`ids.py`) are keyed with the primary ring member only.
+
+**Option sources** ([../docs/option-sources.md](../docs/option-sources.md), spec section "Option sources"): a dropdown or
+multiple choice question takes its options from a workspace list or another form's answers (`properties.option_source`, common
+`OptionSource`, stored camelCase `optionSource`; also in the builder DTO `StandardFieldPropertyCamelModel`, or a save drops it).
+Switch `OPTION_SOURCES_ENABLED` (off): `services/option_sources/checks.py` `ensure_valid_structure` (shape, every save),
+`ensure_option_sources_allowed` (new or changed source vs the stored form, 422 `option_sources_disabled`; `answers_ok=False` in
+`persist_form` refuses a new `form_answers` source, 422 `option_source_forbidden`: chat/MCP/imports cannot ask the saver's access),
+`OptionSourceService.ensure_resolved` (builder create/update and the spec API: list exists in the workspace, another form's answers
+need `response.read` on that form, not the form itself, not an API key); stored sources are served and enforced either way.
+Lists: `workspace_option_lists` (revision 0031, items inside the document, `revision` is the cache token and the editors' optimistic
+check), `services/option_lists/` (limits in `option_sources/text.py`, `form.read` / `form.edit`, CSV), routes in
+`controllers/option_lists_router.py` (also the builder's `POST .../option-sources/preview`). Another form's answers:
+`OptionSourceService._rebuild` reads `PostgresFormResponseRepository.option_source_batch` (no deletion request of any status,
+no `anonymous_identity`, not expired) and decrypts in a thread; the cache is keyed by `option_source_token` (count, newest
+`updated_at`, newest id of those responses) checked on every call, so nothing is stale in any process; ids are keyed hashes
+(`option_sources/ids.py`). The public `GET /workspaces/{id}/forms/{form_id}/options/{field_id}` serves `{id, label}` only for
+published forms (one 404 otherwise, rate limit constants in `service.py`, no extra settings); `strip_internal_fields` blanks the
+list id / form id / question id of a respondent's copy. `OptionSourceService.apply` (after validation in `submit_response` and
+`patch_response`) refuses a new chosen option the source does not offer (`option_unavailable`), writes the label snapshot
+(`choice.label`, `choices.labels`) and removes any a client sent for a question without a source; readers (CSV `_snapshot_text`,
+`registration/body.py` `sourced_texts`, insights, the executor's `get_sourced_choices_value`) use the snapshot only for a question
+with a source. `_choice_problem` skips the membership check for a sourced question. Templates never hold a source; a duplicate
+keeps list sources and loses `form_answers`; provider imports strip them.
+
 **Verified email domains** ([../docs/verified-domains.md](../docs/verified-domains.md)): a workspace's
 Owner/Admins claim an email domain (`/workspaces/{id}/domains`) and prove it with a TXT record
 `_bettercollected-verification.<domain>` = `bettercollected-domain-verification=<token>`. Code:
@@ -1367,7 +1409,7 @@ feature switch). Docs: `docs/response-export.md`. Rules to keep:
 
 - Code in `services/response_export/`: `table.py` (columns, cells, the formula guard; the browser's old builder moved
   here, pinned by `tests/app/response_export/test_table.py` against its recorded output), `writer.py` (CSV, or a ZIP of
-  CSVs when a repeating group exports as `rows`; one pass per table, nothing spooled to disk), `links.py` (the signed
+  CSVs when a repeating group exports as `rows`; one pass per table, nothing spooled to disk), `xlsx.py`, `json_export.py`, `formats.py`, `links.py` (the signed
   link), `limits.py` (constants), `service.py`. Tables `response_exports` (the audit entry and the job state, revision
   0027) and `response_export_chunks` (a job's encrypted file), both in `NOT_IMPORTED_TABLES`.
 - Up to `STREAM_MAX_ROWS` matching responses stream, nothing stored; above it a job (`build_response_export(export_id)`,
@@ -1377,6 +1419,17 @@ feature switch). Docs: `docs/response-export.md`. Rules to keep:
   `FormImportService`): stored files go at once, a running job throws its file away. A new deletion path without it
   leaves decrypted answers in a file for up to 24 hours.
 - A run owns an export only while its claim (`attempts`) is current: store chunks with `add_chunk_if_owned` (row lock plus heartbeat) and end with `_end_owned`, never with a bare write. One live export per requester and form is a partial unique index; `admit_job` also caps jobs per workspace, and `admit_stream` bounds streamed exports (and `bulk_read`) per requester+workspace and per workspace on the `streaming` audit rows, under the same workspace advisory lock (no in-process counter: it must hold across replicas). `GET .../all-submissions` goes through `ResponseExportService.bulk_read` (audit, rate limit, stream slot, at most `BULK_JSON_MAX_ROWS` rows: 413 above; the slot is closed by a background task after the answer is serialised). A stream's slot lives by its heartbeat (`updated_at`, beaten by its own task only while the consumer takes pieces and at most `STALE_STREAMING_AFTER` after the start; `STREAM_SLOT_TTL`; never touch a row you merely edit: `update_locked(..., touch=False)`, as `forget_actor` does, keeps a queued job's age); `recent()` lists job rows only, and a request refused for lack of a slot is given back to the rate limiter (`admit` / `release`). A running job's liveness is `heartbeat_at` (chunk or `beat_if_owned`), never `started_at`; a queued job older than `QUEUED_MAX_AGE` is failed `queue_timeout` by the hourly purge; reads of responses through API keys and MCP call `audit_key_read` (channel `api_key`/`mcp`, actor `api-key:<id>`, no answers; nothing when nothing was returned) before returning. The hourly purge deletes files first and runs the queue sweep after, guarded.
+- **Formats are a parameter of the one path** (`format` on the request: `csv`, `xlsx`, `json`; `formats.py` maps the stored
+  format to its media type and writer). A new column or filter reaches every format through `build_plan`; a new answer
+  type needs its text in `table.py` (CSV, XLSX and the PDF read it there) and, for JSON, nothing unless it carries a link
+  to a stored file (`json_export.clean_answer` drops them). `xlsx.py` is our own streaming writer (no library: a library
+  needs a seekable file or spools to disk): text is `inlineStr`, a formula-like string gets `quotePrefix`, never a formula
+  element; keep it that way (`test_formats_writers.py` re-reads files with openpyxl, a dev-only dependency).
+- **The PDF of one response** (`GET /workspaces/{id}/submissions/{response_id}/pdf`, `response.read`, `services/response_pdf/`):
+  drawn in-process with ReportLab and the bundled DejaVu Sans, never stored, audited (channel `response_pdf`) before the
+  bytes go out, own budget (`PDF_REQUESTS_PER_WINDOW`), bounded (`PDF_PARALLEL`, `MAX_PAGES`, `MAX_VALUE_CHARS`). Answers are
+  only ever drawn with `drawString` (no markup parsing); no image (a drawn signature is listed: this process never decodes
+  images), link, script or font other than ours. Internal fields and staff feedback are not printed.
 - The audit entry never holds an answer, the search text or a file name made from content. Do not add one.
 - Every route re-checks `response.export`, the job and the download too; an export is its requester's alone (someone
   else's is a 404). The export takes the responses list's filters (`ResponseListFilters`, SQL in `_list_filters`): a new list filter reaches the export by adding it to the request DTO (`models/dtos/response_export_dto.py`) and the audit summary.

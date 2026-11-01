@@ -96,6 +96,14 @@ from backend.app.services.field_rules import (
 )
 from backend.app.services.layout_containers import ensure_valid_layout
 from backend.app.services.new_question_types import ensure_question_types_allowed
+from backend.app.services.option_sources.share_token import stamp as shared_notice_stamp
+from backend.app.services.option_sources.checks import (
+    ensure_option_sources_allowed,
+    shared_ids as shared_question_ids,
+    ensure_valid_structure as ensure_valid_option_sources,
+    strip_option_sources,
+    strip_share_as_choices,
+)
 from backend.app.services.signatures import (
     delete_stored_images,
     prepare_signatures,
@@ -351,7 +359,10 @@ class WorkspaceFormService:
         email_action_service=None,
         copy_recipient_service=None,
         response_export_service=None,
+        option_source_service=None,
     ):
+        # options from a list or from another form's answers
+        self._option_source_service = option_source_service
         # who the "send me a copy" action may mail (services/copy_recipient.py)
         self._copy_recipient_service = copy_recipient_service
         self.form_provider_service = form_provider_service
@@ -770,6 +781,20 @@ class WorkspaceFormService:
         ensure_valid_option_logic(form, drop=True)
         if not drop_unusable_settings:
             ensure_choice_logic_allowed(form)
+        # Option sources (services/option_sources): a copy of a template never
+        # brings one (its lists and forms belong to another workspace); a new
+        # form needs OPTION_SOURCES_ENABLED and the saver's access to the
+        # source form's answers.
+        if drop_unusable_settings:
+            strip_option_sources(form)
+            strip_share_as_choices(form)
+        else:
+            ensure_valid_option_sources(form)
+            ensure_option_sources_allowed(form)
+            if self._option_source_service is not None:
+                await self._option_source_service.ensure_resolved(
+                    workspace_id, form, None, user
+                )
         ensure_valid_themes(form)
         _check_ending_links(form, drop_unusable=drop_unusable_settings)
         # first-party images only (services/form_images.py); a copy drops
@@ -908,6 +933,14 @@ class WorkspaceFormService:
         if dropped_option_logic is not None:
             dropped_option_logic.extend(repaired)
         ensure_choice_logic_allowed(form, existing_form)
+        # Option sources: the shape on every save; a new or changed source
+        # needs the switch and the saver's access to the source form's answers
+        ensure_valid_option_sources(form)
+        ensure_option_sources_allowed(form, existing_form)
+        if self._option_source_service is not None:
+            await self._option_source_service.ensure_resolved(
+                workspace_id, form, existing_form, user, own_form_id=str(form_id)
+            )
         # first-party images only; an address the draft already holds is kept
         # (services/form_images.py).
         check_form_images(form, existing_form)
@@ -1256,6 +1289,17 @@ class WorkspaceFormService:
             skip=locked,
         )
 
+        # Options from a source: only a changed choice must be offered now; an
+        # unchanged one keeps the label stored with it.
+        if self._option_source_service is not None:
+            response.answers = await self._option_source_service.apply(
+                workspace_id,
+                form,
+                response.answers,
+                previous=stored_answers,
+                context=merged,
+            )
+
         # A signature question's drawn image is checked and re-encoded, and a
         # changed signature is stamped by the server (services/signatures.py).
         prepared = await prepare_signatures(
@@ -1308,6 +1352,7 @@ class WorkspaceFormService:
         user: User,
         form_files: list[FormFileResponse] = None,
         ai_notice_token: Optional[str] = None,
+        share_notice_token: Optional[str] = None,
         client_today: Optional[str] = None,
         received_at: Optional[dt.datetime] = None,
         client_ip: Optional[str] = None,
@@ -1392,6 +1437,17 @@ class WorkspaceFormService:
         # notice (#752): the signed token the form fetch handed out, checked
         # against the form's current setting. Never what the body claims.
         stamp_ai_notice(response, ai_notice_token, workspace_id, workspace_form)
+        # Which answers were given while the page showed the notice that they
+        # may be offered as choices in other forms: the questions of the
+        # signed token the form fetch handed out that the current version
+        # still shares; never what the body claims (services/option_sources).
+        # Only these are ever offered.
+        response.shared_as_choices = shared_notice_stamp(
+            share_notice_token,
+            workspace_id=workspace_id,
+            form_id=form_id,
+            shared_now=shared_question_ids(latest_version_of_form),
+        )
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
         # Respondents fill the published version; check against what they saw.
         response.answers = _checked_group_answers(
@@ -1433,6 +1489,13 @@ class WorkspaceFormService:
             today=(today, today) if client_today == today else None,
             skip=locked,
         )
+        # Options from a list or from another form's answers: a chosen option
+        # must be offered now; the server writes the label snapshot (and
+        # drops any a client sent).
+        if self._option_source_service is not None:
+            response.answers = await self._option_source_service.apply(
+                workspace_id, filled, response.answers
+            )
         # The anonymous identity is computed before anything is stored: a refusal
         # (the key is not verified, see respondent_identity) must not leave
         # uploaded files behind, and never falls back to another identity.
@@ -1740,6 +1803,13 @@ class WorkspaceFormService:
         check_form_images(duplicated_form, None, drop=True)
         check_form_patterns(duplicated_form, None, drop=True)
         _sanitise_titles(duplicated_form)
+        # A copy is a new decision to show those answers as choices, which
+        # someone who may only create forms must not make: a template never
+        # holds a source, a copy keeps a list source and loses the others.
+        strip_option_sources(
+            duplicated_form, None if is_template else ("form_answers",)
+        )
+        strip_share_as_choices(duplicated_form)
         if is_template:
             duplicated_form.workspace_id = workspace_id
             duplicated_form.created_by = user.id

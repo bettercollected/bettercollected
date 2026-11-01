@@ -69,7 +69,8 @@ export default function OptionLogicSettings() {
     // The server says whether it takes choice logic (with the permissions): one switch, the backend's.
     const { choiceLogicEnabled: editable } = useWorkspacePermissions();
 
-    if (!field || !slide || !isChoiceQuestion(field) || field.internal || !onPageLevel) return null;
+    // a question whose options come from a source has none of its own to show or filter
+    if (!field || !slide || !isChoiceQuestion(field) || field.internal || !onPageLevel || field.properties?.optionSource) return null;
     const choices = (field.properties?.choices ?? []).filter((choice) => !!choice.id);
     // Switched off: nothing to create, and what the question has is shown read-only (it is still applied to responses).
     if (!editable && !field.properties?.optionFilter && !choices.some((choice) => !!choice.logic)) return null;

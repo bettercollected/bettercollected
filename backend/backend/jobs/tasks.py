@@ -367,6 +367,20 @@ async def deliver_webhook(context, log_id: str) -> str:
     return outcome.status
 
 
+@app.periodic(cron="*/2 * * * *", periodic_id="redact_erased_options")
+@app.task(
+    name="redact_erased_options",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="redact_erased_options",
+)
+async def redact_erased_options(timestamp: int) -> str:
+    """Work through the notes of erased answers that were offered as options of
+    other forms (the erasure starts this too; this is the safety net): the
+    choices made from them are redacted. Counts only."""
+    counts = await _container().option_source_service().redact_erased()
+    return ", ".join(f"{count} {name}" for name, count in counts.items())
+
+
 @app.periodic(cron="*/5 * * * *", periodic_id="webhooks_redefer")
 @app.task(
     name="webhooks_redefer",

@@ -35,6 +35,15 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
     const isChoiceList = field.type === FieldTypes.MULTIPLE_CHOICE;
     // The respondent's key letters, on a theme that shows them.
     const keys = isChoiceList && showsOptionKeys(rowTheme) ? optionKeys(field.properties?.choices?.length ?? 0) : [];
+    // The options come from a list or another form's answers: nothing to type here, the inspector names the source
+    if (field.properties?.optionSource) {
+        return (
+            <div data-testid="option-source-note" className="flex w-full flex-col gap-1 rounded-md border border-dashed p-3 text-base" style={{ borderColor: rowTheme?.tertiary, color: rowTheme?.primary }}>
+                <span className="font-semibold">{t(field.properties.optionSource.kind === 'list' ? 'SOURCES.CANVAS_LIST' : 'SOURCES.CANVAS_ANSWERS')}</span>
+                <span className="text-sm opacity-80">{t('SOURCES.CANVAS_NOTE')}</span>
+            </div>
+        );
+    }
     return (
         <>
             {field.type === FieldTypes.DROP_DOWN ? (

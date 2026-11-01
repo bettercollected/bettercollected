@@ -136,6 +136,7 @@ class WorkspaceService:
         draft_service=None,
         response_export_service=None,
         email_action_service=None,
+        option_list_repo=None,
         sso_policy=None,
         sso_release=None,
     ):
@@ -151,6 +152,7 @@ class WorkspaceService:
         self._draft_service = draft_service
         self._response_export_service = response_export_service
         self._email_action_service = email_action_service
+        self._option_list_repo = option_list_repo
         self.custom_domain_service = custom_domain_service
         self._workspace_repo = workspace_repo
         self._workspace_user_repo = workspace_user_repo
@@ -885,6 +887,9 @@ class WorkspaceService:
         if self._email_action_service is not None:
             # their email actions and the log of what was sent
             await self._email_action_service.delete_for_workspaces(workspace_ids)
+        if self._option_list_repo is not None:
+            # their option lists (reference data of the workspace)
+            await self._option_list_repo.delete_for_workspaces(workspace_ids)
         if self._sso_release is not None:
             await self._sso_release(workspace_ids)
 

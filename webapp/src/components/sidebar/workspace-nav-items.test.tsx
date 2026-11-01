@@ -21,6 +21,7 @@ const LABELS: Record<string, string> = {
     'WORKSPACE_SECTIONS.SSO': 'Single sign-on',
     'WORKSPACE_SECTIONS.DOMAINS': 'Domains',
     'WORKSPACE_SECTIONS.CASE_SYSTEM': 'Case system',
+    'WORKSPACE_SECTIONS.LISTS': 'Lists',
     'WORKSPACE_SECTIONS.AI': 'AI'
 };
 const t = (key: string) => LABELS[key] ?? key;
@@ -99,6 +100,23 @@ describe('the Workspace group', () => {
         expect(names(visible(holding(P.SECURITY_MANAGE), true, true))).toEqual(['Single sign-on', 'AI']);
         const item = visible(OWNER, true, true).find((i) => i.key === 'case-system');
         expect(item).toMatchObject({ url: '/acme/dashboard/case-system', permission: P.WORKSPACE_MANAGE });
+    });
+
+    it('adds Lists for everyone who reads forms, only while this server takes options from lists', () => {
+        const listed = (can: (p: string) => boolean, optionSourcesEnabled: boolean) => visibleNavItems(workspaceNavItems({ workspaceName: 'acme', t, can, ssoEnabled: true, optionSourcesEnabled }), can);
+        expect(names(listed(OWNER, false))).not.toContain('Lists');
+        expect(names(listed(OWNER, true))).toEqual(['Members', 'Themes', 'Single sign-on', 'Lists', 'AI']);
+        // reading forms is enough to open it; editing the lists needs form.edit, which the page checks
+        expect(names(listed(holding(P.FORM_READ), true))).toEqual(['Lists', 'AI']);
+        expect(names(listed(MEMBER, true))).toEqual(['Lists', 'AI']);
+        expect(names(listed(holding(P.RESPONSE_READ), true))).toEqual(['AI']);
+        expect(listed(OWNER, true).find((i) => i.key === 'lists')).toMatchObject({ url: '/acme/dashboard/lists', permission: P.FORM_READ });
+    });
+
+    it('titles the Lists page and keeps its item active', () => {
+        const items = workspaceNavItems({ workspaceName: 'acme', t, can: OWNER, ssoEnabled: true, optionSourcesEnabled: true });
+        expect(navItemForPath('/acme/dashboard/lists', items)?.name).toBe('Lists');
+        expect(items.filter((item) => isNavItemActive('/acme/dashboard/lists', item)).map((item) => item.name)).toEqual(['Lists']);
     });
 
     it('titles the Case system page and keeps its item active', () => {

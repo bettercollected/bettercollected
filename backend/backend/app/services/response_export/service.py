@@ -68,11 +68,19 @@ from backend.app.services.response_export.table import (
     column_catalogue,
     export_file_name,
 )
+from backend.app.services.response_export.formats import (
+    REQUESTABLE,
+    media_type,
+    stored_format,
+    write_file,
+)
 from backend.app.services.response_export.writer import (
     RowCount,
     ResponseSource,
-    write_export,
 )
+from backend.app.services.response_export.xlsx import SheetFull, fits_a_sheet
+from backend.app.services.response_pdf.content import build_document
+from backend.app.services.response_pdf.render import PdfTooLarge, render_pdf
 from common.clock import utcnow
 from common.ids import RecordId
 from common.models.user import User
@@ -101,6 +109,14 @@ async def _settle(awaitable) -> None:
         await asyncio.shield(task)
     except asyncio.CancelledError:
         pass
+
+
+@dataclass
+class PdfFile:
+    """The PDF of one response: its bytes (never stored) and the name to offer."""
+
+    data: bytes
+    file_name: str
 
 
 @dataclass
@@ -139,6 +155,7 @@ def to_export_response(response) -> ExportResponse:
             else {}
         ),
         hidden_fields=hidden,
+        form_version=response.form_version if isinstance(response.form_version, int) else None,
     )
 
 
@@ -168,6 +185,7 @@ class ResponseExportService:
         self._limiter = rate_limiter
         self._defer = defer or _defer_job
         self._clock = clock
+        self._pdf_slots = asyncio.Semaphore(limits.PDF_PARALLEL)
 
     # ------------------------------------------------------------------ helpers
     async def _authorize(self, user: User, workspace_id: RecordId, form_id: str) -> None:
@@ -302,6 +320,98 @@ class ResponseExportService:
                 **{"Retry-After": "10"},
             ) from None
 
+    # ------------------------------------------------------------------ the PDF
+    async def response_pdf(
+        self,
+        workspace_id: RecordId,
+        response_id: str,
+        user: User,
+        lang: Optional[str],
+        time_zone: Optional[str],
+    ) -> PdfFile:
+        """The PDF of one response (``response.read``, this workspace's copy of
+        it), drawn here, in the viewer's language and time zone, and never
+        stored. An audit entry like an export's (channel ``response_pdf``: who and
+        which response, never a title, a name or an answer) is written before
+        the bytes go out; one that cannot be stored fails the request.
+
+        403/404 first (nothing is counted or recorded for them), then the
+        per-user budget (429 with ``Retry-After``; given back only when no
+        drawing started: no free slot, or a failure before it. A PDF refused as
+        too large has used the CPU and counts), at most ``PDF_PARALLEL`` drawings
+        at once in this process (429 ``export_busy`` after ``PDF_WAIT_SECONDS``),
+        413 ``pdf_too_large`` past the page limit."""
+        response, form = await self._responses.get_response_for_pdf(workspace_id, response_id, user)
+        scope = f"response-pdf:{workspace_id}"
+        verdict = await self._limiter.admit(
+            scope, str(user.id), limits.PDF_REQUESTS_PER_WINDOW, limits.WINDOW_SECONDS
+        )
+        if not verdict.allowed:
+            raise _error(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                "rate_limited",
+                f"Too many PDFs. Try again in {verdict.retry_after} seconds.",
+                **{"Retry-After": str(verdict.retry_after)},
+            )
+        started = self._clock()
+        try:
+            document = build_document(form, to_export_response(response), lang, time_zone)
+            await self._take_pdf_slot()
+        except BaseException:
+            await _settle(self._release_pdf_budget(scope, str(user.id)))
+            raise
+        data = await self._draw(document)
+        await self._exports.save(
+            ResponseExportDocument(
+                workspace_id=workspace_id,
+                form_id=str(form.get("form_id") or response.form_id),
+                actor_id=str(user.id),
+                channel="response_pdf",
+                kind=ExportKind.STREAM,
+                status=ExportStatus.COMPLETED,
+                format="pdf",
+                filters={"response_id": str(response.response_id)},
+                expected_rows=1,
+                row_count=1,
+                started_at=started,
+                finished_at=self._clock(),
+            )
+        )
+        short = str(response.response_id or "")[:8]
+        title = str(form.get("title") or "").strip()
+        return PdfFile(data=data, file_name=export_file_name(f"{title} - {short}" if title else short, extension="pdf"))
+
+    async def _take_pdf_slot(self) -> None:
+        try:
+            await asyncio.wait_for(self._pdf_slots.acquire(), limits.PDF_WAIT_SECONDS)
+        except asyncio.TimeoutError:
+            raise _error(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                "export_busy",
+                "Several PDFs are being prepared. Try again in a moment.",
+                **{"Retry-After": "5"},
+            ) from None
+
+    async def _draw(self, document) -> bytes:
+        """Draws in the slot ``_take_pdf_slot`` took, and gives it back."""
+        try:
+            return await run_in_threadpool(render_pdf, document)
+        except PdfTooLarge:
+            raise _error(
+                HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                "pdf_too_large",
+                "This response is too long for a PDF.",
+            ) from None
+        finally:
+            self._pdf_slots.release()
+
+    async def _release_pdf_budget(self, scope: str, actor_id: str) -> None:
+        """A PDF that was never drawn does not use up the budget."""
+        try:
+            await self._limiter.release(scope, actor_id, limits.WINDOW_SECONDS)
+        except Exception as error:  # noqa: BLE001 - only the budget is lost
+            logger.warning("could not give back a PDF request ({})", type(error).__name__)
+
     # ----------------------------------------------------------- the bulk JSON route
     async def bulk_read(
         self,
@@ -422,10 +532,18 @@ class ResponseExportService:
         user: User,
         columns: Optional[List[str]],
         filters: ResponseExportFilters,
+        file_format: str = "csv",
     ):
-        """Admit an export: a ``StreamStart`` to send, or the queued job's row.
-        Raises 403/404, 422 (an unknown column), 429, 409 and 413."""
+        """Admit an export (``file_format``: csv, xlsx or json, one request path
+        for all): a ``StreamStart`` to send, or the queued job's row. Raises
+        403/404, 422 (an unknown format or column), 429, 409 and 413."""
         await self._authorize(user, workspace_id, form_id)
+        if file_format not in REQUESTABLE:
+            raise _error(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "unknown_format",
+                f"Choose one of: {', '.join(REQUESTABLE)}.",
+            )
         form = await self._form(form_id)
         try:
             plan = build_plan(form, columns)
@@ -437,6 +555,12 @@ class ResponseExportService:
             ) from None
         if not plan.columns:
             raise _error(HTTPStatus.UNPROCESSABLE_ENTITY, "no_columns", "Choose at least one column.")
+        if file_format == "xlsx" and not fits_a_sheet(plan):
+            raise _error(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "too_many_columns",
+                "This many columns do not fit in an Excel sheet. Choose fewer columns, or export CSV.",
+            )
 
         await self._take_rate_limit(workspace_id, form_id, str(user.id))
 
@@ -449,29 +573,29 @@ class ResponseExportService:
                 f"This export would hold {count} responses; at most {limits.MAX_ROWS} fit in one. "
                 "Narrow it with filters (for example submittedFrom and submittedTo).",
             )
-        file_format = "zip" if plan.group_tables else "csv"
+        stored = stored_format(file_format, plan)
         export = ResponseExportDocument(
             workspace_id=workspace_id,
             form_id=form_id,
             actor_id=str(user.id),
             kind=ExportKind.STREAM if count <= limits.STREAM_MAX_ROWS else ExportKind.JOB,
             status=ExportStatus.STREAMING,
-            format=file_format,
+            format=stored,
             columns=[c.key for c in plan.columns],
             filters=filters.audit_summary(),
             expected_rows=count,
             started_at=self._clock(),
         ).ensure_id()
         title = form.get("title") or ""
-        file_name = export_file_name(title, extension=file_format)
+        file_name = export_file_name(title, extension=stored)
 
         if export.kind == ExportKind.STREAM:
             await self._admit_stream(export)
             return StreamStart(
                 export=export,
                 file_name=file_name,
-                media_type="application/zip" if file_format == "zip" else "text/csv; charset=utf-8",
-                body=self._stream(export, plan, title, workspace_id, scope, filters),
+                media_type=media_type(stored),
+                body=self._stream(export, plan, form, stored, workspace_id, scope, filters),
             )
 
         export.status = ExportStatus.QUEUED
@@ -482,6 +606,7 @@ class ResponseExportService:
             {
                 "filters": json.loads(filters.model_dump_json()),
                 "columns": columns,
+                "format": file_format,
             },
         )
         try:
@@ -528,7 +653,8 @@ class ResponseExportService:
         self,
         export: ResponseExportDocument,
         plan: ExportPlan,
-        title: str,
+        form: Dict[str, Any],
+        stored: str,
         workspace_id: RecordId,
         scope,
         filters: ResponseExportFilters,
@@ -543,8 +669,8 @@ class ResponseExportService:
         pulled = [0]
         beater = asyncio.ensure_future(self._beat_while_streaming(export.id, lambda: pulled[0]))
         try:
-            async for piece in write_export(
-                plan, title, self._source(workspace_id, scope, filters), counter
+            async for piece in write_file(
+                stored, plan, form, self._source(workspace_id, scope, filters), counter
             ):
                 yield piece
                 # back here: the consumer asked for more, so it is alive
@@ -625,6 +751,9 @@ class ResponseExportService:
         except _Superseded:
             found = await self._exports.get_by_id(export_id)
             return found.status.value if found else "missing"
+        except SheetFull:
+            # a repeating group's table passed the rows one Excel sheet holds
+            outcome = await self._end_owned(claimed, ExportStatus.FAILED, "too_large")
         except Exception as error:  # noqa: BLE001
             logger.warning("response export {} failed ({})", export_id, type(error).__name__)
             outcome = await self._end_owned(claimed, ExportStatus.FAILED, "build_failed")
@@ -714,6 +843,12 @@ class ResponseExportService:
         except UnknownColumn:
             # the form changed between the request and the job
             return await self._end_owned(export, ExportStatus.FAILED, "columns_changed")
+        # what the request chose (a job queued before formats existed has none)
+        stored = stored_format(params.get("format"), plan)
+        if stored != export.format or (stored == "xlsx" and not fits_a_sheet(plan)):
+            # the form changed (a repeating group's layout, say) between the
+            # request and the job: the file would not be the one that was asked for
+            return await self._end_owned(export, ExportStatus.FAILED, "columns_changed")
         scope = await self._responses.scope(workspace_id, [form_id])
         counter = RowCount()
         index = 0
@@ -745,8 +880,8 @@ class ResponseExportService:
 
         stopped = False
         last_beat = self._clock()
-        async for piece in write_export(
-            plan, document.title or "", self._source(workspace_id, scope, filters), counter
+        async for piece in write_file(
+            stored, plan, form, self._source(workspace_id, scope, filters), counter
         ):
             pending.extend(piece)
             if self._clock() - last_beat >= limits.HEARTBEAT_EVERY:

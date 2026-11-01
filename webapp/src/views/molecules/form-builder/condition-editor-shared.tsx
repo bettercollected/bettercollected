@@ -93,8 +93,11 @@ export function comparisonsForField(field?: StandardFormFieldDto): Comparison[] 
             // signed or not: nothing else can be asked of a signature
             return SIGNED_COMPARISONS;
         case FieldTypes.MULTIPLE_CHOICE:
+            // options from a list or another form's answers have no values to name: only "is it answered"
+            if (field?.properties?.optionSource) return SIGNED_COMPARISONS;
             return field?.properties?.allowMultipleSelection ? MULTI_COMPARISONS : CHOICE_COMPARISONS;
         case FieldTypes.DROP_DOWN:
+            if (field?.properties?.optionSource) return SIGNED_COMPARISONS;
             return CHOICE_COMPARISONS;
         default:
             return TEXT_COMPARISONS;
@@ -242,7 +245,17 @@ export function ConditionValueInput({ field, value, onChange, invalid, described
     const date = field?.type === FieldTypes.DATE || field?.type === FieldTypes.DAY || field?.type === FieldTypes.DATE_RANGE;
     const time = field?.type === FieldTypes.TIME;
     // An amount may have cents: the number box must not insist on whole steps.
-    return <input {...state} className={cls} type={date ? 'date' : time ? 'time' : numeric ? 'number' : 'text'} step={field?.type === FieldTypes.CURRENCY ? 'any' : undefined} value={value ?? ''} placeholder={t('CONDITION.VALUE_PLACEHOLDER')} onChange={(e) => onChange(e.target.value)} />;
+    return (
+        <input
+            {...state}
+            className={cls}
+            type={date ? 'date' : time ? 'time' : numeric ? 'number' : 'text'}
+            step={field?.type === FieldTypes.CURRENCY ? 'any' : undefined}
+            value={value ?? ''}
+            placeholder={t('CONDITION.VALUE_PLACEHOLDER')}
+            onChange={(e) => onChange(e.target.value)}
+        />
+    );
 }
 
 export function newConditionFor(sources: SourceField[]): LogicCondition {

@@ -5,12 +5,33 @@ import { useTranslation } from 'react-i18next';
 
 import { responseExportLocale } from '@app/constants/locales/response-export';
 import { Button } from '@app/shadcn/components/ui/button';
+import { Label } from '@app/shadcn/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
 import { ResponseExportDto, ResponseExportRefusal, useDiscardResponseExportMutation, useDownloadResponseExportMutation, useGetResponseExportQuery, useGetResponseExportsQuery, useStartResponseExportMutation } from '@app/store/workspaces/api';
 import { utcToLocalDateTimeZoneIn } from '@app/utils/date-utils';
-import { downloadBlob, exportExtension, exportFileName } from '@app/utils/response-export';
+import { EXPORT_FORMATS, ExportFormat, downloadBlob, exportExtension, exportFileName, isExportFormat } from '@app/utils/response-export';
 
 /** How often a running export is asked about. */
 export const EXPORT_POLL_MS = 3000;
+
+/** The format last chosen in this browser: a convenience only, never needed (a missing or unreadable store is CSV). */
+const FORMAT_STORE_KEY = 'bc.responseExportFormat';
+
+function rememberedFormat(): ExportFormat {
+    if (typeof window === 'undefined') return 'csv';
+    try {
+        const stored = window.localStorage.getItem(FORMAT_STORE_KEY);
+        return isExportFormat(stored) ? stored : 'csv';
+    } catch {
+        return 'csv';
+    }
+}
+
+const FORMAT_LABELS: Record<ExportFormat, string> = {
+    csv: responseExportLocale.formatCsv,
+    xlsx: responseExportLocale.formatXlsx,
+    json: responseExportLocale.formatJson
+};
 
 type Phase = 'idle' | 'starting' | 'preparing' | 'ready' | 'downloading' | 'discarding' | 'done' | 'error';
 
@@ -41,6 +62,7 @@ function refusalMessage(error: any): { key: string; values?: Record<string, unkn
     if (status === 429 || data.code === 'rate_limited') return { key: responseExportLocale.errorRateLimited, values: { minutes: Math.max(1, Math.ceil((data.retryAfter ?? 60) / 60)) } };
     if (data.code === 'export_in_progress') return { key: responseExportLocale.errorInProgress };
     if (data.code === 'export_ready') return { key: responseExportLocale.errorReady };
+    if (data.code === 'too_many_columns') return { key: responseExportLocale.errorTooManyColumns };
     if (data.code === 'too_many_rows' || status === 413) return { key: responseExportLocale.errorTooMany };
     if (data.code === 'export_gone' || data.code === 'link_expired' || status === 410) return { key: responseExportLocale.errorGone };
     if (status === 403) return { key: responseExportLocale.errorForbidden };
@@ -67,6 +89,17 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
     const [message, setMessage] = useState<{ key: string; values?: Record<string, unknown> } | undefined>();
     // what went wrong with a download of a file that is still there: shown beside the Download button
     const [notice, setNotice] = useState<{ key: string; values?: Record<string, unknown>; ok?: boolean } | undefined>();
+    // this control only draws once the workspace and the person's permissions are known (client side), so reading the browser's store here cannot differ from a server render
+    const [format, setFormat] = useState<ExportFormat>(rememberedFormat);
+    const chooseFormat = (value: string) => {
+        if (!isExportFormat(value)) return;
+        setFormat(value);
+        try {
+            window.localStorage.setItem(FORMAT_STORE_KEY, value);
+        } catch {
+            // not remembered: nothing depends on it
+        }
+    };
     const [startExport] = useStartResponseExportMutation();
     const [downloadExport] = useDownloadResponseExportMutation();
     const [discardExport] = useDiscardResponseExportMutation();
@@ -135,7 +168,7 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
         setNotice(undefined);
         setPhase('starting');
         try {
-            const started = await startExport({ workspaceId, formId, ...(search ? { search } : {}), ...(filters ?? {}) }).unwrap();
+            const started = await startExport({ workspaceId, formId, ...(search ? { search } : {}), ...(filters ?? {}), ...(format !== 'csv' ? { format } : {}) }).unwrap();
             if (!mounted.current) return;
             if (started.kind === 'file') {
                 // small enough to come in the response itself: nothing was stored
@@ -159,7 +192,7 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
             setMessage(refusalMessage(error));
             setPhase('error');
         }
-    }, [workspaceId, formId, formTitle, search, filters, startExport]);
+    }, [workspaceId, formId, formTitle, search, filters, format, startExport]);
 
     const handleDownload = useCallback(async () => {
         if (!exportId) return;
@@ -236,18 +269,34 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
 
     return (
         <div className="flex flex-col items-start gap-2 sm:items-end">
-            <Button
-                data-umami-event="Export CSV Button"
-                className="whitespace-nowrap"
-                isLoading={phase === 'starting'}
-                disabled={busy}
-                aria-describedby="response-export-status"
-                variant="v2Button"
-                icon={<DownloadIcon className="h-4 w-4" />}
-                onClick={handleStart}
-            >
-                {t(search || (filters && Object.keys(filters).length > 0) ? responseExportLocale.buttonMatching : responseExportLocale.button)}
-            </Button>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:justify-end">
+                <RadioGroup value={format} onValueChange={chooseFormat} disabled={busy} aria-label={t(responseExportLocale.formatLabel)} className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <span aria-hidden="true" className="text-sm text-black-700">
+                        {t(responseExportLocale.formatLabel)}
+                    </span>
+                    {EXPORT_FORMATS.map((option) => (
+                        <div key={option} className="flex items-center gap-2">
+                            <RadioGroupItem id={`response-export-format-${option}`} value={option} />
+                            <Label htmlFor={`response-export-format-${option}`} className="cursor-pointer text-sm font-normal text-black-900">
+                                {t(FORMAT_LABELS[option])}
+                            </Label>
+                        </div>
+                    ))}
+                </RadioGroup>
+                <Button
+                    data-umami-event="Export Button"
+                    data-umami-event-format={format}
+                    className="whitespace-nowrap"
+                    isLoading={phase === 'starting'}
+                    disabled={busy}
+                    aria-describedby="response-export-status"
+                    variant="v2Button"
+                    icon={<DownloadIcon className="h-4 w-4" />}
+                    onClick={handleStart}
+                >
+                    {t(search || (filters && Object.keys(filters).length > 0) ? responseExportLocale.buttonMatching : responseExportLocale.button, { format: t(FORMAT_LABELS[format]) })}
+                </Button>
+            </div>
             <div id="response-export-status" role={phase === 'error' ? 'alert' : 'status'} aria-live={phase === 'error' ? 'assertive' : 'polite'} aria-busy={busy} className="max-w-[420px] text-left text-sm text-black-700 sm:text-right">
                 {phase === 'starting' && <span>{t(responseExportLocale.starting)}</span>}
                 {phase === 'preparing' && <span>{t(responseExportLocale.preparing)}</span>}
