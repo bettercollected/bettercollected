@@ -1,7 +1,7 @@
 import React from 'react';
 
 import MembersIcon from '@Components/icons/members';
-import { LockKeyhole, Palette, SendToBack, ShieldCheck, Sparkles } from 'lucide-react';
+import { ListChecks, LockKeyhole, Palette, SendToBack, ShieldCheck, Sparkles } from 'lucide-react';
 
 import { members } from '@app/constants/locales/members';
 import { Can, dashboardUrl, defaultAiTabUrl, workspaceSectionLabels, workspaceSectionUrls } from '@app/lib/workspace-sections';
@@ -15,6 +15,8 @@ interface WorkspaceNavOptions {
     ssoEnabled: boolean;
     /** Sending submissions to a case system is on for this server. */
     registrationEnabled?: boolean;
+    /** Options from workspace lists are on for this server (the lists page). */
+    optionSourcesEnabled?: boolean;
 }
 
 /**
@@ -23,7 +25,7 @@ interface WorkspaceNavOptions {
  * drawer hides an item from members without its permission (the API refuses
  * them anyway); AI has no permission, every member has Memory and Settings.
  */
-export function workspaceNavItems({ workspaceName, t, can, ssoEnabled, registrationEnabled = false }: WorkspaceNavOptions): Array<INavbarItem> {
+export function workspaceNavItems({ workspaceName, t, can, ssoEnabled, registrationEnabled = false, optionSourcesEnabled = false }: WorkspaceNavOptions): Array<INavbarItem> {
     const base = dashboardUrl(workspaceName);
     const urls = workspaceSectionUrls(workspaceName);
     const iconClass = 'h-5 w-5 stroke-2';
@@ -69,6 +71,19 @@ export function workspaceNavItems({ workspaceName, t, can, ssoEnabled, registrat
                       url: urls.caseSystem,
                       permission: WorkspacePermission.WORKSPACE_MANAGE,
                       icon: <SendToBack className={iconClass} />
+                  }
+              ]
+            : []),
+        // Lists (reference data for choice questions): only while this server takes
+        // options from lists; whoever reads forms may open it, editing needs form.edit.
+        ...(optionSourcesEnabled
+            ? [
+                  {
+                      key: 'lists',
+                      name: t(workspaceSectionLabels.lists),
+                      url: urls.lists,
+                      permission: WorkspacePermission.FORM_READ,
+                      icon: <ListChecks className={iconClass} />
                   }
               ]
             : []),

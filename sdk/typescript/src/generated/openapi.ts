@@ -583,6 +583,13 @@ export interface components {
             logic?: components["schemas"]["Logic"] | null;
             /** @description A choice question's options filtered by an earlier choice question's answer (see OptionFilter). */
             optionFilter?: components["schemas"]["OptionFilter"] | null;
+            /** @description A dropdown or multiple choice question's options taken from a workspace list or from another form's answers instead of choices (see OptionSource). */
+            optionSource?: components["schemas"]["OptionSource"] | null;
+            /**
+             * Shareaschoices
+             * @description A short text, dropdown or multiple choice question: its answers may be shown as choices in other forms of the same workspace (an optionSource of kind form_answers). Off unless true. Respondents are told next to the question; only answers given while a version with it on was filled are ever offered.
+             */
+            shareAsChoices?: boolean | null;
             /**
              * Rules
              * @description At most 8 rules per question and 100 per form (see Rule).
@@ -767,6 +774,32 @@ export interface components {
             when: string;
             /** Show */
             show?: string[];
+        };
+        /**
+         * OptionSource
+         * @description Where a dropdown or multiple choice question's options come from
+         *     instead of ``choices``: ``kind`` ``list`` (a workspace's option list,
+         *     ``listId``; ``parentFieldId`` names an earlier choice question whose
+         *     answer narrows the list by each item's group) or ``form_answers`` (the
+         *     answers to question ``questionId`` of another form ``formId`` of the same
+         *     workspace; the saver needs permission to read that form's responses).
+         *     A question has either a source or ``choices``, never both. Checked by
+         *     the server on every save and again on every submission.
+         */
+        OptionSource: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "list" | "form_answers";
+            /** Listid */
+            listId?: string | null;
+            /** Parentfieldid */
+            parentFieldId?: string | null;
+            /** Formid */
+            formId?: string | null;
+            /** Questionid */
+            questionId?: string | null;
         };
         /**
          * Page

@@ -96,6 +96,8 @@ NO_DOCUMENT_CLASS = {
     "response_imports",
     "response_import_files",
     "form_email_actions",
+    "workspace_option_lists",
+    "option_source_erasures",
     # and the workspaces' security events (break-glass audit)
     "workspace_audit_events",
 }

@@ -2217,7 +2217,7 @@
   "document": "FormImportDocument"
  },
  "form_responses/full": {
-  "checksum": "sha256:b3748e27b14d2391bdd4b975d771bd91795896309b9bef8da31e5c47b7153572",
+  "checksum": "sha256:a1d7edff15d938ad81744c7c488d7056c8c5da8a1deffaf2f43e8633c3a3673a",
   "doc": {
    "_id": {
     "$oid": "2badfbd5705103813c283a21"
@@ -2237,10 +2237,12 @@
      },
      "boolean": true,
      "choice": {
+      "label": null,
       "other": null,
       "value": null
      },
      "choices": {
+      "labels": null,
       "other": null,
       "values": null
      },
@@ -2398,10 +2400,12 @@
      },
      "boolean": true,
      "choice": {
+      "label": null,
       "other": null,
       "value": null
      },
      "choices": {
+      "labels": null,
       "other": null,
       "values": null
      },
@@ -2555,6 +2559,10 @@
     }
    ],
    "response_id": "FormResponseDocument.response_id tëxt ✓ \"quoted\" \\ line\nbreak",
+   "shared_as_choices": [
+    "FormResponseDocument.shared_as_choices[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+    "FormResponseDocument.shared_as_choices[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+   ],
    "state": {
     "choices_total_point": 0.30000000000000004,
     "global_state": {
@@ -2646,7 +2654,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/minimal": {
-  "checksum": "sha256:753c3618738029453881396048dc64e573fc940bba17d8bc3185d11a92df95c9",
+  "checksum": "sha256:574a6aff1c8704b6fa9591fa2d0e7ecc22e51c0854d1eb937bfcf5cbde350014",
   "doc": {
    "_id": {
     "$oid": "539dc6c4ce1df29da7f7f496"
@@ -2674,6 +2682,7 @@
    "respondent_email": null,
    "respondent_feedback": null,
    "response_id": null,
+   "shared_as_choices": null,
    "state": null,
    "submission_uuid": null,
    "updated_at": "2026-02-03T04:05:06.789012+00:00",
@@ -2682,7 +2691,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/naive": {
-  "checksum": "sha256:35bbaa8d2952eb45fbc0a80eaa6a7adab0c248446bc69519b7f7ba168a24aea0",
+  "checksum": "sha256:f0a3b3419f9bfa283a4e810280a277f3967713a8c43353a21a838710f4126c39",
   "doc": {
    "_id": {
     "$oid": "10cd94a70aa205bdc7631e61"
@@ -2702,10 +2711,12 @@
      },
      "boolean": true,
      "choice": {
+      "label": null,
       "other": null,
       "value": null
      },
      "choices": {
+      "labels": null,
       "other": null,
       "values": null
      },
@@ -2863,10 +2874,12 @@
      },
      "boolean": true,
      "choice": {
+      "label": null,
       "other": null,
       "value": null
      },
      "choices": {
+      "labels": null,
       "other": null,
       "values": null
      },
@@ -3020,6 +3033,10 @@
     }
    ],
    "response_id": "FormResponseDocument.response_id tëxt ✓ \"quoted\" \\ line\nbreak",
+   "shared_as_choices": [
+    "FormResponseDocument.shared_as_choices[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+    "FormResponseDocument.shared_as_choices[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+   ],
    "state": {
     "choices_total_point": 0.30000000000000004,
     "global_state": {
@@ -3111,7 +3128,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/nulls": {
-  "checksum": "sha256:c6085c485c1b29efd542e8937ae7dfa4acfcc10a21cfc32d8804d7e6233a7415",
+  "checksum": "sha256:f8b618566dccb1c061b87d244c58c2721e1c1dc0de9411803d1e5014b8bf8177",
   "doc": {
    "_id": {
     "$oid": "75ee3a989c3d2809e5805fb7"
@@ -3139,6 +3156,7 @@
    "respondent_email": null,
    "respondent_feedback": null,
    "response_id": null,
+   "shared_as_choices": null,
    "state": null,
    "submission_uuid": null,
    "updated_at": "2026-02-03T04:05:06.789012+00:00",
@@ -3147,7 +3165,7 @@
   "document": "FormResponseDocument"
  },
  "form_templates/full": {
-  "checksum": "sha256:a1cdca4ebd648feeba369bce3b1e9a7fa9a1c0f52097e59b500ebd6a4cdee30c",
+  "checksum": "sha256:b279b7b879529a8dc2cf78989bcc142f755d39f771c2ba181e7b4d9b5d654336",
   "doc": {
    "_id": {
     "$oid": "081f1de730ff4503d0f47270"
@@ -3207,6 +3225,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3214,6 +3233,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -3286,6 +3306,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3293,6 +3314,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -3436,7 +3458,7 @@
   "document": "FormTemplateDocument"
  },
  "form_templates/naive": {
-  "checksum": "sha256:f88de8ade4c38a3617d9486ea8453d1db017ec10bff7cdc2a6fa607560f294ad",
+  "checksum": "sha256:a17fcf0855199d2e673fa5af4a184a95886adf2e4a4fb58322e4f516839d4a28",
   "doc": {
    "_id": {
     "$oid": "e059e369c6a20f3d47778cec"
@@ -3496,6 +3518,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3503,6 +3526,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -3575,6 +3599,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3582,6 +3607,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -3720,7 +3746,7 @@
   "document": "FormTemplateDocument"
  },
  "form_versions/full": {
-  "checksum": "sha256:a84a9d9de76aacf5fd30e5723314c000ff28fe44d58bb72ae53fcd5611b42a17",
+  "checksum": "sha256:e02096964e90d61dfea9ea75f97c0acc3202a447ea8c29b27f7efe37e8797bb2",
   "doc": {
    "_id": {
     "$oid": "4dba015f9787ef732cba733e"
@@ -3816,6 +3842,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3823,6 +3850,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -3895,6 +3923,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -3902,6 +3931,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -4272,7 +4302,7 @@
   "document": "FormVersionsDocument"
  },
  "form_versions/naive": {
-  "checksum": "sha256:082fe5983371fb7255597aa36e5e86d23d5b008a02f81a199b53fc400ac3b49e",
+  "checksum": "sha256:ead4aefe616fd5a1f456491e4dba49b3dd011e7de11c97d08b570d0721b27021",
   "doc": {
    "_id": {
     "$oid": "43be05d1a65c7a21699ae9d8"
@@ -4368,6 +4398,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -4375,6 +4406,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -4447,6 +4479,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -4454,6 +4487,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -4805,7 +4839,7 @@
   "document": "FormVersionsDocument"
  },
  "forms/full": {
-  "checksum": "sha256:f8d982c8174cd4c9bf869a498f313de85503454659c9b95b4867434da1f57730",
+  "checksum": "sha256:1b9fd6f795c02d40a37309bc60c1716cad5d7d659b59ca3d58c736b44b907f42",
   "doc": {
    "_id": {
     "$oid": "59514663b83c1ab0eecfa44a"
@@ -4901,6 +4935,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -4908,6 +4943,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -4980,6 +5016,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -4987,6 +5024,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -5355,7 +5393,7 @@
   "document": "FormDocument"
  },
  "forms/naive": {
-  "checksum": "sha256:3b5143b040c878d0dff8f0421eaa4df0afe4cd2010b90d9537abfe52ba950398",
+  "checksum": "sha256:754fa3cff9ced78461b1845f4e6ba7e199316ab3e7f4678654a9f6bbe9143b27",
   "doc": {
    "_id": {
     "$oid": "a3e31dcf7bba394ece4402b6"
@@ -5451,6 +5489,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -5458,6 +5497,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,
@@ -5530,6 +5570,7 @@
       "mentions": null,
       "minTime": null,
       "optionFilter": null,
+      "optionSource": null,
       "placeholder": null,
       "position": null,
       "ratingShape": null,
@@ -5537,6 +5578,7 @@
       "rowTitles": null,
       "rules": null,
       "sectionTitle": null,
+      "shareAsChoices": null,
       "showQuestionNumbers": null,
       "startFrom": null,
       "steps": null,

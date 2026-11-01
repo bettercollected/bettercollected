@@ -818,13 +818,27 @@ def _choice_problem(
     if given != {slot} or not isinstance(answer[slot], dict):
         return TYPE
     value = answer[slot]
-    if not set(value) <= {"value", "values", "other"}:
+    # ``label`` / ``labels``: the snapshot of a chosen option's text that the
+    # server writes for a question whose options come from a source
+    # (services/option_sources); the server rewrites or drops it on every save
+    if not set(value) <= {"value", "values", "other", "label", "labels"}:
+        return TYPE
+    if value.get("label") is not None and not isinstance(value["label"], str):
+        return TYPE
+    labels = value.get("labels")
+    if labels is not None and not (
+        isinstance(labels, dict)
+        and all(isinstance(k, str) and isinstance(v, str) for k, v in labels.items())
+    ):
         return TYPE
     options = {
         str(choice.id)
         for choice in (getattr(properties, "choices", None) or [])
         if getattr(choice, "id", None)
     }
+    # a question whose options come from a source has none of its own: the
+    # chosen ids are checked against the source by option_sources.apply
+    sourced = getattr(properties, "option_source", None) is not None
     other = value.get("other")
     if other is not None and not isinstance(other, str):
         return TYPE
@@ -838,7 +852,7 @@ def _choice_problem(
             return None
         if not isinstance(picked, list) or not all(isinstance(v, str) for v in picked):
             return TYPE
-        return None if set(picked) <= options else CHOICE
+        return None if sourced or set(picked) <= options else CHOICE
     if value.get("values") not in (None, []):
         return TYPE
     picked = value.get("value")
@@ -846,7 +860,7 @@ def _choice_problem(
         return None
     if not isinstance(picked, str):
         return TYPE
-    return None if picked in options else CHOICE
+    return None if sourced or picked in options else CHOICE
 
 
 def answer_rule_problems(

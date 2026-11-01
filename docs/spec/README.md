@@ -522,6 +522,39 @@ logic settings are hidden, and what a question already has is listed read-only.
 **Warnings** (never refused): an option no filter row shows, an earlier option
 with no row, and a required question whose every option has its own logic.
 
+## Option sources
+
+A dropdown or multiple choice question can take its options from a workspace list or from another form's
+answers instead of `choices` (the question has one or the other, never both):
+
+```jsonc
+{ "id": "city", "type": "dropdown", "title": "City",
+  "optionSource": { "kind": "list", "listId": "…", "parentFieldId": "country" } },
+{ "id": "who", "type": "multiple_choice", "title": "Who comes",
+  "optionSource": { "kind": "form_answers", "formId": "…", "questionId": "name" } }
+```
+
+- **`kind: "list"`**: `listId` is a list of the form's workspace (`/workspaces/{id}/option-lists`). The optional
+  `parentFieldId` names an earlier dropdown or multiple choice question: the items offered are those whose group
+  equals the label of the chosen option (the union over several), plus the items without a group; with no answer
+  to the parent nothing is filtered.
+- **`kind: "form_answers"`**: `formId` and `questionId` name a short text, dropdown or multiple choice question of
+  another form of the same workspace **that opted in** with `shareAsChoices: true` (a boolean on that question, off
+  unless true; 422 `option_source_not_shared` otherwise). Respondents are told next to that question that their
+  answer may be shown as a choice in other forms; only answers submitted from a page that showed the notice
+  are ever offered (the form a respondent loads carries a signed `shareNoticeToken`, sent back on submit), a copy of a
+  form starts with it off, and turning it off stops every use. When a response is erased, choices made from its
+  answer show `[removed]` in the consuming forms. With `OPTION_SOURCES_ENABLED` off, this kind offers nothing. Whoever saves needs permission to read that form's
+  responses; an API key cannot set this kind.
+- Only page-level questions; not combined with `choices`, `optionFilter` or option logic; a condition on such a
+  question can only be `IS_EMPTY` or `IS_NOT_EMPTY`; no `setValue` rule targets it.
+- The answer is the chosen option id with a label snapshot the server writes (`choice.label`, `choices.labels`);
+  the server refuses an option the source does not offer now (422 `invalid_answers`, rule `option_unavailable`).
+  A respondent's copy of the form does not carry `listId`, `formId` or `questionId`.
+- **Rollout.** Until the server setting `OPTION_SOURCES_ENABLED` is on (off by default), a save that adds or changes
+  a source is refused with 422 `option_sources_disabled`; the validation of a document warns about it. Sources
+  already stored keep working. Details and the privacy rules: `docs/option-sources.md`.
+
 ## What is not in the document
 
 - Data the server owns: workspace, owner and form ids, timestamps, publish

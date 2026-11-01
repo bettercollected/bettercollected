@@ -42,6 +42,7 @@ OTHER_SCHEMAS = ("app", "auth", "google", "admin", "tasks", "settings")
 _OTHER_SCHEMAS_SQL = "ARRAY[" + ", ".join(f"'{n}'" for n in OTHER_SCHEMAS) + "]::name[]"
 DEFINER_SEARCH_PATH = "search_path=jobs, pg_catalog, pg_temp"
 
+
 # True when, for the role this connection is: row-level security is on for the
 # queue table and a restrictive policy of that name, for all commands and with
 # exactly the expressions above, applies to the role; the role is no superuser,

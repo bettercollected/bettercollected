@@ -93,6 +93,7 @@ environment, whatever the tier.
 | `FIELD_RULES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `LAYOUT_CONTAINERS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `NEW_QUESTION_TYPES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
+| `OPTION_SOURCES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `RESPONSE_VALIDATION_ENFORCE` | features | backend | bool |  | R | T2 | `true` |
 | `SAVE_DRAFTS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `SIGNATURE_QUESTION_ENABLED` | features | backend | bool |  | R | T2 | `false` |
@@ -299,6 +300,12 @@ environment, whatever the tier.
 | `DOC_SANDBOX_PARALLEL` | pdf_import | backend | int 1..64 |  | R | T5 | `2` |
 | `PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX` | pdf_import | backend | bool |  | R | T5 | `false` |
 | `PDF_IMPORT_SANDBOX_SOCKET` | pdf_import | backend | str |  | R | T5 |  |
+| `ACTION_EGRESS_ALLOW` | services | actions_executor | str |  | R | T5 |  |
+| `ACTION_ISOLATION` | services | actions_executor | enum enforce/legacy |  | R | T5 | `enforce` |
+| `ACTION_SANDBOX_CPU_SECONDS` | services | actions_executor | int 1..120 |  | R | T5 | `10` |
+| `ACTION_SANDBOX_MAX_CALLS` | services | actions_executor | int 1..500 |  | R | T5 | `20` |
+| `ACTION_SANDBOX_MEMORY_MB` | services | actions_executor | int 32..4096 |  | R | T5 | `256` |
+| `ACTION_SANDBOX_TIMEOUT_SECONDS` | services | actions_executor | int 1..120 |  | R | T5 | `30` |
 | `AES_HEX_KEY` | services | temporal_worker | str | yes | R | T5 |  |
 | `API_KEY` | services | temporal_worker | str | yes | R | T5 |  |
 | `AUTH_BASE_URL` | services | backend | url |  | R | T5 |  |

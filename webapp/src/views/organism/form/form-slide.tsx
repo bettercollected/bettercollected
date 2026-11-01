@@ -55,6 +55,7 @@ import InputField from '@app/views/molecules/responder-form-fields/input-field';
 import LinearRatingField from '@app/views/molecules/responder-form-fields/linear-rating';
 import MultipleChoiceField from '@app/views/molecules/responder-form-fields/multiple-choice-field';
 import MultipleChoiceWithMultipleSelection from '@app/views/molecules/responder-form-fields/multiple-choice-with-multiple-selections';
+import SourceOptionsField from '@app/views/molecules/responder-form-fields/source-options-field';
 import PhoneNumberField from '@app/views/molecules/responder-form-fields/phone-number-field';
 import { PreviewModeContext } from '@app/views/molecules/responder-form-fields/preview-mode-context';
 import { QuestionNumberContext } from '@app/views/molecules/responder-form-fields/question-number-context';
@@ -98,6 +99,8 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
         case FieldTypes.LONG_TEXT:
             return <TextAreaField field={field} />;
         case FieldTypes.MULTIPLE_CHOICE:
+            // options from a list or another form's answers: a searchable list, fetched as the respondent uses it
+            if (field?.properties?.optionSource) return <SourceOptionsField field={field} slideIndex={slideIndex} />;
             if (field?.properties?.allowMultipleSelection) {
                 return <MultipleChoiceWithMultipleSelection field={field} slideIndex={slideIndex} />;
             }
@@ -107,6 +110,7 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
         case FieldTypes.FILE_UPLOAD:
             return <FileUploadField field={field} />;
         case FieldTypes.DROP_DOWN:
+            if (field?.properties?.optionSource) return <SourceOptionsField field={field} slideIndex={slideIndex} />;
             return <DropDownField field={field} slideIndex={slideIndex} />;
         case FieldTypes.PHONE_NUMBER:
             return <PhoneNumberField field={field} />;

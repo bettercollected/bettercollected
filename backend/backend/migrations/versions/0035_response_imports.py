@@ -1,7 +1,7 @@
 """response imports: the audit entry and job state of each CSV import and the uploaded file
 
 Revision ID: 0035
-Revises: 0030
+Revises: 0031
 Create Date: 2026-11-01
 
 Two new tables (``backend/app/services/response_import``): one row per import of
@@ -13,7 +13,7 @@ Written by hand in the shape autogenerate produces for a BaseRow table. The
 marker on an imported response (``csv_import_id``) is a field of the response
 document: no column and no change to ``form_responses``.
 
-The number is provisional: ``down_revision`` is 0030, the head of develop when
+The number is provisional: ``down_revision`` is 0031, the head of develop when
 this was written; whichever revision merges after this one is re-pointed.
 """
 
@@ -24,7 +24,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0035"
-down_revision: Union[str, None] = "0030"
+down_revision: Union[str, None] = "0031"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
