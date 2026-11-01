@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { Shield } from 'lucide-react';
 import { Trans } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -28,6 +29,7 @@ export default function TrustSettingsEditor() {
     const workspace = useAppSelector(selectWorkspace);
     const dispatch = useAppDispatch();
     const { toast } = useToast();
+    const { t } = useTranslation('builder');
     const [patchFormSettings] = usePatchFormSettingsMutation();
 
     const [purpose, setPurpose] = useState(form?.settings?.purpose ?? '');
@@ -52,7 +54,7 @@ export default function TrustSettingsEditor() {
             dispatch(setFormSettings(response.data.settings));
             return true;
         }
-        toast({ description: "Couldn't save trust settings.", variant: 'destructive' });
+        toast({ description: t('TRUST.SAVE_FAILED'), variant: 'destructive' });
         return false;
     };
 
@@ -61,11 +63,11 @@ export default function TrustSettingsEditor() {
     const saveRetention = async (kind: RetentionKind, value: string) => {
         setKeepError('');
         if (kind === 'days' && !retentionDays(value)) {
-            setKeepError(`Enter a number of days from 1 to ${MAX_RETENTION_DAYS}.`);
+            setKeepError(t('TRUST.DAYS_ERROR', { max: MAX_RETENTION_DAYS }));
             return;
         }
         if (kind === 'date' && (!retentionDate(value) || value <= new Date().toISOString().slice(0, 10))) {
-            setKeepError('Choose a date in the future.');
+            setKeepError(t('TRUST.DATE_ERROR'));
             return;
         }
         await save(kind === 'forever' ? { responseExpirationType: 'forever' } : { responseExpirationType: kind, responseExpiration: value.trim() });
@@ -77,16 +79,16 @@ export default function TrustSettingsEditor() {
 
     return (
         <div className="flex flex-col gap-3 px-4 py-6">
-            <div className="text-xs font-semibold uppercase tracking-wide text-black-600">Trust &amp; privacy</div>
-            <div className="text-xs text-black-600">Shown to responders on every step. Plain words build trust — say why you&apos;re asking and how long you keep answers.</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-black-600">{t('TRUST.TITLE')}</div>
+            <div className="text-xs text-black-600">{t('TRUST.INTRO')}</div>
 
             <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-black-700">Purpose</span>
-                <input type="text" placeholder="e.g. To schedule your appointment" value={purpose} onChange={(e) => setPurpose(e.target.value)} onBlur={() => save({ purpose: purpose.trim() })} className={inputClass} />
+                <span className="text-xs font-medium text-black-700">{t('TRUST.PURPOSE')}</span>
+                <input type="text" placeholder={t('TRUST.PURPOSE_PLACEHOLDER')} value={purpose} onChange={(e) => setPurpose(e.target.value)} onBlur={() => save({ purpose: purpose.trim() })} className={inputClass} />
             </label>
             <div className="flex flex-col gap-1">
                 <label htmlFor="keep-answers" className="text-xs font-medium text-black-700">
-                    Keep answers
+                    {t('TRUST.KEEP')}
                 </label>
                 <select
                     id="keep-answers"
@@ -98,34 +100,34 @@ export default function TrustSettingsEditor() {
                     }}
                     className={inputClass}
                 >
-                    <option value="forever">Until they are deleted</option>
-                    <option value="days">For a number of days</option>
-                    <option value="date">Until a date</option>
+                    <option value="forever">{t('TRUST.KEEP_FOREVER')}</option>
+                    <option value="days">{t('TRUST.KEEP_DAYS')}</option>
+                    <option value="date">{t('TRUST.KEEP_DATE')}</option>
                 </select>
                 {keepKind === 'days' && (
                     <input
                         type="number"
                         min={1}
                         max={MAX_RETENTION_DAYS}
-                        aria-label="Days to keep answers"
-                        placeholder="e.g. 90"
+                        aria-label={t('TRUST.DAYS_LABEL')}
+                        placeholder={t('TRUST.DAYS_PLACEHOLDER')}
                         value={keepValue}
                         onChange={(e) => setKeepValue(e.target.value)}
                         onBlur={() => saveRetention('days', keepValue)}
                         className={inputClass}
                     />
                 )}
-                {keepKind === 'date' && <input type="date" aria-label="Keep answers until" value={retentionDate(keepValue) ?? ''} onChange={(e) => setKeepValue(e.target.value)} onBlur={() => saveRetention('date', keepValue)} className={inputClass} />}
+                {keepKind === 'date' && <input type="date" aria-label={t('TRUST.UNTIL_LABEL')} value={retentionDate(keepValue) ?? ''} onChange={(e) => setKeepValue(e.target.value)} onBlur={() => saveRetention('date', keepValue)} className={inputClass} />}
                 {keepError ? (
                     <span role="alert" className="text-[11px] text-amber-700">
                         {keepError}
                     </span>
                 ) : (
-                    <span className="text-[11px] text-black-600">{keepKind === 'forever' ? 'Answers are kept until they are deleted.' : 'Answers are deleted automatically after this. Applies to answers submitted from now on.'}</span>
+                    <span className="text-[11px] text-black-600">{keepKind === 'forever' ? t('TRUST.KEEP_HINT_FOREVER') : t('TRUST.KEEP_HINT_LIMITED')}</span>
                 )}
             </div>
             <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-black-700">Privacy policy link</span>
+                <span className="text-xs font-medium text-black-700">{t('TRUST.POLICY_LINK')}</span>
                 <input
                     type="url"
                     placeholder="https://…"
@@ -134,7 +136,7 @@ export default function TrustSettingsEditor() {
                     onBlur={() => {
                         // Respondents get it as a link: http(s) only.
                         if (privacyUrl.trim() && !httpUrl(privacyUrl)) {
-                            setPrivacyUrlError('Enter a link that starts with https:// or http://.');
+                            setPrivacyUrlError(t('TRUST.POLICY_ERROR'));
                             return;
                         }
                         setPrivacyUrlError('');
@@ -151,16 +153,16 @@ export default function TrustSettingsEditor() {
 
             {/* Live preview of the responder-facing trust strip. */}
             <div className="mt-1 flex flex-col gap-1">
-                <span className="text-[10px] font-medium uppercase tracking-wide text-black-600">Responders will see</span>
+                <span className="text-[10px] font-medium uppercase tracking-wide text-black-600">{t('TRUST.PREVIEW_TITLE')}</span>
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded border border-black-300 bg-white px-2.5 py-2 text-[11px] text-black-700">
                     <Shield className="h-3 w-3 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
                     <span>
                         <Trans t={tRespondent} i18nKey="PRIVACY.COLLECTED_BY" values={{ owner: workspaceDisplayName(workspace) ?? tRespondent('PRIVACY.OWNER_FALLBACK') }} components={{ 1: <span className="font-semibold text-black-900" /> }} />
                     </span>
                     {purpose.trim() && <span>· {purpose.trim()}</span>}
-                    {httpUrl(privacyUrl) && <span className="text-brand-500">· How your data is used</span>}
+                    {httpUrl(privacyUrl) && <span className="text-brand-500">· {t('TRUST.PREVIEW_POLICY')}</span>}
                     <span>· {previewRetention}</span>
-                    <span>· You can view your answers and ask for them to be deleted at any time.</span>
+                    <span>· {tRespondent('PRIVACY.RIGHTS_TEXT')}</span>
                 </div>
             </div>
         </div>

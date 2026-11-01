@@ -14,6 +14,7 @@ import { Check, Circle, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useDebounceValue } from 'usehooks-ts';
+import { useTranslation } from 'react-i18next';
 
 interface IMatrixFieldProps {
     field: StandardFormFieldDto;
@@ -21,6 +22,7 @@ interface IMatrixFieldProps {
 }
 
 function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
+    const { t } = useTranslation('builder');
     const { theme } = useFormState();
 
     const { addFieldChoicesAnswer, addFieldChoiceAnswer, formResponse, removeAnswer } = useFormResponse();
@@ -71,7 +73,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                     <MatrixHeaderInput
                                         disabled={!disabled}
                                         value={choice?.value ?? `Column ${index + 1}`}
-                                        placeholder={`Column ${index + 1}`}
+                                        placeholder={t('CANVAS.COLUMN_N', { n: index + 1 })}
                                         onChange={(value: string) => {
                                             if (field.id === activeField?.id) updateColumnTitle(index, value);
                                         }}
@@ -85,7 +87,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                 {disabled && activeField?.id === field.id && (
                                     <button
                                         type="button"
-                                        aria-label={`Remove column ${index + 1}`}
+                                        aria-label={t('CANVAS.REMOVE_COLUMN', { n: index + 1 })}
                                         className="cross-top absolute left-1 h-6 w-6 rounded-full bg-white p-1 opacity-50 focus-visible:opacity-100"
                                         onClick={() => {
                                             deleteColumn(index);
@@ -128,7 +130,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                 <MatrixHeaderInput
                                     disabled={!disabled}
                                     value={row?.title?.toString() ?? `Row ${index + 1}`}
-                                    placeholder={`Row ${index + 1}`}
+                                    placeholder={t('CANVAS.ROW_N', { n: index + 1 })}
                                     onChange={(value: string) => {
                                         if (activeField?.id === field.id) updateRowTitle(index, value);
                                     }}
@@ -141,7 +143,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                             {disabled && activeField?.id === field.id && (field?.properties?.fields?.length || -1) > 1 && (
                                 <button
                                     type="button"
-                                    aria-label={`Remove row ${index + 1}`}
+                                    aria-label={t('CANVAS.REMOVE_ROW', { n: index + 1 })}
                                     className="cross-top absolute left-1 h-6 w-6 rounded-full bg-white p-1 opacity-50 focus-visible:opacity-100"
                                     onClick={() => {
                                         deleteRow(index);
@@ -217,6 +219,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
 }
 
 const MatrixHeaderInput = ({ value, onChange, disabled, placeholder }: { value: string; onChange?: (value: string) => void; disabled?: boolean; placeholder?: string }) => {
+    const { t } = useTranslation('builder');
     const [inputVal, setInputVal] = useState(value);
     const { theme } = useFormState();
 
@@ -233,7 +236,7 @@ const MatrixHeaderInput = ({ value, onChange, disabled, placeholder }: { value: 
         <StyledMatrixHeaderInput
             $theme={theme}
             className={cn('ring-none focus:ring-none items-center border-none bg-transparent text-center text-sm outline-hidden focus:border-none! focus:outline-hidden focus-visible:outline-hidden active:outline-hidden', disabled && 'pointer-events-none')}
-            placeholder={placeholder || 'Header'}
+            placeholder={placeholder || t('CANVAS.HEADER')}
             value={inputVal}
             onChange={(event) => {
                 if (!disabled) setInputVal(event.target.value);

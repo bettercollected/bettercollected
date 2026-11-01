@@ -2,6 +2,7 @@ import { useRef } from 'react';
 
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { ArrowDown, ArrowUp, Ellipsis, FileInput } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { jsonEqual } from '@app/lib/form-ops/model';
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@app/shadcn/components/ui/dropdown-menu';
@@ -37,6 +38,7 @@ export default function QuestionOptions({
     visible: boolean;
     onMoved: (outcome: MoveOutcome) => void;
 }) {
+    const { t } = useTranslation('builder');
     const { moveQuestion, moveQuestionUp, moveQuestionDown } = useOutlineMoves();
     const moved = useRef(false);
     const run = (move: () => MoveOutcome) => {
@@ -47,7 +49,7 @@ export default function QuestionOptions({
 
     return (
         <DropdownMenuPrimitive.Root>
-            <DropdownMenuPrimitive.Trigger aria-label={`Options for question: ${title}`} className={outlineMenuTriggerClass(visible)}>
+            <DropdownMenuPrimitive.Trigger aria-label={t('OUTLINE.MENU.OPTIONS_FOR_QUESTION', { title })} className={outlineMenuTriggerClass(visible)}>
                 <Ellipsis className="h-4 w-4" aria-hidden="true" />
             </DropdownMenuPrimitive.Trigger>
             <DropdownMenuContent
@@ -61,17 +63,17 @@ export default function QuestionOptions({
             >
                 <DropdownMenuItem className={outlineMenuItemClass} disabled={pageIndex === 0 && fieldIndex === 0} onSelect={() => run(() => moveQuestionUp(fieldId))}>
                     <ArrowUp className="h-4 w-4" aria-hidden="true" />
-                    Move up
+                    {t('OUTLINE.MENU.MOVE_UP')}
                 </DropdownMenuItem>
                 <DropdownMenuItem className={outlineMenuItemClass} disabled={pageIndex >= pageCount - 1 && isLastOnPage} onSelect={() => run(() => moveQuestionDown(fieldId))}>
                     <ArrowDown className="h-4 w-4" aria-hidden="true" />
-                    Move down
+                    {t('OUTLINE.MENU.MOVE_DOWN')}
                 </DropdownMenuItem>
                 {pageCount > 1 && (
                     <DropdownMenuSub>
                         <DropdownMenuSubTrigger className={outlineMenuItemClass}>
                             <FileInput className="h-4 w-4" aria-hidden="true" />
-                            Move to page…
+                            {t('OUTLINE.MENU.MOVE_TO_PAGE')}
                         </DropdownMenuSubTrigger>
                         <DropdownMenuPortal>
                             <DropdownMenuSubContent className="max-h-[320px] w-[220px] overflow-y-auto">
