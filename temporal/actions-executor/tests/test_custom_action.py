@@ -386,37 +386,107 @@ def test_a_call_with_the_wrong_arguments_is_refused_not_crashed():
     )
 
 
-def test_an_instance_secret_goes_only_to_an_origin_the_administrators_set():
-    code = (
-        "send_data_webhook(get_parameter('Webhook URL'), "
-        "headers={'Authorization': get_secret('Token')})"
-    )
+INSTANCE_CODE = (
+    "send_data_webhook(get_parameter('Webhook URL'), "
+    "headers={'Authorization': get_secret('Token')})"
+)
+
+
+def test_an_instance_secret_goes_only_to_the_exact_address_the_administrators_set():
     # the address is a creator's (a parameter of the workspace or the form): no
     box = toolbox(instance_secrets={"Token"})
-    outcome = run(code, box)
+    outcome = run(INSTANCE_CODE, box)
     assert outcome.error["kind"] == "http"
     assert "administrators" in outcome.error["message"]
     assert box.fakes.calls == []
-    # the same address set by the administrators (origin: scheme, host, port): yes
+    # the same address set by the administrators (scheme, host, port, path): yes
     box = toolbox(
         instance_secrets={"Token"},
-        trusted_origins=[("https", "hooks.acme.example", 443)],
+        trusted_urls=[("https", "hooks.acme.example", 443, "/in/abc", "")],
     )
-    assert run(code, box).error is None
+    assert run(INSTANCE_CODE, box).error is None
     assert box.fakes.calls[0][1][3] == {"Authorization": SECRET}
-    # the host alone is not the origin
+    # the host alone is not the address: another scheme or port is not it either
     box = toolbox(
         instance_secrets={"Token"},
-        trusted_origins=[
-            ("http", "hooks.acme.example", 80),
-            ("https", "hooks.acme.example", 8443),
+        trusted_urls=[
+            ("http", "hooks.acme.example", 80, "/in/abc", ""),
+            ("https", "hooks.acme.example", 8443, "/in/abc", ""),
         ],
     )
-    assert run(code, box).error["kind"] == "http"
+    assert run(INSTANCE_CODE, box).error["kind"] == "http"
     assert box.fakes.calls == []
     # a secret the workspace or the form stored is theirs to send to their address
     box = toolbox(instance_secrets=set())
-    assert run(code, box).error is None
+    assert run(INSTANCE_CODE, box).error is None
+
+
+@pytest.mark.parametrize(
+    "configured",
+    [
+        # the same origin, another path: a creator's own channel on a shared host
+        ("https", "hooks.acme.example", 443, "/in/other-channel", ""),
+        ("https", "hooks.acme.example", 443, "/", ""),
+        ("https", "hooks.acme.example", 443, "/in/abc/", ""),
+        # the same path with a query the administrators did not set, or another one
+        ("https", "hooks.acme.example", 443, "/in/abc", "channel=x"),
+    ],
+)
+def test_the_same_origin_with_another_path_or_query_gets_no_instance_secret(
+    configured,
+):
+    # the administrators set `configured`; the creator's parameter says HOOK
+    box = toolbox(instance_secrets={"Token"}, trusted_urls=[configured])
+    outcome = run(INSTANCE_CODE, box)
+    assert outcome.error["kind"] == "http"
+    assert box.fakes.calls == []
+
+
+def test_an_extra_query_on_the_creators_address_gets_no_instance_secret():
+    box = toolbox(
+        instance_secrets={"Token"},
+        trusted_urls=[("https", "hooks.acme.example", 443, "/in/abc", "")],
+        parameters={"Webhook URL": HOOK + "?channel=creators-own"},
+    )
+    assert run(INSTANCE_CODE, box).error["kind"] == "http"
+    assert box.fakes.calls == []
+
+
+def test_the_operators_allow_list_does_not_widen_where_an_instance_secret_goes():
+    box = toolbox(
+        instance_secrets={"Token"},
+        allow=[("hooks.acme.example", None)],
+        trusted_origins=[("https", "hooks.acme.example", 443)],
+    )
+    assert run(INSTANCE_CODE, box).error["kind"] == "http"
+    assert box.fakes.calls == []
+
+
+def test_a_workspace_secret_still_goes_to_another_path_of_a_configured_host():
+    # not an instance secret: unchanged (the host is one the run is configured with)
+    box = toolbox(
+        instance_secrets=set(),
+        trusted_urls=[("https", "hooks.acme.example", 443, "/in/abc", "")],
+        parameters={"Webhook URL": "https://hooks.acme.example/in/another"},
+    )
+    assert run(INSTANCE_CODE, box).error is None
+    assert box.fakes.calls[0][1][3] == {"Authorization": SECRET}
+
+
+def test_the_reply_is_not_shown_when_an_instance_secret_went_with_the_call():
+    code = (
+        "r = send_data_webhook(get_parameter('Webhook URL'), "
+        "headers={'Authorization': get_secret('Token')})\n"
+        "log(str(r.status_code) + '|' + r.text + '|')"
+    )
+    trusted = [("https", "hooks.acme.example", 443, "/in/abc", "")]
+    box = toolbox(instance_secrets={"Token"}, trusted_urls=trusted)
+    outcome = run(code, box)
+    assert outcome.error is None, outcome.error
+    assert outcome.log == ["200||"]  # the status, not what the endpoint said
+    # a call without an instance secret still sees the reply
+    box = toolbox(instance_secrets=set(), trusted_urls=trusted)
+    assert run(code, box).log == ["200|fine|"]
 
 
 def test_an_instance_secret_in_a_body_is_held_to_the_same_rule():

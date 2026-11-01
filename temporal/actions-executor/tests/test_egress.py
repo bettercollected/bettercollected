@@ -349,3 +349,53 @@ def test_the_pinned_backend_connects_only_to_its_own_host():
         backend.connect_tcp("other.example.org", 443)
     with pytest.raises(egress.httpcore.ConnectError):
         backend.connect_unix_socket("/var/run/docker.sock")
+
+
+def test_the_exact_addresses_of_the_action_itself():
+    urls = egress.trusted_urls_of(
+        [
+            "https://Hooks.Corp.Example/in/abc?room=1",
+            "https://hooks.corp.example:443/in/abc?room=1",  # the same address
+            "https://a.example",  # no path is the root path
+            "http://a.b:81/p",
+            "plain text",
+            5,
+            None,
+            "ftp://c.d/",
+            "https://user:pw@d.example/x",  # userinfo is never an address
+            "https://e.example/x#frag",  # nor is a fragment
+        ]
+    )
+    assert urls == [
+        ("https", "hooks.corp.example", 443, "/in/abc", "room=1"),
+        ("https", "a.example", 443, "/", ""),
+        ("http", "a.b", 81, "/p", ""),
+    ]
+
+
+@pytest.mark.parametrize(
+    "url, same",
+    [
+        ("https://hooks.corp.example/in/abc?room=1", True),
+        ("https://HOOKS.corp.example:443/in/abc?room=1", True),
+        ("https://hooks.corp.example/in/abc", False),  # the query counts
+        ("https://hooks.corp.example/in/abc?room=2", False),
+        ("https://hooks.corp.example/in/other?room=1", False),  # the path counts
+        ("https://hooks.corp.example/in/abc/?room=1", False),
+        ("https://hooks.corp.example/in/../in/abc?room=1", False),  # as written
+        ("https://hooks.corp.example/in/%61bc?room=1", False),  # as written
+        ("http://hooks.corp.example/in/abc?room=1", False),
+        ("https://hooks.corp.example:8443/in/abc?room=1", False),
+    ],
+)
+def test_a_destination_is_the_configured_address_only_when_every_part_is(url, same):
+    configured = egress.trusted_urls_of(["https://hooks.corp.example/in/abc?room=1"])
+    destination = egress.check_url(
+        url,
+        trusted=[
+            ("https", "hooks.corp.example", 443),
+            ("http", "hooks.corp.example", 80),
+            ("https", "hooks.corp.example", 8443),
+        ],
+    )
+    assert (destination.exact in configured) is same

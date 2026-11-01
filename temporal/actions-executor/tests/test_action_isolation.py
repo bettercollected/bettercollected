@@ -291,3 +291,57 @@ def test_the_start_log_says_the_key_is_not_needed_only_where_it_is_not(
         with caplog.at_level(logging.WARNING):
             asyncio.run(log_isolation(key_needed=key_needed))
         assert any("AES_HEX_KEY" in r.getMessage() for r in caplog.records) is warned
+
+
+from tests.sandbox_support import needs_confinement  # noqa: E402
+
+
+def _custom_with_an_instance_secret():
+    action = hook_action(
+        "custom",
+        action_parameters=[{"name": "Webhook URL", "value": HOOK}],
+        secrets=[{"name": "Token", "value": "instance-token-value"}],
+    )
+    action["predefined"] = False
+    action["action_code"] = (
+        "r = send_data_webhook(get_parameter('Webhook URL'), "
+        "headers={'Authorization': get_secret('Token')})\n"
+        "log('sent ' + str(r.status_code))\n"
+    )
+    return action
+
+
+@needs_confinement
+def test_an_instance_secret_goes_to_the_address_the_administrators_set(sent):
+    result = run(_custom_with_an_instance_secret(), secrets_plain=True)
+    assert result["log"] == "sent 200"
+    assert sent[0][0] == HOOK
+    assert sent[0][1]["headers"]["Authorization"] == "instance-token-value"
+
+
+@needs_confinement
+@pytest.mark.parametrize(
+    "creators_url",
+    [
+        # another path on the administrators' own (shared) host
+        "https://hooks.acme.example/in/creators-own-channel",
+        HOOK + "?channel=creators-own",
+    ],
+)
+def test_a_creator_cannot_aim_an_instance_secret_at_their_own_path(sent, creators_url):
+    for owner in ("workspace", "form"):
+        extra = workspace_url(creators_url) if owner == "workspace" else None
+        form_extra = (
+            {"parameters": {ACTION_ID: [{"name": "Webhook URL", "value": creators_url}]}}
+            if owner == "form"
+            else None
+        )
+        with pytest.raises(Exception) as refused:  # the refusal is the run's failure
+            run(
+                _custom_with_an_instance_secret(),
+                workspace=extra,
+                form_extra=form_extra,
+                secrets_plain=True,
+            )
+        assert "exact address" in str(refused.value)
+        assert sent == []
