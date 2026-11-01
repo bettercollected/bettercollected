@@ -219,3 +219,25 @@ def test_the_ring_mark_fits_the_heartbeat_fingerprint():
 
     # settings.report_state accepts ^[A-Za-z0-9_.:-]{0,64}$ for the fingerprint
     assert re.fullmatch(r"[A-Za-z0-9_.:-]{0,64}", "ks-0123456789ab" + key_ring.REPORT_MARK)
+
+
+def test_a_ring_warning_names_a_constant_setting_and_never_a_value(caplog):
+    """The warning is built from a fixed list of setting names, not from the mapping
+    that holds the secrets (CodeQL: clear-text logging)."""
+    import logging
+
+    caplog.set_level(logging.WARNING, logger="common.shipped_secrets")
+    shipped_secrets.require_secrets(
+        "test", {"AUTH_JWT_SECRET": f"{NEW_J},{OLD_J}"}, {"AES_HEX_KEY": f"{NEW_F},{OLD_F}"}
+    )
+    messages = [record.getMessage() for record in caplog.records]
+    assert len(messages) == 2
+    assert messages[0].startswith("AUTH_JWT_SECRET is read as a key ring of two")
+    assert messages[1].startswith("AES_HEX_KEY is read as a key ring of two")
+    for member in (NEW_J, OLD_J, NEW_F, OLD_F):
+        assert not any(member in message for message in messages)
+        assert not any(member in str(record.args) for record in caplog.records)
+    # a name that is not one of the fixed ones is never echoed, whatever it is called
+    caplog.clear()
+    shipped_secrets.require_secrets("test", {"SOME_OTHER_NAME": f"{NEW_J},{OLD_J}"}, None)
+    assert "SOME_OTHER_NAME" not in caplog.text
