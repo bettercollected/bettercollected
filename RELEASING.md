@@ -84,6 +84,35 @@ to the new version in the changelog PR of step 2 (see the bullet there).
   staging stack, not one that follows releases) needs `BC_IMAGE_TAG=nightly` in its root `.env`.
   `deploy.sh` on a checkout that is not on a release tag keeps the pinned default and says so.
 
+## Acceptance checks before the tag
+
+Run both compose checks on the exact commit you are about to tag, with real containers (each removes
+everything it created; on a shared machine start them through `.local/coord/heavy.sh <name> <command>`):
+
+```bash
+scripts/v4-compose-check.sh                 # fresh install, upgrade with deploy.sh, rollback, negatives
+scripts/upgrade-image-swap-check.sh         # upgrade by image tags only, as an orchestrated stack does
+```
+
+`upgrade-image-swap-check.sh` installs the previous release (`SWAP_CHECK_OLD_TAG`, default the last
+one this script was written for) from its own tagged compose file and published images with that
+release's `deploy.sh` (first install only), seeds it (a workspace and user, a form with responses, a
+waiting and a finished 4.1-style action job with payload), then changes **only the image tags** of
+backend, auth, webapp, jobs worker and the other first-party services to the candidate, sets
+`DB_AUTO_MIGRATE=true` and the release's new switches and `MAIL_*` the way a stack edit does, and runs
+`docker compose up -d`. It never runs `deploy.sh` for the upgrade, as an orchestrated stack does not. It then
+checks migrations, the scrub of old action jobs, that old responses still read, the jobs worker's
+queues, the webhook SSRF guard, drafts and email actions with the respondent copy. It also records, as
+an INFO line, that a bare image swap leaves the actions executor's database restrictions off (the
+backend's startup does not apply them to a queue that already exists; expected, see the release's upgrade
+notes), then runs the documented step (`postgres/ensure-jobs-exec-role.sh` as the database superuser, then
+`python -m backend.jobs.schema` in the backend container) and requires the restrictions to be in force. Update its checks
+(the expected alembic head, `SWAP_CHECK_EXPECT_ALEMBIC`, and the switches it turns on) when a release
+adds a migration or a switch. `SWAP_CHECK_CANDIDATE=v4.2.0` runs the same upgrade with the published
+images of a tag instead of images built from the checkout (use it once more after the images are
+published, before the stack edit on an orchestrated stack). What it cannot cover, because the product forbids it
+(a webhook delivery to a private address), goes on the release's post-deploy smoke list.
+
 ## Keeping the changelog current
 
 Every PR notes its user- or operator-facing changes **as part of the PR that makes
