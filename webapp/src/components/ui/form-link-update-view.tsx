@@ -48,7 +48,7 @@ export default function FormLinkUpdateView({ link, isCustomDomain = false, isDis
     };
 
     return (
-        <div className="flex relative space-between items-end w-full">
+        <div className="flex relative justify-between items-end w-full">
             <div className="flex-1">
                 <div className="body6 mb-2 font-semibold!">{isCustomDomain ? t(formPage.linksCustomDomainLink) : t(formPage.linksDefaultLink)}</div>
                 <div className="flex flex-col items-start gap-2 w-full flex-1">
