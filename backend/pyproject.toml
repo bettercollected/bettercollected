@@ -80,4 +80,5 @@ asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
 markers = [
     "mongo: the test drives a Mongo server itself, the import from 4.0 (tests/conftest.py MONGO_DRIVEN)",
+    "real_storage_client: the test drives the storage adapter's real boto3 objects (every other test gets in-memory ones, tests/app/storage_fake.py)",
 ]

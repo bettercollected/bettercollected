@@ -248,10 +248,12 @@ async def test_address_lookup_limits_are_read_per_call(monkeypatch, key, field, 
     monkeypatch.setattr(settings, "ADDRESS_QUESTION_ENABLED", True)
     monkeypatch.setattr(settings, "ADDRESS_LOOKUP_ENABLED", True)
     limiter = RecordingLimiter(ALLOW, DENY)
-    service = AddressLookupService(None, None, limiter)
+    service = AddressLookupService(None, None, limiter, None)
 
     async def servable(workspace_id, form_ref):
-        return SimpleNamespace(form_id="form-1", fields=frozenset({"ad"}))
+        return SimpleNamespace(
+            form_id="form-1", fields=frozenset({"ad"}), is_open=lambda: True, private=False
+        )
 
     monkeypatch.setattr(service, "_servable", servable)
     for new in (8001, 8002):
