@@ -5,6 +5,7 @@ import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { StaffFeedback } from '@app/models/dtos/form';
+import '@app/shared/hocs/i18n-provider'; // the catalogue's English text
 import { store } from '@app/store/store';
 
 import RespondentFeedbackPanel from './respondent-feedback-panel';

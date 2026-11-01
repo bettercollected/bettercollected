@@ -2,13 +2,15 @@ import React from 'react';
 
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import CloseDeletionRequestModal from '@app/components/modal-views/modals/close-deletion-request-modal';
 import { closeDeletionRequestError, isDeclineReason, isDeclinedRequest, isPendingRequest } from '@app/models/enums/deletion-request';
 import { setAuth } from '@app/store/auth/slice';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
+import '@app/shared/hocs/i18n-provider'; // real text, not keys
+import { axeViolations } from '@app/test/axe';
 import { statusProps } from '@app/utils/vvalidation-utils';
 
 import ResponsesTable from './responses-table';
@@ -100,9 +102,9 @@ describe('deletion requests of imported forms', () => {
         renderTable([request('r1')]);
 
         const row = rowOf('r1@example.com');
-        fireEvent.click(within(row).getByRole('button', { name: 'DELETION_REQUEST.MARK_DELETED' }));
+        fireEvent.click(within(row).getByRole('button', { name: 'Mark as deleted' }));
         expect(openModal).toHaveBeenLastCalledWith('CLOSE_DELETION_REQUEST', { workspace: expect.objectContaining({ id: 'ws1' }), formId: 'form-g', responseId: 'r1', outcome: 'completed' });
-        fireEvent.click(within(row).getByRole('button', { name: 'DELETION_REQUEST.DECLINE' }));
+        fireEvent.click(within(row).getByRole('button', { name: 'Decline' }));
         expect(openModal).toHaveBeenLastCalledWith('CLOSE_DELETION_REQUEST', expect.objectContaining({ responseId: 'r1', outcome: 'declined' }));
     });
 
@@ -138,8 +140,8 @@ describe('deletion requests of imported forms', () => {
     it('offers nothing to close without privacy.manage', () => {
         access.permissions = ['response.read'];
         renderTable([request('r1')]);
-        expect(screen.queryByRole('button', { name: 'DELETION_REQUEST.MARK_DELETED' })).toBeNull();
-        expect(screen.queryByRole('button', { name: 'DELETION_REQUEST.DECLINE' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Mark as deleted' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Decline' })).toBeNull();
     });
 
     it('shows a declined request with its reason and never as deleted', () => {
@@ -147,20 +149,20 @@ describe('deletion requests of imported forms', () => {
         renderTable([request('r2', { status: 'declined', declineReason: 'legal_obligation' }), request('r3', { status: 'success' })]);
 
         const declined = rowOf('r2@example.com');
-        expect(within(declined).getByText('DELETION_REQUEST.REASON.LEGAL_OBLIGATION')).toBeTruthy();
-        expect(within(declined).getByText('DELETION_REQUEST.NOT_DELETED')).toBeTruthy();
+        expect(within(declined).getByText('A legal obligation requires keeping it')).toBeTruthy();
+        expect(within(declined).getByText('Not deleted')).toBeTruthy();
         expect(within(declined).queryByText(/STATUS_DELETED|Deleted/)).toBeNull();
         expect(within(declined).queryByRole('button')).toBeNull();
 
         const deleted = rowOf('r3@example.com');
-        expect(within(deleted).queryByText('DELETION_REQUEST.NOT_DELETED')).toBeNull();
+        expect(within(deleted).queryByText('Not deleted')).toBeNull();
         expect(within(deleted).queryByRole('button')).toBeNull();
     });
 
     it('treats an unknown decline reason as "another reason"', () => {
         access.permissions = ['privacy.manage'];
         renderTable([request('r4', { status: 'declined', declineReason: 'made_up' })]);
-        expect(within(rowOf('r4@example.com')).getByText('DELETION_REQUEST.REASON.OTHER')).toBeTruthy();
+        expect(within(rowOf('r4@example.com')).getByText('Another reason')).toBeTruthy();
     });
 });
 
@@ -214,44 +216,97 @@ describe('CloseDeletionRequestModal', () => {
     it('marks a request deleted', async () => {
         closeRequest.mockResolvedValue({ data: { status: 'success' } });
         renderModal('completed');
-        fireEvent.click(screen.getAllByRole('button', { name: 'DELETION_REQUEST.MARK_DELETED' }).at(-1)!);
+        fireEvent.click(screen.getAllByRole('button', { name: 'Mark as deleted' }).at(-1)!);
 
         await waitFor(() => expect(closeRequest).toHaveBeenCalledWith({ workspaceId: 'ws1', formId: 'form-g', responseId: 'r1', outcome: 'completed' }));
         expect(closeModal).toHaveBeenCalled();
-        expect(toast).toHaveBeenCalledWith({ description: 'DELETION_REQUEST.MARKED_DELETED' });
+        expect(toast).toHaveBeenCalledWith({ description: 'Request marked as deleted' });
     });
 
     it('needs a reason to decline, and sends only the code', async () => {
         closeRequest.mockResolvedValue({ data: { status: 'declined', declineReason: 'identity_not_verified' } });
         renderModal('declined');
-        const decline = screen.getAllByRole('button', { name: 'DELETION_REQUEST.DECLINE' }).at(-1)!;
+        const decline = screen.getAllByRole('button', { name: 'Decline' }).at(-1)!;
 
         fireEvent.click(decline);
-        expect(screen.getByRole('alert').textContent).toBe('DELETION_REQUEST.REASON_REQUIRED');
+        expect(screen.getByRole('alert').textContent).toBe('Choose a reason.');
         expect(closeRequest).not.toHaveBeenCalled();
 
-        fireEvent.click(screen.getByRole('radio', { name: 'DELETION_REQUEST.REASON.IDENTITY_NOT_VERIFIED' }));
+        fireEvent.click(screen.getByRole('radio', { name: 'The requester\'s identity could not be verified' }));
         fireEvent.click(decline);
         await waitFor(() => expect(closeRequest).toHaveBeenCalledWith({ workspaceId: 'ws1', formId: 'form-g', responseId: 'r1', outcome: 'declined', reason: 'identity_not_verified' }));
-        expect(toast).toHaveBeenCalledWith({ description: 'DELETION_REQUEST.DECLINED' });
+        expect(toast).toHaveBeenCalledWith({ description: 'Request declined' });
     });
 
     it('explains a copy that could not be attributed and keeps the dialog open', async () => {
         closeRequest.mockResolvedValue({ error: { status: 409, data: { code: 'deletion_request_copy_unresolved' } } });
         renderModal('completed');
-        fireEvent.click(screen.getAllByRole('button', { name: 'DELETION_REQUEST.MARK_DELETED' }).at(-1)!);
+        fireEvent.click(screen.getAllByRole('button', { name: 'Mark as deleted' }).at(-1)!);
 
-        await waitFor(() => expect(toast).toHaveBeenCalledWith({ description: 'DELETION_REQUEST.COPY_UNRESOLVED', variant: 'destructive' }));
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ description: 'A stored copy of this response could not be matched to this workspace, so nothing was deleted and the request stays open.', variant: 'destructive' }));
         expect(closeModal).not.toHaveBeenCalled();
     });
 
     it('closes the dialog when the request was already closed', async () => {
         closeRequest.mockResolvedValue({ error: { status: 409, data: { code: 'deletion_request_closed' } } });
         renderModal('declined');
-        fireEvent.click(screen.getByRole('radio', { name: 'DELETION_REQUEST.REASON.OTHER' }));
-        fireEvent.click(screen.getAllByRole('button', { name: 'DELETION_REQUEST.DECLINE' }).at(-1)!);
+        fireEvent.click(screen.getByRole('radio', { name: 'Another reason' }));
+        fireEvent.click(screen.getAllByRole('button', { name: 'Decline' }).at(-1)!);
 
-        await waitFor(() => expect(toast).toHaveBeenCalledWith({ description: 'DELETION_REQUEST.ALREADY_CLOSED', variant: 'destructive' }));
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ description: 'This request was already closed.', variant: 'destructive' }));
         expect(closeModal).toHaveBeenCalled();
+    });
+});
+
+describe('deletion requests on a phone: a card for each request', () => {
+    beforeEach(() => {
+        window.innerWidth = 375;
+        openModal.mockReset();
+        store.dispatch(setWorkspace(WORKSPACE));
+        store.dispatch(setAuth({ id: 'me', email: 'me@example.com', roles: [] } as any));
+    });
+    afterEach(() => {
+        window.innerWidth = 1024;
+    });
+
+    const cards = () => screen.getByRole('list', { name: 'Deletion requests on this page' });
+
+    it('draws cards, not the table: who, when, the status, the reason, the receipt number start and the actions', () => {
+        access.permissions = ['privacy.manage'];
+        const { container } = renderTable([
+            request('r1', { submissionUuid: '0a1b2c3d-1111-4222-8333-444455556666' }),
+            request('r2', { status: 'declined', declineReason: 'legal_obligation' }),
+            request('r3', { status: 'success', updatedAt: '2026-10-03T10:00:00Z' })
+        ]);
+        expect(container.querySelector('[role="table"]')).toBeNull();
+        const items = within(cards()).getAllByRole('listitem');
+        expect(items).toHaveLength(3);
+        const first = within(items[0]);
+        expect(first.getByText('r1@example.com')).toBeInTheDocument();
+        expect(first.getByText(/^Requested 1 October 2026 at \d\d:\d\d$/)).toBeInTheDocument();
+        expect(first.getByText('Pending')).toBeInTheDocument();
+        expect(first.getByText('#0a1b2c3d…')).toBeInTheDocument();
+        expect(container.innerHTML).not.toContain('0a1b2c3d-1111');
+        expect(first.getByRole('button', { name: 'Mark as deleted' })).toBeInTheDocument();
+        expect(first.getByRole('button', { name: 'Decline' })).toBeInTheDocument();
+        // a declined one carries its reason and says it was not deleted; a deleted one says when
+        expect(within(items[1]).getByText('Not deleted')).toBeInTheDocument();
+        expect(within(items[1]).queryByRole('button', { name: 'Decline' })).toBeNull();
+        expect(within(items[2]).getByText(/^Deleted 2 October 2026 at \d\d:\d\d$|^Deleted 3 October 2026 at \d\d:\d\d$/)).toBeInTheDocument();
+    });
+
+    it('keeps the actions of a card working: they open the same dialogs as the table\'s', () => {
+        access.permissions = ['privacy.manage', 'response.read', 'response.delete'];
+        renderTable([request('r1', { provider: 'self', formId: 'form-s' })], 'form-s');
+        const card = within(within(cards()).getAllByRole('listitem')[0]);
+        expect(card.getByRole('link', { name: 'View' })).toHaveAttribute('href', '/acme/dashboard/forms/form-s/responses/r1?from=form-deletion-requests');
+        fireEvent.click(card.getByRole('button', { name: 'Delete response' }));
+        expect(openModal).toHaveBeenLastCalledWith('DELETE_RESPONSE', expect.objectContaining({ responseId: 'r1', formId: 'form-s' }));
+    });
+
+    it('has no WCAG A/AA violations', async () => {
+        access.permissions = ['privacy.manage'];
+        const { container } = renderTable([request('r1'), request('r2', { status: 'declined', declineReason: 'legal_obligation' }), request('r3', { dataOwnerIdentifier: null })]);
+        expect(await axeViolations(container)).toEqual([]);
     });
 });

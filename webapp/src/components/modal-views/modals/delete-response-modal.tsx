@@ -2,6 +2,8 @@ import { useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
+import { useTranslation } from 'react-i18next';
+
 import GenericHalfModal from '@Components/common/generic-half-modal';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
@@ -24,6 +26,7 @@ interface DeleteResponseModalProps {
 }
 
 export default function DeleteResponseModal({ workspace, formId, responseId, navigateTo, onDeleting }: DeleteResponseModalProps) {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const { closeModal } = useModal();
     const router = useRouter();
@@ -37,23 +40,23 @@ export default function DeleteResponseModal({ workspace, formId, responseId, nav
         const response: any = await deleteResponse({ workspaceId: workspace.id, formId, responseId });
         setIsDeleting(false);
         if (response?.data) {
-            toast({ description: 'Response deleted' });
+            toast({ description: t('RESPONSE_PAGE.DELETED_TOAST') });
             // from a response's own page, back to the list; replace: the deleted response's page is gone from history
             if (isSameSitePath(navigateTo)) router.replace(navigateTo);
             closeModal();
         } else {
             onDeleting?.(false);
-            toast({ description: 'Could not delete the response. Try again.', variant: 'destructive' });
+            toast({ description: t('RESPONSE_PAGE.DELETE_FAILED'), variant: 'destructive' });
         }
     };
 
     return (
         <GenericHalfModal
-            headerTitle="Delete response"
-            title="Delete this response permanently?"
-            subTitle="The response and any uploaded files are removed and can't be recovered. If the responder asked for this deletion, their request is marked as completed."
+            headerTitle={t('RESPONSE_PAGE.DELETE_RESPONSE')}
+            title={t('RESPONSE_PAGE.DELETE_TITLE')}
+            subTitle={t('RESPONSE_PAGE.DELETE_BODY')}
             type="danger"
-            positiveText="Delete response"
+            positiveText={t('RESPONSE_PAGE.DELETE_RESPONSE')}
             loading={isDeleting}
             positiveAction={handleDelete}
         />

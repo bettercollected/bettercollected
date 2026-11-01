@@ -5,6 +5,7 @@ import React from 'react';
 import Link from 'next/link';
 
 import { Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { workspaceSectionUrls } from '@app/lib/workspace-sections';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -56,12 +57,13 @@ interface DisclosureProps {
 
 /** One line under an AI action: who receives what, and where to change it. */
 export function AIDisclosure({ sends, className }: DisclosureProps) {
+    const { t } = useTranslation();
     const { workspace, providerName } = useWorkspaceAI();
     return (
         <p className={className ?? 'text-[10.5px] leading-relaxed text-black-600'}>
-            Sent to {providerName}: {sends}.{' '}
+            {t('RESPONSES_STAFF.AI_DISCLOSURE', { provider: providerName, sends })}{' '}
             <Link href={aiSettingsUrl(workspace?.workspaceName)} className="underline decoration-dotted underline-offset-2">
-                AI settings
+                {t('RESPONSES_STAFF.AI_SETTINGS')}
             </Link>
         </p>
     );
@@ -83,6 +85,7 @@ interface OptInProps {
  * anyone else is told who can.
  */
 export function AIOptIn({ feature, sends, onEnabled, compact }: OptInProps) {
+    const { t } = useTranslation();
     const { workspace, settings } = useWorkspaceAI();
     const [update, { isLoading }] = useUpdateAISettingsMutation();
     const [error, setError] = React.useState<string | null>(null);
@@ -93,34 +96,34 @@ export function AIOptIn({ feature, sends, onEnabled, compact }: OptInProps) {
         setError(null);
         const response: any = await update({ workspace_id: workspace.id, body: { enabled: true } });
         if (response.data?.enabled) onEnabled?.();
-        else setError(aiErrorMessage(response.error, 'Could not turn AI on. Please try again.'));
+        else setError(aiErrorMessage(response.error, t('RESPONSES_STAFF.AI_OPTIN_ERR')));
     };
 
     return (
-        <div className={`flex flex-col gap-2 rounded border border-black-300 bg-white ${compact ? 'p-3' : 'p-4'}`} role="region" aria-label="AI is off for this workspace">
+        <div className={`flex flex-col gap-2 rounded border border-black-300 bg-white ${compact ? 'p-3' : 'p-4'}`} role="region" aria-label={t('RESPONSES_STAFF.AI_OPTIN_TITLE')}>
             <div className="flex items-center gap-1.5 text-[13px] font-semibold text-black-900">
                 <Sparkles className="h-3.5 w-3.5 text-brand-500" />
-                AI is off for this workspace
+                {t('RESPONSES_STAFF.AI_OPTIN_TITLE')}
             </div>
             <p className="text-xs leading-relaxed text-black-600">
-                {feature} uses an external AI provider. Nothing is sent to one until a workspace admin turns AI on. Once on, it sends {sends} to {providerName}.
+                {t('RESPONSES_STAFF.AI_OPTIN_BODY', { feature, sends, provider: providerName })}
             </p>
             {!settings ? null : !configured ? (
-                <p className="text-xs text-black-600">No AI provider is set up on this server.</p>
+                <p className="text-xs text-black-600">{t('RESPONSES_STAFF.AI_OPTIN_NO_PROVIDER')}</p>
             ) : settings.canManage ? (
                 <div className="flex flex-wrap items-center gap-2">
                     <Button size="sm" variant="v2Button" isLoading={isLoading} onClick={turnOn}>
-                        Turn on AI with {providerName}
+                        {t('RESPONSES_STAFF.AI_OPTIN_TURN_ON', { provider: providerName })}
                     </Button>
                     <Link href={aiSettingsUrl(workspace?.workspaceName)} className="text-xs text-black-600 underline decoration-dotted underline-offset-2">
-                        AI settings
+                        {t('RESPONSES_STAFF.AI_SETTINGS')}
                     </Link>
                 </div>
             ) : (
                 <p className="text-xs text-black-600">
-                    Ask a workspace admin to turn it on in{' '}
+                    {t('RESPONSES_STAFF.AI_OPTIN_ASK')}{' '}
                     <Link href={aiSettingsUrl(workspace?.workspaceName)} className="underline decoration-dotted underline-offset-2">
-                        AI settings
+                        {t('RESPONSES_STAFF.AI_SETTINGS')}
                     </Link>
                     .
                 </p>

@@ -2,6 +2,8 @@
 
 import { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
 
+import { useTranslation } from 'react-i18next';
+
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { FormTheme } from '@app/constants/theme';
 
@@ -25,7 +27,7 @@ import { themeRootProps } from '@app/views/molecules/theme/theme-root';
 import { leafletColours, softInk, styleTokens, themeBackgroundStyle } from '@app/views/molecules/theme/theme-shared';
 import { FORM_COLUMN, FORM_GUTTER, clampSpan, fieldSpacingClass } from '@app/views/organism/layout/form-column';
 
-import { ANSWERED_THEN_SKIPPED, NotShownQuestion, ReadOnlyContext, ReadOnlyQuestion, isContent, pageQuestions } from './read-only-question';
+import { ANSWERED_THEN_SKIPPED, CALCULATED_SKIPPED, NotShownQuestion, ReadOnlyContext, ReadOnlyQuestion, isContent, pageQuestions } from './read-only-question';
 
 export const CONTENTS_ID = 'contents';
 export const CONTENTS_HEADING_ID = 'rp-contents-heading';
@@ -71,12 +73,13 @@ interface ContentsSection {
  * so differently. Kept in print, as a table of contents.
  */
 function ContentsList({ sections, theme, leaflet }: { sections: ContentsSection[]; theme: FormTheme; leaflet: boolean }) {
+    const { t } = useTranslation();
     const rule = leafletColours(theme).rule;
     const numeralInk = theme.secondary && theme.accent && contrast(theme.secondary, theme.accent) >= 4.5 ? theme.secondary : theme.primary;
     return (
         <nav id={CONTENTS_ID} aria-labelledby={CONTENTS_HEADING_ID} className="scroll-mt-28" data-contents>
             <h2 id={CONTENTS_HEADING_ID} tabIndex={-1} className="text-[15px] font-semibold focus:outline-hidden" style={{ color: theme.primary }}>
-                Contents
+                {t('RESPONSE_PAGE.CONTENTS')}
             </h2>
             <ol className="mt-2 border-t" style={{ borderColor: rule }}>
                 {sections.map((section) => (
@@ -88,12 +91,12 @@ function ContentsList({ sections, theme, leaflet }: { sections: ContentsSection[
                             style={{ color: theme.primary }}
                         >
                             <span className="tabular-nums" style={{ fontFamily: leaflet ? leafletSerif.style.fontFamily : undefined, fontWeight: 600, color: numeralInk }}>
-                                <span className="sr-only">Page </span>
+                                <span className="sr-only">{t('RESPONSE_PAGE.PAGE_SR')}</span>{' '}
                                 {section.number}
                             </span>{' '}
                             <span className="[overflow-wrap:anywhere]">
                                 {!section.title ? (
-                                    `Page ${section.number}`
+                                    t('RESPONSE_PAGE.PAGE_N', { n: section.number })
                                 ) : section.shortTitle && section.shortTitle !== section.title ? (
                                     <>
                                         <span aria-hidden="true">{section.shortTitle}</span>
@@ -108,11 +111,11 @@ function ContentsList({ sections, theme, leaflet }: { sections: ContentsSection[
                                     {' '}
                                     {section.skippedWithAnswers ? (
                                         <span className="rounded-full border px-2 py-0.5 text-[12px] font-medium whitespace-nowrap" style={{ borderColor: theme.tertiary, color: theme.primary }} data-skipped="with-answers">
-                                            Skipped, answers kept
+                                            {t('RESPONSE_PAGE.SKIPPED_KEPT')}
                                         </span>
                                     ) : (
                                         <span className="text-[13px] whitespace-nowrap italic" style={{ color: softInk(theme) }} data-skipped="empty">
-                                            Skipped
+                                            {t('RESPONSE_PAGE.SKIPPED')}
                                         </span>
                                     )}
                                 </>
@@ -128,12 +131,13 @@ function ContentsList({ sections, theme, leaflet }: { sections: ContentsSection[
 /** The "Error downloading file" path: the server's signed link, fetched and saved, as everywhere else. */
 function useDownload() {
     const { toast } = useToast();
+    const { t } = useTranslation();
     return async (file: { url?: string; name?: string; id?: string }) => {
         try {
             if (!file.url) return;
             await downloadFile(file.url, file.name ?? file.id ?? 'file');
         } catch {
-            toast({ description: 'Error downloading file', variant: 'destructive' });
+            toast({ description: t('RESPONSE_PAGE.FILE_ERROR'), variant: 'destructive' });
         }
     };
 }
@@ -147,6 +151,7 @@ function useDownload() {
  * response and the form (the version it was submitted against) as data.
  */
 export default function ReadOnlyForm({ form, response }: { form: StandardFormDto; response: StandardFormResponseDto }) {
+    const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
     const onDownload = useDownload();
     const theme = themeWithDefaults(form.theme);
@@ -217,10 +222,10 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
             style={{ ...themeBackgroundStyle(theme), color: theme.primary, ...vars, ...root.style } as CSSProperties}
         >
             {logo && <FormLogoStrip logo={logo} theme={theme} />}
-            <main className={cn(FORM_GUTTER, 'py-10 lg:py-14')} aria-label="Response">
+            <main className={cn(FORM_GUTTER, 'py-10 lg:py-14')} aria-label={t('RESPONSE_PAGE.FORM_LABEL')}>
                 <div className={cn(FORM_COLUMN, 'mx-auto flex flex-col gap-14')} lang={lang}>
                     <h1 className="form-title-face text-[28px] leading-tight font-bold" style={{ color: theme.primary }}>
-                        {form.title?.trim() || 'Untitled form'}
+                        {form.title?.trim() || t('RESPONSE_PAGE.UNTITLED_FORM')}
                     </h1>
                     {sections.length > 1 && <ContentsList sections={sections} theme={theme} leaflet={leaflet} />}
                     {sections.map(({ page, number, fields, headingTitle, skipped }) => {
@@ -235,7 +240,7 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
                             // `page-<n>`: the page's number only, never its title (it lands in the URL as the contents link's hash)
                             <section key={page.id} id={`page-${number}`} aria-labelledby={headingId} data-page={number} className="flex scroll-mt-28 flex-col gap-8">
                                 <h2 id={headingId} tabIndex={-1} className={cn('border-b pb-2 text-[13px] font-medium tabular-nums focus:outline-hidden', sections.length === 1 && 'sr-only')} style={{ color: softInk(theme), borderColor: leafletColours(theme).rule }}>
-                                    {`Page ${number} of ${sections.length}`}
+                                    {t('RESPONSE_PAGE.PAGE_N_OF', { n: number, total: sections.length })}
                                     {headingTitle ? ` · ${headingTitle}` : ''}
                                 </h2>
                                 {skipped ? (
@@ -255,7 +260,7 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
                     {Object.keys(hiddenFields).length > 0 && (
                         <section aria-labelledby="rp-hidden-fields" className="flex flex-col gap-3 border-t pt-6" style={{ borderColor: leafletColours(theme).rule }}>
                             <h2 id="rp-hidden-fields" className="text-[13px] font-medium" style={{ color: softInk(theme) }}>
-                                Hidden fields (from the share link)
+                                {t('RESPONSE_PAGE.HIDDEN_FIELDS')}
                             </h2>
                             <dl className="flex flex-col gap-3">
                                 {Object.entries(hiddenFields).map(([name, value]) => (
@@ -294,15 +299,14 @@ function answeredBeforeSkipping(field: StandardFormFieldDto, answers: Record<str
  * answer nor opens the list (see answeredBeforeSkipping).
  */
 function SkippedPage({ fields, answers, ctx }: { fields: StandardFormFieldDto[]; answers: Record<string, any>; ctx: ReadOnlyContext }) {
+    const { t } = useTranslation();
     const questions = fields.filter((field) => !isContent(field));
     const answeredCount = questions.filter((field) => answeredBeforeSkipping(field, answers)).length;
-    const summary = `Show the ${questions.length} ${questions.length === 1 ? 'question' : 'questions'} on this page` + (answeredCount > 0 ? ` (${answeredCount} answered)` : '');
+    const summary = answeredCount > 0 ? t('RESPONSE_PAGE.SHOW_QUESTIONS_ANSWERED', { count: questions.length, answered: answeredCount }) : t('RESPONSE_PAGE.SHOW_QUESTIONS', { count: questions.length });
     return (
         <div className="flex flex-col gap-3" data-page-skipped>
             <p className="text-[15px] italic" style={{ color: softInk(ctx.theme) }}>
-                {answeredCount > 0
-                    ? 'Skipped: this respondent\'s answers sent them past this page. Answers given here before they changed course are still stored, and shown below.'
-                    : 'Skipped: this respondent\'s answers sent them past this page.'}
+                {answeredCount > 0 ? t('RESPONSE_PAGE.SKIPPED_NOTE_KEPT') : t('RESPONSE_PAGE.SKIPPED_NOTE')}
             </p>
             {questions.length > 0 && (
                 <details className="text-[15px]" open={answeredCount > 0}>
@@ -312,7 +316,7 @@ function SkippedPage({ fields, answers, ctx }: { fields: StandardFormFieldDto[];
                     <div className="mt-4 flex flex-col gap-6">
                         {questions.map((field) =>
                             fieldHasAnswer(field, answers) ? (
-                                <ReadOnlyQuestion key={field.id} field={field} answers={answers} ctx={ctx} note={field.type === FieldTypes.CALCULATED ? 'Calculated, on a page the respondent skipped' : ANSWERED_THEN_SKIPPED} />
+                                <ReadOnlyQuestion key={field.id} field={field} answers={answers} ctx={ctx} note={field.type === FieldTypes.CALCULATED ? CALCULATED_SKIPPED : ANSWERED_THEN_SKIPPED} />
                             ) : (
                                 <NotShownQuestion key={field.id} field={field} ctx={ctx} idPrefix="rp-" />
                             )

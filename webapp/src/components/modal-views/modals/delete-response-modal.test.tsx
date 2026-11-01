@@ -3,6 +3,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import '@app/shared/hocs/i18n-provider'; // the catalogue's English text
 import { isSameSitePath } from '@app/utils/same-site-path';
 
 import DeleteResponseModal from './delete-response-modal';
