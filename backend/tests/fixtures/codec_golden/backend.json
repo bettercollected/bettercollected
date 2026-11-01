@@ -2217,7 +2217,7 @@
   "document": "FormImportDocument"
  },
  "form_responses/full": {
-  "checksum": "sha256:84ac7078b74d5cba8708faaaf69a0613158339934da0b42933597809ffd7f3ee",
+  "checksum": "sha256:8df44aaf5f9b141c1e261c53f25da6528b232f99fedde1b44eec0e33c3eafedf",
   "doc": {
    "_id": {
     "$oid": "2badfbd5705103813c283a21"
@@ -2227,6 +2227,14 @@
    "anonymous_identity": "FormResponseDocument.anonymous_identity tëxt ✓ \"quoted\" \\ line\nbreak",
    "answers": {
     "FormResponseDocument.answers.key tëxt ✓ \"quoted\" \\ line\nbreak": {
+     "address": {
+      "city": null,
+      "country": null,
+      "house_number": null,
+      "house_number_addition": null,
+      "postcode": null,
+      "street": null
+     },
      "boolean": true,
      "choice": {
       "other": null,
@@ -2261,6 +2269,7 @@
      "items": [
       {
        "FormResponseDocument.answers.value.items[0].key tëxt ✓ \"quoted\" \\ line\nbreak": {
+        "address": null,
         "boolean": null,
         "choice": null,
         "choices": null,
@@ -2285,6 +2294,7 @@
       },
       {
        "FormResponseDocument.answers.value.items[1].key tëxt ✓ \"quoted\" \\ line\nbreak": {
+        "address": null,
         "boolean": null,
         "choice": null,
         "choices": null,
@@ -2368,6 +2378,14 @@
    },
    "internal_answers": {
     "FormResponseDocument.internal_answers.key tëxt ✓ \"quoted\" \\ line\nbreak": {
+     "address": {
+      "city": null,
+      "country": null,
+      "house_number": null,
+      "house_number_addition": null,
+      "postcode": null,
+      "street": null
+     },
      "boolean": true,
      "choice": {
       "other": null,
@@ -2402,6 +2420,7 @@
      "items": [
       {
        "FormResponseDocument.internal_answers.value.items[0].key tëxt ✓ \"quoted\" \\ line\nbreak": {
+        "address": null,
         "boolean": null,
         "choice": null,
         "choices": null,
@@ -2426,6 +2445,7 @@
       },
       {
        "FormResponseDocument.internal_answers.value.items[1].key tëxt ✓ \"quoted\" \\ line\nbreak": {
+        "address": null,
         "boolean": null,
         "choice": null,
         "choices": null,
@@ -2642,7 +2662,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/naive": {
-  "checksum": "sha256:763fee11e920ecbed59dfae5df7fcb985ff7f816a6d30f07499cf860aa6eadd0",
+  "checksum": "sha256:ee61bb95ebdff0bce46dd5b64f4c228b2e2403ef9264fdd1f30aca848ed0dbfb",
   "doc": {
    "_id": {
     "$oid": "10cd94a70aa205bdc7631e61"
@@ -2652,6 +2672,14 @@
    "anonymous_identity": "FormResponseDocument.anonymous_identity tëxt ✓ \"quoted\" \\ line\nbreak",
    "answers": {
     "FormResponseDocument.answers.key tëxt ✓ \"quoted\" \\ line\nbreak": {
+     "address": {
+      "city": null,
+      "country": null,
+      "house_number": null,
+      "house_number_addition": null,
+      "postcode": null,
+      "street": null
+     },
      "boolean": true,
      "choice": {
       "other": null,
@@ -2686,6 +2714,7 @@
      "items": [
       {
        "FormResponseDocument.answers.value.items[0].key tëxt ✓ \"quoted\" \\ line\nbreak": {
+        "address": null,
         "boolean": null,
         "choice": null,
         "choices": null,
@@ -2710,6 +2739,7 @@
       },
       {
        "FormResponseDocument.answers.value.items[1].key tëxt ✓ \"quoted\" \\ line\nbreak": {
+        "address": null,
         "boolean": null,
         "choice": null,
         "choices": null,
@@ -2793,6 +2823,14 @@
    },
    "internal_answers": {
     "FormResponseDocument.internal_answers.key tëxt ✓ \"quoted\" \\ line\nbreak": {
+     "address": {
+      "city": null,
+      "country": null,
+      "house_number": null,
+      "house_number_addition": null,
+      "postcode": null,
+      "street": null
+     },
      "boolean": true,
      "choice": {
       "other": null,
@@ -2827,6 +2865,7 @@
      "items": [
       {
        "FormResponseDocument.internal_answers.value.items[0].key tëxt ✓ \"quoted\" \\ line\nbreak": {
+        "address": null,
         "boolean": null,
         "choice": null,
         "choices": null,
@@ -2851,6 +2890,7 @@
       },
       {
        "FormResponseDocument.internal_answers.value.items[1].key tëxt ✓ \"quoted\" \\ line\nbreak": {
+        "address": null,
         "boolean": null,
         "choice": null,
         "choices": null,
@@ -3067,7 +3107,7 @@
   "document": "FormResponseDocument"
  },
  "form_templates/full": {
-  "checksum": "sha256:e5bc35ed0aa75b45a5a8febcc82874ebc49bedb43b2352c684d1328df365ac74",
+  "checksum": "sha256:5c7281b0f44332842d3b62f46b62bc502af694ffd5d834b959054ba5e0a006ea",
   "doc": {
    "_id": {
     "$oid": "081f1de730ff4503d0f47270"
@@ -3097,6 +3137,7 @@
      "internal": true,
      "properties": {
       "actions": null,
+      "addressLookup": null,
       "allowMultipleSelection": null,
       "allowOtherChoice": null,
       "buttonText": null,
@@ -3104,6 +3145,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "countries": null,
       "currencies": null,
       "dateFormat": null,
       "dateRules": null,
@@ -3173,6 +3215,7 @@
      "internal": true,
      "properties": {
       "actions": null,
+      "addressLookup": null,
       "allowMultipleSelection": null,
       "allowOtherChoice": null,
       "buttonText": null,
@@ -3180,6 +3223,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "countries": null,
       "currencies": null,
       "dateFormat": null,
       "dateRules": null,
@@ -3350,7 +3394,7 @@
   "document": "FormTemplateDocument"
  },
  "form_templates/naive": {
-  "checksum": "sha256:6064a8fe3e677d4e52cd6b3e58f8714c09bb42cf4c450a8573bbcdfcd41cb025",
+  "checksum": "sha256:1860380ab3977fcadbe22200cff52259fd7678efffb3cc823b8607dafcd166e2",
   "doc": {
    "_id": {
     "$oid": "e059e369c6a20f3d47778cec"
@@ -3380,6 +3424,7 @@
      "internal": true,
      "properties": {
       "actions": null,
+      "addressLookup": null,
       "allowMultipleSelection": null,
       "allowOtherChoice": null,
       "buttonText": null,
@@ -3387,6 +3432,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "countries": null,
       "currencies": null,
       "dateFormat": null,
       "dateRules": null,
@@ -3456,6 +3502,7 @@
      "internal": true,
      "properties": {
       "actions": null,
+      "addressLookup": null,
       "allowMultipleSelection": null,
       "allowOtherChoice": null,
       "buttonText": null,
@@ -3463,6 +3510,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "countries": null,
       "currencies": null,
       "dateFormat": null,
       "dateRules": null,
@@ -3628,7 +3676,7 @@
   "document": "FormTemplateDocument"
  },
  "form_versions/full": {
-  "checksum": "sha256:20e1f9a61a5f2177f2f5e9744b45ffa17701cd210750f5d9dc3fa0ab8d8845fa",
+  "checksum": "sha256:a98fe66af564bf11e34ca5518d384b7f355dcb59394786f0d36c425e1a7d165e",
   "doc": {
    "_id": {
     "$oid": "4dba015f9787ef732cba733e"
@@ -3694,6 +3742,7 @@
      "internal": true,
      "properties": {
       "actions": null,
+      "addressLookup": null,
       "allowMultipleSelection": null,
       "allowOtherChoice": null,
       "buttonText": null,
@@ -3701,6 +3750,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "countries": null,
       "currencies": null,
       "dateFormat": null,
       "dateRules": null,
@@ -3770,6 +3820,7 @@
      "internal": true,
      "properties": {
       "actions": null,
+      "addressLookup": null,
       "allowMultipleSelection": null,
       "allowOtherChoice": null,
       "buttonText": null,
@@ -3777,6 +3828,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "countries": null,
       "currencies": null,
       "dateFormat": null,
       "dateRules": null,
@@ -4174,7 +4226,7 @@
   "document": "FormVersionsDocument"
  },
  "form_versions/naive": {
-  "checksum": "sha256:c9527c18dca7068756d7963dd8fabece63dc493fd30b8f14f49fbc3284e3b1cf",
+  "checksum": "sha256:c83b6713251055384653be5d57f97fe421f82aec70c7c3022c3358162b1343ae",
   "doc": {
    "_id": {
     "$oid": "43be05d1a65c7a21699ae9d8"
@@ -4240,6 +4292,7 @@
      "internal": true,
      "properties": {
       "actions": null,
+      "addressLookup": null,
       "allowMultipleSelection": null,
       "allowOtherChoice": null,
       "buttonText": null,
@@ -4247,6 +4300,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "countries": null,
       "currencies": null,
       "dateFormat": null,
       "dateRules": null,
@@ -4316,6 +4370,7 @@
      "internal": true,
      "properties": {
       "actions": null,
+      "addressLookup": null,
       "allowMultipleSelection": null,
       "allowOtherChoice": null,
       "buttonText": null,
@@ -4323,6 +4378,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "countries": null,
       "currencies": null,
       "dateFormat": null,
       "dateRules": null,
@@ -4701,7 +4757,7 @@
   "document": "FormVersionsDocument"
  },
  "forms/full": {
-  "checksum": "sha256:2dc12f348bc79ed759f6912911d8b6003ed17d53213aa99b7df4c28e9822f57d",
+  "checksum": "sha256:6155e7c75091ec53370ccb165619714b2b0cf873049e2841d89c3aea2294530f",
   "doc": {
    "_id": {
     "$oid": "59514663b83c1ab0eecfa44a"
@@ -4767,6 +4823,7 @@
      "internal": true,
      "properties": {
       "actions": null,
+      "addressLookup": null,
       "allowMultipleSelection": null,
       "allowOtherChoice": null,
       "buttonText": null,
@@ -4774,6 +4831,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "countries": null,
       "currencies": null,
       "dateFormat": null,
       "dateRules": null,
@@ -4843,6 +4901,7 @@
      "internal": true,
      "properties": {
       "actions": null,
+      "addressLookup": null,
       "allowMultipleSelection": null,
       "allowOtherChoice": null,
       "buttonText": null,
@@ -4850,6 +4909,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "countries": null,
       "currencies": null,
       "dateFormat": null,
       "dateRules": null,
@@ -5245,7 +5305,7 @@
   "document": "FormDocument"
  },
  "forms/naive": {
-  "checksum": "sha256:0c3571bfa4f10196a7bbbd6c1b085616de8688761f1281abe80c68f99068a5d7",
+  "checksum": "sha256:5a80fb196058a8ecf9530fbf6841ef25f4c79c92b3b0b60b10524f1963be6327",
   "doc": {
    "_id": {
     "$oid": "a3e31dcf7bba394ece4402b6"
@@ -5311,6 +5371,7 @@
      "internal": true,
      "properties": {
       "actions": null,
+      "addressLookup": null,
       "allowMultipleSelection": null,
       "allowOtherChoice": null,
       "buttonText": null,
@@ -5318,6 +5379,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "countries": null,
       "currencies": null,
       "dateFormat": null,
       "dateRules": null,
@@ -5387,6 +5449,7 @@
      "internal": true,
      "properties": {
       "actions": null,
+      "addressLookup": null,
       "allowMultipleSelection": null,
       "allowOtherChoice": null,
       "buttonText": null,
@@ -5394,6 +5457,7 @@
       "colSpan": null,
       "columnTitles": null,
       "conditions": null,
+      "countries": null,
       "currencies": null,
       "dateFormat": null,
       "dateRules": null,

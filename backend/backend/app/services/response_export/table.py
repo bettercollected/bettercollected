@@ -30,6 +30,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 
+from common.address import one_line as address_line
+
 CellValue = Any  # str | int | float
 
 RESPONDER_ID_COLUMN = "Responder ID"
@@ -73,6 +75,7 @@ _PLACEHOLDERS = {
     "currency": "Enter an amount",
     "date_range": "Select the first and the last day",
     "tags": "Type a tag and press Enter",
+    "address": "Enter an address",
     "linear_rating": "Rate from 1 to 10",
     "matrix": "Matrix Field",
     "tabular_input": "Tabular Input Field",
@@ -362,6 +365,10 @@ def answer_value(answers: Dict[str, Any], field_: Dict[str, Any], separator: Opt
         # one cell, the tags joined (webapp ``getAnswerForField``)
         tags = answer.get("tags")
         return _join((t for t in tags if isinstance(t, str)), separator if separator is not None else "; ") if isinstance(tags, list) else ""
+    if kind == "address":
+        # one cell, one line: "street number addition, postcode city" and the
+        # country code unless NL (webapp ``addressLine``)
+        return address_line(_get(answer, "address"))
     if kind == "yes_no":
         flag = answer.get("boolean")
         return "Yes" if flag is True else "No" if flag is False else ""

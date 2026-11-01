@@ -18,6 +18,7 @@ from backend.app.models.dtos.deletion_request_dto import (
     ClosedDeletionRequest,
     CloseDeletionRequestBody,
 )
+from backend.app.models.dtos.address_lookup_dto import AddressLookupRequest
 from backend.app.models.dtos.flow_event_dto import FlowEventRequest
 from backend.app.models.dtos.form_response_dto import (
     InternalAnswersPatch,
@@ -42,6 +43,7 @@ from backend.app.models.filter_queries.response_list import (
 from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.repositories.postgres.analytics import PostgresFlowEventRepository
 from backend.app.router import router
+from backend.app.services.address_lookup.service import AddressLookupService
 from backend.app.services.flow_event_service import FlowEventService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.receipt_limits import (
@@ -78,6 +80,9 @@ class WorkspaceResponsesRouter(CustomRoutable):
         ),
         flow_event_service: FlowEventService = container.flow_event_service(),
         receipt_limits: ReceiptLimits = container.receipt_limits(),
+        address_lookup_service: AddressLookupService = (
+            container.address_lookup_service()
+        ),
         *args,
         **kwargs
     ):
@@ -87,6 +92,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
         self._flow_event_repo = flow_event_repo
         self._flow_event_service = flow_event_service
         self._receipt_limits = receipt_limits
+        self._address_lookup_service = address_lookup_service
 
     @get(
         "/forms/{form_id}/submissions",
@@ -280,6 +286,35 @@ class WorkspaceResponsesRouter(CustomRoutable):
             body=body,
             user=user,
             access_token=forwarded_access_token(request, response),
+        )
+
+    @post("/forms/{form_id}/address-lookup")
+    async def look_up_address(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        body: AddressLookupRequest,
+        request: Request,
+        response: Response,
+    ):
+        """
+        Street and city of a Dutch postcode and house number, for an address
+        question of a published form (the respondent's form fills them in; the
+        respondent can change them). Public, like the form. 404 unless the
+        server has the lookup on, the form is published in this workspace and
+        the question asks for a lookup (all the same 404); 422 for input that
+        is not a postcode and a house number; 429 per client and form and per
+        form; 503 when the service cannot answer (type the address instead).
+        Nothing is stored or logged of what was asked.
+        """
+        response.headers["Cache-Control"] = "no-store"
+        return await self._address_lookup_service.lookup(
+            workspace_id=workspace_id,
+            form_ref=form_id,
+            field_id=body.field_id,
+            postcode=body.postcode,
+            house_number=body.house_number,
+            client=request_client_ip(request),
         )
 
     @post("/forms/{form_id}/flow-events")

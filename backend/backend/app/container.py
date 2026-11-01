@@ -117,6 +117,7 @@ from backend.app.services.ai.outline_service import FormOutlineService
 from backend.app.services.integration_action_service import IntegrationActionService
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.integration_service import IntegrationService
+from backend.app.services.address_lookup.service import AddressLookupService
 from backend.app.services.flow_event_service import FlowEventService
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.app.services.receipt_limits import ReceiptLimits
@@ -344,6 +345,14 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
         flow_event_repo=flow_event_repo,
+        rate_limiter=rate_limiter,
+    )
+    # street and city of an address question from a postcode and house number
+    # (a public route; one instance keeps the cache and the breaker)
+    address_lookup_service: AddressLookupService = providers.Singleton(
+        AddressLookupService,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
         rate_limiter=rate_limiter,
     )
     # rate limits and the daily budget of the AI endpoints

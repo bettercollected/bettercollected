@@ -26,9 +26,11 @@ from common.models.standard_form import (
     Theme,
     check_field_date_rules,
     check_repeating_group_structure,
+    check_countries,
     check_tags_settings,
     check_type_settings,
 )
+from common.countries import COUNTRIES_MAX
 from common.currencies import CURRENCIES_MAX
 from fastapi import UploadFile
 from fastapi_camelcase import CamelModel
@@ -132,6 +134,9 @@ class StandardFieldPropertyCamelModel(CamelModel):
     min_time: Optional[str] = None
     max_time: Optional[str] = None
     currencies: Optional[List[str]] = Field(None, max_length=CURRENCIES_MAX)
+    # An address question's allowed countries and street and city lookup.
+    countries: Optional[List[str]] = Field(None, max_length=COUNTRIES_MAX)
+    address_lookup: Optional[bool] = None
     # "Why we ask this" line under an identifying question (services/publish_checks.py).
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
     # A page's own section title (common StandardFieldProperty.section_title).
@@ -152,6 +157,7 @@ class StandardFieldPropertyCamelModel(CamelModel):
     @model_validator(mode="after")
     def _check_type_settings(self):
         check_type_settings(self.min_time, self.max_time, self.currencies)
+        check_countries(self.countries)
         return self
 
 

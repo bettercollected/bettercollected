@@ -1105,6 +1105,41 @@ write-only secret) and per form choose the **variables** sent as a Generic JSON 
   sweeps do nothing; saved settings and rows stay. A new registration endpoint calls `refuse_when_off()` first and
   gets a row in `tests/app/registration/test_permissions.py`.
 
+## Address question and its lookup
+
+Field type `address` (answer slot `address`: `street`, `house_number`, `house_number_addition`, `postcode`, `city`,
+`country`; settings `properties.countries` (ISO 3166-1 alpha-2, default NL only) and `properties.address_lookup`).
+The rules of a value are the pure functions of `common/address.py` (twin `webapp/src/utils/address.ts`; country list
+`common/countries.py`, twin `utils/countries.ts`, both compared with `docs/spec/countries-v1.json`):
+`answer_validation` calls `address.hard_problem` (any stored answer) and `address.problems` (an answered, shown
+question: `required`, `format`, `country`, `too_long`). Spec section "Address question" in `docs/spec/README.md`; operator
+notes in `docs/address-question.md`. Behind `ADDRESS_QUESTION_ENABLED` (default off): a second `Gate` in
+`services/new_question_types.py` (422 `address_question_disabled`, same paths as the newer types; there is one
+implementation of the "new or changed" comparison, never add a parallel check), served as `addressQuestionEnabled`.
+Logic reads the **postcode** as text (`ADDRESS_COMPARISONS`: `IS_EQUAL`, `IS_NOT_EQUAL`, `STARTS_WITH`, `IS_EMPTY`,
+`IS_NOT_EMPTY`; the spec check and the ops engine refuse others). Not a formula variable, rules may require/retitle/describe it
+(never set or lock it), the export cell is one line (`common.address.one_line`; temporal twin `address_line`), the AI sees
+`[address]`. Not yet mappable in webhooks, registration or email actions (`registration/body.py` `SUPPORTED_TYPES`).
+
+The **lookup** (`services/address_lookup/`, route `POST /workspaces/{id}/forms/{form_id}/address-lookup`, public like the
+form, in `controllers/workspace_responses.py`) fills in street and city from a Dutch postcode and house number. Rules to keep:
+
+- Only while `ADDRESS_QUESTION_ENABLED` **and** `ADDRESS_LOOKUP_ENABLED` are on (both default off; `mode.py`), for a published
+  form of the workspace, a non-internal address question that asks for a lookup (NL allowed, `address_lookup` not false):
+  everything else is the same 404. The respondent's view of the form carries the effective flag
+  (`internal_fields.strip_internal_fields` sets `address_lookup` false while the instance has it off).
+- `provider.py` is the only place that knows the service: host, path and field list are **constants** (no setting, no
+  caller-chosen URL), the query is built from two values that matched the strict patterns (`build_query` checks again), the
+  call goes through `registration.client.request` (the guarded client: public addresses only, pinned, no redirects, reply
+  cap, 5 s in all, one attempt), the reply is untrusted (only a document with the postcode and number asked for counts;
+  several different places are "not found"). Never add a second HTTP path, never send the house number addition or anything
+  else a respondent typed.
+- `service.py`: rate limits per client and form and per form (`API_ADDRESS_LOOKUP_*`, live), in-memory cache (found 6 h,
+  not found 10 min, errors never), at most 8 calls in flight, a breaker after 5 failures in a row. **Nothing that was
+  asked is stored or logged** (counts and our own failure codes only; the route is a POST so the postcode never sits in a
+  URL, an access log or a referrer). Provider failures answer 503 `lookup_unavailable` and the form falls back to typing.
+- Tests give the service a fake transport (`tests/app/address_lookup/`); no test or script may call the real service.
+
 ## Cross-service integration points
 
 - **Auth:** `services/auth_service.py` — OAuth state + OTP, JWT via `common.services.jwt_service`; sessions in

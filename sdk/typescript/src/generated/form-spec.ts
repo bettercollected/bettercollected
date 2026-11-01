@@ -230,6 +230,7 @@ export interface FormField {
         | "currency"
         | "date_range"
         | "tags"
+        | "address"
         | "short_text"
         | "long_text"
         | "multiple_choice"
@@ -358,6 +359,14 @@ export interface FormField {
    * A currency question: the ISO 4217 codes respondents may pick (the first is the default). Amounts are answered with min/max in validations.
    */
   currencies?: [string, ...string[]] | null;
+  /**
+   * An address question: the ISO 3166-1 alpha-2 codes of the countries respondents may give (default: NL only).
+   */
+  countries?: [string, ...string[]] | null;
+  /**
+   * An address question: fill in street and city from a Dutch postcode and house number while the server offers it (default: yes).
+   */
+  addressLookup?: boolean | null;
   whyWeAsk?: string | null;
   logic?: Logic | null;
   /**

@@ -40,6 +40,7 @@ from common.form_spec.models import (
     checked_pattern,
     count_fields,
 )
+from common.countries import COUNTRIES_MAX, is_country_code
 from common.currencies import CURRENCIES_MAX, is_currency_code, is_time
 from common.tags import TAG_LENGTH_MAX, TAGS_MAX
 from common.expressions import MAX_DEPTH as EXPRESSION_DEPTH_MAX, validate_expression
@@ -136,7 +137,7 @@ from backend.app.services.new_question_types import (
     GATED_OPS,
     Signatures,
     gated_signatures,
-    new_question_types_enabled,
+    gates_off,
     op_may_gate,
     question_type_problem,
 )
@@ -172,6 +173,9 @@ DATE_RANGE_COMPARISONS = (
 )
 # What a condition on a tags question may ask with a value.
 TAGS_VALUE_COMPARISONS = ("CONTAINS", "DOES_NOT_CONTAIN")
+# What a condition on an address question may ask: about its postcode (the
+# same list as repeating_groups.ADDRESS_COMPARISONS, a test keeps them equal).
+ADDRESS_COMPARISONS = ("IS_EQUAL", "IS_NOT_EQUAL", "STARTS_WITH", "IS_EMPTY", "IS_NOT_EMPTY")
 # The comparisons that order values (time and date conditions check their value).
 ORDERED_COMPARISONS = (
     "GREATER_THAN",
@@ -200,6 +204,7 @@ ADDABLE_FIELD_TYPES = {
     StandardFormFieldType.CURRENCY,
     StandardFormFieldType.DATE_RANGE,
     StandardFormFieldType.TAGS,
+    StandardFormFieldType.ADDRESS,
     StandardFormFieldType.YES_NO,
     StandardFormFieldType.MULTIPLE_CHOICE,
     StandardFormFieldType.DROPDOWN,
@@ -278,6 +283,11 @@ class NewFieldSpec(_CamelModel):
     max_time: Optional[str] = None
     # currency only: ISO 4217 codes respondents may pick (the first is the default)
     currencies: Optional[List[str]] = Field(None, max_length=CURRENCIES_MAX)
+    # address only: the allowed ISO 3166-1 alpha-2 country codes (default NL
+    # only) and whether street and city are looked up from a Dutch postcode
+    # and house number (default yes, where the server offers it)
+    countries: Optional[List[str]] = Field(None, max_length=COUNTRIES_MAX)
+    address_lookup: Optional[bool] = None
     # "Why we ask this", shown under the question; publishing needs one on
     # email, phone and ID-number questions (services/publish_checks.py).
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
@@ -336,6 +346,10 @@ class FieldPatch(_CamelModel):
     # currency questions only: the allowed ISO 4217 codes (full replacement;
     # [] goes back to the default, EUR)
     currencies: Optional[List[str]] = Field(None, max_length=CURRENCIES_MAX)
+    # address questions only: the allowed country codes (full replacement;
+    # [] goes back to the default, NL only) and the street and city lookup
+    countries: Optional[List[str]] = Field(None, max_length=COUNTRIES_MAX)
+    address_lookup: Optional[bool] = None
     # "Why we ask this" line under the question ("" clears).
     why_we_ask: Optional[str] = Field(None, max_length=WHY_WE_ASK_MAX_LENGTH)
     # calculated fields only (see NewFieldSpec)
@@ -1260,7 +1274,15 @@ def _build_field(spec: NewFieldSpec, index: int) -> StandardFormField:
         if spec.type not in LABEL_FIELD_TYPES:
             raise OpError("A label only applies to date, day and time questions.")
         properties.label = spec.label
-    _apply_type_settings(spec.type, properties, spec.min_time, spec.max_time, spec.currencies)
+    _apply_type_settings(
+        spec.type,
+        properties,
+        spec.min_time,
+        spec.max_time,
+        spec.currencies,
+        spec.countries,
+        spec.address_lookup,
+    )
 
     _set_calculation(
         spec.type, properties, spec.expression, spec.format, spec.hidden_from_respondents, spec.unanswered_as_zero
@@ -1360,10 +1382,13 @@ def _apply_type_settings(
     min_time: Optional[str],
     max_time: Optional[str],
     currencies: Optional[List[str]],
+    countries: Optional[List[str]] = None,
+    address_lookup: Optional[bool] = None,
 ) -> List[str]:
-    """Set a time question's limits and a currency question's codes on
-    ``properties`` (checked like a builder save); returns the change
-    fragments. "" clears a time limit, [] the currency list."""
+    """Set a time question's limits, a currency question's codes and an
+    address question's countries and lookup on ``properties`` (checked like a
+    builder save); returns the change fragments. "" clears a time limit, []
+    the currency list or the country list."""
     changed: List[str] = []
     for key, value in (("min_time", min_time), ("max_time", max_time)):
         if value is None:
@@ -1392,6 +1417,24 @@ def _apply_type_settings(
             raise OpError("A currency is listed twice.")
         properties.currencies = list(currencies) or None
         changed.append("currencies")
+    if countries is not None:
+        if field_type != StandardFormFieldType.ADDRESS:
+            raise OpError("Countries only apply to address questions.")
+        for code in countries:
+            if not is_country_code(code):
+                raise OpError(
+                    f"'{code}' is not a country the form offers (use an ISO 3166-1 "
+                    "alpha-2 code such as NL, BE or DE, in capitals)."
+                )
+        if len(set(countries)) != len(countries):
+            raise OpError("A country is listed twice.")
+        properties.countries = list(countries) or None
+        changed.append("countries")
+    if address_lookup is not None:
+        if field_type != StandardFormFieldType.ADDRESS:
+            raise OpError("The address lookup only applies to address questions.")
+        properties.address_lookup = address_lookup
+        changed.append("address lookup")
     return changed
 
 
@@ -1457,7 +1500,13 @@ def _patch_field(field: StandardFormField, patch: FieldPatch) -> List[str]:
         changed.append("label")
     changed.extend(
         _apply_type_settings(
-            field.type, field.properties, patch.min_time, patch.max_time, patch.currencies
+            field.type,
+            field.properties,
+            patch.min_time,
+            patch.max_time,
+            patch.currencies,
+            patch.countries,
+            patch.address_lookup,
         )
     )
     if patch.date_rules is not None:
@@ -1893,6 +1942,12 @@ def _validated_value(source: StandardFormField, comparison: str, raw: Any) -> An
         raise OpError(
             "A condition on a tags question uses CONTAINS, DOES_NOT_CONTAIN, "
             "IS_EMPTY or IS_NOT_EMPTY."
+        )
+    if source.type == StandardFormFieldType.ADDRESS and comparison not in ADDRESS_COMPARISONS:
+        # only the postcode is compared, as text
+        raise OpError(
+            "A condition on an address question compares its postcode: IS_EQUAL, "
+            "IS_NOT_EQUAL, STARTS_WITH, IS_EMPTY or IS_NOT_EMPTY."
         )
     if raw in (None, ""):
         raise OpError(f"Comparison '{comparison}' needs a value.")
@@ -3925,7 +3980,7 @@ def apply_form_ops(
             # day or currency question new or changed against the form the
             # batch started from is refused and undone.
             types_snapshot = None
-            if op.op in GATED_OPS and not new_question_types_enabled():
+            if op.op in GATED_OPS and gates_off():
                 if started_types is None:
                     started_types = gated_signatures(form)
                 if op_may_gate(op, started_types):

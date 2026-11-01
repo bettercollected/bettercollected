@@ -36,3 +36,14 @@ def test_tags_are_one_cell_joined_with_semicolons():
     assert _answer("tags", {"type": "tags", "tags": ["red", "blue sky"]}) == "red; blue sky"
     assert _answer("tags", {"type": "tags", "tags": []}) == ""
     assert _answer("tags", {}) == ""
+
+
+def test_an_address_is_one_line_with_the_country_unless_nl():
+    answer = {
+        "type": "address",
+        "address": {"street": "Keizersgracht", "house_number": "12", "house_number_addition": "A", "postcode": "1015 CS", "city": "Amsterdam", "country": "NL"},
+    }
+    assert _answer("address", answer) == "Keizersgracht 12 A, 1015 CS Amsterdam"
+    belgian = {"type": "address", "address": {"street": "Rue Neuve", "house_number": "5", "postcode": "1000", "city": "Bruxelles", "country": "BE"}}
+    assert _answer("address", belgian) == "Rue Neuve 5, 1000 Bruxelles, BE"
+    assert _answer("address", {}) == ""

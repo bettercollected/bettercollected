@@ -10,8 +10,12 @@ from pydantic import EmailStr
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_permissions_dto import WorkspacePermissionsDto
+from backend.app.services.address_lookup.mode import address_lookup_enabled
 from backend.app.services.field_rules import field_rules_enabled
-from backend.app.services.new_question_types import new_question_types_enabled
+from backend.app.services.new_question_types import (
+    address_question_enabled,
+    new_question_types_enabled,
+)
 from backend.app.services.option_logic import choice_logic_enabled
 from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
@@ -223,6 +227,8 @@ class WorkspaceRouter(Routable):
             permissions=sorted(permissions, key=lambda p: p.value),
             field_rules_enabled=field_rules_enabled(),
             new_question_types_enabled=new_question_types_enabled(),
+            address_question_enabled=address_question_enabled(),
+            address_lookup_enabled=address_lookup_enabled(),
             choice_logic_enabled=choice_logic_enabled(),
             save_drafts_enabled=save_drafts_enabled(),
         )

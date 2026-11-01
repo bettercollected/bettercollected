@@ -1,0 +1,298 @@
+"""The lookup route's rules (``POST /workspaces/{id}/forms/{form_id}/address-lookup``).
+
+The route is public, like the respondent's form, so what it accepts is held to
+what a respondent of a published form can send:
+
+- it answers only while ``ADDRESS_QUESTION_ENABLED`` and ``ADDRESS_LOOKUP_ENABLED``
+  are on, for a form of this workspace that has a published version, and a
+  question of that version that is an address question asking for a lookup
+  (Dutch addresses allowed, its own switch not off), not internal. Everything
+  else is one and the same 404;
+- the input is a postcode and a house number, strictly validated (422
+  ``invalid_input``); the house number addition is never sent;
+- 30 requests per client and form and 600 per form per window (429);
+- the provider call is one attempt, at most ``MAX_IN_FLIGHT`` at a time per
+  process (the next one is "unavailable" at once), switched off for
+  ``BREAKER_OPEN_S`` after ``BREAKER_FAILURES`` failures in a row, and its
+  answers are cached in memory (found ``FOUND_TTL_S``, not found
+  ``NOT_FOUND_TTL_S``, ``CACHE_SIZE`` entries, errors never) under the two
+  validated values;
+- nothing is stored and nothing that was asked is logged: counts and our own
+  failure codes only.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import time
+from collections import OrderedDict
+from dataclasses import dataclass
+from http import HTTPStatus
+from typing import Any, Callable, Dict, FrozenSet, Iterator, Optional, Tuple
+
+from bson.errors import InvalidId
+from common.address import canonical_nl_postcode, is_nl_house_number
+from common.ids import RecordId
+from loguru import logger
+
+from backend.app.exceptions import HTTPException
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+    PostgresWorkspaceFormRepository,
+)
+from backend.app.services.address_lookup import provider
+from backend.app.services.address_lookup.mode import (
+    ADDRESS_TYPE,
+    address_lookup_enabled,
+    question_looks_up,
+)
+from backend.app.services.rate_limiter import FixedWindowRateLimiter
+from backend.app.utils.client_ip import rate_limit_key
+from common.settings.loader import live
+
+CLIENT_SCOPE = "address-lookup"
+FORM_SCOPE = "address-lookup-form"
+FORM_CACHE_S = 30.0
+FORM_CACHE_SIZE = 2048
+FOUND_TTL_S = 6 * 3600.0
+NOT_FOUND_TTL_S = 600.0
+CACHE_SIZE = 2048
+MAX_IN_FLIGHT = 8
+BREAKER_FAILURES = 5
+BREAKER_OPEN_S = 30.0
+RETRY_AFTER_S = 30
+FIELD_ID_MAX = 64
+
+UNAVAILABLE_CODE = "lookup_unavailable"
+
+
+@dataclass(frozen=True)
+class _Servable:
+    form_id: str
+    fields: FrozenSet[str]
+    loaded_at: float
+
+
+def _not_found() -> HTTPException:
+    return HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Not found")
+
+
+def _unavailable() -> HTTPException:
+    return HTTPException(
+        status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+        content={"code": UNAVAILABLE_CODE, "message": "Lookup is not available right now."},
+        headers={"Retry-After": str(RETRY_AFTER_S)},
+    )
+
+
+def _invalid() -> HTTPException:
+    return HTTPException(
+        status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        content={"code": "invalid_input", "message": "Enter a postcode and a house number."},
+    )
+
+
+def _walk(fields: Any) -> Iterator[Any]:
+    for field in fields or []:
+        yield field
+        properties = getattr(field, "properties", None)
+        yield from _walk(getattr(properties, "fields", None))
+
+
+def lookup_fields(form: Any) -> FrozenSet[str]:
+    """The ids of the questions of ``form`` a lookup may be asked for."""
+    found = set()
+    for field in _walk(getattr(form, "fields", None)):
+        kind = getattr(getattr(field, "type", None), "value", getattr(field, "type", None))
+        if (
+            kind == ADDRESS_TYPE
+            and getattr(field, "id", None)
+            and not getattr(field, "internal", None)
+            and question_looks_up(field)
+        ):
+            found.add(str(field.id))
+    return frozenset(found)
+
+
+class AddressLookupService:
+    def __init__(
+        self,
+        workspace_form_repo: PostgresWorkspaceFormRepository,
+        form_repo: PostgresFormRepository,
+        rate_limiter: FixedWindowRateLimiter,
+        transport: Optional[provider.Transport] = None,
+        monotonic: Callable[[], float] = time.monotonic,
+    ):
+        self._workspace_forms = workspace_form_repo
+        self._forms = form_repo
+        self._limiter = rate_limiter
+        self._transport = transport
+        self._monotonic = monotonic
+        self._forms_cache: Dict[Tuple[str, str], _Servable] = {}
+        # "1015CS 12" -> (street, city) or None, with the time it expires
+        self._results: "OrderedDict[str, Tuple[Optional[provider.Place], float]]" = OrderedDict()
+        self._in_flight = 0
+        self._failures = 0
+        self._open_until = 0.0
+        # outcome -> count, for tests and a health look; never what was asked
+        self.counts: Dict[str, int] = {}
+
+    # ------------------------------------------------------------ the route
+
+    async def lookup(
+        self,
+        workspace_id: RecordId,
+        form_ref: str,
+        field_id: str,
+        postcode: str,
+        house_number: str,
+        client: Optional[str],
+    ) -> Dict[str, str]:
+        if not address_lookup_enabled():
+            raise _not_found()
+        form = await self._servable(workspace_id, form_ref)
+        if form is None or field_id not in form.fields:
+            raise _not_found()
+        key = self._key(postcode, house_number)
+        if key is None:
+            raise self._count("invalid", _invalid())
+        await self._limit(form.form_id, client)
+        place = self._cached(key)
+        if place is _MISS:
+            place = await self._ask(key)
+        if place is None:
+            self._count("not_found")
+            return {"status": "not_found"}
+        self._count("found")
+        return {"status": "found", "street": place.street, "city": place.city}
+
+    # ------------------------------------------------------------- helpers
+
+    def _count(self, outcome: str, result: Any = None) -> Any:
+        self.counts[outcome] = self.counts.get(outcome, 0) + 1
+        return result
+
+    @staticmethod
+    def _key(postcode: Any, house_number: Any) -> Optional[str]:
+        canonical = canonical_nl_postcode(postcode if isinstance(postcode, str) else None)
+        number = house_number.strip() if isinstance(house_number, str) else ""
+        if canonical is None or not is_nl_house_number(number):
+            return None
+        return canonical.replace(" ", "") + " " + number
+
+    async def _limit(self, form_id: str, client: Optional[str]) -> None:
+        api = live().api
+        window = api.ADDRESS_LOOKUP_WINDOW_SECONDS
+        for scope, who, limit in (
+            (CLIENT_SCOPE, f"{form_id}\n{rate_limit_key(client)}", api.ADDRESS_LOOKUP_PER_WINDOW),
+            (FORM_SCOPE, form_id, api.ADDRESS_LOOKUP_FORM_PER_WINDOW),
+        ):
+            verdict = await self._limiter.hit(scope, who, limit, window)
+            if not verdict.allowed:
+                self._count("limited")
+                raise HTTPException(
+                    status_code=HTTPStatus.TOO_MANY_REQUESTS,
+                    content="Too many lookups; try again later.",
+                    headers={"Retry-After": str(verdict.retry_after)},
+                )
+
+    def _cached(self, key: str) -> Any:
+        entry = self._results.get(key)
+        if entry is None:
+            return _MISS
+        place, expires = entry
+        if self._monotonic() >= expires:
+            self._results.pop(key, None)
+            return _MISS
+        self._results.move_to_end(key)
+        return place
+
+    def _remember(self, key: str, place: Optional[provider.Place]) -> None:
+        ttl = FOUND_TTL_S if place is not None else NOT_FOUND_TTL_S
+        self._results[key] = (place, self._monotonic() + ttl)
+        self._results.move_to_end(key)
+        while len(self._results) > CACHE_SIZE:
+            self._results.popitem(last=False)
+
+    async def _ask(self, key: str) -> Optional[provider.Place]:
+        now = self._monotonic()
+        if now < self._open_until:
+            self._count("unavailable")
+            raise _unavailable()
+        if self._in_flight >= MAX_IN_FLIGHT:
+            self._count("unavailable")
+            raise _unavailable()
+        postcode, number = key.split(" ")
+        transport = self._transport or provider.http_transport
+        self._in_flight += 1
+        try:
+            body = await transport(provider.build_query(postcode, number))
+            place = provider.parse_reply(body, postcode, number)
+        except provider.LookupUnavailable as failed:
+            self._failed(failed.code)
+            raise _unavailable()
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:  # a bug or a library: never its text
+            self._failed(type(error).__name__)
+            raise _unavailable()
+        finally:
+            self._in_flight -= 1
+        self._failures = 0
+        self._remember(key, place)
+        return place
+
+    def _failed(self, code: str) -> None:
+        self._failures += 1
+        self._count("unavailable")
+        if self._failures >= BREAKER_FAILURES:
+            self._open_until = self._monotonic() + BREAKER_OPEN_S
+            self._failures = 0
+        logger.warning("address lookup unavailable: {code}", code=code)
+
+    # ---------------------------------------------------------------- forms
+
+    async def _servable(self, workspace_id: RecordId, form_ref: str) -> Optional[_Servable]:
+        if not isinstance(form_ref, str) or not 0 < len(form_ref) <= 64:
+            return None
+        key = (str(workspace_id), form_ref)
+        now = self._monotonic()
+        cached = self._forms_cache.get(key)
+        if cached is not None and now - cached.loaded_at < FORM_CACHE_S:
+            return cached
+        self._forms_cache.pop(key, None)
+        form = await self._load(workspace_id, form_ref, now)
+        if form is not None:
+            if len(self._forms_cache) >= FORM_CACHE_SIZE:
+                self._forms_cache.clear()
+            self._forms_cache[key] = form
+        return form
+
+    async def _load(
+        self, workspace_id: RecordId, form_ref: str, now: float
+    ) -> Optional[_Servable]:
+        workspace_form = (
+            await self._workspace_forms.get_workspace_form_with_custom_slug_form_id(
+                workspace_id=workspace_id, custom_url=form_ref
+            )
+        )
+        if workspace_form is None:
+            return None
+        try:
+            form_id = RecordId(workspace_form.form_id)
+        except (InvalidId, TypeError, ValueError):
+            return None
+        published = await self._forms.get_latest_version_of_form(form_id)
+        if published is None:
+            return None
+        fields = lookup_fields(published)
+        if not fields:
+            return None
+        return _Servable(form_id=str(workspace_form.form_id), fields=fields, loaded_at=now)
+
+
+class _Miss:
+    pass
+
+
+_MISS = _Miss()

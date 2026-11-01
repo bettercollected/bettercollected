@@ -159,7 +159,9 @@ VALUE_TYPES = TEXT_TYPES | CHOICE_TYPES | {
 }
 # Types that hold no answer a rule could apply to (content, pages, hidden
 # and calculated fields): rules may not sit on them.
-NOT_RULE_TARGETS = NOT_VARIABLES | {CALCULATED, GROUP}
+# An address question is no formula variable but may be required, retitled or
+# described by a rule (never set or locked: the form cannot invent an address).
+NOT_RULE_TARGETS = (NOT_VARIABLES - {"address"}) | {CALCULATED, GROUP}
 _PIPE = re.compile(r"\{\{\s*(field|hidden|group)\s*:\s*([^|}]*?)\s*(?:\|[^}]*)?\}\}")
 _ANSWER_TYPE = {
     "short_text": "text",
