@@ -355,7 +355,8 @@ async def check_consumers(
         raise Refusal("consumer_env_override")
     if any(c.restart_pending for c in live):
         raise Refusal("consumer_restart_pending")
-    # a build with key-ring support appends its mark to the fingerprint
+    # a build with key-ring support appends its mark to the fingerprint it reports
+    # (``common.settings.key_ring.REPORT_MARK``); the keyset's own part is compared
     if any(c.keyset_fp.removesuffix(REPORT_MARK) != expected for c in live):
         raise Refusal("consumer_missing_key")
     if any(c.revision_applied < min_revision for c in live):
