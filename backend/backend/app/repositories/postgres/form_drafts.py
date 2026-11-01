@@ -41,11 +41,14 @@ class PostgresFormDraftRepository(RecordRepository):
         )
 
     async def count_live_for_address(
-        self, form_id, email_key: str, now: dt.datetime
+        self, form_id, email_key, now: dt.datetime
     ) -> int:
+        """``email_key``: one keyed hash of the address, or the list of them
+        (one per member of the JWT key ring, docs/auth-key-rotation.md)."""
+        keys = [email_key] if isinstance(email_key, str) else list(email_key)
         return await self.count(
             FormDraftRow.form_id == _id(form_id),
-            FormDraftRow.email_key == email_key,
+            FormDraftRow.email_key.in_(keys),
             FormDraftRow.expires_at > now,
         )
 

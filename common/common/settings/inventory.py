@@ -296,13 +296,17 @@ SESSION: Tuple[SettingSpec, ...] = (
 
 KEYS = dict(section="auth_keys", tier=T4)
 KEY_MATERIAL: Tuple[SettingSpec, ...] = (
-    _secret("AUTH_JWT_SECRET", readers=(BACKEND, AUTH, GOOGLE), format="token",
-            description="Signs session tokens; rotated by a task, not edited.", **KEYS),
+    # JWT secret and Fernet key are KEY RINGS: "<current>[,<previous>]" (docs/auth-key-rotation.md).
+    # The first signs and encrypts, every member verifies and decrypts. The task runner (TASKS)
+    # reads them to rotate them, like the response keyset.
+    _secret("AUTH_JWT_SECRET", readers=(BACKEND, AUTH, GOOGLE, TASKS), format="token_ring",
+            description="Signs session tokens; a ring of one or two secrets, current first; rotated by a task, not edited.",
+            **KEYS),
     # The actions executor runs user-authored code, so it is NOT a reader of any key
     # material: it must not be handed this key (see docs/admin-service.md).
-    _secret("AUTH_AES_HEX_KEY", readers=(BACKEND, AUTH, GOOGLE, WORKER), format="fernet",
+    _secret("AUTH_AES_HEX_KEY", readers=(BACKEND, AUTH, GOOGLE, WORKER, TASKS), format="fernet_ring",
             retired_readers=(EXECUTOR,),  # rows written before it was dropped still list it
-            description="Fernet key for state and secrets; rotated by a task. The workers call it AES_HEX_KEY.",
+            description="Fernet key for state and secrets; a ring of one or two keys, current first; rotated by a task. The workers call it AES_HEX_KEY.",
             **KEYS),
     _secret("AUTH_INTERNAL_NOTIFY_KEY", readers=(BACKEND, AUTH, GOOGLE), format="token",
             description="Shared key for internal service calls; rotated by a task.", **KEYS),

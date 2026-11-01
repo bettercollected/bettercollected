@@ -3,8 +3,11 @@
 The account's ``otp_code`` holds ``otp1$<wrong tries>$<hex HMAC-SHA256>``:
 
 * the key is a sub-key of ``AUTH_AES_HEX_KEY``, HMAC(key, ``SUBKEY_LABEL``),
-  so the raw key is never reused as an HMAC key. Rotating that key
-  invalidates the codes pending at that moment (they live 5 minutes);
+  so the raw key is never reused as an HMAC key. During a rotation
+  ``AUTH_AES_HEX_KEY`` is a key ring (``<current>,<previous>``,
+  docs/auth-key-rotation.md): a code is hashed with the current member and
+  checked against every member, so the codes pending at a promotion stay valid
+  (they live 5 minutes);
 * the hashed message binds the code to the account's id (immutable, and never
   case-folded: Python's and Postgres' ``lower`` may disagree on an email), the
   purpose (``otp_code_for``: creator or respondent) and the expiry, so a stored
@@ -26,6 +29,8 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+from common.settings import key_ring
+
 from auth.config import settings
 
 #: Wrong tries before a code is cleared and a new one must be requested.
@@ -41,11 +46,28 @@ class StoredCode:
     digest: str
 
 
-def _key(secret: Optional[str]) -> bytes:
+def _keys(secret: Optional[str]) -> list:
+    """The sub-keys of the key ring, current first."""
     secret = settings.AUTH_AES_HEX_KEY if secret is None else secret
-    if not secret:
+    members = key_ring.fernet_members(secret)
+    if not members:
         raise RuntimeError("AUTH_AES_HEX_KEY is not set")
-    return hmac.new(secret.encode(), SUBKEY_LABEL, hashlib.sha256).digest()
+    return key_ring.derive_all(members, SUBKEY_LABEL)
+
+
+def _digest_with(key: bytes, code: str, account_id, purpose, expiry: int) -> str:
+    message = json.dumps(
+        [
+            "v1",
+            str(account_id),
+            str(getattr(purpose, "value", purpose) or ""),
+            int(expiry),
+            code or "",
+        ],
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode()
+    return hmac.new(key, message, hashlib.sha256).hexdigest()
 
 
 def digest(
@@ -59,18 +81,7 @@ def digest(
     """The hex HMAC of ``code`` for this account (its id), purpose and expiry."""
     if not account_id:
         raise ValueError("a sign-in code is bound to an account id")
-    message = json.dumps(
-        [
-            "v1",
-            str(account_id),
-            str(getattr(purpose, "value", purpose) or ""),
-            int(expiry),
-            code or "",
-        ],
-        separators=(",", ":"),
-        ensure_ascii=True,
-    ).encode()
-    return hmac.new(_key(secret), message, hashlib.sha256).hexdigest()
+    return _digest_with(_keys(secret)[0], code, account_id, purpose, expiry)
 
 
 def stored(code_digest: str, wrong_tries: int = 0) -> str:
@@ -99,5 +110,10 @@ def matches(
     """Whether ``code`` is the one hashed into ``expected`` (constant time)."""
     if not isinstance(code, str) or not code:
         return False
-    candidate = digest(code, account_id, purpose, expiry, secret=secret)
-    return hmac.compare_digest(candidate, expected.digest)
+    if not account_id:
+        raise ValueError("a sign-in code is bound to an account id")
+    right = False
+    for key in _keys(secret):  # every member of the key ring, each one computed
+        candidate = _digest_with(key, code, account_id, purpose, expiry)
+        right = hmac.compare_digest(candidate, expected.digest) or right
+    return right

@@ -27,6 +27,7 @@ from urllib.parse import urlencode
 
 import httpx
 from common.configs.crypto import Crypto
+from common.settings import key_ring
 from common.constants import (
     MESSAGE_OAUTH_FETCH_TOKEN_ERROR,
     MESSAGE_OAUTH_INVALID_CLIENT,
@@ -34,7 +35,7 @@ from common.constants import (
     MESSAGE_OAUTH_MISSING_REFRESH_TOKEN,
     MESSAGE_OAUTH_MISSING_TOKEN_OR_EXPIRY,
 )
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import InvalidToken
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
@@ -65,7 +66,7 @@ MESSAGE_SHEET_UNAUTHORIZED = (
 _PKCE_LABEL = b"google-sheets-pkce-v1|"
 
 
-def pkce_code_verifier(state: str) -> str:
+def pkce_code_verifier(state: str, member: Optional[str] = None) -> str:
     """The PKCE verifier of the authorization request carrying ``state``.
 
     The authorization URL and the code exchange run in different requests
@@ -73,9 +74,18 @@ def pkce_code_verifier(state: str) -> str:
     state with a server-side key instead of being kept anywhere. Without the
     key an intercepted code and state cannot be exchanged. 43 characters from
     the unreserved set (RFC 7636 section 4.1).
+
+    ``member`` is the Fernet key (of the ``AUTH_AES_HEX_KEY`` ring) the verifier
+    is derived with: the current one when the request starts; at the exchange
+    the one that opens ``state`` (``Crypto.opening_member``), so a request
+    started before a key promotion still completes (docs/auth-key-rotation.md).
     """
+    if member is None:
+        member = key_ring.primary(
+            key_ring.fernet_members(settings.auth_settings.AES_HEX_KEY)
+        )
     digest = hmac.new(
-        settings.auth_settings.AES_HEX_KEY.encode(),
+        member.encode(),
         _PKCE_LABEL + state.encode(),
         hashlib.sha256,
     ).digest()
@@ -143,11 +153,13 @@ class GoogleSheetsOAuth:
         }
         return f"{config.AUTH_URI}?{urlencode(params)}"
 
-    def _check_state_age(self, state: str) -> None:
-        try:
-            Fernet.decrypt(self._crypto, state, ttl=STATE_MAX_AGE_SECONDS)
-        except (InvalidToken, TypeError, ValueError):
+    def _check_state_age(self, state: str) -> str:
+        """The key ring member that opens ``state`` (it must be well formed
+        and younger than ``STATE_MAX_AGE_SECONDS``); 400 otherwise."""
+        member = self._crypto.opening_member(state, ttl=STATE_MAX_AGE_SECONDS)
+        if member is None:
             raise HTTPException(HTTPStatus.BAD_REQUEST, MESSAGE_INVALID_STATE)
+        return member
 
     async def _post_token(self, url: str, data: dict) -> dict:
         try:
@@ -195,7 +207,7 @@ class GoogleSheetsOAuth:
     async def exchange_code(self, code: str, state: str) -> str:
         """Exchange the authorization code; returns the encrypted credential."""
         config = self._client_config()
-        self._check_state_age(state)
+        member = self._check_state_age(state)
         token = await self._post_token(
             config.TOKEN_URI,
             {
@@ -204,7 +216,7 @@ class GoogleSheetsOAuth:
                 "client_secret": config.CLIENT_SECRET,
                 "redirect_uri": config.SHEET_REDIRECT_URL,
                 "grant_type": "authorization_code",
-                "code_verifier": pkce_code_verifier(state),
+                "code_verifier": pkce_code_verifier(state, member),
             },
         )
         # A response without ``scope`` grants what was requested (RFC 6749

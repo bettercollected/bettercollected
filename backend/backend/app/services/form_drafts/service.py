@@ -571,7 +571,9 @@ class FormDraftService:
             ):
                 raise _draft_limit()
             if (
-                await self._drafts.count_live_for_address(real_form_id, email_key, now)
+                await self._drafts.count_live_for_address(
+                    real_form_id, self._keys.address_keys(real_form_id, address), now
+                )
                 >= limits.MAX_DRAFTS_PER_ADDRESS
             ):
                 # Somebody else may have filled this address's drafts: answer as

@@ -32,6 +32,15 @@ SHIPPED_SECRET_SHA256 = frozenset(
     }
 )
 
+# A key may be a RING of two, "<current>,<previous>" (a rotation under way,
+# docs/auth-key-rotation.md). The same rule as ``common/settings/key_ring.py``
+# (``common/tests/test_key_ring.py`` keeps them in step): a Fernet key never
+# contains a comma; a signing secret is read as two only when the value has
+# exactly one comma and both sides are at least MIN_TOKEN_MEMBER characters
+# without whitespace.
+MAX_RING_MEMBERS = 2
+MIN_TOKEN_MEMBER = 32
+
 JWT_SECRET_HINT = "openssl rand -hex 32"
 FERNET_KEY_HINT = (
     'python3 -c "import base64,os; '
@@ -69,6 +78,26 @@ def is_fernet_key(value: Optional[str]) -> bool:
         return False
 
 
+def fernet_members(value: Optional[str]) -> list:
+    """The Fernet keys of a ring, current first (empty for no value)."""
+    text = normalize_secret(value)
+    return [part.strip() for part in text.split(",")] if text else []
+
+
+def token_members(value: Optional[str]) -> list:
+    """The signing secrets of a ring, current first (empty for no value)."""
+    text = normalize_secret(value)
+    if not text:
+        return []
+    parts = text.split(",")
+    if len(parts) == 2 and all(
+        len(part) >= MIN_TOKEN_MEMBER and not any(c.isspace() for c in part)
+        for part in parts
+    ):
+        return parts
+    return [text]
+
+
 def secret_problems(
     jwt_secrets: Optional[Mapping[str, Optional[str]]] = None,
     fernet_keys: Optional[Mapping[str, Optional[str]]] = None,
@@ -77,15 +106,22 @@ def secret_problems(
     """One line per unusable key, naming the variable, never its value."""
     problems = []
     for kind, secrets in (("jwt", jwt_secrets or {}), ("fernet", fernet_keys or {})):
+        members_of = token_members if kind == "jwt" else fernet_members
         for name, value in secrets.items():
-            if not normalize_secret(value):
+            members = members_of(value)
+            if not members:
                 problems.append(f"{name} is not set")
-            elif is_shipped_secret(value, denylist):
+            elif len(members) > MAX_RING_MEMBERS or len(set(members)) != len(members):
+                problems.append(
+                    f"{name} holds more than two keys or the same key twice "
+                    "(current first, then the previous one)"
+                )
+            elif any(is_shipped_secret(member, denylist) for member in members):
                 problems.append(
                     f"{name} is a value that was published in the bettercollected "
                     "repository, so anyone can use it"
                 )
-            elif kind == "fernet" and not is_fernet_key(value):
+            elif kind == "fernet" and not all(is_fernet_key(m) for m in members):
                 problems.append(
                     f"{name} is not a Fernet key (32 bytes, url-safe base64)"
                 )
@@ -111,5 +147,5 @@ def require_secrets(
         "the same in every service (the workers' AES_HEX_KEY is AUTH_AES_HEX_KEY): "
         + "; ".join(hints)
         + ". deploy.sh generates them into the root .env on its first run. "
-        "A new AUTH_JWT_SECRET signs everyone out; see docs/DEVELOPERS_GUIDE.md."
+        "Replacing AUTH_JWT_SECRET by hand signs everyone out; rotate the keys of a running stack with the portal tasks (docs/auth-key-rotation.md)."
     )
