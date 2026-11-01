@@ -2049,9 +2049,12 @@ def test_an_edit_rechecks_a_value_question_only_when_its_rule_is_active_or_read(
     assert locked == {"total"} and answers["total"]["number"] == 5
 
 
-def test_a_builder_payload_far_over_the_rule_cap_is_refused_before_parsing():
+def test_a_builder_payload_far_over_the_rule_cap_is_refused_before_parsing(
+    monkeypatch,
+):
     import json
-    import time
+
+    from backend.app.controllers import workspace_forms
 
     fields = [
         _q(
@@ -2070,10 +2073,23 @@ def test_a_builder_payload_far_over_the_rule_cap_is_refused_before_parsing():
             "fields": [{"id": "p", "type": "slide", "properties": {"fields": fields}}],
         }
     )
-    start = time.perf_counter()
+    # "Before parsing" is checked by what is not called, not by how long the
+    # refusal took (a wall-clock bound fails on a busy machine): neither model
+    # of the body may be built once the raw rule count is over the cap.
+    parsed = []
+
+    def spy(name):
+        def refuse(*args, **kwargs):
+            parsed.append(name)
+            raise AssertionError(f"{name} was built from an over-cap payload")
+
+        return refuse
+
+    monkeypatch.setattr(workspace_forms, "FormDtoCamelModel", spy("FormDtoCamelModel"))
+    monkeypatch.setattr(workspace_forms, "StandardForm", spy("StandardForm"))
     with pytest.raises(HTTPException) as error:
         _parse_form_body(body)
-    assert time.perf_counter() - start < 1.0
+    assert parsed == []
     assert error.value.status_code == 422
     assert "at most 100 rules" in error.value.content
 

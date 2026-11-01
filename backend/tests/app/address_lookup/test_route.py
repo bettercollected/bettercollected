@@ -5,7 +5,9 @@ the provider's failures answered as "type it yourself", nothing stored and
 nothing logged of what was asked. The service is given a fake transport; the
 real one is never called."""
 
+import datetime as dt
 import json
+from collections import OrderedDict
 
 import pytest
 from httpx import AsyncClient
@@ -68,8 +70,9 @@ def transport(monkeypatch):
     lookup = container.address_lookup_service()
     monkeypatch.setattr(lookup, "_transport", fake)
     # a fresh service state for every test
-    for name, value in (("_forms_cache", {}), ("_unservable", {}), ("_coarse", {}), ("_in_flight", 0), ("_failures", 0), ("_open_until", 0.0), ("counts", {})):
+    for name, value in (("_forms_cache", OrderedDict()), ("_unservable", OrderedDict()), ("_coarse", OrderedDict()), ("_in_flight", 0), ("_failures", 0), ("_open_until", 0.0), ("counts", {})):
         monkeypatch.setattr(lookup, name, value)
+    monkeypatch.setattr(lookup, "_budget", service_module._CallBudget())
     monkeypatch.setattr(lookup, "_results", type(lookup._results)())
     return fake
 
@@ -196,6 +199,118 @@ async def test_the_switches_decide(client: AsyncClient, workspace, form, transpo
 
 async def test_a_form_without_an_address_question_is_not_found(client: AsyncClient, workspace, published_form, transport):
     await _is_plain_404(client, _url(workspace.id, published_form.form_id), _ask())
+
+
+# --- forms that take no lookups right now (the submit gate's reading) -----------------
+
+
+async def _settings(workspace, form_id, **values) -> None:
+    repo = container.workspace_form_repo()
+    link = await repo.get_workspace_form_in_workspace(workspace_id=workspace.id, query=str(form_id))
+    for key, value in values.items():
+        setattr(link.settings, key, value)
+    await repo.update(link.id, link)
+
+
+def _in(**delta) -> str:
+    return (dt.datetime.now(dt.timezone.utc) + dt.timedelta(**delta)).replace(microsecond=0).isoformat()
+
+
+@pytest.mark.parametrize(
+    "settings_",
+    [
+        {"form_close_date": _in(days=-1)},
+        {"form_close_date": "2001-01-01T00:00:00+02:00"},
+        {"form_open_date": _in(days=3)},
+        {"private": True},
+        {"hidden": True},
+    ],
+    ids=["closed", "closed-with-offset", "not-yet-open", "private", "hidden"],
+)
+async def test_a_form_that_takes_no_responses_for_the_public_answers_the_same_404(
+    client: AsyncClient, workspace, form, transport, settings_
+):
+    url = _url(workspace.id, form.form_id)
+    assert (await client.post(url, json=_ask())).status_code == 200
+    await _settings(workspace, form.form_id, **settings_)
+    container.address_lookup_service()._forms_cache.clear()
+    for number in ("12", "13"):
+        await _is_plain_404(client, url, _ask(number=number))
+    assert len(transport.queries) == 1  # the one before the change
+
+
+async def test_an_open_form_with_dates_around_now_answers(client: AsyncClient, workspace, form, transport):
+    await _settings(workspace, form.form_id, form_open_date=_in(days=-1), form_close_date=_in(days=1))
+    assert (await client.post(_url(workspace.id, form.form_id), json=_ask())).status_code == 200
+
+
+async def test_the_dates_are_judged_at_every_call_not_when_the_form_was_loaded(
+    client: AsyncClient, workspace, form, transport, monkeypatch
+):
+    url = _url(workspace.id, form.form_id)
+    opens = dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=1)
+    closes = opens + dt.timedelta(days=1)
+    await _settings(workspace, form.form_id, form_open_date=opens.isoformat(), form_close_date=closes.isoformat())
+    now = {"t": dt.datetime.now(dt.timezone.utc)}
+    monkeypatch.setattr("common.clock.utcnow", lambda: now["t"])
+    await _is_plain_404(client, url, _ask())
+    # the form is cached as servable once it was loaded in its open time ...
+    now["t"] = opens + dt.timedelta(minutes=1)
+    assert (await client.post(url, json=_ask())).status_code == 200
+    # ... and the cached entry stops answering at the close instant
+    now["t"] = closes
+    await _is_plain_404(client, url, _ask(number="13"))
+    assert len(transport.queries) == 1
+
+
+async def _submit(client, workspace, form_id):
+    return await client.post(
+        f"/api/v1/workspaces/{workspace.id}/forms/{form_id}/response",
+        data={"response": json.dumps({"answers": {}})},
+    )
+
+
+async def test_a_full_form_answers_the_same_404_and_a_free_slot_answers_again(
+    client: AsyncClient, workspace, form, transport, monkeypatch
+):
+    url = _url(workspace.id, form.form_id)
+    await _settings(workspace, form.form_id, response_limit=2)
+    assert (await client.post(url, json=_ask())).status_code == 200
+    for _ in range(2):
+        assert (await _submit(client, workspace, form.form_id)).status_code == 200
+    # the form's entry is read again after its cache time
+    now = {"t": 5000.0}
+    lookup = container.address_lookup_service()
+    monkeypatch.setattr(lookup, "_monotonic", lambda: now["t"])
+    lookup._forms_cache.clear()
+    await _is_plain_404(client, url, _ask(number="13"))
+    # a form that has not used its limit up answers
+    await _settings(workspace, form.form_id, response_limit=3)
+    now["t"] += service_module.FORM_CACHE_S + 1
+    assert (await client.post(url, json=_ask(number="14"))).status_code == 200
+    assert len(transport.queries) == 2
+
+
+async def test_the_responses_are_counted_only_for_a_form_with_a_limit(
+    client: AsyncClient, workspace, form, transport, monkeypatch
+):
+    counted = []
+
+    class Counter:
+        async def count_responses_for_form_ids(self, scope):
+            counted.append(1)
+            return 0
+
+    lookup = container.address_lookup_service()
+    monkeypatch.setattr(lookup, "_responses", Counter())
+    url = _url(workspace.id, form.form_id)
+    assert (await client.post(url, json=_ask())).status_code == 200
+    assert counted == []
+    await _settings(workspace, form.form_id, response_limit=5)
+    lookup._forms_cache.clear()
+    assert (await client.post(url, json=_ask(number="13"))).status_code == 200
+    assert (await client.post(url, json=_ask(number="14"))).status_code == 200
+    assert counted == [1]  # once per cache lifetime
 
 
 # --- the input ----------------------------------------------------------------------
@@ -484,6 +599,99 @@ async def test_a_client_that_floods_is_stopped_before_the_database_is_asked(
         _url(workspace.id, "missing-next"), json=_ask(), headers={"X-Forwarded-For": "198.51.100.5"}
     )
     assert other.status_code == 404
+
+
+# --- bounded LRU tables and the outbound call rate -------------------------------------
+
+
+def test_the_tables_drop_the_entry_used_longest_ago_first():
+    table = OrderedDict()
+    for key in ("a", "b", "c"):
+        service_module._put(table, key, 1, 3)
+    table.move_to_end("a")  # "a" was used again: "b" is now the oldest
+    service_module._put(table, "d", 1, 3)
+    assert list(table) == ["c", "a", "d"]
+    service_module._put(table, "c", 2, 3)  # an update makes it the newest
+    service_module._put(table, "e", 1, 3)
+    assert list(table) == ["d", "c", "e"]
+
+
+async def test_a_flood_of_new_clients_does_not_reset_an_active_clients_counter(
+    client: AsyncClient, workspace, form, transport, limits, monkeypatch
+):
+    monkeypatch.setattr(service_module, "COARSE_SIZE", 4)
+    heavy = {"X-Forwarded-For": "203.0.113.200"}
+    allowed = 3 * service_module.COARSE_FACTOR
+    for round_ in range(allowed):
+        # a different form every time, so only the in-memory counter counts
+        sent = await client.post(_url(workspace.id, f"missing-{round_}"), json=_ask(), headers=heavy)
+        assert sent.status_code == 404
+        # between the heavy client's requests new clients arrive: clearing the
+        # table whenever it is full would forget the heavy client's count
+        for other in range(2):
+            await client.post(
+                _url(workspace.id, "missing-x"), json=_ask(), headers={"X-Forwarded-For": f"198.51.100.{round_ * 2 + other + 1}"}
+            )
+    refused = await client.post(_url(workspace.id, "missing-next"), json=_ask(), headers=heavy)
+    assert refused.status_code == 429
+    assert len(container.address_lookup_service()._coarse) <= 4
+
+
+async def test_the_forms_cache_and_the_negative_cache_drop_the_oldest_first(
+    client: AsyncClient, workspace, form, transport, monkeypatch
+):
+    monkeypatch.setattr(service_module, "NEGATIVE_CACHE_SIZE", 3)
+    lookup = container.address_lookup_service()
+    for index in range(3):
+        await _is_plain_404(client, _url(workspace.id, f"missing-{index}"), _ask())
+    # missing-0 is used again, so missing-1 is the oldest
+    await _is_plain_404(client, _url(workspace.id, "missing-0"), _ask())
+    await _is_plain_404(client, _url(workspace.id, "missing-3"), _ask())
+    assert [key[1] for key in lookup._unservable] == ["missing-2", "missing-0", "missing-3"]
+
+    monkeypatch.setattr(service_module, "FORM_CACHE_SIZE", 2)
+    other = await _published(workspace)
+    third = await _published(workspace)
+    for form_id in (form.form_id, other.form_id):
+        assert (await client.post(_url(workspace.id, form_id), json=_ask())).status_code == 200
+    assert (await client.post(_url(workspace.id, form.form_id), json=_ask())).status_code == 200  # first is newest
+    assert (await client.post(_url(workspace.id, third.form_id), json=_ask())).status_code == 200
+    kept = [key[1] for key in lookup._forms_cache]
+    assert kept == [form.form_id, third.form_id]
+
+
+def test_the_call_budget_caps_a_second_and_a_minute(monkeypatch):
+    monkeypatch.setattr(service_module, "CALLS_PER_SECOND", 3)
+    monkeypatch.setattr(service_module, "CALLS_PER_MINUTE", 5)
+    budget = service_module._CallBudget()
+    assert [budget.take(100.0 + i * 0.1) for i in range(4)] == [True, True, True, False]
+    assert budget.take(101.5) is True  # the second moved on
+    assert budget.take(101.6) is True
+    assert budget.take(102.0) is False  # five in the minute
+    assert budget.take(160.5) is True  # the first calls left the minute
+    assert len(budget._made) <= 5
+
+
+async def test_over_the_call_rate_the_answer_is_unavailable_without_a_call(
+    client: AsyncClient, workspace, form, transport, monkeypatch
+):
+    monkeypatch.setattr(service_module, "CALLS_PER_SECOND", 2)
+    lookup = container.address_lookup_service()
+    monkeypatch.setattr(lookup, "_monotonic", lambda: 1000.0)
+    url = _url(workspace.id, form.form_id)
+    for number in ("1", "2"):
+        assert (await client.post(url, json=_ask(number=number))).status_code == 200
+    over = await client.post(url, json=_ask(number="3"))
+    assert over.status_code == 503, over.text
+    assert over.json()["code"] == "lookup_unavailable"
+    assert len(transport.queries) == 2
+    # a cached answer needs no call, so it is still served over the rate
+    assert (await client.post(url, json=_ask(number="1"))).status_code == 200
+    # the breaker is not touched by a refusal of the rate
+    assert lookup._failures == 0
+    monkeypatch.setattr(lookup, "_monotonic", lambda: 1001.5)
+    assert (await client.post(url, json=_ask(number="3"))).status_code == 200
+    assert len(transport.queries) == 3
 
 
 async def test_nothing_that_was_asked_is_stored_or_logged(

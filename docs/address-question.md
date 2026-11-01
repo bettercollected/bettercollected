@@ -39,8 +39,24 @@ Per client and form 30 lookups a minute, per form 600 a minute (`API_ADDRESS_LOO
 Before any of that, one client may send at most four times the per-client limit to one backend process per window
 (in memory, no database query; 429 beyond), and a form that cannot be looked up is remembered for 30 seconds, so
 guessing form addresses costs the database next to nothing.
-At most 8 lookups run at once per process, and after five failures in a row the lookup pauses for 30 seconds.
+At most 8 lookups run at once per process, and one process makes at most 10 calls a second and 300 a minute to
+the service; past either, the answer is "unavailable" at once and the respondent types the address (answers from the
+cache are not calls and are still given). After five failures in a row the lookup pauses for 30 seconds.
 When the service cannot answer, the respondent is told to type the address and nothing else changes.
+
+The in-memory tables (answers, forms that cannot be looked up, forms that can, the per-client counters) are bounded
+and drop the entry used longest ago first, so a flood of new clients or forms cannot reset what the active ones have
+used.
+
+## Which forms answer
+
+The route is public like the form, and it answers for the same forms a respondent without an account may fill in
+right now, read the way the submit gate reads them: a form that is closed (from its close date on), not open yet
+(before its open date) or full (it holds as many responses as its limit) does not answer, and neither does a
+private form (restricted to responder groups) or a hidden one. All of them give the same 404 as an unknown form,
+and nothing is sent to the service. The dates are judged at every call; a form's state is read once per 30 seconds
+(a form whose limit was just reached answers for up to 30 seconds more). Respondents of a restricted form type
+their address.
 
 ## Before you turn the lookup on
 

@@ -6,8 +6,12 @@ what a respondent of a published form can send:
 - it answers only while ``ADDRESS_QUESTION_ENABLED`` and ``ADDRESS_LOOKUP_ENABLED``
   are on, for a form of this workspace that has a published version, and a
   question of that version that is an address question asking for a lookup
-  (Dutch addresses allowed, its own switch not off), not internal. Everything
-  else is one and the same 404;
+  (Dutch addresses allowed, its own switch not off), not internal. The form
+  must also be one a respondent without an account may fill in right now, as
+  the submit gate reads it (``services/form_availability.py`` and the
+  workspace form's own flags): not private (restricted to responder groups),
+  not hidden, open (not before its open date, not from its close date) and
+  not full (its response limit). Everything else is one and the same 404;
 - the input is a postcode and a house number, strictly validated (422
   ``invalid_input``); the house number addition is never sent;
 - 30 requests per client and form and 600 per form per window (429);
@@ -16,12 +20,16 @@ what a respondent of a published form can send:
   ``BREAKER_OPEN_S`` after ``BREAKER_FAILURES`` failures in a row, and its
   answers are cached in memory (found ``FOUND_TTL_S``, not found
   ``NOT_FOUND_TTL_S``, ``CACHE_SIZE`` entries, errors never) under the two
-  validated values;
+  validated values; the calls themselves are capped per process by rate
+  (``CALLS_PER_SECOND`` / ``CALLS_PER_MINUTE``): over it the answer is
+  "unavailable" without a call;
 - what costs a database query before a form is known to be servable is
   bounded: a form that is not servable is remembered for ``FORM_CACHE_S`` too,
   and one client may make at most ``COARSE_FACTOR`` times the per-client limit
   of requests per window to this process, whatever form they name (in memory,
-  no query);
+  no query). Every in-memory table is a bounded LRU: the entry that was used
+  longest ago goes first, so a flood of new keys cannot reset the counters of
+  the clients that are active;
 - nothing is stored and nothing that was asked is logged: counts and our own
   failure codes only.
 """
@@ -30,10 +38,10 @@ from __future__ import annotations
 
 import asyncio
 import time
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import Any, Callable, Dict, FrozenSet, Iterator, Optional, Tuple
+from typing import Any, Callable, Deque, Dict, FrozenSet, Iterator, Optional, Tuple
 
 from bson.errors import InvalidId
 from common.address import canonical_nl_postcode, is_nl_house_number
@@ -45,6 +53,8 @@ from backend.app.repositories.postgres.forms import (
     PostgresFormRepository,
     PostgresWorkspaceFormRepository,
 )
+from backend.app.repositories.response_scope import response_scope
+from backend.app.services import form_availability
 from backend.app.services.address_lookup import provider
 from backend.app.services.address_lookup.mode import (
     ADDRESS_TYPE,
@@ -66,6 +76,9 @@ FOUND_TTL_S = 6 * 3600.0
 NOT_FOUND_TTL_S = 600.0
 CACHE_SIZE = 2048
 MAX_IN_FLIGHT = 8
+# outbound calls to the provider per process, over a second and over a minute
+CALLS_PER_SECOND = 10
+CALLS_PER_MINUTE = 300
 BREAKER_FAILURES = 5
 BREAKER_OPEN_S = 30.0
 RETRY_AFTER_S = 30
@@ -79,6 +92,51 @@ class _Servable:
     form_id: str
     fields: FrozenSet[str]
     loaded_at: float
+    # (open date, close date) as stored: judged at every call, not at load
+    dates: Tuple[Any, Any] = (None, None)
+
+    def is_open(self) -> bool:
+        opens, closes = self.dates
+        return (
+            form_availability.date_unavailability(
+                {"form_open_date": opens, "form_close_date": closes}
+            )
+            is None
+        )
+
+
+def _put(table: "OrderedDict[Any, Any]", key: Any, value: Any, size: int) -> None:
+    """Store ``value`` as the most recently used entry; over ``size`` the
+    least recently used entries go."""
+    table[key] = value
+    table.move_to_end(key)
+    while len(table) > size:
+        table.popitem(last=False)
+
+
+class _CallBudget:
+    """How many provider calls this process may make: at most
+    ``CALLS_PER_SECOND`` in any second and ``CALLS_PER_MINUTE`` in any
+    minute (a sliding window over the times of the calls that were made)."""
+
+    def __init__(self) -> None:
+        self._made: Deque[float] = deque()
+
+    def take(self, now: float) -> bool:
+        made = self._made
+        while made and now - made[0] >= 60.0:
+            made.popleft()
+        if len(made) >= CALLS_PER_MINUTE:
+            return False
+        recent = 0
+        for stamp in reversed(made):
+            if now - stamp >= 1.0:
+                break
+            recent += 1
+        if recent >= CALLS_PER_SECOND:
+            return False
+        made.append(now)
+        return True
 
 
 def _not_found() -> HTTPException:
@@ -128,19 +186,22 @@ class AddressLookupService:
         workspace_form_repo: PostgresWorkspaceFormRepository,
         form_repo: PostgresFormRepository,
         rate_limiter: FixedWindowRateLimiter,
+        response_repo: Any,
         transport: Optional[provider.Transport] = None,
         monotonic: Callable[[], float] = time.monotonic,
     ):
         self._workspace_forms = workspace_form_repo
         self._forms = form_repo
         self._limiter = rate_limiter
+        self._responses = response_repo
         self._transport = transport
         self._monotonic = monotonic
-        self._forms_cache: Dict[Tuple[str, str], _Servable] = {}
+        self._forms_cache: "OrderedDict[Tuple[str, str], _Servable]" = OrderedDict()
         # (workspace, form) that were not servable -> when that was found out
-        self._unservable: Dict[Tuple[str, str], float] = {}
+        self._unservable: "OrderedDict[Tuple[str, str], float]" = OrderedDict()
         # client key -> (window start, requests in it): in memory, no query
-        self._coarse: Dict[str, Tuple[float, int]] = {}
+        self._coarse: "OrderedDict[str, Tuple[float, int]]" = OrderedDict()
+        self._budget = _CallBudget()
         # "1015CS 12" -> (street, city) or None, with the time it expires
         self._results: "OrderedDict[str, Tuple[Optional[provider.Place], float]]" = OrderedDict()
         self._in_flight = 0
@@ -164,7 +225,7 @@ class AddressLookupService:
             raise _not_found()
         self._coarse_limit(client)
         form = await self._servable(workspace_id, form_ref)
-        if form is None or field_id not in form.fields:
+        if form is None or field_id not in form.fields or not form.is_open():
             raise _not_found()
         key = self._key(postcode, house_number)
         if key is None:
@@ -196,8 +257,8 @@ class AddressLookupService:
     def _coarse_limit(self, client: Optional[str]) -> None:
         """Before anything is read from the database: a client that sends far
         more than the per-client limit allows is answered 429 from memory. The
-        per-process counters are bounded (emptied when full) and hold only the
-        rate-limit key, never what was asked."""
+        per-process counters are a bounded LRU and hold only the rate-limit
+        key, never what was asked."""
         api = live().api
         window = float(api.ADDRESS_LOOKUP_WINDOW_SECONDS)
         limit = max(1, int(api.ADDRESS_LOOKUP_PER_WINDOW)) * COARSE_FACTOR
@@ -213,9 +274,7 @@ class AddressLookupService:
                 content="Too many lookups; try again later.",
                 headers={"Retry-After": str(max(1, int(window - (now - started))))},
             )
-        if who not in self._coarse and len(self._coarse) >= COARSE_SIZE:
-            self._coarse.clear()
-        self._coarse[who] = (started, used + 1)
+        _put(self._coarse, who, (started, used + 1), COARSE_SIZE)
 
     async def _limit(self, form_id: str, client: Optional[str]) -> None:
         api = live().api
@@ -259,6 +318,9 @@ class AddressLookupService:
         if self._in_flight >= MAX_IN_FLIGHT:
             self._count("unavailable")
             raise _unavailable()
+        if not self._budget.take(now):
+            self._count("unavailable")
+            raise _unavailable()
         postcode, number = key.split(" ")
         transport = self._transport or provider.http_transport
         self._in_flight += 1
@@ -296,21 +358,19 @@ class AddressLookupService:
         now = self._monotonic()
         cached = self._forms_cache.get(key)
         if cached is not None and now - cached.loaded_at < FORM_CACHE_S:
+            self._forms_cache.move_to_end(key)
             return cached
         self._forms_cache.pop(key, None)
         missed = self._unservable.get(key)
         if missed is not None and now - missed < FORM_CACHE_S:
+            self._unservable.move_to_end(key)
             return None
         self._unservable.pop(key, None)
         form = await self._load(workspace_id, form_ref, now)
         if form is not None:
-            if len(self._forms_cache) >= FORM_CACHE_SIZE:
-                self._forms_cache.clear()
-            self._forms_cache[key] = form
+            _put(self._forms_cache, key, form, FORM_CACHE_SIZE)
         else:
-            if len(self._unservable) >= NEGATIVE_CACHE_SIZE:
-                self._unservable.clear()
-            self._unservable[key] = now
+            _put(self._unservable, key, now, NEGATIVE_CACHE_SIZE)
         return form
 
     async def _load(
@@ -323,17 +383,41 @@ class AddressLookupService:
         )
         if workspace_form is None:
             return None
+        settings = workspace_form.settings
+        # What the submit gate and the respondent's read decide for someone
+        # without an account (the lookup is as public as the form): a private
+        # form (restricted to responder groups) and a hidden one are for
+        # signed-in members only, so they answer nothing here.
+        if settings is not None and (settings.private or settings.hidden):
+            return None
         try:
             form_id = RecordId(workspace_form.form_id)
         except (InvalidId, TypeError, ValueError):
             return None
+        # A form that holds as many responses as its limit takes no more:
+        # counted once per cache lifetime, and only for a form with a limit.
+        if form_availability.response_limit(settings) is not None:
+            scope = await response_scope(
+                self._workspace_forms, workspace_id, [str(workspace_form.form_id)]
+            )
+            count = await self._responses.count_responses_for_form_ids(scope)
+            if form_availability.is_full(settings, count):
+                return None
         published = await self._forms.get_latest_version_of_form(form_id)
         if published is None:
             return None
         fields = lookup_fields(published)
         if not fields:
             return None
-        return _Servable(form_id=str(workspace_form.form_id), fields=fields, loaded_at=now)
+        return _Servable(
+            form_id=str(workspace_form.form_id),
+            fields=fields,
+            loaded_at=now,
+            dates=(
+                getattr(settings, "form_open_date", None),
+                getattr(settings, "form_close_date", None),
+            ),
+        )
 
 
 class _Miss:
