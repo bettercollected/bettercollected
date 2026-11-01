@@ -272,6 +272,42 @@ def _choice_list(field: Any) -> List[Any]:
     return list(_get(_get(field, "properties"), "choices") or [])
 
 
+def is_sourced(field: Any) -> bool:
+    """Do the question's options come from a source (a list, or another
+    form's answers) instead of its own choices?"""
+    properties = _get(field, "properties")
+    return (
+        _get(properties, "option_source") is not None
+        or _get(properties, "optionSource") is not None
+    )
+
+
+def sourced_texts(answer: Optional[dict]) -> List[str]:
+    """The texts a choice answer to a sourced question holds: the label
+    snapshot the server stored beside each chosen id, in the order chosen,
+    then an "other" text as written. Never an id."""
+    if not answer:
+        return []
+    texts: List[str] = []
+    choices = answer.get("choices")
+    if isinstance(choices, dict) and choices.get("values") is not None:
+        labels = choices.get("labels") if isinstance(choices.get("labels"), dict) else {}
+        texts.extend(
+            labels[v] for v in choices["values"] if isinstance(labels.get(v), str) and labels[v]
+        )
+        other = choices.get("other")
+    else:
+        choice = answer.get("choice")
+        choice = choice if isinstance(choice, dict) else {}
+        label = choice.get("label")
+        if isinstance(label, str) and label:
+            texts.append(label)
+        other = choice.get("other")
+    if isinstance(other, str) and other:
+        texts.append(other)
+    return texts
+
+
 def option_text(field: Any, chosen: str) -> str:
     """An option as the respondent saw it: its text (``value``, else its
     ``label``, else ``Item n``), like the form page and answer piping show it.
@@ -525,6 +561,17 @@ def scalar(
             "items": {"type": "string", "minLength": 1, "maxLength": TAG_LENGTH_MAX},
             "maxItems": TAGS_MAX,
         }
+    if type_ in CHOICE_TYPES and is_sourced(field):
+        # options from a source: the label snapshot is the value, and there is
+        # no fixed list of options to name in the schema
+        texts = sourced_texts(answer)
+        if _is_multiple(field) and type_ == "multiple_choice":
+            return texts, {
+                "title": title,
+                "type": "array",
+                "items": {"type": "string"},
+            }
+        return (texts[0] if texts else ""), {"title": title, "type": "string"}
     if type_ in CHOICE_TYPES:
         options = _option_titles(field)
         picked = _picked(answer)

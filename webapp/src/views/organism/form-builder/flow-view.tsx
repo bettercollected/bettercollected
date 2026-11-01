@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 
 import { skipToken } from '@reduxjs/toolkit/query/react';
 
@@ -23,7 +22,7 @@ import { useGetFlowAnalyticsQuery } from '@app/store/redux/form-api';
 import { useGetFormSubmissionPathsQuery } from '@app/store/workspaces/api';
 import { fieldHasLogic, flowTrafficFromPaths, FlowTraffic, isJumpTargetValid } from '@app/utils/conditional-logic';
 import { defaultEnding, endingById, endingLabel, isJumpEndingMissing, jumpEndingId, withEndingIds } from '@app/utils/endings';
-import { buildSourceFields, fieldText, newConditionFor, pageLabel } from '@app/views/molecules/form-builder/condition-editor-shared';
+import { buildSourceFields, fieldText, newConditionFor, pageLabel, pageTitleOnly } from '@app/views/molecules/form-builder/condition-editor-shared';
 import { ToastAction } from '@app/shadcn/components/ui/toast';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { autosaveStatusLabel, isAutosaveProblem, useAutosaveStatus } from '@app/store/jotai/autosave-status';
@@ -35,6 +34,7 @@ import { v4 } from 'uuid';
 
 import { Background, BackgroundVariant, BaseEdge, Connection, Controls, Edge, EdgeLabelRenderer, EdgeProps, Handle, MarkerType, MiniMap, Node, NodeProps, Position, ReactFlow, useEdgesState, useNodesState } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useTranslation } from 'react-i18next';
 
 // Deterministic default layout (used when a page has no saved position).
 const NODE_W = 300;
@@ -77,7 +77,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
     const { t } = useTranslation('builder');
     return (
         <div
-            aria-label={`Page ${data.pageNumber}: ${data.label} — ${data.questionCount} question${data.questionCount === 1 ? '' : 's'}`}
+            aria-label={t('FLOW.PAGE_ARIA', { n: data.pageNumber, label: data.label, count: data.questionCount })}
             className={'flex w-[300px] flex-col gap-1 rounded border bg-white px-4 py-3 transition-colors ' + (selected ? 'border-brand-500 ring-1 ring-brand-500' : 'border-black-400 hover:border-brand-300')}
         >
             <Handle id="next-in" type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />
@@ -87,7 +87,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                 position={Position.Left}
                 role="button"
                 tabIndex={0}
-                aria-label={`Create a jump into page ${data.pageNumber}`}
+                aria-label={t('FLOW.JUMP_INTO', { n: data.pageNumber })}
                 style={dotStyle(data.armedMode === 'into')}
                 onClick={(e) => {
                     e.stopPropagation();
@@ -99,7 +99,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                 here so they bow beside the column instead of crossing it. Users still
                 drop connections on the visible left dot. */}
             <Handle id="jump-in-right" type="target" position={Position.Right} isConnectable={false} style={{ opacity: 0, top: '35%' }} />
-            <span className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">Page {data.pageNumber}</span>
+            <span className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">{t('FLOW.PAGE_N', { n: data.pageNumber })}</span>
             <span className="text-black-900 truncate text-sm font-semibold">{data.label}</span>
             {data.questions?.length > 0 && (
                 <div className="flex flex-col gap-0.5">
@@ -108,14 +108,12 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                             · {q}
                         </span>
                     ))}
-                    {data.moreCount > 0 && <span className="text-black-600 text-[11px]">+{data.moreCount} more</span>}
+                    {data.moreCount > 0 && <span className="text-black-600 text-[11px]">{t('FLOW.MORE', { count: data.moreCount })}</span>}
                 </div>
             )}
             <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                <span className="text-black-600">
-                    {data.questionCount} question{data.questionCount === 1 ? '' : 's'}
-                </span>
-                {data.showHideCount > 0 && <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium">{data.showHideCount} show/hide</span>}
+                <span className="text-black-600">{t('OUTLINE.QUESTIONS_COUNT', { count: data.questionCount })}</span>
+                {data.showHideCount > 0 && <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium">{t('FLOW.SHOW_HIDE', { count: data.showHideCount })}</span>}
                 {data.containersCount > 0 && (
                     <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium" data-testid="flow-containers-badge">
                         {t('LAYOUT.FLOW_BADGE', { count: data.containersCount })}
@@ -127,23 +125,23 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                     </span>
                 )}
                 {data.questionCount === 0 && (
-                    <span className="inline-flex items-center gap-0.5 rounded bg-brand-accent-100 px-1.5 py-[1px] font-medium text-brand-olive" title="Responders will see a blank page — add a question or delete it">
-                        <AlertTriangle className="h-3 w-3" /> empty page
+                    <span className="inline-flex items-center gap-0.5 rounded bg-brand-accent-100 px-1.5 py-[1px] font-medium text-brand-olive" title={t('FLOW.EMPTY_PAGE_TITLE')}>
+                        <AlertTriangle className="h-3 w-3" /> {t('FLOW.EMPTY_PAGE')}
                     </span>
                 )}
                 {data.brokenCount > 0 && (
                     <span className="inline-flex items-center gap-0.5 rounded bg-[#FBEFEF] px-1.5 py-[1px] font-medium text-[#C43D3D]">
-                        <AlertTriangle className="h-3 w-3" /> broken jump
+                        <AlertTriangle className="h-3 w-3" /> {t('FLOW.BROKEN_JUMP')}
                     </span>
                 )}
                 {data.visits !== undefined && (
-                    <span className="text-black-700 bg-black-100 rounded px-1.5 py-[1px] font-semibold" title="Submissions whose path visited this page">
-                        {data.visits}/{data.totalResponses} visited
+                    <span className="text-black-700 bg-black-100 rounded px-1.5 py-[1px] font-semibold" title={t('FLOW.VISITED_TITLE')}>
+                        {t('FLOW.VISITED', { visits: data.visits, total: data.totalResponses })}
                     </span>
                 )}
                 {data.dropOffs > 0 && (
-                    <span className="rounded bg-brand-accent-100 px-1.5 py-[1px] font-semibold text-brand-olive" title="Responders whose last activity was on this page — they never submitted">
-                        {data.dropOffs} dropped here
+                    <span className="rounded bg-brand-accent-100 px-1.5 py-[1px] font-semibold text-brand-olive" title={t('FLOW.DROPPED_TITLE')}>
+                        {t('FLOW.DROPPED', { count: data.dropOffs })}
                     </span>
                 )}
             </div>
@@ -153,7 +151,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                 position={Position.Right}
                 role="button"
                 tabIndex={0}
-                aria-label={`Create a jump from page ${data.pageNumber}`}
+                aria-label={t('FLOW.JUMP_FROM', { n: data.pageNumber })}
                 style={dotStyle(data.armedMode === 'from')}
                 onClick={(e) => {
                     e.stopPropagation();
@@ -172,6 +170,7 @@ const ENDING_NODE_PREFIX = '__ending__:';
 const isEndingNode = (id: string) => id === END_NODE || id.startsWith(ENDING_NODE_PREFIX);
 
 function TerminalNode({ id, data }: NodeProps<Node<any>>) {
+    const { t } = useTranslation('builder');
     const isEnd = data.kind === 'end';
     return (
         <div className="bg-black-100 border-black-300 text-black-600 flex w-[300px] flex-col gap-0.5 rounded border px-4 py-3">
@@ -183,7 +182,7 @@ function TerminalNode({ id, data }: NodeProps<Node<any>>) {
                     position={Position.Left}
                     role="button"
                     tabIndex={0}
-                    aria-label={`Create a jump that submits and shows ${data.label}`}
+                    aria-label={t('FLOW.JUMP_TO_ENDING', { label: data.label })}
                     style={dotStyle(data.armedMode === 'into')}
                     onClick={(e) => {
                         e.stopPropagation();
@@ -193,12 +192,12 @@ function TerminalNode({ id, data }: NodeProps<Node<any>>) {
                 />
             )}
             {isEnd && <Handle id="jump-in-right" type="target" position={Position.Right} isConnectable={false} style={{ opacity: 0, top: '35%' }} />}
-            <span className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">{isEnd ? (data.isDefault ? 'Default ending' : 'Ending') : 'Start'}</span>
+            <span className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">{isEnd ? (data.isDefault ? t('FLOW.DEFAULT_ENDING') : t('FLOW.ENDING')) : t('FLOW.START')}</span>
             <span className="text-black-700 text-sm font-semibold">{data.label}</span>
-            {isEnd && data.unreached && <span className="w-fit rounded bg-brand-accent-100 px-1.5 py-[1px] text-[11px] font-medium text-brand-olive">Not reached by any jump</span>}
+            {isEnd && data.unreached && <span className="w-fit rounded bg-brand-accent-100 px-1.5 py-[1px] text-[11px] font-medium text-brand-olive">{t('FLOW.NOT_REACHED')}</span>}
             {data.totalResponses !== undefined && (
                 <span className="text-black-700 bg-black-100 w-fit rounded px-1.5 py-[1px] text-[11px] font-semibold">
-                    {data.totalResponses} response{data.totalResponses === 1 ? '' : 's'}
+                    {t('FLOW.RESPONSES', { count: data.totalResponses })}
                 </span>
             )}
             {!isEnd && <Handle id="next-out" type="source" position={Position.Bottom} isConnectable={false} style={{ opacity: 0 }} />}
@@ -384,7 +383,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             type: 'page',
             position: (slide.properties?.position as { x: number; y: number } | undefined) ?? defaultPos(i + 1),
             data: {
-                label: pageLabel(slide, i).replace(/^Page \d+ · /, '') || 'Untitled page',
+                label: pageTitleOnly(slide, i),
                 pageNumber: i + 1,
                 questionCount: slide.properties?.fields?.length ?? 0,
                 // The first question names the node; the next two are listed under it.
@@ -402,11 +401,11 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             }
         }));
         return [
-            { id: '__welcome__', type: 'terminal', position: defaultPos(0), data: { kind: 'welcome', label: 'Welcome', totalResponses: traffic?.total }, deletable: false },
+            { id: '__welcome__', type: 'terminal', position: defaultPos(0), data: { kind: 'welcome', label: tBuilder('FLOW.WELCOME'), totalResponses: traffic?.total }, deletable: false },
             ...pageNodes.map((n) => ({ ...n, deletable: false })), // deletion goes through the panel (with cleanup), not the Delete key
             ...endingNodes()
         ];
-    }, [slides, slideIds, traffic, armed, flowAnalytics, showInsights, endings]);
+    }, [slides, slideIds, traffic, armed, flowAnalytics, showInsights, endings, tBuilder]);
 
     const buildEdges = useCallback((): Edge[] => {
         const edges: Edge[] = [];
@@ -452,7 +451,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 if (!targetId) return;
                 const c = jump.conditions[0];
                 const count = traffic ? traffic.jumpTraversals.get(`${slide.id}:${jIdx}`) ?? 0 : undefined;
-                const base = `${c?.value !== '' && c?.value != null ? `= “${c.value}”` : c?.comparison?.toLowerCase().replace(/_/g, ' ') ?? ''}${jump.conditions.length > 1 ? ` +${jump.conditions.length - 1}` : ''}`;
+                const base = `${c?.value !== '' && c?.value != null ? `= “${c.value}”` : c?.comparison ? tBuilder(`FLOW.CMP.${c.comparison}`, { defaultValue: c.comparison.toLowerCase().replace(/_/g, ' ') }) : ''}${jump.conditions.length > 1 ? ` +${jump.conditions.length - 1}` : ''}`;
                 const targetClearlyRight = posOf(targetId).x > posOf(slide.id).x + NODE_W * 0.75;
                 edges.push({
                     id: `jump-${slide.id}-${jIdx}`,
@@ -474,7 +473,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             });
         });
         return edges;
-    }, [slides, slideIds, traffic, endings]);
+    }, [slides, slideIds, traffic, endings, tBuilder]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState(buildNodes());
     const [edges, setEdges, onEdgesChange] = useEdgesState(buildEdges());
@@ -499,7 +498,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         const frame = requestAnimationFrame(() => setEdges(buildEdges()));
         return () => cancelAnimationFrame(frame);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [modelSignature, traffic, armed, flowAnalytics, showInsights]);
+    }, [modelSignature, traffic, armed, flowAnalytics, showInsights, tBuilder]);
 
     /* ------------------------------ actions ------------------------------ */
 
@@ -579,7 +578,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [overlayId]);
-    const armedName = armed ? (isEndingNode(armed.id) ? endingNodeName(armed.id) : `Page ${(slides.findIndex((s) => s.id === armed.id) ?? 0) + 1}`) : null;
+    const armedName = armed ? (isEndingNode(armed.id) ? endingNodeName(armed.id) : tBuilder('FLOW.PAGE_N', { n: (slides.findIndex((s) => s.id === armed.id) ?? 0) + 1 })) : null;
 
     const onEdgesDelete = useCallback(
         (deleted: Edge[]) => {
@@ -603,11 +602,11 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             });
             const removedCount = removedRules.reduce((n, r) => n + r.jumps.length, 0);
             toast({
-                description: `${removedCount === 1 ? 'Jump rule' : `${removedCount} jump rules`} removed`,
+                description: tBuilder('FLOW.JUMPS_REMOVED', { count: removedCount }),
                 duration: 8000,
                 action: (
                     <ToastAction
-                        altText="Undo removing the jump"
+                        altText={tBuilder('FLOW.UNDO_REMOVE')}
                         onClick={() => {
                             removedRules.forEach(({ slideIndex, jumps }) => {
                                 const current = ((slides[slideIndex]?.properties?.jumps as PageJump[] | undefined) ?? []).slice();
@@ -615,7 +614,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                             });
                         }}
                     >
-                        Undo
+                        {tBuilder('FLOW.UNDO')}
                     </ToastAction>
                 )
             });
@@ -643,15 +642,15 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             {/* header */}
             <div className="border-b-black-300 flex items-center justify-between border-b px-6 py-3">
                 <div>
-                    <div className="text-black-900 text-base font-semibold">Flow</div>
+                    <div className="text-black-900 text-base font-semibold">{tBuilder('FLOW.TITLE')}</div>
                     {/* aria-live: screen readers announce entering/leaving connect mode */}
                     <div aria-live="polite">
                         {armed ? (
                             <div className="text-brand-600 text-xs font-medium">
-                                {armed.mode === 'from' ? `Creating a jump from ${armedName} — click the destination page` : `Creating a jump into ${armedName} — click the source page`} · Esc to cancel
+                                {armed.mode === 'from' ? tBuilder('FLOW.CREATING_FROM', { name: armedName }) : tBuilder('FLOW.CREATING_INTO', { name: armedName })} · {tBuilder('FLOW.ESC_CANCEL')}
                             </div>
                         ) : (
-                            <div className="text-black-600 text-xs">Click or drag a blue dot to branch. Select a page to edit its rules.</div>
+                            <div className="text-black-600 text-xs">{tBuilder('FLOW.HINT')}</div>
                         )}
                     </div>
                 </div>
@@ -669,33 +668,33 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         submitted, and only since flow analytics was enabled. Shown
                         unlabelled they read as the same number disagreeing. */}
                     {showInsights && (traffic?.total ?? 0) > 0 && (
-                        <span className="text-black-600 mr-1 text-xs" title="All-time submitted responses — the population behind the node and edge counts">
-                            <span className="font-semibold">{traffic!.total}</span> response{traffic!.total === 1 ? '' : 's'}
+                        <span className="text-black-600 mr-1 text-xs" title={tBuilder('FLOW.TOTAL_TITLE')}>
+                            <span className="font-semibold">{traffic!.total}</span> {tBuilder('FLOW.RESPONSES_WORD', { count: traffic!.total })}
                         </span>
                     )}
                     {showInsights && flowAnalytics && flowAnalytics.totalSessions > 0 && (
-                        <span className="text-black-600 mr-1 text-xs" title="Anonymous page-to-page journeys since flow analytics was enabled — includes visitors who never submitted, which is where the drop-off chips come from">
-                            · journeys: {flowAnalytics.totalSessions} started · {flowAnalytics.submittedSessions} finished
+                        <span className="text-black-600 mr-1 text-xs" title={tBuilder('FLOW.JOURNEYS_TITLE')}>
+                            {tBuilder('FLOW.JOURNEYS', { started: flowAnalytics.totalSessions, finished: flowAnalytics.submittedSessions })}
                         </span>
                     )}
-                    {showInsights && !insightsLoading && traffic?.total === 0 && (!flowAnalytics || flowAnalytics.totalSessions === 0) && <span className="text-black-600 mr-1 text-xs">No responses yet</span>}
+                    {showInsights && !insightsLoading && traffic?.total === 0 && (!flowAnalytics || flowAnalytics.totalSessions === 0) && <span className="text-black-600 mr-1 text-xs">{tBuilder('FLOW.NO_RESPONSES')}</span>}
                     <button
                         onClick={() => setShowInsights((v) => !v)}
-                        title="Overlay how submitted responses travelled each branch"
+                        title={tBuilder('FLOW.INSIGHTS_TITLE')}
                         className={
                             'flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium ' +
                             (showInsights ? 'border-brand-500 bg-brand-100 text-brand-600' : 'border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600')
                         }
                     >
-                        <BarChart3 className="h-3.5 w-3.5" /> {insightsLoading ? 'Loading…' : 'Insights'}
+                        <BarChart3 className="h-3.5 w-3.5" /> {insightsLoading ? tBuilder('FLOW.LOADING') : tBuilder('FLOW.INSIGHTS')}
                     </button>
                     <button onClick={addPage} className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
-                        <Plus className="h-3.5 w-3.5" /> Add page
+                        <Plus className="h-3.5 w-3.5" /> {tBuilder('FLOW.ADD_PAGE')}
                     </button>
-                    <button onClick={() => clearSlidePositions()} title="Reset the layout" className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
-                        <LayoutGrid className="h-3.5 w-3.5" /> Auto-arrange
+                    <button onClick={() => clearSlidePositions()} title={tBuilder('FLOW.RESET_LAYOUT')} className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
+                        <LayoutGrid className="h-3.5 w-3.5" /> {tBuilder('FLOW.AUTO_ARRANGE')}
                     </button>
-                    <button aria-label="Close flow view" onClick={onClose} className="text-black-600 hover:text-black-900 ml-2 rounded-md p-1">
+                    <button aria-label={tBuilder('FLOW.CLOSE')} onClick={onClose} className="text-black-600 hover:text-black-900 ml-2 rounded-md p-1">
                         <X className="h-5 w-5" />
                     </button>
                 </div>
@@ -765,14 +764,14 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         <>
                             <div className="border-b-black-300 flex flex-col gap-2 border-b px-4 py-4">
                                 <div>
-                                    <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">Page {selectedIndex + 1}</div>
+                                    <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">{tBuilder('FLOW.PAGE_N', { n: selectedIndex + 1 })}</div>
                                     {/* The canvas card may truncate the question; the panel is
                                         where the full text belongs — wrap, don't clip. */}
-                                    <div className="text-black-900 wrap-break-word text-sm font-semibold leading-snug">{pageLabel(selectedSlide, selectedIndex).replace(/^Page \d+ · /, '') || 'Untitled page'}</div>
+                                    <div className="text-black-900 wrap-break-word text-sm font-semibold leading-snug">{pageTitleOnly(selectedSlide, selectedIndex)}</div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => openPageEditor(selectedSlide.id)} className="bg-action hover:bg-action-hover active:bg-action-pressed key-edge [--key-edge:var(--color-action-pressed)] flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-medium text-white">
-                                        <PencilLine className="h-3.5 w-3.5" /> Edit content
+                                        <PencilLine className="h-3.5 w-3.5" /> {tBuilder('FLOW.EDIT_CONTENT')}
                                     </button>
                                     <button
                                         disabled={cannotCopyPage}
@@ -783,7 +782,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                         }}
                                         className="border-black-300 text-black-700 hover:border-brand-500 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-black-300"
                                     >
-                                        <Copy className="h-3.5 w-3.5" /> Duplicate
+                                        <Copy className="h-3.5 w-3.5" /> {tBuilder('FLOW.DUPLICATE')}
                                     </button>
                                     <button
                                         onClick={() => {
@@ -792,7 +791,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                         }}
                                         className="ml-auto flex items-center gap-1 rounded-md border border-[#EFD2D2] px-2.5 py-1.5 text-xs font-medium text-[#C43D3D] hover:bg-[#FBEFEF]"
                                     >
-                                        <Trash2 className="h-3.5 w-3.5" /> Delete
+                                        <Trash2 className="h-3.5 w-3.5" /> {tBuilder('FLOW.DELETE')}
                                     </button>
                                 </div>
                             </div>
@@ -801,8 +800,8 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         </>
                     ) : (
                         <div className="text-black-600 flex h-full flex-col items-center justify-center gap-2 px-8 text-center text-xs">
-                            <span className="text-black-700 text-sm font-medium">Nothing selected</span>
-                            Select a page to edit its branching rules, or drag from a blue dot to another page to create a jump.
+                            <span className="text-black-700 text-sm font-medium">{tBuilder('FLOW.NOTHING_SELECTED')}</span>
+                            {tBuilder('FLOW.NOTHING_SELECTED_HINT')}
                         </div>
                     )}
                 </div>
@@ -810,13 +809,13 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
 
             {/* Page-editor overlay — edit content without leaving the flow */}
             {overlaySlide && (
-                <div role="dialog" aria-modal="true" aria-label={`Edit page ${overlayIndex + 1}`} className="absolute inset-0 z-30 flex flex-col bg-black/40 p-5" onClick={() => setOverlayId(null)}>
+                <div role="dialog" aria-modal="true" aria-label={tBuilder('FLOW.EDIT_PAGE', { n: overlayIndex + 1 })} className="absolute inset-0 z-30 flex flex-col bg-black/40 p-5" onClick={() => setOverlayId(null)}>
                     <div className="flex min-h-0 flex-1 overflow-hidden rounded bg-white shadow-large" onClick={(e) => e.stopPropagation()}>
                         <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
                             <div className="border-b-black-300 flex items-center justify-between gap-4 border-b bg-white px-4 py-2.5">
                                 <div className="min-w-0">
-                                    <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">Page {overlayIndex + 1}</div>
-                                    <div className="text-black-900 truncate text-sm font-semibold">{pageLabel(overlaySlide, overlayIndex).replace(/^Page \d+ · /, '') || 'Untitled page'}</div>
+                                    <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">{tBuilder('FLOW.PAGE_N', { n: overlayIndex + 1 })}</div>
+                                    <div className="text-black-900 truncate text-sm font-semibold">{pageTitleOnly(overlaySlide, overlayIndex)}</div>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-3">
                                     {/* Live save state beats the static "changes save automatically" claim. */}
@@ -824,7 +823,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                         {autosaveStatusLabel(autosaveStatus.state, tBuilder) ?? tBuilder('AUTOSAVE.AUTOMATIC')}
                                     </span>
                                     <button onClick={() => setOverlayId(null)} className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
-                                        <X className="h-3.5 w-3.5" /> Back to flow
+                                        <X className="h-3.5 w-3.5" /> {tBuilder('FLOW.BACK_TO_FLOW')}
                                     </button>
                                 </div>
                             </div>

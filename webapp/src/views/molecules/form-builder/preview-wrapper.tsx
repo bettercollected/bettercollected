@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useModal } from '@app/components/modal-views/context';
 import { formConstant } from '@app/constants/locales/form';
@@ -22,7 +23,6 @@ import ShareIcon from '@Components/icons/share-icon';
 import FloatingPopOverButton from '@Components/sidebar/floating-pop-over-button';
 import HelpMenuComponent from '@Components/sidebar/help-menu-component';
 import HelpMenuItem from '@Components/sidebar/help-menu-item';
-import { useTranslation } from 'react-i18next';
 import PublishButton from './publish-button';
 
 const PreviewWrapper = ({ children, handleResetResponderState }: { children: React.ReactNode; handleResetResponderState: () => void }) => {
@@ -30,6 +30,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
     const [isDesktopView, setIsDesktopView] = useState(true);
     const [isIframeLoaded, setIFrameLoaded] = useState(false);
     const { t } = useTranslation();
+    const { t: tb } = useTranslation('builder');
     const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
     const isMobile = useIsMobile();
@@ -45,7 +46,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
         <div className=" h-screen w-full bg-white">
             {isMobile && (
                 <div className="bg-black-900 xs:px-16 flex h-[52px] w-full items-center justify-center px-4 py-2">
-                    <span className="text-xs text-white sm:text-sm">Please use the desktop version to edit this form. Mobile editing will be available soon!</span>
+                    <span className="text-xs text-white sm:text-sm">{tb('PREVIEW_BAR.MOBILE_NOTE')}</span>
                 </div>
             )}
             <nav className="flex h-14 flex-row justify-between px-4 py-2" style={{ background: isMobile ? standardForm.theme?.accent : 'inherit' }}>
@@ -53,12 +54,12 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                 <div className=" hidden items-center gap-4 text-xs font-semibold lg:flex">
                     <div onClick={() => setIsDesktopView(true)} className={cn('flex cursor-pointer items-center gap-1 p-2 text-xs', isDesktopView ? 'bg-black-200 text-black-800  rounded-lg' : 'text-black-600')}>
                         <DesktopIcon />
-                        Desktop
+                        {tb('PREVIEW_BAR.DESKTOP')}
                     </div>
                     <button data-umami-event={'Preview in Mobile View Button'}>
                         <div onClick={() => setIsDesktopView(false)} className={cn('flex cursor-pointer items-center gap-1 p-2 text-xs', isDesktopView ? 'text-black-600' : 'bg-black-200 text-black-800 rounded-lg p-2')}>
                             <MobileIcon />
-                            Mobile
+                            {tb('PREVIEW_BAR.MOBILE')}
                         </div>
                     </button>
                 </div>
@@ -71,7 +72,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                             setIFrameLoaded(false);
                         }}
                     >
-                        Restart
+                        {tb('PREVIEW_BAR.RESTART')}
                     </Button>
                     <PublishButton />
                 </div>
@@ -89,7 +90,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                             })
                         }
                     >
-                        <span className="text-xs font-medium">Share</span>
+                        <span className="text-xs font-medium">{tb('PREVIEW_BAR.SHARE')}</span>
                     </Button>
                 </div>
             </nav>

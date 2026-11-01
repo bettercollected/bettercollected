@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { formConstant } from '@app/constants/locales/form';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -11,7 +13,6 @@ import BackButton from '@app/views/molecules/form-builder/back-button';
 import PublishButton from '@app/views/molecules/form-builder/publish-button';
 import Form from '@app/views/organism/form/form';
 import ShareIcon from '@Components/icons/share-icon';
-import { useTranslation } from 'react-i18next';
 import { useModal } from '../context';
 import { useFullScreenModal } from '../full-screen-modal-context';
 
@@ -43,7 +44,7 @@ export const PreviewFullModalView = () => {
     return (
         <div className="flex h-screen w-full flex-col bg-[#F5F7FB]">
             <header className="border-black-300 z-10 flex h-14 w-full shrink-0 items-center justify-between gap-2 border-b bg-white px-4">
-                <BackButton handleClick={handleClickClose} />
+                <BackButton label={t('BUTTON.BACK')} handleClick={handleClickClose} />
                 <div className="flex min-w-0 items-center gap-2 text-sm">
                     <span className="text-black-800 max-w-[200px] truncate font-medium sm:max-w-[320px]">{standardForm?.title || t('STAFF.COMMON.UNTITLED')}</span>
                     <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand-500">{t('STAFF.PREVIEW.TITLE')}</span>

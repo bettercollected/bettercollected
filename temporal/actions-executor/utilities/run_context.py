@@ -11,6 +11,12 @@ The backend answers on its in-network route
 the ``api-key`` the executor already uses and the run's own token (``run-token``,
 minted by the backend when it queued the run: the job key alone reads no
 response). 410 means the run no longer applies.
+
+Under ``ACTION_ISOLATION=enforce`` the request also says ``{"secrets": "plain"}``:
+a backend of 4.3 or later then answers with this action's secrets already opened
+(and ``"secrets_plain": true``), so the executor holds no key. An older backend
+ignores the request and answers sealed; the executor then needs the key
+(``AES_HEX_KEY``) to open them, as before.
 Nothing here puts a response body or a value in an exception message.
 """
 
@@ -19,7 +25,7 @@ from urllib.parse import quote
 
 import httpx
 
-from settings.application import settings
+from settings.application import isolation_enforced, settings
 
 _TIMEOUT_SECONDS = 20
 CONTEXT_KEYS = ("action", "form", "response", "workspace")
@@ -64,6 +70,8 @@ async def fetch_run_context(
             res = await client.post(
                 url,
                 headers={"api-key": settings.api_key, "run-token": str(run_token)},
+                # an older backend takes no body and answers sealed
+                json={"secrets": "plain"} if isolation_enforced() else None,
             )
     except httpx.HTTPError as error:
         raise RunContextUnavailable(type(error).__name__) from None
@@ -79,4 +87,6 @@ async def fetch_run_context(
         not isinstance(body.get(key), str) for key in CONTEXT_KEYS
     ):
         raise RunContextUnavailable("the backend's answer is incomplete")
+    # the secrets arrived opened only when the backend says so
+    body["secrets_plain"] = body.get("secrets_plain") is True
     return body

@@ -55,3 +55,9 @@ BULK_JSON_MAX_ROWS = 5_000
 FAILURE_NEWS_FOR = dt.timedelta(hours=24)
 # export jobs have a queue of their own, so they cannot hold up deletions
 EXPORTS_QUEUE = "exports"
+# the PDF of one submission (response_pdf.py): requests per user and workspace in a
+# window (a reviewer reads many responses, so more than the 10 exports), PDFs
+# drawn at once in this process, and how long a request waits for one of them
+PDF_REQUESTS_PER_WINDOW = 60
+PDF_PARALLEL = 2
+PDF_WAIT_SECONDS = 10

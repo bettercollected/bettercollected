@@ -117,7 +117,7 @@ export default function PageDesignTab() {
     return (
         <div className="flex h-full flex-col">
             <div className="px-4 pb-3">
-                <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Theme</div>
+                <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">{t('PAGE_PROPS.THEME')}</div>
                 <p className="text-black-600 mt-1 text-xs leading-relaxed">{t('THEME.GALLERY_HINT')}</p>
             </div>
             <ScrollArea className="max-h-design-content flex-1 overflow-y-auto border-t">
@@ -158,9 +158,9 @@ export default function PageDesignTab() {
 
                     {/* Where themes are made: the workspace Themes page. */}
                     <p className="text-black-600 border-t-black-300 border-t pt-3 text-[11px] leading-relaxed">
-                        Save your own palette to reuse across forms on the{' '}
+                        {t('PAGE_PROPS.SAVE_THEME_PRE')}{' '}
                         <Link href={`/${workspace?.workspaceName}/dashboard/themes`} className="text-brand-500 hover:text-brand-600 font-medium underline underline-offset-2">
-                            Themes page
+                            {t('PAGE_PROPS.THEMES_PAGE')}
                         </Link>
                         .
                     </p>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { Skeleton } from '@app/shadcn/components/ui/skeleton';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -13,6 +14,7 @@ import MediaItem from './media-item';
 import SearchBar from './photo-search';
 
 const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any) => void }) => {
+    const { t } = useTranslation('builder');
     const { toast } = useToast();
     const [query, setQuery] = useState('');
     const workspace = useAppSelector(selectWorkspace);
@@ -65,7 +67,7 @@ const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any
                         setQuery={setQuery}
                     />
                     <label htmlFor="upload-media" className="bg-black-800 hover:bg-black-900 flex h-9! cursor-pointer items-center justify-center rounded px-4 py-2 text-white">
-                        <span className="p3-new"> Upload New</span>
+                        <span className="p3-new"> {t('MEDIA.UPLOAD_NEW')}</span>
                     </label>
                     <input type="file" hidden id="upload-media" onChange={handleAddMedia} accept="image/*" />
                 </div>
@@ -93,7 +95,7 @@ const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any
                         {!loading && (
                             <>
                                 <EmptyGallerIcon />
-                                <span className="p4-new text-black-600">No images uploaded yet</span>
+                                <span className="p4-new text-black-600">{t('MEDIA.NONE_YET')}</span>
                             </>
                         )}
                     </div>

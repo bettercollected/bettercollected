@@ -59,11 +59,13 @@ export function useWorkspacePermissions() {
     const addressLookupEnabled = !!userId && !isError && !!data?.addressLookupEnabled;
     // ...and the signature question (its SIGNATURE_QUESTION_ENABLED).
     const signatureQuestionEnabled = !!userId && !isError && !!data?.signatureQuestionEnabled;
+    // ...and options from a list or another form's answers (its OPTION_SOURCES_ENABLED): the lists page and the source picker.
+    const optionSourcesEnabled = !!userId && !isError && !!data?.optionSourcesEnabled;
     // ...and layout containers: panels, tabs and field sets (its LAYOUT_CONTAINERS_ENABLED).
     const layoutContainersEnabled = !!userId && !isError && !!data?.layoutContainersEnabled;
     // ...and whether it lets respondents save drafts (its SAVE_DRAFTS_ENABLED): the setting is read-only while it is off.
     const saveDraftsEnabled = !!userId && !isError && !!data?.saveDraftsEnabled;
     // ...and embedding forms in other sites (its FORM_EMBED_ENABLED): the share dialog's Embed tab and the Embedding settings.
     const formEmbedEnabled = !!userId && !isError && !!data?.formEmbedEnabled;
-    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, layoutContainersEnabled, saveDraftsEnabled, formEmbedEnabled };
+    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, optionSourcesEnabled, layoutContainersEnabled, saveDraftsEnabled, formEmbedEnabled };
 }

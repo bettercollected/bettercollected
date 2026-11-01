@@ -37,7 +37,7 @@ import { useRegistrationEnabled } from '@app/components/registration/use-registr
 
 const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const ssoEnabled = useSsoEnabled();
-    const { can, formEmbedEnabled } = useWorkspacePermissions();
+    const { can, optionSourcesEnabled, formEmbedEnabled } = useWorkspacePermissions();
     const { enabled: registrationEnabled } = useRegistrationEnabled();
     const drawerWidth = 289;
 
@@ -160,7 +160,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
         },
         {
             label: t('STAFF.NAV.WORKSPACE'),
-            items: workspaceNavItems({ workspaceName: workspace?.workspaceName, t, can, ssoEnabled, registrationEnabled, embedEnabled: formEmbedEnabled })
+            items: workspaceNavItems({ workspaceName: workspace?.workspaceName, t, can, ssoEnabled, registrationEnabled, optionSourcesEnabled, embedEnabled: formEmbedEnabled })
         }
     ];
 

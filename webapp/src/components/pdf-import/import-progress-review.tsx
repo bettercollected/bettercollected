@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 
 import ImportFailure from '@app/components/pdf-import/import-failure';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -13,12 +13,13 @@ import { STAGES, aiStructuringNote, describeRules, describeStaffPart, describeWi
 const POLL_MS = 2000;
 
 function StageList({ states }: { states: Record<string, string> }) {
+    const { t } = useTranslation('builder');
     return (
         <ol className="flex flex-col gap-2">
             {STAGES.map((s) => (
                 <li key={s.key} className="flex items-center gap-3 text-sm">
                     <span aria-hidden className={`h-2.5 w-2.5 rounded-full ${states[s.key] === 'done' ? 'bg-green-600' : states[s.key] === 'current' ? 'animate-pulse bg-blue-500' : states[s.key] === 'failed' ? 'bg-red-600' : 'bg-black-300'}`} />
-                    <span className={states[s.key] === 'waiting' ? 'text-black-600' : 'text-black-800'}>{s.label}</span>
+                    <span className={states[s.key] === 'waiting' ? 'text-black-600' : 'text-black-800'}>{t(`PDF_REVIEW.STAGE_${s.key}`, { defaultValue: s.label })}</span>
                 </li>
             ))}
         </ol>
@@ -26,6 +27,7 @@ function StageList({ states }: { states: Record<string, string> }) {
 }
 
 function PageWithBoxes({ workspaceId, importId, page, selected, onSelect }: any) {
+    const { t } = useTranslation('builder');
     const holder = useRef<HTMLDivElement>(null);
     const [width, setWidth] = useState(0);
     useEffect(() => {
@@ -41,9 +43,9 @@ function PageWithBoxes({ workspaceId, importId, page, selected, onSelect }: any)
         <div ref={holder} className="relative w-full overflow-hidden rounded-md border border-black-300 bg-white" style={{ height: height || undefined }}>
             {page.has_image ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={pageImageUrl(workspaceId, importId, page.number)} alt={`Page ${page.number} of the uploaded document`} className="block w-full" />
+                <img src={pageImageUrl(workspaceId, importId, page.number)} alt={t('PDF_REVIEW.PAGE_ALT', { n: page.number })} className="block w-full" />
             ) : (
-                <div className="flex h-full min-h-40 items-center justify-center p-6 text-center text-sm text-black-600">No page image (the document reader for images is not configured on this server).</div>
+                <div className="flex h-full min-h-40 items-center justify-center p-6 text-center text-sm text-black-600">{t('PDF_REVIEW.NO_IMAGE')}</div>
             )}
             {width > 0 &&
                 page.boxes.map((b: any) => {
@@ -82,14 +84,14 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
     const rules = describeRules(compile.rules);
     const withheld = describeWithheld(report.structure?.withheld_words);
 
-    if (!data) return <div className="p-10 text-sm text-black-600">Loading…</div>;
+    if (!data) return <div className="p-10 text-sm text-black-600">{t('PDF_REVIEW.LOADING')}</div>;
 
     if (data.status !== 'completed') {
         return (
             <div className="mx-auto flex max-w-xl flex-col gap-6 p-10">
                 <div>
-                    <h1 className="h3-new text-black-800">Importing {data.fileName}</h1>
-                    <p className="mt-1 text-sm text-black-600">{data.status === 'failed' ? t('PDF_IMPORT.FAILED_TITLE') : 'This usually takes under a minute. You can leave this page; the draft form will be ready in your forms list.'}</p>
+                    <h1 className="h3-new text-black-800">{t('PDF_REVIEW.IMPORTING', { name: data.fileName })}</h1>
+                    <p className="mt-1 text-sm text-black-600">{data.status === 'failed' ? t('PDF_IMPORT.FAILED_TITLE') : t('PDF_REVIEW.TAKES')}</p>
                 </div>
                 {data.status !== 'failed' && (
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-black-200">
@@ -109,37 +111,40 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
         <div className="mx-auto flex max-w-[1330px] flex-col gap-6 p-6 md:p-10 lg:flex-row">
             <div className="flex w-full flex-col gap-4 lg:w-3/5">
                 <p className="text-sm text-black-600">
-                    Each outlined area became a question in your draft. <span className="text-orange-600">Orange</span> means the reading was uncertain; <span className="text-amber-600">amber</span> marks staff-only parts, which became internal fields. A
-                    dashed outline means the AI wrote the wording: check it.
+                    {t('PDF_REVIEW.LEGEND_PRE')}
+                    <span className="text-orange-600">{t('PDF_REVIEW.ORANGE')}</span>
+                    {t('PDF_REVIEW.LEGEND_ORANGE')}
+                    <span className="text-amber-600">{t('PDF_REVIEW.AMBER')}</span>
+                    {t('PDF_REVIEW.LEGEND_AMBER')}
                 </p>
                 {review?.pages.map((page) => (
                     <div key={page.number} className="flex flex-col gap-1">
-                        <span className="text-xs text-black-600">Page {page.number}</span>
+                        <span className="text-xs text-black-600">{t('PDF_REVIEW.PAGE_N', { n: page.number })}</span>
                         <PageWithBoxes workspaceId={workspaceId} importId={importId} page={page} selected={selected} onSelect={setSelected} />
                     </div>
                 ))}
             </div>
             <aside className="flex w-full flex-col gap-5 lg:sticky lg:top-6 lg:w-2/5 lg:self-start">
                 <div>
-                    <h1 className="h3-new text-black-800">Your draft is ready</h1>
+                    <h1 className="h3-new text-black-800">{t('PDF_REVIEW.READY')}</h1>
                     <p className="mt-1 text-sm text-black-600">
-                        {compile.fields ?? 0} fields on {compile.pages ?? 0} pages from {data.pageCount ?? 0} page{data.pageCount === 1 ? '' : 's'} of {data.fileName}. Review it in the builder before publishing.
+                        {t('PDF_REVIEW.SUMMARY', { fields: compile.fields ?? 0, pages: compile.pages ?? 0, count: data.pageCount ?? 0, name: data.fileName })}
                     </p>
                 </div>
                 <Link href={`/${workspaceName}/dashboard/forms/${data.formId}/edit`}>
-                    <Button className="w-full">Open in builder</Button>
+                    <Button className="w-full">{t('PDF_REVIEW.OPEN_BUILDER')}</Button>
                 </Link>
                 <p className="text-xs text-black-600">{aiStructuringNote(data.aiConsent)}</p>
                 {selectedBox && (
                     <div className="rounded-md border border-black-300 p-3 text-sm">
-                        <div className="font-medium text-black-800">{selectedBox.label || 'Untitled'}</div>
-                        <div className="text-xs text-black-600">{selectedBox.type === 'staff_only' ? 'Staff-only part' : selectedBox.kind?.replace(/_/g, ' ')}</div>
-                        {isAiWording(selectedBox) && <div className="mt-1 text-xs text-orange-700">Wording written by the AI, not copied from the document. Check it.</div>}
+                        <div className="font-medium text-black-800">{selectedBox.label || t('PDF_REVIEW.UNTITLED')}</div>
+                        <div className="text-xs text-black-600">{selectedBox.type === 'staff_only' ? t('PDF_REVIEW.STAFF_PART_TYPE') : selectedBox.kind?.replace(/_/g, ' ')}</div>
+                        {isAiWording(selectedBox) && <div className="mt-1 text-xs text-orange-700">{t('PDF_REVIEW.AI_WORDING')}</div>}
                     </div>
                 )}
                 {rules.length > 0 && (
                     <section>
-                        <h2 className="mb-2 text-sm font-semibold text-black-800">What we changed</h2>
+                        <h2 className="mb-2 text-sm font-semibold text-black-800">{t('PDF_REVIEW.CHANGED')}</h2>
                         <ul className="list-disc space-y-1 pl-5 text-sm text-black-700">
                             {rules.map((r) => (
                                 <li key={r}>{r}</li>
@@ -149,22 +154,22 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
                 )}
                 {(compile.staff_only?.length ?? 0) > 0 && (
                     <section>
-                        <h2 className="mb-2 text-sm font-semibold text-black-800">Set aside for staff</h2>
+                        <h2 className="mb-2 text-sm font-semibold text-black-800">{t('PDF_REVIEW.SET_ASIDE')}</h2>
                         <ul className="list-disc space-y-1 pl-5 text-sm text-black-700">
                             {compile.staff_only.map((s: any) => (
                                 <li key={s.element}>{describeStaffPart(s)}</li>
                             ))}
                         </ul>
-                        {(compile.internal_fields ?? 0) > 0 && <p className="mt-2 text-xs text-black-600">Internal fields are on the last page of the form. Workspace members who can edit the form fill them in on each submission.</p>}
+                        {(compile.internal_fields ?? 0) > 0 && <p className="mt-2 text-xs text-black-600">{t('PDF_REVIEW.INTERNAL_NOTE')}</p>}
                     </section>
                 )}
                 {((compile.dropped?.length ?? 0) > 0 || withheld.length > 0) && (
                     <section>
-                        <h2 className="mb-2 text-sm font-semibold text-black-800">Worth a look</h2>
+                        <h2 className="mb-2 text-sm font-semibold text-black-800">{t('PDF_REVIEW.WORTH_LOOK')}</h2>
                         <ul className="list-disc space-y-1 pl-5 text-sm text-black-700">
                             {(compile.dropped ?? []).map((d: any, i: number) => (
                                 <li key={`${d.element ?? 'dropped'}-${i}`}>
-                                    {d.label || 'An item'}: {d.reason}
+                                    {d.label || t('PDF_REVIEW.AN_ITEM')}: {d.reason}
                                 </li>
                             ))}
                             {withheld.map((w) => (

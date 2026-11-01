@@ -27,6 +27,8 @@ from typing import Optional
 from procrastinate import App, PsycopgConnector, RetryStrategy
 
 from utilities.actions import run_action
+from utilities.google_service import RunScope
+from utilities.isolation_log import log_isolation
 from utilities.job_logging import scrub_job_logging
 from utilities.queue_isolation import require_isolated_queue
 from utilities.run_context import RunContextUnavailable, fetch_run_context
@@ -101,6 +103,17 @@ async def run_action_job(
                 context["workspace"],
             )
             user_email = context.get("user_email") or None
+            secrets_plain = bool(context.get("secrets_plain"))
+            run_scope = RunScope(
+                workspace_id=str(workspace_id),
+                form_id=str(form_id),
+                action_id=str(action_id),
+                response_id=str(response_id),
+                run_token=str(run_token),
+            )
+        else:
+            # a job queued by 4.1.x: the secrets in it are sealed
+            secrets_plain, run_scope = False, None
         await asyncio.wait_for(
             run_action(
                 action=action,
@@ -108,6 +121,9 @@ async def run_action_job(
                 response=response,
                 user_email=user_email,
                 workspace=workspace,
+                secrets_plain=secrets_plain,
+                run_scope=run_scope,
+                log_ref=None if action_id is None else str(action_id),
             ),
             timeout=RUN_TIMEOUT_SECONDS,
         )
@@ -124,6 +140,7 @@ async def run_action_job(
 
 
 async def main() -> None:
+    await log_isolation(key_needed=False)
     async with app.open_async():
         # fail closed: this role only runs where the database keeps it to its own queue
         await require_isolated_queue(app.connector)

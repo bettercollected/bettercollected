@@ -9,6 +9,8 @@ dependencies = [
     "pydantic-settings>=2.14.2",
     "python-dotenv>=1.2.2",
     "httpx==0.28.1",
+    # utilities/egress.py connects through httpcore directly, pinned to the address it checked
+    "httpcore==1.0.9",
     "fastapi-mail>=1.6.1",
     "google-api-python-client==2.201.0",
     "google-auth==2.62.0",

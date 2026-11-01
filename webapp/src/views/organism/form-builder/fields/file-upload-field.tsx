@@ -1,13 +1,18 @@
+import i18n from 'i18next';
+
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormState } from '@app/store/jotai/form';
 import { FolderUploadIcon } from '@Components/icons/folder-upload-icon';
 
 const FileUpload = ({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {
     const { theme } = useFormState();
+    // what respondents see, in their language (as the rest of this preview)
+    const { t: tr } = useRespondentLanguage();
 
     const handleFileInputChange = (event: any) => {
         const file = event.target.files[0];
-        if (file.size > 26214400) alert('Size greater than 25MB.');
+        if (file.size > 26214400) alert(i18n.t('builder:CANVAS.FILE_TOO_LARGE'));
     };
     return (
         <>
@@ -24,8 +29,8 @@ const FileUpload = ({ field, slide, disabled }: { field: StandardFormFieldDto; s
                     }}
                 />
                 <div style={{ color: theme?.secondary }} className={'flex flex-col items-center gap-1'}>
-                    <span className={'text-base font-semibold'}>Choose your file or drag file</span>
-                    <span className={'text-[12px]'}>Max size limit: 25 MB</span>
+                    <span className={'text-base font-semibold'}>{tr('FILE.CHOOSE')}</span>
+                    <span className={'text-[12px]'}>{tr('FILE.MAX_SIZE', { size: 25 })}</span>
                 </div>
             </label>
             <input type="file" id="form-builder-file-upload" className={'hidden'} onChange={handleFileInputChange} />

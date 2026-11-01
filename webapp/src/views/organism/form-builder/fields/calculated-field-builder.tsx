@@ -1,6 +1,7 @@
 'use client';
 
 import { Calculator, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useBuilderFieldsValue } from '@app/store/jotai/entity-hooks';
@@ -13,6 +14,7 @@ import { calculationVariables, formulaText } from '@app/utils/calculated-fields'
  * here instead, unless it is hidden from them.
  */
 export default function CalculatedFieldBuilder({ field }: { field: StandardFormFieldDto }) {
+    const { t } = useTranslation('builder');
     const { formState } = useFormState();
     const expression = field.properties?.expression;
     const hiddenNames = formState.hiddenFields;
@@ -28,7 +30,7 @@ export default function CalculatedFieldBuilder({ field }: { field: StandardFormF
                         = {formula}
                     </code>
                 ) : (
-                    <span className="text-[22px] text-black-600">No formula yet. Write one in the inspector.</span>
+                    <span className="text-[22px] text-black-600">{t('CANVAS.NO_FORMULA')}</span>
                 )}
             </div>
             {field.properties?.hiddenFromRespondents && (

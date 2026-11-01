@@ -4,6 +4,7 @@ from http import HTTPStatus
 
 from fastapi import Depends, Request
 from pydantic import BaseModel, Field, field_validator
+from typing import Literal, Optional
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
@@ -18,7 +19,7 @@ from backend.app.services.action_run_token import (
 from backend.jobs.app import ACTIONS_QUEUE, app as jobs_app
 from backend.app.router import router
 from backend.app.services.user_service import get_api_key, get_logged_admin
-from backend.app.models.dtos.form_actions_dto import FormActionsDto
+from backend.app.models.dtos.form_actions_dto import FormActionsDto, RunSecretDto
 
 
 class CopyRecipientQuery(BaseModel):
@@ -31,6 +32,14 @@ class CopyRecipientQuery(BaseModel):
         if not value.strip():
             raise ValueError("address must not be blank")
         return value
+
+
+class RunContextRequest(BaseModel):
+    """What the executor asks of the run's data. ``plain``: this action's
+    secrets opened (the executor of 4.3 and later, which holds no key); the
+    default, ``sealed``, is what every older executor gets."""
+
+    secrets: Literal["sealed", "plain"] = "sealed"
 
 
 @router(
@@ -100,6 +109,7 @@ class TemporalRouter(Routable):
         action_id: RecordId,
         response_id: str,
         request: Request,
+        body: Optional[RunContextRequest] = None,
         api_key=Depends(get_api_key),
     ):
         """The actions executor reads what one queued run needs, when it runs:
@@ -112,6 +122,28 @@ class TemporalRouter(Routable):
         is too old or no longer applies (the
         response was erased, the action was switched off or removed): the
         executor skips the job, it is not retried."""
+        await self._authorise_run(
+            request, workspace_id, form_id, action_id, response_id
+        )
+        context = await self.action_service.action_run_context(
+            workspace_id,
+            form_id,
+            action_id,
+            response_id,
+            plain_secrets=bool(body and body.secrets == "plain"),
+        )
+        if context is None:
+            raise HTTPException(
+                status_code=HTTPStatus.GONE, content="This action run no longer applies."
+            )
+        return context
+
+    async def _authorise_run(
+        self, request: Request, workspace_id, form_id, action_id, response_id
+    ) -> None:
+        """The run's own token (valid, not expired) and the run's job in the
+        actions queue, being run, with these ids and this token: else 403 (the
+        job key alone opens nothing) or 410 (the token's day is over)."""
         token = request.headers.get(HEADER, "")
         ids = (workspace_id, form_id, action_id, response_id)
         verdict = check_run_token(token, *ids)
@@ -138,14 +170,38 @@ class TemporalRouter(Routable):
                 status_code=HTTPStatus.FORBIDDEN,
                 content="You are not allowed to perform this action.",
             )
-        context = await self.action_service.action_run_context(
-            workspace_id, form_id, action_id, response_id
+
+    @patch(
+        "/workspaces/{workspace_id}/forms/{form_id}/actions/{action_id}"
+        "/runs/{response_id}/secrets"
+    )
+    async def patch_run_secret(
+        self,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        action_id: RecordId,
+        response_id: str,
+        payload: RunSecretDto,
+        request: Request,
+        api_key=Depends(get_api_key),
+    ):
+        """The executor hands a credential it refreshed (a Google access token)
+        back, in plain, for this backend to seal with its own key. Scoped to the
+        run like its context: the run's token and the run's job being ``doing``,
+        so the job key alone writes no form's secret; the form must belong to the
+        workspace and have the action switched on, and only a secret the form's
+        action already holds can be replaced."""
+        await self._authorise_run(
+            request, workspace_id, form_id, action_id, response_id
         )
-        if context is None:
+        if not await self.action_service.run_in_force(
+            workspace_id, form_id, action_id, response_id
+        ):
             raise HTTPException(
                 status_code=HTTPStatus.GONE, content="This action run no longer applies."
             )
-        return context
+        await self.form_actions_service.update_run_secret(form_id, action_id, payload)
+        return "Updated"
 
     @post("/delete/submissions/{submission_id}")
     async def delete_expired_submissions(

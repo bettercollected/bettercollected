@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any, List
+from typing import Any, List, Optional
 
 from common.ids import RecordId
 from classy_fastapi import delete, get, patch, post
@@ -45,6 +45,7 @@ from backend.app.repositories.postgres.analytics import PostgresFlowEventReposit
 from backend.app.router import router
 from backend.app.services.address_lookup.service import AddressLookupService
 from backend.app.services.flow_event_service import FlowEventService
+from backend.app.services.option_sources.service import OptionSourceService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.receipt_limits import (
     DELETION_REQUEST as RECEIPT_DELETION_REQUEST,
@@ -54,8 +55,14 @@ from backend.app.services.receipt_limits import (
 from backend.app.services.respondent_feedback_service import (
     RespondentFeedbackService,
 )
+from backend.app.services.response_export.http import NO_STORE as EXPORT_NO_STORE
+from backend.app.services.response_export.http import attachment
 from backend.app.services.signatures import carry_headers, read_throttle
-from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
+from backend.app.services.user_service import (
+    get_full_user,
+    get_logged_user,
+    get_user_if_logged_in,
+)
 from backend.app.utils.client_ip import request_client_ip
 from backend.app.utils.custom_routable import CustomRoutable
 from backend.app.utils.flow_analytics import aggregate_flow_events
@@ -84,6 +91,9 @@ class WorkspaceResponsesRouter(CustomRoutable):
         address_lookup_service: AddressLookupService = (
             container.address_lookup_service()
         ),
+        option_source_service: OptionSourceService = (
+            container.option_source_service()
+        ),
         *args,
         **kwargs
     ):
@@ -94,6 +104,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
         self._flow_event_service = flow_event_service
         self._receipt_limits = receipt_limits
         self._address_lookup_service = address_lookup_service
+        self._option_source_service = option_source_service
 
     @get(
         "/forms/{form_id}/submissions",
@@ -323,6 +334,44 @@ class WorkspaceResponsesRouter(CustomRoutable):
             user_loader=lambda: get_user_if_logged_in(request, response),
         )
 
+    @get("/forms/{form_id}/options/{field_id}")
+    async def get_question_options(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        field_id: str,
+        request: Request,
+        response: Response,
+        q: Optional[str] = Query(None, max_length=100),
+        limit: int = Query(50, ge=1, le=100),
+        offset: int = Query(0, ge=0, le=100_000),
+        parent: List[str] = Query([]),
+    ):
+        """
+        One page of the choices of a dropdown or multiple choice question whose
+        options come from a workspace list or from another form's answers
+        (``{items: [{id, label}], total, truncated, available}``: labels only).
+        Public, like the form: 404 (the same) unless the form is published in
+        this workspace, is one a respondent may fill in now (not hidden, open,
+        not full, signed in where it asks for a verified identity, a member of
+        its responder groups when private) and has that question with a source;
+        429 per client and form and per form. ``parent``: the ids the respondent chose in the
+        question this one depends on. Never cached.
+        """
+        response.headers["Cache-Control"] = "no-store"
+        return await self._option_source_service.serve(
+            workspace_id=workspace_id,
+            form_ref=form_id,
+            field_id=field_id,
+            query=q,
+            limit=limit,
+            offset=offset,
+            parent_ids=parent,
+            client=request_client_ip(request),
+            # read only for a form that asks for a signed-in respondent
+            user_loader=lambda: get_user_if_logged_in(request, response),
+        )
+
     @post("/forms/{form_id}/flow-events")
     async def record_flow_event(
         self,
@@ -443,6 +492,38 @@ class WorkspaceResponsesRouter(CustomRoutable):
         )
         # A raw Response replaces the one FastAPI injects, which is where the
         # sign-in dependency puts a refreshed session's cookies: carry them over.
+        carry_headers(response, served)
+        return served
+
+    @get("/submissions/{submission_id}/pdf")
+    async def _get_submission_pdf(
+        self,
+        workspace_id: RecordId,
+        submission_id: str,
+        response: Response,
+        lang: str | None = Query(None, max_length=16),
+        tz: str | None = Query(None, max_length=64),
+        user: User = Depends(get_full_user),
+    ):
+        """The PDF of one response, drawn on demand and never stored, for
+        the people who may read it (``response.read``): the form's title, when
+        it was submitted (in ``tz``, an IANA zone, default UTC), the answers with
+        their questions, in ``lang`` (``en`` or ``nl``). Rate limited and audited
+        like an export (docs/response-export.md): who and which response, never
+        its content."""
+        file = await container.response_export_service().response_pdf(
+            workspace_id, submission_id, user, lang, tz
+        )
+        served = Response(
+            content=file.data,
+            media_type="application/pdf",
+            headers={
+                **EXPORT_NO_STORE,
+                "Content-Disposition": attachment(file.file_name),
+                "Content-Security-Policy": "default-src 'none'; sandbox",
+            },
+        )
+        # the sign-in dependency's refreshed-session cookies live on the injected response
         carry_headers(response, served)
         return served
 

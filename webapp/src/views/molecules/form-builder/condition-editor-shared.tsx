@@ -3,6 +3,7 @@
 import { useId } from 'react';
 
 import { X } from 'lucide-react';
+import i18n from 'i18next';
 import { useTranslation } from 'react-i18next';
 
 import { jsonEqual } from '@app/lib/form-ops/model';
@@ -24,32 +25,40 @@ export const sameSourceFields = (a: SourceField[], b: SourceField[]) => a.length
  * Same text the canvas shows for a question (title, else its placeholder), so the
  * logic picker never disagrees with what the creator sees on the page.
  */
-export function fieldText(field: StandardFormFieldDto | undefined): string {
+export function fieldText(field: StandardFormFieldDto | undefined, lng?: string): string {
     if (!field) return '';
     const t = extractTextfromJSON(field)?.trim();
-    return t || 'Untitled question';
+    return t || i18n.t('builder:INSPECTOR.UNTITLED', { lng });
 }
 
 /** Short, stable-ish page name used wherever logic refers to a page. */
 export function pageLabel(slide: StandardFormFieldDto | undefined, index: number): string {
     const first = slide?.properties?.fields?.[0];
     const text = first ? fieldText(first) : '';
-    return text ? `Page ${index + 1} · ${text}` : `Page ${index + 1}`;
+    return text ? i18n.t('builder:OUTLINE.PAGE_PREFIX', { n: index + 1 }) + text : i18n.t('builder:OUTLINE.PAGE_N', { n: index + 1 });
+}
+
+/** A page's name without the "Page n ·" prefix: the text of its first question, or "Page n" for a page without questions. */
+export function pageTitleOnly(slide: StandardFormFieldDto | undefined, index: number): string {
+    const first = slide?.properties?.fields?.[0];
+    return first ? fieldText(first) : i18n.t('builder:OUTLINE.PAGE_N', { n: index + 1 });
 }
 
 /**
  * Build labelled sources from slides, adding a "Page N ·" prefix when the form has more than one page.
+ * `lng` fixes the language of that prefix and of the untitled fallback (a label that is stored in the form is
+ * made in English, whatever language the creator works in).
  * Internal fields are never sources: respondents never answer them, so no
  * respondent logic or pipe may depend on them (the backend refuses it too).
  */
-export function buildSourceFields(slides: Array<StandardFormFieldDto>, predicate: (slide: StandardFormFieldDto, slideIndex: number, field: StandardFormFieldDto) => boolean): SourceField[] {
+export function buildSourceFields(slides: Array<StandardFormFieldDto>, predicate: (slide: StandardFormFieldDto, slideIndex: number, field: StandardFormFieldDto) => boolean, lng?: string): SourceField[] {
     const multiPage = (slides || []).length > 1;
     const sources: SourceField[] = [];
     (slides || []).forEach((slide, sIdx) => {
         slide?.properties?.fields?.forEach((field) => {
             if (field?.internal || !predicate(slide, sIdx, field)) return;
-            const text = fieldText(field);
-            sources.push({ field, label: multiPage ? `Page ${sIdx + 1} · ${text}` : text });
+            const text = fieldText(field, lng);
+            sources.push({ field, label: multiPage ? i18n.t('builder:OUTLINE.PAGE_PREFIX', { n: sIdx + 1, lng }) + text : text });
         });
     });
     return sources;
@@ -93,8 +102,11 @@ export function comparisonsForField(field?: StandardFormFieldDto): Comparison[] 
             // signed or not: nothing else can be asked of a signature
             return SIGNED_COMPARISONS;
         case FieldTypes.MULTIPLE_CHOICE:
+            // options from a list or another form's answers have no values to name: only "is it answered"
+            if (field?.properties?.optionSource) return SIGNED_COMPARISONS;
             return field?.properties?.allowMultipleSelection ? MULTI_COMPARISONS : CHOICE_COMPARISONS;
         case FieldTypes.DROP_DOWN:
+            if (field?.properties?.optionSource) return SIGNED_COMPARISONS;
             return CHOICE_COMPARISONS;
         default:
             return TEXT_COMPARISONS;
@@ -242,7 +254,17 @@ export function ConditionValueInput({ field, value, onChange, invalid, described
     const date = field?.type === FieldTypes.DATE || field?.type === FieldTypes.DAY || field?.type === FieldTypes.DATE_RANGE;
     const time = field?.type === FieldTypes.TIME;
     // An amount may have cents: the number box must not insist on whole steps.
-    return <input {...state} className={cls} type={date ? 'date' : time ? 'time' : numeric ? 'number' : 'text'} step={field?.type === FieldTypes.CURRENCY ? 'any' : undefined} value={value ?? ''} placeholder={t('CONDITION.VALUE_PLACEHOLDER')} onChange={(e) => onChange(e.target.value)} />;
+    return (
+        <input
+            {...state}
+            className={cls}
+            type={date ? 'date' : time ? 'time' : numeric ? 'number' : 'text'}
+            step={field?.type === FieldTypes.CURRENCY ? 'any' : undefined}
+            value={value ?? ''}
+            placeholder={t('CONDITION.VALUE_PLACEHOLDER')}
+            onChange={(e) => onChange(e.target.value)}
+        />
+    );
 }
 
 export function newConditionFor(sources: SourceField[]): LogicCondition {

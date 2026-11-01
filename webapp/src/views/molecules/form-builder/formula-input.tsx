@@ -1,6 +1,7 @@
 'use client';
 
 import { KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { CalculationVariable, formulaText, parseFormulaText } from '@app/utils/calculated-fields';
 
@@ -77,6 +78,7 @@ export default function FormulaInput({
     /** Ids of other text that describes this input (a list of problems with it), after its own error and help. */
     describedBy?: string;
 }) {
+    const { t: tf } = useTranslation('builder');
     const id = useId();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const stored = JSON.stringify(expression ?? null);
@@ -204,7 +206,7 @@ export default function FormulaInput({
                     className={`w-full rounded-lg border p-2 font-mono text-xs ${bad ? 'border-[#C43D3D]' : 'border-control focus:border-brand-500'}`}
                 />
                 {listOpen && (
-                    <ul id={listId} role="listbox" aria-label="Fields" className="mt-1 max-h-[148px] overflow-auto rounded border border-black-300 bg-white py-1">
+                    <ul id={listId} role="listbox" aria-label={tf('FORMULA.FIELDS')} className="mt-1 max-h-[148px] overflow-auto rounded border border-black-300 bg-white py-1">
                         {suggestions.map((variable, index) => (
                             <li
                                 key={variable.key}
