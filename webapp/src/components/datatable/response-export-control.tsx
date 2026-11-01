@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { responseExportLocale } from '@app/constants/locales/response-export';
 import { Button } from '@app/shadcn/components/ui/button';
 import { ResponseExportDto, ResponseExportRefusal, useDiscardResponseExportMutation, useDownloadResponseExportMutation, useGetResponseExportQuery, useGetResponseExportsQuery, useStartResponseExportMutation } from '@app/store/workspaces/api';
+import { utcToLocalDateTimeZoneIn } from '@app/utils/date-utils';
 import { downloadBlob, exportExtension, exportFileName } from '@app/utils/response-export';
 
 /** How often a running export is asked about. */
@@ -60,7 +61,7 @@ function endedMessage(exportRow: ResponseExportDto): string {
  * through a short-lived link once it is ready (docs/response-export.md).
  */
 export default function ResponseExportControl({ workspaceId, formId, formTitle, search, filters }: Props) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [phase, setPhase] = useState<Phase>('idle');
     const [exportId, setExportId] = useState<string | undefined>();
     const [message, setMessage] = useState<{ key: string; values?: Record<string, unknown> } | undefined>();
@@ -175,7 +176,7 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
             if (!mounted.current) return;
             downloadBlob(blob, fresh.fileName || exportFileName(formTitle, fresh.format));
             // the file stays until it expires: the button stays for another download
-            setNotice({ key: responseExportLocale.downloadedStays, values: { time: fresh.expiresAt ? new Date(fresh.expiresAt).toLocaleString() : '' }, ok: true });
+            setNotice({ key: responseExportLocale.downloadedStays, values: { time: fresh.expiresAt ? utcToLocalDateTimeZoneIn(fresh.expiresAt, i18n.language) : '' }, ok: true });
             setPhase('ready');
         } catch (error: any) {
             if (!mounted.current) return;
@@ -193,7 +194,7 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
             setNotice(refused);
             setPhase('ready');
         }
-    }, [exportId, refetch, downloadExport, formTitle]);
+    }, [exportId, refetch, downloadExport, formTitle, i18n.language]);
 
     const handleDiscard = useCallback(async () => {
         if (!exportId) return;
@@ -231,7 +232,7 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
     };
 
     const busy = phase === 'starting' || phase === 'preparing' || phase === 'downloading' || phase === 'discarding';
-    const expires = followed?.expiresAt ? new Date(followed.expiresAt).toLocaleString() : undefined;
+    const expires = followed?.expiresAt ? utcToLocalDateTimeZoneIn(followed.expiresAt, i18n.language) : undefined;
 
     return (
         <div className="flex flex-col items-start gap-2 sm:items-end">
