@@ -246,3 +246,48 @@ def test_a_refreshed_credential_is_handed_back_in_plain_for_the_backend_to_seal(
     assert seen["headers"] == {"api-key": "job-key", "run-token": "tok"}
     assert json.loads(seen["json"]["value"]) == {"token": "t"}
     assert seen["json"]["name"] == "Credentials"
+
+
+def test_legacy_isolation_warns_on_every_run(monkeypatch, caplog):
+    import logging
+
+    monkeypatch.setattr(settings, "action_isolation", "legacy")
+    monkeypatch.setattr(actions.httpx, "post", lambda **kwargs: None)
+    with caplog.at_level(logging.WARNING):
+        run(hook_action(), workspace=workspace_url("http://127.0.0.1:8001/x"))
+        run(hook_action(), workspace=workspace_url("http://127.0.0.1:8001/x"))
+    warned = [r for r in caplog.records if "ACTION_ISOLATION=legacy" in r.getMessage()]
+    assert len(warned) == 2
+
+
+def test_the_start_log_is_loud_about_legacy_on_both_entry_points(monkeypatch, caplog):
+    import logging
+
+    from utilities.isolation_log import log_isolation
+
+    monkeypatch.setattr(settings, "action_isolation", "legacy")
+    for key_needed in (True, False):
+        caplog.clear()
+        with caplog.at_level(logging.ERROR):
+            asyncio.run(log_isolation(key_needed=key_needed))
+        assert any("ACTION_ISOLATION=legacy" in r.getMessage() for r in caplog.records)
+
+
+def test_the_start_log_says_the_key_is_not_needed_only_where_it_is_not(
+    monkeypatch, caplog
+):
+    import logging
+
+    from sandbox import broker
+    from utilities.isolation_log import log_isolation
+
+    async def probe(**kwargs):
+        return {"filesystem": "landlock", "seccomp": True, "unprivileged": True}
+
+    monkeypatch.setattr(broker, "probe", probe)
+    monkeypatch.setattr(settings, "aes_hex_key", "set")
+    for key_needed, warned in ((False, True), (True, False)):
+        caplog.clear()
+        with caplog.at_level(logging.WARNING):
+            asyncio.run(log_isolation(key_needed=key_needed))
+        assert any("AES_HEX_KEY" in r.getMessage() for r in caplog.records) is warned

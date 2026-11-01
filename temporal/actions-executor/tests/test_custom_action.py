@@ -426,3 +426,20 @@ def test_an_instance_secret_in_a_body_is_held_to_the_same_rule():
         box,
     )
     assert outcome.error["kind"] == "http" and box.fakes.calls == []
+
+
+def test_the_calls_of_custom_code_run_on_their_own_pool():
+    import threading
+
+    names = []
+
+    def webhook(url, params, data, headers):
+        names.append(threading.current_thread().name)
+        return type("R", (), {"status_code": 200, "text": ""})()
+
+    box = toolbox(webhook=webhook)
+    assert (
+        run("send_data_webhook(get_parameter('Webhook URL'), data={})", box).error
+        is None
+    )
+    assert names and all(name.startswith("action-call") for name in names)

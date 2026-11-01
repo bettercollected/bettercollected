@@ -64,7 +64,6 @@ class PinnedFastMail(FastMail):
         )
         smtp = aiosmtplib.SMTP(
             hostname=config.MAIL_SERVER,
-            port=config.MAIL_PORT,
             sock=sock,
             use_tls=config.MAIL_SSL_TLS,
             start_tls=config.MAIL_STARTTLS,
