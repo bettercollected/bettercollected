@@ -1,6 +1,6 @@
 'use client';
 
-import { KeyboardEvent, ReactNode, useRef } from 'react';
+import { KeyboardEvent, ReactNode, useContext, useRef } from 'react';
 
 import cn from 'classnames';
 import { ChevronDown } from 'lucide-react';
@@ -16,6 +16,7 @@ import { useContainerView, useSetContainerView } from '@app/store/jotai/responde
 import { memberIdOfKey } from '@app/utils/layout-containers';
 import type { PageBlock } from '@app/utils/layout-containers';
 import { actionText } from '@app/utils/theme-contrast';
+import { QuestionNumberContext } from '@app/views/molecules/responder-form-fields/question-number-context';
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 type ContainerBlock = Extract<PageBlock<StandardFormFieldDto>, { kind: 'container' }>;
@@ -35,6 +36,9 @@ function useAttention(page: StandardFormFieldDto | undefined, members: StandardF
 }
 
 const CARD = 'rounded-xl border bg-white/70 p-4 md:p-6';
+/** Leaflet numbers hang in a margin left of the questions on a wide page: the card leaves room for them inside its border. */
+const HANGING_NUMBERS = '@min-[880px]/page:pl-[calc(var(--leaflet-margin,34px)+1.5rem)]';
+const useCardClass = () => cn(CARD, useContext(QuestionNumberContext)?.hang && HANGING_NUMBERS);
 /** The same 12-column grid the page lays its questions out on (form-slide.tsx). */
 const INNER_GRID = 'flex flex-col gap-12 lg:grid lg:grid-cols-12 lg:gap-x-6 lg:gap-y-12';
 
@@ -76,13 +80,15 @@ function PanelBlock({ page, container, members, renderMembers }: { page: Standar
     const setView = useSetContainerView(formId);
     const open = view?.open ?? !container.collapsed;
     const attention = useAttention(page, members);
+    const cardClass = useCardClass();
+    const border = useBorder();
     // One level under the page's own heading: the form title (h1), or the
     // Leaflet section bar (h2), as a repeating group's items.
     const Heading = styleTokens(theme?.style).key === 'leaflet' ? 'h3' : 'h2';
     const headingId = `layout-${container.id}-heading`;
     const bodyId = `layout-${container.id}-body`;
     return (
-        <section aria-labelledby={headingId} data-layout-container={container.id} data-layout-type="panel" className={CARD} style={useBorder()}>
+        <section aria-labelledby={headingId} data-layout-container={container.id} data-layout-type="panel" className={cardClass} style={border}>
             <Heading id={headingId} className="m-0 text-base font-semibold text-black-900">
                 <button
                     type="button"
@@ -113,8 +119,9 @@ function PanelBlock({ page, container, members, renderMembers }: { page: Standar
 function FieldsetBlock({ container, members, renderMembers }: { page: StandardFormFieldDto | undefined; container: LayoutContainer; members: StandardFormFieldDto[]; renderMembers: (members: StandardFormFieldDto[]) => ReactNode }) {
     const contentLang = useFormContentLanguage();
     const border = useBorder();
+    const cardClass = useCardClass();
     return (
-        <fieldset data-layout-container={container.id} data-layout-type="fieldset" className={cn(CARD, 'm-0 min-w-0')} style={border}>
+        <fieldset data-layout-container={container.id} data-layout-type="fieldset" className={cn(cardClass, 'm-0 min-w-0')} style={border}>
             <legend className="px-2 text-base font-semibold text-black-900" lang={contentLang}>
                 {container.title}
             </legend>
