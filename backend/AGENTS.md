@@ -404,8 +404,10 @@ file))`, the same keyset as the answers, the context a JSON list so ids cannot s
 file, must be a PNG of at most the stored cap). The route is `GET /workspaces/{ws}/submissions/{response}/signatures/{field}`
 (`response.read` or the response's own respondent, 404 for everything else, 60 a minute per user, `no-store`, `nosniff`,
 `image/png`); the single-response read carries that path as `signature.url`, never a presigned link; lists never do.
-Rotation (`scripts/rotate_response_keyset.py`) does not walk the object store: an image keeps the key it was sealed
-with, so do not drop an old key while drawn signatures exist (docs/response-keyset-rotation.md). Not a formula variable
+Rotation (`scripts/rotate_response_keyset.py`, `scripts/rotate_images.py`) finds drawn images through the
+answers: `reencrypt` re-seals one under an old key in place (same binding, compare before write, read back), `drop-old`
+refuses while one is under a non-primary key or cannot be checked (a missing object only reports); the admin task
+`keyset.drop_old` cannot reach the file store and refuses `signature_images_unchecked` instead (docs/response-keyset-rotation.md). Not a formula variable
 (`NOT_VARIABLES`), not a webhook/registration/email variable (`SUPPORTED_TYPES`), no field rule sets or locks it
 (`NOT_RULE_TARGETS` keeps it a target for required/title/description only), conditions only
 `IS_EMPTY`/`IS_NOT_EMPTY` (`SIGNATURE_COMPARISONS`), not in a repeating group, not internal. Exports write the typed
