@@ -6,6 +6,7 @@ import { choiceAnswerText, getComparableAnswerValue } from '@app/utils/condition
 import { formatAmount } from '@app/utils/currency';
 import { dateRangeDays } from '@app/utils/date-range';
 import { GroupAggregate, resolveGroupAggregate } from '@app/utils/group-aggregates';
+import { CONTAINER_LOGIC, containerLogicIndex, formHasContainers } from '@app/utils/layout-containers';
 
 /**
  * Answer piping ("recall") — reference an earlier answer or a hidden field
@@ -69,6 +70,8 @@ export function getInputFieldsById(slides?: Array<StandardFormFieldDto>, include
             }
         });
     });
+    // the logic of the layout containers, for what asks whether a question is hidden (date rules)
+    if (formHasContainers(slides)) (byId as any)[CONTAINER_LOGIC] = containerLogicIndex(slides);
     return byId;
 }
 

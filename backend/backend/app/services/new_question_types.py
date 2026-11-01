@@ -255,7 +255,9 @@ def ensure_question_types_allowed(form: Any, existing: Any = None) -> None:
     """While a switch is off, refuse (422, with the code of the gate that is
     off, e.g. ``question_type_disabled`` or ``address_question_disabled``) a save that brings a new gated question
     or changes the type or settings of one. Questions stored and unchanged
-    pass."""
+    pass. The layout containers' switch (``LAYOUT_CONTAINERS_ENABLED``,
+    services/layout_containers.py) is checked here too, as every save path
+    already ends in this function."""
     for gate in gates_off():
         changed = new_or_changed_questions(form, existing, gate=gate)
         if changed:
@@ -274,6 +276,9 @@ def ensure_question_types_allowed(form: Any, existing: Any = None) -> None:
                     ],
                 },
             )
+    from backend.app.services.layout_containers import ensure_layout_allowed
+
+    ensure_layout_allowed(form, existing)
 
 
 def _mentions_gated_type(value: Any) -> bool:

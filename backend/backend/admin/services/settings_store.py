@@ -412,6 +412,39 @@ class SettingsService:
         new = self._validate(spec, value)
         return await self._single(spec, "import", new, actor, history="import", only_new=True)
 
+    async def regrant_readers(self, key: str, actor: Actor, *, apply: bool = True) -> Optional[Change]:
+        """Re-seal the CURRENT value of a task-managed key (tier T4) as its next
+        version with the readers the registry names now. A row's readers are part
+        of its signature, so a row written before the task runner became a reader
+        of the key (the auth key rings, ``authkeys.*``) is invisible to the runner
+        until it is written again. Same value, new version, audited as
+        ``settings.grant_readers``; host (CLI) only. ``None`` when the row already
+        lists exactly the registry's readers (nothing to do); with ``apply`` false
+        it only says so: the change it would make is returned as a ``Change`` with
+        ``changed=False``. Counts, names and versions only, never the value."""
+        if actor.kind == "admin":
+            raise SettingsError("not_for_admins", key)
+        spec = self._spec(key)
+        if spec.tier is not Tier.T4 or not spec.is_secret:
+            raise SettingsError("not_key_material", key)
+        async with self._engine.begin() as conn:
+            revision = await repo.lock(conn)
+            current = await repo.get_entry(conn, key, for_update=True)
+            if current is None or current.cleared or current.blob is None:
+                raise SettingsError("not_set", key)
+            if tuple(sorted(current.readers)) == tuple(sorted(spec.readers)):
+                return None
+            if not apply:
+                return Change(key, current.version, revision, changed=False)
+            try:
+                plain = self.keys.open(current.section, key, current.version, current.blob)
+            except Exception:  # noqa: BLE001 - never carry a cause that could quote the value
+                raise SettingsError("cannot_open", key) from None
+            return await self._write(
+                conn, spec, current, plain, actor, "set", revision,
+                audit_action="settings.grant_readers",
+            )
+
     # ------------------------------------------------------------ host reads
 
     async def stored(self) -> "StoredSettings":

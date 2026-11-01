@@ -86,7 +86,20 @@ def _settings_changed(p: Mapping[str, Any]) -> Message:
     return Message("Security notice: an admin setting was changed", body)
 
 
+AUTH_KEY_RINGS = ("AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY")
+
+
 def _keyset_changed(p: Mapping[str, Any]) -> Message:
+    if p.get("setting") in AUTH_KEY_RINGS:
+        # an authkeys.* task wrote one of the two auth key rings (never a value)
+        body = (
+            "An auth key ring was changed from the admin portal.\n\n"
+            f"Setting: {_field(p, 'setting', _SETTING)}\n"
+            f"Action: {_field(p, 'action', _WORD)}\n"
+            f"Version: {_version(p)}\n"
+            f"Requested by: {_actor(p)}\n" + _FOOTER
+        )
+        return Message("Security notice: an auth key was changed", body)
     body = (
         "The response encryption keyset was changed from the admin portal.\n\n"
         f"Action: {_field(p, 'action', _WORD)}\n"

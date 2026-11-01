@@ -13,6 +13,7 @@
 import { Immer } from 'immer';
 import { v4 as uuidv4 } from 'uuid';
 
+import { repairContainers } from '@app/utils/layout-containers';
 import { formHasOptionLogic, optionLogicProblems, pruneOptionLogic } from '@app/utils/option-logic';
 
 import { calculationsTouched, newCalculationProblem } from './calculations';
@@ -22,6 +23,7 @@ import { EDITOR_ONLY_OPS, HANDLERS } from './handlers';
 import { DROPPED_HIDDEN_REFERENCES_MARK, DROPPED_REFERENCES_MARK, DROPPED_RULES_MARK, type OpContext, draftAt, droppedRulesText, setKey } from './handlers/context';
 import { editorGrowth } from './handlers/editor';
 import { buildInverse, touchedEntities } from './inverse';
+import { LAYOUT_OPS, type LayoutSignatures, layoutProblem, layoutSignatures } from './layout-switch';
 import { MAX_OPS_PER_BATCH, OpError, SIZE_LIMIT_SKIPPED, SizeLimitReached, countFields, findPage, formSize, hasOwn, isRepeatingGroup, isSlide, sizeProblem, titleText, tryLocateField } from './model';
 import { GATED_OPS, type GatedSignatures, gatedSignatures, gatesOff, questionTypeProblem } from './new-question-types';
 import { referenceFixes } from './references';
@@ -99,6 +101,8 @@ function withoutBrokenOptionLogic(doc: FormDoc): [FormDoc, number] {
  */
 export function finishDoc(doc: FormDoc, base?: FormDoc, sweepRules = true): FormDoc {
     const renumber: Array<[number[], number]> = [];
+    // layout containers a removal or move left dangling (an emptied container, a member that is gone)
+    const layoutFixes: Array<[number, ReturnType<typeof repairContainers>['containers']]> = [];
     let slideIndex = 0;
     const unchanged = new Set(base ? (base.fields ?? []) : []);
     (doc.fields ?? []).forEach((page, pagePos) => {
@@ -106,6 +110,10 @@ export function finishDoc(doc: FormDoc, base?: FormDoc, sweepRules = true): Form
         if (page.index !== slideIndex) renumber.push([[pagePos], slideIndex]);
         slideIndex++;
         if (unchanged.has(page)) return;
+        if (page.properties?.containers?.length) {
+            const repaired = repairContainers(page);
+            if (repaired.changed) layoutFixes.push([pagePos, repaired.containers]);
+        }
         ((page.properties?.fields as FormField[] | undefined) ?? []).forEach((field, fieldPos) => {
             if (field.index !== fieldPos) renumber.push([[pagePos, fieldPos], fieldPos]);
             if (isRepeatingGroup(field)) {
@@ -117,11 +125,12 @@ export function finishDoc(doc: FormDoc, base?: FormDoc, sweepRules = true): Form
     });
     const fixes = sweepRules ? dateRuleFixes(doc.fields as FormField[]) : [];
     const ruleFixes = sweepRules ? fieldRuleFixes(doc) : [];
-    if (!renumber.length && !fixes.length && !ruleFixes.length) return withoutBrokenOptionLogic(doc)[0];
+    if (!renumber.length && !fixes.length && !ruleFixes.length && !layoutFixes.length) return withoutBrokenOptionLogic(doc)[0];
     const renumbered = immer.produce(doc, (draft) => {
         for (const [path, index] of renumber) draftAt(draft, path).index = index;
         for (const fix of fixes) setKey(draftAt(draft, fix.path).properties, 'dateRules', fix.rules);
         for (const fix of ruleFixes) setKey(draftAt(draft, fix.path).properties, 'rules', fix.rules);
+        for (const [pagePos, containers] of layoutFixes) setKey(draftAt(draft, [pagePos]).properties, 'containers', containers);
     });
     return withoutBrokenOptionLogic(renumbered)[0];
 }
@@ -161,6 +170,7 @@ function settleMarks(doc: FormDoc, message: string, ctx: OpContext | null): [For
                     if (fix.title) target.title = fix.title.value;
                     if (fix.logic) setKey(target.properties, 'logic', fix.logic.value);
                     if (fix.jumps) setKey(target.properties, 'jumps', fix.jumps.value);
+                    if (fix.containers) setKey(target.properties, 'containers', fix.containers.value);
                 }
             });
         }
@@ -198,6 +208,7 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
     let stopped = false;
     const refs: RefTable = new Map();
     let startedTypes: GatedSignatures | null = null;
+    let startedLayout: LayoutSignatures | null = null;
 
     for (let i = 0; i < ops.length; i++) {
         const raw = ops[i];
@@ -250,6 +261,18 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
                 if (refusal) {
                     working = state;
                     throw new OpError(refusal);
+                }
+            }
+            // Layout containers (layout-switch.ts): the same, with
+            // LAYOUT_CONTAINERS_ENABLED off.
+            if (options.layoutContainers === false && LAYOUT_OPS.has(name)) {
+                startedLayout ??= layoutSignatures(doc);
+                if (name === 'set_page_containers' || startedLayout.size) {
+                    const refusal = layoutProblem(working, startedLayout, name);
+                    if (refusal) {
+                        working = state;
+                        throw new OpError(refusal);
+                    }
                 }
             }
             // Option logic reads earlier questions: a move may not break that

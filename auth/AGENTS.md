@@ -187,7 +187,10 @@ uv run black .      # format
   `STRIPE_*_URL` come from env — verify webhook signatures in `stripe_service.py`; never trust unsigned webhook bodies.
 - **OAuth redirect URIs** must match what's registered with Google (`*_REDIRECT_URI`, `GOOGLE_BASIC_AUTH_REDIRECT`);
   a mismatch fails silently at the provider. See [../docs/RUNNING_INTEGRATIONS.md](../docs/RUNNING_INTEGRATIONS.md).
-- **JWT/crypto secrets** (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`) are shared contract with the backend — changing them
-  breaks existing sessions across services.
+- **JWT/crypto secrets** (`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`) are shared contract with the backend — replacing
+  them by hand breaks existing sessions across services. They are **key rings** (`<current>[,<previous>]`,
+  docs/auth-key-rotation.md): verify tokens with `common.services.jwt_service.decode_with_ring`, seal and open with
+  `Crypto` (both read the ring), and check a sign-in code against every member (`services/signin_code.py`). Rotate
+  them with the portal's `authkeys.*` tasks.
 - Local OAuth over http needs `OAUTHLIB_INSECURE_TRANSPORT=1` (in `auth/.env.example`; deliberately not in the shipped `.env.deployment`, which keeps only `OAUTHLIB_RELAX_TOKEN_SCOPE=1`: use https URLs in a deployment).
 - `DEBUG` is off by default (no HTML tracebacks on 500s); local dev turns it on with `DEBUG=true` in `auth/.env` (set by `.env.example`). Never enable it in a deployment.

@@ -90,6 +90,7 @@ environment, whatever the tier.
 | `COUPON_ENABLED` | features | backend | bool |  | R | T1 | `false` |
 | `ENABLE_SUGGEST_PRICE` | features | backend | bool |  | R | T1 | `false` |
 | `FIELD_RULES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
+| `LAYOUT_CONTAINERS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `NEW_QUESTION_TYPES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `RESPONSE_VALIDATION_ENFORCE` | features | backend | bool |  | R | T2 | `true` |
 | `SAVE_DRAFTS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
