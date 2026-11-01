@@ -23,6 +23,7 @@ reader (export, webhook, screen) shows.
 """
 
 import asyncio
+import copy
 import datetime as dt
 import time
 from collections import OrderedDict
@@ -49,6 +50,9 @@ from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
 from backend.app.services.option_sources import ids, read, text
+from backend.app.services.option_sources import erasure
+from backend.app.services.option_sources.erasure import answer_labels
+from backend.app.services.option_sources.mode import option_sources_enabled
 from backend.app.utils.client_ip import rate_limit_key
 
 OPTION_UNAVAILABLE = "option_unavailable"
@@ -177,10 +181,17 @@ class OptionSourceService:
         form_response_service,
         rate_limiter,
         authorization_service=None,
+        erasure_repo=None,
         monotonic: Callable[[], float] = time.monotonic,
         now: Callable[[], dt.datetime] = utcnow,
     ):
         self._authorization = authorization_service
+        self._erasures = erasure_repo
+        self._redact_lock = asyncio.Lock()
+        self._redaction_task: Optional["asyncio.Task"] = None
+        self._redaction_again = False
+        # start redacting right after an erasure (the jobs worker repeats it)
+        self._auto_redact = True
         self._lists = list_repo
         self._forms = form_repo
         self._workspace_forms = workspace_form_repo
@@ -217,6 +228,11 @@ class OptionSourceService:
         if kind == "list":
             return await self._list_options(workspace_id, str(source.get("list_id")))
         if kind == "form_answers":
+            # The kill switch: with OPTION_SOURCES_ENABLED off, other forms'
+            # answers are not offered at all (respondent route, submit,
+            # preview alike); a workspace list keeps working.
+            if not option_sources_enabled():
+                return GONE
             return await self._answer_options(
                 workspace_id,
                 str(source.get("form_id")),
@@ -295,6 +311,7 @@ class OptionSourceService:
         form_id: str,
         question_id: str,
         tolerate_growth: bool = False,
+        strict: bool = False,
     ) -> SourceOptions:
         try:
             scope = await self._response_service.scope(workspace_id, [form_id])
@@ -306,6 +323,8 @@ class OptionSourceService:
             # question rebuilds (or goes) at once
             revision = await self._forms.revision_of(form_id)
         except Exception as error:  # the source cannot be read: offer nothing
+            if strict:
+                raise
             logger.warning(
                 "option sources: a source could not be read ({})",
                 type(error).__name__,
@@ -434,27 +453,168 @@ class OptionSourceService:
                 raw = _plain(answers.get(question_id))
                 if not isinstance(raw, dict):
                     continue
-                if kind == "short_text":
-                    candidates = [raw.get("text")]
-                else:
-                    chosen: List[Any] = []
-                    single = raw.get("choice")
-                    multiple = raw.get("choices")
-                    if isinstance(single, dict):
-                        chosen.append(single.get("value"))
-                    if isinstance(multiple, dict):
-                        values = multiple.get("values")
-                        chosen.extend(values if isinstance(values, list) else [])
-                    candidates = [
-                        choice_labels.get(c) for c in chosen if isinstance(c, str)
-                    ]
-                for candidate in candidates:
-                    label = text.clean(candidate, text.LABEL_MAX)
-                    if label is not None:
-                        found.append(label)
+                found.extend(answer_labels(raw, kind, choice_labels))
             except Exception:  # noqa: BLE001 - one response never fails the source
                 unreadable += 1
         return found, unreadable
+
+    # ---------------------------------------------------------------- erasure
+
+    def schedule_redaction(self) -> None:
+        """Right after an erasure that noted options: work through the notes in
+        the background (one run at a time; a second request while one runs asks
+        for another pass). The notes are durable, so a lost task is only a
+        delay: the jobs worker runs ``redact_erased`` every few minutes."""
+        if not self._auto_redact or self._erasures is None:
+            return
+        if self._redaction_task is not None and not self._redaction_task.done():
+            self._redaction_again = True
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        self._redaction_task = loop.create_task(self._redaction_runs())
+
+    async def _redaction_runs(self) -> None:
+        while True:
+            self._redaction_again = False
+            try:
+                await self.redact_erased()
+            except Exception as error:  # noqa: BLE001 - the notes stay
+                logger.warning(
+                    "option sources: redaction run failed ({})", type(error).__name__
+                )
+            if not self._redaction_again:
+                return
+
+    async def redact_erased(self, limit: int = 200) -> Dict[str, int]:
+        """Work through the notes of erased answers that were offered as
+        options (``option_source_erasures``): an option that no eligible
+        response still offers is redacted (its label snapshot becomes
+        ``[removed]``) in every consuming response of the workspace; then the
+        note is removed. Idempotent; a source that cannot be read leaves its
+        note for the next run. Counts only (``notes``, ``redacted``,
+        ``failed``)."""
+        counts = {"notes": 0, "redacted": 0, "failed": 0}
+        if self._erasures is None:
+            return counts
+        async with self._redact_lock:
+            notes = await self._erasures.pending(limit)
+            groups: Dict[Tuple[str, str, str], List[Any]] = {}
+            for note in notes:
+                key = (str(note.workspace_id), str(note.form_id), str(note.question_id))
+                groups.setdefault(key, []).append(note)
+            for (workspace_id, form_id, question_id), group in groups.items():
+                option_ids = {i for note in group for i in note.option_ids}
+                try:
+                    if await self._workspace_forms.check_if_form_exists_in_workspace(
+                        workspace_id, form_id
+                    ):
+                        offered = await self._answer_options(
+                            workspace_id, form_id, question_id, strict=True
+                        )
+                    else:
+                        offered = GONE
+                    gone = option_ids - set(offered.by_id)
+                    if gone:
+                        counts["redacted"] += await self._redact_consumers(
+                            workspace_id, form_id, question_id, gone
+                        )
+                    await self._erasures.remove([str(note.id) for note in group])
+                    counts["notes"] += len(group)
+                except Exception as error:  # noqa: BLE001 - retried on the next run
+                    counts["failed"] += len(group)
+                    logger.warning(
+                        "option sources: redaction of an erased answer failed ({})",
+                        type(error).__name__,
+                    )
+        if counts["notes"] or counts["failed"]:
+            logger.info(
+                "option sources: redaction run, {} note(s) done, {} choice(s) "
+                "redacted, {} failed",
+                counts["notes"],
+                counts["redacted"],
+                counts["failed"],
+            )
+        return counts
+
+    async def _consumers(
+        self, workspace_id, form_id: str, question_id: str
+    ) -> Dict[str, Set[str]]:
+        """``{consuming form id: its question ids}`` of this workspace that
+        take their options from ``form_id``'s ``question_id``: in the draft and
+        in every published version (a response holds the snapshot whatever the
+        version it was filled on)."""
+        drafts, versions = await self._forms.documents_naming_source(form_id)
+        found: Dict[str, Set[str]] = {}
+        for document in [*drafts, *versions]:
+            for question, source in read.sourced_questions(document):
+                if (
+                    source.get("kind") == "form_answers"
+                    and str(source.get("form_id")) == form_id
+                    and str(source.get("question_id")) == question_id
+                ):
+                    found.setdefault(str(read.get(document, "form_id")), set()).add(
+                        str(read.get(question, "id"))
+                    )
+        return {
+            consumer: fields
+            for consumer, fields in found.items()
+            if await self._workspace_forms.check_if_form_exists_in_workspace(
+                workspace_id, consumer
+            )
+        }
+
+    def _unredacted(
+        self, workspace_id, batch, field_ids: Set[str], option_ids: Set[str]
+    ) -> List[Tuple[str, str]]:
+        """Which responses of the batch still hold a snapshot of the options
+        (off the event loop): ``(row id, form id)``. One that cannot be read
+        is skipped."""
+        found = []
+        for response in batch:
+            try:
+                decrypted = self._response_service.decrypt_form_response(
+                    workspace_id=workspace_id, response=response.model_copy()
+                )
+                answers = (
+                    decrypted.answers if isinstance(decrypted.answers, dict) else {}
+                )
+                probe = {
+                    f: copy.deepcopy(_plain(answers.get(f)))
+                    for f in field_ids
+                    if f in answers
+                }
+                if erasure.redact_answers(probe, field_ids, option_ids):
+                    found.append((str(response.id), str(response.form_id)))
+            except Exception:  # noqa: BLE001
+                continue
+        return found
+
+    async def _redact_consumers(
+        self, workspace_id, form_id: str, question_id: str, option_ids: Set[str]
+    ) -> int:
+        redacted = 0
+        for consumer, field_ids in (
+            await self._consumers(workspace_id, form_id, question_id)
+        ).items():
+            scope = await self._response_service.scope(workspace_id, [consumer])
+            after: Optional[str] = None
+            while True:
+                batch = await self._responses.redaction_batch(scope, after, BATCH)
+                if not batch:
+                    break
+                after = str(batch[-1].id)
+                for row_id, row_form in await run_in_threadpool(
+                    self._unredacted, workspace_id, batch, field_ids, option_ids
+                ):
+                    redacted += await self._responses.redact_option_labels(
+                        row_id, RecordId(str(workspace_id)), row_form, field_ids, option_ids
+                    )
+                if len(batch) < BATCH:
+                    break
+        return redacted
 
     # ------------------------------------------------------------- save checks
 

@@ -12,6 +12,30 @@ import { FormSlideLayout } from '../enums/form';
 import { FileMetadata } from '../types/file-types';
 import { ResponderGroupDto } from './groups';
 
+/** One tab of a tabs container: its title and its questions (ids, in page order). A tab may be empty. */
+export interface LayoutTab {
+    id: string;
+    title: string;
+    fields?: string[];
+}
+
+/**
+ * A layout container on a page (backend LayoutContainer): `panel` (a titled
+ * group that opens and closes; `collapsed` = closed when the page opens),
+ * `fieldset` (a bordered group with a legend) or `tabs` (a strip of `tabs`, no
+ * title of its own). A panel and a field set list their questions in `fields`.
+ * `logic` shows or hides the whole container. Layout only.
+ */
+export interface LayoutContainer {
+    id: string;
+    type: 'panel' | 'fieldset' | 'tabs';
+    title?: string;
+    collapsed?: boolean;
+    logic?: FieldConditionalLogic;
+    fields?: string[];
+    tabs?: LayoutTab[];
+}
+
 export interface StandardFormFieldProperties {
     hidden?: boolean;
     fields?: Array<StandardFormFieldDto>;
@@ -46,6 +70,8 @@ export interface StandardFormFieldProperties {
     shareAsChoices?: boolean;
     /** v2 page-jump / branching rules for this slide (see utils/conditional-logic). */
     jumps?: PageJump[];
+    /** Layout containers of this page: panels, field sets and tabs that group its questions (see utils/layout-containers.ts). */
+    containers?: LayoutContainer[];
     /** Flow-view canvas position of this page (cosmetic; auto-layout when absent). */
     position?: NodePosition;
     rowTitles?: Array<string>;

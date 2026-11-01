@@ -49,8 +49,21 @@ function idFirstSelection(pick: (at: EntityLocation) => number | undefined, init
 const field = idFirstSelection((at) => (at.childIdx === undefined ? at.fieldIdx : undefined), null);
 const slide = idFirstSelection((at) => (at.fieldIdx === undefined ? at.pageIdx : undefined), { id: 'welcome-page', index: -10 });
 
+/**
+ * The selected layout container (a panel, field set or tabs strip on the
+ * canvas): the inspector shows its settings while no question is selected.
+ * Selecting a question puts it away.
+ */
+export const activeContainerAtom = atom<{ pageId: string; id: string } | null>(null);
+
 /** The selected question (id first; the index is where it is now on its page). */
-export const activeFieldAtom = field.current;
+export const activeFieldAtom = atom(
+    (get) => get(field.current),
+    (get, set, update: SelectionUpdate) => {
+        set(field.current, update);
+        if (get(field.current)?.id) set(activeContainerAtom, null);
+    }
+);
 /** The selected page (id first; the index is where it is now in the form). */
 export const activeSlideAtom = slide.current;
 

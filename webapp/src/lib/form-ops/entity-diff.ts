@@ -119,7 +119,7 @@ function sameField(a: FormField, b: FormField, skipChildren: boolean): boolean {
     return jsonEqual(strip(a), strip(b));
 }
 
-/** The ops that give page `a` the own settings of page `b` (`update_page`, `set_page_jumps`); other page keys are not expressed. */
+/** The ops that give page `a` the own settings of page `b` (`update_page`, `set_page_jumps`, `set_page_containers`); other page keys are not expressed. */
 function pageOps(a: FormField, b: FormField): FormOp[] {
     const pa = (a.properties ?? {}) as Record<string, any>;
     const pb = (b.properties ?? {}) as Record<string, any>;
@@ -136,6 +136,16 @@ function pageOps(a: FormField, b: FormField): FormOp[] {
             conditions: (jump.conditions ?? []).map((c: any) => ({ fieldId: c.fieldId, comparison: c.comparison, value: c.value, groupMode: c.groupMode, childFieldId: c.childFieldId }))
         }));
         ops.push({ op: 'set_page_jumps', pageId: b.id, jumps: jumps.length ? withoutNulls(jumps) : null });
+    }
+    if (pa.containers !== pb.containers && !jsonEqual(pa.containers, pb.containers)) {
+        // layout containers as a whole (their rules' conditions as the spec writes them)
+        const layout = (pb.containers ?? []).map((container: any) => ({
+            ...container,
+            ...(container.logic
+                ? { logic: { ...container.logic, conditions: (container.logic.conditions ?? []).map((c: any) => ({ fieldId: c.fieldId, comparison: c.comparison, value: c.value, groupMode: c.groupMode, childFieldId: c.childFieldId })) } }
+                : {})
+        }));
+        ops.push({ op: 'set_page_containers', pageId: b.id, containers: layout.length ? withoutNulls(layout) : null });
     }
     return ops;
 }

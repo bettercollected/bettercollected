@@ -3,8 +3,14 @@
 Off by default (a creator-configurable feature that is not released yet).
 While it is off, a save that gives a question a new or changed ``optionSource``
 (or creates an option list) is refused, 422 ``option_sources_disabled``, on
-every path. What is stored keeps working: a question with a source is still
-served its options, validated and exported, and lists are still readable.
+every path. What is stored keeps working for **workspace lists**: a question
+with a list source is still served its options, validated and exported, and
+lists are still readable.
+
+It is also the kill switch for **another form's answers**: while it is off
+nothing is offered from them (the respondent route answers "unavailable", a
+submission with a new choice from them is refused, the builder preview is
+empty). Answers already stored keep their label snapshots.
 """
 
 DISABLED_CODE = "option_sources_disabled"

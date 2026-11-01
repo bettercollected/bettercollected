@@ -661,6 +661,13 @@ class WorkspaceOptionListRow(Base, BaseRow):
     )
 
 
+class OptionSourceErasureRow(Base, BaseRow):
+    __tablename__ = "option_source_erasures"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    __table_args__ = (Index(None, "workspace_id", "form_id"),)
+
+
 class ActionLogRow(Base, BaseRow):
     __tablename__ = "action_logs"
     workspace_id = S.text("workspace_id")

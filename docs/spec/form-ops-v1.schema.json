@@ -763,6 +763,145 @@
       "title": "ConditionalType",
       "type": "string"
     },
+    "ContainerSpec": {
+      "description": "A layout container: ``panel`` (a titled, collapsible group; ``collapsed``\ncloses it when the page opens), ``fieldset`` (a bordered group with a\nlegend) or ``tabs`` (a strip of 1 to 8 ``tabs``, no title of its own). A\npanel and a field set list their question ids in ``fields``. ``logic``\nshows or hides the whole container (as set_field_logic does a question).",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "type": {
+          "enum": [
+            "panel",
+            "fieldset",
+            "tabs"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "collapsed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Collapsed"
+        },
+        "logic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldLogicSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fields": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 200,
+                "type": "string"
+              },
+              "maxItems": 100,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fields"
+        },
+        "tabs": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ContainerTabSpec"
+              },
+              "maxItems": 8,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tabs"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "ContainerSpec",
+      "type": "object"
+    },
+    "ContainerTabSpec": {
+      "description": "One tab of a tabs container: a title and the ids of its questions (in\npage order; the id is made up when left out).",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "fields": {
+          "items": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "title": "ContainerTabSpec",
+      "type": "object"
+    },
     "DateRule": {
       "description": "One constraint on the answer of a ``date`` question, stored at\n``properties.date_rules``: the chosen date must be ``comparison``\n(before / after / on or before / on or after) a fixed ``date``\n(``YYYY-MM-DD``), ``today``, or the answer of another date question\n(``field_id``). Dates are compared as calendar dates, never as instants.\n\nA rule on another question applies only when that question is answered\nand not hidden by logic. Inside a repeating group a rule may only use a\nsibling of the same group (it then means \"this item's answer\"); outside\na group it may not use a group's questions. Cross-question checks need\nthe whole form: see :func:`date_rule_problems`. The webapp's twin is\n``webapp/src/utils/date-rules.ts``.",
       "properties": {
@@ -2025,6 +2164,131 @@
       "title": "InsertPageOp",
       "type": "object",
       "x-editorOnly": true
+    },
+    "LayoutContainer": {
+      "description": "A layout container on a page (``properties.containers``).\n\n``panel``: a title and a collapse button (``collapsed``: closed when the\npage opens). ``fieldset``: a border and a legend. Both list their\nquestions in ``fields``. ``tabs``: 1 to ``TABS_MAX`` ``tabs``, no title of\nits own. ``logic`` shows or hides the whole container (same rule shape as\na question's); answers of hidden questions stay stored, as with any\nquestion hidden by logic.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "panel",
+            "fieldset",
+            "tabs"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "collapsed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Collapsed"
+        },
+        "logic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldLogic"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fields": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 200,
+                "type": "string"
+              },
+              "maxItems": 100,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fields"
+        },
+        "tabs": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/LayoutTab"
+              },
+              "maxItems": 8,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tabs"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "LayoutContainer",
+      "type": "object"
+    },
+    "LayoutTab": {
+      "description": "One tab of a ``tabs`` container: its title and its questions (by id,\nin page order). A tab may be empty.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "fields": {
+          "items": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "title": "LayoutTab",
+      "type": "object"
     },
     "LayoutType": {
       "enum": [
@@ -3618,6 +3882,42 @@
       "title": "SetOptionLogicOp",
       "type": "object"
     },
+    "SetPageContainersOp": {
+      "description": "Group the questions of a page into panels, field sets and tabs.\n``containers`` replaces the page's list; null or [] removes them all (the\nquestions stay). The questions of one container must be next to each other\non the page (internal questions do not count), in the order of the\ncontainer: move them first with move_field. A container holds questions\nonly (no nesting); a repeating group can be a member as a whole. A\nquestion added or moved to the inside of a container joins it, and one\nmoved out of it leaves it; to add a question as the last one of a\ncontainer, add it and then send the container again. The server refuses\nit while layout containers are switched off.",
+      "properties": {
+        "op": {
+          "const": "set_page_containers",
+          "default": "set_page_containers",
+          "title": "Op",
+          "type": "string"
+        },
+        "pageId": {
+          "title": "Pageid",
+          "type": "string"
+        },
+        "containers": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ContainerSpec"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Containers"
+        }
+      },
+      "required": [
+        "pageId"
+      ],
+      "title": "SetPageContainersOp",
+      "type": "object"
+    },
     "SetPageJumpsOp": {
       "description": "Branching: after this page, jump to a target page (or submit) when the\nconditions match; first matching jump wins, no match = next page.\n``jumps: null`` clears.",
       "properties": {
@@ -3974,6 +4274,22 @@
           ],
           "default": null,
           "title": "Jumps"
+        },
+        "containers": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/LayoutContainer"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Containers"
         },
         "position": {
           "anyOf": [
@@ -4805,6 +5121,22 @@
           ],
           "default": null,
           "title": "Jumps"
+        },
+        "containers": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/LayoutContainer"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Containers"
         },
         "position": {
           "anyOf": [
@@ -6393,6 +6725,7 @@
             "set_hidden_fields": "#/$defs/SetHiddenFieldsOp",
             "set_option_filter": "#/$defs/SetOptionFilterOp",
             "set_option_logic": "#/$defs/SetOptionLogicOp",
+            "set_page_containers": "#/$defs/SetPageContainersOp",
             "set_page_jumps": "#/$defs/SetPageJumpsOp",
             "set_question_numbering": "#/$defs/SetQuestionNumberingOp",
             "set_section_title": "#/$defs/SetSectionTitleOp",
@@ -6450,6 +6783,9 @@
           },
           {
             "$ref": "#/$defs/SetPageJumpsOp"
+          },
+          {
+            "$ref": "#/$defs/SetPageContainersOp"
           },
           {
             "$ref": "#/$defs/DuplicatePageOp"

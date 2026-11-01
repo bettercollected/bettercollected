@@ -4,6 +4,7 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { dateRangeDays } from '@app/utils/date-range';
 import { isIsoDate } from '@app/utils/iso-date';
 import { answerTags, tagKey } from '@app/utils/tags';
+import { CONTAINER_LOGIC, containerLogicIndex, formHasContainers } from '@app/utils/layout-containers';
 import { isTime } from '@app/utils/time-of-day';
 import { pruneOptionLogic } from '@app/utils/option-logic-checks';
 import { sourcedAnswerTexts } from '@app/utils/option-sources';
@@ -34,6 +35,8 @@ export type { FieldConditionalLogic, LogicAction, LogicCondition, PageJump } fro
 /** The form's questions by id (page questions and the questions of repeating groups). */
 export type LogicSources = Record<string, StandardFormFieldDto>;
 
+export { CONTAINER_LOGIC };
+
 /** Every question of a form by id, as the evaluators read a choice condition's options from it. */
 export function logicSourcesById(slides: Array<StandardFormFieldDto> | undefined | null): LogicSources {
     // No prototype: a question id is creator content and never names an inherited key.
@@ -44,6 +47,8 @@ export function logicSourcesById(slides: Array<StandardFormFieldDto> | undefined
             if (field?.type === FieldTypes.GROUP) field.properties?.fields?.forEach((child) => child?.id && (byId[child.id] = child));
         })
     );
+    // the logic of the layout containers (utils/layout-containers.ts)
+    if (formHasContainers(slides)) (byId as any)[CONTAINER_LOGIC] = containerLogicIndex(slides);
     return byId;
 }
 
@@ -383,10 +388,15 @@ export function resolveJump(slide: StandardFormFieldDto | undefined, answers: Re
  * Fields without a logic rule (or with no usable conditions) are always visible.
  */
 export function isFieldHiddenByLogic(field: StandardFormFieldDto, answers: Record<string, any>, sources?: LogicSources): boolean {
+    const hides = (logic: FieldConditionalLogic): boolean => {
+        const met = areConditionsMet(logic, answers, sources);
+        return logic.action === 'SHOW' ? !met : met;
+    };
     const logic = field?.properties?.logic as FieldConditionalLogic | undefined;
-    if (!logic || !logic.action || !(logic.conditions?.length > 0)) return false;
-    const met = areConditionsMet(logic, answers, sources);
-    return logic.action === 'SHOW' ? !met : met;
+    if (logic && logic.action && logic.conditions?.length > 0 && hides(logic)) return true;
+    // a layout container that hides it (utils/layout-containers.ts)
+    const outer = field?.id ? (sources as any)?.[CONTAINER_LOGIC]?.[field.id] : undefined;
+    return !!outer && outer.some(hides);
 }
 
 /** Ids of every field in a slide that should be hidden right now. */

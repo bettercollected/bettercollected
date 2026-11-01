@@ -354,3 +354,38 @@ async def test_an_answer_of_another_form_is_a_valid_choice_and_its_label_is_kept
     assert {
         a["who"]["choice"]["label"] for a in await stored_answers(workspace, form)
     } == {"Alice", "Bob"}
+
+
+async def test_with_the_switch_off_a_new_choice_from_another_form_is_refused_a_list_choice_is_not(
+    workspace, city_form, monkeypatch
+):
+    from backend.config import settings
+
+    created, list_form = city_form
+    ids = ids_of(created)
+    people = await publish(
+        workspace,
+        [question("name", "short_text", "Name", share_as_choices=True)],
+        title="People",
+    )
+    await submit(workspace, people, {"name": text_answer("Alice")})
+    answer_source = {
+        "kind": "form_answers",
+        "form_id": people.form_id,
+        "question_id": "name",
+    }
+    offered = (
+        await container.option_source_service().options(workspace.id, answer_source)
+    ).options
+    form = await publish(
+        workspace,
+        [question("who", "dropdown", "Who", source=answer_source)],
+        title="Who comes",
+    )
+    monkeypatch.setattr(settings, "OPTION_SOURCES_ENABLED", False)
+    error = await refused(submit(workspace, form, {"who": choice(offered[0].id)}))
+    assert problems(error) == [("who", "option_unavailable")]
+    # a workspace list keeps working as before
+    await submit(workspace, list_form, {"cities": choices(ids["Berlin"])})
+    [answers] = await stored_answers(workspace, list_form)
+    assert answers["cities"]["choices"]["labels"] == {ids["Berlin"]: "Berlin"}

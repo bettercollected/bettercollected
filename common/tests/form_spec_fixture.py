@@ -118,6 +118,23 @@ def varied_form_data() -> dict:
                             "target": "p-3",
                         },
                     ],
+                    "containers": [
+                        {
+                            "id": "c-who",
+                            "type": "panel",
+                            "title": "Who you are",
+                            "collapsed": True,
+                            "fields": ["f-name", "f-email"],
+                        },
+                        {
+                            "id": "c-membership",
+                            "type": "tabs",
+                            "tabs": [
+                                {"id": "t-age", "title": "Age", "fields": ["f-age"]},
+                                {"id": "t-member", "title": "Member", "fields": ["f-member"]},
+                            ],
+                        },
+                    ],
                     "fields": [
                         {
                             "id": "f-name",

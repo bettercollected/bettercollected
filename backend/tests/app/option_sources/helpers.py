@@ -7,6 +7,8 @@ from common.ids import RecordId
 from backend.app.container import container
 from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.services.option_lists.service import ItemDto, OptionListCreateDto
+from backend.app.services.option_sources import share_token
+from backend.app.services.option_sources.checks import shared_ids
 from tests.app.controllers.data import invited_user, testUser
 
 CITIES = [
@@ -66,7 +68,22 @@ async def publish(workspace, fields, user=testUser, title="Sources test"):
     return form
 
 
+async def page_token(workspace, form):
+    """The notice token a respondent's page of ``form`` gets now (the form
+    fetch of the published version)."""
+    latest = await container.form_service().get_latest_version_of_form(form.form_id)
+    return share_token.issue_token(
+        workspace_id=workspace.id,
+        form_id=form.form_id,
+        question_ids=shared_ids(latest),
+    )
+
+
 async def submit(workspace, form, answers, user=testUser, **kwargs):
+    """A submission from a page loaded just now (its notice token is what the
+    form fetch hands out); pass ``share_notice_token`` to send another one."""
+    if "share_notice_token" not in kwargs:
+        kwargs["share_notice_token"] = await page_token(workspace, form)
     return await container.workspace_form_service().submit_response(
         workspace.id,
         form.form_id,

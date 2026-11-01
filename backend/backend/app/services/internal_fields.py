@@ -253,6 +253,11 @@ def internal_logic_violations(form: Any) -> List[str]:
             _check(
                 _get(jump, "conditions"), f"A page jump on page '{_get(field, 'id')}'"
             )
+        for layout in _get(properties, "containers") or []:
+            _check(
+                _get(_get(layout, "logic"), "conditions"),
+                f"The visibility rule of the container '{_get(layout, 'id')}'",
+            )
     for field in iter_question_fields(form):
         logic = _get(_get(field, "properties"), "logic")
         _check(

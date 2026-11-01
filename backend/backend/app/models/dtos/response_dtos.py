@@ -19,6 +19,8 @@ from common.models.standard_form import (
     OptionFilter,
     OptionSource,
     FIELD_RULES_MAX,
+    CONTAINERS_MAX,
+    LayoutContainer,
     PageJump,
     LogicalOperator,
     LayoutType,
@@ -119,6 +121,8 @@ class StandardFieldPropertyCamelModel(CamelModel):
     logical_operator: Optional[LogicalOperator] = None
     logic: Optional[FieldLogic] = None
     jumps: Optional[List[PageJump]] = None
+    # A page's layout containers (common StandardFieldProperty.containers).
+    containers: Optional[List[LayoutContainer]] = Field(None, max_length=CONTAINERS_MAX)
     position: Optional[FieldPosition] = None
     mentions: Optional[Dict[str, str]] = None
     theme: Optional[Theme] = None
@@ -187,6 +191,12 @@ class StandardFormFieldCamelModel(CamelModel):
         check_repeating_group_structure(self)
         check_field_date_rules(self)
         check_tags_settings(self)
+        if (
+            self.properties is not None
+            and self.properties.containers
+            and getattr(self.type, "value", self.type) != "slide"
+        ):
+            raise ValueError("Only a page can have layout containers.")
         return self
 
 

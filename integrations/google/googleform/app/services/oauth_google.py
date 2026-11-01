@@ -7,6 +7,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 from http import HTTPStatus
+from typing import Optional
 from urllib import parse
 
 import aiohttp
@@ -20,6 +21,7 @@ from common.constants import (
     MESSAGE_OAUTH_MISSING_TOKEN_OR_EXPIRY,
 )
 from common.models.user import UserInfo
+from common.settings import key_ring
 from google.auth.exceptions import RefreshError
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -71,7 +73,7 @@ MESSAGE_OAUTH_SCOPES_NOT_GRANTED = (
 MESSAGE_OAUTH_INVALID_STATE = "The authorization request is invalid or has expired."
 
 
-def pkce_code_verifier(state: str) -> str:
+def pkce_code_verifier(state: str, member: Optional[str] = None) -> str:
     """The PKCE code verifier of the authorization request carrying ``state``.
 
     google-auth-oauthlib (1.3+) sends a PKCE challenge with every authorization
@@ -81,9 +83,18 @@ def pkce_code_verifier(state: str) -> str:
     of being kept anywhere: the same state gives the same verifier, and without
     the key an intercepted code and state are not enough to exchange the code.
     43 characters from the unreserved set (RFC 7636 section 4.1).
+
+    ``member`` is the Fernet key of the ``AUTH_AES_HEX_KEY`` ring it is derived
+    with: by default the one that opens ``state`` (both steps of one request
+    then agree, also across a key promotion, docs/auth-key-rotation.md), else
+    the current one.
     """
+    if member is None:
+        member = _crypto.opening_member(state) or key_ring.primary(
+            key_ring.fernet_members(settings.AUTH_AES_HEX_KEY)
+        )
     digest = hmac.new(
-        settings.AUTH_AES_HEX_KEY.encode(),
+        member.encode(),
         b"google-oauth-pkce-v1|" + state.encode(),
         hashlib.sha256,
     ).digest()

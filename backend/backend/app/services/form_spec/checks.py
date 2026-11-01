@@ -26,6 +26,7 @@ from backend.app.services.field_rules import (
 )
 from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.services.image_urls import checked_image_url
+from backend.app.services.layout_containers import layout_containers_enabled
 from backend.app.services.new_question_types import (
     ADDRESS_TYPES,
     GATED_TYPES,
@@ -428,6 +429,19 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
                         "refused. Questions the form already has are kept.",
                     )
                 )
+    if not layout_containers_enabled():
+        # a write with new or changed containers is refused
+        # (422 layout_containers_disabled)
+        for p, page in enumerate(spec.pages):
+            for c, _ in enumerate(page.containers or []):
+                warnings.append(
+                    _problem(
+                        f"/pages/{p}/containers/{c}",
+                        "Layout containers are switched off on this server "
+                        "(LAYOUT_CONTAINERS_ENABLED): saving a new or changed one is "
+                        "refused. Containers the form already has are kept.",
+                    )
+                )
     if not field_rules_enabled():
         # a write with new or changed rules is refused (422 field_rules_disabled)
         for path, field, _ in index.questions.values():
@@ -525,6 +539,25 @@ def _check_option_sources(form: Any, index: "_Index") -> List[Dict[str, str]]:
         entry = index.questions.get(problem["fieldId"])
         path = f"{entry[0]}/optionSource" if entry else ""
         problems.append(_problem(path, problem["message"]))
+    return problems
+
+
+def _check_layout(spec: FormSpec, form: Any) -> List[Dict[str, str]]:
+    """Layout containers, as a save checks them: members that exist, are
+    page questions and sit next to each other in the container's order, ids
+    used once, rules that read earlier questions. The path points at the
+    container (``/pages/0/containers/1``)."""
+    from common.layout_containers import form_problems
+
+    where: Dict[Tuple[str, str], str] = {}
+    for p, page in enumerate(spec.pages):
+        for c, container in enumerate(page.containers or []):
+            where[(page.id, container.id)] = f"/pages/{p}/containers/{c}"
+    page_paths = {page.id: f"/pages/{p}" for p, page in enumerate(spec.pages)}
+    problems = []
+    for page_id, container_id, message in form_problems(form):
+        path = where.get((page_id, container_id or ""), page_paths.get(page_id, ""))
+        problems.append(_problem(path, message))
     return problems
 
 
@@ -633,6 +666,7 @@ def check_spec_document(raw: Any) -> Dict[str, Any]:
     errors += _check_rules(form, index)
     errors += _check_option_logic(form, index)
     errors += _check_option_sources(form, index)
+    errors += _check_layout(spec, form)
     result["errors"] = errors
     result["valid"] = not errors
     result["warnings"] = _warnings(spec, form, index) + _option_logic_warning_messages(

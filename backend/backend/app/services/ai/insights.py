@@ -245,9 +245,42 @@ def _resolve_choice(value: str, labels: Dict[str, str]) -> str:
     return "[selected option]" if _UUID_RE.match(value) else value
 
 
-def _answer_text(raw: Any, choice_labels: Dict[str, str]) -> Optional[str]:
+FROM_ANOTHER_FORM = "[choice from another form]"
+
+
+def _sourced_label(snapshot: Optional[str], source_kind: Optional[str]) -> str:
+    """The text of an option that came from a source. A workspace list's label
+    is reference data the workspace wrote and may be sent; a label that is
+    another form's answer is someone else's answer, given for being offered as
+    a choice and not for AI processing, so it is never sent (the same when
+    the question's source is not known in this version: fail closed)."""
+    if source_kind == "list":
+        return snapshot or "[selected option]"
+    return FROM_ANOTHER_FORM
+
+
+def _option_source_kinds(form: StandardForm) -> Dict[str, str]:
+    """fieldId -> the kind of its option source ("list" / "form_answers")."""
+    kinds: Dict[str, str] = {}
+
+    def visit(fields):
+        for f in fields or []:
+            source = getattr(f.properties, "option_source", None) if f.properties else None
+            if source is not None and getattr(source, "kind", None):
+                kinds[str(f.id)] = str(source.kind)
+            if f.properties and f.properties.fields:
+                visit(f.properties.fields)
+
+    visit(form.fields)
+    return kinds
+
+
+def _answer_text(
+    raw: Any, choice_labels: Dict[str, str], source_kind: Optional[str] = None
+) -> Optional[str]:
     """One answer -> plain text, with identifying value types redacted and
-    choice IDs resolved to their labels."""
+    choice IDs resolved to their labels. ``source_kind`` is the kind of the
+    question's option source, if it has one."""
     answer = (
         raw
         if isinstance(raw, dict)
@@ -279,20 +312,29 @@ def _answer_text(raw: Any, choice_labels: Dict[str, str]) -> Optional[str]:
         return f"{currency.get('code') or ''} {currency['amount']}".strip()
     choice = answer.get("choice")
     if isinstance(choice, dict) and choice.get("value"):
-        # an option from a source carries its label (a list's or another form's
-        # answer): the id means nothing to the model
-        if isinstance(choice.get("label"), str) and choice["label"]:
-            return choice["label"]
+        snapshot = choice.get("label")
+        if source_kind is not None or isinstance(snapshot, str):
+            return _sourced_label(
+                snapshot if isinstance(snapshot, str) else None, source_kind
+            )
         return _resolve_choice(str(choice["value"]), choice_labels)
     choices = answer.get("choices")
     if isinstance(choices, dict) and choices.get("values"):
-        snapshot = choices.get("labels") if isinstance(choices.get("labels"), dict) else {}
-        return ", ".join(
-            snapshot[v]
-            if isinstance(snapshot.get(v), str) and snapshot[v]
-            else _resolve_choice(str(v), choice_labels)
-            for v in choices["values"]
+        snapshots = (
+            choices.get("labels") if isinstance(choices.get("labels"), dict) else {}
         )
+        parts = []
+        for v in choices["values"]:
+            snapshot = snapshots.get(v)
+            if source_kind is not None or isinstance(snapshot, str):
+                parts.append(
+                    _sourced_label(
+                        snapshot if isinstance(snapshot, str) else None, source_kind
+                    )
+                )
+            else:
+                parts.append(_resolve_choice(str(v), choice_labels))
+        return ", ".join(dict.fromkeys(parts))
     if answer.get("file_url") or answer.get("file_metadata"):
         return "[file uploaded]"
     if answer.get("address"):
@@ -324,6 +366,7 @@ def project_responses(
     form = strip_internal_fields(form.model_copy(deep=True))
     titles = _question_titles(form)
     choice_labels = _choice_labels(form)
+    source_kinds = _option_source_kinds(form)
     blocks: List[str] = []
     used = 0
     included = 0
@@ -346,7 +389,7 @@ def project_responses(
         for field_id, raw in answers.items():
             if str(field_id) in internal_ids:
                 continue
-            text = _answer_text(raw, choice_labels)
+            text = _answer_text(raw, choice_labels, source_kinds.get(str(field_id)))
             if not text:
                 continue
             question = titles.get(field_id, "Question")

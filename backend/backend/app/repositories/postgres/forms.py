@@ -30,7 +30,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import and_, exists, func, not_, or_, select, text, true, update
+from sqlalchemy import Text, and_, cast, exists, func, not_, or_, select, text, true, update
 from sqlalchemy.exc import DBAPIError, IntegrityError, SQLAlchemyError
 
 from backend.app.exceptions import HTTPException
@@ -774,6 +774,50 @@ class PostgresFormRepository(RecordRepository):
             FormVersionsDocument,
             FormVersionRow.form_id == _oid(form_id),
             order_by=(FormVersionRow.version.desc(), FormVersionRow.id),
+        )
+
+    async def documents_naming_source(self, source_form_id: str, limit: int = 500):
+        """The drafts and published versions whose document names the form
+        ``source_form_id`` as the source of some question's options
+        (``"formId": "<id>"``; a coarse text match, the caller checks the
+        structure). Used to find the forms that consume a form's answers."""
+        safe = "".join(c for c in str(source_form_id) if c in "0123456789abcdef")
+        # properties are stored camelCase (the snake_case spelling too)
+        needles = ['"formId": "%s"' % safe, '"form_id": "%s"' % safe]
+        async with self._session() as session:
+            drafts = (
+                await session.execute(
+                    select(FormRow.doc)
+                    .where(
+                        or_(
+                            *(
+                                cast(FormRow.doc, Text).contains(n, autoescape=True)
+                                for n in needles
+                            )
+                        )
+                    )
+                    .limit(limit)
+                )
+            ).scalars().all()
+            versions = (
+                await session.execute(
+                    select(FormVersionRow.doc)
+                    .where(
+                        or_(
+                            *(
+                                cast(FormVersionRow.doc, Text).contains(
+                                    n, autoescape=True
+                                )
+                                for n in needles
+                            )
+                        )
+                    )
+                    .limit(limit)
+                )
+            ).scalars().all()
+        return (
+            [decode(FormDocument, d) for d in drafts],
+            [decode(FormVersionsDocument, d) for d in versions],
         )
 
     async def get_versions_of_form(self, form_id: RecordId):

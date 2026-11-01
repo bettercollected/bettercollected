@@ -27,6 +27,8 @@ export interface ReferenceFix {
     title?: { value: any };
     logic?: { value: any };
     jumps?: { value: any };
+    /** A page's layout containers, their rules without the dead conditions. */
+    containers?: { value: any };
 }
 
 export interface ReferenceScope {
@@ -136,6 +138,21 @@ export function referenceFixes(doc: FormDoc, scope: ReferenceScope = {}): { fixe
                 } else kept.push(jump);
             }
             if (changed || !kept.length) fixes.push({ path: [pagePos], jumps: { value: kept.length ? kept : undefined } });
+        }
+        const containers = page.properties.containers;
+        if (containers?.length) {
+            let changed = false;
+            const next = containers.map((container) => {
+                const logic = container.logic;
+                if (!logic) return container;
+                const all = logic.conditions ?? [];
+                const conditions = liveConditions(all);
+                if (conditions === all) return container;
+                changed = true;
+                const { logic: _dropped, ...rest } = container;
+                return conditions.length ? { ...rest, logic: { ...logic, conditions } } : rest;
+            });
+            if (changed) fixes.push({ path: [pagePos], containers: { value: next } });
         }
         childrenOf(page).forEach((field, fieldPos) => {
             pruneQuestion(field, [pagePos, fieldPos]);

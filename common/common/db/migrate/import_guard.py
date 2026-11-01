@@ -87,6 +87,7 @@ NOT_IMPORTED_TABLES = (
     "response_export_chunks",
     "form_email_actions",
     "workspace_option_lists",
+    "option_source_erasures",
 )
 
 

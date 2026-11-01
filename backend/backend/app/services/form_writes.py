@@ -15,6 +15,7 @@ from common.models.standard_form import StandardForm, StandardFormSettings
 
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.field_rules import ensure_rules_allowed
+from backend.app.services.layout_containers import ensure_valid_layout
 from backend.app.services.new_question_types import ensure_question_types_allowed
 from backend.app.services.option_logic import (
     ensure_choice_logic_allowed,
@@ -94,6 +95,9 @@ async def persist_form(
         # FIELD_RULES_ENABLED is on, except as the stored form has them:
         # whatever an op or a writer did, nothing new gets past this.
         ensure_rules_allowed(new_form, form_document)
+        # Layout containers (services/layout_containers.py): repaired or
+        # refused; the switch is checked with the question types below.
+        ensure_valid_layout(new_form)
         # The newer question types (services/new_question_types.py): the
         # same, while NEW_QUESTION_TYPES_ENABLED is off.
         ensure_question_types_allowed(new_form, form_document)

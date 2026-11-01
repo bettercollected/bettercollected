@@ -47,6 +47,19 @@ export type FormDocument = StandardFormDto;
 export const FORM_STATE_KEYS = ['title', 'description', 'welcomePage', 'thankyouPage', 'theme', 'hiddenFields', 'logoPosition', 'logoAlt', 'useWorkspaceLogo'] as const;
 export type FormStateKey = (typeof FORM_STATE_KEYS)[number];
 
+/**
+ * Whether the server takes layout containers (its LAYOUT_CONTAINERS_ENABLED,
+ * from the permissions answer): `false` makes the engine refuse an edit that
+ * would add a container, change one or take a question into one (an implicit
+ * join by position included), as the server's save would; undo and redo fall
+ * back to restoring the recorded document. `undefined` (not known yet) checks
+ * nothing. Set by the editor page (`FormEditPage`).
+ */
+let layoutContainersSwitch: boolean | undefined;
+export const setLayoutContainersSwitch = (enabled: boolean | undefined) => {
+    layoutContainersSwitch = enabled;
+};
+
 export const SET_FORM_KEYS = 'local_set_form_keys';
 export const SET_FIELDS = 'local_set_fields';
 
@@ -182,7 +195,7 @@ export function applyDocOps(doc: FormDocument, ops: DocOp[], withInverse = true)
         const batch = ops.slice(i, j) as FormOp[];
         let result;
         try {
-            result = applyOps(current, batch, { atomic: true, skipInverse: !withInverse, isStorageImageUrl });
+            result = applyOps(current, batch, { atomic: true, skipInverse: !withInverse, isStorageImageUrl, layoutContainers: layoutContainersSwitch });
         } catch {
             return { ok: false, doc, inverse: [] };
         }

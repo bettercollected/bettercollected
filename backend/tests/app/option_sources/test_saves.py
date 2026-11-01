@@ -451,6 +451,82 @@ async def test_a_duplicate_keeps_a_list_source_and_loses_another_forms_answers(
     assert original == {"city", "who"}
 
 
+def _shares(document):
+    return [
+        read.get(read.props(f), "share_as_choices") is True
+        for f, _ in read.every_field(document)
+    ]
+
+
+async def test_a_copy_never_inherits_the_decision_to_share_answers(
+    workspace, monkeypatch
+):
+    monkeypatch.setattr(settings, "OPTION_SOURCES_ENABLED", True)
+    original = await publish(
+        workspace,
+        [question("name", "short_text", "Name", share_as_choices=True)],
+        title="Original",
+    )
+    forms = container.form_service()
+    service = container.workspace_form_service()
+    assert _shares(await forms.get_form_document_by_id(original.form_id)) == [True]
+    # a duplicate
+    copy_form = await service.duplicate_form(workspace.id, original.form_id, testUser)
+    assert _shares(await forms.get_form_document_by_id(copy_form.form_id)) == [False]
+    # a template made from the form, and a form made from a template body
+    template = await service.duplicate_form(
+        workspace.id, original.form_id, testUser, is_template=True
+    )
+    assert _shares(template) == [False]
+    created = await service.create_form(
+        workspace.id,
+        new_form(question("name", "short_text", "Name", share_as_choices=True)),
+        testUser,
+        drop_unusable_settings=True,
+    )
+    assert _shares(await forms.get_form_document_by_id(created.form_id)) == [False]
+    # a form written by its creator, not copied, keeps what they chose
+    own = await service.create_form(
+        workspace.id,
+        new_form(question("name", "short_text", "Name", share_as_choices=True)),
+        testUser,
+    )
+    assert _shares(await forms.get_form_document_by_id(own.form_id)) == [True]
+
+
+async def test_a_provider_import_carries_no_stamp_and_no_sharing(workspace):
+    await container.form_import_service().save_converted_form_and_responses(
+        {
+            "form": {
+                "form_id": "imported-form-stamp",
+                "title": "Imported",
+                "settings": {"provider": "google"},
+                "fields": slide(
+                    question("name", "short_text", "Name", share_as_choices=True)
+                ),
+            },
+            "responses": [
+                {
+                    "response_id": "imported-response-stamp",
+                    "provider": "google",
+                    "answers": {},
+                    "shared_as_choices": ["name"],
+                }
+            ],
+        },
+        "",
+        workspace.id,
+    )
+    stored = await container.form_response_repo().get_response(
+        "imported-response-stamp"
+    )
+    assert stored.shared_as_choices is None
+    document = await container.form_service().get_form_document_by_id(
+        "imported-form-stamp"
+    )
+    assert _shares(document) == [False]
+
+
 async def test_a_provider_import_never_carries_a_source():
     form = new_form(list_q(type("L", (), {"id": "x" * 24})()))
     assert strip_option_sources(form) == 1 and not list(read.sourced_questions(form))

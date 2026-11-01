@@ -13,7 +13,7 @@ keys are refused, so a typo is reported instead of silently dropped.
 """
 
 import enum
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from common.countries import COUNTRIES_MAX
 from common.currencies import CURRENCIES_MAX, is_currency_code
@@ -27,8 +27,14 @@ from common.models.standard_form import (
     ENDING_MESSAGE_MAX_LENGTH,
     ENDING_NAME_MAX_LENGTH,
     ENDING_TITLE_MAX_LENGTH,
+    CONTAINER_MEMBERS_MAX,
+    LAYOUT_MEMBER_ID_MAX,
+    CONTAINER_TITLE_MAX,
+    CONTAINERS_MAX,
     FIELD_RULES_MAX,
     FORM_FIELD_RULES_MAX,
+    LAYOUT_ID_PATTERN,
+    TABS_MAX,
     OPTION_CONDITIONS_MAX,
     OPTION_FILTER_PAIRS_MAX,
     OPTION_ID_MAX_LENGTH,
@@ -754,6 +760,38 @@ class FormField(_Spec):
         return self
 
 
+class ContainerTab(_Spec):
+    """One tab of a ``tabs`` container: its title and its questions (ids, in
+    page order). A tab may be empty."""
+
+    id: str = Field(..., pattern=LAYOUT_ID_PATTERN)
+    title: str = Field(..., min_length=1, max_length=CONTAINER_TITLE_MAX)
+    fields: List[Annotated[str, Field(max_length=LAYOUT_MEMBER_ID_MAX)]] = Field(
+        default_factory=list, max_length=CONTAINER_MEMBERS_MAX
+    )
+
+
+class Container(_Spec):
+    """A layout container on a page: ``panel`` (a titled group that opens and
+    closes; ``collapsed``: closed when the page opens), ``fieldset`` (a
+    bordered group with a legend) or ``tabs`` (a strip of ``tabs``, no title
+    of its own). A panel and a field set list their questions in ``fields``;
+    the questions of one container are next to each other on the page, in the
+    order given, and are questions of the page itself (never a repeating
+    group's children). ``logic`` shows or hides the whole container. Layout
+    only: answers, logic, rules and exports see the questions as before."""
+
+    id: str = Field(..., pattern=LAYOUT_ID_PATTERN)
+    type: Literal["panel", "fieldset", "tabs"]
+    title: Optional[str] = Field(None, max_length=CONTAINER_TITLE_MAX)
+    collapsed: Optional[bool] = None
+    logic: Optional[Logic] = None
+    fields: Optional[List[Annotated[str, Field(max_length=LAYOUT_MEMBER_ID_MAX)]]] = (
+        Field(None, max_length=CONTAINER_MEMBERS_MAX)
+    )
+    tabs: Optional[List[ContainerTab]] = Field(None, max_length=TABS_MAX)
+
+
 class Page(_Spec):
     """A page of questions, in the order respondents see them."""
 
@@ -765,6 +803,11 @@ class Page(_Spec):
     show_question_numbers: Optional[bool] = None
     position: Optional[Position] = None
     jumps: Optional[List[PageJump]] = None
+    containers: Optional[List[Container]] = Field(
+        None,
+        max_length=CONTAINERS_MAX,
+        description="Panels, field sets and tabs that group questions of this page.",
+    )
     fields: List[FormField] = Field(default_factory=list)
 
 
