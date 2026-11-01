@@ -24,6 +24,7 @@ from tests.app.sso_helpers import (  # noqa: F401 — fixtures
     DOMAIN,
     LOGIN_PAGE,
     add_connection,
+    enabled_connection_id,
     query_of,
     sso_on,
     state_of,
@@ -41,6 +42,10 @@ def _cookies(user: User) -> dict:
 async def _member(workspace, email, method, role=WorkspaceRoles.COLLABORATOR, **extra):
     """A member of the workspace with an address ``email``, and the cookies of
     a session signed in with ``method``."""
+    if method == "sso":
+        # an SSO session is signed in through a workspace's identity provider
+        extra.setdefault("sso_workspace_id", str(workspace.id))
+        extra.setdefault("sso_connection_id", await enabled_connection_id(workspace.id))
     user = User(id=str(RecordId()), sub=email, auth_method=method, **extra)
     await container.workspace_user_repo().save(
         WorkspaceUserDocument(
@@ -149,7 +154,15 @@ async def test_an_owner_keeps_break_glass_by_email_code(
     client, required, method, allowed
 ):
     # an owner whose own address is on the SSO domain
-    owner = User(id=testUser.id, sub="boss@" + DOMAIN, auth_method=method)
+    owner = User(
+        id=testUser.id,
+        sub="boss@" + DOMAIN,
+        auth_method=method,
+        sso_workspace_id=str(required.id) if method == "sso" else None,
+        sso_connection_id=(
+            await enabled_connection_id(required.id) if method == "sso" else None
+        ),
+    )
     reply = await client.get(forms_url(required), cookies=_cookies(owner))
     if allowed:
         assert reply.status_code == 200, reply.text
@@ -271,6 +284,7 @@ def _spy(policy, monkeypatch):
 async def test_a_refused_session_costs_one_cached_lookup(client, required, monkeypatch):
     policy = container.sso_policy_service()
     policy._requirement_cache.clear()
+    policy._enabled_cache.clear()
     calls = _spy(policy, monkeypatch)
     _, cookies = await _member(required, "jane@" + DOMAIN, "otp")
     for _ in range(5):
@@ -281,6 +295,7 @@ async def test_a_refused_session_costs_one_cached_lookup(client, required, monke
 async def test_the_lookup_is_refreshed_after_its_ttl(client, required, monkeypatch):
     policy = container.sso_policy_service()
     policy._requirement_cache.clear()
+    policy._enabled_cache.clear()
     now = {"t": 1000.0}
     monkeypatch.setattr(policy, "_clock", lambda: now["t"])
     calls = _spy(policy, monkeypatch)
@@ -298,8 +313,9 @@ async def test_an_sso_session_and_a_plain_workspace_cost_nothing_extra(
 ):
     policy = container.sso_policy_service()
     policy._requirement_cache.clear()
-    calls = _spy(policy, monkeypatch)
+    policy._enabled_cache.clear()
     _, sso_cookies = await _member(required, "jane@" + DOMAIN, "sso")
+    calls = _spy(policy, monkeypatch)
     for _ in range(3):
         assert (
             await client.get(forms_url(required), cookies=sso_cookies)
@@ -307,29 +323,56 @@ async def test_an_sso_session_and_a_plain_workspace_cost_nothing_extra(
     # a workspace that doesn't require SSO is never looked up
     _, cookies = await _member(workspace_1, "jane2@" + DOMAIN, "otp")
     assert (await client.get(forms_url(workspace_1), cookies=cookies)).status_code == 200
-    assert calls == {"claim": 0, "connection": 0}
+    # an SSO session of the workspace: no domain lookup, and the enabled
+    # connection (is it still the one it signed in through?) read once and cached
+    assert calls == {"claim": 0, "connection": 1}
 
 
 # -- one rule ------------------------------------------------------------------
 @pytest.mark.parametrize("method", ["otp", "google", "sso", "api_key", None])
 @pytest.mark.parametrize("is_owner", [True, False])
 @pytest.mark.parametrize("scope", [None, "respondent"])
+@pytest.mark.parametrize("bound", ["this", "other", None, "replaced_connection"])
 @pytest.mark.parametrize(
     "email", ["someone@" + DOMAIN, "guest@partner-corp.org", "", None]
 )
 async def test_the_request_check_is_the_refresh_rule(
-    client, required, method, is_owner, scope, email
+    client, required, method, is_owner, scope, bound, email
 ):
     """``blocks_session`` (every request) and ``unmet_requirement`` (refresh,
     the selection screen) never disagree: for members and for anyone else,
     on the SSO domain or off it."""
     policy = container.sso_policy_service()
     policy._requirement_cache.clear()
+    policy._enabled_cache.clear()
     user_id = testUser.id if is_owner else str(RecordId())
     workspace = await container.workspace_repo().find_by_id(required.id)
-    expected = await policy.unmet_requirement(email, method, scope, user_id)
+    sso_workspace_id = {
+        "this": str(required.id),
+        "other": str(RecordId()),
+        "replaced_connection": str(required.id),
+    }.get(bound)
+    sso_connection_id = (
+        str(RecordId())
+        if bound == "replaced_connection"
+        else await enabled_connection_id(required.id)
+    )
+    expected = await policy.unmet_requirement(
+        email,
+        method,
+        scope,
+        user_id,
+        sso_workspace_id=sso_workspace_id,
+        sso_connection_id=sso_connection_id,
+    )
     blocked = await policy.blocks_session(
-        workspace, email, method, scope, is_owner=is_owner
+        workspace,
+        email,
+        method,
+        scope,
+        is_owner=is_owner,
+        sso_workspace_id=sso_workspace_id,
+        sso_connection_id=sso_connection_id,
     )
     assert blocked == (expected is not None)
 
@@ -340,6 +383,7 @@ async def test_the_request_check_is_the_refresh_rule_when_nothing_applies(
 ):
     policy = container.sso_policy_service()
     policy._requirement_cache.clear()
+    policy._enabled_cache.clear()
     repo = container.workspace_repo()
     if state == "disabled":
         await _require(client, sso_workspace)

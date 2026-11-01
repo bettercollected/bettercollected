@@ -1382,6 +1382,7 @@
     "SHOW_WHEN": "Toon dit onderdeel ({{kind}}) wanneer…",
     "HIDE_WHEN": "Verberg dit onderdeel ({{kind}}) wanneer…",
     "REFUSED": "De server weigerde deze indeling",
+    "MOVE_REFUSED": "Niet aangepast: het zou een indeling (paneel, veldgroep of tabs) breken. {{reason}}",
     "COMPLETE_RULE": "Vul elke voorwaarde in, dan geldt de regel.",
     "FRAME_LABEL": "{{kind}}: {{title}}",
     "CANNOT_COPY": "Een pagina met indelingen kan niet worden gekopieerd zolang de server ze nog niet aanneemt.",

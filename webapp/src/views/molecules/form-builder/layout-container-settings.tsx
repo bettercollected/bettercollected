@@ -11,7 +11,7 @@ import { FieldConditionalLogic, LogicCondition, LogicalOperator } from '@app/mod
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { activeContainerAtom } from '@app/store/jotai/active-builder-component';
 import { useBuilderFieldsValue, usePageShell } from '@app/store/jotai/entity-hooks';
-import { membersOf, pageFieldsOf } from '@app/utils/layout-containers';
+import { CONTAINER_CONDITIONS_MAX, membersOf, pageFieldsOf } from '@app/utils/layout-containers';
 import { ConditionRow, buildSourceFields, isConditionComplete, isConditionSource, newConditionFor, sameSourceFields, selectClass } from '@app/views/molecules/form-builder/condition-editor-shared';
 import { InspectorSection } from '@app/views/molecules/form-builder/inspector-controls';
 
@@ -111,7 +111,7 @@ export default function LayoutContainerSettings() {
                                     />
                                 ))}
                                 {!complete && <p className="text-[11px] text-black-600">{t('LAYOUT.COMPLETE_RULE')}</p>}
-                                {editable && (
+                                {editable && logic.conditions.length < CONTAINER_CONDITIONS_MAX && (
                                     <button type="button" className="w-fit text-xs font-medium text-brand-500 hover:text-brand-600" onClick={() => commit({ ...logic, conditions: [...logic.conditions, newConditionFor(sources)] })}>
                                         {t('LAYOUT.ADD_CONDITION')}
                                     </button>

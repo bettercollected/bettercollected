@@ -11,7 +11,10 @@ What holds the model together:
 * the members of a container (tabs in strip order, then each tab's members)
   appear in the page in that order with no respondent-facing question between
   them, so the display order is the page order;
-* container and tab ids are unique across the form.
+* container and tab ids are unique across the form and are never the id of a
+  question, group child or page (the builder and the respondent page key
+  state and DOM ids by them);
+* a container's rule has at most ``CONTAINER_CONDITIONS_MAX`` conditions.
 
 ``repair_form`` makes a form that broke these (a question removed or moved by
 a client that does not know containers) valid again; ``form_problems`` reports
@@ -21,6 +24,8 @@ twin is ``webapp/src/utils/layout-containers.ts``; the shared cases are in
 """
 
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+from common.models.standard_form import CONTAINER_CONDITIONS_MAX
 
 # ``logic_sources`` (backend repeating_groups.py) returns a ``LogicSources``
 # dict whose ``container_logic`` attribute maps a member's id to the logic of
@@ -102,6 +107,27 @@ def used_ids(form: Any) -> set:
         if _get(container, "type") == "tabs":
             for tab in _get(container, "tabs") or []:
                 ids.add(str(_get(tab, "id")))
+    return ids
+
+
+def page_item_ids(page: Any) -> set:
+    """The ids on one page: the page itself, its questions and a repeating
+    group's children."""
+    ids = {str(_get(page, "id"))}
+    for field in page_fields(page):
+        ids.add(str(_get(field, "id")))
+        for child in _get(_get(field, "properties"), "fields") or []:
+            ids.add(str(_get(child, "id")))
+    return ids
+
+
+def form_item_ids(form: Any) -> set:
+    """Every page, question and group-child id of the form: what a container
+    or tab id must not equal."""
+    ids: set = set()
+    for page in _get(form, "fields") or []:
+        if _type_text(page) == "slide":
+            ids |= page_item_ids(page)
     return ids
 
 
@@ -303,15 +329,21 @@ def container_logic_index(form_fields: Iterable[Any]) -> Dict[str, List[Any]]:
 
 
 def container_problems(
-    page: Any, taken: Optional[set] = None, earlier: Optional[Iterable[str]] = None
+    page: Any,
+    taken: Optional[set] = None,
+    earlier: Optional[Iterable[str]] = None,
+    item_ids: Optional[Iterable[str]] = None,
 ) -> List[Tuple[Optional[str], str]]:
     """Why the page's containers cannot stand, as ``(container id, message)``:
     members that are unknown, internal, a group's children or in two
     containers; members not next to each other or out of page order; ids used
     twice (``taken`` holds the ids of the pages before, and is added to);
     logic that reads a question that is not before the container's first
-    member, or one of its own members. ``earlier``: the ids of every question
-    on the earlier pages."""
+    member, or one of its own members, or has more than
+    ``CONTAINER_CONDITIONS_MAX`` conditions; container and tab ids that are
+    also the id of a question or page. ``earlier``: the ids of every question
+    on the earlier pages. ``item_ids``: every page, question and group-child
+    id of the form (this page's own when left out)."""
     problems: List[Tuple[Optional[str], str]] = []
     containers = page_containers(page)
     if not containers:
@@ -323,6 +355,7 @@ def container_problems(
     order = {fid: i for i, fid in enumerate(ids)}
     claimed: Dict[str, str] = {}
     before_pages = set(earlier or [])
+    items = set(item_ids) if item_ids is not None else page_item_ids(page)
     for container in containers:
         cid = str(_get(container, "id"))
         names = [cid]
@@ -331,7 +364,19 @@ def container_problems(
         for name in names:
             if name in taken:
                 problems.append((cid, f"The id '{name}' is used more than once."))
+            elif name in items:
+                problems.append(
+                    (cid, f"The id '{name}' is also the id of a question or page.")
+                )
             taken.add(name)
+        logic = _get(container, "logic")
+        if len(_get(logic, "conditions") or []) > CONTAINER_CONDITIONS_MAX:
+            problems.append(
+                (
+                    cid,
+                    f"A container's rule can have at most {CONTAINER_CONDITIONS_MAX} conditions.",
+                )
+            )
         members = members_of(container)
         if not members:
             problems.append((cid, "A container needs at least one question."))
@@ -380,7 +425,6 @@ def container_problems(
                 )
             )
             continue
-        logic = _get(container, "logic")
         for condition in _get(logic, "conditions") or []:
             source = str(
                 _get(condition, "field_id") or _get(condition, "fieldId") or ""
@@ -411,10 +455,11 @@ def form_problems(form: Any) -> List[Tuple[str, Optional[str], str]]:
     found: List[Tuple[str, Optional[str], str]] = []
     taken: set = set()
     earlier: set = set()
+    items = form_item_ids(form)
     for page in _get(form, "fields") or []:
         if _type_text(page) != "slide":
             continue
-        for cid, message in container_problems(page, taken, earlier):
+        for cid, message in container_problems(page, taken, earlier, items):
             found.append((str(_get(page, "id")), cid, message))
         for field in page_fields(page):
             earlier.add(str(_get(field, "id")))

@@ -65,6 +65,9 @@ from backend.app.repositories.postgres.response_exports import (
 from backend.app.repositories.postgres.email_actions import (
     PostgresFormEmailActionRepository,
 )
+from backend.app.repositories.postgres.workspace_audit import (
+    PostgresWorkspaceAuditRepository,
+)
 from backend.app.repositories.postgres.webhooks import (
     PostgresActionLogRepository,
     PostgresFormWebhookRepository,
@@ -293,6 +296,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
     scim_event_repo: PostgresScimEventRepository = providers.Singleton(
         PostgresScimEventRepository, pg_sessionmaker
+    )
+    workspace_audit_repo: PostgresWorkspaceAuditRepository = providers.Singleton(
+        PostgresWorkspaceAuditRepository, pg_sessionmaker
     )
     workspace_api_key_repo: PostgresWorkspaceAPIKeyRepository = providers.Singleton(
         PostgresWorkspaceAPIKeyRepository, pg_sessionmaker
@@ -683,6 +689,7 @@ class AppContainer(containers.DeclarativeContainer):
         connection_repo=sso_connection_repo,
         http_client=http_client,
         workspace_user_repo=workspace_user_repo,
+        audit_repo=workspace_audit_repo,
     )
 
     # the workspace selection screen after sign-in
@@ -860,6 +867,8 @@ class AppContainer(containers.DeclarativeContainer):
         session_service=session_service,
         policy=sso_policy_service,
         polis=polis_admin_client,
+        api_key_repo=workspace_api_key_repo,
+        http_client=http_client,
         # defined further down
         on_default_role_changed=providers.Object(
             lambda workspace: container.scim_sync_service().recompute_workspace(

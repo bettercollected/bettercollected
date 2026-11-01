@@ -61,6 +61,7 @@ from common.models.standard_form import (
     FieldLogicCondition,
     FieldPosition,
     CONTAINERS_MAX,
+    CONTAINER_CONDITIONS_MAX,
     CONTAINER_MEMBERS_MAX,
     LAYOUT_MEMBER_ID_MAX,
     CONTAINER_TITLE_MAX,
@@ -177,6 +178,8 @@ from backend.app.services.policy_url import checked_button_link, checked_policy_
 from backend.app.services.rich_text import style_value_problem
 from common.layout_containers import (
     container_tabs,
+    form_item_ids,
+    form_problems as layout_form_problems,
     fresh_id,
     join_by_position,
     repair_form,
@@ -1833,6 +1836,49 @@ def _apply_remove_field(form: StandardForm, op: RemoveFieldOp) -> str:
     )
 
 
+def _layout_problems_once_repaired(form: StandardForm) -> List[Tuple[str, Optional[str], str]]:
+    """The container problems a save of ``form`` would still refuse after it
+    repaired the dangling ones (a question moved off a container's page, an
+    emptied container): what ``ensure_valid_layout`` does. ``form`` is left as
+    it was."""
+    pages = [
+        page
+        for page in _pages(form)
+        if page.properties is not None and page.properties.containers
+    ]
+    if not pages:
+        return []
+    saved = [copy.deepcopy(page.properties.containers) for page in pages]
+    try:
+        repair_form(form)
+        return layout_form_problems(form)
+    finally:
+        for page, containers in zip(pages, saved):
+            page.properties.containers = containers
+
+
+def _new_layout_problem(
+    form: StandardForm, known: List[Tuple[str, Optional[str], str]]
+) -> Optional[str]:
+    """The first container problem ``form`` has once repaired that it did not
+    have ``known`` (in page and container order)."""
+    old = set(known)
+    return next((m for page_id, cid, m in _layout_problems_once_repaired(form) if (page_id, cid, m) not in old), None)
+
+
+def _layout_snapshot(form: StandardForm) -> List[Tuple[StandardFormField, Any]]:
+    return [
+        (page, copy.deepcopy(page.properties.containers if page.properties else None))
+        for page in _pages(form)
+        if page.properties is not None and page.properties.containers
+    ]
+
+
+def _restore_layout(snapshot: List[Tuple[StandardFormField, Any]]) -> None:
+    for page, containers in snapshot:
+        page.properties.containers = containers
+
+
 def _apply_move_field(form: StandardForm, op: MoveFieldOp) -> str:
     page, parent, container, field, position = _locate_field(form, op.field_id)
     if op.to_group_id is not None:
@@ -1859,6 +1905,8 @@ def _apply_move_field(form: StandardForm, op: MoveFieldOp) -> str:
         where = None
 
     known = {p.message for p in option_logic_problems(form)} if form_has_option_logic(form) else set()
+    layout_known = _layout_problems_once_repaired(form)
+    layout_before = _layout_snapshot(form)
     container.pop(position)
     insert_at = len(target) if op.index is None else max(0, min(op.index, len(target)))
     target.insert(insert_at, field)
@@ -1867,6 +1915,17 @@ def _apply_move_field(form: StandardForm, op: MoveFieldOp) -> str:
     # the end of the batch
     if op.to_group_id is None and (op.to_page_id is not None or parent is None):
         join_by_position(target_page, field.id)
+    # A container's rule reads questions before the container: a move may not
+    # break that (the save would refuse the form, leaving the builder stuck).
+    if layout_before:
+        layout_problem_now = _new_layout_problem(form, layout_known)
+        if layout_problem_now:
+            target.pop(insert_at)
+            container.insert(position, field)
+            _restore_layout(layout_before)
+            raise OpError(
+                f"Moving '{_title_text(field)}' there would break a layout container: {layout_problem_now}"
+            )
     # Option logic reads earlier questions: a move may not break that (it
     # would silently drop the logic), nor take a question with option logic
     # into a repeating group.
@@ -1878,6 +1937,7 @@ def _apply_move_field(form: StandardForm, op: MoveFieldOp) -> str:
         if problem:
             target.pop(insert_at)
             container.insert(position, field)
+            _restore_layout(layout_before)
             raise OpError(f"Moving '{_title_text(field)}' there would break option logic: {problem}")
     # In or out of a repeating group: rules across the boundary don't apply.
     note = _dropped_rules_note(form)
@@ -2395,7 +2455,17 @@ def _apply_set_page_containers(form: StandardForm, op: SetPageContainersOp) -> s
     ]
     if len(set(explicit)) != len(explicit) or any(x in taken for x in explicit):
         raise OpError("Container and tab ids must be unique in the form.")
-    reserved = set(taken) | set(explicit)
+    # a container or tab id is never the id of a page, question or group child
+    items = form_item_ids(form)
+    for x in explicit:
+        if x in items:
+            raise OpError(f"The id '{x}' is also the id of a question or page.")
+    for spec in op.containers:
+        if spec.logic is not None and len(spec.logic.conditions) > CONTAINER_CONDITIONS_MAX:
+            raise OpError(
+                f"A container's rule can have at most {CONTAINER_CONDITIONS_MAX} conditions."
+            )
+    reserved = set(taken) | set(explicit) | items
     built: List[LayoutContainer] = []
     for spec in op.containers:
         logic = None
@@ -2428,7 +2498,7 @@ def _apply_set_page_containers(form: StandardForm, op: SetPageContainersOp) -> s
         built.append(container)
     previous = page.properties.containers
     page.properties.containers = built
-    problems = container_problems(page, set(taken), set(earlier))
+    problems = container_problems(page, set(taken), set(earlier), items)
     if problems:
         page.properties.containers = previous
         raise OpError(problems[0][1])
@@ -2480,7 +2550,7 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
     # Layout containers follow the copy: new container and tab ids, members
     # and rule conditions on the cloned questions.
     if clone.properties and clone.properties.containers:
-        taken = container_ids_used(form)
+        taken = container_ids_used(form) | form_item_ids(form)
         for container in clone.properties.containers:
             container.id = fresh_id(CONTAINER_ID_PREFIX, taken)
             for tab in container_tabs(container):
@@ -2671,6 +2741,7 @@ def _apply_move_page(form: StandardForm, op: MovePageOp) -> str:
     old = _pages(form).index(page)
     before = list(form.fields)
     known = {p.message for p in option_logic_problems(form)} if form_has_option_logic(form) else set()
+    layout_known = _layout_problems_once_repaired(form)
     form.fields.remove(page)
     rest = _pages(form)
     target = min(op.index, len(rest))
@@ -2678,6 +2749,11 @@ def _apply_move_page(form: StandardForm, op: MovePageOp) -> str:
         form.fields.append(page)
     else:
         form.fields.insert(form.fields.index(rest[target]), page)
+    # a container's rule reads questions of earlier pages and earlier on its own
+    layout_problem_now = _new_layout_problem(form, layout_known)
+    if layout_problem_now:
+        form.fields[:] = before
+        raise OpError(f"Moving that page would break a layout container: {layout_problem_now}")
     if form_has_option_logic(form):
         problem = next(
             (p.message for p in option_logic_problems(form) if p.message not in known),
