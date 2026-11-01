@@ -17,10 +17,12 @@ question changed) passes. Stored data is never touched.
 date range and tags), and ``signature`` is what
 counts as "the question's type and settings".
 
-The address question has a switch of its own, ``ADDRESS_QUESTION_ENABLED``
-(``ADDRESS_TYPES``, refusal code ``address_question_disabled``). It runs
+The signature question and the address question have a switch of their own,
+``SIGNATURE_QUESTION_ENABLED`` (``SIGNATURE_TYPES``, refusal code
+``signature_question_disabled``) and ``ADDRESS_QUESTION_ENABLED``
+(``ADDRESS_TYPES``, refusal code ``address_question_disabled``). They run
 through the same checks: a ``Gate`` names a switch, its types and its refusal,
-``GATES`` lists both, and every entry point below looks at each gate that is
+``GATES`` lists them all, and every entry point below looks at each gate that is
 off. A new gated type with its own switch is one more ``Gate``.
 """
 
@@ -34,11 +36,14 @@ from backend.app.services.calculated_fields import _get, _type
 
 DISABLED_CODE = "question_type_disabled"
 ADDRESS_DISABLED_CODE = "address_question_disabled"
+SIGNATURE_DISABLED_CODE = "signature_question_disabled"
 # Types behind the switch. Keep in step with GATED_TYPES in
 # webapp/src/lib/form-ops/new-question-types.ts.
 GATED_TYPES = frozenset({"time", "day", "currency", "date_range", "tags"})
 # The address question's own switch (ADDRESS_QUESTION_ENABLED).
 ADDRESS_TYPES = frozenset({"address"})
+# The signature question's own switch (SIGNATURE_QUESTION_ENABLED).
+SIGNATURE_TYPES = frozenset({"signature"})
 # Operations that can give a form such a question or change one.
 GATED_OPS = frozenset(
     {
@@ -69,6 +74,13 @@ ADDRESS_DISABLED_MESSAGE = (
 )
 
 
+SIGNATURE_DISABLED_MESSAGE = (
+    "The signature question cannot be added or changed on this server yet "
+    "(SIGNATURE_QUESTION_ENABLED is off). A signature question that a form "
+    "already has is kept."
+)
+
+
 def new_question_types_enabled() -> bool:
     """Is ``NEW_QUESTION_TYPES_ENABLED`` on?"""
     from backend.config import settings
@@ -81,6 +93,11 @@ def address_question_enabled() -> bool:
     from backend.config import settings
 
     return bool(getattr(settings, "ADDRESS_QUESTION_ENABLED", False))
+def signature_question_enabled() -> bool:
+    """Is ``SIGNATURE_QUESTION_ENABLED`` on?"""
+    from backend.config import settings
+
+    return bool(getattr(settings, "SIGNATURE_QUESTION_ENABLED", False))
 
 
 @dataclass(frozen=True)
@@ -108,9 +125,16 @@ ADDRESS_GATE = Gate(
     ADDRESS_DISABLED_MESSAGE,
     lambda: address_question_enabled(),
 )
-GATES = (NEW_TYPES_GATE, ADDRESS_GATE)
+SIGNATURE_GATE = Gate(
+    "SIGNATURE_QUESTION_ENABLED",
+    SIGNATURE_TYPES,
+    SIGNATURE_DISABLED_CODE,
+    SIGNATURE_DISABLED_MESSAGE,
+    lambda: signature_question_enabled(),
+)
+GATES = (NEW_TYPES_GATE, ADDRESS_GATE, SIGNATURE_GATE)
 # Every type behind a switch.
-ALL_GATED_TYPES = GATED_TYPES | ADDRESS_TYPES
+ALL_GATED_TYPES = GATED_TYPES | ADDRESS_TYPES | SIGNATURE_TYPES
 
 
 def gates_off() -> List[Gate]:

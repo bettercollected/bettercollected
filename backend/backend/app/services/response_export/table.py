@@ -76,6 +76,7 @@ _PLACEHOLDERS = {
     "date_range": "Select the first and the last day",
     "tags": "Type a tag and press Enter",
     "address": "Enter an address",
+    "signature": "Sign here",
     "linear_rating": "Rate from 1 to 10",
     "matrix": "Matrix Field",
     "tabular_input": "Tabular Input Field",
@@ -369,6 +370,14 @@ def answer_value(answers: Dict[str, Any], field_: Dict[str, Any], separator: Opt
         # one cell, one line: "street number addition, postcode city" and the
         # country code unless NL
         return address_line(_get(answer, "address"))
+    if kind == "signature":
+        # the typed name, or a marker for a drawn one: never the image or a
+        # link to it (webapp ``getAnswerForField``)
+        signature = _dict(answer.get("signature"))
+        if signature.get("method") == "typed":
+            name = signature.get("name")
+            return name if isinstance(name, str) else ""
+        return "[drawn signature]" if signature.get("method") == "drawn" else ""
     if kind == "yes_no":
         flag = answer.get("boolean")
         return "Yes" if flag is True else "No" if flag is False else ""

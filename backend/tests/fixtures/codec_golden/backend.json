@@ -2217,7 +2217,7 @@
   "document": "FormImportDocument"
  },
  "form_responses/full": {
-  "checksum": "sha256:8df44aaf5f9b141c1e261c53f25da6528b232f99fedde1b44eec0e33c3eafedf",
+  "checksum": "sha256:bef1a92210c61f50385b9d5dbc51997da929bbbfd20ffda8bb5a1d306f5fbc9e",
   "doc": {
    "_id": {
     "$oid": "2badfbd5705103813c283a21"
@@ -2284,6 +2284,7 @@
         "number": null,
         "payment": null,
         "phone_number": null,
+        "signature": null,
         "tabular_value": null,
         "tags": null,
         "text": null,
@@ -2309,6 +2310,7 @@
         "number": null,
         "payment": null,
         "phone_number": null,
+        "signature": null,
         "tabular_value": null,
         "tags": null,
         "text": null,
@@ -2325,6 +2327,13 @@
       "name": null
      },
      "phone_number": "FormResponseDocument.answers.value.phone_number tëxt ✓ \"quoted\" \\ line\nbreak",
+     "signature": {
+      "file_id": null,
+      "method": null,
+      "name": null,
+      "signed_at": null,
+      "url": null
+     },
      "tabular_value": [
       [
        "FormResponseDocument.answers.value.tabular_value[0][0] tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -2435,6 +2444,7 @@
         "number": null,
         "payment": null,
         "phone_number": null,
+        "signature": null,
         "tabular_value": null,
         "tags": null,
         "text": null,
@@ -2460,6 +2470,7 @@
         "number": null,
         "payment": null,
         "phone_number": null,
+        "signature": null,
         "tabular_value": null,
         "tags": null,
         "text": null,
@@ -2476,6 +2487,13 @@
       "name": null
      },
      "phone_number": "FormResponseDocument.internal_answers.value.phone_number tëxt ✓ \"quoted\" \\ line\nbreak",
+     "signature": {
+      "file_id": null,
+      "method": null,
+      "name": null,
+      "signed_at": null,
+      "url": null
+     },
      "tabular_value": [
       [
        "FormResponseDocument.internal_answers.value.tabular_value[0][0] tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -2662,7 +2680,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/naive": {
-  "checksum": "sha256:ee61bb95ebdff0bce46dd5b64f4c228b2e2403ef9264fdd1f30aca848ed0dbfb",
+  "checksum": "sha256:55a0d5ae3d1757d234df167fcd9f2646e1a7e47697227167addd52c8934f28e1",
   "doc": {
    "_id": {
     "$oid": "10cd94a70aa205bdc7631e61"
@@ -2729,6 +2747,7 @@
         "number": null,
         "payment": null,
         "phone_number": null,
+        "signature": null,
         "tabular_value": null,
         "tags": null,
         "text": null,
@@ -2754,6 +2773,7 @@
         "number": null,
         "payment": null,
         "phone_number": null,
+        "signature": null,
         "tabular_value": null,
         "tags": null,
         "text": null,
@@ -2770,6 +2790,13 @@
       "name": null
      },
      "phone_number": "FormResponseDocument.answers.value.phone_number tëxt ✓ \"quoted\" \\ line\nbreak",
+     "signature": {
+      "file_id": null,
+      "method": null,
+      "name": null,
+      "signed_at": null,
+      "url": null
+     },
      "tabular_value": [
       [
        "FormResponseDocument.answers.value.tabular_value[0][0] tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -2880,6 +2907,7 @@
         "number": null,
         "payment": null,
         "phone_number": null,
+        "signature": null,
         "tabular_value": null,
         "tags": null,
         "text": null,
@@ -2905,6 +2933,7 @@
         "number": null,
         "payment": null,
         "phone_number": null,
+        "signature": null,
         "tabular_value": null,
         "tags": null,
         "text": null,
@@ -2921,6 +2950,13 @@
       "name": null
      },
      "phone_number": "FormResponseDocument.internal_answers.value.phone_number tëxt ✓ \"quoted\" \\ line\nbreak",
+     "signature": {
+      "file_id": null,
+      "method": null,
+      "name": null,
+      "signed_at": null,
+      "url": null
+     },
      "tabular_value": [
       [
        "FormResponseDocument.internal_answers.value.tabular_value[0][0] tëxt ✓ \"quoted\" \\ line\nbreak",

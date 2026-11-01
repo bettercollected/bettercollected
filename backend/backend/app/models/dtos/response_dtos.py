@@ -214,6 +214,8 @@ class FormFileResponse(BaseModel):
     field_id: str
     filename: str
     file: UploadFile
+    # set for a part the server made itself (a re-encoded signature image)
+    content_type: Optional[str] = None
 
 
 class WorkspaceFormPatchResponse(CamelModel):

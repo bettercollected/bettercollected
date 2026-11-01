@@ -15,6 +15,7 @@ from backend.app.services.field_rules import field_rules_enabled
 from backend.app.services.new_question_types import (
     address_question_enabled,
     new_question_types_enabled,
+    signature_question_enabled,
 )
 from backend.app.services.option_logic import choice_logic_enabled
 from backend.app.services.form_drafts.mode import save_drafts_enabled
@@ -232,6 +233,7 @@ class WorkspaceRouter(Routable):
             permissions=sorted(permissions, key=lambda p: p.value),
             field_rules_enabled=field_rules_enabled(),
             new_question_types_enabled=new_question_types_enabled(),
+            signature_question_enabled=signature_question_enabled(),
             address_question_enabled=address_question_enabled(),
             address_lookup_enabled=address_lookup_enabled(),
             choice_logic_enabled=choice_logic_enabled(),

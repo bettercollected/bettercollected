@@ -194,6 +194,10 @@ SERVER: Tuple[SettingSpec, ...] = (
           "Fills in street and city of an address question from a Dutch postcode and house number "
           "(PDOK Locatieserver, called from this server). Off: addresses are typed.",
           tier=T2),
+    _bool("SIGNATURE_QUESTION_ENABLED", "features", (BACKEND,), False,
+          "Allows adding or changing the signature question (drawn or typed); "
+          "signature questions a form already has keep working either way.",
+          tier=T2),
     _bool("COUPON_ENABLED", "features", (BACKEND,), False, "Enables coupon codes."),
     _int("COUPON_EXPIRY_IN_DAYS", "limits", (BACKEND,), 60, 1, 3650,
          "Days a coupon code stays valid."),

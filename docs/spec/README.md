@@ -172,6 +172,66 @@ as the newer question types; the validation of a document warns about it. Questi
 working: they are shown, take answers and are exported, and a save that leaves their type and settings as
 they are is accepted. The workspace permissions answer tells the builder as `addressQuestionEnabled`.
 
+### Signature question
+
+| Type | The respondent | The answer | Settings |
+|---|---|---|---|
+| `signature` | draws in a box (mouse, finger or pen) or types their name; both always work | `{"type":"signature","signature":{"method":"typed","name":"Fatima El Idrissi","signedAt":"2026-11-01T09:31:12Z"}}` or `{"type":"signature","signature":{"method":"drawn","fileId":"<id>","signedAt":"..."}}` | none besides `validations.required`, a title and a description |
+
+A signature records a drawn or typed name. It does not check who signed, and
+nothing in the product says it has any legal weight.
+
+- **Typed:** the name is stored as shown: trimmed, in Unicode form C, 1 to 100
+  characters, without control, format (zero-width, bidirectional marks, the byte
+  order mark, the soft hyphen) or line and paragraph separator characters.
+- **Drawn:** the browser sends a PNG as a file part of the submission, named by the
+  answer's `fileId` (a plain id). The server never decodes it in the API process:
+  it checks the size (at most 150 KB) and that it is a PNG, then the isolated
+  document sandbox decodes it and writes a fresh PNG without metadata (at most
+  2000 x 1000 pixels and 1 million pixels). The stored object is that
+  re-encoding, a private file under the response's folder, deleted with the
+  response (also when its retention runs out, when the form is unlinked from a
+  workspace, and when the signature is replaced in an edit). Without the sandbox a
+  drawn signature is refused (503, try again); a typed one never needs it.
+  The object is stored as `image/png`, and its download link is signed to serve
+  `image/png` as an attachment. An image with no ink at all is not told apart without decoding it: the
+  respondent form never sends one.
+- **`signedAt`** is stamped by the server when the signature is stored; a value
+  the client sends is ignored, and an edit that leaves a signature as it is keeps
+  its stamp.
+- A drawn answer must name an image sent with it for that question (or, in a
+  respondent's edit, the image the response already holds); an id with no image,
+  an image for another question and two images for one question are refused.
+- The server refuses an answer with the rule codes `required`, `type` (another
+  shape: a slot of another type, an unknown key, not text), `format` (a method
+  that is neither `drawn` nor `typed`, a name with a forbidden character or not
+  trimmed or in form C, a name given with an image or the other way round),
+  `too_long` (a name over 100 characters) and `signature_image` (a drawn
+  signature whose image is missing, not accepted or not named by a plain id).
+- **Logic:** a condition on a signature asks only `IS_EMPTY` or `IS_NOT_EMPTY` (the
+  spec check and the edit operations refuse the others; a condition that is not
+  one of them never holds). A signature is never a formula variable and is not
+  piped into a title. **Field rules** may require it, make it optional, or change its
+  title or description; never set or lock its value.
+- Not allowed inside a repeating group, and never internal.
+- **Where it goes:** the dashboard shows the image (a short-lived link on the single
+  response view only, never in a list) or the typed name in an italic serif; the CSV
+  has the typed name or `[drawn signature]`; the public API and the MCP server return
+  the stored answer (no image, no link); webhooks, registrations and email actions do
+  not carry it (it is not a variable they can map); the AI insights see `[signed]`;
+  action code (the email action and the Sheets row) gets `[signed]` for both methods, never the name.
+- A draft keeps a typed signature and not a drawn one (files are not kept).
+
+**Rollout.** The signature question is behind its own server setting,
+`SIGNATURE_QUESTION_ENABLED`, off by default, and works like the newer question
+types' (see above): while it is off, every write that gives a form a signature
+question, or turns another question into one, is refused with 422
+`signature_question_disabled` (the builder's save, the spec API, the edit
+operations, templates and imports); a signature question a form already has keeps
+being shown, answered, exported and read, and a save that leaves it as it is is
+accepted. The switch never governs answering. `GET /workspaces/{id}/permissions`
+tells the builder as `signatureQuestionEnabled`.
+
 Ids are chosen by the writer and must be unique within the form. Logic
 conditions and page jumps refer to them; a jump's `target` is a page id or
 `"__SUBMIT__"`. A jump to `"__SUBMIT__"` may add `endingId` to show that
@@ -543,6 +603,11 @@ should pass every case.
   read it.
 - `addressQuestion` (optional, default `true`): the same for the `address`
   question and its own switch (`ADDRESS_QUESTION_ENABLED`; the message names it).
+- `signatureQuestion` (optional, default `true`): the same for the signature
+  question (the server setting `SIGNATURE_QUESTION_ENABLED`). With `false`, an
+  operation that adds a `signature` question, or turns a question into one, fails
+  with a message containing `SIGNATURE_QUESTION_ENABLED`; the other switches
+  are not affected by it. Both engines read it.
 - Ids the operations generate are replaced by `$uuid:1`, `$uuid:2`, ... in
   order of first appearance, walking the form depth first with object keys
   in sorted order. Compare after replacing them the same way.

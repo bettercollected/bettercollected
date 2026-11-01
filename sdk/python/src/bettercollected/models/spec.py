@@ -900,6 +900,7 @@ class FormField(BaseModel):
             "date_range",
             "tags",
             "address",
+            "signature",
             "short_text",
             "long_text",
             "multiple_choice",

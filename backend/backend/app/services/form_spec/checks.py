@@ -30,7 +30,9 @@ from backend.app.services.new_question_types import (
     ADDRESS_TYPES,
     GATED_TYPES,
     address_question_enabled,
+    SIGNATURE_TYPES,
     new_question_types_enabled,
+    signature_question_enabled,
 )
 from backend.app.services.option_logic import (
     CAN_END_EMPTY,
@@ -50,6 +52,7 @@ from backend.app.services.publish_checks import (
 from backend.app.services.repeating_groups import (
     ADDRESS_COMPARISONS,
     DATE_RANGE_COMPARISONS,
+    SIGNATURE_COMPARISONS,
     TAGS_COMPARISONS,
 )
 from backend.app.services.retention import checked_retention
@@ -148,6 +151,7 @@ def _check_conditions(
             "tags": TAGS_COMPARISONS,
             "date_range": DATE_RANGE_COMPARISONS,
             "address": ADDRESS_COMPARISONS,
+            "signature": SIGNATURE_COMPARISONS,
         }.get(str(getattr(source.type, "value", source.type)))
         comparison = str(getattr(condition.comparison, "value", condition.comparison))
         if allowed is not None and condition.comparison and comparison not in allowed:
@@ -405,6 +409,19 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
                         "(ADDRESS_QUESTION_ENABLED): saving a new one, or "
                         "changing the settings of one, is refused. Questions the "
                         "form already has are kept.",
+                    )
+                )
+    if not signature_question_enabled():
+        # a write with a new or changed signature question is refused
+        # (422 signature_question_disabled)
+        for path, field, _ in index.questions.values():
+            if str(getattr(field.type, "value", field.type)) in SIGNATURE_TYPES:
+                warnings.append(
+                    _problem(
+                        f"{path}/type",
+                        "'signature' questions are switched off on this server "
+                        "(SIGNATURE_QUESTION_ENABLED): saving a new one is "
+                        "refused. Questions the form already has are kept.",
                     )
                 )
     if not field_rules_enabled():

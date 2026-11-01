@@ -47,6 +47,7 @@ class AWSS3Service:
         bucket=aws_settings.BUCKET,
         private=False,
         folder_name="public",
+        content_type=None,
     ):
         # If S3 object_name was not specified, use file_name
         if (key is None) or (bucket is None):
@@ -55,8 +56,9 @@ class AWSS3Service:
         try:
             current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             if private:
+                extra = {"ContentType": content_type} if content_type else {}
                 self._s3.Bucket(bucket).put_object(
-                    Body=file, Key=f"{folder_name}/{key}", ACL="private"
+                    Body=file, Key=f"{folder_name}/{key}", ACL="private", **extra
                 )
             else:
                 self._s3.Bucket(bucket).put_object(
@@ -190,9 +192,15 @@ class AWSS3Service:
         except ClientError:
             raise HTTPException(404, "INFO: Failed to delete file")
 
-    def delete_folder_from_s3(self, prefix: str, bucket: str = aws_settings.BUCKET):
+    def delete_folder_from_s3(
+        self, prefix: str, bucket: str = aws_settings.BUCKET, keep: str = ""
+    ):
+        """Delete every object under ``prefix``, except keys that contain
+        ``keep`` (a sub-folder to leave, e.g. ``/imports/``)."""
         try:
             for object_summary in self._s3.Bucket(bucket).objects.filter(Prefix=prefix):
+                if keep and keep in object_summary.key:
+                    continue
                 object_summary.delete()
         except ClientError:
             return
@@ -218,11 +226,15 @@ class AWSS3Service:
             raise ValueError("object too large")
         return data
 
-    def generate_presigned_url(self, key: str, bucket=aws_settings.BUCKET):
+    def generate_presigned_url(
+        self, key: str, bucket=aws_settings.BUCKET, response_headers=None
+    ):
+        """A read link for ``key``. ``response_headers``: S3 response overrides
+        the link carries (``ResponseContentType``, ``ResponseContentDisposition``)."""
         try:
             presigned_url = self._s3_client.generate_presigned_url(
                 "get_object",
-                Params={"Bucket": bucket, "Key": key},
+                Params={"Bucket": bucket, "Key": key, **(response_headers or {})},
                 ExpiresIn=aws_settings.PRE_SIGNED_URL_EXPIRY * 60,
             )
             return presigned_url

@@ -39,11 +39,19 @@ ANSWER = "THE-ANSWER-42"
 RESPONDER = testUser2.sub
 
 
+# The queue of the running test, for ``_ask`` to find a run's own token in.
+_QUEUE: dict = {}
+
+
 @pytest.fixture
 def memory_jobs():
     connector = InMemoryConnector()
-    with app.replace_connector(connector):
-        yield connector
+    _QUEUE["connector"] = connector
+    try:
+        with app.replace_connector(connector):
+            yield connector
+    finally:
+        _QUEUE.clear()
 
 
 @pytest.fixture(autouse=True)
@@ -69,11 +77,35 @@ def _context_url(workspace, form, action, response_id):
     )
 
 
+def _queued_token(workspace, form, action, response_id):
+    """The run token the queued job of this run carries (what the executor
+    presents), or None when no job of that run was queued."""
+    connector = _QUEUE.get("connector")
+    wanted = {
+        "workspace_id": str(workspace.id),
+        "form_id": str(form.form_id),
+        "action_id": str(action.id),
+        "response_id": str(response_id),
+    }
+    for job in connector.jobs.values() if connector else ():
+        args = dict(job["args"])
+        if job["task_name"] == tasks.RUN_ACTION and all(
+            str(args.get(key)) == value for key, value in wanted.items()
+        ):
+            return args.get("run_token")
+    return None
+
+
 def _ask(client, workspace, form, action, response_id, key=JOB_KEY, token=None):
-    """The executor's request; the run's own token is the one the backend minted
-    for this run unless a test gives another."""
+    """The executor's request. It presents the token the run's queued job
+    carries: a token minted again here would differ from it whenever a second
+    boundary passes in between (tokens expire in whole seconds). A test about
+    another token (wrong, expired, forged, another run's) gives it; a run with
+    no queued job gets a freshly minted one, which opens nothing either."""
     if token is None:
-        token = run_token(workspace.id, form.form_id, action.id, response_id)
+        token = _queued_token(workspace, form, action, response_id) or run_token(
+            workspace.id, form.form_id, action.id, response_id
+        )
     return client.post(
         _context_url(workspace, form, action, response_id),
         headers={"api-key": key, HEADER: token},

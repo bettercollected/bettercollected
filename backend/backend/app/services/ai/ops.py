@@ -207,6 +207,7 @@ ADDABLE_FIELD_TYPES = {
     StandardFormFieldType.DATE_RANGE,
     StandardFormFieldType.TAGS,
     StandardFormFieldType.ADDRESS,
+    StandardFormFieldType.SIGNATURE,
     StandardFormFieldType.YES_NO,
     StandardFormFieldType.MULTIPLE_CHOICE,
     StandardFormFieldType.DROPDOWN,
@@ -1937,6 +1938,14 @@ COUNT_COMPARISONS = {"IS_EQUAL", "IS_NOT_EQUAL", "GREATER_THAN", "GREATER_THAN_E
 
 
 def _validated_value(source: StandardFormField, comparison: str, raw: Any) -> Any:
+    if source.type == StandardFormFieldType.SIGNATURE and comparison not in (
+        "IS_EMPTY",
+        "IS_NOT_EMPTY",
+    ):
+        # signed or not: nothing else can be asked of a signature
+        raise OpError(
+            "A condition on a signature question uses IS_EMPTY or IS_NOT_EMPTY."
+        )
     if comparison in VALUELESS_COMPARISONS:
         return None
     if source.type == StandardFormFieldType.TAGS and comparison not in TAGS_VALUE_COMPARISONS:

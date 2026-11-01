@@ -94,6 +94,11 @@ from backend.app.services.field_rules import (
     rule_keys_affected,
 )
 from backend.app.services.new_question_types import ensure_question_types_allowed
+from backend.app.services.signatures import (
+    delete_stored_images,
+    prepare_signatures,
+    signature_throttle,
+)
 from backend.app.services.option_logic import (
     ensure_choice_logic_allowed,
     ensure_valid_option_logic,
@@ -1074,11 +1079,16 @@ class WorkspaceFormService:
                 if workspace_id and form_id
                 else "private"
             )
+            # only a part the server made (a signature image) names its type
+            extra = {}
+            if getattr(form_file, "content_type", None):
+                extra["content_type"] = form_file.content_type
             await self._aws_service.upload_file_to_s3(
                 file=form_file.file.file,
                 key=str(form_file.file_id),
                 private=True,
                 folder_name=folder_name,
+                **extra,
             )
         return response
 
@@ -1090,6 +1100,7 @@ class WorkspaceFormService:
         form_files: Optional[Any],
         response: StandardFormResponseCamelModel,
         user: User,
+        client_ip: Optional[str] = None,
     ):
         workspace_forms = (
             await self.workspace_form_repository.get_workspace_forms_in_workspace(
@@ -1155,11 +1166,13 @@ class WorkspaceFormService:
         # Date rules against the answers as they will be after the edit, but
         # only for what this edit touches; "today" is the submission day.
         merged = {}
+        stored_answers = {}
         stored_hidden_fields = None
         if existing.answers:
             decrypted = self.form_response_service.decrypt_form_response(
                 workspace_id=workspace_id, response=existing.model_copy(deep=True)
             )
+            stored_answers = dict(decrypted.answers or {})
             merged.update(decrypted.answers or {})
             stored_hidden_fields = decrypted.hidden_fields
         merged.update(response.answers or {})
@@ -1215,6 +1228,17 @@ class WorkspaceFormService:
             skip=locked,
         )
 
+        # A signature question's drawn image is checked and re-encoded, and a
+        # changed signature is stamped by the server (services/signatures.py).
+        prepared = await prepare_signatures(
+            form,
+            response.answers,
+            form_files,
+            stored=stored_answers,
+            throttle=lambda: signature_throttle(workspace_id, form_id, client_ip),
+        )
+        response.answers, form_files = prepared.answers, prepared.form_files
+
         if form_files:
             # stored with the response's other files, where downloads look first
             response.response_id = str(response_id)
@@ -1237,6 +1261,14 @@ class WorkspaceFormService:
             response=response,
             user=user,
         )
+        # the images the edit replaced go only once the edit is stored
+        await delete_stored_images(
+            self._aws_service,
+            workspace_id,
+            form_id,
+            response_id,
+            prepared.replaced,
+        )
 
         return form_response.submission_uuid
 
@@ -1250,6 +1282,7 @@ class WorkspaceFormService:
         ai_notice_token: Optional[str] = None,
         client_today: Optional[str] = None,
         received_at: Optional[dt.datetime] = None,
+        client_ip: Optional[str] = None,
     ):
         # Internal fields are filled in by staff afterwards — values a
         # respondent submission carries for them are dropped, never stored.
@@ -1376,6 +1409,17 @@ class WorkspaceFormService:
         anonymous_identity = None
         if bool(getattr(response, "anonymize", False)) and user:
             anonymous_identity = identity_of(user.sub)
+        # A signature question's drawn image is checked and re-encoded, and
+        # every signature is stamped by the server (services/signatures.py);
+        # before anything is stored.
+        prepared = await prepare_signatures(
+            filled,
+            response.answers,
+            form_files,
+            also=[form],
+            throttle=lambda: signature_throttle(workspace_id, form_id, client_ip),
+        )
+        response.answers, form_files = prepared.answers, prepared.form_files
         # Files go up only once the submission is known to be accepted, so a
         # rejected one leaves no orphan uploads behind.
         if form_files:

@@ -102,6 +102,12 @@ class Application(StoreBackedSettings):
     # through this server, to a third-party address service. Off (the default):
     # no outbound call, every address is typed. Needs ADDRESS_QUESTION_ENABLED.
     ADDRESS_LOOKUP_ENABLED: bool = False
+    # The signature question (a drawn or typed signature, services/signatures.py)
+    # may be added or changed through the same paths. Off (the default, until
+    # the release that turns it on): those saves are refused with 422
+    # signature_question_disabled; a signature question already stored keeps
+    # being shown, answered and exported.
+    SIGNATURE_QUESTION_ENABLED: bool = False
     # Choice logic (services/option_logic.py: options shown or hidden by
     # answers, options filtered by an earlier answer) may be created or
     # changed through the API, the builder save, edit operations, templates and

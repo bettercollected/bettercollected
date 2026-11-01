@@ -73,6 +73,12 @@ from common.currencies import (
     minutes_of,
     parse_amount,
 )
+from common.signature import (
+    SIGNATURE_METHODS,
+    SIGNATURE_NAME_MAX,
+    is_plain_image_id,
+    is_signature_name,
+)
 from common.tags import TAG_LENGTH_MAX, TAGS_MAX, duplicate_index, is_tag
 from common.form_spec.models import PATTERN_MAX_LENGTH
 from common.form_spec.re2_patterns import (  # noqa: F401  (re-exported)
@@ -129,6 +135,9 @@ DUPLICATE = "duplicate"
 TYPE = "type"
 CHOICE = "choice"
 UNKNOWN_FIELD = "unknown_field"
+# A signature question's drawn image is missing, not the one this response
+# carries, or was refused (services/signatures.py).
+SIGNATURE_IMAGE = "signature_image"
 
 ERROR_CODE = "invalid_answers"
 ERROR_MESSAGE = "Some answers are missing or not valid."
@@ -195,6 +204,7 @@ VALUE_SLOTS = {
     "date_range": {"date_range"},
     "tags": {"tags"},
     "address": {"address"},
+    "signature": {"signature"},
     "yes_no": {"boolean"},
     "file_upload": {"file_metadata", "file_url"},
     "tabular_input": {"tabular_value"},
@@ -660,6 +670,15 @@ def type_problem(
         hard = _tags_hard_problem(tags)
         if hard:
             return hard
+    if field_type == "signature" and answer.get("signature") is not None:
+        # whenever the slot is there: the shape and the hard rules hold for
+        # every stored signature, a hidden or skipped question's too
+        signature = answer["signature"]
+        if not signature_shape(signature):
+            return TYPE
+        hard = signature_problem(signature)
+        if hard:
+            return hard
     given = _given_slots(answer)
     if not given:
         return None
@@ -705,6 +724,8 @@ def type_problem(
             hard = address_rules.hard_problem(value)
             if hard:
                 return hard
+        if slot == "signature" and not signature_shape(value):
+            return TYPE
         if slot == "tags":
             if not (
                 isinstance(value, list) and all(isinstance(tag, str) for tag in value)
@@ -733,6 +754,36 @@ def _tags_hard_problem(tags: List[str]) -> Optional[str]:
     if len(tags) > TAGS_MAX:
         return TOO_MANY_CHOICES
     return None
+
+
+def signature_shape(value: Any) -> bool:
+    """A signature answer is ``{"method", "file_id" or "name", "signed_at"}``,
+    all text (``url`` is the short-lived link a read adds; it is never kept)."""
+    return (
+        isinstance(value, dict)
+        and set(value) <= {"method", "file_id", "name", "signed_at", "url"}
+        and all(v is None or isinstance(v, str) for v in value.values())
+    )
+
+
+def signature_problem(value: Dict[str, Any]) -> Optional[str]:
+    """What no signature answer may break whatever the question says: a
+    method that is neither ``drawn`` nor ``typed``, a typed one without a
+    well-formed name of 1 to ``SIGNATURE_NAME_MAX`` characters (or with an
+    image), a drawn one without a plain image id (or with a name)."""
+    method = value.get("method")
+    if method not in SIGNATURE_METHODS:
+        return FORMAT
+    name, file_id = value.get("name"), value.get("file_id")
+    if method == "typed":
+        if file_id:
+            return FORMAT
+        if not is_signature_name(name):
+            return FORMAT
+        return TOO_LONG if len(name) > SIGNATURE_NAME_MAX else None
+    if name:
+        return FORMAT
+    return None if is_plain_image_id(file_id) else SIGNATURE_IMAGE
 
 
 def _date_range_shape(value: Any) -> bool:

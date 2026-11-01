@@ -19,6 +19,8 @@ class WorkspacePermissionsDto(CamelModel):
     (``ADDRESS_QUESTION_ENABLED``); ``address_lookup_enabled`` says whether the
     street and city lookup works too (both it and ``ADDRESS_LOOKUP_ENABLED``
     are on): the builder says so next to the question's lookup setting.
+    ``signature_question_enabled`` is the same for the signature question
+    (``SIGNATURE_QUESTION_ENABLED``).
     ``save_drafts_enabled`` is the same for ``SAVE_DRAFTS_ENABLED`` ("Let
     respondents save and continue later": the builder shows the setting
     read-only while it is off)."""
@@ -32,3 +34,4 @@ class WorkspacePermissionsDto(CamelModel):
     new_question_types_enabled: bool = False
     address_question_enabled: bool = False
     address_lookup_enabled: bool = False
+    signature_question_enabled: bool = False

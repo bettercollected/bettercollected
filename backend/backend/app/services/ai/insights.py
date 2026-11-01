@@ -290,6 +290,9 @@ def _answer_text(raw: Any, choice_labels: Dict[str, str]) -> Optional[str]:
     if answer.get("address"):
         # a home address is personal data: never read, only that it was given
         return "[address]"
+    if answer.get("signature"):
+        # never the typed name or anything about the image
+        return "[signed]"
     if answer.get("url"):
         return str(answer["url"])
     return None

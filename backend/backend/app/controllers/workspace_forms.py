@@ -25,6 +25,8 @@ from pydantic import ValidationError
 from pydantic.alias_generators import to_snake
 from starlette.requests import Request
 
+from backend.app.utils.client_ip import request_client_ip
+
 from backend.app.container import container
 from backend.app.services.ai.chat import FormAIChatRequest, FormAIChatResponse
 from backend.app.services.ai.proposals import (
@@ -681,6 +683,8 @@ class WorkspaceFormsRouter(Routable):
             client_today=today,
             # a closed form is judged at the time the request arrived
             received_at=getattr(request.state, "received_at", None),
+            # who a drawn signature is counted against (services/signatures.py)
+            client_ip=request_client_ip(request),
         )
         if user is not None or draft_key:
             # the submission is stored: its draft goes (never fails the submit)
@@ -709,6 +713,7 @@ class WorkspaceFormsRouter(Routable):
         workspace_id: RecordId,
         form_id: RecordId,
         response_id: RecordId,
+        request: Request,
         files: list[UploadFile] = None,
         file_field_ids: list[str] = Form(None),
         file_ids: list[str] = Form(None),
@@ -738,6 +743,7 @@ class WorkspaceFormsRouter(Routable):
             form_files=form_files,
             response=parsed_response,
             user=user,
+            client_ip=request_client_ip(request),
         )
 
     @delete(

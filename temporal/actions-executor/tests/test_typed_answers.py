@@ -47,3 +47,12 @@ def test_an_address_is_one_line_with_the_country_unless_nl():
     belgian = {"type": "address", "address": {"street": "Rue Neuve", "house_number": "5", "postcode": "1000", "city": "Bruxelles", "country": "BE"}}
     assert _answer("address", belgian) == "Rue Neuve 5, 1000 Bruxelles, BE"
     assert _answer("address", {}) == ""
+
+
+def test_a_signature_is_only_ever_a_signed_marker_never_the_name_the_image_or_a_link():
+    typed = {"type": "signature", "signature": {"method": "typed", "name": "Fatima El Idrissi", "signed_at": "2026-11-01T09:30:00Z"}}
+    drawn = {"type": "signature", "signature": {"method": "drawn", "file_id": "abc", "url": "https://example.test/x", "signed_at": "2026-11-01T09:30:00Z"}}
+    assert _answer("signature", typed) == "[signed]"
+    assert _answer("signature", drawn) == "[signed]"
+    assert _answer("signature", {}) == ""
+    assert _answer("signature", {"type": "signature", "signature": {"method": "other"}}) == ""
