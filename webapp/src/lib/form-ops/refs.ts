@@ -43,7 +43,19 @@ function refTarget(name: string, refs: RefTable): string {
     return created;
 }
 
+/** The question ids a set_page_containers payload lists (list elements are not under an id key, so refs are found here). */
+function* memberSlots(op: any): Generator<string[]> {
+    if (op?.op !== 'set_page_containers') return;
+    for (const container of op.containers ?? []) {
+        if (Array.isArray(container?.fields)) yield container.fields;
+        for (const tab of container?.tabs ?? []) if (Array.isArray(tab?.fields)) yield tab.fields;
+    }
+}
+
+const isRefText = (value: unknown): value is string => typeof value === 'string' && value.startsWith(REF_PREFIX);
+
 function* usedRefs(value: any, key?: string): Generator<string> {
+    for (const list of memberSlots(value)) for (const id of list) if (isRefText(id)) yield id.slice(REF_PREFIX.length);
     if (Array.isArray(value)) {
         for (const item of value) yield* usedRefs(item);
     } else if (value && typeof value === 'object') {
@@ -56,13 +68,22 @@ function* usedRefs(value: any, key?: string): Generator<string> {
 /** `op` with every `"$ref:<name>"` under an id key replaced by the id it names (the same object when it uses none). */
 export function resolveRefs<T extends FormOp>(op: T, refs: RefTable): T {
     if (usedRefs(op).next().done) return op;
+    const resolveMembers = (list: any) => (Array.isArray(list) ? list.map((id) => (isRefText(id) ? refTarget(id.slice(REF_PREFIX.length), refs) : id)) : list);
     const walk = (value: any, key?: string): any => {
         if (Array.isArray(value)) return value.map((v) => walk(v));
         if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, walk(v, k)]));
         if (key !== undefined && REF_ID_KEYS.has(key) && typeof value === 'string' && value.startsWith(REF_PREFIX)) return refTarget(value.slice(REF_PREFIX.length), refs);
         return value;
     };
-    return walk(op);
+    const resolved: any = walk(op);
+    if (op.op === 'set_page_containers') {
+        resolved.containers = (resolved.containers ?? []).map((container: any) => ({
+            ...container,
+            ...(container.fields !== undefined ? { fields: resolveMembers(container.fields) } : {}),
+            ...(container.tabs ? { tabs: container.tabs.map((tab: any) => ({ ...tab, ...(tab.fields !== undefined ? { fields: resolveMembers(tab.fields) } : {}) })) } : {})
+        }));
+    }
+    return resolved;
 }
 
 /**

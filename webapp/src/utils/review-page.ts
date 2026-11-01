@@ -6,6 +6,7 @@ import { FieldTypes, StandardFormDto, StandardFormFieldDto } from '@app/models/d
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
 import { PipeContext, resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
 import { calculatedAnswerValue, formatCalculatedValue, isShownToRespondents } from '@app/utils/calculated-fields';
+import { runHeadings } from '@app/utils/layout-containers';
 import { LogicSources, choiceAnswerText, getComparableAnswerValue, getHiddenFieldIds, logicSourcesById, resolveJump } from '@app/utils/conditional-logic';
 import { addressLines } from '@app/utils/address';
 import { countryName } from '@app/utils/countries';
@@ -55,6 +56,8 @@ export interface ReviewItem {
 }
 
 export interface ReviewQuestion extends ReviewRow {
+    /** Starts a run under a layout container's (or tab's) title; `null` starts a run outside any container after one (utils/layout-containers.ts `runHeadings`). */
+    heading?: string | null;
     /** A repeating group: its items, each with the questions answered in it. */
     items?: ReviewItem[];
 }
@@ -235,6 +238,12 @@ export function reviewSections(input: ReviewInput): ReviewSection[] {
                     })
                 });
             });
+        runHeadings(
+            page,
+            questions.map((question) => question.fieldId)
+        ).forEach((heading, i) => {
+            if (heading !== undefined) questions[i].heading = heading;
+        });
         if (questions.length) sections.push({ slideIndex, number: slideIndex + 1, title: page.properties?.sectionTitle?.trim() || '', questions });
     });
     return sections;
