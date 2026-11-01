@@ -280,6 +280,7 @@ class AuthService:
                 "session_scope": signed_in.session_scope,
                 "scope_workspace_id": signed_in.scope_workspace_id,
                 "sso_workspace_id": signed_in.sso_workspace_id,
+                "sso_connection_id": signed_in.sso_connection_id,
             }
         )
         decrypted_data = json.loads(self.crypto.decrypt(state))

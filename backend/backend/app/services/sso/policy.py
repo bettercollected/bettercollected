@@ -39,6 +39,7 @@ break-glass, an audit line is written (once per session and hour). See
 docs/sso.md.
 """
 
+import datetime as dt
 import time
 from http import HTTPStatus
 from typing import Dict, List, Optional, Tuple
@@ -57,6 +58,11 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceRepository,
 )
 from backend.app.schemas.workspace import WorkspaceDocument
+from backend.app.schemas.workspace_audit_event import (
+    SSO_BREAK_GLASS_SESSION,
+    SSO_BREAK_GLASS_SIGN_IN,
+    WorkspaceAuditEventDocument,
+)
 from backend.app.services.domains.names import display_domain, domain_of
 from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.session_service import (
@@ -87,6 +93,10 @@ REQUIREMENT_CACHE_MAX = 2048
 BREAK_GLASS_AUDIT_SECONDS = 3600.0
 BREAK_GLASS_AUDIT_MAX = 4096
 
+# How long the workspace audit entries are kept: a year, then the daily purge
+# (``sso_audit_purge``) deletes them; they go with the workspace too.
+AUDIT_RETENTION = dt.timedelta(days=365)
+
 # The role a first SSO sign-in gets unless the workspace chose another.
 # The accepted design's default (docs/enterprise-access-model.md): Viewer.
 DEFAULT_SSO_ROLE = WorkspaceRoles.VIEWER
@@ -104,15 +114,24 @@ def sso_session_meets(
     method: Optional[str],
     sso_workspace_id: Optional[str],
     workspace_id,
+    sso_connection_id: Optional[str] = None,
+    enabled_connection_id=None,
 ) -> bool:
     """An SSO session meets the requirement of the workspace whose identity
-    provider signed it in, and of no other: a session without that binding
-    (made before it existed) meets none."""
-    return (
+    provider signed it in, and of no other, and only while that identity
+    provider is still the workspace's enabled connection
+    (``enabled_connection_id``; None: the workspace has none enabled, so
+    nothing is required and nothing is refused). A session without that
+    binding (made before it existed) meets none."""
+    if not (
         method == SSO_METHOD
-        and bool(sso_workspace_id)
+        and sso_workspace_id
         and workspace_id is not None
         and str(sso_workspace_id) == str(workspace_id)
+    ):
+        return False
+    return enabled_connection_id is None or str(sso_connection_id or "") == str(
+        enabled_connection_id
     )
 
 
@@ -122,6 +141,8 @@ def session_exempt(
     is_owner: bool = False,
     sso_workspace_id: Optional[str] = None,
     workspace_id=None,
+    sso_connection_id: Optional[str] = None,
+    enabled_connection_id=None,
 ) -> bool:
     """The one rule of who meets (or is outside) a workspace's single
     sign-on requirement, by how the session was made: SSO sessions signed in
@@ -131,7 +152,13 @@ def session_exempt(
     screen and the per-request check, so they cannot drift."""
     if method == API_KEY_METHOD or scope == RESPONDENT_SCOPE:
         return True
-    if sso_session_meets(method, sso_workspace_id, workspace_id):
+    if sso_session_meets(
+        method,
+        sso_workspace_id,
+        workspace_id,
+        sso_connection_id,
+        enabled_connection_id,
+    ):
         return True
     return method == OTP_METHOD and is_owner
 
@@ -169,7 +196,10 @@ class SsoPolicyService:
         connection_repo: PostgresSsoConnectionRepository,
         http_client=None,
         workspace_user_repo=None,
+        audit_repo=None,
     ):
+        # the workspace security events (owner break-glass), docs/sso.md
+        self._audit = audit_repo
         self._workspace_repo = workspace_repo
         self._domains = domain_service
         self._connections = connection_repo
@@ -182,6 +212,11 @@ class SsoPolicyService:
         self._clock = time.monotonic
         # (workspace id, session) -> when its break-glass was last audited
         self._break_glass_seen: Dict[Tuple[str, str], float] = {}
+        # (workspace, session) pairs already written to the audit table by this
+        # process: a shortcut only, the table's unique index decides
+        self._break_glass_recorded: set = set()
+        # workspace id -> (expires at, id of its enabled connection or None)
+        self._enabled_cache: Dict[str, Tuple[float, Optional[str]]] = {}
 
     async def requiring_workspace(self, email: str) -> Optional[WorkspaceDocument]:
         """The workspace whose SSO requirement covers ``email``, if any."""
@@ -228,6 +263,12 @@ class SsoPolicyService:
                 "SSO break-glass: an owner of workspace {} used an email code",
                 workspace.id,
             )
+            if user_id is not None:
+                # the account is known (a verified code, not a request for one):
+                # a session that never reaches a workspace route leaves a trace
+                await self._record_audit(
+                    SSO_BREAK_GLASS_SIGN_IN, workspace.id, user_id, None
+                )
             return None
         if workspace_id and str(workspace_id) != str(workspace.id):
             return RESPONDENT_SCOPE
@@ -240,6 +281,7 @@ class SsoPolicyService:
         scope: Optional[str],
         user_id: Optional[str],
         sso_workspace_id: Optional[str] = None,
+        sso_connection_id: Optional[str] = None,
     ) -> Optional[WorkspaceDocument]:
         """The workspace whose SSO requirement a session signed in with
         ``method`` (and ``scope``) does not meet, if any: the one requiring
@@ -258,6 +300,8 @@ class SsoPolicyService:
             is_owner=method == OTP_METHOD and await self._is_owner(workspace, user_id),
             sso_workspace_id=sso_workspace_id,
             workspace_id=workspace.id,
+            sso_connection_id=sso_connection_id,
+            enabled_connection_id=await self._enabled_connection_id(workspace.id),
         ):
             return None
         return workspace
@@ -270,6 +314,7 @@ class SsoPolicyService:
         scope: Optional[str],
         is_owner: bool,
         sso_workspace_id: Optional[str] = None,
+        sso_connection_id: Optional[str] = None,
         session_id: Optional[str] = None,
         user_id: Optional[str] = None,
     ) -> bool:
@@ -293,45 +338,98 @@ class SsoPolicyService:
             return False
         if workspace.disabled or not workspace.sso_required:
             return False
+        enabled = (
+            await self._enabled_connection_id(workspace.id)
+            if method == SSO_METHOD
+            else None
+        )
         if session_exempt(
             method,
             scope,
             sso_workspace_id=sso_workspace_id,
             workspace_id=workspace.id,
+            sso_connection_id=sso_connection_id,
+            enabled_connection_id=enabled,
         ):
             return False
         requires = await self._domain_requires_sso(workspace.id, email)
         if not requires:
             return False
         if session_exempt(method, scope, is_owner):
-            self._audit_break_glass(workspace.id, session_id, user_id)
+            await self._audit_break_glass(workspace.id, session_id, user_id)
             return False
         return True
 
-    def _audit_break_glass(self, workspace_id, session_id, user_id) -> None:
-        """One audit line (ids only) per session, workspace and hour for an
-        owner's non-SSO session let into the SSO-required workspace."""
+    async def _audit_break_glass(self, workspace_id, session_id, user_id) -> None:
+        """An owner's non-SSO session let into the SSO-required workspace:
+        one log line (ids only) per session, workspace and hour per process,
+        and one audit entry per session and workspace, ever (the table's
+        unique index, so it holds across processes)."""
         who = str(session_id or user_id or "")
         key = (str(workspace_id), who)
         now = self._clock()
         last = self._break_glass_seen.get(key)
-        if last is not None and now - last < BREAK_GLASS_AUDIT_SECONDS:
+        if last is None or now - last >= BREAK_GLASS_AUDIT_SECONDS:
+            if len(self._break_glass_seen) >= BREAK_GLASS_AUDIT_MAX:
+                self._break_glass_seen.clear()
+            self._break_glass_seen[key] = now
+            logger.bind(audit=True).warning(
+                "AUDIT sso_break_glass workspace={} user={} session={}",
+                workspace_id,
+                user_id,
+                session_id,
+            )
+        if session_id and user_id and key not in self._break_glass_recorded:
+            if len(self._break_glass_recorded) >= BREAK_GLASS_AUDIT_MAX:
+                self._break_glass_recorded.clear()
+            await self._record_audit(
+                SSO_BREAK_GLASS_SESSION, workspace_id, user_id, session_id
+            )
+            self._break_glass_recorded.add(key)
+
+    async def _record_audit(
+        self, event: str, workspace_id, user_id, session_id: Optional[str]
+    ) -> None:
+        """One entry in the workspace's audit table (ids only). Never raises:
+        the audit must not break a sign-in or a request."""
+        if self._audit is None:
             return
-        if len(self._break_glass_seen) >= BREAK_GLASS_AUDIT_MAX:
-            self._break_glass_seen.clear()
-        self._break_glass_seen[key] = now
-        logger.bind(audit=True).warning(
-            "AUDIT sso_break_glass workspace={} user={} session={}",
-            workspace_id,
-            user_id,
-            session_id,
-        )
+        try:
+            await self._audit.record(
+                WorkspaceAuditEventDocument(
+                    id=RecordId(),
+                    workspace_id=RecordId(str(workspace_id)),
+                    user_id=str(user_id),
+                    session_id=str(session_id) if session_id else None,
+                    event=event,
+                )
+            )
+        except Exception as error:  # noqa: BLE001
+            logger.warning("SSO break-glass audit failed: {}", type(error).__name__)
+
+    async def recent_audit(self, workspace_id, limit: int = 20):
+        """The latest audit entries of the workspace, newest first."""
+        if self._audit is None:
+            return []
+        return await self._audit.recent(workspace_id, limit)
+
+    async def delete_audit_for_workspaces(self, workspace_ids) -> int:
+        if self._audit is None:
+            return 0
+        return await self._audit.delete_by_workspace_ids(workspace_ids)
+
+    async def purge_audit(self, now: Optional[dt.datetime] = None) -> int:
+        """The daily purge: entries older than ``AUDIT_RETENTION``."""
+        if self._audit is None:
+            return 0
+        now = now or dt.datetime.now(dt.timezone.utc)
+        return await self._audit.purge_before(now - AUDIT_RETENTION)
 
     async def session_would_be_blocked(
         self,
         workspace: WorkspaceDocument,
         user,
-        is_owner: bool = True,
+        is_owner: bool,
     ) -> bool:
         """Whether ``user``'s session would be refused by ``workspace`` once
         it requires single sign-on (it does not yet): the rule of
@@ -345,6 +443,10 @@ class SsoPolicyService:
             is_owner,
             sso_workspace_id=getattr(user, "sso_workspace_id", None),
             workspace_id=workspace.id,
+            sso_connection_id=getattr(user, "sso_connection_id", None),
+            enabled_connection_id=await self._enabled_connection_id(
+                workspace.id, fresh=True
+            ),
         ):
             return False
         domain = domain_of(getattr(user, "sub", "") or "")
@@ -367,12 +469,46 @@ class SsoPolicyService:
         answer = (
             claim is not None
             and str(claim.workspace_id) == str(workspace_id)
-            and await self._connections.find_enabled(workspace_id) is not None
+            and await self._enabled_connection_id(workspace_id) is not None
         )
         if len(self._requirement_cache) >= REQUIREMENT_CACHE_MAX:
             self._requirement_cache.clear()
         self._requirement_cache[key] = (now + REQUIREMENT_CACHE_SECONDS, answer)
         return answer
+
+    async def _enabled_connection_id(
+        self, workspace_id, fresh: bool = False
+    ) -> Optional[str]:
+        """The id of the workspace's enabled connection, or None; reused for
+        ``REQUIREMENT_CACHE_SECONDS`` unless ``fresh``."""
+        key = str(workspace_id)
+        now = self._clock()
+        cached = self._enabled_cache.get(key)
+        if not fresh and cached is not None and cached[0] > now:
+            return cached[1]
+        connection = await self._connections.find_enabled(RecordId(key))
+        answer = str(connection.id) if connection is not None else None
+        if len(self._enabled_cache) >= REQUIREMENT_CACHE_MAX:
+            self._enabled_cache.clear()
+        self._enabled_cache[key] = (now + REQUIREMENT_CACHE_SECONDS, answer)
+        return answer
+
+    async def sso_connection_replaced(self, session) -> bool:
+        """Whether an SSO session signed in through a connection that is no
+        longer its workspace's enabled one (the identity provider was
+        replaced): it ends at its next refresh, requirement or not. A
+        workspace without an enabled connection ends nothing."""
+        workspace_id = getattr(session, "sso_workspace_id", None)
+        if (
+            not settings.sso.ENABLED
+            or getattr(session, "method", None) != SSO_METHOD
+            or not workspace_id
+        ):
+            return False
+        enabled = await self._enabled_connection_id(workspace_id, fresh=True)
+        return enabled is not None and enabled != str(
+            getattr(session, "sso_connection_id", None) or ""
+        )
 
     async def session_must_end(self, email: str, session, user_id: str) -> bool:
         """Whether a session has to end at refresh because its address's
@@ -385,6 +521,7 @@ class SsoPolicyService:
             session.scope,
             user_id,
             sso_workspace_id=getattr(session, "sso_workspace_id", None),
+            sso_connection_id=getattr(session, "sso_connection_id", None),
         )
         if workspace is None:
             return False

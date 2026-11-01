@@ -7241,7 +7241,7 @@
   "document": "ScimUserDocument"
  },
  "sessions/full": {
-  "checksum": "sha256:26819840ad7a91d5b7f4c30a22cc96b16272d0a515b54f3889987aae1e91cd71",
+  "checksum": "sha256:421149af7091fcf4b60db63483d0f4980d9a2be1e9b5e3124e058e385b8e720f",
   "doc": {
    "_id": {
     "$oid": "bf887a7ff8335cf1577b5eb0"
@@ -7268,6 +7268,7 @@
    },
    "scope": "SessionDocument.scope tëxt ✓ \"quoted\" \\ line\nbreak",
    "scope_workspace_id": "SessionDocument.scope_workspace_id tëxt ✓ \"quoted\" \\ line\nbreak",
+   "sso_connection_id": "SessionDocument.sso_connection_id tëxt ✓ \"quoted\" \\ line\nbreak",
    "sso_workspace_id": "SessionDocument.sso_workspace_id tëxt ✓ \"quoted\" \\ line\nbreak",
    "updated_at": {
     "$date": "2026-02-03T04:05:06.789Z"
@@ -7278,7 +7279,7 @@
   "document": "SessionDocument"
  },
  "sessions/minimal": {
-  "checksum": "sha256:315710e2172a570ffe2e88320695b614b7108d0f289a5f9f8eb81820cfaa3ddf",
+  "checksum": "sha256:dd130b52b5058c72358a7306bca338dd7ad6d458d8e4d3df5a495be1d88f8932",
   "doc": {
    "_id": {
     "$oid": "868c1e4469afbd5dc99bfc80"
@@ -7299,6 +7300,7 @@
    "rotated_at": null,
    "scope": null,
    "scope_workspace_id": null,
+   "sso_connection_id": null,
    "sso_workspace_id": null,
    "updated_at": {
     "$date": "2026-02-03T04:05:06.789Z"
@@ -7309,7 +7311,7 @@
   "document": "SessionDocument"
  },
  "sessions/naive": {
-  "checksum": "sha256:eb29368d370a319fad0ec6b2b66f39a360c371ba78d1d46952d4c1338442e77e",
+  "checksum": "sha256:0f08910db5447f5ced49950d11d56ead0f09f5fe231b5621a6a5354e9c20e514",
   "doc": {
    "_id": {
     "$oid": "fa2998a27a4be6202b64b377"
@@ -7336,6 +7338,7 @@
    },
    "scope": "SessionDocument.scope tëxt ✓ \"quoted\" \\ line\nbreak",
    "scope_workspace_id": "SessionDocument.scope_workspace_id tëxt ✓ \"quoted\" \\ line\nbreak",
+   "sso_connection_id": "SessionDocument.sso_connection_id tëxt ✓ \"quoted\" \\ line\nbreak",
    "sso_workspace_id": "SessionDocument.sso_workspace_id tëxt ✓ \"quoted\" \\ line\nbreak",
    "updated_at": {
     "$date": "2026-02-03T04:05:06.789Z"
@@ -7346,7 +7349,7 @@
   "document": "SessionDocument"
  },
  "sessions/nulls": {
-  "checksum": "sha256:cc0e69eef4f8e57d42ef56d36cba6e80cf48634743d372655f736bf8e807e75c",
+  "checksum": "sha256:ad45fc0209f1bd21cd0af86cae32d20ed46dff5a60d4c4e7e4d9bd33c59943f5",
   "doc": {
    "_id": {
     "$oid": "30f1d91595be97609be50b70"
@@ -7367,6 +7370,7 @@
    "rotated_at": null,
    "scope": null,
    "scope_workspace_id": null,
+   "sso_connection_id": null,
    "sso_workspace_id": null,
    "updated_at": {
     "$date": "2026-02-03T04:05:06.789Z"

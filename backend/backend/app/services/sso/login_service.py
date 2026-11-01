@@ -503,6 +503,7 @@ class SsoLoginService:
                 "email_verified": True,
                 # the session belongs to this workspace's identity provider
                 "sso_workspace_id": str(workspace.id),
+                "sso_connection_id": str(connection.id),
             }
         )
         try:

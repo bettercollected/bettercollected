@@ -26,6 +26,7 @@ from tests.app.sso_helpers import (  # noqa: F401 — fixtures
     DOMAIN,
     LOGIN_PAGE,
     add_connection,
+    enabled_connection_id,
     query_of,
     sso_on,
     state_of,
@@ -272,6 +273,7 @@ async def test_refresh_ends_non_sso_sessions_on_required_domains(
     )
     if method == "sso":
         extra["sso_workspace_id"] = str(workspace.id)
+        extra["sso_connection_id"] = await enabled_connection_id(workspace.id)
     token = await _refresh_token(user, method=method, **extra)
     reply = await refresh(client, token)
     if survives:

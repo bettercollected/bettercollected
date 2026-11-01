@@ -43,6 +43,8 @@ def _encode(user: User, *, typ: str, exp: int, jti: str) -> str:
     if user.sso_workspace_id and user.auth_method == "sso":
         # the workspace whose identity provider signed this session in
         claims["sso_workspace_id"] = user.sso_workspace_id
+        if user.sso_connection_id:
+            claims["sso_connection_id"] = user.sso_connection_id
     if user.session_scope:
         # "respondent": no workspace permissions (authorization_service)
         claims["session_scope"] = user.session_scope

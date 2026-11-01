@@ -890,6 +890,7 @@ class SessionDocument(MongoDocument):
     scope_workspace_id: Optional[str] = None
     # "sso" sessions: the workspace whose identity provider signed in
     sso_workspace_id: Optional[str] = None
+    sso_connection_id: Optional[str] = None
     user_agent: Optional[str] = None
     revoked_at: Optional[dt.datetime] = None
     revoke_reason: Optional[str] = None

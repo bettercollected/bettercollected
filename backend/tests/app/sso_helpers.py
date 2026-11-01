@@ -97,15 +97,19 @@ class FakeAuth:
         self.client_id_override: Optional[str] = None
         self.account_conflict = False
         self.calls: List[tuple] = []
+        self.timeouts: List[tuple] = []
         self.otp_user: Optional[dict] = None
         # SCIM: addresses several accounts share (differing in case)
         self.conflicting_emails: set = set()
 
-    def add_account(self, email, user_id=None) -> dict:
+    def add_account(self, email, user_id=None, name=None) -> dict:
+        first, _, last = (name or "").partition(" ")
         account = {
             "id": user_id or str(RecordId()),
             "sub": email,
             "email": email,
+            "first_name": first or None,
+            "last_name": last or None,
             "roles": ["FORM_RESPONDER", "FORM_CREATOR"],
             "plan": "FREE",
         }
@@ -116,6 +120,7 @@ class FakeAuth:
         params = params or {}
         path = urlsplit(url).path
         self.calls.append(("GET", path, dict(params)))
+        self.timeouts.append((path, timeout))
         if path.endswith("/auth/sso/authorize"):
             state = json.dumps(
                 {
@@ -172,7 +177,12 @@ class FakeAuth:
             ids = {str(i) for i in params.get("user_ids") or []}
             return {
                 "users_info": [
-                    {"_id": a["id"], "email": a["email"]}
+                    {
+                        "_id": a["id"],
+                        "email": a["email"],
+                        "first_name": a.get("first_name"),
+                        "last_name": a.get("last_name"),
+                    }
                     for a in self.accounts.values()
                     if a["id"] in ids
                 ]
@@ -339,6 +349,15 @@ async def add_connection(
             tested_at=now if tested else None,
         )
     )
+
+
+async def enabled_connection_id(workspace_id):
+    """The id of the workspace's enabled connection (an SSO session's
+    ``sso_connection_id`` when it signed in through it)."""
+    connection = await container.sso_connection_repo().find_enabled(
+        RecordId(str(workspace_id))
+    )
+    return str(connection.id) if connection is not None else None
 
 
 def state_of(location: str) -> str:

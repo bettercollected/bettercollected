@@ -60,6 +60,8 @@ class RevokeReason:
     ACCOUNT_DELETED = "account_deleted"
     # the workspace started requiring single sign-on for the user's domain
     SSO_REQUIRED = "sso_required"
+    # the identity provider the session signed in through was replaced
+    SSO_CONNECTION_CHANGED = "sso_connection_changed"
     # a new sign-in in the same browser replaced it
     REPLACED = "replaced_by_sign_in"
     # the workspace's SCIM directory deactivated or deleted the user
@@ -179,6 +181,7 @@ class SessionService:
         scope: Optional[str] = None,
         scope_workspace_id: Optional[str] = None,
         sso_workspace_id: Optional[str] = None,
+        sso_connection_id: Optional[str] = None,
     ) -> User:
         """A new session for a user who just signed in; sets both cookies and
         returns the user as the tokens describe them (with ``sid``).
@@ -190,6 +193,11 @@ class SessionService:
         method = method or user.auth_method
         sso_workspace_id = (
             str(sso_workspace_id or user.sso_workspace_id or "") or None
+            if method == SSO_METHOD
+            else None
+        )
+        sso_connection_id = (
+            str(sso_connection_id or user.sso_connection_id or "") or None
             if method == SSO_METHOD
             else None
         )
@@ -209,6 +217,7 @@ class SessionService:
             scope=scope,
             scope_workspace_id=str(scope_workspace_id) if scope else None,
             sso_workspace_id=sso_workspace_id,
+            sso_connection_id=sso_connection_id,
             user_agent=user_agent[:USER_AGENT_MAX] if user_agent else None,
             created_at=now,
             updated_at=now,
@@ -222,6 +231,7 @@ class SessionService:
                 "session_scope": scope,
                 "scope_workspace_id": session.scope_workspace_id,
                 "sso_workspace_id": session.sso_workspace_id,
+                "sso_connection_id": session.sso_connection_id,
                 "roles": session_roles(user.roles, method, scope),
             }
         )
@@ -270,6 +280,18 @@ class SessionService:
             raise SessionEnded()
 
         user = await self._current_user(session)
+        if self.sso_policy is not None and await self.sso_policy.sso_connection_replaced(
+            session
+        ):
+            # the identity provider this session signed in through is no longer
+            # the workspace's enabled one (docs/sso.md)
+            await self.session_repo.revoke(
+                sid, RevokeReason.SSO_CONNECTION_CHANGED, utcnow()
+            )
+            raise SessionEnded(
+                "Your organisation changed its single sign-on connection. "
+                "Please sign in with SSO again."
+            )
         if self.sso_policy is not None and await self.sso_policy.session_must_end(
             user.sub, session, user.id
         ):
@@ -359,6 +381,7 @@ class SessionService:
                 "session_scope": session.scope,
                 "scope_workspace_id": session.scope_workspace_id,
                 "sso_workspace_id": session.sso_workspace_id,
+                "sso_connection_id": session.sso_connection_id,
                 "roles": session_roles(body.get("roles"), session.method, session.scope),
             }
         )

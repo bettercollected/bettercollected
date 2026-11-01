@@ -156,6 +156,30 @@ class SsoUsedStateRow(Base, BaseRow):
     __table_args__ = (UniqueConstraint("nonce_hash"), Index(None, "expires_at"))
 
 
+class WorkspaceAuditEventRow(Base, BaseRow):
+    """Security events of a workspace (revision 0030): who got in through
+    break-glass. Ids only; written once per session and event."""
+
+    __tablename__ = "workspace_audit_events"
+    workspace_id = S.text("workspace_id")
+    session_id = S.text("session_id")
+    event = S.text("event")
+    __table_args__ = (
+        Index(None, "workspace_id", "created_at"),
+        Index(None, "created_at"),
+        # one entry per session, workspace and event (the deduplication lives
+        # here, not in a process); events without a session are never deduplicated
+        Index(
+            "uq_workspace_audit_events_session",
+            "workspace_id",
+            "session_id",
+            "event",
+            unique=True,
+            postgresql_where=text("session_id IS NOT NULL"),
+        ),
+    )
+
+
 class ScimDirectoryRow(Base, BaseRow):
     __tablename__ = "scim_directories"
     workspace_id = S.text("workspace_id")
