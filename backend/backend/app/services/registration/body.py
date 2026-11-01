@@ -18,6 +18,8 @@ import re
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
+from common.address import NL, PART_MAX, PARTS, has_any_part, is_clean_text
+from common.countries import is_country_code
 from common.currencies import AMOUNT_MAX_INTEGER_DIGITS, CURRENCY_DECIMALS, is_time
 from common.models.standard_form import is_iso_date
 from common.tags import TAG_LENGTH_MAX, TAGS_MAX
@@ -54,11 +56,13 @@ SUPPORTED_TYPES = (
         "currency",
         "date_range",
         "tags",
+        "address",
     }
 )
 TIME_PATTERN = r"^([01][0-9]|2[0-3]):[0-5][0-9]$"
 CURRENCY_CODE_PATTERN = r"^[A-Z]{3}$"
 CURRENCY_AMOUNT_PATTERN = r"^-?[0-9]+(\.[0-9]+)?$"
+COUNTRY_CODE_PATTERN = r"^[A-Z]{2}$"
 # a sign, the integer digits an amount may have, the point and the most decimals
 # any currency has: the longest amount a question can be answered with
 CURRENCY_AMOUNT_MAX_LENGTH = (
@@ -419,6 +423,48 @@ def _date_range_value(field: Any, answer: Optional[dict]) -> Tuple[Any, dict]:
     )
 
 
+def _address_part_rule(part: str) -> Callable[[Any], bool]:
+    if part == "country":
+        return is_country_code
+    return lambda value: is_clean_text(value, PART_MAX[part])
+
+
+_ADDRESS_RULES = {part: _address_part_rule(part) for part in PARTS}
+_ADDRESS_TEMPLATES = {
+    part: (
+        {"type": "string", "pattern": COUNTRY_CODE_PATTERN}
+        if part == "country"
+        else {"type": "string", "minLength": 1, "maxLength": PART_MAX[part]}
+    )
+    for part in PARTS
+}
+
+
+def _address_value(field: Any, answer: Optional[dict]) -> Tuple[Any, dict]:
+    """``{"street", "house_number", "house_number_addition", "postcode",
+    "city", "country"}`` as the API answers it; a part that is missing, empty
+    or not clean text within its cap is ``null``. A country alone is no answer:
+    ``null``. An answer without a country has the question's one allowed
+    country (as the answer rules assume), else ``null``. Street and city may
+    come from a lookup and are as unverified as typed text."""
+    parts = _text_parts((answer or {}).get("address"), _ADDRESS_RULES)
+    if not has_any_part(parts):
+        parts = {part: None for part in PARTS}
+    elif parts["country"] is None:
+        parts["country"] = _only_country(field)
+    return _parts_value(parts), _parts_schema(label_of(field), parts, _ADDRESS_TEMPLATES)
+
+
+def _only_country(field: Any) -> Optional[str]:
+    """The one country an address question allows (``NL`` when it names none)."""
+    offered = _get(_get(field, "properties"), "countries")
+    if not offered:
+        return NL
+    if isinstance(offered, list) and len(offered) == 1 and is_country_code(offered[0]):
+        return offered[0]
+    return None
+
+
 def scalar(
     field: Any, answer: Optional[dict], *, choices_as_list: bool = True
 ) -> Tuple[Any, dict]:
@@ -462,6 +508,8 @@ def scalar(
         return _currency_value(field, answer)
     if type_ == "date_range":
         return _date_range_value(field, answer)
+    if type_ == "address":
+        return _address_value(field, answer)
     if type_ == "tags":
         raw = (answer or {}).get("tags")
         # at most TAGS_MAX tags of 1 to TAG_LENGTH_MAX characters, the limits of

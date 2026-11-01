@@ -209,6 +209,16 @@ class Currencies(RootModel[list[str]]):
     )
 
 
+class Countries(RootModel[list[str]]):
+    root: list[str] = Field(
+        None,
+        description="An address question: the ISO 3166-1 alpha-2 codes of the countries respondents may give (default: NL only).",
+        max_length=30,
+        min_length=1,
+        title="Countries",
+    )
+
+
 class WhyWeAsk(RootModel[str]):
     root: str = Field(None, max_length=280, title="Whyweask")
 
@@ -889,6 +899,7 @@ class FormField(BaseModel):
             "currency",
             "date_range",
             "tags",
+            "address",
             "signature",
             "short_text",
             "long_text",
@@ -1029,6 +1040,17 @@ class FormField(BaseModel):
         None,
         description="A currency question: the ISO 4217 codes respondents may pick (the first is the default). Amounts are answered with min/max in validations.",
         title="Currencies",
+    )
+    countries: Countries | None = Field(
+        None,
+        description="An address question: the ISO 3166-1 alpha-2 codes of the countries respondents may give (default: NL only).",
+        title="Countries",
+    )
+    address_lookup: bool | None = Field(
+        None,
+        alias="addressLookup",
+        description="An address question: fill in street and city from a Dutch postcode and house number while the server offers it (default: yes).",
+        title="Addresslookup",
     )
     why_we_ask: WhyWeAsk | None = Field(None, alias="whyWeAsk", title="Whyweask")
     logic: Logic | None = None

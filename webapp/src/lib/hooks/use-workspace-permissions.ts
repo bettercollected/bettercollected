@@ -54,7 +54,10 @@ export function useWorkspacePermissions() {
     const choiceLogicEnabled = !!userId && !isError && !!data?.choiceLogicEnabled;
     // The same for the newer question types (its NEW_QUESTION_TYPES_ENABLED): the builder offers them from it.
     const newQuestionTypesEnabled = !!userId && !isError && !!data?.newQuestionTypesEnabled;
+    // ...and the address question (its ADDRESS_QUESTION_ENABLED), and whether its street and city lookup works (ADDRESS_LOOKUP_ENABLED too).
+    const addressQuestionEnabled = !!userId && !isError && !!data?.addressQuestionEnabled;
+    const addressLookupEnabled = !!userId && !isError && !!data?.addressLookupEnabled;
     // ...and whether it lets respondents save drafts (its SAVE_DRAFTS_ENABLED): the setting is read-only while it is off.
     const saveDraftsEnabled = !!userId && !isError && !!data?.saveDraftsEnabled;
-    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, saveDraftsEnabled };
+    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, saveDraftsEnabled };
 }

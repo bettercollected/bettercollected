@@ -13,7 +13,7 @@ import RatingIcon from '@Components/icons/rating-icon';
 import { TextIcon } from '@Components/icons/text';
 import UploadIcon from '@Components/icons/upload-icon';
 import { YesNoIcon } from '@Components/icons/yes-no-icon';
-import { AlignLeft, Banknote, Calculator, CalendarDays, CalendarRange, Clock, Image as ImageIcon, Repeat, Table2, Tags, Type, Video } from 'lucide-react';
+import { AlignLeft, Banknote, Calculator, CalendarDays, CalendarRange, Clock, Image as ImageIcon, MapPin, Repeat, Table2, Tags, Type, Video } from 'lucide-react';
 
 import { FieldTypes } from '@app/models/dtos/form';
 
@@ -67,6 +67,7 @@ export const insertCatalog: InsertCatalogItem[] = [
     { type: FieldTypes.CURRENCY, name: 'Amount of money', description: 'An amount with its currency', category: 'Date & number', keywords: ['currency', 'money', 'euro', 'price', 'cost', 'bedrag'], icon: <Banknote className={ICON} strokeWidth={1.75} style={iconStyle} /> },
     { type: FieldTypes.DATE_RANGE, name: 'Date range', description: 'A first and a last day, such as a stay', category: 'Date & number', keywords: ['period', 'from', 'until', 'stay', 'holiday', 'vacation', 'periode', 'datum'], icon: <CalendarRange className={ICON} strokeWidth={1.75} style={iconStyle} /> },
     { type: FieldTypes.TAGS, name: 'Tags', description: 'Short labels the respondent types', category: 'Text', keywords: ['labels', 'keywords', 'interests', 'topics', 'chips', 'trefwoorden'], icon: <Tags className={ICON} strokeWidth={1.75} style={iconStyle} /> },
+    { type: FieldTypes.ADDRESS, name: 'Address', description: 'A postal address; Dutch ones can be looked up from the postcode', category: 'Text', keywords: ['postcode', 'street', 'house number', 'city', 'location', 'adres', 'straat', 'huisnummer', 'woonplaats'], icon: <MapPin className={ICON} strokeWidth={1.75} style={iconStyle} /> },
     { type: FieldTypes.NUMBER, name: 'Number', description: 'A number, such as an amount', category: 'Date & number', keywords: ['amount', 'quantity', 'digits'], icon: <NumberIcon className={ICON} style={iconStyle} /> },
     {
         type: FieldTypes.CALCULATED,

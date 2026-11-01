@@ -4,6 +4,7 @@ import re
 from enum import Enum
 from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
 
+from common.countries import COUNTRIES_MAX, is_country_code
 from common.currencies import CURRENCIES_MAX, is_currency_code, is_time
 from common.tags import TAG_LENGTH_MAX, TAGS_MAX
 from common.ids import RecordId
@@ -289,6 +290,8 @@ class StandardFormFieldType(str, Enum):
     # A start and an end day, and free-entry short labels.
     DATE_RANGE = "date_range"
     TAGS = "tags"
+    # A postal address: street, house number, postcode, city and country.
+    ADDRESS = "address"
     # A drawn or typed signature (``common/signature.py``).
     SIGNATURE = "signature"
     SHORT_TEXT = "short_text"
@@ -382,6 +385,7 @@ class StandardResponseType(str, Enum):
     CURRENCY = "currency"
     DATE_RANGE = "date_range"
     TAGS = "tags"
+    ADDRESS = "address"
     SIGNATURE = "signature"
     # A repeating group: the answer carries one answers-dict per item in
     # ``StandardFormResponseAnswer.items``.
@@ -461,6 +465,19 @@ class StandardDateRangeAnswer(BaseModel):
 
     start: Optional[str] = None
     end: Optional[str] = None
+
+
+class StandardAddressAnswer(BaseModel):
+    """The answer of an ``address`` question (``common.address``): each part is
+    text, the country an ISO 3166-1 alpha-2 code. What a lookup filled in is
+    as unverified as what was typed."""
+
+    street: Optional[str] = None
+    house_number: Optional[str] = None
+    house_number_addition: Optional[str] = None
+    postcode: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
 
 
 class StandardSignatureAnswer(BaseModel):
@@ -765,6 +782,7 @@ REPEAT_CHILD_FIELD_TYPES = {
     "currency",
     "date_range",
     "tags",
+    "address",
     "yes_no",
     "multiple_choice",
     "dropdown",
@@ -1226,6 +1244,12 @@ class StandardFieldProperty(BaseModel):
     # ``currency`` questions: the currencies a respondent may pick (ISO 4217
     # codes, ``common.currencies``); the first is the default.
     currencies: Optional[List[str]] = Field(None, max_length=CURRENCIES_MAX)
+    # ``address`` questions: the countries a respondent may give (ISO 3166-1
+    # alpha-2 codes, ``common.countries``; None means the Netherlands only)
+    # and whether street and city are looked up from a Dutch postcode and
+    # house number (None means yes, while the server offers it).
+    countries: Optional[List[str]] = Field(None, max_length=COUNTRIES_MAX)
+    address_lookup: Optional[bool] = None
     # Short label shown with the control itself (e.g. "Start date" above a
     # date picker), distinct from the question title. Date questions only
     # for now.
@@ -1270,6 +1294,7 @@ class StandardFieldProperty(BaseModel):
     @model_validator(mode="after")
     def _check_type_settings(self):
         check_type_settings(self.min_time, self.max_time, self.currencies)
+        check_countries(self.countries)
         return self
 
 
@@ -1320,6 +1345,20 @@ class StandardFormField(BaseModel):
 
 def _type_value(field_type: Any) -> Optional[str]:
     return getattr(field_type, "value", field_type)
+
+
+def check_countries(countries: Optional[List[str]]) -> None:
+    """The countries an address question allows: one to ``COUNTRIES_MAX`` ISO
+    3166-1 alpha-2 codes, none twice. Raises ``ValueError``."""
+    if countries is None:
+        return
+    if not countries:
+        raise ValueError("List at least one country.")
+    for code in countries:
+        if not is_country_code(code):
+            raise ValueError(f"'{code}' is not a country code the form offers.")
+    if len(set(countries)) != len(countries):
+        raise ValueError("A country is listed twice.")
 
 
 def check_tags_settings(field: Any) -> None:
@@ -1775,6 +1814,8 @@ class StandardFormResponseAnswer(BaseModel):
     # question's code and amount.
     time: Optional[str] = None
     currency: Optional[StandardCurrencyAnswer] = None
+    # An ``address`` question's parts (``common.address``).
+    address: Optional[StandardAddressAnswer] = None
     # A ``date_range`` question's two days; a ``tags`` question's labels.
     date_range: Optional[StandardDateRangeAnswer] = None
     tags: Optional[List[str]] = None

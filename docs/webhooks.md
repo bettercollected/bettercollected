@@ -55,6 +55,7 @@ registration (Objects API / Generic JSON) body and the text of an email action r
 | Currency | `{"code": "<ISO 4217>", "amount": "<decimal>"}`; the amount is the decimal string as it was entered (a dot, at most the currency's decimals), never a float, so no digit is lost | `{"code":"EUR","amount":"12.50"}` | `null` |
 | Date range | `{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}` | `{"start":"2026-01-31","end":"2026-02-03"}` | `null` |
 | Tags | list of strings, in the order entered | `["alpha","beta"]` | `[]` |
+| Address | `{"street", "house_number", "house_number_addition", "postcode", "city", "country"}`, each text or `null`; the country an ISO 3166-1 alpha-2 code (the question's one allowed country when the answer has none). Street and city may have been filled in by the lookup and are not verified | `{"street":"Keizersgracht","house_number":"12","house_number_addition":null,"postcode":"1015 CS","city":"Amsterdam","country":"NL"}` | `null` |
 | Single choice, dropdown | the option's text | `"Red"` | `""` |
 | Multiple choice (several allowed) | list of the options' texts | `["Red","Blue"]` | `[]` |
 | Repeating group | list with one object per item, keyed by the question's id | `[{"pname":"Bo"}]` | `[]` |
@@ -67,7 +68,8 @@ with its type checked only, and this keeps it from reaching a receiver in a shap
 still sent. Tags are cut to what the question allows: at most 30, each 1 to 40 characters (a tag outside that is left out, since a list holds no `null`). The
 **test event** carries made-up values of the same shapes (a currency question's sample uses its first offered currency, EUR when it offers none). A
 question that is no longer one of these types when a delivery runs is left out of `data`, as before. In an email action's text a currency reads `EUR 12.50`
-and a date range `2026-01-31/2026-02-03`, as in the response export.
+and a date range `2026-01-31/2026-02-03`, as in the response export; an address reads `Keizersgracht 12, 1015 CS Amsterdam` (the
+country code added when it is not `NL`).
 
 Headers:
 

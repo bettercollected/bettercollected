@@ -28,6 +28,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.schemas.webhook import ActionCondition
 from backend.app.services.registration import body as body_builder
 from backend.app.services.repeating_groups import (
+    ADDRESS_COMPARISONS,
     DATE_RANGE_COMPARISONS,
     TAGS_COMPARISONS,
     evaluate_conditions,
@@ -47,6 +48,7 @@ ERROR_CODE = "invalid_condition"
 ALLOWED_COMPARISONS = {
     "tags": TAGS_COMPARISONS,
     "date_range": DATE_RANGE_COMPARISONS,
+    "address": ADDRESS_COMPARISONS,
 }
 
 

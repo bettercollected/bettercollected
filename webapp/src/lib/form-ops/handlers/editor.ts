@@ -8,6 +8,7 @@
  */
 import { themeProblems } from '@app/constants/theme';
 import { FieldTypes } from '@app/models/dtos/form';
+import { isCountryCode } from '@app/utils/countries';
 import { isCurrencyCode } from '@app/utils/currency';
 import { optionLogicProblems } from '@app/utils/option-logic';
 import { TAGS_MAX, TAG_LENGTH_MAX } from '@app/utils/tags';
@@ -270,7 +271,16 @@ function ownModelProblem(field: any): string | null {
         if (!DATE_RULE_FIELD_TYPES.has(field.type)) return 'Only date questions can have date rules.';
         for (const rule of rules) if (field.id && rule.fieldId === field.id) return 'A date rule cannot compare a question with itself.';
     }
-    return tagsSettingsProblem(field) ?? typeSettingsProblem(properties?.minTime, properties?.maxTime, properties?.currencies);
+    return tagsSettingsProblem(field) ?? typeSettingsProblem(properties?.minTime, properties?.maxTime, properties?.currencies) ?? countriesProblem(properties?.countries);
+}
+
+/** The countries of an address question (common `check_countries`). */
+function countriesProblem(countries: unknown): string | null {
+    if (!Array.isArray(countries)) return null;
+    if (!countries.length) return 'List at least one country.';
+    for (const code of countries) if (!isCountryCode(code)) return `'${code}' is not a country code the form offers.`;
+    if (new Set(countries).size !== countries.length) return 'A country is listed twice.';
+    return null;
 }
 
 /** The settings of time and currency questions (common `check_type_settings`). */

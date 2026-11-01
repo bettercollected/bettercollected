@@ -186,6 +186,14 @@ SERVER: Tuple[SettingSpec, ...] = (
           "Allows adding or changing the newer question types (time, day, currency, date range, tags); "
           "questions a form already has keep working either way.",
           tier=T2),
+    _bool("ADDRESS_QUESTION_ENABLED", "features", (BACKEND,), False,
+          "Allows adding or changing the address question (street, house number, postcode, city, country); "
+          "questions a form already has keep working either way.",
+          tier=T2),
+    _bool("ADDRESS_LOOKUP_ENABLED", "features", (BACKEND,), False,
+          "Fills in street and city of an address question from a Dutch postcode and house number "
+          "(PDOK Locatieserver, called from this server). Off: addresses are typed.",
+          tier=T2),
     _bool("SIGNATURE_QUESTION_ENABLED", "features", (BACKEND,), False,
           "Allows adding or changing the signature question (drawn or typed); "
           "signature questions a form already has keep working either way.",
@@ -209,6 +217,12 @@ RATE_LIMITS: Tuple[SettingSpec, ...] = (
          description="Flow events accepted per client and form per window.", **RATE),
     _int("API_FLOW_EVENTS_WINDOW_SECONDS", default=60, lo=1, hi=86400,
          description="Length of the flow event window.", **RATE),
+    _int("API_ADDRESS_LOOKUP_PER_WINDOW", default=30, lo=1, hi=100000,
+         description="Address lookups per client and form per window.", **RATE),
+    _int("API_ADDRESS_LOOKUP_FORM_PER_WINDOW", default=600, lo=1, hi=1_000_000,
+         description="Address lookups for all clients of one form per window.", **RATE),
+    _int("API_ADDRESS_LOOKUP_WINDOW_SECONDS", default=60, lo=1, hi=86400,
+         description="Length of the address lookup window.", **RATE),
     _int("API_PUBLIC_API_REQUESTS_PER_WINDOW", default=120, lo=0, hi=1_000_000,
          description="Public API requests per key per window (0 = off).", **RATE),
     _int("API_PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW", default=600, lo=0, hi=1_000_000,

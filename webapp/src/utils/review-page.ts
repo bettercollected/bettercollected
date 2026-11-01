@@ -7,6 +7,8 @@ import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
 import { PipeContext, resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
 import { calculatedAnswerValue, formatCalculatedValue, isShownToRespondents } from '@app/utils/calculated-fields';
 import { LogicSources, choiceAnswerText, getComparableAnswerValue, getHiddenFieldIds, logicSourcesById, resolveJump } from '@app/utils/conditional-logic';
+import { addressLines } from '@app/utils/address';
+import { countryName } from '@app/utils/countries';
 import { isoToLocalDate } from '@app/utils/date-rules';
 import { legacyTitleText } from '@app/utils/legacy-title';
 import { pageInvalidations } from '@app/utils/page-validation';
@@ -135,6 +137,9 @@ export function answerLines(field: StandardFormFieldDto, answers: Record<string,
                 })
                 .filter(Boolean);
         }
+        case FieldTypes.ADDRESS:
+            // the address as it will be sent, a line per line of it
+            return addressLines(answer?.address, (code) => countryName(code, language));
         case FieldTypes.CALCULATED: {
             const value = calculatedAnswerValue(answer);
             if (value === null) return [];

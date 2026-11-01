@@ -1501,6 +1501,34 @@
           "default": null,
           "title": "Currencies"
         },
+        "countries": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 30,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Countries"
+        },
+        "addressLookup": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Addresslookup"
+        },
         "whyWeAsk": {
           "anyOf": [
             {
@@ -2376,6 +2404,34 @@
           ],
           "default": null,
           "title": "Currencies"
+        },
+        "countries": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 30,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Countries"
+        },
+        "addressLookup": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Addresslookup"
         },
         "whyWeAsk": {
           "anyOf": [
@@ -4228,6 +4284,34 @@
           "default": null,
           "title": "Currencies"
         },
+        "countries": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 30,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Countries"
+        },
+        "addressLookup": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Addresslookup"
+        },
         "label": {
           "anyOf": [
             {
@@ -4818,6 +4902,34 @@
           ],
           "default": null,
           "title": "Currencies"
+        },
+        "countries": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 30,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Countries"
+        },
+        "addressLookup": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Addresslookup"
         },
         "whyWeAsk": {
           "anyOf": [
@@ -5467,6 +5579,7 @@
         "currency",
         "date_range",
         "tags",
+        "address",
         "signature",
         "short_text",
         "long_text",

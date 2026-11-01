@@ -544,3 +544,47 @@ describe('Privacy panel: saved drafts', () => {
         expect(row('drafts')).toHaveTextContent('wordt je e-mailadres niet bij het concept bewaard');
     });
 });
+
+describe('Privacy panel when the form looks up addresses', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('says what is sent and to whom, in English and in Dutch, and nothing otherwise', () => {
+        setBrowserLanguages(['en-GB']);
+        const { unmount } = renderPanel({ ownerName: 'Acme Health', addressLookup: true });
+        openPanel();
+        const english = row('address');
+        expect(english).toHaveTextContent('Address lookup');
+        expect(english).toHaveTextContent('we send your postcode and house number to the PDOK Locatieserver address service');
+        expect(english).toHaveTextContent('Your browser and IP address are not shared with it, and nothing else is sent.');
+        unmount();
+        setBrowserLanguages(['nl-NL']);
+        renderPanel({ ownerName: 'Acme Health', addressLookup: true });
+        openPanel();
+        expect(row('address')).toHaveTextContent('sturen we je postcode en huisnummer naar de adresservice PDOK Locatieserver');
+    });
+
+    it('says in a preview that the published form will look it up, and that the preview sends nothing', () => {
+        setBrowserLanguages(['en-GB']);
+        const { unmount } = renderPanel({ ownerName: 'Acme Health', addressLookup: true, addressLookupPreview: true });
+        openPanel();
+        const english = row('address');
+        expect(english).toHaveTextContent('In the published form, if the address lookup is switched on');
+        expect(english).toHaveTextContent('This preview looks nothing up and sends nothing.');
+        expect(english).not.toHaveTextContent('Your browser and IP address are not shared');
+        unmount();
+        setBrowserLanguages(['nl-NL']);
+        renderPanel({ ownerName: 'Acme Health', addressLookup: true, addressLookupPreview: true });
+        openPanel();
+        expect(row('address')).toHaveTextContent('Deze preview zoekt niets op en verstuurt niets.');
+    });
+
+    it('has no line for a form that looks nothing up', () => {
+        setBrowserLanguages(['en-GB']);
+        renderPanel({ ownerName: 'Acme Health' });
+        openPanel();
+        expect(screen.queryByTestId('privacy-address')).toBeNull();
+    });
+});
+

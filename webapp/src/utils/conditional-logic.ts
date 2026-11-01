@@ -78,6 +78,11 @@ export function getComparableAnswerValue(answer: any, fieldType: FieldTypes | st
         }
         case FieldTypes.TAGS:
             return answerTags(answer);
+        case FieldTypes.ADDRESS: {
+            // the postcode as written (conditions compare it as text: "starts with 10"); the other parts are not conditions
+            const postcode = answer.address?.postcode;
+            return typeof postcode === 'string' && postcode ? postcode : undefined;
+        }
         case FieldTypes.PHONE_NUMBER:
             return answer.phoneNumber ?? answer.phone_number;
         case FieldTypes.MULTIPLE_CHOICE:
@@ -252,6 +257,9 @@ export function compareDateRange(answer: any, comparison: Comparison | string, t
     }
 }
 
+/** What a condition on an address question may ask: about its postcode (backend `ADDRESS_COMPARISONS`). */
+export const ADDRESS_COMPARISONS = new Set<string>([Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.STARTS_WITH, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY]);
+
 /** What a condition on a tags question may ask (backend `TAGS_COMPARISONS`). */
 const TAGS_COMPARISONS = new Set<string>([Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY]);
 
@@ -259,6 +267,11 @@ function evaluateCondition(answers: Record<string, any>, condition: LogicConditi
     if (condition.groupMode) return evaluateGroupCondition(answers, condition, sources, textMax);
     const answer = answers?.[condition.fieldId];
     if (condition.fieldType === FieldTypes.DATE_RANGE) return compareDateRange(answer, condition.comparison, condition.value);
+    if (condition.fieldType === FieldTypes.ADDRESS) {
+        // only the postcode is read (the spec check and the operations refuse the other comparisons)
+        if (!ADDRESS_COMPARISONS.has(condition.comparison)) return false;
+        return compareValue(getComparableAnswerValue(answer, condition.fieldType), condition.comparison, condition.value, textMax);
+    }
     if (condition.fieldType === FieldTypes.TAGS) {
         // a list of labels has no beginning, end or order to compare: only these hold (backend TAGS_COMPARISONS)
         if (!TAGS_COMPARISONS.has(condition.comparison)) return false;

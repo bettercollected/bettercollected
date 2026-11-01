@@ -226,6 +226,8 @@ def _field_to_spec(field: StandardFormField) -> Dict[str, Any]:
                 "minTime": p.min_time,
                 "maxTime": p.max_time,
                 "currencies": p.currencies,
+                "countries": p.countries,
+                "addressLookup": p.address_lookup,
                 "dateRules": (
                     [
                         {
@@ -513,6 +515,8 @@ def _field_from_spec(field, index: int) -> Dict[str, Any]:
         "min_time": field.min_time,
         "max_time": field.max_time,
         "currencies": field.currencies,
+        "countries": field.countries,
+        "address_lookup": field.address_lookup,
         "date_rules": (
             [r.model_dump() for r in field.date_rules]
             if field.date_rules is not None

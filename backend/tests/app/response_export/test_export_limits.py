@@ -489,6 +489,48 @@ async def test_a_refused_job_slot_does_not_use_up_the_rate_limit(workspace, monk
     assert (await ask(workspace, forms[-1])).status == ExportStatus.QUEUED
 
 
+async def test_a_request_refused_for_an_open_export_does_not_use_up_the_rate_limit(workspace):
+    """409 ``export_in_progress`` and ``export_ready``: the requester's own export
+    of the form is still open, nothing was started, so the budget stays."""
+    assert limits.REQUESTS_PER_WINDOW == 10
+    form = await publish(workspace)
+    await submit_many(workspace, form, 3)
+    first = await queued_job(workspace, form)
+    for _ in range(limits.REQUESTS_PER_WINDOW):
+        with pytest.raises(Exception) as refused:
+            await ask(workspace, form)
+        assert refused.value.status_code == 409 and refused.value.content["code"] == "export_in_progress"
+    await service().run_job(str(first.id))
+    for _ in range(limits.REQUESTS_PER_WINDOW):
+        with pytest.raises(Exception) as refused:
+            await ask(workspace, form)
+        assert refused.value.status_code == 409 and refused.value.content["code"] == "export_ready"
+    # twenty refusals later the file is deleted and the next export is admitted
+    await service().discard(workspace.id, form.form_id, str(first.id), testUser)
+    assert (await ask(workspace, form)).status == ExportStatus.QUEUED
+
+
+async def test_admitted_exports_still_count_after_409_refusals(workspace, monkeypatch):
+    monkeypatch.setattr(limits, "REQUESTS_PER_WINDOW", 3)
+    form = await publish(workspace)
+    await submit_many(workspace, form, 3)
+    for _ in range(limits.REQUESTS_PER_WINDOW - 1):
+        job = await queued_job(workspace, form)
+        for _ in range(3):
+            with pytest.raises(Exception) as refused:
+                await ask(workspace, form)
+            assert refused.value.status_code == 409
+        await service().run_job(str(job.id))
+        await service().discard(workspace.id, form.form_id, str(job.id), testUser)
+    # the last admission spends the budget of three; the six 409s in between did not
+    await queued_job(workspace, form)
+    for _ in range(2):
+        # with the budget spent the rate limit answers first (and gives nothing back)
+        with pytest.raises(Exception) as limited:
+            await ask(workspace, form)
+        assert limited.value.status_code == 429 and limited.value.content["code"] == "rate_limited"
+
+
 async def test_a_slow_but_progressing_stream_keeps_its_slot(workspace, monkeypatch):
     """Longer than the slot time in all, a client that keeps taking pieces (slowly)
     keeps its slot through the stream's own heartbeat, and gives it back at the end."""

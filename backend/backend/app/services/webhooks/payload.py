@@ -64,7 +64,9 @@ def build_data(
     chosen options' texts. The newer types follow the public API's answers
     (``registration/body.py`` ``scalar``): ``time`` "HH:MM", ``day`` a date,
     ``currency`` ``{"code", "amount"}`` (the amount a decimal string),
-    ``date_range`` ``{"start", "end"}``, ``tags`` a list of strings."""
+    ``date_range`` ``{"start", "end"}``, ``tags`` a list of strings, ``address``
+    its six parts (``street``, ``house_number``, ``house_number_addition``,
+    ``postcode``, ``city``, ``country``)."""
     index = body_builder.variables_of(form)
     values, _schema = body_builder.build_values(
         index,
@@ -113,6 +115,14 @@ _SAMPLES = {
     "time": "09:30",
     "date_range": {"start": "2026-01-31", "end": "2026-02-03"},
     "tags": ["example", "tags"],
+    "address": {
+        "street": "Example street",
+        "house_number": "1",
+        "house_number_addition": None,
+        "postcode": "1234 AB",
+        "city": "Example city",
+        "country": "NL",
+    },
     "calculated": 42,
 }
 

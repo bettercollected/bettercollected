@@ -19,7 +19,9 @@ for a large one, and keep an audit entry of each (docs/response-export.md).
   ``WINDOW_SECONDS`` (429 with ``Retry-After``), one unfinished job per user and
   form (409), at most ``MAX_ROWS`` responses, and streams in flight at once
   (``STREAMS_PER_USER`` per requester and workspace, ``STREAMS_PER_WORKSPACE``,
-  429), counted in Postgres so several backend replicas share them.
+  429), counted in Postgres so several backend replicas share them. A request
+  refused for a busy slot or for the requester's own open export (409) is given
+  back to the rate limit.
 """
 
 from __future__ import annotations
@@ -256,7 +258,8 @@ class ResponseExportService:
             )
 
     async def _give_back_rate_limit(self, workspace_id: RecordId, form_id: str, actor_id: str) -> None:
-        """A request that found no free slot was not an export: it does not use
+        """A request that found no free slot, or that met the requester's own
+        export of the form still open (409), was not an export: it does not use
         up the budget of requests the person may make."""
         try:
             await self._limiter.release(
@@ -480,6 +483,9 @@ class ResponseExportService:
         try:
             await self._exports.admit_job(export, limits.WORKSPACE_MAX_JOBS)
         except OpenExportExists:
+            # the requester's export of this form is still open: nothing was
+            # started, so the request does not use up their budget either
+            await self._give_back_rate_limit(workspace_id, form_id, str(user.id))
             waiting = await self._exports.open_for(workspace_id, form_id, user.id)
             if waiting is not None and waiting.status == ExportStatus.READY:
                 raise _error(

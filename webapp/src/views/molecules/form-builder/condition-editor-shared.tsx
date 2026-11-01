@@ -61,6 +61,8 @@ const CHOICE_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Compar
 const MULTI_COMPARISONS = [Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 const DATE_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.GREATER_THAN, Comparison.GREATER_THAN_EQUAL, Comparison.LESS_THAN, Comparison.LESS_THAN_EQUAL, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 const BOOL_COMPARISONS = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL];
+// An address is asked about its postcode, as text (backend ADDRESS_COMPARISONS).
+const ADDRESS_LIST = [Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL, Comparison.STARTS_WITH, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 // A date range includes a day, does not include it, starts after it or ends before it (compareDateRange); tags are asked like a multi-select.
 const RANGE_COMPARISONS = [Comparison.CONTAINS, Comparison.DOES_NOT_CONTAIN, Comparison.GREATER_THAN, Comparison.LESS_THAN, Comparison.IS_EMPTY, Comparison.IS_NOT_EMPTY];
 
@@ -84,6 +86,8 @@ export function comparisonsForField(field?: StandardFormFieldDto): Comparison[] 
             return RANGE_COMPARISONS;
         case FieldTypes.TAGS:
             return MULTI_COMPARISONS;
+        case FieldTypes.ADDRESS:
+            return ADDRESS_LIST;
         case FieldTypes.MULTIPLE_CHOICE:
             return field?.properties?.allowMultipleSelection ? MULTI_COMPARISONS : CHOICE_COMPARISONS;
         case FieldTypes.DROP_DOWN:

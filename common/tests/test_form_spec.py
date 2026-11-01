@@ -321,6 +321,8 @@ def test_every_stored_property_is_covered_or_excluded_on_purpose():
         "min_time",
         "max_time",
         "currencies",
+        "countries",
+        "address_lookup",
         "why_we_ask",
         "section_title",
         "show_question_numbers",
