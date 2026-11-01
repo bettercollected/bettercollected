@@ -518,7 +518,7 @@ class OptionSourceService:
                 notes = await self._erasures.pending(limit, after)
                 if not notes:
                     break
-                after = (notes[-1].created_at, str(notes[-1].id))
+                after = str(notes[-1].id)
                 await self._work_notes(notes, cutoff, counts)
                 if len(notes) < limit:
                     break

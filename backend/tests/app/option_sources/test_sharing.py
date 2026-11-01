@@ -518,7 +518,7 @@ def _ring(monkeypatch, *members):
     monkeypatch.setattr(settings.auth_settings, "JWT_SECRET", ",".join(members))
 
 
-def test_the_notice_token_survives_a_key_rotation(monkeypatch):
+async def test_the_notice_token_survives_a_key_rotation(monkeypatch):
     a, b = "a" * 40, "b" * 40
     kw = {"workspace_id": "w1", "form_id": "f1"}
     _ring(monkeypatch, a)
@@ -542,7 +542,7 @@ def test_the_notice_token_survives_a_key_rotation(monkeypatch):
     assert share_token.shown_question_ids(newer, **kw) == ["q3"]
 
 
-def test_a_token_naming_the_most_questions_fits_the_routes_cap():
+async def test_a_token_naming_the_most_questions_fits_the_routes_cap():
     import uuid
 
     ids = [str(uuid.uuid4()) for _ in range(share_token.MAX_QUESTIONS)]

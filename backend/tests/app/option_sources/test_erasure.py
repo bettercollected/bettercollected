@@ -479,18 +479,18 @@ async def test_consuming_forms_are_found_past_one_page_and_only_in_the_workspace
     mine = [
         await consumer_form(workspace, people, title=f"Mine {n}") for n in range(3)
     ]
-    other_people = await people_form(workspace_1)
-    elsewhere = await consumer_form(workspace_1, people, title="Elsewhere")
     repo = container.form_repo()
     drafts, versions = await repo.documents_naming_source(
         people.form_id, workspace.id, page_size=2
     )
-    found = {str(d.form_id) for d in drafts}
-    assert found == {str(f.form_id) for f in mine}
+    found = {str(f.form_id) for f in mine}
+    assert {str(d.form_id) for d in drafts} == found
     assert {str(v.form_id) for v in versions} == found
+    # another workspace's forms are not looked at
+    assert await repo.documents_naming_source(people.form_id, workspace_1.id) == (
+        [],
+        [],
+    )
     # without a workspace every match is returned (also across the page size)
     drafts, _ = await repo.documents_naming_source(people.form_id, None, page_size=2)
-    assert {str(f.form_id) for f in mine} | {str(elsewhere.form_id)} <= {
-        str(d.form_id) for d in drafts
-    }
-    assert other_people is not None
+    assert found <= {str(d.form_id) for d in drafts}

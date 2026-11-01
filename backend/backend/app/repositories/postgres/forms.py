@@ -795,6 +795,9 @@ class PostgresFormRepository(RecordRepository):
             after = None
             while True:
                 where = [
+                    # the source's own documents name it in ``form_id``: a form
+                    # takes its options from another form, never itself
+                    row.form_id != str(source_form_id),
                     or_(
                         *(
                             cast(row.doc, Text).contains(n, autoescape=True)
