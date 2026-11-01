@@ -216,6 +216,8 @@ class FormFileResponse(BaseModel):
     file: UploadFile
     # set for a part the server made itself (a re-encoded signature image)
     content_type: Optional[str] = None
+    # a signature image: the store encrypts it before the put
+    signature: bool = False
 
 
 class WorkspaceFormPatchResponse(CamelModel):

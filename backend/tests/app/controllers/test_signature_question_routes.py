@@ -81,6 +81,14 @@ class FakeStore:
     def check_if_key_exists(self, key, bucket=None):
         return any(k.startswith(key) for k in self.objects)
 
+    def read_object(self, key, max_bytes, bucket=None):
+        data = self.objects.get(key)
+        if data is None:
+            return None
+        if len(data) > max_bytes:
+            raise ValueError("object too large")
+        return data
+
     def generate_presigned_url(self, key, bucket=None, response_headers=None):
         self.link_headers[key] = response_headers
         return f"https://files.example/{key}?signed"
@@ -200,8 +208,12 @@ async def test_a_drawn_signature_stores_a_clean_image_and_staff_get_a_link(
     response_id = await _response_id(workspace, form_id)
     key = f"private/{workspace.id}/{form_id}/{response_id}/img-1"
     assert list(store.objects) == [key]
-    assert store.objects[key].startswith(b"\x89PNG") and b"my secret note" not in store.objects[key]
-    assert store.types[key] == "image/png"
+    # the object is ciphertext (never the PNG, never a readable image), and says so
+    assert not store.objects[key].startswith(b"\x89PNG") and b"PNG" not in store.objects[key][:16]
+    assert b"my secret note" not in store.objects[key] and store.objects[key].startswith(b"v1:")
+    assert store.types[key] == "application/octet-stream"
+    image = signatures.open_image(workspace.id, form_id, response_id, "sig", "img-1", store.objects[key])
+    assert image.startswith(b"\x89PNG") and b"my secret note" not in image
     stored = await _stored(workspace, form_id, response_id)
     assert stored["sig"]["signature"]["file_id"] == "img-1"
     assert "url" not in stored["sig"]["signature"]
@@ -209,12 +221,9 @@ async def test_a_drawn_signature_stores_a_clean_image_and_staff_get_a_link(
     assert one.status_code == 200, one.text
     signature = one.json()["response"]["answers"]["sig"]["signature"]
     assert signature["method"] == "drawn" and signature["file_id"] == "img-1"
-    assert signature["url"] == f"https://files.example/{key}?signed"
-    # the link serves the object as a downloaded PNG, whatever its stored type
-    assert store.link_headers[key] == {
-        "ResponseContentType": "image/png",
-        "ResponseContentDisposition": "attachment",
-    }
+    # the read carries the path of the route that decrypts it, never a storage link
+    assert signature["url"] == f"/workspaces/{workspace.id}/submissions/{response_id}/signatures/sig"
+    assert store.link_headers == {}
 
 
 async def test_a_bad_drawing_is_refused_with_nothing_stored(
@@ -370,6 +379,12 @@ async def test_an_edit_that_redraws_or_retypes_deletes_the_replaced_image(
     )
     assert redrawn.status_code == 200, redrawn.text
     assert list(store.objects) == [f"{folder}/img-2"]
+    # the redrawn image is sealed for this response and question and the route serves it
+    assert store.objects[f"{folder}/img-2"].startswith(b"v1:")
+    served = await client.get(
+        f"{common_url}/submissions/{response_id}/signatures/sig", cookies=test_user_cookies
+    )
+    assert served.status_code == 200 and served.content.startswith(b"\x89PNG")
     # retype: the image goes, the name is stored
     retyped = await _edit(client, common_url, form_id, response_id, {"sig": {"type": "signature", "signature": {"method": "typed", "name": "Ada Lovelace"}}}, test_user_cookies)
     assert retyped.status_code == 200, retyped.text
@@ -392,7 +407,7 @@ async def test_an_edit_without_answers_cannot_overwrite_the_stored_drawing(
     response_id = await _response_id(workspace, form_id)
     key = f"private/{workspace.id}/{form_id}/{response_id}/img-1"
     clean = store.objects[key]
-    assert clean.startswith(b"\x89PNG")
+    assert clean.startswith(b"v1:")
     for body in ({}, {"answers": None}):
         forged = await client.patch(
             f"{common_url}/forms/{form_id}/response/{response_id}",

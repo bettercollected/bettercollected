@@ -54,6 +54,7 @@ from backend.app.services.receipt_limits import (
 from backend.app.services.respondent_feedback_service import (
     RespondentFeedbackService,
 )
+from backend.app.services.signatures import read_throttle
 from backend.app.services.user_service import get_logged_user
 from backend.app.utils.client_ip import request_client_ip
 from backend.app.utils.custom_routable import CustomRoutable
@@ -407,6 +408,33 @@ class WorkspaceResponsesRouter(CustomRoutable):
     ):
         return await self._form_response_service.get_workspace_submission(
             workspace_id, submission_id, user
+        )
+
+    @get("/submissions/{submission_id}/signatures/{field_id}")
+    async def _get_signature_image(
+        self,
+        workspace_id: RecordId,
+        submission_id: str,
+        field_id: str,
+        user: User = Depends(get_logged_user),
+    ):
+        """A drawn signature's image, decrypted for the people who may read
+        the response (services/signatures.py). Never cached, never sniffed,
+        never run as a page."""
+        await read_throttle(user.sub)
+        image = await self._form_response_service.signature_image(
+            workspace_id, submission_id, field_id, user
+        )
+        return Response(
+            content=image,
+            media_type="image/png",
+            headers={
+                "Cache-Control": "no-store",
+                "X-Content-Type-Options": "nosniff",
+                "Content-Disposition": 'inline; filename="signature.png"',
+                "Content-Security-Policy": "default-src 'none'; sandbox",
+                "Cross-Origin-Resource-Policy": "same-site",
+            },
         )
 
     # The receipt routes need no sign-in: the number is the credential, so

@@ -379,12 +379,20 @@ the answers are validated and before the upload) checks size and the PNG signatu
 sandbox's `image` mode (the API never decodes an image; no sandbox is a 503, a typed signature needs none),
 re-checks what the sandbox returns, binds the answer's `file_id` to a part for that question (or the image the
 response already holds), drops parts nobody names, and stamps `signed_at` (the client's is ignored). A replaced
-image is deleted after the edit is stored (`delete_stored_images`). The single-response read adds a presigned
-`signature.url` (`signature_download_url`, response folder only); lists never do. Not a formula variable
+image is deleted after the edit is stored (`delete_stored_images`). The stored object is **ciphertext**: `workspace_form_service.upload_files_to_s3_and_update_url` seals a part marked
+`signature` (`signatures.seal_image`: `crypto_service.encrypt(workspace, form, png, image_context(response, field,
+file))`, the same keyset as the answers, the context a JSON list so ids cannot shift a separator) and puts it as
+`application/octet-stream`; only `FormResponseService.signature_image` opens it (`signatures.open_image`: must be a
+`v1:` ciphertext, so a plain PNG in the store is refused, must decrypt for this workspace/form/response/question/
+file, must be a PNG of at most the stored cap). The route is `GET /workspaces/{ws}/submissions/{response}/signatures/{field}`
+(`response.read` or the response's own respondent, 404 for everything else, 60 a minute per user, `no-store`, `nosniff`,
+`image/png`); the single-response read carries that path as `signature.url`, never a presigned link; lists never do.
+Rotation (`scripts/rotate_response_keyset.py`) does not walk the object store: an image keeps the key it was sealed
+with, so do not drop an old key while drawn signatures exist (docs/response-keyset-rotation.md). Not a formula variable
 (`NOT_VARIABLES`), not a webhook/registration/email variable (`SUPPORTED_TYPES`), no field rule sets or locks it
 (`NOT_RULE_TARGETS` keeps it a target for required/title/description only), conditions only
 `IS_EMPTY`/`IS_NOT_EMPTY` (`SIGNATURE_COMPARISONS`), not in a repeating group, not internal. Exports write the typed
-name or `[drawn signature]`, insights and action code `[signed]` (never the name). The object is put with `ContentType: image/png` and its link is signed with `ResponseContentType: image/png` + `ResponseContentDisposition: attachment`. The refusal of a part for a signature question with no drawn answer to re-encode it (an edit without `answers`, a question only another version has) is a 422, never a pass-through. Deleting a response removes its
+name or `[drawn signature]`, insights and action code `[signed]` (never the name). The refusal of a part for a signature question with no drawn answer to re-encode it (an edit without `answers`, a question only another version has) is a 422, never a pass-through. Deleting a response removes its
 stored files on every path: `delete_response` (the retention job) and `delete_workspace_form_responses` (a form
 unlinked from one of several workspaces, keeping `/imports/`) now do too. The shared ops corpus runs a case with the
 switch off through `signatureQuestion: false`.

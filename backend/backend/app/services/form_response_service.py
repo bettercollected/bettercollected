@@ -62,6 +62,11 @@ from backend.app.schemas.standard_form_response import (
 from backend.app.services import response_cursor
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.response_paging import PageTooDeep
+from backend.app.services.signatures import (
+    SEALED_MAX_BYTES,
+    open_image,
+    signature_image_path,
+)
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.calculated_fields import (
     drop_answers,
@@ -612,13 +617,11 @@ class FormResponseService:
                 )
             signature = decrypted_answer.get("signature")
             if isinstance(signature, dict) and signature.get("file_id"):
-                # a drawn signature: a short-lived link to the image, on this
-                # one-response read only (never in a list)
-                signature["url"] = self.signature_download_url(
-                    workspace_id,
-                    response.form_id,
-                    response.response_id,
-                    signature["file_id"],
+                # a drawn signature: the path of the route that decrypts and
+                # serves the image (never a storage link), on this one-response
+                # read only (never in a list)
+                signature["url"] = signature_image_path(
+                    workspace_id, response.response_id, key
                 )
                 decrypted_response.answers[key] = decrypted_answer
 
@@ -628,6 +631,86 @@ class FormResponseService:
             internal_fields=staff_internal_fields,
             feedback=staff_view,
         )
+
+    async def signature_image(
+        self, workspace_id: RecordId, response_id: str, field_id: str, user: User
+    ) -> bytes:
+        """The PNG of a drawn signature, decrypted: for staff who may read this
+        workspace's responses (``response.read``) and for the response's own
+        respondent, exactly who may read the response itself
+        (``get_workspace_submission``). The image is looked up through the
+        stored answer (a drawn signature of this question of this response in
+        this workspace), never by an id the caller chose, and the object only
+        decrypts for this workspace, form, response, question and file.
+
+        Anything that is not there or not the caller's is the same 404, staff
+        without the permission included, so the route says nothing about which
+        responses or questions exist."""
+        not_found = HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        permissions = await self._authorization.effective_permissions(
+            user, workspace_id
+        )
+        copies = await self._form_response_repo.list_by_response_id(response_id)
+        if not copies:
+            raise not_found
+        response = await pick_in_workspace(
+            self._workspace_form_repo, copies, workspace_id
+        )
+        if response is None:
+            raise not_found
+        if not await self._workspace_form_repo.find_workspace_form(
+            workspace_id, response.form_id
+        ):
+            raise not_found
+        if not (
+            Permission.RESPONSE_READ in permissions
+            or response.dataOwnerIdentifier == user.sub
+            or identity_matches(response.anonymous_identity, user.sub)
+        ):
+            raise not_found
+        readable = self.decrypt_form_response(
+            workspace_id=workspace_id,
+            response=StandardFormResponseCamelModel(**response.model_dump()),
+        )
+        answers = readable.answers if isinstance(readable.answers, dict) else {}
+        answer = answers.get(field_id)
+        if isinstance(answer, StandardFormResponseAnswer):
+            answer = answer.model_dump(mode="json")
+        value = answer.get("signature") if isinstance(answer, dict) else None
+        file_id = value.get("file_id") if isinstance(value, dict) else None
+        if (
+            not isinstance(value, dict)
+            or value.get("method") != "drawn"
+            or not is_plain_file_id(file_id)
+        ):
+            raise not_found
+        key = f"private/{workspace_id}/{response.form_id}/{response.response_id}/{file_id}"
+        try:
+            stored = await run_in_threadpool(
+                self._aws_service.read_object, key, SEALED_MAX_BYTES
+            )
+        except ValueError:
+            stored = None
+        image = (
+            open_image(
+                workspace_id,
+                response.form_id,
+                response.response_id,
+                field_id,
+                file_id,
+                stored,
+            )
+            if stored
+            else None
+        )
+        if image is None:
+            # ids only, never bytes
+            logger.warning(
+                "response {}: the stored image of a drawn signature is missing or unreadable",
+                response.response_id,
+            )
+            raise not_found
+        return image
 
     async def _workspace_title(self, workspace_id: RecordId) -> Optional[str]:
         """The organisation's name, shown to respondents as the author of
@@ -1367,23 +1450,6 @@ class FormResponseService:
         ):
             if self._aws_service.check_if_key_exists(key):
                 return self._aws_service.generate_presigned_url(key=key)
-        return ""
-
-    def signature_download_url(self, workspace_id, form_id, response_id, file_id) -> str:
-        """A short-lived link to a drawn signature's image, which lives only in
-        its response's folder. An empty string when it is not there."""
-        if not is_plain_file_id(file_id):
-            return ""
-        key = f"private/{workspace_id}/{form_id}/{response_id}/{file_id}"
-        if self._aws_service.check_if_key_exists(key):
-            # served as the PNG it is and downloaded, never rendered in place
-            return self._aws_service.generate_presigned_url(
-                key=key,
-                response_headers={
-                    "ResponseContentType": "image/png",
-                    "ResponseContentDisposition": "attachment",
-                },
-            )
         return ""
 
     def generate_presigned_url_for_each_response(

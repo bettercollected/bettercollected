@@ -24,6 +24,11 @@ submission and by a respondent's edit once the answers are known to be valid):
   half the sandbox's slots, wait for one of theirs only briefly and the whole
   call is cut off (503 either way), and one client address or one form may send
   only so many a minute (429);
+- the stored object is the PNG **encrypted with the response keyset** (the one
+  that encrypts the response's answers), bound to the workspace, form, response,
+  question and file, so a copy moved to another response or question does not
+  decrypt. It is read back only by the authorised single-response image route
+  (``FormResponseService.signature_image``), never through a storage link;
 - a file part must belong to a file upload or signature question of the form,
   and never carries the id of a file another question of the response holds,
   so an edit can't replace a stored drawing with bytes of its own;
@@ -41,9 +46,11 @@ import base64
 import binascii
 import datetime as dt
 import io
+import json
 from dataclasses import dataclass, field
 from http import HTTPStatus
 from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Set
+from urllib.parse import quote
 
 from loguru import logger
 from starlette.concurrency import run_in_threadpool
@@ -99,6 +106,105 @@ UNAVAILABLE_MESSAGE = (
     "Processing a drawn signature is unavailable. Try again in a moment, or "
     "type your name instead."
 )
+
+
+# What the encrypted object is stored as (it is ciphertext, not an image).
+SEALED_CONTENT_TYPE = "application/octet-stream"
+# The Tink prefix and key id, the version prefix and the tag are added to the
+# image (common/services/keyset.py): a little under 40 bytes.
+SEALED_MAX_BYTES = STORED_MAX_BYTES + 256
+# A signed-in user may fetch this many drawn images a minute (one response page
+# shows one or a few).
+READS_PER_MINUTE = 60
+
+
+def image_context(response_id: Any, field_id: Any, file_id: Any) -> bytes:
+    """What an image is bound to besides the workspace and form the keyset's
+    cipher already binds (``workspace|form|`` + this, as the AEAD's associated
+    data). A JSON list, so no choice of ids can make two different tuples read
+    the same."""
+    return json.dumps(
+        ["signature-image", str(response_id), str(field_id), str(file_id)],
+        separators=(",", ":"),
+    ).encode()
+
+
+def seal_image(
+    workspace_id: Any,
+    form_id: Any,
+    response_id: Any,
+    field_id: Any,
+    file_id: Any,
+    png: bytes,
+) -> bytes:
+    """The image encrypted with the response keyset (its current primary key;
+    the ciphertext names the key, so rotation re-encrypts it like the answers)."""
+    from common.services.crypto_service import crypto_service
+
+    return crypto_service.encrypt(
+        str(workspace_id),
+        str(form_id),
+        png,
+        image_context(response_id, field_id, file_id),
+    )
+
+
+def open_image(
+    workspace_id: Any,
+    form_id: Any,
+    response_id: Any,
+    field_id: Any,
+    file_id: Any,
+    stored: bytes,
+) -> Optional[bytes]:
+    """The PNG in a stored object, or None when it is not what is stored
+    here: not ciphertext (an image stored before encryption existed is never
+    served), bound to another response, question or file, or not a PNG of
+    the size ``prepare_signatures`` allows."""
+    from common.services.crypto_service import UnreadableCiphertext, crypto_service
+    from common.services.keyset import is_ciphertext
+
+    if not isinstance(stored, (bytes, bytearray)) or not is_ciphertext(stored):
+        return None
+    try:
+        data = crypto_service.decrypt(
+            str(workspace_id),
+            str(form_id),
+            bytes(stored),
+            image_context(response_id, field_id, file_id),
+        )
+    except UnreadableCiphertext:
+        return None
+    if not isinstance(data, bytes) or not data.startswith(PNG_SIGNATURE):
+        return None
+    if len(data) > STORED_MAX_BYTES:
+        return None
+    return data
+
+
+def signature_image_path(workspace_id: Any, response_id: Any, field_id: Any) -> str:
+    """The path (under the API's root) of the route serving a drawn signature's
+    image: what the single-response read carries in place of a link."""
+    return (
+        f"/workspaces/{quote(str(workspace_id), safe='')}"
+        f"/submissions/{quote(str(response_id), safe='')}"
+        f"/signatures/{quote(str(field_id), safe='')}"
+    )
+
+
+async def read_throttle(user_id: Any) -> None:
+    """429 when this user fetched too many drawn images in the last minute."""
+    from backend.app.container import container
+
+    verdict = await container.rate_limiter().hit(
+        "signature_image_read", str(user_id), READS_PER_MINUTE, 60
+    )
+    if not verdict.allowed:
+        raise HTTPException(
+            status_code=HTTPStatus.TOO_MANY_REQUESTS,
+            content={"code": "rate_limited", "message": "Too many requests; try again later."},
+            headers={"Retry-After": str(verdict.retry_after)},
+        )
 
 
 @dataclass
@@ -287,7 +393,8 @@ async def _read(part: Any) -> bytes:
 
 
 def _replacement(part: Any, data: bytes) -> Any:
-    """``part`` with the sandbox's bytes in place of the upload."""
+    """``part`` with the sandbox's bytes in place of the upload, marked so the
+    store encrypts it (``upload_files_to_s3_and_update_url``)."""
     from fastapi import UploadFile
 
     from backend.app.models.dtos.response_dtos import FormFileResponse
@@ -297,7 +404,8 @@ def _replacement(part: Any, data: bytes) -> Any:
         field_id=part.field_id,
         filename=f"{part.file_id}.png",
         file=UploadFile(file=io.BytesIO(data), filename=f"{part.file_id}.png"),
-        content_type="image/png",
+        content_type=SEALED_CONTENT_TYPE,
+        signature=True,
     )
 
 
