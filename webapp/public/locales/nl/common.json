@@ -1409,5 +1409,9 @@
     "NATIVE": "bettercollected-formulier",
     "VERSION": "Versie {{n}}",
     "OPEN_FORM": "Formulier openen ↗"
+  },
+  "STAFF_LANGUAGE": {
+    "LABEL": "Taal",
+    "GROUP": "Taal van het dashboard"
   }
 }

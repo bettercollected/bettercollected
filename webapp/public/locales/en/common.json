@@ -1409,5 +1409,9 @@
     "NATIVE": "bettercollected form",
     "VERSION": "Version {{n}}",
     "OPEN_FORM": "Open form ↗"
+  },
+  "STAFF_LANGUAGE": {
+    "LABEL": "Language",
+    "GROUP": "Language of the dashboard"
   }
 }

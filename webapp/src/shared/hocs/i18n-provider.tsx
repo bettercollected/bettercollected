@@ -6,6 +6,7 @@ import { initReactI18next, I18nextProvider } from 'react-i18next';
 import commonEn from '../../../public/locales/en/common.json';
 import builderEn from '../../../public/locales/en/builder.json';
 import builderNl from '../../../public/locales/nl/builder.json';
+import commonNl from '../../../public/locales/nl/common.json';
 import respondentEn from '../../../public/locales/en/respondent.json';
 import respondentNl from '../../../public/locales/nl/respondent.json';
 
@@ -18,13 +19,14 @@ if (!i18n.isInitialized) {
                 builder: builderEn,
                 respondent: respondentEn
             },
-            // Dutch builder strings resolve once a locale switch exists (the app
-            // still renders in English, lng below). Respondent-facing text is
-            // Dutch and English: the form's privacy panel and question notes read
-            // it in the respondent's language (lib/hooks/use-respondent-language.ts)
-            // without switching the rest of the app. Anything missing falls back
-            // to English.
+            // Dutch: the dashboard's own strings (`common`, `builder`) show once the staff
+            // language is Dutch (StaffLanguageProvider: the browser's language or the
+            // account menu's switch); the respondent-facing text is Dutch and English
+            // regardless: the form's privacy panel and question notes read it in the
+            // respondent's language (lib/hooks/use-respondent-language.ts) without
+            // switching the rest of the app. Anything missing falls back to English.
             nl: {
+                common: commonNl,
                 builder: builderNl,
                 respondent: respondentNl
             }
