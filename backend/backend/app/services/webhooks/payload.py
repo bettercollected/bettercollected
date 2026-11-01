@@ -87,7 +87,10 @@ def serialize(
     response_id: Optional[str],
     submitted_at: Optional[str],
     data: Dict[str, Any],
+    source: Optional[str] = None,
 ) -> bytes:
+    """``source``: ``"api"`` for a response an API key made; left out of the
+    body for a respondent's (the key's id and name never leave)."""
     body = {
         "event": event,
         "delivery_id": delivery_id,
@@ -96,6 +99,8 @@ def serialize(
         "submitted_at": submitted_at,
         "data": data,
     }
+    if source:
+        body["source"] = source
     return json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 

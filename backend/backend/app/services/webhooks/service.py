@@ -939,6 +939,7 @@ class WebhookService:
         mapping = [(f.source, f.key) for f in hook.fields]
         response_id: Optional[str] = None
         submitted_at: Optional[str] = None
+        source: Optional[str] = None
         if log.event == payload.EVENT_TEST:
             form = await self._forms.get_latest_version_of_form(
                 RecordId(str(log.form_id))
@@ -965,6 +966,8 @@ class WebhookService:
                 lambda: payload.build_data(form, mapping, answers, hidden_fields),
             )
             response_id = str(response.response_id)
+            # a response an API key made says so; the key itself never leaves
+            source = "api" if getattr(response, "submission_source", None) else None
             created = getattr(response, "created_at", None)
             submitted_at = (
                 created.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -979,6 +982,7 @@ class WebhookService:
             response_id=response_id,
             submitted_at=submitted_at,
             data=data,
+            source=source,
         )
         del data
         stopped = await self._still_wanted(log)

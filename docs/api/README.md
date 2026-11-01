@@ -33,6 +33,7 @@ cannot be used against this API.
 | `forms:delete` | delete forms, and with them their responses (`forms:write` does not allow it) | `form.delete` |
 | `responses:read` | list and read responses | `response.read` and `response.export` |
 | `deletion_requests:write` | close a respondent's deletion request | `privacy.manage` |
+| `submissions:write` | create responses, and change those this key made ([submissions](../submissions-api.md); off unless the server turns it on) | `form.read` |
 
 The creator's permissions are checked on every call: a key never does more
 than the person who created it may do at that moment. Every call is recorded
@@ -55,6 +56,8 @@ in the workspace's API audit log.
 | `GET /forms/{formId}/responses?page&size` | Response summaries, most recent first |
 | `GET /forms/{formId}/responses/{responseId}` | One response with its answers |
 | `POST /forms/{formId}/responses/{responseId}/deletion-request/close` | Close a pending deletion request as `completed` or `declined` |
+| `POST /forms/{formId}/submissions` | Submit a response to a published form, through the respondent's own checks ([details](../submissions-api.md)) |
+| `PATCH /forms/{formId}/submissions/{responseId}` | Change answers of a response the same key made |
 
 ### Replacing a form
 
@@ -103,8 +106,8 @@ returned as `internalAnswers`.
 
 ## Retries
 
-`POST /forms`, `POST .../ops` and `POST .../publish` accept an
-`Idempotency-Key` header (1 to 255 printable characters). Within 24 hours,
+`POST /forms`, `POST .../ops`, `POST .../publish` and the submissions
+endpoints accept an `Idempotency-Key` header (1 to 255 printable characters). Within 24 hours,
 the same key with the same request (method, path and body) returns the first
 response with `Idempotent-Replayed: true` and runs nothing again (a created or
 edited form is returned as it is now, with its current `ETag`); the same
@@ -116,7 +119,9 @@ Keys are per API key.
 - Requests per API key: 120 a minute by default, and 600 a minute for all of
   a workspace's keys together (`API_PUBLIC_API_REQUESTS_PER_WINDOW`,
   `API_PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW`,
-  `API_PUBLIC_API_WINDOW_SECONDS`); beyond that 429 with `Retry-After`.
+  `API_PUBLIC_API_WINDOW_SECONDS`); beyond that 429 with `Retry-After`. The
+  submissions endpoints count against a budget of their own (the same
+  ceilings), so reads never use it up.
 - Lists: `size` at most 100, `page` at most 10000.
 - Request bodies: at most 1 MB (413). A document has at most 200 pages and
   2000 fields.

@@ -12,6 +12,7 @@ from common.models.standard_form import (
     StandardFormResponseAnswer,
     StandardFormField,
     StandardFormFieldType,
+    SubmissionSource,
 )
 from common.models.user import User
 from common.services.crypto_service import UnreadableCiphertext, crypto_service
@@ -31,6 +32,7 @@ from backend.app.models.dtos.form_response_dto import (
     SingleSubmissionResponse,
     SubmissionPath,
     SubmissionPathStep,
+    SubmissionSourceView,
 )
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.dtos.respondent_feedback_dto import StaffFeedback
@@ -550,6 +552,8 @@ class FormResponseService:
         ):
             refuse_not_owner(permissions, MESSAGE_NOT_FOUND)
 
+        # staff only: that an API key made it (never the key's id)
+        made_by = response.submission_source if is_admin else None
         response = StandardFormResponseCamelModel(**response.model_dump())
         if not is_admin:
             # The respondent's "view my submission": no internal values.
@@ -632,6 +636,15 @@ class FormResponseService:
             response=decrypted_response,
             internal_fields=staff_internal_fields,
             feedback=staff_view,
+            source=(
+                SubmissionSourceView(
+                    channel=made_by.channel,
+                    key_name=made_by.key_name,
+                    consent_asserted=made_by.consent_asserted,
+                )
+                if made_by is not None
+                else None
+            ),
         )
 
     async def signature_image(
@@ -970,8 +983,10 @@ class FormResponseService:
         response: StandardFormResponse,
         workspace_id: RecordId,
         response_limit: Optional[int] = None,
+        source: Optional[SubmissionSource] = None,
     ):
-        """Store a new response. ``response_limit``: the form's limit; the
+        """Store a new response. ``source``: how an API key made it (set by
+        the server only). ``response_limit``: the form's limit; the
         count and the insert are one locked step, 409 ``form_full`` when it is
         used up (repositories/postgres/responses.py ``save_form_response``)."""
         response = await self._form_response_repo.save_form_response(
@@ -984,6 +999,7 @@ class FormResponseService:
                 if response_limit is not None
                 else None
             ),
+            source=source,
         )
 
         return self.decrypt_form_response(workspace_id=workspace_id, response=response)
@@ -995,15 +1011,18 @@ class FormResponseService:
         response: StandardFormResponse,
         workspace_id: RecordId,
         user=User,
+        source_key_id: Optional[str] = None,
     ):
         """``document_id``: the ``_id`` of the workspace's own copy, as
-        ``workspace_response`` found it."""
+        ``workspace_response`` found it. ``source_key_id``: an API key editing
+        what it made (instead of the respondent, see the repository)."""
         updated_response = await self._form_response_repo.patch_form_response(
             form_id=form_id,
             document_id=document_id,
             response=response,
             workspace_id=workspace_id,
             user=user,
+            source_key_id=source_key_id,
         )
         return updated_response
 

@@ -12,6 +12,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_permissions_dto import WorkspacePermissionsDto
 from backend.app.services.address_lookup.mode import address_lookup_enabled
 from backend.app.services.field_rules import field_rules_enabled
+from backend.app.services.submissions_api.mode import submissions_api_enabled
 from backend.app.services.new_question_types import (
     address_question_enabled,
     new_question_types_enabled,
@@ -240,6 +241,7 @@ class WorkspaceRouter(Routable):
             address_lookup_enabled=address_lookup_enabled(),
             choice_logic_enabled=choice_logic_enabled(),
             save_drafts_enabled=save_drafts_enabled(),
+            submissions_api_enabled=submissions_api_enabled(),
         )
 
     @get("/{workspace_id}/ai-profile")

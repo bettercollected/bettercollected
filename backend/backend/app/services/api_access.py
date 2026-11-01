@@ -27,6 +27,9 @@ SCOPE_PERMISSIONS: Dict[str, Tuple[Permission, ...]] = {
     "responses:read": (Permission.RESPONSE_READ, Permission.RESPONSE_EXPORT),
     "deletion_requests:read": (Permission.PRIVACY_MANAGE,),
     "deletion_requests:write": (Permission.PRIVACY_MANAGE,),
+    # a respondent needs no permission to submit; the creator holding
+    # form.read keeps a removed or demoted creator's key from working
+    "submissions:write": (Permission.FORM_READ,),
 }
 
 MISSING_SCOPE_CODE = "missing_scope"

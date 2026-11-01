@@ -10,6 +10,7 @@ the wrapper in ``app.py``.
 
 from dataclasses import dataclass
 from http import HTTPStatus
+from typing import Callable, Optional
 
 from common.ids import RecordId
 from common.models.user import User
@@ -27,6 +28,12 @@ from common.settings.loader import live
 AUDIT_STATE = "public_api_audit"
 RATE_LIMIT_SCOPE = "public-api"
 WORKSPACE_RATE_LIMIT_SCOPE = "public-api-workspace"
+# writes of responses count against budgets of their own (same ceilings): a
+# burst of reads never uses up the submissions' budget, nor the other way round
+SUBMISSIONS_RATE_LIMIT_SCOPE = "public-api-submissions"
+SUBMISSIONS_WORKSPACE_RATE_LIMIT_SCOPE = "public-api-submissions-workspace"
+# where the wrapper in app.py finds extra ids to audit (the new response's id)
+AUDIT_EXTRA = "public_api_audit_extra"
 
 bearer = HTTPBearer(
     auto_error=False,
@@ -77,32 +84,48 @@ async def _hit(scope: str, client: str, limit: int, who: str) -> None:
         )
 
 
-async def _rate_limit(key: WorkspaceAPIKeyDocument) -> None:
+async def _rate_limit(key: WorkspaceAPIKeyDocument, submissions: bool = False) -> None:
     """Per API key, and a ceiling for all the workspace's keys together
-    (more keys never buy more requests). 0 turns either off."""
+    (more keys never buy more requests). 0 turns either off. The submissions
+    endpoints count against their own pair of budgets."""
     api = live().api
     await _hit(
-        RATE_LIMIT_SCOPE,
+        SUBMISSIONS_RATE_LIMIT_SCOPE if submissions else RATE_LIMIT_SCOPE,
         str(key.id),
         api.PUBLIC_API_REQUESTS_PER_WINDOW,
         "with this API key",
     )
     await _hit(
-        WORKSPACE_RATE_LIMIT_SCOPE,
+        (
+            SUBMISSIONS_WORKSPACE_RATE_LIMIT_SCOPE
+            if submissions
+            else WORKSPACE_RATE_LIMIT_SCOPE
+        ),
         str(key.workspace_id),
         api.PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW,
         "from this workspace's API keys",
     )
 
 
-def api_key(scope: str, operation: str):
+def api_key(
+    scope: str,
+    operation: str,
+    *,
+    submissions: bool = False,
+    before: Optional[Callable[[], None]] = None,
+):
     """The dependency of an endpoint that needs ``scope``; ``operation``
-    names the call in the audit log."""
+    names the call in the audit log. ``submissions``: the endpoint writes
+    responses and counts against the submissions' own rate budgets.
+    ``before``: runs first, before the key is looked at (a switch that makes
+    the endpoint not exist answers 404 here)."""
 
     async def dependency(
         request: Request,
         credentials: HTTPAuthorizationCredentials = Depends(bearer),
     ) -> ApiCaller:
+        if before is not None:
+            before()
         token = credentials.credentials if credentials else ""
         try:
             key = await APIKeyService.authenticate(token)
@@ -117,7 +140,7 @@ def api_key(scope: str, operation: str):
                 headers={"WWW-Authenticate": "Bearer"},
             )
         setattr(request.state, AUDIT_STATE, (key, operation))
-        await _rate_limit(key)
+        await _rate_limit(key, submissions)
         await require_key_scope(key, scope)
         return ApiCaller(key=key, user=acting_user(key))
 
