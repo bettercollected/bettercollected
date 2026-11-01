@@ -489,3 +489,65 @@ async def test_a_hostile_form_title_cannot_split_the_header(client, workspace):
     disposition = response.headers["content-disposition"]
     assert "\r" not in disposition and "\n" not in disposition and "x-evil" not in response.headers
     assert disposition.startswith("attachment; filename=") and "filename*=UTF-8''%C3%89tude" in disposition
+
+
+# ------------------------------------------------- cost and the private hook
+
+
+def test_an_unbroken_answer_is_wrapped_in_linear_time():
+    import time
+
+    started = time.monotonic()
+    pieces = render.wrap("W" * render.MAX_VALUE_CHARS, render.REGULAR, render.BODY_SIZE, render.CONTENT_WIDTH)
+    assert time.monotonic() - started < 1.0
+    assert "".join(pieces) == "W" * render.MAX_VALUE_CHARS
+    assert all(render.text_width(p, render.REGULAR, render.BODY_SIZE) <= render.CONTENT_WIDTH for p in pieces)
+    # one character wider than a line is still one character per piece
+    assert render.wrap("W", render.REGULAR, render.BODY_SIZE, 1.0) == ["W"]
+    assert render.wrap("WW", render.REGULAR, render.BODY_SIZE, 1.0) == ["W", "W"]
+
+
+def test_a_document_of_unbroken_answers_is_refused_quickly_not_laid_out_for_ever():
+    import time
+
+    fields = [{"id": f"q{i}", "type": "long_text", "title": f"Q{i}"} for i in range(60)]
+    given = {f"q{i}": text("W" * render.MAX_VALUE_CHARS) for i in range(60)}
+    started = time.monotonic()
+    with pytest.raises(render.PdfTooLarge):
+        render_of(fields, given)
+    assert time.monotonic() - started < 5.0
+    # 25 of them (500,000 characters) fit the character budget and still draw fast
+    given = {f"q{i}": text("W" * render.MAX_VALUE_CHARS) for i in range(10)}
+    started = time.monotonic()
+    try:
+        render_of(fields[:10], given)
+    except render.PdfTooLarge:
+        pass  # (the page cap may say so first)
+    assert time.monotonic() - started < 5.0
+
+
+def test_the_total_text_and_the_layout_time_are_bounded(monkeypatch):
+    monkeypatch.setattr(render, "MAX_TOTAL_CHARS", 100)
+    with pytest.raises(render.PdfTooLarge):
+        render_of([{"id": "a", "type": "long_text", "title": "Q"}], {"a": text("x" * 500)})
+    monkeypatch.setattr(render, "MAX_TOTAL_CHARS", 500_000)
+    monkeypatch.setattr(render, "MAX_LAYOUT_SECONDS", -1.0)
+    with pytest.raises(render.PdfTooLarge):
+        render_of([{"id": "a", "type": "short_text", "title": "Q"}], {"a": text("x")})
+
+
+def test_the_private_canvas_hook_still_exists():
+    """Marked content is written through ``Canvas._code`` (no public hook): this
+    fails when a ReportLab upgrade moves it, which is the signal to revisit
+    ``render._draw`` (the version is pinned in pyproject.toml)."""
+    import reportlab
+    from reportlab.pdfgen import canvas
+
+    assert reportlab.Version == "5.0.1"
+    pdf = canvas.Canvas(io.BytesIO())
+    assert isinstance(pdf._code, list)
+    pdf._code.append("/P << /MCID 0 >> BDC")
+    pdf.drawString(10, 10, "x")
+    pdf._code.append("EMC")
+    pdf.showPage()
+    pdf.save()

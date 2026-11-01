@@ -8,9 +8,13 @@
                     "answers": {"<question id>": <answer>},
                     "internalAnswers": {...}, "hiddenFields": {...}}]}
 
-It follows the REST API's representation of a response (``responseId``,
+It is close to the REST API's representation of a response (``responseId``,
 ``submittedAt``, ``answers`` keyed by question id with the stored answer
-objects, ``internalAnswers``), so a script that reads the API reads this file.
+objects, ``internalAnswers``): the same names and the same answer objects. The
+differences: ``submittedAt`` ends in ``Z`` (the CSV's form) where the API writes
+``+00:00``; ``responder``, ``internalAnswers`` and ``hiddenFields`` appear when
+their columns are chosen (the API never returns who answered); ``formVersion``
+and ``questions`` are added; links to stored files are removed.
 ``questions`` says what each id is (without it a choice answer is an opaque id);
 a repeating group stays nested (``{"items": [{<child id>: <answer>}]}``), the
 ``rows``/``columns`` layout being a spreadsheet matter.
@@ -20,8 +24,8 @@ hidden field only when its column is chosen, ``responder`` only with the
 responder column. ``responseId`` and ``submittedAt`` always identify a row.
 
 Links never leave, as in the CSV ("never the image or a link to it"): an
-answer's ``file_url``, a file's ``url`` and a drawn signature's ``file_id`` are
-removed. The rest is the stored answer, without its empty values.
+answer's ``file_url``, a file's ``url`` and a drawn signature's ``file_id`` and
+``url`` are removed. The rest is the stored answer, without its empty values.
 
 Memory stays at one response: the head, then each response after a comma, then
 the tail, over the same pass over the responses as the other formats.
@@ -55,7 +59,7 @@ JSON_MEDIA_TYPE = "application/json; charset=utf-8"
 _LINK_KEYS = ("file_url", "fileUrl")
 _FILE_KEYS = ("file_metadata", "fileMetadata")
 _FILE_LINK = ("url",)
-_SIGNATURE_FILE = ("file_id", "fileId")
+_SIGNATURE_FILE = ("file_id", "fileId", "url")
 _SURROGATES = {c: "�" for c in range(0xD800, 0xE000)}
 
 

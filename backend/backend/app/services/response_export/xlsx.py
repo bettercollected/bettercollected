@@ -25,7 +25,7 @@ defined name or an external link, so a workbook made here cannot run anything.
 * **A file that opens.** Characters XML 1.0 forbids are removed, the
   ``_xHHHH_`` escape that Excel decodes inside strings is itself escaped, a text
   over Excel's 32,767 characters is cut, integers Excel could not hold exactly
-  (16 digits or more) are written as text, sheet names follow Excel's rules.
+  (16 digits or more) are written as text, sheet names follow Excel's rules (at most 31 UTF-16 units).
   More columns than Excel's 16,384 are refused (``TooManyColumns``); a sheet
   that would pass its 1,048,576 rows stops the file (``SheetFull``).
 """
@@ -70,14 +70,17 @@ STYLE_HEADER_TEXT = 5
 
 _EPOCH = dt.datetime(1899, 12, 30)
 _FIRST_SAFE_SERIAL = 61.0  # 1900-03-01
-_ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _ISO_DATETIME = re.compile(
-    r"(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?(Z|[+-]\d{2}:?\d{2})?"
+    r"([0-9]{4}-[0-9]{2}-[0-9]{2})[T ]([0-9]{2}):([0-9]{2})(?::([0-9]{2}))?(?:\.[0-9]+)?(Z|[+-][0-9]{2}:?[0-9]{2})?"
 )
 # characters XML 1.0 cannot carry (control characters, lone surrogates, U+FFFE/F)
 _XML_ILLEGAL = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff￾￿]")
-# ``_x0041_``: Excel reads this as the character U+0041 inside a string
-_X_ESCAPE = re.compile(r"_(x[0-9A-Fa-f]{4}_)")
+# ``_x0041_``: Excel reads this as the character U+0041 inside a string. Every
+# underscore that starts one (also overlapping ones, ``_x0041_x0042_``, and a
+# capital ``X``: whether the reader is case-sensitive is not ours to bet on)
+# is itself escaped
+_X_ESCAPE = re.compile(r"_(?=[xX][0-9A-Fa-f]{4}_)")
 _SHEET_NAME_BAD = re.compile(r"[\[\]:*?/\\\x00-\x1f]+")
 
 NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -114,7 +117,7 @@ def xml_text(value: str) -> str:
     value = _XML_ILLEGAL.sub("", value)
     if len(value) > MAX_CELL_CHARS:
         value = value[:MAX_CELL_CHARS]
-    value = _X_ESCAPE.sub(r"_x005F_\1", value)
+    value = _X_ESCAPE.sub("_x005F_", value)
     # a carriage return as a character reference: a bare one is read back as a line feed
     return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\r", "&#13;")
 
@@ -124,19 +127,31 @@ def xml_attribute(value: str) -> str:
     return xml_text(value).replace('"', "&quot;").replace("\t", "&#9;").replace("\n", "&#10;")
 
 
+def _cut_utf16(text: str, units: int) -> str:
+    """The longest start of ``text`` of at most ``units`` UTF-16 code units (what
+    Excel counts in a sheet name), never half of a pair."""
+    used = 0
+    for index, ch in enumerate(text):
+        step = 2 if ord(ch) > 0xFFFF else 1
+        if used + step > units:
+            return text[:index]
+        used += step
+    return text
+
+
 def sheet_name(name: str, taken: Iterable[str]) -> str:
     """A worksheet name Excel accepts: at most 31 characters, none of
     ``[]:*?/\\``, not empty, not starting or ending with an apostrophe, not the
     reserved ``History``, unique among ``taken`` ignoring case."""
     cleaned = _SHEET_NAME_BAD.sub(" ", name or "").strip().strip("'").strip()
-    cleaned = cleaned[:SHEET_NAME_MAX].strip().strip("'").strip() or "Sheet"
+    cleaned = _cut_utf16(cleaned, SHEET_NAME_MAX).strip().strip("'").strip() or "Sheet"
     if cleaned.lower() == "history":
         cleaned = "History (2)"
     used = {t.lower() for t in taken}
     candidate, n = cleaned, 2
     while candidate.lower() in used:
         suffix = f" ({n})"
-        candidate = cleaned[: SHEET_NAME_MAX - len(suffix)].rstrip() + suffix
+        candidate = _cut_utf16(cleaned, SHEET_NAME_MAX - len(suffix)).rstrip() + suffix
         n += 1
     return candidate
 
@@ -410,7 +425,8 @@ async def write_xlsx(
             if data:
                 yield data
         for number, (headers, kinds, rows, table_counter) in enumerate(tables, 1):
-            with archive.open(info(f"xl/worksheets/sheet{number}.xml"), "w") as entry:
+            # a sheet's size is not known before it is written: ZIP64 sizes, so one past 4 GiB is still a valid archive
+            with archive.open(info(f"xl/worksheets/sheet{number}.xml"), "w", force_zip64=True) as entry:
                 async for piece in _pieces(_sheet_text(headers, kinds, rows, source, table_counter), piece_bytes):
                     entry.write(piece)
                     data = sink.take()
