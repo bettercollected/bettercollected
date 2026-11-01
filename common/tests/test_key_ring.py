@@ -167,3 +167,55 @@ def test_the_workers_carry_identical_ring_ciphers():
     executor = (repo / "temporal/actions-executor/configs/crypto.py").read_text()
     assert worker == executor
     assert "MultiFernet" in worker
+
+
+# ------------------------------------------- one parser, byte-identical single keys
+def test_a_single_signing_secret_is_returned_exactly_as_it_is():
+    """No trimming of what signs sessions and keys stored hashes: a stack that
+    never rotates behaves byte for byte as before rings existed."""
+    for raw in (f" {OLD_J}", f"{OLD_J}\n", f"'{OLD_J}'", "short,with,commas", f"{OLD_J},", f",{OLD_J}"):
+        assert key_ring.token_members(raw) == [raw], raw
+        assert shipped_secrets.token_members(raw) == [raw], raw
+    assert key_ring.token_members("   ") == [] and key_ring.token_members(None) == []
+    # a real ring is still read, whatever surrounds it
+    assert key_ring.token_members(f" {NEW_J},{OLD_J}\n") == [NEW_J, OLD_J]
+
+
+@pytest.mark.parametrize("wrap", ["{}", "'{}'", '"{}"', " {} "])
+def test_both_parsers_agree_on_a_quoted_fernet_key_and_the_cipher_uses_it(wrap):
+    """One rule for the cipher, the PKCE verifiers and the sign-in code hash (they all go
+    through ``fernet_members``): a quoted key is the key, not a second spelling."""
+    value = wrap.format(OLD_F)
+    assert key_ring.fernet_members(value) == shipped_secrets.fernet_members(value) == [OLD_F]
+    assert Crypto(value).decrypt(Crypto(OLD_F).encrypt("x")) == "x"
+    ring = f"'{NEW_F},{OLD_F}'"
+    assert key_ring.fernet_members(ring) == shipped_secrets.fernet_members(ring) == [NEW_F, OLD_F]
+
+
+def test_the_start_check_says_what_a_comma_in_a_signing_secret_means(caplog):
+    import logging
+
+    caplog.set_level(logging.WARNING, logger="common.shipped_secrets")
+    shipped_secrets.require_secrets(
+        "test", {"AUTH_JWT_SECRET": f"{NEW_J},{OLD_J}"}, {"AUTH_AES_HEX_KEY": f"{NEW_F},{OLD_F}"}
+    )
+    ring_text = caplog.text
+    assert "AUTH_JWT_SECRET is read as a key ring of two" in ring_text
+    assert "AUTH_AES_HEX_KEY is read as a key ring of two" in ring_text
+    caplog.clear()
+    hand_made = "a-hand-made-secret,with-a-comma-of-some-length-0123456789"
+    shipped_secrets.require_secrets("test", {"AUTH_JWT_SECRET": hand_made}, {"AUTH_AES_HEX_KEY": OLD_F})
+    assert "AUTH_JWT_SECRET contains a comma but is not a key ring" in caplog.text
+    hand_made_text = caplog.text
+    caplog.clear()
+    shipped_secrets.require_secrets("test", {"AUTH_JWT_SECRET": OLD_J}, {"AUTH_AES_HEX_KEY": OLD_F})
+    assert caplog.text == ""  # a plain key is silent
+    for member in (OLD_J, NEW_J, OLD_F, NEW_F, hand_made):
+        assert member not in ring_text + hand_made_text
+
+
+def test_the_ring_mark_fits_the_heartbeat_fingerprint():
+    import re
+
+    # settings.report_state accepts ^[A-Za-z0-9_.:-]{0,64}$ for the fingerprint
+    assert re.fullmatch(r"[A-Za-z0-9_.:-]{0,64}", "ks-0123456789ab" + key_ring.REPORT_MARK)

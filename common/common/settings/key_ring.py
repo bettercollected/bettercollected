@@ -24,6 +24,11 @@ import hmac
 from typing import List, Optional, Sequence
 
 SEPARATOR = ","
+# appended to the fingerprint every build with key-ring support reports in its
+# heartbeat (``settings.service_state.keyset_fp``, whose charset allows it): the
+# ``authkeys.add_key`` task refuses while a live instance does not carry it, since
+# a build from before rings would read "<old>,<new>" as one key
+REPORT_MARK = ".r1"
 MAX_MEMBERS = 2
 # a member of a JWT ring is a token-format secret: at least this many characters
 # (``check_token``). A value is read as a ring only when BOTH sides of its one comma
@@ -32,6 +37,7 @@ MAX_MEMBERS = 2
 MIN_TOKEN_MEMBER = 32
 
 __all__ = [
+    "REPORT_MARK",
     "MAX_MEMBERS",
     "MIN_TOKEN_MEMBER",
     "SEPARATOR",
@@ -44,16 +50,22 @@ __all__ = [
 ]
 
 
-def _clean(value: Optional[str]) -> str:
-    return (value or "").strip()
+def _normalize(value: Optional[str]) -> str:
+    """A Fernet key as an env file means it: trimmed, one pair of quotes removed
+    (``common/configs/shipped_secrets.py`` ``normalize_secret``: the same rule)."""
+    value = (value or "").strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+        value = value[1:-1].strip()
+    return value
 
 
 def fernet_members(value: Optional[str]) -> List[str]:
     """The Fernet keys of a ring, current first. A url-safe base64 key never
     contains a comma, so every comma separates two keys. Empty for no value.
     More than two members are returned as they are (the format check refuses
-    them; a reader never silently drops a key)."""
-    text = _clean(value)
+    them; a reader never silently drops a key). The one parser every use of the
+    key goes through (the cipher, the PKCE verifiers, the sign-in code hash)."""
+    text = _normalize(value)
     if not text:
         return []
     return [part.strip() for part in text.split(SEPARATOR)]
@@ -62,17 +74,18 @@ def fernet_members(value: Optional[str]) -> List[str]:
 def token_members(value: Optional[str]) -> List[str]:
     """The signing secrets of a ring, current first: two when the value has
     exactly one comma and both sides are token-length secrets without
-    whitespace, otherwise the whole value as one secret."""
-    text = _clean(value)
-    if not text:
+    whitespace. Any other value is ONE secret and is returned exactly as it is
+    (not trimmed: a single secret signs, and keys the stored draft hashes, byte
+    for byte as it did before rings existed). Empty for no value."""
+    if value is None or not value.strip():
         return []
-    parts = text.split(SEPARATOR)
+    parts = value.strip().split(SEPARATOR)
     if len(parts) == 2 and all(
         len(part) >= MIN_TOKEN_MEMBER and not any(c.isspace() for c in part)
         for part in parts
     ):
         return parts
-    return [text]
+    return [value]
 
 
 def primary(members: Sequence[str]) -> str:

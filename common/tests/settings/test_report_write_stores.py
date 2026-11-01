@@ -50,7 +50,8 @@ def test_a_store_from_before_0018_gets_the_old_report():
     conn = FakeConnection(has_new=False)
     source_with(conn).report_state("backend:h", STATE)
     assert [sql.count("$") for sql, _ in conn.calls] == [7, 6]
-    assert conn.calls[1][1] == ("backend:h", 3, [], [], False, "ab")
+    # the fingerprint carries the mark of a build with key-ring support
+    assert conn.calls[1][1] == ("backend:h", 3, [], [], False, "ab.r1")
 
 
 def test_other_errors_are_not_swallowed():

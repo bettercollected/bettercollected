@@ -239,3 +239,23 @@ def test_the_oauth_state_of_an_integration_is_read_with_the_ring(monkeypatch):
     assert reader.read(state, user)["user_id"] == "u1"
     with pytest.raises(Exception):
         IntegrationOAuthState(Crypto(NEW_F), used_state_repo=None).read(state, user)
+
+
+def test_a_quoted_encryption_key_gives_the_same_pkce_verifier_at_the_start_and_the_exchange(monkeypatch):
+    """One parser for every use of the key: the cipher, the state it opens and the
+    verifier derived from it all see the key without its quotes."""
+    from backend.app.services import google_sheets_oauth as sheets
+
+    quoted = f"'{NEW_F},{OLD_F}'"
+    _aes(monkeypatch, quoted)
+    ring = Crypto(quoted)
+    assert ring.member_count == 2
+    state = ring.encrypt("{}")
+    started = sheets.pkce_code_verifier(state)  # derived with the first key at the start
+    oauth = sheets.GoogleSheetsOAuth(ring)
+    member = oauth._check_state_age(state)
+    assert member == NEW_F  # no quote in the key the state opened with
+    assert sheets.pkce_code_verifier(state, member) == started
+    unquoted = f"{NEW_F},{OLD_F}"
+    _aes(monkeypatch, unquoted)
+    assert sheets.pkce_code_verifier(state) == started  # the same as the unquoted ring

@@ -118,22 +118,31 @@ class PostgresFormDraftRepository(RecordRepository):
         return await self.save_document(document)
 
     async def create_for_address(
-        self, document: FormDraftDocument, limit: int, now: dt.datetime
+        self,
+        document: FormDraftDocument,
+        limit: int,
+        now: dt.datetime,
+        email_keys: Optional[Sequence[str]] = None,
     ) -> Optional[FormDraftDocument]:
         """Insert a draft of an address unless it already holds ``limit`` live
         ones on the form (counted and inserted under one lock): the draft, or
-        None when the address is at its limit."""
+        None when the address is at its limit. ``email_keys``: the address's
+        keyed hash under every member of the JWT key ring (a draft saved before
+        a promotion carries the previous member's); the lock is taken on the
+        smallest, the same whatever the ring's order, so instances on either
+        side of a promotion exclude each other."""
         document.ensure_id()
+        keys = list(email_keys or [document.email_key])
         async with self._session() as session, session.begin():
             await _advisory_lock(
-                session, "form-draft-address", document.form_id, document.email_key
+                session, "form-draft-address", document.form_id, min(keys)
             )
             stored = len(
                 (
                     await session.execute(
                         select(FormDraftRow.id).where(
                             FormDraftRow.form_id == _id(document.form_id),
-                            FormDraftRow.email_key == document.email_key,
+                            FormDraftRow.email_key.in_(keys),
                             FormDraftRow.expires_at > now,
                         )
                     )
