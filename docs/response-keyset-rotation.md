@@ -31,6 +31,14 @@ keyset does not hide one.
 | `responses` | `answers`, `hidden_fields`, `internal_answers` and each `respondent_feedback[].message` of every stored response | Postgres `app.form_responses` |
 | `google-credentials` | the Google Forms integration's OAuth credentials | Postgres `google.oauth_credentials` |
 
+Not in that table: the **drawn signature images** (the signature question, behind
+`SIGNATURE_QUESTION_ENABLED`). They are encrypted with this keyset too, but they are objects in the
+file store (`private/<workspace>/<form>/<response>/<file id>`), which `reencrypt` and `drop-old` do
+not walk. An image stays under the key it was made with, and `drop-old` cannot see it. **While any
+drawn signature is stored, do not drop an old key** (stop before step 5): once its key is gone the
+image is unreadable (the response then shows "image not available"; the typed name and every other
+answer are not affected).
+
 The services that load the keyset: **backend**, **jobs-worker** and **integrations-googleform**.
 Auth, the Temporal workers, the actions-executor and the webapp do not use it. (The Typeform
 integration, a separate image that also loaded it, was removed in 4.1.)

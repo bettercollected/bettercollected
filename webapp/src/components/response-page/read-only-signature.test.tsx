@@ -3,7 +3,7 @@ import React from 'react';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import i18n from 'i18next';
 import { Provider as ReduxProvider } from 'react-redux';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FieldTypes } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
@@ -39,7 +39,7 @@ const form = (language?: string) =>
 const response = (answers: Record<string, any>) => ({ responseId: 'r', createdAt: '2026-10-01T10:00:00Z', answers }) as any;
 const ANSWERS = {
     typed: { field: { id: 'typed' }, type: 'signature', signature: { method: 'typed', name: 'Fatima El Idrissi', signed_at: '2026-11-01T09:31:12Z' } },
-    drawn: { field: { id: 'drawn' }, type: 'signature', signature: { method: 'drawn', file_id: 'img-1', signed_at: '2026-11-01T09:30:00Z', url: 'https://files.example/private/ws/f/r/img-1?signed' } }
+    drawn: { field: { id: 'drawn' }, type: 'signature', signature: { method: 'drawn', file_id: 'img-1', signed_at: '2026-11-01T09:30:00Z', url: '/workspaces/workspace-1/submissions/r/signatures/drawn' } }
 };
 
 const show = (language?: string, answers: Record<string, any> = ANSWERS) =>
@@ -49,11 +49,21 @@ const show = (language?: string, answers: Record<string, any> = ANSWERS) =>
         </ReduxProvider>
     );
 
+const PNG_RESPONSE = () => new Response(new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: 'image/png' }), { status: 200, headers: { 'content-type': 'image/png' } });
+
 beforeEach(() => {
     store.dispatch(setWorkspace({ id: 'workspace-1', workspaceName: 'acme' } as any));
+    // the image comes from the API (decrypted there), fetched with the user's credentials
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => PNG_RESPONSE())
+    );
+    URL.createObjectURL = vi.fn(() => 'blob:signature-1');
+    URL.revokeObjectURL = vi.fn();
 });
 
 afterEach(async () => {
+    vi.unstubAllGlobals();
     await act(() => i18n.changeLanguage('en'));
 });
 
@@ -67,21 +77,33 @@ describe('a signature on the response page', () => {
         expect(group.querySelector('img')).toBeNull();
     });
 
-    it('shows a drawn signature as its image, with a text alternative', () => {
+    it('shows a drawn signature as its image, with a text alternative', async () => {
         show();
         const group = screen.getAllByRole('group', { name: /Sign for your partner/ })[0];
-        const image = within(group).getByRole('img', { name: 'Drawn signature' });
-        expect(image).toHaveAttribute('src', 'https://files.example/private/ws/f/r/img-1?signed');
-        // the link is a bearer address to a private file: never sent on as a referrer
+        const image = await within(group).findByRole('img', { name: 'Drawn signature' });
+        // fetched from the API with the user's credentials, shown from a blob address
+        expect(image).toHaveAttribute('src', 'blob:signature-1');
+        expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/\/workspaces\/workspace-1\/submissions\/r\/signatures\/drawn$/), expect.objectContaining({ credentials: 'include' }));
         expect(image).toHaveAttribute('referrerpolicy', 'no-referrer');
     });
 
-    it('says the image is not available when its link does not load', () => {
+    it('says the image is not available when it does not load', async () => {
         show();
         const group = screen.getAllByRole('group', { name: /Sign for your partner/ })[0];
-        fireEvent.error(within(group).getByRole('img', { name: 'Drawn signature' }));
+        fireEvent.error(await within(group).findByRole('img', { name: 'Drawn signature' }));
         expect(within(group).queryByRole('img')).toBeNull();
         expect(within(group).getByText('Drawn signature (the image is not available)')).toBeInTheDocument();
+    });
+
+    it('says so when the server refuses the image', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => new Response('Not Found', { status: 404 }))
+        );
+        show();
+        const group = screen.getAllByRole('group', { name: /Sign for your partner/ })[0];
+        expect(await within(group).findByText('Drawn signature (the image is not available)')).toBeInTheDocument();
+        expect(within(group).queryByRole('img')).toBeNull();
     });
 
     it('says so when a drawn signature has no link (the file is gone)', () => {
@@ -102,11 +124,12 @@ describe('a signature on the response page', () => {
         expect(screen.getAllByText(/^Signed 1 November 2026/).length).toBeGreaterThan(0);
         await act(() => i18n.changeLanguage('nl'));
         expect(screen.getAllByText(/^Ondertekend op 1 november 2026/).length).toBeGreaterThan(0);
-        expect(screen.getByRole('img', { name: 'Getekende handtekening' })).toBeInTheDocument();
+        expect(await screen.findByRole('img', { name: 'Getekende handtekening' })).toBeInTheDocument();
     });
 
     it('has no accessibility violations', async () => {
         const { container } = show();
+        await screen.findByRole('img', { name: 'Drawn signature' });
         expect(await axeViolations(container)).toEqual([]);
     });
 });

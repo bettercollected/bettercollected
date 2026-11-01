@@ -372,8 +372,9 @@ export interface AnswerDto {
     /**
      * A signature question's answer (utils/signature.ts): how it was given,
      * the typed name or the id of the drawn image (a private stored file),
-     * when the server stored it, and the short-lived link to the image a
-     * read adds for people who may see it.
+     * when the server stored it, and the API path of the route that serves
+     * the image (decrypted) which a single-response read adds for people who
+     * may see it.
      */
     signature?: { method?: 'drawn' | 'typed' | string; file_id?: string; name?: string; signed_at?: string; url?: string };
     url?: string;

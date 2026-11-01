@@ -193,9 +193,22 @@ nothing in the product says it has any legal weight.
   response (also when its retention runs out, when the form is unlinked from a
   workspace, and when the signature is replaced in an edit). Without the sandbox a
   drawn signature is refused (503, try again); a typed one never needs it.
-  The object is stored as `image/png`, and its download link is signed to serve
-  `image/png` as an attachment. An image with no ink at all is not told apart without decoding it: the
+  **The stored object is encrypted** with the response keyset (the one that
+  encrypts the response's answers, `MASTER_ENCRYPTION_KEYSET`), bound to the
+  workspace, form, response, question and file, so a copy moved to another
+  response or question does not decrypt; it is put as `application/octet-stream`.
+  The ciphertext names the key it was made with, like every stored answer. An
+  image with no ink at all is not told apart without decoding it: the
   respondent form never sends one.
+- **Reading the image:** only through `GET /workspaces/{workspace}/submissions/{response}/signatures/{questionId}`,
+  for the people who may read that response (staff with `response.read`, or the
+  response's own respondent). It decrypts, checks the PNG again and answers
+  `image/png` with `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` and a
+  restrictive `Content-Security-Policy`; no storage link of the object is ever
+  given out. Anything not found or not the caller's is the same `404`, and a user
+  may fetch 60 a minute. An object stored before encryption existed (a PNG as it
+  is) is never served: the route answers `404` and the dashboard shows its
+  "image not available" text.
 - **`signedAt`** is stamped by the server when the signature is stored; a value
   the client sends is ignored, and an edit that leaves a signature as it is keeps
   its stamp.
@@ -214,8 +227,8 @@ nothing in the product says it has any legal weight.
   piped into a title. **Field rules** may require it, make it optional, or change its
   title or description; never set or lock its value.
 - Not allowed inside a repeating group, and never internal.
-- **Where it goes:** the dashboard shows the image (a short-lived link on the single
-  response view only, never in a list) or the typed name in an italic serif; the CSV
+- **Where it goes:** the dashboard shows the image (the single response read carries the
+  path of the route above, never in a list) or the typed name in an italic serif; the CSV
   has the typed name or `[drawn signature]`; the public API and the MCP server return
   the stored answer (no image, no link); webhooks, registrations and email actions do
   not carry it (it is not a variable they can map); the AI insights see `[signed]`;

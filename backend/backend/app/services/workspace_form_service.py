@@ -1,4 +1,5 @@
 import datetime as dt
+import io
 import os
 import random
 import re
@@ -97,6 +98,7 @@ from backend.app.services.new_question_types import ensure_question_types_allowe
 from backend.app.services.signatures import (
     delete_stored_images,
     prepare_signatures,
+    seal_image,
     signature_throttle,
 )
 from backend.app.services.option_logic import (
@@ -1083,8 +1085,27 @@ class WorkspaceFormService:
             extra = {}
             if getattr(form_file, "content_type", None):
                 extra["content_type"] = form_file.content_type
+            body = form_file.file.file
+            if getattr(form_file, "signature", False):
+                # a drawn signature is stored encrypted with the response
+                # keyset, bound to this response and question; never plain
+                if not (workspace_id and form_id and response.response_id):
+                    raise HTTPException(
+                        status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                        content="Could not store the signature.",
+                    )
+                body = io.BytesIO(
+                    seal_image(
+                        workspace_id,
+                        form_id,
+                        response.response_id,
+                        form_file.field_id,
+                        form_file.file_id,
+                        body.read(),
+                    )
+                )
             await self._aws_service.upload_file_to_s3(
-                file=form_file.file.file,
+                file=body,
                 key=str(form_file.file_id),
                 private=True,
                 folder_name=folder_name,
