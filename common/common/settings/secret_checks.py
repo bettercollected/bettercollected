@@ -14,6 +14,11 @@ Formats:
                 and not low-entropy. ``openssl rand -hex 32`` (what the deploy
                 scripts generate) and any long random string pass.
 ``fernet``      a Fernet key: url-safe base64 of 32 bytes that are not all alike.
+``token_ring``  a ring of one or two ``token`` secrets, current first (``AUTH_JWT_SECRET``
+                during a rotation, docs/auth-key-rotation.md): each member passes ``token``
+                and the two differ.
+``fernet_ring`` a ring of one or two Fernet keys, current first (``AUTH_AES_HEX_KEY``):
+                each member passes ``fernet`` and the two differ.
 ``key_pairs``   ``id:secret`` pairs separated by commas (edge assertion keys): an
                 identifier of letters, digits and ``._-`` and a secret of at
                 least 16 characters per pair.
@@ -36,6 +41,8 @@ import math
 import re
 from collections import Counter
 from typing import Callable, Dict, Optional, Tuple
+
+from .key_ring import MAX_MEMBERS, fernet_members, token_members
 
 Problem = Tuple[str, str]
 FormatCheck = Callable[[str], Optional[Problem]]
@@ -92,6 +99,28 @@ def check_fernet(value: str) -> Optional[Problem]:
     if len(set(raw)) < MIN_DISTINCT_CHARS:
         return "low_entropy", "does not look random (32 bytes that are nearly all alike)"
     return None
+
+
+def _check_ring(members, check, label: str) -> Optional[Problem]:
+    if not members:
+        return "bad_ring", f"must be {label}, or two separated by a comma (current first)"
+    if len(members) > MAX_MEMBERS:
+        return "bad_ring", f"holds more than {MAX_MEMBERS} keys (current first, then the previous one)"
+    if len(set(members)) != len(members):
+        return "bad_ring", "holds the same key twice"
+    for member in members:
+        problem = check(member)
+        if problem is not None:
+            return problem
+    return None
+
+
+def check_token_ring(value: str) -> Optional[Problem]:
+    return _check_ring(token_members(value), check_token, "a secret")
+
+
+def check_fernet_ring(value: str) -> Optional[Problem]:
+    return _check_ring(fernet_members(value), check_fernet, "a Fernet key")
 
 
 def check_key_pairs(value: str) -> Optional[Problem]:
@@ -198,6 +227,8 @@ def check_identity_key(value: str) -> Optional[Problem]:
 FORMAT_CHECKS: Dict[str, FormatCheck] = {
     "token": check_token,
     "fernet": check_fernet,
+    "token_ring": check_token_ring,
+    "fernet_ring": check_fernet_ring,
     "key_pairs": check_key_pairs,
     "secret_list": check_secret_list,
     "identity_key": check_identity_key,
