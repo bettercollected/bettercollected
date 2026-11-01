@@ -1,9 +1,9 @@
+import i18n from 'i18next';
+
 // The form outline AI form creation shows for review before building
 // (backend services/ai/outline.py). Edits here keep the outline buildable:
 // deleting or moving a question drops the show/hide rules and jumps that no
 // longer make sense, as the backend would on build.
-
-import i18n from 'i18next';
 
 export type OutlineQuestionType = 'short_text' | 'long_text' | 'email' | 'phone_number' | 'number' | 'url' | 'date' | 'yes_no' | 'multiple_choice' | 'dropdown' | 'rating' | 'linear_rating' | 'file_upload' | 'statement';
 

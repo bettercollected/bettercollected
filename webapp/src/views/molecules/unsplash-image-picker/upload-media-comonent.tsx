@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { Skeleton } from '@app/shadcn/components/ui/skeleton';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';

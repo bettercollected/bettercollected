@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+
 import { MultiPageFormIcon } from '@Components/icons/multipage-form-icon';
 import { SinglePageFormIcon } from '@Components/icons/single-page-form-icon';
 

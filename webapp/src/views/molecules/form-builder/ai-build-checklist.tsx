@@ -1,11 +1,11 @@
 'use client';
 
-import i18n from 'i18next';
 import React, { useState } from 'react';
 
 import { X } from 'lucide-react';
-
+import i18n from 'i18next';
 import { useTranslation } from 'react-i18next';
+
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { BuildReport, clearBuildReport, findingText, readBuildReport } from '@app/utils/ai-build-report';

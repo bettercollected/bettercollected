@@ -4,8 +4,8 @@ import { useRouter } from 'next-nprogress-bar';
 import Image from 'next/image';
 
 import { ChevronDown } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
+import { useTranslation } from 'react-i18next';
 
 import { AIOptIn, aiErrorMessage, isAINotEnabledError, useWorkspaceAI } from '@app/components/ai/ai-consent';
 import OutlineReview, { OutlineDeletion, UndoNotice } from '@app/components/ai/outline-review';

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 
-import { useTranslation } from 'react-i18next';
 import { Input } from '@app/shadcn/components/ui/input';
 import { SearchIcon } from 'lucide-react';
 import { useDebounceValue } from 'usehooks-ts';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     query: string;

@@ -1,8 +1,8 @@
 'use client';
 
 import { ReactNode, useId, useState } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';
 

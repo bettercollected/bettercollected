@@ -1,9 +1,9 @@
 'use client';
 
-import i18n from 'i18next';
 import React from 'react';
-
+import i18n from 'i18next';
 import { useTranslation } from 'react-i18next';
+
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 
 import { Separator } from '@app/shadcn/components/ui/separator';

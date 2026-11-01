@@ -1,8 +1,8 @@
 'use client';
 
 import { Fragment } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { InspectorLevel } from '@app/lib/hooks/use-inspector-escape';
 import { cn } from '@app/shadcn/util/lib';
 

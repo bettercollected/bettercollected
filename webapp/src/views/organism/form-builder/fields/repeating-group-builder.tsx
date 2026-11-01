@@ -1,8 +1,8 @@
 'use client';
 
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { formFieldsList } from '@app/constants/form-fields';
 import { fieldTypeChip } from '@app/lib/field-type-name';
 import { typeIsOff } from '@app/lib/form-ops/new-question-types';
@@ -16,7 +16,7 @@ import { getGroupChildren, getRepeatSettings, newGroupChild, REPEAT_CHILD_FIELD_
 import { buildSourceFields, ConditionRow, fieldText, isConditionSource, newConditionFor, sameSourceFields, SourceField } from '@app/views/molecules/form-builder/condition-editor-shared';
 import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
 import { getDateRuleSources, isDateRuleType } from '@app/utils/date-rules';
-import { asksForIdentity, WHY_WE_ASK_MAX_LENGTH } from '@app/utils/publish-checks';
+import { asksForIdentity, ownTitleText, WHY_WE_ASK_MAX_LENGTH } from '@app/utils/publish-checks';
 
 const CHILD_TYPES = REPEAT_CHILD_FIELD_TYPES.map((type) => ({ type, name: type === FieldTypes.TEXT ? 'Statement' : (formFieldsList.find((f) => f.type === type)?.name ?? type.replaceAll('_', ' ')) }));
 const CHOICE_TYPES: string[] = [FieldTypes.MULTIPLE_CHOICE, FieldTypes.DROP_DOWN];
@@ -113,8 +113,8 @@ export default function RepeatingGroupBuilder({ field, slide, disabled }: { fiel
                                 aria-label={t('GROUP_BUILDER.QUESTION')}
                                 className={inputClass}
                                 placeholder={t('GROUP_BUILDER.QUESTION')}
-                                defaultValue={typeof child.title === 'string' ? child.title : fieldText(child)}
-                                onBlur={(e) => e.target.value !== child.title && patchChild(child.id, { title: e.target.value })}
+                                defaultValue={typeof child.title === 'string' ? child.title : ownTitleText(child)}
+                                onBlur={(e) => e.target.value !== (typeof child.title === 'string' ? child.title : ownTitleText(child)) && patchChild(child.id, { title: e.target.value })}
                             />
                             <select
                                 aria-label={t('GROUP_BUILDER.QUESTION_TYPE')}

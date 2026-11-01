@@ -1,13 +1,13 @@
-import i18n from 'i18next';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { useTranslation } from 'react-i18next';
 import { ArrowDown } from '@Components/icons/arrow-down';
 import { Color, TextStyle } from '@tiptap/extension-text-style';
 import { Placeholder } from '@tiptap/extensions';
 import { Editor, EditorProvider, JSONContent, useCurrentEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useDebounceValue } from 'usehooks-ts';
+import i18n from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
@@ -133,14 +133,22 @@ function hasPipeItems(formFields: StandardFormFieldDto[], hiddenNames: string[],
     return (formFields || []).some((sourceSlide, slideIndex) => (sourceSlide?.properties?.fields ?? []).some((sourceField) => !sourceField?.internal && (isPipeAnswer(target, slideIndex, sourceField) || isPipeGroup(target, slideIndex, sourceField))));
 }
 
-function buildPipeItems(formFields: StandardFormFieldDto[], hiddenNames: string[], field: StandardFormFieldDto, slide: StandardFormFieldDto): PipeSuggestionItem[] {
+export function buildPipeItems(formFields: StandardFormFieldDto[], hiddenNames: string[], field: StandardFormFieldDto, slide: StandardFormFieldDto): PipeSuggestionItem[] {
     const target = { field, slide };
-    const sources = buildSourceFields(formFields, (sourceSlide, slideIndex, sourceField) => isPipeAnswer(target, slideIndex, sourceField));
+    const isAnswer = (sourceSlide: StandardFormFieldDto, slideIndex: number, sourceField: StandardFormFieldDto) => isPipeAnswer(target, slideIndex, sourceField);
+    const isGroup = (sourceSlide: StandardFormFieldDto, slideIndex: number, sourceField: StandardFormFieldDto) => isPipeGroup(target, slideIndex, sourceField);
+    // The menu shows labels in the builder's language; the chip stores the same label in English (it is part of the question's title, which respondents' pages read back).
+    const sources = buildSourceFields(formFields, isAnswer);
+    const storedSources = buildSourceFields(formFields, isAnswer, 'en');
     // Earlier repeating groups pipe as a whole: item count, lists, aggregates.
-    const groups = buildSourceFields(formFields, (sourceSlide, slideIndex, sourceField) => isPipeGroup(target, slideIndex, sourceField));
+    const groups = buildSourceFields(formFields, isGroup);
+    const storedGroups = buildSourceFields(formFields, isGroup, 'en');
     return [
-        ...sources.map(({ field: sourceField, label }): PipeSuggestionItem => ({ kind: 'field', pipeKey: sourceField.id, label, group: 'Answers' })),
-        ...groups.flatMap(({ field: group, label }) => getGroupPipeOptions(group, label).map((option): PipeSuggestionItem => ({ kind: 'group', ...option, group: 'Repeating groups' }))),
+        ...sources.map(({ field: sourceField, label }, i): PipeSuggestionItem => ({ kind: 'field', pipeKey: sourceField.id, label, storedLabel: storedSources[i]?.label ?? label, group: 'Answers' })),
+        ...groups.flatMap(({ field: group, label }, i) => {
+            const stored = getGroupPipeOptions(group, storedGroups[i]?.label ?? label);
+            return getGroupPipeOptions(group, label).map((option, j): PipeSuggestionItem => ({ kind: 'group', ...option, storedLabel: stored[j]?.label ?? option.label, group: 'Repeating groups' }));
+        }),
         ...hiddenNames.map((name): PipeSuggestionItem => ({ kind: 'hidden', pipeKey: name, label: name, group: 'Hidden fields' }))
     ];
 }
@@ -385,7 +393,7 @@ const InsertPipeMenu = ({ editor, field, slide }: { editor: Editor; field: Stand
             .chain()
             .focus()
             .insertContent([
-                { type: 'answerPipe', attrs: { kind: item.kind, pipeKey: item.pipeKey, label: item.label } },
+                { type: 'answerPipe', attrs: { kind: item.kind, pipeKey: item.pipeKey, label: item.storedLabel ?? item.label } },
                 { type: 'text', text: ' ' }
             ])
             .run();
@@ -456,13 +464,13 @@ const ToolbarButton = ({ label, pressed, onClick, children, className }: { label
 const HeadingButtons = ({ editor }: { editor: Editor }) => {
     const { t } = useTranslation('builder');
     return (
-    <div className="flex items-center gap-1 border-l border-black-300 pl-3" role="group" aria-label={t('RTE.HEADING_LEVEL')}>
-        {TEXT_BLOCK_HEADING_LEVELS.map((level) => (
-            <ToolbarButton key={level} label={t('RTE.HEADING_N', { level })} pressed={editor.isActive('heading', { level })} onClick={() => editor.chain().focus().toggleHeading({ level }).run()} className="px-1 text-sm font-semibold text-black-700">
-                <span aria-hidden="true">H{level}</span>
-            </ToolbarButton>
-        ))}
-    </div>
+        <div className="flex items-center gap-1 border-l border-black-300 pl-3" role="group" aria-label={t('RTE.HEADING_LEVEL')}>
+            {TEXT_BLOCK_HEADING_LEVELS.map((level) => (
+                <ToolbarButton key={level} label={t('RTE.HEADING_N', { level })} pressed={editor.isActive('heading', { level })} onClick={() => editor.chain().focus().toggleHeading({ level }).run()} className="px-1 text-sm font-semibold text-black-700">
+                    <span aria-hidden="true">H{level}</span>
+                </ToolbarButton>
+            ))}
+        </div>
     );
 };
 

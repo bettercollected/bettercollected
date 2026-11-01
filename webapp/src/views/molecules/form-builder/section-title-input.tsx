@@ -1,8 +1,8 @@
 'use client';
 
 import { useLayoutEffect, useRef } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { cn } from '@app/shadcn/util/lib';
 import { SECTION_TITLE_MAX } from '@app/utils/leaflet-sections';
 

@@ -3,8 +3,8 @@
 import { useEffect, useRef } from 'react';
 
 import { Check, Eye, EyeOff, X } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { AIProposal, ProposalChangeGroup, acceptableOps, toggleOp } from '@app/utils/ai-proposal';
 
 export type ProposalStatus = 'pending' | 'accepting' | 'accepted' | 'discarded' | 'superseded' | 'stale' | 'closed' | 'expired';

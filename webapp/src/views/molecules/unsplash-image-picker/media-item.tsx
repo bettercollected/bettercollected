@@ -1,6 +1,5 @@
 'use client';
 
-import { useTranslation } from 'react-i18next';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { useSecondaryDialogModal } from '@app/lib/hooks/use-secondary-dialog-modal';
 import { Skeleton } from '@app/shadcn/components/ui/skeleton';
@@ -11,6 +10,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import DeleteIcon from '@Components/icons/delete';
 import Image from 'next/image';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const MediaItem = ({ media, updatePageImage }: { media: MediaLibrary; updatePageImage: (args: any) => void }) => {
     const { t } = useTranslation('builder');

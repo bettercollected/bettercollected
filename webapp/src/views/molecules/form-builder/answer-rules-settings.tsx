@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
-
 import { useTranslation } from 'react-i18next';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';

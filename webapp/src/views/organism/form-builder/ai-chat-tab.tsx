@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useSetAtom, useStore } from 'jotai';
 import { BookOpen, Check, Plus, Send, ShieldCheck, X } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { AIDisclosure, AIOptIn, aiErrorMessage, isAINotEnabledError, useWorkspaceAI } from '@app/components/ai/ai-consent';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { selectForm, setForm, setFormSettings } from '@app/store/forms/slice';

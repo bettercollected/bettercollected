@@ -3,8 +3,8 @@
 import { useState } from 'react';
 
 import { XIcon } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { Button } from '@app/shadcn/components/ui/button';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';

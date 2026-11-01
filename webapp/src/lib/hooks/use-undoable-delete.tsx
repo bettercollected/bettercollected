@@ -1,8 +1,8 @@
 'use client';
 
 import { useSetAtom, useStore } from 'jotai';
-
 import { useTranslation } from 'react-i18next';
+
 import { ToastAction } from '@app/shadcn/components/ui/toast';
 import { toast } from '@app/shadcn/components/ui/use-toast';
 import { undoIfLatestAtom, useBuilderActions } from '@app/store/jotai/field-selectors';

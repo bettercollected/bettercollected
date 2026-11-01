@@ -1,10 +1,10 @@
 import React from 'react';
 
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import i18n from 'i18next';
 import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import i18n from 'i18next';
 
 import { bestInsertMatch, filterInsertCatalog, insertCatalog } from '@app/constants/insert-field-catalog';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
@@ -15,7 +15,6 @@ import { store } from '@app/store/store';
 import FieldSettings from '@app/views/organism/field-settings';
 
 import InsertFieldComponent from './insert-field-modal';
-
 
 // What the server says about the newer question types (its NEW_QUESTION_TYPES_ENABLED).
 // ...and about the address and signature questions, which have switches of their own (ADDRESS_QUESTION_ENABLED, SIGNATURE_QUESTION_ENABLED).

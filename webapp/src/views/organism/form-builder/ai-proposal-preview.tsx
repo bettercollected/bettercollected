@@ -1,8 +1,8 @@
 'use client';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useAIProposalPreview } from '@app/store/jotai/ai-proposal';
 import SlideBuilder from '@app/views/organism/form-builder/slide-builder';

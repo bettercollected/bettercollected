@@ -1,8 +1,8 @@
 import { useState} from 'react';
-import { useTranslation } from 'react-i18next';
 import { cn } from '@app/shadcn/util/lib';
 import { useFormState } from '@app/store/jotai/form';
 import { useAtomValue } from 'jotai';
+import { useTranslation } from 'react-i18next';
 import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import TabularInputField from './tabular-input-field';
 import { activeFieldAtom, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';

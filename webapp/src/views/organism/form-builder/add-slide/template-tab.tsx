@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
 import { ChevronLeft } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';

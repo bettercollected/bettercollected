@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 
 import { skipToken } from '@reduxjs/toolkit/query/react';
 
@@ -35,6 +34,7 @@ import { v4 } from 'uuid';
 
 import { Background, BackgroundVariant, BaseEdge, Connection, Controls, Edge, EdgeLabelRenderer, EdgeProps, Handle, MarkerType, MiniMap, Node, NodeProps, Position, ReactFlow, useEdgesState, useNodesState } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useTranslation } from 'react-i18next';
 
 // Deterministic default layout (used when a page has no saved position).
 const NODE_W = 300;
@@ -451,7 +451,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 if (!targetId) return;
                 const c = jump.conditions[0];
                 const count = traffic ? traffic.jumpTraversals.get(`${slide.id}:${jIdx}`) ?? 0 : undefined;
-                const base = `${c?.value !== '' && c?.value != null ? `= “${c.value}”` : c?.comparison ? tBuilder(`CONDITION.COMPARISON.${c.comparison}`, { defaultValue: c.comparison.toLowerCase().replace(/_/g, ' ') }) : ''}${jump.conditions.length > 1 ? ` +${jump.conditions.length - 1}` : ''}`;
+                const base = `${c?.value !== '' && c?.value != null ? `= “${c.value}”` : c?.comparison ? tBuilder(`FLOW.CMP.${c.comparison}`, { defaultValue: c.comparison.toLowerCase().replace(/_/g, ' ') }) : ''}${jump.conditions.length > 1 ? ` +${jump.conditions.length - 1}` : ''}`;
                 const targetClearlyRight = posOf(targetId).x > posOf(slide.id).x + NODE_W * 0.75;
                 edges.push({
                     id: `jump-${slide.id}-${jIdx}`,

@@ -1,6 +1,6 @@
-import { useTranslation } from 'react-i18next';
 import Divider from '@Components/common/divider';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { jsonEqual } from '@app/lib/form-ops/model';
 import { useDocValue } from '@app/store/jotai/entity-hooks';

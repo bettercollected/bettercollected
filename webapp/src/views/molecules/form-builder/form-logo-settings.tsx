@@ -3,8 +3,8 @@
 import { useId, useRef, useState } from 'react';
 
 import { ImageIcon } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { Button } from '@app/shadcn/components/ui/button';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';

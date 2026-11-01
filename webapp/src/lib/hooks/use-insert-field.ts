@@ -1,9 +1,9 @@
 'use client';
 
-import i18n from 'i18next';
 import { useEffect, useRef } from 'react';
 
 import { v4 } from 'uuid';
+import i18n from 'i18next';
 
 import { InsertCatalogItem } from '@app/constants/insert-field-catalog';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';

@@ -985,7 +985,7 @@
       "too_many_fields": "Dat zijn meer vragen dan één webhook kan versturen.",
       "too_many_webhooks": "Een formulier kan maximaal 5 webhooks hebben.",
       "rate_limited": "Te veel testgebeurtenissen. Wacht een minuut en probeer het opnieuw.",
-      "forbidden": "U heeft geen toestemming om webhooks te wijzigen.",
+      "forbidden": "U hebt geen toestemming om webhooks te wijzigen.",
       "not_found": "Deze webhook bestaat niet meer. Laad de pagina opnieuw.",
       "url_unreadable": "Het adres van deze webhook kon niet worden gelezen. Vul het opnieuw in.",
       "unknown": "Dat is niet gelukt. Probeer het opnieuw.",
@@ -1205,7 +1205,7 @@
       "no_copy": "Deze actie stuurt geen kopie naar de respondent.",
       "no_address": "Uw account heeft geen e-mailadres om de test naartoe te sturen.",
       "rate_limited": "Te veel test-e-mails. Wacht even en probeer het opnieuw.",
-      "forbidden": "U heeft geen toestemming om e-mailacties te wijzigen.",
+      "forbidden": "U hebt geen toestemming om e-mailacties te wijzigen.",
       "not_found": "Deze e-mailactie bestaat niet meer. Laad de pagina opnieuw.",
       "unknown": "Dat is niet gelukt. Probeer het opnieuw."
     },
@@ -1296,7 +1296,7 @@
     },
     "signature": {
       "NAME": "Handtekening",
-      "DESCRIPTION": "Een getekende of getypte handtekening, bewaard bij het antwoord"
+      "DESCRIPTION": "Een getekende of getypte handtekening, bewaard bij de reactie"
     },
     "short_text": {
       "NAME": "Kort antwoord",
@@ -1327,7 +1327,8 @@
     },
     "multiple_choice": {
       "NAME": "Meerkeuze",
-      "DESCRIPTION": "Kies er een of meer uit een lijst"
+      "DESCRIPTION": "Kies er een of meer uit een lijst",
+      "CHIP": "Meerkeuze"
     },
     "dropdown": {
       "NAME": "Keuzelijst",
@@ -1739,8 +1740,8 @@
     "ANSWER_RULES": "Antwoordregels",
     "PRIVACY": "Privacy",
     "INTERNAL": "Intern (alleen voor medewerkers)",
-    "INTERNAL_ON": "Respondenten zien dit veld nooit. Uw team vult het in bij elk antwoord. Verplicht geldt voor uw team, niet voor respondenten.",
-    "INTERNAL_OFF": "Alleen voor intern gebruik: verberg dit veld voor respondenten en vul het zelf in bij elk antwoord.",
+    "INTERNAL_ON": "Respondenten zien dit veld nooit. Uw team vult het in bij elke reactie. Verplicht geldt voor uw team, niet voor respondenten.",
+    "INTERNAL_OFF": "Alleen voor intern gebruik: verberg dit veld voor respondenten en vul het zelf in bij elke reactie.",
     "LOGIC": "Logica",
     "APPEARANCE": "Weergave",
     "WIDTH": "Breedte",
@@ -1769,7 +1770,6 @@
     "DASHBOARD": "Terug naar het dashboard"
   },
   "NEW_FORM_MODAL": {
-    "DEFAULT_TITLE": "Nieuw formulier",
     "HEADING": "Nieuw formulier maken",
     "NAME_IT": "Geef uw formulier een naam",
     "CHANGE_LATER": "U kunt dit later altijd wijzigen.",
@@ -1800,13 +1800,13 @@
     "CREATE": "Een nieuw formulier maken met AI",
     "EXAMPLE_1": "Contactformulier om gegevens van gebruikers te verzamelen. Met onder andere velden voor naam, e-mailadres en telefoonnummer.",
     "EXAMPLE_2": "Een formulier om suggesties te verzamelen voor het verbeteren van het ontwerp en de werking van een marketingapp.",
-    "OUTLINE_FAILED": "Het concept kon niet worden opgesteld. Probeer het opnieuw.",
+    "OUTLINE_FAILED": "De opzet kon niet worden gemaakt. Probeer het opnieuw.",
     "BUILD_FAILED": "Het formulier kon niet worden gebouwd. Probeer het opnieuw.",
-    "DRAFTING": "Concept wordt opgesteld",
+    "DRAFTING": "Opzet wordt gemaakt",
     "DRAFTING_DETAIL": "U kunt het nakijken en aanpassen voordat er iets wordt aangemaakt",
     "BUILDING": "Uw formulier wordt gebouwd",
     "BUILDING_DETAIL": "Uw concept opent in de editor zodra het klaar is",
-    "REVIEW": "Controleer het concept",
+    "REVIEW": "Controleer de opzet",
     "PAGES_COUNT_one": "{{count}} pagina",
     "PAGES_COUNT_other": "{{count}} pagina’s",
     "QUESTIONS_COUNT_one": "{{count}} vraag",
@@ -1818,13 +1818,13 @@
     "FILL_GAPS_OFF": "Formulier bouwen stuurt niets naar de AI. Keuzevragen zonder keuzes worden als kort antwoord gesteld en ontbrekende toelichtingen worden voor u op een rij gezet.",
     "BACK_TO_PROMPT": "Terug naar de opdracht",
     "BUILD": "Formulier bouwen",
-    "PROMPT_LABEL": "Beschrijf het formulier dat u nodig heeft",
+    "PROMPT_LABEL": "Beschrijf het formulier dat u nodig hebt",
     "PROMPT_PLACEHOLDER": "Bijvoorbeeld: Ontwerp een contactformulier met velden voor naam, e-mail, onderwerp, bericht en een veld om bestanden te uploaden.",
     "EXAMPLES": "Voorbeelden",
-    "DRAFT": "Concept opstellen",
-    "DRAFT_AGAIN": "Nieuw concept opstellen",
-    "BACK_TO_OUTLINE": "Terug naar het concept dat u controleerde",
-    "DRAFT_SENDS": "Concept opstellen stuurt uw opdracht, het AI-profiel van de werkruimte en uw AI-geheugen naar {{provider}}. U controleert het concept voordat er iets wordt aangemaakt en bij het bouwen wordt eerst gevraagd voordat er meer wordt verstuurd.",
+    "DRAFT": "Opzet maken",
+    "DRAFT_AGAIN": "Nieuwe opzet maken",
+    "BACK_TO_OUTLINE": "Terug naar de opzet die u controleerde",
+    "DRAFT_SENDS": "Opzet maken stuurt uw opdracht, het AI-profiel van de werkruimte en uw AI-geheugen naar {{provider}}. U controleert de opzet voordat er iets wordt aangemaakt en bij het bouwen wordt eerst gevraagd voordat er meer wordt verstuurd.",
     "OPT_IN_FEATURE": "Beginnen met AI",
     "OPT_IN_SENDS": "uw opdracht, het AI-profiel van de werkruimte en uw AI-geheugen"
   },
@@ -1968,7 +1968,7 @@
     "MOVED_LOGIC_other": "Verplaatst. {{count}} logicaregels die nu een later antwoord zouden gebruiken, zijn verwijderd.",
     "UNDO_MOVE": "De verplaatsing ongedaan maken",
     "UNDO": "Ongedaan maken",
-    "CHANGED_SINCE": "U heeft het formulier inmiddels gewijzigd. Gebruik Ongedaan maken in de werkbalk om terug te gaan.",
+    "CHANGED_SINCE": "U hebt het formulier inmiddels gewijzigd. Gebruik Ongedaan maken in de werkbalk om terug te gaan.",
     "MOVED_TO": "Verplaatst naar {{page}}, positie {{position}} van {{total}}.",
     "PAGE_MOVED": "Pagina verplaatst naar positie {{position}} van {{total}}."
   },
@@ -1998,7 +1998,7 @@
     "ADD_END": "Een veld aan het einde van de pagina toevoegen",
     "ADD_BEFORE": "Een veld toevoegen voor vraag {{n}}",
     "ADD_HERE": "Hier een veld toevoegen",
-    "INTERNAL_TITLE": "Respondenten zien dit veld nooit; uw team vult het in bij elk antwoord",
+    "INTERNAL_TITLE": "Respondenten zien dit veld nooit; uw team vult het in bij elke reactie",
     "INTERNAL": "Intern · alleen medewerkers",
     "LOGIC_TITLE": "Dit veld wordt getoond of verborgen door een logicaregel",
     "LOGIC": "Logica",
@@ -2031,7 +2031,8 @@
     "VIDEO_LABEL": "YouTube- of Vimeo-link",
     "VIDEO_INVALID": "Plak een link naar een YouTube- of Vimeo-video.",
     "NO_FORMULA": "Nog geen formule. Schrijf er een in het zijpaneel.",
-    "ADD_SLIDE_TO_START": "Voeg een pagina toe om te beginnen"
+    "ADD_SLIDE_TO_START": "Voeg een pagina toe om te beginnen",
+    "FILE_TOO_LARGE": "Het bestand is groter dan 25 MB."
   },
   "FLOW": {
     "PAGE_ARIA_one": "Pagina {{n}}: {{label}} — {{count}} vraag",
@@ -2052,8 +2053,8 @@
     "ENDING": "Eindpagina",
     "START": "Start",
     "NOT_REACHED": "Door geen enkele sprong bereikt",
-    "RESPONSES_one": "{{count}} antwoord",
-    "RESPONSES_other": "{{count}} antwoorden",
+    "RESPONSES_one": "{{count}} reactie",
+    "RESPONSES_other": "{{count}} reacties",
     "WELCOME": "Welkom",
     "CREATING_FROM": "Paginasprong vanaf {{name}} maken: klik op de bestemmingspagina",
     "CREATING_INTO": "Paginasprong naar {{name}} maken: klik op de bronpagina",
@@ -2064,11 +2065,11 @@
     "UNDO": "Ongedaan maken",
     "TITLE": "Stroom",
     "HINT": "Klik op of sleep een blauwe stip om te vertakken. Selecteer een pagina om de regels te bewerken.",
-    "TOTAL_TITLE": "Alle verzonden antwoorden ooit: de groep achter de aantallen bij de blokken en lijnen",
+    "TOTAL_TITLE": "Alle verzonden reacties ooit: de groep achter de aantallen bij de blokken en lijnen",
     "JOURNEYS_TITLE": "Anonieme routes van pagina naar pagina sinds de stroomanalyse is ingeschakeld: ook bezoekers die nooit hebben verzonden, waar de afhaakmarkeringen vandaan komen",
     "JOURNEYS": "· routes: {{started}} gestart · {{finished}} afgerond",
-    "NO_RESPONSES": "Nog geen antwoorden",
-    "INSIGHTS_TITLE": "Toon hoe verzonden antwoorden elke vertakking doorliepen",
+    "NO_RESPONSES": "Nog geen reacties",
+    "INSIGHTS_TITLE": "Toon hoe verzonden reacties elke vertakking doorliepen",
     "LOADING": "Laden…",
     "INSIGHTS": "Inzichten",
     "ADD_PAGE": "Pagina toevoegen",
@@ -2083,8 +2084,22 @@
     "NOTHING_SELECTED_HINT": "Selecteer een pagina om de vertakkingsregels te bewerken, of sleep van een blauwe stip naar een andere pagina om een sprong te maken.",
     "EDIT_PAGE": "Pagina {{n}} bewerken",
     "BACK_TO_FLOW": "Terug naar de stroom",
-    "RESPONSES_WORD_one": "antwoord",
-    "RESPONSES_WORD_other": "antwoorden"
+    "RESPONSES_WORD_one": "reactie",
+    "RESPONSES_WORD_other": "reacties",
+    "CMP": {
+      "IS_EQUAL": "is gelijk aan",
+      "IS_NOT_EQUAL": "is niet gelijk aan",
+      "CONTAINS": "bevat",
+      "DOES_NOT_CONTAIN": "bevat niet",
+      "LESS_THAN": "kleiner dan",
+      "LESS_THAN_EQUAL": "hooguit",
+      "GREATER_THAN": "groter dan",
+      "GREATER_THAN_EQUAL": "minstens",
+      "STARTS_WITH": "begint met",
+      "ENDS_WITH": "eindigt op",
+      "IS_EMPTY": "is leeg",
+      "IS_NOT_EMPTY": "is niet leeg"
+    }
   },
   "PAGE_PROPS": {
     "CRUMB_PAGE": "Pagina",
@@ -2157,7 +2172,16 @@
     "READ_ONLY": "Alleen-lezen · pagina {{n}} van {{total}}",
     "PREV": "Vorige voorgestelde pagina",
     "NEXT": "Volgende voorgestelde pagina",
-    "EXIT_PREVIEW": "Voorbeeld sluiten"
+    "EXIT_PREVIEW": "Voorbeeld sluiten",
+    "GROUP_FORM": "Formulier en thema",
+    "GROUP_WELCOME": "Welkomstpagina",
+    "GROUP_ENDING": "Eindpagina",
+    "GROUP_SETTINGS": "Privacy en instellingen",
+    "GROUP_OTHER": "Overige wijzigingen",
+    "PAGE_ADDED": "Pagina {{n}} toegevoegd",
+    "PAGE_REMOVED_GROUP": "Pagina {{n}} (verwijderd)",
+    "PAGE_REMOVED": "Pagina {{n}} verwijderd",
+    "PAGE_MOVED": "Pagina {{from}} verplaatst naar positie {{to}}"
   },
   "AI_CHAT": {
     "SENDS": "de vragen en instellingen van dit formulier, uw berichten, het AI-profiel van de werkruimte en uw AI-geheugen",
@@ -2204,7 +2228,7 @@
     "PROMPT_BELOW": "Uw opdracht van Beginnen met AI staat hieronder. Er is nog niets verstuurd: controleer die en druk op verzenden.",
     "PLACEHOLDER": "Beschrijf een wijziging aan dit formulier…",
     "SEND": "Verzenden",
-    "NO_RESPONSES_SENT": "{{sends}}. Er worden geen antwoorden verstuurd",
+    "NO_RESPONSES_SENT": "{{sends}}. Er worden geen reacties verstuurd",
     "FIXED": "Opgelost: {{description}}"
   },
   "GROUP_BUILDER": {
@@ -2226,7 +2250,7 @@
     "OPTION_N": "Optie {{n}}",
     "REMOVE_OPTION_N": "Optie {{n}} verwijderen",
     "ADD_OPTION": "+ Optie toevoegen",
-    "DATE_HINT": "Regels kunnen vergelijken met een eerdere datumvraag binnen hetzelfde item.",
+    "DATE_HINT": "Regels kunnen vergelijken met een eerdere datumvraag binnen dezelfde {{item}}.",
     "ADD_QUESTION_ARIA": "Een vraag aan de groep toevoegen",
     "ADD_QUESTION": "Een vraag aan de groep toevoegen…",
     "ADD_ANOTHER": "+ {{item}} toevoegen",
@@ -2238,7 +2262,7 @@
     "FIELD_HINT": "Dit veld tonen of verbergen op basis van antwoorden",
     "SHOW_WHEN": "Dit veld tonen als…",
     "HIDE_WHEN": "Dit veld verbergen als…",
-    "MATCH": "Voldoe aan",
+    "MATCH": "Voldoet aan",
     "ALL": "alle",
     "ANY": "een van de",
     "OF_THESE": "volgende voorwaarden:",
@@ -2253,7 +2277,7 @@
     "REMOVE_RULE": "Regel verwijderen",
     "WHEN": "Als",
     "MATCH_COLON": "voldoen:",
-    "WHEN_THIS_MATCHES": "Als dit klopt:",
+    "WHEN_THIS_MATCHES": "Als aan de voorwaarde is voldaan:",
     "GO_TO": "→ ga naar",
     "DESTINATION": "Bestemming van regel {{n}}",
     "DELETED_ENDING_OPTION": "⚠ Verwijderde eindpagina: kies een bestemming",
@@ -2279,11 +2303,11 @@
     "ITEM_HEADER_PLACEHOLDER": "Optioneel, bijv. de naam",
     "HEADER_HINT": "Getoond na “{{item}} 2:”. Voeg een antwoord uit hetzelfde item in:",
     "INSERT_ANSWER": "Een antwoord in de kop van het item invoegen",
-    "IN_EXPORTS": "In exports",
+    "IN_EXPORTS": "In exportbestanden",
     "AUTOMATIC": "Automatisch ({{layout}})",
     "LAYOUT_COLUMNS_SHORT": "kolommen per item",
     "LAYOUT_TABLE_SHORT": "aparte tabel",
-    "LAYOUT_COLUMNS": "Kolommen per item (een rij per antwoord)",
+    "LAYOUT_COLUMNS": "Kolommen per item (een rij per reactie)",
     "LAYOUT_ROWS": "Aparte tabel (een rij per item)",
     "ERR_RANGE": "Gebruik 0–{{max}} voor het minimum en 1–{{max}} voor het maximum.",
     "ERR_ORDER": "Het minimum mag niet hoger zijn dan het maximum.",
@@ -2368,7 +2392,8 @@
     "POLICY_ERROR": "Vul een link in die begint met https:// of http://.",
     "PREVIEW_TITLE": "Respondenten zien",
     "NUDGE": "Respondenten zien deze voettekst op elke pagina: leg uit waarom u verzamelt en hoe lang u antwoorden bewaart.",
-    "NUDGE_ADD": "Toevoegen →"
+    "NUDGE_ADD": "Toevoegen →",
+    "PREVIEW_POLICY": "Hoe uw gegevens worden gebruikt"
   },
   "CALC": {
     "STYLE_number": "Getal",
@@ -2389,7 +2414,7 @@
     "UNANSWERED_ZERO_ON": "Een lege vraag telt als 0, zodat één leeg optioneel antwoord het resultaat niet leegmaakt.",
     "UNANSWERED_ZERO_OFF": "Het resultaat blijft leeg totdat elke vraag die het gebruikt is beantwoord.",
     "HIDE": "Verbergen voor respondenten",
-    "HIDE_ON": "Wordt berekend en bij elk antwoord bewaard; respondenten zien het nooit. De formule is onderdeel van de formulierpagina en dus geen geheim.",
+    "HIDE_ON": "Wordt berekend en bij elke reactie bewaard; respondenten zien het niet. De formule is onderdeel van de formulierpagina en dus geen geheim.",
     "HIDE_OFF": "Respondenten zien de waarde veranderen terwijl ze antwoorden.",
     "PIPED": "Deze waarde wordt ingevoegd in {{where}}, dus respondenten zouden hem daar zien. Haal hem uit die tekst, of toon de berekening."
   },
@@ -2468,15 +2493,15 @@
     "ADD": "+ Datumregel toevoegen"
   },
   "BUILD_CHECK": {
-    "TITLE": "Controleer voor het publiceren",
+    "TITLE": "Controleer voordat u publiceert",
     "DISMISS": "De controlelijst sluiten",
-    "INTRO": "Uw formulier is gebouwd uit het AI-concept.",
+    "INTRO": "Uw formulier is gebouwd uit de AI-opzet.",
     "NEEDS_LOOK": "Hier moet u naar kijken:",
     "WHAT_CHANGED": "Wat er onderweg is veranderd:",
     "GO_TO": "Ga naar {{label}}",
     "PAGE": "pagina {{n}}",
     "PAGE_QUESTION": "pagina {{page}}, vraag {{question}}",
-    "GENERIC": "Er is iets op dit formulier waar u naar moet kijken voor het publiceren.",
+    "GENERIC": "Er is iets op dit formulier waar u naar moet kijken voordat u publiceert.",
     "missing_title": "Het formulier heeft geen titel.",
     "no_questions": "Het formulier heeft nog geen vraag om te beantwoorden.",
     "too_many_questions_on_page": "Een pagina heeft veel vragen. Overweeg om hem te splitsen.",
@@ -2494,7 +2519,7 @@
     "dangling_logic_reference": "Een regel verwijst naar een vraag of pagina die niet bestaat.",
     "theme_not_default": "Het formulier gebruikt niet de stijl Folder.",
     "theme_request_ignored": "Het formulier heeft de standaardstijl gehouden, hoewel u om een andere vroeg.",
-    "missing_why_we_ask": "Een vraag vraagt om een e-mailadres, telefoonnummer of identiteitsnummer zonder te zeggen waarom. Voeg een regel “waarom we dit vragen” toe voor het publiceren.",
+    "missing_why_we_ask": "Een vraag vraagt om een e-mailadres, telefoonnummer of identiteitsnummer zonder te zeggen waarom. Voeg een regel “waarom we dit vragen” toe voordat u publiceert.",
     "required_unanswerable": "Een verplichte vraag kan niet worden beantwoord.",
     "preset_answer": "Een keuzevraag begint met een al gekozen antwoord."
   },
@@ -2520,7 +2545,7 @@
     "SHOW_QUESTION": "De vraag tonen"
   },
   "PUBLISH_DIALOG": {
-    "TITLE": "Voor u publiceert",
+    "TITLE": "Voordat u publiceert",
     "ONE_THING": "Een ding",
     "THINGS": "{{count}} dingen",
     "BLOCKING_one": "{{things}} zou de mensen die dit formulier invullen misleiden of tegenhouden. Los het op en publiceer opnieuw.",
@@ -2536,7 +2561,7 @@
   "HIDDEN": {
     "TITLE": "Verborgen velden",
     "INTRO_PRE": "Waarden die in de deellink worden meegegeven (",
-    "INTRO_POST": ") worden bij elk antwoord bewaard en kunnen in vragen worden ingevoegd. Geldt voor het hele formulier.",
+    "INTRO_POST": ") worden bij elke reactie bewaard en kunnen in vragen worden ingevoegd. Geldt voor het hele formulier.",
     "REMOVE": "Verborgen veld {{name}} verwijderen",
     "PLACEHOLDER": "bijv. utm_source",
     "ADD": "Toevoegen",
@@ -2545,7 +2570,7 @@
   },
   "RTE": {
     "PLACEHOLDER_TEXT": "Schrijf een kop of tekst, of typ / om een veld in te voegen",
-    "PLACEHOLDER_QUESTION": "Typ een vraag, of / om een veld in te voegen",
+    "PLACEHOLDER_QUESTION": "Typ een vraag, of typ / om een veld in te voegen",
     "ARIA_TEXT_BLOCK": "Tekstblok",
     "ARIA_QUESTION_TITLE": "Titel van de vraag",
     "PIPE_TITLE": "Een eerder antwoord invoegen, of typ gewoon @ in de vraag",
@@ -2654,8 +2679,8 @@
     "ENDING_DELETED_JUMPS_other": "{{label}} verwijderd. {{count}} sprongen tonen nu de standaard eindpagina.",
     "UNDO_ENDING": "Het verwijderen van de eindpagina ongedaan maken",
     "UNDO": "Ongedaan maken",
-    "CHANGED_SINCE": "U heeft het formulier inmiddels gewijzigd. Gebruik Ongedaan maken in de werkbalk om terug te gaan.",
-    "ADD_PAGE_FIRST": "Voeg een pagina toe om velden toe te voegen"
+    "CHANGED_SINCE": "U hebt het formulier inmiddels gewijzigd. Gebruik Ongedaan maken in de werkbalk om terug te gaan.",
+    "ADD_PAGE_FIRST": "Maak eerst een pagina aan om velden toe te voegen"
   },
   "EDITOR_ERROR": {
     "UPDATED": "De editor is bijgewerkt",

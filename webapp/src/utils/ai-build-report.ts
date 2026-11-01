@@ -1,9 +1,8 @@
+import i18n from 'i18next';
+
 // What building a form from an AI outline left to check, carried from the
 // Start with AI dialog to the editor (sessionStorage, per form). Only codes,
 // severities, ids and the backend's notes (counts, never form text) are kept.
-
-import i18n from 'i18next';
-
 
 export interface BuildFinding {
     code: string;
@@ -88,5 +87,7 @@ const FINDING_TEXT: Record<string, string> = {
 };
 
 export function findingText(code: string): string {
-    return i18n.t(`builder:BUILD_CHECK.${code}`, { defaultValue: FINDING_TEXT[code] ?? i18n.t('builder:BUILD_CHECK.GENERIC') });
+    // only the codes the backend makes (the report is kept in the browser: a code must not pick any other text)
+    if (!Object.prototype.hasOwnProperty.call(FINDING_TEXT, code)) return i18n.t('builder:BUILD_CHECK.GENERIC');
+    return i18n.t(`builder:BUILD_CHECK.${code}`, { defaultValue: FINDING_TEXT[code] });
 }

@@ -1,10 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useTranslation } from 'react-i18next';
 
 import { intlLocaleFor } from '@app/lib/hooks/use-intl-locale';
-
 
 import { FieldTypes } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -41,6 +39,7 @@ import { PlayIcon, Redo2, Undo2 } from 'lucide-react';
 import { ComponentProps, useEffect, useState } from 'react';
 import { useAtomValue } from 'jotai';
 import dynamic from 'next/dynamic';
+import { useTranslation } from 'react-i18next';
 import InsertFieldComponent from '../molecules/dialogs/insert-field-modal';
 import BackButton from '../molecules/form-builder/back-button';
 import KeyboardShortcuts from '../molecules/form-builder/keyboard-shortcuts';

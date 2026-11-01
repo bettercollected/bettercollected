@@ -1,9 +1,9 @@
 'use client';
 
-import { useTranslation } from 'react-i18next';
 import { FieldConditionalLogic, LogicalOperator, LogicCondition } from '@app/models/types/form-builder-shared';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { useAtomValue } from 'jotai';
+import { useTranslation } from 'react-i18next';
 
 import { activeFieldAtom, activeSlideAtom } from '@app/store/jotai/active-builder-component';
 import { useBuilderFieldsValue, useField, useFieldActions, usePageShell } from '@app/store/jotai/entity-hooks';

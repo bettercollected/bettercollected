@@ -1,5 +1,5 @@
-import i18n from 'i18next';
 import { JSONContent } from '@tiptap/react';
+import i18n from 'i18next';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { LogicCondition, PageJump } from '@app/models/types/form-builder-shared';

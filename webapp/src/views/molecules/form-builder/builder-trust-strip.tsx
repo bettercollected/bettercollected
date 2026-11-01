@@ -1,8 +1,8 @@
 'use client';
 
 import { Shield } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import useGetPageAttributes from '@app/lib/hooks/use-get-page-attributes';

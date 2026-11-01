@@ -2,7 +2,6 @@
 
 import Image from 'next/image';
 
-import { useTranslation } from 'react-i18next';
 import DeleteIcon from '@Components/icons/delete';
 import SlideLayoutBackgroundImage from '@Components/icons/slide-layout-background-image';
 import SlideLayoutLeftImage from '@Components/icons/slide-layout-left-image';
@@ -11,6 +10,7 @@ import { SlideLayoutNoImageLeftAlign } from '@Components/icons/slide-layout-no-i
 import SlideLayoutRightImage from '@Components/icons/slide-layout-right-image';
 import { SwitchIcon } from '@Components/icons/switch-icon';
 import { PlusIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { formFieldsList } from '@app/constants/form-fields';
@@ -296,7 +296,8 @@ export default function PagePropertiesTab({}: {}) {
                     <ol className="-mx-2 -mt-2 flex flex-col" aria-label={t('PAGE_PROPS.QUESTIONS_ON_PAGE')}>
                         {pageQuestions.map((field) => {
                             const title = extractTextfromJSON(field).trim();
-                            const typeName = fieldTypeChip(t, field.type, formFieldsList.find((f) => f.type === field.type)?.name ?? '');
+                            const knownName = formFieldsList.find((f) => f.type === field.type)?.name;
+                            const typeName = knownName ? fieldTypeChip(t, field.type, knownName) : '';
                             return (
                                 <li key={field.id}>
                                     <button type="button" onClick={() => selectQuestion(field)} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-black-200">

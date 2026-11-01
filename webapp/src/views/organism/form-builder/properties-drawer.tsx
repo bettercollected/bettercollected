@@ -1,11 +1,11 @@
 'use client';
 
-import i18n from 'i18next';
 import { useEffect } from 'react';
 
 import { useAtom } from 'jotai';
-
+import i18n from 'i18next';
 import { useTranslation } from 'react-i18next';
+
 import { formFieldsList } from '@app/constants/form-fields';
 import { fieldTypeChip } from '@app/lib/field-type-name';
 import { InspectorLevel, inspectorLevel } from '@app/lib/hooks/use-inspector-escape';
@@ -74,7 +74,7 @@ export default function PropertiesDrawer({}: {}) {
     }, [standardForm?.formId]);
 
     const level = inspectorLevel(!!activeFieldComponent?.id, propertiesTab);
-    const questionLabel = activeField ? extractTextfromJSON(activeField).trim() || fieldTypeChip(t, activeField.type, formFieldsList.find((f) => f.type === activeField.type)?.name || t('PAGE_PROPS.CRUMB_QUESTION')) : t('PAGE_PROPS.CRUMB_QUESTION');
+    const questionLabel = activeField ? extractTextfromJSON(activeField).trim() || (formFieldsList.some((f) => f.type === activeField.type) ? fieldTypeChip(t, activeField.type) : t('PAGE_PROPS.CRUMB_QUESTION')) : t('PAGE_PROPS.CRUMB_QUESTION');
     const ending = formState.thankyouPage?.[activeThankYouPageComponent?.index ?? 0];
     const crumbs: InspectorCrumb[] = [{ level: 'form', label: t('PAGE_PROPS.CRUMB_FORM') }, { level: 'page', label: pageCrumbLabel(activeSlideComponent, ending) }, ...(activeFieldComponent?.id ? [{ level: 'question' as const, label: questionLabel }] : [])];
 

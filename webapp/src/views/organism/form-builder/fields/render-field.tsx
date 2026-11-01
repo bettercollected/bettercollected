@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import AddressField from '@app/views/molecules/responder-form-fields/address-field';
 import CurrencyField from '@app/views/molecules/responder-form-fields/currency-field';
@@ -18,6 +17,7 @@ import DeleteIcon from '@Components/icons/delete';
 import { SwitchIcon } from '@Components/icons/switch-icon';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import Image from 'next/image';
+import { useTranslation } from 'react-i18next';
 import CalculatedFieldBuilder from './calculated-field-builder';
 import DropDownField from './drop-down-field';
 import FileUpload from './file-upload-field';

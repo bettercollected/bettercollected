@@ -1,3 +1,5 @@
+import i18n from 'i18next';
+
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormState } from '@app/store/jotai/form';
@@ -10,7 +12,7 @@ const FileUpload = ({ field, slide, disabled }: { field: StandardFormFieldDto; s
 
     const handleFileInputChange = (event: any) => {
         const file = event.target.files[0];
-        if (file.size > 26214400) alert(tr('FILE.TOO_LARGE', { size: 25 }));
+        if (file.size > 26214400) alert(i18n.t('builder:CANVAS.FILE_TOO_LARGE'));
     };
     return (
         <>

@@ -1,4 +1,5 @@
 import i18n from 'i18next';
+
 import { FormTheme, isHexColour } from '@app/constants/theme';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { PageJump } from '@app/models/types/form-builder-shared';

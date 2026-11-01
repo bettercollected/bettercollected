@@ -4,8 +4,8 @@ import { useRef } from 'react';
 
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { Copy, Ellipsis, PencilLine, Star, Trash2 } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@app/shadcn/components/ui/dropdown-menu';
 import { cn } from '@app/shadcn/util/lib';
 

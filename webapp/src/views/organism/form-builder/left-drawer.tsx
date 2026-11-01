@@ -193,7 +193,6 @@ function EndingNameInput({ initial, placeholder, onDone }: { initial: string; pl
     );
 }
 
-
 /** The endings as the outline shows them (ids given; a form without any shows the default one). */
 const outlineEndingsAtom = atom((get) => {
     const thankyouPage = get(formStateAtom).thankyouPage;

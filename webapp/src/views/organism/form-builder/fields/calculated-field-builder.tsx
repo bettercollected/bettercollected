@@ -1,8 +1,8 @@
 'use client';
 
 import { Calculator, EyeOff } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useBuilderFieldsValue } from '@app/store/jotai/entity-hooks';
 import { useFormState } from '@app/store/jotai/form';

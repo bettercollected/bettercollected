@@ -3,8 +3,8 @@
 import { useState } from 'react';
 
 import { Check, Copy, ExternalLink } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectForm } from '@app/store/forms/slice';

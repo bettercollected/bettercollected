@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useFormState } from '@app/store/jotai/form';
 import { Input } from '@app/shadcn/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@app/shadcn/components/ui/table';
 import { useAtomValue } from 'jotai';
+import { useTranslation } from 'react-i18next';
 import { activeFieldAtom } from '@app/store/jotai/active-builder-component';
 import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { cn } from '@app/shadcn/util/lib';

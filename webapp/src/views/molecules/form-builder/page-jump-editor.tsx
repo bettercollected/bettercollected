@@ -1,12 +1,12 @@
 'use client';
 
-import { useTranslation } from 'react-i18next';
 import { JUMP_TARGET_SUBMIT, LogicalOperator, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { isJumpTargetValid } from '@app/utils/conditional-logic';
 import { defaultEnding, endingLabel, isJumpEndingMissing, jumpChoiceValue, jumpEndingId, jumpFromChoice, withEndingIds } from '@app/utils/endings';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { buildSourceFields, ConditionRow, isConditionSource, newConditionFor, pageLabel, selectClass } from './condition-editor-shared';
 
 const MISSING = '__MISSING_TARGET__';
@@ -146,17 +146,17 @@ export default function PageJumpEditor() {
                                 {!targetValid && <option value={MISSING}>{endingMissing ? t('LOGIC.DELETED_ENDING_OPTION') : t('LOGIC.DELETED_PAGE_OPTION')}</option>}
                                 {pageTargets.length > 0 && (
                                     <optgroup label={t('LOGIC.GO_TO_PAGE')}>
-                                        {pageTargets.map((t) => (
-                                            <option key={t.id} value={t.id}>
-                                                {t.label}
+                                        {pageTargets.map((target) => (
+                                            <option key={target.id} value={target.id}>
+                                                {target.label}
                                             </option>
                                         ))}
                                     </optgroup>
                                 )}
                                 <optgroup label={t('LOGIC.SUBMIT_AND_SHOW')}>
-                                    {endingTargets.map((t) => (
-                                        <option key={t.id} value={t.id}>
-                                            {t.label}
+                                    {endingTargets.map((target) => (
+                                        <option key={target.id} value={target.id}>
+                                            {target.label}
                                         </option>
                                     ))}
                                 </optgroup>

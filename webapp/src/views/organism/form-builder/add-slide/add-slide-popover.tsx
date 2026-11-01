@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
-import { useTranslation } from 'react-i18next';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import TemplateTab from '@app/views/organism/form-builder/add-slide/template-tab';

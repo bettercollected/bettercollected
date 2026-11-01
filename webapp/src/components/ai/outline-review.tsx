@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import i18n from 'i18next';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import i18n from 'i18next';
 import { useTranslation } from 'react-i18next';
 
 import {

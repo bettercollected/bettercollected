@@ -2,13 +2,13 @@
 
 import React, { memo, useMemo, useState } from 'react';
 
-import { useTranslation } from 'react-i18next';
 import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 import cn from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAtomValue, useSetAtom } from 'jotai';
-import i18n from 'i18next';
 import { Copy, Lock as LockIcon, Plus, Trash } from 'lucide-react';
+import i18n from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { formFieldsList } from '@app/constants/form-fields';

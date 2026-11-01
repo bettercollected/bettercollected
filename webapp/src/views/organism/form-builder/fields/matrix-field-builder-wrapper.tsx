@@ -1,7 +1,7 @@
-import { useTranslation } from 'react-i18next';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { useAtomValue } from 'jotai';
+import { useTranslation } from 'react-i18next';
 
 import { activeFieldAtom } from '@app/store/jotai/active-builder-component';
 import { useBuilderActions } from '@app/store/jotai/field-selectors';

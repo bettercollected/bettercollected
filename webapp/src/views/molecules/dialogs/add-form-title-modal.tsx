@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Input } from '@app/shadcn/components/ui/input';
@@ -14,7 +14,7 @@ export default function AddFormTitleModal() {
     const { t } = useTranslation('builder');
     const { formState, setFormState } = useFormState();
 
-    const [title, setTitle] = useState(t('NEW_FORM_MODAL.DEFAULT_TITLE'));
+    const [title, setTitle] = useState('New Form');
     const { formFields } = useFormFieldsAtom();
     const { setActiveSlideComponent } = useActiveSlideComponent();
 

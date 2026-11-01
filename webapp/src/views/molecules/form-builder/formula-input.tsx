@@ -1,8 +1,8 @@
 'use client';
 
 import { KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { CalculationVariable, formulaText, parseFormulaText } from '@app/utils/calculated-fields';
 
 const MAX_SUGGESTIONS = 8;

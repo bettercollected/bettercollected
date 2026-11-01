@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import i18n from 'i18next';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from 'i18next';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';

@@ -2,7 +2,6 @@ import React from 'react';
 
 import { v4 } from 'uuid';
 
-import { useTranslation } from 'react-i18next';
 import globalConstants from '@app/constants/global';
 import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
@@ -15,6 +14,7 @@ import SlideLayoutNoImage from '@Components/icons/slide-layout-no-image';
 import { SlideLayoutNoImageLeftAlign } from '@Components/icons/slide-layout-no-image-left-align';
 import SlideLayoutRightImage from '@Components/icons/slide-layout-right-image';
 import Image from 'next/image';
+import { useTranslation } from 'react-i18next';
 
 const Layout = (props: { Icon: any; name: string; label: string; image: string; style?: FormSlideLayout; onClick?: (event?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void }) => {
     return (

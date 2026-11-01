@@ -1,4 +1,5 @@
 import i18n from 'i18next';
+
 /**
  * Pure helpers for the PDF form import screens: progress through the
  * pipeline stages, the import report in plain words, and placing the

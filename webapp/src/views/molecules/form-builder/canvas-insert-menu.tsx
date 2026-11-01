@@ -4,8 +4,8 @@ import { useRef } from 'react';
 
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { useSetAtom } from 'jotai';
-
 import { useTranslation } from 'react-i18next';
+
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';

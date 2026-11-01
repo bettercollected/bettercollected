@@ -1,6 +1,6 @@
-import i18n from 'i18next';
 import { Extension } from '@tiptap/core';
 import Suggestion, { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion';
+import i18n from 'i18next';
 
 /**
  * Typing `@` in a title opens an inline picker of pipeable values (earlier
@@ -13,7 +13,10 @@ import Suggestion, { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/sug
 export interface PipeSuggestionItem {
     kind: 'field' | 'hidden' | 'group';
     pipeKey: string;
+    /** What the menu shows (in the builder's language). */
     label: string;
+    /** What the pipe chip stores in the question's title: the same, in English, whatever the creator's language. */
+    storedLabel?: string;
     /** Section header the item renders under. */
     group: 'Answers' | 'Repeating groups' | 'Hidden fields';
 }
@@ -133,7 +136,7 @@ export const AnswerPipeSuggestion = Extension.create<AnswerPipeSuggestionOptions
                     editor
                         .chain()
                         .focus()
-                        .insertContentAt(range, [{ type: 'answerPipe', attrs: { kind: props.kind, pipeKey: props.pipeKey, label: props.label } }, { type: 'text', text: ' ' }])
+                        .insertContentAt(range, [{ type: 'answerPipe', attrs: { kind: props.kind, pipeKey: props.pipeKey, label: props.storedLabel ?? props.label } }, { type: 'text', text: ' ' }])
                         .run();
                 },
                 render: () => {

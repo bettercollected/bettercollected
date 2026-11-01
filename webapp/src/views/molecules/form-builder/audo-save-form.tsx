@@ -2,10 +2,10 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import i18n from 'i18next';
 import { useStore } from 'jotai';
-
+import i18n from 'i18next';
 import { useTranslation } from 'react-i18next';
+
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader } from '@app/shadcn/components/ui/dialog';

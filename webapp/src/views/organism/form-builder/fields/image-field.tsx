@@ -4,8 +4,8 @@ import { useId } from 'react';
 import Image from 'next/image';
 
 import { ImageIcon } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import useFormContentLanguage from '@app/lib/hooks/use-form-content-language';
 import { StandardFormFieldDto } from '@app/models/dtos/form';

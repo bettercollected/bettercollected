@@ -1,8 +1,9 @@
 // The builder's own sentences that are made in code (not in a component): in the builder's language, English as before.
-import i18n from 'i18next';
 import { afterEach, describe, expect, it } from 'vitest';
+import i18n from 'i18next';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { fieldTypeChip } from '@app/lib/field-type-name';
 import { findingText } from '@app/utils/ai-build-report';
 import { FormOutline, outlineProblems } from '@app/utils/ai-outline';
 import { summarizeAnswerRules } from '@app/utils/answer-rules';
@@ -54,7 +55,7 @@ describe('sentences made in code, in English and Dutch', () => {
         expect(findingText('something_new')).toBe('Something on this form needs a look before publishing.');
         await i18n.changeLanguage('nl');
         expect(findingText('missing_title')).toBe('Het formulier heeft geen titel.');
-        expect(findingText('something_new')).toBe('Er is iets op dit formulier waar u naar moet kijken voor het publiceren.');
+        expect(findingText('something_new')).toBe('Er is iets op dit formulier waar u naar moet kijken voordat u publiceert.');
     });
 
     it('describes a PDF import report with plurals', async () => {
@@ -64,5 +65,22 @@ describe('sentences made in code, in English and Dutch', () => {
         await i18n.changeLanguage('nl');
         expect(describeRules({ consent: 1, photo_box_to_upload: 2 })).toEqual(['1 akkoordverklaring toegevoegd', '2 fotovakken zijn een afbeeldingsupload geworden']);
         expect(describeStaffPart({ heading: 'Kantoor', internal_fields: 1 })).toBe('Kantoor: 1 intern veld dat medewerkers bij elke inzending invullen. Respondenten zien het nooit.');
+    });
+
+    it('does not let a stored finding code pick another text', () => {
+        expect(findingText('TITLE')).toBe('Something on this form needs a look before publishing.');
+        expect(findingText('constructor')).toBe('Something on this form needs a look before publishing.');
+    });
+
+    it('keeps the English chip names and the flow edge words as they were', async () => {
+        const t = i18n.getFixedT('en', 'builder') as unknown as Parameters<typeof fieldTypeChip>[0];
+        expect(fieldTypeChip(t, 'multiple_choice')).toBe('Multiple Choice');
+        expect(fieldTypeChip(t, 'date')).toBe('Calendar');
+        expect(i18n.t('builder:FLOW.CMP.IS_EQUAL')).toBe('is equal');
+        expect(i18n.t('builder:FLOW.CMP.LESS_THAN_EQUAL')).toBe('less than equal');
+        expect(i18n.t('builder:CANVAS.FILE_TOO_LARGE')).toBe('Size greater than 25MB.');
+        expect(i18n.t('builder:TRUST.PREVIEW_POLICY')).toBe('How your data is used');
+        await i18n.changeLanguage('nl');
+        expect(i18n.t('builder:FLOW.RESPONSES', { count: 2 })).toBe('2 reacties');
     });
 });

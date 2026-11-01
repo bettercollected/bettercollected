@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 
 import { Shield } from 'lucide-react';
 import { Trans } from 'react-i18next';
-
 import { useTranslation } from 'react-i18next';
+
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectForm, setFormSettings } from '@app/store/forms/slice';
@@ -160,7 +160,7 @@ export default function TrustSettingsEditor() {
                         <Trans t={tRespondent} i18nKey="PRIVACY.COLLECTED_BY" values={{ owner: workspaceDisplayName(workspace) ?? tRespondent('PRIVACY.OWNER_FALLBACK') }} components={{ 1: <span className="font-semibold text-black-900" /> }} />
                     </span>
                     {purpose.trim() && <span>· {purpose.trim()}</span>}
-                    {httpUrl(privacyUrl) && <span className="text-brand-500">· {tRespondent('PRIVACY.POLICY_LINK')}</span>}
+                    {httpUrl(privacyUrl) && <span className="text-brand-500">· {t('TRUST.PREVIEW_POLICY')}</span>}
                     <span>· {previewRetention}</span>
                     <span>· {tRespondent('PRIVACY.RIGHTS_TEXT')}</span>
                 </div>

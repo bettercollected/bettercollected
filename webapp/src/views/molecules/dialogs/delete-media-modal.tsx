@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+
 import { useSecondaryDialogModal } from '@app/lib/hooks/use-secondary-dialog-modal';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Separator } from '@app/shadcn/components/ui/separator';

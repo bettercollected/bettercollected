@@ -1,10 +1,10 @@
 import React from 'react';
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import i18n from 'i18next';
 import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from 'i18next';
 
 import '@app/shared/hocs/i18n-provider';
 import { setForm } from '@app/store/forms/slice';

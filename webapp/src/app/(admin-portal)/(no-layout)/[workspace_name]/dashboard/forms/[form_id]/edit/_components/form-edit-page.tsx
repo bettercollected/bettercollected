@@ -4,8 +4,6 @@ import React, { use, useEffect, useRef, useState } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { useTranslation } from 'react-i18next';
-
 import { NEEDS_REVIEW_BANNER_HEIGHT_PX, NeedsReviewBanner, useShowNeedsReviewBanner } from '@app/components/open-formulieren-import/needs-review';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { useInspectorEscape } from '@app/lib/hooks/use-inspector-escape';
@@ -13,6 +11,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { useSetAtom } from 'jotai';
+import { useTranslation } from 'react-i18next';
 
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
