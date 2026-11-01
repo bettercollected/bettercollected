@@ -1387,7 +1387,7 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
   back to an answer: the inverse of `response_export/table.py`), `validation.py` (`check_submission`: the respondent
   checks in the submission path's order, returns problems), `service.py` (routes, the job, the sweep), `limits.py`
   (constants). Tables `response_imports` (audit entry and job state) and `response_import_files` (the encrypted
-  upload), revision 0035 (provisional number), both in `NOT_IMPORTED_TABLES`.
+  upload), revision 0033 (its `down_revision` follows whichever of 0032 merges first), both in `NOT_IMPORTED_TABLES`.
 - The upload is the request body (`text/csv`), read in pieces and refused over the cap: never a multipart form (the
   framework spools those to disk). It lives only encrypted in `response_import_files` and is deleted when the job ends
   in any outcome, on discard, with the form/workspace (the export service's `delete_for_*`/`forget_actor` call the
