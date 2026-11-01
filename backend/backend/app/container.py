@@ -357,6 +357,8 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
         workspace_user_repo=workspace_user_repo,
         workspace_form_repo=workspace_form_repo,
+        # late: the policy needs services that need this one
+        sso_policy=providers.Object(lambda: container.sso_policy_service()),
     )
 
     mcp_audit_log_repo: PostgresMcpAuditLogRepository = providers.Singleton(

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { WorkspaceChoice, WorkspaceSelection, matchesSearch, orderChoices, postSignInDestination, readLastWorkspaceId, rememberWorkspace, selectWorkspaceUrl, workspaceDashboardPath, workspaceHome } from './workspace-selection';
+import { WorkspaceChoice, WorkspaceSelection, knownNotice, matchesSearch, orderChoices, postSignInDestination, readLastWorkspaceId, rememberWorkspace, selectWorkspaceUrl, workspaceDashboardPath, workspaceHome } from './workspace-selection';
 
 const choice = (name: string, extra: Partial<WorkspaceChoice> = {}): WorkspaceChoice => ({
     id: `id-${name}`,
@@ -59,6 +59,10 @@ describe('where a sign-in goes', () => {
     it('never builds a notice from anything but the one code', () => {
         expect(selectWorkspaceUrl('<script>')).toBe('/workspace/select');
         expect(selectWorkspaceUrl('no_access')).toBe('/workspace/select?notice=no_access');
+        expect(selectWorkspaceUrl('sso_required')).toBe('/workspace/select?notice=sso_required');
+        expect(knownNotice('sso_required')).toBe('sso_required');
+        expect(knownNotice('anything else')).toBeNull();
+        expect(knownNotice(undefined)).toBeNull();
     });
 });
 

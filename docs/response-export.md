@@ -21,7 +21,8 @@ its file.
 
 Errors: `unknown_column` and `no_columns` (422), `rate_limited` (429, `Retry-After`),
 `export_in_progress` (409), `too_many_rows` (413), `invalid_link` (403), `link_expired`,
-`export_gone` (410), `export_ready` (409), `workspace_busy` (429), `export_not_ready` (409).
+`export_gone` (410), `export_ready` (409), `workspace_busy` (429), `export_busy` (429),
+`export_not_ready` (409).
 
 ## The file
 
@@ -65,8 +66,29 @@ formatting (`temporal/actions-executor/utilities/form.py`).
   claim; the final state is checked the same way. A job that is merely slow is therefore never taken for
   dead while it stores chunks, and if the sweep does requeue one (nothing stored for 30 minutes), the old
   run stops without touching the new run's chunks (a re-claim also clears the chunks of the run before it).
-* `response_export_redefer` (every 5 minutes) queues exports whose job never got queued and takes up
-  those whose worker died (three attempts, then `worker_lost`).
+* **Streams in flight are bounded too.** A streamed export (and a bulk JSON read, below) holds a
+  response open and decrypts 500 rows at a time, so at most `STREAMS_PER_USER` (2) run at once per
+  requester and workspace (429 `export_busy`) and `STREAMS_PER_WORKSPACE` (6) per workspace (429
+  `workspace_busy`). They are counted in Postgres, on the audit rows that are `streaming`, under the same
+  per-workspace lock the jobs take, so the bound holds with several backend replicas. A stream frees its
+  slot when it ends (finished or cut off). A live stream beats (`heartbeat_at`, every
+  `STREAM_BEAT_EVERY`, 30 seconds, from a task of its own) while its client keeps taking pieces, and counts
+  for as long as it beats. It stops beating when no piece was taken for `STREAM_SLOT_TTL` (a client that
+  left, or a generator the server left open after a disconnect) and in any case `STALE_STREAMING_AFTER`
+  (1 hour) after it started; a row that has not beaten for `STREAM_SLOT_TTL` (3 minutes) stops counting, and
+  the sweep ends it after `STALE_STREAMING_AFTER` without a beat. A request refused because no slot was free is given back to the
+  rate limit below: it does not use up the person's budget.
+* **A queued job has a maximum age.** One that no worker has taken in `QUEUED_MAX_AGE` (2 hours since it
+  was queued) is failed with `queue_timeout` by the hourly sweep: the Export control shows it as a failed
+  export, its sealed filters are removed and the workspace's slot and the requester's open export are
+  free again. (Without an `exports` worker the jobs would otherwise sit there for ever.)
+* **The heartbeat has its own field.** A running job writes `heartbeat_at` with each chunk it stores and
+  at least every `HEARTBEAT_EVERY` (30 seconds) while it reads rows that have not filled a chunk yet;
+  `started_at` stays the time of its claim. The sweep takes a job for dead when its last heartbeat is
+  older than `STALE_RUNNING_AFTER`. A row written before the field existed has none and falls back to its
+  `started_at`. (The field lives in the stored document: no migration.)
+* `response_export_redefer` (every 5 minutes) queues exports whose job never got queued (not those past
+  their maximum age) and takes up those whose worker died (three attempts, then `worker_lost`).
 
 All limits are constants in `services/response_export/limits.py`.
 
@@ -104,8 +126,23 @@ workspace. When an account is deleted, its rows in other workspaces stay with th
 
 **Other ways the same data leaves.** `GET .../all-submissions` (every response as decrypted JSON, for
 scripts) takes the same permission, shares the rate limit and writes the same audit entry (channel
-`all_submissions`, format `json`). API keys and MCP `responses:read` also read responses in bulk and are
-**not** audited or limited here yet (access model step d): a known follow-up.
+`all_submissions`, format `json`). Its answer is built in memory, so it holds at most
+`BULK_JSON_MAX_ROWS` (5,000) responses: a form with more is refused with 413 `too_many_rows` (the
+response for smaller forms is unchanged), and the message points to the export, which takes up to
+100,000. It counts as a stream in flight until its answer has been built and sent (the row is closed by a task
+after the response; a failure to close it never turns a good read into an error, and the row stops
+counting after `STREAM_SLOT_TTL`), and a refused or failed read leaves its row as `failed` with a code
+and no rows.
+
+Reads of responses through a **workspace API key** (the REST API's `GET .../responses` and
+`.../responses/{id}`, and MCP `list_responses` and `get_response`) write the same kind of entry, one per
+read: channel `api_key` or `mcp`, `actor` `api-key:<key id>` (the id only: never the key, its name or the
+person who made it), the form, the number of responses returned, format `json`. No answer, no search text.
+A read the key is refused, or that finds nothing, writes none; if the entry cannot be stored the read
+fails instead of going unrecorded. These reads are not limited here: the REST API has its per-key rate
+limit and a page is at most 100 responses.
+
+Not covered yet (later, in the UI): narrowing an export of more than 100,000 responses.
 
 ## Rate limit
 

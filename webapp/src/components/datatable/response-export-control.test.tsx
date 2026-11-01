@@ -336,7 +336,9 @@ describe('when following or fetching goes wrong', () => {
 
     it.each([
         [{ status: 409, data: { code: 'export_ready' } }, 'delete the file to start a new one'],
-        [{ status: 429, data: { code: 'workspace_busy' } }, 'Several exports of this workspace']
+        [{ status: 429, data: { code: 'workspace_busy' } }, 'Several exports of this workspace'],
+        // too many exports of one person running at once: not the "exported too often" message
+        [{ status: 429, data: { code: 'export_busy' } }, 'You already have exports of this workspace running']
     ])('names the refusal %j', async (error, words) => {
         server.startError = error;
         render(tree());

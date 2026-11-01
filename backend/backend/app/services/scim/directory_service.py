@@ -298,7 +298,9 @@ class ScimDirectoryService:
                 or default_sso_role(workspace)
             ).value,
             mappable_roles=mappable_roles(),
-            can_manage=await self._authorization.is_owner(user, workspace_id),
+            can_manage=await self._authorization.is_owner(
+                user, workspace_id, raise_sso_required=True
+            ),
         )
         if directory is None:
             return dto
