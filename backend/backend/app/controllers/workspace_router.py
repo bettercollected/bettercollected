@@ -216,6 +216,11 @@ class WorkspaceRouter(Routable):
     ) -> WorkspacePermissionsDto:
         """What the caller may do in this workspace (the webapp shows and
         hides controls from it). Empty for anyone who isn't an active member."""
+        # No error for a session that misses the workspace's single sign-on
+        # requirement, just no permissions, as for a non-member: this answer
+        # is also read on the workspace's public pages, where such a session
+        # may still answer forms. The dashboard's own calls get 403
+        # ``sso_required`` (``authorize``).
         permissions = await container.authorization_service().effective_permissions(
             user, workspace_id
         )
