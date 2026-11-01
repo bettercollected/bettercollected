@@ -333,3 +333,21 @@ def strip_option_sources(form: Any, kinds: Optional[Tuple[str, ...]] = None) -> 
             properties.option_source = None
         removed += 1
     return removed
+
+
+def strip_share_as_choices(form: Any) -> int:
+    """Turn off ``shareAsChoices`` on every question of the form, in place;
+    returns how many were on. A copy (template, duplicate, import) is a new
+    decision to offer answers as choices: it never inherits the original's."""
+    removed = 0
+    for field, _ in read.every_field(form):
+        properties = read.props(field)
+        if properties is None or read.get(properties, "share_as_choices") is None:
+            continue
+        if read.get(properties, "share_as_choices") is True:
+            removed += 1
+        if isinstance(properties, dict):
+            properties["share_as_choices"] = None
+        else:
+            properties.share_as_choices = None
+    return removed

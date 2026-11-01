@@ -18,7 +18,13 @@ from backend.app.services.option_sources import text
 from backend.app.services.option_sources.checks import FORBIDDEN_CODE, INVALID_CODE
 from backend.app.services.option_sources.service import GONE
 from tests.app.controllers.data import testUser, testUser1
-from tests.app.option_sources.helpers import make_list, publish, question, submit
+from tests.app.option_sources.helpers import (
+    make_list,
+    page_token,
+    publish,
+    question,
+    submit,
+)
 from tests.app.option_sources.helpers import choice, choices
 from tests.app.option_sources.helpers import text as text_answer
 
@@ -203,6 +209,7 @@ async def test_an_anonymous_submission_never_becomes_an_option_but_a_public_one_
             answers={"name": text_answer("Anonymous by choice")}, anonymize=True
         ),
         testUser1,
+        share_notice_token=await page_token(workspace, registered),
     )
     assert listed(await options_of(workspace, registered)) == [
         "Public visitor",

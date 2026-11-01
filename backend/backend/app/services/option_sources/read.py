@@ -9,11 +9,22 @@ CHOICE_TYPES = frozenset({"multiple_choice", "dropdown"})
 ANSWER_SOURCE_TYPES = frozenset({"short_text", "multiple_choice", "dropdown"})
 
 
+def _camel(name: str) -> str:
+    head, *rest = name.split("_")
+    return head + "".join(part.capitalize() for part in rest)
+
+
 def get(item: Any, name: str, default: Any = None) -> Any:
+    """``item.name`` of a model, or of a dict in snake_case or (as a form
+    served to respondents holds its properties) camelCase."""
     if item is None:
         return default
     if isinstance(item, dict):
-        return item.get(name, default)
+        if name in item:
+            return item[name]
+        if "_" in name:
+            return item.get(_camel(name), default)
+        return default
     return getattr(item, name, default)
 
 

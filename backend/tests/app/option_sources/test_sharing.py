@@ -13,6 +13,7 @@ from sqlalchemy import update
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.services.option_sources import service as module
+from backend.app.services.option_sources import share_token
 from backend.app.services.option_sources import text
 from backend.app.services.option_sources.checks import INVALID_CODE
 from backend.app.services.option_sources.service import NOT_SHARED_CODE
@@ -20,6 +21,7 @@ from backend.config import settings
 from tests.app.controllers.data import testUser
 from tests.app.option_sources.helpers import (
     choice,
+    page_token,
     publish,
     question,
     submit,
@@ -123,11 +125,80 @@ async def test_the_response_records_what_it_shared_and_a_client_cannot_claim_mor
             answers={"name": text_answer("Alice")}, shared_as_choices=["name", "role"]
         ),
         testUser,
+        share_notice_token=await page_token(workspace, plain),
     )
     [row] = await container.form_response_repo().list_by_form_id(
         await container.form_response_service().scope(workspace.id, [plain.form_id])
     )
     assert row.shared_as_choices == ["role"]
+    assert (await options_of(workspace, plain)).options == ()
+
+
+async def _stamped(workspace, form):
+    rows = await container.form_response_repo().list_by_form_id(
+        await container.form_response_service().scope(workspace.id, [form.form_id])
+    )
+    return [r.shared_as_choices for r in rows]
+
+
+async def test_only_what_the_page_showed_is_stamped_a_publish_after_the_fetch_adds_nothing(
+    workspace, plain
+):
+    # the respondent loaded the form while "name" did not share
+    token = await page_token(workspace, plain)
+    # the creator turns sharing on and publishes before they submit
+    await set_share(plain, True, publish_again=workspace)
+    await submit(
+        workspace, plain, {"name": text_answer("Late")}, share_notice_token=token
+    )
+    # ("role" shared on both: stamped; "name" was not on the page: not stamped)
+    assert await _stamped(workspace, plain) == [["role"]]
+    assert (await options_of(workspace, plain)).options == ()
+
+
+async def test_turning_sharing_off_after_the_fetch_stamps_nothing_for_it(
+    workspace, plain
+):
+    await set_share(plain, True, publish_again=workspace)
+    token = await page_token(workspace, plain)
+    await set_share(plain, False, publish_again=workspace)
+    await submit(
+        workspace, plain, {"name": text_answer("Early")}, share_notice_token=token
+    )
+    assert await _stamped(workspace, plain) == [["role"]]
+    assert (await options_of(workspace, plain)).options == ()
+
+
+async def test_no_token_a_bad_token_or_another_forms_token_stamps_nothing(
+    workspace, plain
+):
+    await set_share(plain, True, publish_again=workspace)
+    other = await publish(
+        workspace,
+        [question("name", "short_text", "Name", share_as_choices=True)],
+        title="Other",
+    )
+    good = await page_token(workspace, plain)
+    for token in (None, "", "garbage", good[:-3] + "AAA", await page_token(workspace, other)):
+        await submit(
+            workspace, plain, {"name": text_answer("X")}, share_notice_token=token
+        )
+    assert await _stamped(workspace, plain) == [[]] * 5
+    assert (await options_of(workspace, plain)).options == ()
+
+
+async def test_an_expired_token_stamps_nothing(workspace, plain, monkeypatch):
+    import datetime as dt
+
+    await set_share(plain, True, publish_again=workspace)
+    old = share_token.issue_token(
+        workspace_id=workspace.id,
+        form_id=plain.form_id,
+        question_ids=["name"],
+        now=dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=25),
+    )
+    await submit(workspace, plain, {"name": text_answer("Stale")}, share_notice_token=old)
+    assert await _stamped(workspace, plain) == [[]]
     assert (await options_of(workspace, plain)).options == ()
 
 

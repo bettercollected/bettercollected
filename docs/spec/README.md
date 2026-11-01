@@ -470,8 +470,10 @@ answers instead of `choices` (the question has one or the other, never both):
 - **`kind: "form_answers"`**: `formId` and `questionId` name a short text, dropdown or multiple choice question of
   another form of the same workspace **that opted in** with `shareAsChoices: true` (a boolean on that question, off
   unless true; 422 `option_source_not_shared` otherwise). Respondents are told next to that question that their
-  answer may be shown as a choice in other forms; only answers given while a published version with it on was
-  filled are ever offered, and turning it off stops every use. Whoever saves needs permission to read that form's
+  answer may be shown as a choice in other forms; only answers submitted from a page that showed the notice
+  are ever offered (the form a respondent loads carries a signed `shareNoticeToken`, sent back on submit), a copy of a
+  form starts with it off, and turning it off stops every use. When a response is erased, choices made from its
+  answer show `[removed]` in the consuming forms. With `OPTION_SOURCES_ENABLED` off, this kind offers nothing. Whoever saves needs permission to read that form's
   responses; an API key cannot set this kind.
 - Only page-level questions; not combined with `choices`, `optionFilter` or option logic; a condition on such a
   question can only be `IS_EMPTY` or `IS_NOT_EMPTY`; no `setValue` rule targets it.

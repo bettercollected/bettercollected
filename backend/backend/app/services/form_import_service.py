@@ -18,7 +18,10 @@ from backend.app.schemas.standard_form_response import (
 from backend.app.services.field_rules import strip_field_rules
 from backend.app.services.new_question_types import ensure_question_types_allowed
 from backend.app.services.option_logic import strip_option_logic
-from backend.app.services.option_sources.checks import strip_option_sources
+from backend.app.services.option_sources.checks import (
+    strip_option_sources,
+    strip_share_as_choices,
+)
 from backend.app.services.form_service import FormService
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponseAnswer
@@ -94,6 +97,8 @@ class FormImportService:
         # names a list or a form of one workspace
         if form_data.form is not None and strip_option_sources(form_data.form):
             logger.warning("A form import carried an option source; it was dropped")
+        if form_data.form is not None:
+            strip_share_as_choices(form_data.form)
         standard_form = await self.form_service.save_form(form_data.form)
         # The responses are this workspace's copy (#768): the same provider
         # form may be linked to other workspaces, each with its own.
@@ -122,6 +127,10 @@ class FormImportService:
             if response.response_id in deleted_here:
                 continue
             response_document = FormResponseDocument(**response.model_dump(mode="json"))
+            # Only a submission whose page showed the sharing notice may carry
+            # a stamp (services/option_sources/share_token.py): what a provider
+            # payload says is never taken.
+            response_document.shared_as_choices = None
             response_document.id = stored_ids.get(response.response_id)
             response_document.form_id = standard_form.form_id
             response_document.workspace_id = RecordId(workspace_id)

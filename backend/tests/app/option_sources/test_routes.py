@@ -186,6 +186,47 @@ async def test_stored_sources_are_still_served_while_the_switch_is_off(
     assert (await client.get(options_url(workspace, form, "city"))).json()["total"] == 5
 
 
+async def test_with_the_switch_off_another_forms_answers_stop_at_once_but_lists_keep_working(
+    client: AsyncClient, workspace, city_form, monkeypatch
+):
+    from backend.config import settings
+
+    created, list_form = city_form
+    people = await publish(
+        workspace,
+        [question("name", "short_text", "Name", share_as_choices=True)],
+        title="People",
+    )
+    await submit(workspace, people, {"name": text_answer("Alice")})
+    form = await publish(
+        workspace,
+        [
+            question(
+                "who",
+                "dropdown",
+                "Who",
+                source={
+                    "kind": "form_answers",
+                    "form_id": people.form_id,
+                    "question_id": "name",
+                },
+            )
+        ],
+        title="Who comes",
+    )
+    url = options_url(workspace, form, "who")
+    assert (await client.get(url)).json()["total"] == 1
+    monkeypatch.setattr(settings, "OPTION_SOURCES_ENABLED", False)
+    body = (await client.get(url)).json()
+    assert body == {"items": [], "total": 0, "truncated": False, "available": False}
+    assert "Alice" not in (await client.get(url)).text
+    # a workspace list is served as before
+    listed = (await client.get(options_url(workspace, list_form, "city"))).json()
+    assert listed["total"] == 5 and listed["available"] is True
+    monkeypatch.setattr(settings, "OPTION_SOURCES_ENABLED", True)
+    assert (await client.get(url)).json()["total"] == 1
+
+
 async def test_the_options_of_another_forms_answers_hold_labels_only(
     client: AsyncClient, workspace
 ):
@@ -253,6 +294,57 @@ async def test_the_options_of_another_forms_answers_hold_labels_only(
         stored.fields[0].properties.fields[0].properties.option_source.form_id
         == people.form_id
     )
+
+
+async def test_the_form_fetch_hands_out_the_share_notice_token_and_the_submit_route_uses_it(
+    client: AsyncClient, workspace
+):
+    import json
+
+    from backend.app.services.option_sources import share_token
+
+    people = await publish(
+        workspace,
+        [
+            question("name", "short_text", "Name", share_as_choices=True),
+            question("note", "short_text", "Note"),
+        ],
+        title="People",
+    )
+    base = f"/api/v1/workspaces/{workspace.id}/forms/{people.form_id}"
+    served = (await client.get(base, params={"published": "true"})).json()
+    token = served["shareNoticeToken"]
+    assert share_token.shown_question_ids(
+        token, workspace_id=workspace.id, form_id=people.form_id
+    ) == ["name"]
+    answers = {"name": {"type": "text", "text": "Alice"}}
+    body = {"answers": answers, "sharedAsChoices": ["name", "note"]}
+    # a page that did not show the notice (no token): nothing is stamped, whatever the body says
+    sent = await client.post(
+        f"{base}/response", data={"response": json.dumps(body)}
+    )
+    assert sent.status_code == 200, sent.text
+    sent = await client.post(
+        f"{base}/response",
+        data={"response": json.dumps(body), "share_notice_token": token},
+    )
+    assert sent.status_code == 200, sent.text
+    rows = await container.form_response_repo().list_by_form_id(
+        await container.form_response_service().scope(workspace.id, [people.form_id])
+    )
+    assert sorted(len(r.shared_as_choices or []) for r in rows) == [0, 1]
+    assert [r.shared_as_choices for r in rows if r.shared_as_choices] == [["name"]]
+    # a form with nothing shared hands out no token
+    quiet = await publish(
+        workspace, [question("name", "short_text", "Name")], title="Quiet"
+    )
+    served = (
+        await client.get(
+            f"/api/v1/workspaces/{workspace.id}/forms/{quiet.form_id}",
+            params={"published": "true"},
+        )
+    ).json()
+    assert not served.get("shareNoticeToken")
 
 
 async def test_a_respondent_view_of_a_list_source_hides_the_list_id(

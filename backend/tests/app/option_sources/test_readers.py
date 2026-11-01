@@ -84,10 +84,70 @@ def test_the_email_webhook_and_registration_body_carry_labels_and_no_id():
     assert registration.scalar(STATIC, {"choice": {"value": "c1"}})[0] == "Red"
 
 
-def test_the_ai_insights_prompt_gets_the_label_not_the_id():
-    assert _answer_text(ONE, {}) == "Alice Example"
-    assert _answer_text(MANY, {}) == "Bob, Carol"
+def test_the_ai_insights_prompt_gets_a_lists_label_but_never_another_forms_answer():
+    # a workspace list's label is reference data: sent
+    assert _answer_text(ONE, {}, "list") == "Alice Example"
+    # an option that is another form's answer is someone else's answer: never sent
+    assert _answer_text(ONE, {}, "form_answers") == "[choice from another form]"
+    assert _answer_text(MANY, {}, "form_answers") == "[choice from another form]"
+    # a snapshot on a question this version does not know as a list: fail closed
+    assert _answer_text(ONE, {}) == "[choice from another form]"
+    assert _answer_text(MANY, {}) == "[choice from another form]"
     assert (
         _answer_text({"type": "choice", "choice": {"value": "c1"}}, {"c1": "Red"})
         == "Red"
     )
+
+
+def test_a_projection_never_carries_another_forms_answers_to_the_model():
+    from common.models.standard_form import StandardForm
+
+    from backend.app.services.ai.insights import project_responses
+
+    form = StandardForm(
+        builder_version="v2",
+        title="Consumer",
+        fields=[
+            {
+                "id": "s1",
+                "type": "slide",
+                "properties": {
+                    "fields": [
+                        {
+                            "id": "fa_q",
+                            "type": "dropdown",
+                            "title": "Participant",
+                            "properties": {
+                                "option_source": {
+                                    "kind": "form_answers",
+                                    "form_id": "a" * 24,
+                                    "question_id": "name",
+                                }
+                            },
+                        },
+                        {
+                            "id": "ls_q",
+                            "type": "dropdown",
+                            "title": "City",
+                            "properties": {
+                                "option_source": {"kind": "list", "list_id": "b" * 24}
+                            },
+                        },
+                    ]
+                },
+            }
+        ],
+    )
+
+    class Row:
+        form_id = "c" * 24
+        answers = {
+            "fa_q": {"type": "choice", "choice": {"value": "fa" + "1" * 22, "label": "Alice Secret"}},
+            "ls_q": {"type": "choice", "choice": {"value": "li" + "1" * 22, "label": "Utrecht"}},
+        }
+
+    text, included = project_responses("d" * 24, form, [Row()])
+    assert included == 1
+    assert "Alice Secret" not in text
+    assert "[choice from another form]" in text
+    assert "Utrecht" in text

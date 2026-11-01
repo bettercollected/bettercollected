@@ -22,7 +22,10 @@ from backend.app.services.field_rules import (
     ensure_valid_field_rules,
 )
 from backend.app.services.new_question_types import ensure_question_types_allowed
-from backend.app.services.option_sources.checks import strip_option_sources
+from backend.app.services.option_sources.checks import (
+    strip_option_sources,
+    strip_share_as_choices,
+)
 from backend.app.services.option_logic import (
     ensure_choice_logic_allowed,
     ensure_valid_option_logic,
@@ -182,6 +185,7 @@ class FormTemplateService:
         # a template never holds an option source: its lists and forms belong
         # to one workspace, and a copy goes to any
         strip_option_sources(template_body)
+        strip_share_as_choices(template_body)
         template_body.id = RecordId()
         if logo:
             template_body.logo = await self._store_logo(logo)
@@ -231,6 +235,7 @@ class FormTemplateService:
         ensure_valid_option_logic(template_body, drop=True)
         ensure_choice_logic_allowed(template_body, template)
         strip_option_sources(template_body)
+        strip_share_as_choices(template_body)
         if logo:
             # The previous file stays: forms and imported copies made from this
             # template may still show it.

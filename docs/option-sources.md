@@ -44,9 +44,14 @@ Another form's answers are used only when the **source question opted in**. On t
 the answers there is a setting, "Answers may be shown as choices in other forms of this workspace" (`shareAsChoices`),
 off by default. While it is on, the people who fill in that form are told next to the question ("Your answer may be
 shown as a choice in other forms of this organisation") and the form's privacy panel says so too. Only answers given
-**while a published version with the setting on was filled** are ever offered: answers given before the setting,
-answers given on a version without it, and every answer once the setting is turned off are never used. The server
-records on each response which of its questions were shared when it was submitted (a client cannot set that), checks it
+**while the page the respondent filled in showed that notice** are ever offered: answers given before the setting,
+answers given on a version without it, and every answer once the setting is turned off are never used. The form a
+respondent loads carries a signed token (`shareNoticeToken`, valid 24 hours, bound to the workspace and the form) that
+names the questions whose notice that page showed; the page sends it back with the submission (`share_notice_token`).
+The server stamps the response with the questions of the token that the form's current version still shares: no token,
+a forged, expired or foreign one, a form published after the page was loaded, or a client that never showed the notice
+stamps nothing. A client cannot set the stamp in any other way (the body, a provider import and a respondent edit
+never do), and a copy of a form (template, duplicate) starts with sharing off. The server checks the stamp
 for every answer it offers, and refuses to save a question that points at a question that does not share (422
 `option_source_not_shared`). Turning the setting off in the builder stops all use at once; turning it on again brings
 back only the answers that were given while it was on.
@@ -79,10 +84,23 @@ answers those people agreed to share, such as a participant list. The builder sa
   for every request. There is no other timer. The options are kept in memory only and never stored: at most 256
   sources and 200,000 options in all, at most two rebuilds at a time per process, and one response that cannot be read
   is skipped, not a failure.
-- **Erasure and snapshots.** When a response of the source form is erased, its label leaves the options at once. A
-  label already copied into a response of a consuming form (the snapshot beside the chosen id), and into that form's
-  exports, webhooks and emails, is **not** rewritten or removed: it is that respondent's own answer, stored for them.
-  Erase those responses too if the label itself must go.
+- **Erasure.** When a response of the source form is erased (a completed deletion request, a staff delete,
+  retention, an account or form deletion: every way a response goes), its label leaves the options at once. The choices
+  other people made from it are redacted too: once **no eligible response still offers** that option, the label
+  snapshot beside the chosen id becomes `[removed]` in every consuming response of the workspace (all forms that use
+  that source question), so exports, screens, insights and webhooks or emails sent from then on show `[removed]`.
+  The erasure notes which options the erased responses offered (option ids only, never text) in the same
+  transaction; a background run starts right after and the jobs worker repeats it every two minutes until every note
+  is done, so a crash only delays it. Erasing one of two responses that gave the same answer changes nothing.
+  What cannot be undone: webhooks and emails already sent, exports already downloaded, and a respondent's own saved
+  draft keep what they held. The source form's notice tells its respondents that a choice someone else made from their
+  answer may stay in that person's response until their own answer is erased.
+- **Switch off.** With `OPTION_SOURCES_ENABLED` off, another form's answers stop being offered at once: the
+  respondent endpoint answers `available: false` with no options, a submission with a new choice from them is refused
+  (`option_unavailable`) and the builder preview is empty. Workspace lists keep working. A choice already stored keeps
+  its label, and the erasure redaction still runs.
+- AI insights never receive another form's answers: a choice that came from them is sent to the model as "[choice
+  from another form]" (a workspace list's label is reference data and is sent).
 - Anonymous submissions: a respondent who chose to submit anonymously is left out, because a name in a public list
   would defeat that choice. Respondents who are simply not signed in count.
 

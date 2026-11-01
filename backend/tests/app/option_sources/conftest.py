@@ -15,6 +15,10 @@ def fresh_service_state():
     service._access.clear()
     service._servable_cache.clear()
     service._items = 0
+    # tests run the redaction themselves (test_erasure turns it on where it
+    # checks the automatic start)
+    service._auto_redact = False
+    service._redaction_task = None
 
 
 @pytest.fixture()

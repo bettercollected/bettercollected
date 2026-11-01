@@ -62,6 +62,9 @@ from backend.app.repositories.postgres.form_drafts import PostgresFormDraftRepos
 from backend.app.repositories.postgres.response_exports import (
     PostgresResponseExportRepository,
 )
+from backend.app.repositories.postgres.option_erasures import (
+    PostgresOptionErasureRepository,
+)
 from backend.app.repositories.postgres.option_lists import (
     PostgresOptionListRepository,
     PostgresOptionListUsage,
@@ -272,6 +275,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
     option_list_usage: PostgresOptionListUsage = providers.Singleton(
         PostgresOptionListUsage, pg_sessionmaker
+    )
+    option_erasure_repo: PostgresOptionErasureRepository = providers.Singleton(
+        PostgresOptionErasureRepository, pg_sessionmaker
     )
     action_log_repo: PostgresActionLogRepository = providers.Singleton(
         PostgresActionLogRepository, pg_sessionmaker
@@ -630,6 +636,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_service=form_response_service,
         rate_limiter=rate_limiter,
         authorization_service=authorization_service,
+        erasure_repo=option_erasure_repo,
     )
     option_list_service: OptionListService = providers.Singleton(
         OptionListService,

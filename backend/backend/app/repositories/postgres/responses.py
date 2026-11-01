@@ -33,6 +33,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 from uuid import uuid4
 
 from fastapi_pagination import Page
+from loguru import logger
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from pydantic import EmailStr
 from sqlalchemy import (
@@ -334,6 +335,190 @@ class PostgresFormResponseRepository(RecordRepository):
         super().__init__(session_factory)
         self._forms = form_repo  # PostgresFormRepository
         self._workspace_forms = workspace_form_repo  # PostgresWorkspaceFormRepository
+
+    # -- erasure of answers that were offered as options --------------------
+    _options_noted = 0
+
+    async def _delete_recorded(self, session, row, *where):
+        if row is FormResponseRow:
+            self._options_noted += await self._note_erased_options(session, where)
+        return await super()._delete_recorded(session, row, *where)
+
+    async def _prune_tombstones_if_due(self, row):
+        await super()._prune_tombstones_if_due(row)
+        if row is FormResponseRow and self._options_noted > 0:
+            # a delete that noted erased options committed: start redacting
+            # the choices made from them (the jobs worker repeats it)
+            self._options_noted = 0
+            try:
+                from backend.app.container import container
+
+                container.option_source_service().schedule_redaction()
+            except Exception as error:  # noqa: BLE001 - the erasure is done
+                logger.warning(
+                    "option sources: redaction not started ({})", type(error).__name__
+                )
+
+    async def _note_erased_options(self, session, where) -> int:
+        """In the transaction that deletes responses: note, per source
+        question, the option ids the responses about to go offered to other
+        forms (only responses that shared an answer are read). A response that
+        cannot be read is skipped; a database error fails the erasure so it
+        can be repeated, never leaving a choice unredacted unseen."""
+        r = FormResponseRow
+        stored = (
+            (
+                await session.execute(
+                    select(r.doc).where(
+                        *where,
+                        func.coalesce(func.jsonb_typeof(r.doc["shared_as_choices"]), "null")
+                        == "array",
+                        # (not jsonb_array_length: the planner may evaluate it
+                        # on a row that holds no array)
+                        cast(r.doc["shared_as_choices"], Text) != "[]",
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if not stored:
+            return 0
+        from backend.app.schemas.option_source_erasure import (
+            OptionSourceErasureDocument,
+        )
+        from backend.app.services.option_sources import erasure
+        from backend.app.services.option_sources.ids import NoIdKey
+        from backend.db.models import OptionSourceErasureRow
+
+        found: Dict[Tuple[str, str, str], Set[str]] = {}
+        versions: Dict[Tuple[str, Any], Any] = {}
+        unreadable = 0
+        for raw in stored:
+            document = decode(FormResponseDocument, raw)
+            workspace_id, form_id = document.workspace_id, str(document.form_id)
+            if not document.shared_as_choices:
+                continue
+            try:
+                if workspace_id is None:
+                    raise ValueError("no workspace")
+                answers = document.answers
+                if not isinstance(answers, dict):
+                    answers = json.loads(
+                        crypto_service.decrypt(
+                            workspace_id=workspace_id,
+                            form_id=form_id,
+                            data=answers,
+                        )
+                    )
+                key = (form_id, document.form_version)
+                if key not in versions:
+                    versions[key] = await self._filled_version(
+                        form_id, document.form_version
+                    )
+                if versions[key] is None:
+                    raise ValueError("no form")
+                offered = erasure.offered_option_ids(
+                    workspace_id,
+                    form_id,
+                    versions[key],
+                    answers,
+                    document.shared_as_choices,
+                )
+            except NoIdKey:
+                raise
+            except Exception:  # noqa: BLE001 - one response never blocks an erasure
+                unreadable += 1
+                continue
+            for question_id, option_ids in offered.items():
+                found.setdefault((str(workspace_id), form_id, question_id), set()).update(
+                    option_ids
+                )
+        for (workspace_id, form_id, question_id), option_ids in found.items():
+            note = OptionSourceErasureDocument(
+                workspace_id=workspace_id,
+                form_id=form_id,
+                question_id=question_id,
+                option_ids=sorted(option_ids),
+            )
+            note.touch()
+            await session.execute(
+                self._upsert_statement(row_values(note), OptionSourceErasureRow)
+            )
+        if unreadable:
+            logger.warning(
+                "option sources: {} erased response(s) could not be read for redaction",
+                unreadable,
+            )
+        return len(found)
+
+    async def _filled_version(self, form_id: str, version: Optional[int]):
+        """The published version a response was filled on (else the latest, else
+        the draft): what tells which of its answers were questions to share."""
+        found = None
+        if version is not None:
+            found = await self._forms.get_form_by_by_version(form_id, int(version))
+        if found is None:
+            found = await self._forms.get_latest_version_of_form(form_id)
+        if found is None:
+            found = await self._forms.get_form_document_by_id(form_id)
+        return found
+
+    async def redaction_batch(
+        self, scope: ResponseScope, after_id: Optional[str], limit: int
+    ) -> List[FormResponseDocument]:
+        """The next responses of ``scope`` that carry answers (a keyset)."""
+        where = [
+            _in_scope(FormResponseRow, scope),
+            func.coalesce(func.jsonb_typeof(FormResponseRow.doc["answers"]), "null")
+            != "null",
+        ]
+        if after_id is not None:
+            where.append(FormResponseRow.id > after_id)
+        return await self.many(*where, order_by=(FormResponseRow.id,), limit=limit)
+
+    async def redact_option_labels(
+        self,
+        document_id: str,
+        workspace_id: RecordId,
+        form_id: str,
+        field_ids: Iterable[str],
+        option_ids: Set[str],
+    ) -> int:
+        """Replace the label snapshots of ``option_ids`` in the answers to
+        ``field_ids`` of one stored response, decrypting and re-encrypting
+        under its row lock (an edit made at once keeps its answers). Touches
+        nothing else, not even ``updated_at``. Returns the snapshots changed."""
+        from backend.app.services.option_sources import erasure
+
+        async with self._session() as session, session.begin():
+            stored = await _locked_doc(
+                session,
+                FormResponseRow,
+                FormResponseRow.id == str(document_id),
+                document=FormResponseDocument,
+            )
+            if stored is None:
+                return 0
+            answers = stored.answers
+            try:
+                if not isinstance(answers, dict):
+                    answers = json.loads(
+                        crypto_service.decrypt(
+                            workspace_id=workspace_id, form_id=form_id, data=answers
+                        )
+                    )
+            except UnreadableCiphertext:
+                return 0
+            changed = erasure.redact_answers(answers, field_ids, option_ids)
+            if changed:
+                stored.answers = crypto_service.encrypt(
+                    workspace_id=workspace_id,
+                    form_id=form_id,
+                    data=json.dumps(answers),
+                )
+                await session.execute(self._upsert_statement(row_values(stored)))
+        return changed
 
     # -- composition over the forms group ---------------------------------
     async def _form_titles(self, form_ids: List[str]) -> Dict[str, Any]:

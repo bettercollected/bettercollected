@@ -456,13 +456,21 @@ evaluation budget (`worst_case_cost`) or over the caps refuses (never wiped). Th
 respondent page does (`clearUnavailableOptions`).
 
 **Option sources — opt-in (`shareAsChoices`)**: another form's answers are used only from a question with
-`properties.shareAsChoices` true; the server stamps `shared_as_choices` (question ids) on each response at submit from the
-published version it was filled on (`checks.shared_ids`, never from the body), the eligibility SQL
+`properties.shareAsChoices` true; the server stamps `shared_as_choices` (question ids) on each response at submit as the
+questions of the signed notice token the form fetch issued (`option_sources/share_token.py`, `shareNoticeToken` /
+`share_notice_token`) ∩ `checks.shared_ids(latest version)`; never from the body, a provider import or an edit; copies
+strip the flag (`strip_share_as_choices`), the eligibility SQL
 (`PostgresFormResponseRepository._option_source_where`) requires the stamp, and `answer_question_problem` /
 `_rebuild` require the flag on the current document (422 `option_source_not_shared` at save; off = nothing offered at once).
 The options route judges access per call (`OptionSourceService._judge`: hidden, dates, limit, verified identity, private
 groups) and limits from memory first (`_coarse_limit`); the cache token is `(count, hash sum of id+updated_at, form
-revision)` with a 5 s growth debounce for the public route only.
+revision)` with a 5 s growth debounce for the public route only. `OPTION_SOURCES_ENABLED` off is also a kill switch for
+`form_answers` (`OptionSourceService.options` returns nothing; lists unaffected). AI insights replace a `form_answers`
+choice by a placeholder (`insights._sourced_label`). **Erasure:** every delete of a response goes through
+`PostgresFormResponseRepository._delete_recorded`, which notes the option ids the erased responses offered in
+`option_source_erasures` (same transaction); `OptionSourceService.redact_erased` (started after the erasure and by the
+`redact_erased_options` job every two minutes) sets the label snapshots of options no eligible response still offers to
+`[removed]` in the consuming forms' responses (`services/option_sources/erasure.py`).
 
 **Option sources** ([../docs/option-sources.md](../docs/option-sources.md), spec section "Option sources"): a dropdown or
 multiple choice question takes its options from a workspace list or another form's answers (`properties.option_source`, common
