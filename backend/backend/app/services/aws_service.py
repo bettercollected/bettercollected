@@ -226,6 +226,70 @@ class AWSS3Service:
             raise ValueError("object too large")
         return data
 
+    def read_private_object(
+        self, key: str, max_bytes: int, bucket=aws_settings.BUCKET
+    ) -> Optional[bytes]:
+        """The object's bytes, ``None`` only when the store says there is no
+        such object (404 / NoSuchKey). Unlike ``read_object`` every other
+        failure (permission, connection, server error) raises, so a caller that
+        must tell "gone" from "could not look" (the key rotation) can. Raises
+        ``ValueError`` (naming no content) when it is larger than ``max_bytes``;
+        blocking."""
+        found = self.read_private_object_tagged(key, max_bytes, bucket)
+        return None if found is None else found[0]
+
+    def read_private_object_tagged(
+        self, key: str, max_bytes: int, bucket=aws_settings.BUCKET
+    ):
+        """``(bytes, etag)`` of the object, or ``None``: see
+        ``read_private_object``. The ETag lets a writer replace exactly this
+        version (``write_private_object(..., if_match=etag)``)."""
+        body = None
+        try:
+            head = self._s3_client.head_object(Bucket=bucket, Key=key)
+            if int(head.get("ContentLength", 0)) > max_bytes:
+                raise ValueError("object too large")
+            got = self._s3_client.get_object(Bucket=bucket, Key=key)
+            body = got["Body"]
+            data = body.read(max_bytes + 1)
+            etag = got.get("ETag")
+        except ClientError as error:
+            if error.response.get("Error", {}).get("Code") in (
+                "404",
+                "NoSuchKey",
+                "NotFound",
+            ):
+                return None
+            raise
+        finally:
+            if body is not None:
+                body.close()
+        if len(data) > max_bytes:
+            raise ValueError("object too large")
+        return data, etag
+
+    def write_private_object(
+        self,
+        key: str,
+        data: bytes,
+        content_type: str,
+        bucket=aws_settings.BUCKET,
+        if_match: Optional[str] = None,
+    ) -> None:
+        """Put a private object under ``key`` (replacing it). ``if_match``: an
+        ETag; the store then writes only over that version (a conditional write:
+        a changed or deleted object raises ``ClientError`` 412 / 404). Raises on
+        any failure; blocking."""
+        extra = {"IfMatch": if_match} if if_match else {}
+        self._s3_client.put_object(
+            Bucket=bucket,
+            Key=key,
+            Body=data,
+            ACL="private",
+            ContentType=content_type,
+            **extra,
+        )
+
     def generate_presigned_url(
         self, key: str, bucket=aws_settings.BUCKET, response_headers=None
     ):
