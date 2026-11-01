@@ -20,6 +20,13 @@ submission and by a respondent's edit once the answers are known to be valid):
   the sandbox returns is untrusted too and is checked again. The stored object
   is that re-encoding, never the upload. Without the sandbox a drawn signature
   is refused (503 "try again"); a typed one never needs it;
+- drawn signatures are anonymous work on a shared resource: they take at most
+  half the sandbox's slots, wait for one of theirs only briefly and the whole
+  call is cut off (503 either way), and one client address or one form may send
+  only so many a minute (429);
+- a file part must belong to a file upload or signature question of the form,
+  and never carries the id of a file another question of the response holds,
+  so an edit can't replace a stored drawing with bytes of its own;
 - an image with no ink at all cannot be told apart without decoding it here,
   which this process never does: the respondent form never sends one (nothing
   drawn is no answer), and a hand-made one only signs with a blank image;
@@ -29,15 +36,17 @@ submission and by a respondent's edit once the answers are known to be valid):
 Nothing here claims a signature has legal weight.
 """
 
+import asyncio
 import base64
 import binascii
 import datetime as dt
 import io
 from dataclasses import dataclass, field
 from http import HTTPStatus
-from typing import Any, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Set
 
 from loguru import logger
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
 from backend.app.services.answer_validation import (
@@ -53,7 +62,7 @@ from backend.app.services.pdf_import.analysis import DocumentRefused
 from backend.app.services.pdf_import.sandbox import SandboxUnavailable
 
 SIGNATURE = "signature"
-# What a browser sends: at most 1200 x 480 px of dark ink on transparent
+# What a browser sends: at most 1200 x 600 px of dark ink on transparent
 # pixels, a few KB. The cap leaves room and bounds the sandbox's work.
 UPLOAD_MAX_BYTES = 150 * 1024
 STORED_MAX_BYTES = 150 * 1024
@@ -62,9 +71,26 @@ MIN_SIDE = 16
 MAX_WIDTH = 2000
 MAX_HEIGHT = 1000
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-SANDBOX_TIMEOUT_S = 15
+# The sandbox's own limit for one image; its socket read allows 15 s more
+# (pdf_import/sandbox.py).
+SANDBOX_TIMEOUT_S = 10
 SANDBOX_MEMORY_MB = 512
+# Drawn signatures take at most half the sandbox's parallel slots (the logo
+# upload and the PDF import share them) and wait at most GATE_WAIT_S for one of
+# theirs; once in, the whole sandbox call (a shared slot included) is over
+# after CALL_LIMIT_S. Either way the signature is refused with 503 "try again":
+# respondents are anonymous, so nothing of theirs waits without a bound.
+GATE_WAIT_S = 2
+CALL_LIMIT_S = 20
+# Drawn signatures one client address (a /64 for IPv6) and one form may send
+# in a minute (429 beyond); a browser sends one per signature question.
+PER_CLIENT_PER_MINUTE = 20
+PER_FORM_PER_MINUTE = 300
 
+BUSY_MESSAGE = (
+    "Too many drawn signatures are being processed. Try again in a moment, or "
+    "type your name instead."
+)
 UNAVAILABLE_MESSAGE = (
     "Processing a drawn signature is unavailable. Try again in a moment, or "
     "type your name instead."
@@ -122,6 +148,42 @@ async def _process_in_sandbox(data: bytes) -> dict:
     )
 
 
+_gate: Optional[asyncio.Semaphore] = None
+_gate_size = 0
+
+
+def _signature_gate() -> asyncio.Semaphore:
+    """The semaphore of drawn signatures in the sandbox: half its parallel
+    slots (at least one), separate from the logo and the PDF import's."""
+    global _gate, _gate_size
+    from backend.config import settings
+
+    size = max(1, settings.pdf_import.MAX_PARALLEL_SANDBOXES // 2)
+    if _gate is None or _gate_size != size:
+        _gate, _gate_size = asyncio.Semaphore(size), size
+    return _gate
+
+
+async def signature_throttle(workspace_id: Any, form_id: Any, client: Optional[str]) -> None:
+    """429 when this client or this form sent too many drawn signatures in
+    the last minute (services/rate_limiter.py; counters are keyed hashes)."""
+    from backend.app.container import container
+    from backend.app.utils.client_ip import rate_limit_key
+
+    limiter = container.rate_limiter()
+    for scope, key, limit in (
+        ("signature_client", rate_limit_key(client) or "unknown", PER_CLIENT_PER_MINUTE),
+        ("signature_form", f"{workspace_id}:{form_id}", PER_FORM_PER_MINUTE),
+    ):
+        verdict = await limiter.hit(scope, key, limit, 60)
+        if not verdict.allowed:
+            raise HTTPException(
+                status_code=HTTPStatus.TOO_MANY_REQUESTS,
+                content={"code": "rate_limited", "message": "Too many requests; try again later."},
+                headers={"Retry-After": str(verdict.retry_after)},
+            )
+
+
 def _accept(result: Any) -> Optional[bytes]:
     """The sandbox parsed an attacker's file: check everything it returns.
     The re-encoded PNG, or None when anything is off."""
@@ -154,8 +216,17 @@ async def checked_image(data: bytes, field_id: str) -> bytes:
     the sandbox is unavailable (never the respondent's fault)."""
     if not data or len(data) > UPLOAD_MAX_BYTES or not data.startswith(PNG_SIGNATURE):
         raise _problem(field_id)
+    gate = _signature_gate()
     try:
-        result = await _process_in_sandbox(data)
+        await asyncio.wait_for(gate.acquire(), GATE_WAIT_S)
+    except asyncio.TimeoutError:
+        logger.warning("Drawn signature refused: the signature slots of the sandbox are busy.")
+        raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content=BUSY_MESSAGE)
+    try:
+        result = await asyncio.wait_for(_process_in_sandbox(data), CALL_LIMIT_S)
+    except asyncio.TimeoutError:
+        logger.warning("Drawn signature refused: the sandbox did not answer in time.")
+        raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content=BUSY_MESSAGE)
     except SandboxUnavailable:
         logger.warning("Drawn signature refused: the document sandbox is unavailable.")
         raise HTTPException(
@@ -163,6 +234,8 @@ async def checked_image(data: bytes, field_id: str) -> bytes:
         )
     except DocumentRefused:
         raise _problem(field_id)
+    finally:
+        gate.release()
     accepted = _accept(result)
     if accepted is None:
         raise _problem(field_id)
@@ -210,26 +283,95 @@ def _replacement(part: Any, data: bytes) -> Any:
     )
 
 
+FILE_QUESTIONS = ("file_upload", "input_file_upload")
+
+
+def part_fields(*forms: Any) -> Set[str]:
+    """The ids of the questions a file part may belong to: the file upload
+    and signature questions of the forms given."""
+    found: Set[str] = set()
+    for form in forms:
+        for item in _walk(form):
+            kind = getattr(item, "type", None)
+            if getattr(kind, "value", kind) in (SIGNATURE, *FILE_QUESTIONS) and getattr(item, "id", None):
+                found.add(str(item.id))
+    return found
+
+
+def _stored_file_ids(stored: Any) -> Dict[str, str]:
+    """The id of the file each stored answer holds, by question: a drawn
+    signature's image and an upload's file."""
+    found: Dict[str, str] = {}
+    for key, raw in (stored or {}).items():
+        answer = _plain(raw)
+        if not isinstance(answer, dict):
+            continue
+        signature = answer.get("signature")
+        meta = answer.get("file_metadata")
+        if isinstance(signature, dict) and signature.get("file_id"):
+            found[str(key)] = str(signature["file_id"])
+        elif isinstance(meta, dict) and meta.get("id"):
+            found[str(key)] = str(meta["id"])
+    return found
+
+
+def _refuse_files(message: str = "Invalid file.") -> HTTPException:
+    return HTTPException(status_code=HTTPStatus.UNPROCESSABLE_ENTITY, content=message)
+
+
+def _without_foreign_signatures(answers: Any, fields: Dict[str, Any]) -> Any:
+    """``answers`` without a ``signature`` slot on any key that is not a
+    signature question of the form (the slot is meaningless there)."""
+    if not isinstance(answers, dict):
+        return answers
+    out = answers
+    for key, raw in answers.items():
+        if key in fields:
+            continue
+        answer = _plain(raw)
+        if isinstance(answer, dict) and answer.get("signature") is not None:
+            if out is answers:
+                out = dict(answers)
+            out[key] = {k: v for k, v in answer.items() if k != "signature"}
+    return out
+
+
 async def prepare_signatures(
     form: Any,
     answers: Any,
     form_files: Optional[list],
     stored: Any = None,
+    also: Iterable[Any] = (),
+    throttle: Optional[Callable[[], Awaitable[None]]] = None,
 ) -> PreparedSignatures:
     """Check, process and stamp the signatures of a submission (``stored``
     None) or of a respondent's edit (``stored``: the answers before the edit,
-    of which ``answers`` carries the changed ones). A form with no signature
-    question is returned untouched."""
+    of which ``answers`` carries the changed ones).
+
+    Whatever the form, a file part must belong to a file upload or signature
+    question of the form (``also``: other versions of it whose ids answers may
+    use), and a part never carries the id of a file another question of this
+    response holds: a stored drawing is only ever replaced by the sandbox's
+    re-encoding of a drawing for its own question. ``throttle`` is awaited
+    once before the first drawing goes to the sandbox."""
     fields = signature_fields(form)
+    answers = _without_foreign_signatures(answers, fields)
+    parts = list(form_files or [])
+    stored_ids = _stored_file_ids(stored)
+    if parts:
+        allowed = part_fields(form, *also)
+        ids = [str(part.file_id) for part in parts]
+        if len(set(ids)) != len(ids):
+            # two parts with one id would overwrite one object
+            raise _refuse_files("Invalid file id.")
+        for part in parts:
+            if str(part.field_id) not in allowed:
+                raise _refuse_files()
+            owner = next((k for k, v in stored_ids.items() if v == str(part.file_id)), None)
+            if owner is not None and owner != str(part.field_id):
+                raise _refuse_files("Invalid file id.")
     if not fields or not isinstance(answers, dict):
         return PreparedSignatures(answers, form_files)
-    parts = list(form_files or [])
-    ids = [str(part.file_id) for part in parts]
-    if len(set(ids)) != len(ids):
-        # two parts with one id would overwrite one object
-        raise HTTPException(
-            status_code=HTTPStatus.UNPROCESSABLE_ENTITY, content="Invalid file id."
-        )
     by_field: Dict[str, list] = {}
     kept: list = []
     for part in parts:
@@ -240,6 +382,8 @@ async def prepare_signatures(
 
     out = dict(answers)
     replaced: List[str] = []
+    named: Dict[str, str] = {}
+    throttled = False
     for field_id in fields:
         mine = by_field.get(field_id, [])
         if field_id not in answers:
@@ -275,12 +419,20 @@ async def prepare_signatures(
                 replaced.append(previous_id)
         else:
             file_id = str(value["file_id"])
-            named = [part for part in mine if str(part.file_id) == file_id]
-            if len(mine) > 1 or (mine and not named):
+            # another question's file, or one another signature names, is not this one's to name
+            held_elsewhere = any(owner != field_id and held == file_id for owner, held in stored_ids.items())
+            if held_elsewhere or file_id in named:
                 raise _problem(field_id)
-            if named:
-                data = await checked_image(await _read(named[0]), field_id)
-                kept.append(_replacement(named[0], data))
+            named[file_id] = field_id
+            matching = [part for part in mine if str(part.file_id) == file_id]
+            if len(mine) > 1 or (mine and not matching):
+                raise _problem(field_id)
+            if matching:
+                if throttle is not None and not throttled:
+                    throttled = True
+                    await throttle()
+                data = await checked_image(await _read(matching[0]), field_id)
+                kept.append(_replacement(matching[0], data))
                 clean = {"method": "drawn", "file_id": file_id, "signed_at": _now()}
                 if previous_id and previous_id != file_id:
                     replaced.append(previous_id)
@@ -297,10 +449,18 @@ async def prepare_signatures(
         rebuilt["type"] = SIGNATURE
         rebuilt["signature"] = clean
         out[field_id] = rebuilt
+    # what the response still holds after the edit is never deleted: the
+    # images of the signatures it ends with (changed or not) and the files of
+    # its other questions
+    in_use = set(named)
+    for key, held in stored_ids.items():
+        if key not in fields or key not in answers:
+            in_use.add(held)
+    replaced = [file_id for file_id in dict.fromkeys(replaced) if file_id not in in_use]
     return PreparedSignatures(out, kept or None, replaced)
 
 
-def delete_stored_images(
+async def delete_stored_images(
     aws: Any, workspace_id: Any, form_id: Any, response_id: Any, file_ids: List[str]
 ) -> None:
     """Remove drawn images an edit replaced. A storage failure never fails the
@@ -312,8 +472,10 @@ def delete_stored_images(
         if not is_plain_file_id(file_id):
             continue
         try:
-            aws.delete_file_from_s3(
-                key=f"private/{workspace_id}/{form_id}/{response_id}/{file_id}"
+            # blocking storage call: off the event loop
+            await run_in_threadpool(
+                aws.delete_file_from_s3,
+                key=f"private/{workspace_id}/{form_id}/{response_id}/{file_id}",
             )
         except Exception:  # noqa: BLE001 - never fail the edit over storage
             logger.warning(

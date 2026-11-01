@@ -9,6 +9,7 @@ and the search agree with the gate."""
 import asyncio
 import datetime as dt
 import json
+from types import SimpleNamespace
 from typing import Any, Coroutine
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -298,9 +299,16 @@ class TestResponseLimitGate:
             patch.object(
                 ActionService, "start_actions_for_submission", new=AsyncMock()
             ) as actions,
+            # the fixture form has no file question: this part stands for an
+            # upload to one (a part must belong to one, services/signatures.py)
+            patch(
+                "backend.app.services.signatures.part_fields",
+                return_value={"upload"},
+            ),
         ):
+            part = SimpleNamespace(file_id="file-1", field_id="upload")
             with pytest.raises(HTTPException) as refused:
-                await _submit_service(workspace, form_id, form_files=[object()])
+                await _submit_service(workspace, form_id, form_files=[part])
         assert refused.value.content["code"] == "form_full"
         upload.assert_called_once()
         aws.delete_folder_from_s3.assert_called_once()
