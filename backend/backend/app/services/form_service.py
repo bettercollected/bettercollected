@@ -5,7 +5,6 @@ from typing import Any, Iterable, List, Optional
 from aiohttp import ServerDisconnectedError
 from common.ids import RecordId
 from common.configs.crypto import Crypto
-from common.constants import MESSAGE_FORBIDDEN
 from common.enums.form_provider import FormProvider
 from common.models.standard_form import (
     StandardForm,
@@ -220,12 +219,16 @@ class FormService:
         everyone else only the published forms: drafts (``published`` false)
         are 403 for them. Staff
         alone get importer details (members' names and emails)."""
-        staff = await self._authorization.has_permission(
+        if not published:
+            # 403 for anyone else, ``sso_required`` for a session that
+            # misses the workspace's single sign-on requirement
+            await self._authorization.authorize(
+                user, Permission.FORM_READ, workspace_id
+            )
+            return True
+        return await self._authorization.has_permission(
             user, Permission.FORM_READ, workspace_id
         )
-        if not published and not staff:
-            raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
-        return staff
 
     async def _importer_details(self, importer_ids: Iterable[Optional[str]]):
         """importer id -> the auth service's details for them: one call with

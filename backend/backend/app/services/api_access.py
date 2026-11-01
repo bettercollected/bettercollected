@@ -42,7 +42,14 @@ def _c():
 
 def acting_user(key: WorkspaceAPIKeyDocument) -> User:
     """Authorization inside the product services runs as the key's creator."""
-    return User(id=key.created_by, sub=f"api-key:{key.name}", roles=["FORM_CREATOR"])
+    # auth_method "api_key": a machine credential, which the workspace's
+    # single sign-on requirement does not cover (services/sso/policy.py)
+    return User(
+        id=key.created_by,
+        sub=f"api-key:{key.name}",
+        roles=["FORM_CREATOR"],
+        auth_method="api_key",
+    )
 
 
 async def require_key_scope(key: WorkspaceAPIKeyDocument, scope: str) -> None:

@@ -33,14 +33,22 @@ export interface WorkspaceSelection {
 
 export const SELECT_WORKSPACE_PATH = '/workspace/select';
 
-/** The one notice the screen knows: a fixed code, never text from the URL. */
+/** The notices the screen knows: fixed codes, never text from the URL. */
 export const NO_ACCESS_NOTICE = 'no_access';
+/** A request was refused because the session doesn't meet the workspace's single sign-on requirement. */
+export const SSO_REQUIRED_NOTICE = 'sso_required';
+
+/** The notice code to show for a `notice` query value: one of the fixed codes, else none. */
+export function knownNotice(value?: string | null): typeof NO_ACCESS_NOTICE | typeof SSO_REQUIRED_NOTICE | null {
+    return value === NO_ACCESS_NOTICE || value === SSO_REQUIRED_NOTICE ? value : null;
+}
 
 /** Show the search once the list is longer than this. */
 export const SEARCH_THRESHOLD = 8;
 
 export function selectWorkspaceUrl(notice?: string | null): string {
-    return notice === NO_ACCESS_NOTICE ? `${SELECT_WORKSPACE_PATH}?notice=${NO_ACCESS_NOTICE}` : SELECT_WORKSPACE_PATH;
+    const known = knownNotice(notice);
+    return known ? `${SELECT_WORKSPACE_PATH}?notice=${known}` : SELECT_WORKSPACE_PATH;
 }
 
 /** The dashboard of the workspace with handle `name` (a route param, decoded or not). */

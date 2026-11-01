@@ -959,7 +959,10 @@ window: the deploy recreates every service and runs migrations.
   (Owner, Admin and Editor have it; Viewer, Reviewer and Privacy officer do not) instead of
   the read permission. The builder's flow view uses the new `.../submission-paths`, which
   needs only `response.read` and carries no answers. Scripts that called `.../all-submissions`
-  with a read-only role need the export permission.
+  with a read-only role need the export permission. The route is also audited and rate limited like
+  an export, holds at most 5,000 responses (413 `too_many_rows` above that: use the export), and is
+  refused with 429 (`export_busy` or `workspace_busy`) while too many exports of the person or the
+  workspace are running (`docs/response-export.md`).
 - **Temporal's port 7234 is no longer published** (4.0), and Temporal is not part of the stack
   at all since 4.1: see "Temporal is retired".
 - **Umami.** The dashboard moved from `0.0.0.0:3003` to `127.0.0.1:3004`; port `3003` is

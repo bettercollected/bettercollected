@@ -344,7 +344,9 @@ class SsoConnectionService:
             ],
             settings=self._settings_dto(workspace),
             max_connections=sso.MAX_CONNECTIONS_PER_WORKSPACE,
-            can_manage=await self._authorization.is_owner(user, workspace_id),
+            can_manage=await self._authorization.is_owner(
+                user, workspace_id, raise_sso_required=True
+            ),
         )
 
     @staticmethod
