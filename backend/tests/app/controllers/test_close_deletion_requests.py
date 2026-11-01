@@ -287,8 +287,8 @@ class TestReviewFollowUps:
         # the workspace's copy can't be resolved (e.g. a legacy copy without a
         # workspace on a form linked to several): the data would stay
         # patched on the singleton itself: a patch of the class is shadowed by
-        # any instance attribute an earlier test left behind (tests/conftest.py,
-        # ``_no_stale_service_patches``)
+        # any instance attribute an earlier test left behind (the conftest's
+        # ``monkeypatch`` no longer leaves one, but this cannot be shadowed)
         with patch.object(
             container.form_response_service(),
             "workspace_response",

@@ -68,6 +68,7 @@ DECLARE
     owner_name text;
     owner_seq text;
     s text;
+    m record;
 BEGIN
     IF NOT (SELECT rolsuper FROM pg_catalog.pg_roles WHERE rolname = current_user) THEN
         RAISE EXCEPTION 'run this as the database superuser';
@@ -91,11 +92,15 @@ BEGIN
 
     -- a member of any role could SET ROLE to it (bc_jobs_def owns the trigger
     -- functions and may write the events): none, whatever an earlier grant said
-    FOR owner_name IN
-        SELECT pg_catalog.pg_get_userbyid(m.roleid) FROM pg_catalog.pg_auth_members m
-         WHERE m.member = 'bc_jobs_exec'::regrole
+    -- (each grant is revoked as its own grantor: a plain REVOKE only removes
+    -- what the current role granted)
+    FOR m IN
+        SELECT pg_catalog.pg_get_userbyid(am.roleid) AS role_name,
+               pg_catalog.pg_get_userbyid(am.grantor) AS grantor_name
+          FROM pg_catalog.pg_auth_members am
+         WHERE am.member = 'bc_jobs_exec'::regrole
     LOOP
-        EXECUTE 'REVOKE ' || quote_ident(owner_name) || ' FROM bc_jobs_exec';
+        EXECUTE format('REVOKE %I FROM bc_jobs_exec GRANTED BY %I', m.role_name, m.grantor_name);
     END LOOP;
 
     -- nothing of the other services, whatever an earlier grant said
@@ -144,11 +149,15 @@ BEGIN
     REVOKE ALL ON ALL TABLES IN SCHEMA jobs FROM bc_jobs_def;
     REVOKE ALL ON ALL SEQUENCES IN SCHEMA jobs FROM bc_jobs_def;
     REVOKE CREATE ON SCHEMA jobs FROM bc_jobs_def;
-    FOR owner_name IN
-        SELECT pg_catalog.pg_get_userbyid(m.roleid) FROM pg_catalog.pg_auth_members m
-         WHERE m.member = 'bc_jobs_def'::regrole
+    -- (each grant is revoked as its own grantor: a plain REVOKE only removes
+    -- what the current role granted)
+    FOR m IN
+        SELECT pg_catalog.pg_get_userbyid(am.roleid) AS role_name,
+               pg_catalog.pg_get_userbyid(am.grantor) AS grantor_name
+          FROM pg_catalog.pg_auth_members am
+         WHERE am.member = 'bc_jobs_def'::regrole
     LOOP
-        EXECUTE 'REVOKE ' || quote_ident(owner_name) || ' FROM bc_jobs_def';
+        EXECUTE format('REVOKE %I FROM bc_jobs_def GRANTED BY %I', m.role_name, m.grantor_name);
     END LOOP;
     GRANT USAGE ON SCHEMA jobs TO bc_jobs_def;
     GRANT SELECT, INSERT ON jobs.procrastinate_events TO bc_jobs_def;
@@ -207,6 +216,18 @@ BEGIN
         EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA jobs GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO bc_jobs_exec', owner_name);
         EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA jobs GRANT USAGE, SELECT ON SEQUENCES TO bc_jobs_exec', owner_name);
         EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA jobs GRANT EXECUTE ON FUNCTIONS TO bc_jobs_exec', owner_name);
+    END LOOP;
+
+    -- a revoke that did not take (a grant made by a role this session cannot
+    -- act as, a database default this script does not know) must fail the
+    -- script, not exit 0: the executor's start check would refuse later
+    FOREACH s IN ARRAY ARRAY['bc_jobs_exec', 'bc_jobs_def'] LOOP
+        IF EXISTS (SELECT 1 FROM pg_catalog.pg_auth_members am WHERE am.member = s::regrole) THEN
+            RAISE EXCEPTION 'role % is still a member of another role after the revoke: check pg_auth_members', s;
+        END IF;
+        IF pg_catalog.has_database_privilege(s, current_database(), 'TEMPORARY') THEN
+            RAISE EXCEPTION 'role % can still create temporary tables after the revoke: check the database''s privileges and revoke TEMPORARY from whatever grants it', s;
+        END IF;
     END LOOP;
 END
 $do$;

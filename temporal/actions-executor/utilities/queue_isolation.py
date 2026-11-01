@@ -39,6 +39,7 @@ DEFINER_ROLE = "bc_jobs_def"
 # The schemas of the other services: the definer role may hold no privilege in
 # them (the same list postgres/ensure-jobs-exec-role.sh revokes).
 OTHER_SCHEMAS = ("app", "auth", "google", "admin", "tasks", "settings")
+_OTHER_SCHEMAS_SQL = "ARRAY[" + ", ".join(f"'{n}'" for n in OTHER_SCHEMAS) + "]::name[]"
 DEFINER_SEARCH_PATH = "search_path=jobs, pg_catalog, pg_temp"
 
 # True when, for the role this connection is: row-level security is on for the
@@ -59,9 +60,6 @@ DEFINER_SEARCH_PATH = "search_path=jobs, pg_catalog, pg_temp"
 # A later ``CREATE OR REPLACE FUNCTION`` by procrastinate resets a function to
 # SECURITY INVOKER with no path: this then fails closed until
 # ``python -m backend.jobs.schema`` has run again.
-_OTHER_SCHEMAS_SQL = "ARRAY[" + ", ".join(f"'{n}'" for n in OTHER_SCHEMAS) + "]::name[]"
-
-
 def isolation_sql(definer: str = DEFINER_ROLE) -> str:
     return f"""
 SELECT EXISTS (
@@ -134,10 +132,15 @@ ISOLATION_SQL = isolation_sql()
 REFUSAL = (
     "the job queue does not restrict this database role to running action jobs "
     f"(the '{POLICY}' policy on jobs.procrastinate_jobs, no write on the events and "
-    "periodic-defers tables, or the role is more than a plain login role). Run "
+    "periodic-defers tables, or the role is more than a plain login role), or the "
+    "database role can create temporary tables (TEMPORARY is granted to PUBLIC by "
+    "default) or is a member of another role, or the trigger-function owner "
+    f"'{DEFINER_ROLE}' holds more than the queue's triggers need. Run "
     "`python -m backend.jobs.schema` with the backend's configuration (it is a "
     "no-op for the tables and applies the restriction), and "
-    "postgres/ensure-jobs-exec-role.sh, then start the executor again."
+    "postgres/ensure-jobs-exec-role.sh (it revokes TEMPORARY from PUBLIC, removes "
+    "the memberships and resets the definer role's grants), then start the "
+    "executor again."
 )
 
 

@@ -328,3 +328,48 @@ async def test_the_executors_start_check_passes_after_the_script_and_a_job_still
     finally:
         await conn.close()
     assert await _scalar(db, "SELECT count(*) FROM jobs.procrastinate_events") == 1
+
+
+async def test_it_revokes_a_membership_granted_by_another_role(db):
+    assert run_script(db, secrets.token_hex(12)).returncode == 0
+    await _execute(
+        db.url(),
+        f'GRANT "bc_auth_{db.suffix}" TO "bc_app_{db.suffix}" WITH ADMIN OPTION;'
+        f' GRANT "bc_auth_{db.suffix}" TO "{db.exec_role}" GRANTED BY "bc_app_{db.suffix}"',
+    )
+    assert await _scalar(
+        db, "SELECT pg_has_role(%s, %s, 'MEMBER')", db.exec_role, f"bc_auth_{db.suffix}"
+    )
+
+    done = run_script(db)
+
+    assert done.returncode == 0, done.stderr
+    assert "member_of_roles=0" in done.stdout
+
+
+async def test_it_fails_instead_of_exiting_zero_when_temporary_is_still_there(db):
+    """A revoke that did not take must fail the script. Simulated by taking the
+    revoke from PUBLIC out of a copy of it."""
+    text = db.script.read_text()
+    revoke = "EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM PUBLIC', current_database());"
+    assert revoke in text
+    db.script.write_text(text.replace(revoke, "NULL;"))
+
+    done = run_script(db, secrets.token_hex(12))
+
+    assert done.returncode != 0
+    assert "can still create temporary tables" in done.stderr
+
+
+async def test_it_fails_when_a_membership_survives(db):
+    assert run_script(db, secrets.token_hex(12)).returncode == 0
+    await _execute(db.url(), f'GRANT "bc_auth_{db.suffix}" TO "{db.exec_role}"')
+    text = db.script.read_text()
+    revoke = f"EXECUTE format('REVOKE %I FROM {db.exec_role} GRANTED BY %I', m.role_name, m.grantor_name);"
+    assert revoke in text
+    db.script.write_text(text.replace(revoke, "NULL;"))
+
+    done = run_script(db)
+
+    assert done.returncode != 0
+    assert "still a member" in done.stderr

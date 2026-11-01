@@ -63,3 +63,9 @@ def test_the_check_keeps_the_definer_role_out_of_the_other_services_schemas():
     assert queue_isolation.OTHER_SCHEMAS == (
         "app", "auth", "google", "admin", "tasks", "settings"
     )
+
+
+def test_the_refusal_names_each_thing_the_check_looks_at_and_the_fix():
+    message = queue_isolation.REFUSAL
+    for word in ("TEMPORARY", "member of another role", queue_isolation.DEFINER_ROLE, "ensure-jobs-exec-role.sh", "backend.jobs.schema"):
+        assert word in message, word
