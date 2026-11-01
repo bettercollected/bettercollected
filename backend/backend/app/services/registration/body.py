@@ -35,8 +35,26 @@ SUPPORTED_TYPES = (
     TEXT_TYPES
     | NUMBER_TYPES
     | CHOICE_TYPES
-    | {"email", "url", "phone_number", "yes_no", "date", "file_upload", "calculated"}
+    | {
+        "email",
+        "url",
+        "phone_number",
+        "yes_no",
+        "date",
+        "file_upload",
+        "calculated",
+        # the newer types: each is sent in the shape the public API answers
+        # it in (``scalar``)
+        "time",
+        "day",
+        "currency",
+        "date_range",
+        "tags",
+    }
 )
+TIME_PATTERN = r"^([01][0-9]|2[0-3]):[0-5][0-9]$"
+CURRENCY_CODE_PATTERN = r"^[A-Z]{3}$"
+CURRENCY_AMOUNT_PATTERN = r"^-?[0-9]+(\.[0-9]+)?$"
 
 # fixed metadata, always sent; the creator may add more from EXTRA_METADATA
 FIXED_METADATA = ("public_reference", "form_version", "registration_timestamp")
@@ -288,6 +306,80 @@ def _nullable(schema: dict, value: Any) -> dict:
     return schema
 
 
+def _text_parts(raw: Any, names: Tuple[str, ...]) -> Dict[str, Optional[str]]:
+    """The named text slots of an answer's object (``None`` for a missing or
+    not-text one)."""
+    raw = raw if isinstance(raw, dict) else {}
+    return {
+        n: raw[n] if isinstance(raw.get(n), str) and raw[n] else None for n in names
+    }
+
+
+def _parts_value(parts: Dict[str, Optional[str]]) -> Optional[Dict[str, Optional[str]]]:
+    """``None`` when no part is given, else every part (a missing one ``null``)."""
+    return parts if any(v is not None for v in parts.values()) else None
+
+
+def _parts_schema(
+    title: str,
+    parts: Dict[str, Optional[str]],
+    templates: Dict[str, dict],
+) -> dict:
+    """An object schema of the given parts: all required, none extra. A part
+    that is missing in this answer says so (``null`` allowed)."""
+    given = _parts_value(parts) is not None
+    return _nullable(
+        {
+            "title": title,
+            "type": "object",
+            "properties": {
+                name: _nullable(template, parts[name]) if given else template
+                for name, template in templates.items()
+            },
+            "required": list(templates),
+            "additionalProperties": False,
+        },
+        _parts_value(parts),
+    )
+
+
+def currencies_of(field: Any) -> List[str]:
+    """The ISO 4217 codes a currency question offers (the first is its default)."""
+    offered = _get(_get(field, "properties"), "currencies")
+    return [c for c in offered if isinstance(c, str)] if isinstance(offered, list) else []
+
+
+def _currency_value(field: Any, answer: Optional[dict]) -> Tuple[Any, dict]:
+    """``{"code": "EUR", "amount": "12.50"}`` as the API answers it: the
+    amount stays the decimal string it was written as (no rounding by a
+    float). Not answered: ``null``."""
+    parts = _text_parts((answer or {}).get("currency"), ("code", "amount"))
+    code: Dict[str, Any] = {"type": "string", "pattern": CURRENCY_CODE_PATTERN}
+    offered = currencies_of(field)
+    if offered:
+        code["enum"] = offered
+    return _parts_value(parts), _parts_schema(
+        label_of(field),
+        parts,
+        {
+            "code": code,
+            "amount": {"type": "string", "pattern": CURRENCY_AMOUNT_PATTERN},
+        },
+    )
+
+
+def _date_range_value(field: Any, answer: Optional[dict]) -> Tuple[Any, dict]:
+    """``{"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}``; not answered: ``null``."""
+    raw = (answer or {}).get("date_range")
+    if raw is None:
+        raw = (answer or {}).get("dateRange")
+    parts = _text_parts(raw, ("start", "end"))
+    day = {"type": "string", "format": "date"}
+    return _parts_value(parts), _parts_schema(
+        label_of(field), parts, {"start": day, "end": day}
+    )
+
+
 def scalar(
     field: Any, answer: Optional[dict], *, choices_as_list: bool = True
 ) -> Tuple[Any, dict]:
@@ -313,11 +405,25 @@ def scalar(
         value = _slot(answer, "boolean")
         value = value if isinstance(value, bool) else None
         return value, _nullable({"title": title, "type": "boolean"}, value)
-    if type_ == "date":
+    if type_ in ("date", "day"):
         value = _slot(answer, "date")
         return value, _nullable(
             {"title": title, "type": "string", "format": "date"}, value
         )
+    if type_ == "time":
+        value = _slot(answer, "time")
+        value = value if isinstance(value, str) else None
+        return value, _nullable(
+            {"title": title, "type": "string", "pattern": TIME_PATTERN}, value
+        )
+    if type_ == "currency":
+        return _currency_value(field, answer)
+    if type_ == "date_range":
+        return _date_range_value(field, answer)
+    if type_ == "tags":
+        raw = (answer or {}).get("tags")
+        tags = [t for t in raw if isinstance(t, str)] if isinstance(raw, list) else []
+        return tags, {"title": title, "type": "array", "items": {"type": "string"}}
     if type_ in CHOICE_TYPES:
         options = _option_titles(field)
         picked = _picked(answer)

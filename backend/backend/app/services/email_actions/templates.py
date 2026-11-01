@@ -133,9 +133,14 @@ _YES = {"en": "Yes", "nl": "Ja"}
 _NO = {"en": "No", "nl": "Nee"}
 
 
+def _row(row: Dict[str, Any], language: str) -> str:
+    return " / ".join(format_value(v, language) for v in row.values() if v not in (None, ""))
+
+
 def format_value(value: Any, language: str = DEFAULT_LANGUAGE) -> str:
     """An answer as text: a list joined with ``, ``, the items of a repeating
-    group one per line (``1. a / b``), a yes/no in the form's language."""
+    group one per line (``1. a / b``), a yes/no in the form's language, a currency
+    ``EUR 12.50`` and a date range ``2026-01-31/2026-02-03``."""
     if value is None:
         return ""
     if isinstance(value, bool):
@@ -145,12 +150,18 @@ def format_value(value: Any, language: str = DEFAULT_LANGUAGE) -> str:
     if isinstance(value, str):
         return value
     if isinstance(value, dict):
-        return " / ".join(format_value(v, language) for v in value.values() if v not in (None, ""))
+        if set(value) == {"code", "amount"} and value["amount"] not in (None, ""):
+            # a currency answer: "EUR 12.50", as the export writes it
+            return f"{value['code']} {value['amount']}".strip() if value["code"] else str(value["amount"])
+        if set(value) == {"start", "end"}:
+            # a date range: an ISO 8601 interval, as the export writes it
+            return f"{value['start'] or ''}/{value['end'] or ''}"
+        return _row(value, language)
     if isinstance(value, (list, tuple)):
         if value and all(isinstance(item, dict) for item in value):
-            return "\n".join(
-                f"{n}. {format_value(item, language)}" for n, item in enumerate(value, 1)
-            )
+            # an item of a repeating group: a question may be called "start"
+            # or "code", so a row is never read as a currency or a range
+            return "\n".join(f"{n}. {_row(item, language)}" for n, item in enumerate(value, 1))
         return ", ".join(format_value(item, language) for item in value)
     return str(value)
 
