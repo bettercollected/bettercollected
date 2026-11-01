@@ -875,8 +875,18 @@ class PostgresFormResponseRepository(RecordRepository):
             document=FormResponseDeletionRequest,
         )
 
-    async def list_by_form_id(self, scope: ResponseScope) -> List[FormResponseDocument]:
-        return await self.many(_in_scope(FormResponseRow, scope))
+    async def list_by_form_id(
+        self, scope: ResponseScope, limit: Optional[int] = None
+    ) -> List[FormResponseDocument]:
+        """Every response in ``scope``; with ``limit``, at most that many (in
+        the order they were stored: the keyset order of the export)."""
+        if limit is None:
+            return await self.many(_in_scope(FormResponseRow, scope))
+        return await self.many(
+            _in_scope(FormResponseRow, scope),
+            order_by=(FormResponseRow.id,),
+            limit=limit,
+        )
 
     # -- export (services/response_export) ------------------------------------
     @staticmethod

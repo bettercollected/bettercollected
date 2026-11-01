@@ -126,7 +126,7 @@ async def test_every_stored_chunk_is_a_heartbeat(client: AsyncClient, workspace,
 
     async def watching(chunk, attempt, now):
         result = await real(chunk, attempt, now)
-        stamps.append((await repo().get_by_id(export["id"])).started_at)
+        stamps.append((await repo().get_by_id(export["id"])).heartbeat_at)
         return result
 
     monkeypatch.setattr(repo(), "add_chunk_if_owned", watching)

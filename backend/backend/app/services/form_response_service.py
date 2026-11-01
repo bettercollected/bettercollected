@@ -393,16 +393,30 @@ class FormResponseService:
         form_id: str,
         workspace_id: RecordId,
         user: User,
+        max_rows: Optional[int] = None,
     ):
         # Every response of the form, unpaginated and decrypted: a bulk
         # download, so response.export (doc §4), never response.read alone.
+        # The answer is built in memory: with ``max_rows`` a form that holds
+        # more is refused (413) after reading one row past the limit, never all.
         await self._authorization.authorize(
             user, Permission.RESPONSE_EXPORT, workspace_id
         )
         await self._form_in_workspace(workspace_id, form_id)
         form_responses = await self._form_response_repo.list_by_form_id(
-            await self.scope(workspace_id, [form_id])
+            await self.scope(workspace_id, [form_id]),
+            limit=None if max_rows is None else max_rows + 1,
         )
+        if max_rows is not None and len(form_responses) > max_rows:
+            raise HTTPException(
+                HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                {
+                    "code": "too_many_rows",
+                    "message": f"This form has more than {max_rows} responses, "
+                    "too many to read at once. Export them instead "
+                    "(POST .../exports), narrowing with filters if needed.",
+                },
+            )
         return self.decrypt_form_responses(
             workspace_id=workspace_id, responses=form_responses
         )
@@ -479,6 +493,11 @@ class FormResponseService:
             raise HTTPException(
                 HTTPStatus.NOT_FOUND, "Form not found in the workspace."
             )
+
+    async def ensure_form_in_workspace(self, workspace_id: RecordId, form_id: str):
+        """404 unless the form is one of the workspace's (no permission check:
+        the caller has made its own)."""
+        await self._form_in_workspace(workspace_id, form_id)
 
     async def get_workspace_submission(
         self, workspace_id: RecordId, response_id: str, user: User

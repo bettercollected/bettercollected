@@ -17,7 +17,9 @@ for a large one, and keep an audit entry of each (docs/response-export.md).
   (the search text only as "a search was used"), kind, state. Never an answer.
 * **Limits.** ``REQUESTS_PER_WINDOW`` requests per user and form per
   ``WINDOW_SECONDS`` (429 with ``Retry-After``), one unfinished job per user and
-  form (409), at most ``MAX_ROWS`` responses.
+  form (409), at most ``MAX_ROWS`` responses, and streams in flight at once
+  (``STREAMS_PER_USER`` per requester and workspace, ``STREAMS_PER_WORKSPACE``,
+  429), counted in Postgres so several backend replicas share them.
 """
 
 from __future__ import annotations
@@ -42,6 +44,7 @@ from backend.app.repositories.postgres.response_exports import (
     CHUNK_LOST,
     OpenExportExists,
     PostgresResponseExportRepository,
+    StreamsBusy,
     WorkspaceBusy,
 )
 from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
@@ -230,15 +233,44 @@ class ResponseExportService:
         await self._authorize(user, workspace_id, form_id)
         return column_catalogue(await self._form(form_id))
 
+    async def _admit_stream(self, export: ResponseExportDocument) -> None:
+        """Store the audit row of a stream unless the requester or the workspace
+        already has its share in flight (429). The row is the slot: it is freed
+        when the stream ends, or ``STREAM_SLOT_TTL`` after it began."""
+        try:
+            await self._exports.admit_stream(
+                export,
+                limits.STREAMS_PER_USER,
+                limits.STREAMS_PER_WORKSPACE,
+                self._clock() - limits.STREAM_SLOT_TTL,
+            )
+        except StreamsBusy as busy:
+            if busy.scope == "workspace":
+                raise _error(
+                    HTTPStatus.TOO_MANY_REQUESTS,
+                    "workspace_busy",
+                    "Several exports of this workspace are being prepared. Try again in a few minutes.",
+                    **{"Retry-After": "30"},
+                ) from None
+            raise _error(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                "export_busy",
+                "You already have exports running in this workspace. Try again when one has finished.",
+                **{"Retry-After": "10"},
+            ) from None
+
     # ----------------------------------------------------------- the bulk JSON route
     async def bulk_read(self, workspace_id: RecordId, form_id: str, user: User):
         """``GET .../all-submissions``: every response of the form as decrypted
         JSON. It is an export like any other, so it takes the same permission,
         rate limit and audit entry (channel ``all_submissions``, one row per
-        read, never an answer)."""
-        # the permission first (403 for a role that may not export); the form is
-        # checked, with its own 404, when the responses are read
+        read, never an answer), counts as a stream in flight while it reads, and
+        holds at most ``BULK_JSON_MAX_ROWS`` responses (413 ``too_many_rows``
+        above that: the answer is built in memory)."""
+        # the permission first (403 for a role that may not export), then the
+        # form's own 404, before any audit row is made for it
         await self._authorization.authorize(user, Permission.RESPONSE_EXPORT, workspace_id)
+        await self._responses.ensure_form_in_workspace(workspace_id, form_id)
         verdict = await self._limiter.hit(
             f"response-export:{workspace_id}:{form_id}",
             str(user.id),
@@ -252,26 +284,81 @@ class ResponseExportService:
                 f"Too many exports of this form. Try again in {verdict.retry_after} seconds.",
                 **{"Retry-After": str(verdict.retry_after)},
             )
-        responses = await self._responses.get_workspace_form_all_submissions(
-            form_id, workspace_id, user
-        )
+        export = ResponseExportDocument(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            actor_id=str(user.id),
+            channel="all_submissions",
+            kind=ExportKind.STREAM,
+            status=ExportStatus.STREAMING,
+            format="json",
+            started_at=self._clock(),
+        ).ensure_id()
+        await self._admit_stream(export)
+        try:
+            responses = await self._responses.get_workspace_form_all_submissions(
+                form_id, workspace_id, user, max_rows=limits.BULK_JSON_MAX_ROWS
+            )
+        except BaseException as error:
+            code = (
+                "too_many_rows"
+                if isinstance(error, HTTPException) and error.status_code == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
+                else "interrupted"
+            )
+            await _settle(self._exports.update_locked(export.id, self._ended_stream(ExportStatus.FAILED, 0, code)))
+            raise
+
+        def done(document: ResponseExportDocument):
+            document.expected_rows = document.row_count = len(responses)
+            document.finished_at = self._clock()
+            document.status = ExportStatus.COMPLETED
+            return document
+
+        await self._exports.update_locked(export.id, done)
+        return responses
+
+    def _ended_stream(self, status: ExportStatus, rows: int, code: str):
+        def change(document: ResponseExportDocument):
+            if document.status != ExportStatus.STREAMING:
+                return None
+            document.status = status
+            document.row_count = rows
+            document.error_code = code
+            document.finished_at = self._clock()
+            return document
+
+        return change
+
+    async def audit_key_read(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        key_id: str,
+        channel: str,
+        rows: int,
+    ) -> None:
+        """One audit entry for a read of responses through a workspace API key
+        (``channel`` ``api_key`` for the REST API, ``mcp`` for the MCP server):
+        who is the key (``api-key:<id>``, never the key's secret, name or
+        creator), what is the form and how many responses were returned. No
+        answer, no search text. Raises when it cannot be stored, so the read
+        fails rather than leaves unrecorded."""
         now = self._clock()
         await self._exports.save(
             ResponseExportDocument(
                 workspace_id=workspace_id,
                 form_id=form_id,
-                actor_id=str(user.id),
-                channel="all_submissions",
+                actor_id=f"api-key:{key_id}",
+                channel=channel,
                 kind=ExportKind.STREAM,
                 status=ExportStatus.COMPLETED,
                 format="json",
-                expected_rows=len(responses),
-                row_count=len(responses),
+                expected_rows=rows,
+                row_count=rows,
                 started_at=now,
                 finished_at=now,
             )
         )
-        return responses
 
     # ------------------------------------------------------------------- request
     async def request(
@@ -337,7 +424,7 @@ class ResponseExportService:
         file_name = export_file_name(title, extension=file_format)
 
         if export.kind == ExportKind.STREAM:
-            await self._exports.save(export)
+            await self._admit_stream(export)
             return StreamStart(
                 export=export,
                 file_name=file_name,
@@ -459,16 +546,24 @@ class ResponseExportService:
             pass
         elif (
             document.status == ExportStatus.RUNNING
-            and document.started_at is not None
-            and document.started_at < stale
+            and (beat := self._last_beat(document)) is not None
+            and beat < stale
         ):
             pass
         else:
             return None
+        now = self._clock()
         document.status = ExportStatus.RUNNING
-        document.started_at = self._clock()
+        document.started_at = now
+        document.heartbeat_at = now
         document.attempts += 1
         return document
+
+    @staticmethod
+    def _last_beat(document: ResponseExportDocument) -> Optional[dt.datetime]:
+        """When the running job last showed it was alive: its heartbeat, or, for
+        a row written before heartbeats had a field of their own, its claim."""
+        return document.heartbeat_at or document.started_at
 
     async def _end(
         self, export_id, status: ExportStatus, error_code: Optional[str] = None
@@ -559,10 +654,20 @@ class ResponseExportService:
             return result != CHUNK_INVALIDATED
 
         stopped = False
+        last_beat = self._clock()
         async for piece in write_export(
             plan, document.title or "", self._source(workspace_id, scope, filters), counter
         ):
             pending.extend(piece)
+            if self._clock() - last_beat >= limits.HEARTBEAT_EVERY:
+                # reading rows that have not filled a chunk yet is alive too
+                last_beat = self._clock()
+                beat = await self._exports.beat_if_owned(export.id, attempt, last_beat)
+                if beat == CHUNK_LOST:
+                    raise _Superseded()
+                if beat == CHUNK_INVALIDATED:
+                    stopped = True
+                    break
             if counter.rows > limits.MAX_ROWS:
                 # responses arrived after the count the request was admitted on
                 return await self._end_owned(export, ExportStatus.FAILED, "too_many_rows")
@@ -790,7 +895,9 @@ class ResponseExportService:
 
     # ---------------------------------------------------------------------- sweeps
     async def purge_expired(self) -> int:
-        """Delete the files that outlived ``FILE_TTL``."""
+        """Delete the files that outlived ``FILE_TTL``, and fail the queued exports
+        that outlived ``QUEUED_MAX_AGE`` (the hourly sweep). Returns the files deleted."""
+        await self.fail_overdue_queued()
         now = self._clock()
         purged = 0
         for export in await self._exports.list_by_status([ExportStatus.READY]):
@@ -798,6 +905,40 @@ class ResponseExportService:
                 if await self._drop_file(export.id, ExportStatus.EXPIRED) is not None:
                     purged += 1
         return purged
+
+    @staticmethod
+    def _overdue(export: ResponseExportDocument, now: dt.datetime) -> bool:
+        """A queued export that has waited longer than ``QUEUED_MAX_AGE`` for a
+        worker. It waits since it became queued: ``updated_at`` moves when it
+        is queued again after a worker was lost, so a job that ran for a while
+        is not failed for the age of its row."""
+        waiting_since = export.updated_at or export.created_at
+        return waiting_since is not None and waiting_since < now - limits.QUEUED_MAX_AGE
+
+    async def fail_overdue_queued(self) -> int:
+        """End the exports that stayed queued longer than ``QUEUED_MAX_AGE``
+        (no worker serves the ``exports`` queue, or it is far behind): failed
+        with ``queue_timeout``, which the Export control shows as a failed
+        export, their sealed filters removed and the workspace's slot freed."""
+        now = self._clock()
+        failed = 0
+        for export in await self._exports.list_by_status([ExportStatus.QUEUED]):
+            if not self._overdue(export, now):
+                continue
+
+            def expire(document: ResponseExportDocument, now=now):
+                # decided on the stored row: a worker may have claimed it meanwhile
+                if document.status != ExportStatus.QUEUED or not self._overdue(document, now):
+                    return None
+                document.status = ExportStatus.FAILED
+                document.error_code = "queue_timeout"
+                document.finished_at = now
+                document.params_sealed = None
+                return document
+
+            if await self._exports.update_locked(export.id, expire) is not None:
+                failed += 1
+        return failed
 
     async def redefer_pending(self) -> Dict[str, int]:
         """Queue again exports whose job was never queued; rescue those whose
@@ -810,20 +951,26 @@ class ResponseExportService:
                 # a streamed export whose process died: it was cut off
                 await self._exports.update_locked(export.id, self._interrupted)
         for export in await self._exports.list_by_status([ExportStatus.QUEUED]):
+            if self._overdue(export, now):
+                # failed by ``fail_overdue_queued``, not queued once more
+                continue
             if export.created_at and export.created_at < now - limits.REDEFER_AFTER:
                 queued += 1 if await self._queue(export) else 0
         cutoff = now - limits.STALE_RUNNING_AFTER
         for export in await self._exports.list_by_status([ExportStatus.RUNNING]):
-            if export.started_at is None or export.started_at >= cutoff:
+            beat = self._last_beat(export)
+            if beat is None or beat >= cutoff:
                 continue
 
             def lose(document: ResponseExportDocument, cutoff=cutoff):
-                # still the same silent claim: a run that stores chunks writes
-                # its heartbeat with each, so this one is not alive
+                # still the same silent claim: a run beats (``heartbeat_at``) with
+                # each chunk it stores and each stretch of rows it reads, so this
+                # one is not alive. ``started_at`` stays: it says when it began
+                beat = self._last_beat(document)
                 if (
                     document.status != ExportStatus.RUNNING
-                    or document.started_at is None
-                    or document.started_at >= cutoff
+                    or beat is None
+                    or beat >= cutoff
                 ):
                     return None
                 if document.attempts >= limits.MAX_ATTEMPTS:

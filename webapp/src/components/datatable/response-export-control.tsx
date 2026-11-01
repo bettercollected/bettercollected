@@ -35,7 +35,7 @@ interface Props {
 function refusalMessage(error: any): { key: string; values?: Record<string, unknown> } {
     const data: ResponseExportRefusal = error?.data ?? {};
     const status = error?.status;
-    if (data.code === 'workspace_busy') return { key: responseExportLocale.errorBusy };
+    if (data.code === 'workspace_busy' || data.code === 'export_busy') return { key: responseExportLocale.errorBusy };
     if (status === 429 || data.code === 'rate_limited') return { key: responseExportLocale.errorRateLimited, values: { minutes: Math.max(1, Math.ceil((data.retryAfter ?? 60) / 60)) } };
     if (data.code === 'export_in_progress') return { key: responseExportLocale.errorInProgress };
     if (data.code === 'export_ready') return { key: responseExportLocale.errorReady };

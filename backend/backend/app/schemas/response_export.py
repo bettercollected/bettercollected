@@ -62,7 +62,8 @@ class ResponseExportDocument(Record):
     # who asked (the user's id; DELETED_ACTOR once that account was deleted)
     actor_id: str
     # how the data left: "export" (the export control, POST .../exports) or
-    # "all_submissions" (the bulk JSON route, audited the same way)
+    # "all_submissions" (the bulk JSON route, audited the same way), or "api_key" /
+    # "mcp" (a workspace API key's reads of responses; ``actor_id`` is ``api-key:<key id>``)
     channel: str = "export"
     kind: ExportKind
     status: ExportStatus
@@ -81,8 +82,13 @@ class ResponseExportDocument(Record):
     # claims of the job so far; a run owns the export only while this is still
     # the value it claimed (a swept and re-run job makes the old run stop)
     attempts: int = 0
-    # when the job was claimed and, while it builds, when it last stored a chunk
+    # when the job was claimed (by its latest claim)
     started_at: Optional[dt.datetime] = None
+    # while it builds, when the running job last showed it is alive (a stored chunk
+    # or a read batch); the sweep tells a stuck job by this, never by ``started_at``.
+    # Kept in the document: no column, no migration (rows from before have none and
+    # fall back to ``started_at``)
+    heartbeat_at: Optional[dt.datetime] = None
     finished_at: Optional[dt.datetime] = None
     # file: name offered to the user, size, and when it is deleted at the latest
     file_name: Optional[str] = None
@@ -102,6 +108,7 @@ class ResponseExportDocument(Record):
 
     _tz = field_validator(
         "started_at",
+        "heartbeat_at",
         "finished_at",
         "expires_at",
         "downloaded_at",
