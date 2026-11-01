@@ -311,6 +311,133 @@
       "title": "Condition",
       "type": "object"
     },
+    "Container": {
+      "additionalProperties": false,
+      "description": "A layout container on a page: ``panel`` (a titled group that opens and\ncloses; ``collapsed``: closed when the page opens), ``fieldset`` (a\nbordered group with a legend) or ``tabs`` (a strip of ``tabs``, no title\nof its own). A panel and a field set list their questions in ``fields``;\nthe questions of one container are next to each other on the page, in the\norder given, and are questions of the page itself (never a repeating\ngroup's children). ``logic`` shows or hides the whole container. Layout\nonly: answers, logic, rules and exports see the questions as before.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "panel",
+            "fieldset",
+            "tabs"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "collapsed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Collapsed"
+        },
+        "logic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Logic"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fields": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 200,
+                "type": "string"
+              },
+              "maxItems": 100,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fields"
+        },
+        "tabs": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ContainerTab"
+              },
+              "maxItems": 8,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tabs"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "Container",
+      "type": "object"
+    },
+    "ContainerTab": {
+      "additionalProperties": false,
+      "description": "One tab of a ``tabs`` container: its title and its questions (ids, in\npage order). A tab may be empty.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "fields": {
+          "items": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "title": "ContainerTab",
+      "type": "object"
+    },
     "DateRule": {
       "additionalProperties": false,
       "description": "The chosen date must be ``comparison`` a fixed ``date`` (YYYY-MM-DD),\ntoday, or the answer of another date question (``fieldId``).",
@@ -1483,6 +1610,23 @@
           ],
           "default": null,
           "title": "Jumps"
+        },
+        "containers": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Container"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Panels, field sets and tabs that group questions of this page.",
+          "title": "Containers"
         },
         "fields": {
           "items": {

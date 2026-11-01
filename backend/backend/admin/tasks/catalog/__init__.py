@@ -20,6 +20,7 @@ def selftest_enabled(env: Mapping[str, str] = os.environ) -> bool:
 def all_meta(env: Mapping[str, str] = os.environ) -> list[TaskMeta]:
     """Every task the build offers, in a stable order."""
     from backend.admin.tasks.catalog import (
+        authkeys,
         case_duplicates,
         google_purge,
         keyset,
@@ -31,6 +32,7 @@ def all_meta(env: Mapping[str, str] = os.environ) -> list[TaskMeta]:
         responses_check.META,
         responses_backfill.META,
         *keyset.ALL,
+        *authkeys.ALL,
         google_purge.META,
         case_duplicates.META,
     ]

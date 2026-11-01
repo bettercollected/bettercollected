@@ -77,6 +77,16 @@ export function isSignatureQuestionDisabled(response: any): boolean {
     return response?.error?.status === 422 && response.error.data?.code === 'signature_question_disabled';
 }
 
+/** Did the server refuse the save because layout containers are switched off (422 `layout_containers_disabled`)? */
+export function isLayoutContainersDisabled(response: any): boolean {
+    return response?.error?.status === 422 && response.error.data?.code === 'layout_containers_disabled';
+}
+
+/** Did the server refuse the save because a page's layout containers are not valid (422 `invalid_layout`)? */
+export function isInvalidLayout(response: any): boolean {
+    return response?.error?.status === 422 && response.error.data?.code === 'invalid_layout';
+}
+
 /** Did the server refuse the save because field rules are switched off (422 `field_rules_disabled`)? */
 export function isFieldRulesDisabled(response: any): boolean {
     return response?.error?.status === 422 && response.error.data?.code === 'field_rules_disabled';
@@ -238,6 +248,8 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
                         if (isQuestionTypeDisabled(response)) toast({ description: i18n.t('builder:NEW_TYPES.SAVE_REFUSED') });
                         if (isSignatureQuestionDisabled(response)) toast({ description: i18n.t('builder:NEW_TYPES.SIGNATURE_SAVE_REFUSED') });
                         if (isAddressQuestionDisabled(response)) toast({ description: i18n.t('builder:NEW_TYPES.ADDRESS_SAVE_REFUSED') });
+                        if (isLayoutContainersDisabled(response)) toast({ description: i18n.t('builder:LAYOUT.SAVE_REFUSED') });
+                        if (isInvalidLayout(response)) toast({ description: i18n.t('builder:LAYOUT.SAVE_INVALID') });
                         if (outcome.kind === 'saved') {
                             contextRef.current.dispatch(setForm({ ...response.data, settings: contextRef.current.settings }));
                             // The language the server stored: it keeps its own

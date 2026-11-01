@@ -16,6 +16,7 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
 )
 from backend.app.services.field_rules import strip_field_rules
+from backend.app.services.layout_containers import ensure_valid_layout
 from backend.app.services.new_question_types import ensure_question_types_allowed
 from backend.app.services.option_logic import strip_option_logic
 from backend.app.services.option_sources.checks import (
@@ -88,6 +89,9 @@ class FormImportService:
         # a payload that has some is refused while NEW_QUESTION_TYPES_ENABLED
         # is off.
         if form_data.form is not None:
+            # (and no layout container a payload brought: repaired or refused,
+            # then the switch, services/layout_containers.py)
+            ensure_valid_layout(form_data.form)
             ensure_question_types_allowed(form_data.form)
         # ... nor option logic (services/option_logic.py): the providers have
         # none, and CHOICE_LOGIC_ENABLED is for what people write here.

@@ -14,10 +14,11 @@ import { useSetAtom } from 'jotai';
 
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { useBuilderHydration } from '@app/store/jotai/builder-hydration';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { usePageIds } from '@app/store/jotai/entity-hooks';
 import { initialFieldsState } from '@app/store/jotai/field-selectors';
 import { initialFormState, useFormState } from '@app/store/jotai/form';
-import { resetFromServerAtom } from '@app/store/jotai/form-document';
+import { resetFromServerAtom, setLayoutContainersSwitch } from '@app/store/jotai/form-document';
 import { useFormLanguageSync } from '@app/store/jotai/form-language';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { withEndingIds } from '@app/utils/endings';
@@ -42,6 +43,12 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     const pageIds = usePageIds();
     const { formState } = useFormState();
     const resetFromServer = useSetAtom(resetFromServerAtom);
+    // The server's say on layout containers reaches the ops engine: while it is off, an edit that would add or change one is refused here too.
+    const { layoutContainersEnabled, answered: permissionsAnswered } = useWorkspacePermissions();
+    useEffect(() => {
+        setLayoutContainersSwitch(permissionsAnswered ? layoutContainersEnabled : undefined);
+        return () => setLayoutContainersSwitch(undefined);
+    }, [permissionsAnswered, layoutContainersEnabled]);
     const { setHydratedFormId } = useBuilderHydration();
     // The respondent views and the plain-language tips read the form's language from Redux.
     useFormLanguageSync();

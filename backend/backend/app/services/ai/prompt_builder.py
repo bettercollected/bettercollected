@@ -309,6 +309,20 @@ _SIGNATURE_TYPE = (
 )
 
 
+_CONTAINERS_OP = """- {"op":"set_page_containers","pageId":"...","containers":[{"type":"panel","title":"...","collapsed":false?,"fields":["<question id>",...]},{"type":"fieldset","title":"...","fields":[...]},{"type":"tabs","tabs":[{"title":"...","fields":[...]},...]}]}
+  (group the questions of a page: a panel opens and closes (collapsed = closed when the page
+  opens), a field set is a bordered group with a legend, tabs show one group at a time. Layout
+  only: answers and logic work as before. The questions of one container must be next to each
+  other on the page in the order listed (move them first), page questions only, no container in
+  a container. A container may carry "logic" like set_field_logic. The list replaces the page's
+  containers; null clears them. A question added or moved to the inside of a container joins
+  it. The snapshot lists them as the page's "containers".)
+"""
+_JUMPS_END = (
+    '  ending of the snapshot\'s "endings" instead, e.g. "eligible" / "not eligible" outcomes.)\n'
+)
+
+
 def ops_guide() -> str:
     """OPS_GUIDE, without the newer question types while they are switched
     off, and with the address and signature questions only while their own
@@ -328,6 +342,10 @@ def ops_guide() -> str:
         extra += _SIGNATURE_TYPE
     if extra:
         guide = guide.replace(types, types[:-1] + extra + ".")
+    from backend.app.services.layout_containers import layout_containers_enabled
+
+    if layout_containers_enabled() and _JUMPS_END in guide:
+        guide = guide.replace(_JUMPS_END, _JUMPS_END + _CONTAINERS_OP, 1)
     return guide
 
 
@@ -431,6 +449,11 @@ def project_form(form, settings=None) -> str:
                     ],
                 }
                 for j in slide.properties.jumps
+            ]
+        if slide.properties and slide.properties.containers:
+            page_entry["containers"] = [
+                c.model_dump(mode="json", by_alias=True, exclude_none=True)
+                for c in slide.properties.containers
             ]
         pages.append(page_entry)
     snapshot = {"title": form.title, "description": form.description, "pages": pages}

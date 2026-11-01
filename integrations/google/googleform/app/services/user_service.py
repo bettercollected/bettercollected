@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-import jwt
+from common.services.jwt_service import decode_with_ring
 from jwt import InvalidSignatureError, ExpiredSignatureError
 from starlette.requests import Request
 
@@ -15,8 +15,8 @@ async def get_user_credential(request: Request) -> Oauth2CredentialDocument:
     if not access_token:
         raise HTTPException(401, "No Access Token provided.")
     try:
-        jwt_response = jwt.decode(
-            access_token, key=settings.AUTH_JWT_SECRET, algorithms=["HS256"]
+        jwt_response = decode_with_ring(
+            access_token, settings.AUTH_JWT_SECRET, algorithms=["HS256"]
         )
     except (InvalidSignatureError, ExpiredSignatureError):
         raise HTTPException(

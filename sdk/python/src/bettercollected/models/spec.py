@@ -105,6 +105,33 @@ class Condition(BaseModel):
     )
 
 
+class Title(RootModel[str]):
+    root: str = Field(None, max_length=120, title="Title")
+
+
+class FieldModel(RootModel[str]):
+    root: str = Field(..., max_length=200)
+
+
+class Fields(RootModel[list[FieldModel]]):
+    root: list[FieldModel] = Field(None, max_length=100, title="Fields")
+
+
+class ContainerTab(BaseModel):
+    """
+    One tab of a ``tabs`` container: its title and its questions (ids, in
+    page order). A tab may be empty.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    id: str = Field(..., pattern="^[A-Za-z0-9_-]{1,64}$", title="Id")
+    title: str = Field(..., max_length=120, min_length=1, title="Title")
+    fields: list[FieldModel] | None = Field(None, max_length=100, title="Fields")
+
+
 class DateRule(BaseModel):
     """
     The chosen date must be ``comparison`` a fixed ``date`` (YYYY-MM-DD),
@@ -141,7 +168,7 @@ class Name(RootModel[str]):
     )
 
 
-class Title(RootModel[str]):
+class Title1(RootModel[str]):
     root: str = Field(None, max_length=300, title="Title")
 
 
@@ -459,7 +486,7 @@ class RuleSetValue(BaseModel):
     expression: Any = Field(None, title="Expression")
 
 
-class Title1(RootModel[str]):
+class Title2(RootModel[str]):
     root: str = Field(
         None,
         description="Plain text; may pipe answers ({{field:<id>}}).",
@@ -494,7 +521,7 @@ class RuleThen(BaseModel):
         description="Respondents cannot change the value: a submitted value is discarded (replaced by an active setValue, else removed).",
         title="Readonly",
     )
-    title: Title1 | None = Field(
+    title: Title2 | None = Field(
         None,
         description="Plain text; may pipe answers ({{field:<id>}}).",
         title="Title",
@@ -731,6 +758,35 @@ class Choice(BaseModel):
     )
 
 
+class Tabs(RootModel[list[ContainerTab]]):
+    root: list[ContainerTab] = Field(None, max_length=8, title="Tabs")
+
+
+class Container(BaseModel):
+    """
+    A layout container on a page: ``panel`` (a titled group that opens and
+    closes; ``collapsed``: closed when the page opens), ``fieldset`` (a
+    bordered group with a legend) or ``tabs`` (a strip of ``tabs``, no title
+    of its own). A panel and a field set list their questions in ``fields``;
+    the questions of one container are next to each other on the page, in the
+    order given, and are questions of the page itself (never a repeating
+    group's children). ``logic`` shows or hides the whole container. Layout
+    only: answers, logic, rules and exports see the questions as before.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    id: str = Field(..., pattern="^[A-Za-z0-9_-]{1,64}$", title="Id")
+    type: Literal["panel", "fieldset", "tabs"] = Field(..., title="Type")
+    title: Title | None = Field(None, title="Title")
+    collapsed: bool | None = Field(None, title="Collapsed")
+    logic: Logic | None = None
+    fields: Fields | None = Field(None, title="Fields")
+    tabs: Tabs | None = Field(None, title="Tabs")
+
+
 class Ending(BaseModel):
     """
     A page shown after submitting. A page jump may choose one by its
@@ -758,7 +814,7 @@ class Ending(BaseModel):
         description="Shown after a plain submit. At most one ending.",
         title="Isdefault",
     )
-    title: Title | None = Field(None, title="Title")
+    title: Title1 | None = Field(None, title="Title")
     message: Message | None = Field(None, title="Message")
     button_text: ButtonText | None = Field(None, alias="buttonText", title="Buttontext")
     button_link: str | None = Field(
@@ -784,6 +840,15 @@ class OptionFilter(BaseModel):
     field_id: str = Field(..., alias="fieldId", min_length=1, title="Fieldid")
     mapping: list[OptionFilterEntry] | None = Field(
         None, max_length=2000, title="Mapping"
+    )
+
+
+class Containers(RootModel[list[Container]]):
+    root: list[Container] = Field(
+        None,
+        description="Panels, field sets and tabs that group questions of this page.",
+        max_length=20,
+        title="Containers",
     )
 
 
@@ -1161,6 +1226,11 @@ class Page(BaseModel):
     )
     position: Position | None = None
     jumps: list[PageJump] | None = Field(None, title="Jumps")
+    containers: Containers | None = Field(
+        None,
+        description="Panels, field sets and tabs that group questions of this page.",
+        title="Containers",
+    )
     fields: list[FormField] | None = Field(None, title="Fields")
 
 

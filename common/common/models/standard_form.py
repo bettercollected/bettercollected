@@ -787,6 +787,103 @@ class PageJump(BaseModel):
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
 
+# Layout containers (``StandardFieldProperty.containers`` of a page): a titled
+# collapsible panel, a bordered field set with a legend, or a strip of tabs,
+# each grouping questions that sit next to each other on the page. Layout only:
+# the page's flat question list is what answers, logic, rules and exports read.
+# The structure checks are in ``common.layout_containers``.
+LAYOUT_CONTAINER_TYPES = ("panel", "fieldset", "tabs")
+CONTAINERS_MAX = 20  # containers on one page
+CONTAINER_MEMBERS_MAX = 100  # questions in one container
+TABS_MAX = 8  # tabs in one strip
+CONTAINER_TITLE_MAX = 120
+LAYOUT_MEMBER_ID_MAX = 200  # one question id in a container's list
+# The one pair of format characters a title keeps: they join emoji sequences
+# and shape Persian, Hindi and other scripts (U+200C, U+200D).
+_TITLE_KEEP_FORMAT = frozenset("\u200c\u200d")
+LAYOUT_ID_PATTERN = r"^[A-Za-z0-9_-]{1,64}$"
+
+
+def _plain_title(value: str) -> str:
+    """A container's or tab's title: plain text, trimmed, not blank, without
+    control or format characters (they hide or reverse text)."""
+    import unicodedata
+
+    text = value.strip()
+    if not text:
+        raise ValueError("A title cannot be empty.")
+    if any(
+        unicodedata.category(ch) in ("Cc", "Cf") and ch not in _TITLE_KEEP_FORMAT
+        for ch in text
+    ):
+        raise ValueError("A title cannot contain control characters.")
+    return text
+
+
+class LayoutTab(BaseModel):
+    """One tab of a ``tabs`` container: its title and its questions (by id,
+    in page order). A tab may be empty."""
+
+    id: str = Field(..., pattern=LAYOUT_ID_PATTERN)
+    title: str = Field(..., min_length=1, max_length=CONTAINER_TITLE_MAX)
+    fields: List[Annotated[str, Field(max_length=LAYOUT_MEMBER_ID_MAX)]] = Field(
+        default_factory=list, max_length=CONTAINER_MEMBERS_MAX
+    )
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    @model_validator(mode="after")
+    def _plain(self):
+        self.title = _plain_title(self.title)
+        return self
+
+
+class LayoutContainer(BaseModel):
+    """A layout container on a page (``properties.containers``).
+
+    ``panel``: a title and a collapse button (``collapsed``: closed when the
+    page opens). ``fieldset``: a border and a legend. Both list their
+    questions in ``fields``. ``tabs``: 1 to ``TABS_MAX`` ``tabs``, no title of
+    its own. ``logic`` shows or hides the whole container (same rule shape as
+    a question's); answers of hidden questions stay stored, as with any
+    question hidden by logic."""
+
+    id: str = Field(..., pattern=LAYOUT_ID_PATTERN)
+    type: Literal["panel", "fieldset", "tabs"]
+    title: Optional[str] = Field(None, max_length=CONTAINER_TITLE_MAX)
+    collapsed: Optional[bool] = None
+    logic: Optional[FieldLogic] = None
+    fields: Optional[List[Annotated[str, Field(max_length=LAYOUT_MEMBER_ID_MAX)]]] = (
+        Field(None, max_length=CONTAINER_MEMBERS_MAX)
+    )
+    tabs: Optional[List[LayoutTab]] = Field(None, max_length=TABS_MAX)
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    @model_validator(mode="after")
+    def _shape(self):
+        if self.type == "tabs":
+            if self.fields is not None or self.title is not None or self.collapsed is not None:
+                raise ValueError(
+                    "A tabs container has tabs only: no title, collapsed flag or fields of its own."
+                )
+            if not self.tabs:
+                raise ValueError("A tabs container needs at least one tab.")
+            if len({tab.id for tab in self.tabs}) != len(self.tabs):
+                raise ValueError("The tabs of a container need unique ids.")
+            return self
+        if self.tabs is not None:
+            raise ValueError("Only a tabs container has tabs.")
+        if self.title is None:
+            raise ValueError(f"A {self.type} needs a title.")
+        self.title = _plain_title(self.title)
+        if self.type == "fieldset" and self.collapsed is not None:
+            raise ValueError("A field set cannot be collapsed.")
+        if not self.fields:
+            raise ValueError(f"A {self.type} needs at least one question.")
+        return self
+
+
 class FieldPosition(BaseModel):
     """Flow-view canvas coordinates of a page node. Cosmetic only."""
 
@@ -1243,6 +1340,9 @@ class StandardFieldProperty(BaseModel):
     hidden: Optional[bool] = None
     logic: Optional[FieldLogic] = None
     jumps: Optional[List[PageJump]] = None
+    # A page's layout containers (panels, tabs, field sets; see
+    # LayoutContainer). Layout only; checked on every save.
+    containers: Optional[List[LayoutContainer]] = Field(None, max_length=CONTAINERS_MAX)
     position: Optional[FieldPosition] = None
     description: Optional[str] = None
     choices: Optional[List[StandardChoice]] = None
@@ -1380,6 +1480,12 @@ class StandardFormField(BaseModel):
     @model_validator(mode="after")
     def _check_repeating_group(self):
         check_repeating_group_structure(self)
+        if (
+            self.properties is not None
+            and self.properties.containers
+            and _type_value(self.type) != StandardFormFieldType.SLIDE.value
+        ):
+            raise ValueError("Only a page can have layout containers.")
         check_field_date_rules(self)
         check_tags_settings(self)
         return self

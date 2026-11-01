@@ -4,12 +4,12 @@ import string
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-import jwt
 from common.ids import RecordId
 from common.enums.roles import Roles
 from common.models.user import User, UserResponseDto
 from common.models.user import UserInfo
 from common.services.http_client import HttpClient
+from common.services.jwt_service import decode_with_ring
 from fastapi_mail import MessageSchema
 from pydantic import EmailStr
 
@@ -58,8 +58,8 @@ class AuthService:
 
     @staticmethod
     def get_logged_user(jwt_token: str) -> User:
-        jwt_response = jwt.decode(
-            jwt_token, key=settings.AUTH_JWT_SECRET, algorithms=["HS256"]
+        jwt_response = decode_with_ring(
+            jwt_token, settings.AUTH_JWT_SECRET, algorithms=["HS256"]
         )
         user = User(**jwt_response)
         return user
@@ -67,8 +67,8 @@ class AuthService:
     async def handle_auth_callback(
         self, jwt_token: str, email_verified: bool = False
     ) -> User:
-        decoded_data = jwt.decode(
-            jwt_token, key=settings.AUTH_JWT_SECRET, algorithms=["HS256"]
+        decoded_data = decode_with_ring(
+            jwt_token, settings.AUTH_JWT_SECRET, algorithms=["HS256"]
         )
         user_info = UserInfo(**decoded_data)
         # Only the backend's import-OAuth flow calls this, and it sends only the

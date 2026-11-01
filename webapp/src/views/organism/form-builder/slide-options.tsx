@@ -5,6 +5,7 @@ import i18n from 'i18next';
 import { ArrowDown, ArrowUp, Copy, Ellipsis, Trash2 } from 'lucide-react';
 
 import { pageHoldsGatedQuestion } from '@app/lib/form-ops/new-question-types';
+import { pageHasContainers } from '@app/utils/layout-containers';
 import { useUndoableDelete } from '@app/lib/hooks/use-undoable-delete';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@app/shadcn/components/ui/dropdown-menu';
@@ -32,8 +33,11 @@ export default function SlideOptions({ slideIndex, pageName, visible, onMoved }:
     const { duplicateSlide } = useBuilderActions();
     const pageCount = usePageIds().length;
     // A copy of a page with a time, day or currency question holds new ones: not while the server does not take them.
-    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
-    const cannotCopy = useBuilderFieldsValue((fields) => pageHoldsGatedQuestion(fields[slideIndex], { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled }), [slideIndex, newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled]);
+    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, layoutContainersEnabled } = useWorkspacePermissions();
+    // ... nor one with layout containers (a copy of them is new ones) while the server does not take those
+    const holdsContainers = useBuilderFieldsValue((fields) => pageHasContainers(fields[slideIndex]), [slideIndex]) && !layoutContainersEnabled;
+    const holdsGated = useBuilderFieldsValue((fields) => pageHoldsGatedQuestion(fields[slideIndex], { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled }), [slideIndex, newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled]);
+    const cannotCopy = holdsGated || holdsContainers;
     const { deletePage } = useUndoableDelete();
     const { movePageTo } = useOutlineMoves();
     // A move hands focus to the moved row instead of back to this trigger.
@@ -65,7 +69,7 @@ export default function SlideOptions({ slideIndex, pageName, visible, onMoved }:
                     <ArrowDown className="h-4 w-4" aria-hidden="true" />
                     Move down
                 </DropdownMenuItem>
-                <DropdownMenuItem className={outlineMenuItemClass} disabled={cannotCopy} title={cannotCopy ? i18n.t('builder:NEW_TYPES.CANNOT_COPY') : undefined} onSelect={() => duplicateSlide(slideIndex)}>
+                <DropdownMenuItem className={outlineMenuItemClass} disabled={cannotCopy} title={holdsContainers ? i18n.t('builder:LAYOUT.CANNOT_COPY') : cannotCopy ? i18n.t('builder:NEW_TYPES.CANNOT_COPY') : undefined} onSelect={() => duplicateSlide(slideIndex)}>
                     <Copy className="h-4 w-4" aria-hidden="true" />
                     Duplicate
                 </DropdownMenuItem>

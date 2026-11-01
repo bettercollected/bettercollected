@@ -94,6 +94,7 @@ from backend.app.services.field_rules import (
     ensure_valid_field_rules,
     rule_keys_affected,
 )
+from backend.app.services.layout_containers import ensure_valid_layout
 from backend.app.services.new_question_types import ensure_question_types_allowed
 from backend.app.services.option_sources.share_token import stamp as shared_notice_stamp
 from backend.app.services.option_sources.checks import (
@@ -765,6 +766,10 @@ class WorkspaceFormService:
         # spec API refused them before this); new ones need
         # FIELD_RULES_ENABLED, except in a copy of a form or template.
         await run_in_threadpool(ensure_valid_field_rules, form, True)
+        # Layout containers (services/layout_containers.py): what a removal
+        # broke is repaired, a real structure error is refused; new ones need
+        # LAYOUT_CONTAINERS_ENABLED (in ensure_question_types_allowed below).
+        ensure_valid_layout(form)
         if not drop_unusable_settings:
             ensure_rules_allowed(form)
             # the newer question types: a copy of a form or template keeps
@@ -916,6 +921,8 @@ class WorkspaceFormService:
         dropped = await run_in_threadpool(ensure_valid_field_rules, form, True)
         if dropped_rules is not None:
             dropped_rules.extend(dropped)
+        # Layout containers: repaired or refused here, switch below.
+        ensure_valid_layout(form)
         ensure_rules_allowed(form, existing_form)
         # the newer question types (services/new_question_types.py)
         ensure_question_types_allowed(form, existing_form)

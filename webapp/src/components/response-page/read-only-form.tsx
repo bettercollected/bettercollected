@@ -1,6 +1,6 @@
 'use client';
 
-import { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
+import { CSSProperties, Fragment, MouseEvent as ReactMouseEvent } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -15,6 +15,7 @@ import { contrast } from '@app/utils/color-contrast';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isShownToRespondents } from '@app/utils/calculated-fields';
+import { runHeadings } from '@app/utils/layout-containers';
 import { resolvePipesInTitle } from '@app/utils/answer-piping';
 import { logicSourcesById } from '@app/utils/conditional-logic';
 import { downloadFile } from '@app/utils/file-utils';
@@ -235,6 +236,10 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
                         const shown = rows.filter((row) => !row.notShown && isShownToRespondents(row.field)).map((row) => row.field);
                         const numbers = leaflet ? questionNumbers(shown, number) : page.properties?.showQuestionNumbers ? plainQuestionNumbers(shown, number, several) : undefined;
                         const ctx = { ...baseContext, numbers };
+                        const headings = runHeadings(
+                            page,
+                            rows.map((row) => row.field.id)
+                        );
                         const headingId = pageHeadingId(number);
                         return (
                             // `page-<n>`: the page's number only, never its title (it lands in the URL as the contents link's hash)
@@ -248,9 +253,17 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
                                 ) : (
                                     <div className="flex flex-col gap-12 lg:grid lg:grid-cols-12 lg:gap-x-6">
                                         {rows.map(({ field, notShown }, position) => (
-                                            <div key={field.id} className={cn('min-w-0', fieldSpacingClass(field, position === rows.length - 1))} style={{ gridColumn: `span ${clampSpan(field)} / span ${clampSpan(field)}` }}>
-                                                {notShown ? <NotShownQuestion field={field} ctx={ctx} idPrefix="rp-" /> : <ReadOnlyQuestion field={field} answers={answers} ctx={ctx} />}
-                                            </div>
+                                            <Fragment key={field.id}>
+                                                {/* flat, in page order; a layout container's (or tab's) title heads its questions */}
+                                                {headings[position] && (
+                                                    <h3 className="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere] lg:col-span-12" style={{ color: theme.primary }}>
+                                                        {headings[position]}
+                                                    </h3>
+                                                )}
+                                                <div className={cn('min-w-0', fieldSpacingClass(field, position === rows.length - 1))} style={{ gridColumn: `span ${clampSpan(field)} / span ${clampSpan(field)}` }}>
+                                                    {notShown ? <NotShownQuestion field={field} ctx={ctx} idPrefix="rp-" /> : <ReadOnlyQuestion field={field} answers={answers} ctx={ctx} />}
+                                                </div>
+                                            </Fragment>
                                         ))}
                                     </div>
                                 )}
