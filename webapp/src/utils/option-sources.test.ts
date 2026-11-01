@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { choiceAnswerText } from '@app/utils/conditional-logic';
 import { getAnswerForField } from '@app/utils/form-builder-block-utils';
-import { answerLabels, answerSourceQuestions, chosenOptionIds, parentCandidates, parentKey, parentLabelsOf, parentOptionIds, sourcedAnswerTexts } from '@app/utils/option-sources';
+import { answerLabels, answerSourceQuestions, chosenOptionIds, formSharesAnswers, parentCandidates, parentKey, parentLabelsOf, parentOptionIds, shareableQuestions, sourcedAnswerTexts } from '@app/utils/option-sources';
 import { choiceRows } from '@app/utils/response-page';
 import { serverAnswerErrors } from '@app/utils/server-answer-errors';
 
@@ -80,12 +80,24 @@ describe('a dependent list', () => {
                     id: 's',
                     type: FieldTypes.SLIDE,
                     properties: {
-                        fields: [{ id: 'name', type: FieldTypes.SHORT_TEXT }, { id: 'mail', type: FieldTypes.EMAIL }, { id: 'staff', type: FieldTypes.SHORT_TEXT, internal: true }, { id: 'role', type: FieldTypes.DROP_DOWN }, sourced('sourced')]
+                        fields: [
+                            { id: 'name', type: FieldTypes.SHORT_TEXT, properties: { shareAsChoices: true } },
+                            { id: 'nickname', type: FieldTypes.SHORT_TEXT },
+                            { id: 'mail', type: FieldTypes.EMAIL, properties: { shareAsChoices: true } },
+                            { id: 'staff', type: FieldTypes.SHORT_TEXT, internal: true, properties: { shareAsChoices: true } },
+                            { id: 'role', type: FieldTypes.DROP_DOWN, properties: { shareAsChoices: true } },
+                            sourced('sourced', { shareAsChoices: true })
+                        ]
                     }
                 }
             ]
         };
+        // only the questions that opted in (and can: never an email, an internal question or one with a source)
         expect(answerSourceQuestions(form as any).map((q) => q.id)).toEqual(['name', 'role']);
+        // what a creator could turn sharing on for
+        expect(shareableQuestions(form as any).map((q) => q.id)).toEqual(['name', 'nickname', 'role']);
+        expect(formSharesAnswers(form.fields as any)).toBe(true);
+        expect(formSharesAnswers([{ id: 's', type: FieldTypes.SLIDE, properties: { fields: [{ id: 'm', type: FieldTypes.EMAIL, properties: { shareAsChoices: true } }] } }] as any)).toBe(false);
     });
 });
 

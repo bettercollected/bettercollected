@@ -32,12 +32,16 @@ interface Props {
  * A dropdown or multiple choice question whose options come from a workspace list or from another form's answers
  * (utils/option-sources.ts). The options are not in the form: they are fetched from the server a page at a time
  * as the respondent opens the list and types (labels only), so the control is always a searchable list, however
- * long the source is. One answer shows its text on the button; several show as removable chips.
+ * long the source is.
  *
- * Keyboard: the button opens the list; in the search box the arrow keys move through the options, Enter chooses,
- * Escape closes (back to the button). A status line says how many choices there are, that none match, or that
- * they could not be loaded. A dependent list that follows an earlier question clears its answer, and says so,
- * when that question's answer changes. The server checks every chosen option again on submission.
+ * One ARIA combobox (the WAI-ARIA "editable combobox with list autocomplete"): a text box that shows the chosen
+ * text and, while the list is open, what is being searched for, and a listbox popup under it. The list opens on
+ * a click, on typing or on the down arrow; the arrow keys move through the options (Home, End, Page Up and Page
+ * Down too, once the list is being walked), Enter chooses, Escape closes, Tab closes (and chooses the option the
+ * respondent walked to, for a single choice), a click outside closes. Several choices show as removable chips.
+ * A status line says how many choices there are, that none match, that the server asked for a pause or that they
+ * could not be loaded. A dependent list that follows an earlier question clears its answer, and says so, when that
+ * question's answer changes. The server checks every chosen option again on submission.
  */
 export default function SourceOptionsField({ field, slideIndex }: Props) {
     const multiple = !!field.properties?.allowMultipleSelection && String(field.type) === 'multiple_choice';
@@ -52,11 +56,13 @@ export default function SourceOptionsField({ field, slideIndex }: Props) {
     const listId = `${id}-list`;
     const statusId = `${id}-status`;
     const noteId = `${id}-note`;
-    const searchRef = useRef<HTMLInputElement>(null);
-    const triggerRef = useRef<HTMLButtonElement>(null);
+    const boxRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
-    const [active, setActive] = useState(0);
+    // the option the arrow keys are on (-1: none yet) and whether the respondent walked the list
+    const [active, setActive] = useState(-1);
+    const [walked, setWalked] = useState(false);
     const [cleared, setCleared] = useState(false);
 
     const answer = formResponse.answers?.[field.id];
@@ -64,7 +70,7 @@ export default function SourceOptionsField({ field, slideIndex }: Props) {
     const labels = answerLabels(answer);
     const parentIds = parentOptionIds(field, formResponse.answers);
     const parentLabels = parentLabelsOf(field, formResponse.answers, standardForm?.fields);
-    const { items, total, truncated, available, loading, failed, canLoadMore, loadMore } = useSourceOptions(field, { query, parentIds, parentLabels, enabled: open || chosen.length > 0 });
+    const { items, total, truncated, available, loading, failed, limited, canLoadMore, loadMore } = useSourceOptions(field, { query, parentIds, parentLabels, enabled: open || chosen.length > 0 });
 
     // A dependent list follows the question it depends on: when that answer changes, a choice made under the old one goes.
     const followed = parentKey(parentIds);
@@ -82,23 +88,44 @@ export default function SourceOptionsField({ field, slideIndex }: Props) {
         if (chosen.length) setCleared(false);
     }, [chosen.length]);
 
+    // a click outside the control closes the list
     useEffect(() => {
-        if (open) searchRef.current?.focus();
+        if (!open) return;
+        const away = (event: MouseEvent) => {
+            if (!boxRef.current?.contains(event.target as Node)) close();
+        };
+        document.addEventListener('mousedown', away);
+        return () => document.removeEventListener('mousedown', away);
     }, [open]);
-    useEffect(() => setActive(0), [query, items.length === 0]);
+
+    const close = () => {
+        setOpen(false);
+        setQuery('');
+        setActive(-1);
+        setWalked(false);
+    };
+    const show = () => {
+        setOpen(true);
+    };
+    // new options start with none walked to
+    useEffect(() => {
+        setActive(-1);
+        setWalked(false);
+    }, [query]);
+
+    const withLabel = (optionId: string, fallback?: string) => labels[optionId] ?? fallback ?? items.find((item) => item.id === optionId)?.label ?? '';
 
     const choose = (option: { id: string; label: string }) => {
         if (multiple) {
             const selected = chosen.includes(option.id) ? chosen.filter((chosenId) => chosenId !== option.id) : [...chosen, option.id];
-            const withLabels = selected.map((selectedId) => ({ id: selectedId, label: selectedId === option.id ? option.label : (labels[selectedId] ?? items.find((item) => item.id === selectedId)?.label ?? '') }));
+            const withLabels = selected.map((selectedId) => ({ id: selectedId, label: selectedId === option.id ? option.label : withLabel(selectedId) }));
             if (withLabels.length) addSourcedChoicesAnswer(field.id, withLabels);
             else removeAnswer(field.id);
             return;
         }
         addSourcedChoiceAnswer(field.id, option.id, option.label);
-        setOpen(false);
-        setQuery('');
-        triggerRef.current?.focus();
+        close();
+        inputRef.current?.focus();
         setTimeout(() => {
             // on to the next question, as the other single choice controls do
             const questions = standardForm?.fields?.[slideIndex]?.properties?.fields;
@@ -110,82 +137,126 @@ export default function SourceOptionsField({ field, slideIndex }: Props) {
         const rest = chosen.filter((chosenId) => chosenId !== optionId).map((chosenId) => ({ id: chosenId, label: labels[chosenId] ?? '' }));
         if (rest.length) addSourcedChoicesAnswer(field.id, rest);
         else removeAnswer(field.id);
-        triggerRef.current?.focus();
+        inputRef.current?.focus();
     };
 
-    const onSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'ArrowDown') {
-            event.preventDefault();
-            setActive((index) => Math.min(index + 1, Math.max(items.length - 1, 0)));
-        } else if (event.key === 'ArrowUp') {
-            event.preventDefault();
-            setActive((index) => Math.max(index - 1, 0));
-        } else if (event.key === 'Enter') {
-            event.preventDefault();
-            const option = items[active];
-            if (option) choose(option);
-        } else if (event.key === 'Escape') {
-            event.preventDefault();
-            setOpen(false);
-            triggerRef.current?.focus();
-        } else if (event.key === 'Tab') {
-            setOpen(false);
+    const walk = (to: number) => {
+        setActive(Math.max(0, Math.min(to, items.length - 1)));
+        setWalked(true);
+    };
+
+    const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        switch (event.key) {
+            case 'ArrowDown':
+                event.preventDefault();
+                if (!open) return show();
+                // past the last option: the next page, when there is one
+                if (active >= items.length - 1 && canLoadMore) return loadMore();
+                return walk(active + 1);
+            case 'ArrowUp':
+                event.preventDefault();
+                if (!open) return show();
+                return walk(active <= 0 ? 0 : active - 1);
+            case 'Home':
+            case 'End':
+                // in the list once it is walked; otherwise the cursor moves in the text, as in any text box
+                if (open && walked && items.length) {
+                    event.preventDefault();
+                    walk(event.key === 'Home' ? 0 : items.length - 1);
+                }
+                return;
+            case 'PageDown':
+            case 'PageUp':
+                if (open && items.length) {
+                    event.preventDefault();
+                    walk((active < 0 ? 0 : active) + (event.key === 'PageDown' ? 10 : -10));
+                }
+                return;
+            case 'Enter':
+                if (open) {
+                    // Enter in an open list never submits the page
+                    event.preventDefault();
+                    if (items[active]) choose(items[active]);
+                }
+                return;
+            case 'Escape':
+                if (open) {
+                    event.preventDefault();
+                    close();
+                }
+                return;
+            case 'Tab':
+                // leaving the box: a single choice takes the option that was walked to; the list closes
+                if (open && !multiple && walked && items[active]) choose(items[active]);
+                else if (open) close();
+                return;
+            default:
         }
     };
 
-    const shown = chosen.length ? chosen.map((chosenId) => labels[chosenId]).filter(Boolean) : [];
-    const buttonText = !multiple && shown[0] ? shown[0] : multiple && shown.length ? t('SOURCE.SELECTED', { count: shown.length }) : t('FIELD.SELECT_OPTION');
-    const hasValue = !multiple && !!shown[0];
-    const status = failed ? t('SOURCE.FAILED') : !available ? t('SOURCE.NONE') : loading && !items.length ? t('SOURCE.LOADING') : !items.length ? (query ? t('SOURCE.NO_MATCH') : t('SOURCE.NONE')) : t('SOURCE.COUNT', { count: total });
+    const shown = chosen.map((chosenId) => labels[chosenId]).filter(Boolean);
+    const single = !multiple && shown[0] ? shown[0] : '';
+    const hasValue = !!single;
+    const status = limited
+        ? t('SOURCE.LIMITED')
+        : failed
+          ? t('SOURCE.FAILED')
+          : !available
+            ? t('SOURCE.NONE')
+            : loading && !items.length
+              ? t('SOURCE.LOADING')
+              : !items.length
+                ? query
+                    ? t('SOURCE.NO_MATCH')
+                    : t('SOURCE.NONE')
+                : t('SOURCE.COUNT', { count: total });
     const otherValue = (multiple ? answer?.choices?.other : answer?.choice?.other) ?? '';
+    const visibleStatus = open || failed || limited || cleared;
 
     return (
         <QuestionWrapper field={field}>
             <WithQuestionLabel hints={[noteId, statusId]}>
                 {({ label, group }) => (
-                    <div className="flex w-full flex-col gap-2">
-                        <button
-                            ref={triggerRef}
-                            type="button"
-                            role="combobox"
-                            aria-haspopup="listbox"
-                            aria-expanded={open}
-                            aria-controls={open ? listId : undefined}
-                            aria-labelledby={label?.labelledBy}
-                            aria-describedby={group['aria-describedby']}
-                            aria-readonly={label?.readOnly || undefined}
-                            onClick={() => !label?.readOnly && setOpen((value) => !value)}
-                            style={{ borderColor: hasValue ? theme?.secondary : (theme?.tertiary ?? '#818CA0'), color: hasValue ? inputTextOf(theme) : '#667085', borderRadius: tokens.fieldRadius }}
-                            className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 border bg-white px-4 py-3 text-left text-base transition duration-150 lg:text-lg"
-                        >
-                            <span className="truncate" lang={hasValue ? contentLang : undefined}>
-                                {buttonText}
-                            </span>
-                            <ChevronDown aria-hidden="true" className={cn('h-5 w-5 shrink-0 transition', open && 'rotate-180')} style={{ color: theme?.secondary }} />
-                        </button>
+                    <div ref={boxRef} className="flex w-full flex-col gap-2">
+                        <div className="relative">
+                            <FieldInput
+                                ref={inputRef}
+                                type="text"
+                                role="combobox"
+                                aria-expanded={open}
+                                aria-controls={open ? listId : undefined}
+                                aria-haspopup="listbox"
+                                aria-autocomplete="list"
+                                aria-activedescendant={open && items[active] ? `${id}-opt-${active}` : undefined}
+                                aria-labelledby={label?.labelledBy}
+                                aria-describedby={group['aria-describedby']}
+                                aria-required={label?.required || undefined}
+                                aria-invalid={label?.invalid || undefined}
+                                aria-readonly={label?.readOnly || undefined}
+                                readOnly={label?.readOnly}
+                                autoComplete="off"
+                                maxLength={100}
+                                // the chosen text when closed; what is searched for while open
+                                value={open ? query : single}
+                                placeholder={open && single ? single : t('FIELD.SELECT_OPTION')}
+                                lang={!open && hasValue ? contentLang : undefined}
+                                onChange={(event: any) => {
+                                    if (label?.readOnly) return;
+                                    setQuery(event.target.value);
+                                    show();
+                                }}
+                                onClick={() => !label?.readOnly && show()}
+                                onKeyDown={onKeyDown}
+                                $formTheme={theme}
+                                style={{ borderColor: hasValue ? theme?.secondary : (theme?.tertiary ?? '#818CA0'), color: hasValue && !open ? inputTextOf(theme) : undefined, borderRadius: tokens.fieldRadius }}
+                                className="min-h-12 w-full border bg-white py-3 pr-12 pl-4 text-base lg:text-lg"
+                            />
+                            <ChevronDown aria-hidden="true" className={cn('pointer-events-none absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 transition', open && 'rotate-180')} style={{ color: theme?.secondary }} />
+                        </div>
 
                         {open && (
-                            <div className="flex flex-col gap-2 border bg-white p-2" style={{ borderColor: theme?.tertiary ?? '#818CA0', borderRadius: tokens.fieldRadius }}>
-                                <FieldInput
-                                    ref={searchRef}
-                                    type="text"
-                                    role="combobox"
-                                    aria-expanded
-                                    aria-controls={listId}
-                                    aria-autocomplete="list"
-                                    aria-activedescendant={items[active] ? `${id}-opt-${active}` : undefined}
-                                    aria-label={t('SOURCE.SEARCH')}
-                                    aria-describedby={statusId}
-                                    autoComplete="off"
-                                    value={query}
-                                    onChange={(event: any) => setQuery(event.target.value)}
-                                    onKeyDown={onSearchKeyDown}
-                                    placeholder={t('SOURCE.SEARCH')}
-                                    $formTheme={theme}
-                                    className="min-h-11 border px-3 py-2 text-base"
-                                    maxLength={100}
-                                />
-                                <ul id={listId} role="listbox" aria-multiselectable={multiple || undefined} aria-label={t('SOURCE.CHOICES')} className="m-0 max-h-72 list-none overflow-y-auto p-0">
+                            <div className="flex flex-col gap-1 border bg-white p-1" style={{ borderColor: theme?.tertiary ?? '#818CA0', borderRadius: tokens.fieldRadius }}>
+                                <ul id={listId} role="listbox" aria-multiselectable={multiple || undefined} aria-labelledby={label?.labelledBy} className="m-0 max-h-72 list-none overflow-y-auto p-0">
                                     {items.map((option, index) => {
                                         const selected = chosen.includes(option.id);
                                         return (
@@ -195,6 +266,7 @@ export default function SourceOptionsField({ field, slideIndex }: Props) {
                                                 role="option"
                                                 aria-selected={selected}
                                                 lang={contentLang}
+                                                // the text box keeps the focus while the list is used
                                                 onMouseDown={(event) => event.preventDefault()}
                                                 onClick={() => choose(option)}
                                                 onMouseMove={() => setActive(index)}
@@ -207,7 +279,7 @@ export default function SourceOptionsField({ field, slideIndex }: Props) {
                                     })}
                                 </ul>
                                 {canLoadMore && (
-                                    <button type="button" disabled={loading} onClick={loadMore} className="min-h-11 self-start rounded-md px-3 text-sm font-medium underline">
+                                    <button type="button" tabIndex={-1} disabled={loading} onMouseDown={(event) => event.preventDefault()} onClick={loadMore} className="min-h-11 self-start rounded-md px-3 text-sm font-medium underline">
                                         {t('SOURCE.MORE')}
                                     </button>
                                 )}
@@ -227,10 +299,10 @@ export default function SourceOptionsField({ field, slideIndex }: Props) {
                             </ul>
                         )}
 
-                        <p id={statusId} role="status" aria-live="polite" aria-atomic="true" className={open || failed || cleared ? 'text-[13px] leading-snug' : 'sr-only'}>
+                        <p id={statusId} role="status" aria-live="polite" aria-atomic="true" className={visibleStatus ? 'text-[13px] leading-snug' : 'sr-only'}>
                             {cleared ? (
                                 t('SOURCE.CLEARED')
-                            ) : open || failed ? (
+                            ) : open || failed || limited ? (
                                 <span className="inline-flex items-center gap-2">
                                     {loading && <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />}
                                     {status}

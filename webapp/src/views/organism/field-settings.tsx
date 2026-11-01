@@ -28,6 +28,7 @@ import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field
 import FieldRulesSection from '@app/views/molecules/form-builder/field-rules-section';
 import { InspectorSection, SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
 import OptionLogicSettings from '@app/views/molecules/form-builder/option-logic-settings';
+import { canShareAsChoices } from '@app/utils/option-sources';
 import OptionSourceSettings from '@app/views/molecules/form-builder/option-source-settings';
 import RepeatingGroupSettings from '@app/views/molecules/form-builder/repeating-group-settings';
 
@@ -72,7 +73,9 @@ export default function FieldSettings() {
     // The newer question types are read-only while the server does not take them (NEW_QUESTION_TYPES_ENABLED):
     // a question a form already has keeps its settings, and they are shown, not changed.
     const { t } = useTranslation('builder');
-    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled } = useWorkspacePermissions();
+    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, optionSourcesEnabled } = useWorkspacePermissions();
+    // a question of a page (not inside a group): the only kind whose answers can be shared as choices
+    const pageLevel = useBuilderFieldsValue((formFields) => (formFields || []).some((page) => (page.properties?.fields ?? []).some((question) => question.id === activeField?.id)), [activeField?.id]);
     // Another question selected (or the steps changed elsewhere): show its steps.
     const [shownSteps, setShownSteps] = useState(activeField?.properties?.steps);
     if (shownSteps !== activeField?.properties?.steps) {
@@ -110,6 +113,9 @@ export default function FieldSettings() {
     const showRequired = field.type !== FieldTypes.TEXT && field.type !== FieldTypes.CALCULATED && !isRepeatingGroup(field) && (!DISPLAY_ONLY_FIELD_TYPES.includes(field.type) || !!field.validations?.required);
     const ruleKind = answerRuleKind(field);
     const showWhyWeAsk = !field.internal && (asksForIdentity(field) || !!field.properties?.whyWeAsk);
+    // "Answers may be shown as choices": for a question that can share; turning it on needs a server that takes sources
+    const shareable = pageLevel && canShareAsChoices(field);
+    const showShare = shareable && (optionSourcesEnabled || field.properties?.shareAsChoices === true);
     const colSpan = Math.min(12, Math.max(1, field.properties?.colSpan ?? 12));
     const stepsId = `${baseId}-steps`;
     const widthId = `${baseId}-width`;
@@ -200,14 +206,28 @@ export default function FieldSettings() {
                 </InspectorSection>
             )}
 
-            {(showWhyWeAsk || canBeInternal(field)) && (
+            {(showWhyWeAsk || canBeInternal(field) || showShare) && (
                 <InspectorSection title="Privacy">
                     {showWhyWeAsk && <WhyWeAskSetting value={field.properties?.whyWeAsk ?? ''} required={asksForIdentity(field)} onChange={(value) => updateFieldProperty(field.id, 'whyWeAsk', value)} />}
+                    {showShare && (
+                        <SettingSwitch
+                            label={t('SOURCES.SHARE_LABEL')}
+                            checked={field.properties?.shareAsChoices === true}
+                            // turning it off is always possible; turning it on needs the server's switch
+                            disabled={!optionSourcesEnabled && field.properties?.shareAsChoices !== true}
+                            onCheckedChange={(checked) => updateFieldProperty(field.id, 'shareAsChoices', checked ? true : undefined)}
+                            hint={optionSourcesEnabled ? t('SOURCES.SHARE_HINT') : t('SOURCES.SHARE_LOCKED')}
+                        />
+                    )}
                     {canBeInternal(field) && (
                         <SettingSwitch
                             label="Internal (staff only)"
                             checked={!!field.internal}
-                            onCheckedChange={(checked) => updateFieldInternal(field.index, slide.index, checked)}
+                            onCheckedChange={(checked) => {
+                                // an internal question is never asked of respondents: it cannot share its answers
+                                if (checked && field.properties?.shareAsChoices) updateFieldProperty(field.id, 'shareAsChoices', undefined);
+                                updateFieldInternal(field.index, slide.index, checked);
+                            }}
                             hint={
                                 field.internal
                                     ? 'Respondents never see this field. Your team fills it in on each response. Required applies to your team, not respondents.'

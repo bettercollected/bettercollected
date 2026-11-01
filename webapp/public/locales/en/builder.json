@@ -1366,7 +1366,14 @@
     "SHOW_ANSWERS": "Show the first answers",
     "CANVAS_LIST": "The options come from a list of this workspace.",
     "CANVAS_ANSWERS": "The options come from answers to another form.",
-    "CANVAS_NOTE": "Respondents search the options. Choose the source in the settings on the right."
+    "CANVAS_NOTE": "Respondents search the options. Choose the source in the settings on the right.",
+    "NO_SHARED": "None of this form's questions share their answers yet. Turn on “Answers may be shown as choices” on the question in that form first.",
+    "SEARCH_FORMS": "Search forms",
+    "FORMS_MORE": "Showing the first {{count}} forms. Search to find another.",
+    "NOT_SHARED": "The creator of that question has not allowed its answers to be shown as choices in other forms.",
+    "SHARE_LABEL": "Answers may be shown as choices",
+    "SHARE_HINT": "Other forms of this workspace may offer the answers to this question as choices, without saying who gave them. Respondents are told next to the question. Only answers given while this is on are ever offered; turning it off stops all use at once.",
+    "SHARE_LOCKED": "Turning this on needs a server that takes options from other forms' answers."
   },
   "LISTS": {
     "TITLE": "Lists",
@@ -1414,6 +1421,8 @@
     "DELETE": "Delete list",
     "CONFIRM_DELETE": "Delete “{{name}}”? Answers already given keep their text.",
     "IN_USE": "Forms still use this list: {{forms}}. Change them first.",
-    "DELETE_FAILED": "Could not delete the list."
+    "DELETE_FAILED": "Could not delete the list.",
+    "CONFIRM_LEAVE": "You have changes that are not saved. Leave without saving them?",
+    "CONFIRM_IMPORT": "You have changes that are not saved. Importing a file replaces the items and loses them. Import anyway?"
   }
 }

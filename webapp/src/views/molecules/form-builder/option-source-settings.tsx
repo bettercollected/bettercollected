@@ -14,13 +14,16 @@ import { useAppSelector } from '@app/store/hooks';
 import { activeFieldAtom } from '@app/store/jotai/active-builder-component';
 import { useBuilderFieldsValue, useField, useFieldActions } from '@app/store/jotai/entity-hooks';
 import { SourcePreview, useGetOptionListsQuery, usePreviewOptionSourceMutation } from '@app/store/option-lists/api';
-import { useGetWorkspaceFormQuery, useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
+import { useGetWorkspaceFormQuery, useGetWorkspaceFormsQuery, workspacesApi } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { ANSWER_OPTIONS_MAX, OptionSource, answerSourceQuestions, isAnswersSource, parentCandidates, parentLabelsOf } from '@app/utils/option-sources';
+import { ANSWER_OPTIONS_MAX, OptionSource, answerSourceQuestions, isAnswersSource, parentCandidates, parentLabelsOf, shareableQuestions } from '@app/utils/option-sources';
 
 import { selectClass } from './condition-editor-shared';
 
 type Kind = 'own' | 'list' | 'form_answers';
+
+/** The options a creator had typed before picking a source, by question id: going back to own options restores them. */
+const typedChoices = new Map<string, NonNullable<StandardFormFieldDto['properties']>['choices']>();
 
 const questionText = (field: StandardFormFieldDto | undefined, fallback: string): string => {
     const title = typeof field?.title === 'string' ? field.title : '';
@@ -72,7 +75,12 @@ export default function OptionSourceSettings() {
     const workspaceId = workspace?.id as string;
     const { data: lists } = useGetOptionListsQuery({ workspaceId }, { skip: !eligible || !workspaceId || !optionSourcesEnabled });
     const { data: formsPage } = useGetWorkspaceFormsQuery({ workspace_id: workspaceId, page: 1, size: 100 }, { skip: !eligible || !workspaceId || !optionSourcesEnabled || shownKind !== 'form_answers' });
-    const otherForms = (formsPage?.items ?? []).filter((form) => form.formId && form.formId !== builtForm?.formId);
+    // the first 100 forms, or the forms a search finds (a workspace can have more than a list holds)
+    const [formSearch, setFormSearch] = useState('');
+    const { data: found } = workspacesApi.useSearchWorkspaceFormsQuery({ workspace_id: workspaceId, query: formSearch.trim() }, { skip: !eligible || !workspaceId || !optionSourcesEnabled || shownKind !== 'form_answers' || !formSearch.trim() });
+    const listed = formSearch.trim() ? (found ?? []) : (formsPage?.items ?? []);
+    const otherForms = listed.filter((form) => form.formId && form.formId !== builtForm?.formId);
+    const moreForms = !formSearch.trim() && (formsPage?.total ?? 0) > (formsPage?.items?.length ?? 0);
     const chosenFormId = isAnswersSource(source) ? source.formId : draftForm;
     const { data: chosenForm } = useGetWorkspaceFormQuery({ workspace_id: workspaceId, custom_url: chosenFormId as string }, { skip: !eligible || !workspaceId || !optionSourcesEnabled || shownKind !== 'form_answers' || !chosenFormId });
     const questionsOfForm = answerSourceQuestions(chosenForm);
@@ -105,9 +113,19 @@ export default function OptionSourceSettings() {
 
     const apply = (next: OptionSource | undefined) => {
         if (next) {
-            // a question has its own options or a source, never both
-            if ((field.properties?.choices ?? []).length) updateFieldProperty(field.id, 'choices', []);
+            // a question has its own options or a source, never both: the typed ones are kept aside
+            // (until the page is left) so that going back to own options brings them back
+            if ((field.properties?.choices ?? []).length) {
+                typedChoices.set(field.id, field.properties?.choices ?? []);
+                updateFieldProperty(field.id, 'choices', []);
+            }
             if (field.properties?.optionFilter) updateFieldProperty(field.id, 'optionFilter', undefined);
+            // a question with a source has no answers of its own to share
+            if (field.properties?.shareAsChoices) updateFieldProperty(field.id, 'shareAsChoices', undefined);
+        } else {
+            const kept = typedChoices.get(field.id);
+            if (kept?.length && !(field.properties?.choices ?? []).length) updateFieldProperty(field.id, 'choices', kept);
+            typedChoices.delete(field.id);
         }
         updateFieldProperty(field.id, 'optionSource', next);
     };
@@ -222,6 +240,10 @@ export default function OptionSourceSettings() {
                         </p>
                     ) : (
                         <>
+                            <label htmlFor={`${formId}-search`} className="text-xs text-black-700">
+                                {t('SOURCES.SEARCH_FORMS')}
+                            </label>
+                            <input id={`${formId}-search`} type="search" value={formSearch} maxLength={100} onChange={(event) => setFormSearch(event.target.value)} className={selectClass} />
                             <label htmlFor={formId} className="text-xs text-black-700">
                                 {t('SOURCES.FORM')}
                             </label>
@@ -241,6 +263,7 @@ export default function OptionSourceSettings() {
                                     </option>
                                 ))}
                             </select>
+                            {moreForms && <p className="text-[11px] text-black-600">{t('SOURCES.FORMS_MORE', { count: formsPage?.items?.length ?? 0 })}</p>}
                             {draftForm && (
                                 <>
                                     <label htmlFor={questionId} className="text-xs text-black-700">
@@ -254,7 +277,7 @@ export default function OptionSourceSettings() {
                                             </option>
                                         ))}
                                     </select>
-                                    {questionsOfForm.length === 0 && <p className="text-xs text-black-600">{t('SOURCES.NO_QUESTIONS')}</p>}
+                                    {questionsOfForm.length === 0 && <p className="text-xs text-black-600">{t(shareableQuestions(chosenForm).length ? 'SOURCES.NO_SHARED' : 'SOURCES.NO_QUESTIONS')}</p>}
                                 </>
                             )}
                             <label htmlFor={confirmId} className="flex items-start gap-2 text-xs text-black-800">

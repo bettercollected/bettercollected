@@ -40,7 +40,9 @@
         "LANGUAGE": "Language",
         "OPENS_IN_NEW_TAB": "(opens in a new tab)",
         "SIGNATURE": "Signature",
-        "SIGNATURE_DETAIL": "Your signature is stored with your response, like your other answers."
+        "SIGNATURE_DETAIL": "Your signature is stored with your response, like your other answers.",
+        "SHARE_AS_CHOICES": "Answers shown as choices",
+        "SHARE_AS_CHOICES_DETAIL": "Some answers to this form may be shown, without your name, as choices in other forms of this organisation. The question says which. Answers from people who asked for deletion are left out."
     },
     "RETENTION": {
         "DAYS_one": "Kept for {{count}} day after you submit.",
@@ -49,7 +51,8 @@
         "UNTIL_DELETED": "No fixed period: kept until they are deleted."
     },
     "QUESTION": {
-        "WHY_WE_ASK": "Why we ask this:"
+        "WHY_WE_ASK": "Why we ask this:",
+        "SHARE_AS_CHOICES": "Your answer may be shown as a choice in other forms of this organisation."
     },
     "NAV": {
         "BACK": "Back",
@@ -499,6 +502,7 @@
         "SELECTED_LIST": "Your choices",
         "REMOVE": "Remove {{option}}",
         "CLEARED": "Your choice was removed because it depends on an answer you changed. Choose again.",
-        "ANSWERS_NOTE": "The choices come from answers other people gave to another form of this organisation."
+        "ANSWERS_NOTE": "The choices come from answers other people gave to another form of this organisation.",
+        "LIMITED": "Too many requests just now. The choices will load again in a moment."
     }
 }

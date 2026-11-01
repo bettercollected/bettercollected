@@ -7,6 +7,7 @@ import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { SourceOptionsLimited } from '@app/lib/source-options';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
 import { setForm } from '@app/store/forms/slice';
@@ -86,8 +87,9 @@ const show = (field: StandardFormFieldDto, answers: Record<string, any> = {}) =>
     );
 };
 
+const box = async (name = 'City') => screen.findByRole('combobox', { name });
 const open = async (name = 'City') => {
-    fireEvent.click(await screen.findByRole('combobox', { name }));
+    fireEvent.click(await box(name));
     return screen.findByRole('listbox');
 };
 
@@ -100,12 +102,15 @@ afterEach(() => {
 });
 
 describe('SourceOptionsField', () => {
-    it('is a combobox named by the question that opens a searchable list of labels', async () => {
+    it('is one combobox named by the question that opens a listbox of labels', async () => {
         show(city);
-        const trigger = await screen.findByRole('combobox', { name: 'City' });
-        expect(trigger).toHaveAttribute('aria-expanded', 'false');
+        const input = await box();
+        expect(input.tagName).toBe('INPUT');
+        expect(input).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.getAllByRole('combobox')).toHaveLength(1);
         const list = await open();
-        expect(trigger).toHaveAttribute('aria-expanded', 'true');
+        expect(input).toHaveAttribute('aria-expanded', 'true');
+        expect(input).toHaveAttribute('aria-controls', list.id);
         expect(
             within(list)
                 .getAllByRole('option')
@@ -116,27 +121,75 @@ describe('SourceOptionsField', () => {
         expect(route.calls[0]).toMatchObject({ workspaceId: 'ws-1', formId: 'form-1', fieldId: 'city', q: '', offset: 0, parent: [] });
     });
 
-    it('chooses with the keyboard: arrows, Enter, and Escape back to the button', async () => {
+    it('opens on the down arrow and on typing, not on focus alone', async () => {
+        show(city);
+        const input = await box();
+        act(() => input.focus());
+        expect(screen.queryByRole('listbox')).toBeNull();
+        fireEvent.keyDown(input, { key: 'ArrowDown' });
+        expect(await screen.findByRole('listbox')).toBeInTheDocument();
+    });
+
+    it('chooses with the keyboard: arrows, Enter, and the text shows in the box', async () => {
         show(city);
         await open();
         await screen.findAllByRole('option');
-        const search = screen.getByRole('combobox', { name: 'Search the choices' });
-        fireEvent.keyDown(search, { key: 'ArrowDown' });
-        expect(search).toHaveAttribute('aria-activedescendant', screen.getAllByRole('option')[1].id);
-        fireEvent.keyDown(search, { key: 'Enter' });
+        const input = await box();
+        // nothing is walked to until the arrow keys move: Enter alone chooses nothing
+        fireEvent.keyDown(input, { key: 'Enter' });
+        expect(latest.city).toBeUndefined();
+        fireEvent.keyDown(input, { key: 'ArrowDown' });
+        fireEvent.keyDown(input, { key: 'ArrowDown' });
+        expect(input).toHaveAttribute('aria-activedescendant', screen.getAllByRole('option')[1].id);
+        fireEvent.keyDown(input, { key: 'Enter' });
         // the text goes with the id, so it shows (and is sent) before the server writes it again
         await waitFor(() => expect(latest.city).toEqual({ type: 'choice', choice: { value: 'li2', label: 'Berlin' } }));
-        expect(screen.getByRole('combobox', { name: 'City' })).toHaveTextContent('Berlin');
+        expect(await box()).toHaveValue('Berlin');
         expect(screen.queryByRole('listbox')).toBeNull();
+        expect(await box()).toHaveAttribute('aria-expanded', 'false');
     });
 
-    it('closes on Escape without choosing', async () => {
+    it('walks with Home, End, Page Up and Page Down once the list is being walked', async () => {
+        const many = Array.from({ length: 25 }, (_, i) => ({ id: `m${i}`, label: `City ${String(i).padStart(2, '0')}` }));
+        route.answer = () => page(many, 25);
         show(city);
         await open();
-        fireEvent.keyDown(screen.getByRole('combobox', { name: 'Search the choices' }), { key: 'Escape' });
+        await screen.findAllByRole('option');
+        const input = await box();
+        const activeLabel = () => document.getElementById(input.getAttribute('aria-activedescendant') ?? '')?.textContent;
+        fireEvent.keyDown(input, { key: 'ArrowDown' });
+        fireEvent.keyDown(input, { key: 'End' });
+        expect(activeLabel()).toBe('City 24');
+        fireEvent.keyDown(input, { key: 'Home' });
+        expect(activeLabel()).toBe('City 00');
+        fireEvent.keyDown(input, { key: 'PageDown' });
+        expect(activeLabel()).toBe('City 10');
+        fireEvent.keyDown(input, { key: 'PageUp' });
+        expect(activeLabel()).toBe('City 00');
+    });
+
+    it('closes on Escape and on a click outside without choosing, and Tab closes', async () => {
+        show(city);
+        await open();
+        fireEvent.keyDown(await box(), { key: 'Escape' });
+        expect(screen.queryByRole('listbox')).toBeNull();
+        await open();
+        fireEvent.mouseDown(document.body);
+        expect(screen.queryByRole('listbox')).toBeNull();
+        await open();
+        fireEvent.keyDown(await box(), { key: 'Tab' });
         expect(screen.queryByRole('listbox')).toBeNull();
         expect(latest.city).toBeUndefined();
-        expect(screen.getByRole('combobox', { name: 'City' })).toHaveFocus();
+    });
+
+    it('Tab takes the option that was walked to, for a single choice', async () => {
+        show(city);
+        await open();
+        await screen.findAllByRole('option');
+        const input = await box();
+        fireEvent.keyDown(input, { key: 'ArrowDown' });
+        fireEvent.keyDown(input, { key: 'Tab' });
+        await waitFor(() => expect(latest.city?.choice?.value).toBe('li1'));
     });
 
     it('searches on the server, after a pause, with what was typed', async () => {
@@ -147,7 +200,7 @@ describe('SourceOptionsField', () => {
                 CITIES.filter((c) => c.label.toLowerCase().includes(q)),
                 1
             );
-        fireEvent.change(screen.getByRole('combobox', { name: 'Search the choices' }), { target: { value: 'ber' } });
+        fireEvent.change(await box(), { target: { value: 'ber' } });
         await waitFor(() =>
             expect(
                 within(screen.getByRole('listbox'))
@@ -162,11 +215,19 @@ describe('SourceOptionsField', () => {
         show(city);
         await open();
         route.answer = () => page([], 0);
-        fireEvent.change(screen.getByRole('combobox', { name: 'Search the choices' }), { target: { value: 'zzz' } });
+        fireEvent.change(await box(), { target: { value: 'zzz' } });
         expect(await screen.findByText('No choices match your search.')).toBeInTheDocument();
         route.answer = () => Promise.reject(new Error('down'));
-        fireEvent.change(screen.getByRole('combobox', { name: 'Search the choices' }), { target: { value: 'q' } });
+        fireEvent.change(await box(), { target: { value: 'q' } });
         expect(await screen.findByText('The choices could not be loaded. Try again.')).toBeInTheDocument();
+    });
+
+    it('asks for a pause, not a failure, when the server says slow down (429)', async () => {
+        route.answer = () => Promise.reject(new SourceOptionsLimited(2));
+        show(city);
+        await open();
+        expect(await screen.findByText('Too many requests just now. The choices will load again in a moment.')).toBeInTheDocument();
+        expect(screen.queryByText('The choices could not be loaded. Try again.')).toBeNull();
     });
 
     it('loads the next page on request and does not repeat a choice', async () => {

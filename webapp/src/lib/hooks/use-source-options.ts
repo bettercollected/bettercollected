@@ -2,7 +2,7 @@
 
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 
-import { fetchSourceOptions } from '@app/lib/source-options';
+import { SourceOptionsLimited, fetchSourceOptions } from '@app/lib/source-options';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -13,6 +13,8 @@ import { PreviewModeContext } from '@app/views/molecules/responder-form-fields/p
 
 const PAGE = 50;
 const DEBOUNCE_MS = 250;
+// after the server said slow down: search less often
+const LIMITED_DEBOUNCE_MS = 1500;
 
 export interface SourceOptionsState {
     items: SourceOption[];
@@ -21,6 +23,8 @@ export interface SourceOptionsState {
     available: boolean;
     loading: boolean;
     failed: boolean;
+    /** The server asked for a pause (429): the list loads again by itself after it. */
+    limited: boolean;
     canLoadMore: boolean;
     loadMore: () => void;
 }
@@ -40,6 +44,8 @@ export function useSourceOptions(field: StandardFormFieldDto, { query, parentIds
     const [page, setPage] = useState<SourceOptionsPage>({ items: [], total: 0, truncated: false, available: true });
     const [loading, setLoading] = useState(false);
     const [failed, setFailed] = useState(false);
+    const [limited, setLimited] = useState(false);
+    const [retry, setRetry] = useState(0);
     const [debounced, setDebounced] = useState(query);
     const request = useRef(0);
     const source = field.properties?.optionSource;
@@ -47,9 +53,9 @@ export function useSourceOptions(field: StandardFormFieldDto, { query, parentIds
     const labelKey = parentLabels.join('\u0000');
 
     useEffect(() => {
-        const timer = setTimeout(() => setDebounced(query), DEBOUNCE_MS);
+        const timer = setTimeout(() => setDebounced(query), limited ? LIMITED_DEBOUNCE_MS : DEBOUNCE_MS);
         return () => clearTimeout(timer);
-    }, [query]);
+    }, [query, limited]);
 
     const fetchPage = useCallback(
         async (offset: number): Promise<SourceOptionsPage> => {
@@ -75,15 +81,24 @@ export function useSourceOptions(field: StandardFormFieldDto, { query, parentIds
                 setPage(result);
                 setLoading(false);
             })
-            .catch(() => {
+            .catch((error) => {
                 if (mine !== request.current) return;
-                setFailed(true);
                 setLoading(false);
+                if (error instanceof SourceOptionsLimited) {
+                    // not a failure: wait as long as the server said, then ask again
+                    setLimited(true);
+                    setTimeout(() => {
+                        setLimited(false);
+                        setRetry((count) => count + 1);
+                    }, error.retryAfter * 1000);
+                    return;
+                }
+                setFailed(true);
             });
         return () => {
             request.current++;
         };
-    }, [enabled, fetchPage, source]);
+    }, [enabled, fetchPage, source, retry]);
 
     const loadMore = useCallback(() => {
         const mine = ++request.current;
@@ -94,12 +109,17 @@ export function useSourceOptions(field: StandardFormFieldDto, { query, parentIds
                 setPage((previous) => ({ ...result, items: [...previous.items, ...result.items.filter((item) => !previous.items.some((known) => known.id === item.id))] }));
                 setLoading(false);
             })
-            .catch(() => {
+            .catch((error) => {
                 if (mine !== request.current) return;
-                setFailed(true);
                 setLoading(false);
+                if (error instanceof SourceOptionsLimited) {
+                    setLimited(true);
+                    setTimeout(() => setLimited(false), error.retryAfter * 1000);
+                    return;
+                }
+                setFailed(true);
             });
     }, [fetchPage, page.items.length]);
 
-    return { ...page, loading, failed, canLoadMore: page.items.length < page.total, loadMore };
+    return { ...page, loading, failed, limited, canLoadMore: page.items.length < page.total, loadMore };
 }

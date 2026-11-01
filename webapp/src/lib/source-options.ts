@@ -12,6 +12,18 @@ export interface SourceOptionsRequest {
     parent?: string[];
 }
 
+/** The server asked the client to slow down (429): the seconds to wait (``Retry-After``). */
+export class SourceOptionsLimited extends Error {
+    constructor(public readonly retryAfter: number) {
+        super('options limited');
+    }
+}
+
+const retryAfterOf = (header: string | null | undefined): number => {
+    const seconds = Number.parseInt(header ?? '', 10);
+    return Number.isFinite(seconds) && seconds > 0 ? Math.min(seconds, 60) : 5;
+};
+
 /**
  * One page of the choices of a question whose options come from a list or from another form's answers, through our
  * server (a public route, like the form; labels only). A plain request, not a store endpoint: the store would keep
@@ -31,6 +43,7 @@ export async function fetchSourceOptions({ workspaceId, formId, fieldId, q, offs
         cache: 'no-store',
         signal
     });
+    if (response.status === 429) throw new SourceOptionsLimited(retryAfterOf(response.headers?.get?.('Retry-After')));
     if (!response.ok) throw new Error('options unavailable');
     return pageOf(await response.json());
 }

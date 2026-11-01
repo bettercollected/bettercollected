@@ -1366,7 +1366,14 @@
     "SHOW_ANSWERS": "Toon de eerste antwoorden",
     "CANVAS_LIST": "De opties komen uit een lijst van deze werkruimte.",
     "CANVAS_ANSWERS": "De opties komen uit antwoorden op een ander formulier.",
-    "CANVAS_NOTE": "Wie invult kan in de opties zoeken. Kies de bron in de instellingen rechts."
+    "CANVAS_NOTE": "Wie invult kan in de opties zoeken. Kies de bron in de instellingen rechts.",
+    "NO_SHARED": "Geen enkele vraag van dit formulier deelt haar antwoorden al. Zet eerst “Antwoorden mogen als keuze worden getoond” aan bij de vraag in dat formulier.",
+    "SEARCH_FORMS": "Formulieren zoeken",
+    "FORMS_MORE": "De eerste {{count}} formulieren worden getoond. Zoek om een ander te vinden.",
+    "NOT_SHARED": "De maker van die vraag heeft niet toegestaan dat haar antwoorden als keuze worden getoond in andere formulieren.",
+    "SHARE_LABEL": "Antwoorden mogen als keuze worden getoond",
+    "SHARE_HINT": "Andere formulieren van deze werkruimte mogen de antwoorden op deze vraag als keuzes tonen, zonder te zeggen wie ze gaf. Wie invult krijgt dat bij de vraag te horen. Alleen antwoorden die zijn gegeven terwijl dit aanstaat worden ooit getoond; uitzetten stopt elk gebruik meteen.",
+    "SHARE_LOCKED": "Aanzetten vraagt een server die opties uit antwoorden op andere formulieren haalt."
   },
   "LISTS": {
     "TITLE": "Lijsten",
@@ -1414,6 +1421,8 @@
     "DELETE": "Lijst verwijderen",
     "CONFIRM_DELETE": "“{{name}}” verwijderen? Antwoorden die al zijn gegeven houden hun tekst.",
     "IN_USE": "Formulieren gebruiken deze lijst nog: {{forms}}. Pas ze eerst aan.",
-    "DELETE_FAILED": "Kon de lijst niet verwijderen."
+    "DELETE_FAILED": "Kon de lijst niet verwijderen.",
+    "CONFIRM_LEAVE": "U hebt wijzigingen die niet zijn opgeslagen. Weggaan zonder ze op te slaan?",
+    "CONFIRM_IMPORT": "U hebt wijzigingen die niet zijn opgeslagen. Een bestand importeren vervangt de items en u raakt ze kwijt. Toch importeren?"
   }
 }

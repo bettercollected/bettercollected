@@ -121,6 +121,8 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     const resolvedDescription = resolvePipesInText(ruleText?.description ?? field?.description, pipeContext);
     // "Why we ask this": the creator's reason for an identifying question.
     const whyWeAsk = field?.properties?.whyWeAsk?.trim();
+    // the creator lets other forms of the workspace show this answer as a choice: said next to the question
+    const sharesAnswer = field?.properties?.shareAsChoices === true;
     // Leaflet: the question's n.m number, set in the margin column.
     const numbering = useContext(QuestionNumberContext);
     const number = numbering?.numbers[field.id];
@@ -148,7 +150,7 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
     const itemHeadingId = itemScope ? `group-item-${itemScope.groupId}-${itemScope.index}` : undefined;
     const labelledBy = [hasTitle ? titleId : null, itemHeadingId].filter(Boolean).join(' ') || undefined;
     // Described in reading order: description, "why we ask", then the error.
-    const infoIds = [resolvedDescription ? `q-desc-${field.id}` : null, whyWeAsk ? `q-why-${field.id}` : null, locked ? lockedId : null].filter(Boolean).join(' ') || undefined;
+    const infoIds = [resolvedDescription ? `q-desc-${field.id}` : null, whyWeAsk ? `q-why-${field.id}` : null, sharesAnswer ? `q-share-${field.id}` : null, locked ? lockedId : null].filter(Boolean).join(' ') || undefined;
     const describedBy = [infoIds, hasError ? errorId : null].filter(Boolean).join(' ') || undefined;
     const questionLabel: QuestionLabel = useMemo(
         () => ({
@@ -286,6 +288,11 @@ export default function QuestionWrapper({ field, children, errorMessage, group =
                             {t('QUESTION.WHY_WE_ASK')}
                         </span>{' '}
                         <span lang={contentLang}>{whyWeAsk}</span>
+                    </p>
+                )}
+                {sharesAnswer && (
+                    <p id={`q-share-${field.id}`} data-testid={`share-notice-${field.id}`} className="mt-2 max-w-[62ch] border-l-2 pl-3 text-[14px] leading-relaxed text-black-700" style={{ borderColor: themed('--form-highlight-rule', theme?.tertiary ?? '#818CA0') }} lang={language}>
+                        {t('QUESTION.SHARE_AS_CHOICES')}
                     </p>
                 )}
             </div>

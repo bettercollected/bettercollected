@@ -42,6 +42,8 @@ export interface StandardFormFieldProperties {
     optionFilter?: OptionFilter;
     /** The options come from a workspace list or another form's answers instead of `choices` (see utils/option-sources.ts). */
     optionSource?: OptionSource;
+    /** A short text, dropdown or multiple choice question whose answers other forms of the workspace may show as choices (off unless true; see utils/option-sources.ts). */
+    shareAsChoices?: boolean;
     /** v2 page-jump / branching rules for this slide (see utils/conditional-logic). */
     jumps?: PageJump[];
     /** Flow-view canvas position of this page (cosmetic; auto-layout when absent). */

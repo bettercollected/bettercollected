@@ -58,9 +58,10 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => ({
                     type: 'slide',
                     properties: {
                         fields: [
-                            { id: 'name', type: 'short_text', title: 'Name' },
-                            { id: 'mail', type: 'email', title: 'Email' },
-                            { id: 'role', type: 'dropdown', title: 'Role' }
+                            { id: 'name', type: 'short_text', title: 'Name', properties: { shareAsChoices: true } },
+                            { id: 'nick', type: 'short_text', title: 'Nickname' },
+                            { id: 'mail', type: 'email', title: 'Email', properties: { shareAsChoices: true } },
+                            { id: 'role', type: 'dropdown', title: 'Role', properties: { shareAsChoices: true } }
                         ]
                     }
                 }
@@ -150,6 +151,7 @@ describe('the options source in the builder', () => {
         expect(Array.from(forms.options).map((option) => option.textContent)).toEqual(['Pick a form', 'Participants']);
         await act(async () => fireEvent.change(forms, { target: { value: 'people' } }));
         const questions = screen.getByLabelText('Question') as HTMLSelectElement;
+        // only the questions that opted in to being shown as choices (and can)
         expect(Array.from(questions.options).map((option) => option.textContent)).toEqual(['Pick a question', 'Name', 'Role']);
         await act(async () => fireEvent.change(questions, { target: { value: 'name' } }));
         const use = screen.getByRole('button', { name: 'Use these answers' });
@@ -158,6 +160,31 @@ describe('the options source in the builder', () => {
         expect(use).toBeEnabled();
         await act(async () => fireEvent.click(use));
         expect(fieldNow('who').properties!.optionSource).toEqual({ kind: 'form_answers', formId: 'people', questionId: 'name' });
+    });
+
+    it('keeps the typed options aside and brings them back with own options', async () => {
+        const { fieldNow } = setup([COUNTRY, CITY], 'city');
+        await act(async () => fireEvent.click(screen.getByRole('radio', { name: 'A list of this workspace' })));
+        await act(async () => fireEvent.change(screen.getByLabelText('List'), { target: { value: 'l1' } }));
+        expect(fieldNow('city').properties!.choices).toEqual([]);
+        await act(async () => fireEvent.click(screen.getByRole('radio', { name: 'Options I type here' })));
+        expect(fieldNow('city').properties!.optionSource).toBeUndefined();
+        expect(fieldNow('city').properties!.choices).toEqual([{ id: 'a', value: 'A' }]);
+    });
+
+    it('takes the sharing of its own answers away when a source is picked', async () => {
+        const shared = question('who', 1, FieldTypes.DROP_DOWN, 'Who', { shareAsChoices: true });
+        const { fieldNow } = setup([COUNTRY, shared], 'who');
+        await act(async () => fireEvent.click(screen.getByRole('radio', { name: 'A list of this workspace' })));
+        await act(async () => fireEvent.change(screen.getByLabelText('List'), { target: { value: 'l1' } }));
+        expect(fieldNow('who').properties!.shareAsChoices).toBeUndefined();
+    });
+
+    it('can search the forms by name', async () => {
+        setup([COUNTRY, question('who', 1, FieldTypes.DROP_DOWN, 'Who')], 'who');
+        await act(async () => fireEvent.click(screen.getByRole('radio', { name: 'Answers given to another form' })));
+        expect(screen.getByLabelText('Search forms')).toBeInTheDocument();
+        expect(screen.queryByText(/Showing the first/)).not.toBeInTheDocument();
     });
 
     it('goes back to own options by taking the source away', async () => {

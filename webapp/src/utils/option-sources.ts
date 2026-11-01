@@ -77,17 +77,23 @@ export function parentOptionIds(field: StandardFormFieldDto, answers: Record<str
 /** A key that changes when the parent's choice changes (an empty string without a parent or an answer). */
 export const parentKey = (ids: string[]): string => [...ids].sort().join('\u0000');
 
-/** The question types a creator can pick as the source of another form's answers: its page-level text, dropdown and multiple choice questions that are not internal and have no source of their own. */
+/** Can the question's answers be shared as choices at all: a page-level text, dropdown or multiple choice question that is not internal and has no source of its own? */
+export const canShareAsChoices = (question: StandardFormFieldDto | undefined | null): boolean => !!question && !question.internal && ANSWER_SOURCE_TYPES.includes(String(question.type)) && !hasOptionSource(question);
+
+/** The questions a creator can pick as the source of another form's answers: those of its pages that can share and whose creator turned sharing on (`shareAsChoices`). */
 export function answerSourceQuestions(form: { fields?: StandardFormFieldDto[] } | undefined | null): StandardFormFieldDto[] {
-    const found: StandardFormFieldDto[] = [];
-    (form?.fields ?? []).forEach((slide) =>
-        (slide?.properties?.fields ?? []).forEach((question) => {
-            if (question.internal || !ANSWER_SOURCE_TYPES.includes(String(question.type)) || hasOptionSource(question)) return;
-            found.push(question);
-        })
-    );
-    return found;
+    return pageQuestions(form).filter((question) => canShareAsChoices(question) && question.properties?.shareAsChoices === true);
 }
+
+/** The questions a form could share (the creator may turn it on), whether or not they do yet. */
+export const shareableQuestions = (form: { fields?: StandardFormFieldDto[] } | undefined | null): StandardFormFieldDto[] => pageQuestions(form).filter(canShareAsChoices);
+
+function pageQuestions(form: { fields?: StandardFormFieldDto[] } | undefined | null): StandardFormFieldDto[] {
+    return (form?.fields ?? []).flatMap((slide) => slide?.properties?.fields ?? []);
+}
+
+/** Does a form share any answers as choices (its privacy panel says so)? */
+export const formSharesAnswers = (fields: StandardFormFieldDto[] | undefined | null): boolean => pageQuestions({ fields: fields ?? [] }).some((question) => question.properties?.shareAsChoices === true && canShareAsChoices(question));
 
 /** The earlier dropdown and multiple choice questions a dependent list can follow (page level, not the question itself). */
 export function parentCandidates(slides: StandardFormFieldDto[] | undefined, fieldId: string): StandardFormFieldDto[] {

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchSourceOptions, pageOf } from '@app/lib/source-options';
+import { SourceOptionsLimited, fetchSourceOptions, pageOf } from '@app/lib/source-options';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -34,5 +34,16 @@ describe('fetchSourceOptions', () => {
     it('rejects on every failure, with no detail', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({}) }));
         await expect(fetchSourceOptions({ workspaceId: 'w', formId: 'f', fieldId: 'c' })).rejects.toThrow('options unavailable');
+    });
+
+    it('tells a request to slow down from a failure, and how long to wait', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429, headers: new Headers({ 'Retry-After': '7' }), json: async () => ({}) }));
+        await expect(fetchSourceOptions({ workspaceId: 'w', formId: 'f', fieldId: 'c' })).rejects.toMatchObject({ retryAfter: 7 });
+        await expect(fetchSourceOptions({ workspaceId: 'w', formId: 'f', fieldId: 'c' })).rejects.toBeInstanceOf(SourceOptionsLimited);
+        // a missing or silly header is a short pause, never none and never long
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429, headers: new Headers({ 'Retry-After': '99999' }), json: async () => ({}) }));
+        await expect(fetchSourceOptions({ workspaceId: 'w', formId: 'f', fieldId: 'c' })).rejects.toMatchObject({ retryAfter: 60 });
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429, headers: new Headers(), json: async () => ({}) }));
+        await expect(fetchSourceOptions({ workspaceId: 'w', formId: 'f', fieldId: 'c' })).rejects.toMatchObject({ retryAfter: 5 });
     });
 });

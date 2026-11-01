@@ -72,6 +72,8 @@ export default function OptionListEditor({ listId, canEdit, onClose }: Props) {
         const file = event.target.files?.[0];
         event.target.value = '';
         if (!file) return;
+        // an import replaces the items: edits that are not saved would be lost
+        if (dirty && !window.confirm(t('LISTS.CONFIRM_IMPORT'))) return;
         setError('');
         const result: any = await importCsv({ workspaceId, listId, csv: await file.text(), expectedRevision: revision });
         if (result.data) {
@@ -103,7 +105,14 @@ export default function OptionListEditor({ listId, canEdit, onClose }: Props) {
 
     return (
         <div className="flex w-full max-w-[860px] flex-col gap-5 pb-10">
-            <button type="button" onClick={onClose} className="flex min-h-11 w-fit items-center gap-1 text-sm font-medium underline">
+            <button
+                type="button"
+                onClick={() => {
+                    if (dirty && !window.confirm(t('LISTS.CONFIRM_LEAVE'))) return;
+                    onClose();
+                }}
+                className="flex min-h-11 w-fit items-center gap-1 text-sm font-medium underline"
+            >
                 <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                 {t('LISTS.BACK')}
             </button>
