@@ -48,9 +48,21 @@ async def target(clean_postgres):
     database = client[target.mongo_db]
     for name in ("rate_limit_counters", "sessions", "workspace_tags"):
         await database[name].delete_many({})
-    # 4.0 expired these by a TTL index; 4.1 no longer declares it
+    # 4.0 expired these by a TTL index; 4.1 no longer declares it. The index
+    # is real (verify reads it from Mongo), but its partial filter matches no
+    # document, so Mongo's own TTL monitor (a sweep every 60 s) never deletes
+    # a copy a test plants: what a test counts on is not left to a sweep
+    # landing mid-test. Tests that need a drop make it themselves, at the
+    # point they mean (``ttl_deleted_after_count``, ``TtlDeletesWhileCounting``).
+    # The collection is dropped first: tests of other modules leave a plain
+    # ``expires_at_1`` TTL index behind in this worker's database, and an index
+    # of that name with other options is refused. verify finds the index by its
+    # key (``_ttl_of``), never by name, so the default name is kept
+    await database["rate_limit_counters"].drop()
     await database["rate_limit_counters"].create_index(
-        "expires_at", expireAfterSeconds=0
+        "expires_at",
+        expireAfterSeconds=0,
+        partialFilterExpression={"ttl_monitor_enabled": True},
     )
     yield target
     for name in ("rate_limit_counters", "sessions", "workspace_tags"):
@@ -867,12 +879,14 @@ class SkewedClockType(type):
 
 
 def skewed_clock(skew):
-    """``datetime`` as the runner's host sees it: ``now`` off by ``skew``."""
+    """``datetime`` as the runner's host sees it: a clock stopped at the
+    instant it is built, ``skew`` off the real one (it does not tick)."""
+    stopped = dt.datetime.now(dt.timezone.utc) + skew
 
     class Clock(dt.datetime, metaclass=SkewedClockType):
         @classmethod
         def now(cls, tz=None):
-            return dt.datetime.now(tz) + skew
+            return stopped.astimezone(tz) if tz else stopped.replace(tzinfo=None)
 
     return Clock
 

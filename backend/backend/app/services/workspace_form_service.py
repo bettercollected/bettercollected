@@ -449,7 +449,10 @@ class WorkspaceFormService:
         option_source_service=None,
         member_directory=None,
         audit_repo=None,
+        form_access_cleanup=None,
     ):
+        # grants on a form go with the form (services/form_access/cleanup.py)
+        self._form_access_cleanup = form_access_cleanup
         # options from a list or from another form's answers
         self._option_source_service = option_source_service
         # names and roles of staff members (the revision log records the role)
@@ -650,6 +653,9 @@ class WorkspaceFormService:
         workspace_form = await self.workspace_form_repository.delete_form_in_workspace(
             workspace_id=workspace_id, form_id=form_id
         )
+        if self._form_access_cleanup is not None:
+            # the grants on it, whatever the switch says
+            await self._form_access_cleanup.forget_form(workspace_id, form_id)
         if self._registration_service is not None:
             # the form's registration and delivery records, whatever the switch says
             await self._registration_service.delete_for_form(workspace_id, form_id)
@@ -779,6 +785,8 @@ class WorkspaceFormService:
         await self.form_response_service.delete_deletion_requests_of_form_ids(
             form_ids=form_ids
         )
+        if self._form_access_cleanup is not None and form_ids:
+            await self._form_access_cleanup.forget_forms(list(form_ids))
         await self.form_service.delete_forms(form_ids=form_ids)
         if self._registration_service is not None and form_ids:
             await self._registration_service.delete_for_forms(list(form_ids))
@@ -828,6 +836,10 @@ class WorkspaceFormService:
                 await self.workspace_form_repository.delete_form_in_workspace(
                     workspace_id=RecordId(workspace_id), form_id=str(form_id)
                 )
+                if self._form_access_cleanup is not None:
+                    await self._form_access_cleanup.forget_form(
+                        workspace_id, str(form_id)
+                    )
         return entirely
 
     def generate_presigned_file_url(
@@ -2222,15 +2234,21 @@ class WorkspaceFormService:
                 workspace_form.settings.import_id = source_settings.import_id
             workspace_form.settings.provider = "self"
             workspace_form.settings.custom_url = str(duplicated_form.id)
-            workspace_form = await self.workspace_form_repository.save(workspace_form)
             if self._source_is_restricted(source_link):
                 # A copy of a restricted form stays restricted (no grant comes
                 # along: the person who copies it is its creator, owners and
-                # admins always pass).
-                await self.workspace_form_repository.set_access_mode(
-                    workspace_id, str(duplicated_form.form_id), MODE_RESTRICTED
+                # admins always pass). The link is stored with its mode in one
+                # write: there is no moment, and no failure, in which the copy
+                # exists open.
+                workspace_form = (
+                    await self.workspace_form_repository.save_new_link_with_access_mode(
+                        workspace_form, MODE_RESTRICTED
+                    )
                 )
-                workspace_form.settings.access_mode = MODE_RESTRICTED
+            else:
+                workspace_form = await self.workspace_form_repository.save(
+                    workspace_form
+                )
             duplicated_form.settings = _settings_as_read(
                 workspace_form.settings, duplicated_form
             )

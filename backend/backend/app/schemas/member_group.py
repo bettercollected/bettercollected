@@ -6,6 +6,7 @@ Not the respondent groups (``responder_group``): those admit respondents to a
 private form and grant nobody anything in the dashboard.
 """
 
+import unicodedata
 from typing import Optional
 
 from common.records import Record, RecordId
@@ -17,9 +18,10 @@ SOURCE_DIRECTORY = "directory"
 
 
 def name_key(name: str) -> str:
-    """What makes two team names the same inside a workspace: trimmed, runs of
-    blanks folded, case-insensitive."""
-    return " ".join(str(name or "").split()).casefold()
+    """What makes two team names the same inside a workspace: compatibility
+    forms folded (NFKC: a full-width or ligature spelling is the plain one),
+    trimmed, runs of blanks folded, case-insensitive."""
+    return " ".join(unicodedata.normalize("NFKC", str(name or "")).split()).casefold()
 
 
 class MemberGroupDocument(Record):

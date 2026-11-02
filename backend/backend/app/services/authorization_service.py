@@ -231,6 +231,18 @@ class AuthorizationService:
             return FormPermissions(base.permissions)
         return await self._form_permissions(base, form_id)
 
+    async def base_access(
+        self,
+        user: Optional[User],
+        workspace_id: Union[RecordId, str, None],
+        raise_sso_required: bool = True,
+    ) -> BaseAccess:
+        """The member's workspace-level access (see ``BaseAccess``): what the
+        form-level management needs to know about the caller beyond the
+        permissions (an Owner or Admin, a Privacy officer). Nothing held for
+        anyone who is not an active, unblocked member."""
+        return await self._base_access(user, workspace_id, raise_sso_required)
+
     async def visible_form_ids(
         self,
         user: Optional[User],
