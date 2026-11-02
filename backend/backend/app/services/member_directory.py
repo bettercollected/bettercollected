@@ -44,11 +44,13 @@ class MemberDirectory:
         return roles, workspace
 
     async def lookup(
-        self, workspace_id, user_ids: Iterable[str]
+        self, workspace_id, user_ids: Iterable[str], timeout: float = 10
     ) -> Tuple[Dict[str, Optional[str]], Dict[str, str]]:
         """``(roles, names)``: ``roles`` has an entry for each id among
         ``user_ids`` that is a current member (its role, or None when it has
-        no known one); ``names`` the display names found, by id."""
+        no known one); ``names`` the display names found, by id. ``timeout``:
+        seconds the auth service gets (a page a user opens on every visit asks
+        for less than the default)."""
         wanted = {str(u) for u in user_ids if u}
         if not wanted:
             return {}, {}
@@ -60,7 +62,7 @@ class MemberDirectory:
                 settings.auth_settings.BASE_URL + "/users",
                 params={"user_ids": sorted(roles)},
                 headers=auth_service_headers(),
-                timeout=10,
+                timeout=timeout,
             )
         except Exception as error:  # noqa: BLE001 - names are best effort
             logger.warning("Member names lookup failed: {}", type(error).__name__)

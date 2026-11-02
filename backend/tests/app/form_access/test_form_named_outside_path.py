@@ -63,6 +63,13 @@ REFERENCES: Dict[Tuple[str, str], Tuple[str, str]] = {
         "(APIKeyService.update_key, _checked_list)",
         "test_the_form_list_is_checked, test_a_key_of_another_workspace_is_not_found",
     ),
+    ("GET", "/workspaces/{workspace_id}/audit-log"): (
+        "query.form_id",
+        "audit.read (Owner, Admin, Privacy officer, who see every form's activity); "
+        "the id only filters this workspace's rows, so another workspace's form "
+        "matches nothing (AuditLogReader)",
+        "test_nothing_crosses_workspaces (audit_log/test_audit_log_api.py)",
+    ),
     ("POST", "/workspaces/{workspace_id}/option-sources/preview"): (
         "body.formId, body.source.formId",
         "authorize_source: a form closed to the caller does not exist for them",
