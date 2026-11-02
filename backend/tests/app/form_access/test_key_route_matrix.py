@@ -16,9 +16,10 @@ services:
 * a key of an Owner or an Admin: every form.
 """
 
+import json
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import pytest
 from common.ids import RecordId
@@ -33,7 +34,7 @@ from backend.config import settings
 from tests.app.controllers.data import testUser
 from tests.app.controllers.submission_cases import SPEC
 from tests.app.controllers.test_mcp_server import _call_tool
-from tests.app.form_access.helpers import add_member, grant, set_mode
+from tests.app.form_access.helpers import add_member, grant, set_mode, team_with
 from tests.app.form_access.test_key_enforcement import (
     OPS,
     _call,
@@ -45,6 +46,7 @@ from tests.app.form_access.test_key_enforcement import (
 from tests.app.form_access.test_route_matrix import (
     ADMIN,
     EDITOR,
+    NON_CREATORS,
     OWNER,
     PRINCIPALS,
     PRIVACY,
@@ -112,34 +114,54 @@ class PublicRoute:
     # the call is on a response the principal's key did not make, so an allowed
     # key is answered with the response's own 404: only refusals are asserted
     soft: bool = False
+    # the statuses a key let through is answered with, and a check of its data
+    # (``check(world, response)`` is true when the data is right)
+    ok: Tuple[int, ...] = ()
+    check: Optional[Callable] = None
 
 
 PUBLIC_ROUTES: Dict[Tuple[str, str], PublicRoute] = {
     ("GET", "/forms"): PublicRoute(None, "forms:read", "list"),
     ("POST", "/forms"): PublicRoute(None, "forms:write", "none"),
     ("POST", "/forms/validate"): PublicRoute(None, "forms:read", "none"),
-    ("GET", "/forms/{form_id}"): PublicRoute("getForm", "forms:read"),
-    ("PUT", "/forms/{form_id}"): PublicRoute("replaceForm", "forms:write"),
+    ("GET", "/forms/{form_id}"): PublicRoute(
+        "getForm",
+        "forms:read",
+        ok=(200,),
+        check=lambda w, r: r.json().get("specVersion") == "1" and bool(r.json().get("pages")),
+    ),
+    ("PUT", "/forms/{form_id}"): PublicRoute("replaceForm", "forms:write", ok=(412, 428)),
     ("POST", "/forms/{form_id}/replace/dry-run"): PublicRoute(
-        "previewReplaceForm", "forms:write"
+        "previewReplaceForm", "forms:write", ok=(200,)
     ),
-    ("POST", "/forms/{form_id}/publish"): PublicRoute("publishForm", "forms:write"),
+    ("POST", "/forms/{form_id}/publish"): PublicRoute("publishForm", "forms:write", ok=(200,)),
     ("DELETE", "/forms/{form_id}"): PublicRoute(
-        "deleteForm", "forms:delete", destructive=True
+        "deleteForm", "forms:delete", destructive=True, ok=(204,)
     ),
-    ("POST", "/forms/{form_id}/ops"): PublicRoute("applyFormOps", "forms:write"),
+    ("POST", "/forms/{form_id}/ops"): PublicRoute("applyFormOps", "forms:write", ok=(200,)),
     ("POST", "/forms/{form_id}/ops/dry-run"): PublicRoute(
-        "dryRunFormOps", "forms:write"
+        "dryRunFormOps", "forms:write", ok=(200,)
     ),
-    ("GET", "/forms/{form_id}/responses"): PublicRoute("listResponses", "responses:read"),
+    ("GET", "/forms/{form_id}/responses"): PublicRoute(
+        "listResponses",
+        "responses:read",
+        ok=(200,),
+        check=lambda w, r: w.response_id in r.text,
+    ),
     ("GET", "/forms/{form_id}/responses/{response_id}"): PublicRoute(
-        "getResponse", "responses:read"
+        "getResponse",
+        "responses:read",
+        ok=(200,),
+        check=lambda w, r: w.response_id in r.text,
     ),
     ("POST", "/forms/{form_id}/responses/{response_id}/deletion-request/close"): PublicRoute(
-        "closeDeletionRequest", "deletion_requests:write"
+        "closeDeletionRequest", "deletion_requests:write", ok=(200, 409)
     ),
     ("POST", "/forms/{form_id}/submissions"): PublicRoute(
-        "createSubmission", "submissions:write"
+        "createSubmission",
+        "submissions:write",
+        ok=(201,),
+        check=lambda w, r: bool(r.json()["responseId"]),
     ),
     ("PATCH", "/forms/{form_id}/submissions/{response_id}"): PublicRoute(
         "updateSubmission", "submissions:write", soft=True
@@ -238,12 +260,6 @@ async def test_every_mcp_tool_is_classified():
 
 # -- the world ---------------------------------------------------------------------------
 
-GRANTEES = {
-    "viewer_editor_grant": ("VIEWER", "EDITOR"),
-    "viewer_reviewer_grant": ("VIEWER", "REVIEWER"),
-    "editor_viewer_grant": ("COLLABORATOR", "VIEWER"),
-}
-
 
 @pytest.fixture()
 async def kworld(client: AsyncClient, workspace, monkeypatch):
@@ -254,17 +270,23 @@ async def kworld(client: AsyncClient, workspace, monkeypatch):
     owner_token = await _token(workspace, testUser)
     form_id, response_id = await _published_form(client, owner_token, SPEC, "Key matrix form")
     tokens = {"owner": owner_token}
-    for name, principal in PRINCIPALS.items():
+    for name in NON_CREATORS:
         if name == "owner":
             continue
+        principal = PRINCIPALS[name]
         user = await add_member(workspace, "ADMIN")
         tokens[name] = await _token(workspace, user)
-        if name in GRANTEES:
-            role, grant_role = GRANTEES[name]
-            await _set_roles(workspace, user, role)
-            await grant(workspace, form_id, user.id, grant_role)
-        else:
-            await _set_roles(workspace, user, STORED_ROLE[principal.role])
+        await _set_roles(workspace, user, STORED_ROLE[principal.role])
+        if principal.grant and principal.team:
+            team = await team_with(workspace, user)
+            await grant(
+                workspace, form_id, team.id, principal.grant,
+                export=principal.export, subject_type="group",
+            )
+        elif principal.grant:
+            await grant(
+                workspace, form_id, user.id, principal.grant, export=principal.export
+            )
     return SimpleNamespace(
         workspace=workspace, form_id=form_id, response_id=response_id, tokens=tokens
     )
@@ -329,6 +351,11 @@ async def run_public(client, kworld, names: List[str], mode: str, switch_on: boo
                     ghost = await _call(client, kworld.tokens[name], method, gpath, **gkw)
                     if (got.status_code, _body(got)) == (ghost.status_code, _body(ghost)):
                         failures.append(f"answered as an unknown form: {seen}")
+                if route.ok and got.status_code not in route.ok:
+                    failures.append(f"outcome {got.status_code} not in {route.ok}: {seen}")
+                if route.check is not None and 200 <= got.status_code < 300:
+                    if not route.check(kworld, got):
+                        failures.append(f"the data is not what the call returns: {seen}")
             elif want == 403:
                 if not lacks:
                     failures.append(f"expected 403 {CREATOR_LACKS}, got: {seen}")
@@ -376,10 +403,45 @@ async def run_lists(client, kworld, names: List[str], mode: str, switch_on: bool
 MCP_ERROR = "isError"
 
 
+async def _mcp_list(client, kworld, tool, entry, names, mode, switch_on) -> List[str]:
+    """The MCP list tools: the form (or the form's deletion request) is in the
+    list exactly when the key's creator holds the tool's scope permissions on it;
+    a creator whose role lacks them gets the 403 text."""
+    failures: List[str] = []
+    for name in names:
+        want = decide_key(PRINCIPALS[name], entry.scope, mode, switch_on)
+        got = await _call_tool(client, kworld.tokens[name], tool, {})
+        text = got["content"][0]["text"] if got.get("content") else ""
+        label = f"mcp {tool} as {name} [{mode}, switch {'on' if switch_on else 'off'}]"
+        if want == 403:
+            if not got.get(MCP_ERROR):
+                failures.append(f"expected the 403 text: {label}")
+            continue
+        if got.get(MCP_ERROR):
+            failures.append(f"a list is refused: {label}: {text[:100]}")
+            continue
+        items = json.loads(text)
+        ids = {str(i.get("formId")) for i in items}
+        sees = want == "allowed"
+        if (kworld.form_id in ids) is not sees:
+            failures.append(
+                f"{label}: the form is {'missing from' if sees else 'in'} the list"
+            )
+        if tool == "list_deletion_requests":
+            responses = {str(i.get("responseId")) for i in items}
+            if (kworld.response_id in responses) is not sees:
+                failures.append(f"{label}: the deletion request is wrongly "
+                                f"{'missing' if sees else 'listed'}")
+    return failures
+
+
 async def run_mcp(client, kworld, names: List[str], mode: str, switch_on: bool):
     failures: List[str] = []
     unknown_form, unknown_response = str(RecordId()), str(RecordId())
     for tool, entry in MCP_TOOLS.items():
+        if entry.kind == "list":
+            failures += await _mcp_list(client, kworld, tool, entry, names, mode, switch_on)
+            continue
         if entry.kind not in ("form", "response"):
             continue
         for name in names:
@@ -400,6 +462,15 @@ async def run_mcp(client, kworld, names: List[str], mode: str, switch_on: bool):
             if want == "allowed":
                 if got.get(MCP_ERROR):
                     failures.append(f"refused, expected to pass: {label}: {text[:100]}")
+                else:
+                    # the data: the form, or the response, the tool is about
+                    needle = {
+                        "get_form": kworld.form_id,
+                        "list_responses": kworld.response_id,
+                        "get_response": kworld.response_id,
+                    }.get(tool)
+                    if needle and needle not in text:
+                        failures.append(f"the data lacks {needle}: {label}")
             elif want == 403:
                 if not got.get(MCP_ERROR) or "no longer has" not in text and "does not have" not in text:
                     failures.append(f"expected the 403 text: {label}: {text[:100]}")
@@ -421,9 +492,18 @@ async def run_mcp(client, kworld, names: List[str], mode: str, switch_on: bool):
     return failures
 
 
-EVERY = list(PRINCIPALS)
-OPEN_SET = ["admin", "editor", "viewer", "privacy", "viewer_editor_grant", "viewer_reviewer_grant"]
-OFF_SET = ["admin", "editor", "reviewer", "viewer", "privacy", "viewer_editor_grant"]
+EVERY = NON_CREATORS  # (a creator's key is the creator's: covered on the REST routes)
+OPEN_SET = [
+    "admin",
+    "editor",
+    "viewer",
+    "privacy",
+    "viewer_editor_grant",
+    "viewer_reviewer_grant",
+    "viewer_team_grant",
+    "viewer_export_grant",
+]
+OFF_SET = NON_CREATORS
 
 
 async def _all(client, kworld, names, mode, switch_on):
@@ -457,8 +537,7 @@ async def test_a_closed_form_is_a_missing_form_under_bad_input_for_every_form_ro
 ):
     """The existence oracle: validation (a bad page, a bad body, a bad header)
     must not tell a closed form from a missing one, on any route of the public
-    API; and a submission with a bad body must not spend the form's budget on a
-    form that is closed or missing."""
+    API (the budget is checked in the test below)."""
     await set_mode(kworld.workspace, kworld.form_id, MODE_RESTRICTED)
     monkeypatch.setattr(settings.form_access, "ENABLED", True)
     token = kworld.tokens["editor"]
@@ -486,6 +565,51 @@ async def test_a_closed_form_is_a_missing_form_under_bad_input_for_every_form_ro
             missing.status_code,
             _body(missing),
         ), (method, template, closed.status_code, missing.status_code)
+
+
+async def test_a_closed_or_missing_form_never_spends_the_forms_submission_budget(
+    client: AsyncClient, kworld, monkeypatch
+):
+    """The order the submissions routes decide in: the form (404 for a closed or a
+    missing one) comes before the form's budget, so a member's key cannot spend,
+    or learn from, the budget of a form it cannot open. With the budget set to 2:
+    six submissions with the closed-out Editor's key answer the 404 of an unknown
+    form each time (never a 429), and the Admin's key, which may submit, still has
+    its two."""
+    import backend.app.public_api.auth as public_auth
+
+    monkeypatch.setattr(public_auth, "SUBMISSIONS_PER_FORM_PER_WINDOW", 2)
+    await set_mode(kworld.workspace, kworld.form_id, MODE_RESTRICTED)
+    monkeypatch.setattr(settings.form_access, "ENABLED", True)
+    unknown = str(RecordId())
+    body = {"json": {"answers": {}, "consent": True}}
+    path = "/forms/{f}/submissions"
+
+    async def allowed_before_429(token, form_id) -> int:
+        for taken in range(5):
+            got = await _call(client, token, "POST", path.format(f=form_id), **body)
+            if got.status_code == 429:
+                return taken
+        return 5
+
+    # the budget as the Admin's key meets it on a second form (a form that is not
+    # there answers 404 before the budget, which is itself the point)
+    other, _ = await _published_form(client, kworld.tokens["owner"], SPEC, "Budget control")
+    allowance = await allowed_before_429(kworld.tokens["admin"], other)
+    assert 1 <= allowance <= 3, allowance
+    assert await allowed_before_429(kworld.tokens["admin"], unknown) == 5
+    for _ in range(6):
+        closed = await _call(
+            client, kworld.tokens["editor"], "POST", path.format(f=kworld.form_id), **body
+        )
+        missing = await _call(
+            client, kworld.tokens["editor"], "POST", path.format(f=unknown), **body
+        )
+        assert (closed.status_code, _body(closed)) == (missing.status_code, _body(missing))
+        assert closed.status_code == 404, closed.status_code
+    # the Editor's six calls spent none of the closed form's budget: the Admin
+    # has all of it
+    assert await allowed_before_429(kworld.tokens["admin"], kworld.form_id) == allowance
 
 
 async def test_the_key_matrix_with_the_switch_off(client: AsyncClient, kworld, monkeypatch):

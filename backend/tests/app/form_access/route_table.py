@@ -15,7 +15,7 @@ them (the first one the member lacks decides the answer: 404 for a member the
 form is closed to when their role holds it, 403 otherwise).
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Callable, Dict, Optional, Tuple
 
 from common.constants import MESSAGE_FORBIDDEN
@@ -74,6 +74,17 @@ class Route:
     # ``has_permission`` first and falls through to a permission their role lacks
     # (the answer is still the one an unknown form gives)
     closed_status: int = 404
+    # the statuses an allowed member is answered with once let through, and a
+    # check of the data it returns (``check(ctx, response)`` gives a problem or
+    # None); both are asserted in the matrix, not only "not refused"
+    # path parameters sent with a real sub-object of the matrix's world (a webhook,
+    # an export, ...) instead of a made-up id: ((parameter, ctx key), ...)
+    ids: Tuple[Tuple[str, str], ...] = ()
+    ok: Tuple[int, ...] = ()
+    check: Optional[Callable] = None
+    # on a restricted form only the creator, an Owner or an Admin may (a member who
+    # holds the permissions otherwise gets 403 ``template_from_restricted_form``)
+    creator_only: bool = False
     # set by the matrix from the table key
     method: str = ""
 
@@ -142,7 +153,7 @@ ROUTES: Dict[Tuple[str, str], Route] = {
         FORM, P.FORM_CREATE, P.FORM_READ, case="forms.duplicate"
     ),
     ("POST", W + "/form/{form_id}/template"): route(
-        FORM, P.FORM_CREATE, P.FORM_EDIT, case="forms.as_template"
+        FORM, P.FORM_CREATE, P.FORM_EDIT, case="forms.as_template", creator_only=True
     ),
     ("POST", F + "/publish"): route(FORM, P.FORM_EDIT, case="forms.publish"),
     ("PATCH", F + "/settings"): route(FORM, P.FORM_EDIT, case="forms.settings"),
@@ -371,6 +382,217 @@ ROUTES: Dict[Tuple[str, str], Route] = {
     ),
     ("GET", W + "/responders"): route(LIST, P.PRIVACY_MANAGE, case="responders.list"),
 }
+
+# What a member who is let through is answered with, per route (the statuses the
+# route gives once the access decision has passed: its own success, or the check
+# that comes after it for a made-up body). Asserted for every allowed member in
+# the matrix, and every classified route must have an entry: a status that leaves
+# this set is a change of behaviour to look at, not a pass.
+OUTCOMES: Dict[Tuple[str, str], Tuple[int, ...]] = {
+    # (opaque: every answer is the same 404, a real signature is read elsewhere)
+    ("GET", W + "/submissions/{submission_id}/signatures/{field_id}"): (404,),
+    ("GET", W + "/all-submissions"): (200,),
+    ("POST", W + "/form/{form_id}/template"): (200,),
+    ("GET", W + "/forms"): (200,),
+    ("POST", W + "/forms/search"): (200,),
+    ("DELETE", F + ""): (200,),
+    ("GET", F + ""): (200,),
+    ("PATCH", F + ""): (200,),
+    ("GET", F + "/access"): (200,),
+    ("PUT", F + "/access/mode"): (200, 403),
+    ("PATCH", F + "/actions"): (200,),
+    ("POST", F + "/actions"): (200,),
+    ("DELETE", F + "/actions/{action_id}"): (200,),
+    ("GET", F + "/actions/{action_id}/reconsent"): (200,),
+    ("POST", F + "/ai/chat"): (403,),
+    ("GET", F + "/ai/insights"): (200,),
+    ("POST", F + "/ai/insights"): (403,),
+    ("PUT", F + "/ai/insights/settings"): (200,),
+    ("POST", F + "/ai/proposals/{proposal_id}/accept"): (404,),
+    ("POST", F + "/ai/proposals/{proposal_id}/reject"): (404,),
+    ("POST", F + "/ai/review"): (403,),
+    ("POST", F + "/ai/review/apply"): (200,),
+    ("GET", F + "/all-submissions"): (200,),
+    ("POST", F + "/duplicate"): (200,),
+    ("GET", F + "/email-actions"): (200,),
+    ("POST", F + "/email-actions"): (422,),
+    ("GET", F + "/email-actions/deliveries"): (200,),
+    ("POST", F + "/email-actions/preview"): (200,),
+    ("GET", F + "/email-actions/variables"): (200,),
+    ("DELETE", F + "/email-actions/{action_id}"): (404,),
+    ("PATCH", F + "/email-actions/{action_id}"): (404,),
+    ("POST", F + "/email-actions/{action_id}/test"): (404,),
+    ("GET", F + "/exports"): (200,),
+    ("POST", F + "/exports"): (202, 409, 429),
+    ("GET", F + "/exports/columns"): (200,),
+    ("DELETE", F + "/exports/{export_id}"): (204, 404),
+    ("GET", F + "/exports/{export_id}"): (200, 404),
+    ("GET", F + "/exports/{export_id}/download"): (200, 404),
+    ("GET", F + "/flow-analytics"): (200,),
+    ("PUT", F + "/grants"): (200, 403),
+    ("DELETE", F + "/grants/{grant_id}"): (204,),
+    ("DELETE", F + "/groups"): (200,),
+    ("PATCH", F + "/groups/add"): (200,),
+    ("GET", F + "/imports"): (200,),
+    ("POST", F + "/imports"): (415,),
+    ("DELETE", F + "/imports/{import_id}"): (204,),
+    ("GET", F + "/imports/{import_id}"): (200,),
+    ("POST", F + "/imports/{import_id}/check"): (422,),
+    ("POST", F + "/imports/{import_id}/rollback"): (409,),
+    ("POST", F + "/imports/{import_id}/run"): (422,),
+    ("DELETE", F + "/logo"): (200,),
+    ("PUT", F + "/logo"): (200,),
+    ("GET", F + "/open-formulieren-export"): (200,),
+    ("POST", F + "/ops"): (428,),
+    ("POST", F + "/ops/dry-run"): (422,),
+    ("POST", F + "/publish"): (200,),
+    ("GET", F + "/registration"): (200,),
+    ("PUT", F + "/registration"): (200,),
+    ("GET", F + "/registration/deliveries"): (200,),
+    ("POST", F + "/registration/deliveries/{delivery_id}/retry"): (404,),
+    ("POST", F + "/registration/test"): (200,),
+    ("GET", F + "/registration/variables"): (200,),
+    ("DELETE", F + "/response/{response_id}"): (200,),
+    ("PATCH", F + "/settings"): (200,),
+    ("GET", F + "/submission-paths"): (200,),
+    ("GET", F + "/submissions"): (200,),
+    ("PATCH", F + "/submissions/{submission_id}/answers"): (200,),
+    ("POST", F + "/submissions/{submission_id}/deletion-request/close"): (200, 409),
+    ("POST", F + "/submissions/{submission_id}/feedback"): (400,),
+    ("PATCH", F + "/submissions/{submission_id}/internal-answers"): (400,),
+    ("GET", F + "/submissions/{submission_id}/revisions"): (200,),
+    ("GET", F + "/submissions/{submission_id}/revisions/{seq}"): (404,),
+    ("GET", F + "/version-diff"): (422,),
+    ("GET", F + "/versions"): (200,),
+    ("POST", F + "/versions/{version}/restore"): (200,),
+    ("GET", F + "/webhooks"): (200,),
+    ("POST", F + "/webhooks"): (201,),
+    ("GET", F + "/webhooks/audit"): (200,),
+    ("GET", F + "/webhooks/deliveries"): (200,),
+    ("GET", F + "/webhooks/variables"): (200,),
+    ("DELETE", F + "/webhooks/{webhook_id}"): (204,),
+    ("PATCH", F + "/webhooks/{webhook_id}"): (200,),
+    ("GET", F + "/webhooks/{webhook_id}/detail"): (200,),
+    ("POST", F + "/webhooks/{webhook_id}/rotate-secret"): (200,),
+    ("POST", F + "/webhooks/{webhook_id}/test"): (200,),
+    ("GET", W + "/responders"): (200,),
+    ("GET", W + "/stats"): (200,),
+    ("DELETE", W + "/submissions/{submission_id}"): (400,),
+    ("GET", W + "/submissions/{submission_id}"): (200,),
+    ("GET", W + "/submissions/{submission_id}/pdf"): (200,),
+    ("GET", "/{workspace_name}/forms/{slug}/metrics"): (200,),
+    ("GET", "/{workspace_name}/forms/{slug}/pageviews"): (200,),
+    ("GET", "/{workspace_name}/forms/{slug}/stats"): (200,),
+}
+for _key, _route in list(ROUTES.items()):
+    if _key in OUTCOMES:
+        ROUTES[_key] = replace(_route, ok=OUTCOMES[_key])
+
+def _data(**tests):
+    """A check of a 200/201 answer: every named test must hold (a problem is the
+    name of the first that does not)."""
+
+    def check(ctx, response):
+        for name, test in tests.items():
+            try:
+                if not test(ctx, response):
+                    return name
+            except Exception as error:  # noqa: BLE001
+                return f"{name} ({type(error).__name__})"
+        return None
+
+    return check
+
+
+def _id(ctx, key):
+    return str(ctx[key])
+
+
+# What the data of the routes that return some must say (a made-up body or an empty
+# list would pass "not refused"; these do not).
+CHECKS = {
+    ("GET", F): _data(form=lambda c, r: r.json()["formId"] == _id(c, "form")),
+    ("GET", F + "/versions"): _data(first=lambda c, r: r.json()["versions"][0]["version"] == 1),
+    ("GET", F + "/submissions"): _data(
+        answer=lambda c, r: _id(c, "response") in r.text,
+        page=lambda c, r: isinstance(r.json()["items"], list),
+    ),
+    ("GET", F + "/all-submissions"): _data(
+        answer=lambda c, r: _id(c, "response") in r.text,
+        every=lambda c, r: len(r.json()) >= 2,
+    ),
+    ("GET", F + "/submission-paths"): _data(list=lambda c, r: isinstance(r.json(), list)),
+    ("GET", F + "/exports/columns"): _data(
+        key=lambda c, r: "response_id" in {i["key"] for i in r.json()}
+    ),
+    ("GET", F + "/access"): _data(
+        # (switched off the answer says so and lists nothing)
+        mine=lambda c, r: not r.json()["enabled"]
+        or "form.read" in r.json()["myPermissions"],
+    ),
+    ("GET", F + "/webhooks"): _data(webhook=lambda c, r: _id(c, "webhook") in r.text),
+    ("POST", F + "/webhooks"): _data(secret=lambda c, r: bool(r.json()["secret"])),
+    ("GET", F + "/webhooks/{webhook_id}/detail"): _data(
+        id=lambda c, r: r.json()["id"] == _id(c, "webhook")
+    ),
+    ("POST", F + "/webhooks/{webhook_id}/rotate-secret"): _data(
+        secret=lambda c, r: bool(r.json()["secret"])
+    ),
+    ("GET", F + "/imports"): _data(listed=lambda c, r: _id(c, "import") in r.text),
+    ("GET", F + "/imports/{import_id}"): _data(
+        id=lambda c, r: r.json()["id"] == _id(c, "import")
+    ),
+    # (a member lists their own exports only: the Owner's built one is not theirs)
+    ("GET", F + "/exports"): _data(list=lambda c, r: isinstance(r.json(), list)),
+    ("GET", F + "/exports/{export_id}"): _data(
+        id=lambda c, r: r.json()["id"] == _id(c, "export"),
+        ready=lambda c, r: r.json()["status"] == "ready",
+    ),
+    ("GET", F + "/exports/{export_id}/download"): _data(
+        file=lambda c, r: len(r.content) > 0
+    ),
+    ("GET", F + "/open-formulieren-export"): _data(zip=lambda c, r: r.content[:2] == b"PK"),
+    ("GET", F + "/flow-analytics"): _data(sessions=lambda c, r: "totalSessions" in r.json()),
+    ("GET", W + "/submissions/{submission_id}"): _data(
+        form=lambda c, r: r.json()["form"]["formId"] == _id(c, "form")
+    ),
+    ("GET", W + "/submissions/{submission_id}/pdf"): _data(
+        pdf=lambda c, r: r.content[:4] == b"%PDF"
+    ),
+    # (counts only the forms the member may open, so a closed member counts none)
+    ("GET", W + "/stats"): _data(
+        counts=lambda c, r: {"forms", "responses", "deletionRequests"} <= set(r.json())
+    ),
+    ("GET", W + "/all-submissions"): _data(
+        listed=lambda c, r: isinstance(r.json()["items"], list)
+    ),
+    ("GET", "/{workspace_name}/forms/{slug}/stats"): _data(
+        views=lambda c, r: r.json()["pageviews"]["value"] == 3
+    ),
+    ("POST", F + "/exports"): _data(queued=lambda c, r: r.status_code == 202),
+}
+for _key, _check in CHECKS.items():
+    ROUTES[_key] = replace(ROUTES[_key], check=_check)
+
+# Routes sent with a real sub-object of the matrix's world (a webhook, an export, an
+# import, a grant, an action) instead of a made-up id; the DELETEs consume theirs.
+_REAL_OBJECTS = (
+    ("/webhooks/{webhook_id}", (("webhook_id", "webhook"),)),
+    ("/exports/{export_id}", (("export_id", "export"),)),
+    ("/imports/{import_id}", (("import_id", "import"),)),
+    ("/grants/{grant_id}", (("grant_id", "grant"),)),
+    ("/actions/{action_id}", (("action_id", "action"),)),
+)
+for _key, _route in list(ROUTES.items()):
+    for _fragment, _ids in _REAL_OBJECTS:
+        if _fragment in _key[1]:
+            _changes = {"ids": _ids}
+            if _key[0] == "DELETE":
+                _changes["destructive"] = True
+            if _key[1].endswith("/download"):
+                _changes["request"] = lambda ctx: {"params": {"token": ctx["export_token"]}}
+            ROUTES[_key] = replace(_route, **_changes)
+            break
 
 # --------------------------------------------------------------------------------
 # Form-scoped by path, and no form-level decision applies (with the reason)
