@@ -82,6 +82,9 @@ from backend.app.repositories.postgres.user_totp import PostgresUserTotpReposito
 from backend.app.repositories.postgres.form_access import (
     PostgresFormAccessGrantRepository,
 )
+from backend.app.repositories.postgres.member_removal import (
+    PostgresMemberRemovalRepository,
+)
 from backend.app.repositories.postgres.member_groups import (
     PostgresMemberGroupRepository,
 )
@@ -369,6 +372,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
     member_group_repo: PostgresMemberGroupRepository = providers.Singleton(
         PostgresMemberGroupRepository, pg_sessionmaker
+    )
+    member_removal_repo: PostgresMemberRemovalRepository = providers.Singleton(
+        PostgresMemberRemovalRepository, pg_sessionmaker
     )
     workspace_api_key_repo: PostgresWorkspaceAPIKeyRepository = providers.Singleton(
         PostgresWorkspaceAPIKeyRepository, pg_sessionmaker
@@ -1176,6 +1182,7 @@ class AppContainer(containers.DeclarativeContainer):
         totp_service=workspace_totp_service,
         form_access_cleanup=form_access_cleanup,
         audit_repo=workspace_audit_repo,
+        member_removal_repo=member_removal_repo,
     )
 
     stripe_service: StripeService = providers.Singleton(

@@ -158,7 +158,8 @@ class TestWorkspaceMember:
         # the membership goes; the form they created stays with the workspace
         assert expected_user is None
         assert expected_form is not None
-        assert expected_form.user_id == invited_user.id
+        # no longer theirs: handed to the billing owner
+        assert expected_form.user_id == str(workspace.owner_id)
 
     async def test_unauthorized_client_delete_workspace_members_fails(
         self,

@@ -7,7 +7,7 @@ reached across workspaces.
 
 from typing import Dict, Iterable, List, Optional
 
-from common.records import RecordId, derived_id, row_values
+from common.records import RecordId, decode, derived_id, row_values
 from sqlalchemy import func, select
 
 from backend.app.schemas.member_group import (
@@ -22,6 +22,10 @@ from common.records.repository import RecordRepository
 
 class TeamFull(Exception):
     """The team already holds the most members a team may."""
+
+
+class TeamLimit(Exception):
+    """The workspace already has the most teams it may."""
 
 
 def _id(value) -> str:
@@ -57,6 +61,55 @@ class PostgresMemberGroupRepository(RecordRepository):
         (case-folded) name violates ``uq_member_groups_workspace_id_name_key``
         (``IntegrityError``)."""
         return await self.save_document(group)
+
+    async def create(self, group: MemberGroupDocument, max_teams: int) -> MemberGroupDocument:
+        """Insert a new team unless the workspace already has ``max_teams``
+        (``TeamLimit``); the count and the insert run under a lock of the
+        workspace's teams, so two creations cannot both pass the limit. A
+        second team with the same name is an ``IntegrityError``."""
+        ws = _id(group.workspace_id)
+        async with self._session() as session, session.begin():
+            await session.execute(
+                select(func.pg_advisory_xact_lock(func.hashtext("member_groups:" + ws)))
+            )
+            held = await session.execute(
+                select(func.count())
+                .select_from(MemberGroupRow)
+                .where(MemberGroupRow.workspace_id == ws)
+            )
+            if held.scalar_one() >= max_teams:
+                raise TeamLimit()
+            group.touch()
+            await session.execute(self._upsert_statement(row_values(group)))
+        return group
+
+    async def rename(
+        self, workspace_id, group_id, name: str, description: Optional[str]
+    ) -> Optional[MemberGroupDocument]:
+        """Change a team's name and description under its row lock; ``None``
+        when the team is gone (it is never created by this call)."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(MemberGroupRow.doc)
+                    .where(
+                        MemberGroupRow.workspace_id == _id(workspace_id),
+                        MemberGroupRow.id == _id(group_id),
+                    )
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return None
+            team = decode(MemberGroupDocument, doc)
+            team.name = name
+            # derived from the name, so rebuilt by hand: an assignment does not
+            # run the model's validators
+            team.name_key = name_key(name)
+            team.description = description
+            team.touch()
+            await session.execute(self._upsert_statement(row_values(team)))
+        return team
 
     async def delete(self, workspace_id, group_id) -> bool:
         """The team and its member rows, in one transaction. Grants naming the

@@ -15,13 +15,16 @@ from backend.app.container import container
 from backend.app.models.enum.permission import Permission
 from backend.app.schemas.workspace_audit_event import (
     ACCESS_MEMBER_PURGED,
+    FORM_CREATOR_REASSIGNED,
     TEAM_DELETED,
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services import workspace_service
 from backend.config import settings
-from tests.app.controllers.data import testUser, testUser1
+from common.models.standard_form import StandardFormResponse
+from tests.app.controllers.data import formResponse, testUser, testUser1
+from tests.app.form_access.helpers import restrict
 from tests.app.form_access.helpers import (
     add_member,
     api,
@@ -221,6 +224,155 @@ async def test_a_removal_that_would_drop_grants_is_not_made_unrecorded(
         workspace.id, person.id
     ) is not None
     assert len(await grants_of(workspace, workspace_form)) == 1
+
+
+async def test_removing_a_member_hands_their_forms_to_the_billing_owner_and_records_it(
+    client: AsyncClient, workspace, auth_lookup, either_switch
+):
+    creator = await add_member(workspace, "COLLABORATOR")
+    first = await create_form(workspace, creator)
+    second = await create_form(workspace, creator)
+    ours = await create_form(workspace, testUser)
+
+    response = await remove(client, workspace, creator)
+    assert response.status_code == 200, response.text
+
+    links = {
+        link.form_id: link.user_id
+        for link in await container.workspace_form_repo().list_in_workspace(workspace.id)
+    }
+    assert links[first.form_id] == links[second.form_id] == str(workspace.owner_id)
+    assert links[ours.form_id] == testUser.id
+    events = await audit_events(workspace, FORM_CREATOR_REASSIGNED)
+    assert sorted(e.form_id for e in events) == sorted([first.form_id, second.form_id])
+    assert {(e.target_user_id, e.to_user_id, e.user_id) for e in events} == {
+        (creator.id, str(workspace.owner_id), testUser.id)
+    }
+    assert "@" not in str([e.model_dump(mode="json") for e in events])
+
+
+async def test_a_removal_that_cannot_be_recorded_changes_nothing(
+    client: AsyncClient, workspace, auth_lookup, switch_on, monkeypatch
+):
+    creator = await add_member(workspace, "COLLABORATOR")
+    theirs = await create_form(workspace, creator)
+    fail_audit(monkeypatch)
+    response = await remove(client, workspace, creator)
+    assert response.status_code == 503
+    link = await container.workspace_form_repo().find_workspace_form(
+        workspace.id, theirs.form_id
+    )
+    assert link.user_id == creator.id
+    assert await container.workspace_user_repo().find_workspace_user(
+        workspace.id, creator.id
+    ) is not None
+
+
+async def test_the_removal_is_one_transaction(
+    client: AsyncClient, workspace, workspace_form, auth_lookup, switch_on, monkeypatch
+):
+    """When a step fails the member, their forms and their grants are all as
+    they were."""
+    creator = await add_member(workspace, "COLLABORATOR")
+    theirs = await create_form(workspace, creator)
+    await grant(workspace, workspace_form.form_id, creator.id, "EDITOR")
+    team = await team_with(workspace, creator, name="Team")
+
+    removal = container.member_removal_repo()
+    real = removal._delete_recorded
+    seen = []
+
+    async def failing(session, row, *where):
+        seen.append(row.__tablename__)
+        if row.__tablename__ == "member_group_members":
+            raise RuntimeError("boom")
+        return await real(session, row, *where)
+
+    monkeypatch.setattr(removal, "_delete_recorded", failing)
+    with pytest.raises(RuntimeError):
+        await removal.remove(workspace.id, creator.id, str(workspace.owner_id))
+
+    assert "member_group_members" in seen
+    assert await container.workspace_user_repo().find_workspace_user(
+        workspace.id, creator.id
+    ) is not None
+    link = await container.workspace_form_repo().find_workspace_form(
+        workspace.id, theirs.form_id
+    )
+    assert link.user_id == creator.id
+    assert len(await grants_of(workspace, workspace_form)) == 1
+    assert await container.member_group_repo().member_ids(workspace.id, team.id) == [creator.id]
+
+
+async def test_a_removed_creator_who_deletes_their_account_does_not_take_the_forms_with_them(
+    client: AsyncClient, workspace, auth_lookup, no_storage, either_switch
+):
+    leaving = User(id=str(RecordId()), sub=f"{RecordId()}@example.org")
+    await workspace_service.create_workspace(leaving)
+    await container.workspace_user_repo().save(
+        WorkspaceUserDocument(
+            workspace_id=workspace.id, user_id=leaving.id, roles=["COLLABORATOR"]
+        )
+    )
+    theirs = await create_form(workspace, leaving)
+    published = await container.workspace_form_service().publish_form(
+        workspace.id, theirs.form_id, testUser
+    )
+    await container.workspace_form_service().submit_response(
+        workspace.id, published.form_id, StandardFormResponse(**formResponse), testUser
+    )
+    assert await container.form_response_service().get_responses_count_in_workspace(
+        workspace.id, [theirs.form_id]
+    ) == 1
+
+    assert (await remove(client, workspace, leaving)).status_code == 200
+    await container.workspace_service().delete_workspaces_of_user_with_forms(leaving)
+
+    assert await container.workspace_form_repo().find_workspace_form(
+        workspace.id, theirs.form_id
+    ) is not None
+    assert await container.form_service().get_form_document_by_id(theirs.form_id) is not None
+    assert await container.form_response_service().get_responses_count_in_workspace(
+        workspace.id, [theirs.form_id]
+    ) == 1
+
+
+async def test_a_removed_creator_who_is_invited_again_has_no_creator_rights(
+    client: AsyncClient, workspace, auth_lookup, switch_on
+):
+    creator = await add_member(workspace, "COLLABORATOR")
+    theirs = await create_form(workspace, creator)
+    await restrict(workspace, theirs.form_id)
+    authz = container.authorization_service()
+    assert Permission.FORM_EDIT in await authz.effective_permissions(
+        creator, workspace.id, form_id=theirs.form_id
+    )
+
+    assert (await remove(client, workspace, creator)).status_code == 200
+    # invited again, even as an editor again
+    await container.workspace_user_repo().save(
+        WorkspaceUserDocument(
+            workspace_id=workspace.id, user_id=creator.id, roles=["COLLABORATOR"]
+        )
+    )
+
+    assert Permission.FORM_EDIT not in await authz.effective_permissions(
+        creator, workspace.id, form_id=theirs.form_id
+    )
+    assert not await authz.has_permission(
+        creator, Permission.FORM_READ, workspace.id, form_id=theirs.form_id
+    )
+    # and the mode is not theirs to change
+    changed = await client.put(
+        f"{api(workspace)}/forms/{theirs.form_id}/access/mode",
+        cookies=cookies(creator),
+        json={"mode": "workspace"},
+    )
+    assert changed.status_code == 404
+    # the workspace's owner still reaches it
+    assert await authz.has_permission(
+        testUser, Permission.FORM_READ, workspace.id, form_id=theirs.form_id
+    )
 
 
 # -- an account and a workspace ----------------------------------------------------------------

@@ -337,13 +337,13 @@ async def test_the_row_is_written_before_the_change(
     """The entry is in the log when the team is created (the order, not just
     the count): the write sees the entry already stored."""
     seen = {}
-    real_save = container.member_group_repo().save
+    real_create = container.member_group_repo().create
 
-    async def spy(group):
+    async def spy(group, max_teams):
         seen["entries"] = len(await audit_events(workspace, TEAM_CREATED))
-        return await real_save(group)
+        return await real_create(group, max_teams)
 
-    monkeypatch.setattr(container.member_group_repo(), "save", spy)
+    monkeypatch.setattr(container.member_group_repo(), "create", spy)
     assert (await create(client, workspace)).status_code == 201
     assert seen["entries"] == 1
 

@@ -346,6 +346,54 @@ async def test_a_grantee_cannot_remove_their_own_grant_but_an_owner_can(
     assert by_owner.status_code == 204
 
 
+async def test_an_editor_cannot_remove_what_they_could_not_give(
+    client: AsyncClient, workspace, workspace_form, switch_on, monkeypatch
+):
+    """Removing a grant has the caps of giving it: no removing and giving back
+    something the editor may not give."""
+    editor = await add_member(workspace, "COLLABORATOR")
+    exporter = await add_member(workspace, "VIEWER")
+    plain = await add_member(workspace, "VIEWER")
+    await put_grant(client, workspace, workspace_form, testUser, exporter.id, "VIEWER", export=True)
+    await put_grant(client, workspace, workspace_form, testUser, plain.id, "EDITOR")
+    rows = {g.subject_id: g for g in await stored(workspace, workspace_form)}
+
+    denied = await client.delete(
+        form_url(workspace, workspace_form, f"/grants/{rows[exporter.id].id}"),
+        cookies=cookies(editor),
+    )
+    assert denied.status_code == 403 and denied.json()["code"] == "export_grant_reserved"
+
+    # an editor who can share but is below the grant's role cannot remove it
+    authz = container.authorization_service()
+    real = authz.form_permissions
+
+    async def narrowed(user, workspace_id, form_id, raise_sso_required=False):
+        decided = await real(user, workspace_id, form_id, raise_sso_required)
+        if str(user.id) != editor.id:
+            return decided
+        return FormPermissions(
+            frozenset({P.FORM_READ, P.FORM_SHARE, P.RESPONSE_READ, P.ANALYTICS_READ}),
+            decided.source,
+            decided.restricted,
+            decided.form_found,
+        )
+
+    monkeypatch.setattr(authz, "form_permissions", narrowed)
+    above = await client.delete(
+        form_url(workspace, workspace_form, f"/grants/{rows[plain.id].id}"),
+        cookies=cookies(editor),
+    )
+    assert above.status_code == 403 and above.json()["code"] == "grant_above_own_role"
+    assert len(await stored(workspace, workspace_form)) == 2
+    # an owner can
+    by_owner = await client.delete(
+        form_url(workspace, workspace_form, f"/grants/{rows[exporter.id].id}"),
+        cookies=cookies(testUser),
+    )
+    assert by_owner.status_code == 204
+
+
 async def test_a_privacy_officer_is_never_granted_a_role(
     client: AsyncClient, workspace, workspace_form, switch_on
 ):

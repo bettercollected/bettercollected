@@ -41,6 +41,10 @@ class FormAccessCleanup:
         # forgets what this request remembered of a form's access
         self._invalidate = invalidate or (lambda: None)
 
+    def forget_memo(self) -> None:
+        """Forget what this request remembered (a write was made elsewhere)."""
+        self._invalidate()
+
     # -- a form --------------------------------------------------------------
     async def forget_form(self, workspace_id, form_id) -> int:
         """The form left this workspace (deleted, or unlinked from it): its
@@ -64,10 +68,13 @@ class FormAccessCleanup:
     async def forget_team(self, workspace_id, group_id) -> Tuple[int, bool]:
         """The team is deleted: its grants and its member rows go with it.
         Returns ``(grants removed, team existed)``."""
+        # the team first: a failure after it leaves grants for a team that is
+        # gone (inert: nobody is in it, and none can be added), never a team
+        # that is still there without its grants
+        existed = await self._groups.delete(workspace_id, group_id)
         removed = await self._grants.delete_for_subject(
             workspace_id, SUBJECT_GROUP, group_id
         )
-        existed = await self._groups.delete(workspace_id, group_id)
         self._invalidate()
         return removed, existed
 

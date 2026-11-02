@@ -125,7 +125,7 @@ Missing access checks are handled separately in a security fix. The inconsistenc
   - Creating responder groups needs admin, but linking one to a form only needs membership.
   - The responders list needs membership, but its tags need admin.
 - **AI insights vs raw responses:** AI insights (which read answers) need admin, while raw responses, CSV and MCP reads need only membership. Under the model they all become `response.read`, plus `response.export` for the bulk paths.
-- **Member removal:** an admin can remove the owner, and removing a member used to delete the forms they created or imported. **Fixed:** the forms stay with the workspace (with or without form-level access); removing a member also removes their grants and team memberships.
+- **Member removal:** an admin can remove the owner, and removing a member used to delete the forms they created or imported. **Fixed:** the forms stay with the workspace (with or without form-level access) and are handed to the billing owner, in the same transaction as the removal and with one audit row per form; removing a member also removes their grants and team memberships.
 - **"Hidden" forms:** they only affect listings, so they are not real access control. They migrate to `restricted` with the creator, Owner and Admins having access, which is what users already believe "hidden" means.
 - **Search:** it always applies the non-member filter, even for members.
 - **CSV export:** `GET /forms/{id}/export-csv` was broken (500). The CSV download moved behind `response.export` (see *Step b as implemented*, Export) and the broken route was removed (#771).

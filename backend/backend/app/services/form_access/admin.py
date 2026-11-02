@@ -44,6 +44,7 @@ from backend.app.repositories.postgres.forms import PostgresWorkspaceFormReposit
 from backend.app.repositories.postgres.member_groups import (
     PostgresMemberGroupRepository,
     TeamFull,
+    TeamLimit,
 )
 from backend.app.schemas.form_access_grant import (
     ROLE_REVIEWER,
@@ -265,12 +266,6 @@ class FormAccessAdminService:
         await self._manage_teams(workspace_id, user)
         name = _clean(request.name, MAX_NAME, True, "name")
         description = _clean(request.description, MAX_DESCRIPTION, False, "description")
-        if await self._groups.count_in_workspace(workspace_id) >= MAX_TEAMS:
-            raise _refused(
-                "too_many_teams",
-                f"A workspace has at most {MAX_TEAMS} teams.",
-                HTTPStatus.CONFLICT,
-            )
         if await self._groups.find_by_name(workspace_id, name) is not None:
             raise self._name_taken()
         team = MemberGroupDocument(
@@ -284,9 +279,15 @@ class FormAccessAdminService:
             self._audit, TEAM_CREATED, workspace_id, user, group_id=str(team.id)
         )
         try:
-            await self._groups.save(team)
+            await self._groups.create(team, max_teams=MAX_TEAMS)
         except IntegrityError:
             raise self._name_taken() from None
+        except TeamLimit:
+            raise _refused(
+                "too_many_teams",
+                f"A workspace has at most {MAX_TEAMS} teams.",
+                HTTPStatus.CONFLICT,
+            ) from None
         self._form_access.invalidate()
         return self._team_dto(team)
 
@@ -341,15 +342,15 @@ class FormAccessAdminService:
         await audit.record_or_refuse(
             self._audit, TEAM_RENAMED, workspace_id, user, group_id=str(team.id)
         )
-        team.name = name
-        # derived from the name, so rebuilt by hand: an assignment does not
-        # run the model's validators
-        team.name_key = name_key(name)
-        team.description = description
         try:
-            await self._groups.save(team)
+            # under the team's row lock, and never an insert: a team deleted
+            # meanwhile stays deleted
+            saved = await self._groups.rename(workspace_id, team.id, name, description)
         except IntegrityError:
             raise self._name_taken() from None
+        if saved is None:
+            raise _not_found("Team not found")
+        team = saved
         return self._team_dto(
             team, len(await self._groups.member_ids(workspace_id, team.id))
         )
@@ -640,7 +641,7 @@ class FormAccessAdminService:
 
     async def delete_grant(self, workspace_id, form_id, grant_id, user) -> None:
         refuse_when_off()
-        _link, base, _decided, may_manage, restricted = await self._form(
+        _link, base, decided, may_manage, restricted = await self._form(
             workspace_id, form_id, user, Permission.FORM_SHARE
         )
         self._refuse_unless_circle_manager(restricted, may_manage)
@@ -651,6 +652,20 @@ class FormAccessAdminService:
         )
         if grant is None:
             raise _not_found("Grant not found")
+        if not base.privileged:
+            # the same caps as giving it: no taking away, then giving back
+            # something the giver may not give
+            if not GRANT_PERMISSIONS.get(grant.role, frozenset()) <= decided.permissions:
+                raise _refused(
+                    "grant_above_own_role",
+                    "You can't change a role with more access than your own on this form.",
+                )
+            if grant.export:
+                raise _refused(
+                    "export_grant_reserved",
+                    "Only an owner or an admin can change a grant that allows exporting "
+                    "responses.",
+                )
         if (
             not base.privileged
             and grant.subject_type == SUBJECT_USER

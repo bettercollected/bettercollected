@@ -5,7 +5,7 @@ import pytest
 
 from backend.app.container import container
 from backend.app.repositories.postgres.form_access import AccessTargetNotFound
-from backend.app.repositories.postgres.member_groups import TeamFull
+from backend.app.repositories.postgres.member_groups import TeamFull, TeamLimit
 from backend.app.schemas.form_access_grant import FormAccessGrantDocument
 from backend.app.schemas.member_group import MemberGroupDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
@@ -161,3 +161,29 @@ async def test_removing_a_membership_row_directly_is_what_the_write_check_looks_
         await container.workspace_user_repo().find_workspace_user(workspace.id, testUser.id),
         WorkspaceUserDocument,
     )
+
+
+async def test_creating_a_team_respects_the_limit_even_when_creations_race(workspace):
+    import asyncio
+
+    from sqlalchemy.exc import IntegrityError
+
+    repo = container.member_group_repo()
+    attempts = [
+        repo.create(MemberGroupDocument(workspace_id=workspace.id, name=f"Team {n}"), 2)
+        for n in range(6)
+    ]
+    results = await asyncio.gather(*attempts, return_exceptions=True)
+    assert sum(isinstance(r, TeamLimit) for r in results) == 4
+    assert await repo.count_in_workspace(workspace.id) == 2
+    with pytest.raises(IntegrityError):
+        await repo.create(MemberGroupDocument(workspace_id=workspace.id, name="team 0"), 5)
+
+
+async def test_renaming_a_deleted_team_does_not_bring_it_back(workspace):
+    repo = container.member_group_repo()
+    team = await repo.save(MemberGroupDocument(workspace_id=workspace.id, name="Own"))
+    assert (await repo.rename(workspace.id, team.id, "Renamed", None)).name_key == "renamed"
+    await repo.delete(workspace.id, team.id)
+    assert await repo.rename(workspace.id, team.id, "Back", None) is None
+    assert await repo.list_in_workspace(workspace.id) == []
