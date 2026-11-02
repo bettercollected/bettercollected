@@ -16,21 +16,14 @@ import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateAPIKeyMutation, useGetAPIKeysQuery, useGetWorkspaceFormsQuery, useRevokeAPIKeyMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { APIKey, keyFormScopeOf, keyRoleOf } from '@app/components/api-keys/api-key';
+import EditKeyDialog from '@app/components/api-keys/edit-key-dialog';
+import { errorText, keyErrorText } from '@app/components/api-keys/key-errors';
+import KeyLimitsFields, { ScopeProblems, roleNameKey } from '@app/components/api-keys/key-limits-fields';
+import { KeyFormScope, KeyRole, listAllowsScope, lowestRoleFor, roleAllowsScope, scopeProblems } from '@app/components/api-keys/key-rules';
 
 // the most the forms list sends in one page
 const FORMS_PAGE_SIZE = 100;
-
-interface APIKey {
-    id: string;
-    name: string;
-    prefix: string;
-    scopes: string[];
-    revoked: boolean;
-    lastUsedAt?: string | null;
-    responsesReadAcknowledgedAt?: string | null;
-    // the forms a submissions:write key is limited to (none: every form)
-    submissionFormIds?: string[] | null;
-}
 
 // Mirrors the backend's VALID_SCOPES — what a key is allowed to do.
 const SCOPES: Array<{ key: string; label: string; hint: string }> = [
@@ -44,14 +37,6 @@ const SCOPES: Array<{ key: string; label: string; hint: string }> = [
 
 // Offered only while the server accepts it (its SUBMISSIONS_API_ENABLED, told with the permissions).
 const SUBMISSIONS_SCOPE = { key: 'submissions:write', label: 'STAFF.API_KEYS.SCOPE_SUBMISSIONS_WRITE', hint: 'STAFF.API_KEYS.SCOPE_SUBMISSIONS_WRITE_HINT' };
-
-// The server's answer to a refused request as text: a string as it is, an object by its message
-// (e.g. {code: 'submissions_api_off', message}), nothing else.
-function errorText(data: unknown): string | undefined {
-    if (typeof data === 'string' && data.trim()) return data;
-    const message = (data as { message?: unknown; detail?: unknown } | null | undefined)?.message ?? (data as { detail?: unknown } | null | undefined)?.detail;
-    return typeof message === 'string' && message.trim() ? message : undefined;
-}
 
 function CopyButton({ value, label }: { value: string; label: string }) {
     const [copied, setCopied] = useState(false);
@@ -81,11 +66,11 @@ export default function APIKeysPage() {
     const { t } = useTranslation();
     const locale = useIntlLocale();
     const workspace = useAppSelector(selectWorkspace);
-    const { can, submissionsApiEnabled } = useWorkspacePermissions();
+    const { can, submissionsApiEnabled, apiKeyRolesEnabled } = useWorkspacePermissions();
     const canManageKeys = can(WorkspacePermission.SECURITY_MANAGE);
     const { toast } = useToast();
 
-    const { data: keys = [], isLoading } = useGetAPIKeysQuery(workspace?.id, { skip: !workspace?.id || !canManageKeys });
+    const { data: keys = [], isLoading, refetch } = useGetAPIKeysQuery(workspace?.id, { skip: !workspace?.id || !canManageKeys });
     const [createKey, { isLoading: isCreating }] = useCreateAPIKeyMutation();
     const [revokeKey] = useRevokeAPIKeyMutation();
 
@@ -117,6 +102,31 @@ export default function APIKeysPage() {
         .filter((form, index, all) => all.findIndex((other) => other.formId === form.formId) === index);
     const moreForms = ((publishedForms as any)?.pages ?? 1) > formsPage;
     const scopeChoices = submissionsApiEnabled ? [...SCOPES, SUBMISSIONS_SCOPE] : SCOPES;
+
+    // Key roles (apiKeyRolesEnabled): the most the key may do and the forms it may open. A new key's role follows the
+    // scopes ticked (the lowest role that allows them) until somebody picks one; nothing here exists while the switch is off.
+    const [role, setRole] = useState<KeyRole | null>(null);
+    const [roleChosen, setRoleChosen] = useState(false);
+    const [formScope, setFormScope] = useState<KeyFormScope>('all');
+    const [listedIds, setListedIds] = useState<string[]>([]);
+    const rolesOn = !!apiKeyRolesEnabled;
+    const roleFollowsScopes = rolesOn && !roleChosen;
+    const effectiveRole = !rolesOn ? null : roleFollowsScopes ? lowestRoleFor(scopes) : role;
+    const effectiveFormScope: KeyFormScope = rolesOn ? formScope : 'all';
+    const listed = effectiveFormScope === 'listed';
+    const problems = rolesOn ? scopeProblems(effectiveRole, effectiveFormScope, scopes) : [];
+    // a scope the role or the list cannot carry is offered greyed out, with the reason; one already ticked stays
+    // enabled so it can be unticked (and the problem is told above the form)
+    const scopeBlockedBy = (scope: string): 'role' | 'list' | null => {
+        if (!rolesOn) return null;
+        if (listed && !listAllowsScope(scope)) return 'list';
+        if (!roleFollowsScopes && !roleAllowsScope(effectiveRole, scope)) return 'role';
+        return null;
+    };
+    // the keys that follow their creator's role, with the switch on: a nudge to limit them
+    const [onlyFollowing, setOnlyFollowing] = useState(false);
+    const [editing, setEditing] = useState<APIKey | null>(null);
+    const [shownFormsOf, setShownFormsOf] = useState<string[]>([]);
     // The one and only time the full token is visible.
     const [freshToken, setFreshToken] = useState<{ name: string; token: string } | null>(null);
 
@@ -129,7 +139,15 @@ export default function APIKeysPage() {
     const handleCreate = async () => {
         const response: any = await createKey({
             workspace_id: workspace.id,
-            body: { name: name.trim(), scopes, acknowledgeUnredactedResponses: readsResponses && acknowledged, ...(submits && limitForms ? { submissionFormIds: formIds } : {}) }
+            body: {
+                name: name.trim(),
+                scopes,
+                acknowledgeUnredactedResponses: readsResponses && acknowledged,
+                // a key limited to a list submits to the forms of that list: the list is the set
+                ...(submits && limitForms && !listed ? { submissionFormIds: formIds } : {}),
+                ...(rolesOn && effectiveRole ? { role: effectiveRole } : {}),
+                ...(rolesOn && listed ? { formScope: 'listed', formIds: listedIds } : {})
+            }
         });
         if (response.data) {
             setFreshToken({ name: response.data.name, token: response.data.token });
@@ -138,8 +156,12 @@ export default function APIKeysPage() {
             setAcknowledged(false);
             setLimitForms(false);
             setFormIds([]);
+            setRole(null);
+            setRoleChosen(false);
+            setFormScope('all');
+            setListedIds([]);
         } else {
-            toast({ description: errorText(response.error?.data) || t('STAFF.API_KEYS.CREATE_FAILED'), variant: 'destructive' });
+            toast({ description: keyErrorText(t, response.error, 'STAFF.API_KEYS.CREATE_FAILED'), variant: 'destructive' });
         }
     };
 
@@ -152,6 +174,10 @@ export default function APIKeysPage() {
             toast({ description: t('STAFF.API_KEYS.REVOKE_FAILED'), variant: 'destructive' });
         }
     };
+
+    // keys with no role of their own follow their creator's: with the switch on, a nudge to limit the live ones
+    const followingCount = (keys as APIKey[]).filter((key) => !key.revoked && keyRoleOf(key) === null && !key.role).length;
+    const visibleKeys = (keys as APIKey[]).filter((key) => !onlyFollowing || (!key.revoked && !key.role));
 
     if (!canManageKeys) {
         return (
@@ -204,17 +230,39 @@ export default function APIKeysPage() {
                     className="border-control text-black-900 placeholder:text-black-600 focus:border-brand-500 h-10 w-full rounded-md border bg-white px-3.5 text-sm outline-hidden transition duration-150"
                 />
                 <div className="flex flex-col gap-1.5">
-                    {scopeChoices.map((scope) => (
-                        <label key={scope.key} className="flex cursor-pointer items-start gap-2.5">
-                            <input type="checkbox" checked={scopes.includes(scope.key)} onChange={() => toggleScope(scope.key)} className="mt-0.5 h-4 w-4 cursor-pointer" />
-                            <span className="flex flex-col">
-                                <span className="text-black-800 text-[13px] font-medium">{t(scope.label)}</span>
-                                <span className="text-black-600 text-xs">{t(scope.hint)}</span>
-                            </span>
-                        </label>
-                    ))}
+                    {scopeChoices.map((scope) => {
+                        const blocked = !scopes.includes(scope.key) ? scopeBlockedBy(scope.key) : null;
+                        return (
+                            <label key={scope.key} className={`flex items-start gap-2.5 ${blocked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
+                                <input type="checkbox" checked={scopes.includes(scope.key)} disabled={!!blocked} onChange={() => toggleScope(scope.key)} className="mt-0.5 h-4 w-4 cursor-pointer" />
+                                <span className="flex flex-col">
+                                    <span className="text-black-800 text-[13px] font-medium">{t(scope.label)}</span>
+                                    <span className="text-black-600 text-xs">{blocked ? t(blocked === 'list' ? 'STAFF.API_KEYS.HINT_LIST_CANNOT' : 'STAFF.API_KEYS.HINT_ROLE_CANNOT') : t(scope.hint)}</span>
+                                </span>
+                            </label>
+                        );
+                    })}
                 </div>
-                {submits && (
+                {rolesOn && <ScopeProblems role={effectiveRole} formScope={effectiveFormScope} scopes={scopes} />}
+                {rolesOn && (
+                    <KeyLimitsFields
+                        idPrefix="new-key"
+                        scopes={scopes}
+                        role={role}
+                        roleFollowsScopes={roleFollowsScopes}
+                        onRoleChange={(next) => {
+                            setRole(next);
+                            setRoleChosen(true);
+                        }}
+                        formScope={formScope}
+                        onFormScopeChange={setFormScope}
+                        formIds={listedIds}
+                        onFormIdsChange={setListedIds}
+                        hideScopeProblems
+                    />
+                )}
+                {submits && listed && <p className="text-black-700 max-w-[62ch] text-xs leading-relaxed">{t('STAFF.API_KEYS.SUBMITS_TO_LIST')}</p>}
+                {submits && !listed && (
                     <fieldset className="border-black-300 flex flex-col gap-2 rounded-md border p-3">
                         <legend className="text-black-900 px-1 text-[13px] font-semibold">{t('STAFF.API_KEYS.SUBMISSIONS_TITLE')}</legend>
                         <p className="text-black-700 text-xs leading-relaxed">{t('STAFF.API_KEYS.SUBMISSIONS_BODY')}</p>
@@ -259,7 +307,7 @@ export default function APIKeysPage() {
                     </div>
                 )}
                 <div>
-                    <Button size="medium" variant="primary" isLoading={isCreating} disabled={!name.trim() || scopes.length === 0 || (readsResponses && !acknowledged) || (submits && limitForms && formIds.length === 0)} onClick={handleCreate}>
+                    <Button size="medium" variant="primary" isLoading={isCreating} disabled={!name.trim() || scopes.length === 0 || (readsResponses && !acknowledged) || (submits && limitForms && !listed && formIds.length === 0) || problems.length > 0 || (listed && listedIds.length === 0)} onClick={handleCreate}>
                         {t('STAFF.API_KEYS.CREATE')}
                     </Button>
                 </div>
@@ -267,13 +315,21 @@ export default function APIKeysPage() {
 
             <div className="flex flex-col gap-3">
                 <h2 className="text-black-900 text-sm font-semibold">{t('STAFF.API_KEYS.YOUR_KEYS')}</h2>
+                {rolesOn && followingCount > 0 && (
+                    <div className="border-black-300 bg-black-50 flex flex-wrap items-center justify-between gap-2 rounded-md border px-3.5 py-2.5">
+                        <p className="text-black-800 text-xs leading-relaxed">{t('STAFF.API_KEYS.REVIEW_BANNER', { count: followingCount })}</p>
+                        <Button type="button" size="sm" variant="v2Button" className="min-h-11 sm:min-h-0" aria-pressed={onlyFollowing} onClick={() => setOnlyFollowing((current) => !current)}>
+                            {onlyFollowing ? t('STAFF.API_KEYS.REVIEW_SHOW_ALL') : t('STAFF.API_KEYS.REVIEW_SHOW')}
+                        </Button>
+                    </div>
+                )}
                 {isLoading ? (
                     <p className="text-black-600 text-xs">{t('STAFF.COMMON.LOADING')}</p>
                 ) : keys.length === 0 ? (
                     <p className="text-black-600 border-black-400 rounded-md border border-dashed px-3 py-4 text-center text-xs">{t('STAFF.API_KEYS.NONE')}</p>
                 ) : (
                     <ul className="flex flex-col gap-2">
-                        {(keys as APIKey[]).map((key) => (
+                        {visibleKeys.map((key) => (
                             <li key={key.id} className={`border-black-300 flex items-start justify-between gap-3 rounded-md border px-3.5 py-3 ${key.revoked ? 'opacity-60' : ''}`}>
                                 <div className="flex min-w-0 flex-col gap-1">
                                     <div className="flex items-center gap-2">
@@ -282,6 +338,31 @@ export default function APIKeysPage() {
                                         <code className="text-black-600 text-xs">{key.prefix}…</code>
                                         {key.revoked && <span className="rounded bg-[#FBEFEF] px-1.5 py-0.5 text-[10.5px] font-medium text-[#C43D3D]">{t('STAFF.API_KEYS.REVOKED')}</span>}
                                     </div>
+                                    {(rolesOn || key.role != null || keyFormScopeOf(key) === 'listed') && (
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <span className="bg-black-100 text-black-800 rounded px-1.5 py-0.5 text-[11px] font-medium">{keyRoleOf(key) ? t('STAFF.API_KEYS.ROLE_CHIP', { role: t(roleNameKey(keyRoleOf(key) as KeyRole)) }) : key.role ? t('STAFF.API_KEYS.ROLE_CHIP', { role: key.role }) : t('STAFF.API_KEYS.ROLE_CHIP_CREATOR')}</span>
+                                            {keyFormScopeOf(key) === 'listed' ? (
+                                                <button
+                                                    type="button"
+                                                    aria-expanded={shownFormsOf.includes(key.id)}
+                                                    aria-controls={`key-forms-${key.id}`}
+                                                    onClick={() => setShownFormsOf((current) => (current.includes(key.id) ? current.filter((id) => id !== key.id) : [...current, key.id]))}
+                                                    className="bg-black-100 text-black-800 hover:bg-black-200 flex min-h-11 items-center rounded px-1.5 py-0.5 text-[11px] font-medium sm:min-h-0"
+                                                >
+                                                    {t('STAFF.API_KEYS.FORMS_CHIP_COUNT', { count: key.forms?.length ?? 0 })}
+                                                </button>
+                                            ) : (
+                                                <span className="bg-black-100 text-black-800 rounded px-1.5 py-0.5 text-[11px] font-medium">{t('STAFF.API_KEYS.FORMS_CHIP_ALL')}</span>
+                                            )}
+                                        </div>
+                                    )}
+                                    {keyFormScopeOf(key) === 'listed' && shownFormsOf.includes(key.id) && (
+                                        <ul id={`key-forms-${key.id}`} className="text-black-700 flex list-disc flex-col gap-0.5 pl-5 text-xs">
+                                            {(key.forms ?? []).map((form) => (
+                                                <li key={form.id}>{form.title?.trim() || t('STAFF.API_KEYS.UNKNOWN_FORM')}</li>
+                                            ))}
+                                        </ul>
+                                    )}
                                     <div className="flex flex-wrap items-center gap-1.5">
                                         {key.scopes.map((scope) => (
                                             <span key={scope} className="bg-black-100 text-black-600 rounded px-1.5 py-0.5 text-[10.5px]">
@@ -294,15 +375,34 @@ export default function APIKeysPage() {
                                     </div>
                                 </div>
                                 {!key.revoked && (
-                                    <button type="button" onClick={() => handleRevoke(key)} className="text-black-600 shrink-0 rounded px-2 py-1 text-xs transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]">
-                                        {t('STAFF.API_KEYS.REVOKE')}
-                                    </button>
+                                    <div className="flex shrink-0 flex-col items-end sm:flex-row">
+                                        {rolesOn && (
+                                            <button type="button" aria-label={t('STAFF.API_KEYS.EDIT_KEY', { name: key.name })} onClick={() => setEditing(key)} className="text-black-600 hover:bg-black-200 hover:text-black-900 min-h-11 min-w-11 rounded px-2 py-1 text-xs transition-colors sm:min-h-0 sm:min-w-0">
+                                                {t('STAFF.API_KEYS.EDIT')}
+                                            </button>
+                                        )}
+                                        <button type="button" aria-label={rolesOn ? t('STAFF.API_KEYS.REVOKE_KEY', { name: key.name }) : undefined} onClick={() => handleRevoke(key)} className="text-black-600 min-h-11 min-w-11 shrink-0 rounded px-2 py-1 text-xs transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D] sm:min-h-0 sm:min-w-0">
+                                            {t('STAFF.API_KEYS.REVOKE')}
+                                        </button>
+                                    </div>
                                 )}
                             </li>
                         ))}
                     </ul>
                 )}
             </div>
+            {rolesOn && editing && (
+                <EditKeyDialog
+                    keyItem={editing}
+                    workspaceId={workspace.id}
+                    onClose={() => setEditing(null)}
+                    onReload={async () => {
+                        const reloaded: any = await refetch();
+                        return (reloaded?.data as APIKey[] | undefined)?.find((other) => other.id === editing.id);
+                    }}
+                    onSaved={(savedName) => toast({ description: t('STAFF.API_KEYS.SAVED_TOAST', { name: savedName }) })}
+                />
+            )}
         </div>
     );
 }

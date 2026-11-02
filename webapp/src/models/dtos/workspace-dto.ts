@@ -28,6 +28,9 @@ export interface WorkspaceDto {
     ownerId: string;
     // in the signed-in user's own workspace list: whether they are an owner
     isOwner?: boolean;
+    // in the signed-in user's own workspace list: their role there (OWNER for
+    // every owner); absent when the backend doesn't report one
+    role?: string | null;
     profileImage?: string;
     bannerImage?: string;
     customDomain?: string;
