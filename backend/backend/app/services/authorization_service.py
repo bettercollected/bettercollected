@@ -13,6 +13,7 @@ submitter's identity, not through here. Platform admin (``get_logged_admin``)
 is separate as well.
 """
 
+import dataclasses
 from http import HTTPStatus
 from typing import Callable, Dict, FrozenSet, Iterable, List, Optional, Union
 
@@ -53,6 +54,7 @@ P = Permission
 RESPONDENT_SCOPE = "respondent"
 
 ALL_PERMISSIONS: FrozenSet[Permission] = frozenset(Permission)
+_PERMISSION_VALUES = frozenset(p.value for p in Permission)
 
 # docs/enterprise-access-model.md §2. Each role grants its own set and
 # nothing else; a membership's permissions are the union over its roles.
@@ -256,6 +258,8 @@ class AuthorizationService:
         name a form its reader may not open: filter before counting or
         searching."""
         base = await self._base_access(user, workspace_id)
+        if base.ceiling is not None and permission not in base.ceiling:
+            return frozenset()
         if not form_access_enabled():
             return None if permission in base.permissions else frozenset()
         return await self._required_form_access().visible_ids(
@@ -319,7 +323,14 @@ class AuthorizationService:
         return NO_PERMISSIONS if decided.hidden else decided.permissions
 
     async def _form_permissions(self, base: BaseAccess, form_id) -> FormPermissions:
-        return await self._required_form_access().permissions_on(base, str(form_id))
+        decided = await self._required_form_access().permissions_on(base, str(form_id))
+        if base.ceiling is None:
+            return decided
+        # a key: what a grant or the creator's rights give on the form never
+        # exceeds the key's ceiling
+        return dataclasses.replace(
+            decided, permissions=decided.permissions & base.ceiling
+        )
 
     def _required_form_access(self) -> FormAccessService:
         if self._form_access is None:
@@ -368,8 +379,27 @@ class AuthorizationService:
             if raise_sso_required:
                 raise mfa_required_error()
             return nobody
-        return self._membership_access(
-            workspace, membership, str(user_oid), str(workspace_oid), is_owner
+        return self._capped(
+            self._membership_access(
+                workspace, membership, str(user_oid), str(workspace_oid), is_owner
+            ),
+            user,
+        )
+
+    @staticmethod
+    def _capped(base: BaseAccess, user: User) -> BaseAccess:
+        """An API key's acting user carries the most its key may do (its role's
+        permissions): the access never exceeds it, whatever the creator holds,
+        and the form-level decision is narrowed to it too (``_form_permissions``).
+        In memory: no query, whatever the switches say. Anyone else: unchanged."""
+        named = getattr(user, "key_ceiling", None)
+        if named is None:
+            return base
+        ceiling = frozenset(
+            Permission(name) for name in named if name in _PERMISSION_VALUES
+        )
+        return dataclasses.replace(
+            base, permissions=base.permissions & ceiling, ceiling=ceiling
         )
 
     @staticmethod

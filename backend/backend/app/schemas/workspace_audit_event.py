@@ -68,6 +68,22 @@ ACCESS_EVENTS = (
     ACCESS_MEMBER_PURGED,
     FORM_CREATOR_REASSIGNED,
 )
+# API key lifecycle events (``API_KEY_ROLES_ENABLED``): ids and enum values only,
+# never a key's name, prefix or token, nor a form title.
+API_KEY_CREATED = "api_key_created"
+API_KEY_ROLE_CHANGED = "api_key_role_changed"
+API_KEY_SCOPE_CHANGED = "api_key_scope_changed"
+API_KEY_FORM_ADDED = "api_key_form_added"
+API_KEY_FORM_REMOVED = "api_key_form_removed"
+API_KEY_REVOKED = "api_key_revoked"
+API_KEY_EVENTS = (
+    API_KEY_CREATED,
+    API_KEY_ROLE_CHANGED,
+    API_KEY_SCOPE_CHANGED,
+    API_KEY_FORM_ADDED,
+    API_KEY_FORM_REMOVED,
+    API_KEY_REVOKED,
+)
 # the reserved workspace id of an event that belongs to no workspace
 NO_WORKSPACE = "000000000000000000000000"
 
@@ -107,6 +123,15 @@ class WorkspaceAuditEventDocument(Record):
     grant_export: Optional[bool] = None
     access_mode: Optional[str] = None
     count: Optional[int] = None
+    # API_KEY_* entries: the key, its role (and the one before), its form scope,
+    # why it was revoked (admin, creator_removed, account_deleted,
+    # workspace_deleted) and whether the change gave the key more access
+    key_id: Optional[str] = None
+    key_role: Optional[str] = None
+    key_role_before: Optional[str] = None
+    form_scope: Optional[str] = None
+    reason: Optional[str] = None
+    widened: Optional[bool] = None
 
     class Settings:
         name = "workspace_audit_events"

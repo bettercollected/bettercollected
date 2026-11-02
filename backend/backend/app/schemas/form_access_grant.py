@@ -3,7 +3,10 @@ person or a team, on top of (or, on a restricted form, instead of) their
 workspace role (docs/enterprise-access-model.md, "Form-level scope").
 
 ``subject_type`` is free text on purpose: ``user`` and ``group`` (a member
-group) today; API keys reuse the table with ``key``.
+group), and ``key`` (an API key: its allow-list entry for a form and the most
+its role may do there, never an addition). Key rows are not grants of the
+member-facing access routes: those only ever read, change and delete ``user``
+and ``group`` rows.
 """
 
 from typing import Optional
@@ -12,6 +15,9 @@ from common.records import Record, RecordId
 
 SUBJECT_USER = "user"
 SUBJECT_GROUP = "group"
+SUBJECT_KEY = "key"
+# the subjects the member-facing access routes read, change and delete
+MEMBER_SUBJECTS = (SUBJECT_USER, SUBJECT_GROUP)
 
 ROLE_EDITOR = "EDITOR"
 ROLE_REVIEWER = "REVIEWER"
