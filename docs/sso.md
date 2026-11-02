@@ -350,6 +350,7 @@ Workspace → **Single sign-on** → **Directory sync (SCIM)**. Owners and Admin
    - **Microsoft Entra ID:** Enterprise applications → your app → Provisioning → Automatic: Tenant URL = the base URL (it ends with `?aadOptscim062020`, keep it), Secret token = the bearer token, "Test connection", then Start provisioning. Assign users and groups to the app; Entra provisions every 40 minutes or so.
    - **Others:** the base URL, bearer authentication with the token, users identified by email (`userName` or the primary email).
 3. **Map groups to roles** once the groups appear: each group maps to one workspace role or to none.
+4. **Optionally, feed Teams** (only while the server has form-level access on, `FORM_ACCESS_ENABLED`; [form-access.md](form-access.md)): under Members, Teams, "Linked directory groups" the owner links each group to a team. The people in the group are then in the team, read when access is checked and never copied: deactivating or deleting someone in the directory, or removing them from the group, ends the access their team gave them on their next request. A group is in one team; a team may take several groups. This is independent of the role the group maps to.
 
 **What happens:**
 
@@ -391,19 +392,21 @@ Under `/api/v1/workspaces/{workspace_id}/scim`; viewing needs `security.manage`,
 
 | Method | Path | Result |
 |---|---|---|
-| GET | `` | `available`, `hasVerifiedDomain`, `directory` (no secrets), `types`, `counts`, `issues`, `groups`, `defaultRole`, `mappableRoles`, `canManage` |
+| GET | `` | `available`, `hasVerifiedDomain`, `directory` (no secrets), `types`, `counts`, `issues`, `groups` (each with its `role` and the `teamId` it feeds, if any), `defaultRole`, `mappableRoles`, `canManage` |
 | POST | `/directory` | **Owner.** 201 `{directory, scimEndpoint, bearerToken}` (the token only here). 409 `sso_domain_required`, `scim_directory_exists`; 422 `invalid_directory_type`; 404 `scim_disabled`; 503 `scim_unavailable` |
 | POST | `/directory/rotate` | **Owner.** `{directory, scimEndpoint, bearerToken, previousDirectoryDeleted}` |
 | POST | `/directory/cleanup` | **Owner.** Retries deleting the previous Polis directory; 503 `scim_unavailable` while it can't |
 | DELETE | `/directory` | **Owner.** `{reEnabled, leftDisabled}`; members stay |
 | PUT | `/groups/{group_id}` | **Owner.** `{role}` (a workspace role or null). 422 `invalid_role` |
+| PUT | `/groups/{group_id}/team` | **Owner.** `{teamId}`: the group's people are in that team (a team of this workspace; linking a group that is linked elsewhere moves it). Answers the group. 404 for a group or team that is not this workspace's; 422 `form_access_off` while `FORM_ACCESS_ENABLED` is off |
+| DELETE | `/groups/{group_id}/team` | **Owner.** Unlinks the group (nobody and nothing is deleted). Same 404 and 422 |
 | POST | `/resync` | **Owner.** Body `{force?}`. `{directory, summary}`; 409 `mass_deprovision_refused` with `summary {wouldDeprovision, provisioned, listed}` (nothing changed); 503 `scim_unavailable`, `auth_unavailable` |
 
 `POST /api/v1/scim/webhook/{directory_id}`: Polis only (signature). 200 `{applied, duplicates}`; 401, 403, 400, 503 as above; 413 above `SCIM_MAX_WEBHOOK_BYTES`, counted while the body is read (chunked bodies included). Auth's internal `POST /auth/sso/directory-account` finds or creates the account.
 
 ### Storage
 
-Identity group, Postgres only since 4.1 (revision `0010`, new tables only): `scim_directories` (workspace (unique), Polis directory id, tenant, product, type, name, SCIM base URL, the encrypted webhook secret, who created and rotated it, the last event and resync), `scim_users` (each directory user: Polis id, email, active/deleted, the account, the outcome and its reason), `scim_groups` (Polis id, name, mapped role), `scim_group_members` (our group and user ids, one row per pair) and `scim_events` (accepted events by hash, expiring: expired rows are deleted on each claim). Workspace memberships carry `provisioned_by` (`sso`, `scim` or none) and `disabled_reasons` (`plan`, `directory`, `seat_limit`): each path lifts only its own reason, so an upgrade doesn't re-enable someone the directory deactivated and the directory doesn't re-enable someone a downgrade disabled (a disabled membership from before has none recorded and counts as `plan`; disabling it for another reason records `plan` first, so the directory can never re-enable it). The directory's status fields (last event, resync outcome, pending clean-up) are written field by field, never by saving the whole record, so they can't undo a concurrent rotation. Revision `0011` makes (`workspace_id`, `user_id`) unique in `workspace_users` (see "Duplicate memberships"). Deleting a workspace deletes its directory here and in Polis.
+Identity group, Postgres only since 4.1 (revision `0010`, new tables only): `scim_directories` (workspace (unique), Polis directory id, tenant, product, type, name, SCIM base URL, the encrypted webhook secret, who created and rotated it, the last event and resync), `scim_users` (each directory user: Polis id, email, active/deleted, the account, the outcome and its reason), `scim_groups` (Polis id, name, mapped role) and, with form-level access, `scim_group_team_links` (the team a group feeds: one row per group, revision `0039`, which also indexes `scim_users.user_id`), `scim_group_members` (our group and user ids, one row per pair) and `scim_events` (accepted events by hash, expiring: expired rows are deleted on each claim). Workspace memberships carry `provisioned_by` (`sso`, `scim` or none) and `disabled_reasons` (`plan`, `directory`, `seat_limit`): each path lifts only its own reason, so an upgrade doesn't re-enable someone the directory deactivated and the directory doesn't re-enable someone a downgrade disabled (a disabled membership from before has none recorded and counts as `plan`; disabling it for another reason records `plan` first, so the directory can never re-enable it). The directory's status fields (last event, resync outcome, pending clean-up) are written field by field, never by saving the whole record, so they can't undo a concurrent rotation. Revision `0011` makes (`workspace_id`, `user_id`) unique in `workspace_users` (see "Duplicate memberships"). Deleting a workspace deletes its directory here and in Polis.
 
 ### Troubleshooting
 
@@ -413,6 +416,7 @@ Identity group, Postgres only since 4.1 (revision `0010`, new tables only): `sci
 - **"no free seat":** free seats or raise `API_ALLOWED_COLLABORATORS`, then resync.
 - **A member's role doesn't change:** they were invited by hand or are an owner (the directory leaves roles alone), or their groups are not pushed to the SCIM app.
 - **"it would have deactivated too many members":** the safety stop refused a resync. Check the app's assignments at the identity provider (an unassigned group, a filter); if the departures are real, resync with force.
+- **Someone is in a directory group but not in its team:** the group must be linked to the team (Members, Teams), the person must be active in the directory (not deactivated or deleted), have an enabled membership in this workspace, and the server must have `FORM_ACCESS_ENABLED` on. A person in the group at the identity provider that has not been pushed to the SCIM app is not in the group here either.
 - **A group says "Check the role":** after a rotation several previous groups had its name, so its role was not carried over; choose it again.
 - **"The previous directory could not be deleted":** after a rotation Polis was not reachable; press Retry (or wait for the next resync). Until then the old token may still be accepted by Polis.
 - **Someone deactivated still has access for a few minutes:** sessions end at their next refresh (the access-token lifetime); their membership is disabled at once, which stops every workspace permission immediately.
