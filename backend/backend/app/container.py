@@ -564,6 +564,7 @@ class AppContainer(containers.DeclarativeContainer):
         registration_delivery_repo=registration_delivery_repo,
         webhook_log_repo=action_log_repo,
         response_export_repo=response_export_repo,
+        audit_repo=workspace_audit_repo,
     )
 
     # saved drafts of a form (answers encrypted with the response keyset)
@@ -756,6 +757,7 @@ class AppContainer(containers.DeclarativeContainer):
         crypto=providers.Object(crypto_service),
         rate_limiter=rate_limiter,
         import_hooks=LazyRepository(lambda: container.response_import_service()),
+        audit_repo=workspace_audit_repo,
     )
 
     # the import of submissions from a CSV file (a dry run or the import runs as
