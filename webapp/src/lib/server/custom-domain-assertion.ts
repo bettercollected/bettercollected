@@ -1,0 +1,158 @@
+/**
+ * Custom-domain requests arrive through the custom-domain service's edge
+ * (github.com/sireto/custom-domain), which adds a signed assertion naming the
+ * workspace the hostname belongs to. The workspace is selected from that
+ * assertion and never from the Host header, so nobody can be served another
+ * tenant's forms by sending a Host header. This is a port of the SDK's
+ * verifier (docs/edge-routing.md); the algorithm is HMAC-SHA256 over
+ * `v1.<key id>.<payload>`, base64url, 60 s TTL with 30 s clock skew.
+ *
+ * Until the operator configures CUSTOM_DOMAIN_ASSERTION_KEYS and
+ * CUSTOM_DOMAIN_APPLICATION_ID, the legacy host lookup stays in place.
+ */
+// Pure: no next/headers, no API calls. src/proxy.ts imports this module (and nothing that touches
+// next/headers or lib/server/api.ts), so it must stay that way. The server-side lookup is in custom-domain.ts.
+import { createHmac, timingSafeEqual } from 'node:crypto';
+
+export const ASSERTION_HEADER = 'x-custom-domain-assertion';
+const VERSION = 'v1';
+const DEFAULT_SKEW = 30;
+
+export interface Assertion {
+    applicationId: string;
+    domainId: string;
+    reference: string;
+    hostname: string;
+    issuedAt: number;
+    expiresAt: number;
+    requestId: string;
+    keyId: string;
+}
+
+export type AssertionErrorCode = 'missing' | 'malformed' | 'unknown_key' | 'bad_signature' | 'not_yet_valid' | 'expired' | 'wrong_application' | 'wrong_hostname';
+
+export class AssertionInvalid extends Error {
+    code: AssertionErrorCode;
+    constructor(code: AssertionErrorCode, message: string) {
+        super(message);
+        this.code = code;
+    }
+}
+
+function unb64(text: string): Buffer {
+    return Buffer.from(text, 'base64url');
+}
+
+export function verifyAssertion(token: string | null | undefined, keys: Record<string, string>, options: { applicationId: string; hostname?: string | null; now?: number; skew?: number }): Assertion {
+    if (!token) throw new AssertionInvalid('missing', 'No assertion header');
+    const parts = token.split('.');
+    if (parts.length !== 4 || parts[0] !== VERSION) throw new AssertionInvalid('malformed', 'Assertion is not a v1 token');
+    const [, keyId, payload, signature] = parts;
+    const secret = keys[keyId];
+    if (secret === undefined) throw new AssertionInvalid('unknown_key', `Assertion signed with unknown key id ${keyId}`);
+    const expected = createHmac('sha256', secret).update(`${VERSION}.${keyId}.${payload}`).digest();
+    let given: Buffer;
+    try {
+        given = unb64(signature);
+    } catch {
+        throw new AssertionInvalid('malformed', 'Assertion signature is not base64url');
+    }
+    if (given.length !== expected.length || !timingSafeEqual(new Uint8Array(expected), new Uint8Array(given))) {
+        throw new AssertionInvalid('bad_signature', 'Assertion signature does not verify');
+    }
+    let assertion: Assertion;
+    try {
+        const data = JSON.parse(unb64(payload).toString('utf8'));
+        assertion = {
+            applicationId: String(data.app),
+            domainId: String(data.dom),
+            reference: String(data.ref),
+            hostname: String(data.host),
+            issuedAt: Number(data.iat),
+            expiresAt: Number(data.exp),
+            requestId: String(data.rid),
+            keyId
+        };
+        if (!Number.isFinite(assertion.issuedAt) || !Number.isFinite(assertion.expiresAt) || data.app === undefined || data.ref === undefined) {
+            throw new Error('incomplete');
+        }
+    } catch {
+        throw new AssertionInvalid('malformed', 'Assertion payload is not valid');
+    }
+    const skew = options.skew ?? DEFAULT_SKEW;
+    const now = Math.floor(options.now ?? Date.now() / 1000);
+    if (assertion.issuedAt > now + skew) throw new AssertionInvalid('not_yet_valid', 'Assertion issued in the future');
+    if (assertion.expiresAt + skew < now) throw new AssertionInvalid('expired', 'Assertion has expired');
+    if (assertion.applicationId !== options.applicationId) throw new AssertionInvalid('wrong_application', 'Assertion is for another application');
+    if (options.hostname != null) {
+        const host = options.hostname.split(':', 1)[0].toLowerCase().replace(/\.$/, '');
+        if (assertion.hostname !== host) throw new AssertionInvalid('wrong_hostname', 'Assertion is for another hostname');
+    }
+    return assertion;
+}
+
+/** `<id>:<secret>,...` as the operator hands it out; every entry verifies. */
+export function parseAssertionKeys(value: string | undefined): Record<string, string> {
+    const keys: Record<string, string> = {};
+    for (const item of (value || '').split(',')) {
+        const index = item.indexOf(':');
+        if (index > 0) {
+            const id = item.slice(0, index).trim();
+            const secret = item.slice(index + 1).trim();
+            if (id && secret) keys[id] = secret;
+        }
+    }
+    return keys;
+}
+
+/**
+ * `required`: every custom-domain request needs a valid assertion (the
+ * default). `optional`: migration only — while the service's legacy path
+ * still proxies some domains without an assertion, a request that carries
+ * none falls back to the host lookup; an invalid one is still refused.
+ */
+export type AssertionMode = 'optional' | 'required';
+
+export interface CustomDomainConfig {
+    keys: Record<string, string>;
+    applicationId: string;
+    mode: AssertionMode;
+}
+
+export function customDomainConfig(): CustomDomainConfig | null {
+    const keys = parseAssertionKeys(process.env.CUSTOM_DOMAIN_ASSERTION_KEYS);
+    const applicationId = process.env.CUSTOM_DOMAIN_APPLICATION_ID || '';
+    if (!applicationId || Object.keys(keys).length === 0) return null;
+    const mode: AssertionMode = process.env.CUSTOM_DOMAIN_ASSERTION_MODE === 'optional' ? 'optional' : 'required';
+    return { keys, applicationId, mode };
+}
+
+export type AssertionDecision = { kind: 'assertion'; assertion: Assertion } | { kind: 'legacy' } | { kind: 'refused'; error: AssertionErrorCode };
+
+/** What to do with a custom-domain request, given the header and the mode. Pure. */
+export function decideAssertion(token: string | null | undefined, config: CustomDomainConfig, host: string | null, now?: number): AssertionDecision {
+    try {
+        return { kind: 'assertion', assertion: verifyAssertion(token, config.keys, { applicationId: config.applicationId, hostname: host, now }) };
+    } catch (error) {
+        const code = error instanceof AssertionInvalid ? error.code : 'malformed';
+        if (code === 'missing' && config.mode === 'optional') return { kind: 'legacy' };
+        return { kind: 'refused', error: code };
+    }
+}
+
+/**
+ * Which workspace a custom-domain request is for, decided from its headers alone (the proxy has no
+ * `headers()`): the same decision as `resolveCustomDomainWorkspace`, without the lookup. `workspaceId`: the
+ * edge's verified assertion names it; `host`: the legacy lookup by host applies (no service configured, or
+ * migration mode and no assertion); `refused`: an assertion that does not verify.
+ */
+export type CustomDomainTarget = { kind: 'workspaceId'; workspaceId: string } | { kind: 'host'; host: string } | { kind: 'refused' };
+
+export function customDomainTarget(host: string, assertionHeader: string | null): CustomDomainTarget {
+    const config = customDomainConfig();
+    if (!config) return { kind: 'host', host };
+    const decision = decideAssertion(assertionHeader, config, host);
+    if (decision.kind === 'legacy') return { kind: 'host', host };
+    if (decision.kind === 'refused') return { kind: 'refused' };
+    return { kind: 'workspaceId', workspaceId: decision.assertion.reference };
+}

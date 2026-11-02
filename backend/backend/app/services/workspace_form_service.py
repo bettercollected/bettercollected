@@ -13,6 +13,7 @@ from common.constants import MESSAGE_NOT_FOUND, MESSAGE_FORBIDDEN
 from common.models.form_import import FormImportRequestBody
 from common.models.standard_form import (
     StandardForm,
+    SubmissionSource,
     StandardFormResponse,
     Trigger,
     StandardFormSettings,
@@ -1209,7 +1210,101 @@ class WorkspaceFormService:
         form = await self.form_service.get_latest_version_of_form(
             form_id
         ) or await self.form_service.get_form_document_by_id(str(form_id))
-        # internal fields are the staff's: a respondent's edit never writes them
+        form_response = await self._apply_edit(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            response_id=response_id,
+            existing=existing,
+            response=response,
+            form=form,
+            form_files=form_files,
+            workspace_form=workspace_form,
+            user=user,
+            client_ip=client_ip,
+        )
+        return form_response.submission_uuid
+
+    async def patch_response_as_key(
+        self,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        response_id: RecordId,
+        response: StandardFormResponseCamelModel,
+        key_id: str,
+    ):
+        """An API key updates a response it made (the public API's
+        ``PATCH .../submissions/{id}``): the respondent's edit rules
+        (``_apply_edit``) with the key's own gate in front instead of the
+        respondent's: the form belongs to the workspace, the response is the
+        workspace's copy of this form's and was made by this key (checked
+        again under the row lock by the repository). The form's
+        ``allow_editing_response`` and identity settings are the respondent's
+        and do not apply; as for a respondent's edit, the form's open and close
+        dates and response limit do not (docs: services/form_availability.py)."""
+        workspace_form = await self.workspace_form_repository.find_workspace_form(
+            workspace_id, str(form_id)
+        )
+        if workspace_form is None:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found"
+            )
+        drop_respondent_internal_answers(
+            response,
+            await self.form_response_service.all_internal_field_ids(str(form_id)),
+        )
+        existing = await self.form_response_service.workspace_response(
+            workspace_id, str(response_id)
+        )
+        if (
+            existing is None
+            or str(existing.form_id) != str(form_id)
+            or existing.submission_source is None
+            or existing.submission_source.key_id != str(key_id)
+        ):
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Response not found"
+            )
+        form = await self.form_service.get_latest_version_of_form(form_id)
+        if form is None:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found"
+            )
+        # a hook for the revision log (staff edits of answers): the API edit
+        # passes its key as the editor where ``_apply_edit`` takes one
+        return await self._apply_edit(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            response_id=response_id,
+            existing=existing,
+            response=response,
+            form=form,
+            form_files=None,
+            workspace_form=workspace_form,
+            user=None,
+            client_ip=None,
+            source_key_id=str(key_id),
+        )
+
+    async def _apply_edit(
+        self,
+        *,
+        workspace_id: RecordId,
+        form_id: RecordId,
+        response_id: RecordId,
+        existing,
+        response: StandardFormResponseCamelModel,
+        form,
+        form_files: Optional[Any],
+        workspace_form: WorkspaceFormDocument,
+        user: Optional[User],
+        client_ip: Optional[str],
+        source_key_id: Optional[str] = None,
+    ):
+        """The checks every edit of a stored response passes, whoever makes it,
+        then the merge: the respondent's own edit (``user``) and an API key's
+        edit of what it made (``source_key_id``); the caller has made its own
+        gate. ``form`` is the version the answers are validated against."""
+        # internal fields are the staff's: an edit here never writes them
         allowed = _question_ids(getattr(form, "fields", None) or []) - (
             await self.form_response_service.all_internal_field_ids(str(form_id))
         )
@@ -1332,6 +1427,7 @@ class WorkspaceFormService:
             document_id=existing.id,
             response=response,
             user=user,
+            source_key_id=source_key_id,
         )
         # the images the edit replaced go only once the edit is stored
         await delete_stored_images(
@@ -1342,7 +1438,7 @@ class WorkspaceFormService:
             prepared.replaced,
         )
 
-        return form_response.submission_uuid
+        return form_response
 
     async def submit_response(
         self,
@@ -1356,7 +1452,17 @@ class WorkspaceFormService:
         client_today: Optional[str] = None,
         received_at: Optional[dt.datetime] = None,
         client_ip: Optional[str] = None,
+        source: Optional[SubmissionSource] = None,
+        response_id: Optional[str] = None,
     ):
+        """``source``: set by the public API's submissions endpoint for a
+        response an API key makes (``user`` None then, as for any anonymous
+        respondent); the respondent route never passes one. ``response_id``:
+        the id that endpoint made up front (so it can tell whether a failure
+        came after the commit); with a ``source``, what runs after the commit
+        (actions, registration, webhooks, email actions) is logged and never
+        fails the call: the response is stored, and a retry must not make a
+        second one."""
         # Internal fields are filled in by staff afterwards — values a
         # respondent submission carries for them are dropped, never stored.
         drop_respondent_internal_answers(
@@ -1365,7 +1471,7 @@ class WorkspaceFormService:
         )
         # Feedback is the staff's to write, never part of a submission.
         response.respondent_feedback = None
-        response.response_id = str(RecordId())
+        response.response_id = response_id or str(RecordId())
 
         workspace_form_ids = (
             await self.workspace_form_repository.get_form_ids_in_workspace(
@@ -1546,6 +1652,7 @@ class WorkspaceFormService:
                 response=response,
                 workspace_id=workspace_id,
                 response_limit=limit,
+                source=source,
             )
         except HTTPException as refused:
             # lost the race for the last slot: the files of this attempt go too
@@ -1565,46 +1672,52 @@ class WorkspaceFormService:
         # workspace = await self.workspace_repo.get_workspace_with_action_by_id(workspace_id)
         # Actions reach respondents (their email copy) and third parties
         # (webhooks, chat posts): they get the respondent view of the form.
-        await self.action_service.start_actions_for_submission(
-            form=strip_internal_fields(latest_version_of_form.model_copy(deep=True)),
-            response=form_response,
-            workspace_id=workspace_id,
-        )
+        with _after_commit(source, "actions", form_response):
+            await self.action_service.start_actions_for_submission(
+                form=strip_internal_fields(
+                    latest_version_of_form.model_copy(deep=True)
+                ),
+                response=form_response,
+                workspace_id=workspace_id,
+            )
         if self._registration_service is not None:
             # a delivery row and a job by id: nothing external, never fails
             # the submission (services/registration/service.py)
-            await self._registration_service.queue_for_submission(
-                workspace_id=workspace_id,
-                form_id=str(form_id),
-                response_id=str(form_response.response_id),
-            )
+            with _after_commit(source, "registration", form_response):
+                await self._registration_service.queue_for_submission(
+                    workspace_id=workspace_id,
+                    form_id=str(form_id),
+                    response_id=str(form_response.response_id),
+                )
         if self._webhook_service is not None:
             # one log row and one job (by log id) per enabled webhook: nothing
             # external, never fails the submission (services/webhooks/service.py)
-            await self._webhook_service.queue_for_submission(
-                workspace_id=workspace_id,
-                form_id=str(form_id),
-                response_id=str(form_response.response_id),
-                form=latest_version_of_form,
-                answers=form_response.answers,
-            )
+            with _after_commit(source, "webhooks", form_response):
+                await self._webhook_service.queue_for_submission(
+                    workspace_id=workspace_id,
+                    form_id=str(form_id),
+                    response_id=str(form_response.response_id),
+                    form=latest_version_of_form,
+                    answers=form_response.answers,
+                )
         if self._email_action_service is not None:
             # one log row and one job (by log id) per mail: nothing external,
             # never fails the submission (services/email_actions/service.py);
             # the submitted answers are read in memory for the actions'
             # conditions and are not kept
-            await self._email_action_service.queue_for_submission(
-                workspace_id=workspace_id,
-                form_id=str(form_id),
-                response_id=str(form_response.response_id),
-                form=latest_version_of_form,
-                answers=form_response.answers,
-                # the copy goes only to the verified account email of a signed-in
-                # respondent who did not submit anonymously
-                verified_account_id=verified_account_id_of(
-                    user, anonymous=bool(getattr(response, "anonymize", False))
-                ),
-            )
+            with _after_commit(source, "email_actions", form_response):
+                await self._email_action_service.queue_for_submission(
+                    workspace_id=workspace_id,
+                    form_id=str(form_id),
+                    response_id=str(form_response.response_id),
+                    form=latest_version_of_form,
+                    answers=form_response.answers,
+                    # the copy goes only to the verified account email of a
+                    # signed-in respondent who did not submit anonymously
+                    verified_account_id=verified_account_id_of(
+                        user, anonymous=bool(getattr(response, "anonymize", False))
+                    ),
+                )
         return form_response
 
     async def delete_form_response(
@@ -2049,6 +2162,33 @@ class WorkspaceFormService:
         form_action.enabled = False
         await self._form_repo.save_form(form)
         return form
+
+
+class _after_commit:
+    """What runs after a response is stored. For a response an API key made
+    (``source``), a failure here is logged (the step and the error class, never
+    a value) and swallowed: the response is stored, so the call must still
+    answer success, or the caller's retry would store a second one. For a
+    respondent's it is raised as before."""
+
+    def __init__(self, source, step: str, response):
+        self._soft = source is not None
+        self._step = step
+        self._response_id = getattr(response, "response_id", None)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, kind, error, _traceback):
+        if error is not None and self._soft and isinstance(error, Exception):
+            logger.error(
+                "after submission {}: {} failed ({})",
+                self._response_id,
+                self._step,
+                kind.__name__,
+            )
+            return True
+        return False
 
 
 def _question_ids(fields) -> set:

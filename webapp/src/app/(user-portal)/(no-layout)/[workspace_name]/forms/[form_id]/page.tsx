@@ -1,8 +1,10 @@
 'use client';
 
 import DraftResume from '@app/components/drafts/draft-resume';
+import EmbedReporter from '@app/components/embed/embed-reporter';
 import Loader from '@app/components/ui/loader';
 import { trackCanonicalFormView } from '@app/lib/analytics/umami';
+import { useEmbed } from '@app/lib/embed/use-embed';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { selectResponderForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -64,6 +66,9 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     const shownForm = useAppSelector(selectResponderForm);
     const shownSlide = useShownSlide();
     const roomy = useMinViewportSize(640);
+    // In another site's frame the privacy panel starts closed: the frame's height follows the page, and a
+    // panel that opens at one height and closes at another would resize the frame back and forth.
+    const { embedded } = useEmbed();
 
     useEffect(() => {
         if (trackedViewRef.current) return;
@@ -213,13 +218,14 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
                     // Open on the welcome page when the screen has room for
                     // both; a strip with the toggle elsewhere, and on phones,
                     // where the open panel would take half the screen.
-                    defaultExpanded={shownSlide === -1 && roomy}
+                    defaultExpanded={shownSlide === -1 && roomy && !embedded}
                     // ...and only when Start stays in view with it open.
                     protectPrimaryAction
                 />
             }
         >
             <Form />
+            <EmbedReporter />
         </RespondentPageShell>
     );
 };

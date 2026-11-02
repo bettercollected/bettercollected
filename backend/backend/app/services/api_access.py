@@ -27,6 +27,11 @@ SCOPE_PERMISSIONS: Dict[str, Tuple[Permission, ...]] = {
     "responses:read": (Permission.RESPONSE_READ, Permission.RESPONSE_EXPORT),
     "deletion_requests:read": (Permission.PRIVACY_MANAGE,),
     "deletion_requests:write": (Permission.PRIVACY_MANAGE,),
+    # a write key: its creator must still be able to edit forms (an Editor,
+    # Admin or Owner), checked on every call, so a creator who was demoted to
+    # Viewer, Reviewer or Privacy officer, or whose workspace was disabled
+    # (read-only), no longer has a key that writes
+    "submissions:write": (Permission.FORM_EDIT,),
 }
 
 MISSING_SCOPE_CODE = "missing_scope"
@@ -52,9 +57,9 @@ def acting_user(key: WorkspaceAPIKeyDocument) -> User:
     )
 
 
-async def require_key_scope(key: WorkspaceAPIKeyDocument, scope: str) -> None:
-    """403 unless the key has ``scope`` and its creator still holds the
-    scope's permissions in the key's workspace."""
+def require_key_has_scope(key: WorkspaceAPIKeyDocument, scope: str) -> None:
+    """403 ``missing_scope`` unless the key has ``scope`` (no permission
+    lookup: cheap enough to run before the key is rate limited)."""
     try:
         APIKeyService.require_scope(key, scope)
     except HTTPException as error:
@@ -62,6 +67,12 @@ async def require_key_scope(key: WorkspaceAPIKeyDocument, scope: str) -> None:
             status_code=HTTPStatus.FORBIDDEN,
             content={"code": MISSING_SCOPE_CODE, "message": str(error.content)},
         ) from error
+
+
+async def require_key_scope(key: WorkspaceAPIKeyDocument, scope: str) -> None:
+    """403 unless the key has ``scope`` and its creator still holds the
+    scope's permissions in the key's workspace."""
+    require_key_has_scope(key, scope)
     held = (
         await _c()
         .authorization_service()

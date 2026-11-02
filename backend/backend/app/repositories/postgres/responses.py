@@ -126,6 +126,7 @@ from common.models.standard_form import (
     RespondentFeedback,
     StandardFormResponse,
     StandardFormResponseAnswer,
+    SubmissionSource,
 )
 from common.models.user import User
 from common.services.crypto_service import UnreadableCiphertext, crypto_service
@@ -1406,8 +1407,11 @@ class PostgresFormResponseRepository(RecordRepository):
         workspace_id: RecordId,
         response_limit: Optional[int] = None,
         scope: Optional[ResponseScope] = None,
+        source: Optional[SubmissionSource] = None,
     ):
-        """Store a new response. With ``response_limit`` (and the ``scope`` the
+        """Store a new response. ``source``: how an API key made it (None for
+        a respondent); always the caller's argument, never the request's.
+        With ``response_limit`` (and the ``scope`` the
         count is taken over) the count and the insert happen in one
         transaction under an advisory lock on the form in this workspace, so
         concurrent submissions queue up and the one that would pass the limit
@@ -1433,6 +1437,7 @@ class PostgresFormResponseRepository(RecordRepository):
         # collected in this workspace (#768)
         response_document.workspace_id = RecordId(workspace_id)
         response_document.provider = "self"
+        response_document.submission_source = source
         # submitted now, whatever the client sent: the time must not be the
         # respondent's to choose (newest-first order, "submitted since")
         now = utcnow()
@@ -1463,11 +1468,17 @@ class PostgresFormResponseRepository(RecordRepository):
         response: StandardFormResponse,
         workspace_id: RecordId,
         user=User,
+        source_key_id: Optional[str] = None,
     ):
         """Merge the sent answers into the stored response, decrypting and
         re-encrypting under the response's row lock: two edits made at once
         both keep their answers, and one landing on top of a respondent
-        feedback or an internal-answers write keeps those."""
+        feedback or an internal-answers write keeps those.
+
+        Who may edit: the verified respondent who submitted it (``user``), or,
+        with ``source_key_id``, the API key that made it (its id on the
+        stored ``submission_source``). Checked under the lock; a response
+        another key or a respondent made is 404 to a key."""
         async with self._session() as session, session.begin():
             response_document = await _locked_doc(
                 session,
@@ -1480,8 +1491,14 @@ class PostgresFormResponseRepository(RecordRepository):
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND, content="Response not found"
                 )
-            # only the verified respondent who submitted it may edit a response
-            if not user or response_document.dataOwnerIdentifier != user.sub:
+            if source_key_id is not None:
+                made_by = response_document.submission_source
+                if made_by is None or made_by.key_id != str(source_key_id):
+                    raise HTTPException(
+                        status_code=HTTPStatus.NOT_FOUND, content="Response not found"
+                    )
+            # otherwise only the verified respondent who submitted it may edit
+            elif not user or response_document.dataOwnerIdentifier != user.sub:
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
                 )

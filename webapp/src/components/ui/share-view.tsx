@@ -10,8 +10,12 @@ import { FacebookShareButton, LinkedinShareButton, XShareButton } from 'react-sh
 import { Facebook } from '@app/components/icons/brands/facebook';
 import { Linkedin } from '@app/components/icons/brands/linkedin';
 import { Twitter } from '@app/components/icons/brands/twitter';
+import EmbedPanel from '@app/components/embed/embed-panel';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
+import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { Button } from '@app/shadcn/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@app/shadcn/components/ui/tabs';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 type SizeNames = 'large' | 'small';
@@ -19,6 +23,8 @@ type SizeNames = 'large' | 'small';
 interface Props {
     url: string;
     title?: string;
+    /** The form's title: the accessible name of the frame in the Embed tab's code. */
+    formTitle?: string;
     showCopy?: boolean;
     iconSize?: SizeNames;
     className?: string;
@@ -34,11 +40,14 @@ const SocialButton = ({ children }: { children: ReactNode }) => (
     </span>
 );
 
-export default function ShareView({ url, title, showCopy = true, className }: Props) {
+export default function ShareView({ url, title, formTitle, showCopy = true, className }: Props) {
     const { t } = useTranslation();
     const [, copyToClipboard] = useCopyToClipboard();
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
+    // The Embed tab (docs/embed.md) while this server has embedding on, for members who may share forms.
+    const { can, formEmbedEnabled } = useWorkspacePermissions();
+    const embeddable = formEmbedEnabled && can(WorkspacePermission.FORM_SHARE);
 
     const handleCopy = () => {
         copyToClipboard(url);
@@ -47,14 +56,16 @@ export default function ShareView({ url, title, showCopy = true, className }: Pr
         setTimeout(() => setCopied(false), 2000);
     };
 
-    return (
-        <div className={cn('flex flex-col gap-6', className)}>
-            <div className="flex flex-col gap-1.5">
-                <h2 className="text-black-900 text-lg font-semibold leading-snug">{title || t('STAFF.SHARE.TITLE')}</h2>
-                {/* Honest about what the link does — no coercion, no surprises. */}
-                <p className="text-black-600 text-sm leading-relaxed">{t('STAFF.SHARE.INTRO')}</p>
-            </div>
+    const heading = (
+        <div className="flex flex-col gap-1.5">
+            <h2 className="text-black-900 text-lg font-semibold leading-snug">{title || t('STAFF.SHARE.TITLE')}</h2>
+            {/* Honest about what the link does — no coercion, no surprises. */}
+            <p className="text-black-600 text-sm leading-relaxed">{t('STAFF.SHARE.INTRO')}</p>
+        </div>
+    );
 
+    const linkPanel = (
+        <>
             {showCopy && (
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <div className="border-black-300 bg-black-100 flex min-w-0 flex-1 items-center gap-2 rounded-lg border px-3.5 py-3">
@@ -91,6 +102,33 @@ export default function ShareView({ url, title, showCopy = true, className }: Pr
                     </LinkedinShareButton>
                 </div>
             </div>
+        </>
+    );
+
+    if (!embeddable) {
+        return (
+            <div className={cn('flex flex-col gap-6', className)}>
+                {heading}
+                {linkPanel}
+            </div>
+        );
+    }
+
+    return (
+        <div className={cn('flex flex-col gap-6', className)}>
+            {heading}
+            <Tabs defaultValue="link" className="flex min-w-0 flex-col gap-4">
+                <TabsList aria-label={t('STAFF.EMBED.TABS_LABEL')} className="w-fit">
+                    <TabsTrigger value="link">{t('STAFF.EMBED.TAB_LINK')}</TabsTrigger>
+                    <TabsTrigger value="embed">{t('STAFF.EMBED.TAB_EMBED')}</TabsTrigger>
+                </TabsList>
+                <TabsContent value="link" className="mt-0 flex flex-col gap-6">
+                    {linkPanel}
+                </TabsContent>
+                <TabsContent value="embed" className="mt-0">
+                    <EmbedPanel url={url} formTitle={formTitle} />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

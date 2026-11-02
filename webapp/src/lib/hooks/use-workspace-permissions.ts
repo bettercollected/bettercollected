@@ -67,6 +67,8 @@ export function useWorkspacePermissions() {
     const saveDraftsEnabled = !!userId && !isError && !!data?.saveDraftsEnabled;
     // ...and the Versions page of a form (its FORM_REVISIONS_UI_ENABLED): list, compare and restore.
     const formRevisionsUiEnabled = !!userId && !isError && !!data?.formRevisionsUiEnabled;
+    // ...and embedding forms in other sites (its FORM_EMBED_ENABLED): the share dialog's Embed tab and the Embedding settings.
+    const formEmbedEnabled = !!userId && !isError && !!data?.formEmbedEnabled;
     return {
         can,
         permissions,
@@ -82,6 +84,7 @@ export function useWorkspacePermissions() {
         optionSourcesEnabled,
         layoutContainersEnabled,
         saveDraftsEnabled,
-        formRevisionsUiEnabled
+        formRevisionsUiEnabled,
+        formEmbedEnabled
     };
 }
