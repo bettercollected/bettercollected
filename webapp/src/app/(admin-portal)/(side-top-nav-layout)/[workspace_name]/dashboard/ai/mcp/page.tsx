@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -14,8 +14,11 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useAppSelector } from '@app/store/hooks';
-import { useCreateAPIKeyMutation, useGetAPIKeysQuery, useRevokeAPIKeyMutation } from '@app/store/workspaces/api';
+import { useCreateAPIKeyMutation, useGetAPIKeysQuery, useGetWorkspaceFormsQuery, useRevokeAPIKeyMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
+// the most the forms list sends in one page
+const FORMS_PAGE_SIZE = 100;
 
 interface APIKey {
     id: string;
@@ -25,6 +28,8 @@ interface APIKey {
     revoked: boolean;
     lastUsedAt?: string | null;
     responsesReadAcknowledgedAt?: string | null;
+    // the forms a submissions:write key is limited to (none: every form)
+    submissionFormIds?: string[] | null;
 }
 
 // Mirrors the backend's VALID_SCOPES — what a key is allowed to do.
@@ -36,6 +41,17 @@ const SCOPES: Array<{ key: string; label: string; hint: string }> = [
     { key: 'deletion_requests:read', label: 'STAFF.API_KEYS.SCOPE_DELETIONS_READ', hint: 'STAFF.API_KEYS.SCOPE_DELETIONS_READ_HINT' },
     { key: 'deletion_requests:write', label: 'STAFF.API_KEYS.SCOPE_DELETIONS_WRITE', hint: 'STAFF.API_KEYS.SCOPE_DELETIONS_WRITE_HINT' }
 ];
+
+// Offered only while the server accepts it (its SUBMISSIONS_API_ENABLED, told with the permissions).
+const SUBMISSIONS_SCOPE = { key: 'submissions:write', label: 'STAFF.API_KEYS.SCOPE_SUBMISSIONS_WRITE', hint: 'STAFF.API_KEYS.SCOPE_SUBMISSIONS_WRITE_HINT' };
+
+// The server's answer to a refused request as text: a string as it is, an object by its message
+// (e.g. {code: 'submissions_api_off', message}), nothing else.
+function errorText(data: unknown): string | undefined {
+    if (typeof data === 'string' && data.trim()) return data;
+    const message = (data as { message?: unknown; detail?: unknown } | null | undefined)?.message ?? (data as { detail?: unknown } | null | undefined)?.detail;
+    return typeof message === 'string' && message.trim() ? message : undefined;
+}
 
 function CopyButton({ value, label }: { value: string; label: string }) {
     const [copied, setCopied] = useState(false);
@@ -65,7 +81,7 @@ export default function APIKeysPage() {
     const { t } = useTranslation();
     const locale = useIntlLocale();
     const workspace = useAppSelector(selectWorkspace);
-    const { can } = useWorkspacePermissions();
+    const { can, submissionsApiEnabled } = useWorkspacePermissions();
     const canManageKeys = can(WorkspacePermission.SECURITY_MANAGE);
     const { toast } = useToast();
 
@@ -78,6 +94,29 @@ export default function APIKeysPage() {
     // responses:read hands full, unredacted answers to the AI client (#715)
     const [acknowledged, setAcknowledged] = useState(false);
     const readsResponses = scopes.includes('responses:read');
+    // the server turned the feature off while the dialog was open: the scope can no longer be given
+    useEffect(() => {
+        if (!submissionsApiEnabled) setScopes((current) => (current.includes('submissions:write') ? current.filter((scope) => scope !== 'submissions:write') : current));
+    }, [submissionsApiEnabled]);
+    // submissions:write may be limited to some of the workspace's published forms (none picked: every form)
+    const submits = scopes.includes(SUBMISSIONS_SCOPE.key);
+    const [limitForms, setLimitForms] = useState(false);
+    const [formIds, setFormIds] = useState<string[]>([]);
+    // the picker pages through every published form, FORMS_PAGE_SIZE at a time (the API's largest page)
+    const [formsPage, setFormsPage] = useState(1);
+    const [formPages, setFormPages] = useState<Record<number, Array<{ formId: string; title?: string }>>>({});
+    const { data: publishedForms } = useGetWorkspaceFormsQuery({ workspace_id: workspace?.id, published: true, page: formsPage, size: FORMS_PAGE_SIZE }, { skip: !workspace?.id || !submits || !submissionsApiEnabled });
+    useEffect(() => {
+        const loaded = publishedForms as any;
+        if (loaded) setFormPages((current) => ({ ...current, [loaded.page ?? formsPage]: loaded.items ?? [] }));
+    }, [publishedForms]);
+    const formChoices = Object.keys(formPages)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .flatMap((page) => formPages[page])
+        .filter((form, index, all) => all.findIndex((other) => other.formId === form.formId) === index);
+    const moreForms = ((publishedForms as any)?.pages ?? 1) > formsPage;
+    const scopeChoices = submissionsApiEnabled ? [...SCOPES, SUBMISSIONS_SCOPE] : SCOPES;
     // The one and only time the full token is visible.
     const [freshToken, setFreshToken] = useState<{ name: string; token: string } | null>(null);
 
@@ -88,14 +127,19 @@ export default function APIKeysPage() {
     };
 
     const handleCreate = async () => {
-        const response: any = await createKey({ workspace_id: workspace.id, body: { name: name.trim(), scopes, acknowledgeUnredactedResponses: readsResponses && acknowledged } });
+        const response: any = await createKey({
+            workspace_id: workspace.id,
+            body: { name: name.trim(), scopes, acknowledgeUnredactedResponses: readsResponses && acknowledged, ...(submits && limitForms ? { submissionFormIds: formIds } : {}) }
+        });
         if (response.data) {
             setFreshToken({ name: response.data.name, token: response.data.token });
             setName('');
             setScopes(['forms:read']);
             setAcknowledged(false);
+            setLimitForms(false);
+            setFormIds([]);
         } else {
-            toast({ description: response.error?.data || t('STAFF.API_KEYS.CREATE_FAILED'), variant: 'destructive' });
+            toast({ description: errorText(response.error?.data) || t('STAFF.API_KEYS.CREATE_FAILED'), variant: 'destructive' });
         }
     };
 
@@ -160,7 +204,7 @@ export default function APIKeysPage() {
                     className="border-control text-black-900 placeholder:text-black-600 focus:border-brand-500 h-10 w-full rounded-md border bg-white px-3.5 text-sm outline-hidden transition duration-150"
                 />
                 <div className="flex flex-col gap-1.5">
-                    {SCOPES.map((scope) => (
+                    {scopeChoices.map((scope) => (
                         <label key={scope.key} className="flex cursor-pointer items-start gap-2.5">
                             <input type="checkbox" checked={scopes.includes(scope.key)} onChange={() => toggleScope(scope.key)} className="mt-0.5 h-4 w-4 cursor-pointer" />
                             <span className="flex flex-col">
@@ -170,6 +214,38 @@ export default function APIKeysPage() {
                         </label>
                     ))}
                 </div>
+                {submits && (
+                    <fieldset className="border-black-300 flex flex-col gap-2 rounded-md border p-3">
+                        <legend className="text-black-900 px-1 text-[13px] font-semibold">{t('STAFF.API_KEYS.SUBMISSIONS_TITLE')}</legend>
+                        <p className="text-black-700 text-xs leading-relaxed">{t('STAFF.API_KEYS.SUBMISSIONS_BODY')}</p>
+                        <label className="text-black-800 flex cursor-pointer items-start gap-2 text-xs">
+                            <input type="checkbox" checked={limitForms} onChange={(e) => setLimitForms(e.target.checked)} className="mt-0.5 h-4 w-4" />
+                            <span>{t('STAFF.API_KEYS.LIMIT_FORMS')}</span>
+                        </label>
+                        {limitForms &&
+                            (formChoices.length === 0 ? (
+                                <p className="text-black-600 text-xs">{t('STAFF.API_KEYS.NO_PUBLISHED_FORMS')}</p>
+                            ) : (
+                                <ul className="flex max-h-48 flex-col gap-1 overflow-y-auto pl-6">
+                                    {formChoices.map((form) => (
+                                        <li key={form.formId}>
+                                            <label className="text-black-800 flex cursor-pointer items-center gap-2 text-xs">
+                                                <input type="checkbox" checked={formIds.includes(form.formId)} onChange={() => setFormIds((current) => (current.includes(form.formId) ? current.filter((id) => id !== form.formId) : [...current, form.formId]))} className="h-4 w-4" />
+                                                <span className="truncate">{form.title?.trim() || t('STAFF.API_KEYS.UNTITLED_FORM')}</span>
+                                            </label>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ))}
+                        {limitForms && moreForms && (
+                            <div className="pl-6">
+                                <Button size="sm" variant="v2GhostButton" onClick={() => setFormsPage((current) => current + 1)}>
+                                    {t('STAFF.API_KEYS.MORE_FORMS')}
+                                </Button>
+                            </div>
+                        )}
+                    </fieldset>
+                )}
                 {readsResponses && (
                     <div className="flex flex-col gap-2 rounded-md border border-[#F0D9B5] bg-[#FDF8EF] p-3" role="alert">
                         <p className="text-black-900 text-[13px] font-semibold">{t('STAFF.API_KEYS.WARN_TITLE')}</p>
@@ -183,7 +259,7 @@ export default function APIKeysPage() {
                     </div>
                 )}
                 <div>
-                    <Button size="medium" variant="primary" isLoading={isCreating} disabled={!name.trim() || scopes.length === 0 || (readsResponses && !acknowledged)} onClick={handleCreate}>
+                    <Button size="medium" variant="primary" isLoading={isCreating} disabled={!name.trim() || scopes.length === 0 || (readsResponses && !acknowledged) || (submits && limitForms && formIds.length === 0)} onClick={handleCreate}>
                         {t('STAFF.API_KEYS.CREATE')}
                     </Button>
                 </div>
@@ -213,6 +289,7 @@ export default function APIKeysPage() {
                                             </span>
                                         ))}
                                         <span className="text-black-600 text-[10.5px]">{key.lastUsedAt ? t('STAFF.API_KEYS.LAST_USED', { date: new Date(key.lastUsedAt).toLocaleString(locale) }) : t('STAFF.API_KEYS.NEVER_USED')}</span>
+                                        {key.scopes.includes(SUBMISSIONS_SCOPE.key) && <span className="text-black-600 text-[10.5px]">· {key.submissionFormIds?.length ? t('STAFF.API_KEYS.SUBMITS_TO_FORMS', { count: key.submissionFormIds.length }) : t('STAFF.API_KEYS.SUBMITS_TO_ALL')}</span>}
                                         {key.responsesReadAcknowledgedAt && <span className="text-black-600 text-[10.5px]">· {t('STAFF.API_KEYS.ACKNOWLEDGED_ON', { date: new Date(key.responsesReadAcknowledgedAt).toLocaleDateString(locale) })}</span>}
                                     </div>
                                 </div>

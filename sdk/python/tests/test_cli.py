@@ -129,3 +129,15 @@ def test_a_submission_file_takes_answers_and_hidden_fields_only(api, tmp_path):
     assert code == 1 and "consent" in err and "dataOwnerIdentifier" in err
     (tmp_path / "list.json").write_text("[]")
     assert run("submit", "f1", "list.json")[0] == 1
+
+
+def test_submit_names_the_optional_consent_items(api, tmp_path):
+    (tmp_path / "answers.json").write_text(json.dumps({"answers": {"name": "Ada"}}))
+    code, _, _ = run(
+        "submit", "f1", "answers.json", "--consent",
+        "--consent-item", "newsletter", "--consent-item", "research",
+    )
+    assert code == 0
+    assert api.consent_items == ["newsletter", "research"]
+    run("submit", "f1", "answers.json", "--consent")
+    assert api.consent_items is None
