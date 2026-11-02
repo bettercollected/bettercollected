@@ -10,6 +10,10 @@ class StaffAnswersPatch(CamelModel):
     Each is an answer as a respondent's submission carries it."""
 
     answers: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    # the number of the newest history entry the editor saw (0: none yet): the
+    # save is refused (409 ``response_changed``) when anything was recorded
+    # since. Left out: no check (an API caller that merges by itself).
+    expected_seq: Optional[int] = Field(None, ge=0, le=1_000_000)
 
 
 class StaffAnswersResult(CamelModel):

@@ -121,6 +121,9 @@ class ResponseImportDocument(Record):
     invalidated_at: Optional[dt.datetime] = None
     # one of our codes, never a message built from content
     error_code: Optional[str] = None
+    # a failed or cancelled import whose stored rows could not be deleted (the
+    # delete itself failed): the sweep and the undo try again
+    undo_pending: bool = False
     rolled_back_by: Optional[str] = None
     rolled_back_at: Optional[dt.datetime] = None
     rolled_back_count: Optional[int] = None

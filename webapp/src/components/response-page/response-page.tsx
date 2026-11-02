@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 
 import AnonymousBadge from '@Components/datatable/anonymous-badge';
+import ImportedBadge from '@Components/response-import/imported-badge';
 import InternalFieldsPanel from '@Components/form/internal-fields-panel';
 import RespondentFeedbackPanel from '@Components/form/respondent-feedback-panel';
 import DeleteIcon from '@Components/icons/delete';
@@ -273,7 +274,7 @@ const ResponseSummary = forwardRef<HTMLElement, { response: any; source?: { chan
             <dl className="flex flex-wrap items-start gap-x-10 gap-y-4">
                 <div className="flex min-w-0 flex-col gap-1">
                     <dt className="text-xs font-medium text-black-600">{t('RESPONSE_PAGE.RESPONDER')}</dt>
-                    <dd className="flex min-w-0 items-center text-base font-medium text-black-900">{response?.dataOwnerIdentifier ? <span className="truncate [overflow-wrap:anywhere]">{response.dataOwnerIdentifier}</span> : source ? <span data-testid="response-source-badge" className="w-fit rounded-full bg-black-100 px-2 py-0.5 text-xs font-medium text-black-700">{t('RESPONSE_PAGE.SOURCE_API_RESPONDER')}</span> : <AnonymousBadge />}</dd>
+                    <dd className="flex min-w-0 flex-wrap items-center gap-2 text-base font-medium text-black-900">{response?.dataOwnerIdentifier ? <span className="truncate [overflow-wrap:anywhere]">{response.dataOwnerIdentifier}</span> : source ? <span data-testid="response-source-badge" className="w-fit rounded-full bg-black-100 px-2 py-0.5 text-xs font-medium text-black-700">{t('RESPONSE_PAGE.SOURCE_API_RESPONDER')}</span> : <AnonymousBadge />}{response?.csvImportId && <ImportedBadge />}</dd>
                 </div>
                 <div className="flex flex-col gap-1">
                     <dt className="text-xs font-medium text-black-600">{t('RESPONSE_PAGE.SUBMITTED')}</dt>

@@ -10,7 +10,9 @@ import { AnswerDto, StandardFormDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@app/shadcn/components/ui/dialog';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { useEditResponseAnswersMutation } from '@app/store/workspaces/response-revisions-api';
+import { useAppDispatch } from '@app/store/hooks';
+import { SUBMISSION_TAG } from '@app/store/workspaces/api';
+import { RESPONSE_REVISIONS_TAG, responseRevisionsApi, useEditResponseAnswersMutation, useGetResponseRevisionsQuery } from '@app/store/workspaces/response-revisions-api';
 import { InternalInputValue } from '@app/utils/internal-fields';
 import { changedAnswers, editableQuestions, inputsFor, lockedQuestions, questionTitle } from '@app/utils/staff-answers';
 
@@ -34,6 +36,11 @@ function failureMessage(t: (key: string, options?: any) => string, error: any): 
 export default function EditAnswers({ workspaceId, formId, responseId, form, answers }: { workspaceId: string; formId: string; responseId: string; form: StandardFormDto; answers: Record<string, AnswerDto> }) {
     const { t } = useTranslation();
     const { toast } = useToast();
+    const dispatch = useAppDispatch();
+    const history = useGetResponseRevisionsQuery({ workspaceId, formId, responseId });
+    // the newest history entry this dialog was opened on: the server refuses the save when more were recorded since
+    const [openedSeq, setOpenedSeq] = useState<number | undefined>(undefined);
+    const [conflict, setConflict] = useState(false);
     const [open, setOpen] = useState(false);
     const [values, setValues] = useState<Record<string, InternalInputValue>>({});
     const [failure, setFailure] = useState<string | null>(null);
@@ -47,13 +54,26 @@ export default function EditAnswers({ workspaceId, formId, responseId, form, ans
     const show = () => {
         setValues(inputsFor(fields, answers));
         setFailure(null);
+        setConflict(false);
+        // 0 when none yet; unknown (no check sent) while the history has not loaded
+        const entries = history.data?.revisions;
+        setOpenedSeq(entries ? (entries.length ? Math.max(...entries.map((entry) => entry.seq)) : 0) : undefined);
         setOpen(true);
+    };
+
+    // the response changed meanwhile: fresh answers and history, and the dialog is opened again on them
+    const reload = () => {
+        dispatch(responseRevisionsApi.util.invalidateTags([SUBMISSION_TAG, RESPONSE_REVISIONS_TAG]));
+        setOpen(false);
+        setConflict(false);
+        toast({ description: t('RESPONSE_EDIT.RELOADED') });
     };
 
     const submit = async () => {
         setFailure(null);
-        const result: any = await save({ workspaceId, formId, responseId, answers: changes });
+        const result: any = await save({ workspaceId, formId, responseId, answers: changes, expectedSeq: openedSeq });
         if (result?.error) {
+            setConflict(result.error?.data?.code === 'response_changed');
             setFailure(failureMessage(t, result.error));
             return;
         }
@@ -93,8 +113,13 @@ export default function EditAnswers({ workspaceId, formId, responseId, form, ans
                             {t('RESPONSE_EDIT.LOCKED', { questions: locked.map((field) => questionTitle(field) || t('RESPONSE_EDIT.UNTITLED')).join(', ') })}
                         </p>
                     )}
-                    <div role="alert" aria-live="assertive" className={failure ? 'text-danger-700 text-sm' : 'sr-only'}>
-                        {failure}
+                    <div role="alert" aria-live="assertive" className={failure ? 'text-danger-700 flex flex-col items-start gap-2 text-sm' : 'sr-only'}>
+                        <span>{failure}</span>
+                        {conflict && (
+                            <Button variant="v2Button" size="sm" onClick={reload}>
+                                {t('RESPONSE_EDIT.RELOAD')}
+                            </Button>
+                        )}
                     </div>
                     <DialogFooter className="gap-2">
                         <Button variant="v2Button" onClick={() => setOpen(false)} disabled={isLoading}>

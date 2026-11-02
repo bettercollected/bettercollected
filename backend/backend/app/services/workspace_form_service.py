@@ -108,6 +108,7 @@ from backend.app.services.option_sources.checks import (
 )
 from backend.app.schemas.response_revision import RevisionEditor
 from backend.app.schemas.standard_form_response import DeletionRequestStatus
+from backend.app.services.response_revisions import audit as response_audit
 from backend.app.services.response_revisions.mode import (
     ensure_enabled as ensure_response_revisions_enabled,
     response_revisions_enabled,
@@ -441,11 +442,14 @@ class WorkspaceFormService:
         response_export_service=None,
         option_source_service=None,
         member_directory=None,
+        audit_repo=None,
     ):
         # options from a list or from another form's answers
         self._option_source_service = option_source_service
         # names and roles of staff members (the revision log records the role)
         self._member_directory = member_directory
+        # the workspace audit log (staff edits of answers are written to it)
+        self._audit_repo = audit_repo
         # who the "send me a copy" action may mail (services/copy_recipient.py)
         self._copy_recipient_service = copy_recipient_service
         self.form_provider_service = form_provider_service
@@ -1360,6 +1364,7 @@ class WorkspaceFormService:
         response_id: RecordId,
         answers: Dict[str, Dict[str, Any]],
         user: User,
+        expected_seq: Optional[int] = None,
     ) -> Dict[str, Any]:
         """A staff member changes answers of a stored response
         (``response.edit`` and ``response.read``, behind
@@ -1367,7 +1372,11 @@ class WorkspaceFormService:
         respondent's own edit (``_apply_edit``), against the form version the
         response was given in; the edit and its history entry are one
         transaction. No notice goes to the respondent and no action, webhook
-        or email action runs again."""
+        or email action runs again. ``expected_seq``: the newest history entry
+        the editor saw; refused 409 ``response_changed`` when more were
+        recorded since (checked under the response's lock). A deletion request
+        and the edit are also checked under that lock. The edit is audited
+        (ids only)."""
         ensure_response_revisions_enabled()
         for permission in (Permission.RESPONSE_EDIT, Permission.RESPONSE_READ):
             await self.authorization_service.authorize(
@@ -1460,7 +1469,18 @@ class WorkspaceFormService:
             ),
             record=True,
             outcome=outcome,
+            expected_seq=expected_seq,
         )
+        if outcome.get("changed"):
+            await response_audit.record(
+                self._audit_repo,
+                response_audit.RESPONSE_STAFF_EDIT,
+                workspace_id,
+                user,
+                form_id=str(form_id),
+                response_id=str(response_id),
+                revision=outcome.get("seq"),
+            )
         return {"changed": outcome.get("changed", []), "revision": outcome.get("seq")}
 
     async def _apply_edit(
@@ -1480,6 +1500,7 @@ class WorkspaceFormService:
         editor: Optional[RevisionEditor] = None,
         record: bool = False,
         outcome: Optional[dict] = None,
+        expected_seq: Optional[int] = None,
     ):
         """The checks every edit of a stored response passes, whoever makes it,
         then the merge: the respondent's own edit (``user``), an API key's edit
@@ -1617,6 +1638,7 @@ class WorkspaceFormService:
             editor=editor,
             record=record,
             outcome=outcome,
+            expected_seq=expected_seq,
         )
         # the images the edit replaced go only once the edit is stored
         await delete_stored_images(
@@ -2385,17 +2407,33 @@ class _after_commit:
         return False
 
 
-# the questions staff cannot change: a drawn or typed signature is the
-# respondent's own mark and carries a server stamp, a file needs an upload, and
-# an answer other forms offer as a choice (shareAsChoices) is not text the
-# respondent gave to be shared
-_STAFF_LOCKED_TYPES = {"signature", "file_upload", "input_file_upload"}
+# The question types staff can write an answer to: exactly the ones the
+# dashboard's editor offers (a type that needs more than a value, such as a
+# signature, a file, a payment, an address, a group or a table, is not here,
+# nor is a hidden field or any type this list does not know). Everything else
+# is refused, so a new type is not writable until it is added on purpose.
+STAFF_WRITABLE_TYPES = frozenset(
+    {
+        "short_text",
+        "long_text",
+        "number",
+        "date",
+        "email",
+        "url",
+        "phone_number",
+        "multiple_choice",
+        "dropdown",
+        "yes_no",
+    }
+)
 
 
 def _not_staff_editable(forms, answers) -> List[str]:
     """Ids of the questions among ``answers`` that staff cannot change: those
-    that are a locked type, or shared as choices, in any of ``forms`` (the
-    versions that count; None entries are skipped)."""
+    whose type is not in ``STAFF_WRITABLE_TYPES``, or that other forms offer as
+    choices (shareAsChoices), in any of ``forms`` (the versions that count;
+    None entries are skipped). An id no version has is not listed here: the
+    edit drops it, as for a respondent."""
     locked: set = set()
 
     def walk(fields):
@@ -2403,7 +2441,7 @@ def _not_staff_editable(forms, answers) -> List[str]:
             field_id = getattr(field, "id", None)
             if field_id:
                 kind = getattr(field, "type", None)
-                if str(getattr(kind, "value", kind)) in _STAFF_LOCKED_TYPES:
+                if str(getattr(kind, "value", kind)) not in STAFF_WRITABLE_TYPES:
                     locked.add(str(field_id))
             walk(getattr(getattr(field, "properties", None), "fields", None))
 
@@ -2412,6 +2450,7 @@ def _not_staff_editable(forms, answers) -> List[str]:
             continue
         walk(getattr(form, "fields", None))
         locked.update(shared_question_ids(form))
+    # (pages are no question: nothing is answered under their id)
     return sorted(k for k in answers if k in locked)
 
 

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { utcToLocalDateTimeIn } from '@app/utils/date-utils';
 
+import ImportedBadge from '../response-import/imported-badge';
 import AnonymousBadge from './anonymous-badge';
 
 export interface ResponseCardPreview {
@@ -45,6 +46,7 @@ export default function ResponseCards({ responses, hrefFor, previews }: Props) {
                         >
                             {owner ? <span className="truncate text-sm font-medium text-black-900">{owner}</span> : <AnonymousBadge />}
                         </Link>
+                        {response.csvImportId && <ImportedBadge />}
                         <p className="text-xs text-black-600">
                             {t('RESPONSES_STAFF.SUBMITTED_AT', { time: submitted })}
                             {typeof response.formVersion === 'number' && <span> · {t('RESPONSES_STAFF.VERSION_SHORT', { n: response.formVersion })}</span>}

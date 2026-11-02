@@ -1051,6 +1051,7 @@ class FormResponseService:
         record: bool = False,
         outcome: Optional[dict] = None,
         source_key_id: Optional[str] = None,
+        expected_seq: Optional[int] = None,
     ):
         """``document_id``: the ``_id`` of the workspace's own copy, as
         ``workspace_response`` found it. ``source_key_id``: an API key editing
@@ -1067,6 +1068,7 @@ class FormResponseService:
             record=record,
             outcome=outcome,
             source_key_id=source_key_id,
+            expected_seq=expected_seq,
         )
         return updated_response
 

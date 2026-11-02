@@ -163,7 +163,9 @@ VALUE_TYPES = TEXT_TYPES | CHOICE_TYPES | {
 # retitled or described by a rule (never set or locked: the form cannot invent an
 # address or sign for the respondent).
 NOT_RULE_TARGETS = (NOT_VARIABLES - {"address", "signature"}) | {CALCULATED, GROUP}
-_PIPE = re.compile(r"\{\{\s*(field|hidden|group)\s*:\s*([^|}]*?)\s*(?:\|[^}]*)?\}\}")
+# no whitespace quantifier next to the key's own class (the key is stripped below): two adjacent
+# quantifiers that both match spaces backtrack cubically on "{{field:" followed by many spaces
+_PIPE = re.compile(r"\{\{\s*(field|hidden|group)\s*:([^|{}]*)(?:\|[^{}]*)?\}\}")
 _ANSWER_TYPE = {
     "short_text": "text",
     "long_text": "text",
@@ -1338,6 +1340,7 @@ class _Checker:
         name = _title(target.field)
         siblings = _sibling_ids(target) if target.group is not None else set()
         for kind, key in _PIPE.findall(text):
+            key = key.strip()
             ok = True
             if kind == "hidden":
                 ok = key in self.hidden_names

@@ -32,6 +32,7 @@ from backend.jobs.app import (
     DEFAULT_QUEUE,
     EMAILS_QUEUE,
     EXPORTS_QUEUE,
+    IMPORTS_QUEUE,
     WEBHOOKS_QUEUE,
     app,
 )
@@ -496,7 +497,7 @@ async def response_export_purge(timestamp: int) -> str:
 
 @app.task(
     name="run_response_import",
-    queue=EXPORTS_QUEUE,
+    queue=IMPORTS_QUEUE,
 )
 async def run_response_import(import_id: str) -> str:
     """Check or run an import of submissions from a CSV file
@@ -515,11 +516,16 @@ async def run_response_import(import_id: str) -> str:
     queueing_lock="response_import_redefer",
 )
 async def response_import_redefer(timestamp: int) -> str:
-    """Every 5 minutes: queue again imports whose job was never queued, fail those
-    that waited too long and those whose worker died (an import that stored rows
-    undoes them). Cheap; the hourly sweep also does it. Counts only."""
+    """Every 5 minutes: delete the uploads nobody used within their hour, fail
+    (and undo) imports busy past it, queue again imports whose job was never
+    queued, fail those that waited too long and those whose worker died, and try
+    again the cleanups that failed. Cheap; the hourly sweep also does it. Counts
+    only."""
     counts = await _container().response_import_service().redefer_pending()
-    return f"{counts['queued']} queued, {counts['failed']} failed"
+    return (
+        f"{counts['expired']} expired, {counts['queued']} queued, "
+        f"{counts['failed']} failed, {counts['undone']} undone"
+    )
 
 
 @app.periodic(cron="23 * * * *", periodic_id="response_import_sweep")
@@ -536,7 +542,7 @@ async def response_import_sweep(timestamp: int) -> str:
     counts = await _container().response_import_service().purge_expired()
     return (
         f"{counts['expired']} expired, {counts['orphans']} orphans, "
-        f"{counts['queued']} queued, {counts['failed']} failed"
+        f"{counts['queued']} queued, {counts['failed']} failed, {counts['undone']} undone"
     )
 
 

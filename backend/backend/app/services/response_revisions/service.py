@@ -32,6 +32,10 @@ from backend.app.schemas.response_revision import (
     seal_context,
 )
 from backend.app.services.form_versions.compare import plain
+from backend.app.services.response_revisions.audit import (
+    RESPONSE_REVISION_READ,
+    record_or_refuse,
+)
 from backend.app.services.response_revisions.mode import ensure_enabled
 
 
@@ -77,7 +81,9 @@ class ResponseRevisionService:
         revision_repo,
         form_repo,
         member_directory,
+        audit_repo=None,
     ):
+        self._audit = audit_repo
         self._authorization = authorization_service
         self._responses = form_response_service
         self._revisions = revision_repo
@@ -163,6 +169,17 @@ class ResponseRevisionService:
         entry = await self._revisions.get(response.id, seq)
         if entry is None:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        # every read of previous values is recorded first (ids only, never a
+        # value); not recorded, not opened
+        await record_or_refuse(
+            self._audit,
+            RESPONSE_REVISION_READ,
+            workspace_id,
+            user,
+            form_id=form_id,
+            response_id=response_id,
+            revision=entry.seq,
+        )
         values: Dict[str, Optional[Dict[str, Any]]] = {}
         if entry.previous_values:
             try:

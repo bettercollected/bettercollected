@@ -19,6 +19,81 @@ import { OpenFormulierenExport, openFormulierenExportOf } from '@app/utils/open-
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
+export type ResponseImportStatus = 'uploaded' | 'checking' | 'checked' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'rolled_back' | 'discarded' | 'expired';
+
+/** A column an import may fill: the export's own column keys (docs/response-import.md). */
+export interface ResponseImportTarget {
+    key: string;
+    label: string;
+    kind: 'question' | 'internal' | 'hidden' | 'meta' | 'responder';
+    /** ok: may be mapped; ignored: left out on purpose; unsupported: cannot be imported */
+    status: 'ok' | 'ignored' | 'unsupported';
+    reason?: string | null;
+    fieldId?: string | null;
+    type?: string | null;
+    groupId?: string | null;
+    item?: number | null;
+}
+
+/** One problem of a row: a code, never a value. `column` is the file's column position, null for the row as a whole. */
+export interface ResponseImportProblem {
+    row: number;
+    column: number | null;
+    code: string;
+    field?: string;
+    item?: number;
+}
+
+export interface ResponseImportDto {
+    id: string;
+    formId: string;
+    status: ResponseImportStatus;
+    mode?: 'check' | 'import' | null;
+    fileSize: number;
+    encoding?: string | null;
+    separator?: string | null;
+    rowCount: number;
+    columnCount: number;
+    headers: string[];
+    /** the file's column position (as text) -> target key */
+    mapping: Record<string, string>;
+    options: { skipInvalidRows?: boolean };
+    rowsValid?: number | null;
+    rowsInvalid?: number | null;
+    rowsImported?: number | null;
+    rowsSkipped?: number | null;
+    problems: ResponseImportProblem[];
+    problemCounts: Record<string, number>;
+    problemsTruncated: boolean;
+    notes: Array<{ column: number; code: string }>;
+    progress: number;
+    errorCode?: string | null;
+    byMe?: boolean;
+    createdAt?: string;
+    checkedAt?: string | null;
+    finishedAt?: string | null;
+    expiresAt?: string | null;
+    rolledBackAt?: string | null;
+    rolledBackCount?: number | null;
+    canRollback?: boolean;
+    rollbackUntil?: string | null;
+    /** only while the file waits (uploaded or checked) */
+    targets?: ResponseImportTarget[];
+}
+
+export interface ResponseImportRequest {
+    mapping: Record<string, string>;
+    skipInvalidRows?: boolean;
+    confirmedLawfulBasis?: boolean;
+}
+
+/** The server's refusal of an import call: a stable code and, for 429, when to try again (Retry-After). */
+export interface ResponseImportRefusal {
+    code?: string;
+    message?: string;
+    row?: number;
+}
+
 export type ResponseExportStatus = 'queued' | 'running' | 'ready' | 'discarded' | 'expired' | 'erased' | 'failed' | 'cancelled' | 'streaming' | 'completed';
 
 export interface ResponseExportDto {
@@ -311,6 +386,36 @@ export const workspacesApi = createApi({
         downloadResponseExport: builder.mutation<Blob, { downloadUrl: string }>({
             query: ({ downloadUrl }) => ({ url: downloadUrl, method: 'GET', responseHandler: responseExportFileHandler })
         }),
+        // Import submissions from a CSV file (response.import, docs/response-import.md): the
+        // file is the request body; a check and a run are background jobs to follow with
+        // getResponseImport.
+        uploadResponseImport: builder.mutation<ResponseImportDto, { workspaceId: string; formId: string; file: File }>({
+            query: ({ workspaceId, formId, file }) => ({
+                url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/imports`,
+                method: 'POST',
+                body: file,
+                headers: { 'Content-Type': 'text/csv' }
+            })
+        }),
+        getResponseImports: builder.query<ResponseImportDto[], { workspaceId: string; formId: string }>({
+            query: ({ workspaceId, formId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/imports`, method: 'GET' })
+        }),
+        getResponseImport: builder.query<ResponseImportDto, { workspaceId: string; formId: string; importId: string }>({
+            query: ({ workspaceId, formId, importId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/imports/${pathSegment(importId)}`, method: 'GET' })
+        }),
+        checkResponseImport: builder.mutation<ResponseImportDto, { workspaceId: string; formId: string; importId: string } & ResponseImportRequest>({
+            query: ({ workspaceId, formId, importId, ...body }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/imports/${pathSegment(importId)}/check`, method: 'POST', body })
+        }),
+        runResponseImport: builder.mutation<ResponseImportDto, { workspaceId: string; formId: string; importId: string } & ResponseImportRequest>({
+            query: ({ workspaceId, formId, importId, ...body }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/imports/${pathSegment(importId)}/run`, method: 'POST', body })
+        }),
+        rollbackResponseImport: builder.mutation<ResponseImportDto, { workspaceId: string; formId: string; importId: string }>({
+            query: ({ workspaceId, formId, importId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/imports/${pathSegment(importId)}/rollback`, method: 'POST', body: {} }),
+            invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
+        }),
+        discardResponseImport: builder.mutation<null, { workspaceId: string; formId: string; importId: string }>({
+            query: ({ workspaceId, formId, importId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/imports/${pathSegment(importId)}`, method: 'DELETE' })
+        }),
         // The PDF of one response (response.read, docs/response-export.md): drawn when asked,
         // never stored; the language and the time zone are the viewer's.
         downloadResponsePdf: builder.mutation<ResponsePdf, { workspaceId: string; responseId: string; lang?: string; tz?: string }>({
@@ -517,7 +622,7 @@ export const workspacesApi = createApi({
         // The caller's effective permissions in a workspace (empty for a
         // non-member). Kept a while: many controls read it. The user id is
         // part of the cache key only, so one user never reads another's.
-        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean; choiceLogicEnabled?: boolean; newQuestionTypesEnabled?: boolean; addressQuestionEnabled?: boolean; addressLookupEnabled?: boolean; signatureQuestionEnabled?: boolean; optionSourcesEnabled?: boolean; reusableSectionsEnabled?: boolean; layoutContainersEnabled?: boolean; saveDraftsEnabled?: boolean; submissionsApiEnabled?: boolean; formRevisionsUiEnabled?: boolean; responseRevisionsEnabled?: boolean; formEmbedEnabled?: boolean }, { workspaceId: string; userId: string }>({
+        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean; choiceLogicEnabled?: boolean; newQuestionTypesEnabled?: boolean; addressQuestionEnabled?: boolean; addressLookupEnabled?: boolean; signatureQuestionEnabled?: boolean; optionSourcesEnabled?: boolean; reusableSectionsEnabled?: boolean; layoutContainersEnabled?: boolean; saveDraftsEnabled?: boolean; submissionsApiEnabled?: boolean; formRevisionsUiEnabled?: boolean; responseRevisionsEnabled?: boolean; formEmbedEnabled?: boolean; csvImportEnabled?: boolean }, { workspaceId: string; userId: string }>({
             query: ({ workspaceId }) => ({
                 url: `/workspaces/${workspaceId}/permissions`,
                 method: 'GET'
@@ -927,6 +1032,13 @@ export const {
     useGetResponseExportQuery,
     useDownloadResponseExportMutation,
     useDiscardResponseExportMutation,
+    useUploadResponseImportMutation,
+    useGetResponseImportsQuery,
+    useGetResponseImportQuery,
+    useCheckResponseImportMutation,
+    useRunResponseImportMutation,
+    useRollbackResponseImportMutation,
+    useDiscardResponseImportMutation,
     useDownloadResponsePdfMutation,
     useVerifyWorkspaceDomainQuery,
     useRecheckWorkspaceDomainMutation,

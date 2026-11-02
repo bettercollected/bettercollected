@@ -2336,3 +2336,36 @@ def test_the_budget_test_form_of_the_webapp_is_over_budget_here_too():
     _, states = resolve_field_rules(one, answers)
     assert states.texts
     assert field_rules.FieldRulesTooCostly is FieldRulesTooCostly
+
+
+# --- the pipe pattern -------------------------------------------------------------
+
+
+def test_the_pipe_pattern_is_linear_on_long_runs_of_spaces():
+    # "{{field:" followed by many spaces used to backtrack cubically (800 spaces took seconds)
+    import time
+
+    from backend.app.services.field_rules import _PIPE
+
+    for text in ("{{field:" + " " * 200_000, "{{ field :" + " " * 100_000 + "|" + " " * 100_000):
+        started = time.monotonic()
+        assert _PIPE.findall(text) == []
+        assert time.monotonic() - started < 0.5
+
+
+@pytest.mark.parametrize(
+    "text, found",
+    [
+        ("{{ field : abc | fb }}", [("field", "abc")]),
+        ("{{field: g }}", [("field", "g")]),
+        ("{{group:g:sum:c}}", [("group", "g:sum:c")]),
+        ("{{hidden:n|d}}", [("hidden", "n")]),
+        ("a {{field:x}} b {{hidden:y}}", [("field", "x"), ("hidden", "y")]),
+        ("{{field:}}", [("field", "")]),
+        ("{{nothing:x}}", []),
+    ],
+)
+def test_the_pipe_pattern_reads_the_same_tokens_with_the_key_stripped(text, found):
+    from backend.app.services.field_rules import _PIPE
+
+    assert [(kind, key.strip()) for kind, key in _PIPE.findall(text)] == found
