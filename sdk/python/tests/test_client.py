@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from bettercollected import BetterCollected, BetterCollectedError, FormSpec
@@ -110,3 +112,26 @@ def test_trailing_slashes_are_dropped(api):
     with BetterCollected(KEY, "https://x.test///", transport=api.transport()) as c:
         c.list_forms()
     assert api.requests[-1].url.path == "/api/v1/public/v1/forms"
+
+
+def test_create_and_update_a_submission(api, client):
+    api.add("f1", SPEC)
+    created = client.create_submission(
+        "f1", {"name": "Ada"}, consent=True, idempotency_key="order-1"
+    )
+    assert created.response_id == "r1" and created.form_version == 1
+    sent = api.requests[-1]
+    assert sent.url.path == "/api/v1/public/v1/forms/f1/submissions"
+    assert sent.headers["Idempotency-Key"] == "order-1"
+    assert json.loads(sent.content) == {"answers": {"name": "Ada"}, "consent": True}
+    updated = client.update_submission("f1", "r1", {"name": "Ada L."})
+    assert updated.response_id == "r1"
+    assert api.requests[-1].method == "PATCH"
+    assert api.submissions["r1"] == {"name": "Ada L."}
+
+
+def test_a_submission_without_consent_is_refused_with_its_code(api, client):
+    api.add("f1", SPEC)
+    with pytest.raises(BetterCollectedError) as refused:
+        client.create_submission("f1", {"name": "Ada"})
+    assert refused.value.status == 422 and refused.value.code == "consent_required"

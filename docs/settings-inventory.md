@@ -90,6 +90,7 @@ environment, whatever the tier.
 | `COUPON_ENABLED` | features | backend | bool |  | R | T1 | `false` |
 | `ENABLE_SUGGEST_PRICE` | features | backend | bool |  | R | T1 | `false` |
 | `FIELD_RULES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
+| `FORM_EMBED_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `LAYOUT_CONTAINERS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `NEW_QUESTION_TYPES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `OPTION_SOURCES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
@@ -97,6 +98,7 @@ environment, whatever the tier.
 | `RESPONSE_VALIDATION_ENFORCE` | features | backend | bool |  | R | T2 | `true` |
 | `SAVE_DRAFTS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `SIGNATURE_QUESTION_ENABLED` | features | backend | bool |  | R | T2 | `false` |
+| `SUBMISSIONS_API_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `AUTH_CALLBACK_URI` | google | backend | url |  | R | T3 |  |
 | `GOOGLE_API_SERVICE_NAME` | google | google | str max 64 |  | R | T1 | `drive` |
 | `GOOGLE_API_VERSION` | google | google | str max 16 |  | R | T1 | `v2` |
@@ -301,11 +303,13 @@ environment, whatever the tier.
 | `PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX` | pdf_import | backend | bool |  | R | T5 | `false` |
 | `PDF_IMPORT_SANDBOX_SOCKET` | pdf_import | backend | str |  | R | T5 |  |
 | `ACTION_EGRESS_ALLOW` | services | actions_executor | str |  | R | T5 |  |
+| `ACTION_EXECUTOR_KEY_ALLOWED` | services | actions_executor | bool |  | R | T5 | `true` |
 | `ACTION_ISOLATION` | services | actions_executor | enum enforce/legacy |  | R | T5 | `enforce` |
 | `ACTION_SANDBOX_CPU_SECONDS` | services | actions_executor | int 1..120 |  | R | T5 | `10` |
 | `ACTION_SANDBOX_MAX_CALLS` | services | actions_executor | int 1..500 |  | R | T5 | `20` |
 | `ACTION_SANDBOX_MEMORY_MB` | services | actions_executor | int 32..4096 |  | R | T5 | `256` |
 | `ACTION_SANDBOX_TIMEOUT_SECONDS` | services | actions_executor | int 1..120 |  | R | T5 | `30` |
+| `ACTION_SECRETS_SEALED_ALLOWED` | services | backend | bool |  | R | T5 | `true` |
 | `AES_HEX_KEY` | services | temporal_worker | str | yes | R | T5 |  |
 | `API_KEY` | services | temporal_worker | str | yes | R | T5 |  |
 | `AUTH_BASE_URL` | services | backend | url |  | R | T5 |  |
@@ -337,7 +341,6 @@ environment, whatever the tier.
 | `INTERNAL_DOCKER_API_ENDPOINT_HOST` | webapp | webapp | str |  | R | T5 |  |
 | `NEXT_PUBLIC_API_ENDPOINT_HOST` | webapp | webapp | str |  | B | T5 |  |
 | `NEXT_PUBLIC_APP_URL` | webapp | webapp | str |  | B | T5 |  |
-| `NEXT_PUBLIC_DASHBOARD_DOMAIN` | webapp | webapp | str |  | B | T5 |  |
 | `NEXT_PUBLIC_NODE_ENV` | webapp | webapp | str |  | B | T5 |  |
 | `UMAMI_SCRIPT_URL` | webapp | webapp | str |  | R | T5 |  |
 

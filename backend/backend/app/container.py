@@ -120,6 +120,7 @@ from backend.app.services.ai.api_keys import APIKeyService
 from backend.app.services.ai.chat import FormAIChatService
 from backend.app.services.ai.proposals import FormAIProposalService
 from backend.app.services.ai.consent import AIConsentService
+from backend.app.services.form_embed import FormEmbedService
 from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.ai.insights import FormAIInsightsService
@@ -798,6 +799,12 @@ class AppContainer(containers.DeclarativeContainer):
 
     ai_consent_service: AIConsentService = providers.Singleton(
         AIConsentService,
+        workspace_repo=workspace_repo,
+        authorization_service=authorization_service,
+    )
+
+    form_embed_service: FormEmbedService = providers.Singleton(
+        FormEmbedService,
         workspace_repo=workspace_repo,
         authorization_service=authorization_service,
     )

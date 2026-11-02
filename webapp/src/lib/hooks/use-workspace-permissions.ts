@@ -67,5 +67,7 @@ export function useWorkspacePermissions() {
     const layoutContainersEnabled = !!userId && !isError && !!data?.layoutContainersEnabled;
     // ...and whether it lets respondents save drafts (its SAVE_DRAFTS_ENABLED): the setting is read-only while it is off.
     const saveDraftsEnabled = !!userId && !isError && !!data?.saveDraftsEnabled;
-    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, optionSourcesEnabled, reusableSectionsEnabled, layoutContainersEnabled, saveDraftsEnabled };
+    // ...and embedding forms in other sites (its FORM_EMBED_ENABLED): the share dialog's Embed tab and the Embedding settings.
+    const formEmbedEnabled = !!userId && !isError && !!data?.formEmbedEnabled;
+    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, optionSourcesEnabled, reusableSectionsEnabled, layoutContainersEnabled, saveDraftsEnabled, formEmbedEnabled };
 }

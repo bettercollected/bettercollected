@@ -23,6 +23,7 @@ const LABELS: Record<string, string> = {
     'WORKSPACE_SECTIONS.CASE_SYSTEM': 'Case system',
     'WORKSPACE_SECTIONS.LISTS': 'Lists',
     'WORKSPACE_SECTIONS.SECTIONS': 'Reusable sections',
+    'WORKSPACE_SECTIONS.EMBEDDING': 'Embedding',
     'WORKSPACE_SECTIONS.AI': 'AI'
 };
 const t = (key: string) => LABELS[key] ?? key;
@@ -45,6 +46,14 @@ describe('the Workspace group', () => {
 
     it('shows an owner Members, Themes, Single sign-on and AI, in that order', () => {
         expect(names(visible(OWNER))).toEqual(['Members', 'Themes', 'Single sign-on', 'AI']);
+    });
+
+    it('shows Embedding to admins only while this server has embedding on, before AI', () => {
+        const withEmbedding = (can: (p: string) => boolean) => visibleNavItems(workspaceNavItems({ workspaceName: 'acme', t, can, ssoEnabled: true, embedEnabled: true }), can);
+        expect(names(withEmbedding(OWNER))).toEqual(['Members', 'Themes', 'Single sign-on', 'Embedding', 'AI']);
+        expect(names(withEmbedding(MEMBER))).toEqual(['AI']);
+        expect(names(visible(OWNER))).not.toContain('Embedding');
+        expect(withEmbedding(OWNER).find((item) => item.name === 'Embedding')?.url).toBe('/acme/dashboard/embedding');
     });
 
     it('shows a member without manage permissions only AI, opening on Memory', () => {

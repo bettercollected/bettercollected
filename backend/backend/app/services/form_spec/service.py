@@ -97,7 +97,8 @@ def parse_json_document(body: bytes) -> Any:
     """``body`` as JSON, 422 when it is not."""
     try:
         return json.loads(body)
-    except ValueError:
+    except (ValueError, RecursionError):
+        # (a body of thousands of nested brackets is a RecursionError)
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             content={"message": "The body is not valid JSON."},

@@ -32,7 +32,14 @@ VALID_SCOPES = {
     "responses:read",
     "deletion_requests:read",
     "deletion_requests:write",
+    # its own scope, never implied by another: the key writes responses as the
+    # respondent's submit path accepts them (docs/submissions-api.md); only
+    # while SUBMISSIONS_API_ENABLED is on
+    "submissions:write",
 }
+SUBMISSIONS_SCOPE = "submissions:write"
+# at most this many forms in a key's submission form list
+MAX_SUBMISSION_FORMS = 200
 
 TOKEN_PREFIX = "bc_"
 # Scopes that hand respondents' answers, unredacted, to whatever holds the key.
@@ -49,6 +56,11 @@ class CreateAPIKeyDto(_CamelModel):
     # required with responses:read: the admin acknowledges that the key gives
     # an external AI client full, unredacted answers
     acknowledge_unredacted_responses: bool = False
+    # with submissions:write: the forms the key may submit to (none = every
+    # form of the workspace); each must be a form of this workspace
+    submission_form_ids: Optional[List[str]] = Field(
+        None, max_length=MAX_SUBMISSION_FORMS
+    )
 
 
 class APIKeyDto(_CamelModel):
@@ -61,6 +73,8 @@ class APIKeyDto(_CamelModel):
     last_used_at: Optional[dt.datetime] = None
     responses_read_acknowledged_by: Optional[str] = None
     responses_read_acknowledged_at: Optional[dt.datetime] = None
+    # forms a submissions:write key is limited to (None = every form)
+    submission_form_ids: Optional[List[str]] = None
 
 
 class CreatedAPIKeyDto(APIKeyDto):
@@ -83,6 +97,7 @@ def _to_dto(document: WorkspaceAPIKeyDocument) -> APIKeyDto:
         last_used_at=document.last_used_at,
         responses_read_acknowledged_by=document.responses_read_acknowledged_by,
         responses_read_acknowledged_at=document.responses_read_acknowledged_at,
+        submission_form_ids=document.submission_form_ids,
     )
 
 
@@ -114,6 +129,16 @@ class APIKeyService:
                 status_code=HTTPStatus.BAD_REQUEST,
                 content=f"Unknown scopes: {', '.join(sorted(invalid))}. Valid: {', '.join(sorted(VALID_SCOPES))}",
             )
+        submits = SUBMISSIONS_SCOPE in dto.scopes
+        if submits:
+            from backend.app.services.submissions_api.mode import (
+                refuse_scope_when_off,
+            )
+
+            refuse_scope_when_off()
+        form_ids = await self._checked_submission_forms(
+            workspace_id, dto.submission_form_ids, submits
+        )
         reads_responses = bool(set(dto.scopes) & UNREDACTED_RESPONSE_SCOPES)
         if reads_responses and not dto.acknowledge_unredacted_responses:
             raise HTTPException(
@@ -131,6 +156,7 @@ class APIKeyService:
             prefix=token[: len(TOKEN_PREFIX) + 8],
             scopes=sorted(set(dto.scopes)),
             created_by=user.id,
+            submission_form_ids=form_ids,
             responses_read_acknowledged_by=str(user.id) if reads_responses else None,
             responses_read_acknowledged_at=(
                 dt.datetime.now(dt.timezone.utc) if reads_responses else None
@@ -138,6 +164,39 @@ class APIKeyService:
         )
         await self._api_key_repo.save(document)
         return CreatedAPIKeyDto(**_to_dto(document).model_dump(), token=token)
+
+    async def _checked_submission_forms(
+        self,
+        workspace_id: RecordId,
+        form_ids: Optional[List[str]],
+        submits: bool,
+    ) -> Optional[List[str]]:
+        """The key's form list: None (every form) or ids of this workspace's
+        forms; a list needs the scope it limits."""
+        if form_ids is None:
+            return None
+        if not submits:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                content=f"submissionFormIds needs the '{SUBMISSIONS_SCOPE}' scope.",
+            )
+        wanted = sorted(set(form_ids))
+        if not wanted:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                content="Name at least one form, or leave submissionFormIds out "
+                "for every form of the workspace.",
+            )
+        known = {
+            str(a.form_id)
+            for a in await _c().workspace_form_repo().list_in_workspace(workspace_id)
+        }
+        if not set(wanted) <= known:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                content="submissionFormIds names a form that is not in this workspace.",
+            )
+        return wanted
 
     async def list_keys(
         self, workspace_id: RecordId, user: User

@@ -4,12 +4,14 @@ back in plain, on the run's own route, to seal it. An older executor, which asks
 for nothing, gets what it always got."""
 
 import json
+import time
 
 import pytest
 from common.models.standard_form import ParameterValue
 
 from backend.app.container import container
-from backend.app.services.action_run_token import HEADER, run_token
+from backend.app.services.action_run_token import HEADER, TTL_SECONDS, run_token
+from backend.config import settings
 from tests.app.jobs.test_action_runs import (  # noqa: F401 - fixtures and helpers
     ANSWER,
     JOB_KEY,
@@ -406,3 +408,334 @@ class TestTheRefreshedCredentialGoesBackInPlain:
             **payload,
         )
         assert got.status_code == 422
+
+
+# ---- what the release hardening adds ------------------------------------------------
+
+OTHER_ACTION = "65b0000000000000000000aa"
+OTHER_SECRET = "SECRET-OF-ANOTHER-ACTION-IN-PLAIN"
+
+
+def _key_only_url(form, action):
+    return f"/api/v1/temporal/forms/{form.form_id}/actions/{action.id}/secrets"
+
+
+def _key_only(client, form, action, **payload):
+    body = {"name": "Credentials", "value": sealed('{"token": "old"}'), "type": "secrets"}
+    body.update(payload)
+    return client.patch(
+        _key_only_url(form, action), headers={"api-key": JOB_KEY}, json=body
+    )
+
+
+@pytest.fixture
+def sealed_off(monkeypatch):
+    """The 4.3 deploy: ``ACTION_SECRETS_SEALED_ALLOWED`` turned off."""
+    monkeypatch.setattr(settings, "ACTION_SECRETS_SEALED_ALLOWED", False)
+
+
+class TestSealedModeCanBeSwitchedOff:
+    async def test_it_is_allowed_by_default_for_executors_that_are_not_upgraded(
+        self, client, workspace, configured_form, partner_action, memory_jobs
+    ):
+        assert settings.ACTION_SECRETS_SEALED_ALLOWED is True
+        await _seal_credentials(workspace, configured_form, partner_action)
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        got = await _ask(
+            client, workspace, configured_form, partner_action, response.response_id
+        )
+        assert got.status_code == 200 and "secrets_plain" not in got.json()
+        written = await _key_only(client, configured_form, partner_action)
+        assert written.status_code == 200
+
+    @pytest.mark.parametrize("body", [None, {"secrets": "sealed"}])
+    async def test_off_a_sealed_context_is_refused_loudly_and_hands_out_nothing(
+        self,
+        client,
+        workspace,
+        configured_form,
+        partner_action,
+        memory_jobs,
+        sealed_off,
+        body,
+    ):
+        from loguru import logger
+
+        await _seal_credentials(workspace, configured_form, partner_action)
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        lines = []
+        sink = logger.add(lambda m: lines.append(str(m)), level="ERROR")
+        try:
+            if body is None:
+                got = await _ask(
+                    client,
+                    workspace,
+                    configured_form,
+                    partner_action,
+                    response.response_id,
+                )
+            else:
+                got = await _ask_for(
+                    client,
+                    workspace,
+                    configured_form,
+                    partner_action,
+                    response.response_id,
+                    body,
+                )
+        finally:
+            logger.remove(sink)
+
+        assert got.status_code == 426
+        assert "AES_HEX_KEY" in got.text and "ACTION_SECRETS_SEALED_ALLOWED" in got.text
+        for value in (FORM_CRED, WORKSPACE_CRED, ANSWER, ACTION_SECRET):
+            assert value not in got.text
+        assert "ACTION_SECRETS_SEALED_ALLOWED is off" in "".join(lines)
+        assert got.headers["cache-control"] == "no-store"
+
+    async def test_off_an_executor_of_4_3_asking_for_plain_is_served(
+        self,
+        client,
+        workspace,
+        configured_form,
+        partner_action,
+        memory_jobs,
+        sealed_off,
+    ):
+        await _seal_credentials(workspace, configured_form, partner_action)
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        got = await _ask_for(
+            client,
+            workspace,
+            configured_form,
+            partner_action,
+            response.response_id,
+            {"secrets": "plain"},
+        )
+        assert got.status_code == 200 and got.json()["secrets_plain"] is True
+
+    async def test_off_the_refusal_comes_after_the_run_is_authorised(
+        self, client, workspace, configured_form, partner_action, memory_jobs, sealed_off
+    ):
+        # a caller that cannot prove a run learns nothing about the setting
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        got = await _ask(
+            client,
+            workspace,
+            configured_form,
+            partner_action,
+            response.response_id,
+            token="0" * 64,
+        )
+        assert got.status_code == 403
+
+    async def test_off_the_key_only_write_back_is_refused_and_writes_nothing(
+        self, client, workspace, configured_form, partner_action, sealed_off
+    ):
+        await _seal_credentials(workspace, configured_form, partner_action)
+        before = await _stored_credentials(configured_form.form_id, partner_action)
+
+        got = await _key_only(client, configured_form, partner_action)
+
+        assert got.status_code == 426
+        assert "ACTION_SECRETS_SEALED_ALLOWED" in got.text
+        assert (
+            await _stored_credentials(configured_form.form_id, partner_action) == before
+        )
+
+    async def test_off_the_run_scoped_write_back_still_works(
+        self,
+        client,
+        workspace,
+        configured_form,
+        partner_action,
+        memory_jobs,
+        sealed_off,
+    ):
+        await _seal_credentials(workspace, configured_form, partner_action)
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        got = await _write(
+            client, workspace, configured_form, partner_action, response.response_id
+        )
+        assert got.status_code == 200
+
+
+class TestTheKeyOnlyRouteReplacesTheCredentialAndNothingElse:
+    @pytest.mark.parametrize("name", ["Token", "Another", "credentials", "Password"])
+    async def test_a_secret_under_another_name_is_refused(
+        self, client, workspace, configured_form, partner_action, name
+    ):
+        await _seal_credentials(workspace, configured_form, partner_action)
+        action_id = str(partner_action.id)
+        stored = await container.form_repo().get_form_document_by_id(
+            configured_form.form_id
+        )
+        stored.secrets[action_id].append(
+            ParameterValue(name=name, value=sealed("keep"))
+        )
+        await container.form_repo().save_form(stored)
+        before = await _stored_credentials(configured_form.form_id, partner_action)
+
+        # ciphertext the caller has seen (the stored one) replayed into that secret
+        got = await _key_only(
+            client, configured_form, partner_action, name=name, value=before[name]
+        )
+
+        assert got.status_code == 422
+        assert (
+            await _stored_credentials(configured_form.form_id, partner_action) == before
+        )
+
+    async def test_the_credential_is_replaced_and_the_answer_has_no_cache(
+        self, client, workspace, configured_form, partner_action
+    ):
+        await _seal_credentials(workspace, configured_form, partner_action)
+        got = await _key_only(client, configured_form, partner_action)
+        assert got.status_code == 200
+        assert got.headers["cache-control"] == "no-store"
+        stored = await _stored_credentials(configured_form.form_id, partner_action)
+        assert container.crypto().decrypt(stored["Credentials"]) == '{"token": "old"}'
+
+
+class TestPlainWithoutAKeyFailsClosed:
+    async def test_plain_with_no_key_is_503_and_never_sealed_or_empty(
+        self, client, workspace, configured_form, partner_action, memory_jobs, monkeypatch
+    ):
+        await _seal_credentials(workspace, configured_form, partner_action)
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        monkeypatch.setattr(container.action_service(), "crypto", None)
+
+        got = await _ask_for(
+            client,
+            workspace,
+            configured_form,
+            partner_action,
+            response.response_id,
+            {"secrets": "plain"},
+        )
+
+        assert got.status_code == 503
+        for value in (FORM_CRED, WORKSPACE_CRED, ANSWER, ACTION_SECRET):
+            assert value not in got.text
+        assert "secrets_plain" not in got.text and "action" not in got.json()
+
+    async def test_sealed_with_no_key_is_still_what_it_was(
+        self, client, workspace, configured_form, partner_action, memory_jobs, monkeypatch
+    ):
+        # the refusal is for plain: a sealed hand-out needs no key here
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        monkeypatch.setattr(container.action_service(), "crypto", None)
+        got = await _ask(
+            client, workspace, configured_form, partner_action, response.response_id
+        )
+        assert got.status_code == 200 and "secrets_plain" not in got.json()
+
+
+class TestPlainNeverCarriesAnotherActionsSecrets:
+    async def test_the_secrets_of_the_forms_other_actions_stay_in_the_backend(
+        self, client, workspace, configured_form, partner_action, memory_jobs
+    ):
+        await _seal_credentials(workspace, configured_form, partner_action)
+        action_id = str(partner_action.id)
+        stored = await container.form_repo().get_form_document_by_id(
+            configured_form.form_id
+        )
+        stored.secrets[OTHER_ACTION] = [
+            ParameterValue(name="Credentials", value=sealed(OTHER_SECRET))
+        ]
+        await container.form_repo().save_form(stored)
+        await container.action_repository().create_action_in_workspace_from_action(
+            workspace_id=workspace.id,
+            action_id=partner_action.id,
+            credentials=sealed(WORKSPACE_CRED),
+        )
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+
+        got = await _ask_for(
+            client,
+            workspace,
+            configured_form,
+            partner_action,
+            response.response_id,
+            {"secrets": "plain"},
+        )
+
+        assert got.status_code == 200, got.text
+        body = got.json()
+        assert OTHER_SECRET not in got.text
+        assert OTHER_ACTION not in json.dumps(json.loads(body["form"])["secrets"])
+        assert list(json.loads(body["form"])["secrets"]) == [action_id]
+        assert got.headers["cache-control"] == "no-store"
+
+
+class TestTheWriteBackIsBoundToItsRun:
+    async def test_another_workspace_or_another_action_is_refused(
+        self, client, workspace, configured_form, partner_action, memory_jobs
+    ):
+        await _seal_credentials(workspace, configured_form, partner_action)
+        response, job = await _submitted(workspace, configured_form, memory_jobs)
+        token = job["args"]["run_token"]
+        before = await _stored_credentials(configured_form.form_id, partner_action)
+        url = _write_url(
+            workspace, configured_form, partner_action, response.response_id
+        )
+        other_workspace = url.replace(str(workspace.id), "0" * 24)
+        other_action = url.replace(str(partner_action.id), OTHER_ACTION)
+
+        for refused_url in (other_workspace, other_action):
+            got = await client.patch(
+                refused_url,
+                headers={"api-key": JOB_KEY, HEADER: token},
+                json={"name": "Credentials", "value": "x", "type": "secrets"},
+            )
+            assert got.status_code == 403
+        assert (
+            await _stored_credentials(configured_form.form_id, partner_action) == before
+        )
+
+    async def test_an_expired_run_token_writes_nothing_and_reads_nothing(
+        self, client, workspace, configured_form, partner_action, memory_jobs
+    ):
+        await _seal_credentials(workspace, configured_form, partner_action)
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        before = await _stored_credentials(configured_form.form_id, partner_action)
+        old = run_token(
+            workspace.id,
+            configured_form.form_id,
+            partner_action.id,
+            response.response_id,
+            now=time.time() - 2 * TTL_SECONDS,
+        )
+
+        written = await _write(
+            client,
+            workspace,
+            configured_form,
+            partner_action,
+            response.response_id,
+            token=old,
+        )
+        read = await client.post(
+            _context_url(
+                workspace, configured_form, partner_action, response.response_id
+            ),
+            headers={"api-key": JOB_KEY, HEADER: old},
+            json={"secrets": "plain"},
+        )
+
+        assert written.status_code == 410 and read.status_code == 410
+        assert FORM_CRED not in read.text
+        assert (
+            await _stored_credentials(configured_form.form_id, partner_action) == before
+        )
+
+    async def test_the_write_back_answer_is_not_cached(
+        self, client, workspace, configured_form, partner_action, memory_jobs
+    ):
+        await _seal_credentials(workspace, configured_form, partner_action)
+        response, _ = await _submitted(workspace, configured_form, memory_jobs)
+        got = await _write(
+            client, workspace, configured_form, partner_action, response.response_id
+        )
+        assert got.status_code == 200
+        assert got.headers["cache-control"] == "no-store"

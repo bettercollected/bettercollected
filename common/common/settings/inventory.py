@@ -208,6 +208,9 @@ SERVER: Tuple[SettingSpec, ...] = (
           "Allows adding or changing layout containers (panels, tabs, field sets); "
           "containers a form already has keep working either way.",
           tier=T2),
+    _bool("SUBMISSIONS_API_ENABLED", "features", (BACKEND,), False,
+          "Lets API keys submit and update responses (off: 404, the scope can't be granted).",
+          tier=T2),
     _bool("COUPON_ENABLED", "features", (BACKEND,), False, "Enables coupon codes."),
     _int("COUPON_EXPIRY_IN_DAYS", "limits", (BACKEND,), 60, 1, 3650,
          "Days a coupon code stays valid."),
@@ -217,6 +220,10 @@ SERVER: Tuple[SettingSpec, ...] = (
     _bool("DEFAULT_SHOW_TEMPLATES", "workspace", (BACKEND,), False, "Shows the template gallery."),
     _bool("DEFAULT_SEED_FLOW_TEMPLATES", "workspace", (BACKEND,), True,
           "Seeds the built-in flow templates at startup."),
+    _bool("FORM_EMBED_ENABLED", "features", (BACKEND,), False,
+          "Lets a workspace list the sites that may show its forms in a frame (docs/embed.md); "
+          "off: no site is listed or served, the pages keep their current framing.",
+          tier=T2),
 )
 
 # ----------------------------------------------------- rate limits, retention
@@ -814,6 +821,12 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
     _text("ACTION_EGRESS_ALLOW", "services", (EXECUTOR,),
           "Comma separated host or host:port entries that actions may call although they are "
           "internal or not https.", tier=T5),
+    _bool("ACTION_SECRETS_SEALED_ALLOWED", "services", (BACKEND,), True,
+          "False (at the 4.3 deploy): refuse sealed run secrets and the key-only write-back (426).",
+          tier=T5),
+    _bool("ACTION_EXECUTOR_KEY_ALLOWED", "services", (EXECUTOR,), True,
+          "False (at the 4.3 deploy): the executor refuses to start while AES_HEX_KEY is set.",
+          tier=T5),
     _int("ACTION_SANDBOX_MEMORY_MB", "services", (EXECUTOR,), 256, 32, 4096,
          "Address space of a custom-code child.", tier=T5),
     _int("ACTION_SANDBOX_CPU_SECONDS", "services", (EXECUTOR,), 10, 1, 120,
@@ -839,8 +852,6 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
           "API address compiled into the web app (build argument).", tier=T5, reload_class=B),
     _text("NEXT_PUBLIC_NODE_ENV", "webapp", (WEBAPP,),
           "Environment label compiled into the web app (build argument).", tier=T5, reload_class=B),
-    _text("NEXT_PUBLIC_DASHBOARD_DOMAIN", "webapp", (WEBAPP,),
-          "Dashboard domain used by the frame header (build argument).", tier=T5, reload_class=B),
     _text("NEXT_PUBLIC_APP_URL", "webapp", (WEBAPP,),
           "Public address compiled into the web app (build argument).", tier=T5, reload_class=B),
     _text("BASE_DEPLOY_PATH", "webapp", (WEBAPP,),

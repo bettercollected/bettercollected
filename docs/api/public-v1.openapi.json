@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "BetterCollected public API",
-    "description": "Create, read, change, publish and delete forms as **form spec v1** documents,\nread their responses and close deletion requests. Authenticate with a\nworkspace API key: `Authorization: Bearer bc_...`. A key works in its own\nworkspace only, with its scopes (`forms:read`, `forms:write`, `forms:delete`,\n`responses:read`, `deletion_requests:write`), and never does more than the\nperson who created it may do at the time of the call.\n\n- Errors: `{\"code\", \"message\", \"errors\"?: [{\"path\", \"message\"}]}`; `path` is\n  a JSON pointer into the request body.\n- Versions: `GET /forms/{formId}` answers an `ETag`; `PUT` needs it as\n  `If-Match` (428 without, 412 when stale), operations accept it.\n- Retries: `Idempotency-Key` on `POST /forms`, `/ops` and `/publish`.\n- Rate limits per API key and per workspace: 429 with `Retry-After`.\n",
+    "description": "Create, read, change, publish and delete forms as **form spec v1** documents,\nread their responses and close deletion requests. Authenticate with a\nworkspace API key: `Authorization: Bearer bc_...`. A key works in its own\nworkspace only, with its scopes (`forms:read`, `forms:write`, `forms:delete`,\n`responses:read`, `deletion_requests:write`, `submissions:write`), and never\ndoes more than the person who created it may do at the time of the call.\n`submissions:write` creates and updates responses (only where the instance\nhas turned that on; the endpoints answer 404 otherwise).\n\n- Errors: `{\"code\", \"message\", \"errors\"?: [{\"path\", \"message\"}]}`; `path` is\n  a JSON pointer into the request body.\n- Versions: `GET /forms/{formId}` answers an `ETag`; `PUT` needs it as\n  `If-Match` (428 without, 412 when stale), operations accept it.\n- Retries: `Idempotency-Key` on `POST /forms`, `/ops`, `/publish` and the\n  submissions.\n- Rate limits per API key and per workspace: 429 with `Retry-After`.\n",
     "version": "1.0.0"
   },
   "servers": [
@@ -1669,6 +1669,299 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CloseDeletionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/forms/{form_id}/submissions": {
+      "post": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Submit a response to a published form",
+        "description": "Creates a response the way a respondent's submission does: the same checks and the same storage, on the form's **published** version. Answers are keyed by question id; a value is the typed answer object a response read returns, or a shorthand for the common question types. The caller asserts the respondent's consent with `\"consent\": true` when the form has a consent step. Not for forms that ask for a verified respondent (422 `respondent_identity_required`), and not for questions that take a file, a signature or a payment (422 `invalid_answers`, rule `question_not_supported`). A closed or full form answers 409 (`form_closed`, `form_not_open`, `form_full`). Each problem answer is one entry in `errors`. The response records that this API key made it (visible to staff only); no receipt and no email goes to anyone. Actions, webhooks and email actions run as for a respondent's submission. Needs `submissions:write`; an optional `Idempotency-Key` makes a retry safe.",
+        "operationId": "createSubmission",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Retry safely: the same key and request within 24 hours returns the first response (Idempotent-Replayed: true) instead of running again; the same key with another request is refused (422).",
+              "title": "Idempotency-Key"
+            },
+            "description": "Retry safely: the same key and request within 24 hours returns the first response (Idempotent-Replayed: true) instead of running again; the same key with another request is refused (422)."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionCreated"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such form (or response) in the key's workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request with the same Idempotency-Key is still running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is larger than 1 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is not valid; `errors` locates each problem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubmission"
+              },
+              "example": {
+                "answers": {
+                  "name": "Ada Lovelace",
+                  "dinner": true
+                },
+                "consent": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/forms/{form_id}/submissions/{response_id}": {
+      "patch": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Change answers of a response this key made",
+        "description": "Partial: the questions sent replace their stored answers, the others stay. Same value shapes and the same checks as a respondent's own edit, against the form's latest published version. Only a response made through this same API key can be changed (404 for any other), and not once the form is closed (409 `form_closed`), not open yet (409 `form_not_open`), needs a verified respondent or is private (422 `respondent_identity_required`). A `null` is refused (422, rule `clear_not_supported`). Needs `submissions:write`.",
+        "operationId": "updateSubmission",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "form_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Form Id"
+            }
+          },
+          {
+            "name": "response_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Response Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Retry safely: the same key and request within 24 hours returns the first response (Idempotent-Replayed: true) instead of running again; the same key with another request is refused (422).",
+              "title": "Idempotency-Key"
+            },
+            "description": "Retry safely: the same key and request within 24 hours returns the first response (Idempotent-Replayed: true) instead of running again; the same key with another request is refused (422)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionUpdated"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, or its creator lacks the permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such form (or response) in the key's workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A request with the same Idempotency-Key is still running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is larger than 1 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is not valid; `errors` locates each problem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSubmission"
+              },
+              "example": {
+                "answers": {
+                  "dinner": false
+                }
               }
             }
           }
@@ -4426,6 +4719,74 @@
         "title": "RuleWhen",
         "description": "When a rule is active: ``conditions`` (as in ``logic``; operator AND\nwhen absent) or an expressions-v1 ``expression`` (active when its value\nis truthy), never both."
       },
+      "SubmissionCreated": {
+        "properties": {
+          "responseId": {
+            "type": "string",
+            "title": "Responseid",
+            "description": "The new response's id: the id `GET .../responses/{id}` (with `responses:read`) and `PATCH .../submissions/{id}` take."
+          },
+          "formId": {
+            "type": "string",
+            "title": "Formid"
+          },
+          "submittedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submittedat",
+            "description": "ISO 8601."
+          },
+          "formVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formversion",
+            "description": "The published version the answers were checked against."
+          }
+        },
+        "type": "object",
+        "required": [
+          "responseId",
+          "formId"
+        ],
+        "title": "SubmissionCreated"
+      },
+      "SubmissionUpdated": {
+        "properties": {
+          "responseId": {
+            "type": "string",
+            "title": "Responseid"
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updatedat",
+            "description": "ISO 8601."
+          }
+        },
+        "type": "object",
+        "required": [
+          "responseId"
+        ],
+        "title": "SubmissionUpdated"
+      },
       "Theme": {
         "properties": {
           "title": {
@@ -5105,6 +5466,69 @@
         ],
         "title": "CloseDeletionRequest",
         "type": "object"
+      },
+      "CreateSubmission": {
+        "additionalProperties": false,
+        "properties": {
+          "answers": {
+            "additionalProperties": true,
+            "description": "By question id. Each value is the stored typed answer object (what a response read returns) or a shorthand for the common question types; null leaves a question unanswered.",
+            "maxProperties": 500,
+            "title": "Answers",
+            "type": "object"
+          },
+          "hiddenFields": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Values for the form's declared hidden fields (what a share link's query string would carry), by name; names the form does not declare are left out.",
+            "title": "Hiddenfields"
+          },
+          "consent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "true: you assert that the respondent has given the consent the form asks for. Required when the form has a consent step; it is recorded as asserted by this API key.",
+            "title": "Consent"
+          }
+        },
+        "required": [
+          "answers"
+        ],
+        "title": "CreateSubmission",
+        "type": "object"
+      },
+      "UpdateSubmission": {
+        "additionalProperties": false,
+        "properties": {
+          "answers": {
+            "additionalProperties": true,
+            "description": "By question id: the questions sent replace their stored answers, the others stay. Same value shapes as when creating.",
+            "maxProperties": 500,
+            "title": "Answers",
+            "type": "object"
+          }
+        },
+        "required": [
+          "answers"
+        ],
+        "title": "UpdateSubmission",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -5128,6 +5552,10 @@
     {
       "name": "Responses",
       "description": "Read a form's responses."
+    },
+    {
+      "name": "Submissions",
+      "description": "Create and update responses with an API key."
     }
   ]
 }
