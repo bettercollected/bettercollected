@@ -13,7 +13,7 @@ from starlette.requests import Request
 
 from backend.app.container import container
 from backend.app.public_api import auth as public_auth
-from backend.app.public_api.routes import _idempotent
+from backend.app.public_api.routes import _RUNNING, _idempotent
 from backend.config import settings
 from tests.app.controllers.data import testUser
 from tests.app.controllers.submission_cases import text
@@ -183,6 +183,25 @@ class TestStoredConsent:
         accepted, _ = await _stored_consent(created.json()["responseId"])
         assert accepted == {"default_form_purpose": True, "responder_rights": None}
 
+    async def test_a_form_without_items_still_refuses_an_unknown_id(
+        self, client: AsyncClient, workspace
+    ):
+        form_id = await _consent_form(workspace, [])
+        token = await _key(workspace)
+        refused = await _submit(
+            client, token, form_id, _body({"name": "Ada"}, consentItems=["nope"])
+        )
+        assert refused.status_code == 422
+        assert refused.json()["code"] == "unknown_consent_item"
+        assert (await _only_response(workspace, form_id))[1] == 0
+        # and without naming anything it is stored with no consent, as before
+        created = await _submit(client, token, form_id, _body({"name": "Ada"}))
+        assert created.status_code == 201, created.text
+        [doc] = await container.form_response_repo().list_by_response_id(
+            created.json()["responseId"]
+        )
+        assert not doc.consent
+
     @pytest.mark.parametrize("named", ["research", [1], ["x"] * 51])
     async def test_consent_items_must_be_a_list_of_ids(
         self, client: AsyncClient, workspace, named
@@ -286,6 +305,42 @@ class TestCancelledAfterTheWrite:
         assert replay is not None and replay.status_code == 201
         assert '"r1"' in replay.body
 
+    async def test_the_shielded_task_is_held_until_it_is_done(self, workspace):
+        """The loop holds a task only weakly: _idempotent keeps its own
+        reference while the write runs, after the request is gone."""
+        request = Request(
+            {
+                "type": "http",
+                "method": "POST",
+                "path": "/forms/f/submissions",
+                "headers": [],
+                "query_string": b"",
+            }
+        )
+        caller = SimpleNamespace(key_id="held-key")
+        release = asyncio.Event()
+
+        from fastapi.responses import JSONResponse
+
+        async def run():
+            await release.wait()
+            return JSONResponse({"responseId": "r2"}, status_code=201)
+
+        before = set(_RUNNING)
+        waiting = asyncio.ensure_future(
+            _idempotent(request, caller, "held", b"{}", "body", run)
+        )
+        await asyncio.sleep(0.05)
+        [held] = _RUNNING - before
+        waiting.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await waiting
+        assert held in _RUNNING and not held.done()
+        release.set()
+        await asyncio.wait_for(asyncio.wait([held]), 5)
+        await asyncio.sleep(0)
+        assert held not in _RUNNING
+
     async def test_a_failure_in_the_run_is_still_released_or_kept_as_before(
         self, client: AsyncClient, workspace
     ):
@@ -330,6 +385,25 @@ class TestPerFormBudget:
         assert (
             await _submit(client, one, other, _body({"name": text("A")}))
         ).status_code == 201
+
+    async def test_a_key_not_allowed_on_the_form_spends_none_of_its_budget(
+        self, client: AsyncClient, workspace, monkeypatch
+    ):
+        monkeypatch.setattr(public_auth, "SUBMISSIONS_PER_FORM_PER_WINDOW", 2)
+        monkeypatch.setattr(settings.api_settings, "PUBLIC_API_WINDOW_SECONDS", 3600)
+        mine, theirs = await _form(client, workspace), await _form(client, workspace)
+        limited = await _key(workspace, form_ids=[mine])
+        free = await _key(workspace)
+        for _ in range(5):
+            refused = await _submit(client, limited, theirs, _body({"name": text("A")}))
+            assert refused.status_code == 403
+            assert refused.json()["code"] == "form_not_allowed"
+        # the form's own two writes are all still there for a key that may
+        for _ in range(2):
+            sent = await _submit(client, free, theirs, _body({"name": text("A")}))
+            assert sent.status_code == 201, sent.text
+        over = await _submit(client, free, theirs, _body({"name": text("A")}))
+        assert over.status_code == 429
 
     async def test_it_follows_the_off_switch_of_the_api_limits(
         self, client: AsyncClient, workspace, monkeypatch
