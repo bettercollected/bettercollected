@@ -631,7 +631,7 @@ export const workspacesApi = createApi({
         // The caller's effective permissions in a workspace (empty for a
         // non-member). Kept a while: many controls read it. The user id is
         // part of the cache key only, so one user never reads another's.
-        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean; choiceLogicEnabled?: boolean; newQuestionTypesEnabled?: boolean; addressQuestionEnabled?: boolean; addressLookupEnabled?: boolean; signatureQuestionEnabled?: boolean; optionSourcesEnabled?: boolean; reusableSectionsEnabled?: boolean; layoutContainersEnabled?: boolean; saveDraftsEnabled?: boolean; submissionsApiEnabled?: boolean; formRevisionsUiEnabled?: boolean; responseRevisionsEnabled?: boolean; formEmbedEnabled?: boolean; csvImportEnabled?: boolean; formAccessEnabled?: boolean; auditLogUiEnabled?: boolean; formPromotionEnabled?: boolean }, { workspaceId: string; userId: string }>({
+        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean; choiceLogicEnabled?: boolean; newQuestionTypesEnabled?: boolean; addressQuestionEnabled?: boolean; addressLookupEnabled?: boolean; signatureQuestionEnabled?: boolean; optionSourcesEnabled?: boolean; reusableSectionsEnabled?: boolean; layoutContainersEnabled?: boolean; saveDraftsEnabled?: boolean; submissionsApiEnabled?: boolean; formRevisionsUiEnabled?: boolean; responseRevisionsEnabled?: boolean; formEmbedEnabled?: boolean; csvImportEnabled?: boolean; formAccessEnabled?: boolean; auditLogUiEnabled?: boolean; formPromotionEnabled?: boolean; apiKeyRolesEnabled?: boolean }, { workspaceId: string; userId: string }>({
             query: ({ workspaceId }) => ({
                 url: `/workspaces/${workspaceId}/permissions`,
                 method: 'GET'
@@ -703,6 +703,16 @@ export const workspacesApi = createApi({
                 credentials: 'include'
             }),
             invalidatesTags: ['API_KEYS_TAG']
+        }),
+        // A key's name, role and list of forms (API_KEY_ROLES_ENABLED; the server answers 422 while it is off).
+        updateAPIKey: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/api-keys/${request.key_id}`,
+                method: 'PATCH',
+                body: request.body,
+                credentials: 'include'
+            }),
+            invalidatesTags: ['API_KEYS_TAG', 'SSO_TAG']
         }),
         revokeAPIKey: builder.mutation<any, any>({
             query: (request) => ({
@@ -1009,6 +1019,7 @@ export const {
     useDeleteAIMemoryEntryMutation,
     useGetAPIKeysQuery,
     useCreateAPIKeyMutation,
+    useUpdateAPIKeyMutation,
     useRevokeAPIKeyMutation,
     useGetEmailDomainsQuery,
     useGetWorkspaceSsoQuery,

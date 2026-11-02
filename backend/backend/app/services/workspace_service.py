@@ -24,6 +24,7 @@ from backend.app.models.enum.workspace_roles import (
     WorkspaceRoles,
     has_owner_role,
     is_owner_membership,
+    primary_role,
 )
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
@@ -525,16 +526,20 @@ class WorkspaceService:
         )
         listed = []
         for workspace in workspaces:
-            is_owner = is_owner_membership(
-                workspace, memberships.get(str(workspace.id))
-            )
+            membership = memberships.get(str(workspace.id))
+            is_owner = is_owner_membership(workspace, membership)
             if workspace.disabled and not is_owner:
                 # a downgraded workspace is its owners' alone: a member whose
                 # membership was left enabled doesn't see it either
                 continue
             listed.append(
                 WorkspaceResponseDto(
-                    **workspace.model_dump(mode="json"), is_owner=is_owner
+                    **workspace.model_dump(mode="json"),
+                    is_owner=is_owner,
+                    role=primary_role(
+                        membership.roles if membership else None,
+                        is_owner=is_owner,
+                    ),
                 )
             )
         return listed
