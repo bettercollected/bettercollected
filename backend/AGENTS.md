@@ -1419,9 +1419,9 @@ a `form_answers` source. Tests: `tests/app/reusable_sections/`.
   `PATCH /temporal/workspaces/{w}/forms/{f}/actions/{a}/runs/{r}/secrets` (same job key + run token + job `doing` as the context
   route via `TemporalRouter._authorise_run`, run still in force, only the `Credentials` secret (`RunSecretDto`: any other name is a 422) and only when the form's
   action already holds one, sealed with the current key in `FormActionsService.update_run_secret`). The hand-out of opened
-  secrets is logged with ids and a count, never a value. The key-only `PATCH /temporal/forms/{f}/actions/{a}/secrets` stays for
-  executors before 4.3 and is restricted to the `Credentials` name (422 otherwise; removed in 4.4): do not add routes like it.
-  `ACTION_SECRETS_SEALED_ALLOWED` (default true; false at the 4.3 deploy) refuses the sealed context and that key-only route with
+  secrets is logged with ids and a count, never a value. The key-only `PATCH /temporal/forms/{f}/actions/{a}/secrets` of executors before 4.3
+  was removed in 4.4 (404; the executor must be 4.3+): do not add routes like it.
+  `ACTION_SECRETS_SEALED_ALLOWED` (default true; false at the 4.3 deploy) refuses the sealed context with
   426 and an error log line naming the setting, so an executor that still holds `AES_HEX_KEY` fails loudly; plain with no key
   configured is a 503 (never an empty or sealed answer); the context and the run-scoped write-back send `Cache-Control: no-store`.
   Tests: `tests/app/jobs/test_action_run_secrets.py`.

@@ -20,11 +20,7 @@ from backend.app.services.action_run_token import (
 from backend.jobs.app import ACTIONS_QUEUE, app as jobs_app
 from backend.app.router import router
 from backend.app.services.user_service import get_api_key, get_logged_admin
-from backend.app.models.dtos.form_actions_dto import (
-    CREDENTIAL_SECRET,
-    FormActionsDto,
-    RunSecretDto,
-)
+from backend.app.models.dtos.form_actions_dto import RunSecretDto
 
 # the answers below carry a run's data or secrets: never kept by a cache
 NO_STORE = "no-store"
@@ -38,8 +34,7 @@ SEALED_REFUSED = (
 
 def sealed_secrets_allowed() -> bool:
     """Is ``ACTION_SECRETS_SEALED_ALLOWED`` on (the default): may an actions
-    executor older than 4.3 still get the run's secrets sealed and write a
-    refreshed credential back on the key-only route?"""
+    executor older than 4.3 still get the run's secrets sealed?"""
     from backend.config import settings
 
     return bool(getattr(settings, "ACTION_SECRETS_SEALED_ALLOWED", True))
@@ -107,34 +102,6 @@ class TemporalRouter(Routable):
         self.form_actions_service = form_actions_service
         self.copy_recipient_service = copy_recipient_service
         self.action_service = action_service
-
-    @patch("/forms/{form_id}/actions/{action_id}/secrets")
-    async def patch_form_secrets(
-        self,
-        form_id: RecordId,
-        action_id: RecordId,
-        payload: FormActionsDto,
-        response: Response,
-        api_key=Depends(get_api_key),
-    ):
-        """The key-only route of executors older than 4.3 (they refresh a Google
-        credential and write it back sealed with their own copy of the key). It
-        replaces the ``Credentials`` secret of the form's action and nothing
-        else, and is refused with 426 once ``ACTION_SECRETS_SEALED_ALLOWED`` is
-        off. Removed in 4.4: the run-scoped route below replaces it."""
-        response.headers["Cache-Control"] = NO_STORE
-        if not sealed_secrets_allowed():
-            refuse_sealed("key-only credential write-back")
-        if payload.name != CREDENTIAL_SECRET:
-            # only the credential is an executor's to replace: not whatever
-            # sealed text it has seen, under any other name of any action
-            raise HTTPException(
-                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-                content="Only the credential can be replaced here.",
-            )
-        await self.form_actions_service.update_form_secrets(form_id, action_id, payload)
-        # never echo the form back: it carries every action's secrets
-        return "Updated"
 
     @post("/workspaces/{workspace_id}/forms/{form_id}/copy-recipient")
     async def check_copy_recipient(

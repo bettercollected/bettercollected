@@ -420,14 +420,6 @@ def _key_only_url(form, action):
     return f"/api/v1/temporal/forms/{form.form_id}/actions/{action.id}/secrets"
 
 
-def _key_only(client, form, action, **payload):
-    body = {"name": "Credentials", "value": sealed('{"token": "old"}'), "type": "secrets"}
-    body.update(payload)
-    return client.patch(
-        _key_only_url(form, action), headers={"api-key": JOB_KEY}, json=body
-    )
-
-
 @pytest.fixture
 def sealed_off(monkeypatch):
     """The 4.3 deploy: ``ACTION_SECRETS_SEALED_ALLOWED`` turned off."""
@@ -445,8 +437,6 @@ class TestSealedModeCanBeSwitchedOff:
             client, workspace, configured_form, partner_action, response.response_id
         )
         assert got.status_code == 200 and "secrets_plain" not in got.json()
-        written = await _key_only(client, configured_form, partner_action)
-        assert written.status_code == 200
 
     @pytest.mark.parametrize("body", [None, {"secrets": "sealed"}])
     async def test_off_a_sealed_context_is_refused_loudly_and_hands_out_nothing(
@@ -529,16 +519,27 @@ class TestSealedModeCanBeSwitchedOff:
         )
         assert got.status_code == 403
 
-    async def test_off_the_key_only_write_back_is_refused_and_writes_nothing(
-        self, client, workspace, configured_form, partner_action, sealed_off
+    @pytest.mark.parametrize("sealed_allowed", [True, False])
+    async def test_the_key_only_write_back_route_is_gone_and_writes_nothing(
+        self, client, workspace, configured_form, partner_action, monkeypatch, sealed_allowed
     ):
+        # removed in 4.4: an executor older than 4.3 can no longer replace a
+        # credential with its own copy of the key, whatever the setting says
+        monkeypatch.setattr(settings, "ACTION_SECRETS_SEALED_ALLOWED", sealed_allowed)
         await _seal_credentials(workspace, configured_form, partner_action)
         before = await _stored_credentials(configured_form.form_id, partner_action)
 
-        got = await _key_only(client, configured_form, partner_action)
+        got = await client.patch(
+            _key_only_url(configured_form, partner_action),
+            headers={"api-key": JOB_KEY},
+            json={
+                "name": "Credentials",
+                "value": sealed('{"token": "old"}'),
+                "type": "secrets",
+            },
+        )
 
-        assert got.status_code == 426
-        assert "ACTION_SECRETS_SEALED_ALLOWED" in got.text
+        assert got.status_code in (404, 405)
         assert (
             await _stored_credentials(configured_form.form_id, partner_action) == before
         )
@@ -558,43 +559,6 @@ class TestSealedModeCanBeSwitchedOff:
             client, workspace, configured_form, partner_action, response.response_id
         )
         assert got.status_code == 200
-
-
-class TestTheKeyOnlyRouteReplacesTheCredentialAndNothingElse:
-    @pytest.mark.parametrize("name", ["Token", "Another", "credentials", "Password"])
-    async def test_a_secret_under_another_name_is_refused(
-        self, client, workspace, configured_form, partner_action, name
-    ):
-        await _seal_credentials(workspace, configured_form, partner_action)
-        action_id = str(partner_action.id)
-        stored = await container.form_repo().get_form_document_by_id(
-            configured_form.form_id
-        )
-        stored.secrets[action_id].append(
-            ParameterValue(name=name, value=sealed("keep"))
-        )
-        await container.form_repo().save_form(stored)
-        before = await _stored_credentials(configured_form.form_id, partner_action)
-
-        # ciphertext the caller has seen (the stored one) replayed into that secret
-        got = await _key_only(
-            client, configured_form, partner_action, name=name, value=before[name]
-        )
-
-        assert got.status_code == 422
-        assert (
-            await _stored_credentials(configured_form.form_id, partner_action) == before
-        )
-
-    async def test_the_credential_is_replaced_and_the_answer_has_no_cache(
-        self, client, workspace, configured_form, partner_action
-    ):
-        await _seal_credentials(workspace, configured_form, partner_action)
-        got = await _key_only(client, configured_form, partner_action)
-        assert got.status_code == 200
-        assert got.headers["cache-control"] == "no-store"
-        stored = await _stored_credentials(configured_form.form_id, partner_action)
-        assert container.crypto().decrypt(stored["Credentials"]) == '{"token": "old"}'
 
 
 class TestPlainWithoutAKeyFailsClosed:

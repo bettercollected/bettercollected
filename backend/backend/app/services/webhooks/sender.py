@@ -33,7 +33,7 @@ class Sent:
 
 async def post(
     url: str,
-    secret: str,
+    secret: Optional[str],
     body: bytes,
     *,
     delivery_id: str,
@@ -41,15 +41,21 @@ async def post(
     timestamp: int,
 ) -> Sent:
     """Returns the 2xx status and the time taken, or raises
-    :class:`client.SendFailed` (with ``duration_ms`` set on it)."""
+    :class:`client.SendFailed` (with ``duration_ms`` set on it). ``secret`` is
+    ``None`` for the formats that are not signed (Slack, Discord): they carry
+    no signature or timestamp header."""
     if len(body) > payload.MAX_BODY_BYTES:
         raise client.SendFailed("too_large", permanent=True)
     parts = urlsplit(url)
     base = f"{parts.scheme}://{parts.netloc}{parts.path}"
     query = parse_qsl(parts.query, keep_blank_values=True) if parts.query else None
-    headers = [
-        (payload.SIGNATURE_HEADER, payload.sign(secret, timestamp, body).encode()),
-        (payload.TIMESTAMP_HEADER, str(timestamp).encode()),
+    headers = []
+    if secret:
+        headers += [
+            (payload.SIGNATURE_HEADER, payload.sign(secret, timestamp, body).encode()),
+            (payload.TIMESTAMP_HEADER, str(timestamp).encode()),
+        ]
+    headers += [
         (payload.DELIVERY_HEADER, delivery_id.encode("ascii")),
         (payload.EVENT_HEADER, event.encode("ascii")),
     ]
