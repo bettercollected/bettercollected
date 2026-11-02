@@ -484,13 +484,17 @@ OFF_API_STATEMENTS = {
     "GET /forms/{f}/responses/{r}": 15,
     "POST /forms/{f}/ops/dry-run": 13,
 }
+# The MCP server counts each call against the rate limit (per key and per
+# workspace: four statements, ``MCP_RATE_LIMIT_STATEMENTS``) on top of what the
+# commit before measured.
+MCP_RATE_LIMIT_STATEMENTS = 4
 OFF_MCP_STATEMENTS = {
-    "list_forms": 8,
-    "get_form": 8,
-    "get_form_spec": 9,
-    "dry_run_ops": 9,
-    "list_responses": 12,
-    "get_response": 10,
+    "list_forms": 8 + MCP_RATE_LIMIT_STATEMENTS,
+    "get_form": 8 + MCP_RATE_LIMIT_STATEMENTS,
+    "get_form_spec": 9 + MCP_RATE_LIMIT_STATEMENTS,
+    "dry_run_ops": 9 + MCP_RATE_LIMIT_STATEMENTS,
+    "list_responses": 12 + MCP_RATE_LIMIT_STATEMENTS,
+    "get_response": 10 + MCP_RATE_LIMIT_STATEMENTS,
 }
 
 

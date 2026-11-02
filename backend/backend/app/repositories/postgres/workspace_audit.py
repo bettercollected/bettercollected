@@ -23,6 +23,13 @@ class PostgresWorkspaceAuditRepository(RecordRepository):
         """One plain INSERT: no read first, no uniqueness to check."""
         await self.upsert(document)
 
+    async def record_many(
+        self, documents: Sequence[WorkspaceAuditEventDocument]
+    ) -> None:
+        """Plain INSERTs of all the entries in one transaction: all are stored or
+        none."""
+        await self.upsert_many(documents)
+
     async def page(
         self,
         workspace_id,

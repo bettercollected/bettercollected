@@ -23,6 +23,7 @@ from backend.app.services.ai.api_keys import APIKeyService
 from backend.app.services.api_access import (
     acting_user,
     require_key_has_scope,
+    require_key_may_create,
     require_key_scope,
 )
 from backend.config import settings  # noqa: F401  (builds the settings and the live() groups)
@@ -35,6 +36,11 @@ WORKSPACE_RATE_LIMIT_SCOPE = "public-api-workspace"
 # writes of responses count against budgets of their own (same ceilings): a
 # burst of reads never uses up the submissions' budget, nor the other way round
 SUBMISSIONS_RATE_LIMIT_SCOPE = "public-api-submissions"
+# the MCP server counts a key's tool calls against budgets of its own (same
+# ceilings and window as the REST API's): a burst on one surface never uses up
+# the other's
+MCP_RATE_LIMIT_SCOPE = "mcp"
+MCP_WORKSPACE_RATE_LIMIT_SCOPE = "mcp-workspace"
 SUBMISSIONS_WORKSPACE_RATE_LIMIT_SCOPE = "public-api-submissions-workspace"
 # and one form takes at most this many submissions (creates and updates, all of
 # the workspace's keys together) in a window: a burst at one form can't use up
@@ -119,6 +125,25 @@ async def _rate_limit(key: WorkspaceAPIKeyDocument, submissions: bool = False) -
     )
 
 
+async def rate_limit_mcp(key: WorkspaceAPIKeyDocument) -> None:
+    """The MCP server's version of ``_rate_limit``: one tool call counts as one
+    request, against the key's budget and the workspace's (0 turns either off).
+    429 ``rate_limited``, carrying ``Retry-After``, when either is used up."""
+    api = live().api
+    await _hit(
+        MCP_RATE_LIMIT_SCOPE,
+        str(key.id),
+        api.PUBLIC_API_REQUESTS_PER_WINDOW,
+        "with this API key",
+    )
+    await _hit(
+        MCP_WORKSPACE_RATE_LIMIT_SCOPE,
+        str(key.workspace_id),
+        api.PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW,
+        "from this workspace's API keys",
+    )
+
+
 async def form_budget(caller: "ApiCaller", form_id: str) -> None:
     """429 when ``form_id`` has taken its share of submissions in this window
     (see SUBMISSIONS_PER_FORM_PER_WINDOW); a no-op while the API's request
@@ -138,11 +163,14 @@ def api_key(
     operation: str,
     *,
     submissions: bool = False,
+    creates: bool = False,
     before: Optional[Callable[[], None]] = None,
 ):
     """The dependency of an endpoint that needs ``scope``; ``operation``
     names the call in the audit log. ``submissions``: the endpoint writes
     responses and counts against the submissions' own rate budgets.
+    ``creates``: the endpoint makes a form, which a key limited to a list of
+    forms may not (403 ``key_form_scope``).
     ``before``: runs first, before the key is looked at (a switch that makes
     the endpoint not exist answers 404 here)."""
 
@@ -170,6 +198,11 @@ def api_key(
             # the scope first: a key that may not submit never spends (or
             # exhausts) the workspace's submissions budget
             require_key_has_scope(key, scope)
+        if creates:
+            # a key limited to forms makes none: refused before it spends any
+            # budget, and with no query
+            require_key_has_scope(key, scope)
+            require_key_may_create(key)
         await _rate_limit(key, submissions)
         # an endpoint on one form (``/forms/{form_id}/...``) is decided on that
         # form too, before the handler reads or parses anything: a form closed
