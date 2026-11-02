@@ -832,7 +832,7 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
           "Comma separated host or host:port entries that actions may call although they are "
           "internal or not https.", tier=T5),
     _bool("ACTION_SECRETS_SEALED_ALLOWED", "services", (BACKEND,), True,
-          "False (at the 4.3 deploy): refuse sealed run secrets and the key-only write-back (426).",
+          "False (at the 4.3 deploy): refuse sealed run secrets (426).",
           tier=T5),
     _bool("ACTION_EXECUTOR_KEY_ALLOWED", "services", (EXECUTOR,), True,
           "False (at the 4.3 deploy): the executor refuses to start while AES_HEX_KEY is set.",

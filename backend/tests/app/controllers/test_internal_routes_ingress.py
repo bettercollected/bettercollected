@@ -22,7 +22,6 @@ OID = "65a000000000000000000001"
 # (method, path, kwargs): every route only the services inside the stack call
 WORKER_ROUTES = [
     ("POST", "/api/v1/temporal/delete/submissions/s1", {}),
-    ("PATCH", f"/api/v1/temporal/forms/{OID}/actions/{OID}/secrets", {"json": {}}),
     (
         "POST",
         f"/api/v1/temporal/workspaces/{OID}/forms/{OID}/copy-recipient",
