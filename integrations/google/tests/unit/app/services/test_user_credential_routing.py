@@ -56,9 +56,16 @@ def client(monkeypatch):
     return TestClient(get_application(), raise_server_exceptions=False)
 
 
-def _signed_in(client, email):
-    token = jwt.encode({"sub": email}, settings.AUTH_JWT_SECRET, algorithm="HS256")
-    client.cookies.set("Authorization", token)
+def _token(email, **claims):
+    return jwt.encode(
+        {"sub": email, "typ": "access", **claims},
+        settings.AUTH_JWT_SECRET,
+        algorithm="HS256",
+    )
+
+
+def _signed_in(client, email, **claims):
+    client.cookies.set("Authorization", _token(email, **claims))
 
 
 def test_the_container_repository_is_the_postgres_one():
@@ -88,6 +95,58 @@ def test_a_missing_credential_is_refused(client):
 
     assert response.status_code == 401
     assert store.reads == [email]
+
+
+def test_an_access_token_is_accepted(client):
+    store = _Store()
+    email = f"route-{uuid.uuid4().hex[:8]}@example.com"
+    store.records[email] = SimpleNamespace(email=email)
+    _signed_in(client, email)
+
+    with Container.oauth_credential_repo.override(providers.Object(store)):
+        assert client.get(VERIFY).status_code == 200
+
+
+@pytest.mark.parametrize(
+    "claims",
+    [
+        {"typ": "refresh"},
+        {"typ": "something-else"},
+        {"typ": None},
+        {"typ": ""},
+        {"typ": ["access"]},
+    ],
+)
+def test_a_token_that_is_not_an_access_token_is_refused_before_any_lookup(client, claims):
+    store = _Store()
+    email = f"route-{uuid.uuid4().hex[:8]}@example.com"
+    store.records[email] = SimpleNamespace(email=email)
+    _signed_in(client, email, **claims)
+
+    with Container.oauth_credential_repo.override(providers.Object(store)):
+        response = client.get(VERIFY)
+
+    assert response.status_code == 401
+    assert store.reads == []
+
+
+def test_a_token_without_a_type_is_refused(client):
+    store = _Store()
+    email = f"route-{uuid.uuid4().hex[:8]}@example.com"
+    store.records[email] = SimpleNamespace(email=email)
+    token = jwt.encode({"sub": email}, settings.AUTH_JWT_SECRET, algorithm="HS256")
+    client.cookies.set("Authorization", token)
+
+    with Container.oauth_credential_repo.override(providers.Object(store)):
+        response = client.get(VERIFY)
+
+    assert response.status_code == 401
+    assert store.reads == []
+
+
+def test_a_malformed_token_is_a_401(client):
+    client.cookies.set("Authorization", "not-a-jwt")
+    assert client.get(VERIFY).status_code == 401
 
 
 def test_repositories_are_only_built_by_the_container():
