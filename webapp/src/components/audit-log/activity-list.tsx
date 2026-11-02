@@ -56,11 +56,8 @@ export function ActivityList({ formId }: { formId?: string }) {
     const searchParams = useSearchParams();
     const workspace = useAppSelector(selectWorkspace);
     const { can, formRevisionsUiEnabled } = useWorkspacePermissions();
-    const [trigger] = useLazyGetAuditLogQuery();
-    // the trigger is stable in the store hook; held in a ref so a change of it can never restart the list
-    const loadRef = useRef(trigger);
-    loadRef.current = trigger;
-    const load = useCallback((...args: Parameters<typeof trigger>) => loadRef.current(...args), []);
+    // the trigger of the store's lazy query is stable between renders
+    const [load] = useLazyGetAuditLogQuery();
     const workspaceId: string = workspace?.id ?? '';
     const workspaceName: string = workspace?.workspaceName ?? '';
     const filtersId = useId();
@@ -183,7 +180,6 @@ export function ActivityList({ formId }: { formId?: string }) {
         }
         return result;
         // `i18n.language` re-words the day names when the language changes
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [view, day, locale, i18n.language, t]);
 
     const retention = view.status === 'ready' && typeof view.retentionDays === 'number' && view.retentionDays > 0 ? retentionText(t, view.retentionDays) : '';
