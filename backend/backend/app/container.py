@@ -111,7 +111,9 @@ from backend.app.services.sheets_reconsent import SheetsReconsentService
 from backend.app.services.auth_service import AuthService
 from backend.app.services.case_duplicate_accounts import CaseDuplicateAccounts
 from backend.app.services.mfa.service import MfaService
+from backend.app.services.mfa.notifier import MfaNotifier
 from backend.app.services.mfa.signin import MfaSignIn
+from backend.app.services.mfa.workspace import RequirementLookup, WorkspaceTotpService
 from backend.app.services.session_service import SessionService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.coupon_service import CouponService
@@ -949,6 +951,14 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     # the authenticator-app second factor (services/mfa, docs/totp.md)
+    mfa_notifier: MfaNotifier = providers.Singleton(
+        MfaNotifier, http_client=http_client
+    )
+    totp_requirement: RequirementLookup = providers.Singleton(
+        RequirementLookup,
+        workspace_repo=workspace_repo,
+        workspace_user_repo=workspace_user_repo,
+    )
     mfa_service: MfaService = providers.Singleton(
         MfaService,
         factor_repo=user_totp_repo,
@@ -957,6 +967,20 @@ class AppContainer(containers.DeclarativeContainer):
         rate_limiter=rate_limiter,
         crypto=crypto,
         audit_repo=workspace_audit_repo,
+        notifier=mfa_notifier,
+        workspace_policy=totp_requirement,
+    )
+    workspace_totp_service: WorkspaceTotpService = providers.Singleton(
+        WorkspaceTotpService,
+        workspace_repo=workspace_repo,
+        workspace_user_repo=workspace_user_repo,
+        factor_repo=user_totp_repo,
+        authorization_service=authorization_service,
+        session_service=session_service,
+        domain_repo=workspace_domain_repo,
+        http_client=http_client,
+        audit_repo=workspace_audit_repo,
+        notifier=mfa_notifier,
     )
 
     mfa_signin_service: MfaSignIn = providers.Singleton(
@@ -1095,6 +1119,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_service=workspace_form_service,
         scim_directory_repo=scim_directory_repo,
         email_action_service=email_action_service,
+        totp_service=workspace_totp_service,
     )
 
     stripe_service: StripeService = providers.Singleton(

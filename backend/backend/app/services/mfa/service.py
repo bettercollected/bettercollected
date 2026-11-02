@@ -42,6 +42,7 @@ from backend.app.schemas.workspace_audit_event import (
     TOTP_REMOVED,
     WorkspaceAuditEventDocument,
 )
+from backend.app.services.mfa import notifier as notifier_module
 from backend.app.services.mfa.sealing import (
     hash_recovery_code,
     seal_secret,
@@ -64,8 +65,15 @@ PENDING_PURGE_AFTER = dt.timedelta(hours=1)
 GUESS_SCOPE = "totp_guess"
 GUESS_LIMIT = 5
 GUESS_WINDOW_SECONDS = 300
-# the fifth wrong one locks the second-factor step
-LOCK_FOR = dt.timedelta(minutes=15)
+# the fifth wrong one locks the second-factor step; every further lock before a
+# code is accepted lasts longer (the last again after that)
+LOCK_STEPS = (
+    dt.timedelta(minutes=15),
+    dt.timedelta(hours=1),
+    dt.timedelta(hours=6),
+    dt.timedelta(hours=24),
+)
+LOCK_FOR = LOCK_STEPS[0]
 # wrong codes per client address
 ADDRESS_SCOPE = "totp_address"
 ADDRESS_LIMIT = 20
@@ -158,6 +166,8 @@ class MfaService:
         audit_repo=None,
         clock: Optional[Clock] = None,
         issuer: Optional[str] = None,
+        notifier=None,
+        workspace_policy=None,
     ):
         self._factors = factor_repo
         self._sessions = session_repo
@@ -167,6 +177,10 @@ class MfaService:
         self._audit = audit_repo
         self._clock = clock or SystemClock()
         self._issuer = issuer
+        # mails about a change (services/mfa/notifier.py); None: none are sent
+        self._notifier = notifier
+        # "does a workspace of this account require a second factor?" (set late)
+        self._workspace_policy = workspace_policy
 
     def _now(self) -> dt.datetime:
         return self._clock.now()
@@ -265,6 +279,7 @@ class MfaService:
         if user.sid:
             await self._sessions.set_mfa(user.sid, str(user.id), now, TOTP_METHOD)
         await self._record(TOTP_ENROLLED, user.id, user.sid)
+        self._tell(user.id, notifier_module.ENROLLED)
         return RecoveryCodesDto(recovery_codes=codes)
 
     # -- using the factor ------------------------------------------------------
@@ -307,9 +322,13 @@ class MfaService:
         method = await self._match(user_id, factor, code, now)
         if method is not None:
             await self._limiter.release(GUESS_SCOPE, user_id, GUESS_WINDOW_SECONDS)
+            if factor.lock_count:
+                await self._factors.clear_locks(str(factor.id))
             if method == RECOVERY_METHOD:
                 await self._record(TOTP_RECOVERY_USED, user_id, session_id)
-                return Verified(method, await self._factors.codes_left(user_id))
+                left = await self._factors.codes_left(user_id)
+                self._tell(user_id, notifier_module.RECOVERY_USED, recovery_left=left)
+                return Verified(method, left)
             return Verified(method)
         await self._count_wrong_code(client)
         if verdict.count >= GUESS_LIMIT:
@@ -341,8 +360,14 @@ class MfaService:
         return TOTP_METHOD
 
     async def _lock(self, factor, now: dt.datetime, session_id) -> None:
-        if await self._factors.lock(str(factor.id), now + LOCK_FOR, now):
+        duration = await self._factors.lock(str(factor.id), LOCK_STEPS, now)
+        if duration is not None:
             await self._record(TOTP_LOCKED, factor.user_id, session_id)
+            self._tell(
+                factor.user_id,
+                notifier_module.LOCKED,
+                minutes=int(duration.total_seconds() // 60),
+            )
 
     async def _gate(self, user_id: str, client: Optional[str]) -> None:
         """Refuse a client address that has sent too many wrong codes."""
@@ -407,8 +432,12 @@ class MfaService:
         """Turn the account's factor off (a fresh code in the same request).
         The account's other sessions end."""
         await self.check_code(user, code, client)
+        if self._workspace_policy is not None:
+            # a workspace the account belongs to requires one: it stays on
+            await self._workspace_policy.refuse_if_required(str(user.id))
         await self._factors.delete_for_user(str(user.id))
         await self._record(TOTP_REMOVED, user.id, user.sid)
+        self._tell(user.id, notifier_module.REMOVED)
         await self._session_service.revoke_all_for_user(
             str(user.id), RevokeReason.MFA_RESET, except_sid=user.sid
         )
@@ -433,6 +462,10 @@ class MfaService:
                 "recent_proof_required",
                 "Sign in again to set up an authenticator app.",
             )
+
+    def _tell(self, user_id, kind: str, **extra) -> None:
+        if self._notifier is not None:
+            self._notifier.notify(user_id, kind, **extra)
 
     async def _record(self, event: str, user_id, session_id) -> None:
         """One audit entry, ids only; never refuses what was just done."""
