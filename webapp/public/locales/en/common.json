@@ -2228,7 +2228,6 @@
       "REMOVE_BODY": "{{name}} loses the access given here. They keep whatever their workspace role allows.",
       "RESPONDENTS_TITLE": "Who can see this form as a respondent",
       "RESPONDENTS_INTRO": "Respondents are the people who fill the form in. This does not change which of your team can open it.",
-      "PRIVATE_TEXT": "Only you, owners, admins and the people you add can see this form.",
       "CHIP_RESTRICTED": "Restricted",
       "CHIP_TITLE": "Only selected people and teams can open this form in the dashboard",
       "ERROR": {

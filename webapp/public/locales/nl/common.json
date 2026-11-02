@@ -2228,7 +2228,6 @@
       "REMOVE_BODY": "{{name}} verliest de toegang die hier is gegeven. Wat de rol in de werkruimte toestaat blijft behouden.",
       "RESPONDENTS_TITLE": "Wie dit formulier als respondent kan zien",
       "RESPONDENTS_INTRO": "Respondenten zijn de mensen die het formulier invullen. Dit verandert niet welke mensen uit uw team het kunnen openen.",
-      "PRIVATE_TEXT": "Alleen u, eigenaren, beheerders en de mensen die u toevoegt kunnen dit formulier zien.",
       "CHIP_RESTRICTED": "Beperkt",
       "CHIP_TITLE": "Alleen geselecteerde personen en teams kunnen dit formulier in het dashboard openen",
       "ERROR": {

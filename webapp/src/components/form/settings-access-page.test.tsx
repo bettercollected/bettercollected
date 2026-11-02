@@ -72,10 +72,10 @@ describe('Settings, Access', () => {
         expect(access.getByRole('radio', { name: /Public/ })).toBeInTheDocument();
     });
 
-    it('with the switch on, Private says who can see it in the team\'s terms', () => {
+    it('with the switch on, Private keeps its respondent wording, apart from the team card', () => {
         open({ hidden: true });
-        expect(screen.getByText('Only you, owners, admins and the people you add can see this form.')).toBeInTheDocument();
-        expect(screen.queryByText('Only you can see this form.')).toBeNull();
+        expect(screen.getByText('Only you can see this form.')).toBeInTheDocument();
+        expect(screen.queryByText(/the people you add can see this form/)).toBeNull();
     });
 
     it('with the switch off is the page it was: no card, no request, the old heading and text', () => {

@@ -16,7 +16,7 @@ import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-grou
 import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { FormAccessMode, FormGrantDto, GrantRole, useDeleteFormGrantMutation, useGetFormAccessQuery, useGetTeamsQuery, usePutFormGrantMutation, useSetFormAccessModeMutation } from '@app/store/workspaces/form-access-api';
+import { FormAccessDto, FormAccessMode, FormGrantDto, GrantRole, useDeleteFormGrantMutation, useGetFormAccessQuery, useGetTeamsQuery, usePutFormGrantMutation, useSetFormAccessModeMutation } from '@app/store/workspaces/form-access-api';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { exportFlagApplies, formAccessErrorKey, grantableRoles } from '@app/utils/form-access';
@@ -159,7 +159,7 @@ function ModeOption({ id, value, title, description, icon, disabled }: { id: str
 
 type Subject = { key: string; type: 'user' | 'group'; id: string; label: string };
 
-function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { workspaceId: string; formId: string; access: NonNullable<ReturnType<typeof useGetFormAccessQuery>['data']>; setError: (value: string | null) => void; setNotice: (value: string | null) => void }) {
+function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { workspaceId: string; formId: string; access: FormAccessDto; setError: (value: string | null) => void; setNotice: (value: string | null) => void }) {
     const { t, i18n } = useTranslation();
     const id = useId();
     const auth = useAppSelector(selectAuth);
@@ -167,7 +167,7 @@ function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { w
     // Owners and admins hold members.manage: they alone may list the members and teams to choose from.
     const isAdmin = can(WorkspacePermission.MEMBERS_MANAGE);
     const canManage = !!access.canManage;
-    const grants = access.grants ?? [];
+    const grants: FormGrantDto[] = access.grants ?? [];
     const roles = useMemo(() => grantableRoles(access.myPermissions), [access.myPermissions]);
     const [putGrant, { isLoading: putting }] = usePutFormGrantMutation();
     const [deleteGrant, { isLoading: deleting }] = useDeleteFormGrantMutation();
@@ -177,7 +177,7 @@ function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { w
     const members = useGetWorkspaceMembersQuery({ workspaceId }, { skip: !canManage || !isAdmin });
     const teams = useGetTeamsQuery(workspaceId, { skip: !canManage || !isAdmin });
 
-    const taken = useMemo(() => new Set(grants.map((grant) => `${grant.subjectType}:${grant.subjectId}`)), [grants]);
+    const taken = useMemo(() => new Set(grants.map((grant: FormGrantDto) => `${grant.subjectType}:${grant.subjectId}`)), [grants]);
     const subjects = useMemo<Subject[]>(() => {
         const people: Subject[] = (members.data ?? [])
             .filter((member) => {
@@ -240,7 +240,7 @@ function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { w
                 <p className="text-sm text-black-700">{access.restricted ? t('STAFF.FORM_ACCESS.LIST_EMPTY_RESTRICTED') : t('STAFF.FORM_ACCESS.LIST_EMPTY_OPEN')}</p>
             ) : (
                 <ul aria-labelledby={`${id}-list`} className="flex flex-col divide-y divide-black-300 rounded border border-black-300">
-                    {grants.map((grant) => {
+                    {grants.map((grant: FormGrantDto) => {
                         const name = nameOf(grant);
                         // owners and admins alone change a grant that allows exporting
                         const locked = !canManage || busy || (grant.export && !isAdmin);
