@@ -68,7 +68,7 @@ from backend.app.services.form_logo import (
     logo_key,
     read_logo_upload,
 )
-from backend.app.services.form_concurrency import ensure_not_changed_since
+from backend.app.services.form_concurrency import form_changed, is_changed_since
 from backend.app.services.form_availability import (
     FORM_FULL,
     ensure_accepting_responses,
@@ -290,6 +290,14 @@ _WORKSPACE_SETTINGS_IN_SAVE = (
     "response_expiration_type",
     "response_expiration",
 )
+
+
+def _carries_workspace_settings(form: StandardForm) -> bool:
+    """Whether a whole-form save changes the workspace's settings of the form
+    too (not only the form's own language)."""
+    return bool(form.settings) and any(
+        getattr(form.settings, key) is not None for key in _WORKSPACE_SETTINGS_IN_SAVE
+    )
 
 
 def _apply_retention_update(stored, incoming: StandardFormSettings) -> None:
@@ -867,6 +875,8 @@ class WorkspaceFormService:
         cover_image: UploadFile = None,
         drop_unusable_settings: bool = False,
         keep_theme: bool = False,
+        form_id: Optional[str] = None,
+        access_mode: Optional[str] = None,
     ):
         """Create a form in the workspace.
 
@@ -879,6 +889,12 @@ class WorkspaceFormService:
         A form that brings no theme starts with the new-form theme
         (constants/themes.py NEW_FORM_THEME); ``keep_theme`` is for a copy (a
         template), which keeps its source's theme, or none.
+
+        Used by the promotion of a form into this workspace only: ``form_id`` is
+        the id the new form takes (chosen by the caller so that an audit entry
+        written before the change can name it), ``access_mode`` the mode its link
+        is stored with in the same write (a copy of a restricted form is never
+        created open).
         """
         await self.authorization_service.authorize(
             user, Permission.FORM_CREATE, workspace_id
@@ -949,7 +965,7 @@ class WorkspaceFormService:
             settings, drop_unusable=drop_unusable_settings
         )
         checked_logo = await read_logo_upload(logo) if logo else None
-        form.form_id = str(RecordId())
+        form.form_id = str(form_id) if form_id else str(RecordId())
         if form.theme is None and not keep_theme:
             form.theme = new_form_theme()
         keep_section_titles(form, None)
@@ -988,12 +1004,24 @@ class WorkspaceFormService:
             # held to the current publish checks.
             publish_checks_version=PUBLISH_CHECKS_VERSION,
         )
-        await self.workspace_form_repository.save_workspace_form(
-            workspace_id=workspace_id,
-            form_id=form.form_id,
-            user_id=user.id,
-            workspace_form_settings=workspace_form_settings,
-        )
+        if access_mode:
+            # one write: the link never exists without its mode (as a duplicate)
+            await self.workspace_form_repository.save_new_link_with_access_mode(
+                WorkspaceFormDocument(
+                    form_id=str(form.form_id),
+                    workspace_id=workspace_id,
+                    user_id=user.id,
+                    settings=workspace_form_settings,
+                ),
+                access_mode,
+            )
+        else:
+            await self.workspace_form_repository.save_workspace_form(
+                workspace_id=workspace_id,
+                form_id=form.form_id,
+                user_id=user.id,
+                workspace_form_settings=workspace_form_settings,
+            )
         saved_form.settings = _settings_as_read(workspace_form_settings, form)
         return saved_form
 
@@ -1039,20 +1067,33 @@ class WorkspaceFormService:
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found in workspace"
             )
         existing_form = await self.form_service.get_form_document_by_id(str(form_id))
-        # Before anything is written, settings included.
-        ensure_not_changed_since(
+        # Before anything is written, settings included. A save based on an
+        # older draft is refused (409) unless it changes nothing: the builder
+        # sends a save again when its answer was lost, and the draft then
+        # already is what it sends (the repository tells, at the write). That
+        # is never so for a save that uploads a file or carries the
+        # workspace's settings: those are written alongside, once.
+        stale = is_changed_since(
             existing_form.updated_at if existing_form else None, expected_updated_at
         )
-        await check_form_content(
-            form,
-            existing_form,
-            workspace_id=workspace_id,
-            user=user,
-            own_form_id=str(form_id),
-            option_source_service=self._option_source_service,
-            dropped_rules=dropped_rules,
-            dropped_option_logic=dropped_option_logic,
-        )
+        if stale and (logo or cover_image or _carries_workspace_settings(form)):
+            raise form_changed()
+        try:
+            await check_form_content(
+                form,
+                existing_form,
+                workspace_id=workspace_id,
+                user=user,
+                own_form_id=str(form_id),
+                option_source_service=self._option_source_service,
+                dropped_rules=dropped_rules,
+                dropped_option_logic=dropped_option_logic,
+            )
+        except HTTPException:
+            # a save on an older draft is a conflict before it is anything else
+            if stale:
+                raise form_changed() from None
+            raise
         # Settings are checked and applied here but stored after the form:
         # the form's conditional write is what can still refuse the save.
         # The form's language: one a form can declare (FORM_LANGUAGES), as
@@ -1068,10 +1109,7 @@ class WorkspaceFormService:
             )
         # (the builder's saves send the form's language alone: that is the
         # form's own setting, written with the form, not the workspace's)
-        settings_changed = bool(form.settings) and any(
-            getattr(form.settings, key) is not None
-            for key in _WORKSPACE_SETTINGS_IN_SAVE
-        )
+        settings_changed = _carries_workspace_settings(form)
         if settings_changed:
             if form.settings.response_data_owner_field is not None:
                 workspace_form.settings.response_data_owner_field = (
@@ -1114,7 +1152,10 @@ class WorkspaceFormService:
         else:
             try:
                 updated = await self.form_service.update_form_if_unchanged(
-                    form_id=form_id, form=form, expected_updated_at=expected_updated_at
+                    form_id=form_id,
+                    form=form,
+                    expected_updated_at=expected_updated_at,
+                    accept_replay=True,
                 )
             except HTTPException:
                 # nothing was written: drop the logo this save uploaded

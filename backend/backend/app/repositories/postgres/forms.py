@@ -44,8 +44,8 @@ from backend.app.schemas.consent import WorkspaceConsentDocument
 from backend.app.services import form_availability
 from backend.app.services.form_access.mode import form_access_enabled
 from backend.app.services.form_concurrency import (
-    ensure_not_changed_since,
     form_changed,
+    is_changed_since,
     next_updated_at,
 )
 from backend.app.repositories.response_scope import ResponseScope
@@ -99,6 +99,23 @@ def apply_form_update(form_document: FormDocument, form: StandardForm) -> None:
     form_document.consent = form.consent if form.consent else form_document.consent
     if form.settings:
         _apply_settings_update(form_document, form.settings)
+
+
+def _is_already_stored(stored: FormDocument, form: StandardForm) -> bool:
+    """Whether a whole-form save would change nothing: applied to the stored
+    draft it gives the same draft. That is what a save looks like once it has
+    been stored: the builder sends it again when the answer never reached it,
+    and its version is then older than the stored one only because of that
+    very save. Nothing is lost or overwritten by answering it with the stored
+    draft, which is what makes it safe (services/form_concurrency.py)."""
+    candidate = stored.model_copy(deep=True)
+    apply_form_update(candidate, form)
+    return _content_of(candidate) == _content_of(stored)
+
+
+def _content_of(document: FormDocument) -> dict:
+    """The draft as stored, without the version that tells saves apart."""
+    return document.model_dump(mode="json", exclude={"updated_at"})
 
 
 def _apply_settings_update(form_document: FormDocument, sent) -> None:
@@ -749,18 +766,27 @@ class PostgresFormRepository(RecordRepository):
         form_id: RecordId,
         form: StandardForm,
         expected_updated_at: datetime,
+        accept_replay: bool = False,
     ):
         """``update_form`` as a conditional write: refused with 409 when the
         stored draft is newer than ``expected_updated_at``
         (services/form_concurrency.py), including when another save lands
         between this read and this write: ``UPDATE ... WHERE id = :id AND
         updated_at = :stored``, the stored value being the one that passed
-        the check."""
+        the check.
+
+        ``accept_replay``: a save that would change nothing, because the draft
+        already is what it sends (the same save stored a moment ago, its
+        answer lost on the way back), is answered with the stored draft
+        instead of 409: nothing is written."""
         found = await self._stored_draft(form_id)
         if found is None:
             return None
         form_document = decode(FormDocument, found.doc)
-        ensure_not_changed_since(form_document.updated_at, expected_updated_at)
+        if is_changed_since(form_document.updated_at, expected_updated_at):
+            if accept_replay and _is_already_stored(form_document, form):
+                return form_document
+            raise form_changed()
         apply_form_update(form_document, form)
         form_document.updated_at = next_updated_at(form_document.updated_at)
         values = row_values(form_document)
@@ -784,6 +810,14 @@ class PostgresFormRepository(RecordRepository):
                 .execution_options(synchronize_session=False)
             )
         if result.rowcount != 1:
+            if accept_replay:
+                # another save landed first: perhaps the same one, sent again
+                # while the first was still being written
+                landed = await self._stored_draft(form_id)
+                if landed is not None:
+                    current = decode(FormDocument, landed.doc)
+                    if _is_already_stored(current, form):
+                        return current
             raise form_changed()
         return form_document
 
@@ -1311,6 +1345,27 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             stored.settings.needs_review = needs_review
             stored.settings.import_source = import_source
             stored.settings.import_id = import_id
+            stored.touch()
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return True
+
+    async def set_promoted_from(
+        self, workspace_id: RecordId, form_id: str, promoted_from
+    ) -> bool:
+        """Set where a form was copied from (``FORM_PROMOTION_ENABLED``) on its
+        link, under its row lock, and nothing else of the settings (a settings
+        change made meanwhile is kept). False when the form has no link here."""
+        async with self._session() as session, session.begin():
+            stored = await self._locked_link(
+                session,
+                WorkspaceFormRow.workspace_id == _oid(workspace_id),
+                WorkspaceFormRow.form_id == form_id,
+            )
+            if stored is None:
+                return False
+            stored.settings = (stored.settings or WorkspaceFormSettings()).model_copy(
+                update={"promoted_from": promoted_from}
+            )
             stored.touch()
             await session.execute(self._upsert_statement(row_values(stored)))
         return True

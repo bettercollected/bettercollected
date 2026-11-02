@@ -177,6 +177,65 @@ workspace:
 bettercollected create signup.json     # uses BETTERCOLLECTED_API_KEY and BETTERCOLLECTED_URL
 ```
 
+## Copying a form in the dashboard (server routes)
+
+The same move is available from the dashboard for a person who is a member of both
+workspaces, on one instance. It is behind the server setting
+`FORM_PROMOTION_ENABLED` (off by default, set in the environment, not in the admin
+portal, until it is released): while it is off, every route below answers
+`422` with the code `form_promotion_disabled`, before anything is read. The public
+API, the SDK and the command line are not part of the setting.
+
+| Route (under `/workspaces/{id}/forms/{form_id}`) | What it does |
+|---|---|
+| `GET /promotion/targets?targetWorkspaceId=...&q=...` | The forms of the target workspace the caller may update, the ones last copied from this form first. `{items: [{formId, title, copiedFromSource}], more}` |
+| `POST /promotion/preview` | What copying would do, stored nowhere. Body `{targetWorkspaceId, targetFormId?, copyDataProtection?}`. Answers `valid`, every `errors` and `warnings` entry of the target, `diff` (for an existing target), `adjusted`, `notCarried` (counts), `copyIsRestricted`, `retentionShortened`, `targetChangedSinceLastPromotion`, and the `sourceEtag` and `targetEtag` to send back |
+| `POST /promotion/apply` | Copies it as a draft. The same body plus `sourceEtag` (and `targetEtag` for an existing form), and a required `Idempotency-Key` header. `201 {formId, workspaceId, created, etag, notCarried, adjusted}` for a new form, `200` for an updated one |
+| `GET /spec-file` | The form's document as a download for taking it to another instance (no answer in it). Never cached |
+
+- **Both sides are checked for the same person.** `form.read` on the source form, and
+  `form.create` in the target workspace, or `form.edit` on the target form. A workspace
+  the caller is not a member of answers as one that does not exist. A **restricted**
+  form can be copied only by an Owner, an Admin or its creator (`403`
+  `promotion_from_restricted_form`). A new form is **restricted** from the moment it
+  exists; no grant comes along. An existing target keeps its own mode (copying into a
+  form never changes who may open it), so a restricted form is copied onto an existing
+  form only when that form is restricted too: otherwise the preview is `valid: false`
+  and apply answers `409 target_not_restricted` ("Restrict the target form first").
+  `copyIsRestricted` says what the target will be.
+- **Counts and origin are for editors.** `notCarried` is `null` for someone who may
+  only read the source form, and `promotedFrom` is left out of a form's settings for
+  staff who may not edit it.
+- **Rate limited.** Preview and the picker share a per-person limit (counted apart
+  from apply, which has its own).
+- **Stale guards.** If either form changed since the preview, apply answers `412`.
+  An existing target that was copied into before and changed since needs
+  `overwrite: true` (`409 target_changed` otherwise). A retry with the same
+  `Idempotency-Key` returns the first answer and never makes a second form.
+- **Retention.** An existing target keeps its own retention, purpose, retention note,
+  privacy link and the identity and editing switches unless `copyDataProtection` is
+  true. If copying them shortens how long the target keeps answers, apply also needs
+  `confirmShorterRetention: true` (`422 retention_confirmation_required`).
+- **Option lists are matched by name.** A question fed from a list of the source
+  workspace points at the target's list of the same name; a list the target does not
+  have is dropped and reported as `listsNotFound`. List contents never move.
+- **What is not copied is counted, never shown:** `notCarried` gives the number of
+  webhooks, email actions, connected actions (`sheets`) and case system hand-overs of
+  the source form, and `alsoNotCopied` names what else stays behind (answers, who can
+  open the form, its link, its dates, whether it is published, the logo file). It never
+  carries an address, a recipient or a secret.
+- **A person, not a key.** An API key's acting user cannot use these routes
+  (`403 promotion_needs_session`): a key works in its own workspace only, and a key
+  limited to a list of forms cannot create one. With keys use the command line, one
+  key for each workspace; creating a form needs a key that is not limited to a list.
+- **Recorded.** `form_copied_out` in the source workspace and `form_promoted` in the
+  target workspace are stored before the copy (no entry, no copy: `503
+  audit_unavailable`), with ids and counts only. They show in the Activity log under
+  Forms. The form file download is recorded as `form_copied_out` too.
+- **Staff only.** A copied form remembers where it came from (`promotedFrom` in its
+  settings: the source workspace and form ids, who copied it and when, a hash, counts).
+  Respondents never receive it.
+
 ## Good to know
 
 - A form document holds the texts of your form. If people typed real names or

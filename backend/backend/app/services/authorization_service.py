@@ -27,6 +27,8 @@ from backend.app.repositories.postgres.forms import (
 )
 from backend.app.exceptions import HTTPException
 from backend.app.services.form_access.mode import (
+    PROMOTION_FROM_RESTRICTED_CODE,
+    PROMOTION_FROM_RESTRICTED_MESSAGE,
     TEMPLATE_FROM_RESTRICTED_CODE,
     TEMPLATE_FROM_RESTRICTED_MESSAGE,
     form_access_enabled,
@@ -272,6 +274,31 @@ class AuthorizationService:
                 content={
                     "code": TEMPLATE_FROM_RESTRICTED_CODE,
                     "message": TEMPLATE_FROM_RESTRICTED_MESSAGE,
+                },
+            )
+
+    async def authorize_copy_out_of_workspace(
+        self,
+        user: Optional[User],
+        workspace_id: Union[RecordId, str, None],
+        form_id: Union[RecordId, str],
+    ) -> None:
+        """403 ``promotion_from_restricted_form`` unless ``user`` may take the
+        form's structure to another workspace (or into a file): the same people
+        who may save it as a template, because the copy has a life of its own
+        (an Owner, an Admin, the form's creator). Call it after ``authorize`` on
+        the form. Nothing while the switch is off."""
+        if not form_access_enabled():
+            return
+        base = await self._base_access(user, workspace_id, raise_sso_required=True)
+        if not await self._required_form_access().may_save_as_template(
+            base, str(form_id)
+        ):
+            raise HTTPException(
+                HTTPStatus.FORBIDDEN,
+                content={
+                    "code": PROMOTION_FROM_RESTRICTED_CODE,
+                    "message": PROMOTION_FROM_RESTRICTED_MESSAGE,
                 },
             )
 

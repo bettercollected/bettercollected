@@ -35,7 +35,50 @@ list, an id that is not an id, or a range that ends before it starts is 422
 Areas: `access` (grants, a form's access mode, teams), `members`, `forms`,
 `responses` (previous answers read, answers edited, responses deleted, exports),
 `api_keys`, `security` (single sign-on break-glass use, the authenticator-app
-rule).
+rule, and changes to the workspace's security settings: single sign-on
+connections and the require-single-sign-on switch and default role, verified
+email domains, directory sync tokens and group roles, the AI consent, the custom
+domain) and `integrations` (email actions and case-system services and
+registrations: created, changed, switched on or off, deleted).
+
+Under `forms` too: `form_copied_out` (a form's structure was copied to
+another workspace or downloaded as a file) and `form_promoted` (a form was copied
+here from another workspace), behind `FORM_PROMOTION_ENABLED`; each holds the
+form's id and, in the workspace's own records, the other side's ids and a count
+of what was adjusted, never a title (docs/environments.md).
+
+Settings and integration entries carry ids and enum values only: the kind of
+connection or directory (`connectionType`, `directoryType`), an on/off setting's
+new value (`required`, `enabled`), the AI provider's id (`provider`), the roles
+before and after (`role`, `previousRole`) and, for an integration, `changed`:
+which parts changed, from a fixed list (for example `team_recipients`,
+`base_url`, `secret`), never their content. No hostname, URL, address, template,
+name, token or secret is stored.
+
+Which changes refuse when the entry cannot be stored (503 `audit_unavailable`,
+nothing changed) and which do not follows one rule: a change that opens access,
+sends answers somewhere new or removes configuration is recorded first and
+refused; a change that closes a way in, or that touches something switched off,
+is recorded best effort after the change.
+
+- Email actions and a form's case-system registration follow the same rule: one
+  that is on, or being switched on, is recorded first; one that is switched off,
+  or being switched off, is best effort. A case-system service shared by forms is
+  recorded first when it is changed (its address or secret decides where their
+  answers go) and best effort when it is created or deleted (an unused one).
+- Directory sync: creating the directory and deleting it are recorded first. A
+  delete lifts the directory's own deactivations, so members are enabled again.
+  Rotating the token is best effort and written after the change: it is the only
+  way to stop a leaked token and the audit store must never stand in its way.
+- Turning "Require single sign-on" off is recorded first. It widens sign-in
+  again, so recovering from a lockout through the product depends on the audit
+  store being up; the owner's email-code break-glass and an operator with
+  database access do not.
+- A verified email domain is recorded once the verification has stood (never
+  for a claim another workspace won); when the entry cannot be written the
+  verification is taken back and the request is refused.
+- Enabling a single sign-on connection disables the others: each gets its own
+  `sso_connection_disabled` entry.
 
 ## What an entry holds
 
