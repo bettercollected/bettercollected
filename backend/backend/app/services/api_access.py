@@ -63,6 +63,7 @@ SCOPE_PERMISSIONS: Dict[str, Tuple[Permission, ...]] = {
 MISSING_SCOPE_CODE = "missing_scope"
 CREATOR_LACKS_PERMISSION_CODE = "key_creator_lacks_permission"
 ROLE_LACKS_PERMISSION_CODE = "key_role_lacks_permission"
+FORM_SCOPE_CODE = "key_form_scope"
 _ROWS_MEMO = "api_key_rows"
 
 
@@ -157,6 +158,24 @@ async def require_key_scope(
         # a call on one form: a form that is not there answers exactly as one
         # that is closed to the creator, before anything else of the request
         await require_key_on_form(key, scope, form_id, must_exist=True)
+
+
+def require_key_may_create(key: WorkspaceAPIKeyDocument) -> None:
+    """403 ``key_form_scope`` for a key limited to a list of forms, on every
+    surface that creates a form (the public API's ``POST /forms`` and the MCP
+    tools that make one): it could not open what it made, and adding the new
+    form to its own list would be a widening made by a secret, not by an admin.
+    A stored limit is enforced whatever ``API_KEY_ROLES_ENABLED`` says; a key
+    with no list is not asked anything, and no query is made."""
+    if is_listed(key.form_scope):
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            content={
+                "code": FORM_SCOPE_CODE,
+                "message": "This API key is limited to certain forms, so it "
+                "cannot create a form.",
+            },
+        )
 
 
 def _require_role_allows(missing: List[Permission], where: str) -> None:
