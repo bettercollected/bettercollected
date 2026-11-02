@@ -2,7 +2,8 @@ from common.ids import RecordId
 from classy_fastapi import Routable, post, patch
 from http import HTTPStatus
 
-from fastapi import Depends, Request
+from fastapi import Depends, Request, Response
+from loguru import logger
 from pydantic import BaseModel, Field, field_validator
 from typing import Literal, Optional
 
@@ -19,7 +20,45 @@ from backend.app.services.action_run_token import (
 from backend.jobs.app import ACTIONS_QUEUE, app as jobs_app
 from backend.app.router import router
 from backend.app.services.user_service import get_api_key, get_logged_admin
-from backend.app.models.dtos.form_actions_dto import FormActionsDto, RunSecretDto
+from backend.app.models.dtos.form_actions_dto import (
+    CREDENTIAL_SECRET,
+    FormActionsDto,
+    RunSecretDto,
+)
+
+# the answers below carry a run's data or secrets: never kept by a cache
+NO_STORE = "no-store"
+
+SEALED_REFUSED = (
+    "Sealed secrets are no longer handed out (ACTION_SECRETS_SEALED_ALLOWED is "
+    "off): run an actions executor of version 4.3 or later and remove "
+    "AES_HEX_KEY from it."
+)
+
+
+def sealed_secrets_allowed() -> bool:
+    """Is ``ACTION_SECRETS_SEALED_ALLOWED`` on (the default): may an actions
+    executor older than 4.3 still get the run's secrets sealed and write a
+    refreshed credential back on the key-only route?"""
+    from backend.config import settings
+
+    return bool(getattr(settings, "ACTION_SECRETS_SEALED_ALLOWED", True))
+
+
+def refuse_sealed(route: str) -> None:
+    """426 with a log line an operator can act on (ids are in the route's own
+    access log; no value is ever logged)."""
+    logger.error(
+        "an actions executor asked for sealed secrets ({}) but "
+        "ACTION_SECRETS_SEALED_ALLOWED is off: it is older than 4.3 or has "
+        "not been restarted; upgrade it and remove AES_HEX_KEY from it",
+        route,
+    )
+    raise HTTPException(
+        status_code=HTTPStatus.UPGRADE_REQUIRED,
+        content=SEALED_REFUSED,
+        headers={"Cache-Control": NO_STORE},
+    )
 
 
 class CopyRecipientQuery(BaseModel):
@@ -75,8 +114,24 @@ class TemporalRouter(Routable):
         form_id: RecordId,
         action_id: RecordId,
         payload: FormActionsDto,
+        response: Response,
         api_key=Depends(get_api_key),
     ):
+        """The key-only route of executors older than 4.3 (they refresh a Google
+        credential and write it back sealed with their own copy of the key). It
+        replaces the ``Credentials`` secret of the form's action and nothing
+        else, and is refused with 426 once ``ACTION_SECRETS_SEALED_ALLOWED`` is
+        off. Removed in 4.4: the run-scoped route below replaces it."""
+        response.headers["Cache-Control"] = NO_STORE
+        if not sealed_secrets_allowed():
+            refuse_sealed("key-only credential write-back")
+        if payload.name != CREDENTIAL_SECRET:
+            # only the credential is an executor's to replace: not whatever
+            # sealed text it has seen, under any other name of any action
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                content="Only the credential can be replaced here.",
+            )
         await self.form_actions_service.update_form_secrets(form_id, action_id, payload)
         # never echo the form back: it carries every action's secrets
         return "Updated"
@@ -109,6 +164,7 @@ class TemporalRouter(Routable):
         action_id: RecordId,
         response_id: str,
         request: Request,
+        response: Response,
         body: Optional[RunContextRequest] = None,
         api_key=Depends(get_api_key),
     ):
@@ -121,16 +177,23 @@ class TemporalRouter(Routable):
         read from the queue opens nothing once its run is over. 410 when the run
         is too old or no longer applies (the
         response was erased, the action was switched off or removed): the
-        executor skips the job, it is not retried."""
+        executor skips the job, it is not retried. Sealed secrets (what an
+        executor older than 4.3 asks for) are refused with 426 while
+        ``ACTION_SECRETS_SEALED_ALLOWED`` is off, and plain ones answer 503 when
+        this backend has no key to open them with."""
+        response.headers["Cache-Control"] = NO_STORE
         await self._authorise_run(
             request, workspace_id, form_id, action_id, response_id
         )
+        plain = bool(body and body.secrets == "plain")
+        if not plain and not sealed_secrets_allowed():
+            refuse_sealed("run context")
         context = await self.action_service.action_run_context(
             workspace_id,
             form_id,
             action_id,
             response_id,
-            plain_secrets=bool(body and body.secrets == "plain"),
+            plain_secrets=plain,
         )
         if context is None:
             raise HTTPException(
@@ -183,6 +246,7 @@ class TemporalRouter(Routable):
         response_id: str,
         payload: RunSecretDto,
         request: Request,
+        response: Response,
         api_key=Depends(get_api_key),
     ):
         """The executor hands a credential it refreshed (a Google access token)
@@ -191,6 +255,7 @@ class TemporalRouter(Routable):
         so the job key alone writes no form's secret; the form must belong to the
         workspace and have the action switched on, and only a secret the form's
         action already holds can be replaced."""
+        response.headers["Cache-Control"] = NO_STORE
         await self._authorise_run(
             request, workspace_id, form_id, action_id, response_id
         )
