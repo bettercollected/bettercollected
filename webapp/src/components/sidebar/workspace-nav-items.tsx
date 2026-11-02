@@ -1,7 +1,7 @@
 import React from 'react';
 
 import MembersIcon from '@Components/icons/members';
-import { Code2, ListChecks, LockKeyhole, Palette, SendToBack, ShieldCheck, Sparkles } from 'lucide-react';
+import { Blocks, Code2, ListChecks, LockKeyhole, Palette, SendToBack, ShieldCheck, Sparkles } from 'lucide-react';
 
 import { members } from '@app/constants/locales/members';
 import { Can, dashboardUrl, defaultAiTabUrl, workspaceSectionLabels, workspaceSectionUrls } from '@app/lib/workspace-sections';
@@ -17,6 +17,8 @@ interface WorkspaceNavOptions {
     registrationEnabled?: boolean;
     /** Options from workspace lists are on for this server (the lists page). */
     optionSourcesEnabled?: boolean;
+    /** The library of reusable sections is on for this server (the sections page). */
+    reusableSectionsEnabled?: boolean;
     /** Embedding forms in other sites is on for this server. */
     embedEnabled?: boolean;
 }
@@ -28,7 +30,7 @@ interface WorkspaceNavOptions {
  * drawer hides an item from members without its permission (the API refuses
  * them anyway); AI has no permission, every member has Memory and Settings.
  */
-export function workspaceNavItems({ workspaceName, t, can, ssoEnabled, registrationEnabled = false, optionSourcesEnabled = false, embedEnabled = false }: WorkspaceNavOptions): Array<INavbarItem> {
+export function workspaceNavItems({ workspaceName, t, can, ssoEnabled, registrationEnabled = false, optionSourcesEnabled = false, reusableSectionsEnabled = false, embedEnabled = false }: WorkspaceNavOptions): Array<INavbarItem> {
     const base = dashboardUrl(workspaceName);
     const urls = workspaceSectionUrls(workspaceName);
     const iconClass = 'h-5 w-5 stroke-2';
@@ -87,6 +89,19 @@ export function workspaceNavItems({ workspaceName, t, can, ssoEnabled, registrat
                       url: urls.lists,
                       permission: WorkspacePermission.FORM_READ,
                       icon: <ListChecks className={iconClass} />
+                  }
+              ]
+            : []),
+        // Reusable sections (groups of questions saved once and copied into forms): only while this
+        // server has the library; whoever reads forms may open it, changing it needs form.edit.
+        ...(reusableSectionsEnabled
+            ? [
+                  {
+                      key: 'sections',
+                      name: t(workspaceSectionLabels.sections),
+                      url: urls.sections,
+                      permission: WorkspacePermission.FORM_READ,
+                      icon: <Blocks className={iconClass} />
                   }
               ]
             : []),

@@ -83,6 +83,7 @@ describe('workspaceSectionUrls', () => {
             caseSystem: '/acme/dashboard/case-system',
             embedding: '/acme/dashboard/embedding',
             lists: '/acme/dashboard/lists',
+            sections: '/acme/dashboard/sections',
             ai: '/acme/dashboard/ai',
             aiProfile: '/acme/dashboard/ai/profile',
             aiMemory: '/acme/dashboard/ai/memory',

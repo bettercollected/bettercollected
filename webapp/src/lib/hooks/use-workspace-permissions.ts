@@ -61,6 +61,8 @@ export function useWorkspacePermissions() {
     const signatureQuestionEnabled = !!userId && !isError && !!data?.signatureQuestionEnabled;
     // ...and options from a list or another form's answers (its OPTION_SOURCES_ENABLED): the lists page and the source picker.
     const optionSourcesEnabled = !!userId && !isError && !!data?.optionSourcesEnabled;
+    // ...and the workspace library of reusable sections (its REUSABLE_SECTIONS_ENABLED): "Save as section", the Insert menu's Sections and the library page.
+    const reusableSectionsEnabled = !!userId && !isError && !!data?.reusableSectionsEnabled;
     // ...and layout containers: panels, tabs and field sets (its LAYOUT_CONTAINERS_ENABLED).
     const layoutContainersEnabled = !!userId && !isError && !!data?.layoutContainersEnabled;
     // ...and whether it lets respondents save drafts (its SAVE_DRAFTS_ENABLED): the setting is read-only while it is off.
@@ -87,7 +89,7 @@ export function useWorkspacePermissions() {
         addressQuestionEnabled,
         addressLookupEnabled,
         signatureQuestionEnabled,
-        optionSourcesEnabled,
+        optionSourcesEnabled, reusableSectionsEnabled,
         layoutContainersEnabled,
         saveDraftsEnabled,
         submissionsApiEnabled,

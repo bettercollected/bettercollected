@@ -27,6 +27,7 @@ import CalculatedFieldSettings from '@app/views/molecules/form-builder/calculate
 import DateFieldSettings from '@app/views/molecules/form-builder/date-field-settings';
 import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field-conditional-logic';
 import FieldLayoutSection from '@app/views/molecules/form-builder/field-layout-section';
+import FieldLibrarySection from '@app/views/molecules/form-builder/field-library-section';
 import FieldRulesSection from '@app/views/molecules/form-builder/field-rules-section';
 import { InspectorSection, SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
 import OptionLogicSettings from '@app/views/molecules/form-builder/option-logic-settings';
@@ -263,6 +264,8 @@ export default function FieldSettings() {
             <FieldRulesSection field={field} />
 
             <FieldLayoutSection field={field} pageId={slide.id} />
+
+            <FieldLibrarySection field={field} pageId={slide.id} />
 
             <InspectorSection title={t('INSPECTOR.APPEARANCE')}>
                 <div className="flex w-full flex-col gap-1.5">
