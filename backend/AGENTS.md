@@ -1569,3 +1569,15 @@ spreadsheet id is `^[A-Za-z0-9_-]{20,100}$`; the refreshed credential is sealed 
 404 / 403 / refused refresh are permanent (`sheet_missing`, `sheet_access_denied`, `oauth_token_missing`), 5xx and 429 retry (5 s, then 25 s,
 3 attempts); `steps_done` on the row keeps a retry from appending a part twice. The cells come from `builtin_actions/qa.py`. Tests:
 `tests/app/builtin_actions/test_sheets_runner.py`.
+
+### Moving the built-in actions: `python -m backend.migrate_builtins` (4.4)
+
+`preflight | apply | verify | rollback` (`services/builtin_actions/migrate.py`, `backend/migrate_builtins.py`). A form's `send_webhook`, `send_to_slack`,
+`send_to_discord` become a webhook (format `legacy_list`, `slack`, `discord`), `creator_copy_mail` and `responder_copy_mail` an email action
+(`all_questions`, default words, `created_via=migrated_builtin`, `source_action_id`), and the Sheets entry is marked for the backend's runner. One transaction
+per form, the form's row locked, the old entry disabled and marked `migrated_to` (`kind`, `id`, `was_enabled`) with `migrated_at` in the same one: never
+both on. Ids are derived from the form and the action (idempotent). The destination rules are the webhooks' (https, 443, public, Slack and Discord to their own
+hosts); an address that fails, a copy recipient who is not a member, a missing address, a full cap (5 per kind), a switch that is off or no mail server are
+**blocked and reported**, never relaxed; a disabled action that cannot move is left alone. Output is counts only. `apply` refuses a form with runs queued for the executor
+(`--wait-queue`), and on Temporal asks for `--temporal-drained`. A response submitted before `migrated_at` still counts as in force for the executor's run
+(`actions_service.entry_in_force`). Tests: `tests/app/builtin_actions/test_migrate_builtins.py`.
