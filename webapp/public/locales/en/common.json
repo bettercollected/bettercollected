@@ -2831,6 +2831,7 @@
       "TEAM_MEMBER_ADDED": "{{actor}} added {{target}} to the team {{team}}.",
       "TEAM_MEMBER_REMOVED": "{{actor}} removed {{target}} from the team {{team}}.",
       "TEAM_LINKED": "{{actor}} linked a directory group to the team {{team}}.",
+      "TEAM_UNLINKED": "{{actor}} unlinked a directory group from the team {{team}}.",
       "ACCESS_MEMBER_PURGED_one": "The access of {{target}} to forms and teams was removed ({{count}} entry).",
       "ACCESS_MEMBER_PURGED_other": "The access of {{target}} to forms and teams was removed ({{count}} entries).",
       "ACCESS_MEMBER_PURGED_NO_COUNT": "The access of {{target}} to forms and teams was removed.",

@@ -2831,6 +2831,7 @@
       "TEAM_MEMBER_ADDED": "{{actor}} voegde {{target}} toe aan het team {{team}}.",
       "TEAM_MEMBER_REMOVED": "{{actor}} verwijderde {{target}} uit het team {{team}}.",
       "TEAM_LINKED": "{{actor}} koppelde een directorygroep aan het team {{team}}.",
+      "TEAM_UNLINKED": "{{actor}} ontkoppelde een directorygroep van het team {{team}}.",
       "ACCESS_MEMBER_PURGED_one": "De toegang van {{target}} tot formulieren en teams is verwijderd ({{count}} item).",
       "ACCESS_MEMBER_PURGED_other": "De toegang van {{target}} tot formulieren en teams is verwijderd ({{count}} items).",
       "ACCESS_MEMBER_PURGED_NO_COUNT": "De toegang van {{target}} tot formulieren en teams is verwijderd.",
