@@ -20,6 +20,7 @@ from fastapi.encoders import jsonable_encoder
 from starlette.responses import JSONResponse, Response
 
 from backend.app.container import container
+from backend.app.controllers.form_drafts_router import require_json
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_import_dto import ResponseImportRequest
 from backend.app.router import router
@@ -28,13 +29,9 @@ from backend.app.services.user_service import get_full_user
 from http import HTTPStatus
 
 _NO_STORE = {"Cache-Control": "no-store", "Pragma": "no-cache", "X-Content-Type-Options": "nosniff"}
-_ACCEPTED_TYPES = {
-    "text/csv",
-    "application/csv",
-    "text/plain",
-    "application/vnd.ms-excel",
-    "application/octet-stream",
-}
+# only a type a cross-site page cannot send without a CORS preflight (the session
+# cookie is SameSite=None): not text/plain, which a plain form or fetch may post
+_ACCEPTED_TYPES = {"text/csv"}
 # the file's cap plus a little room, so a body only just over it is read far
 # enough to be refused as ``too_large`` with the right code
 _READ_LIMIT = limits.MAX_FILE_BYTES + 1
@@ -109,8 +106,8 @@ class ResponseImportsRouter(Routable):
     ):
         """Upload the CSV file (the request body, ``Content-Type: text/csv``)."""
         service = container.response_import_service()
-        # the switch and the permission are asked before the body is read
-        await service.ensure_allowed(workspace_id, user)
+        # the switch, the permission and the form are asked before the body is read
+        await service.ensure_allowed(workspace_id, user, form_id)
         data = await read_capped_body(request)
         view = await service.start(workspace_id, form_id, user, data)
         return JSONResponse(jsonable_encoder(view), status_code=201, headers=_NO_STORE)
@@ -134,6 +131,7 @@ class ResponseImportsRouter(Routable):
         import_id: str,
         body: ResponseImportRequest = Body(default_factory=ResponseImportRequest),
         user: User = Depends(get_full_user),
+        _json: None = Depends(require_json),
     ):
         """Queue a dry run: nothing is stored."""
         view = await container.response_import_service().check(
@@ -149,6 +147,7 @@ class ResponseImportsRouter(Routable):
         import_id: str,
         body: ResponseImportRequest = Body(default_factory=ResponseImportRequest),
         user: User = Depends(get_full_user),
+        _json: None = Depends(require_json),
     ):
         """Queue the import (needs ``confirmedLawfulBasis``)."""
         view = await container.response_import_service().run(
@@ -169,6 +168,7 @@ class ResponseImportsRouter(Routable):
         form_id: str,
         import_id: str,
         user: User = Depends(get_full_user),
+        _json: None = Depends(require_json),
     ):
         """Delete the responses a completed import created (within 14 days)."""
         view = await container.response_import_service().rollback(workspace_id, form_id, import_id, user)

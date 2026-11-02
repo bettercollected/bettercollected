@@ -85,9 +85,6 @@ class ResponseImportDocument(Record):
     separator: Optional[str] = None
     row_count: int = 0
     column_count: int = 0
-    # the file's header cells, kept only while the file is (the screens show
-    # them next to the problems); emptied when the upload is deleted
-    headers: List[str] = []
     # the published version of the form the import is checked against
     form_version: Optional[int] = None
     # CSV column position (as text) -> target key (services/response_import/targets.py)
@@ -147,6 +144,9 @@ class ResponseImportFileDocument(Record):
     workspace_id: RecordId
     form_id: str
     data: str
+    # the file's heading cells, encrypted like ``data`` (never on the import row:
+    # a file without a heading row would put a person's data there in clear)
+    headers_sealed: Optional[str] = None
 
     class Settings:
         name = "response_import_files"

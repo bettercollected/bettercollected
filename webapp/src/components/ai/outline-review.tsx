@@ -1,6 +1,8 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import i18n from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import {
     CHOICE_TYPES,
@@ -73,13 +75,15 @@ const QuestionText = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAtt
 });
 
 function ChoicesEditor({ question, onChange, aiFills }: { question: OutlineQuestion; onChange: (text: string) => void; aiFills: boolean }) {
+    const { t } = useTranslation('builder');
     // edited as text, so a blank line while typing is kept until it is used
     const [text, setText] = useState((question.choices ?? []).join('\n'));
     const id = `choices-${question.key}`;
     return (
         <div className="mt-2">
             <label htmlFor={id} className="mb-1 block text-xs text-black-700">
-                Choices, one per line{(question.choices ?? []).length < 2 ? (aiFills ? ' (left empty, the AI suggests some when you build)' : ' (left empty, it is asked as short text)') : ''}
+                {t('AI_OUTLINE.CHOICES')}
+                {(question.choices ?? []).length < 2 ? (aiFills ? t('AI_OUTLINE.CHOICES_AI') : t('AI_OUTLINE.CHOICES_EMPTY')) : ''}
             </label>
             <textarea
                 id={id}
@@ -95,21 +99,17 @@ function ChoicesEditor({ question, onChange, aiFills }: { question: OutlineQuest
     );
 }
 
-function plural(count: number, word: string): string {
-    return `${count} ${word}${count === 1 ? '' : 's'}`;
-}
-
 /** What a deletion took with it, in words. */
 export function deletionMessage(before: FormOutline, after: FormOutline): string {
     const rules = before.logic.length - after.logic.length;
     const jumps = before.jumps.length - after.jumps.length;
-    const parts = [rules ? plural(rules, 'rule') : '', jumps ? plural(jumps, 'jump') : ''].filter(Boolean);
-    if (!parts.length) return 'Question deleted.';
-    const verb = rules + jumps === 1 ? 'was' : 'were';
-    return `Question deleted. ${parts.join(' and ')} that used this question ${verb} dropped.`;
+    const parts = [rules ? i18n.t('builder:AI_OUTLINE.DELETED_RULES', { count: rules }) : '', jumps ? i18n.t('builder:AI_OUTLINE.DELETED_JUMPS', { count: jumps }) : ''].filter(Boolean);
+    if (!parts.length) return i18n.t('builder:AI_OUTLINE.DELETED');
+    return i18n.t('builder:AI_OUTLINE.DELETED_WITH', { count: rules + jumps, parts: parts.join(i18n.t('builder:AI_OUTLINE.AND')) });
 }
 
 export default function OutlineReview({ outline, onChange, onDeleted, onEdited, aiFillsGaps = true }: OutlineReviewProps) {
+    const { t } = useTranslation('builder');
     // focus the text of a question just added
     const [focusKey, setFocusKey] = useState<string | null>(null);
     const focusRef = useRef<HTMLTextAreaElement | null>(null);
@@ -139,19 +139,19 @@ export default function OutlineReview({ outline, onChange, onDeleted, onEdited, 
                 return (
                     <section key={page.key} aria-labelledby={`${sectionId}-heading`} className="rounded-lg border border-black-300 p-2 sm:p-3">
                         <h3 id={`${sectionId}-heading`} className="mb-2 text-xs font-semibold tracking-wide text-black-600 uppercase">
-                            Page {pageIndex + 1}
+                            {t('AI_OUTLINE.PAGE', { n: pageIndex + 1 })}
                         </h3>
                         <label htmlFor={sectionId} className="text-xs text-black-700">
-                            Section title
+                            {t('AI_OUTLINE.SECTION_TITLE')}
                         </label>
-                        <input id={sectionId} className={inputClass} value={page.sectionTitle ?? ''} maxLength={SECTION_TITLE_MAX} placeholder="E.g. About you" onChange={(event) => change(setSectionTitle(outline, page.key, event.target.value))} />
+                        <input id={sectionId} className={inputClass} value={page.sectionTitle ?? ''} maxLength={SECTION_TITLE_MAX} placeholder={t('AI_OUTLINE.SECTION_PLACEHOLDER')} onChange={(event) => change(setSectionTitle(outline, page.key, event.target.value))} />
                         <ol className="mt-3 flex flex-col gap-3">
                             {page.questions.map((question, questionIndex) => {
                                 const number = before[pageIndex] + questionIndex + 1;
                                 const labelId = `question-${question.key}`;
                                 const typeId = `type-${question.key}`;
                                 const requiredId = `required-${question.key}`;
-                                const name = question.label.trim() || `question ${number}`;
+                                const name = question.label.trim() || t('AI_OUTLINE.QUESTION_FALLBACK', { n: number });
                                 return (
                                     <li key={question.key} className="rounded-md bg-black-100 p-1.5 sm:p-2">
                                         <div className="flex items-start gap-2.5 sm:gap-3">
@@ -160,19 +160,19 @@ export default function OutlineReview({ outline, onChange, onDeleted, onEdited, 
                                             </span>
                                             <div className="flex min-w-0 flex-1 flex-col gap-2">
                                                 <label htmlFor={labelId} className="sr-only">
-                                                    Question {number}
+                                                    {t('AI_OUTLINE.QUESTION_N', { n: number })}
                                                 </label>
                                                 <QuestionText
                                                     id={labelId}
                                                     ref={focusKey === question.key ? focusRef : undefined}
                                                     value={question.label}
                                                     maxLength={LABEL_MAX}
-                                                    placeholder="Type the question"
+                                                    placeholder={t('AI_OUTLINE.TYPE_THE_QUESTION')}
                                                     onChange={(event) => change(renameQuestion(outline, question.key, event.target.value))}
                                                 />
                                                 <div className="flex flex-wrap items-center gap-3">
                                                     <label htmlFor={typeId} className="sr-only">
-                                                        Type of question {number}
+                                                        {t('AI_OUTLINE.TYPE_OF', { n: number })}
                                                     </label>
                                                     <select
                                                         id={typeId}
@@ -182,7 +182,7 @@ export default function OutlineReview({ outline, onChange, onDeleted, onEdited, 
                                                     >
                                                         {(Object.keys(QUESTION_TYPE_LABELS) as OutlineQuestionType[]).map((type) => (
                                                             <option key={type} value={type}>
-                                                                {QUESTION_TYPE_LABELS[type]}
+                                                                {t(`AI_OUTLINE.TYPE.${type}`, { defaultValue: QUESTION_TYPE_LABELS[type] })}
                                                             </option>
                                                         ))}
                                                     </select>
@@ -191,27 +191,27 @@ export default function OutlineReview({ outline, onChange, onDeleted, onEdited, 
                                                             <input
                                                                 id={requiredId}
                                                                 type="checkbox"
-                                                                aria-label={`Question ${number} is required`}
+                                                                aria-label={t('AI_OUTLINE.REQUIRED_LABEL', { n: number })}
                                                                 checked={!!question.required}
                                                                 onChange={(event) => change(setRequired(outline, question.key, event.target.checked))}
                                                             />
-                                                            Required
+                                                            {t('AI_OUTLINE.REQUIRED')}
                                                         </label>
                                                     )}
                                                 </div>
-                                                {question.whyWeAsk && <p className="text-xs text-black-600">Why we ask: {question.whyWeAsk}</p>}
+                                                {question.whyWeAsk && <p className="text-xs text-black-600">{t('AI_OUTLINE.WHY_WE_ASK', { reason: question.whyWeAsk })}</p>}
                                                 {CHOICE_TYPES.includes(question.type) && (
                                                     <ChoicesEditor key={`${question.key}-${question.type}`} question={question} aiFills={aiFillsGaps} onChange={(text) => change(setChoices(outline, question.key, text))} />
                                                 )}
                                             </div>
                                             <div className="flex shrink-0 items-center">
-                                                <button type="button" className={iconButtonClass} aria-label={`Move ${name} up`} disabled={!canMove(outline, question.key, -1)} onClick={() => change(moveQuestion(outline, question.key, -1))}>
+                                                <button type="button" className={iconButtonClass} aria-label={t('AI_OUTLINE.MOVE_UP', { name })} disabled={!canMove(outline, question.key, -1)} onClick={() => change(moveQuestion(outline, question.key, -1))}>
                                                     <ArrowUp size={16} aria-hidden="true" />
                                                 </button>
-                                                <button type="button" className={iconButtonClass} aria-label={`Move ${name} down`} disabled={!canMove(outline, question.key, 1)} onClick={() => change(moveQuestion(outline, question.key, 1))}>
+                                                <button type="button" className={iconButtonClass} aria-label={t('AI_OUTLINE.MOVE_DOWN', { name })} disabled={!canMove(outline, question.key, 1)} onClick={() => change(moveQuestion(outline, question.key, 1))}>
                                                     <ArrowDown size={16} aria-hidden="true" />
                                                 </button>
-                                                <button type="button" className={iconButtonClass} aria-label={`Delete ${name}`} onClick={() => remove(question.key)}>
+                                                <button type="button" className={iconButtonClass} aria-label={t('AI_OUTLINE.DELETE', { name })} onClick={() => remove(question.key)}>
                                                     <Trash2 size={16} aria-hidden="true" />
                                                 </button>
                                             </div>
@@ -229,21 +229,22 @@ export default function OutlineReview({ outline, onChange, onDeleted, onEdited, 
                                 setFocusKey(added.key);
                             }}
                         >
-                            <Plus size={14} aria-hidden="true" /> Add a question to page {pageIndex + 1}
+                            <Plus size={14} aria-hidden="true" /> {t('AI_OUTLINE.ADD_QUESTION', { n: pageIndex + 1 })}
                         </button>
                     </section>
                 );
             })}
             {(outline.logic.length > 0 || outline.jumps.length > 0) && (
                 <p className="text-xs text-black-600">
-                    {outline.logic.length > 0 && `${outline.logic.length} show/hide rule${outline.logic.length === 1 ? '' : 's'}`}
-                    {outline.logic.length > 0 && outline.jumps.length > 0 && ' and '}
-                    {outline.jumps.length > 0 && `${outline.jumps.length} page jump${outline.jumps.length === 1 ? '' : 's'}`} will be added. You can change them in the editor.
+                    {t('AI_OUTLINE.LOGIC_ADDED', {
+                        count: outline.logic.length + outline.jumps.length,
+                        items: [outline.logic.length > 0 ? t('AI_OUTLINE.RULES_COUNT', { count: outline.logic.length }) : '', outline.jumps.length > 0 ? t('AI_OUTLINE.JUMPS_COUNT', { count: outline.jumps.length }) : ''].filter(Boolean).join(t('AI_OUTLINE.AND'))
+                    })}
                 </p>
             )}
             {outline.omitted && outline.omitted.length > 0 && (
                 <div className="text-xs text-black-600">
-                    <p className="font-medium text-black-700">Left out to collect less personal data:</p>
+                    <p className="font-medium text-black-700">{t('AI_OUTLINE.OMITTED')}</p>
                     <ul className="ml-4 list-disc">
                         {outline.omitted.map((item) => (
                             <li key={item.label}>
@@ -260,6 +261,7 @@ export default function OutlineReview({ outline, onChange, onDeleted, onEdited, 
 /** The last deletion, with Undo. Kept outside the scrolling list so it is
  * seen wherever the deleted question was; announced to screen readers. */
 export function UndoNotice({ deletion, onUndo }: { deletion: OutlineDeletion | null; onUndo: () => void }) {
+    const { t } = useTranslation('builder');
     // the deleted question's place is gone: focus moves to Undo
     const undoRef = useRef<HTMLButtonElement | null>(null);
     useEffect(() => {
@@ -273,7 +275,7 @@ export function UndoNotice({ deletion, onUndo }: { deletion: OutlineDeletion | n
                 <div className="mb-3 flex items-center justify-between gap-2 rounded-md bg-black-800 px-3 py-2 text-xs text-white">
                     <span>{deletion.message}</span>
                     <button ref={undoRef} type="button" className="shrink-0 rounded px-1 font-semibold underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white" onClick={onUndo}>
-                        Undo
+                        {t('AI_OUTLINE.UNDO')}
                     </button>
                 </div>
             )}

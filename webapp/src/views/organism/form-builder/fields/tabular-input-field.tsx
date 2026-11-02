@@ -5,6 +5,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { Input } from '@app/shadcn/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@app/shadcn/components/ui/table';
 import { useAtomValue } from 'jotai';
+import { useTranslation } from 'react-i18next';
 import { activeFieldAtom } from '@app/store/jotai/active-builder-component';
 import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { cn } from '@app/shadcn/util/lib';
@@ -37,6 +38,7 @@ export default function TabularInputField({
   onDeleteColumn
 }: TabularInputFieldProps) {
   const { theme } = useFormState();
+  const { t } = useTranslation('builder');
   const { updateTabularRowTitle, updateTabularColumnTitle } = useBuilderActions();
   const activeField = useAtomValue(activeFieldAtom);
   // For respondents the table is named by its question and each cell by its
@@ -135,7 +137,7 @@ export default function TabularInputField({
                   {disabled && activeField?.id === field.id && localColTitles.length > minCols && (
                     <button
                       type="button"
-                      aria-label={`Remove column ${idx + 1}`}
+                      aria-label={t('CANVAS.REMOVE_COLUMN', { n: idx + 1 })}
                       className="absolute left-1 top-1 rounded-full bg-white p-1 opacity-50 h-5 w-5 cursor-pointer hover:opacity-100 focus-visible:opacity-100 z-10 flex items-center justify-center transition-opacity"
                       onClick={() => onDeleteColumn?.(idx)}
                     >
@@ -170,7 +172,7 @@ export default function TabularInputField({
                   {disabled && activeField?.id === field.id && tableData.length > minRows && (
                     <button
                       type="button"
-                      aria-label={`Remove row ${rowIdx + 1}`}
+                      aria-label={t('CANVAS.REMOVE_ROW', { n: rowIdx + 1 })}
                       className="absolute left-1 top-1 rounded-full bg-white p-1 opacity-50 h-5 w-5 cursor-pointer hover:opacity-100 focus-visible:opacity-100 z-10 flex items-center justify-center transition-opacity"
                       onClick={() => onDeleteRow?.(rowIdx)}
                     >

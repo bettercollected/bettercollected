@@ -37,7 +37,7 @@ ROWS = [HEADER, ["Ada", "36", "Red"], ["Bob", "40", "Blue"], ["Cy", "50", "Red"]
 
 
 async def rollback(client, workspace, form, import_id, user=testUser):
-    return await client.post(url(workspace, form, f"/{import_id}/rollback"), cookies=_cookies(user))
+    return await client.post(url(workspace, form, f"/{import_id}/rollback"), json={}, cookies=_cookies(user))
 
 
 # --------------------------------------------------------------------------- undo

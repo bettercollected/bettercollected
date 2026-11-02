@@ -508,6 +508,20 @@ async def run_response_import(import_id: str) -> str:
     return await _container().response_import_service().run_job(import_id)
 
 
+@app.periodic(cron="*/5 * * * *", periodic_id="response_import_redefer")
+@app.task(
+    name="response_import_redefer",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="response_import_redefer",
+)
+async def response_import_redefer(timestamp: int) -> str:
+    """Every 5 minutes: queue again imports whose job was never queued, fail those
+    that waited too long and those whose worker died (an import that stored rows
+    undoes them). Cheap; the hourly sweep also does it. Counts only."""
+    counts = await _container().response_import_service().redefer_pending()
+    return f"{counts['queued']} queued, {counts['failed']} failed"
+
+
 @app.periodic(cron="23 * * * *", periodic_id="response_import_sweep")
 @app.task(
     name="response_import_sweep",

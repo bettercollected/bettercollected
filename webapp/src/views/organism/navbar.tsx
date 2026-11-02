@@ -1,10 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useTranslation } from 'react-i18next';
 
 import { intlLocaleFor } from '@app/lib/hooks/use-intl-locale';
-
 
 import { FieldTypes } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -41,6 +39,7 @@ import { PlayIcon, Redo2, Undo2 } from 'lucide-react';
 import { ComponentProps, useEffect, useState } from 'react';
 import { useAtomValue } from 'jotai';
 import dynamic from 'next/dynamic';
+import { useTranslation } from 'react-i18next';
 import InsertFieldComponent from '../molecules/dialogs/insert-field-modal';
 import BackButton from '../molecules/form-builder/back-button';
 import KeyboardShortcuts from '../molecules/form-builder/keyboard-shortcuts';
@@ -97,7 +96,7 @@ const Navbar = () => {
     const { insert } = useInsertField();
     const handleAddText = () => {
         if (!isContentPage) {
-            toast({ title: 'Select a page to add a text block', variant: 'default' });
+            toast({ title: t('TOPBAR.SELECT_PAGE_TEXT_TOAST'), variant: 'default' });
             return;
         }
         // At the end of this page, selected, with the cursor in it.
@@ -273,7 +272,7 @@ const Navbar = () => {
                         <SheetFooter>
                             <SheetClose asChild onClick={handleResetResponderState}>
                                 <div className="absolute left-4 top-16 z-50 lg:top-3 ">
-                                    <BackButton hideForSmallScreen />
+                                    <BackButton hideForSmallScreen label={t('BUTTON.BACK', { ns: 'common' })} />
                                 </div>
                             </SheetClose>
                         </SheetFooter>

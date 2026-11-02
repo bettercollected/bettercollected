@@ -49,7 +49,7 @@ def clean(text: Any) -> str:
     formula character after any whitespace, or a tab or carriage return),
     surrounding space trimmed."""
     value = unicodedata.normalize("NFC", text if isinstance(text, str) else "")
-    if value.startswith("'") and table._FORMULA_START.match(value[1:]):
+    if value.startswith("'") and table.formula_like(value.lstrip("'")):
         value = value[1:]
     return value.strip()
 
@@ -86,10 +86,12 @@ def parse_time(text: str) -> str:
     return f"{hour:02d}:{minute:02d}"
 
 
-def parse_number(text: str):
-    """An integer when whole, else a float; a comma is a decimal point (a
-    spreadsheet in Dutch writes ``12,5``); no thousands separators."""
-    if not _NUMBER.fullmatch(text):
+def parse_number(text: str, decimal_comma: bool = False):
+    """An integer when whole, else a float; a comma is a decimal point only
+    when ``decimal_comma`` (a file separated by ``;``: a spreadsheet in Dutch
+    writes ``12,5``); no thousands separators. In a file separated by commas
+    a comma in a number is refused: ``1,234`` is not read as 1.234."""
+    if not _NUMBER.fullmatch(text) or ("," in text and not decimal_comma):
         raise CellProblem("invalid_number")
     value = Decimal(text.replace(",", "."))
     if value == value.to_integral_value():
@@ -97,7 +99,9 @@ def parse_number(text: str):
     return float(value)
 
 
-def _amount(text: str) -> str:
+def _amount(text: str, decimal_comma: bool = False) -> str:
+    if "," in text and not decimal_comma:
+        raise CellProblem("invalid_amount")
     text = text.replace(",", ".")
     try:
         Decimal(text)
@@ -106,15 +110,15 @@ def _amount(text: str) -> str:
     return text
 
 
-def _currency(field_: Dict[str, Any], text: str) -> Dict[str, Any]:
+def _currency(field_: Dict[str, Any], text: str, decimal_comma: bool = False) -> Dict[str, Any]:
     found = _CURRENCY.fullmatch(text)
     if found:
-        code, amount = found.group(1).upper(), _amount(found.group(2))
+        code, amount = found.group(1).upper(), _amount(found.group(2), decimal_comma)
     elif _NUMBER.fullmatch(text):
         allowed = [c for c in (_props(field_).get("currencies") or []) if isinstance(c, str)]
         if len(allowed) != 1:
             raise CellProblem("currency_missing")
-        code, amount = allowed[0], _amount(text)
+        code, amount = allowed[0], _amount(text, decimal_comma)
     else:
         raise CellProblem("invalid_amount")
     return {"code": code, "amount": amount}
@@ -151,6 +155,8 @@ def parse_address(text: str) -> Dict[str, str]:
     """The export's one line, ``street number addition, postcode city`` and the
     country code unless it is ``NL``, read back into parts. Best effort: a line
     that does not fit is ``unreadable_address``."""
+    if len(text) > _MAX_ADDRESS_CHARS:
+        raise CellProblem("unreadable_address")
     segments = [s.strip() for s in text.split(",") if s.strip()]
     country = DEFAULT_COUNTRY
     if len(segments) >= 2 and is_country_code(segments[-1].upper()) and len(segments[-1]) == 2:
@@ -200,34 +206,57 @@ def _choices_of(field_: Dict[str, Any]) -> List[Tuple[str, str]]:
     return out
 
 
-def _match_option(text: str, options: List[Tuple[str, str]]) -> Optional[str]:
-    """The id of the option a piece of text names: by its label (case and
-    spacing ignored), by the export's ``Item N`` fallback for an option with no
-    label, or by its id."""
-    wanted = " ".join(text.split()).casefold()
-    if not wanted:
-        return None
-    for option_id, label in options:
-        if label and " ".join(label.split()).casefold() == wanted:
-            return option_id
-    found = re.fullmatch(r"item ([0-9]+)", wanted)
-    if found and 1 <= int(found.group(1)) <= len(options):
-        option_id, label = options[int(found.group(1)) - 1]
-        if not label:
-            return option_id
-    for option_id, _ in options:
-        if option_id.casefold() == wanted:
-            return option_id
-    return None
+_MAX_SPAN = 10
+_MAX_ADDRESS_CHARS = 400
+
+
+def _norm(text: str) -> str:
+    return " ".join(text.split()).casefold()
+
+
+class _Lookup:
+    """The options of one question, normalised once: by label, by the export's
+    ``Item N`` fallback for an option with no label, and by id."""
+
+    def __init__(self, options: List[Tuple[str, str]]):
+        self.by_label: Dict[str, str] = {}
+        self.unlabelled: List[Optional[str]] = []
+        self.by_id: Dict[str, str] = {}
+        span = 1
+        for option_id, label in options:
+            wanted = _norm(label)
+            if wanted:
+                self.by_label.setdefault(wanted, option_id)
+            self.unlabelled.append(None if wanted else option_id)
+            self.by_id.setdefault(option_id.casefold(), option_id)
+            span = max(span, label.count(";") + 1, option_id.count(";") + 1)
+        # the most pieces of a ";"-separated cell one option can span
+        self.span = min(span, _MAX_SPAN)
+
+    def match(self, text: str) -> Optional[str]:
+        """The id of the option a piece of text names: by its label (case and
+        spacing ignored), by ``Item N`` for an option with no label, or by id."""
+        wanted = _norm(text)
+        if not wanted:
+            return None
+        found = self.by_label.get(wanted)
+        if found is not None:
+            return found
+        number = re.fullmatch(r"item ([0-9]+)", wanted)
+        if number and 1 <= int(number.group(1)) <= len(self.unlabelled):
+            option_id = self.unlabelled[int(number.group(1)) - 1]
+            if option_id is not None:
+                return option_id
+        return self.by_id.get(wanted)
 
 
 def _choice(field_: Dict[str, Any], text: str) -> Dict[str, Any]:
     props = _props(field_)
-    options = _choices_of(field_)
+    lookup = _Lookup(_choices_of(field_))
     allow_other = bool(props.get("allow_other_choice"))
     multiple = field_.get("type") == "multiple_choice" and bool(props.get("allow_multiple_selection"))
     if not multiple:
-        found = _match_option(text, options)
+        found = lookup.match(text)
         if found is not None:
             return _answer(field_, "choice", choice={"value": found})
         if allow_other:
@@ -241,18 +270,18 @@ def _choice(field_: Dict[str, Any], text: str) -> Dict[str, Any]:
     index = 0
     while index < len(pieces):
         matched = None
-        end = len(pieces)
-        # the longest run of pieces that names an option (a label may hold ";")
-        while end > index:
-            candidate = ";".join(pieces[index:end]).strip()
-            matched = _match_option(candidate, options)
+        span = min(lookup.span, len(pieces) - index)
+        # the longest run of pieces that names an option (a label may hold ";"),
+        # never longer than the most pieces an option can have
+        while span >= 1:
+            matched = lookup.match(";".join(pieces[index : index + span]))
             if matched is not None:
                 break
-            end -= 1
+            span -= 1
         if matched is not None:
             if matched not in chosen:
                 chosen.append(matched)
-            index = end
+            index += span
             continue
         piece = pieces[index].strip()
         if piece:
@@ -266,7 +295,9 @@ def _choice(field_: Dict[str, Any], text: str) -> Dict[str, Any]:
     return _answer(field_, "choices", choices=value)
 
 
-def convert_cell(field_: Dict[str, Any], raw: str, now_iso: str) -> Optional[Dict[str, Any]]:
+def convert_cell(
+    field_: Dict[str, Any], raw: str, now_iso: str, decimal_comma: bool = False
+) -> Optional[Dict[str, Any]]:
     """The answer a cell holds for ``field_`` (the question's definition), or
     None for an empty cell. ``now_iso``: the time a typed signature is stamped.
     Raises ``CellProblem``."""
@@ -283,13 +314,13 @@ def convert_cell(field_: Dict[str, Any], raw: str, now_iso: str) -> Optional[Dic
     if kind == "phone_number":
         return _answer(field_, "phone_number", phone_number=text)
     if kind in ("number", "rating", "linear_rating"):
-        return _answer(field_, "number", number=parse_number(text))
+        return _answer(field_, "number", number=parse_number(text, decimal_comma))
     if kind in ("date", "day"):
         return _answer(field_, "date", date=parse_date(text))
     if kind == "time":
         return _answer(field_, "time", time=parse_time(text))
     if kind == "currency":
-        return _answer(field_, "currency", currency=_currency(field_, text))
+        return _answer(field_, "currency", currency=_currency(field_, text, decimal_comma))
     if kind == "date_range":
         return _answer(field_, "date_range", date_range=_date_range(text))
     if kind == "tags":

@@ -10,8 +10,12 @@ secrets and does the work; the sandbox holds nothing and can reach nothing:
   the workspace or the form, or an operator-allowed host), and then through the
   egress rules (public https, the address checked, no redirects). A secret the
   instance's administrators stored on the action itself (not overridden by the
-  workspace or the form) can only go to an origin those administrators set: a
-  creator who points a parameter at their own host gets no instance secret;
+  workspace or the form) can only go to the exact address those administrators
+  set (scheme, host, port, path and query), not just its origin: on a shared
+  host (a chat service's webhook host) a creator who points the address at
+  their own channel gets no instance secret, and the reply of such a call is
+  not shown to the code (an endpoint that echoes the request would hand the
+  secret back);
 - ``send_mail_action``: the code gives the **subject and the recipients, nothing
   else**. The login, server, port and sender are always the action's configured
   SMTP group, the transport settings are the executor's, the body is the executor's
@@ -135,6 +139,9 @@ class Toolbox:
     # blocking: tell the backend this action's sheet or credential is gone
     mark_broken: Callable[[], Any]
     allow: List[Tuple[str, Optional[int]]] = field(default_factory=list)
+    # exact addresses (scheme, host, port, path, query) in the action's own
+    # parameters: the only places an instance secret may go. Empty: nowhere
+    trusted_urls: List[egress.ExactUrl] = field(default_factory=list)
 
     def configured_hosts(self) -> List[str]:
         return egress.trusted_hosts_of(
@@ -142,9 +149,9 @@ class Toolbox:
         )
 
 
-def _reply(result: Any) -> Dict[str, Any]:
+def _reply(result: Any, show_text: bool = True) -> Dict[str, Any]:
     status = getattr(result, "status_code", None)
-    text = getattr(result, "text", "") or ""
+    text = (getattr(result, "text", "") or "") if show_text else ""
     return {"status_code": status, "text": text[:REPLY_TEXT_MAX]}
 
 
@@ -186,12 +193,14 @@ def build_handlers(toolbox: Toolbox) -> Dict[str, Callable[..., Awaitable[Any]]]
             if value is not None and not isinstance(value, dict):
                 raise CallRefused(400, f"{name} must be a dict")
         names = secret_names_in([params, data, headers])
-        if names & toolbox.instance_secrets and not destination.exempt:
-            # an instance-level secret goes only where the administrators said
+        instance_used = bool(names & toolbox.instance_secrets)
+        if instance_used and destination.exact not in toolbox.trusted_urls:
+            # an instance-level secret goes only to the exact address the
+            # administrators set, not to another path on the same host
             raise CallRefused(
                 403,
-                "a secret of the instance can only go to an address the instance's "
-                "administrators set",
+                "a secret of the instance can only go to the exact address the "
+                "instance's administrators set",
             )
         try:
             result = await off_loop(
@@ -207,7 +216,8 @@ def build_handlers(toolbox: Toolbox) -> Dict[str, Callable[..., Awaitable[Any]]]
             raise _refusal(error)
         except ActionHTTPException as error:
             raise CallRefused(error.status_code, str(error))
-        return _reply(result)
+        # an endpoint that echoes the request would hand an instance secret back
+        return _reply(result, show_text=not instance_used)
 
     async def send_data_webhook(url, params=None, data=None, headers=None):
         return await outgoing(toolbox.webhook, url, params, data, headers)

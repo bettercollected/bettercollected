@@ -136,16 +136,17 @@ async def run_action(
     # parameters; its secrets too when they arrive opened): their addresses are
     # trusted destinations, a workspace's or a form's are not (utilities/egress.py)
     smtp_trusted = not smtp_overridden(action, workspace, form)
-    trusted_origins = egress.trusted_origins_of(
-        [
-            *collect(action.get("parameters", []), False).values(),
-            *(
-                collect(action.get("secrets", []), False).values()
-                if secrets_plain
-                else []
-            ),
-        ]
-    )
+    own_addresses = [
+        *collect(action.get("parameters", []), False).values(),
+        *(
+            collect(action.get("secrets", []), False).values()
+            if secrets_plain
+            else []
+        ),
+    ]
+    trusted_origins = egress.trusted_origins_of(own_addresses)
+    # the exact addresses (path and query too): where an instance secret may go
+    trusted_urls = egress.trusted_urls_of(own_addresses)
 
     def names_of(items):
         return {
@@ -763,6 +764,7 @@ async def run_action(
                 parameters=get_parameters(),
                 secrets=get_secrets(),
                 trusted_origins=trusted_origins,
+                trusted_urls=trusted_urls,
                 instance_secrets=instance_secrets,
                 respondent_email=response.get("dataOwnerIdentifier"),
                 webhook=send_data_webhook,

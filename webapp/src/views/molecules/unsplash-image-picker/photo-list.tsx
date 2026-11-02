@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import EmptyGallerIcon from '@Components/icons/empty-gallery-icon';
 import UnsplashPhotoCard from './photo-card';
@@ -13,6 +14,7 @@ interface Props {
     loadMore: () => void;
 }
 function PhotoList({ isLoading = false, isLoadingMore = false, photoList, total, onPhotoSelect, loadMore }: Props) {
+    const { t } = useTranslation('builder');
     const listHeight = '365px'; // 'calc(100 - 125px)'
     const ref = React.useMemo(() => React.createRef<HTMLDivElement>(), []);
 
@@ -60,7 +62,7 @@ function PhotoList({ isLoading = false, isLoadingMore = false, photoList, total,
                         <div className="flex h-96 flex-col items-center justify-start gap-2 py-10">
                             <>
                                 <EmptyGallerIcon />
-                                <span className="p4-new text-black-600">No images found</span>
+                                <span className="p4-new text-black-600">{t('MEDIA.NO_IMAGES')}</span>
                             </>
                         </div>
                     )}

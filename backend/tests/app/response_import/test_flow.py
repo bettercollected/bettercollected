@@ -467,7 +467,7 @@ async def test_the_audit_row_holds_no_content(client: AsyncClient, workspace):
     stored = json.dumps(row.model_dump(mode="json"))
     for needle in (secret, "Bob", "Full name", "Colour", "999", "Red"):
         assert needle not in stored, needle
-    assert row.actor_id == str(testUser.id) and row.file_size > 0 and row.headers == []
+    assert row.actor_id == str(testUser.id) and row.file_size > 0
     assert sorted(body["problems"][0]) == ["code", "column", "field", "row"]
     assert "Zebediah" not in json.dumps(body)
 

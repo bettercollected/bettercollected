@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import i18n from 'i18next';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from 'i18next';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
@@ -18,7 +18,7 @@ vi.mock('@app/store/redux/form-api', async (original) => ({
 const field = (validations: StandardFormFieldDto['validations'] = {}, type = FieldTypes.SHORT_TEXT): StandardFormFieldDto => ({ id: 'q', index: 0, type, title: 'Name', validations, properties: {} });
 const valid = { data: { valid: true, message: null, reason: null } };
 const invalid = (reason: string) => ({ data: { valid: false, message: `'x' is not a valid pattern (${reason}).`, reason } });
-const box = () => screen.getByLabelText('Regular expression') as HTMLInputElement;
+const box = () => screen.getByLabelText(i18n.language === 'nl' ? 'Reguliere expressie' : 'Regular expression') as HTMLInputElement;
 
 const renderRules = (onChange = vi.fn(), validations: StandardFormFieldDto['validations'] = {}) => {
     render(
