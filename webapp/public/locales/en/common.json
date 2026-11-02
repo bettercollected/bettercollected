@@ -1964,7 +1964,10 @@
         "too_many_origins": "You can allow at most {{max}} sites.",
         "forbidden": "You are not allowed to change this.",
         "generic": "Could not save. Please try again."
-      }
+      },
+      "IFRAME_LABEL": "Or without a script: a plain frame",
+      "IFRAME_COPY": "Copy frame code",
+      "IFRAME_HINT": "No script of ours runs on your page. The frame keeps the height you set (change it to fit your form), does not resize itself and tells your page nothing. Signing in still opens in a new tab."
     }
   },
   "ANALYTICS": {
