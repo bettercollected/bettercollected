@@ -133,7 +133,8 @@ export default function FormResponsesTable({ props }: any) {
     const { can, csvImportEnabled } = useWorkspacePermissions();
     const canExport = can(WorkspacePermission.RESPONSE_EXPORT);
     // import needs the server's switch and response.import (Owner and Admin)
-    const canImport = csvImportEnabled && can(WorkspacePermission.RESPONSE_IMPORT);
+    // ...and only a form collected here (the server answers 409 for one imported from elsewhere)
+    const canImport = csvImportEnabled && can(WorkspacePermission.RESPONSE_IMPORT) && form.settings?.provider === 'self';
 
     const handleSearch = useCallback(
         (event: any) => {

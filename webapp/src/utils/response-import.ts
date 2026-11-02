@@ -57,3 +57,9 @@ export function problemPlace(problem: ResponseImportProblem, imp: Pick<ResponseI
     if (problem.column === null || problem.column === undefined) return { question };
     return { column: imp.headers[problem.column] || undefined, columnNumber: problem.column + 1, question };
 }
+
+/** The name of the encoding the server read the file as, for the mapping step. */
+export function encodingLabel(encoding: string): string {
+    if (encoding === 'cp1252') return 'Windows-1252';
+    return 'UTF-8';
+}

@@ -1361,7 +1361,7 @@ describe('responses table: import responses from a CSV file', () => {
         forgetResponseList();
         store.dispatch(setAuth({ id: 'user-1' }));
         store.dispatch(setWorkspace({ id: 'workspace-1', workspaceName: 'acme' } as any));
-        store.dispatch(setForm({ formId: 'form-1', title: 'Colours', responses: 1, deletionRequests: 0, version: 1, builderVersion: 'v1', settings: { provider: 'google' }, fields: [FIELD] } as any));
+        store.dispatch(setForm({ formId: 'form-1', title: 'Colours', responses: 1, deletionRequests: 0, version: 1, builderVersion: 'v1', settings: { provider: 'self' }, fields: [FIELD] } as any));
     });
     afterEach(() => {
         server.permissions = null;
@@ -1372,6 +1372,13 @@ describe('responses table: import responses from a CSV file', () => {
         server.permissions = { permissions: ['response.import'], csvImportEnabled: true };
         renderTable();
         expect(screen.getByRole('button', { name: 'Import responses' })).toBeInTheDocument();
+    });
+
+    it('offers nothing on a form collected elsewhere: the server would refuse it', () => {
+        server.permissions = { permissions: ['response.import'], csvImportEnabled: true };
+        store.dispatch(setForm({ formId: 'form-1', title: 'Colours', responses: 1, deletionRequests: 0, version: 1, builderVersion: 'v1', settings: { provider: 'google' }, fields: [FIELD] } as any));
+        renderTable();
+        expect(screen.queryByRole('button', { name: 'Import responses' })).toBeNull();
     });
 
     it('offers nothing while the switch is off, or without the permission', () => {

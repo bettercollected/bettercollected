@@ -22,7 +22,7 @@ import {
     workspacesApi
 } from '@app/store/workspaces/api';
 import { utcToLocalDateTimeIn } from '@app/utils/date-utils';
-import { BUSY, IMPORT_MAX_MB, IMPORT_MAX_ROWS, IMPORT_POLL_MS, WAITING, cleanMapping, importFileTooLarge, mapsAQuestion, problemPlace, refusalKey, takenTargets } from '@app/utils/response-import';
+import { BUSY, IMPORT_MAX_MB, IMPORT_MAX_ROWS, IMPORT_POLL_MS, WAITING, cleanMapping, encodingLabel, importFileTooLarge, mapsAQuestion, problemPlace, refusalKey, takenTargets } from '@app/utils/response-import';
 
 type Step = 'upload' | 'map' | 'checking' | 'review' | 'running' | 'result';
 const STEPS: Array<{ key: Step[]; label: string }> = [
@@ -50,6 +50,14 @@ type Message = { key: string; values?: Record<string, unknown> };
 export default function ResponseImportDialog({ open, onOpenChange, workspaceId, formId }: Props) {
     const { t, i18n } = useTranslation();
     const text = useCallback((key: string, values?: Record<string, unknown>) => t(`RESPONSE_IMPORT.${key}`, values as any) as string, [t]);
+    // a message the server's code names; a code this build does not know says the generic one, never the raw key
+    const errorText = useCallback(
+        (key: string, values?: Record<string, unknown>) => {
+            const found = text(key, values);
+            return found === `RESPONSE_IMPORT.${key}` ? text('ERROR_generic') : found;
+        },
+        [text]
+    );
     const dispatch = useAppDispatch();
     const input = useRef<HTMLInputElement>(null);
     const [step, setStep] = useState<Step>('upload');
@@ -279,7 +287,7 @@ export default function ResponseImportDialog({ open, onOpenChange, workspaceId, 
                     <div className="flex flex-col gap-3">
                         <h3 className="text-base font-semibold text-black-900">{text('MAP_TITLE')}</h3>
                         <p className="text-sm text-black-700">
-                            {text('FILE_FACTS', { rows: imp.rowCount, columns: imp.columnCount })} · {text('MAP_HELP')}
+                            {text('FILE_FACTS', { rows: imp.rowCount, columns: imp.columnCount })} · {imp.encoding ? `${text('FILE_ENCODING', { encoding: encodingLabel(imp.encoding) })} ` : ''}· {text('MAP_HELP')}
                         </p>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
@@ -302,7 +310,7 @@ export default function ResponseImportDialog({ open, onOpenChange, workspaceId, 
                                             <tr key={index} className="border-b border-black-200 align-top">
                                                 <th scope="row" className="max-w-[16rem] py-2 pr-3 font-normal break-words text-black-900">
                                                     {heading}
-                                                    {note && <span className="mt-0.5 block text-xs text-black-600">{text(`NOTE_${note.code}`)}</span>}
+                                                    {note && text(`NOTE_${note.code}`) !== `RESPONSE_IMPORT.NOTE_${note.code}` && <span className="mt-0.5 block text-xs text-black-600">{text(`NOTE_${note.code}`)}</span>}
                                                 </th>
                                                 <td className="py-2">
                                                     <select
@@ -386,7 +394,7 @@ export default function ResponseImportDialog({ open, onOpenChange, workspaceId, 
                         {(imp.status === 'failed' || imp.status === 'cancelled') && (
                             <>
                                 <h3 className="text-base font-semibold text-black-900">{text('FAILED_TITLE')}</h3>
-                                <p className="text-sm text-red-700">{text(`ERROR_${imp.errorCode ?? 'generic'}`, { mb: IMPORT_MAX_MB, rows: IMPORT_MAX_ROWS })}</p>
+                                <p className="text-sm text-red-700">{errorText(`ERROR_${imp.errorCode ?? 'generic'}`, { mb: IMPORT_MAX_MB, rows: IMPORT_MAX_ROWS })}</p>
                                 <p className="text-xs text-black-600">{text('FAILED_NOTHING_STORED')}</p>
                                 <ProblemList imp={imp} problems={problems} text={text} />
                             </>
@@ -408,7 +416,7 @@ export default function ResponseImportDialog({ open, onOpenChange, workspaceId, 
                 )}
 
                 <div role="alert" aria-live="assertive">
-                    {message && <p className="text-sm text-red-700">{text(message.key, message.values)}</p>}
+                    {message && <p className="text-sm text-red-700">{errorText(message.key, message.values)}</p>}
                 </div>
 
                 <div className="flex flex-wrap justify-end gap-2">

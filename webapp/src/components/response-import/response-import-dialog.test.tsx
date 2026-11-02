@@ -191,6 +191,8 @@ describe('the import dialog', () => {
         expect(calls.some((c) => c.path === '/imp1/rollback')).toBe(false);
         fireEvent.click(screen.getByRole('button', { name: en.UNDO_YES }));
         expect(await screen.findByText('The import was undone: 2 responses were deleted.')).toBeInTheDocument();
+        // a JSON body, so a cross-site page cannot drive the undo
+        expect(calls.find((c) => c.path === '/imp1/rollback')!.type).toContain('application/json');
     });
 
     it('says a failed import stored nothing and why', async () => {
@@ -211,6 +213,21 @@ describe('the import dialog', () => {
         await upload('sheet.xlsx', 'PK');
         expect(await screen.findByText(en.ERROR_unsupported_format)).toBeInTheDocument();
         expect(screen.queryByText(/unsupported_format/)).toBeNull();
+    });
+
+    it('never shows a raw key for a code it does not know', async () => {
+        routes['POST '] = () => json(422, { code: 'a_code_from_a_newer_server' });
+        open();
+        await upload();
+        expect(await screen.findByText(en.ERROR_generic)).toBeInTheDocument();
+        expect(screen.queryByText(/RESPONSE_IMPORT\.|a_code_from_a_newer_server/)).toBeNull();
+    });
+
+    it('says how the file was read', async () => {
+        routes['POST '] = () => json(201, { ...BASE, encoding: 'cp1252' });
+        open();
+        await upload();
+        expect(await screen.findByText(/Read as Windows-1252/)).toBeInTheDocument();
     });
 
     it('refuses a file over the limit before sending it', async () => {

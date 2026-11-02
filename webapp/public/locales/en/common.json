@@ -2201,7 +2201,7 @@
     "DONE_SKIPPED_other": "{{count}} rows were skipped.",
     "DONE_NOTHING_FIRED": "Nothing was sent: no mails, webhooks or other actions run for imported responses.",
     "UNDO": "Undo this import",
-    "UNDO_CONFIRM": "Delete the {{count}} responses of this import? This cannot be undone.",
+    "UNDO_CONFIRM": "Delete the {{count}} responses of this import? This also deletes staff notes and updates added to them since, and cannot be undone.",
     "UNDO_YES": "Yes, delete them",
     "UNDONE": "The import was undone: {{count}} responses were deleted.",
     "UNDO_UNTIL": "You can undo it until {{time}}.",
@@ -2283,6 +2283,11 @@
     "PROBLEM_extra_cells": "More cells than column headings",
     "PROBLEM_past_retention": "Older than the form keeps answers: it would be deleted at once",
     "PROBLEM_unknown_field": "Not a question of this form",
-    "PROBLEM_other": "Not accepted ({{code}})"
+    "PROBLEM_other": "Not accepted ({{code}})",
+    "NOTE_option_source_unsupported": "The options of this question come from a list or another question, which an import cannot read yet.",
+    "FILE_ENCODING": "Read as {{encoding}}.",
+    "ERROR_time_budget": "The import took too long and was stopped. Nothing was imported; split the file and try again.",
+    "ERROR_switched_off": "Importing responses was switched off while this import waited. Nothing was imported.",
+    "ERROR_json_required": "Something went wrong. Try again."
   }
 }

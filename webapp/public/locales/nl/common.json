@@ -2201,7 +2201,7 @@
     "DONE_SKIPPED_other": "{{count}} rijen zijn overgeslagen.",
     "DONE_NOTHING_FIRED": "Er is niets verstuurd: voor geïmporteerde reacties lopen geen e-mails, webhooks of andere acties.",
     "UNDO": "Deze import ongedaan maken",
-    "UNDO_CONFIRM": "De {{count}} reacties van deze import verwijderen? Dit kan niet worden teruggedraaid.",
+    "UNDO_CONFIRM": "De {{count}} reacties van deze import verwijderen? Hiermee verdwijnen ook notities en updates van medewerkers die sindsdien zijn toegevoegd, en dit kan niet worden teruggedraaid.",
     "UNDO_YES": "Ja, verwijderen",
     "UNDONE": "De import is ongedaan gemaakt: {{count}} reacties zijn verwijderd.",
     "UNDO_UNTIL": "U kunt dit ongedaan maken tot {{time}}.",
@@ -2283,6 +2283,11 @@
     "PROBLEM_extra_cells": "Meer cellen dan kolomkoppen",
     "PROBLEM_past_retention": "Ouder dan het formulier antwoorden bewaart: het zou direct worden verwijderd",
     "PROBLEM_unknown_field": "Geen vraag van dit formulier",
-    "PROBLEM_other": "Niet geaccepteerd ({{code}})"
+    "PROBLEM_other": "Niet geaccepteerd ({{code}})",
+    "NOTE_option_source_unsupported": "De opties van deze vraag komen uit een lijst of een andere vraag, en die kan een import nog niet lezen.",
+    "FILE_ENCODING": "Gelezen als {{encoding}}.",
+    "ERROR_time_budget": "De import duurde te lang en is gestopt. Er is niets geïmporteerd; splits het bestand en probeer het opnieuw.",
+    "ERROR_switched_off": "Reacties importeren is uitgezet terwijl deze import wachtte. Er is niets geïmporteerd.",
+    "ERROR_json_required": "Er is iets misgegaan. Probeer het opnieuw."
   }
 }

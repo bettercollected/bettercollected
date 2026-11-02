@@ -410,7 +410,7 @@ export const workspacesApi = createApi({
             query: ({ workspaceId, formId, importId, ...body }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/imports/${pathSegment(importId)}/run`, method: 'POST', body })
         }),
         rollbackResponseImport: builder.mutation<ResponseImportDto, { workspaceId: string; formId: string; importId: string }>({
-            query: ({ workspaceId, formId, importId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/imports/${pathSegment(importId)}/rollback`, method: 'POST' }),
+            query: ({ workspaceId, formId, importId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/imports/${pathSegment(importId)}/rollback`, method: 'POST', body: {} }),
             invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
         }),
         discardResponseImport: builder.mutation<null, { workspaceId: string; formId: string; importId: string }>({
