@@ -32,6 +32,7 @@ from backend.app.services.form_access.mode import (
 )
 from backend.app.services.form_access.model import (
     BaseAccess,
+    FormAccessSummary,
     FormPermissions,
 )
 from backend.app.services.form_access.service import FormAccessService
@@ -291,6 +292,22 @@ class AuthorizationService:
             base, permission, form_ids
         )
 
+    async def form_access_summaries(
+        self,
+        user: Optional[User],
+        workspace_id: Union[RecordId, str, None],
+        form_ids: Iterable[str],
+    ) -> Dict[str, FormAccessSummary]:
+        """``user``'s own access summary (restricted or not, may they change
+        who opens it, what they hold) for each of ``form_ids`` that is one of
+        the workspace's: what a form list or payload shows its reader about
+        the form's access. Nothing, without a query, while the switch is off;
+        one read of the page's forms however many there are."""
+        if not form_access_enabled():
+            return {}
+        base = await self._base_access(user, workspace_id)
+        return await self._required_form_access().summaries(base, form_ids)
+
     async def restrict_to_visible(
         self,
         user: Optional[User],
@@ -433,12 +450,15 @@ class AuthorizationService:
         workspace_id: Union[RecordId, str, None],
         form_id: Union[RecordId, str],
         permission: Permission,
+        restricted: Optional[bool] = None,
     ) -> Optional[FrozenSet[str]]:
         """The ids of the workspace's active members who hold ``permission`` on
         the form, by their role, grants and the form's access mode (not by a
         session: nobody is signed in here). ``None`` while the switch is off:
         no narrowing. For what is sent to people (a team address must never
-        receive the answers of a form its holder may not read)."""
+        receive the answers of a form its holder may not read). ``restricted``
+        decides as if the form's mode were that: a what-if for the members who
+        would lose access."""
         if not form_access_enabled():
             return None
         workspace_oid = _object_id(workspace_id)
@@ -462,7 +482,7 @@ class AuthorizationService:
         ]
         # the form and its grants are read once for every member, not per member
         decided = await self._required_form_access().permissions_for_members(
-            bases, str(form_id)
+            bases, str(form_id), restricted
         )
         return frozenset(
             user_id

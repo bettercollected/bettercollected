@@ -95,6 +95,10 @@ def _mode_request(ctx):
     return {"json": {"mode": ctx["mode"]}}
 
 
+def _impact_request(ctx):
+    return {"params": {"mode": "restricted"}}
+
+
 def _grant_request(ctx):
     # a member who is no principal of the matrix; a Viewer grant never changes
     # what another call of the matrix is expected to answer
@@ -165,6 +169,10 @@ ROUTES: Dict[Tuple[str, str], Route] = {
     ("GET", F + "/access"): route(FORM, P.FORM_READ),
     ("PUT", F + "/access/mode"): route(
         FORM, P.FORM_SHARE, request=_mode_request, needs_switch=True
+    ),
+    ("GET", F + "/access/candidates"): route(FORM, P.FORM_SHARE, needs_switch=True),
+    ("GET", F + "/access/impact"): route(
+        FORM, P.FORM_SHARE, request=_impact_request, needs_switch=True
     ),
     ("PUT", F + "/grants"): route(
         FORM, P.FORM_SHARE, request=_grant_request, needs_switch=True

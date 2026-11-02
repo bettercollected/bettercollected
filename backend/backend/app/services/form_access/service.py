@@ -16,7 +16,7 @@ is remembered.
 
 import dataclasses
 from dataclasses import dataclass
-from typing import Callable, FrozenSet, Iterable, List, Optional, Tuple
+from typing import Callable, Dict, FrozenSet, Iterable, List, Optional, Tuple
 
 from backend.app.models.enum.permission import Permission
 from backend.app.repositories.postgres.form_access import (
@@ -29,7 +29,9 @@ from backend.app.schemas.form_access_grant import FormAccessGrantDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.form_access.mode import form_access_enabled
 from backend.app.services.form_access.model import (
+    FORM_SCOPED,
     BaseAccess,
+    FormAccessSummary,
     FormPermissions,
     SOURCE_ROLE,
     is_restricted,
@@ -49,12 +51,18 @@ class _Facts:
 
 
 def _decide(
-    base: BaseAccess, link: WorkspaceFormDocument, grants: Iterable[FormAccessGrantDocument]
+    base: BaseAccess,
+    link: WorkspaceFormDocument,
+    grants: Iterable[FormAccessGrantDocument],
+    restricted: Optional[bool] = None,
 ) -> FormPermissions:
+    """``restricted`` overrides the form's stored mode (a what-if: the
+    members who would lose access if the form were restricted)."""
     settings = link.settings
-    restricted = is_restricted(
-        getattr(settings, "access_mode", None), getattr(settings, "hidden", None)
-    )
+    if restricted is None:
+        restricted = is_restricted(
+            getattr(settings, "access_mode", None), getattr(settings, "hidden", None)
+        )
     decided = resolve(
         base,
         restricted=restricted,
@@ -134,11 +142,15 @@ class FormAccessService:
         return _decide(base, facts.link, facts.grants)
 
     async def permissions_for_members(
-        self, bases: Iterable[BaseAccess], form_id: str
+        self,
+        bases: Iterable[BaseAccess],
+        form_id: str,
+        restricted: Optional[bool] = None,
     ) -> dict:
         """``permissions_on`` for each of ``bases`` (members of one workspace)
         on one form, keyed by user id: the form and its grants are read once,
-        not once per member."""
+        not once per member. ``restricted`` decides as if the form's mode were
+        that (a what-if; the stored mode when ``None``)."""
         bases = list(bases)
         decided: dict = {}
         pending = [b for b in bases if not self._passes_through(b)]
@@ -160,9 +172,59 @@ class FormAccessService:
             decided[base.user_id] = (
                 FormPermissions(base.permissions, SOURCE_ROLE)
                 if link is None
-                else _decide(base, link, held.get(base.user_id, ()))
+                else _decide(base, link, held.get(base.user_id, ()), restricted)
             )
         return decided
+
+    async def summaries(
+        self, base: BaseAccess, form_ids: Iterable[str]
+    ) -> Dict[str, FormAccessSummary]:
+        """The caller's own access summary for each of ``form_ids`` that is one
+        of the workspace's (a form that is not is left out). For the lists and
+        payloads that tell the dashboard whether to show a form as restricted
+        and what its reader may do: the forms are read once for the whole page
+        (and the reader's grants once), never per form. One form is read from
+        the request's memo. Empty while the switch is off or for anyone who is
+        no active member."""
+        ids = list(dict.fromkeys(str(f) for f in form_ids))
+        if not ids or not self._enabled() or not base.permissions:
+            return {}
+        needs_grants = not (base.privileged or base.workspace_disabled)
+        by_form: Dict[str, list] = {}
+        if len(ids) == 1:
+            facts = await self._facts(base, ids[0])
+            links = [] if facts.link is None else [facts.link]
+            by_form[ids[0]] = list(facts.grants)
+        else:
+            wanted = set(ids)
+            links = [
+                link
+                for link in await self._workspace_form_repo.list_in_workspace(
+                    base.workspace_id
+                )
+                if str(link.form_id) in wanted
+            ]
+            if needs_grants:
+                for grant in await self._grant_repo.for_user(
+                    base.workspace_id, base.user_id, wanted
+                ):
+                    by_form.setdefault(str(grant.form_id), []).append(grant)
+        summaries: Dict[str, FormAccessSummary] = {}
+        for link in links:
+            form_id = str(link.form_id)
+            decided = _decide(base, link, by_form.get(form_id, ()))
+            restricted = is_restricted(
+                getattr(link.settings, "access_mode", None),
+                getattr(link.settings, "hidden", None),
+            )
+            may_manage = base.privileged or str(link.user_id) == base.user_id
+            summaries[form_id] = FormAccessSummary(
+                restricted=restricted,
+                can_manage=Permission.FORM_SHARE in decided.permissions
+                and (may_manage or not restricted),
+                permissions=frozenset(decided.permissions & FORM_SCOPED),
+            )
+        return summaries
 
     async def may_save_as_template(self, base: BaseAccess, form_id: str) -> bool:
         """Whether the member may copy the form's structure into the

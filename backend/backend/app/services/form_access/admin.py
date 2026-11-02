@@ -35,7 +35,11 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
-from backend.app.models.enum.workspace_roles import WorkspaceRoles, canonical_role
+from backend.app.models.enum.workspace_roles import (
+    WorkspaceRoles,
+    canonical_role,
+    is_owner_membership,
+)
 from backend.app.repositories.postgres.form_access import (
     AccessTargetNotFound,
     PostgresFormAccessGrantRepository,
@@ -143,6 +147,15 @@ class GrantDto(_Model):
     disabled: bool = False
     created_by: Optional[str] = None
     created_at: Optional[str] = None
+    # who gave it, by name (a current member's; none for anyone else: best
+    # effort, like every name here)
+    granted_by: Optional[str] = None
+    # a team grant: how many people the team has (one number, never who)
+    member_count: Optional[int] = None
+    # only in a member's own access view: the form the grant is on and its
+    # title, left out for a form the caller may not open
+    form_id: Optional[str] = None
+    form_title: Optional[str] = None
 
 
 class FormAccessDto(_Model):
@@ -160,6 +173,37 @@ class FormAccessDto(_Model):
     can_manage: bool = False
     # the people and teams with a grant (for whoever may share the form)
     grants: Optional[List[GrantDto]] = None
+
+
+class CandidateMemberDto(_Model):
+    id: str
+    name: Optional[str] = None
+
+
+class CandidateTeamDto(_Model):
+    id: str
+    name: str
+    member_count: int = 0
+
+
+class CandidatesDto(_Model):
+    """Who may be given access to one form, for whoever holds ``form.share``
+    on it: names and ids to pick from, and a team's size. No address, no role,
+    no grant."""
+
+    members: List[CandidateMemberDto] = []
+    teams: List[CandidateTeamDto] = []
+
+
+class ImpactDto(_Model):
+    """What changing a form's mode would do (a dry run: nothing is changed or
+    recorded)."""
+
+    mode: str
+    # active members who open the form now and would no longer (restricting a
+    # form: everyone whose role gave them the form and who is not an owner, an
+    # admin, the creator or a grantee); 0 for any other change
+    members_losing_access: int = 0
 
 
 class MemberAccessDto(_Model):
@@ -216,6 +260,7 @@ class FormAccessAdminService:
         audit_repo,
         cleanup: FormAccessCleanup,
         member_directory=None,
+        form_repo=None,
     ):
         self._authz = authorization_service
         self._form_access = form_access
@@ -227,6 +272,7 @@ class FormAccessAdminService:
         self._audit = audit_repo
         self._cleanup = cleanup
         self._directory = member_directory
+        self._forms = form_repo
 
     # ------------------------------------------------------------------ teams
     async def _manage_teams(self, workspace_id, user) -> None:
@@ -442,9 +488,37 @@ class FormAccessAdminService:
             if str(team.id) in team_ids
         ]
         grants = await self._grants.direct_for_user(workspace_id, member_id)
-        return MemberAccessDto(
-            teams=teams, grants=[self._grant_dto(grant) for grant in grants]
+        names, disabled, sizes = await self._names(workspace_id, grants)
+        titles = await self._visible_titles(workspace_id, grants, user)
+        dtos = []
+        for grant in grants:
+            dto = self._grant_dto(grant, names, disabled, sizes)
+            if str(grant.form_id) in titles:
+                dto.form_id = str(grant.form_id)
+                dto.form_title = titles[str(grant.form_id)]
+            dtos.append(dto)
+        return MemberAccessDto(teams=teams, grants=dtos)
+
+    async def _visible_titles(self, workspace_id, grants, user) -> Dict[str, Optional[str]]:
+        """form id -> title for the forms of ``grants`` that are the
+        workspace's and that ``user`` may open: a grant on any other form says
+        nothing of it (no id, no title)."""
+        form_ids = list(dict.fromkeys(str(g.form_id) for g in grants))
+        if not form_ids or self._forms is None:
+            return {}
+        linked = {
+            str(link.form_id) for link in await self._links.list_in_workspace(workspace_id)
+        }
+        form_ids = [f for f in form_ids if f in linked]
+        form_ids = await self._authz.restrict_to_visible(
+            user, workspace_id, form_ids, Permission.FORM_READ
         )
+        if not form_ids:
+            return {}
+        return {
+            str(form.form_id): form.title
+            for form in await self._forms.get_forms_by_form_ids(form_ids)
+        }
 
     # ------------------------------------------------------------ one form
     async def _form(self, workspace_id, form_id, user, permission: Permission):
@@ -469,7 +543,9 @@ class FormAccessAdminService:
         grant: FormAccessGrantDocument,
         names: Optional[Dict[str, str]] = None,
         disabled: Optional[set] = None,
+        sizes: Optional[Dict[str, int]] = None,
     ) -> GrantDto:
+        is_team = grant.subject_type == SUBJECT_GROUP
         return GrantDto(
             id=str(grant.id),
             subject_type=grant.subject_type,
@@ -480,6 +556,10 @@ class FormAccessAdminService:
             disabled=str(grant.subject_id) in (disabled or set()),
             created_by=grant.created_by,
             created_at=_iso(grant.created_at),
+            granted_by=(
+                (names or {}).get(str(grant.created_by)) if grant.created_by else None
+            ),
+            member_count=(sizes or {}).get(str(grant.subject_id), 0) if is_team else None,
         )
 
     async def get_access(self, workspace_id, form_id, user) -> FormAccessDto:
@@ -492,8 +572,8 @@ class FormAccessAdminService:
         grants: Optional[List[GrantDto]] = None
         if Permission.FORM_SHARE in held:
             stored = await self._grants.list_for_form(workspace_id, form_id)
-            names, disabled = await self._names(workspace_id, stored)
-            grants = [self._grant_dto(g, names, disabled) for g in stored]
+            names, disabled, sizes = await self._names(workspace_id, stored)
+            grants = [self._grant_dto(g, names, disabled, sizes) for g in stored]
         return FormAccessDto(
             enabled=True,
             access_mode=getattr(link.settings, "access_mode", None),
@@ -505,23 +585,29 @@ class FormAccessAdminService:
         )
 
     async def _names(self, workspace_id, grants):
-        """Display names for the subjects of ``grants`` (a team's name, a
-        person's name when the lookup finds one) and the persons whose
-        membership is disabled."""
+        """``(names, disabled, sizes)`` for ``grants``: display names (a
+        team's name, a person's and a granter's when the lookup finds one: a
+        current member's only), the persons whose membership is disabled, and
+        each team's size."""
         names: Dict[str, str] = {}
         disabled = set()
+        sizes: Dict[str, int] = {}
         people = [str(g.subject_id) for g in grants if g.subject_type == SUBJECT_USER]
+        granters = [str(g.created_by) for g in grants if g.created_by]
         if any(g.subject_type == SUBJECT_GROUP for g in grants):
             for team in await self._groups.list_in_workspace(workspace_id):
                 names[str(team.id)] = team.name
+            sizes = await self._groups.member_counts(workspace_id)
         if people:
             for member in await self._members.get_workspace_users(workspace_id):
                 if member.disabled and str(member.user_id) in people:
                     disabled.add(str(member.user_id))
-            if self._directory is not None:
-                _, found = await self._directory.lookup(workspace_id, people)
-                names.update(found)
-        return names, disabled
+        if (people or granters) and self._directory is not None:
+            _, found = await self._directory.lookup(
+                workspace_id, list(dict.fromkeys(people + granters))
+            )
+            names.update(found)
+        return names, disabled, sizes
 
     async def set_mode(
         self, workspace_id, form_id, request: ModeRequestDto, user
@@ -551,6 +637,84 @@ class FormAccessAdminService:
             finally:
                 self._form_access.invalidate()
         return await self.get_access(workspace_id, form_id, user)
+
+    async def candidates(self, workspace_id, form_id, user) -> CandidatesDto:
+        """The people and teams of this workspace who could be given access to
+        this form, for whoever may change its circle but cannot list the
+        members (an Editor who created it): names and ids, a team's size.
+        Reads the same people the circle manager may then name in a grant, and
+        nothing else (no address, no role, no grant); records nothing."""
+        refuse_when_off()
+        _link, _base, _decided, may_manage, restricted = await self._form(
+            workspace_id, form_id, user, Permission.FORM_SHARE
+        )
+        self._refuse_unless_circle_manager(restricted, may_manage)
+        workspace = await self._workspaces.find_by_id(workspace_id)
+        # no one who always has access, no privacy officer (a grant does
+        # nothing for one), no deactivated member, not the caller
+        never_granted = {
+            WorkspaceRoles.OWNER,
+            WorkspaceRoles.ADMIN,
+            WorkspaceRoles.PRIVACY_OFFICER,
+        }
+        eligible = [
+            str(member.user_id)
+            for member in await self._members.get_workspace_users(workspace_id)
+            if not member.disabled
+            and str(member.user_id) != str(user.id)
+            and not is_owner_membership(workspace, member)
+            and not ({canonical_role(role) for role in (member.roles or [])} & never_granted)
+        ]
+        names: Dict[str, str] = {}
+        if eligible and self._directory is not None:
+            _, names = await self._directory.lookup(workspace_id, eligible)
+        # a person the directory cannot name (a deleted account) is not offered
+        members = sorted(
+            (
+                CandidateMemberDto(id=member, name=names[member])
+                for member in eligible
+                if member in names
+            ),
+            key=lambda m: ((m.name or "").casefold(), m.id),
+        )
+        counts = await self._groups.member_counts(workspace_id)
+        teams = [
+            CandidateTeamDto(
+                id=str(team.id), name=team.name, member_count=counts.get(str(team.id), 0)
+            )
+            for team in sorted(
+                await self._groups.list_in_workspace(workspace_id),
+                key=lambda t: t.name_key,
+            )
+        ]
+        return CandidatesDto(members=members, teams=teams)
+
+    async def impact(self, workspace_id, form_id, mode: str, user) -> ImpactDto:
+        """A dry run of ``set_mode``: how many active members would lose access
+        to the form (and so its answers) if it were restricted. Only whoever
+        may change the mode asks; nothing is changed or recorded; a count,
+        never names."""
+        refuse_when_off()
+        _link, _base, _decided, may_manage, restricted = await self._form(
+            workspace_id, form_id, user, Permission.FORM_SHARE
+        )
+        if not may_manage:
+            raise _refused(
+                "access_manage_forbidden",
+                "Only an owner, an admin or the person who created the form can "
+                "change who may open it.",
+            )
+        losing = 0
+        if mode == "restricted" and not restricted:
+            now = await self._authz.member_ids_holding(
+                workspace_id, form_id, Permission.FORM_READ
+            )
+            after = await self._authz.member_ids_holding(
+                workspace_id, form_id, Permission.FORM_READ, restricted=True
+            )
+            if now is not None and after is not None:
+                losing = len(now - after)
+        return ImpactDto(mode=mode, members_losing_access=losing)
 
     async def put_grant(
         self, workspace_id, form_id, request: GrantRequestDto, user
@@ -636,8 +800,8 @@ class FormAccessAdminService:
             raise _not_found("Not found") from None
         finally:
             self._form_access.invalidate()
-        names, disabled = await self._names(workspace_id, [saved])
-        return self._grant_dto(saved, names, disabled)
+        names, disabled, sizes = await self._names(workspace_id, [saved])
+        return self._grant_dto(saved, names, disabled, sizes)
 
     async def delete_grant(self, workspace_id, form_id, grant_id, user) -> None:
         refuse_when_off()
