@@ -262,27 +262,3 @@ async def test_writing_settings_back_keeps_the_stored_mark_and_forges_none(
     assert after.promoted_from is not None
     assert after.promoted_from.source_hash == "d4" * 8
 
-
-async def test_a_stale_save_with_access_off_does_not_lose_a_concurrent_mark(
-    workspace, workspace_form, monkeypatch
-):
-    """``save()`` of an existing link keeps the stored copied-from mark under the
-    row lock also while form-level access is off: a link read before
-    ``set_promoted_from`` and saved after it does not write the mark away."""
-    from backend.config import settings
-
-    monkeypatch.setattr(settings.form_access, "ENABLED", False)
-    repo = container.workspace_form_repo()
-    stale = await link_of(workspace, workspace_form.form_id)
-    assert stale.settings is None or stale.settings.promoted_from is None
-    await repo.set_promoted_from(workspace.id, workspace_form.form_id, _forged_mark())
-
-    stale.settings = (stale.settings or WorkspaceFormSettings()).model_copy(
-        update={"pinned": True}
-    )
-    await repo.save(stale)
-
-    after = (await link_of(workspace, workspace_form.form_id)).settings
-    assert after.pinned is True
-    assert after.promoted_from is not None
-    assert after.promoted_from.source_hash == "d4" * 8

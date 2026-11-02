@@ -1256,10 +1256,7 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             workspace_form.settings = self._keeping_access_mode(
                 workspace_form.settings, None
             )
-        else:
-            # always under the link's row lock, whatever the access switch says:
-            # the stored mode and the copied-from mark are kept, so a concurrent
-            # ``set_promoted_from`` is never written back over by a stale read
+        elif form_access_enabled():
             return await self._save_keeping_stored_mode(workspace_form)
         return await self.save_document(workspace_form)
 
@@ -1269,8 +1266,12 @@ class PostgresWorkspaceFormRepository(RecordRepository):
         """Store an existing link as the caller read and changed it, except for
         the access mode: that is the one stored now, read under the row lock in
         the same transaction as the write, so a restriction set between the
-        caller's read and this save is never written back over. The same goes
-        for the copied-from mark (``set_promoted_from`` writes it concurrently)."""
+        caller's read and this save is never written back over; the copied-from
+        mark is kept the same way. (While form-level access is off no mode can
+        change, and the plain one-statement write is kept: a stale read can then
+        write back over a mark set meanwhile by ``set_promoted_from``, which is
+        advisory: it only orders the copy picker and prompts "changed since the
+        last copy".)"""
         async with self._session() as session, session.begin():
             stored = await self._locked_link(
                 session, WorkspaceFormRow.id == _oid(workspace_form.id)

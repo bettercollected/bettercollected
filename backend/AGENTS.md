@@ -1658,9 +1658,10 @@ nothing else is gated (public spec API, SDK, CLI, a stored `promotedFrom`). Rule
 - An update onto an existing target checks the target's mode in the transaction of the write itself
   (`FormSpecWriter.replace(in_write=...)` -> `update_form_if_unchanged`, `_still_restricted`): the link is read there under a
   SHARE row lock (`lock_link_shared`), which `set_access_mode` waits for, so a restricted source never lands in a form opened
-  meanwhile (no version tag covers the mode). `save()` of an existing link always runs under the row lock and keeps the stored
-  `promoted_from` and access mode (`_keeping_access_mode`), and a new link starts without a mark, so settings arriving in an
-  import cannot forge it and a stale read cannot write a concurrent mark away. A refusal with a 5xx (the audit log down) or a
+  meanwhile (no version tag covers the mode). While form access is on, `save()` of an existing link runs under the row lock and
+  keeps the stored `promoted_from` and access mode (`_keeping_access_mode`); a new link starts without a mark, so settings
+  arriving in an import cannot forge it. With access off `save()` stays one statement, so a stale read can write over a mark
+  set meanwhile: the mark is advisory (it orders the picker and prompts "changed since the last copy"), so that is accepted. A refusal with a 5xx (the audit log down) or a
   429 is never stored under the Idempotency-Key (`_kept_for_key`): the same key can be sent again. The form file download is recorded
   with `export_channel` `file` (the Activity page words it as a download; a copy to a workspace has no channel).
 - The report holds counts and question ids only: never a title, an address, a recipient or a secret (`notCarried`, `adjusted`).
