@@ -621,7 +621,7 @@ checks_a_to_d() {
   section "(3d) the jobs worker"
   grep -E "jobs worker: queues|Starting worker on queues" "$work/jobs-worker.log" | cut -c1-200 | sed 's/^/        /'
   local q
-  for q in default webhooks emails exports imports; do
+  for q in default webhooks emails exports imports integrations; do
     check "the jobs worker serves the '$q' queue" grep -qE "Starting worker on queues.*(^|[ ,])$q([ ,]|\$)" "$work/jobs-worker.log"
   done
   expect "no 'queue not served' warning in the jobs worker's log" "0" "$(grep -c "does not serve the '" "$work/jobs-worker.log")"

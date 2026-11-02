@@ -647,7 +647,14 @@ class PostgresFormRepository(RecordRepository):
         return await self.delete_where(FormRow.form_id.in_(form_ids))
 
     async def create_form(self, form: StandardForm) -> FormDocument:
-        return await self.save_document(FormDocument(**form.model_dump(mode="json")))
+        document = FormDocument(**form.model_dump(mode="json"))
+        # a new form has no actions: they are attached afterwards (with their
+        # own checks), never taken from what the creator sent, so no entry, mark
+        # (``migrated_to``) or setting of an action arrives with a body
+        document.actions = None
+        document.parameters = None
+        document.secrets = None
+        return await self.save_document(document)
 
     @staticmethod
     async def _locked_draft(session, form_id) -> Optional[FormDocument]:

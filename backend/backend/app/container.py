@@ -195,6 +195,7 @@ from backend.app.services.analytics_service import AnalyticsService
 
 from backend.app.services.copy_recipient import CopyRecipientService
 from backend.app.services.form_actions_service import FormActionsService
+from backend.app.services.builtin_actions.sheets import SheetsRunService
 from backend.app.services.form_spec.editor_ops import EditorOpsService
 from backend.app.services.form_spec.service import FormSpecService
 from backend.app.services.form_versions.service import FormVersionsService
@@ -601,6 +602,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
         sheets_reconsent=sheets_reconsent_service,
         crypto=crypto,
+        sheets_runner=LazyRepository(lambda: container.sheets_run_service()),
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(
@@ -1208,6 +1210,19 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_actions_service: FormActionsService = providers.Singleton(
         FormActionsService, form_repo=form_repo, crypto=crypto
+    )
+
+    # the Google Sheets action, run by the backend's jobs worker
+    sheets_run_service: SheetsRunService = providers.Singleton(
+        SheetsRunService,
+        log_repo=action_log_repo,
+        form_repo=form_repo,
+        action_repo=action_repository,
+        workspace_repo=workspace_repo,
+        form_response_service=form_response_service,
+        form_actions_service=form_actions_service,
+        crypto=crypto,
+        sheets_reconsent=sheets_reconsent_service,
     )
 
     refresh_allowed_origins = providers.Callable(

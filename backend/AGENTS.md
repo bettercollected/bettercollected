@@ -1555,3 +1555,17 @@ Router `controllers/form_embed_router.py`, service `services/form_embed.py`. Rul
   anything that could add a source or a directive must stay refused. A new entry kind needs a test in
   `tests/app/embed/test_origins.py` for the injection cases first.
 - The policy route never distinguishes an unknown workspace from one with an empty list.
+
+## Google Sheets action run by the backend (4.4)
+
+The built-in Google Sheets action can be run by the backend instead of the actions executor (`services/builtin_actions/sheets.py`).
+It is dormant until a form's action entry carries `migrated_to: {"kind": "sheets"}` (`ActionState`, set by the move of built-in actions):
+`ActionService.start_actions_for_submission` then writes one `action_logs` row (type `sheets`, unique per action and response) and defers
+`run_sheets_append(log_id)` on the **`integrations` queue** (served by the jobs worker by default; `warn_if_integrations_unserved`),
+`sheets_redefer` sweeps rows whose job is missing. Entries without the mark still go to the executor. Rules to keep: the job's only argument is
+the log id; the credential and the sheet id are read and opened inside the job (action < workspace < form layers); calls go to the two constant
+Google hosts only, through `registration.client` (pinned, no redirects), never to a stored address (the credential's `token_uri` is ignored); the
+spreadsheet id is `^[A-Za-z0-9_-]{20,100}$`; the refreshed credential is sealed with the backend's key by `FormActionsService.update_run_secret`;
+404 / 403 / refused refresh are permanent (`sheet_missing`, `sheet_access_denied`, `oauth_token_missing`), 5xx and 429 retry (5 s, then 25 s,
+3 attempts); `steps_done` on the row keeps a retry from appending a part twice. The cells come from `builtin_actions/qa.py`. Tests:
+`tests/app/builtin_actions/test_sheets_runner.py`.

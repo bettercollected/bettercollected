@@ -28,6 +28,10 @@ EXPORTS_QUEUE = "exports"
 IMPORTS_QUEUE = "imports"
 # email actions (mail to the form's team, a copy to the respondent): same rules
 EMAILS_QUEUE = "emails"
+# calls to other services made for a form's actions (today: the Google Sheets
+# action's rows): the backend's own worker, never the executor, with its own queue
+# so a slow third party cannot hold up deliveries or deletions
+INTEGRATIONS_QUEUE = "integrations"
 JOB_NAMES = (
     "delete_user",
     "delete_response",
@@ -40,6 +44,7 @@ JOB_NAMES = (
     "build_response_export",
     "run_response_import",
     "deliver_email",
+    "run_sheets_append",
 )
 SEARCH_PATH_OPTIONS = "-c search_path=jobs"
 
