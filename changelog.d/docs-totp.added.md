@@ -1,1 +1,0 @@
-- `docs/totp.md`: the authenticator app as a second factor (setup, sign-in, the workspace rule, resets, limits and locks, what turning `TOTP_ENABLED` off does, and the order to deploy it in), with cross-references from the single sign-on and access-model pages.
