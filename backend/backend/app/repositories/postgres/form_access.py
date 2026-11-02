@@ -290,6 +290,38 @@ class PostgresFormAccessGrantRepository(RecordRepository):
         unrevoked key of the workspace and a form that is not linked to it,
         whatever the caller checked: the write keeps a row inside its workspace.
         A row is always written as a key row, whatever the document says."""
+        async with self._session() as session, session.begin():
+            return await self.replace_for_key_in(session, workspace_id, key_id, rows)
+
+    async def form_ids_for_key_in(self, session, workspace_id, key_id) -> List[str]:
+        """The ids of the forms the key holds a row for, sorted, read in the
+        caller's transaction (under the key's row lock, a list nobody can change
+        meanwhile)."""
+        found = await session.execute(
+            select(FormAccessGrantRow.form_id).where(
+                FormAccessGrantRow.workspace_id == _id(workspace_id),
+                FormAccessGrantRow.subject_type == SUBJECT_KEY,
+                FormAccessGrantRow.subject_id == _id(key_id),
+            )
+        )
+        return sorted(str(f) for f in found.scalars().all())
+
+    async def delete_for_key_in(self, session, workspace_id, key_id) -> int:
+        """Every row of the key, in the caller's transaction."""
+        return await self._delete_recorded(
+            session,
+            FormAccessGrantRow,
+            FormAccessGrantRow.workspace_id == _id(workspace_id),
+            FormAccessGrantRow.subject_type == SUBJECT_KEY,
+            FormAccessGrantRow.subject_id == _id(key_id),
+        )
+
+    async def replace_for_key_in(
+        self, session, workspace_id, key_id, rows: Iterable[FormAccessGrantDocument]
+    ) -> List[FormAccessGrantDocument]:
+        """``replace_for_key`` in the caller's transaction (the key edit writes
+        its rows under the key's row lock, in the transaction that stores the key
+        and its audit entries)."""
         workspace_id, key_id = _id(workspace_id), _id(key_id)
         wanted: Dict[str, FormAccessGrantDocument] = {}
         for row in rows:
@@ -301,43 +333,42 @@ class PostgresFormAccessGrantRepository(RecordRepository):
                 "form_access_grant", workspace_id, row.form_id, SUBJECT_KEY, key_id
             )
             wanted[row.form_id] = row
-        async with self._session() as session, session.begin():
-            key = await session.execute(
-                select(WorkspaceApiKeyRow.id)
+        key = await session.execute(
+            select(WorkspaceApiKeyRow.id)
+            .where(
+                WorkspaceApiKeyRow.id == key_id,
+                WorkspaceApiKeyRow.workspace_id == workspace_id,
+                WorkspaceApiKeyRow.revoked.is_not(True),
+            )
+            .limit(1)
+            .with_for_update(read=True)
+        )
+        if key.first() is None:
+            raise AccessTargetNotFound("key")
+        if wanted:
+            linked = await session.execute(
+                select(WorkspaceFormRow.form_id)
                 .where(
-                    WorkspaceApiKeyRow.id == key_id,
-                    WorkspaceApiKeyRow.workspace_id == workspace_id,
-                    WorkspaceApiKeyRow.revoked.is_not(True),
+                    WorkspaceFormRow.workspace_id == workspace_id,
+                    WorkspaceFormRow.form_id.in_(list(wanted)),
                 )
-                .limit(1)
                 .with_for_update(read=True)
             )
-            if key.first() is None:
-                raise AccessTargetNotFound("key")
-            if wanted:
-                linked = await session.execute(
-                    select(WorkspaceFormRow.form_id)
-                    .where(
-                        WorkspaceFormRow.workspace_id == workspace_id,
-                        WorkspaceFormRow.form_id.in_(list(wanted)),
-                    )
-                    .with_for_update(read=True)
-                )
-                if {str(f) for f in linked.scalars().all()} != set(wanted):
-                    raise AccessTargetNotFound("form")
-            await self._delete_recorded(
-                session,
-                FormAccessGrantRow,
-                FormAccessGrantRow.workspace_id == workspace_id,
-                FormAccessGrantRow.subject_type == SUBJECT_KEY,
-                FormAccessGrantRow.subject_id == key_id,
-                FormAccessGrantRow.form_id.not_in(list(wanted)),
+            if {str(f) for f in linked.scalars().all()} != set(wanted):
+                raise AccessTargetNotFound("form")
+        await self._delete_recorded(
+            session,
+            FormAccessGrantRow,
+            FormAccessGrantRow.workspace_id == workspace_id,
+            FormAccessGrantRow.subject_type == SUBJECT_KEY,
+            FormAccessGrantRow.subject_id == key_id,
+            FormAccessGrantRow.form_id.not_in(list(wanted)),
+        )
+        for row in wanted.values():
+            row.touch()
+            await session.execute(
+                self._upsert_statement(row_values(row), FormAccessGrantRow)
             )
-            for row in wanted.values():
-                row.touch()
-                await session.execute(
-                    self._upsert_statement(row_values(row), FormAccessGrantRow)
-                )
         return list(wanted.values())
 
     # -- a person's grants (the Members page, removal) ---------------------------
