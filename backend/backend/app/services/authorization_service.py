@@ -244,6 +244,8 @@ class AuthorizationService:
         name a form its reader may not open: filter before counting or
         searching."""
         base = await self._base_access(user, workspace_id)
+        if not form_access_enabled():
+            return None if permission in base.permissions else frozenset()
         return await self._required_form_access().visible_ids(
             base, permission, form_ids
         )

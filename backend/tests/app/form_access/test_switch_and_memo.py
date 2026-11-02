@@ -255,6 +255,16 @@ async def test_a_role_change_within_a_request_is_seen(switch_on, workspace, work
         unbind_request(token)
 
 
+async def test_off_every_form_is_visible_to_whoever_holds_the_permission(
+    switch_off, workspace, workspace_form
+):
+    viewer = await add_member(workspace, "VIEWER")
+    await restrict(workspace, workspace_form.form_id)
+    for service in (container.authorization_service(), plain_authorization()):
+        assert await service.visible_form_ids(viewer, workspace.id, P.FORM_READ) is None
+        assert await service.visible_form_ids(viewer, workspace.id, P.FORM_EDIT) == frozenset()
+
+
 async def test_an_unwired_resolver_fails_closed_while_the_switch_is_on(
     workspace, workspace_form, monkeypatch
 ):
