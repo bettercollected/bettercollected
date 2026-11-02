@@ -39,6 +39,25 @@ answers).
 Only the mapped questions are in `data`; nothing else about the response is. The answers are decrypted inside the delivery job, reduced to those
 questions and sent: they are never stored, queued or logged. A **test event** has `"event":"test"`, `response_id` and `submitted_at` null and made-up values.
 
+### Formats
+
+A webhook has a `format`. Every webhook a person makes is `envelope` (the body above). The other three exist for the built-in actions that moved into webhooks
+in 4.4 ([Moving built-in actions](moving-builtin-actions.md)): they send **every question** the form has (the list of questions is not used) and a person cannot
+choose them. The list shows the format and `allQuestions`.
+
+| Format | Body | Signed |
+|---|---|---|
+| `envelope` | the signed object above, with the mapped questions under their names | yes |
+| `legacy_list` | what the built-in "send a webhook" action posted: a bare JSON list `[{"field_id","title","answer"}, ...]`, one entry per question (repeating groups expanded, "Applicant 2 – Name"; calculated values formatted; internal fields left out), written as Python's `json.dumps` writes it (`", "` and `": "` separators, non-ASCII escaped) | yes: the headers below, with a secret made when the action moved |
+| `slack` | the Slack message the built-in action posted: one `attachments` entry with a link to the responses and a field per question (a falsy answer is a dash). `&`, `<` and `>` in titles and answers are escaped, so an answer cannot make a link or a mention | no (the address is the secret) |
+| `discord` | the Discord message the built-in action posted: one embed with up to 25 fields (names cut to 256 characters, values to 1,024, an empty answer is a dash), `allowed_mentions` set to nothing | no |
+
+- `slack` and `discord` webhooks go only to their own addresses (`hooks.slack.com/services/...`; `discord.com` or `discordapp.com` under `/api/webhooks/`), checked when saved and
+  again at every send (`host_not_allowed`, permanent). Everything else, the SSRF guard included, is the same as for any webhook. They have no signature headers and no secret to rotate.
+- **Legacy format to signed format:** a person can move a `legacy_list` webhook to `envelope` (`PATCH` with `{"format": "envelope"}`, or "Switch to signed format" in the form's settings). The secret stays;
+  it keeps sending every question (`allQuestions`, named by the questions' own ids) until questions are picked, which ends it. **The receiver must be ready for the new body and verify the signature first.** It cannot be moved back.
+- `all_questions` (an `envelope` webhook that sends every question the form has now) cannot be turned on by a person: only the move of a built-in action sets it.
+
 ### Values
 
 Each mapped question is one value under its key. Every question that was not answered is `null`, except text-like questions (`""`) and tags (`[]`). The
@@ -172,7 +191,7 @@ destination, by **host name** only, and that deleting a response here does not d
 ## Where it runs, and what it cannot reach
 
 - Job `deliver_webhook`, plus the sweep `webhooks_redefer` and the purge `purge_action_logs`, on the queue **`webhooks`** of the Postgres job queue, in the
-  backend's jobs worker (`python -m backend.jobs.worker`, which now consumes `default,webhooks,emails,exports`; override with `JOBS_QUEUES`: if you set it, include `webhooks` (and `emails`, `exports`, the queues of email actions and large response exports), or deliveries stay queued; the worker logs a warning at start when webhooks are on and it does not serve the queue). The job's only argument is the
+  backend's jobs worker (`python -m backend.jobs.worker`, which now consumes `default,webhooks,emails,exports,imports,integrations`; override with `JOBS_QUEUES`: if you set it, include `webhooks` (and `emails`, `exports`, `imports`, `integrations`, the queues of email actions, large response exports, CSV imports and the Google Sheets action), or deliveries stay queued; the worker logs a warning at start when webhooks are on and it does not serve the queue). The job's only argument is the
   delivery id.
 - The actions executor, which runs creator code, connects as `bc_jobs_exec`. Its row-level security policy limits it to `run_action` rows of the `actions`
   queue, so it cannot see, change, cancel or queue a webhook job, nor take a lock name that blocks one. `tests/app/jobs/test_executor_role.py` proves it
@@ -195,11 +214,11 @@ destination, by **host name** only, and that deleting a response here does not d
 | | |
 |---|---|
 | `GET /workspaces/{ws}/webhooks/status` | `{"enabled": bool}` (any member) |
-| `GET /workspaces/{ws}/forms/{form}/webhooks` | the form's webhooks: host, questions, state (no secrets, no addresses) |
+| `GET /workspaces/{ws}/forms/{form}/webhooks` | the form's webhooks: host, questions, `format`, `allQuestions`, state (no secrets, no addresses) |
 | `GET .../webhooks/{id}/detail` | one webhook with its address opened (to edit it); `workspace.manage` |
 | `GET .../webhooks/variables` | the form's questions that can be mapped |
 | `POST .../webhooks` | `{url, fields:[{source,key}], condition, enabled}` -> 201 with `secret` (once) |
-| `PATCH .../webhooks/{id}` | `{url?, fields?, condition?, enabled?}` (`condition: null` removes it) |
+| `PATCH .../webhooks/{id}` | `{url?, fields?, condition?, enabled?, format?}` (`condition: null` removes it; `format` can only be `"envelope"`, on a `legacy_list` webhook: 422 `format_locked` otherwise; `fields` on a webhook that sends every question because of its format: 422 `format_has_no_fields`) |
 | `DELETE .../webhooks/{id}` | 204 |
 | `POST .../webhooks/{id}/rotate-secret` | a new `secret`, once; the old one stops working at once |
 | `POST .../webhooks/{id}/test` | queues a real, signed delivery of sample data; returns its log row |
