@@ -9119,7 +9119,7 @@
   "document": "WorkspaceUserDocument"
  },
  "workspaces/full": {
-  "checksum": "sha256:592c5dd01ccad32e7cb8a56da1f8e8eb308de3cd5f654b6b77a39517ea198a9f",
+  "checksum": "sha256:4b4ba38be77dced498d980d372f2ae3187b8043e0ff316c7268674831f7e2e32",
   "doc": {
    "_id": {
     "$oid": "a809c17de9bfb723bacb0d11"
@@ -9352,6 +9352,10 @@
    "default": true,
    "description": "WorkspaceDocument.description tëxt ✓ \"quoted\" \\ line\nbreak",
    "disabled": true,
+   "embed_allowed_origins": [
+    "WorkspaceDocument.embed_allowed_origins[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+    "WorkspaceDocument.embed_allowed_origins[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+   ],
    "is_pro": true,
    "owner_id": "WorkspaceDocument.owner_id tëxt ✓ \"quoted\" \\ line\nbreak",
    "privacy_policy": "WorkspaceDocument.privacy_policy tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -9368,7 +9372,7 @@
   "document": "WorkspaceDocument"
  },
  "workspaces/minimal": {
-  "checksum": "sha256:5b65b049242eb90df6cda57ff3e97e375011b0e15868a65f937a12ead6a647ca",
+  "checksum": "sha256:e4ec4aad2ec4cc16662cc15099a8ee96f9249136f84e62de36b4e2b1a2ae9e43",
   "doc": {
    "_id": {
     "$oid": "0662a96fe8066d1ed2683b39"
@@ -9394,6 +9398,7 @@
    "default": false,
    "description": null,
    "disabled": false,
+   "embed_allowed_origins": null,
    "is_pro": null,
    "owner_id": null,
    "privacy_policy": null,
@@ -9410,7 +9415,7 @@
   "document": "WorkspaceDocument"
  },
  "workspaces/naive": {
-  "checksum": "sha256:f61c8629682f856dbaccbf46485806ecd8b1fe63670207f284fc04a48ab4f19c",
+  "checksum": "sha256:01c831921d597dd3f53d59fadd7bae4eba6dab56e5bbe48b70236ee0662b04ec",
   "doc": {
    "_id": {
     "$oid": "89649ece376f31ff66edc1a2"
@@ -9643,6 +9648,10 @@
    "default": true,
    "description": "WorkspaceDocument.description tëxt ✓ \"quoted\" \\ line\nbreak",
    "disabled": true,
+   "embed_allowed_origins": [
+    "WorkspaceDocument.embed_allowed_origins[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+    "WorkspaceDocument.embed_allowed_origins[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+   ],
    "is_pro": true,
    "owner_id": "WorkspaceDocument.owner_id tëxt ✓ \"quoted\" \\ line\nbreak",
    "privacy_policy": "WorkspaceDocument.privacy_policy tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -9659,7 +9668,7 @@
   "document": "WorkspaceDocument"
  },
  "workspaces/nulls": {
-  "checksum": "sha256:ea512ca85ef1c9b80828312b2d7f5b28d30a34a961befa9d5b0a3ff3e56cb003",
+  "checksum": "sha256:c7ae2ecfd8d5a803f65cfe1293e2786a0383128ecd2acd71abafc42dcd38e819",
   "doc": {
    "_id": {
     "$oid": "8078bb88933d2e712c661301"
@@ -9685,6 +9694,7 @@
    "default": true,
    "description": null,
    "disabled": null,
+   "embed_allowed_origins": null,
    "is_pro": null,
    "owner_id": null,
    "privacy_policy": null,
