@@ -36,11 +36,13 @@ from backend.app.services.api_responses import (
     list_response_summaries,
     response_detail,
 )
+from backend.app.public_api.auth import rate_limit_mcp
 from backend.app.services.api_access import (
     SCOPE_PERMISSIONS,
     acting_user,
     audit_key_call,
     key_may_use_form,
+    require_key_may_create,
     require_key_on_form,
     require_key_scope,
     restrict_to_key_visible,
@@ -106,13 +108,26 @@ mcp = _BetterCollectedMCP(
 logging.getLogger("mcp.server.mcpserver.server").setLevel(logging.WARNING)
 
 
-async def _key(scope: str) -> WorkspaceAPIKeyDocument:
+async def _key(
+    scope: str, creates: Optional[str] = None
+) -> WorkspaceAPIKeyDocument:
+    """The calling key, after its rate limit (the public API's budgets: per key
+    and per workspace, counted for MCP on their own) and its scope.
+
+    ``creates``: the name of the tool, for a tool that makes a form, which a key
+    limited to a list of forms may not (403 ``key_form_scope``; the refusal is
+    audited under that name)."""
     key = current_api_key.get()
     if key is None:
         raise ValueError("Not authenticated")
     try:
+        await rate_limit_mcp(key)
         await require_key_scope(key, scope)
+        if creates:
+            require_key_may_create(key)
     except HTTPException as e:
+        if creates and e.status_code == 403:
+            await _audit(creates, False, _error_text(e))
         # Our HTTPException carries the message in `content`, which str() drops
         # — re-raise as ValueError so the MCP client sees why it was denied.
         raise ValueError(_error_text(e)) from e
@@ -212,7 +227,7 @@ async def create_form(title: str, description: str = "") -> str:
     """Create a blank draft form (one empty page) — for building precisely
     with update_form ops. Use create_form_with_ai when you want the platform
     to design the form from a prompt instead."""
-    key = await _key("forms:write")
+    key = await _key("forms:write", creates="create_form")
     import uuid as _uuid
 
     from common.models.standard_form import (
@@ -261,7 +276,7 @@ async def create_form(title: str, description: str = "") -> str:
 async def create_form_with_ai(prompt: str) -> str:
     """Create a new draft form from a natural-language prompt. Generation is
     grounded in the workspace's AI profile (guidelines + compliance)."""
-    key = await _key("forms:write")
+    key = await _key("forms:write", creates="create_form_with_ai")
     from backend.app.container import container
 
     if not (prompt or "").strip() or len(prompt) > AI_PROMPT_MAX_LENGTH:
@@ -312,7 +327,7 @@ async def create_form_outline(prompt: str, document_text: str = "") -> str:
         FormOutlineRequest,
     )
 
-    key = await _key("forms:write")
+    key = await _key("forms:write", creates="create_form_outline")
     if not (prompt or "").strip() or len(prompt) > AI_PROMPT_MAX_LENGTH:
         await _audit("create_form_outline", False, "prompt length")
         raise ValueError(
@@ -354,7 +369,7 @@ async def build_form_from_outline(
         outline_validation_problems,
     )
 
-    key = await _key("forms:write")
+    key = await _key("forms:write", creates="build_form_from_outline")
     parsed, problems = outline_validation_problems(outline)
     if parsed is None:
         await _audit("build_form_from_outline", False, "invalid outline")

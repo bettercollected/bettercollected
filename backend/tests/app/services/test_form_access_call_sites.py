@@ -165,11 +165,6 @@ ALLOWED: Dict[Tuple[str, str, str], str] = {
         "submission_form_ids are checked to be forms of this workspace "
         "(_checked_submission_forms), and an Owner or Admin reaches every form"
     ),
-    ("app/services/ai/api_keys.py", "APIKeyService.update_key", "authorize"): (
-        "security.manage is Owner/Admin-only and never granted per form; the key "
-        "must be a live key of this workspace (_live_key) and every form id a form "
-        "of it that the caller may open (_checked_list: restrict_to_visible)"
-    ),
     (
         "app/services/response_import/service.py",
         "ResponseImportService._process",

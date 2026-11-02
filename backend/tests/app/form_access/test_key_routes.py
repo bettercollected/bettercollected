@@ -691,10 +691,14 @@ async def test_an_edit_never_writes_over_a_revocation_made_meanwhile(workspace, 
     key = await make_key(workspace, admin, scopes=READ)
     repo = container.workspace_api_key_repo()
     assert await repo.revoke_one(workspace.id, key.id) is True
-    assert (
-        await repo.update_limits(workspace.id, key.id, name="x", role="VIEWER", form_scope="all")
-        is None
-    )
+    called = []
+
+    async def change(document):
+        called.append(document)
+        return "x", "VIEWER", "all"
+
+    assert await repo.update_limits(workspace.id, key.id, change) is None
+    assert called == []
     row = await stored(key.id)
     assert (row.revoked, row.role, row.name) == (True, None, "a key")
     # revoking is a no-op the second time, and another workspace's id changes nothing
@@ -834,3 +838,167 @@ async def test_the_titles_a_reader_may_not_see_are_left_out(
     by_id = {f.id: f.title for f in listed[0].forms}
     assert set(by_id) == set(ids(forms)[:2])
     assert by_id[ids(forms)[0]] and by_id[ids(forms)[1]] is None
+
+
+# =========================================================================== review follow-ups
+async def test_the_keys_row_is_locked_before_the_edit_is_worked_out(
+    client: AsyncClient, workspace, forms, roles_on, monkeypatch
+):
+    """A revocation (or a second edit) cannot land between reading the key and
+    storing the change: while the edit is worked out and recorded the key's row
+    is held, so what the entries say is what is changed."""
+    import asyncio
+
+    made = (await create(client, workspace, role="VIEWER")).json()
+    service = container.api_key_service()
+    real = service._plan_edit
+    blocked = []
+
+    async def watched(*args, **kwargs):
+        plan = await real(*args, **kwargs)
+        try:
+            await asyncio.wait_for(
+                container.workspace_api_key_repo().revoke_one(
+                    workspace.id, RecordId(made["id"])
+                ),
+                0.5,
+            )
+            blocked.append(False)
+        except asyncio.TimeoutError:
+            blocked.append(True)
+        return plan
+
+    monkeypatch.setattr(service, "_plan_edit", watched)
+    edited = await patch(client, workspace, made["id"], role="EDITOR")
+    assert edited.status_code == 200, edited.text
+    assert blocked == [True]
+    assert (await stored(made["id"])).role == "EDITOR"
+
+
+async def test_a_key_revoked_before_the_edit_locks_it_records_nothing(
+    client: AsyncClient, workspace, roles_on, monkeypatch
+):
+    made = (await create(client, workspace, role="VIEWER")).json()
+    service = container.api_key_service()
+    real = service._find_in_workspace
+
+    async def then_revoked(workspace_id, key_id):
+        found = await real(workspace_id, key_id)
+        await container.workspace_api_key_repo().revoke_one(
+            workspace.id, RecordId(made["id"])
+        )
+        return found
+
+    monkeypatch.setattr(service, "_find_in_workspace", then_revoked)
+    refused = await patch(client, workspace, made["id"], role="EDITOR")
+    assert refused.status_code == 409 and code(refused) == "key_revoked"
+    assert await audit_events(workspace, API_KEY_ROLE_CHANGED, API_KEY_SCOPE_CHANGED) == []
+    assert (await stored(made["id"])).role == "VIEWER"
+
+
+async def test_an_admin_cannot_clear_the_role_of_a_key_that_follows_an_owner(
+    client: AsyncClient, workspace, forms, roles_on
+):
+    """Clearing a role makes the key follow its creator: an Admin may not make
+    an Owner's key follow the Owner."""
+    admin = await add_member(workspace, "ADMIN")
+    owners_key = await make_key(workspace, testUser, scopes=READ, role="VIEWER")
+    refused = await patch(client, workspace, str(owners_key.id), admin, role=None)
+    assert refused.status_code == 403 and code(refused) == "key_exceeds_editor"
+    assert (await stored(owners_key.id)).role == "VIEWER"
+    assert await audit_events(workspace, API_KEY_ROLE_CHANGED) == []
+    # narrowing it, or changing it to another role, is not that
+    assert (await patch(client, workspace, str(owners_key.id), admin, role="REVIEWER")).status_code == 200
+    # an Owner may, and an Admin may for a key that follows an Admin
+    assert (await patch(client, workspace, str(owners_key.id), testUser, role=None)).status_code == 200
+    peer = await admin_creator(workspace)
+    admins_key = await make_key(workspace, peer, scopes=READ, role="VIEWER")
+    assert (await patch(client, workspace, str(admins_key.id), admin, role=None)).status_code == 200
+
+
+async def test_an_admin_cannot_lift_the_list_of_a_key_that_follows_an_owner(
+    client: AsyncClient, workspace, forms, roles_on
+):
+    admin = await add_member(workspace, "ADMIN")
+    owners_key = await make_key(
+        workspace, testUser, scopes=READ, form_scope="listed", forms=ids(forms)[:1]
+    )
+    refused = await patch(client, workspace, str(owners_key.id), admin, formScope="all")
+    assert refused.status_code == 403 and code(refused) == "key_exceeds_editor"
+    row = await stored(owners_key.id)
+    assert row.form_scope == "listed" and await rows_of(workspace, owners_key.id) == ids(forms)[:1]
+    # the Owner may
+    lifted = await patch(client, workspace, str(owners_key.id), testUser, formScope="all")
+    assert lifted.status_code == 200 and await rows_of(workspace, owners_key.id) == []
+
+
+async def test_revoking_answers_alike_for_a_missing_and_a_foreign_key(
+    client: AsyncClient, workspace, roles_on
+):
+    other = await _other_workspace()
+    foreign = await make_key(other, testUser1)
+    answers = []
+    for key_id in (str(foreign.id), str(RecordId()), "not-an-id"):
+        answer = await client.delete(keys_url(workspace, key_id), cookies=cookies(testUser))
+        answers.append((answer.status_code, answer.text))
+    assert len(set(answers)) == 1 and answers[0][0] == 404
+    assert (await stored(foreign.id)).revoked is False
+
+
+async def test_a_stored_scope_the_server_no_longer_knows_is_a_400_not_a_crash(
+    client: AsyncClient, workspace, roles_on
+):
+    admin = await admin_creator(workspace)
+    old = await make_key(workspace, admin, scopes=("forms:read", "legacy:thing"))
+    refused = await patch(client, workspace, str(old.id), role="VIEWER")
+    assert refused.status_code == 400, refused.text
+    assert code(refused) == "unknown_key_scope" and "legacy:thing" in refused.json()["message"]
+    assert (await stored(old.id)).role is None
+    # the key can still be revoked
+    assert (await client.delete(keys_url(workspace, str(old.id)), cookies=cookies(testUser))).status_code == 200
+
+
+async def test_the_entries_of_an_edit_are_stored_in_one_batch(
+    client: AsyncClient, workspace, forms, roles_on, monkeypatch
+):
+    made = (
+        await create(client, workspace, formScope="listed", formIds=ids(forms)[:1])
+    ).json()
+    repo = container.workspace_audit_repo()
+    calls = {"record": 0, "record_many": []}
+    real_record, real_many = repo.record, repo.record_many
+
+    async def record(document):
+        calls["record"] += 1
+        return await real_record(document)
+
+    async def record_many(documents):
+        calls["record_many"].append(len(documents))
+        return await real_many(documents)
+
+    monkeypatch.setattr(repo, "record", record)
+    monkeypatch.setattr(repo, "record_many", record_many)
+    edited = await patch(
+        client, workspace, made["id"], role="EDITOR", formIds=ids(forms)
+    )
+    assert edited.status_code == 200, edited.text
+    # a role entry, a scope entry and two forms added: one batch, no single insert
+    assert calls == {"record": 0, "record_many": [4]}
+
+
+async def test_a_batch_that_cannot_be_stored_stores_nothing(workspace, forms, monkeypatch):
+    from backend.app.schemas.workspace_audit_event import WorkspaceAuditEventDocument
+
+    repo = container.workspace_audit_repo()
+    good = WorkspaceAuditEventDocument(
+        id=RecordId(), workspace_id=workspace.id, user_id="u", event=API_KEY_CREATED
+    )
+    from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
+
+    # a document of another collection: refused after the first was written
+    bad = WorkspaceAPIKeyDocument(
+        workspace_id=workspace.id, name="n", key_hash="h", prefix="p", created_by="u"
+    )
+    with pytest.raises(Exception):
+        await repo.record_many([good, bad])
+    assert await audit_events(workspace, API_KEY_CREATED) == []

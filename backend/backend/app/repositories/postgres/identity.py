@@ -682,16 +682,18 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
         self,
         workspace_id: RecordId,
         key_id: RecordId,
-        *,
-        name: str,
-        role: Optional[str],
-        form_scope: str,
+        change,
     ) -> Optional[WorkspaceAPIKeyDocument]:
         """Change the name, role and form scope of a live key of the workspace
-        and nothing else (not its scopes, its creator or its secret): the row is
-        locked and re-read, so a revocation or a last-used update made since the
-        caller read the key is never written back. ``None`` when the key is not
-        there, not of this workspace or already revoked."""
+        and nothing else (not its scopes, its creator or its secret). The row is
+        locked and read first and **stays locked while** ``change(document)``
+        (an async callable, given the key as it is now) works out and records
+        the change; it returns ``(name, role, form_scope)`` to store. A
+        revocation or a last-used update made meanwhile waits for the lock, so
+        what ``change`` saw is what is changed and a revoked key is never
+        brought back. An exception from ``change`` stores nothing. ``None`` when
+        the key is not there, not of this workspace or already revoked (``change``
+        is not called)."""
         async with self._session() as session, session.begin():
             doc = (
                 await session.execute(
@@ -707,6 +709,7 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
             if doc is None:
                 return None
             stored = decode(WorkspaceAPIKeyDocument, doc)
+            name, role, form_scope = await change(stored)
             stored.name = name
             stored.role = role
             stored.form_scope = form_scope
