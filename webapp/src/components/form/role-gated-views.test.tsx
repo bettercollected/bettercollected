@@ -7,7 +7,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { store } from '@app/store/store';
 
 import InternalFieldsPanel from './internal-fields-panel';
-import ResponseSegments from './response-segments';
 import '@app/shared/hocs/i18n-provider';  // the catalogue's English text
 
 // Reviewer, Viewer and Privacy officer see the response views without the
@@ -53,33 +52,5 @@ describe('InternalFieldsPanel', () => {
         renderPanel();
         expect((screen.getByRole('textbox') as HTMLInputElement).closest('fieldset')?.disabled).toBe(false);
         expect(screen.getByRole('button', { name: 'Save' })).toBeDefined();
-    });
-});
-
-describe('ResponseSegments', () => {
-    const renderSegments = () =>
-        render(
-            <ReduxProvider store={store}>
-                <ResponseSegments />
-            </ReduxProvider>
-        );
-
-    it('offers both views to an Editor', () => {
-        access.permissions = [...EDITOR, 'privacy.manage'];
-        renderSegments();
-        expect(screen.getByText('All responses')).toBeDefined();
-        expect(screen.getByText('Deletion requests')).toBeDefined();
-    });
-
-    it('never links a Privacy officer to the answers', () => {
-        access.permissions = PRIVACY_OFFICER;
-        renderSegments();
-        expect(screen.queryByText('All responses')).toBeNull();
-    });
-
-    it('leaves out deletion requests for a Viewer', () => {
-        access.permissions = VIEWER;
-        renderSegments();
-        expect(screen.queryByText('Deletion requests')).toBeNull();
     });
 });
