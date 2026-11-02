@@ -2234,15 +2234,21 @@ class WorkspaceFormService:
                 workspace_form.settings.import_id = source_settings.import_id
             workspace_form.settings.provider = "self"
             workspace_form.settings.custom_url = str(duplicated_form.id)
-            workspace_form = await self.workspace_form_repository.save(workspace_form)
             if self._source_is_restricted(source_link):
                 # A copy of a restricted form stays restricted (no grant comes
                 # along: the person who copies it is its creator, owners and
-                # admins always pass).
-                await self.workspace_form_repository.set_access_mode(
-                    workspace_id, str(duplicated_form.form_id), MODE_RESTRICTED
+                # admins always pass). The link is stored with its mode in one
+                # write: there is no moment, and no failure, in which the copy
+                # exists open.
+                workspace_form = (
+                    await self.workspace_form_repository.save_new_link_with_access_mode(
+                        workspace_form, MODE_RESTRICTED
+                    )
                 )
-                workspace_form.settings.access_mode = MODE_RESTRICTED
+            else:
+                workspace_form = await self.workspace_form_repository.save(
+                    workspace_form
+                )
             duplicated_form.settings = _settings_as_read(
                 workspace_form.settings, duplicated_form
             )

@@ -1163,6 +1163,40 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             workspace_form.settings = self._keeping_access_mode(
                 workspace_form.settings, None
             )
+        elif form_access_enabled():
+            return await self._save_keeping_stored_mode(workspace_form)
+        return await self.save_document(workspace_form)
+
+    async def _save_keeping_stored_mode(
+        self, workspace_form: WorkspaceFormDocument
+    ) -> WorkspaceFormDocument:
+        """Store an existing link as the caller read and changed it, except for
+        the access mode: that is the one stored now, read under the row lock in
+        the same transaction as the write, so a restriction set between the
+        caller's read and this save is never written back over. (While form-level
+        access is off no mode can change, and the plain write is kept.)"""
+        async with self._session() as session, session.begin():
+            stored = await self._locked_link(
+                session, WorkspaceFormRow.id == _oid(workspace_form.id)
+            )
+            workspace_form.settings = self._keeping_access_mode(
+                workspace_form.settings,
+                stored.settings.access_mode if stored and stored.settings else None,
+            )
+            workspace_form.touch()
+            await session.execute(self._upsert_statement(row_values(workspace_form)))
+        return workspace_form
+
+    async def save_new_link_with_access_mode(
+        self, workspace_form: WorkspaceFormDocument, mode: str
+    ) -> WorkspaceFormDocument:
+        """Store a NEW link that starts with ``mode`` (a copy of a restricted
+        form): one write, so the link never exists without its mode. The mode
+        comes from the caller's decision about the source, never from the
+        document's own settings."""
+        workspace_form.settings = self._keeping_access_mode(
+            workspace_form.settings, mode
+        )
         return await self.save_document(workspace_form)
 
     async def _locked_link(self, session, *where) -> Optional[WorkspaceFormDocument]:
