@@ -260,7 +260,8 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
             values = { actor, form: form(entry.formId) };
             break;
         case 'form_copied_out':
-            key = 'FORM_COPIED_OUT';
+            // the file download is recorded with the channel "file" (it names no other workspace); a copy to a workspace has none
+            key = entry.exportChannel === 'file' ? 'FORM_COPIED_OUT_FILE' : 'FORM_COPIED_OUT';
             values = { actor, form: form(entry.formId) };
             break;
         case 'form_promoted':

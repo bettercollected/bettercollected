@@ -125,7 +125,7 @@ REVOKED_SCIM_DEPROVISIONED = "scim_deprovisioned"
 # (FORM_PROMOTION_ENABLED): ids and counts only, never a title, a name or a text of
 # the form. FORM_COPIED_OUT is written in the source workspace (form_id = the
 # source form, target_workspace_id, target_form_id when it updates one; the file
-# download names no target); FORM_PROMOTED in the target workspace (form_id = the
+# download names no target and has export_channel "file"); FORM_PROMOTED in the target workspace (form_id = the
 # target form, source_workspace_id, source_form_id; ``count`` = what was adjusted
 # to fit). Both are stored before the change.
 FORM_COPIED_OUT = "form_copied_out"

@@ -149,6 +149,41 @@ async def test_my_workspaces_say_which_ones_i_own(client: AsyncClient, owners):
         assert listed["ownerId"] == testUser.id
 
 
+async def test_my_workspaces_carry_my_role_in_each(client: AsyncClient, owners):
+    for user, expected in (
+        (testUser, "OWNER"),
+        (co_owner, "OWNER"),
+        (admin, "ADMIN"),
+        (viewer, "VIEWER"),
+    ):
+        response = await client.get("/api/v1/workspaces/mine", cookies=_cookies(user))
+        assert response.status_code == 200, response.text
+        (listed,) = [w for w in response.json() if w["id"] == str(owners.id)]
+        assert listed["role"] == expected, user.sub
+
+
+@pytest.mark.parametrize(
+    "stored, expected",
+    [
+        ([WorkspaceRoles.COLLABORATOR], "EDITOR"),
+        ([WorkspaceRoles.EDITOR], "EDITOR"),
+        ([WorkspaceRoles.REVIEWER], "REVIEWER"),
+        ([WorkspaceRoles.PRIVACY_OFFICER], "PRIVACY_OFFICER"),
+        ([], "EDITOR"),
+    ],
+)
+async def test_my_workspaces_role_names_each_member_role(
+    client: AsyncClient, workspace, stored, expected
+):
+    member = User(id=str(RecordId()), sub="member@" + DOMAIN)
+    await _add(workspace.id, member, stored)
+    response = await client.get("/api/v1/workspaces/mine", cookies=_cookies(member))
+    assert response.status_code == 200, response.text
+    (listed,) = [w for w in response.json() if w["id"] == str(workspace.id)]
+    assert listed["role"] == expected
+    assert listed["isOwner"] is False
+
+
 # -- making owners ------------------------------------------------------------
 
 
