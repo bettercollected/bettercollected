@@ -408,6 +408,8 @@ OUTCOMES: Dict[Tuple[str, str], Tuple[int, ...]] = {
     ("PATCH", F + ""): (200,),
     ("GET", F + "/access"): (200,),
     ("PUT", F + "/access/mode"): (200, 403),
+    ("GET", F + "/access/candidates"): (200, 403),
+    ("GET", F + "/access/impact"): (200, 403),
     ("PATCH", F + "/actions"): (200,),
     ("POST", F + "/actions"): (200,),
     ("DELETE", F + "/actions/{action_id}"): (200,),
