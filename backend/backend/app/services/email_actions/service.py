@@ -51,6 +51,7 @@ from backend.app.schemas.webhook import (
     WebhookField,
 )
 from backend.app.services import action_conditions
+from backend.app.services.builtin_actions.mapping import all_questions_mapping
 from backend.app.services.calculated_fields import hidden_calculation_ids
 from backend.app.services.copy_recipient import normalize_address, rate_limit_key
 from backend.app.services.email_actions import templates
@@ -145,6 +146,8 @@ class EmailActionDto(_CamelModel):
     team_recipients: List[str] = Field(default_factory=list)
     respondent_copy: bool = False
     condition: Optional[ActionCondition] = None
+    # sends every question the form has (an action that replaced a built-in one)
+    all_questions: bool = False
     created_at: Optional[dt.datetime] = None
     updated_at: Optional[dt.datetime] = None
 
@@ -243,6 +246,7 @@ def _action_dto(document: FormEmailActionDocument) -> EmailActionDto:
         team_recipients=list(document.team_recipients),
         respondent_copy=document.respondent_copy,
         condition=document.condition,
+        all_questions=document.all_questions,
         created_at=document.created_at,
         updated_at=document.updated_at,
     )
@@ -503,10 +507,21 @@ class EmailActionService:
         team,
         respondent_copy,
         condition,
+        all_questions=False,
     ):
         form = await self._form_for_variables(form_id)
-        mapping = await self._checked_fields(form, fields)
-        en_t, nl_t = self._checked_templates(en, nl, mapping)
+        if all_questions:
+            # every question the form has now may be named: the templates are
+            # checked against those names, the stored list stays as it is
+            named = [
+                WebhookField(source=source, key=key)
+                for source, key in self._mapping_of(form, [], True)
+            ]
+            mapping = []
+            en_t, nl_t = self._checked_templates(en, nl, named)
+        else:
+            mapping = await self._checked_fields(form, fields)
+            en_t, nl_t = self._checked_templates(en, nl, mapping)
         team = await self._checked_team(team, workspace_id, form_id)
         if not team and not respondent_copy:
             raise _invalid(
@@ -612,6 +627,10 @@ class EmailActionService:
             }
         )
         changed: List[str] = []
+        # picking questions ends "every question"; until then the stored action
+        # names every question the form has
+        picking = "fields" in sent and request.fields is not None
+        all_questions = document.all_questions and not picking
         if content_changed or enabling:
             # the whole stored action is checked again: an edit never leaves a
             # template naming a question that was unmapped, nor a team address
@@ -641,8 +660,13 @@ class EmailActionService:
                     condition=(
                         request.condition if "condition" in sent else document.condition
                     ),
+                    all_questions=all_questions,
                 )
             )
+            if all_questions:
+                # nothing was picked: the stored list is not the creator's to
+                # change here
+                fields = document.fields
             for label, old, new in (
                 ("name", document.name, name),
                 ("en", document.en, en),
@@ -654,6 +678,9 @@ class EmailActionService:
             ):
                 if old != new:
                     changed.append(label)
+            if document.all_questions and not all_questions:
+                document.all_questions = False
+                changed.append("all_questions")
             document.name, document.en, document.nl = name, en, nl
             document.fields, document.team_recipients = fields, team
             document.respondent_copy, document.condition = respondent_copy, condition
@@ -718,6 +745,15 @@ class EmailActionService:
         )
 
     @staticmethod
+    def _mapping_of(form, fields, all_questions: bool) -> List[Tuple[str, str]]:
+        """``(source, key)`` of the questions an action names: every one the
+        form has now (``all_questions``, with no key a template already uses),
+        else the action's own list."""
+        if all_questions:
+            return all_questions_mapping(form, reserved=templates.BUILT_INS_BODY)
+        return [(f.source, f.key) for f in fields]
+
+    @staticmethod
     def _entries(form, mapping, data: Dict[str, Any]) -> List[templates.Entry]:
         index = body_builder.variables_of(form)
         return [
@@ -726,8 +762,10 @@ class EmailActionService:
             if key in data
         ]
 
-    def _sample_entries(self, form, fields: List[WebhookField]) -> List[templates.Entry]:
-        mapping = [(f.source, f.key) for f in fields]
+    def _sample_entries(
+        self, form, fields: List[WebhookField], all_questions: bool = False
+    ) -> List[templates.Entry]:
+        mapping = self._mapping_of(form, fields, all_questions)
         return self._entries(form, mapping, payload.sample_data(form, mapping))
 
     # -------------------------------------------------------------- the log
@@ -824,7 +862,7 @@ class EmailActionService:
         await self._rate_limit(TEST_SCOPE, f"user:{user.id}", TEST_PER_USER, HOUR, message)
         form = await self._form_for_variables(form_id)
         language = templates.language_of(form)
-        entries = self._sample_entries(form, document.fields)
+        entries = self._sample_entries(form, document.fields, document.all_questions)
         title = _form_title(form) or "Example form"
         when = _when(self._clock())
         if channel == CHANNEL_TEAM:
@@ -1071,7 +1109,7 @@ class EmailActionService:
         answers, hidden_fields = self._open_answers(log.workspace_id, response)
         language = templates.language_of(form)
         respondent = log.channel == CHANNEL_RESPONDENT
-        mapping = [(f.source, f.key) for f in action.fields]
+        mapping = self._mapping_of(form, action.fields, action.all_questions)
         if respondent:
             # a copy to the respondent leaves out calculations kept from them
             hidden = hidden_calculation_ids(form)
