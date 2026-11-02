@@ -1153,6 +1153,10 @@ class WorkspaceFormService:
                 else existing_form.cover_image
             )
         if expected_updated_at is None:
+            if in_write is not None:
+                # the unconditional write has no transaction to run it in: a check
+                # that would be silently skipped is a programming error
+                raise ValueError("in_write needs expected_updated_at")
             updated = await self.form_service.update_form(form_id=form_id, form=form)
         else:
             try:
