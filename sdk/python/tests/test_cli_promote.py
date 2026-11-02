@@ -201,7 +201,7 @@ def test_dry_run_against_an_existing_form_shows_the_diff_only(world):
     code, out, _ = promote("--to-form", "p1", "--dry-run")
     assert code == 0 and "+ field city" in out and "Dry run" in out
     assert world.production.forms["p1"] == PRODUCTION_FORM
-    assert world.writes(world.production) == []
+    assert set(world.production.forms) == {"p1"}
 
 
 def test_what_the_target_refuses_is_listed_and_nothing_is_written(world):
@@ -265,7 +265,7 @@ def test_the_same_form_cannot_be_promoted_onto_itself(world, monkeypatch):
 def test_a_missing_source_form_is_reported(world):
     code, _, err = promote(form="nope")
     assert code == 1 and "Form not found" in err
-    assert world.writes(world.production) == []
+    assert set(world.production.forms) == {"p1"}
 
 
 def test_only_the_two_configured_instances_are_called(world):
@@ -392,3 +392,27 @@ def test_create_reports_what_the_server_refuses(world, monkeypatch, tmp_path):
     code, _, err = run("create", "form.json")
     assert code == 1 and "/pages/0/fields/0/type" in err
     assert not (tmp_path / ".bettercollected.json").exists()
+
+
+def test_create_says_when_the_key_is_limited_to_certain_forms(
+    world, monkeypatch, tmp_path
+):
+    monkeypatch.setenv(cli.API_KEY_ENV, PRODUCTION_KEY)
+    monkeypatch.setenv(cli.URL_ENV, PRODUCTION_URL)
+    world.production.cannot_create = True
+    (tmp_path / "form.json").write_text(json.dumps(PRODUCTION_FORM))
+    code, out, err = run("create", "form.json")
+    assert code == 1 and out == ""
+    assert "limited to certain forms" in err and "cannot create a form" in err
+    assert "ask a workspace admin" in err
+    assert not (tmp_path / ".bettercollected.json").exists()
+    assert set(world.production.forms) == {"p1"}
+    assert PRODUCTION_KEY not in err
+
+
+def test_promote_says_when_the_target_key_is_limited_to_certain_forms(world):
+    world.production.cannot_create = True
+    code, out, err = promote()
+    assert code == 1
+    assert "limited to certain forms" in err and "ask a workspace admin" in err
+    assert set(world.production.forms) == {"p1"}

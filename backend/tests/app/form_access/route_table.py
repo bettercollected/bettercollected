@@ -20,6 +20,11 @@ from typing import Callable, Dict, Optional, Tuple
 
 from common.constants import MESSAGE_FORBIDDEN
 
+from backend.app.services.form_access.mode import (
+    PROMOTION_FROM_RESTRICTED_CODE,
+    TEMPLATE_FROM_RESTRICTED_CODE,
+)
+
 from backend.app.models.enum.permission import Permission
 
 P = Permission
@@ -85,6 +90,9 @@ class Route:
     # on a restricted form only the creator, an Owner or an Admin may (a member who
     # holds the permissions otherwise gets 403 ``template_from_restricted_form``)
     creator_only: bool = False
+    # the code that refusal carries (a template's by default; copying a form to
+    # another workspace has its own)
+    creator_only_code: str = TEMPLATE_FROM_RESTRICTED_CODE
     # set by the matrix from the table key
     method: str = ""
 
@@ -145,6 +153,26 @@ def _export(ctx):
     return {"json": {}}
 
 
+def _promotion_preview(ctx):
+    # the target is the form's own workspace (a copy into it): the matrix decides
+    # on the form in the path; the target side is covered by
+    # tests/app/form_promotion/test_permissions.py
+    return {"json": {"targetWorkspaceId": ctx["ws"]}}
+
+
+def _promotion_apply(ctx):
+    # a stale source ETag: every member the access decision lets through is
+    # answered 412 and nothing is copied (a real copy is tested there)
+    return {
+        "json": {"targetWorkspaceId": ctx["ws"], "sourceEtag": '"stale"'},
+        "headers": {"Idempotency-Key": "matrix"},
+    }
+
+
+def _promotion_targets(ctx):
+    return {"params": {"targetWorkspaceId": ctx["ws"]}}
+
+
 # --------------------------------------------------------------------------------
 # Decided on a form (the member's permissions on THAT form, not on the workspace)
 # --------------------------------------------------------------------------------
@@ -192,6 +220,35 @@ ROUTES: Dict[Tuple[str, str], Route] = {
         FORM, P.FORM_SHARE, request=_grant_request, needs_switch=True
     ),
     ("DELETE", F + "/grants/{grant_id}"): route(FORM, P.FORM_SHARE, needs_switch=True),
+    # --- copying the form to another workspace (FORM_PROMOTION_ENABLED, switched on
+    # in the matrix's world): form.read here, form.create in the target (the same
+    # workspace in the matrix); a restricted form only for its creator, an Owner or
+    # an Admin
+    ("GET", F + "/spec-file"): route(
+        FORM,
+        P.FORM_READ,
+        creator_only=True,
+        creator_only_code=PROMOTION_FROM_RESTRICTED_CODE,
+    ),
+    ("GET", F + "/promotion/targets"): route(
+        FORM, P.FORM_READ, request=_promotion_targets
+    ),
+    ("POST", F + "/promotion/preview"): route(
+        FORM,
+        P.FORM_READ,
+        P.FORM_CREATE,
+        request=_promotion_preview,
+        creator_only=True,
+        creator_only_code=PROMOTION_FROM_RESTRICTED_CODE,
+    ),
+    ("POST", F + "/promotion/apply"): route(
+        FORM,
+        P.FORM_READ,
+        P.FORM_CREATE,
+        request=_promotion_apply,
+        creator_only=True,
+        creator_only_code=PROMOTION_FROM_RESTRICTED_CODE,
+    ),
     # --- actions
     ("POST", F + "/actions"): route(
         FORM, P.FORM_EDIT, P.RESPONSE_EXPORT, case="forms.actions.add"
@@ -456,6 +513,13 @@ OUTCOMES: Dict[Tuple[str, str], Tuple[int, ...]] = {
     ("DELETE", F + "/logo"): (200,),
     ("PUT", F + "/logo"): (200,),
     ("GET", F + "/open-formulieren-export"): (200,),
+    # (the matrix's form is a first-generation one, not built from pages: once the
+    # access decision lets a member through, 422 ``form_not_promotable`` is the
+    # answer; a form built from pages is copied in tests/app/form_promotion)
+    ("GET", F + "/spec-file"): (200, 422),
+    ("GET", F + "/promotion/targets"): (200,),
+    ("POST", F + "/promotion/preview"): (200, 422),
+    ("POST", F + "/promotion/apply"): (412, 422),
     ("POST", F + "/ops"): (428,),
     ("POST", F + "/ops/dry-run"): (422,),
     ("POST", F + "/publish"): (200,),

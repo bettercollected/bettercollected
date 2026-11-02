@@ -307,11 +307,21 @@ class FormSpecWriter:
             raise precondition_failed()
 
     async def create(
-        self, workspace_id: RecordId, raw: Any, user: User
+        self,
+        workspace_id: RecordId,
+        raw: Any,
+        user: User,
+        *,
+        form_id: Optional[str] = None,
+        access_mode: Optional[str] = None,
     ) -> Tuple[str, Dict[str, Any], str]:
         """Create a draft from a whole document: (form id, spec, ETag).
         All or nothing: the document is checked in full before anything is
-        stored."""
+        stored.
+
+        The keyword arguments are for copying a form from another workspace
+        (``services/form_promotion``): the id the form takes and the access mode its
+        link is created with. The public API passes none."""
         spec = await _checked_spec(raw)
         _ensure_drafts_allowed(spec, None)
         try:
@@ -322,7 +332,11 @@ class FormSpecWriter:
         form.logo = None
         with_builder_defaults(form)
         created = await self._workspace_forms.create_form(
-            workspace_id=workspace_id, form=form, user=user
+            workspace_id=workspace_id,
+            form=form,
+            user=user,
+            form_id=form_id,
+            access_mode=access_mode,
         )
         await _write_trust(workspace_id, created.form_id, spec)
         document, etag = await self.read(workspace_id, created.form_id)
