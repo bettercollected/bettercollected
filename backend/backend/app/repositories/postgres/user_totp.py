@@ -83,6 +83,7 @@ class PostgresUserTotpRepository(RecordRepository):
         code_hashes: Sequence[str],
         now: dt.datetime,
         enrolled_via: Optional[str] = None,
+        locale: Optional[str] = None,
     ) -> bool:
         """The whole of a successful confirmation, or nothing: the pending
         factor becomes the confirmed one (``step`` is the code just used), any
@@ -119,6 +120,7 @@ class PostgresUserTotpRepository(RecordRepository):
             factor.confirmed_at = now
             factor.last_used_step = step
             factor.enrolled_via = enrolled_via
+            factor.locale = locale
             factor.updated_at = now
             await session.execute(self._upsert_statement(row_values(factor)))
             for code_hash in code_hashes:
@@ -217,6 +219,26 @@ class PostgresUserTotpRepository(RecordRepository):
             factor.lock_count += 1
             await session.execute(self._upsert_statement(row_values(factor)))
         return duration
+
+    async def remember_locale(self, factor_id: str, locale: Optional[str]) -> None:
+        """Keep the language of the person's latest use (written only when it
+        changed)."""
+        if not locale:
+            return
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(UserTotpFactorRow.doc)
+                    .where(UserTotpFactorRow.id == str(factor_id))
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return
+            factor = decode(UserTotpFactorDocument, doc)
+            if factor.locale != locale:
+                factor.locale = locale
+                await session.execute(self._upsert_statement(row_values(factor)))
 
     async def clear_locks(self, factor_id: str) -> None:
         """A code was accepted: the next lock starts from the shortest again."""
