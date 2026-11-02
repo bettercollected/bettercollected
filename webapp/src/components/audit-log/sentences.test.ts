@@ -156,6 +156,13 @@ describe('the sentence table', () => {
         expect(say('en', entry('member_invitation_accepted', { actorId: 'u_pim', role: 'COLLABORATOR' })).text).toBe('Pim Jansen joined the workspace as Editor.');
     });
 
+    it('words an API key that acts as its creator, and an admin or workspace revocation', () => {
+        expect(say('en', entry('api_key_created', { actorId: 'u_sanne', keyRole: 'creator' })).text).toBe("Sanne de Vries created an API key that acts with its creator's access.");
+        expect(say('en', entry('api_key_role_changed', { actorId: 'u_sanne', keyRole: 'EDITOR', keyRoleBefore: 'creator' })).text).toBe("Sanne de Vries changed the role of an API key from its creator's access to Editor.");
+        expect(say('nl', entry('api_key_role_changed', { actorId: 'u_sanne', keyRole: 'creator', keyRoleBefore: 'VIEWER' })).text).toBe('Sanne de Vries wijzigde de rol van een API-sleutel van Kijker naar de toegang van de maker.');
+        expect(say('en', entry('api_key_revoked', { actorId: 'u_sanne', reason: 'admin' })).text).toBe('Sanne de Vries revoked an API key.');
+    });
+
     it('falls back to a neutral sentence for a kind it does not know, in both languages', () => {
         expect(say('en', entry('webhook_created', { actorId: 'u_sanne', formId: 'f_join' }))).toMatchObject({ text: 'An action was recorded.', key: 'AUDIT_LOG.SENTENCE.FALLBACK' });
         expect(say('nl', entry('something_new')).text).toBe('Er is een handeling vastgelegd.');

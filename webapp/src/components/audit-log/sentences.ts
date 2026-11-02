@@ -127,6 +127,8 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
         const code = present(role) ? role.toUpperCase() : '';
         // COLLABORATOR is how the server stores an Editor
         const known = code === 'COLLABORATOR' ? 'EDITOR' : code;
+        // an API key with no role of its own acts as the member who made it
+        if (known === 'CREATOR') return t('AUDIT_LOG.NAME.ROLE_CREATOR');
         return ['OWNER', 'ADMIN', 'EDITOR', 'REVIEWER', 'VIEWER', 'PRIVACY_OFFICER'].includes(known) ? t(`WORKSPACE_ROLES.${known}.NAME`) : t('AUDIT_LOG.NAME.ROLE_UNKNOWN');
     };
 
@@ -221,7 +223,7 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
             break;
         }
         case 'api_key_created':
-            key = present(entry.keyRole) ? 'API_KEY_CREATED_ROLE' : 'API_KEY_CREATED';
+            key = entry.keyRole?.toLowerCase() === 'creator' ? 'API_KEY_CREATED_CREATOR' : present(entry.keyRole) ? 'API_KEY_CREATED_ROLE' : 'API_KEY_CREATED';
             values = { actor, role: roleName(entry.keyRole) };
             if (entry.formScope === 'listed') details.push(t(`${SENTENCE}.DETAIL_KEY_LISTED`));
             break;

@@ -2776,6 +2776,7 @@
       "GONE": "an item that no longer exists",
       "THIS_FORM": "this form",
       "UNTITLED_FORM": "an untitled form",
+      "ROLE_CREATOR": "its creator's access",
       "ROLE_UNKNOWN": "a role"
     },
     "SENTENCE": {
@@ -2822,6 +2823,7 @@
       "DETAIL_ROWS_one": "{{count}} response",
       "DETAIL_ROWS_other": "{{count}} responses",
       "API_KEY_CREATED": "{{actor}} created an API key.",
+      "API_KEY_CREATED_CREATOR": "{{actor}} created an API key that acts with its creator's access.",
       "API_KEY_CREATED_ROLE": "{{actor}} created an API key with the role {{role}}.",
       "API_KEY_REVOKED": "{{actor}} revoked an API key.",
       "API_KEY_REVOKED_MEMBER_REMOVED": "An API key was revoked because its creator, {{target}}, was removed from the workspace.",

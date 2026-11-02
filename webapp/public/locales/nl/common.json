@@ -2776,6 +2776,7 @@
       "GONE": "een item dat niet meer bestaat",
       "THIS_FORM": "dit formulier",
       "UNTITLED_FORM": "een formulier zonder titel",
+      "ROLE_CREATOR": "de toegang van de maker",
       "ROLE_UNKNOWN": "een rol"
     },
     "SENTENCE": {
@@ -2822,6 +2823,7 @@
       "DETAIL_ROWS_one": "{{count}} reactie",
       "DETAIL_ROWS_other": "{{count}} reacties",
       "API_KEY_CREATED": "{{actor}} maakte een API-sleutel aan.",
+      "API_KEY_CREATED_CREATOR": "{{actor}} maakte een API-sleutel aan die werkt met de toegang van de maker.",
       "API_KEY_CREATED_ROLE": "{{actor}} maakte een API-sleutel aan met de rol {{role}}.",
       "API_KEY_REVOKED": "{{actor}} trok een API-sleutel in.",
       "API_KEY_REVOKED_MEMBER_REMOVED": "Een API-sleutel is ingetrokken omdat de maker, {{target}}, uit de werkruimte is verwijderd.",
