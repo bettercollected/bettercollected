@@ -17,6 +17,14 @@ from backend.admin.tasks.spec import Refusal
 from backend.app.container import container
 from backend.app.repositories.postgres.forms import PostgresWorkspaceFormRepository
 from backend.app.repositories.postgres.responses import PostgresFormResponseRepository
+from backend.app.repositories.postgres.response_revisions import (
+    PostgresResponseRevisionRepository,
+)
+from backend.app.schemas.response_revision import (
+    ActorKind,
+    ResponseRevisionDocument,
+    seal_context,
+)
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from common.db.canonical import canonical_document, checksum
@@ -31,6 +39,7 @@ from common.services.keyset import (
 from scripts.rotate_response_keyset import (
     GOOGLE_CREDENTIALS,
     RESPONSES,
+    REVISIONS,
     PostgresStore,
     _main,
     plan_drop_old,
@@ -61,6 +70,7 @@ class Data:
         with_mixed: bool = False,
         with_credentials: bool = True,
         with_legacy_plaintext: bool = False,
+        with_revisions: bool = True,
     ):
         self.expected = {}  # (target, record id, path) -> (context, plaintext)
         self.links = [
@@ -162,6 +172,34 @@ class Data:
                 b'{"q1": "an answer"}',
             )
 
+        # one entry of the revision log of the first response: its previous
+        # values sealed with the workspace, the form and "<response>|<number>"
+        self.revisions = []
+        if with_revisions:
+            owner = self.responses[0]
+            pk = str(owner.id)
+            plaintext = json.dumps({"q1": {"type": "text", "text": "an earlier answer"}})
+            entry = ResponseRevisionDocument(
+                id=RecordId(),
+                response_pk=pk,
+                form_id="f1",
+                workspace_id=str(WS_A),
+                seq=1,
+                actor_kind=ActorKind.RESPONDENT,
+                changed=["q1"],
+                previous_values=crypto_service.encrypt(
+                    workspace_id=WS_A,
+                    form_id="f1",
+                    data=plaintext,
+                    context=seal_context(pk, 1),
+                ),
+            )
+            self.revisions.append(entry)
+            self.expected[("response-revisions", str(entry.id), ("previous_values",))] = (
+                (str(WS_A), "f1", seal_context(pk, 1)),
+                plaintext.encode(),
+            )
+
         self.credentials = []
         if not with_credentials:
             return
@@ -190,6 +228,9 @@ class Data:
             await links.upsert(link)
         for document in self.responses if responses else ():
             await repository.upsert(document)
+        revisions = PostgresResponseRevisionRepository(sessions)
+        for entry in self.revisions if responses else ():
+            await revisions.upsert(entry)
         async with container.pg_engine().begin() as conn:
             for credential in self.credentials if credentials else ():
                 doc = canonical_document(credential)
@@ -258,11 +299,12 @@ async def seed(store_choice, data):
     await data.to_postgres()
 
 
-def drop_old_records(store_choice, responses, google):
+def drop_old_records(store_choice, responses, google, revisions=1):
     """drop-old's record counts: Postgres only."""
     return {
         "responses": {"postgres": responses},
         "google-credentials": {"postgres": google},
+        "response-revisions": {"postgres": revisions},
     }
 
 
@@ -271,7 +313,7 @@ def store_names(store_choice, target="responses"):
 
 
 def store_objects(store_choice):
-    for target in (RESPONSES, GOOGLE_CREDENTIALS):
+    for target in (RESPONSES, GOOGLE_CREDENTIALS, REVISIONS):
         yield PostgresStore(container.pg_engine(), target)
 
 
@@ -399,7 +441,8 @@ async def test_rotation_end_to_end(stores, tmp_path, capsys, monkeypatch):
     def reads_back(cipher):
         for (_, target, rid, path), value in after.items():
             context, plaintext = data.expected[(target, rid, path)]
-            assert cipher.decrypt(*context, value) == plaintext
+            workspace, form, *extra = context
+            assert cipher.decrypt(workspace, form, value, *extra) == plaintext
 
     reads_back(CryptoService(rotated_value))
 
@@ -531,7 +574,8 @@ async def test_each_value_finds_its_own_context(stores, tmp_path, capsys, monkey
     for (_, target, rid, path), value in after.items():
         assert ciphertext_key_id(value) == new_key
         context, plaintext = data.expected[(target, rid, path)]
-        assert cipher.decrypt(*context, value) == plaintext
+        workspace, form, *extra = context
+        assert cipher.decrypt(workspace, form, value, *extra) == plaintext
     code, _ = await cli(
         capsys,
         "drop-old",
@@ -783,3 +827,81 @@ async def test_drop_old_waits_for_the_import_from_4_0(
     code, dropped = await cli(capsys, *drop)
     assert code == 0, dropped
     assert final_file.exists()
+
+
+async def test_the_revision_log_is_rotated_and_guards_the_drop(
+    stores, tmp_path, capsys, monkeypatch
+):
+    """An entry of the revision log sealed with the old key is counted, moved to
+    the new one with its context (response and number), and keeps drop-old
+    refused until it is."""
+    data = Data()
+    await seed(stores, data)
+    rotated_file, rotated_value, new_key = await add_key_and_deploy(
+        capsys, monkeypatch, tmp_path
+    )
+    final_file = tmp_path / "final.keyset"
+    # only the revision log is on the old key: drop-old still refuses
+    code, report = await cli(
+        capsys, "reencrypt", "--keyset-file", str(rotated_file), "--target", "responses"
+    )
+    assert code == 0
+    code, refused = await cli(
+        capsys, "drop-old", "--keyset-file", str(rotated_file), "--out", str(final_file)
+    )
+    assert code == 1 and refused["values_stale"] >= 1 and "refused" in refused
+    assert refused["targets"]["response-revisions"]["postgres"]["values_stale"] == 1
+    assert not final_file.exists()
+    # re-encrypt the log: it opens with the new key and the same context
+    code, report = await cli(
+        capsys, "reencrypt", "--keyset-file", str(rotated_file), "--target", "response-revisions"
+    )
+    assert code == 0, report
+    counts = report["targets"]["response-revisions"]["postgres"]
+    assert counts["records_reencrypted"] == 1 and counts["values_reencrypted"] == 1
+    after = await stored_values(stores)
+    entry = [v for (_, t, _r, _p), v in after.items() if t == "response-revisions"]
+    assert entry and all(ciphertext_key_id(v) == new_key for v in entry)
+    await postgres_checksums_agree()
+    (entry_id,) = [r for (_, t, r, _p) in after if t == "response-revisions"]
+    (workspace, form, extra), plaintext = (
+        data.expected[("response-revisions", entry_id, ("previous_values",))][0],
+        data.expected[("response-revisions", entry_id, ("previous_values",))][1],
+    )
+    new_cipher = CryptoService(rotated_value)
+    value = [v for (_, t, _r, _p), v in after.items() if t == "response-revisions"][0]
+    assert new_cipher.decrypt(workspace, form, value, extra) == plaintext
+    # the context is part of it: another response's number does not open it
+    from common.services.keyset import UnreadableCiphertext
+
+    with pytest.raises(UnreadableCiphertext):
+        new_cipher.decrypt(workspace, form, value, seal_context("6" * 24, 1))
+    code, _ = await cli(
+        capsys, "reencrypt", "--keyset-file", str(rotated_file), "--target", "google-credentials"
+    )
+    assert code == 0
+    code, dropped = await cli(
+        capsys, "drop-old", "--keyset-file", str(rotated_file), "--out", str(final_file)
+    )
+    assert code == 0, dropped
+    assert dropped["records"]["response-revisions"] == {"postgres": 1}
+
+
+async def test_an_empty_revision_log_does_not_stop_the_drop(
+    stores, tmp_path, capsys, monkeypatch
+):
+    """The log is empty on a stack that never edited a response (it is off by
+    default): that is not a wrong database."""
+    data = Data(with_revisions=False)
+    await seed(stores, data)
+    rotated_file, rotated_value, new_key = await add_key_and_deploy(
+        capsys, monkeypatch, tmp_path
+    )
+    code, _ = await cli(capsys, "reencrypt", "--keyset-file", str(rotated_file))
+    assert code == 0
+    final_file = tmp_path / "final.keyset"
+    code, dropped = await cli(
+        capsys, "drop-old", "--keyset-file", str(rotated_file), "--out", str(final_file)
+    )
+    assert code == 0, dropped
+    assert dropped["records"]["response-revisions"] == {"postgres": 0}

@@ -18,6 +18,7 @@ export const WorkspacePermission = {
     RESPONSE_EXPORT: 'response.export',
     RESPONSE_IMPORT: 'response.import',
     RESPONSE_DELETE: 'response.delete',
+    RESPONSE_EDIT: 'response.edit',
     PRIVACY_MANAGE: 'privacy.manage',
     ANALYTICS_READ: 'analytics.read'
 } as const;

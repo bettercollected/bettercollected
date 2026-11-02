@@ -33,6 +33,8 @@ class WorkspacePermissionsDto(CamelModel):
     read-only while it is off).
     ``form_revisions_ui_enabled`` is the same for ``FORM_REVISIONS_UI_ENABLED``
     (the Versions page of a form: list, compare, restore).
+    ``response_revisions_enabled`` is the same for ``RESPONSE_REVISIONS_ENABLED``
+    (staff edit of answers and the history of a response).
     ``csv_import_enabled`` is the same for ``CSV_IMPORT_ENABLED`` (import
     responses from a CSV file: the responses screen offers it from it).
     ``form_embed_enabled`` is the same for ``FORM_EMBED_ENABLED`` (embedding
@@ -53,5 +55,6 @@ class WorkspacePermissionsDto(CamelModel):
     option_sources_enabled: bool = False
     layout_containers_enabled: bool = False
     form_revisions_ui_enabled: bool = False
+    response_revisions_enabled: bool = False
     submissions_api_enabled: bool = False
     form_embed_enabled: bool = False

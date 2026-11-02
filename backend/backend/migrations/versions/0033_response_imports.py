@@ -1,7 +1,7 @@
 """response imports: the audit entry and job state of each CSV import and the uploaded file
 
 Revision ID: 0033
-Revises: 0031
+Revises: 0032
 Create Date: 2026-11-01
 
 Two new tables (``backend/app/services/response_import``): one row per import of
@@ -24,7 +24,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0033"
-down_revision: Union[str, None] = "0031"
+down_revision: Union[str, None] = "0032"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
