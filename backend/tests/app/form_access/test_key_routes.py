@@ -295,6 +295,65 @@ async def test_the_form_list_is_checked(
     assert len(await container.workspace_api_key_repo().list_by_workspace(workspace.id)) == 1
 
 
+async def test_an_editor_cannot_add_a_form_they_cannot_open_to_a_keys_list(
+    client: AsyncClient, workspace, forms, roles_on, monkeypatch
+):
+    """The edit's list goes through ``_plan_edit`` -> ``_checked_list`` ->
+    ``restrict_to_visible`` for the person editing (``form.read``): a form they
+    cannot open answers exactly as a form that is not there, and nothing of the
+    key changes. (Owner and Admin open every form today, so the narrowing is
+    stood in for here: if that rule ever changes, or ``_plan_edit`` stops asking,
+    this fails.)"""
+    from backend.app.models.enum.permission import Permission
+
+    made = (
+        await create(client, workspace, formScope="listed", formIds=ids(forms)[:1])
+    ).json()
+    hidden = ids(forms)[1]
+    service = container.api_key_service()
+    real = service._authorization.restrict_to_visible
+    asked = []
+
+    async def hides_one(user, workspace_id, form_ids, permission):
+        asked.append((str(user.id), permission, list(form_ids)))
+        return [f for f in await real(user, workspace_id, form_ids, permission) if f != hidden]
+
+    checked = []
+    real_checked = service._checked_list
+
+    async def spy(*args, **kwargs):
+        checked.append(1)
+        return await real_checked(*args, **kwargs)
+
+    entries_before = len(await audit_events(workspace))
+    monkeypatch.setattr(service._authorization, "restrict_to_visible", hides_one)
+    monkeypatch.setattr(service, "_checked_list", spy)
+    refused = await patch(
+        client, workspace, made["id"], formScope="listed", formIds=ids(forms)[:2]
+    )
+    ghost = await patch(
+        client, workspace, made["id"], formScope="listed",
+        formIds=[ids(forms)[0], str(RecordId())],
+    )
+    assert refused.status_code == 400 and code(refused) == "form_not_in_workspace"
+    assert (refused.status_code, refused.json()) == (ghost.status_code, ghost.json())
+    assert checked, "_plan_edit does not check the list with _checked_list"
+    assert any(
+        user == str(testUser.id) and permission == Permission.FORM_READ and hidden in form_ids
+        for user, permission, form_ids in asked
+    ), asked
+    # nothing changed: not the rows, not the key, not the log
+    assert await rows_of(workspace, made["id"]) == ids(forms)[:1]
+    assert (await stored(made["id"])).form_scope == "listed"
+    assert len(await audit_events(workspace)) == entries_before
+    # a form they can open is added
+    added = await patch(
+        client, workspace, made["id"], formScope="listed", formIds=[ids(forms)[0], ids(forms)[2]]
+    )
+    assert added.status_code == 200, added.text
+    assert await rows_of(workspace, made["id"]) == sorted([ids(forms)[0], ids(forms)[2]])
+
+
 async def _other_workspace():
     from tests.app.controllers.test_api_keys import TestAPIKeys  # noqa: F401
     from backend.app.services import workspace_service
@@ -841,21 +900,21 @@ async def test_the_titles_a_reader_may_not_see_are_left_out(
 
 
 # =========================================================================== review follow-ups
-async def test_the_keys_row_is_locked_before_the_edit_is_worked_out(
+async def test_the_keys_row_is_locked_while_the_entries_are_recorded(
     client: AsyncClient, workspace, forms, roles_on, monkeypatch
 ):
-    """A revocation (or a second edit) cannot land between reading the key and
-    storing the change: while the edit is worked out and recorded the key's row
-    is held, so what the entries say is what is changed."""
+    """A revocation (or a second edit) cannot land between the check that the key
+    is as the edit read it and the store of the change: the row is held while the
+    entries are recorded, so what they say is what is changed."""
     import asyncio
 
+    from backend.app.services.ai import api_keys as service_module
+
     made = (await create(client, workspace, role="VIEWER")).json()
-    service = container.api_key_service()
-    real = service._plan_edit
+    real = service_module.record_many_or_refuse
     blocked = []
 
     async def watched(*args, **kwargs):
-        plan = await real(*args, **kwargs)
         try:
             await asyncio.wait_for(
                 container.workspace_api_key_repo().revoke_one(
@@ -866,9 +925,9 @@ async def test_the_keys_row_is_locked_before_the_edit_is_worked_out(
             blocked.append(False)
         except asyncio.TimeoutError:
             blocked.append(True)
-        return plan
+        return await real(*args, **kwargs)
 
-    monkeypatch.setattr(service, "_plan_edit", watched)
+    monkeypatch.setattr(service_module, "record_many_or_refuse", watched)
     edited = await patch(client, workspace, made["id"], role="EDITOR")
     assert edited.status_code == 200, edited.text
     assert blocked == [True]

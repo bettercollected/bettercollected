@@ -64,6 +64,9 @@ SUBMISSIONS_SCOPE = "submissions:write"
 MAX_SUBMISSION_FORMS = 200
 
 TOKEN_PREFIX = "bc_"
+# an edit that finds the key changed under its lock is worked out again this
+# many times before it answers 409 ``key_changed``
+EDIT_ATTEMPTS = 3
 # Scopes that hand respondents' answers, unredacted, to whatever holds the key.
 UNREDACTED_RESPONSE_SCOPES = {"responses:read"}
 
@@ -139,6 +142,25 @@ class APIKeyDto(_CamelModel):
 class CreatedAPIKeyDto(APIKeyDto):
     # The one and only time the full token leaves the server.
     token: str
+
+
+class _KeyChanged(Exception):
+    """The key is not as the edit read it: worked out again."""
+
+
+def _edit_basis(document: WorkspaceAPIKeyDocument) -> tuple:
+    """What an edit is worked out from. A last-used update is not part of it (it
+    happens on every request with the key and changes nothing an edit reads)."""
+    return (
+        document.name,
+        document.role,
+        document.form_scope,
+        tuple(document.scopes),
+        None
+        if document.submission_form_ids is None
+        else tuple(document.submission_form_ids),
+        str(document.created_by),
+    )
 
 
 def _hash(token: str) -> str:
@@ -490,38 +512,60 @@ class APIKeyService:
         self, workspace_id: RecordId, key_id: str, dto: UpdateAPIKeyDto, user: User
     ) -> APIKeyDto:
         """Change a key's name, role and list of forms (security.manage; Owner and
-        Admin). Widening is allowed to them and recorded as such. The key's row is
-        locked before anything is computed or recorded, so the entries describe
-        exactly the change that is made (a revocation landing meanwhile waits, and
-        then wins: nothing is recorded for it), and the entries are stored in one
-        batch before the change is committed; the change is refused when they
-        cannot be stored."""
+        Admin). Widening is allowed to them and recorded as such.
+
+        The edit is worked out **before** the key's row is locked, from the key as
+        read, because every request made with the key locks that row (the
+        last-used update) and a lock held across several round trips would stall
+        them. The lock is then held only for the check that the key is still as it
+        was read (else the edit is worked out again, at most ``EDIT_ATTEMPTS``
+        times, then 409 ``key_changed``), the one batch insert of its audit
+        entries and the write: so the entries describe exactly the change that is
+        made, a revocation landing meanwhile waits and then wins (nothing is
+        recorded for it), and the change is refused when the entries cannot be
+        stored."""
         await self._authorization.authorize(
             user, Permission.SECURITY_MANAGE, workspace_id
         )
         refuse_when_off()
-        await self._find_in_workspace(workspace_id, key_id)
-        plan: Dict[str, object] = {}
+        for _ in range(EDIT_ATTEMPTS):
+            seen = await self._live_key(workspace_id, key_id)
+            plan = await self._plan_edit(workspace_id, user, seen, dto)
 
-        async def change(document: WorkspaceAPIKeyDocument):
-            plan.update(await self._plan_edit(workspace_id, user, document, dto))
-            return plan["name"], plan["role"], plan["form_scope"]
+            async def change(document: WorkspaceAPIKeyDocument):
+                if _edit_basis(document) != _edit_basis(seen):
+                    raise _KeyChanged()
+                await record_many_or_refuse(
+                    self._audit_repo, plan["entries"], workspace_id, user
+                )
+                return plan["name"], plan["role"], plan["form_scope"]
 
-        updated = await self._api_key_repo.update_limits(
-            workspace_id, RecordId(key_id), change
+            try:
+                updated = await self._api_key_repo.update_limits(
+                    workspace_id, RecordId(key_id), change
+                )
+            except _KeyChanged:
+                continue
+            if updated is None:
+                await self._live_key(workspace_id, key_id)  # 409 when it was revoked
+                raise _not_found()
+            # the key first, then its rows: a failure in between leaves the key
+            # narrower than asked (a list with no rows opens nothing), never wider
+            if plan["rows_stale"]:
+                await self._write_rows(workspace_id, updated, plan["new_ids"], user)
+            elif plan["was_listed"] and not plan["listed"]:
+                await self._grants.delete_for_subject(
+                    workspace_id, SUBJECT_KEY, str(updated.id)
+                )
+            return (await self._dtos(workspace_id, user, [updated]))[0]
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            content={
+                "code": "key_changed",
+                "message": "The key was changed while this edit was worked out. "
+                "Reload it and try again.",
+            },
         )
-        if updated is None:
-            await self._live_key(workspace_id, key_id)  # 409 when it was revoked
-            raise _not_found()
-        # the key first, then its rows: a failure in between leaves the key
-        # narrower than asked (a list with no rows opens nothing), never wider
-        if plan["rows_stale"]:
-            await self._write_rows(workspace_id, updated, plan["new_ids"], user)
-        elif plan["was_listed"] and not plan["listed"]:
-            await self._grants.delete_for_subject(
-                workspace_id, SUBJECT_KEY, str(updated.id)
-            )
-        return (await self._dtos(workspace_id, user, [updated]))[0]
 
     async def _plan_edit(
         self,
@@ -530,8 +574,9 @@ class APIKeyService:
         document: WorkspaceAPIKeyDocument,
         dto: UpdateAPIKeyDto,
     ) -> Dict[str, object]:
-        """Validate the edit against the key as it is now (the caller holds the
-        key's row), record it and say what to write. Runs inside the row lock."""
+        """Validate the edit against the key as read (the caller re-checks it under
+        the key's row lock before anything is stored) and say what to record and
+        write. Changes nothing and holds no lock."""
         fields = dto.model_fields_set
         role = (
             validation.normalise_role(dto.role) if "role" in fields else document.role
@@ -610,9 +655,6 @@ class APIKeyService:
         entries += [
             (API_KEY_FORM_REMOVED, dict(key_id=key, form_id=f)) for f in removed
         ]
-        await record_many_or_refuse(
-            self._audit_repo, entries, workspace_id, user
-        )
         return {
             "name": name,
             "role": role,
@@ -620,6 +662,7 @@ class APIKeyService:
             "listed": listed,
             "was_listed": was_listed,
             "new_ids": new_ids,
+            "entries": entries,
             "rows_stale": listed
             and (role_changed or added or removed or not was_listed),
         }

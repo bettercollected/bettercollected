@@ -687,13 +687,15 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
         """Change the name, role and form scope of a live key of the workspace
         and nothing else (not its scopes, its creator or its secret). The row is
         locked and read first and **stays locked while** ``change(document)``
-        (an async callable, given the key as it is now) works out and records
-        the change; it returns ``(name, role, form_scope)`` to store. A
-        revocation or a last-used update made meanwhile waits for the lock, so
-        what ``change`` saw is what is changed and a revoked key is never
-        brought back. An exception from ``change`` stores nothing. ``None`` when
-        the key is not there, not of this workspace or already revoked (``change``
-        is not called)."""
+        (an async callable, given the key as it is now) runs; it returns
+        ``(name, role, form_scope)`` to store. Every request made with the key
+        locks this row too (``touch_last_used``, which skips it while it is
+        held), and a revocation waits for it, so ``change`` must be short: check
+        the key is as the caller read it, record the entries, nothing more. What
+        ``change`` saw is what is changed and a revoked key is never brought back.
+        An exception from ``change`` stores nothing. ``None`` when the key is not
+        there, not of this workspace or already revoked (``change`` is not
+        called)."""
         async with self._session() as session, session.begin():
             doc = (
                 await session.execute(
@@ -721,7 +723,14 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
         """Record that the key was used at ``now``, changing nothing else, and
         only while it is not revoked: the row is locked and re-read, so a
         revocation (or any other change) made since the caller read the key
-        is never written back. Whether the key was live and touched."""
+        is never written back. Whether the key is live.
+
+        This runs on every request made with the key, so it never waits for a
+        lock: a row that someone else holds (an edit of the key's limits, a
+        revocation in progress) is skipped, and the request goes on with the
+        key as it was read, without a last-used update (the next request makes
+        it). A key that is gone or revoked is told apart from a locked one by
+        a read that takes no lock."""
         async with self._session() as session, session.begin():
             doc = (
                 await session.execute(
@@ -730,15 +739,22 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
                         WorkspaceApiKeyRow.id == _oid(key_id),
                         WorkspaceApiKeyRow.revoked.is_not(True),
                     )
-                    .with_for_update()
+                    .with_for_update(skip_locked=True)
                 )
             ).scalar_one_or_none()
-            if doc is None:
-                return False
-            stored = decode(WorkspaceAPIKeyDocument, doc)
-            stored.last_used_at = now
-            await session.execute(self._upsert_statement(row_values(stored)))
-        return True
+            if doc is not None:
+                stored = decode(WorkspaceAPIKeyDocument, doc)
+                stored.last_used_at = now
+                await session.execute(self._upsert_statement(row_values(stored)))
+                return True
+            return (
+                await session.execute(
+                    select(WorkspaceApiKeyRow.id).where(
+                        WorkspaceApiKeyRow.id == _oid(key_id),
+                        WorkspaceApiKeyRow.revoked.is_not(True),
+                    )
+                )
+            ).first() is not None
 
 
 class PostgresWorkspaceDomainRepository(RecordRepository):
