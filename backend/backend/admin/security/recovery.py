@@ -1,34 +1,26 @@
 """One-time recovery codes.
 
-A code is 16 base32 characters (80 bits) shown as four groups of four. Only
+A code is 16 base32 characters (80 bits) shown as four groups of four (the shape
+lives in ``common.security.recovery``). Only
 ``HMAC-SHA256(pepper, normalised code)`` is stored. The plaintext list exists
 once, in the ``IssuedCodes`` returned by ``issue``; ``reveal`` hands it out a
 single time.
 """
 
-import base64
 import hashlib
 import hmac
-import secrets
 from dataclasses import dataclass, field
 from typing import List, Optional, Sequence
 
 from backend.admin.security.keycheck import require_key
-
-CODE_COUNT = 10
-CODE_CHARS = 16
-GROUP = 4
-_ALPHABET = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
-
-
-def normalise(code: str) -> str:
-    """Upper-case, with spaces and dashes removed."""
-    return "".join(ch for ch in str(code).upper() if ch not in " -\t\r\n")
-
-
-def generate_code() -> str:
-    raw = base64.b32encode(secrets.token_bytes(10)).decode("ascii")  # 80 bits
-    return "-".join(raw[i : i + GROUP] for i in range(0, CODE_CHARS, GROUP))
+from common.security.recovery import (  # noqa: F401  (re-exported)
+    CODE_CHARS,
+    CODE_COUNT,
+    GROUP,
+    generate_code,
+    is_well_formed,
+    normalise,
+)
 
 
 def hash_code(pepper: bytes, code: str) -> str:
@@ -36,11 +28,6 @@ def hash_code(pepper: bytes, code: str) -> str:
     pepper = require_key(pepper, "recovery pepper")
     digest = hmac.new(pepper, normalise(code).encode("utf-8"), hashlib.sha256)
     return digest.hexdigest()
-
-
-def is_well_formed(code: str) -> bool:
-    norm = normalise(code)
-    return len(norm) == CODE_CHARS and set(norm) <= _ALPHABET
 
 
 def verify(pepper: bytes, code: str, stored_hashes: Sequence[str]) -> Optional[int]:
