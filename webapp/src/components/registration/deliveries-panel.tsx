@@ -36,7 +36,8 @@ export default function DeliveriesPanel() {
     return <Deliveries workspaceId={workspace.id} formId={form.formId} canRetry={can(WorkspacePermission.FORM_EDIT)} />;
 }
 
-export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: string; formId: string; canRetry: boolean }) {
+/** `headless`: inside a card's side sheet, which has the title: hides the section's own heading. */
+export function Deliveries({ workspaceId, formId, canRetry, headless = false }: { workspaceId: string; formId: string; canRetry: boolean; headless?: boolean }) {
     const { t, i18n } = useTranslation('builder');
     const [limit, setLimit] = useState(PAGE);
     const registration = useGetFormRegistrationQuery({ workspaceId, formId });
@@ -84,11 +85,13 @@ export function Deliveries({ workspaceId, formId, canRetry }: { workspaceId: str
     const reason = (delivery: RegistrationDelivery) => t(deliveryErrorKey(delivery.lastErrorCode, { objectsApi, httpStatus: delivery.lastHttpStatus }), { status: delivery.lastHttpStatus ?? '' });
 
     return (
-        <section className="mb-6 flex flex-col gap-4 rounded-lg border border-black-300 bg-white p-4 md:p-5" aria-labelledby="registration-deliveries-title" data-testid="registration-deliveries">
+        <section className="mb-6 flex flex-col gap-4 rounded-lg border border-black-300 bg-white p-4 md:p-5" aria-labelledby={headless ? undefined : 'registration-deliveries-title'} data-testid="registration-deliveries">
             <div className="flex flex-col gap-1">
-                <h2 id="registration-deliveries-title" className="text-sm font-semibold text-black-900">
-                    {t('REGISTRATION.DELIVERY.TITLE')}
-                </h2>
+                {!headless && (
+                    <h2 id="registration-deliveries-title" className="text-sm font-semibold text-black-900">
+                        {t('REGISTRATION.DELIVERY.TITLE')}
+                    </h2>
+                )}
                 {registration.data?.serviceName && <p className="text-xs break-words text-black-600">{t('REGISTRATION.DELIVERY.SENDING_TO', { name: registration.data.serviceName })}</p>}
             </div>
 

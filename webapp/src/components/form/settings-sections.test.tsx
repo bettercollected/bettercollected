@@ -30,11 +30,14 @@ const openModal = vi.fn();
 vi.mock('@app/components/modal-views/context', () => ({ useModal: () => ({ openModal, closeModal: vi.fn() }) }));
 vi.mock('@app/components/modal-views/full-screen-modal-context', () => ({ useFullScreenModal: () => ({}) }));
 vi.mock('@Components/modals/contexts/bottom-sheet-modal-context', () => ({ useBottomSheetModal: () => ({ openBottomSheetModal: vi.fn() }) }));
-// The automations are other components with their own tests.
-vi.mock('@app/components/form/integrations', () => ({ default: () => <p>integrations</p> }));
-vi.mock('@app/components/registration/form-registration-settings', () => ({ default: () => null }));
-vi.mock('@app/components/webhooks/webhooks-section', () => ({ default: () => null }));
-vi.mock('@app/components/email-actions/email-actions-section', () => ({ default: () => null }));
+// The automations are cards with their own tests.
+vi.mock('@app/components/form/automations/automations-section', () => ({
+    default: () => (
+        <section id="automations" aria-labelledby="automations-title">
+            <h2 id="automations-title">{i18n.t('STAFF.FORM_SETTINGS.AUTOMATIONS')}</h2>
+        </section>
+    )
+}));
 
 const open = (settings: Record<string, unknown> = {}, form: Record<string, unknown> = {}, workspace: Record<string, unknown> = {}) => {
     store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'acme', isPro: true, ...workspace } as any));
@@ -67,14 +70,14 @@ describe('the settings sections', () => {
     it('has Access, Availability, Respondent experience and Advanced, in that order, as h2 sections', () => {
         const { container } = open();
         const headings = Array.from(container.querySelectorAll('h2')).map((h) => h.textContent);
-        expect(headings).toEqual(['Access', 'Availability', 'Respondent experience', 'Integrations', 'Advanced']);
+        expect(headings).toEqual(['Access', 'Availability', 'Respondent experience', 'Automations', 'Advanced']);
         for (const id of ['access', 'availability', 'experience', 'automations', 'advanced']) expect(container.querySelector(`#${id}`)).not.toBeNull();
     });
 
     it('is Dutch in Dutch, formal', async () => {
         await i18n.changeLanguage('nl');
         const { container } = open({ formCloseDate: '2099-01-01T10:00:00Z' });
-        expect(Array.from(container.querySelectorAll('h2')).map((h) => h.textContent)).toEqual(['Toegang', 'Beschikbaarheid', 'Ervaring van respondenten', 'Integraties', 'Geavanceerd']);
+        expect(Array.from(container.querySelectorAll('h2')).map((h) => h.textContent)).toEqual(['Toegang', 'Beschikbaarheid', 'Ervaring van respondenten', 'Automatiseringen', 'Geavanceerd']);
         expect(screen.getByTestId('availability-status').textContent).toContain('sluit op');
         expect(screen.getByRole('button', { name: 'Sluitingsdatum verwijderen' })).toBeInTheDocument();
         expect(within(section('Ervaring van respondenten')).getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['Tijdens het invullen', 'Na het verzenden', 'Branding']);

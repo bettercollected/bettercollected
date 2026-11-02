@@ -1,0 +1,1 @@
+- The integrations list in a form's Settings no longer logs a React "key" warning in the browser console.
