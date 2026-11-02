@@ -7,6 +7,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 
 import EmptyFormsView from '@app/components/dashboard/empty-form';
 import SheetsReconnectNotice, { SheetsReconnectBadge, useSheetsNeedsReconnect } from '@app/components/form-integrations/sheets-reconnect-notice';
+import { actionDescription } from '@app/components/form/automations/action-description';
 import { useModal } from '@app/components/modal-views/context';
 import DeleteDropDown from '@app/components/ui/delete-dropdown';
 import { localesCommon } from '@app/constants/locales/common';
@@ -79,7 +80,7 @@ export default function FormIntegrations({ onlyActionId, headless = false }: { o
                                         <h3 className="text-base font-semibold sm:text-lg">{integration?.title || t('STAFF.INTEGRATIONS.UNTITLED')}</h3>
                                         <ReconnectBadge workspaceId={workspace?.id} formId={form?.formId} action={integration} />
                                     </div>
-                                    <p className="text-sm text-gray-600 break-words">{integration.description}</p>
+                                    <p className="text-sm text-gray-600 break-words">{actionDescription(t, integration)}</p>
                                     {integration?.parameters && (
                                         <div className="flex flex-col">
                                             {integration?.parameters?.map(
@@ -161,7 +162,7 @@ export default function FormIntegrations({ onlyActionId, headless = false }: { o
                                 {/* title and description */}
                                 <div className="mt-2 min-w-0 sm:mt-0">
                                     <h3 className="text-base font-semibold sm:text-lg">{integration?.title || t('STAFF.INTEGRATIONS.UNTITLED')}</h3>
-                                    <p className="text-sm text-gray-600 break-words">{integration.description}</p>
+                                    <p className="text-sm text-gray-600 break-words">{actionDescription(t, integration)}</p>
                                 </div>
                             </div>
                             <div className="mt-4 sm:mt-0">

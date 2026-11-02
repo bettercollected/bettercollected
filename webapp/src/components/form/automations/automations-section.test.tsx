@@ -238,7 +238,7 @@ describe('the cards', () => {
         served.integrations = [sheetsAction];
         show({ added: true });
         expect(within(card('action-a-sheets')).getByRole('heading', { level: 3, name: 'Google Sheets' })).toBeInTheDocument();
-        expect(within(card('action-a-sheets')).getByText('Adds each response to a spreadsheet.')).toBeInTheDocument();
+        expect(within(card('action-a-sheets')).getByText('Adds each response as a row in a Google spreadsheet.')).toBeInTheDocument();
         expect(within(card('action-a-sheets')).getByTestId('automation-chip')).toHaveTextContent('On');
         expect(within(card('action-a-sheets')).getByRole('button', { name: 'Manage Google Sheets' })).toBeInTheDocument();
         expect(within(card('action-a-sheets')).queryByRole('button', { name: /Deliveries/ })).toBeNull();
@@ -279,6 +279,16 @@ describe('the cards', () => {
         expect(within(card('webhooks')).getByRole('button', { name: 'Webhooks beheren' })).toHaveTextContent('Beheren');
         expect(within(card('webhooks')).getByRole('button', { name: 'Leveringen van Webhooks' })).toHaveTextContent('Leveringen');
         expect(within(card('case-system')).getByText('Verstuurt naar Case system Example')).toBeInTheDocument();
+    });
+
+    it('says what a known integration does in Dutch, and keeps the catalog text for one it does not know', async () => {
+        await act(async () => {
+            await i18n.changeLanguage('nl');
+        });
+        served.integrations = [sheetsAction, { id: 'a-other', name: 'integrate_something_new', title: 'Something new', description: 'Catalog text.', url: '/integration/default.svg' }];
+        show({ added: true });
+        expect(within(card('action-a-sheets')).getByText('Voegt elke reactie toe als rij in een Google-spreadsheet.')).toBeInTheDocument();
+        expect(within(card('action-a-other')).getByText('Catalog text.')).toBeInTheDocument();
     });
 
     it('has no accessibility violations', async () => {
