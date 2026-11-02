@@ -208,9 +208,18 @@ export interface WorkspaceAISettings {
 
 export const WORKSPACE_PERMISSIONS_TAG = 'WORKSPACE_PERMISSIONS_TAG';
 
+/** GET/PUT /workspaces/{id}/security/totp. `available` is the server's TOTP_ENABLED switch. */
+export interface WorkspaceTotpPolicy {
+    available: boolean;
+    required: boolean;
+    // active members, and how many of them have no authenticator app yet
+    members: number;
+    membersWithoutFactor: number;
+}
+
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG', 'EMAIL_DOMAINS_TAG', 'SSO_TAG', 'SCIM_TAG', WORKSPACE_PERMISSIONS_TAG],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG', 'EMAIL_DOMAINS_TAG', 'SSO_TAG', 'SCIM_TAG', 'TOTP_POLICY_TAG', WORKSPACE_PERMISSIONS_TAG],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -806,6 +815,15 @@ export const workspacesApi = createApi({
             }),
             providesTags: ['SSO_TAG']
         }),
+        // The workspace's "require an authenticator app" rule and who already has one (security.manage; the change is owners only).
+        getWorkspaceTotpPolicy: builder.query<WorkspaceTotpPolicy, string>({
+            query: (workspaceId) => ({ url: `/workspaces/${workspaceId}/security/totp`, method: 'GET' }),
+            providesTags: ['TOTP_POLICY_TAG']
+        }),
+        setWorkspaceTotpPolicy: builder.mutation<WorkspaceTotpPolicy, { workspaceId: string; required: boolean }>({
+            query: ({ workspaceId, required }) => ({ url: `/workspaces/${workspaceId}/security/totp`, method: 'PUT', body: { required } }),
+            invalidatesTags: ['TOTP_POLICY_TAG']
+        }),
         // A page of the owner break-glass log (older than the cursor); owners and admins.
         getSsoAuditPage: builder.query<SsoAuditPageDto, { workspace_id: string; cursor: string }>({
             query: (request) => ({
@@ -994,6 +1012,8 @@ export const {
     useRevokeAPIKeyMutation,
     useGetEmailDomainsQuery,
     useGetWorkspaceSsoQuery,
+    useGetWorkspaceTotpPolicyQuery,
+    useSetWorkspaceTotpPolicyMutation,
     useLazyGetSsoAuditPageQuery,
     useCreateSsoConnectionMutation,
     useSetSsoConnectionEnabledMutation,

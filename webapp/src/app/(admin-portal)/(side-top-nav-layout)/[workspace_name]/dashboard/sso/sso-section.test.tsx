@@ -21,6 +21,10 @@ vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
     useWorkspacePermissions: () => ({ can: (permission: string) => granted.includes(permission), ready: true, isLoading: false })
 }));
 
+// Whether the server has the authenticator app on (the account's second-factor status).
+let mfaAvailable = false;
+vi.mock('@app/store/auth/api', () => ({ useGetMfaStatusQuery: () => ({ data: { available: mfaAvailable, enabled: false } }) }));
+
 // The SSO page's own sections fetch from the API; they are not under test here.
 vi.mock('./_components/sso-page-client', () => ({ default: () => <p>sso page</p> }));
 
@@ -37,6 +41,7 @@ describe('the Single sign-on section', () => {
     beforeEach(() => {
         pathname = '/acme/dashboard/sso';
         granted = [P.SECURITY_MANAGE];
+        mfaAvailable = false;
         vi.mocked(redirect).mockClear();
     });
     afterEach(() => vi.unstubAllEnvs());
@@ -47,6 +52,13 @@ describe('the Single sign-on section', () => {
         expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/acme/dashboard/sso', '/acme/dashboard/sso/domains']);
         expect(screen.getByRole('link', { name: 'Single sign-on' })).toHaveAttribute('aria-current', 'page');
         expect(screen.getByRole('link', { name: 'Domains' })).not.toHaveAttribute('aria-current');
+    });
+
+    it('adds the Authenticator app tab while the server has it on', () => {
+        mfaAvailable = true;
+        renderSection(true);
+        expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/acme/dashboard/sso', '/acme/dashboard/sso/domains', '/acme/dashboard/sso/security']);
+        expect(screen.getByRole('link', { name: 'Security' })).toBeInTheDocument();
     });
 
     it('marks Domains as current on its own route', () => {

@@ -18,6 +18,8 @@ export interface WorkspaceMembersDto {
     // the owner the workspace's plan is billed to (workspace.ownerId); every
     // owner has the same rights
     billingOwner?: boolean;
+    // has an authenticator app; null while the server's TOTP_ENABLED switch is off (the column is hidden)
+    totpEnabled?: boolean | null;
 }
 
 export interface WorkspaceInvitationDto {
