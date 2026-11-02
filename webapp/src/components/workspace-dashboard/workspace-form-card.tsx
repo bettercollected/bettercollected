@@ -16,6 +16,7 @@ import FormProviderIcon from '@Components/icons/form-provider-icon';
 import { GroupIcon } from '@app/components/icons/group-icon';
 import { NeedsReviewBadge } from '@app/components/open-formulieren-import/needs-review';
 import { useModal } from '@app/components/modal-views/context';
+import { CardRestrictedChip } from '@app/components/form/access/restricted-chip';
 import DeleteDropDown from '@app/components/ui/delete-dropdown';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -110,6 +111,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                             {!isResponderPortal && form?.isPublished && !isFormOpen && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.CLOSED')}</div>}
                             {!isResponderPortal && form.settings?.provider === 'self' && form?.builderVersion !== 'v2' && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">V1</div>}
                             {!isResponderPortal && <NeedsReviewBadge settings={form?.settings} />}
+                            {!isResponderPortal && <CardRestrictedChip form={form} className="mx-1 align-middle" />}
                         </div>
                         {!group && !isResponderPortal && (
                             <div className="flex-1 lg:hidden">

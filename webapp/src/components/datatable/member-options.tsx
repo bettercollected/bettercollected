@@ -6,10 +6,11 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@app/shadcn/components/ui/dropdown-menu';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useResendWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
-import { Crown, KeyRound, Loader2, MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react';
+import { Crown, KeyRound, Loader2, LockKeyhole, MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 
+import MemberAccessDialog from '@app/components/member/member-access-dialog';
 import ResetTotpDialog from '@app/components/member/reset-totp-dialog';
 import MakeBillingOwnerDialog, { billingOwnerBlocker } from '@app/components/member/make-billing-owner-dialog';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
@@ -34,10 +35,11 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
     const [selectedInvitation, setSelectedInvitation] = useState<WorkspaceInvitationDto | null>(null);
     const { t } = useTranslation();
     const { openModal } = useModal();
-    const { can } = useWorkspacePermissions();
+    const { can, formAccessEnabled } = useWorkspacePermissions();
     const workspace = useAppSelector((state) => state.workspace);
     const [openBilling, setOpenBilling] = useState(false);
     const [openReset, setOpenReset] = useState(false);
+    const [openAccess, setOpenAccess] = useState(false);
     const auth = useAppSelector(selectAuth);
     // Every owner holds workspace.billing: they make another owner the
     // billing owner, and only they remove an owner.
@@ -47,13 +49,15 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
     const canMakeBillingOwner = !!member && callerIsOwner && memberIsOwner && !isBillingOwnerOf(member, workspace);
     // An owner removes a member's authenticator app (never their own: that is in Account settings).
     const canResetTotp = !!member && callerIsOwner && member.totpEnabled === true && member.id !== auth?.id;
+    // What a member can open beyond their role (read-only), while form-level access is on; owners and admins only.
+    const canSeeAccess = !!member && formAccessEnabled && can(WorkspacePermission.MEMBERS_MANAGE) && !member.accountDeleted;
     const billingBlocked = member ? billingOwnerBlocker(workspace, memberRole(member)) : undefined;
 
     // Use the mutation hook
     const [resendWorkspaceInvitation] = useResendWorkspaceInvitationMutation();
 
     // nothing this user may do here (e.g. an Admin on an owner's row)
-    if (!canManageMembers && !canMakeBillingOwner && !canResetTotp) return null;
+    if (!canManageMembers && !canMakeBillingOwner && !canResetTotp && !canSeeAccess) return null;
 
     const handleResendInvitationClick = (invitation: WorkspaceInvitationDto) => {
         setSelectedInvitation(invitation);
@@ -105,6 +109,12 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                             >
                                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4 text-blue-600" />}
                                 <span className={loading ? "text-black-600" : "text-blue-600"}>{t(buttonConstant.resendInvitation)}</span>
+                            </DropdownMenuItem>
+                        )}
+                        {canSeeAccess && (
+                            <DropdownMenuItem onClick={() => setOpenAccess(true)} className="cursor-pointer">
+                                <LockKeyhole className="mr-2 h-4 w-4" />
+                                <span>{t('STAFF.TEAMS.ACCESS.MENU')}</span>
                             </DropdownMenuItem>
                         )}
                         {canMakeBillingOwner && (
@@ -160,6 +170,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            {openAccess && member && <MemberAccessDialog workspaceId={workspace?.id ?? ''} member={member} onClose={() => setOpenAccess(false)} />}
             {openReset && member && <ResetTotpDialog workspaceId={workspace?.id ?? ''} member={member} onClose={() => setOpenReset(false)} />}
             {canMakeBillingOwner && member && <MakeBillingOwnerDialog open={openBilling} onOpenChange={setOpenBilling} member={member} />}
         </>

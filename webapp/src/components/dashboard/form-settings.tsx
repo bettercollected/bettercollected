@@ -189,7 +189,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
     };
 
     const isProPlan = useAppSelector(selectWorkspace).isPro;
-    const { can, saveDraftsEnabled } = useWorkspacePermissions();
+    const { can, saveDraftsEnabled, formAccessEnabled } = useWorkspacePermissions();
     // owners hold workspace.billing, so the Pro upsell is theirs
     const isAdmin = can(WorkspacePermission.WORKSPACE_BILLING);
     const canEditForm = can(WorkspacePermission.FORM_EDIT);
@@ -242,7 +242,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                                         </div>
                                     </Label>
                                 </div>
-                                <span className="body4 text-black-700! ml-6 mt-1">{t(formPage.visibilityPrivate)}</span>
+                                <span className="body4 text-black-700! ml-6 mt-1">{formAccessEnabled ? t('STAFF.FORM_ACCESS.PRIVATE_TEXT') : t(formPage.visibilityPrivate)}</span>
                             </div>
                             <Divider />
                             <div className="flex flex-col">

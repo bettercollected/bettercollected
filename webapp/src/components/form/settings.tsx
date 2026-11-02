@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 
 import FormSettingsTab, { GroupHeading, SettingRow } from '@app/components/dashboard/form-settings';
+import FormAccessCard from '@app/components/form/access/form-access-card';
 import AutomationsSection from '@app/components/form/automations/automations-section';
 import { useModal } from '@app/components/modal-views/context';
 import { memberRoles } from '@app/constants/locales/member-roles';
@@ -56,10 +57,15 @@ export default function FormSettingsPage({ page }: { page: SettingsPageKey }) {
 
 function AccessPage() {
     const { t } = useTranslation();
+    // While the server has form-level access on, the page has two questions: which of your team opens the form in the
+    // dashboard (the card), and who can see it as a respondent (the existing visibility). Their headings say which.
+    const { formAccessEnabled } = useWorkspacePermissions();
     return (
         <Section id="access" title={t('STAFF.FORM_SETTINGS.ACCESS')} intro={t('STAFF.FORM_SETTINGS.ACCESS_INTRO')}>
+            {formAccessEnabled && <FormAccessCard />}
             <div>
-                <GroupHeading>{t('STAFF.FORM_SETTINGS.ACCESS_VISIBILITY')}</GroupHeading>
+                <GroupHeading>{formAccessEnabled ? t('STAFF.FORM_ACCESS.RESPONDENTS_TITLE') : t('STAFF.FORM_SETTINGS.ACCESS_VISIBILITY')}</GroupHeading>
+                {formAccessEnabled && <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('STAFF.FORM_ACCESS.RESPONDENTS_INTRO')}</p>}
                 <FormSettingsTab view="VISIBILITY" />
             </div>
             <FormSettingsTab view="ACCESS" />
