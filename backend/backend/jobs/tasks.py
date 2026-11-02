@@ -221,9 +221,13 @@ async def sso_release_retry(timestamp: int) -> str:
 async def audit_log_purge(timestamp: int) -> str:
     """Daily: delete the workspaces' audit entries that are older than the
     workspace's own retention (6, 12, 24 or 60 months, default 12; never newer
-    than six months). Counts only."""
-    deleted = await _container().audit_retention().purge()
-    return f"{deleted} deleted"
+    than six months), in batches. A workspace whose delete fails is logged
+    (ids only) and the others still run; the job then fails so that it shows.
+    Counts only."""
+    result = await _container().audit_retention().purge()
+    if result.failed:
+        raise RuntimeError(f"{result.deleted} deleted, {result.failed} failed")
+    return f"{result.deleted} deleted"
 
 
 @app.periodic(cron="29 3 * * *", periodic_id="totp_pending_purge")

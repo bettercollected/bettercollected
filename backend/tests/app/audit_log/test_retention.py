@@ -6,6 +6,7 @@ purge job still answering to its old name. Everything here is synthetic."""
 import datetime as dt
 
 import pytest
+from loguru import logger
 from common.ids import RecordId
 from httpx import AsyncClient
 
@@ -258,8 +259,8 @@ async def test_the_purge_applies_each_workspaces_own_period(
     mine = {days: await seed_aged(workspace.id, days) for days in (100, 400, 700, 800)}
     theirs = {days: await seed_aged(workspace_1.id, days) for days in (100, 170, 200, 400)}
 
-    deleted = await container.audit_retention().purge(NOW)
-    assert deleted == 1 + 2
+    result = await container.audit_retention().purge(NOW)
+    assert (result.deleted, result.failed) == (1 + 2, 0)
 
     assert await remaining(workspace.id) == {mine[100], mine[400], mine[700]}
     assert await remaining(workspace_1.id) == {theirs[100], theirs[170]}
@@ -301,7 +302,7 @@ async def test_the_purge_never_deletes_inside_the_minimum_whatever_is_stored(
         assert {young, just_inside, outside} <= await remaining(workspace.id), stored
     # the shortest choice deletes only what is past six months
     await choose(workspace, 6)
-    assert await container.audit_retention().purge(NOW) == 1
+    assert (await container.audit_retention().purge(NOW)).deleted == 1
     assert await remaining(workspace.id) == {young, just_inside}
 
 
@@ -309,13 +310,119 @@ async def test_the_purge_changes_nothing_inside_the_period_and_counts_only(
     client: AsyncClient, workspace
 ):
     kept = [await seed_aged(workspace.id, d) for d in (0, 1, 200, 364)]
-    assert await container.audit_retention().purge(NOW) == 0
+    assert (await container.audit_retention().purge(NOW)).deleted == 0
     assert await remaining(workspace.id) == set(kept)
 
 
 async def test_the_purge_without_an_audit_store_deletes_nothing():
     retention = R.AuditRetention(None, container.workspace_repo(), None)
-    assert await retention.purge(NOW) == 0
+    assert (await retention.purge(NOW)).deleted == 0
+
+
+# -- batches and failures ------------------------------------------------------------------
+async def test_a_large_delete_goes_in_bounded_batches_each_in_its_own_transaction(
+    client: AsyncClient, workspace, monkeypatch
+):
+    repo = container.workspace_audit_repo()
+    old = {await seed_aged(workspace.id, 400 + i) for i in range(5)}
+    young = await seed_aged(workspace.id, 10)
+    sizes = []
+    original = repo.delete_where
+
+    async def counted(*where, **kwargs):
+        deleted = await original(*where, **kwargs)
+        sizes.append(deleted)
+        return deleted
+
+    monkeypatch.setattr(repo, "delete_where", counted)
+    assert await repo.purge_workspace_before(workspace.id, NOW - dt.timedelta(days=365), batch=2) == 5
+    # 2, 2, 1: never more than a batch at once, and the loop ends on a short one
+    assert sizes == [2, 2, 1]
+    assert await remaining(workspace.id) == {young}
+    assert not (old & await remaining(workspace.id))
+
+    # the default period's purge is batched the same way
+    sizes.clear()
+    for i in range(4):
+        await seed_aged(workspace.id, 500 + i)
+    assert await repo.purge_before(NOW - dt.timedelta(days=365), batch=3) == 4
+    assert sizes == [3, 1]
+    # nothing to delete: one empty delete, no loop
+    sizes.clear()
+    assert await repo.purge_before(NOW - dt.timedelta(days=365), batch=3) == 0
+    assert sizes == [0]
+
+
+async def test_shortening_from_sixty_to_six_months_deletes_oldest_first_in_batches(
+    client: AsyncClient, workspace, monkeypatch
+):
+    await choose(workspace, 6)
+    for days in range(200, 230):
+        await seed_aged(workspace.id, days)
+    kept = await seed_aged(workspace.id, 100)
+    repo = container.workspace_audit_repo()
+    # a small batch through the service's own call
+    original = repo.purge_workspace_before
+
+    async def small(workspace_id, cutoff, batch=7):
+        return await original(workspace_id, cutoff, batch=batch)
+
+    monkeypatch.setattr(repo, "purge_workspace_before", small)
+    result = await container.audit_retention().purge(NOW)
+    assert (result.deleted, result.failed) == (30, 0)
+    assert await remaining(workspace.id) == {kept}
+
+
+async def test_one_failing_workspace_does_not_stop_the_others(
+    client: AsyncClient, workspace, workspace_1, monkeypatch
+):
+    await choose(workspace, 6)
+    await choose(workspace_1, 24)
+    failing_old = await seed_aged(workspace.id, 300)
+    other_old = await seed_aged(workspace_1.id, 800)
+    other_young = await seed_aged(workspace_1.id, 300)
+    default_old = await seed_aged(RecordId(NO_WORKSPACE), 400, E.TOTP_ENROLLED)
+
+    repo = container.workspace_audit_repo()
+    original = repo.purge_workspace_before
+
+    async def fail_for_first(workspace_id, cutoff, **kwargs):
+        if str(workspace_id) == str(workspace.id):
+            raise RuntimeError("secret detail of the failure")
+        return await original(workspace_id, cutoff, **kwargs)
+
+    monkeypatch.setattr(repo, "purge_workspace_before", fail_for_first)
+    lines = []
+    sink = logger.add(lambda message: lines.append(str(message)), level="ERROR")
+    try:
+        result = await container.audit_retention().purge(NOW)
+    finally:
+        logger.remove(sink)
+
+    assert (result.deleted, result.failed) == (2, 1)
+    # the failing workspace kept its entry; the others were purged
+    assert failing_old in await remaining(workspace.id)
+    assert await remaining(workspace_1.id) == {other_young}
+    assert other_old not in await remaining(workspace_1.id)
+    assert default_old not in await remaining(RecordId(NO_WORKSPACE))
+    # logged at ERROR with the workspace id and the kind of error, nothing else
+    logged = "\n".join(lines)
+    assert str(workspace.id) in logged and "RuntimeError" in logged
+    assert "secret detail" not in logged
+
+
+async def test_the_job_fails_loudly_after_the_others_ran_when_a_part_failed(
+    client: AsyncClient, workspace, monkeypatch
+):
+    await choose(workspace, 6)
+    repo = container.workspace_audit_repo()
+
+    async def boom(*args, **kwargs):
+        raise RuntimeError("x")
+
+    monkeypatch.setattr(repo, "purge_workspace_before", boom)
+    with pytest.raises(RuntimeError, match=r"0 deleted, 1 failed"):
+        await tasks.audit_log_purge.func(0)
 
 
 # -- the job -------------------------------------------------------------------------------

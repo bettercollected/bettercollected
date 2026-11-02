@@ -11,6 +11,10 @@ from common.records.codec import decode, row_values
 from common.records.repository import RecordRepository
 
 
+# how many entries one delete of the daily purge removes (one transaction each)
+PURGE_BATCH = 2000
+
+
 def _id(value) -> str:
     return str(value)
 
@@ -132,11 +136,34 @@ class PostgresWorkspaceAuditRepository(RecordRepository):
             WorkspaceAuditEventRow.workspace_id.in_([_id(w) for w in workspace_ids])
         )
 
+    async def _delete_in_batches(self, batch: int, *where) -> int:
+        """Delete the rows that match ``where`` ``batch`` at a time, oldest
+        first, each batch in a transaction of its own: a purge that has months
+        of entries to delete (a workspace that shortened its retention) never
+        holds one long transaction or writes every tombstone at once."""
+        row = WorkspaceAuditEventRow
+        batch = max(1, int(batch))
+        total = 0
+        while True:
+            oldest = (
+                select(row.id)
+                .where(*where)
+                .order_by(row.created_at, row.id)
+                .limit(batch)
+            )
+            deleted = await self.delete_where(row.id.in_(oldest))
+            total += deleted
+            if deleted < batch:
+                return total
+
     async def purge_before(
-        self, cutoff: dt.datetime, except_workspaces: Sequence = ()
+        self,
+        cutoff: dt.datetime,
+        except_workspaces: Sequence = (),
+        batch: int = PURGE_BATCH,
     ) -> int:
         """Delete every entry older than ``cutoff``, except those of
-        ``except_workspaces`` (which have a retention of their own)."""
+        ``except_workspaces`` (which have a retention of their own), in batches."""
         where = [WorkspaceAuditEventRow.created_at < cutoff]
         if except_workspaces:
             where.append(
@@ -144,11 +171,14 @@ class PostgresWorkspaceAuditRepository(RecordRepository):
                     [_id(w) for w in except_workspaces]
                 )
             )
-        return await self.delete_where(*where)
+        return await self._delete_in_batches(batch, *where)
 
-    async def purge_workspace_before(self, workspace_id, cutoff: dt.datetime) -> int:
-        """Delete the entries of one workspace older than ``cutoff``."""
-        return await self.delete_where(
+    async def purge_workspace_before(
+        self, workspace_id, cutoff: dt.datetime, batch: int = PURGE_BATCH
+    ) -> int:
+        """Delete the entries of one workspace older than ``cutoff``, in batches."""
+        return await self._delete_in_batches(
+            batch,
             WorkspaceAuditEventRow.workspace_id == _id(workspace_id),
             WorkspaceAuditEventRow.created_at < cutoff,
         )

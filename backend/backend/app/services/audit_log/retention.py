@@ -20,12 +20,14 @@ Rules this module keeps:
 """
 
 import datetime as dt
+from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Any, Dict, Optional, Tuple
 
 from common.constants import MESSAGE_FORBIDDEN
 from common.ids import RecordId
 from common.models.user import User
+from loguru import logger
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.audit_log_dto import AuditRetentionDto
@@ -152,23 +154,49 @@ class AuditRetention:
         )
 
     # -- the daily purge ------------------------------------------------------
-    async def purge(self, now: Optional[dt.datetime] = None) -> int:
+    async def purge(self, now: Optional[dt.datetime] = None) -> "PurgeResult":
         """Delete the entries past their workspace's period, each workspace by
         its own setting; entries of a workspace that never chose (and those
         that belong to no workspace) by the default. Never newer than the
-        minimum, whatever is stored. Returns how many were deleted."""
+        minimum, whatever is stored. Deletes in bounded batches, and a failure
+        of one workspace (logged with its id only) never stops the others:
+        the result says how many were deleted and how many parts failed."""
         if self._audit is None:
-            return 0
+            return PurgeResult(0, 0)
         now = now or dt.datetime.now(dt.timezone.utc)
         chosen = {
             ws: months_of(value)
             for ws, value in (await self._workspaces.audit_retention_choices()).items()
         }
-        deleted = await self._audit.purge_before(
-            cutoff(now, DEFAULT_MONTHS), except_workspaces=list(chosen)
-        )
-        for workspace_id, months in chosen.items():
-            deleted += await self._audit.purge_workspace_before(
-                workspace_id, cutoff(now, months)
+        result = PurgeResult(0, 0)
+        try:
+            result.deleted += await self._audit.purge_before(
+                cutoff(now, DEFAULT_MONTHS), except_workspaces=list(chosen)
             )
-        return deleted
+        except Exception as error:  # noqa: BLE001 - the others still run
+            result.failed += 1
+            logger.bind(audit=True).error(
+                "AUDIT purge of the default retention failed ({})", type(error).__name__
+            )
+        for workspace_id, months in chosen.items():
+            try:
+                result.deleted += await self._audit.purge_workspace_before(
+                    workspace_id, cutoff(now, months)
+                )
+            except Exception as error:  # noqa: BLE001 - the next workspace still runs
+                result.failed += 1
+                logger.bind(audit=True).error(
+                    "AUDIT purge failed workspace={} ({})",
+                    workspace_id,
+                    type(error).__name__,
+                )
+        return result
+
+
+@dataclass
+class PurgeResult:
+    """How a purge went: entries deleted, and parts (a workspace, or the
+    default period) that failed."""
+
+    deleted: int
+    failed: int

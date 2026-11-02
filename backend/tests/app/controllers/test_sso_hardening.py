@@ -764,7 +764,7 @@ async def test_the_audit_is_kept_a_year_and_goes_with_the_workspace(
         )
         document.created_at = now - dt.timedelta(days=age_days)
         await repo.record(document)
-    assert await container.audit_retention().purge(now) == 1
+    assert (await container.audit_retention().purge(now)).deleted == 1
     assert [e.session_id for e in await repo.page(required.id, 50, events=SSO_EVENTS)] == ["new"]
     await repo.record(
         WorkspaceAuditEventDocument(
