@@ -6,16 +6,18 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@app/shadcn/components/ui/dropdown-menu';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useResendWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
-import { Crown, Loader2, MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react';
+import { Crown, KeyRound, Loader2, MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 
+import ResetTotpDialog from '@app/components/member/reset-totp-dialog';
 import MakeBillingOwnerDialog, { billingOwnerBlocker } from '@app/components/member/make-billing-owner-dialog';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { WorkspaceRole, isBillingOwnerOf, memberRole } from '@app/models/enums/workspace-role';
 import { localesCommon } from '@app/constants/locales/common';
 import { memberRoles } from '@app/constants/locales/member-roles';
+import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { browserMailLocale } from '@app/utils/mail-locale';
 
@@ -35,19 +37,23 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
     const { can } = useWorkspacePermissions();
     const workspace = useAppSelector((state) => state.workspace);
     const [openBilling, setOpenBilling] = useState(false);
+    const [openReset, setOpenReset] = useState(false);
+    const auth = useAppSelector(selectAuth);
     // Every owner holds workspace.billing: they make another owner the
     // billing owner, and only they remove an owner.
     const callerIsOwner = can(WorkspacePermission.WORKSPACE_BILLING);
     const memberIsOwner = !!member && memberRole(member) === WorkspaceRole.OWNER;
     const canManageMembers = can(WorkspacePermission.MEMBERS_MANAGE) && (!memberIsOwner || callerIsOwner);
     const canMakeBillingOwner = !!member && callerIsOwner && memberIsOwner && !isBillingOwnerOf(member, workspace);
+    // An owner removes a member's authenticator app (never their own: that is in Account settings).
+    const canResetTotp = !!member && callerIsOwner && member.totpEnabled === true && member.id !== auth?.id;
     const billingBlocked = member ? billingOwnerBlocker(workspace, memberRole(member)) : undefined;
 
     // Use the mutation hook
     const [resendWorkspaceInvitation] = useResendWorkspaceInvitationMutation();
 
     // nothing this user may do here (e.g. an Admin on an owner's row)
-    if (!canManageMembers && !canMakeBillingOwner) return null;
+    if (!canManageMembers && !canMakeBillingOwner && !canResetTotp) return null;
 
     const handleResendInvitationClick = (invitation: WorkspaceInvitationDto) => {
         setSelectedInvitation(invitation);
@@ -112,6 +118,12 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                                 <span>{t(memberRoles.makeBillingOwner)}</span>
                             </DropdownMenuItem>
                         )}
+                        {canResetTotp && (
+                            <DropdownMenuItem onClick={() => setOpenReset(true)} className="cursor-pointer">
+                                <KeyRound className="mr-2 h-4 w-4" />
+                                <span>{t('STAFF.MFA.RESET.ACTION')}</span>
+                            </DropdownMenuItem>
+                        )}
                         {canManageMembers && (
                         <DropdownMenuItem
                             onClick={() => {
@@ -148,6 +160,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            {openReset && member && <ResetTotpDialog workspaceId={workspace?.id ?? ''} member={member} onClose={() => setOpenReset(false)} />}
             {canMakeBillingOwner && member && <MakeBillingOwnerDialog open={openBilling} onOpenChange={setOpenBilling} member={member} />}
         </>
     );

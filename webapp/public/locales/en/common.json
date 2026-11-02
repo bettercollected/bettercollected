@@ -1059,7 +1059,8 @@
     "SSO_SECTIONS": "Single sign-on sections",
     "AI_SECTIONS": "AI sections",
     "VERIFY_DOMAIN": "Verify a domain",
-    "EMBEDDING": "Embedding"
+    "EMBEDDING": "Embedding",
+    "AUTHENTICATOR": "Authenticator app"
   },
   "SSO": {
     "NOT_ENABLED": "Single sign-on is not enabled on this instance. The operator turns it on (SSO_ENABLED, see docs/sso.md).",
@@ -1534,6 +1535,154 @@
       "LAST_ACTIVE": "Last active {{date}}",
       "SIGN_OUT": "Sign out",
       "SIGN_OUT_OTHERS": "Sign out everywhere else"
+    },
+    "MFA": {
+      "CLOSE": "Close",
+      "CANCEL": "Cancel",
+      "BACK": "Back",
+      "NEXT": "Next",
+      "DONE": "Done",
+      "TRY_AGAIN": "Try again",
+      "SIGN_IN_AGAIN": "Sign out and sign in again",
+      "CARD": {
+        "TITLE": "Security",
+        "INTRO": "Add a second step to signing in: besides the code we email you, you enter a code from an app on your phone.",
+        "APP": "Authenticator app",
+        "OFF": "Not set up.",
+        "ON_one": "On. {{count}} recovery code left.",
+        "ON_other": "On. {{count}} recovery codes left.",
+        "LOW_one": "Only {{count}} recovery code left. Make new ones before you run out.",
+        "LOW_other": "Only {{count}} recovery codes left. Make new ones before you run out.",
+        "NONE_LEFT": "No recovery codes left. Make new ones now: without them, a lost phone locks you out.",
+        "SET_UP": "Set up an authenticator app",
+        "REGENERATE": "Make new recovery codes",
+        "TURN_OFF": "Turn off"
+      },
+      "SETUP": {
+        "TITLE": "Set up an authenticator app",
+        "STEP": "Step {{step}} of {{total}}",
+        "PREPARING": "Getting your setup key…",
+        "SCAN_TITLE": "Scan the QR code",
+        "SCAN_INTRO": "Open an authenticator app on your phone (for example your password manager, or a free app such as Aegis, 2FAS or Google Authenticator) and scan this code. The code is drawn in your browser and is not stored.",
+        "QR_LABEL": "QR code for your authenticator app. The setup key below holds the same information.",
+        "MANUAL_LABEL": "Setup key",
+        "MANUAL_HINT": "Cannot scan? Choose “enter a setup key” in your app and type or paste this key. Spaces do not matter.",
+        "COPY_KEY": "Copy key",
+        "KEY_COPIED": "Key copied.",
+        "COPY_FAILED": "Copying did not work. Select the key and copy it yourself.",
+        "CODE_TITLE": "Enter the 6-digit code",
+        "CODE_INTRO": "Type the code your app now shows for this account. It changes every 30 seconds.",
+        "CONFIRM": "Confirm and turn on",
+        "CODES_TITLE": "Keep your recovery codes",
+        "FAILED_TITLE": "Setting up did not start"
+      },
+      "CODE": {
+        "LABEL": "6-digit code",
+        "HINT": "The code from your authenticator app.",
+        "RECOVERY_LABEL": "Recovery code",
+        "RECOVERY_HINT": "One of the recovery codes you saved. Each works once.",
+        "USE_RECOVERY": "Use a recovery code",
+        "USE_APP": "Use the code from my app"
+      },
+      "CODES": {
+        "INTRO": "If you lose your phone, one of these recovery codes lets you in instead of an app code. Each works once. They are shown now and never again: keep them somewhere safe, apart from your phone.",
+        "LIST_LABEL": "Recovery codes",
+        "COPY": "Copy all",
+        "COPIED": "Recovery codes copied.",
+        "COPY_FAILED": "Copying did not work. The codes are selected: copy them yourself.",
+        "DOWNLOAD": "Download as .txt",
+        "DOWNLOADED": "File saved.",
+        "FILE_TITLE": "bettercollected recovery codes. Each code works once.",
+        "STORED": "I have stored these codes in a safe place."
+      },
+      "REGENERATE": {
+        "TITLE": "Make new recovery codes",
+        "INTRO": "Enter a current code to make ten new recovery codes. The old ones stop working at once.",
+        "SUBMIT": "Make new codes",
+        "NEW_TITLE": "Your new recovery codes"
+      },
+      "DISABLE": {
+        "TITLE": "Turn off the authenticator app",
+        "INTRO": "Enter a current code to turn it off. Signing in then needs only the email code again, and your other signed-in browsers are signed out.",
+        "SUBMIT": "Turn off",
+        "DONE": "The authenticator app is turned off."
+      },
+      "ERRORS": {
+        "INVALID": "That code is not valid. Enter the code your app shows now.",
+        "INVALID_CLOCK": "That code is not valid. Enter the code your app shows now, and check that the time on your phone is set automatically.",
+        "LOCKED_one": "Too many attempts. Try again in {{count}} minute.",
+        "LOCKED_other": "Too many attempts. Try again in {{count}} minutes.",
+        "LOCKED_HOURS_one": "Too many attempts. Try again in {{count}} hour.",
+        "LOCKED_HOURS_other": "Too many attempts. Try again in {{count}} hours.",
+        "EXPIRED": "Your sign-in has expired. Go back and sign in again.",
+        "STALE": "You signed in a while ago. For your security, sign out and sign in again, then set up the authenticator app.",
+        "OFF": "Authenticator apps are not turned on on this server.",
+        "NO_FACTOR": "No authenticator app is set up for this account.",
+        "GENERIC": "Something went wrong. Please try again.",
+        "REQUIRED_BY_WORKSPACE": "A workspace you belong to requires an authenticator app, so you cannot turn it off."
+      },
+      "SIGNIN": {
+        "TITLE": "Enter the code from your authenticator app",
+        "INTRO": "You signed in with your email. This account also needs the code from its authenticator app.",
+        "INTRO_RECOVERY": "Enter one of your recovery codes. It works once; then make new ones under Account settings.",
+        "SUBMIT": "Sign in",
+        "BACK": "Back to sign in",
+        "PANEL_TITLE": "One more step",
+        "PANEL_DESCRIPTION": "This account is protected with a second step. Your sign-in is complete once you enter the code.",
+        "LOCKED_TITLE": "Too many attempts",
+        "EXPIRED_TITLE": "Sign-in expired"
+      },
+      "VERIFY": {
+        "TITLE": "This workspace needs your second step",
+        "INTRO": "This workspace requires the code from your authenticator app. Enter it to carry on: you stay signed in.",
+        "SUBMIT": "Continue",
+        "BACK": "Choose another workspace",
+        "LOADING": "Loading…",
+        "NOT_NEEDED": "This workspace no longer asks for a second step.",
+        "CONTINUE": "Continue",
+        "SETUP_TITLE": "This workspace requires an authenticator app",
+        "SETUP_INTRO": "Set up an authenticator app to carry on. It takes a minute, and you stay signed in."
+      },
+      "POLICY": {
+        "TITLE": "Authenticator app for members",
+        "INTRO": "Require every member of this workspace to use an authenticator app, besides signing in with an email code or Google. It applies at each member’s next request; nobody is signed out.",
+        "STATE_ON": "Required for all members.",
+        "STATE_OFF": "Not required.",
+        "COUNTS": "Members without an authenticator app: {{without}} of {{members}}.",
+        "REQUIRE": "Require an authenticator app",
+        "STOP": "Stop requiring it",
+        "ONLY_OWNERS": "Only owners can change this.",
+        "CONFIRM_TITLE": "Require an authenticator app for all members?",
+        "CONFIRM_WITHOUT": "{{without}} of {{members}} members have none yet. At their next request they are asked to set one up before they can carry on.",
+        "CONFIRM_ALL": "Every member already has one.",
+        "CONFIRM_SIGNED_IN": "Nobody is signed out. Members signed in through single sign-on for this workspace are not asked, and neither are API keys and MCP connections.",
+        "CONFIRM": "Require it",
+        "CANCEL": "Cancel",
+        "TURNED_ON": "Members now need an authenticator app.",
+        "TURNED_OFF": "Members no longer need an authenticator app.",
+        "FIRST_TITLE": "Use your own authenticator app first",
+        "FIRST_INTRO": "So that you cannot lock yourself out, your own session must have used its authenticator app before this can be turned on.",
+        "LOADING": "Loading…",
+        "ONLY_ADMINS": "Only owners and administrators can see this."
+      },
+      "RESET": {
+        "ACTION": "Reset second factor",
+        "TITLE": "Reset the second factor of this member?",
+        "INTRO": "This removes the authenticator app of {{name}}.",
+        "EFFECT_SESSIONS": "Their sessions end and they are emailed.",
+        "EFFECT_AGAIN": "They can set up a new app after signing in again; if the workspace requires one, they are asked to.",
+        "CONFIRM": "Reset",
+        "DONE": "The second factor was reset.",
+        "FAILED": "The second factor could not be reset. Please try again.",
+        "NOT_ALLOWED": "This person’s account also reaches another workspace, so you cannot reset it. They can sign in with a recovery code, or ask the administrator of this service.",
+        "SELF": "Your own authenticator app is managed in Account settings.",
+        "GONE": "This member has no authenticator app."
+      },
+      "MEMBERS": {
+        "COLUMN": "Authenticator app",
+        "ON": "Set up",
+        "OFF": "Not set up"
+      }
     },
     "AI_MEMORY": {
       "SAVE_FAILED": "Could not save that. Please try again.",

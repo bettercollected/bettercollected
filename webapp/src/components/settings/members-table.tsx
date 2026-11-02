@@ -96,6 +96,8 @@ export default function MembersTable({ data }: any) {
     // every owner holds workspace.billing
     const isWorkspaceOwner = can(WorkspacePermission.WORKSPACE_BILLING);
 
+    const showTotp = Array.isArray(data) && data.some((member: any) => member.totpEnabled === true || member.totpEnabled === false);
+
     const dataTableResponseColumns: any = [
         {
             selector: (member: any) =>
@@ -140,6 +142,17 @@ export default function MembersTable({ data }: any) {
                 fontSize: '16px'
             }
         },
+        // Who has an authenticator app: only while the server has TOTP on (the field is null otherwise).
+        ...(showTotp
+            ? [
+                  {
+                      name: t('STAFF.MFA.MEMBERS.COLUMN'),
+                      minWidth: '150px',
+                      selector: (member: any) => (member.accountDeleted ? '' : t(member.totpEnabled ? 'STAFF.MFA.MEMBERS.ON' : 'STAFF.MFA.MEMBERS.OFF')),
+                      style: { color: '#344054', paddingLeft: '16px', paddingRight: '16px', fontSize: '16px' }
+                  }
+              ]
+            : []),
         {
             // the billing owner is neither removed nor made billing owner again
             cell: (member: any) => !isBillingOwnerOf(member, workspace) && (canManageMembers || isWorkspaceOwner) && <MemberOptions member={member} workspaceId={workspace?.id ?? ''} />,

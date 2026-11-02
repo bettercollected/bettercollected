@@ -1059,7 +1059,8 @@
     "SSO_SECTIONS": "Onderdelen van Single sign-on",
     "AI_SECTIONS": "Onderdelen van AI",
     "VERIFY_DOMAIN": "Verifieer een domein",
-    "EMBEDDING": "Insluiten"
+    "EMBEDDING": "Insluiten",
+    "AUTHENTICATOR": "Authenticator-app"
   },
   "SSO": {
     "NOT_ENABLED": "Single sign-on is niet ingeschakeld op deze installatie. De beheerder schakelt het in (SSO_ENABLED, zie docs/sso.md).",
@@ -1534,6 +1535,154 @@
       "LAST_ACTIVE": "Laatst actief op {{date}}",
       "SIGN_OUT": "Afmelden",
       "SIGN_OUT_OTHERS": "Overal elders afmelden"
+    },
+    "MFA": {
+      "CLOSE": "Sluiten",
+      "CANCEL": "Annuleren",
+      "BACK": "Terug",
+      "NEXT": "Volgende",
+      "DONE": "Klaar",
+      "TRY_AGAIN": "Opnieuw proberen",
+      "SIGN_IN_AGAIN": "Afmelden en opnieuw inloggen",
+      "CARD": {
+        "TITLE": "Beveiliging",
+        "INTRO": "Voeg een tweede stap toe aan het inloggen: naast de code die wij u mailen, voert u een code uit een app op uw telefoon in.",
+        "APP": "Authenticator-app",
+        "OFF": "Niet ingesteld.",
+        "ON_one": "Aan. {{count}} herstelcode over.",
+        "ON_other": "Aan. {{count}} herstelcodes over.",
+        "LOW_one": "Nog maar {{count}} herstelcode over. Maak nieuwe codes voordat ze op zijn.",
+        "LOW_other": "Nog maar {{count}} herstelcodes over. Maak nieuwe codes voordat ze op zijn.",
+        "NONE_LEFT": "Geen herstelcodes meer over. Maak nu nieuwe: zonder codes staat u buiten als u uw telefoon kwijtraakt.",
+        "SET_UP": "Authenticator-app instellen",
+        "REGENERATE": "Nieuwe herstelcodes maken",
+        "TURN_OFF": "Uitzetten"
+      },
+      "SETUP": {
+        "TITLE": "Authenticator-app instellen",
+        "STEP": "Stap {{step}} van {{total}}",
+        "PREPARING": "Uw installatiesleutel wordt opgehaald…",
+        "SCAN_TITLE": "Scan de QR-code",
+        "SCAN_INTRO": "Open een authenticator-app op uw telefoon (bijvoorbeeld uw wachtwoordmanager, of een gratis app zoals Aegis, 2FAS of Google Authenticator) en scan deze code. De code wordt in uw browser getekend en niet opgeslagen.",
+        "QR_LABEL": "QR-code voor uw authenticator-app. De installatiesleutel hieronder bevat dezelfde gegevens.",
+        "MANUAL_LABEL": "Installatiesleutel",
+        "MANUAL_HINT": "Lukt scannen niet? Kies in uw app “sleutel handmatig invoeren” en typ of plak deze sleutel. Spaties maken niet uit.",
+        "COPY_KEY": "Sleutel kopiëren",
+        "KEY_COPIED": "Sleutel gekopieerd.",
+        "COPY_FAILED": "Kopiëren is niet gelukt. Selecteer de sleutel en kopieer hem zelf.",
+        "CODE_TITLE": "Voer de 6-cijferige code in",
+        "CODE_INTRO": "Typ de code die uw app nu voor dit account toont. De code verandert elke 30 seconden.",
+        "CONFIRM": "Bevestigen en aanzetten",
+        "CODES_TITLE": "Bewaar uw herstelcodes",
+        "FAILED_TITLE": "Instellen is niet gestart"
+      },
+      "CODE": {
+        "LABEL": "6-cijferige code",
+        "HINT": "De code uit uw authenticator-app.",
+        "RECOVERY_LABEL": "Herstelcode",
+        "RECOVERY_HINT": "Een van de herstelcodes die u hebt bewaard. Elke code werkt één keer.",
+        "USE_RECOVERY": "Gebruik een herstelcode",
+        "USE_APP": "Gebruik de code uit mijn app"
+      },
+      "CODES": {
+        "INTRO": "Raakt u uw telefoon kwijt, dan komt u met een van deze herstelcodes binnen in plaats van met een appcode. Elke code werkt één keer. U ziet ze nu en daarna nooit meer: bewaar ze op een veilige plek, los van uw telefoon.",
+        "LIST_LABEL": "Herstelcodes",
+        "COPY": "Alles kopiëren",
+        "COPIED": "Herstelcodes gekopieerd.",
+        "COPY_FAILED": "Kopiëren is niet gelukt. De codes zijn geselecteerd: kopieer ze zelf.",
+        "DOWNLOAD": "Downloaden als .txt",
+        "DOWNLOADED": "Bestand opgeslagen.",
+        "FILE_TITLE": "Herstelcodes van bettercollected. Elke code werkt één keer.",
+        "STORED": "Ik heb deze codes op een veilige plek bewaard."
+      },
+      "REGENERATE": {
+        "TITLE": "Nieuwe herstelcodes maken",
+        "INTRO": "Voer een actuele code in om tien nieuwe herstelcodes te maken. De oude werken direct niet meer.",
+        "SUBMIT": "Nieuwe codes maken",
+        "NEW_TITLE": "Uw nieuwe herstelcodes"
+      },
+      "DISABLE": {
+        "TITLE": "De authenticator-app uitzetten",
+        "INTRO": "Voer een actuele code in om de app uit te zetten. Inloggen vraagt dan weer alleen om de code uit de e-mail, en uw andere ingelogde browsers worden afgemeld.",
+        "SUBMIT": "Uitzetten",
+        "DONE": "De authenticator-app is uitgezet."
+      },
+      "ERRORS": {
+        "INVALID": "Deze code is niet geldig. Voer de code in die uw app nu toont.",
+        "INVALID_CLOCK": "Deze code is niet geldig. Voer de code in die uw app nu toont en controleer of de tijd op uw telefoon automatisch is ingesteld.",
+        "LOCKED_one": "Te veel pogingen. Probeer het over {{count}} minuut opnieuw.",
+        "LOCKED_other": "Te veel pogingen. Probeer het over {{count}} minuten opnieuw.",
+        "LOCKED_HOURS_one": "Te veel pogingen. Probeer het over {{count}} uur opnieuw.",
+        "LOCKED_HOURS_other": "Te veel pogingen. Probeer het over {{count}} uur opnieuw.",
+        "EXPIRED": "Uw inlogpoging is verlopen. Ga terug en log opnieuw in.",
+        "STALE": "U bent al enige tijd ingelogd. Meld u voor uw veiligheid af en log opnieuw in, en stel daarna de authenticator-app in.",
+        "OFF": "Authenticator-apps staan op deze server niet aan.",
+        "NO_FACTOR": "Voor dit account is geen authenticator-app ingesteld.",
+        "GENERIC": "Er ging iets mis. Probeer het opnieuw.",
+        "REQUIRED_BY_WORKSPACE": "Een werkruimte waartoe u behoort vereist een authenticator-app, dus u kunt deze niet uitzetten."
+      },
+      "SIGNIN": {
+        "TITLE": "Voer de code uit uw authenticator-app in",
+        "INTRO": "U hebt met uw e-mailadres ingelogd. Dit account vraagt ook om de code uit de authenticator-app.",
+        "INTRO_RECOVERY": "Voer een van uw herstelcodes in. Elke code werkt één keer; maak daarna nieuwe aan via Accountinstellingen.",
+        "SUBMIT": "Inloggen",
+        "BACK": "Terug naar inloggen",
+        "PANEL_TITLE": "Nog één stap",
+        "PANEL_DESCRIPTION": "Dit account is beveiligd met een tweede stap. U bent ingelogd zodra u de code invoert.",
+        "LOCKED_TITLE": "Te veel pogingen",
+        "EXPIRED_TITLE": "Inloggen verlopen"
+      },
+      "VERIFY": {
+        "TITLE": "Deze werkruimte vraagt om uw tweede stap",
+        "INTRO": "Deze werkruimte vereist de code uit uw authenticator-app. Voer die in om door te gaan: u blijft ingelogd.",
+        "SUBMIT": "Doorgaan",
+        "BACK": "Kies een andere werkruimte",
+        "LOADING": "Laden…",
+        "NOT_NEEDED": "Deze werkruimte vraagt niet meer om een tweede stap.",
+        "CONTINUE": "Doorgaan",
+        "SETUP_TITLE": "Deze werkruimte vereist een authenticator-app",
+        "SETUP_INTRO": "Stel een authenticator-app in om door te gaan. Het kost een minuut en u blijft ingelogd."
+      },
+      "POLICY": {
+        "TITLE": "Authenticator-app voor leden",
+        "INTRO": "Vereis dat elk lid van deze werkruimte een authenticator-app gebruikt, naast inloggen met een e-mailcode of Google. Het geldt bij het eerstvolgende verzoek van elk lid; niemand wordt afgemeld.",
+        "STATE_ON": "Vereist voor alle leden.",
+        "STATE_OFF": "Niet vereist.",
+        "COUNTS": "Leden zonder authenticator-app: {{without}} van {{members}}.",
+        "REQUIRE": "Authenticator-app vereisen",
+        "STOP": "Niet meer vereisen",
+        "ONLY_OWNERS": "Alleen eigenaren kunnen dit wijzigen.",
+        "CONFIRM_TITLE": "Een authenticator-app vereisen voor alle leden?",
+        "CONFIRM_WITHOUT": "{{without}} van {{members}} leden hebben er nog geen. Bij hun eerstvolgende verzoek wordt hun gevraagd er een in te stellen voordat ze verder kunnen.",
+        "CONFIRM_ALL": "Elk lid heeft er al een.",
+        "CONFIRM_SIGNED_IN": "Niemand wordt afgemeld. Leden die voor deze werkruimte via single sign-on zijn ingelogd, worden niet gevraagd, en API-sleutels en MCP-verbindingen ook niet.",
+        "CONFIRM": "Vereisen",
+        "CANCEL": "Annuleren",
+        "TURNED_ON": "Leden hebben nu een authenticator-app nodig.",
+        "TURNED_OFF": "Leden hebben geen authenticator-app meer nodig.",
+        "FIRST_TITLE": "Gebruik eerst uw eigen authenticator-app",
+        "FIRST_INTRO": "Zodat u uzelf niet buitensluit, moet uw eigen sessie eerst de authenticator-app hebben gebruikt voordat dit kan worden aangezet.",
+        "LOADING": "Laden…",
+        "ONLY_ADMINS": "Alleen eigenaren en beheerders kunnen dit zien."
+      },
+      "RESET": {
+        "ACTION": "Tweede stap resetten",
+        "TITLE": "De tweede stap van dit lid resetten?",
+        "INTRO": "Hiermee verwijdert u de authenticator-app van {{name}}.",
+        "EFFECT_SESSIONS": "Hun sessies eindigen en zij ontvangen een e-mail.",
+        "EFFECT_AGAIN": "Na opnieuw inloggen kunnen zij een nieuwe app instellen; vereist de werkruimte er een, dan wordt hun dat gevraagd.",
+        "CONFIRM": "Resetten",
+        "DONE": "De tweede stap is gereset.",
+        "FAILED": "De tweede stap kon niet worden gereset. Probeer het opnieuw.",
+        "NOT_ALLOWED": "Het account van deze persoon heeft ook toegang tot een andere werkruimte, dus u kunt het niet resetten. Zij kunnen inloggen met een herstelcode of de beheerder van deze dienst vragen.",
+        "SELF": "Uw eigen authenticator-app beheert u in Accountinstellingen.",
+        "GONE": "Dit lid heeft geen authenticator-app."
+      },
+      "MEMBERS": {
+        "COLUMN": "Authenticator-app",
+        "ON": "Ingesteld",
+        "OFF": "Niet ingesteld"
+      }
     },
     "AI_MEMORY": {
       "SAVE_FAILED": "Dit kon niet worden opgeslagen. Probeer het opnieuw.",
