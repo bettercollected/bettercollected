@@ -151,7 +151,11 @@ from backend.app.services.repeating_groups import (
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.authorization_service import AuthorizationService
-from backend.app.services.form_access.mode import form_if_enforced
+from backend.app.services.form_access.mode import (
+    form_access_enabled,
+    form_if_enforced,
+)
+from backend.app.services.form_access.model import MODE_RESTRICTED, is_restricted
 from backend.app.utils import AiohttpClient
 from backend.app.utils.respondent_identity import identity_of
 from backend.app.models.enum.permission import Permission
@@ -606,7 +610,10 @@ class WorkspaceFormService:
         self, workspace_id: RecordId, form_id: str, user: User
     ):
         await self.authorization_service.authorize(
-            user, Permission.FORM_DELETE, workspace_id
+            user,
+            Permission.FORM_DELETE,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
         )
         await self.check_form_exists_in_workspace(workspace_id, form_id)
         return await self._delete_form(workspace_id, form_id)
@@ -712,7 +719,10 @@ class WorkspaceFormService:
         user: User,
     ):
         await self.authorization_service.authorize(
-            user, Permission.FORM_EDIT, workspace_id
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
         )
         await self.check_form_exists_in_workspace(workspace_id, form_id)
         return await self.responder_groups_service.add_groups_to_form(
@@ -732,7 +742,10 @@ class WorkspaceFormService:
         user: User,
     ):
         await self.authorization_service.authorize(
-            user, Permission.FORM_EDIT, workspace_id
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
         )
         await self.check_form_exists_in_workspace(workspace_id, form_id)
         await self.responder_groups_service.remove_group_from_form(
@@ -987,7 +1000,10 @@ class WorkspaceFormService:
         after that write succeeded: a save refused at the write (another save
         landed in between) leaves the settings untouched too."""
         await self.authorization_service.authorize(
-            user, Permission.FORM_EDIT, workspace_id
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
         )
         await check_form_content_early(
             form,
@@ -1123,7 +1139,10 @@ class WorkspaceFormService:
 
     async def _form_in_workspace_for_edit(self, workspace_id, form_id, user):
         await self.authorization_service.authorize(
-            user, Permission.FORM_EDIT, workspace_id
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
         )
         workspace_form = await self.workspace_form_repository.find_workspace_form(
             workspace_id, str(form_id)
@@ -1978,7 +1997,10 @@ class WorkspaceFormService:
         self, workspace_id: RecordId, form_id: RecordId, user: User
     ):
         await self.authorization_service.authorize(
-            user, Permission.FORM_EDIT, workspace_id
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
         )
         workspace_form = (
             await self.workspace_form_repository.get_workspace_form_in_workspace(
@@ -2090,6 +2112,17 @@ class WorkspaceFormService:
         await self.authorization_service.authorize(
             user, Permission.FORM_CREATE, workspace_id
         )
+        # The copy takes the structure of the source: a member the source is
+        # closed to gets its 404, and one who may only read it cannot template
+        # it (a template is a deliberate copy into the workspace's library).
+        source_ref = form_if_enforced(form_id)
+        if source_ref is not None:
+            await self.authorization_service.authorize(
+                user,
+                Permission.FORM_EDIT if is_template else Permission.FORM_READ,
+                workspace_id,
+                form_id=source_ref,
+            )
         source_link = (
             await self.workspace_form_repository.get_workspace_form_in_workspace(
                 workspace_id=workspace_id, query=str(form_id)
@@ -2190,10 +2223,28 @@ class WorkspaceFormService:
             workspace_form.settings.provider = "self"
             workspace_form.settings.custom_url = str(duplicated_form.id)
             workspace_form = await self.workspace_form_repository.save(workspace_form)
+            if self._source_is_restricted(source_link):
+                # A copy of a restricted form stays restricted (no grant comes
+                # along: the person who copies it is its creator, owners and
+                # admins always pass).
+                await self.workspace_form_repository.set_access_mode(
+                    workspace_id, str(duplicated_form.form_id), MODE_RESTRICTED
+                )
+                workspace_form.settings.access_mode = MODE_RESTRICTED
             duplicated_form.settings = _settings_as_read(
                 workspace_form.settings, duplicated_form
             )
         return duplicated_form
+
+    @staticmethod
+    def _source_is_restricted(source_link) -> bool:
+        """Whether the form a copy is made of is restricted: a mode chosen on
+        it (any value but ``workspace``), or, while form-level access is on, a
+        Private form that never had one (``hidden`` reads as restricted)."""
+        settings = getattr(source_link, "settings", None)
+        mode = getattr(settings, "access_mode", None)
+        hidden = getattr(settings, "hidden", None) if form_access_enabled() else None
+        return is_restricted(mode, hidden)
 
     async def add_action_to_form(
         self,
@@ -2202,13 +2253,14 @@ class WorkspaceFormService:
         add_action_to_form_params: AddActionToFormDto,
         user: User,
     ):
+        form_ref = form_if_enforced(form_id)
         await self.authorization_service.authorize(
-            user, Permission.FORM_EDIT, workspace_id
+            user, Permission.FORM_EDIT, workspace_id, form_id=form_ref
         )
         # an action runs on every submission and may send the answers out of
         # the workspace: that is an export (docs/enterprise-access-model.md)
         await self.authorization_service.authorize(
-            user, Permission.RESPONSE_EXPORT, workspace_id
+            user, Permission.RESPONSE_EXPORT, workspace_id, form_id=form_ref
         )
         await self.check_form_exists_in_workspace(
             workspace_id=workspace_id, form_id=str(form_id)
@@ -2261,7 +2313,10 @@ class WorkspaceFormService:
         user: User,
     ):
         await self.authorization_service.authorize(
-            user, Permission.FORM_EDIT, workspace_id
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
         )
         await self.check_form_exists_in_workspace(
             workspace_id=workspace_id, form_id=str(form_id)
@@ -2277,13 +2332,14 @@ class WorkspaceFormService:
         update_action_dto: UpdateActionInFormDto,
         user: User,
     ):
+        form_ref = form_if_enforced(form_id)
         await self.authorization_service.authorize(
-            user, Permission.FORM_EDIT, workspace_id
+            user, Permission.FORM_EDIT, workspace_id, form_id=form_ref
         )
         if update_action_dto.update_type == ActionUpdateType.ENABLE:
             # turning an action on starts sending answers again: an export
             await self.authorization_service.authorize(
-                user, Permission.RESPONSE_EXPORT, workspace_id
+                user, Permission.RESPONSE_EXPORT, workspace_id, form_id=form_ref
             )
         await self.check_form_exists_in_workspace(
             workspace_id=workspace_id, form_id=str(form_id)
@@ -2347,7 +2403,10 @@ class WorkspaceFormService:
         services/sheets_reconsent.py). Marks it and mails the billing owner
         once, as the next submission would."""
         await self.authorization_service.authorize(
-            user, Permission.FORM_EDIT, workspace_id
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
         )
         await self.check_form_exists_in_workspace(
             workspace_id=workspace_id, form_id=str(form_id)

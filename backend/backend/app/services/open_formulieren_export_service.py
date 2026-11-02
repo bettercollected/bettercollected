@@ -18,6 +18,7 @@ from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
+from backend.app.services.form_access.mode import form_if_enforced
 from backend.app.services.open_formulieren.errors import ImportRefused
 from backend.app.services.open_formulieren.exporter import ExportResult, build_export
 from backend.app.services.open_formulieren_mode import refuse_open_formulieren_export
@@ -32,7 +33,12 @@ class OpenFormulierenExportService:
         self, workspace_id: RecordId, form_id: str, user: User
     ) -> ExportResult:
         refuse_open_formulieren_export()
-        await self._authorization.authorize(user, Permission.FORM_READ, workspace_id)
+        await self._authorization.authorize(
+            user,
+            Permission.FORM_READ,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
+        )
         form, _ = await self._forms.load(workspace_id, form_id)
         try:
             result = await run_in_threadpool(build_export, form)

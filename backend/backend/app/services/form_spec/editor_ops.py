@@ -45,6 +45,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.enum.permission import Permission
 from backend.app.services.ai.chat import persist_ops_to_form
+from backend.app.services.form_access.mode import form_if_enforced
 from backend.app.services.ai.ops import (
     EDITOR_ONLY_OPS,
     OP_NAMES,
@@ -195,7 +196,10 @@ class EditorOpsService:
         if not live().api.EDITOR_OPS_SAVE_ENABLED:
             return None
         if user is None or not await self._authorization.has_permission(
-            user, Permission.FORM_EDIT, workspace_id
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
         ):
             return None
         loaded = await self._load(workspace_id, form_id)
@@ -240,7 +244,12 @@ class EditorOpsService:
     ) -> JSONResponse:
         if not live().api.EDITOR_OPS_SAVE_ENABLED:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Not Found")
-        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
+        await self._authorization.authorize(
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
+        )
         if await self._workspace_form_repo.find_workspace_form(
             workspace_id, str(form_id)
         ) is None:
