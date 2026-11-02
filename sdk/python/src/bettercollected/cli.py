@@ -4,6 +4,9 @@
     bettercollected diff form.json                   what push would change
     bettercollected push form.json [--force]         replace the form
     bettercollected validate form.json
+    bettercollected create form.json                 a new draft from a file
+    bettercollected promote <form-id> --to production [--from staging]
+                            [--to-form <form-id>] [--dry-run] [--copy-privacy]
     bettercollected submit <form-id> answers.json --consent [--consent-item ID ...]
     bettercollected update-submission <form-id> <response-id> answers.json
 
@@ -11,6 +14,12 @@ JSON is the canonical format; YAML (.yaml/.yml) is read and written too.
 The API key comes from ``BETTERCOLLECTED_API_KEY`` only (never a flag, so it
 stays out of shell history); the instance from ``--url`` or
 ``BETTERCOLLECTED_URL``.
+
+``promote`` copies a form's document from one workspace (environment) to
+another, as a draft: a new form, or the draft of ``--to-form``. Keys never
+come from the command line: ``BETTERCOLLECTED_<NAME>_API_KEY`` and
+``BETTERCOLLECTED_<NAME>_URL`` for an environment called ``<NAME>``, or a
+private config file (see docs/environments.md).
 
 ``pull`` remembers each file's form id and version (ETag) in
 ``.bettercollected.json`` next to the file. ``push`` replaces the form only
@@ -21,19 +30,27 @@ first and overwrites whatever changed on the server.
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import os
+import re
+import stat
 import sys
+import uuid
 from pathlib import Path
 from typing import Any, Sequence
 
+import httpx
 import yaml
 
+from bettercollected import promote as promotion
 from bettercollected.client import BetterCollected, BetterCollectedError
 
 API_KEY_ENV = "BETTERCOLLECTED_API_KEY"
 URL_ENV = "BETTERCOLLECTED_URL"
+CONFIG_ENV = "BETTERCOLLECTED_CONFIG"
 STATE_FILE = ".bettercollected.json"
+_ENV_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,31}$")
 
 
 class CliError(Exception):
@@ -207,6 +224,222 @@ def cmd_push(args, out) -> int:
     return 0
 
 
+# -- environments --------------------------------------------------------------
+
+
+@dataclasses.dataclass(frozen=True)
+class Environment:
+    """One workspace: where it is and the key that opens it. The key stays out
+    of the repr, so it cannot reach an error message or a log."""
+
+    name: str
+    url: str
+    api_key: str = dataclasses.field(repr=False)
+
+
+def _config_path(explicit: str | None) -> tuple[Path, bool]:
+    """The config file and whether the person named it (then it must exist)."""
+    if explicit:
+        return Path(explicit), True
+    from_env = os.environ.get(CONFIG_ENV)
+    if from_env:
+        return Path(from_env), True
+    base = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
+    return Path(base) / "bettercollected" / "config.yaml", False
+
+
+def _config_entry(name: str, explicit: str | None) -> tuple[dict, Path | None]:
+    path, named = _config_path(explicit)
+    if not path.exists():
+        if named:
+            raise CliError(f"Config file {path} does not exist.")
+        return {}, None
+    document = read_document(path)
+    environments = document.get("environments") if isinstance(document, dict) else None
+    entry = environments.get(name) if isinstance(environments, dict) else None
+    if entry is None:
+        return {}, path
+    if not isinstance(entry, dict):
+        raise CliError(f"{path}: environment {name} must be an object.")
+    return entry, path
+
+
+def _refuse_open_config(path: Path) -> None:
+    """A file with a key in it must not be readable by other users."""
+    if os.name != "posix":
+        return
+    if stat.S_IMODE(path.stat().st_mode) & 0o077:
+        raise CliError(
+            f"{path} holds an API key but other users can read it. "
+            f"Run: chmod 600 {path}"
+        )
+
+
+def resolve_environment(
+    name: str | None, args, *, default_url: str | None = None
+) -> Environment:
+    """The environment ``name``, from the process environment and then the
+    config file. ``None`` is the unnamed one (``BETTERCOLLECTED_API_KEY`` and
+    ``--url``/``BETTERCOLLECTED_URL``). A key is never read from a flag."""
+    if name is None:
+        key = os.environ.get(API_KEY_ENV, "")
+        url = getattr(args, "url", None) or os.environ.get(URL_ENV, "")
+        if not key:
+            raise CliError(f"Set {API_KEY_ENV} to a workspace API key.")
+        if not url:
+            raise CliError(f"Pass --url or set {URL_ENV} to the instance's address.")
+        return Environment("default", url, key)
+    if not _ENV_NAME.match(name):
+        raise CliError(
+            f"{name!r} is not an environment name (letters, digits, _ and -)."
+        )
+    prefix = "BETTERCOLLECTED_" + re.sub(r"[^A-Za-z0-9]", "_", name).upper()
+    key_var, url_var = f"{prefix}_API_KEY", f"{prefix}_URL"
+    key = os.environ.get(key_var, "")
+    url = os.environ.get(url_var, "")
+    if not key or not url:
+        entry, path = _config_entry(name, getattr(args, "config", None))
+        url = url or str(entry.get("url") or "")
+        if not key:
+            holder = entry.get("api_key_env")
+            if holder:
+                key = os.environ.get(str(holder), "")
+                if not key:
+                    raise CliError(
+                        f"Environment {name}: set {holder} (named by api_key_env)."
+                    )
+            elif entry.get("api_key") and path is not None:
+                _refuse_open_config(path)
+                key = str(entry["api_key"])
+    if not key:
+        raise CliError(
+            f"No API key for environment {name}: set {key_var}, or api_key_env "
+            "in the config file."
+        )
+    url = url or default_url or ""
+    if not url:
+        raise CliError(f"No address for environment {name}: set {url_var}.")
+    return Environment(name, url, key)
+
+
+def _list_map(path: str | None) -> dict[str, str]:
+    if not path:
+        return {}
+    document = read_document(Path(path))
+    if not isinstance(document, dict) or not all(
+        isinstance(k, str) and isinstance(v, str) for k, v in document.items()
+    ):
+        raise CliError(
+            f"{path} must hold an object of option list ids: "
+            '{"<source list id>": "<target list id>"}.'
+        )
+    return document
+
+
+def cmd_create(args, out) -> int:
+    path = Path(args.file)
+    known = load_state(path).get("formId")
+    if known:
+        raise CliError(f"{path.name} already belongs to form {known}: use push.")
+    document = read_document(path)
+    with _client(args) as client:
+        created = client.create_form(document, idempotency_key=args.idempotency_key)
+    save_state(path, created.form_id, created.etag)
+    print(f"Created draft {created.form_id} from {path}", file=out)
+    print("It is not published: publish it when it is ready.", file=out)
+    return 0
+
+
+def cmd_promote(args, out) -> int:
+    source = resolve_environment(args.source, args)
+    target = resolve_environment(args.target, args, default_url=source.url)
+    shared_storage = promotion.same_instance(source.url, target.url)
+    if (
+        shared_storage
+        and source.api_key == target.api_key
+        and args.to_form == args.form_id
+    ):
+        raise CliError("The source and the target are the same form.")
+    list_map = _list_map(args.list_map)
+    updating = bool(args.to_form)
+
+    with BetterCollected(source.api_key, source.url) as source_client:
+        pulled = source_client.get_form_document(args.form_id)
+    document, report = promotion.normalise(
+        pulled.value,
+        shared_storage=shared_storage,
+        list_map=list_map,
+        keep_target_privacy=updating and not args.copy_privacy,
+    )
+
+    with BetterCollected(target.api_key, target.url) as client:
+        current = client.get_form_document(args.to_form) if updating else None
+        if updating:
+            preview = client.preview_replace(args.to_form, document)
+            problems, warnings = preview.errors, preview.warnings
+        else:
+            preview = None
+            checked = client.validate_form(document)
+            problems, warnings = checked.errors, checked.warnings
+
+        print(f"{source.name} -> {target.name}", file=out)
+        promotion.render_report(report, out)
+        for warning in warnings:
+            print(f"warning {warning.path or '/'}: {warning.message}", file=out)
+        if problems:
+            print(
+                f"The target would refuse this form ({len(problems)} problem(s)); "
+                "nothing was written:",
+                file=out,
+            )
+            for problem in problems:
+                print(f"  {problem.path or '/'}: {problem.message}", file=out)
+            return 1
+
+        if updating:
+            if args.copy_privacy and promotion.retention_shortened(
+                (current.value.get("trust") or {}).get("retention"),
+                (document.get("trust") or {}).get("retention"),
+            ):
+                print(
+                    "warning: --copy-privacy changes how long the target keeps "
+                    "answers, possibly to less than now.",
+                    file=out,
+                )
+            if not (preview.diff or {}).get("changed"):
+                print("No changes: the target draft is already the same.", file=out)
+                return 0
+            print(f"Changes to the draft of {args.to_form}:", file=out)
+            _print_diff(preview.diff or {}, out)
+        else:
+            pages, questions = promotion.count_questions(document)
+            print(
+                f"A new draft with {pages} page(s) and {questions} question(s).",
+                file=out,
+            )
+
+        if args.dry_run:
+            print("Dry run: nothing was written.", file=out)
+            return 0
+
+        if updating:
+            try:
+                client.replace_form(args.to_form, document, if_match=current.etag)
+            except BetterCollectedError as error:
+                if error.status == 412:
+                    raise CliError(
+                        "The target form changed while you were reviewing. "
+                        "Run the command again."
+                    ) from error
+                raise
+            print(f"Updated the draft of {args.to_form}.", file=out)
+        else:
+            created = client.create_form(document, idempotency_key=uuid.uuid4().hex)
+            print(f"Created draft {created.form_id}.", file=out)
+    print("It is a draft: review it and publish it in the target when ready.", file=out)
+    return 0
+
+
 def cmd_validate(args, out) -> int:
     path = Path(args.file)
     document = read_document(path)
@@ -319,6 +552,57 @@ def build_parser() -> argparse.ArgumentParser:
     update.add_argument("file", help='JSON or YAML: {"answers": {"<question id>": ...}}')
     update.set_defaults(run=cmd_update_submission)
 
+    create = commands.add_parser(
+        "create", help="Create a new draft form from a file (never publishes)."
+    )
+    create.add_argument("file")
+    create.add_argument("--idempotency-key", help="Makes a retry safe (24 hours).")
+    create.set_defaults(run=cmd_create)
+
+    promote = commands.add_parser(
+        "promote",
+        help="Copy a form to another workspace or instance, as a draft.",
+        description="Copy a form's document (never its answers, automations, "
+        "sharing, link or publish state) from one environment to another. "
+        "Keys come from BETTERCOLLECTED_<NAME>_API_KEY (or a private config "
+        "file), never from a flag.",
+    )
+    promote.add_argument("form_id", help="The form in the source environment.")
+    promote.add_argument(
+        "--from",
+        dest="source",
+        metavar="NAME",
+        help="Source environment (default: BETTERCOLLECTED_API_KEY and --url).",
+    )
+    promote.add_argument(
+        "--to", dest="target", metavar="NAME", required=True, help="Target environment."
+    )
+    promote.add_argument(
+        "--to-form",
+        metavar="FORM_ID",
+        help="Update the draft of this form in the target (default: a new form).",
+    )
+    promote.add_argument(
+        "--dry-run", action="store_true", help="Show the changes; write nothing."
+    )
+    promote.add_argument(
+        "--copy-privacy",
+        action="store_true",
+        help="Also copy retention, purpose and privacy link into an existing "
+        "target form (otherwise it keeps its own).",
+    )
+    promote.add_argument(
+        "--list-map",
+        metavar="FILE",
+        help='JSON or YAML {"<source list id>": "<target list id>"} for option lists.',
+    )
+    promote.add_argument(
+        "--config",
+        metavar="FILE",
+        help=f"Config file with named environments (or {CONFIG_ENV}).",
+    )
+    promote.set_defaults(run=cmd_promote)
+
     validate = commands.add_parser("validate", help="Check a file.")
     validate.add_argument("file")
     validate.set_defaults(run=cmd_validate)
@@ -336,6 +620,10 @@ def main(argv: Sequence[str] | None = None, out=None, err=None) -> int:
         return 1
     except BetterCollectedError as error:
         print(f"error: {error}", file=err)
+        return 1
+    except httpx.HTTPError as error:
+        # httpx's messages name the problem, never the request headers
+        print(f"error: the request failed ({type(error).__name__}: {error})", file=err)
         return 1
 
 
