@@ -134,7 +134,7 @@ describe('the workspace Activity page', () => {
         await show();
         const query = new URLSearchParams(requests[0].query);
         expect(requests[0]).toMatchObject({ workspaceId: 'ws1', formId: undefined });
-        expect(query.getAll('area')).toEqual(['access', 'members', 'forms', 'responses', 'api_keys']);
+        expect(query.getAll('area')).toEqual(['access', 'members', 'forms', 'responses', 'api_keys', 'integrations']);
         expect(query.getAll('event')).not.toContain('sso_break_glass_request');
         expect(screen.getByText('Break-glass requests are hidden.')).toBeInTheDocument();
     });

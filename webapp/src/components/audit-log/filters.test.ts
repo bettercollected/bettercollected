@@ -1,6 +1,9 @@
+import { existsSync, readFileSync } from 'fs';
+import { resolve } from 'path';
+
 import { describe, expect, it } from 'vitest';
 
-import { EMPTY_FILTERS, activeFilterCount, auditQuery, filtersToSearch, hidesBreakGlass, parseFilters } from './filters';
+import { EMPTY_FILTERS, SECURITY_KINDS_SHOWN_BY_DEFAULT, activeFilterCount, auditQuery, filtersToSearch, hidesBreakGlass, parseFilters } from './filters';
 
 const parse = (search: string) => parseFilters(new URLSearchParams(search));
 
@@ -38,11 +41,33 @@ describe('the request for a page', () => {
 
     it('hides the break-glass requests by default: the other areas plus the rare security kinds', () => {
         const query = params(auditQuery(EMPTY_FILTERS, { limit: 20 }));
-        expect(query.getAll('area')).toEqual(['access', 'members', 'forms', 'responses', 'api_keys']);
-        expect(query.getAll('event')).toEqual(['sso_break_glass_sign_in', 'totp_policy_changed', 'totp_reset']);
+        expect(query.getAll('area')).toEqual(['access', 'members', 'forms', 'responses', 'api_keys', 'integrations']);
+        expect(query.getAll('event')).toEqual(SECURITY_KINDS_SHOWN_BY_DEFAULT);
+        expect(query.getAll('event')).toEqual(expect.arrayContaining(['sso_break_glass_sign_in', 'totp_policy_changed', 'totp_reset', 'sso_required_changed', 'custom_domain_removed']));
         expect(query.getAll('event')).not.toContain('sso_break_glass_request');
+        // within the server's cap on one list
+        expect(query.getAll('event').length).toBeLessThanOrEqual(40);
         expect(query.get('limit')).toBe('20');
         expect(hidesBreakGlass(EMPTY_FILTERS)).toBe(true);
+    });
+
+    it("shows every kind of the server's Security area but the break-glass requests (backend catalog.py)", () => {
+        const catalog = resolve(__dirname, '../../../../backend/backend/app/services/audit_log/catalog.py');
+        if (!existsSync(catalog)) return;
+        const schema = readFileSync(resolve(__dirname, '../../../../backend/backend/app/schemas/workspace_audit_event.py'), 'utf8');
+        const constants = Object.fromEntries([...schema.matchAll(/^([A-Z_]+) = "([a-z_]+)"$/gm)].map((m) => [m[1], m[2]]));
+        const tuple = (name: string) => [...(schema.match(new RegExp(`^${name} = \\(([^)]*)\\)`, 'm'))?.[1] ?? '').matchAll(/([A-Z_]+),/g)].map((m) => m[1]);
+        const source = readFileSync(catalog, 'utf8');
+        const start = source.indexOf('AREA_SECURITY: (');
+        const block = source.slice(start, source.indexOf('),', start));
+        const kinds = new Set<string>();
+        for (const m of block.matchAll(/E\.([A-Z_]+)/g)) {
+            if (constants[m[1]]) kinds.add(constants[m[1]]);
+            else for (const name of tuple(m[1])) kinds.add(constants[name]);
+        }
+        kinds.delete('sso_break_glass_request');
+        // a Security kind missing here would be hidden by default: that is the failure this guards
+        expect([...kinds].filter((kind) => !SECURITY_KINDS_SHOWN_BY_DEFAULT.includes(kind))).toEqual([]);
     });
 
     it('asks for exactly the chosen areas, and shows the break-glass requests when Security is chosen', () => {

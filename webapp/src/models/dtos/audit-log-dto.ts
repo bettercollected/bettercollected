@@ -3,7 +3,7 @@
 // server leaves out (a session id for a Privacy officer, a response id for someone who may not open it) is absent.
 
 /** The areas the Type filter offers, in order (the server's catalogue). */
-export const AUDIT_AREAS = ['access', 'members', 'forms', 'responses', 'api_keys', 'security'] as const;
+export const AUDIT_AREAS = ['access', 'members', 'forms', 'responses', 'api_keys', 'integrations', 'security'] as const;
 export type AuditArea = (typeof AUDIT_AREAS)[number];
 
 export interface AuditEntryDto {
@@ -35,6 +35,13 @@ export interface AuditEntryDto {
     keyRoleBefore?: string | null;
     formScope?: string | null;
     widened?: boolean | null;
+    /** Settings entries: the kind of single sign-on connection or directory, an on/off setting's new value, the AI provider's id (never shown). */
+    connectionType?: string | null;
+    directoryType?: string | null;
+    enabled?: boolean | null;
+    provider?: string | null;
+    /** Integration entries: which parts of the configuration changed, by a fixed vocabulary (never their content). */
+    changed?: string[] | null;
     method?: string | null;
     path?: string | null;
 }

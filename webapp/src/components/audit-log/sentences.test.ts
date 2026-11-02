@@ -56,7 +56,34 @@ const SAMPLES: Record<(typeof AUDIT_EVENTS)[number], Partial<AuditEntryDto>> = {
     sso_break_glass_request: { actorId: 'u_sanne', method: 'GET', path: '/workspaces/{workspace_id}/forms' },
     sso_break_glass_sign_in: { actorId: 'u_sanne' },
     totp_policy_changed: { actorId: 'u_sanne', required: true },
-    totp_reset: { actorId: 'u_sanne', targetUserId: 'u_pim' }
+    totp_reset: { actorId: 'u_sanne', targetUserId: 'u_pim' },
+    sso_connection_created: { actorId: 'u_sanne', connectionType: 'saml' },
+    sso_connection_enabled: { actorId: 'u_sanne', connectionType: 'oidc' },
+    sso_connection_disabled: { actorId: 'u_sanne' },
+    sso_connection_deleted: { actorId: 'u_sanne' },
+    sso_required_changed: { actorId: 'u_sanne', required: true },
+    sso_default_role_changed: { actorId: 'u_sanne', role: 'VIEWER', previousRole: 'EDITOR' },
+    domain_claimed: { actorId: 'u_sanne' },
+    domain_verified: { actorId: 'u_sanne' },
+    domain_removed: { actorId: 'u_sanne' },
+    scim_token_created: { actorId: 'u_sanne', directoryType: 'generic' },
+    scim_token_rotated: { actorId: 'u_sanne' },
+    scim_token_revoked: { actorId: 'u_sanne' },
+    scim_group_role_changed: { actorId: 'u_sanne', role: 'REVIEWER', previousRole: 'VIEWER' },
+    ai_consent_changed: { actorId: 'u_sanne', enabled: true, provider: 'openai' },
+    custom_domain_changed: { actorId: 'u_sanne' },
+    custom_domain_removed: { actorId: 'u_sanne' },
+    email_action_created: { actorId: 'u_sanne', formId: 'f_join' },
+    email_action_updated: { actorId: 'u_sanne', formId: 'f_join', changed: ['team_recipients', 'respondent_copy'] },
+    email_action_enabled: { actorId: 'u_sanne', formId: 'f_join' },
+    email_action_disabled: { actorId: 'u_sanne', formId: 'f_join' },
+    email_action_deleted: { actorId: 'u_sanne', formId: 'f_join' },
+    registration_service_created: { actorId: 'u_sanne' },
+    registration_service_updated: { actorId: 'u_sanne', changed: ['base_url', 'secret'] },
+    registration_service_deleted: { actorId: 'u_sanne' },
+    form_registration_enabled: { actorId: 'u_sanne', formId: 'f_join' },
+    form_registration_changed: { actorId: 'u_sanne', formId: 'f_join', changed: ['path'] },
+    form_registration_disabled: { actorId: 'u_sanne', formId: 'f_join' }
 };
 
 const entry = (event: string, extra: Partial<AuditEntryDto> = {}): AuditEntryDto => ({ id: 'e1', event, at: '2026-11-01T12:00:00Z', ...extra });
@@ -71,10 +98,14 @@ describe('the sentence table', () => {
         const constants = Object.fromEntries([...schema.matchAll(/^([A-Z_]+) = "([a-z_]+)"$/gm)].map((m) => [m[1], m[2]]));
         const body = source.slice(source.indexOf('AREAS:'), source.indexOf('ACCOUNT_LEVEL:'));
         const listed = new Set<string>();
-        for (const m of body.matchAll(/E\.([A-Z_]+)/g)) if (m[1] !== 'API_KEY_EVENTS') listed.add(constants[m[1]]);
-        // AREA_API_KEYS: E.API_KEY_EVENTS is the tuple of the six API key kinds
-        for (const m of schema.slice(schema.indexOf('API_KEY_EVENTS = (')).matchAll(/^\s+(API_[A-Z_]+),$/gm)) listed.add(constants[m[1]]);
-        expect([...listed].sort()).toEqual([...AUDIT_EVENTS].sort());
+        // a tuple constant of the schema (API_KEY_EVENTS, SETTINGS_EVENTS, AUTOMATION_EVENTS) is the kinds it names
+        const tuple = (name: string) => [...(schema.match(new RegExp(`^${name} = \\(([^)]*)\\)`, 'm'))?.[1] ?? '').matchAll(/([A-Z_]+),/g)].map((m) => m[1]);
+        for (const m of body.matchAll(/E\.([A-Z_]+)/g)) {
+            if (constants[m[1]]) listed.add(constants[m[1]]);
+            else for (const name of tuple(m[1])) listed.add(constants[name]);
+        }
+        // every kind the server lists has a sentence (the page may know more than a server that has not got them yet)
+        expect([...listed].filter((kind) => !(AUDIT_EVENTS as readonly string[]).includes(kind))).toEqual([]);
     });
 
     it('has a sample for every kind', () => {
@@ -161,6 +192,21 @@ describe('the sentence table', () => {
         expect(say('en', entry('api_key_role_changed', { actorId: 'u_sanne', keyRole: 'EDITOR', keyRoleBefore: 'creator' })).text).toBe("Sanne de Vries changed the role of an API key from its creator's access to Editor.");
         expect(say('nl', entry('api_key_role_changed', { actorId: 'u_sanne', keyRole: 'creator', keyRoleBefore: 'VIEWER' })).text).toBe('Sanne de Vries wijzigde de rol van een API-sleutel van Kijker naar de toegang van de maker.');
         expect(say('en', entry('api_key_revoked', { actorId: 'u_sanne', reason: 'admin' })).text).toBe('Sanne de Vries revoked an API key.');
+    });
+
+    it('words the settings and integration kinds, with their facts', () => {
+        expect(say('en', entry('sso_connection_created', { actorId: 'u_sanne', connectionType: 'saml' })).text).toBe('Sanne de Vries added a single sign-on connection (SAML).');
+        expect(say('nl', entry('sso_required_changed', { actorId: 'u_sanne', required: false })).text).toBe('Sanne de Vries verplicht geen single sign-on meer.');
+        expect(say('en', entry('sso_default_role_changed', { actorId: 'u_sanne', role: 'VIEWER', previousRole: 'EDITOR' })).text).toBe('Sanne de Vries changed the role people get when they sign in with single sign-on from Editor to Viewer.');
+        expect(say('en', entry('scim_group_role_changed', { actorId: 'u_sanne', previousRole: 'VIEWER' })).text).toBe('Sanne de Vries stopped mapping a directory group to a role.');
+        expect(say('en', entry('ai_consent_changed', { actorId: 'u_sanne', enabled: false, provider: 'openai' })).text).toBe('Sanne de Vries turned off AI features for the workspace.');
+        expect(say('en', entry('email_action_updated', { actorId: 'u_sanne', formId: 'f_join', changed: ['team_recipients', 'respondent_copy', 'not_a_part'] })).text).toBe(
+            'Sanne de Vries changed an email action of Join the volunteers (changed: team recipients, copy to the respondent).'
+        );
+        expect(say('nl', entry('form_registration_enabled', { actorId: 'u_sanne', formId: 'f_join' })).text).toBe('Sanne de Vries zette het doorsturen van de inzendingen van Join the volunteers naar een zaaksysteem aan.');
+        expect(say('en', entry('registration_service_updated', { actorId: 'u_sanne', changed: ['secret'] })).text).toBe('Sanne de Vries changed a case-system service (changed: secret).');
+        // the id of the AI provider and of a directory never reach the screen
+        expect(say('en', entry('ai_consent_changed', { actorId: 'u_sanne', enabled: true, provider: 'openai' })).text).not.toMatch(/openai/i);
     });
 
     it('falls back to a neutral sentence for a kind it does not know, in both languages', () => {

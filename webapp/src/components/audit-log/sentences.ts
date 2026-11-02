@@ -42,7 +42,56 @@ export const AUDIT_EVENTS = [
     'sso_break_glass_request',
     'sso_break_glass_sign_in',
     'totp_policy_changed',
-    'totp_reset'
+    'totp_reset',
+    'sso_connection_created',
+    'sso_connection_enabled',
+    'sso_connection_disabled',
+    'sso_connection_deleted',
+    'sso_required_changed',
+    'sso_default_role_changed',
+    'domain_claimed',
+    'domain_verified',
+    'domain_removed',
+    'scim_token_created',
+    'scim_token_rotated',
+    'scim_token_revoked',
+    'scim_group_role_changed',
+    'ai_consent_changed',
+    'custom_domain_changed',
+    'custom_domain_removed',
+    'email_action_created',
+    'email_action_updated',
+    'email_action_enabled',
+    'email_action_disabled',
+    'email_action_deleted',
+    'registration_service_created',
+    'registration_service_updated',
+    'registration_service_deleted',
+    'form_registration_enabled',
+    'form_registration_changed',
+    'form_registration_disabled'
+] as const;
+
+/** The parts of an integration's configuration an entry may name as changed (backend `AUTOMATION_PARTS`); any other is not shown. */
+export const AUDIT_PARTS = [
+    'name',
+    'en',
+    'nl',
+    'fields',
+    'team_recipients',
+    'respondent_copy',
+    'condition',
+    'all_questions',
+    'base_url',
+    'objecttypes_base_url',
+    'auth',
+    'secret',
+    'organisation_name',
+    'service',
+    'path',
+    'variables',
+    'object_type',
+    'reference_path'
 ] as const;
 
 // Private-use characters that mark the names in a finished sentence, so the page can set them in bold. They are
@@ -130,6 +179,12 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
         // an API key with no role of its own acts as the member who made it
         if (known === 'CREATOR') return t('AUDIT_LOG.NAME.ROLE_CREATOR');
         return ['OWNER', 'ADMIN', 'EDITOR', 'REVIEWER', 'VIEWER', 'PRIVACY_OFFICER'].includes(known) ? t(`WORKSPACE_ROLES.${known}.NAME`) : t('AUDIT_LOG.NAME.ROLE_UNKNOWN');
+    };
+
+    // which parts of an integration changed, from the fixed vocabulary only (an unknown name is not shown)
+    const changedParts = (source: AuditEntryDto, list: string[]) => {
+        const parts = (source.changed ?? []).filter((part) => (AUDIT_PARTS as readonly string[]).includes(part)).slice(0, 6).map((part) => t(`AUDIT_LOG.PART.${part}`));
+        if (parts.length > 0) list.push(t(`${SENTENCE}.DETAIL_CHANGED`, { parts: parts.join(', ') }));
     };
 
     const actor = member(entry.actorId);
@@ -254,6 +309,55 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
         case 'totp_reset':
             key = 'TOTP_RESET';
             values = { actor, target };
+            break;
+        case 'sso_connection_created':
+        case 'sso_connection_enabled':
+        case 'sso_connection_disabled':
+        case 'sso_connection_deleted':
+            key = entry.event.toUpperCase();
+            if (present(entry.connectionType)) details.push(clean(entry.connectionType).toUpperCase().slice(0, 12));
+            break;
+        case 'sso_required_changed':
+            key = entry.required === true ? 'SSO_REQUIRED_CHANGED_ON' : entry.required === false ? 'SSO_REQUIRED_CHANGED_OFF' : 'SSO_REQUIRED_CHANGED';
+            break;
+        case 'sso_default_role_changed':
+            key = present(entry.previousRole) ? 'SSO_DEFAULT_ROLE_CHANGED' : 'SSO_DEFAULT_ROLE_CHANGED_NO_PREVIOUS';
+            values = { actor, role: roleName(entry.role), previous: roleName(entry.previousRole) };
+            break;
+        case 'domain_claimed':
+        case 'domain_verified':
+        case 'domain_removed':
+        case 'scim_token_created':
+        case 'scim_token_rotated':
+        case 'scim_token_revoked':
+        case 'custom_domain_changed':
+        case 'custom_domain_removed':
+            key = entry.event.toUpperCase();
+            break;
+        case 'scim_group_role_changed':
+            key = !present(entry.role) ? 'SCIM_GROUP_ROLE_CHANGED_UNMAPPED' : present(entry.previousRole) ? 'SCIM_GROUP_ROLE_CHANGED' : 'SCIM_GROUP_ROLE_CHANGED_NO_PREVIOUS';
+            values = { actor, role: roleName(entry.role), previous: roleName(entry.previousRole) };
+            break;
+        case 'ai_consent_changed':
+            key = entry.enabled === true ? 'AI_CONSENT_CHANGED_ON' : entry.enabled === false ? 'AI_CONSENT_CHANGED_OFF' : 'AI_CONSENT_CHANGED';
+            break;
+        case 'email_action_created':
+        case 'email_action_updated':
+        case 'email_action_enabled':
+        case 'email_action_disabled':
+        case 'email_action_deleted':
+        case 'form_registration_enabled':
+        case 'form_registration_changed':
+        case 'form_registration_disabled':
+            key = entry.event.toUpperCase();
+            values = { actor, form: form(entry.formId) };
+            if (entry.event === 'email_action_updated' || entry.event === 'form_registration_changed') changedParts(entry, details);
+            break;
+        case 'registration_service_created':
+        case 'registration_service_updated':
+        case 'registration_service_deleted':
+            key = entry.event.toUpperCase();
+            if (entry.event === 'registration_service_updated') changedParts(entry, details);
             break;
         case 'sso_break_glass_sign_in':
             key = 'SSO_BREAK_GLASS_SIGN_IN';

@@ -201,7 +201,7 @@ export function ActivityList({ formId }: { formId?: string }) {
                 </p>
                 {formId && (
                     <p className="text-sm">
-                        <Link href={`/${workspaceName}/dashboard/activity?form=${encodeURIComponent(formId)}`} className="underline underline-offset-2">
+                        <Link href={`/${workspaceName}/dashboard/activity?form=${encodeURIComponent(formId)}`} className="inline-flex min-h-11 items-center underline underline-offset-2 md:min-h-8">
                             {t('AUDIT_LOG.SEE_ALL')}
                         </Link>
                     </p>

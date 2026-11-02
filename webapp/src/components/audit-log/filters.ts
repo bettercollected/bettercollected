@@ -63,9 +63,31 @@ export function activeFilterCount(filters: AuditFilters, withForm: boolean): num
 }
 
 // The default view hides the break-glass requests (one entry per request of an owner's email-code session: by far the
-// most entries). The other kinds of the Security area stay: the sign-ins, the authenticator rule, its resets.
-const DEFAULT_AREAS: AuditArea[] = ['access', 'members', 'forms', 'responses', 'api_keys'];
-const DEFAULT_EVENTS = ['sso_break_glass_sign_in', 'totp_policy_changed', 'totp_reset'];
+// most entries). The other kinds of the Security area stay: the sign-ins, the authenticator rule, the settings changes.
+// The reader can only include (areas and kinds together), not exclude, so the default view names every area but
+// Security plus every Security kind but the break-glass requests (a test keeps this list equal to the server's catalogue).
+const DEFAULT_AREAS: AuditArea[] = ['access', 'members', 'forms', 'responses', 'api_keys', 'integrations'];
+export const SECURITY_KINDS_SHOWN_BY_DEFAULT = [
+    'sso_break_glass_sign_in',
+    'totp_policy_changed',
+    'totp_reset',
+    'sso_connection_created',
+    'sso_connection_enabled',
+    'sso_connection_disabled',
+    'sso_connection_deleted',
+    'domain_claimed',
+    'sso_required_changed',
+    'sso_default_role_changed',
+    'domain_verified',
+    'domain_removed',
+    'scim_token_created',
+    'scim_token_rotated',
+    'scim_token_revoked',
+    'scim_group_role_changed',
+    'ai_consent_changed',
+    'custom_domain_changed',
+    'custom_domain_removed'
+];
 
 /** Whether the break-glass requests are left out of this view. */
 export const hidesBreakGlass = (filters: AuditFilters): boolean => filters.areas.length === 0 || !filters.areas.includes('security');
@@ -82,7 +104,7 @@ export function auditQuery(filters: AuditFilters, options: { cursor?: string | n
         filters.areas.forEach((area) => search.append('area', area));
     } else {
         DEFAULT_AREAS.forEach((area) => search.append('area', area));
-        DEFAULT_EVENTS.forEach((event) => search.append('event', event));
+        SECURITY_KINDS_SHOWN_BY_DEFAULT.forEach((event) => search.append('event', event));
     }
     if (filters.who) search.set(filters.about ? 'involving' : 'actor', filters.who);
     if (form) search.set('form_id', form);
