@@ -49,10 +49,19 @@ REFERENCES: Dict[Tuple[str, str], Tuple[str, str]] = {
         "test_write_enforcement.py (R56)",
     ),
     ("POST", "/workspaces/{workspace_id}/api-keys"): (
-        "body.submissionFormIds",
+        "body.submissionFormIds, body.formIds",
         "security.manage (Owner/Admin) and every id must be a form of this "
-        "workspace (APIKeyService._checked_submission_forms)",
-        "test_a_key_cannot_be_limited_to_a_form_of_another_workspace",
+        "workspace that the caller may open (APIKeyService._checked_submission_forms, "
+        "_checked_list): a form of another workspace answers as one that is not there",
+        "test_a_key_cannot_be_limited_to_a_form_of_another_workspace, "
+        "test_the_form_list_is_checked",
+    ),
+    ("PATCH", "/workspaces/{workspace_id}/api-keys/{key_id}"): (
+        "body.formIds",
+        "security.manage (Owner/Admin), the key must be a live key of this workspace "
+        "and every id a form of it that the caller may open "
+        "(APIKeyService.update_key, _checked_list)",
+        "test_the_form_list_is_checked, test_a_key_of_another_workspace_is_not_found",
     ),
     ("POST", "/workspaces/{workspace_id}/option-sources/preview"): (
         "body.formId, body.source.formId",

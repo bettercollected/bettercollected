@@ -46,7 +46,10 @@ class WorkspacePermissionsDto(CamelModel):
     settings page are shown only while it is on).
     ``form_access_enabled`` is the same for ``FORM_ACCESS_ENABLED`` (teams,
     grants on a form and restricted forms: the Teams tab and a form's Access
-    settings are shown only while it is on)."""
+    settings are shown only while it is on).
+    ``api_key_roles_enabled`` is the same for ``API_KEY_ROLES_ENABLED`` (a role
+    and a list of forms on an API key: the key dialog's role and forms controls
+    are shown only while it is on)."""
 
     permissions: List[Permission] = []
     field_rules_enabled: bool = False
@@ -67,3 +70,4 @@ class WorkspacePermissionsDto(CamelModel):
     submissions_api_enabled: bool = False
     form_embed_enabled: bool = False
     form_access_enabled: bool = False
+    api_key_roles_enabled: bool = False

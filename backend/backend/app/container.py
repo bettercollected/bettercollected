@@ -935,6 +935,9 @@ class AppContainer(containers.DeclarativeContainer):
         APIKeyService,
         authorization_service=authorization_service,
         api_key_repo=workspace_api_key_repo,
+        audit_repo=workspace_audit_repo,
+        grant_repo=form_access_grant_repo,
+        form_repo=form_repo,
     )
 
     ai_consent_service: AIConsentService = providers.Singleton(
