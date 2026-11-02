@@ -209,7 +209,7 @@ opens the form on its own address, not in the frame.
 - The webapp's proxy sets `Content-Security-Policy: frame-ancestors ...` on `/<workspace>/forms/<form>` (and
   its `/preview`) and `/forms/<form>` on custom domains from `GET /workspaces/embed/policy` (public: it answers
   only what the header itself shows; unknown workspaces get an empty list; limited to 600 requests a minute per
-  client address and 120 per workspace, then 429 with `Retry-After`, which the webapp treats like any failure). The answer is kept 30 s per workspace
+  client address and 120 per client and workspace, then 429 with `Retry-After`, which the webapp treats like any failure). The answer is kept 30 s per workspace
   (one request at a time, at most 500 workspaces remembered). If the backend cannot be asked, the last answer is
   kept (see above); the strict default is used when a workspace had the switch on and its answer is ten minutes
   old, and for a custom-domain request whose edge assertion fails, never an open header.

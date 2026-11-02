@@ -6,6 +6,7 @@ from common.ids import RecordId
 from common.models.user import User
 
 from backend.app.container import container
+from backend.app.exceptions import HTTPException
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.config import settings
@@ -354,6 +355,22 @@ async def test_the_policy_is_limited_per_workspace(client, workspace, on, monkey
     assert (
         await client.get(POLICY, params={"workspace_id": str(workspace.id)})
     ).status_code == 200
+
+
+async def test_a_flood_for_one_workspace_does_not_refuse_another_clients_ask(workspace, on, monkeypatch):
+    # the web app asks from its own address: a public flood for the same workspace must not refuse it
+    from backend.app.services import form_embed
+
+    monkeypatch.setattr(form_embed, "POLICY_PER_WORKSPACE_PER_MINUTE", 2)
+    service = container.form_embed_service()
+    name = workspace.workspace_name
+    for _ in range(2):
+        await service.policy(workspace_name=name, client="203.0.113.7")
+    with pytest.raises(HTTPException) as refused:
+        await service.policy(workspace_name=name, client="203.0.113.7")
+    assert refused.value.status_code == 429
+    answer = await service.policy(workspace_name=name, client="10.0.0.5")
+    assert answer.enabled is True
 
 
 async def test_ordinary_use_is_far_below_the_ceilings(client, workspace, on):

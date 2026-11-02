@@ -321,16 +321,19 @@ class FormEmbedService:
         )
 
     async def _throttle(self, client: Optional[str], asked_about: str) -> None:
-        """429 with Retry-After once a client address, or one workspace, has been asked about more often
-        than the ceilings of the minute allow. Only the lookups that read the database count: while the
-        switch is off the route answers without one."""
+        """429 with Retry-After once a client address asks too often, or asks about one workspace too
+        often, within the minute. The workspace ceiling is per client: a shared one would let anyone's
+        flood for a workspace refuse the web app's own lookup and, once its last answer is stale, break
+        that workspace's embeds. Only the lookups that read the database count: while the switch is off
+        the route answers without one."""
         if self._limiter is None:
             return
+        who = client or "unknown"
         for scope, key, limit in (
-            ("embed_policy_ip", client or "unknown", POLICY_PER_IP_PER_MINUTE),
+            ("embed_policy_ip", who, POLICY_PER_IP_PER_MINUTE),
             (
                 "embed_policy_workspace",
-                asked_about.strip().lower()[:255],
+                f"{who}|{asked_about.strip().lower()[:255]}",
                 POLICY_PER_WORKSPACE_PER_MINUTE,
             ),
         ):
