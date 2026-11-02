@@ -3,7 +3,7 @@
 import datetime as dt
 from typing import List, Optional, Sequence, Tuple
 
-from sqlalchemy import or_, select, tuple_
+from sqlalchemy import func, or_, select, tuple_
 
 from backend.app.schemas.workspace_audit_event import WorkspaceAuditEventDocument
 from backend.db.models import WorkspaceAuditEventRow
@@ -128,6 +128,40 @@ class PostgresWorkspaceAuditRepository(RecordRepository):
         async with self._session() as session:
             docs = (await session.execute(statement)).scalars().all()
         return [decode(self.document, d) for d in docs]
+
+    async def count_up_to(
+        self,
+        workspace_id,
+        cap: int,
+        events: Optional[Sequence[str]] = None,
+        *,
+        form_id: Optional[str] = None,
+        actor: Optional[str] = None,
+        target: Optional[str] = None,
+        involving: Optional[str] = None,
+        since: Optional[dt.datetime] = None,
+        until: Optional[dt.datetime] = None,
+    ) -> int:
+        """How many entries the same filters as ``page`` match, counted only up
+        to ``cap`` (a bounded scan: the answer is ``cap`` when there are at
+        least that many)."""
+        limited = self.page_statement(
+            workspace_id,
+            cap,
+            None,
+            events,
+            form_id=form_id,
+            actor=actor,
+            target=target,
+            involving=involving,
+            since=since,
+            until=until,
+        )
+        counted = select(func.count()).select_from(
+            limited.with_only_columns(WorkspaceAuditEventRow.id).order_by(None).subquery()
+        )
+        async with self._session() as session:
+            return int((await session.execute(counted)).scalar_one())
 
     async def delete_by_workspace_ids(self, workspace_ids: Sequence) -> int:
         if not workspace_ids:

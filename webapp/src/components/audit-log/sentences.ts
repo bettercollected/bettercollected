@@ -72,7 +72,8 @@ export const AUDIT_EVENTS = [
     'form_registration_changed',
     'form_registration_disabled',
     'form_copied_out',
-    'form_promoted'
+    'form_promoted',
+    'audit_log_exported'
 ] as const;
 
 /** The parts of an integration's configuration an entry may name as changed (backend `AUTOMATION_PARTS`); any other is not shown. */
@@ -294,6 +295,12 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
             if (hasCount) details.push(t(`${SENTENCE}.DETAIL_ROWS`, { count: entry.count }));
             break;
         }
+        case 'audit_log_exported':
+            key = entry.formId ? 'AUDIT_LOG_EXPORTED_FORM' : 'AUDIT_LOG_EXPORTED';
+            values = { actor, form: form(entry.formId) };
+            if (present(entry.exportFormat)) details.push(clean(entry.exportFormat).toUpperCase().slice(0, 12));
+            if (hasCount) details.push(t(`${SENTENCE}.DETAIL_ENTRIES`, { count: entry.count }));
+            break;
         case 'api_key_created':
             key = entry.keyRole?.toLowerCase() === 'creator' ? 'API_KEY_CREATED_CREATOR' : present(entry.keyRole) ? 'API_KEY_CREATED_ROLE' : 'API_KEY_CREATED';
             values = { actor, role: roleName(entry.keyRole) };

@@ -24,6 +24,7 @@ Rules this module keeps:
 """
 
 import datetime as dt
+from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Dict, List, Optional, Sequence
 
@@ -74,6 +75,34 @@ def _aware(value: Optional[dt.datetime]) -> Optional[dt.datetime]:
     if value is not None and value.tzinfo is None:
         return value.replace(tzinfo=dt.timezone.utc)
     return value
+
+
+@dataclass(frozen=True)
+class AuditScope:
+    """What one request may read, decided once: the workspace, the caller, their
+    workspace-level access and the filters (the kinds are already checked
+    against the catalogue). The export walks a scope in batches."""
+
+    workspace_id: RecordId
+    user: User
+    base: object
+    kinds: Sequence[str]
+    form_id: Optional[str] = None
+    actor: Optional[str] = None
+    target: Optional[str] = None
+    involving: Optional[str] = None
+    since: Optional[dt.datetime] = None
+    until: Optional[dt.datetime] = None
+
+    def filters(self) -> dict:
+        return dict(
+            form_id=self.form_id,
+            actor=self.actor,
+            target=self.target,
+            involving=self.involving,
+            since=_aware(self.since),
+            until=_aware(self.until),
+        )
 
 
 class AuditLogReader:
@@ -301,8 +330,13 @@ class AuditLogReader:
 
     # -- ids to names ---------------------------------------------------------
     async def _labels(
-        self, workspace_id, rows: List[WorkspaceAuditEventDocument]
+        self,
+        workspace_id,
+        rows: List[WorkspaceAuditEventDocument],
+        known: Optional[AuditLabelsDto] = None,
     ) -> AuditLabelsDto:
+        """The labels of the ids of ``rows``, except those already in ``known``
+        (a long walk, the export, looks each id up once)."""
         people = {
             str(i)
             for r in rows
@@ -311,6 +345,10 @@ class AuditLogReader:
         }
         forms = {str(r.form_id) for r in rows if r.form_id}
         teams = {str(r.group_id) for r in rows if r.group_id}
+        if known is not None:
+            people -= set(known.members)
+            forms -= set(known.forms)
+            teams -= set(known.teams)
 
         members: Dict[str, MemberLabelDto] = {}
         if people:
@@ -347,3 +385,80 @@ class AuditLogReader:
                     else TeamLabelDto(status=GONE)
                 )
         return AuditLabelsDto(members=members, forms=form_labels, teams=team_labels)
+
+    # -- a whole result, for the export (services/audit_log/export.py) -----------
+    async def scope(
+        self,
+        workspace_id: RecordId,
+        user: User,
+        *,
+        form_id: Optional[str] = None,
+        areas: Sequence[str] = (),
+        events: Sequence[str] = (),
+        actor: Optional[str] = None,
+        target: Optional[str] = None,
+        involving: Optional[str] = None,
+        filter_form: Optional[str] = None,
+        since: Optional[dt.datetime] = None,
+        until: Optional[dt.datetime] = None,
+    ) -> AuditScope:
+        """The same decisions as a list request (the switch, the filters, the
+        catalogue, ``audit.read``, a form of this workspace) for a request that
+        reads the whole result. ``form_id`` fixes the form (a form's own
+        export); ``filter_form`` is the workspace export's form filter."""
+        refuse_when_off()
+        kinds = self._kinds(areas, events, since, until)
+        fixed = str(form_id) if form_id else None
+        base = await self._gate(user, workspace_id, fixed)
+        return AuditScope(
+            workspace_id=workspace_id,
+            user=user,
+            base=base,
+            kinds=kinds,
+            form_id=fixed or filter_form,
+            actor=actor,
+            target=target,
+            involving=involving,
+            since=since,
+            until=until,
+        )
+
+    async def count_up_to(self, scope: AuditScope, cap: int) -> int:
+        """How many entries the scope holds, counted only up to ``cap``."""
+        return await self._audit.count_up_to(
+            scope.workspace_id, cap, scope.kinds, **scope.filters()
+        )
+
+    async def batches(self, scope: AuditScope, size: int):
+        """Every entry of the scope, newest first, ``size`` at a time, as the
+        same ``AuditEntryDto`` a list page returns (so a session id and a
+        response id are withheld exactly as on screen), each batch with the
+        labels of the ids that had not appeared before."""
+        before = None
+        known = AuditLabelsDto()
+        while True:
+            rows = await self._audit.page(
+                scope.workspace_id, size, before, scope.kinds, **scope.filters()
+            )
+            if not rows:
+                return
+            readable = await self._readable_responses(
+                scope.user, scope.workspace_id, rows
+            )
+            entries = [
+                self._entry(
+                    row, readable, may_see_sessions=bool(scope.base.privileged)
+                )
+                for row in rows
+            ]
+            fresh = await self._labels(scope.workspace_id, rows, known)
+            known = AuditLabelsDto(
+                members={**known.members, **fresh.members},
+                forms={**known.forms, **fresh.forms},
+                teams={**known.teams, **fresh.teams},
+            )
+            yield entries, known
+            if len(rows) < size:
+                return
+            last = rows[-1]
+            before = (last.created_at, str(last.id))

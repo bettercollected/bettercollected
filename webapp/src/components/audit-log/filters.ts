@@ -69,6 +69,7 @@ export function activeFilterCount(filters: AuditFilters, withForm: boolean): num
 export const DEFAULT_AREAS: AuditArea[] = ['access', 'members', 'forms', 'responses', 'api_keys', 'integrations'];
 export const SECURITY_KINDS_SHOWN_BY_DEFAULT = [
     'sso_break_glass_sign_in',
+    'audit_log_exported',
     'totp_policy_changed',
     'totp_reset',
     'sso_connection_created',

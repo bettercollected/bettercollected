@@ -86,7 +86,8 @@ const SAMPLES: Record<(typeof AUDIT_EVENTS)[number], Partial<AuditEntryDto>> = {
     form_registration_changed: { actorId: 'u_sanne', formId: 'f_join', changed: ['path'] },
     form_registration_disabled: { actorId: 'u_sanne', formId: 'f_join' },
     form_copied_out: { actorId: 'u_sanne', formId: 'f_join' },
-    form_promoted: { actorId: 'u_sanne', formId: 'f_join', count: 3 }
+    form_promoted: { actorId: 'u_sanne', formId: 'f_join', count: 3 },
+    audit_log_exported: { actorId: 'u_sanne', exportFormat: 'csv', count: 120 }
 };
 
 const entry = (event: string, extra: Partial<AuditEntryDto> = {}): AuditEntryDto => ({ id: 'e1', event, at: '2026-11-01T12:00:00Z', ...extra });
@@ -222,6 +223,13 @@ describe('the sentence table', () => {
         expect(say('en', entry('registration_service_updated', { actorId: 'u_sanne', changed: ['secret'] })).text).toBe('Sanne de Vries changed a case-system service (changed: secret).');
         // the id of the AI provider and of a directory never reach the screen
         expect(say('en', entry('ai_consent_changed', { actorId: 'u_sanne', enabled: true, provider: 'openai' })).text).not.toMatch(/openai/i);
+    });
+
+    it('words an export of the log, with its format and size, and says which form for a form export', () => {
+        expect(say('en', entry('audit_log_exported', { actorId: 'u_sanne', exportFormat: 'csv', count: 120 })).text).toBe('Sanne de Vries exported the activity log (CSV, 120 entries).');
+        expect(say('en', entry('audit_log_exported', { actorId: 'u_sanne', exportFormat: 'json', count: 1, formId: 'f_join' })).text).toBe('Sanne de Vries exported the activity of Join the volunteers (JSON, 1 entry).');
+        expect(say('nl', entry('audit_log_exported', { actorId: 'u_sanne', exportFormat: 'csv', count: 120 })).text).toBe('Sanne de Vries exporteerde de activiteit (CSV, 120 regels).');
+        expect(say('nl', entry('audit_log_exported', { actorId: 'u_sanne' })).text).toBe('Sanne de Vries exporteerde de activiteit.');
     });
 
     it('words a change of the retention with the months before and after, and says less when they are missing', () => {

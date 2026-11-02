@@ -21,6 +21,7 @@ import { useGetAuditRetentionQuery } from '@app/store/workspaces/audit-retention
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { formVersionsUrl, responsePageUrl, responsesListUrl } from '@app/utils/response-urls';
 
+import { AuditExportMenu } from './export-menu';
 import { AuditFilters, EMPTY_FILTERS, activeFilterCount, auditQuery, filtersToSearch, hidesBreakGlass, parseFilters } from './filters';
 import { AuditRetentionSetting } from './retention-setting';
 import { describeEntry } from './sentences';
@@ -207,7 +208,10 @@ export function ActivityList({ formId }: { formId?: string }) {
                 <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">
                     {t(formId ? 'AUDIT_LOG.FORM_INTRO' : 'AUDIT_LOG.INTRO')} {retention}
                 </p>
-                {!formId && <AuditRetentionSetting workspaceId={workspaceId} />}
+                <div className="flex flex-wrap items-start gap-3">
+                    {!formId && <AuditRetentionSetting workspaceId={workspaceId} />}
+                    <AuditExportMenu workspaceId={workspaceId} formId={formId} query={auditQuery(effective, {}, formId ? undefined : effective.form)} />
+                </div>
                 {formId && (
                     <p className="text-sm">
                         <Link href={`/${workspaceName}/dashboard/activity?form=${encodeURIComponent(formId)}`} className="inline-flex min-h-11 items-center underline underline-offset-2 md:min-h-8">

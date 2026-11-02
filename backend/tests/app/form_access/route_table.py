@@ -202,6 +202,10 @@ ROUTES: Dict[Tuple[str, str], Route] = {
     # the audit log of one form: audit.read, which a Privacy officer keeps on a
     # restricted form (services/audit_log); a grantee Editor never holds it
     ("GET", F + "/audit-log"): route(FORM, P.AUDIT_READ, case="forms.audit_log"),
+    # the same, taken out as a file: audit.read on that form, and recorded first
+    ("GET", F + "/audit-log/export"): route(
+        FORM, P.AUDIT_READ, case="forms.audit_log_export"
+    ),
     ("POST", F + "/ops"): route(FORM, P.FORM_EDIT, case="forms.ops.save"),
     ("POST", F + "/ops/dry-run"): route(FORM, P.FORM_EDIT, case="spec.dry_run"),
     ("GET", F + "/open-formulieren-export"): route(
@@ -541,6 +545,7 @@ OUTCOMES: Dict[Tuple[str, str], Tuple[int, ...]] = {
     ("GET", F + "/submissions/{submission_id}/revisions/{seq}"): (404,),
     ("GET", F + "/version-diff"): (422,),
     ("GET", F + "/audit-log"): (200,),
+    ("GET", F + "/audit-log/export"): (200,),
     ("GET", F + "/versions"): (200,),
     ("POST", F + "/versions/{version}/restore"): (200,),
     ("GET", F + "/webhooks"): (200,),
@@ -594,6 +599,10 @@ CHECKS = {
     ("GET", F + "/audit-log"): _data(
         page=lambda c, r: isinstance(r.json()["entries"], list)
         and isinstance(r.json()["labels"], dict)
+    ),
+    ("GET", F + "/audit-log/export"): _data(
+        # a CSV file (a byte order mark, then the header), not an error body
+        file=lambda c, r: r.text.startswith("\ufeffid,event,area,at,"),
     ),
     ("GET", F + "/submissions"): _data(
         answer=lambda c, r: _id(c, "response") in r.text,

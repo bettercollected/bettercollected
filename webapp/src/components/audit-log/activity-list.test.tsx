@@ -42,6 +42,8 @@ const trigger = (arg: { workspaceId: string; formId?: string; query: string }) =
 };
 const lazy = [trigger];
 vi.mock('@app/store/workspaces/audit-log-api', () => ({ useLazyGetAuditLogQuery: () => lazy }));
+// the export has its own tests (export-menu.test.tsx)
+vi.mock('@app/store/workspaces/audit-export', () => ({ requestAuditExport: vi.fn(), saveBlob: vi.fn() }));
 // the retention setting has its own tests (retention-setting.test.tsx); here nobody can change it
 vi.mock('@app/store/workspaces/audit-retention-api', () => ({ useGetAuditRetentionQuery: () => ({ data: undefined }), useSetAuditRetentionMutation: () => [vi.fn(), { isLoading: false }] }));
 
@@ -102,6 +104,12 @@ const show = async (formId?: string) => {
 // ---- the tests -------------------------------------------------------------------------------------------------------
 
 describe('the workspace Activity page', () => {
+    it('offers the export of the filters on screen, on the workspace page and on a form page', async () => {
+        search = 'area=access&who=u_sanne';
+        await show();
+        expect(screen.getByRole('button', { name: /Export/ })).toBeInTheDocument();
+    });
+
     it('lists one sentence per entry under day headings, newest first, with the retention figure', async () => {
         await show();
         expect(screen.getByRole('heading', { level: 1, name: 'Activity' })).toBeInTheDocument();

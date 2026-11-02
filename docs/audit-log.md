@@ -167,7 +167,50 @@ delivery logs of that form stay withheld from them. A member who may
 edit a form through a grant (a grantee Editor) does not see that form's
 activity: the log is for the roles that hold `audit.read`.
 
-Reading the log is not itself recorded.
+Reading the log is not itself recorded; exporting it is (below).
+
+## Export
+
+`GET /workspaces/{workspace_id}/audit-log/export` and
+`GET /workspaces/{workspace_id}/forms/{form_id}/audit-log/export` take the log out
+as a file: `format=csv` (the default) or `format=json`, with the same filters, the
+same permission (`audit.read`) and the same 404 for another workspace's form as the
+list; both answer 422 `audit_log_off` while the switch is off. The Activity page's
+**Export** menu asks for the file of the filters on screen.
+
+- **Recorded first.** An export is the one read of the log that is recorded: an
+  `audit_log_exported` entry (area Security) holds the format, the number of
+  entries, the names of the filters used (never their values) and, for a form's
+  own export (its route), the form's id; a form filter of the workspace export is
+  only the filter name `form`. It is stored before the first byte is sent, and when it
+  cannot be stored the export is refused (503 `audit_unavailable`) and nothing is
+  sent. A refused export (not allowed, an invalid filter, too many entries, over
+  the budget) records nothing. The file holds what existed when it was asked for,
+  so it does not include its own entry.
+- **As bare as the screen.** Each row is built from the list's own entry
+  (field by field), never from the stored one, so a Privacy officer's file has no
+  session id and no response id, exactly as their screen. Beside the ids it has the
+  current names the list resolves (a member's display name, a form's title, a
+  team's name; empty for anyone or anything gone), never an address. CSV cells
+  that start with `=`, `+`, `-` or `@` are prefixed so a spreadsheet never runs
+  them, and the file starts with a byte order mark so a spreadsheet reads UTF-8.
+- **Bounded.** At most 100 000 entries (413 `too_many_rows`: narrow the filters, for
+  example with a date range), and five exports per person and workspace in ten
+  minutes (429 `rate_limited`, with `Retry-After`). A request refused after the
+  count (413, or the entry not stored) has used its slot, so repeating it cannot
+  count for free; a refusal before the count (not allowed, an invalid filter) or a
+  failure of the count itself takes none. The file is streamed in batches of 500
+  and never built in memory.
+- **Only from the dashboard.** The export is a GET and the session cookie is
+  SameSite=Lax, which a link on another site still carries. A browser request
+  that is not a `fetch` (`Sec-Fetch-Mode` other than `cors`: a followed link, an
+  image, a frame) is refused with 403 `export_needs_fetch`, before anything is
+  read, recorded or counted. Scripts that send no such header are unaffected. The
+  file name reaches the webapp through the API's CORS-exposed `Content-Disposition`.
+- **Columns.** CSV columns are the list's fields in snake case (`id`, `event`,
+  `area`, `at` in UTC, `actor_id`, ...) then `actor_name`, `target_name`,
+  `to_name`, `form_title`, `team_name`; JSON has the same fields in camel case in
+  an `entries` array beside `exportedAt`.
 
 ## Indexes
 

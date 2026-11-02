@@ -26,6 +26,7 @@ from loguru import logger
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.workspace_audit_event import (
     ALL_KINDS,
+    AUDIT_EXPORT_FILTERS,
     AUTOMATION_PARTS,
     WorkspaceAuditEventDocument,
 )
@@ -38,6 +39,10 @@ def _entry(event: str, workspace_id, user, **ids) -> WorkspaceAuditEventDocument
         # a fixed vocabulary of part names: whatever else a caller passes is
         # never stored
         ids["changed"] = [p for p in ids["changed"] if p in AUTOMATION_PARTS]
+    if ids.get("export_filters") is not None:
+        ids["export_filters"] = [
+            f for f in ids["export_filters"] if f in AUDIT_EXPORT_FILTERS
+        ]
     return WorkspaceAuditEventDocument(
         id=RecordId(),
         workspace_id=RecordId(str(workspace_id)),

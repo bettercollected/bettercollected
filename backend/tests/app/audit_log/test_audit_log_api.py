@@ -357,6 +357,7 @@ def test_every_field_of_a_stored_entry_is_returned_or_withheld_on_purpose():
         "updated_at",
         "invitation_id",  # an invitation has no screen
         "export_id",  # a pointer to a row the page cannot open
+        "export_filters",  # the names of an audit export's filters: a record, not a sentence
         # ids of settings and integrations that have no screen of their own
         "connection_id", "domain_id", "directory_id", "directory_group_id",
         "action_id", "service_id",
