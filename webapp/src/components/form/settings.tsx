@@ -106,7 +106,7 @@ export default function FormSettings() {
                             <GroupHeading>{t('STAFF.FORM_SETTINGS.ADVANCED_PRIVACY')}</GroupHeading>
                             <div className="divide-black-300 flex flex-col divide-y">
                                 <SettingRow title={t('STAFF.FORM_SETTINGS.PRIVACY_TITLE')} description={t('STAFF.FORM_SETTINGS.PRIVACY_DESC')}>
-                                    <Link data-testid="open-builder-privacy" href={getEditFormURL(workspace, form)} className={buttonClassName({ variant: 'v2Button' })}>
+                                    <Link data-testid="open-builder-privacy" href={`${getEditFormURL(workspace, form)}?tab=form`} className={buttonClassName({ variant: 'v2Button' })}>
                                         {t('STAFF.FORM_SETTINGS.PRIVACY_BUTTON')}
                                     </Link>
                                 </SettingRow>

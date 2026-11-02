@@ -157,7 +157,7 @@ describe('the settings sections', () => {
     it('has the privacy link to the builder and the danger zone under Advanced', () => {
         open();
         const advanced = within(section('Advanced'));
-        expect(advanced.getByTestId('open-builder-privacy')).toHaveAttribute('href', expect.stringContaining('/acme/dashboard/forms/f1/edit'));
+        expect(advanced.getByTestId('open-builder-privacy')).toHaveAttribute('href', '/acme/dashboard/forms/f1/edit?tab=form');
         expect(advanced.getByRole('heading', { level: 3, name: 'Danger zone' })).toBeInTheDocument();
         fireEvent.click(advanced.getByRole('button', { name: 'Delete form' }));
         expect(openModal).toHaveBeenCalledWith('DELETE_FORM_MODAL', expect.objectContaining({ redirectToDashboard: true }));
