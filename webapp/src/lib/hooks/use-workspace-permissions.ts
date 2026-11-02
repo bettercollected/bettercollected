@@ -79,8 +79,12 @@ export function useWorkspacePermissions() {
     const csvImportEnabled = !!userId && !isError && !!data?.csvImportEnabled;
     // ...and form-level access (its FORM_ACCESS_ENABLED): the Teams tab, a form's "who can open it" card and the Restricted chips. Nothing of it is asked for or shown while it is off.
     const formAccessEnabled = !!userId && !isError && !!data?.formAccessEnabled;
+    // ...and roles and form lists on API keys (its API_KEY_ROLES_ENABLED): the key dialog's role and forms controls, the edit dialog and the role chips. Nothing of it is shown or asked for while it is off.
+    const apiKeyRolesEnabled = !!userId && !isError && !!data?.apiKeyRolesEnabled;
     // ...and the Activity pages (its AUDIT_LOG_UI_ENABLED): the workspace's and a form's list of who did what. Nothing of it is asked for or shown while it is off.
     const auditLogUiEnabled = !!userId && !isError && !!data?.auditLogUiEnabled;
+    // ...and copying a form to another workspace (its FORM_PROMOTION_ENABLED): the form menu's item, the dialog and the Advanced settings' file card. No request is made while it is off.
+    const formPromotionEnabled = !!userId && !isError && !!data?.formPromotionEnabled;
     return {
         can,
         permissions,
@@ -102,6 +106,8 @@ export function useWorkspacePermissions() {
         formEmbedEnabled,
         csvImportEnabled,
         formAccessEnabled,
-        auditLogUiEnabled
+        auditLogUiEnabled,
+        formPromotionEnabled,
+        apiKeyRolesEnabled
     };
 }

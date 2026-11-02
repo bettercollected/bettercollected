@@ -218,8 +218,12 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
             break;
         case 'team_created':
         case 'team_renamed':
-        case 'team_linked':
             key = entry.event.toUpperCase();
+            values = { actor, team: team(entry.groupId) };
+            break;
+        case 'team_linked':
+            // an entry that does not say (an older server) reads as a link
+            key = entry.linked === false ? 'TEAM_UNLINKED' : 'TEAM_LINKED';
             values = { actor, team: team(entry.groupId) };
             break;
         case 'team_deleted':
@@ -260,7 +264,8 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
             values = { actor, form: form(entry.formId) };
             break;
         case 'form_copied_out':
-            key = 'FORM_COPIED_OUT';
+            // the file download is recorded with the channel "file" (it names no other workspace); a copy to a workspace has none
+            key = entry.exportChannel === 'file' ? 'FORM_COPIED_OUT_FILE' : 'FORM_COPIED_OUT';
             values = { actor, form: form(entry.formId) };
             break;
         case 'form_promoted':

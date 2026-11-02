@@ -16,7 +16,16 @@ from backend.app.schemas.member_group import (
     name_key,
 )
 from backend.app.repositories.postgres.form_access import AccessTargetNotFound
-from backend.db.models import MemberGroupMemberRow, MemberGroupRow, WorkspaceUserRow
+from backend.app.repositories.postgres.team_membership import (
+    directory_pairs,
+    team_member_pairs,
+)
+from backend.db.models import (
+    MemberGroupMemberRow,
+    MemberGroupRow,
+    ScimGroupTeamLinkRow,
+    WorkspaceUserRow,
+)
 from common.records.repository import RecordRepository
 
 
@@ -112,8 +121,9 @@ class PostgresMemberGroupRepository(RecordRepository):
         return team
 
     async def delete(self, workspace_id, group_id) -> bool:
-        """The team and its member rows, in one transaction. Grants naming the
-        team are the grant repository's to drop (the service does both)."""
+        """The team, its member rows and its directory links, in one transaction.
+        Grants naming the team are the grant repository's to drop (the service
+        does both)."""
         async with self._session() as session, session.begin():
             deleted = await self._delete_recorded(
                 session,
@@ -127,6 +137,16 @@ class PostgresMemberGroupRepository(RecordRepository):
                     MemberGroupMemberRow,
                     MemberGroupMemberRow.workspace_id == _id(workspace_id),
                     MemberGroupMemberRow.group_id == _id(group_id),
+                )
+                # the directory groups that fed the team are unlinked in the
+                # same transaction (a link inserted meanwhile holds the team's
+                # row lock, so it either lands before this delete and goes with
+                # it, or finds the team gone)
+                await self._delete_recorded(
+                    session,
+                    ScimGroupTeamLinkRow,
+                    ScimGroupTeamLinkRow.workspace_id == _id(workspace_id),
+                    ScimGroupTeamLinkRow.team_id == _id(group_id),
                 )
         return bool(deleted)
 
@@ -195,7 +215,8 @@ class PostgresMemberGroupRepository(RecordRepository):
             row=MemberGroupMemberRow,
         )
 
-    async def member_ids(self, workspace_id, group_id) -> List[str]:
+    async def manual_member_ids(self, workspace_id, group_id) -> List[str]:
+        """The people listed in the team by hand."""
         async with self._session() as session:
             rows = await session.execute(
                 select(MemberGroupMemberRow.user_id)
@@ -207,16 +228,37 @@ class PostgresMemberGroupRepository(RecordRepository):
             )
         return list(rows.scalars().all())
 
-    async def group_ids_of(self, workspace_id, user_id) -> List[str]:
-        """The teams of the workspace ``user_id`` is a (manual) member of."""
+    async def directory_member_ids(self, workspace_id, group_id) -> List[str]:
+        """The people in the team through a linked directory group (read now)."""
         async with self._session() as session:
             rows = await session.execute(
-                select(MemberGroupMemberRow.group_id).where(
-                    MemberGroupMemberRow.workspace_id == _id(workspace_id),
-                    MemberGroupMemberRow.user_id == _id(user_id),
-                )
+                directory_pairs(workspace_id, [group_id]).order_by("user_id")
             )
-        return list(rows.scalars().all())
+        return [str(user) for _, user in rows.all()]
+
+    async def member_ids(self, workspace_id, group_id) -> List[str]:
+        """Everyone in the team: those listed by hand, then those who are in it
+        through a linked directory group (read now, never copied), each once."""
+        listed = await self.manual_member_ids(workspace_id, group_id)
+        async with self._session() as session:
+            rows = await session.execute(
+                directory_pairs(workspace_id, [group_id]).order_by("user_id")
+            )
+        everyone = list(listed)
+        seen = set(listed)
+        for _, user in rows.all():
+            if str(user) not in seen:
+                seen.add(str(user))
+                everyone.append(str(user))
+        return everyone
+
+    async def group_ids_of(self, workspace_id, user_id) -> List[str]:
+        """The teams of the workspace ``user_id`` is a member of (by hand or
+        through a linked directory group)."""
+        pairs = team_member_pairs(workspace_id, user_id=user_id)
+        async with self._session() as session:
+            rows = await session.execute(select(pairs.c.group_id))
+        return [str(group) for group in rows.scalars().all()]
 
     # -- counts and cleanup ------------------------------------------------------
     async def count_in_workspace(self, workspace_id) -> int:
@@ -239,12 +281,12 @@ class PostgresMemberGroupRepository(RecordRepository):
         return {str(i): name for i, name in rows.all() if name}
 
     async def member_counts(self, workspace_id) -> Dict[str, int]:
-        """The number of manual members of each team of the workspace."""
+        """The number of people in each team of the workspace (by hand or
+        through a linked directory group; a person in both counts once)."""
+        pairs = team_member_pairs(workspace_id)
         async with self._session() as session:
             rows = await session.execute(
-                select(MemberGroupMemberRow.group_id, func.count())
-                .where(MemberGroupMemberRow.workspace_id == _id(workspace_id))
-                .group_by(MemberGroupMemberRow.group_id)
+                select(pairs.c.group_id, func.count()).group_by(pairs.c.group_id)
             )
         return {str(group): int(total) for group, total in rows.all()}
 
@@ -294,5 +336,8 @@ class PostgresMemberGroupRepository(RecordRepository):
             return 0
         await self.delete_where(
             MemberGroupMemberRow.workspace_id.in_(ids), row=MemberGroupMemberRow
+        )
+        await self.delete_where(
+            ScimGroupTeamLinkRow.workspace_id.in_(ids), row=ScimGroupTeamLinkRow
         )
         return await self.delete_where(MemberGroupRow.workspace_id.in_(ids))

@@ -92,6 +92,17 @@ const SAMPLES: Record<(typeof AUDIT_EVENTS)[number], Partial<AuditEntryDto>> = {
 const entry = (event: string, extra: Partial<AuditEntryDto> = {}): AuditEntryDto => ({ id: 'e1', event, at: '2026-11-01T12:00:00Z', ...extra });
 const say = (lng: 'en' | 'nl', e: AuditEntryDto, formId?: string) => describeEntry(e, { labels: LABELS, t: i18n.getFixedT(lng) as any, formId });
 
+describe('team link entries', () => {
+    it('say whether a directory group was linked or unlinked, in both languages', () => {
+        const linked = entry('team_linked', { actorId: 'u_sanne', groupId: 'g_intake', linked: true });
+        const unlinked = entry('team_linked', { actorId: 'u_sanne', groupId: 'g_intake', linked: false });
+        expect(say('en', linked).text).toContain('linked a directory group to the team Intake');
+        expect(say('en', unlinked).text).toContain('unlinked a directory group from the team Intake');
+        expect(say('nl', linked).text).toContain('koppelde een directorygroep aan het team Intake');
+        expect(say('nl', unlinked).text).toContain('ontkoppelde een directorygroep van het team Intake');
+    });
+});
+
 describe('the sentence table', () => {
     it('lists every kind the server can return (backend services/audit_log/catalog.py)', () => {
         const catalog = resolve(__dirname, '../../../../backend/backend/app/services/audit_log/catalog.py');
@@ -225,6 +236,15 @@ describe('the sentence table', () => {
         expect(say('en', entry('form_promoted', { actorId: 'u_sanne', formId: 'f_join', count: 3 })).text).toBe('Sanne de Vries copied Join the volunteers in from another workspace (3 adjustments to fit).');
         expect(say('nl', entry('form_promoted', { actorId: 'u_sanne', formId: 'f_join', count: 1 })).text).toBe('Sanne de Vries kopieerde Join the volunteers vanuit een andere werkruimte hierheen (1 aanpassing om te passen).');
         expect(say('en', entry('form_promoted', { actorId: 'u_sanne', formId: 'f_join', count: 0 })).text).toBe('Sanne de Vries copied Join the volunteers in from another workspace.');
+        expect(say('nl', entry('form_copied_out', { actorId: 'u_sanne', formId: 'f_join' })).text).toBe('Sanne de Vries kopieerde Join the volunteers naar een andere werkruimte.');
+    });
+
+    it('words the download of a form file as a download, not as a copy to another workspace', () => {
+        // the download is recorded with the channel "file" and names no other workspace
+        expect(say('en', entry('form_copied_out', { actorId: 'u_sanne', formId: 'f_join', exportChannel: 'file' })).text).toBe('Sanne de Vries downloaded the file of Join the volunteers.');
+        expect(say('nl', entry('form_copied_out', { actorId: 'u_sanne', formId: 'f_join', exportChannel: 'file' })).text).toBe('Sanne de Vries downloadde het bestand van Join the volunteers.');
+        // a copy to a workspace carries no channel, and any other channel keeps the copy wording
+        expect(say('en', entry('form_copied_out', { actorId: 'u_sanne', formId: 'f_join', exportChannel: 'something' })).text).toBe('Sanne de Vries copied Join the volunteers to another workspace.');
     });
 
     it('falls back to a neutral sentence for a kind it does not know, in both languages', () => {

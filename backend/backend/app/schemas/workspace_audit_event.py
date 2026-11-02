@@ -125,7 +125,7 @@ REVOKED_SCIM_DEPROVISIONED = "scim_deprovisioned"
 # (FORM_PROMOTION_ENABLED): ids and counts only, never a title, a name or a text of
 # the form. FORM_COPIED_OUT is written in the source workspace (form_id = the
 # source form, target_workspace_id, target_form_id when it updates one; the file
-# download names no target); FORM_PROMOTED in the target workspace (form_id = the
+# download names no target and has export_channel "file"); FORM_PROMOTED in the target workspace (form_id = the
 # target form, source_workspace_id, source_form_id; ``count`` = what was adjusted
 # to fit). Both are stored before the change.
 FORM_COPIED_OUT = "form_copied_out"
@@ -294,6 +294,10 @@ class WorkspaceAuditEventDocument(Record):
     grant_export: Optional[bool] = None
     access_mode: Optional[str] = None
     count: Optional[int] = None
+    # TEAM_LINKED: the directory group (our id for it), and whether it was
+    # linked to the team (``group_id``) or unlinked from it
+    scim_group_id: Optional[str] = None
+    linked: Optional[bool] = None
     # MEMBER_*: the invitation, the role it gives or the member now holds (an
     # enum value of WorkspaceRoles) and, for a change, the one it replaced
     invitation_id: Optional[str] = None

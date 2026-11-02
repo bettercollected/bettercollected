@@ -562,7 +562,12 @@ async def test_off_the_write_rows_run_no_more_statements_than_before(
                 ), (name, who, touched)
             else:
                 assert not touched, (name, who)
-            counts.append(len(seen))
+            # the tombstone clean-up that runs once per 200 deletes in the process is
+            # not part of the write: which request it lands on depends on every test
+            # that deleted rows before this one
+            counts.append(
+                len([s for s in seen if "DELETE FROM app.deletion_tombstones" not in s])
+            )
         measured[name] = max(counts)
     for name, limit in OFF_WRITE_STATEMENTS.items():
         assert measured[name] <= limit, (name, measured[name], limit)

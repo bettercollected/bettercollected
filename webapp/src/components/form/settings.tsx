@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 
 import FormSettingsTab, { GroupHeading, SettingRow } from '@app/components/dashboard/form-settings';
+import { FormFileCard, PromotedFromLine } from '@app/components/form-promotion/form-file-card';
 import FormAccessCard from '@app/components/form/access/form-access-card';
 import AutomationsSection from '@app/components/form/automations/automations-section';
 import { useModal } from '@app/components/modal-views/context';
@@ -92,11 +93,11 @@ function ExperiencePage() {
 }
 
 function AdvancedPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const form = useAppSelector(selectForm);
     const { openModal } = useModal();
     const workspace = useAppSelector(selectWorkspace);
-    const { can } = useWorkspacePermissions();
+    const { can, formPromotionEnabled } = useWorkspacePermissions();
     // The builder is where purpose, retention and the privacy link are written (same rule as the header's Edit button).
     const canOpenBuilder = form?.settings?.provider === 'self' && form?.builderVersion === 'v2';
     const canDelete = can(WorkspacePermission.FORM_DELETE);
@@ -104,6 +105,9 @@ function AdvancedPage() {
     return (
         <Section id="advanced" title={t('STAFF.FORM_SETTINGS.ADVANCED')}>
             {!!form?.importedFormId && <FormSettingsTab view="ORIGINAL" />}
+            {/* Copying a form to another workspace: where this one came from (editors only: the server withholds it from others) and its file. Nothing of it while the server has it off. */}
+            {formPromotionEnabled && canOpenBuilder && form?.settings?.promotedFrom && <PromotedFromLine promotedFrom={form.settings.promotedFrom} language={i18n.language} />}
+            {formPromotionEnabled && canOpenBuilder && workspace?.id && form?.formId && <FormFileCard workspaceId={workspace.id} formId={form.formId} />}
             {canOpenBuilder && (
                 <div>
                     <GroupHeading>{t('STAFF.FORM_SETTINGS.ADVANCED_PRIVACY')}</GroupHeading>

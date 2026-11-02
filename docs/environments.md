@@ -180,7 +180,14 @@ bettercollected create signup.json     # uses BETTERCOLLECTED_API_KEY and BETTER
 ## Copying a form in the dashboard (server routes)
 
 The same move is available from the dashboard for a person who is a member of both
-workspaces, on one instance. It is behind the server setting
+workspaces, on one instance: **Copy to another workspace…** in a form's ⋮ menu opens a
+dialog in three steps (where to, review, done). Step one picks a workspace where you can
+create forms, then a new form or an existing one (with search). The review shows what will
+change, what is not copied (counts), what was adjusted, whether the copy is restricted, and
+for an existing form a tick-box to also copy the data protection settings (a second tick is
+needed when that shortens the retention). The result is a draft, with a link to it. A form's
+**Settings → Advanced** also has a **Form file** card (Download) and, for editors, a
+"Copied from …" line. The dashboard shows none of this while the setting is off. It is behind the server setting
 `FORM_PROMOTION_ENABLED` (off by default, set in the environment, not in the admin
 portal, until it is released): while it is off, every route below answers
 `422` with the code `form_promotion_disabled`, before anything is read. The public
@@ -231,7 +238,8 @@ API, the SDK and the command line are not part of the setting.
 - **Recorded.** `form_copied_out` in the source workspace and `form_promoted` in the
   target workspace are stored before the copy (no entry, no copy: `503
   audit_unavailable`), with ids and counts only. They show in the Activity log under
-  Forms. The form file download is recorded as `form_copied_out` too.
+  Forms. The form file download is recorded as `form_copied_out` too, with `export_channel` `file`
+  (it names no other workspace), and the Activity page words it as a download.
 - **Staff only.** A copied form remembers where it came from (`promotedFrom` in its
   settings: the source workspace and form ids, who copied it and when, a hash, counts).
   Respondents never receive it.

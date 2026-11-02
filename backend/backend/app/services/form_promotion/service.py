@@ -90,6 +90,8 @@ RATE_LIMIT_SCOPE = "form_promotion"
 # the same per-person limit as apply, counted apart so a review never starves a copy
 READ_RATE_LIMIT_SCOPE = "form_promotion_read"
 RATE_LIMITED_CODE = "rate_limited"
+# the audit entry of the form file download (``export_channel``)
+FILE_CHANNEL = "file"
 # the most forms the target picker lists
 TARGETS_MAX = 50
 # answers about the forms' versions, not the request: not kept for the key, so
@@ -442,6 +444,27 @@ class FormPromotionService:
         open to more people. Never done silently: who may open an existing form
         is not changed as a side effect of copying into it."""
         return plan.restricted and plan.target is not None and not plan.target_restricted
+
+    async def _still_restricted(self, plan: _Plan) -> None:
+        """Awaited by the writer right before it writes the target: a restricted
+        source's structure never lands in a form that was opened after the plan
+        read its mode (no version tag covers the mode). Reads the link again, so
+        what is left is the few statements between this read and the write."""
+        if not plan.restricted or plan.target is None:
+            return
+        link = await self._links.find_workspace_form(
+            plan.target_workspace_id, plan.target.form_id
+        )
+        if link is None:
+            raise _not_found()
+        if not WorkspaceFormService._source_is_restricted(link):
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT,
+                content={
+                    "code": TARGET_NOT_RESTRICTED_CODE,
+                    "message": TARGET_NOT_RESTRICTED_MESSAGE,
+                },
+            )
 
     @staticmethod
     def _changed_since_last(target: Optional[_Side]) -> bool:
@@ -855,6 +878,7 @@ class FormPromotionService:
                 plan.document,
                 [plan.target.etag],
                 user,
+                before_write=lambda: self._still_restricted(plan),
             )
             form_id = plan.target.form_id
         await self._mark(
@@ -925,6 +949,9 @@ class FormPromotionService:
             workspace_id,
             user,
             form_id=str(form_id),
+            # tells the download from a copy to a workspace in the Activity page
+            # (it shows no other workspace's ids): the channel "file"
+            export_channel=FILE_CHANNEL,
         )
         return JSONResponse(
             side.spec,

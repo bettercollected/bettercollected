@@ -359,6 +359,9 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     # in the caller's own workspace list only: whether they are one of its
     # owners (the billing owner or a member with role OWNER)
     is_owner: Optional[bool] = None
+    # in the caller's own workspace list only: their role there (OWNER for
+    # every owner, else the membership's highest role); None when unknown
+    role: Optional[str] = None
     dashboard_access: Optional[bool] = None
     disabled: Optional[bool] = None
     default: Optional[bool] = None

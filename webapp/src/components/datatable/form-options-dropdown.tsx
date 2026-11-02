@@ -1,9 +1,12 @@
 "use client";
+import { useState } from 'react';
+
 import Link from 'next/link';
 
-import { Copy, Download, ExternalLink, Eye, MoreVertical, Pencil, Pin, Play, QrCode, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, Copy, Download, ExternalLink, Eye, MoreVertical, Pencil, Pin, Play, QrCode, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import FormPromotionDialog from '@app/components/form-promotion/form-promotion-dialog';
 import { LinkIcon } from '@app/components/icons/link-icon';
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -45,7 +48,8 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     const { openModal } = useModal();
     const { toast } = useToast();
 
-    const { can, formRevisionsUiEnabled } = useWorkspacePermissions();
+    const { can, formRevisionsUiEnabled, formPromotionEnabled } = useWorkspacePermissions();
+    const [promoteOpen, setPromoteOpen] = useState(false);
     const canEdit = can(WorkspacePermission.FORM_EDIT);
     const canCreate = can(WorkspacePermission.FORM_CREATE);
     const canDelete = can(WorkspacePermission.FORM_DELETE);
@@ -119,8 +123,11 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     const hasVersion = typeof version === 'number';
     const provenance = form?.settings?.provider === 'google' ? 'FORM_SHELL.FROM_GOOGLE' : form?.settings?.provider === 'typeform' ? 'FORM_SHELL.FROM_TYPEFORM' : null;
     const canOpenVersions = !!formRevisionsUiEnabled && can(WorkspacePermission.FORM_READ);
+    // Copying a form to another workspace: only while the server has it on, for a form built from pages that this instance holds. Who may copy it is the server's decision, on both sides.
+    const canPromote = !!formPromotionEnabled && can(WorkspacePermission.FORM_READ) && form?.settings?.provider === 'self' && form?.builderVersion === 'v2';
 
     return (
+        <>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <button
@@ -199,6 +206,11 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                         {t(formConstant.menu.duplicateForm)}
                     </Item>
                 )}
+                {canPromote && (
+                    <Item icon={<ArrowRightLeft width={20} height={20} />} onSelect={() => setPromoteOpen(true)}>
+                        {t('FORM_PROMOTION.MENU_ITEM')}
+                    </Item>
+                )}
                 {openFormulierenExportOn && form?.settings?.provider === 'self' && (
                     <Item icon={<Download width={20} height={20} />} onSelect={handleOpenFormulierenExport}>
                         {t(formConstant.menu.openFormulierenExport)}
@@ -227,6 +239,8 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 )}
             </DropdownMenuContent>
         </DropdownMenu>
+        {canPromote && <FormPromotionDialog open={promoteOpen} onOpenChange={setPromoteOpen} workspace={workspace} form={form} />}
+        </>
     );
 }
 

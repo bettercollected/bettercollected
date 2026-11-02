@@ -18,9 +18,12 @@ from backend.app.schemas.form_access_grant import (
     SUBJECT_USER,
     FormAccessGrantDocument,
 )
+from backend.app.repositories.postgres.team_membership import (
+    team_member_pairs,
+    teams_of_user,
+)
 from backend.db.models import (
     FormAccessGrantRow,
-    MemberGroupMemberRow,
     MemberGroupRow,
     WorkspaceApiKeyRow,
     WorkspaceFormRow,
@@ -48,12 +51,10 @@ class PostgresFormAccessGrantRepository(RecordRepository):
 
     @staticmethod
     def _held_by(workspace_id, user_id):
-        """Rows naming the user, or a team the user is a manual member of: one
-        condition, so one query however many teams there are."""
-        teams = select(MemberGroupMemberRow.group_id).where(
-            MemberGroupMemberRow.workspace_id == _id(workspace_id),
-            MemberGroupMemberRow.user_id == _id(user_id),
-        )
+        """Rows naming the user, or a team the user is in (listed by hand, or
+        through a linked directory group, read now): one condition, so one
+        query however many teams there are."""
+        teams = teams_of_user(workspace_id, user_id)
         return or_(
             and_(
                 FormAccessGrantRow.subject_type == SUBJECT_USER,
@@ -106,14 +107,8 @@ class PostgresFormAccessGrantRepository(RecordRepository):
                 teams.setdefault(str(grant.subject_id), []).append(grant)
         if teams:
             async with self._session() as session:
-                rows = await session.execute(
-                    select(
-                        MemberGroupMemberRow.group_id, MemberGroupMemberRow.user_id
-                    ).where(
-                        MemberGroupMemberRow.workspace_id == _id(workspace_id),
-                        MemberGroupMemberRow.group_id.in_(list(teams)),
-                    )
-                )
+                pairs = team_member_pairs(workspace_id, list(teams))
+                rows = await session.execute(select(pairs.c.group_id, pairs.c.user_id))
             for group_id, user_id in rows.all():
                 held.setdefault(str(user_id), []).extend(teams[str(group_id)])
         return held
