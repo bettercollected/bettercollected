@@ -106,6 +106,7 @@ async def test_only_owners_set_the_rule_and_only_with_their_own_factor(
     events = await container.workspace_audit_repo().many()
     assert [e.event for e in events] == [TOTP_POLICY_CHANGED]
     assert events[0].workspace_id == workspace.id and events[0].user_id == owner.id
+    assert events[0].required is True
 
 
 async def test_turning_the_rule_off_takes_effect_at_once(client, totp_on, workspace):
@@ -124,6 +125,9 @@ async def test_turning_the_rule_off_takes_effect_at_once(client, totp_on, worksp
     )
     assert ok.status_code == 200 and ok.json()["required"] is False
     assert (await probe(client, workspace, user)).status_code == 200
+    # the audit trail says which way each change went
+    changes = sorted(await container.workspace_audit_repo().many(), key=lambda e: e.created_at)
+    assert [e.required for e in changes if e.event == TOTP_POLICY_CHANGED] == [False]
 
 
 async def test_the_setting_answers_422_while_the_switch_is_off(client, workspace):

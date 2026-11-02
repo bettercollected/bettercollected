@@ -4,7 +4,7 @@
   session: nobody is signed out. API keys and single sign-on sessions of the workspace are not
   asked. An owner sees how many members have set one up, and can remove a member's authenticator
   app (for people whose address is on one of the workspace's verified domains, or who belong to no
-  other workspace); the platform administrator can remove anyone's. Both end that person's sessions
-  and tell them by email, in English or Dutch. The email also tells an account when an app is
+  other workspace, and never a platform administrator's); the platform administrator can remove anyone's. Whoever resets first enters their own second-factor code in that session. Both end that person's sessions
+  and tell them by email, in English or Dutch (in the language they last used). The email also tells an account when an app is
   added or turned off, when a recovery code is used and when the step is locked; each further lock
   before a correct code lasts longer (15 minutes, 1 hour, 6 hours, 24 hours).

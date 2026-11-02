@@ -115,7 +115,7 @@ def cookies_of_user(user: User) -> dict:
     return {"Authorization": token, "RefreshToken": token}
 
 
-async def give_factor(user_id: str) -> None:
+async def give_factor(user_id: str, locale=None) -> None:
     """A confirmed authenticator app for ``user_id`` (no session needed)."""
     from backend.app.schemas.user_totp import CONFIRMED, UserTotpFactorDocument
     from backend.app.services.mfa.sealing import seal_secret
@@ -126,6 +126,7 @@ async def give_factor(user_id: str) -> None:
             id=factor_id,
             user_id=str(user_id),
             state=CONFIRMED,
+            locale=locale,
             secret_sealed=seal_secret(container.crypto(), user_id, factor_id, "ABCDEFGHIJKLMNOP"),
         )
     )

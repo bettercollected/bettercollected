@@ -34,6 +34,10 @@ class UserTotpFactorDocument(Record):
     locked_until: Optional[dt.datetime] = None
     # locks since the last accepted code: each one lasts longer
     lock_count: int = 0
+    # the language of the person's last second-factor use (the first
+    # Accept-Language tag), so a notice about their account that someone else
+    # caused (a reset) is written in their language, not the caller's
+    locale: Optional[str] = None
 
     @field_validator("confirmed_at", "locked_until", mode="after")
     @classmethod

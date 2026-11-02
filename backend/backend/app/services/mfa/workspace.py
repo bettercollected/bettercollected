@@ -11,7 +11,12 @@ Who may do what:
   the workspace's verified domains, or who belongs to no other workspace (a
   factor is per account: an owner of one workspace must not be able to strip the
   protection of a person whose account reaches another workspace too);
-* the platform administrator may reset anyone's, never their own.
+* the platform administrator may reset anyone's (another platform administrator's
+  included: the design says anyone, and every such reset is audited and mailed),
+  never their own; an owner may not reset a platform administrator's;
+* whoever resets presents a second factor in their own session first (409
+  ``enrol_first``): without it a session that passed only the first factor could
+  strip everyone else's.
 
 Every change is audited with ids only; a reset ends the target's sessions and
 mails the target.
@@ -22,6 +27,7 @@ import logging
 from http import HTTPStatus
 from typing import List, Optional
 
+from bson import ObjectId
 from common.ids import RecordId
 from fastapi_camelcase import CamelModel
 
@@ -33,6 +39,7 @@ from backend.app.schemas.workspace_audit_event import (
     TOTP_RESET,
     WorkspaceAuditEventDocument,
 )
+from backend.app.services.domains.names import domain_of
 from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.mfa import notifier as notifier_module
 from backend.app.services.mfa.service import _refused, refuse_when_off, totp_enabled
@@ -40,6 +47,39 @@ from backend.app.services.session_service import RevokeReason
 from backend.config import settings
 
 log = logging.getLogger(__name__)
+
+NOT_FOUND = "Not found."
+
+
+def _known(user_id) -> bool:
+    """A well-formed account id (a malformed one is as unknown as a missing one)."""
+    return isinstance(user_id, str) and ObjectId.is_valid(user_id)
+
+
+def _require_own_factor(user) -> None:
+    """The caller's session has presented a second factor: the guard the
+    workspace rule's own setting has, for the same reason."""
+    if not getattr(user, "mfa", None):
+        raise _refused(
+            HTTPStatus.CONFLICT,
+            "enrol_first",
+            "Set up your own authenticator app, and enter its code in this "
+            "session, before removing someone else's.",
+        )
+
+
+def _is_platform_admin(info: dict) -> bool:
+    """The account is a platform administrator: the role is stored, or its
+    address is one of the configured ones (the grant auth gives at sign-in)."""
+    if "ADMIN" in (info.get("roles") or []):
+        return True
+    configured = {
+        e.strip().lower()
+        for e in (settings.verified_domains.PLATFORM_ADMIN_EMAILS or "").split(",")
+        if e.strip()
+    }
+    email = (info.get("email") or "").strip().lower()
+    return bool(email) and email in configured
 
 
 class TotpPolicyDto(CamelModel):
@@ -156,7 +196,9 @@ class WorkspaceTotpService:
                 workspace,
                 {"require_totp": required, "updated_at": dt.datetime.now(dt.timezone.utc)},
             )
-            await self._record(TOTP_POLICY_CHANGED, workspace.id, user.id, user.sid)
+            await self._record(
+                TOTP_POLICY_CHANGED, workspace.id, user.id, user.sid, required=required
+            )
             log.info(
                 "second-factor policy of workspace %s set to %s by %s",
                 workspace.id,
@@ -170,17 +212,33 @@ class WorkspaceTotpService:
         """An owner removes a member's factor (see the module notes for who)."""
         refuse_when_off()
         await self._authorization.require_owner(user, workspace_id)
+        _require_own_factor(user)
         if str(target_id) == str(user.id):
             raise _refused(
                 HTTPStatus.CONFLICT,
                 "reset_self",
                 "Turn off your own authenticator app in your account settings.",
             )
+        if not _known(target_id):
+            raise HTTPException(HTTPStatus.NOT_FOUND, NOT_FOUND)
         workspace = await self._workspaces.get_or_404(workspace_id)
-        membership = await self._members.find_workspace_user(workspace_id, target_id)
-        if membership is None:
-            raise HTTPException(HTTPStatus.NOT_FOUND, "Not a member of this workspace.")
-        if not await self._may_reset(workspace, target_id):
+        if await self._members.find_workspace_user(workspace_id, target_id) is None:
+            raise HTTPException(HTTPStatus.NOT_FOUND, NOT_FOUND)
+        info = await self._account_info(target_id)
+        if info is None:
+            raise _refused(
+                HTTPStatus.SERVICE_UNAVAILABLE,
+                "directory_unavailable",
+                "Try again in a moment.",
+            )
+        if _is_platform_admin(info):
+            raise _refused(
+                HTTPStatus.CONFLICT,
+                "reset_admin_not_allowed",
+                "Only the administrator of this service can remove the "
+                "authenticator app of another administrator.",
+            )
+        if not await self._may_reset(workspace, target_id, info.get("email")):
             raise _refused(
                 HTTPStatus.CONFLICT,
                 "reset_not_allowed",
@@ -189,28 +247,46 @@ class WorkspaceTotpService:
                 "this service.",
             )
         if not await self._factors.confirmed(target_id):
-            raise HTTPException(HTTPStatus.NOT_FOUND, "No authenticator app is set up.")
+            raise HTTPException(HTTPStatus.NOT_FOUND, NOT_FOUND)
+        locale = await self._locale_of(target_id)
+        # the membership is read again at the moment of the delete: someone
+        # removed from the workspace in between is not the owner's to reset
+        if await self._members.find_workspace_user(workspace_id, target_id) is None:
+            raise HTTPException(HTTPStatus.NOT_FOUND, NOT_FOUND)
         await self._remove(target_id, workspace.id, user)
+        if await self._members.find_workspace_user(workspace_id, target_id) is None:
+            log.warning(
+                "member %s left workspace %s while an owner reset their factor",
+                target_id,
+                workspace.id,
+            )
         self._tell(
             target_id,
             notifier_module.RESET_OWNER,
             workspace_title=getattr(workspace, "title", None)
             or getattr(workspace, "workspace_name", None),
+            locale=locale,
         )
 
     async def admin_reset(self, user, target_id: str) -> None:
         """The platform administrator removes anyone's factor (never their own)."""
         refuse_when_off()
+        _require_own_factor(user)
         if str(target_id) == str(user.id):
             raise _refused(
                 HTTPStatus.CONFLICT,
                 "reset_self",
                 "Turn off your own authenticator app in your account settings.",
             )
-        if not await self._factors.confirmed(target_id):
-            raise HTTPException(HTTPStatus.NOT_FOUND, "No authenticator app is set up.")
+        if not _known(target_id) or not await self._factors.confirmed(target_id):
+            raise HTTPException(HTTPStatus.NOT_FOUND, NOT_FOUND)
+        locale = await self._locale_of(target_id)
         await self._remove(target_id, RecordId(NO_WORKSPACE), user)
-        self._tell(target_id, notifier_module.RESET)
+        self._tell(target_id, notifier_module.RESET, locale=locale)
+
+    async def _locale_of(self, target_id: str) -> Optional[str]:
+        factor = await self._factors.confirmed(target_id)
+        return getattr(factor, "locale", None)
 
     async def _remove(self, target_id: str, workspace_id, actor) -> None:
         await self._factors.delete_for_user(str(target_id))
@@ -221,7 +297,7 @@ class WorkspaceTotpService:
             TOTP_RESET, workspace_id, actor.id, actor.sid, target_user_id=target_id
         )
 
-    async def _may_reset(self, workspace, target_id: str) -> bool:
+    async def _may_reset(self, workspace, target_id: str, email: Optional[str]) -> bool:
         """The member's address is on a verified domain of this workspace, or
         they belong to no other workspace."""
         others = [
@@ -231,14 +307,17 @@ class WorkspaceTotpService:
         ]
         if not others:
             return True
-        email = await self._email_of(target_id)
-        domain = email.rpartition("@")[2].lower() if email and "@" in email else None
+        # the canonical domain (case, a trailing dot, internationalised names);
+        # an address that is not one has no domain to vouch for
+        domain = domain_of(email) if email and "@" in email else None
         if not domain:
             return False
         claim = await self._domains.find_verified(domain)
         return claim is not None and str(claim.workspace_id) == str(workspace.id)
 
-    async def _email_of(self, user_id: str) -> Optional[str]:
+    async def _account_info(self, user_id: str) -> Optional[dict]:
+        """What the auth service says about the account (its address and
+        roles); None when it cannot be asked."""
         try:
             reply = await self._http_client.get(
                 settings.auth_settings.BASE_URL + "/users",
@@ -246,13 +325,14 @@ class WorkspaceTotpService:
                 headers=auth_service_headers(),
                 timeout=10,
             )
-        except Exception as error:  # noqa: BLE001 — no address: not allowed
-            log.warning("member address lookup failed (%s)", type(error).__name__)
+        except Exception as error:  # noqa: BLE001
+            log.warning("member lookup failed (%s)", type(error).__name__)
             return None
         for info in (reply or {}).get("users_info") or []:
             if str(info.get("_id") or info.get("id") or "") == str(user_id):
-                return info.get("email")
-        return None
+                return info
+        # the account is gone from auth: nobody to vouch for, no admin either
+        return {}
 
     # -- the member list -------------------------------------------------------
     async def flags(self, user_ids: List[str]) -> Optional[set]:
@@ -268,7 +348,13 @@ class WorkspaceTotpService:
             self._notifier.notify(user_id, kind, **extra)
 
     async def _record(
-        self, event: str, workspace_id, actor_id, session_id, target_user_id=None
+        self,
+        event: str,
+        workspace_id,
+        actor_id,
+        session_id,
+        target_user_id=None,
+        required: Optional[bool] = None,
     ) -> None:
         if self._audit is None:
             return
@@ -281,6 +367,7 @@ class WorkspaceTotpService:
                     session_id=str(session_id) if session_id else None,
                     event=event,
                     target_user_id=str(target_user_id) if target_user_id else None,
+                    required=required,
                 )
             )
         except Exception as error:  # noqa: BLE001 — the change stands

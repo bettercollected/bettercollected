@@ -39,6 +39,12 @@ def request_locale() -> Optional[str]:
     return None
 
 
+# ``locale`` not given: the request's own language (the notice is about the
+# person making the request). ``locale=None`` given: no language (a notice about
+# someone else's account whose language is not known: never the caller's).
+REQUEST_LOCALE = object()
+
+
 class MfaNotifier:
     def __init__(self, http_client):
         self._http_client = http_client
@@ -52,7 +58,11 @@ class MfaNotifier:
         recovery_left: Optional[int] = None,
         minutes: Optional[int] = None,
         workspace_title: Optional[str] = None,
+        locale=REQUEST_LOCALE,
     ) -> None:
+        """``locale``: the language of the account the notice is about, when
+        someone else caused it (a reset): ``None`` when it is not known. Left
+        out, the request's own language (the person's own action)."""
         notice = {"user_id": str(user_id), "kind": kind}
         if recovery_left is not None:
             notice["recovery_left"] = int(recovery_left)
@@ -60,7 +70,9 @@ class MfaNotifier:
             notice["minutes"] = int(minutes)
         if workspace_title:
             notice["workspace_title"] = str(workspace_title)[:1000]
-        locale = request_locale()
+        if locale is REQUEST_LOCALE:
+            locale = request_locale()
+        locale = (locale or "")[:LOCALE_MAX]
         if locale:
             notice["locale"] = locale
         try:
