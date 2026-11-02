@@ -1,0 +1,3739 @@
+{
+ "answers": {
+  "number": 3,
+  "number zero": 0,
+  "number missing": null,
+  "rating": 4,
+  "linear rating": 9,
+  "input rating": 2,
+  "input number": 2.5,
+  "short text": "Ada",
+  "long text": "a\nb",
+  "text": "x",
+  "input short text": "s",
+  "input long text": "l",
+  "text missing": null,
+  "url": "https://example.org/a?b=c",
+  "input link": "https://x.example",
+  "email": "a@example.org",
+  "input email": "b@example.org",
+  "date": "2026-11-02",
+  "day": "2026-11-03",
+  "input date": "2026-11-04",
+  "time": "13:45",
+  "currency": "EUR 12.50",
+  "currency without code": "7",
+  "currency without amount": "",
+  "currency missing": "",
+  "date range": "2026-01-01/2026-01-09",
+  "date range open end": "2026-01-01/",
+  "date range open start": "/2026-01-09",
+  "date range empty": "",
+  "tags": "one; two; 3",
+  "tags not a list": "",
+  "tags empty": "",
+  "address NL": "Keizersgracht 12 B, 1015 CJ Amsterdam",
+  "address foreign": "Rue X 3, 75001 Paris, FR",
+  "address only country": "",
+  "address not a dict": "",
+  "address missing": "",
+  "yes": "Yes",
+  "no": "No",
+  "yes no unanswered": "",
+  "dropdown single": "Green",
+  "dropdown single other": "Red, Purple",
+  "dropdown other only": "Purple",
+  "choice with empty or missing value": "Red, Item 3, Item 4",
+  "multiple choice many": "Red, Green, Else",
+  "multiple choice none": "",
+  "multiple choice single selection": "Red",
+  "sourced single": "Alice Example",
+  "sourced single other": "Alice, Else",
+  "sourced many": "Carol, Bob, Dan",
+  "sourced unanswered": "",
+  "static question ignores forged labels": "Red",
+  "phone": "+31 6 12345678",
+  "input phone": "0612345678",
+  "input multiple choice": "Green",
+  "input dropdown unknown": null,
+  "input checkboxes by value": "Red, Green",
+  "input checkboxes by id": "One, Two",
+  "input checkboxes empty": "",
+  "input ranking": "First, Second",
+  "file upload": "cv.pdf",
+  "input file upload": "a.png",
+  "file upload missing": null,
+  "signature typed": "[signed]",
+  "signature drawn": "[signed]",
+  "signature empty": "",
+  "signature missing": "",
+  "calculated number": "€1,234.50",
+  "calculated text": "adult",
+  "calculated boolean": "No",
+  "calculated none": "",
+  "unknown type": ""
+ },
+ "calculated_formats": [
+  "26%",
+  "25.6%",
+  "-€2.50",
+  "USD 12.00",
+  "USD 12",
+  "1,234.57",
+  "1,234.5",
+  "1,234.5",
+  "1,000,000",
+  "2.68",
+  "12",
+  "12.5",
+  "0",
+  "Yes",
+  "No",
+  "adult",
+  "",
+  "",
+  "",
+  "12.5",
+  "abc"
+ ],
+ "address_lines": [
+  "",
+  "",
+  "",
+  "Main 1",
+  "1234 AB Town",
+  "1234 AB Town, DE",
+  "",
+  "X"
+ ],
+ "formula_safe": [
+  "'=HYPERLINK(\"x\")",
+  "'+1",
+  "'-2",
+  "'@SUM(A1)",
+  "'\tx",
+  "'\rx",
+  "' =1+1",
+  "' +1",
+  "'　-2",
+  "'﻿@x",
+  "'\n =1",
+  "' =1",
+  "\u001f=1",
+  "'-5",
+  "plain",
+  "",
+  "a =1",
+  "x\n=1",
+  "2026-09-27",
+  "'=",
+  " ",
+  5,
+  -5,
+  3.5,
+  null,
+  true
+ ],
+ "column_letters": [
+  "A",
+  "A",
+  "B",
+  "Y",
+  "Z",
+  "AA",
+  "AZ",
+  "BA",
+  "ZZ",
+  "AAA",
+  "ZZZ"
+ ],
+ "sheet_titles": [
+  "Family  members  all",
+  "Group",
+  "Group",
+  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "It s",
+  "A B C",
+  "spaced",
+  "Group",
+  "7"
+ ],
+ "unique_sheet_titles": [
+  [
+   "Applicants",
+   "applicants (g2)",
+   "APPLICANTS (g3)",
+   "Applicants (g4)"
+  ],
+  [
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (g2abcdef)",
+   "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX (g3abcdef)"
+  ],
+  [
+   "Group",
+   "Group (b)"
+  ]
+ ],
+ "forms": {
+  "every kind of title": {
+   "fields": [
+    {
+     "id": "a",
+     "title": "Plain title",
+     "type": "short_text"
+    },
+    {
+     "id": "b",
+     "title": "Rich title  ",
+     "type": "short_text"
+    },
+    {
+     "id": "c",
+     "title": "Two  parts  paragraphs  ",
+     "type": "short_text"
+    },
+    {
+     "id": "d",
+     "title": "Enter Your Email Address",
+     "type": "email"
+    },
+    {
+     "id": "e",
+     "title": "Enter Number",
+     "type": "number"
+    },
+    {
+     "id": "f",
+     "title": "Select an option",
+     "type": "dropdown"
+    },
+    {
+     "id": "g",
+     "title": "No Field Selected",
+     "type": "hologram"
+    },
+    {
+     "id": "h",
+     "title": "Are you sure?",
+     "type": "yes_no"
+    },
+    {
+     "id": "i",
+     "title": "Sign here",
+     "type": "signature"
+    },
+    {
+     "id": "j",
+     "title": "Enter an address",
+     "type": "address"
+    }
+   ],
+   "fields_for_respondent": [
+    {
+     "id": "a",
+     "title": "Plain title",
+     "type": "short_text"
+    },
+    {
+     "id": "b",
+     "title": "Rich title  ",
+     "type": "short_text"
+    },
+    {
+     "id": "c",
+     "title": "Two  parts  paragraphs  ",
+     "type": "short_text"
+    },
+    {
+     "id": "d",
+     "title": "Enter Your Email Address",
+     "type": "email"
+    },
+    {
+     "id": "e",
+     "title": "Enter Number",
+     "type": "number"
+    },
+    {
+     "id": "f",
+     "title": "Select an option",
+     "type": "dropdown"
+    },
+    {
+     "id": "g",
+     "title": "No Field Selected",
+     "type": "hologram"
+    },
+    {
+     "id": "h",
+     "title": "Are you sure?",
+     "type": "yes_no"
+    },
+    {
+     "id": "i",
+     "title": "Sign here",
+     "type": "signature"
+    },
+    {
+     "id": "j",
+     "title": "Enter an address",
+     "type": "address"
+    }
+   ],
+   "group_tables": [],
+   "qa fixed_columns=False respondent=False": [
+    {
+     "field_id": "a",
+     "title": "Plain title",
+     "answer": "A"
+    },
+    {
+     "field_id": "b",
+     "title": "Rich title  ",
+     "answer": "B"
+    },
+    {
+     "field_id": "c",
+     "title": "Two  parts  paragraphs  ",
+     "answer": "C"
+    },
+    {
+     "field_id": "d",
+     "title": "Enter Your Email Address",
+     "answer": "d@example.org"
+    },
+    {
+     "field_id": "e",
+     "title": "Enter Number",
+     "answer": 5
+    },
+    {
+     "field_id": "f",
+     "title": "Select an option",
+     "answer": "Red"
+    },
+    {
+     "field_id": "g",
+     "title": "No Field Selected",
+     "answer": ""
+    },
+    {
+     "field_id": "h",
+     "title": "Are you sure?",
+     "answer": "Yes"
+    },
+    {
+     "field_id": "i",
+     "title": "Sign here",
+     "answer": "[signed]"
+    },
+    {
+     "field_id": "j",
+     "title": "Enter an address",
+     "answer": "S 1, 1000 AA C"
+    }
+   ],
+   "qa fixed_columns=False respondent=True": [
+    {
+     "field_id": "a",
+     "title": "Plain title",
+     "answer": "A"
+    },
+    {
+     "field_id": "b",
+     "title": "Rich title  ",
+     "answer": "B"
+    },
+    {
+     "field_id": "c",
+     "title": "Two  parts  paragraphs  ",
+     "answer": "C"
+    },
+    {
+     "field_id": "d",
+     "title": "Enter Your Email Address",
+     "answer": "d@example.org"
+    },
+    {
+     "field_id": "e",
+     "title": "Enter Number",
+     "answer": 5
+    },
+    {
+     "field_id": "f",
+     "title": "Select an option",
+     "answer": "Red"
+    },
+    {
+     "field_id": "g",
+     "title": "No Field Selected",
+     "answer": ""
+    },
+    {
+     "field_id": "h",
+     "title": "Are you sure?",
+     "answer": "Yes"
+    },
+    {
+     "field_id": "i",
+     "title": "Sign here",
+     "answer": "[signed]"
+    },
+    {
+     "field_id": "j",
+     "title": "Enter an address",
+     "answer": "S 1, 1000 AA C"
+    }
+   ],
+   "qa fixed_columns=True respondent=False": [
+    {
+     "field_id": "a",
+     "title": "Plain title",
+     "answer": "A"
+    },
+    {
+     "field_id": "b",
+     "title": "Rich title  ",
+     "answer": "B"
+    },
+    {
+     "field_id": "c",
+     "title": "Two  parts  paragraphs  ",
+     "answer": "C"
+    },
+    {
+     "field_id": "d",
+     "title": "Enter Your Email Address",
+     "answer": "d@example.org"
+    },
+    {
+     "field_id": "e",
+     "title": "Enter Number",
+     "answer": 5
+    },
+    {
+     "field_id": "f",
+     "title": "Select an option",
+     "answer": "Red"
+    },
+    {
+     "field_id": "g",
+     "title": "No Field Selected",
+     "answer": ""
+    },
+    {
+     "field_id": "h",
+     "title": "Are you sure?",
+     "answer": "Yes"
+    },
+    {
+     "field_id": "i",
+     "title": "Sign here",
+     "answer": "[signed]"
+    },
+    {
+     "field_id": "j",
+     "title": "Enter an address",
+     "answer": "S 1, 1000 AA C"
+    }
+   ],
+   "qa fixed_columns=True respondent=True": [
+    {
+     "field_id": "a",
+     "title": "Plain title",
+     "answer": "A"
+    },
+    {
+     "field_id": "b",
+     "title": "Rich title  ",
+     "answer": "B"
+    },
+    {
+     "field_id": "c",
+     "title": "Two  parts  paragraphs  ",
+     "answer": "C"
+    },
+    {
+     "field_id": "d",
+     "title": "Enter Your Email Address",
+     "answer": "d@example.org"
+    },
+    {
+     "field_id": "e",
+     "title": "Enter Number",
+     "answer": 5
+    },
+    {
+     "field_id": "f",
+     "title": "Select an option",
+     "answer": "Red"
+    },
+    {
+     "field_id": "g",
+     "title": "No Field Selected",
+     "answer": ""
+    },
+    {
+     "field_id": "h",
+     "title": "Are you sure?",
+     "answer": "Yes"
+    },
+    {
+     "field_id": "i",
+     "title": "Sign here",
+     "answer": "[signed]"
+    },
+    {
+     "field_id": "j",
+     "title": "Enter an address",
+     "answer": "S 1, 1000 AA C"
+    }
+   ],
+   "qa twice over the same form": [
+    [
+     {
+      "field_id": "a",
+      "title": "Plain title",
+      "answer": "A"
+     },
+     {
+      "field_id": "b",
+      "title": "Rich title  ",
+      "answer": "B"
+     },
+     {
+      "field_id": "c",
+      "title": "Two  parts  paragraphs  ",
+      "answer": "C"
+     },
+     {
+      "field_id": "d",
+      "title": "Enter Your Email Address",
+      "answer": "d@example.org"
+     },
+     {
+      "field_id": "e",
+      "title": "Enter Number",
+      "answer": 5
+     },
+     {
+      "field_id": "f",
+      "title": "Select an option",
+      "answer": "Red"
+     },
+     {
+      "field_id": "g",
+      "title": "No Field Selected",
+      "answer": ""
+     },
+     {
+      "field_id": "h",
+      "title": "Are you sure?",
+      "answer": "Yes"
+     },
+     {
+      "field_id": "i",
+      "title": "Sign here",
+      "answer": "[signed]"
+     },
+     {
+      "field_id": "j",
+      "title": "Enter an address",
+      "answer": "S 1, 1000 AA C"
+     }
+    ],
+    [
+     {
+      "field_id": "a",
+      "title": "Plain title",
+      "answer": "A"
+     },
+     {
+      "field_id": "b",
+      "title": "Rich title  ",
+      "answer": "B"
+     },
+     {
+      "field_id": "c",
+      "title": "Two  parts  paragraphs  ",
+      "answer": "C"
+     },
+     {
+      "field_id": "d",
+      "title": "Enter Your Email Address",
+      "answer": "d@example.org"
+     },
+     {
+      "field_id": "e",
+      "title": "Enter Number",
+      "answer": 5
+     },
+     {
+      "field_id": "f",
+      "title": "Select an option",
+      "answer": "Red"
+     },
+     {
+      "field_id": "g",
+      "title": "No Field Selected",
+      "answer": ""
+     },
+     {
+      "field_id": "h",
+      "title": "Are you sure?",
+      "answer": "Yes"
+     },
+     {
+      "field_id": "i",
+      "title": "Sign here",
+      "answer": "[signed]"
+     },
+     {
+      "field_id": "j",
+      "title": "Enter an address",
+      "answer": "S 1, 1000 AA C"
+     }
+    ]
+   ]
+  },
+  "internal and hidden fields": {
+   "fields": [
+    {
+     "id": "name",
+     "title": "Your name",
+     "type": "short_text"
+    },
+    {
+     "id": "qty",
+     "title": "Quantity",
+     "type": "number"
+    },
+    {
+     "id": "total",
+     "title": "Total",
+     "type": "calculated"
+    },
+    {
+     "id": "score",
+     "title": "Risk score",
+     "type": "calculated"
+    },
+    {
+     "id": "score2",
+     "title": "Second score",
+     "type": "calculated"
+    },
+    {
+     "id": "plain-calc",
+     "title": "Plain",
+     "type": "calculated"
+    },
+    {
+     "id": "no-props",
+     "title": "No properties",
+     "type": "calculated"
+    }
+   ],
+   "fields_for_respondent": [
+    {
+     "id": "name",
+     "title": "Your name",
+     "type": "short_text"
+    },
+    {
+     "id": "qty",
+     "title": "Quantity",
+     "type": "number"
+    },
+    {
+     "id": "total",
+     "title": "Total",
+     "type": "calculated"
+    },
+    {
+     "id": "plain-calc",
+     "title": "Plain",
+     "type": "calculated"
+    },
+    {
+     "id": "no-props",
+     "title": "No properties",
+     "type": "calculated"
+    }
+   ],
+   "group_tables": [],
+   "qa fixed_columns=False respondent=False": [
+    {
+     "field_id": "name",
+     "title": "Your name",
+     "answer": "Ada"
+    },
+    {
+     "field_id": "qty",
+     "title": "Quantity",
+     "answer": 3
+    },
+    {
+     "field_id": "total",
+     "title": "Total",
+     "answer": "€1,234.50"
+    },
+    {
+     "field_id": "score",
+     "title": "Risk score",
+     "answer": "7"
+    },
+    {
+     "field_id": "score2",
+     "title": "Second score",
+     "answer": "8"
+    },
+    {
+     "field_id": "plain-calc",
+     "title": "Plain",
+     "answer": "Yes"
+    },
+    {
+     "field_id": "no-props",
+     "title": "No properties",
+     "answer": "t"
+    }
+   ],
+   "qa fixed_columns=False respondent=True": [
+    {
+     "field_id": "name",
+     "title": "Your name",
+     "answer": "Ada"
+    },
+    {
+     "field_id": "qty",
+     "title": "Quantity",
+     "answer": 3
+    },
+    {
+     "field_id": "total",
+     "title": "Total",
+     "answer": "€1,234.50"
+    },
+    {
+     "field_id": "plain-calc",
+     "title": "Plain",
+     "answer": "Yes"
+    },
+    {
+     "field_id": "no-props",
+     "title": "No properties",
+     "answer": "t"
+    }
+   ],
+   "qa fixed_columns=True respondent=False": [
+    {
+     "field_id": "name",
+     "title": "Your name",
+     "answer": "Ada"
+    },
+    {
+     "field_id": "qty",
+     "title": "Quantity",
+     "answer": 3
+    },
+    {
+     "field_id": "total",
+     "title": "Total",
+     "answer": "€1,234.50"
+    },
+    {
+     "field_id": "score",
+     "title": "Risk score",
+     "answer": "7"
+    },
+    {
+     "field_id": "score2",
+     "title": "Second score",
+     "answer": "8"
+    },
+    {
+     "field_id": "plain-calc",
+     "title": "Plain",
+     "answer": "Yes"
+    },
+    {
+     "field_id": "no-props",
+     "title": "No properties",
+     "answer": "t"
+    }
+   ],
+   "qa fixed_columns=True respondent=True": [
+    {
+     "field_id": "name",
+     "title": "Your name",
+     "answer": "Ada"
+    },
+    {
+     "field_id": "qty",
+     "title": "Quantity",
+     "answer": 3
+    },
+    {
+     "field_id": "total",
+     "title": "Total",
+     "answer": "€1,234.50"
+    },
+    {
+     "field_id": "plain-calc",
+     "title": "Plain",
+     "answer": "Yes"
+    },
+    {
+     "field_id": "no-props",
+     "title": "No properties",
+     "answer": "t"
+    }
+   ],
+   "qa twice over the same form": [
+    [
+     {
+      "field_id": "name",
+      "title": "Your name",
+      "answer": "Ada"
+     },
+     {
+      "field_id": "qty",
+      "title": "Quantity",
+      "answer": 3
+     },
+     {
+      "field_id": "total",
+      "title": "Total",
+      "answer": "€1,234.50"
+     },
+     {
+      "field_id": "score",
+      "title": "Risk score",
+      "answer": "7"
+     },
+     {
+      "field_id": "score2",
+      "title": "Second score",
+      "answer": "8"
+     },
+     {
+      "field_id": "plain-calc",
+      "title": "Plain",
+      "answer": "Yes"
+     },
+     {
+      "field_id": "no-props",
+      "title": "No properties",
+      "answer": "t"
+     }
+    ],
+    [
+     {
+      "field_id": "name",
+      "title": "Your name",
+      "answer": "Ada"
+     },
+     {
+      "field_id": "qty",
+      "title": "Quantity",
+      "answer": 3
+     },
+     {
+      "field_id": "total",
+      "title": "Total",
+      "answer": "€1,234.50"
+     },
+     {
+      "field_id": "score",
+      "title": "Risk score",
+      "answer": "7"
+     },
+     {
+      "field_id": "score2",
+      "title": "Second score",
+      "answer": "8"
+     },
+     {
+      "field_id": "plain-calc",
+      "title": "Plain",
+      "answer": "Yes"
+     },
+     {
+      "field_id": "no-props",
+      "title": "No properties",
+      "answer": "t"
+     }
+    ]
+   ]
+  },
+  "matrix": {
+   "fields": [
+    {
+     "id": "r1",
+     "title": "Satisfaction[Service]",
+     "type": "linear_rating"
+    },
+    {
+     "id": "r2",
+     "title": "Satisfaction[Row 2]",
+     "type": "linear_rating"
+    },
+    {
+     "id": "r3",
+     "title": "Satisfaction[Row 3]",
+     "type": "linear_rating"
+    },
+    {
+     "id": "r4",
+     "title": "Satisfaction[Rich row  ]",
+     "type": "linear_rating"
+    },
+    {
+     "id": "after",
+     "title": "After",
+     "type": "short_text"
+    }
+   ],
+   "fields_for_respondent": [
+    {
+     "id": "r1",
+     "title": "Satisfaction[Service]",
+     "type": "linear_rating"
+    },
+    {
+     "id": "r2",
+     "title": "Satisfaction[Row 2]",
+     "type": "linear_rating"
+    },
+    {
+     "id": "r3",
+     "title": "Satisfaction[Row 3]",
+     "type": "linear_rating"
+    },
+    {
+     "id": "r4",
+     "title": "Satisfaction[Rich row  ]",
+     "type": "linear_rating"
+    },
+    {
+     "id": "after",
+     "title": "After",
+     "type": "short_text"
+    }
+   ],
+   "group_tables": [],
+   "qa fixed_columns=False respondent=False": [
+    {
+     "field_id": "r1",
+     "title": "Satisfaction[Service]",
+     "answer": 8
+    },
+    {
+     "field_id": "r2",
+     "title": "Satisfaction[Row 2]",
+     "answer": 6
+    },
+    {
+     "field_id": "r3",
+     "title": "Satisfaction[Row 3]",
+     "answer": 1
+    },
+    {
+     "field_id": "r4",
+     "title": "Satisfaction[Rich row  ]",
+     "answer": 2
+    },
+    {
+     "field_id": "after",
+     "title": "After",
+     "answer": "ok"
+    }
+   ],
+   "qa fixed_columns=False respondent=True": [
+    {
+     "field_id": "r1",
+     "title": "Satisfaction[Service]",
+     "answer": 8
+    },
+    {
+     "field_id": "r2",
+     "title": "Satisfaction[Row 2]",
+     "answer": 6
+    },
+    {
+     "field_id": "r3",
+     "title": "Satisfaction[Row 3]",
+     "answer": 1
+    },
+    {
+     "field_id": "r4",
+     "title": "Satisfaction[Rich row  ]",
+     "answer": 2
+    },
+    {
+     "field_id": "after",
+     "title": "After",
+     "answer": "ok"
+    }
+   ],
+   "qa fixed_columns=True respondent=False": [
+    {
+     "field_id": "r1",
+     "title": "Satisfaction[Service]",
+     "answer": 8
+    },
+    {
+     "field_id": "r2",
+     "title": "Satisfaction[Row 2]",
+     "answer": 6
+    },
+    {
+     "field_id": "r3",
+     "title": "Satisfaction[Row 3]",
+     "answer": 1
+    },
+    {
+     "field_id": "r4",
+     "title": "Satisfaction[Rich row  ]",
+     "answer": 2
+    },
+    {
+     "field_id": "after",
+     "title": "After",
+     "answer": "ok"
+    }
+   ],
+   "qa fixed_columns=True respondent=True": [
+    {
+     "field_id": "r1",
+     "title": "Satisfaction[Service]",
+     "answer": 8
+    },
+    {
+     "field_id": "r2",
+     "title": "Satisfaction[Row 2]",
+     "answer": 6
+    },
+    {
+     "field_id": "r3",
+     "title": "Satisfaction[Row 3]",
+     "answer": 1
+    },
+    {
+     "field_id": "r4",
+     "title": "Satisfaction[Rich row  ]",
+     "answer": 2
+    },
+    {
+     "field_id": "after",
+     "title": "After",
+     "answer": "ok"
+    }
+   ],
+   "qa twice over the same form": [
+    [
+     {
+      "field_id": "r1",
+      "title": "Satisfaction[Service]",
+      "answer": 8
+     },
+     {
+      "field_id": "r2",
+      "title": "Satisfaction[Row 2]",
+      "answer": 6
+     },
+     {
+      "field_id": "r3",
+      "title": "Satisfaction[Row 3]",
+      "answer": 1
+     },
+     {
+      "field_id": "r4",
+      "title": "Satisfaction[Rich row  ]",
+      "answer": 2
+     },
+     {
+      "field_id": "after",
+      "title": "After",
+      "answer": "ok"
+     }
+    ],
+    [
+     {
+      "field_id": "r1",
+      "title": "Satisfaction[Service]",
+      "answer": 8
+     },
+     {
+      "field_id": "r2",
+      "title": "Satisfaction[Row 2]",
+      "answer": 6
+     },
+     {
+      "field_id": "r3",
+      "title": "Satisfaction[Row 3]",
+      "answer": 1
+     },
+     {
+      "field_id": "r4",
+      "title": "Satisfaction[Rich row  ]",
+      "answer": 2
+     },
+     {
+      "field_id": "after",
+      "title": "After",
+      "answer": "ok"
+     }
+    ]
+   ]
+  },
+  "choices of every kind in one form": {
+   "fields": [
+    {
+     "id": "one",
+     "title": "One",
+     "type": "dropdown"
+    },
+    {
+     "id": "many",
+     "title": "Many",
+     "type": "multiple_choice"
+    },
+    {
+     "id": "src",
+     "title": "Sourced",
+     "type": "dropdown"
+    },
+    {
+     "id": "srcmany",
+     "title": "Sourced many",
+     "type": "multiple_choice"
+    },
+    {
+     "id": "tags",
+     "title": "Tags",
+     "type": "tags"
+    },
+    {
+     "id": "dr",
+     "title": "Dates",
+     "type": "date_range"
+    },
+    {
+     "id": "money",
+     "title": "Money",
+     "type": "currency"
+    },
+    {
+     "id": "t",
+     "title": "Time",
+     "type": "time"
+    },
+    {
+     "id": "dy",
+     "title": "Day",
+     "type": "day"
+    }
+   ],
+   "fields_for_respondent": [
+    {
+     "id": "one",
+     "title": "One",
+     "type": "dropdown"
+    },
+    {
+     "id": "many",
+     "title": "Many",
+     "type": "multiple_choice"
+    },
+    {
+     "id": "src",
+     "title": "Sourced",
+     "type": "dropdown"
+    },
+    {
+     "id": "srcmany",
+     "title": "Sourced many",
+     "type": "multiple_choice"
+    },
+    {
+     "id": "tags",
+     "title": "Tags",
+     "type": "tags"
+    },
+    {
+     "id": "dr",
+     "title": "Dates",
+     "type": "date_range"
+    },
+    {
+     "id": "money",
+     "title": "Money",
+     "type": "currency"
+    },
+    {
+     "id": "t",
+     "title": "Time",
+     "type": "time"
+    },
+    {
+     "id": "dy",
+     "title": "Day",
+     "type": "day"
+    }
+   ],
+   "group_tables": [],
+   "qa fixed_columns=False respondent=False": [
+    {
+     "field_id": "one",
+     "title": "One",
+     "answer": "Green, x"
+    },
+    {
+     "field_id": "many",
+     "title": "Many",
+     "answer": "Red, Green, Else"
+    },
+    {
+     "field_id": "src",
+     "title": "Sourced",
+     "answer": "Alice Example"
+    },
+    {
+     "field_id": "srcmany",
+     "title": "Sourced many",
+     "answer": "Carol, Bob"
+    },
+    {
+     "field_id": "tags",
+     "title": "Tags",
+     "answer": "x; y"
+    },
+    {
+     "field_id": "dr",
+     "title": "Dates",
+     "answer": "2026-01-01/2026-02-01"
+    },
+    {
+     "field_id": "money",
+     "title": "Money",
+     "answer": "USD 9.99"
+    },
+    {
+     "field_id": "t",
+     "title": "Time",
+     "answer": "09:00"
+    },
+    {
+     "field_id": "dy",
+     "title": "Day",
+     "answer": "2026-03-04"
+    }
+   ],
+   "qa fixed_columns=False respondent=True": [
+    {
+     "field_id": "one",
+     "title": "One",
+     "answer": "Green, x"
+    },
+    {
+     "field_id": "many",
+     "title": "Many",
+     "answer": "Red, Green, Else"
+    },
+    {
+     "field_id": "src",
+     "title": "Sourced",
+     "answer": "Alice Example"
+    },
+    {
+     "field_id": "srcmany",
+     "title": "Sourced many",
+     "answer": "Carol, Bob"
+    },
+    {
+     "field_id": "tags",
+     "title": "Tags",
+     "answer": "x; y"
+    },
+    {
+     "field_id": "dr",
+     "title": "Dates",
+     "answer": "2026-01-01/2026-02-01"
+    },
+    {
+     "field_id": "money",
+     "title": "Money",
+     "answer": "USD 9.99"
+    },
+    {
+     "field_id": "t",
+     "title": "Time",
+     "answer": "09:00"
+    },
+    {
+     "field_id": "dy",
+     "title": "Day",
+     "answer": "2026-03-04"
+    }
+   ],
+   "qa fixed_columns=True respondent=False": [
+    {
+     "field_id": "one",
+     "title": "One",
+     "answer": "Green, x"
+    },
+    {
+     "field_id": "many",
+     "title": "Many",
+     "answer": "Red, Green, Else"
+    },
+    {
+     "field_id": "src",
+     "title": "Sourced",
+     "answer": "Alice Example"
+    },
+    {
+     "field_id": "srcmany",
+     "title": "Sourced many",
+     "answer": "Carol, Bob"
+    },
+    {
+     "field_id": "tags",
+     "title": "Tags",
+     "answer": "x; y"
+    },
+    {
+     "field_id": "dr",
+     "title": "Dates",
+     "answer": "2026-01-01/2026-02-01"
+    },
+    {
+     "field_id": "money",
+     "title": "Money",
+     "answer": "USD 9.99"
+    },
+    {
+     "field_id": "t",
+     "title": "Time",
+     "answer": "09:00"
+    },
+    {
+     "field_id": "dy",
+     "title": "Day",
+     "answer": "2026-03-04"
+    }
+   ],
+   "qa fixed_columns=True respondent=True": [
+    {
+     "field_id": "one",
+     "title": "One",
+     "answer": "Green, x"
+    },
+    {
+     "field_id": "many",
+     "title": "Many",
+     "answer": "Red, Green, Else"
+    },
+    {
+     "field_id": "src",
+     "title": "Sourced",
+     "answer": "Alice Example"
+    },
+    {
+     "field_id": "srcmany",
+     "title": "Sourced many",
+     "answer": "Carol, Bob"
+    },
+    {
+     "field_id": "tags",
+     "title": "Tags",
+     "answer": "x; y"
+    },
+    {
+     "field_id": "dr",
+     "title": "Dates",
+     "answer": "2026-01-01/2026-02-01"
+    },
+    {
+     "field_id": "money",
+     "title": "Money",
+     "answer": "USD 9.99"
+    },
+    {
+     "field_id": "t",
+     "title": "Time",
+     "answer": "09:00"
+    },
+    {
+     "field_id": "dy",
+     "title": "Day",
+     "answer": "2026-03-04"
+    }
+   ],
+   "qa twice over the same form": [
+    [
+     {
+      "field_id": "one",
+      "title": "One",
+      "answer": "Green, x"
+     },
+     {
+      "field_id": "many",
+      "title": "Many",
+      "answer": "Red, Green, Else"
+     },
+     {
+      "field_id": "src",
+      "title": "Sourced",
+      "answer": "Alice Example"
+     },
+     {
+      "field_id": "srcmany",
+      "title": "Sourced many",
+      "answer": "Carol, Bob"
+     },
+     {
+      "field_id": "tags",
+      "title": "Tags",
+      "answer": "x; y"
+     },
+     {
+      "field_id": "dr",
+      "title": "Dates",
+      "answer": "2026-01-01/2026-02-01"
+     },
+     {
+      "field_id": "money",
+      "title": "Money",
+      "answer": "USD 9.99"
+     },
+     {
+      "field_id": "t",
+      "title": "Time",
+      "answer": "09:00"
+     },
+     {
+      "field_id": "dy",
+      "title": "Day",
+      "answer": "2026-03-04"
+     }
+    ],
+    [
+     {
+      "field_id": "one",
+      "title": "One",
+      "answer": "Green, x"
+     },
+     {
+      "field_id": "many",
+      "title": "Many",
+      "answer": "Red, Green, Else"
+     },
+     {
+      "field_id": "src",
+      "title": "Sourced",
+      "answer": "Alice Example"
+     },
+     {
+      "field_id": "srcmany",
+      "title": "Sourced many",
+      "answer": "Carol, Bob"
+     },
+     {
+      "field_id": "tags",
+      "title": "Tags",
+      "answer": "x; y"
+     },
+     {
+      "field_id": "dr",
+      "title": "Dates",
+      "answer": "2026-01-01/2026-02-01"
+     },
+     {
+      "field_id": "money",
+      "title": "Money",
+      "answer": "USD 9.99"
+     },
+     {
+      "field_id": "t",
+      "title": "Time",
+      "answer": "09:00"
+     },
+     {
+      "field_id": "dy",
+      "title": "Day",
+      "answer": "2026-03-04"
+     }
+    ]
+   ]
+  },
+  "group columns layout": {
+   "fields": [
+    {
+     "id": "email",
+     "title": "Contact e-mail",
+     "type": "email"
+    },
+    {
+     "id": "g",
+     "title": "Applicants",
+     "type": "group"
+    }
+   ],
+   "fields_for_respondent": [
+    {
+     "id": "email",
+     "title": "Contact e-mail",
+     "type": "email"
+    },
+    {
+     "id": "g",
+     "title": "Applicants",
+     "type": "group"
+    }
+   ],
+   "group_tables": [],
+   "qa fixed_columns=False respondent=False": [
+    {
+     "field_id": "email",
+     "title": "Contact e-mail",
+     "answer": "a@example.org"
+    },
+    {
+     "field_id": "g.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "g.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "g.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "g.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=False respondent=True": [
+    {
+     "field_id": "email",
+     "title": "Contact e-mail",
+     "answer": "a@example.org"
+    },
+    {
+     "field_id": "g.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "g.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "g.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "g.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=True respondent=False": [
+    {
+     "field_id": "email",
+     "title": "Contact e-mail",
+     "answer": "a@example.org"
+    },
+    {
+     "field_id": "g.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "g.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "g.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "g.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.name",
+     "title": "Applicant 3 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.income",
+     "title": "Applicant 3 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g.3.name",
+     "title": "Applicant 4 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g.3.income",
+     "title": "Applicant 4 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=True respondent=True": [
+    {
+     "field_id": "email",
+     "title": "Contact e-mail",
+     "answer": "a@example.org"
+    },
+    {
+     "field_id": "g.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "g.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "g.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "g.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.name",
+     "title": "Applicant 3 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.income",
+     "title": "Applicant 3 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g.3.name",
+     "title": "Applicant 4 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g.3.income",
+     "title": "Applicant 4 – Income",
+     "answer": ""
+    }
+   ],
+   "qa twice over the same form": [
+    [
+     {
+      "field_id": "email",
+      "title": "Contact e-mail",
+      "answer": "a@example.org"
+     },
+     {
+      "field_id": "g.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "g.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "g.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "g.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     }
+    ],
+    [
+     {
+      "field_id": "email",
+      "title": "Contact e-mail",
+      "answer": "a@example.org"
+     },
+     {
+      "field_id": "g.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "g.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "g.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "g.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     }
+    ]
+   ]
+  },
+  "group rows layout (large)": {
+   "fields": [
+    {
+     "id": "email",
+     "title": "Contact e-mail",
+     "type": "email"
+    },
+    {
+     "id": "g",
+     "title": "Applicants",
+     "type": "group"
+    }
+   ],
+   "fields_for_respondent": [
+    {
+     "id": "email",
+     "title": "Contact e-mail",
+     "type": "email"
+    },
+    {
+     "id": "g",
+     "title": "Applicants",
+     "type": "group"
+    }
+   ],
+   "group_tables": [
+    {
+     "field_id": "g",
+     "title": "Applicants",
+     "sheet_title": "Applicants",
+     "headers": [
+      "Response ID",
+      "Applicant",
+      "Name",
+      "Income"
+     ],
+     "rows": [
+      [
+       "r6",
+       1,
+       "Sita",
+       10
+      ],
+      [
+       "r6",
+       2,
+       "Ram",
+       ""
+      ]
+     ]
+    }
+   ],
+   "qa fixed_columns=False respondent=False": [
+    {
+     "field_id": "email",
+     "title": "Contact e-mail",
+     "answer": "a@example.org"
+    },
+    {
+     "field_id": "g.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "g.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "g.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "g.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=False respondent=True": [
+    {
+     "field_id": "email",
+     "title": "Contact e-mail",
+     "answer": "a@example.org"
+    },
+    {
+     "field_id": "g.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "g.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "g.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "g.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=True respondent=False": [
+    {
+     "field_id": "email",
+     "title": "Contact e-mail",
+     "answer": "a@example.org"
+    },
+    {
+     "field_id": "g",
+     "title": "Applicants (Applicant count)",
+     "answer": 2
+    },
+    {
+     "field_id": "response_id",
+     "title": "Response ID",
+     "answer": "r6"
+    }
+   ],
+   "qa fixed_columns=True respondent=True": [
+    {
+     "field_id": "email",
+     "title": "Contact e-mail",
+     "answer": "a@example.org"
+    },
+    {
+     "field_id": "g",
+     "title": "Applicants (Applicant count)",
+     "answer": 2
+    },
+    {
+     "field_id": "response_id",
+     "title": "Response ID",
+     "answer": "r6"
+    }
+   ],
+   "qa twice over the same form": [
+    [
+     {
+      "field_id": "email",
+      "title": "Contact e-mail",
+      "answer": "a@example.org"
+     },
+     {
+      "field_id": "g.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "g.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "g.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "g.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     }
+    ],
+    [
+     {
+      "field_id": "email",
+      "title": "Contact e-mail",
+      "answer": "a@example.org"
+     },
+     {
+      "field_id": "g.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "g.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "g.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "g.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     }
+    ]
+   ]
+  },
+  "group layout overrides": {
+   "fields": [
+    {
+     "id": "small-rows",
+     "title": "Small as rows",
+     "type": "group"
+    },
+    {
+     "id": "large-cols",
+     "title": "Large as columns",
+     "type": "group"
+    },
+    {
+     "id": "bad-layout",
+     "title": "Bad layout",
+     "type": "group"
+    }
+   ],
+   "fields_for_respondent": [
+    {
+     "id": "small-rows",
+     "title": "Small as rows",
+     "type": "group"
+    },
+    {
+     "id": "large-cols",
+     "title": "Large as columns",
+     "type": "group"
+    },
+    {
+     "id": "bad-layout",
+     "title": "Bad layout",
+     "type": "group"
+    }
+   ],
+   "group_tables": [
+    {
+     "field_id": "small-rows",
+     "title": "Small as rows",
+     "sheet_title": "Small as rows",
+     "headers": [
+      "Response ID",
+      "Applicant",
+      "Name",
+      "Income"
+     ],
+     "rows": [
+      [
+       "r7",
+       1,
+       "Sita",
+       10
+      ],
+      [
+       "r7",
+       2,
+       "Ram",
+       ""
+      ]
+     ]
+    }
+   ],
+   "qa fixed_columns=False respondent=False": [
+    {
+     "field_id": "small-rows.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "small-rows.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "small-rows.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "small-rows.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "large-cols.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "large-cols.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "large-cols.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "bad-layout.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "bad-layout.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "bad-layout.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "bad-layout.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=False respondent=True": [
+    {
+     "field_id": "small-rows.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "small-rows.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "small-rows.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "small-rows.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "large-cols.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "large-cols.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "large-cols.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "bad-layout.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "bad-layout.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "bad-layout.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "bad-layout.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=True respondent=False": [
+    {
+     "field_id": "small-rows",
+     "title": "Small as rows (Applicant count)",
+     "answer": 2
+    },
+    {
+     "field_id": "large-cols.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "large-cols.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "large-cols.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "large-cols.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.2.name",
+     "title": "Applicant 3 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.2.income",
+     "title": "Applicant 3 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.3.name",
+     "title": "Applicant 4 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.3.income",
+     "title": "Applicant 4 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.4.name",
+     "title": "Applicant 5 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.4.income",
+     "title": "Applicant 5 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.5.name",
+     "title": "Applicant 6 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.5.income",
+     "title": "Applicant 6 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.6.name",
+     "title": "Applicant 7 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.6.income",
+     "title": "Applicant 7 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.7.name",
+     "title": "Applicant 8 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.7.income",
+     "title": "Applicant 8 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.8.name",
+     "title": "Applicant 9 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.8.income",
+     "title": "Applicant 9 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.9.name",
+     "title": "Applicant 10 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.9.income",
+     "title": "Applicant 10 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "bad-layout.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "bad-layout.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "bad-layout.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "bad-layout.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "bad-layout.2.name",
+     "title": "Applicant 3 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "bad-layout.2.income",
+     "title": "Applicant 3 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "response_id",
+     "title": "Response ID",
+     "answer": "r7"
+    }
+   ],
+   "qa fixed_columns=True respondent=True": [
+    {
+     "field_id": "small-rows",
+     "title": "Small as rows (Applicant count)",
+     "answer": 2
+    },
+    {
+     "field_id": "large-cols.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "large-cols.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "large-cols.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "large-cols.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.2.name",
+     "title": "Applicant 3 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.2.income",
+     "title": "Applicant 3 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.3.name",
+     "title": "Applicant 4 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.3.income",
+     "title": "Applicant 4 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.4.name",
+     "title": "Applicant 5 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.4.income",
+     "title": "Applicant 5 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.5.name",
+     "title": "Applicant 6 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.5.income",
+     "title": "Applicant 6 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.6.name",
+     "title": "Applicant 7 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.6.income",
+     "title": "Applicant 7 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.7.name",
+     "title": "Applicant 8 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.7.income",
+     "title": "Applicant 8 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.8.name",
+     "title": "Applicant 9 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.8.income",
+     "title": "Applicant 9 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.9.name",
+     "title": "Applicant 10 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "large-cols.9.income",
+     "title": "Applicant 10 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "bad-layout.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "bad-layout.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "bad-layout.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "bad-layout.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "bad-layout.2.name",
+     "title": "Applicant 3 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "bad-layout.2.income",
+     "title": "Applicant 3 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "response_id",
+     "title": "Response ID",
+     "answer": "r7"
+    }
+   ],
+   "qa twice over the same form": [
+    [
+     {
+      "field_id": "small-rows.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "small-rows.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "small-rows.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "small-rows.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     },
+     {
+      "field_id": "large-cols.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "large-cols.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "large-cols.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "large-cols.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     },
+     {
+      "field_id": "bad-layout.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "bad-layout.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "bad-layout.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "bad-layout.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     }
+    ],
+    [
+     {
+      "field_id": "small-rows.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "small-rows.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "small-rows.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "small-rows.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     },
+     {
+      "field_id": "large-cols.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "large-cols.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "large-cols.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "large-cols.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     },
+     {
+      "field_id": "bad-layout.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "bad-layout.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "bad-layout.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "bad-layout.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     }
+    ]
+   ]
+  },
+  "group camelCase settings and no answers": {
+   "fields": [
+    {
+     "id": "email",
+     "title": "Contact e-mail",
+     "type": "email"
+    },
+    {
+     "id": "g",
+     "title": "Applicants",
+     "type": "group"
+    }
+   ],
+   "fields_for_respondent": [
+    {
+     "id": "email",
+     "title": "Contact e-mail",
+     "type": "email"
+    },
+    {
+     "id": "g",
+     "title": "Applicants",
+     "type": "group"
+    }
+   ],
+   "group_tables": [],
+   "qa fixed_columns=False respondent=False": [
+    {
+     "field_id": "email",
+     "title": "Contact e-mail",
+     "answer": null
+    }
+   ],
+   "qa fixed_columns=False respondent=True": [
+    {
+     "field_id": "email",
+     "title": "Contact e-mail",
+     "answer": null
+    }
+   ],
+   "qa fixed_columns=True respondent=False": [
+    {
+     "field_id": "email",
+     "title": "Contact e-mail",
+     "answer": null
+    },
+    {
+     "field_id": "g.0.name",
+     "title": "Person 1 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g.0.income",
+     "title": "Person 1 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=True respondent=True": [
+    {
+     "field_id": "email",
+     "title": "Contact e-mail",
+     "answer": null
+    },
+    {
+     "field_id": "g.0.name",
+     "title": "Person 1 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g.0.income",
+     "title": "Person 1 – Income",
+     "answer": ""
+    }
+   ],
+   "qa twice over the same form": [
+    [
+     {
+      "field_id": "email",
+      "title": "Contact e-mail",
+      "answer": null
+     }
+    ],
+    [
+     {
+      "field_id": "email",
+      "title": "Contact e-mail",
+      "answer": null
+     }
+    ]
+   ]
+  },
+  "group camelCase rows": {
+   "fields": [
+    {
+     "id": "g",
+     "title": "Applicants",
+     "type": "group"
+    }
+   ],
+   "fields_for_respondent": [
+    {
+     "id": "g",
+     "title": "Applicants",
+     "type": "group"
+    }
+   ],
+   "group_tables": [
+    {
+     "field_id": "g",
+     "title": "Applicants",
+     "sheet_title": "Applicants",
+     "headers": [
+      "Response ID",
+      "Person",
+      "Name",
+      "Income"
+     ],
+     "rows": [
+      [
+       "r8",
+       1,
+       "Sita",
+       10
+      ],
+      [
+       "r8",
+       2,
+       "Ram",
+       ""
+      ]
+     ]
+    }
+   ],
+   "qa fixed_columns=False respondent=False": [
+    {
+     "field_id": "g.0.name",
+     "title": "Person 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "g.0.income",
+     "title": "Person 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "g.1.name",
+     "title": "Person 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "g.1.income",
+     "title": "Person 2 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=False respondent=True": [
+    {
+     "field_id": "g.0.name",
+     "title": "Person 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "g.0.income",
+     "title": "Person 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "g.1.name",
+     "title": "Person 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "g.1.income",
+     "title": "Person 2 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=True respondent=False": [
+    {
+     "field_id": "g",
+     "title": "Applicants (Person count)",
+     "answer": 2
+    },
+    {
+     "field_id": "response_id",
+     "title": "Response ID",
+     "answer": "r8"
+    }
+   ],
+   "qa fixed_columns=True respondent=True": [
+    {
+     "field_id": "g",
+     "title": "Applicants (Person count)",
+     "answer": 2
+    },
+    {
+     "field_id": "response_id",
+     "title": "Response ID",
+     "answer": "r8"
+    }
+   ],
+   "qa twice over the same form": [
+    [
+     {
+      "field_id": "g.0.name",
+      "title": "Person 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "g.0.income",
+      "title": "Person 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "g.1.name",
+      "title": "Person 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "g.1.income",
+      "title": "Person 2 – Income",
+      "answer": ""
+     }
+    ],
+    [
+     {
+      "field_id": "g.0.name",
+      "title": "Person 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "g.0.income",
+      "title": "Person 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "g.1.name",
+      "title": "Person 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "g.1.income",
+      "title": "Person 2 – Income",
+      "answer": ""
+     }
+    ]
+   ]
+  },
+  "group malformed answers": {
+   "fields": [
+    {
+     "id": "g",
+     "title": "Applicants",
+     "type": "group"
+    },
+    {
+     "id": "g2",
+     "title": "Second",
+     "type": "group"
+    }
+   ],
+   "fields_for_respondent": [
+    {
+     "id": "g",
+     "title": "Applicants",
+     "type": "group"
+    },
+    {
+     "id": "g2",
+     "title": "Second",
+     "type": "group"
+    }
+   ],
+   "group_tables": [
+    {
+     "field_id": "g",
+     "title": "Applicants",
+     "sheet_title": "Applicants",
+     "headers": [
+      "Response ID",
+      "Applicant",
+      "Name",
+      "Income"
+     ],
+     "rows": [
+      [
+       "r9",
+       1,
+       "",
+       ""
+      ],
+      [
+       "r9",
+       2,
+       "",
+       ""
+      ],
+      [
+       "r9",
+       3,
+       "",
+       ""
+      ],
+      [
+       "r9",
+       4,
+       "ok",
+       ""
+      ]
+     ]
+    }
+   ],
+   "qa fixed_columns=False respondent=False": [
+    {
+     "field_id": "g.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.name",
+     "title": "Applicant 3 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.income",
+     "title": "Applicant 3 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g.3.name",
+     "title": "Applicant 4 – Name",
+     "answer": "ok"
+    },
+    {
+     "field_id": "g.3.income",
+     "title": "Applicant 4 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=False respondent=True": [
+    {
+     "field_id": "g.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.name",
+     "title": "Applicant 3 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.income",
+     "title": "Applicant 3 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g.3.name",
+     "title": "Applicant 4 – Name",
+     "answer": "ok"
+    },
+    {
+     "field_id": "g.3.income",
+     "title": "Applicant 4 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=True respondent=False": [
+    {
+     "field_id": "g",
+     "title": "Applicants (Applicant count)",
+     "answer": 4
+    },
+    {
+     "field_id": "g2.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g2.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g2.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g2.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "response_id",
+     "title": "Response ID",
+     "answer": "r9"
+    }
+   ],
+   "qa fixed_columns=True respondent=True": [
+    {
+     "field_id": "g",
+     "title": "Applicants (Applicant count)",
+     "answer": 4
+    },
+    {
+     "field_id": "g2.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g2.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g2.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": ""
+    },
+    {
+     "field_id": "g2.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "response_id",
+     "title": "Response ID",
+     "answer": "r9"
+    }
+   ],
+   "qa twice over the same form": [
+    [
+     {
+      "field_id": "g.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": ""
+     },
+     {
+      "field_id": "g.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": ""
+     },
+     {
+      "field_id": "g.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": ""
+     },
+     {
+      "field_id": "g.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     },
+     {
+      "field_id": "g.2.name",
+      "title": "Applicant 3 – Name",
+      "answer": ""
+     },
+     {
+      "field_id": "g.2.income",
+      "title": "Applicant 3 – Income",
+      "answer": ""
+     },
+     {
+      "field_id": "g.3.name",
+      "title": "Applicant 4 – Name",
+      "answer": "ok"
+     },
+     {
+      "field_id": "g.3.income",
+      "title": "Applicant 4 – Income",
+      "answer": ""
+     }
+    ],
+    [
+     {
+      "field_id": "g.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": ""
+     },
+     {
+      "field_id": "g.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": ""
+     },
+     {
+      "field_id": "g.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": ""
+     },
+     {
+      "field_id": "g.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     },
+     {
+      "field_id": "g.2.name",
+      "title": "Applicant 3 – Name",
+      "answer": ""
+     },
+     {
+      "field_id": "g.2.income",
+      "title": "Applicant 3 – Income",
+      "answer": ""
+     },
+     {
+      "field_id": "g.3.name",
+      "title": "Applicant 4 – Name",
+      "answer": "ok"
+     },
+     {
+      "field_id": "g.3.income",
+      "title": "Applicant 4 – Income",
+      "answer": ""
+     }
+    ]
+   ]
+  },
+  "group with no repeat settings is an ordinary field": {
+   "fields": [
+    {
+     "id": "g",
+     "title": "Plain group",
+     "type": "group"
+    }
+   ],
+   "fields_for_respondent": [
+    {
+     "id": "g",
+     "title": "Plain group",
+     "type": "group"
+    }
+   ],
+   "group_tables": [],
+   "qa fixed_columns=False respondent=False": [
+    {
+     "field_id": "g",
+     "title": "Plain group",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=False respondent=True": [
+    {
+     "field_id": "g",
+     "title": "Plain group",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=True respondent=False": [
+    {
+     "field_id": "g",
+     "title": "Plain group",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=True respondent=True": [
+    {
+     "field_id": "g",
+     "title": "Plain group",
+     "answer": ""
+    }
+   ],
+   "qa twice over the same form": [
+    [
+     {
+      "field_id": "g",
+      "title": "Plain group",
+      "answer": ""
+     }
+    ],
+    [
+     {
+      "field_id": "g",
+      "title": "Plain group",
+      "answer": ""
+     }
+    ]
+   ]
+  },
+  "group tabs never share a name": {
+   "fields": [
+    {
+     "id": "g1",
+     "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "type": "group"
+    },
+    {
+     "id": "g2",
+     "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (different tail)",
+     "type": "group"
+    },
+    {
+     "id": "g3",
+     "title": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+     "type": "group"
+    },
+    {
+     "id": "g4",
+     "title": "Family: members/[all]",
+     "type": "group"
+    },
+    {
+     "id": "g5",
+     "title": "family  members  all",
+     "type": "group"
+    }
+   ],
+   "fields_for_respondent": [
+    {
+     "id": "g1",
+     "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "type": "group"
+    },
+    {
+     "id": "g2",
+     "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (different tail)",
+     "type": "group"
+    },
+    {
+     "id": "g3",
+     "title": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+     "type": "group"
+    },
+    {
+     "id": "g4",
+     "title": "Family: members/[all]",
+     "type": "group"
+    },
+    {
+     "id": "g5",
+     "title": "family  members  all",
+     "type": "group"
+    }
+   ],
+   "group_tables": [
+    {
+     "field_id": "g1",
+     "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "sheet_title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "headers": [
+      "Response ID",
+      "Applicant",
+      "Name",
+      "Income"
+     ],
+     "rows": [
+      [
+       "r11",
+       1,
+       "Sita",
+       10
+      ],
+      [
+       "r11",
+       2,
+       "Ram",
+       ""
+      ]
+     ]
+    },
+    {
+     "field_id": "g2",
+     "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (different tail)",
+     "sheet_title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (g2)",
+     "headers": [
+      "Response ID",
+      "Applicant",
+      "Name",
+      "Income"
+     ],
+     "rows": [
+      [
+       "r11",
+       1,
+       "Sita",
+       10
+      ],
+      [
+       "r11",
+       2,
+       "Ram",
+       ""
+      ]
+     ]
+    },
+    {
+     "field_id": "g3",
+     "title": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+     "sheet_title": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX (g3)",
+     "headers": [
+      "Response ID",
+      "Applicant",
+      "Name",
+      "Income"
+     ],
+     "rows": []
+    },
+    {
+     "field_id": "g4",
+     "title": "Family: members/[all]",
+     "sheet_title": "Family  members  all",
+     "headers": [
+      "Response ID",
+      "Applicant",
+      "Name",
+      "Income"
+     ],
+     "rows": []
+    },
+    {
+     "field_id": "g5",
+     "title": "family  members  all",
+     "sheet_title": "family  members  all (g5)",
+     "headers": [
+      "Response ID",
+      "Applicant",
+      "Name",
+      "Income"
+     ],
+     "rows": []
+    }
+   ],
+   "qa fixed_columns=False respondent=False": [
+    {
+     "field_id": "g1.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "g1.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "g1.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "g1.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g2.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "g2.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "g2.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "g2.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=False respondent=True": [
+    {
+     "field_id": "g1.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "g1.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "g1.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "g1.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    },
+    {
+     "field_id": "g2.0.name",
+     "title": "Applicant 1 – Name",
+     "answer": "Sita"
+    },
+    {
+     "field_id": "g2.0.income",
+     "title": "Applicant 1 – Income",
+     "answer": 10
+    },
+    {
+     "field_id": "g2.1.name",
+     "title": "Applicant 2 – Name",
+     "answer": "Ram"
+    },
+    {
+     "field_id": "g2.1.income",
+     "title": "Applicant 2 – Income",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=True respondent=False": [
+    {
+     "field_id": "g1",
+     "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (Applicant count)",
+     "answer": 2
+    },
+    {
+     "field_id": "g2",
+     "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (different tail) (Applicant count)",
+     "answer": 2
+    },
+    {
+     "field_id": "g3",
+     "title": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX (Applicant count)",
+     "answer": 0
+    },
+    {
+     "field_id": "g4",
+     "title": "Family: members/[all] (Applicant count)",
+     "answer": 0
+    },
+    {
+     "field_id": "g5",
+     "title": "family  members  all (Applicant count)",
+     "answer": 0
+    },
+    {
+     "field_id": "response_id",
+     "title": "Response ID",
+     "answer": "r11"
+    }
+   ],
+   "qa fixed_columns=True respondent=True": [
+    {
+     "field_id": "g1",
+     "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (Applicant count)",
+     "answer": 2
+    },
+    {
+     "field_id": "g2",
+     "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (different tail) (Applicant count)",
+     "answer": 2
+    },
+    {
+     "field_id": "g3",
+     "title": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX (Applicant count)",
+     "answer": 0
+    },
+    {
+     "field_id": "g4",
+     "title": "Family: members/[all] (Applicant count)",
+     "answer": 0
+    },
+    {
+     "field_id": "g5",
+     "title": "family  members  all (Applicant count)",
+     "answer": 0
+    },
+    {
+     "field_id": "response_id",
+     "title": "Response ID",
+     "answer": "r11"
+    }
+   ],
+   "qa twice over the same form": [
+    [
+     {
+      "field_id": "g1.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "g1.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "g1.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "g1.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     },
+     {
+      "field_id": "g2.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "g2.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "g2.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "g2.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     }
+    ],
+    [
+     {
+      "field_id": "g1.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "g1.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "g1.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "g1.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     },
+     {
+      "field_id": "g2.0.name",
+      "title": "Applicant 1 – Name",
+      "answer": "Sita"
+     },
+     {
+      "field_id": "g2.0.income",
+      "title": "Applicant 1 – Income",
+      "answer": 10
+     },
+     {
+      "field_id": "g2.1.name",
+      "title": "Applicant 2 – Name",
+      "answer": "Ram"
+     },
+     {
+      "field_id": "g2.1.income",
+      "title": "Applicant 2 – Income",
+      "answer": ""
+     }
+    ]
+   ]
+  },
+  "group of calculated and sourced children": {
+   "fields": [
+    {
+     "id": "g",
+     "title": "Lines",
+     "type": "group"
+    }
+   ],
+   "fields_for_respondent": [
+    {
+     "id": "g",
+     "title": "Lines",
+     "type": "group"
+    }
+   ],
+   "group_tables": [],
+   "qa fixed_columns=False respondent=False": [
+    {
+     "field_id": "g.0.qty",
+     "title": "Line 1 – Qty",
+     "answer": 2
+    },
+    {
+     "field_id": "g.0.sum",
+     "title": "Line 1 – Sum",
+     "answer": "4.3"
+    },
+    {
+     "field_id": "g.0.who",
+     "title": "Line 1 – Who",
+     "answer": "Alice"
+    },
+    {
+     "field_id": "g.1.qty",
+     "title": "Line 2 – Qty",
+     "answer": 3
+    },
+    {
+     "field_id": "g.1.sum",
+     "title": "Line 2 – Sum",
+     "answer": ""
+    },
+    {
+     "field_id": "g.1.who",
+     "title": "Line 2 – Who",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=False respondent=True": [
+    {
+     "field_id": "g.0.qty",
+     "title": "Line 1 – Qty",
+     "answer": 2
+    },
+    {
+     "field_id": "g.0.sum",
+     "title": "Line 1 – Sum",
+     "answer": "4.3"
+    },
+    {
+     "field_id": "g.0.who",
+     "title": "Line 1 – Who",
+     "answer": "Alice"
+    },
+    {
+     "field_id": "g.1.qty",
+     "title": "Line 2 – Qty",
+     "answer": 3
+    },
+    {
+     "field_id": "g.1.sum",
+     "title": "Line 2 – Sum",
+     "answer": ""
+    },
+    {
+     "field_id": "g.1.who",
+     "title": "Line 2 – Who",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=True respondent=False": [
+    {
+     "field_id": "g.0.qty",
+     "title": "Line 1 – Qty",
+     "answer": 2
+    },
+    {
+     "field_id": "g.0.sum",
+     "title": "Line 1 – Sum",
+     "answer": "4.3"
+    },
+    {
+     "field_id": "g.0.who",
+     "title": "Line 1 – Who",
+     "answer": "Alice"
+    },
+    {
+     "field_id": "g.1.qty",
+     "title": "Line 2 – Qty",
+     "answer": 3
+    },
+    {
+     "field_id": "g.1.sum",
+     "title": "Line 2 – Sum",
+     "answer": ""
+    },
+    {
+     "field_id": "g.1.who",
+     "title": "Line 2 – Who",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.qty",
+     "title": "Line 3 – Qty",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.sum",
+     "title": "Line 3 – Sum",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.who",
+     "title": "Line 3 – Who",
+     "answer": ""
+    }
+   ],
+   "qa fixed_columns=True respondent=True": [
+    {
+     "field_id": "g.0.qty",
+     "title": "Line 1 – Qty",
+     "answer": 2
+    },
+    {
+     "field_id": "g.0.sum",
+     "title": "Line 1 – Sum",
+     "answer": "4.3"
+    },
+    {
+     "field_id": "g.0.who",
+     "title": "Line 1 – Who",
+     "answer": "Alice"
+    },
+    {
+     "field_id": "g.1.qty",
+     "title": "Line 2 – Qty",
+     "answer": 3
+    },
+    {
+     "field_id": "g.1.sum",
+     "title": "Line 2 – Sum",
+     "answer": ""
+    },
+    {
+     "field_id": "g.1.who",
+     "title": "Line 2 – Who",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.qty",
+     "title": "Line 3 – Qty",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.sum",
+     "title": "Line 3 – Sum",
+     "answer": ""
+    },
+    {
+     "field_id": "g.2.who",
+     "title": "Line 3 – Who",
+     "answer": ""
+    }
+   ],
+   "qa twice over the same form": [
+    [
+     {
+      "field_id": "g.0.qty",
+      "title": "Line 1 – Qty",
+      "answer": 2
+     },
+     {
+      "field_id": "g.0.sum",
+      "title": "Line 1 – Sum",
+      "answer": "4.3"
+     },
+     {
+      "field_id": "g.0.who",
+      "title": "Line 1 – Who",
+      "answer": "Alice"
+     },
+     {
+      "field_id": "g.1.qty",
+      "title": "Line 2 – Qty",
+      "answer": 3
+     },
+     {
+      "field_id": "g.1.sum",
+      "title": "Line 2 – Sum",
+      "answer": ""
+     },
+     {
+      "field_id": "g.1.who",
+      "title": "Line 2 – Who",
+      "answer": ""
+     }
+    ],
+    [
+     {
+      "field_id": "g.0.qty",
+      "title": "Line 1 – Qty",
+      "answer": 2
+     },
+     {
+      "field_id": "g.0.sum",
+      "title": "Line 1 – Sum",
+      "answer": "4.3"
+     },
+     {
+      "field_id": "g.0.who",
+      "title": "Line 1 – Who",
+      "answer": "Alice"
+     },
+     {
+      "field_id": "g.1.qty",
+      "title": "Line 2 – Qty",
+      "answer": 3
+     },
+     {
+      "field_id": "g.1.sum",
+      "title": "Line 2 – Sum",
+      "answer": ""
+     },
+     {
+      "field_id": "g.1.who",
+      "title": "Line 2 – Who",
+      "answer": ""
+     }
+    ]
+   ]
+  },
+  "form without fields": {
+   "fields": [],
+   "fields_for_respondent": [],
+   "group_tables": [],
+   "qa fixed_columns=False respondent=False": [],
+   "qa fixed_columns=False respondent=True": [],
+   "qa fixed_columns=True respondent=False": [],
+   "qa fixed_columns=True respondent=True": [],
+   "qa twice over the same form": [
+    [],
+    []
+   ]
+  }
+ }
+}
