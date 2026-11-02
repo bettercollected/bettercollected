@@ -34,13 +34,10 @@ class FormAccessCleanup:
         group_repo: PostgresMemberGroupRepository,
         audit_repo=None,
         invalidate: Optional[Callable[[], None]] = None,
-        scim_group_repo=None,
     ):
         self._grants = grant_repo
         self._groups = group_repo
         self._audit = audit_repo
-        # the directory groups linked to a team (unlinked when the team goes)
-        self._scim_groups = scim_group_repo
         # forgets what this request remembered of a form's access
         self._invalidate = invalidate or (lambda: None)
 
@@ -70,16 +67,13 @@ class FormAccessCleanup:
 
     async def forget_team(self, workspace_id, group_id) -> Tuple[int, bool]:
         """The team is deleted: its grants and its member rows go with it, and
-        the directory groups linked to it are unlinked.
+        (in the same transaction as the team) the directory groups linked to it
+        are unlinked.
         Returns ``(grants removed, team existed)``."""
         # the team first: a failure after it leaves grants for a team that is
         # gone (inert: nobody is in it, and none can be added), never a team
         # that is still there without its grants
         existed = await self._groups.delete(workspace_id, group_id)
-        if self._scim_groups is not None:
-            # a link to a team that is gone resolves to nobody; clearing it
-            # shows the group as unlinked again
-            await self._scim_groups.unlink_team(workspace_id, group_id)
         removed = await self._grants.delete_for_subject(
             workspace_id, SUBJECT_GROUP, group_id
         )

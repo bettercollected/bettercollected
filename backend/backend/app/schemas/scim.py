@@ -133,16 +133,30 @@ class ScimGroupDocument(Record):
     # (after a rotation several previous groups had its name, so none was
     # matched and no role carried over)
     needs_review: Optional[str] = None
-    # the team (member group, ``FORM_ACCESS_ENABLED``) the members of this group
-    # are in, or None. One group is in at most one team; a team may take several
-    # groups. Who is in the team is read from this group's members at call time
-    # (``team_membership``), never copied; deleting the group in the directory,
-    # or the team here, ends the link.
-    member_group_id: Optional[str] = None
-    member_group_linked_by: Optional[str] = None
+    # The team this group feeds is NOT stored here: it is a row of
+    # ``scim_group_team_links`` (``ScimGroupTeamLinkDocument``), so the writers
+    # that save a whole group document (directory events, the role mapping, a
+    # rotation) can never undo a link or an unlink.
 
     class Settings:
         name = "scim_groups"
+
+
+class ScimGroupTeamLinkDocument(Record):
+    """The team (member group, ``FORM_ACCESS_ENABLED``) the members of one
+    directory group are in. ``id`` is derived from the group, so a group has at
+    most one link (and a unique index says so); a team may take several groups.
+    Who is in the team through it is read from the group's members at call time
+    (``repositories/postgres/team_membership.py``), never copied. Written only by
+    the link routes; removed with the group, the directory or the team."""
+
+    group_id: RecordId
+    team_id: RecordId
+    workspace_id: RecordId
+    linked_by: Optional[str] = None
+
+    class Settings:
+        name = "scim_group_team_links"
 
 
 class ScimGroupMemberDocument(Record):

@@ -61,10 +61,14 @@ export interface TeamMemberDto {
     role?: string | null;
     /** In the team through a linked directory group: removed in the directory, not here. */
     viaDirectory?: boolean;
+    /** Listed by hand and also in through a directory group: removing the listing leaves them in the team. */
+    alsoViaDirectory?: boolean;
 }
 
 export interface TeamDetailDto extends TeamDto {
     members: TeamMemberDto[];
+    /** More people are in the team than `members` lists (`memberCount` is the total). */
+    membersTruncated?: boolean;
     formCount: number;
 }
 

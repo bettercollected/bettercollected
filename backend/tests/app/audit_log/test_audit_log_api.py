@@ -323,7 +323,7 @@ async def test_an_entry_is_the_dto_and_nothing_else(client: AsyncClient, workspa
     assert (entry["grantRole"], entry["grantExport"], entry["formId"]) == ("EDITOR", True, "f1")
 
 
-async def test_a_team_link_entry_says_linked_or_unlinked_and_names_no_directory_group(
+async def test_a_team_link_entry_says_linked_or_unlinked_and_which_directory_group(
     client: AsyncClient, workspace
 ):
     await seed(
@@ -337,7 +337,7 @@ async def test_a_team_link_entry_says_linked_or_unlinked_and_names_no_directory_
         (E.TEAM_LINKED, False, "g1"),
         (E.TEAM_LINKED, True, "g1"),
     ]
-    assert all("scimGroupId" not in e for e in entries)
+    assert {e["scimGroupId"] for e in entries} == {"d1"}
 
 
 def test_every_field_of_a_stored_entry_is_returned_or_withheld_on_purpose():
@@ -346,7 +346,7 @@ def test_every_field_of_a_stored_entry_is_returned_or_withheld_on_purpose():
     shown = {
         "id", "created_at", "event", "session_id", "target_user_id", "to_user_id",
         "form_id", "response_id", "revision", "group_id", "grant_role", "grant_export",
-        "access_mode", "linked", "role", "previous_role", "count", "required", "export_channel",
+        "access_mode", "linked", "scim_group_id", "role", "previous_role", "count", "required", "export_channel",
         "export_format", "key_id", "reason", "key_role", "key_role_before", "form_scope",
         "widened", "method", "path",
     }
@@ -357,7 +357,6 @@ def test_every_field_of_a_stored_entry_is_returned_or_withheld_on_purpose():
         "updated_at",
         "invitation_id",  # an invitation has no screen
         "export_id",  # a pointer to a row the page cannot open
-        "scim_group_id",  # a directory group's id: only the team and "linked or not" are shown
     }
     dto = {n for n in AuditEntryDto.model_fields}
     stored = set(WorkspaceAuditEventDocument.model_fields)

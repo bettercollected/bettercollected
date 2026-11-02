@@ -74,9 +74,10 @@ def test_upgrade_creates_the_three_tables_and_downgrade_removes_only_them(scratc
     command.upgrade(config, "0037")
     assert sorted(set(asyncio.run(_tables(scratch_url))) - set(before)) == NEW
     # exactly what the models declare, but for what a later revision adds (0038:
-    # the audit log reader's columns and indexes)
+    # the audit log reader's columns and indexes; 0039: the directory group links)
+    later = ("workspace_audit_events", "scim_group_team_links", "scim_users")
     assert [
-        d for d in asyncio.run(_diff(scratch_url)) if "workspace_audit_events" not in repr(d)
+        d for d in asyncio.run(_diff(scratch_url)) if not any(t in repr(d) for t in later)
     ] == []
 
     command.downgrade(config, "0035")

@@ -2298,6 +2298,8 @@
       "DELETE_BODY_other": "Het wordt bij {{count}} formulieren gebruikt; die verliezen de toegang die het gaf.",
       "LINKED_one": "Gevoed door {{count}} directorygroep",
       "LINKED_other": "Gevoed door {{count}} directorygroepen",
+      "ALSO_VIA_DIRECTORY": "Ook uit uw directory",
+      "MEMBERS_TRUNCATED": "{{shown}} van {{total}} mensen getoond.",
       "VIA_DIRECTORY": "Uit uw directory",
       "DIRECTORY_TITLE": "Gekoppelde directorygroepen",
       "DIRECTORY_INTRO": "Mensen in een gekoppelde groep zitten in het team zolang uw directory dat zegt. Verwijdert u iemand uit de groep in uw directory, dan verlaat die persoon het team meteen.",

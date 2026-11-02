@@ -7113,7 +7113,7 @@
   "document": "ScimGroupMemberDocument"
  },
  "scim_groups/full": {
-  "checksum": "sha256:9dd4dae353b65b2de8c9648e29c1803b5d5cc25c73bd620b6d9b339a41bea140",
+  "checksum": "sha256:2752ccabd1432fd9d3ae6a691e2205e256c1124a0fcd784974f76486f572d968",
   "doc": {
    "_id": {
     "$oid": "e995685e5d9af2e11b93b789"
@@ -7124,8 +7124,6 @@
    "directory_id": {
     "$oid": "dffde1e1b9b1a4df4075c2ef"
    },
-   "member_group_id": "ScimGroupDocument.member_group_id tëxt ✓ \"quoted\" \\ line\nbreak",
-   "member_group_linked_by": "ScimGroupDocument.member_group_linked_by tëxt ✓ \"quoted\" \\ line\nbreak",
    "name": "ScimGroupDocument.name tëxt ✓ \"quoted\" \\ line\nbreak",
    "needs_review": "ScimGroupDocument.needs_review tëxt ✓ \"quoted\" \\ line\nbreak",
    "polis_group_id": "ScimGroupDocument.polis_group_id tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -7142,7 +7140,7 @@
   "document": "ScimGroupDocument"
  },
  "scim_groups/minimal": {
-  "checksum": "sha256:a490f5bd1e83c5cb82868da8934bf95eab18346e8513e254cb475ed224a6d9e9",
+  "checksum": "sha256:e6be0aa20db4346d41217639ca22c0f5b2ae377c94f17b24f62c2a60b4147796",
   "doc": {
    "_id": {
     "$oid": "690ad394af71b0bdb57e1022"
@@ -7153,8 +7151,6 @@
    "directory_id": {
     "$oid": "dffde1e1b9b1a4df4075c2ef"
    },
-   "member_group_id": null,
-   "member_group_linked_by": null,
    "name": "ScimGroupDocument.name tëxt ✓ \"quoted\" \\ line\nbreak",
    "needs_review": null,
    "polis_group_id": "ScimGroupDocument.polis_group_id tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -7171,7 +7167,7 @@
   "document": "ScimGroupDocument"
  },
  "scim_groups/naive": {
-  "checksum": "sha256:f0804cc791460a5ec3f52c105f62d636e2d92e8a8ff914e209dd183d3d397160",
+  "checksum": "sha256:7b2b558a42c32862302721886ad58918d69506cb7e1380a93ce9f6f0159916ad",
   "doc": {
    "_id": {
     "$oid": "1a161ac17ef6dd823b6b082e"
@@ -7182,8 +7178,6 @@
    "directory_id": {
     "$oid": "dffde1e1b9b1a4df4075c2ef"
    },
-   "member_group_id": "ScimGroupDocument.member_group_id tëxt ✓ \"quoted\" \\ line\nbreak",
-   "member_group_linked_by": "ScimGroupDocument.member_group_linked_by tëxt ✓ \"quoted\" \\ line\nbreak",
    "name": "ScimGroupDocument.name tëxt ✓ \"quoted\" \\ line\nbreak",
    "needs_review": "ScimGroupDocument.needs_review tëxt ✓ \"quoted\" \\ line\nbreak",
    "polis_group_id": "ScimGroupDocument.polis_group_id tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -7200,7 +7194,7 @@
   "document": "ScimGroupDocument"
  },
  "scim_groups/nulls": {
-  "checksum": "sha256:84b38dcc80c0c2c72ec3571d0f6b952469256ad579344fa6b81d6b5c1695c23e",
+  "checksum": "sha256:9ddad3bac1e11e58bbfaad081eb4f167a727ae30826f9f760e39b9d609f2ac6a",
   "doc": {
    "_id": {
     "$oid": "3b5dea237496d9f172e95fb5"
@@ -7211,8 +7205,6 @@
    "directory_id": {
     "$oid": "dffde1e1b9b1a4df4075c2ef"
    },
-   "member_group_id": null,
-   "member_group_linked_by": null,
    "name": "ScimGroupDocument.name tëxt ✓ \"quoted\" \\ line\nbreak",
    "needs_review": null,
    "polis_group_id": "ScimGroupDocument.polis_group_id tëxt ✓ \"quoted\" \\ line\nbreak",

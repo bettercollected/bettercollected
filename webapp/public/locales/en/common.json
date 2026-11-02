@@ -2298,6 +2298,8 @@
       "DELETE_BODY_other": "It is used on {{count}} forms; those lose the access it gave.",
       "LINKED_one": "Fed by {{count}} directory group",
       "LINKED_other": "Fed by {{count}} directory groups",
+      "ALSO_VIA_DIRECTORY": "Also from your directory",
+      "MEMBERS_TRUNCATED": "Showing {{shown}} of {{total}} people.",
       "VIA_DIRECTORY": "From your directory",
       "DIRECTORY_TITLE": "Linked directory groups",
       "DIRECTORY_INTRO": "People in a linked group are in the team for as long as your directory says so. Remove someone from the group in your directory and they leave the team at once.",

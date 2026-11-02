@@ -283,15 +283,20 @@ function TeamDialog({ workspaceId, team, onClose }: { workspaceId: string; team:
                                                 {member.viaDirectory ? (
                                                     <span className="shrink-0 text-xs text-black-600">{t('STAFF.TEAMS.VIA_DIRECTORY')}</span>
                                                 ) : (
-                                                    <Button type="button" variant="v2Button" className="min-h-11 shrink-0 md:min-h-9" disabled={busy} aria-label={t('STAFF.TEAMS.REMOVE_MEMBER_ARIA', { name: label, team: teamName })} onClick={() => remove(member.userId)}>
+                                                    <>
+                                                        {member.alsoViaDirectory && <span className="shrink-0 text-xs text-black-600">{t('STAFF.TEAMS.ALSO_VIA_DIRECTORY')}</span>}
+                                                        <Button type="button" variant="v2Button" className="min-h-11 shrink-0 md:min-h-9" disabled={busy} aria-label={t('STAFF.TEAMS.REMOVE_MEMBER_ARIA', { name: label, team: teamName })} onClick={() => remove(member.userId)}>
                                                         {t('STAFF.TEAMS.REMOVE')}
                                                     </Button>
+                                                    </>
                                                 )}
                                             </li>
                                         );
                                     })}
                                 </ul>
                             )}
+
+                            {current?.membersTruncated && <p className="text-xs text-black-600">{t('STAFF.TEAMS.MEMBERS_TRUNCATED', { shown: current.members.length, total: current.memberCount })}</p>}
 
                             <form onSubmit={add} noValidate className="mt-2 flex flex-col gap-2">
                                 <label htmlFor={`${id}-add`} className="text-sm font-medium text-black-700">

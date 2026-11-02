@@ -39,6 +39,7 @@ from backend.app.schemas.scim import (
     ScimEventDocument,
     ScimGroupDocument,
     ScimGroupMemberDocument,
+    ScimGroupTeamLinkDocument,
     ScimUserDocument,
 )
 from backend.app.schemas.form_access_grant import SUBJECT_KEY
@@ -67,6 +68,7 @@ from backend.db.models import (
     ScimEventRow,
     ScimGroupMemberRow,
     ScimGroupRow,
+    ScimGroupTeamLinkRow,
     ScimUserRow,
     SessionRow,
     SsoConnectionRow,
@@ -82,6 +84,7 @@ from common.constants import MESSAGE_NOT_FOUND
 from common.records import (
     RecordId,
     decode,
+    derived_id,
     from_canonical_document,
     row_values,
     to_bson,
@@ -1063,94 +1066,99 @@ class PostgresScimGroupRepository(RecordRepository):
     async def delete_by_directory(self, directory_id: RecordId) -> int:
         return await self.delete_where(ScimGroupRow.directory_id == _oid(directory_id))
 
-    # -- the team a group is linked to (``FORM_ACCESS_ENABLED``) -------------------
-    @staticmethod
-    def _directories_of(workspace_id):
-        return select(ScimDirectoryRow.id).where(
-            ScimDirectoryRow.workspace_id == _oid(workspace_id)
+
+class PostgresScimGroupTeamLinkRepository(RecordRepository):
+    """The team each directory group feeds (``FORM_ACCESS_ENABLED``): rows of
+    ``scim_group_team_links``, written only here, never by a save of a group
+    document. Every query carries the workspace."""
+
+    row = ScimGroupTeamLinkRow
+    document = ScimGroupTeamLinkDocument
+
+    async def by_group(self, workspace_id) -> Dict[str, str]:
+        """group id -> team id, for the workspace's links."""
+        rows = await self.many(ScimGroupTeamLinkRow.workspace_id == _oid(workspace_id))
+        return {str(r.group_id): str(r.team_id) for r in rows}
+
+    async def find(self, workspace_id, group_id) -> Optional[ScimGroupTeamLinkDocument]:
+        return await self.one(
+            ScimGroupTeamLinkRow.workspace_id == _oid(workspace_id),
+            ScimGroupTeamLinkRow.group_id == _oid(group_id),
         )
 
     async def link_counts(self, workspace_id) -> Dict[str, int]:
         """team id -> how many directory groups of the workspace are linked to it."""
-        team = ScimGroupRow.doc["member_group_id"].astext
         async with self._session() as session:
             rows = await session.execute(
-                select(team, func.count())
-                .where(
-                    ScimGroupRow.directory_id.in_(self._directories_of(workspace_id)),
-                    team.is_not(None),
-                )
-                .group_by(team)
+                select(ScimGroupTeamLinkRow.team_id, func.count())
+                .where(ScimGroupTeamLinkRow.workspace_id == _oid(workspace_id))
+                .group_by(ScimGroupTeamLinkRow.team_id)
             )
         return {str(team_id): int(total) for team_id, total in rows.all()}
 
-    async def set_team(
-        self, workspace_id, group_id, team_id: Optional[str], by: Optional[str]
-    ) -> Optional[ScimGroupDocument]:
-        """Link the group to a team of the workspace (``None``: unlink), under
-        the group's row lock and with the team shared-locked, so a team deleted
-        at the same moment either waits for this write (its own clean-up then
-        unlinks it) or is refused here (``AccessTargetNotFound``). ``None`` when
-        the group is gone (a group deleted in the directory meanwhile stays
-        deleted: this never inserts) or is another workspace's."""
+    async def set(
+        self, workspace_id, group_id, team_id, by: Optional[str]
+    ) -> Optional[ScimGroupTeamLinkDocument]:
+        """Link the group to a team of the workspace (an existing link moves).
+        The group row and the team row are shared-locked for the write, so a
+        group dropped by the directory or a team deleted at the same moment
+        either waits for this write (and its own clean-up then removes the row)
+        or is refused here. ``AccessTargetNotFound("group")`` for a team that is
+        not the workspace's; ``None`` for a group that is gone or is another
+        workspace's."""
         async with self._session() as session, session.begin():
             doc = (
                 await session.execute(
                     select(ScimGroupRow.doc)
                     .where(ScimGroupRow.id == _oid(group_id))
-                    .with_for_update()
+                    .limit(1)
+                    .with_for_update(read=True)
                 )
             ).scalar_one_or_none()
             if doc is None:
                 return None
-            stored = decode(ScimGroupDocument, doc)
-            if _oid(stored.workspace_id) != _oid(workspace_id):
+            if _oid(decode(ScimGroupDocument, doc).workspace_id) != _oid(workspace_id):
                 return None
-            if team_id is not None:
-                found = await session.execute(
-                    select(MemberGroupRow.id)
-                    .where(
-                        MemberGroupRow.workspace_id == _oid(workspace_id),
-                        MemberGroupRow.id == _oid(team_id),
-                    )
-                    .limit(1)
-                    .with_for_update(read=True)
+            found = await session.execute(
+                select(MemberGroupRow.id)
+                .where(
+                    MemberGroupRow.workspace_id == _oid(workspace_id),
+                    MemberGroupRow.id == _oid(team_id),
                 )
-                if found.first() is None:
-                    raise AccessTargetNotFound("group")
-            stored.member_group_id = None if team_id is None else _oid(team_id)
-            stored.member_group_linked_by = None if team_id is None else by
-            stored.touch()
-            await session.execute(self._upsert_statement(row_values(stored)))
-        return stored
-
-    async def unlink_team(self, workspace_id, team_id) -> int:
-        """Every group of the workspace linked to this team is unlinked (the
-        team is deleted). Returns how many."""
-        async with self._session() as session, session.begin():
-            docs = (
-                (
-                    await session.execute(
-                        select(ScimGroupRow.doc)
-                        .where(
-                            ScimGroupRow.directory_id.in_(
-                                self._directories_of(workspace_id)
-                            ),
-                            ScimGroupRow.doc["member_group_id"].astext == _oid(team_id),
-                        )
-                        .with_for_update()
-                    )
-                )
-                .scalars()
-                .all()
+                .limit(1)
+                .with_for_update(read=True)
             )
-            for doc in docs:
-                stored = decode(ScimGroupDocument, doc)
-                stored.member_group_id = None
-                stored.member_group_linked_by = None
-                stored.touch()
-                await session.execute(self._upsert_statement(row_values(stored)))
-        return len(docs)
+            if found.first() is None:
+                raise AccessTargetNotFound("group")
+            link = ScimGroupTeamLinkDocument(
+                id=derived_id("scim_group_team_link", _oid(group_id)),
+                group_id=RecordId(_oid(group_id)),
+                team_id=RecordId(_oid(team_id)),
+                workspace_id=RecordId(_oid(workspace_id)),
+                linked_by=by,
+            )
+            link.touch()
+            await session.execute(
+                self._upsert_statement(row_values(link), ScimGroupTeamLinkRow)
+            )
+        return link
+
+    async def clear(self, workspace_id, group_id) -> int:
+        return await self.delete_where(
+            ScimGroupTeamLinkRow.workspace_id == _oid(workspace_id),
+            ScimGroupTeamLinkRow.group_id == _oid(group_id),
+        )
+
+    async def delete_for_group(self, group_id) -> int:
+        """The group is gone."""
+        return await self.delete_where(ScimGroupTeamLinkRow.group_id == _oid(group_id))
+
+    async def delete_for_directory(self, directory_id) -> int:
+        """The directory is gone: every link of its groups."""
+        groups = select(ScimGroupRow.id).where(
+            ScimGroupRow.directory_id == _oid(directory_id)
+        )
+        return await self.delete_where(ScimGroupTeamLinkRow.group_id.in_(groups))
 
 
 class PostgresScimGroupMemberRepository(RecordRepository):

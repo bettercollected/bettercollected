@@ -37,6 +37,9 @@ class AuditEntryDto(CamelModel):
     # TEAM_LINKED: a directory group was linked to the team (``group_id``) or
     # unlinked from it
     linked: Optional[bool] = None
+    # TEAM_LINKED: our id of the directory group (an id only; the directory's
+    # own name for it is not shown)
+    scim_group_id: Optional[str] = None
     # a member's role and the one it replaced (workspace role codes)
     role: Optional[str] = None
     previous_role: Optional[str] = None

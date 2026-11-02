@@ -8,12 +8,13 @@ from types import SimpleNamespace
 
 import pytest
 from common.ids import RecordId
+from common.records import derived_id
 from common.models.user import User
 
 from backend.app.container import container
 from backend.app.models.enum.permission import Permission
 from backend.app.schemas.form_access_grant import ROLE_REVIEWER
-from backend.app.schemas.scim import ScimGroupDocument
+from backend.app.schemas.scim import ScimGroupDocument, ScimGroupTeamLinkDocument
 from backend.app.schemas.workspace_audit_event import TEAM_LINKED
 from backend.app.services.form_access.model import SOURCE_GRANT
 from tests.app.form_access.helpers import (
@@ -82,6 +83,13 @@ async def scim_group(world, polis_id):
     return await container.scim_group_repo().find(world.directory.id, polis_id)
 
 
+async def linked_team(world, polis_id):
+    """The id of the team the directory group feeds, or None."""
+    group = await scim_group(world, polis_id)
+    link = await container.scim_group_team_link_repo().find(world.workspace.id, group.id)
+    return str(link.team_id) if link is not None else None
+
+
 async def link(world, polis_id, team, by=testUser):
     group = await scim_group(world, polis_id)
     return await world.client.put(
@@ -137,7 +145,7 @@ async def test_both_routes_answer_422_while_the_switch_is_off(world, switch_off)
         reply = await call
         assert reply.status_code == 422, reply.text
         assert reply.json()["code"] == "form_access_off"
-    assert (await scim_group(world, "g-hr")).member_group_id is None
+    assert await linked_team(world, "g-hr") is None
     assert not await audit_events(world.workspace, TEAM_LINKED)
 
 
@@ -152,7 +160,7 @@ async def test_a_link_made_while_on_is_kept_but_decides_nothing_while_off(
 
     monkeypatch.setattr(settings.form_access, "ENABLED", False)
     # the stored link stays, and the form is decided by the role alone
-    assert (await scim_group(world, "g-hr")).member_group_id == str(world.team.id)
+    assert await linked_team(world, "g-hr") == str(world.team.id)
     assert (await opens(jane, world))[1] != SOURCE_GRANT
 
 
@@ -165,8 +173,8 @@ async def test_only_the_owner_links_or_unlinks(world, role):
     member = await add_member(world.workspace, role)
     assert (await link(world, "g-it", world.team, by=member)).status_code == 403
     assert (await unlink(world, "g-hr", by=member)).status_code == 403
-    assert (await scim_group(world, "g-it")).member_group_id is None
-    assert (await scim_group(world, "g-hr")).member_group_id == str(world.team.id)
+    assert await linked_team(world, "g-it") is None
+    assert await linked_team(world, "g-hr") == str(world.team.id)
     assert len(await audit_events(world.workspace, TEAM_LINKED)) == 1
 
 
@@ -174,7 +182,7 @@ async def test_the_group_and_the_team_must_be_the_workspaces_own(world, workspac
     foreign_team = await team_with(workspace_1, name="Elsewhere")
     reply = await link(world, "g-hr", foreign_team)
     assert reply.status_code == 404
-    assert (await scim_group(world, "g-hr")).member_group_id is None
+    assert await linked_team(world, "g-hr") is None
 
     foreign_group = await container.scim_group_repo().save(
         ScimGroupDocument(
@@ -204,7 +212,7 @@ async def test_the_group_and_the_team_must_be_the_workspaces_own(world, workspac
         )
         assert reply.status_code == 404, team_id
     assert not await audit_events(world.workspace, TEAM_LINKED)
-    assert (await container.scim_group_repo().get(foreign_group.id)).member_group_id is None
+    assert await container.scim_group_team_link_repo().by_group(workspace_1.id) == {}
 
 
 async def test_a_link_that_cannot_be_recorded_is_not_made(world, monkeypatch):
@@ -212,7 +220,7 @@ async def test_a_link_that_cannot_be_recorded_is_not_made(world, monkeypatch):
     reply = await link(world, "g-hr", world.team)
     assert reply.status_code == 503
     assert reply.json()["code"] == "audit_unavailable"
-    assert (await scim_group(world, "g-hr")).member_group_id is None
+    assert await linked_team(world, "g-hr") is None
 
 
 # -- membership is read, not copied -------------------------------------------------
@@ -253,7 +261,7 @@ async def test_the_members_of_a_linked_group_are_in_the_team_and_a_grant_reaches
     # unlinking takes them out; nobody and nothing is deleted
     assert (await unlink(world, "g-hr")).status_code == 200
     assert (await opens(jane, world))[0] is False
-    assert (await scim_group(world, "g-hr")).member_group_id is None
+    assert await linked_team(world, "g-hr") is None
     assert len(await container.form_access_grant_repo().list_for_form(
         world.workspace.id, world.form.form_id
     )) == 1
@@ -357,8 +365,14 @@ async def test_a_link_never_reaches_a_team_of_another_workspace(world, workspace
     jane = await provision(world, "u1", JANE, groups=[("g-hr", "Human resources")])
     foreign = await team_with(workspace_1, name="Elsewhere")
     group = await scim_group(world, "g-hr")
-    group.member_group_id = str(foreign.id)
-    await container.scim_group_repo().save(group)
+    await container.scim_group_team_link_repo().save_document(
+        ScimGroupTeamLinkDocument(
+            id=derived_id("scim_group_team_link", str(group.id)),
+            group_id=group.id,
+            team_id=foreign.id,
+            workspace_id=world.workspace.id,
+        )
+    )
     await grant(
         world.workspace, world.form.form_id, foreign.id, ROLE_REVIEWER, subject_type="group"
     )
@@ -488,7 +502,7 @@ async def test_deleting_a_team_unlinks_its_groups(world):
         cookies=cookies(testUser),
     )
     assert reply.status_code == 204
-    assert (await scim_group(world, "g-hr")).member_group_id is None
+    assert await linked_team(world, "g-hr") is None
     overview = await world.client.get(
         f"{api(world.workspace)}/scim", cookies=cookies(testUser)
     )
@@ -514,3 +528,126 @@ async def test_the_directory_settings_say_which_team_each_group_feeds(world):
         await world.client.get(f"{api(world.workspace)}/scim", cookies=cookies(admin))
     ).json()
     assert seen["canManage"] is False
+
+
+# -- the link is not part of the group document ---------------------------------------
+async def test_a_stale_group_save_after_an_unlink_does_not_bring_the_link_back(world):
+    """The directory sync, the role mapping and a rotation save a whole group
+    document read earlier. The link is a row of its own, so none of them can
+    restore it."""
+    jane = await provision(world, "u1", JANE, groups=[("g-hr", "Human resources")])
+    await link(world, "g-hr", world.team)
+    stale = await scim_group(world, "g-hr")  # read while linked
+    assert (await unlink(world, "g-hr")).status_code == 200
+    stale.name = "Human resources (renamed)"
+    await container.scim_group_repo().save(stale)  # a blind whole-document save
+    assert await linked_team(world, "g-hr") is None
+    assert await container.member_group_repo().member_ids(world.workspace.id, world.team.id) == []
+    assert (await opens(jane, world))[0] is False
+
+
+async def test_a_stale_group_save_after_a_team_delete_does_not_bring_the_link_back(world):
+    jane = await provision(world, "u1", JANE, groups=[("g-hr", "Human resources")])
+    await link(world, "g-hr", world.team)
+    stale = await scim_group(world, "g-hr")
+    deleted = await world.client.delete(
+        f"{api(world.workspace)}/member-groups/{world.team.id}", cookies=cookies(testUser)
+    )
+    assert deleted.status_code == 204
+    await container.scim_group_repo().save(stale)
+    assert await linked_team(world, "g-hr") is None
+    assert await container.scim_group_team_link_repo().link_counts(world.workspace.id) == {}
+    assert (await opens(jane, world))[0] is False
+
+
+async def test_a_link_survives_every_writer_of_the_group_document(world):
+    """A group event, the role mapping and a rotation's mark all save the group;
+    the link stays."""
+    await provision(world, "u1", JANE, groups=[("g-hr", "Human resources")])
+    await link(world, "g-hr", world.team)
+    group = await scim_group(world, "g-hr")
+    reply = await world.client.put(
+        f"{api(world.workspace)}/scim/groups/{group.id}",
+        cookies=cookies(testUser),
+        json={"role": "VIEWER"},
+    )
+    assert reply.status_code == 200, reply.text
+    assert reply.json()["teamId"] == str(world.team.id)
+    group = await scim_group(world, "g-hr")
+    group.replaced = True
+    await container.scim_group_repo().save(group)
+    await leave(world, "u1", JANE, ("g-hr", "Human resources"))
+    await provision(world, "u1", JANE, groups=[("g-hr", "Human resources")])
+    assert await linked_team(world, "g-hr") == str(world.team.id)
+
+
+async def test_group_events_racing_an_unlink_never_restore_the_link(world):
+    import asyncio
+
+    await provision(world, "u1", JANE, groups=[("g-hr", "Human resources")])
+    await link(world, "g-hr", world.team)
+    group = await scim_group(world, "g-hr")
+    sync = container.scim_sync_service()
+    data = group_data("g-hr", "Human resources")
+    events = [sync.apply_group(world.directory, data) for _ in range(8)]
+    unlinking = world.client.delete(
+        scim_url(world.workspace, group.id), cookies=cookies(testUser)
+    )
+    results = await asyncio.gather(*events, unlinking)
+    assert results[-1].status_code == 200
+    assert await linked_team(world, "g-hr") is None
+    # and the other way: linking while events arrive keeps the link
+    events = [sync.apply_group(world.directory, data) for _ in range(8)]
+    results = await asyncio.gather(
+        *events,
+        world.client.put(
+            scim_url(world.workspace, group.id),
+            cookies=cookies(testUser),
+            json={"teamId": str(world.team.id)},
+        ),
+    )
+    assert results[-1].status_code == 200
+    assert await linked_team(world, "g-hr") == str(world.team.id)
+
+
+async def test_a_group_dropped_by_the_directory_takes_its_link_row_with_it(world):
+    await provision(world, "u1", JANE, groups=[("g-hr", "Human resources")])
+    await link(world, "g-hr", world.team)
+    await deliver(
+        world.client,
+        world.directory,
+        world.polis,
+        event(world.directory, "group.deleted", group_data("g-hr", "Human resources")),
+    )
+    assert await container.scim_group_team_link_repo().link_counts(world.workspace.id) == {}
+
+
+async def test_a_large_directory_team_lists_a_page_of_people_and_the_total(
+    world, monkeypatch
+):
+    from backend.app.services.form_access import admin as admin_module
+
+    monkeypatch.setattr(admin_module, "MAX_SHOWN_MEMBERS", 2)
+    for n in range(4):
+        await provision(world, f"u{n}", f"p{n}@{DOMAIN}", groups=[("g-hr", "Human resources")])
+    await link(world, "g-hr", world.team)
+    detail = (
+        await world.client.get(
+            f"{api(world.workspace)}/member-groups/{world.team.id}", cookies=cookies(testUser)
+        )
+    ).json()
+    assert detail["memberCount"] == 4
+    assert len(detail["members"]) == 2 and detail["membersTruncated"] is True
+
+
+async def test_a_person_listed_by_hand_and_in_the_group_is_flagged_as_both(world):
+    jane = await provision(world, "u1", JANE, groups=[("g-hr", "Human resources")])
+    await link(world, "g-hr", world.team)
+    await container.member_group_repo().add_member(world.workspace.id, world.team.id, jane.id)
+    detail = (
+        await world.client.get(
+            f"{api(world.workspace)}/member-groups/{world.team.id}", cookies=cookies(testUser)
+        )
+    ).json()
+    (member,) = detail["members"]
+    assert (member["viaDirectory"], member["alsoViaDirectory"]) == (False, True)

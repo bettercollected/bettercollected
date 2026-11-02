@@ -256,6 +256,7 @@ class ScimDirectoryService:
         member_group_repo=None,
         audit_repo=None,
         form_access=None,
+        team_link_repo=None,
     ):
         self._authorization = authorization_service
         self._directories = directory_repo
@@ -271,6 +272,7 @@ class ScimDirectoryService:
         self._teams = member_group_repo
         self._audit = audit_repo
         self._form_access = form_access
+        self._team_links = team_link_repo
 
     # -- access ---------------------------------------------------------------
     async def _authorize(self, workspace_id, user: User) -> None:
@@ -355,6 +357,11 @@ class ScimDirectoryService:
         per_group: Dict[str, int] = {}
         for link in links:
             per_group[str(link.group_id)] = per_group.get(str(link.group_id), 0) + 1
+        team_of = (
+            await self._team_links.by_group(workspace_id)
+            if self._team_links is not None
+            else {}
+        )
         dto.groups = [
             GroupDto(
                 id=str(g.id),
@@ -362,7 +369,7 @@ class ScimDirectoryService:
                 role=g.role,
                 members=per_group.get(str(g.id), 0),
                 needs_review=g.needs_review,
-                team_id=g.member_group_id,
+                team_id=team_of.get(str(g.id)),
             )
             for g in sorted(
                 await self._groups.list_by_directory(directory.id),
@@ -568,18 +575,21 @@ class ScimDirectoryService:
         return DirectoryDeletedDto(re_enabled=enabled, left_disabled=left)
 
     async def _forget(self, directory: ScimDirectoryDocument) -> None:
-        for group in await self._groups.list_by_directory(directory.id):
-            if group.member_group_id:
-                # the links end with the directory: one entry each (ids only)
-                await access_audit.record(
-                    self._audit,
-                    TEAM_LINKED,
-                    directory.workspace_id,
-                    SystemActor("scim"),
-                    group_id=group.member_group_id,
-                    scim_group_id=str(group.id),
-                    linked=False,
-                )
+        if self._team_links is not None:
+            team_of = await self._team_links.by_group(directory.workspace_id)
+            for group in await self._groups.list_by_directory(directory.id):
+                if str(group.id) in team_of:
+                    # the links end with the directory: one entry each (ids only)
+                    await access_audit.record(
+                        self._audit,
+                        TEAM_LINKED,
+                        directory.workspace_id,
+                        SystemActor("scim"),
+                        group_id=team_of[str(group.id)],
+                        scim_group_id=str(group.id),
+                        linked=False,
+                    )
+            await self._team_links.delete_for_directory(directory.id)
         await self._members.delete_by_directory(directory.id)
         await self._groups.delete_by_directory(directory.id)
         await self._users.delete_by_directory(directory.id)
@@ -625,14 +635,24 @@ class ScimDirectoryService:
             raise _refused(HTTPStatus.NOT_FOUND, "not_found", "No such group.")
         return group
 
-    async def _group_dto(self, group: ScimGroupDocument) -> GroupDto:
+    async def _team_of(self, workspace_id, group) -> Optional[str]:
+        link = (
+            await self._team_links.find(workspace_id, group.id)
+            if self._team_links is not None
+            else None
+        )
+        return str(link.team_id) if link is not None else None
+
+    async def _group_dto(self, group: ScimGroupDocument, team_id=None) -> GroupDto:
+        if team_id is None:
+            team_id = await self._team_of(group.workspace_id, group)
         return GroupDto(
             id=str(group.id),
             name=group.name,
             role=group.role,
             members=len(await self._members.list_by_group(group.id)),
             needs_review=group.needs_review,
-            team_id=group.member_group_id,
+            team_id=team_id or None,
         )
 
     async def set_group_team(
@@ -652,15 +672,16 @@ class ScimDirectoryService:
         )
         if team is None:
             raise _refused(HTTPStatus.NOT_FOUND, "not_found", "No such team.")
-        if group.member_group_id == str(team.id):
-            return await self._group_dto(group)
-        if group.member_group_id:
+        current = await self._team_of(workspace_id, group)
+        if current == str(team.id):
+            return await self._group_dto(group, current)
+        if current:
             await access_audit.record_or_refuse(
                 self._audit,
                 TEAM_LINKED,
                 workspace_id,
                 user,
-                group_id=group.member_group_id,
+                group_id=current,
                 scim_group_id=str(group.id),
                 linked=False,
             )
@@ -674,8 +695,8 @@ class ScimDirectoryService:
             linked=True,
         )
         try:
-            saved = await self._groups.set_team(
-                workspace_id, group.id, str(team.id), str(user.id)
+            saved = await self._team_links.set(
+                workspace_id, group.id, team.id, str(user.id)
             )
         except AccessTargetNotFound:
             raise _refused(HTTPStatus.NOT_FOUND, "not_found", "No such team.") from None
@@ -689,7 +710,7 @@ class ScimDirectoryService:
             team.id,
             user.id,
         )
-        return await self._group_dto(saved)
+        return await self._group_dto(group, str(team.id))
 
     async def clear_group_team(
         self, workspace_id, group_id: str, user: User
@@ -699,20 +720,19 @@ class ScimDirectoryService:
         await self._authorize_owner(workspace_id, user)
         refuse_when_off()
         group = await self._group_of(workspace_id, group_id)
-        if not group.member_group_id:
-            return await self._group_dto(group)
+        current = await self._team_of(workspace_id, group)
+        if not current:
+            return await self._group_dto(group, "")
         await access_audit.record_or_refuse(
             self._audit,
             TEAM_LINKED,
             workspace_id,
             user,
-            group_id=group.member_group_id,
+            group_id=current,
             scim_group_id=str(group.id),
             linked=False,
         )
-        saved = await self._groups.set_team(workspace_id, group.id, None, None)
-        if saved is None:
-            raise _refused(HTTPStatus.NOT_FOUND, "not_found", "No such group.")
+        await self._team_links.clear(workspace_id, group.id)
         self._forget_access()
         logger.info(
             "SCIM group {} of workspace {} unlinked from its team by {}",
@@ -720,7 +740,7 @@ class ScimDirectoryService:
             workspace_id,
             user.id,
         )
-        return await self._group_dto(saved)
+        return await self._group_dto(group, "")
 
     def _forget_access(self) -> None:
         if self._form_access is not None:

@@ -194,6 +194,7 @@ class ScimSyncService:
         http_client,
         email_action_service=None,
         audit_repo=None,
+        team_link_repo=None,
     ):
         self._directories = directory_repo
         self._users = user_repo
@@ -207,6 +208,7 @@ class ScimSyncService:
         self._email_actions = email_action_service
         self._http = http_client
         self._audit = audit_repo
+        self._team_links = team_link_repo
 
     # -- the auth service -----------------------------------------------------
     async def _account(self, user: DirectoryUser, create: bool):
@@ -587,20 +589,26 @@ class ScimSyncService:
         return group
 
     async def _drop_group(self, group: ScimGroupDocument) -> None:
-        """The directory no longer has the group: its memberships and the group
-        go, and with them the link to its team (the team keeps its other
-        members and its grants; who it held through this group is read from
-        the group, so they are out at once). A linked group leaves an audit
-        entry, ids only (best effort: the directory's change is not held up)."""
+        """The directory no longer has the group: its memberships, its link to
+        a team and the group go (the team keeps its other members and its
+        grants; who it held through this group is read from the group, so they
+        are out at once). A linked group leaves an audit entry, ids only (best
+        effort: the directory's change is not held up)."""
+        team_id = None
+        if self._team_links is not None:
+            link = await self._team_links.find(group.workspace_id, group.id)
+            team_id = str(link.team_id) if link is not None else None
         await self._members.delete_by_group(group.id)
         await self._groups.delete(group.id)
-        if group.member_group_id:
+        if self._team_links is not None:
+            await self._team_links.delete_for_group(group.id)
+        if team_id:
             await access_audit.record(
                 self._audit,
                 TEAM_LINKED,
                 group.workspace_id,
                 SystemActor("scim"),
-                group_id=group.member_group_id,
+                group_id=team_id,
                 scim_group_id=str(group.id),
                 linked=False,
             )

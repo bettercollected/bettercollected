@@ -9,3 +9,4 @@
   a team through a group is removed in the directory, not on the team page. Linking and
   unlinking are written to the audit log (ids only), also when the directory deletes a linked
   group.
+  Adds migration 0039 (a table for the links and an index on directory users' accounts).

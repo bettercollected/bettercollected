@@ -1,5 +1,5 @@
 """Who is in a team: the members listed by hand, and the members of the
-directory groups linked to it (``ScimGroupDocument.member_group_id``).
+directory groups linked to it (rows of ``scim_group_team_links``).
 
 The directory side is **read at call time** from the tables the directory sync
 keeps (``scim_group_members`` -> ``scim_users``): nothing is copied into the
@@ -23,6 +23,7 @@ from backend.db.models import (
     MemberGroupRow,
     ScimGroupMemberRow,
     ScimGroupRow,
+    ScimGroupTeamLinkRow,
     ScimUserRow,
     WorkspaceUserRow,
 )
@@ -36,20 +37,24 @@ def _id(value) -> str:
     return str(value)
 
 
-def _linked_team():
-    return ScimGroupRow.doc["member_group_id"].astext
-
-
 def directory_pairs(workspace_id, team_ids: Optional[Iterable] = None, user_id=None):
     """``(group_id, user_id)`` of the people who are in a team through a linked
-    directory group, in this workspace."""
+    directory group, in this workspace.
+
+    A group or a user the directory replaced (a token rotation, until the new
+    directory has matched them) still counts: the rotation's grace period exists
+    so that nobody loses access while the new directory catches up, and a
+    replaced group keeps its role mapping and its link the same way. When the
+    new directory matches them, the same records carry on; when it does not,
+    the records go at the next resync."""
     ws = _id(workspace_id)
-    account = ScimUserRow.doc["user_id"].astext
-    team = _linked_team()
+    team = ScimGroupTeamLinkRow.team_id
+    account = ScimUserRow.user_id
     statement = (
         select(team.label("group_id"), account.label("user_id"))
-        .select_from(ScimGroupMemberRow)
-        .join(ScimGroupRow, ScimGroupRow.id == ScimGroupMemberRow.group_id)
+        .select_from(ScimGroupTeamLinkRow)
+        .join(ScimGroupRow, ScimGroupRow.id == ScimGroupTeamLinkRow.group_id)
+        .join(ScimGroupMemberRow, ScimGroupMemberRow.group_id == ScimGroupRow.id)
         .join(ScimUserRow, ScimUserRow.id == ScimGroupMemberRow.scim_user_id)
         .join(
             MemberGroupRow,
@@ -64,12 +69,12 @@ def directory_pairs(workspace_id, team_ids: Optional[Iterable] = None, user_id=N
             ),
         )
         .where(
+            ScimGroupTeamLinkRow.workspace_id == ws,
             ScimUserRow.workspace_id == ws,
             ScimUserRow.directory_id == ScimGroupRow.directory_id,
             ScimUserRow.doc["active"].astext == "true",
             ScimUserRow.doc["deleted"].astext.is_distinct_from("true"),
             ScimUserRow.doc["state"].astext.in_(_LIVE_STATES),
-            team.is_not(None),
         )
     )
     if team_ids is not None:

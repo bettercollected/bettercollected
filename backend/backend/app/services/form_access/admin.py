@@ -80,6 +80,8 @@ MAX_TEAMS = 20
 MAX_TEAM_MEMBERS = 500
 MAX_NAME = 80
 MAX_DESCRIPTION = 280
+# the people a team's detail lists (a directory group can hold thousands)
+MAX_SHOWN_MEMBERS = 200
 
 _ID = re.compile(r"^[0-9a-f]{24}$")
 
@@ -120,12 +122,17 @@ class TeamMemberDto(_Model):
     # in the team through a linked directory group: removed by the directory,
     # not here
     via_directory: bool = False
+    # listed by hand and also in through a directory group: removing the listing
+    # leaves them in the team
+    also_via_directory: bool = False
 
 
 class TeamDetailDto(TeamDto):
     members: List[TeamMemberDto] = []
     # the forms the team holds a grant on
     form_count: int = 0
+    # more people are in the team than ``members`` lists (``memberCount`` is the total)
+    members_truncated: bool = False
 
 
 # -- grants and the mode -----------------------------------------------------------
@@ -268,7 +275,7 @@ class FormAccessAdminService:
         cleanup: FormAccessCleanup,
         member_directory=None,
         form_repo=None,
-        scim_group_repo=None,
+        scim_team_link_repo=None,
     ):
         self._authz = authorization_service
         self._form_access = form_access
@@ -281,12 +288,12 @@ class FormAccessAdminService:
         self._cleanup = cleanup
         self._directory = member_directory
         self._forms = form_repo
-        self._scim_groups = scim_group_repo
+        self._scim_links = scim_team_link_repo
 
     async def _linked_counts(self, workspace_id) -> Dict[str, int]:
-        if self._scim_groups is None:
+        if self._scim_links is None:
             return {}
-        return await self._scim_groups.link_counts(workspace_id)
+        return await self._scim_links.link_counts(workspace_id)
 
     # ------------------------------------------------------------------ teams
     async def _manage_teams(self, workspace_id, user) -> None:
@@ -374,9 +381,15 @@ class FormAccessAdminService:
         await self._manage_teams(workspace_id, user)
         team = await self._team(workspace_id, group_id)
         by_hand = set(await self._groups.manual_member_ids(workspace_id, team.id))
+        from_directory = set(
+            await self._groups.directory_member_ids(workspace_id, team.id)
+        )
         member_ids = await self._groups.member_ids(workspace_id, team.id)
+        # a group can hold thousands: the page lists the first MAX_SHOWN_MEMBERS
+        # (the ones listed by hand first) and says how many there are
+        shown = member_ids[:MAX_SHOWN_MEMBERS]
         roles, names = (
-            await self._directory.lookup(workspace_id, member_ids)
+            await self._directory.lookup(workspace_id, shown)
             if self._directory is not None
             else ({}, {})
         )
@@ -386,14 +399,16 @@ class FormAccessAdminService:
                 name=names.get(member),
                 role=roles.get(member),
                 via_directory=member not in by_hand,
+                also_via_directory=member in by_hand and member in from_directory,
             )
-            for member in member_ids
+            for member in shown
         ]
         linked = (await self._linked_counts(workspace_id)).get(str(team.id), 0)
         grants = await self._cleanup.count_team_grants(workspace_id, team.id)
         return TeamDetailDto(
             **self._team_dto(team, len(member_ids), linked).model_dump(),
             members=members,
+            members_truncated=len(member_ids) > len(shown),
             form_count=grants,
         )
 
