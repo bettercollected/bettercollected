@@ -1031,23 +1031,6 @@ class ResponseImportService:
             done += 1
         return done
 
-    def _check_budget(self, started: dt.datetime, expires_at: Optional[dt.datetime] = None) -> None:
-        now = self._clock()
-        # the file's hour is absolute: a job running past it stops, whatever its state
-        if expires_at is not None and now >= expires_at:
-            raise _Expired()
-        if now - started > dt.timedelta(seconds=limits.JOB_MAX_SECONDS):
-            raise _OverBudget()
-
-    async def _fail(self, document: ResponseImportDocument, code: str, rollback: bool = False, **fields) -> ImportStatus:
-        if rollback and document.mode == ImportMode.IMPORT:
-            await self._undo(document)
-        try:
-            return await self._end(document, ImportStatus.FAILED, code, **fields)
-        except _Superseded:
-            found = await self._imports.get_by_id(document.id)
-            return found.status if found else ImportStatus.FAILED
-
     async def _process(self, document: ResponseImportDocument) -> ImportStatus:
         import_id, workspace_id, form_id = document.id, document.workspace_id, document.form_id
         attempt = document.attempts
