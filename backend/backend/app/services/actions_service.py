@@ -35,6 +35,7 @@ from backend.app.services.copy_recipient import (
 )
 
 
+from backend.app.services.builtin_actions.marks import entry_moved  # noqa: F401
 from backend.app.services.builtin_actions.sheets import SHEETS_ACTION, runs_in_backend
 
 QUEUE_ATTEMPTS = 3
@@ -47,7 +48,7 @@ def entry_in_force(entry, stored) -> bool:
     email action (``migrated_to``) after the response was submitted, so a run that
     was queued before the move still completes on the executor instead of
     being lost (a submission after the move is delivered by the new row only)."""
-    if entry.enabled:
+    if entry.enabled and not entry_moved(entry):
         return True
     marker = getattr(entry, "migrated_to", None) or {}
     moved_at = getattr(entry, "migrated_at", None)
@@ -166,7 +167,9 @@ class ActionService:
         entries = {
             str(entry.id): entry
             for entry in (form.actions.get(Trigger.on_submit) or [])
-            if entry.enabled
+            # a moved built-in action never runs on the executor again, switched
+            # on or not: its webhook or email action delivers
+            if entry.enabled and not entry_moved(entry)
         }
         submission_actions = [entry.id for entry in entries.values()]
         if len(submission_actions) == 0:

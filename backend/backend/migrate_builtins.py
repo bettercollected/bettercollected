@@ -5,10 +5,10 @@ Google Sheets) onto the backend's own webhooks, email actions and Sheets runner
 (``services/builtin_actions/migrate.py`` says what and how). Runs as the app
 role in the backend image, against Postgres, one form at a time.
 
-    preflight [--workspace ID] [--temporal-drained]   read-only: what would move, what blocks it
-    apply [--workspace ID] [--wait-queue SECONDS] [--temporal-drained]
-    verify [--workspace ID]               every moved action has its target
-    rollback [--workspace ID]             give the old actions back, switch the new ones off
+    preflight [--workspace ID] [--form ID] [--temporal-drained]   read-only: what would move, what blocks it
+    apply [--workspace ID] [--form ID] [--wait-queue SECONDS] [--temporal-drained]
+    verify [--workspace ID] [--form ID]    every moved action has its target and every target its mark
+    rollback [--workspace ID] [--form ID]  give the old actions back, switch the new ones off
 
 ``apply`` moves what it can and reports the rest; it never turns a switch on,
 never sends anything, and refuses a form that still has runs queued for the
@@ -17,8 +17,8 @@ runs on Temporal (``JOBS_BACKEND``), ``preflight`` and ``apply`` ask the Tempora
 server (the backend's own ``TEMPORAL_*`` settings) for the open
 ``run_action_code`` workflows: ``apply`` refuses a form while any of its runs are
 open, and both refuse (``blocked.temporal_unreachable``) when Temporal cannot be
-asked. ``--temporal-drained`` is only for that case: it skips the check, with an
-error line in the log, on the operator's word that nothing is open.
+asked. ``--temporal-drained`` is only for that case: it skips the check, with a
+WARNING in the log, on the operator's word that nothing is open.
 
 Output is counts only, as JSON: no id, address, recipient or secret. Exit status:
 0 done and nothing blocked (``verify``: nothing wrong), 1 something is blocked or
@@ -40,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     for name in ("preflight", "apply", "verify", "rollback"):
         command = sub.add_parser(name)
         command.add_argument("--workspace", help="only this workspace's forms")
+        command.add_argument("--form", help="only this form (a staged move)")
         if name == "apply":
             command.add_argument("--wait-queue", type=int, default=0, metavar="SECONDS")
         if name in ("preflight", "apply"):
@@ -108,20 +109,20 @@ async def run(args, migration=None, temporal=None) -> int:
                 override=bool(getattr(args, "temporal_drained", False)),
             )
         if args.command == "preflight":
-            report = await migration.preflight(args.workspace)
+            report = await migration.preflight(args.workspace, args.form)
             print(report.as_json())
             return exit_code(report)
         if args.command == "apply":
             report = await migration.apply(
-                args.workspace, wait_queue_seconds=args.wait_queue
+                args.workspace, args.form, wait_queue_seconds=args.wait_queue
             )
             print(report.as_json())
             return exit_code(report)
         if args.command == "verify":
-            report = await migration.verify(args.workspace)
+            report = await migration.verify(args.workspace, args.form)
             print(report.as_json())
             return 1 if any(k.startswith("problem.") for k in report.counts) else 0
-        report = await migration.rollback(args.workspace)
+        report = await migration.rollback(args.workspace, args.form)
         print(report.as_json())
         return 0
 
