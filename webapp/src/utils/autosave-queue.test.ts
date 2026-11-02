@@ -61,7 +61,7 @@ describe('SaveQueue', () => {
         expect(send).not.toHaveBeenCalled();
     });
 
-    it('retries a network failure with backoff, sending the latest state', async () => {
+    it('retries a network failure with backoff, then sends what was edited meanwhile', async () => {
         const { queue, send, calls, states } = makeQueue('v0', [1000, 4000]);
         queue.enqueue('a');
         await calls[0].answer({ kind: 'retryable' });
@@ -73,17 +73,23 @@ describe('SaveQueue', () => {
         await vi.advanceTimersByTimeAsync(999);
         expect(send).toHaveBeenCalledTimes(1);
         await vi.advanceTimersByTimeAsync(1);
+        // the save whose answer never came goes first, on the version it was sent with
         expect(send).toHaveBeenCalledTimes(2);
-        expect(calls[1].body).toBe('b');
+        expect(calls[1]).toMatchObject({ body: 'a', version: 'v0' });
 
         await calls[1].answer({ kind: 'retryable' });
         await vi.advanceTimersByTimeAsync(3999);
         expect(send).toHaveBeenCalledTimes(2);
         await vi.advanceTimersByTimeAsync(1);
         expect(send).toHaveBeenCalledTimes(3);
+        expect(calls[2]).toMatchObject({ body: 'a', version: 'v0' });
         await calls[2].answer({ kind: 'saved', version: 'v1' });
+        // then the edit made since, on the version that answer gave
+        expect(send).toHaveBeenCalledTimes(4);
+        expect(calls[3]).toMatchObject({ body: 'b', version: 'v1' });
+        await calls[3].answer({ kind: 'saved', version: 'v2' });
         expect(queue.state).toBe('saved');
-        expect(states).toEqual(['saving', 'retrying', 'saving', 'retrying', 'saving', 'saved']);
+        expect(states).toEqual(['saving', 'retrying', 'saving', 'retrying', 'saving', 'saving', 'saved']);
     });
 
     it('treats a thrown send as a network failure', async () => {
@@ -161,6 +167,107 @@ describe('SaveQueue', () => {
         queue.adoptVersion('2026-10-17T08:00:00');
         queue.enqueue('a');
         expect(calls[0].version).toBe('2026-10-17T09:00:05.000+00:00');
+    });
+});
+
+/**
+ * A stand-in for the server's whole-form save: it stores a save made on the
+ * version it holds; a save made on an older version is refused (409), except
+ * the very save it stored last, sent again (its answer was lost), which is
+ * answered with the stored version (accept_replay).
+ */
+function fakeServer(initial = 'v0') {
+    let version = initial;
+    let counter = 0;
+    let stored: string | null = null;
+    let previous: string | null = null;
+    return {
+        stored: () => stored,
+        version: () => version,
+        /** Another tab saves. */
+        otherTabSaves(body: string) {
+            previous = version;
+            version = `v${++counter}`;
+            stored = body;
+        },
+        /** `lose`: the save is stored but its answer never arrives. */
+        async handle(body: string, sent: string | null, lose = false): Promise<SaveOutcome> {
+            if (sent === version) {
+                previous = version;
+                version = `v${++counter}`;
+                stored = body;
+                return lose ? { kind: 'retryable' } : { kind: 'saved', version };
+            }
+            if (body === stored && sent === previous) return { kind: 'saved', version };
+            return { kind: 'conflict' };
+        }
+    };
+}
+
+describe('a save whose answer was lost', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    function setup() {
+        const server = fakeServer();
+        const flags = { lose: true };
+        const states: SaveQueueState[] = [];
+        const queue = new SaveQueue({ send: (body, version) => server.handle(body, version, flags.lose), backoffMs: [1000], onState: (state) => states.push(state) }, server.version());
+        queue.setBaseline('loaded');
+        return { server, flags, states, queue };
+    }
+
+    it('is not a change made elsewhere: the next save builds on what it stored', async () => {
+        const { server, flags, states, queue } = setup();
+
+        queue.enqueue('add a field');
+        await vi.advanceTimersByTimeAsync(0);
+        expect(queue.state).toBe('retrying');
+        expect(server.stored()).toBe('add a field');
+
+        // the person keeps working while it retries
+        flags.lose = false;
+        queue.enqueue('add a field, then a title');
+        await vi.advanceTimersByTimeAsync(1000);
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(states).not.toContain('conflict');
+        expect(queue.state).toBe('saved');
+        expect(server.stored()).toBe('add a field, then a title');
+        expect(queue.version).toBe(server.version());
+        expect(queue.hasUnsaved()).toBe(false);
+    });
+
+    it('is not a change made elsewhere when nothing else is edited either', async () => {
+        const { server, flags, states, queue } = setup();
+        queue.enqueue('add a field');
+        await vi.advanceTimersByTimeAsync(0);
+        flags.lose = false;
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(queue.state).toBe('saved');
+        expect(queue.version).toBe(server.version());
+        // and an edit after that goes through on the version the replay answered with
+        queue.enqueue('add a field, then a title');
+        await vi.advanceTimersByTimeAsync(0);
+        expect(queue.state).toBe('saved');
+        expect(states).not.toContain('conflict');
+    });
+
+    it('still reports a change another tab made meanwhile, and overwrites nothing', async () => {
+        const { server, flags, queue } = setup();
+        queue.enqueue('add a field');
+        await vi.advanceTimersByTimeAsync(0);
+        expect(queue.state).toBe('retrying');
+
+        // another tab saves on top of it before the retry
+        server.otherTabSaves('from another tab');
+        flags.lose = false;
+        queue.enqueue('add a field, then a title');
+        await vi.advanceTimersByTimeAsync(1000);
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(queue.state).toBe('conflict');
+        expect(server.stored()).toBe('from another tab');
     });
 });
 
