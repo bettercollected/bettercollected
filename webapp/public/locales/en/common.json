@@ -2212,7 +2212,7 @@
       "EXPORT": "May export responses",
       "EXPORT_ARIA": "{{name}} may export responses",
       "EXPORT_INCLUDED": "Can export responses",
-      "EXPORT_NOTE": "Only owners and admins can allow exporting. A role is never higher than your own on this form.",
+      "EXPORT_NOTE": "Only owners and admins can allow a Reviewer or Viewer to export responses. An Editor can always export.",
       "NO_PICKER": "Choosing people and teams to add is for owners and admins. You can still change or remove the access listed here.",
       "NO_ROLE_TO_GIVE": "Your own access to this form is too limited to give anyone a role on it.",
       "TEAM": "Team",

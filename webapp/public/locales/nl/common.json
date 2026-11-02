@@ -2212,7 +2212,7 @@
       "EXPORT": "Mag reacties exporteren",
       "EXPORT_ARIA": "{{name}} mag reacties exporteren",
       "EXPORT_INCLUDED": "Kan reacties exporteren",
-      "EXPORT_NOTE": "Alleen eigenaren en beheerders kunnen exporteren toestaan. Een rol is nooit hoger dan uw eigen rol bij dit formulier.",
+      "EXPORT_NOTE": "Alleen eigenaren en beheerders kunnen een Beoordelaar of Kijker toestaan reacties te exporteren. Een Bewerker kan altijd exporteren.",
       "NO_PICKER": "Personen en teams kiezen om toe te voegen kunnen alleen eigenaren en beheerders. De toegang die hier staat kunt u wel wijzigen of intrekken.",
       "NO_ROLE_TO_GIVE": "Uw eigen toegang tot dit formulier is te beperkt om iemand er een rol bij te geven.",
       "TEAM": "Team",
