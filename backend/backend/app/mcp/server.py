@@ -536,7 +536,9 @@ async def dry_run_ops(
     service = _c().form_spec_service()
     form, settings = await service.load(key.workspace_id, form_id)
     try:
-        preview = await service.preview_async(form, settings, ops, atomic)
+        preview = await service.preview_async(
+            form, settings, ops, atomic, workspace_id=key.workspace_id
+        )
     except HTTPException as e:
         await _audit("dry_run_ops", False, form_id)
         raise ValueError(_error_text(e)) from e

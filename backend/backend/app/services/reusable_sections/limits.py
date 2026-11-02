@@ -10,3 +10,9 @@ CONTENT_BYTES_MAX = 200_000
 VERSIONS_KEPT = 10
 NAME_MAX = 100
 DESCRIPTION_MAX = 500
+# what one workspace's library may take in all (every section, its versions included)
+WORKSPACE_BYTES_MAX = 20_000_000
+# how deep questions may nest (a group holds questions)
+NESTING_MAX = 5
+# library sections one batch of edit operations may insert
+LIBRARY_OPS_PER_BATCH = 20

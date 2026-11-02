@@ -203,17 +203,8 @@ class FormSpecService:
     ) -> DryRunResponse:
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
         form, settings = await self.load(workspace_id, form_id)
-        # library sections an op names are read through the workspace here
-        # (the engine itself cannot read the library)
-        library = None
-        if library_ops.has_library_ops(request.ops):
-            from backend.app.container import container
-
-            library = await library_ops.fetch_fragments(
-                workspace_id, request.ops, container.reusable_section_service()
-            )
         return await self.preview_async(
-            form, settings, request.ops, request.atomic, library
+            form, settings, request.ops, request.atomic, workspace_id=workspace_id
         )
 
     async def preview_async(
@@ -223,9 +214,20 @@ class FormSpecService:
         raw_ops: List[Dict[str, Any]],
         atomic: bool,
         library: Any = None,
+        workspace_id: Any = None,
     ) -> DryRunResponse:
         """``preview`` off the event loop: applying a batch, converting and
-        diffing a large form is CPU-bound."""
+        diffing a large form is CPU-bound. With ``workspace_id`` the library
+        sections the batch names are read through that workspace first (the
+        engine itself cannot read the library); every surface that previews a
+        batch (the builder's dry run, MCP ``dry_run_ops``, the public API's
+        ``ops/dry-run``) passes it."""
+        if library is None and workspace_id is not None and library_ops.has_library_ops(raw_ops):
+            from backend.app.container import container
+
+            library = await library_ops.fetch_fragments(
+                workspace_id, raw_ops, container.reusable_section_service()
+            )
         return await run_in_threadpool(
             self.preview, form, settings, raw_ops, atomic, library
         )

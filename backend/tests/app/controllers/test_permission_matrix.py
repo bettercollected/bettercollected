@@ -211,6 +211,8 @@ class Case:
     open_formulieren: Optional[str] = None
     # OPEN_FORMULIEREN_EXPORT for the case (the export is off by default)
     open_formulieren_export: Optional[str] = None
+    # server switches (attributes of ``settings``) turned on for the case
+    switches: Optional[Dict[str, object]] = None
 
 
 def _png() -> bytes:
@@ -897,6 +899,33 @@ CASES = [
         ok=200,
     ),
     Case(
+        "forms.versions.list",
+        "GET",
+        F + "/versions",
+        P.FORM_READ,
+        ok=200,
+        switches={"FORM_REVISIONS_UI_ENABLED": True},
+    ),
+    Case(
+        "forms.versions.diff",
+        "GET",
+        # (the matrix form is a first-generation one: not comparable, 422)
+        F + "/version-diff?from=1&to=1",
+        P.FORM_READ,
+        ok=422,
+        switches={"FORM_REVISIONS_UI_ENABLED": True},
+    ),
+    Case(
+        "forms.versions.restore",
+        "POST",
+        F + "/versions/1/restore",
+        P.FORM_EDIT,
+        lambda c: {
+            "json": {"expectedUpdatedAt": "2099-01-01T00:00:00Z", "replaceDraft": True}
+        },
+        switches={"FORM_REVISIONS_UI_ENABLED": True},
+    ),
+    Case(
         "responses.internal_answers",
         "PATCH",
         F + "/submissions/{response}/internal-answers",
@@ -1280,6 +1309,8 @@ async def test_permission_matrix(
         monkeypatch.setattr(
             settings.open_formulieren, "EXPORT", case.open_formulieren_export
         )
+    for name, value in (case.switches or {}).items():
+        monkeypatch.setattr(settings, name, value)
     request = case.request(matrix)
     response = await client.request(
         case.method,

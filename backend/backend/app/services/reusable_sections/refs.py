@@ -31,7 +31,11 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 PIPE_NODE = "answerPipe"
 DATE_RANGE_PARTS = ("start", "end")
-_TOKEN = re.compile(r"\{\{(field|hidden):([^|{}]*)((?:\|[^{}]*)?)\}\}")
+# The pipe forms of plain strings. The same grammar as the answer-piping resolver
+# (webapp answer-piping.ts, repeating-groups.ts) and field_rules._PIPE: whitespace
+# around the kind and the key is allowed, ``group`` keys are
+# ``<group>:count|list|sum..:<child>``. A test keeps this and field_rules in step.
+_TOKEN = re.compile(r"\{\{\s*(field|hidden|group)\s*:\s*([^|}]*?)\s*((?:\|[^}]*)?)\}\}")
 
 # warning codes (the webapp has a sentence for each)
 CONDITION_DROPPED = "condition_dropped"
@@ -227,17 +231,33 @@ def _logic(
 # text, pipes and tokens -----------------------------------------------------
 
 
+def _group_key(key: str, m: Mapper) -> Optional[str]:
+    """A ``group`` pipe key (``<group>``, ``<group>:count``,
+    ``<group>:list|sum..:<child>``) with its ids mapped, or None when one of them
+    points outside."""
+    parts = [part.strip() for part in key.split(":")]
+    group = m.id(parts[0])
+    child = m.id(parts[2]) if len(parts) > 2 else None
+    if group is None or (len(parts) > 2 and child is None):
+        return None
+    parts[0] = group
+    if len(parts) > 2:
+        parts[2] = child  # type: ignore[assignment]
+    return ":".join(parts)
+
+
 def _rewrite_tokens(text: str, m: Mapper, field: Dict[str, Any]) -> str:
     def swap(match: "re.Match[str]") -> str:
         kind, key, tail = match.group(1), match.group(2), match.group(3)
-        if kind == "hidden":
+        mapped: Optional[str] = None
+        if kind == "group":
+            mapped = _group_key(key, m)
+        elif kind == "field":
+            mapped = m.key(key)
+        if mapped is None:  # hidden names are the form's; outside ids are no one's
             m.dropped(PIPE_DROPPED, field)
             return tail[1:]  # the fallback text stays
-        mapped = m.key(key)
-        if mapped is None:
-            m.dropped(PIPE_DROPPED, field)
-            return tail[1:]
-        return "{{field:" + mapped + tail + "}}"
+        return "{{" + kind + ":" + mapped + tail + "}}"
 
     return _TOKEN.sub(swap, text)
 
@@ -250,15 +270,10 @@ def _pipe_ok(node: Dict[str, Any], m: Mapper) -> Optional[Dict[str, Any]]:
     if kind == "hidden":
         return None
     if kind == "group":
-        parts = str(key or "").split(":")
-        group = m.id(parts[0])
-        child = m.id(parts[2]) if len(parts) > 2 else None
-        if group is None or (len(parts) > 2 and child is None):
+        mapped = _group_key(str(key or ""), m)
+        if mapped is None:
             return None
-        parts[0] = group
-        if len(parts) > 2:
-            parts[2] = child  # type: ignore[assignment]
-        attrs["pipeKey"] = ":".join(parts)
+        attrs["pipeKey"] = mapped
         return node
     mapped = m.key(key)
     if mapped is None:
@@ -420,16 +435,20 @@ def _transform_field(field: Dict[str, Any], m: Mapper) -> bool:
 def _transform_fields(
     fields: List[Dict[str, Any]], m: Mapper
 ) -> List[Dict[str, Any]]:
-    kept: List[Dict[str, Any]] = []
-    for field in fields:
-        if not isinstance(field, dict):
-            continue
-        if not _transform_field(field, m):
-            continue
-        if field.get("fields") is not None:
-            field["fields"] = _transform_fields(field["fields"], m)
-        kept.append(field)
-    return kept
+    """Iterative (a group nested to any depth cannot exhaust the stack)."""
+    root: List[Dict[str, Any]] = []
+    pending = [(fields, root)]
+    while pending:
+        source, target = pending.pop()
+        for field in source:
+            if not isinstance(field, dict) or not _transform_field(field, m):
+                continue
+            target.append(field)
+            if field.get("fields") is not None:
+                children: List[Dict[str, Any]] = []
+                pending.append((field["fields"], children))
+                field["fields"] = children
+    return root
 
 
 def _members(

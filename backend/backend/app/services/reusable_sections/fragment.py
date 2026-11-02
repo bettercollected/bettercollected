@@ -140,8 +140,64 @@ def to_builder(
     return out_fields, out_containers
 
 
+def _depth_and_count(fields: List[Dict[str, Any]], key: str, nested: Any) -> Tuple[int, int]:
+    """(how many questions, how deep they nest), iteratively."""
+    count, deepest = 0, 0
+    stack = [(f, 1) for f in fields]
+    while stack:
+        field, depth = stack.pop()
+        if not isinstance(field, dict):
+            continue
+        count += 1
+        deepest = max(deepest, depth)
+        children = nested(field)
+        if isinstance(children, list):
+            stack.extend((c, depth + 1) for c in children)
+        if count > limits.QUESTIONS_PER_SECTION * 4:
+            break  # far over: no need to count the rest
+    return count, deepest
+
+
+def precheck(fields: List[Dict[str, Any]], containers: List[Dict[str, Any]]) -> None:
+    """The size, number and nesting of what a client sent, before any of it is
+    converted (a conversion costs far more than counting)."""
+    try:
+        size = len(json.dumps([fields, containers], separators=(",", ":")).encode())
+    except RecursionError:
+        size = limits.CONTENT_BYTES_MAX * 10
+    # the builder's shape is wordier than the stored one: allow it twice the room
+    if size > limits.CONTENT_BYTES_MAX * 2:
+        raise refuse(
+            HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+            TOO_LARGE_CODE,
+            f"A section is at most {limits.CONTENT_BYTES_MAX // 1000} KB.",
+        )
+    count, deepest = _depth_and_count(
+        fields, "fields", lambda f: (f.get("properties") or {}).get("fields")
+    )
+    if count > limits.QUESTIONS_PER_SECTION or len(containers) > limits.CONTAINERS_PER_SECTION:
+        raise refuse(
+            HTTPStatus.UNPROCESSABLE_ENTITY,
+            LIMIT_CODE,
+            f"A section holds at most {limits.QUESTIONS_PER_SECTION} questions "
+            f"and {limits.CONTAINERS_PER_SECTION} layout containers.",
+        )
+    if deepest > limits.NESTING_MAX:
+        raise refuse(
+            HTTPStatus.UNPROCESSABLE_ENTITY,
+            LIMIT_CODE,
+            f"Questions nest at most {limits.NESTING_MAX} levels deep in a section.",
+        )
+
+
 def check_limits(fields: List[Dict[str, Any]], containers: List[Dict[str, Any]]) -> None:
     count = len(refs.question_ids(fields))
+    if _depth_and_count(fields, "fields", lambda f: f.get("fields"))[1] > limits.NESTING_MAX:
+        raise refuse(
+            HTTPStatus.UNPROCESSABLE_ENTITY,
+            LIMIT_CODE,
+            f"Questions nest at most {limits.NESTING_MAX} levels deep in a section.",
+        )
     if count == 0:
         raise refuse(
             HTTPStatus.UNPROCESSABLE_ENTITY,

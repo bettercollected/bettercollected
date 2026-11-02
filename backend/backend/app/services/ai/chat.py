@@ -375,8 +375,21 @@ class FormAIChatService:
             if session.id is None:
                 session.id = RecordId()
             # a dry run per op, spec and diff: off the event loop
+            preview_ops = None
+            if library_ops.has_library_ops(ops):
+                fragments = await library_ops.fetch_fragments(
+                    workspace_id, ops, _c().reusable_section_service()
+                )
+                preview_ops, _ = library_ops.substitute(ops, fragments)
             proposal, results = await run_in_threadpool(
-                build_proposal, form, association.settings, ops, reply, session.id
+                build_proposal,
+                form,
+                association.settings,
+                ops,
+                reply,
+                session.id,
+                None,
+                preview_ops,
             )
         else:
             new_form, results, updated_settings = await persist_ops_to_form(

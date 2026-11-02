@@ -52,6 +52,7 @@ from backend.app.services.submissions_api.service import (
     CreateSubmission,
     UpdateSubmission,
     create_submission,
+    ensure_form_allowed,
     parse_body,
     update_submission,
 )
@@ -233,6 +234,12 @@ def _location(request: Request, form_id: str) -> str:
     return f"{request.scope.get('root_path', '')}/forms/{form_id}"
 
 
+# Strong references to the shielded tasks of _idempotent: the event loop keeps
+# a task only weakly, so once the request's frame is gone (a disconnected
+# client) nothing else would stop a running write from being collected.
+_RUNNING: "set[asyncio.Future]" = set()
+
+
 async def _idempotent(
     request: Request,
     caller: ApiCaller,
@@ -288,6 +295,8 @@ async def _idempotent(
         return response
 
     task = asyncio.ensure_future(run_and_record())
+    _RUNNING.add(task)
+    task.add_done_callback(_RUNNING.discard)
     # (a task nobody waits for any more must not leave its error unretrieved)
     task.add_done_callback(lambda done: done.cancelled() or done.exception())
     return await asyncio.shield(task)
@@ -631,7 +640,13 @@ async def dry_run_ops(
     payload = _ops_request(parse_json_document(await read_document_bytes(request)))
     service = _c().form_spec_service()
     form, settings = await service.load(caller.workspace_id, form_id)
-    preview = await service.preview_async(form, settings, payload.ops, payload.atomic)
+    preview = await service.preview_async(
+        form,
+        settings,
+        payload.ops,
+        payload.atomic,
+        workspace_id=caller.workspace_id,
+    )
     return JSONResponse(preview.model_dump(mode="json", by_alias=True))
 
 
@@ -801,6 +816,8 @@ async def create_submission_endpoint(
     ),
 ):
     _object_id(form_id)
+    # a key that may not write to this form must not spend the form's budget
+    ensure_form_allowed(caller.key, form_id)
     await form_budget(caller, form_id)
     body = await read_document_bytes(request)
 
@@ -847,6 +864,8 @@ async def update_submission_endpoint(
     ),
 ):
     _object_id(form_id)
+    # a key that may not write to this form must not spend the form's budget
+    ensure_form_allowed(caller.key, form_id)
     await form_budget(caller, form_id)
     body = await read_document_bytes(request)
 

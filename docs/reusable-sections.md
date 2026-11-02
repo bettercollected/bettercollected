@@ -40,8 +40,10 @@ lists it afterwards in plain language:
 
 References **into** an inserted copy from the rest of the form are ordinary references.
 
-Limits: 50 questions per section (a repeating group's questions count), 10 containers, 200 sections per workspace,
-200 KB of content per version, a name of at most 100 and a description of at most 500 characters.
+Limits: 50 questions per section (a repeating group's questions count, nested at most 5 levels), 10 containers, 200
+sections per workspace, 200 KB of content per version, 20 MB of stored content (versions included) per workspace, a name
+of at most 100 and a description of at most 500 characters. Size, count and nesting are checked before anything is
+converted.
 
 ## Inserting is a copy
 
@@ -58,6 +60,10 @@ The server checks that no reference of the copy names anything but a question of
 points elsewhere has that reference dropped, and an insert that still escaped is refused), so an inserted question
 can never point at a question of another form. The copy is then saved by the ordinary builder save, which applies
 every server check to it. A published form never changes by itself.
+
+The marker is a **hint, not an authority**: any writer of a form (the builder, the spec API) can set it, and every use
+of it (update from library, saving a copy back) re-reads the section through the caller's workspace and checks it
+against the stored section, so a forged `sectionId` or `key` finds nothing or is refused.
 
 The webapp inserts with the editor operation `splice_fields` (one undo step). The marker is the creator's business:
 it is removed from the form a respondent gets, and a copy to another workspace (a template, an import) drops it. A
@@ -76,6 +82,10 @@ section's version. The previous 9 versions stay readable.
 | only in the library | added, with a new id |
 | only in the copy, or its type changed | removed (a retyped question is removed and added again: answers stored under the old id were given to a question of another shape); references to it elsewhere in the form are pruned like any removal |
 | added to the copy by hand | left where it is |
+| in both, but the answer is shaped differently now (a group that repeats, a choice that takes several options or an "other") | treated like a retyped question: new id |
+
+A panel, field set or tabs strip that holds questions of the copy is replaced by the library's; a question you added to it
+stays on the page, outside the group (the dialog says so).
 
 The diff says per question what changed (title, type, required, options, rules, ...), and whether the copy's own
 question was changed in the form since the insert (known while the version it came from is still kept). The update
@@ -114,7 +124,11 @@ content never leaves the workspace: no public route, no export, nothing in a tem
 engine cannot read the library, so the write path (`persist_ops_to_form`, and the dry run) resolves the operation
 first: the section is read **through the form's workspace**, copied and replaced by the editor operation
 `splice_fields` with the concrete questions. A section that does not exist, belongs to another workspace, or a
-switch that is off all give the same plain failure. The engine itself never inserts a library section.
+switch that is off all give the same plain failure; a section that exists in the workspace but cannot be inserted
+(a feature switch was turned off since it was saved) says why. One batch inserts at most 20 library sections (more is
+refused whole, 422 `too_many_library_ops`), a section named several times is read once, and the copies are made off
+the event loop. The dry runs (the builder's, MCP `dry_run_ops`, the public API's `ops/dry-run`) and the AI assistant's
+propose-mode preview resolve the operation too. The engine itself never inserts a library section.
 
 `splice_fields {pageId, index?, fields, containers?, replaceIds?, replaceContainerIds?}` is builder-only: it inserts
 complete questions (ids kept) and optionally replaces top-level questions of the page, checked as a whole save

@@ -9,7 +9,7 @@ from common.models.standard_form import StandardForm
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.services.ai.ops import EDITOR_CONTEXT, SpliceFieldsOp, apply_form_ops
-from backend.app.services.reusable_sections import limits
+from backend.app.services.reusable_sections import limits, refs
 from backend.app.services.reusable_sections.service import (
     PlanRequestDto,
     SectionContentDto,
@@ -55,7 +55,7 @@ async def inserted(workspace, fields=None):
     """A section with a copy of it: (section, fragment, the copy's questions by title)."""
     section = await make_section(workspace, fields=fields or v1_fields(), containers=[])
     fragment = await service().instantiate(workspace.id, section.id, testUser)
-    return section, fragment, {f["title"]: f for f in fragment.fields}
+    return section, fragment, {refs.plain_title(f): f for f in fragment.fields}
 
 
 def by_key(plan):
@@ -147,7 +147,6 @@ async def test_the_diff_says_what_was_added_removed_and_changed_and_keeps_unchan
     assert new["Age in years"] == named["Age"]["id"]
     assert new["Kind"] != named["Kind"]["id"]
     assert new["Email"] not in {f["id"] for f in fragment.fields}
-    assert plan.replace_ids == [f["id"] for f in fragment.fields]
     # the reference of Age to Name lost its target: it is dropped (Name is gone)
     age = next(f for f in plan.fields if f["title"] == "Age in years")
     assert age["properties"].get("logic") is None
@@ -179,7 +178,8 @@ async def test_the_plan_applied_keeps_unchanged_question_ids_in_the_form(workspa
         testUser,
     )
     page = form.fields[0].properties.fields
-    first = next(i for i, f in enumerate(page) if f.id == plan.replace_ids[0])
+    replace = [f["id"] for f in fragment.fields]
+    first = next(i for i, f in enumerate(page) if f.id == replace[0])
     form, results = apply_form_ops(
         form,
         [
@@ -188,7 +188,7 @@ async def test_the_plan_applied_keeps_unchanged_question_ids_in_the_form(workspa
                     "op": "splice_fields",
                     "pageId": "s1",
                     "index": first,
-                    "replaceIds": plan.replace_ids,
+                    "replaceIds": replace,
                     "fields": plan.fields,
                 },
                 context={EDITOR_CONTEXT: True},
@@ -287,3 +287,90 @@ async def test_a_duplicated_page_does_not_claim_the_copy_twice(workspace):
     clone = form.fields[1].properties.fields
     assert all(f.properties is None or f.properties.library is None for f in clone)
     assert any(f.properties.library for f in form.fields[0].properties.fields)
+
+
+# ------------------------------------------------ rules and the shape of an answer
+
+
+async def _plan_of(workspace, section, fragment):
+    return await service().update_plan(
+        workspace.id,
+        section.id,
+        PlanRequestDto(instance=fragment.instance, fields=copy.deepcopy(fragment.fields)),
+        testUser,
+    )
+
+
+async def test_a_section_with_rules_is_up_to_date_when_nothing_changed(workspace):
+    from tests.app.reusable_sections.helpers import applicant_fields
+
+    section, fragment, _ = await inserted(workspace, fields=applicant_fields())
+    plan = await _plan_of(workspace, section, fragment)
+    # the copy's rules have ids of their own; they are not a change
+    assert [c.status for c in plan.changes] == ["unchanged"] * len(plan.changes)
+    assert not any(c.modified_in_copy for c in plan.changes)
+    assert plan.base_known
+
+
+async def test_a_changed_rule_is_a_change_and_an_untouched_one_next_to_it_is_not(workspace):
+    from tests.app.reusable_sections.helpers import applicant_fields
+
+    section, fragment, named = await inserted(workspace, fields=applicant_fields())
+
+    def edit(fields):
+        for field in fields:
+            if field["title"] == "Limit":
+                field["properties"]["rules"][0]["then"]["title"] = "Another title"
+
+    await next_version(workspace, section, fragment, edit)
+    plan = await _plan_of(workspace, section, fragment)
+    stored = await container.reusable_section_repo().get(workspace.id, section.id)
+    key = {refs.plain_title(f): f["id"] for f in stored.fields}
+    changes = by_key(plan)
+    assert changes[key["Limit"]].status == "changed" and changes[key["Limit"]].what == ["rules"]
+    assert changes[key["Age"]].status == "unchanged"
+    assert changes[key["Limit"]].modified_in_copy is False
+
+
+async def test_section_rules_have_ids_of_their_own_not_a_forms(workspace):
+    from tests.app.reusable_sections.helpers import applicant_fields
+
+    section, fragment, _ = await inserted(workspace, fields=applicant_fields())
+    stored = await container.reusable_section_repo().get(workspace.id, section.id)
+    saved = [r["id"] for f in stored.fields for r in f.get("rules") or []]
+    assert saved and not {"r1", "r2"} & set(saved)
+
+
+@pytest.mark.parametrize(
+    "make_old,make_new",
+    [
+        (
+            lambda: q("pick", "multiple_choice", "Pick", choices=[{"id": "c1", "value": "a"}], allowMultipleSelection=False),
+            lambda: q("pick", "multiple_choice", "Pick", choices=[{"id": "c1", "value": "a"}], allowMultipleSelection=True),
+        ),
+        (
+            lambda: q("pick", "dropdown", "Pick", choices=[{"id": "c1", "value": "a"}]),
+            lambda: q("pick", "dropdown", "Pick", choices=[{"id": "c1", "value": "a"}], allowOtherChoice=True),
+        ),
+        (
+            lambda: q("grp", "group", "People", fields=[q("who", title="Who")]),
+            lambda: q("grp", "group", "People", fields=[q("who", title="Who")], repeat={"minItems": 1, "maxItems": 3}),
+        ),
+    ],
+)
+async def test_a_question_whose_answer_changes_shape_gets_a_new_id_though_its_type_is_the_same(workspace, make_old, make_new):
+    section, fragment, named = await inserted(workspace, fields=[make_old(), q("keep", title="Keep")])
+
+    def edit(fields):
+        fields[0] = make_new() | {"properties": {**make_new()["properties"], "library": fragment.fields[0]["properties"]["library"]}}
+
+    await next_version(workspace, section, fragment, edit)
+    plan = await _plan_of(workspace, section, fragment)
+    top = [c for c in plan.changes if c.title in ("Pick", "People")][0]
+    assert top.status == "changed" and top.what == ["type"]
+    new = {f["title"]: f["id"] for f in plan.fields}
+    old_id = {f["title"]: f["id"] for f in fragment.fields}
+    title = "Pick" if "Pick" in new else "People"
+    assert new[title] != old_id[title]
+    # the question that is the same keeps its id
+    assert new["Keep"] == old_id["Keep"]
