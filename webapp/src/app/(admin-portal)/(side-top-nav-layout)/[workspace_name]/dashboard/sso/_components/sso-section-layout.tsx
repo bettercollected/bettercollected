@@ -8,6 +8,7 @@ import RouteTabBar from '@app/components/ui/route-tab-bar';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { ssoTabs, workspaceSectionLabels } from '@app/lib/workspace-sections';
 import { useSsoEnabled } from '@app/shared/hocs/runtime-flags-provider';
+import { useGetMfaStatusQuery } from '@app/store/auth/api';
 
 /**
  * The Single sign-on section: Single sign-on, then Domains (SSO only works
@@ -18,7 +19,9 @@ export default function SSOSectionLayout({ workspaceName, children }: { workspac
     const { t } = useTranslation();
     const ssoEnabled = useSsoEnabled();
     const { can } = useWorkspacePermissions();
-    const tabs = ssoTabs(workspaceName, can, ssoEnabled).map((tab) => ({ ...tab, label: t(tab.labelKey) }));
+    // TOTP_ENABLED as the server says it (the account status answers it for any signed-in user)
+    const { data: mfa } = useGetMfaStatusQuery();
+    const tabs = ssoTabs(workspaceName, can, ssoEnabled, mfa?.available === true).map((tab) => ({ ...tab, label: t(tab.labelKey) }));
 
     return (
         <div className="flex min-w-0 flex-col">

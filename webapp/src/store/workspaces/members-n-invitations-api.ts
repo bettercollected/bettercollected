@@ -88,6 +88,14 @@ export const membersNInvitationsApi = createApi({
         }),
         // Another owner becomes the billing owner (the plan's account); the
         // previous billing owner stays an owner.
+        // An owner removes a member's authenticator app (204): their sessions end and they are emailed.
+        resetMemberTotp: builder.mutation<void, { workspaceId: string; userId: string }>({
+            query: (request) => ({
+                url: `/${request.workspaceId}/members/${request.userId}/totp`,
+                method: 'DELETE'
+            }),
+            invalidatesTags: [WORKSPACE_MEMBERS_TAG]
+        }),
         makeBillingOwner: builder.mutation<{ message: string; ownerId: string }, { workspaceId: string; userId: string }>({
             query: ({ workspaceId, userId }) => ({
                 url: `/${workspaceId}/members/${userId}/make-billing-owner`,
@@ -117,6 +125,7 @@ export const membersNInvitationsApi = createApi({
 });
 
 export const {
+    useResetMemberTotpMutation,
     useRespondToWorkspaceInvitationMutation,
     useGetWorkspaceMembersQuery,
     useGetWorkspaceMembersInvitationsQuery,

@@ -3,6 +3,7 @@
 import logging
 from http import HTTPStatus
 from typing import List, Optional
+from urllib.parse import urlencode
 
 from classy_fastapi import Routable, get, post, delete
 from common.enums.form_provider import FormProvider
@@ -49,6 +50,15 @@ from backend.config import settings
 from backend.app.models.enum.form_integration import FormIntegrationType
 
 log = logging.getLogger(__name__)
+
+
+def mfa_login_url(next_url: Optional[str]) -> str:
+    """The login page's second-factor step; ``next_url`` (already checked
+    against the allowed origins by the sign-in) is where it goes afterwards."""
+    query = {"mfa": "1"}
+    if next_url:
+        query["next"] = next_url
+    return f"{settings.api_settings.CLIENT_URL.rstrip('/')}/login?{urlencode(query)}"
 
 
 # TODO Extract out separate interface for oauth and use it
@@ -122,6 +132,11 @@ class AuthRoutes(Routable):
             prospective_pro_user=prospective_pro_user,
             workspace_id=workspace_id,
         )
+        signin = container.mfa_signin_service()
+        if await signin.required_for(user, OTP_METHOD):
+            # an account with an authenticator app: no session until the code
+            signin.begin(user, OTP_METHOD, response)
+            return {"mfaRequired": True}
         await self.session_service.start(
             user,
             response,
@@ -329,9 +344,17 @@ class AuthRoutes(Routable):
         )
         response = RedirectResponse(client_referer_url)
         if user:
-            await self.session_service.start(
-                User(**user), response, request, method=provider_name
-            )
+            signed_in = User(**user)
+            signin = container.mfa_signin_service()
+            if await signin.required_for(signed_in, provider_name):
+                # an account with an authenticator app: the login page asks for
+                # the code (the page the sign-in started from is kept as "next")
+                signin.begin(signed_in, provider_name, response)
+                response.headers["location"] = mfa_login_url(client_referer_url)
+            else:
+                await self.session_service.start(
+                    signed_in, response, request, method=provider_name
+                )
         return response
 
     @get(

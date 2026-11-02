@@ -945,7 +945,9 @@
       "ENABLED_HINT": "Zet dit uit om de webhook te pauzeren zonder hem te verwijderen. Inzendingen die gedaan worden terwijl hij uit staat, worden later niet alsnog verstuurd.",
       "ADD": "Webhook toevoegen",
       "SAVE": "Wijzigingen opslaan",
-      "CANCEL": "Annuleren"
+      "CANCEL": "Annuleren",
+      "SENDS_EVERY_QUESTION": "Deze webhook komt van een ingebouwde actie en verstuurt alle vragen van het formulier, zoals voorheen. Er valt niets te kiezen; u kunt het adres wijzigen en de webhook aan- of uitzetten.",
+      "SENDS_EVERY_QUESTION_UNTIL_PICKED": "Deze webhook verstuurt alle vragen van het formulier, ook nieuwe. Vink hieronder vragen aan om alleen die te versturen."
     },
     "LIST": {
       "LABEL": "Webhooks van dit formulier",
@@ -970,7 +972,16 @@
       "SWITCHED_OFF": "{{host}} staat uit.",
       "TEST_QUEUED": "Een testgebeurtenis met voorbeeldgegevens is onderweg naar {{host}}. Het resultaat verschijnt bij Leveringen.",
       "DELETED": "De webhook voor {{host}} is verwijderd.",
-      "SAVED": "De webhook voor {{host}} is opgeslagen."
+      "SAVED": "De webhook voor {{host}} is opgeslagen.",
+      "FORMAT_LEGACY_LIST": "Oud formaat",
+      "FORMAT_SLACK": "Slack-bericht",
+      "FORMAT_DISCORD": "Discord-bericht",
+      "QUESTIONS_ALL": "Alle vragen worden verstuurd",
+      "SWITCH": "Overschakelen naar ondertekend formaat",
+      "SWITCH_NAMED": "De webhook voor {{host}} overschakelen naar het ondertekende formaat",
+      "SWITCH_CONFIRM": "Overschakelen naar ondertekend formaat",
+      "CONFIRM_SWITCH": "{{host}} overschakelen naar het ondertekende formaat? Vanaf de volgende inzending ontvangt het één ondertekend JSON-object (de gebeurtenis, het formulier, de inzending en de antwoorden onder hun naam) in plaats van de eenvoudige lijst die het nu krijgt, met een X-Bettercollected-Signature-header. Uw ontvanger moet het nieuwe formaat kunnen lezen en die handtekening controleren voordat u overschakelt, anders leest hij elke melding verkeerd of wijst hij die af. Dit kan niet ongedaan worden gemaakt. Gebruik daarna Geheim vernieuwen om het ondertekeningsgeheim te zien.",
+      "SWITCHED": "{{host}} ontvangt nu het ondertekende formaat."
     },
     "ERROR": {
       "webhooks_off": "Webhooks staan uit op deze server. Vraag de beheerder ervan om ze aan te zetten.",
@@ -989,7 +1000,11 @@
       "not_found": "Deze webhook bestaat niet meer. Laad de pagina opnieuw.",
       "url_unreadable": "Het adres van deze webhook kon niet worden gelezen. Vul het opnieuw in.",
       "unknown": "Dat is niet gelukt. Probeer het opnieuw.",
-      "invalid_condition": "De voorwaarde kon niet worden opgeslagen. Controleer of elke vraag nog bestaat en elke voorwaarde compleet is."
+      "invalid_condition": "De voorwaarde kon niet worden opgeslagen. Controleer of elke vraag nog bestaat en elke voorwaarde compleet is.",
+      "host_not_allowed": "Een Slack- of Discord-webhook gaat alleen naar het eigen webhook-adres van die dienst.",
+      "format_locked": "Alleen een webhook in het oude formaat kan worden overgeschakeld naar het ondertekende formaat.",
+      "format_has_no_fields": "Deze webhook verstuurt alle vragen. Er valt niets te kiezen.",
+      "format_not_signed": "Een Slack- of Discord-webhook heeft geen ondertekeningsgeheim."
     },
     "DELIVERIES": {
       "TITLE": "Leveringen",

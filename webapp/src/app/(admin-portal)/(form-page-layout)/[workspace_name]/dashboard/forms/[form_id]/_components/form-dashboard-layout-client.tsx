@@ -29,6 +29,7 @@ import getFormShareURL from '@app/utils/form-utils';
 import { getEditFormURL } from '@app/utils/url-utils';
 import { validateFormOpen } from '@app/utils/vvalidation-utils';
 import PublishButton from '@app/views/molecules/form-builder/publish-button';
+import FormOptionsDropdownMenu from '@app/components/datatable/form-options-dropdown';
 
 export default function FormDashboardLayoutClient({
     form,
@@ -156,6 +157,9 @@ export default function FormDashboardLayoutClient({
                                 {isMobile ? <h1 className="hp3-new break-words">{formTitle}</h1> : <h1 className="h2-new">{formTitle}</h1>}
                             </div>
                             <div className="hidden gap-4 lg:flex">
+                                <div className="border-black-400 flex items-center rounded border bg-white">
+                                    <FormOptionsDropdownMenu workspace={workspace} form={workspaceForm ?? form} hasCustomDomain={false} redirectToDashboard inHeader />
+                                </div>
                                 {canEditForm && form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
                                     <Button
                                         icon={<Edit2 className="h-5 w-5" />}
@@ -189,6 +193,9 @@ export default function FormDashboardLayoutClient({
                                 )}
                             </div>
                             <div className="flex gap-2 lg:hidden">
+                                <div className="border-black-400 flex items-center rounded border bg-white">
+                                    <FormOptionsDropdownMenu workspace={workspace} form={workspaceForm ?? form} hasCustomDomain={false} redirectToDashboard inHeader />
+                                </div>
                                 {form.builderVersion === 'v2' && (
                                     <Button
                                         icon={<Play className="h-5 w-5" />}
@@ -231,6 +238,7 @@ export default function FormDashboardLayoutClient({
                                 ) : (
                                     <span className="bg-black-200 text-black-700 rounded-full px-2 py-0.5 text-xs font-semibold">{t('FORM_SHELL.DRAFT')}</span>
                                 )}
+                                {reduxStoreForm?.settings?.pinned && <span className="bg-black-200 text-black-700 rounded-full px-2 py-0.5 text-xs font-semibold">{t('FORM.PINNED')}</span>}
                                 <span className="tabular-nums">{t('FORM_SHELL.RESPONSES', { count: form?.responses ?? 0 })}</span>
                                 <span className="text-black-600">·</span>
                                 <span>{t(formProvenance(form))}</span>

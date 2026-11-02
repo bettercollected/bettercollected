@@ -225,6 +225,11 @@ class Workspace(WorkspaceRequestDto):
     sso_required_changed_by: Optional[str] = None
     sso_required_changed_at: Optional[dt.datetime] = None
     sso_default_role: Optional[str] = None
+    # Authenticator app (docs/totp.md): members must present a second factor in
+    # every session that reaches the workspace. Changed through
+    # /workspaces/{id}/security/totp (owners only); enforced per request in
+    # AuthorizationService, only while TOTP_ENABLED is on.
+    require_totp: Optional[bool] = False
     # Sites that may show the workspace's forms in a frame (docs/embed.md,
     # services/form_embed.py): canonical origins, none = no site. Changed
     # through /workspaces/{id}/embed/settings; not part of the public

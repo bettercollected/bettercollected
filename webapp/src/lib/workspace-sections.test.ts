@@ -51,6 +51,14 @@ describe('Single sign-on tabs', () => {
         expect(keys(ssoTabs('acme', OWNER, false))).toEqual(['domains']);
     });
 
+    it('adds the Security tab only while the server has TOTP on', () => {
+        expect(keys(ssoTabs('acme', OWNER, true, true))).toEqual(['sso', 'domains', 'security']);
+        expect(keys(ssoTabs('acme', OWNER, false, true))).toEqual(['domains', 'security']);
+        expect(ssoTabs('acme', OWNER, true, true)[2].href).toBe('/acme/dashboard/sso/security');
+        expect(keys(ssoTabs('acme', OWNER, true))).not.toContain('security');
+        expect(ssoTabs('acme', MEMBER, true, true)).toEqual([]);
+    });
+
     it('needs security.manage for both tabs', () => {
         expect(ssoTabs('acme', MEMBER, true)).toEqual([]);
         expect(ssoTabs('acme', AI_ADMIN, true)).toEqual([]);
@@ -80,6 +88,7 @@ describe('workspaceSectionUrls', () => {
         expect(workspaceSectionUrls('acme')).toEqual({
             sso: '/acme/dashboard/sso',
             domains: '/acme/dashboard/sso/domains',
+            security: '/acme/dashboard/sso/security',
             caseSystem: '/acme/dashboard/case-system',
             embedding: '/acme/dashboard/embedding',
             lists: '/acme/dashboard/lists',

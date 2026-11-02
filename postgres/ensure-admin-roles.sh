@@ -335,6 +335,7 @@ BEGIN
         ['scim_directories', 'id,doc', 'doc,_bc_checksum'],
         ['registration_services', 'id,doc', 'doc,_bc_checksum'],
         ['form_webhooks', 'id,doc', 'doc,_bc_checksum'],
+        ['user_totp_factors', 'id,doc', 'doc,_bc_checksum'],
         -- the previous values of response edits, sealed with the response keyset
         -- (keyset.* tasks, docs/response-keyset-rotation.md): the documents are read
         -- and their sealed value rewritten whole (the checksum follows)

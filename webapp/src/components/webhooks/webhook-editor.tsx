@@ -10,7 +10,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { ActionCondition, WebhookDetail, WebhookVariable, WebhookWithSecret, useCreateWebhookMutation, useUpdateWebhookMutation } from '@app/store/workspaces/webhooks-api';
 import { variableTypeKey } from '@app/utils/registration';
-import { MAX_FIELDS, defaultKeyOf, errorCodeOf, errorField, errorKey, isValidKey, urlProblem } from '@app/utils/webhooks';
+import { MAX_FIELDS, defaultKeyOf, errorCodeOf, errorField, errorKey, isValidKey, sendsEveryQuestionByFormat, urlProblem } from '@app/utils/webhooks';
 
 interface Props {
     workspaceId: string;
@@ -50,6 +50,11 @@ export default function WebhookEditor({ workspaceId, formId, variables, webhook,
     useEffect(() => {
         heading.current?.focus();
     }, []);
+
+    // a built-in action that moved here sends every question by its format: nothing to pick
+    const everyByFormat = sendsEveryQuestionByFormat(webhook?.format);
+    // an envelope that sends every question until questions are ticked
+    const everyUntilPicked = !everyByFormat && !!webhook?.allQuestions;
 
     const problem = urlProblem(url);
     const urlError = serverErrors.url ?? (urlTouched && problem ? t(problem === 'empty' ? 'WEBHOOKS.EDITOR.URL_EMPTY' : problem === 'not_https' ? 'WEBHOOKS.ERROR.not_https' : 'WEBHOOKS.ERROR.invalid_url') : null);
@@ -92,7 +97,11 @@ export default function WebhookEditor({ workspaceId, formId, variables, webhook,
             return;
         }
         const fields = Object.entries(chosen).map(([source, key]) => ({ source, key: key.trim() }));
-        const response: any = webhook ? await update({ workspaceId, formId, webhookId: webhook.id, body: { url: url.trim(), fields, enabled: on, condition } }) : await create({ workspaceId, formId, body: { url: url.trim(), fields, enabled: on, condition } });
+        // questions are sent only when there is something to pick: a format that sends every question takes none, and an
+        // envelope that sends every question keeps doing so until some are ticked
+        const withFields = !everyByFormat && !(everyUntilPicked && fields.length === 0);
+        const body = { url: url.trim(), ...(withFields ? { fields } : {}), enabled: on, condition };
+        const response: any = webhook ? await update({ workspaceId, formId, webhookId: webhook.id, body }) : await create({ workspaceId, formId, body });
         if (response.error) {
             const code = errorCodeOf(response.error);
             const message = t(errorKey(code));
@@ -137,86 +146,98 @@ export default function WebhookEditor({ workspaceId, formId, variables, webhook,
                 )}
             </Field>
 
-            <fieldset className="flex flex-col gap-2" aria-describedby={serverErrors.fields ? 'webhook-fields-error' : 'webhook-fields-hint'}>
-                <legend className="text-sm font-medium text-black-900">{t('WEBHOOKS.EDITOR.FIELDS')}</legend>
-                <p id="webhook-fields-hint" className="text-xs leading-relaxed text-black-600">
-                    {t('WEBHOOKS.EDITOR.FIELDS_HINT')}
+            {everyByFormat && (
+                <p className="max-w-[62ch] rounded-md border border-black-300 bg-black-100 px-3 py-2 text-sm leading-relaxed text-black-800" data-testid="webhook-sends-every-question">
+                    {t('WEBHOOKS.EDITOR.SENDS_EVERY_QUESTION')}
                 </p>
-                {names.length === 0 && <p className="text-sm text-black-700">{t('WEBHOOKS.EDITOR.NO_FIELDS')}</p>}
-                <ul className="flex flex-col divide-y divide-black-200 rounded-md border border-black-300">
-                    {variables.map((variable, index) => {
-                        const key = chosen[variable.source];
-                        const id = `webhook-var-${index}`;
-                        const keyId = `${id}-key`;
-                        const error = keyErrors[variable.source];
-                        const can = choosable(variable);
-                        return (
-                            <li key={variable.source} className="flex flex-col gap-2 px-3 py-2.5" data-testid={`webhook-variable-${variable.source}`}>
-                                <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-                                    <div className="flex min-w-0 items-start gap-2.5">
-                                        <input
-                                            id={id}
-                                            type="checkbox"
-                                            className="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
-                                            checked={key !== undefined}
-                                            disabled={!can}
-                                            aria-describedby={!can ? `${id}-reason` : undefined}
-                                            onChange={(e) => toggle(variable.source, e.target.checked)}
-                                        />
-                                        <label htmlFor={id} className={can ? 'text-sm break-words text-black-900' : 'text-sm break-words text-black-600'}>
-                                            {variable.label}
-                                        </label>
-                                    </div>
-                                    <span className="text-xs text-black-600">
-                                        {typeLabel(variable.type)}
-                                        {!can && (
-                                            <>
-                                                {' · '}
-                                                <span id={`${id}-reason`}>{t(variable.reason === 'file_not_sent' ? 'WEBHOOKS.EDITOR.FILE_NOT_SENT' : 'WEBHOOKS.EDITOR.TYPE_NOT_SUPPORTED')}</span>
-                                            </>
-                                        )}
-                                    </span>
-                                </div>
-                                {key !== undefined && (
-                                    <div className="ml-6 flex flex-col gap-1">
-                                        <label htmlFor={keyId} className="text-xs font-medium text-black-700">
-                                            {t('WEBHOOKS.EDITOR.KEY')}
-                                        </label>
-                                        <input
-                                            id={keyId}
-                                            className={inputClass + ' sm:max-w-80'}
-                                            value={key}
-                                            maxLength={64}
-                                            autoComplete="off"
-                                            spellCheck={false}
-                                            placeholder={defaultKeyOf(variable.source)}
-                                            aria-invalid={!!error}
-                                            aria-describedby={error ? `${keyId}-error` : undefined}
-                                            onChange={(e) => {
-                                                setKeyErrors((current) => ({ ...current, [variable.source]: '' }));
-                                                setChosen((current) => ({ ...current, [variable.source]: e.target.value }));
-                                            }}
-                                        />
-                                        {error && (
-                                            <p id={`${keyId}-error`} className="text-xs font-medium text-[#A83434]">
-                                                {error}
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-                            </li>
-                        );
-                    })}
-                </ul>
-                {serverErrors.fields && (
-                    <p id="webhook-fields-error" role="alert" className="text-xs font-medium text-[#A83434]">
-                        {serverErrors.fields}
+            )}
+            {!everyByFormat && (
+                <fieldset className="flex flex-col gap-2" aria-describedby={serverErrors.fields ? 'webhook-fields-error' : 'webhook-fields-hint'}>
+                    <legend className="text-sm font-medium text-black-900">{t('WEBHOOKS.EDITOR.FIELDS')}</legend>
+                    {everyUntilPicked && count === 0 && (
+                        <p className="max-w-[62ch] text-sm leading-relaxed text-black-800" data-testid="webhook-sends-every-question">
+                            {t('WEBHOOKS.EDITOR.SENDS_EVERY_QUESTION_UNTIL_PICKED')}
+                        </p>
+                    )}
+                    <p id="webhook-fields-hint" className="text-xs leading-relaxed text-black-600">
+                        {t('WEBHOOKS.EDITOR.FIELDS_HINT')}
                     </p>
-                )}
-                <p className="text-xs text-black-600" aria-live="polite">
-                    {t('WEBHOOKS.EDITOR.COUNT', { count })}
-                </p>
-            </fieldset>
+                    {names.length === 0 && <p className="text-sm text-black-700">{t('WEBHOOKS.EDITOR.NO_FIELDS')}</p>}
+                    <ul className="flex flex-col divide-y divide-black-200 rounded-md border border-black-300">
+                        {variables.map((variable, index) => {
+                            const key = chosen[variable.source];
+                            const id = `webhook-var-${index}`;
+                            const keyId = `${id}-key`;
+                            const error = keyErrors[variable.source];
+                            const can = choosable(variable);
+                            return (
+                                <li key={variable.source} className="flex flex-col gap-2 px-3 py-2.5" data-testid={`webhook-variable-${variable.source}`}>
+                                    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                                        <div className="flex min-w-0 items-start gap-2.5">
+                                            <input
+                                                id={id}
+                                                type="checkbox"
+                                                className="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
+                                                checked={key !== undefined}
+                                                disabled={!can}
+                                                aria-describedby={!can ? `${id}-reason` : undefined}
+                                                onChange={(e) => toggle(variable.source, e.target.checked)}
+                                            />
+                                            <label htmlFor={id} className={can ? 'text-sm break-words text-black-900' : 'text-sm break-words text-black-600'}>
+                                                {variable.label}
+                                            </label>
+                                        </div>
+                                        <span className="text-xs text-black-600">
+                                            {typeLabel(variable.type)}
+                                            {!can && (
+                                                <>
+                                                    {' · '}
+                                                    <span id={`${id}-reason`}>{t(variable.reason === 'file_not_sent' ? 'WEBHOOKS.EDITOR.FILE_NOT_SENT' : 'WEBHOOKS.EDITOR.TYPE_NOT_SUPPORTED')}</span>
+                                                </>
+                                            )}
+                                        </span>
+                                    </div>
+                                    {key !== undefined && (
+                                        <div className="ml-6 flex flex-col gap-1">
+                                            <label htmlFor={keyId} className="text-xs font-medium text-black-700">
+                                                {t('WEBHOOKS.EDITOR.KEY')}
+                                            </label>
+                                            <input
+                                                id={keyId}
+                                                className={inputClass + ' sm:max-w-80'}
+                                                value={key}
+                                                maxLength={64}
+                                                autoComplete="off"
+                                                spellCheck={false}
+                                                placeholder={defaultKeyOf(variable.source)}
+                                                aria-invalid={!!error}
+                                                aria-describedby={error ? `${keyId}-error` : undefined}
+                                                onChange={(e) => {
+                                                    setKeyErrors((current) => ({ ...current, [variable.source]: '' }));
+                                                    setChosen((current) => ({ ...current, [variable.source]: e.target.value }));
+                                                }}
+                                            />
+                                            {error && (
+                                                <p id={`${keyId}-error`} className="text-xs font-medium text-[#A83434]">
+                                                    {error}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
+                    {serverErrors.fields && (
+                        <p id="webhook-fields-error" role="alert" className="text-xs font-medium text-[#A83434]">
+                            {serverErrors.fields}
+                        </p>
+                    )}
+                    <p className="text-xs text-black-600" aria-live="polite">
+                        {t('WEBHOOKS.EDITOR.COUNT', { count })}
+                    </p>
+                </fieldset>
+            )}
 
             <ActionConditionEditor
                 idPrefix="webhook"

@@ -32,6 +32,9 @@ class WorkspaceMemberDto(CamelModel):
     # the owner whose plan the workspace runs on (``workspace.owner_id``);
     # every owner has the same rights, this one also pays
     billing_owner: bool = False
+    # has an authenticator app set up; None while TOTP_ENABLED is off. Only the
+    # people who can list members (members.manage) see it, never a code or secret.
+    totp_enabled: Optional[bool] = None
 
 
 class UpdateMemberRoleRequest(CamelModel):

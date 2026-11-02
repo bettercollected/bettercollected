@@ -40,19 +40,19 @@ import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTimeIn } from '@app/utils/date-utils';
 import getFormShareURL from '@app/utils/form-utils';
-import { validateFormOpen } from '@app/utils/vvalidation-utils';
 import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 import FeedbackStatusesEditor from '@Components/dashboard/feedback-statuses-editor';
 import { OpenDateControl, ResponseLimitControl } from '@Components/dashboard/form-availability-controls';
 import { DraftRetentionControl } from '@Components/dashboard/form-draft-controls';
+import FormAvailabilityStatus from '@Components/dashboard/form-availability-status';
 
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;
 }
 
-type FormSettingsTabView = 'VISIBILITY' | 'LINKS' | 'DEFAULT';
+type FormSettingsTabView = 'VISIBILITY' | 'LINKS' | 'ACCESS' | 'AVAILABILITY' | 'EXPERIENCE' | 'ORIGINAL';
 
-export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabProps) {
+export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTabProps) {
     const { toast } = useToast();
     const { t, i18n } = useTranslation();
     const form = useAppSelector(selectForm);
@@ -109,15 +109,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
             }
             return response.error;
         }
-    };
-
-    const onPinnedChange = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
-        patchSettings({ pinned: !f?.settings?.pinned }, f)
-            .then((res) => { })
-            .catch((e) => {
-                toast({ description: e.data, variant: 'destructive' });
-            });
     };
 
     const onCollectEmailsChange = (event: any, f: StandardFormDto = form) => {
@@ -204,8 +195,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
 
     const closeFormChecked = !!form?.settings?.formCloseDate && moment.utc().isAfter(moment.utc(form?.settings?.formCloseDate));
 
-    const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
-
     const closeForm = () => {
         onFormClosedChange(moment.utc(), !!form?.settings?.formOpenDate && moment.utc(form.settings.formOpenDate).isAfter(moment.utc()));
         closeModal();
@@ -214,6 +203,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         onFormClosedChange('');
         closeModal();
     };
+
+    const isSelf = form?.settings?.provider === 'self';
 
     const showSettingsTabView = (view: FormSettingsTabView) => {
         switch (view) {
@@ -321,22 +312,26 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                         </div>
                     </FormSettingsCard>
                 );
-            case 'DEFAULT':
-                return (
+            case 'ORIGINAL':
+                return form?.importedFormId ? (
                     <div className="divide-black-300 flex flex-col divide-y">
-                        {form?.importedFormId && (
-                            <SettingRow title={t('STAFF.FORM_SETTINGS.ORIGINAL_TITLE')} description={t('STAFF.FORM_SETTINGS.ORIGINAL_DESC')}>
-                                <Switch
-                                    data-umami-event="Show Original Google Form Switch"
-                                    data-testid="show-original-form-switch"
-                                    checked={!!form?.settings?.showOriginalForm}
-                                    onCheckedChange={(checked) => {
-                                        onShowOriginalFormChange(checked, form);
-                                    }}
-                                />
-                            </SettingRow>
-                        )}
-                        {form?.settings?.provider === 'self' && (
+                        <SettingRow title={t('STAFF.FORM_SETTINGS.ORIGINAL_TITLE')} description={t('STAFF.FORM_SETTINGS.ORIGINAL_DESC')}>
+                            <Switch
+                                data-umami-event="Show Original Google Form Switch"
+                                data-testid="show-original-form-switch"
+                                checked={!!form?.settings?.showOriginalForm}
+                                onCheckedChange={(checked) => {
+                                    onShowOriginalFormChange(checked, form);
+                                }}
+                            />
+                        </SettingRow>
+                    </div>
+                ) : null;
+            case 'ACCESS':
+                return isSelf ? (
+                    <div>
+                        <GroupHeading>{t('STAFF.FORM_SETTINGS.ACCESS_IDENTITY')}</GroupHeading>
+                        <div className="divide-black-300 flex flex-col divide-y">
                             <SettingRow title={t('STAFF.FORM_SETTINGS.VERIFIED_TITLE')} description={t('STAFF.FORM_SETTINGS.VERIFIED_DESC')}>
                                 <Switch
                                     data-umami-event="Require Verified Identity Switch"
@@ -347,174 +342,199 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     }}
                                 />
                             </SettingRow>
-                        )}
-                        {form?.settings?.provider === 'self' && (
-                            <SettingRow title={t('STAFF.FORM_SETTINGS.NUMBER_TITLE')} description={t('STAFF.FORM_SETTINGS.NUMBER_DESC')}>
-                                <Switch
-                                    data-umami-event="Show Submission Number Switch"
-                                    data-testid="show-submission-number-switch"
-                                    checked={!!form?.settings?.showSubmissionNumber}
-                                    onCheckedChange={(checked) => {
-                                        onShowSubmissionNumberChange(checked, form);
-                                    }}
+                        </div>
+                    </div>
+                ) : null;
+            case 'AVAILABILITY':
+                if (!isSelf) return null;
+                return (
+                    <div className="flex flex-col">
+                        <FormAvailabilityStatus form={form} />
+                        <div className="divide-black-300 flex flex-col divide-y">
+                            <SettingRow stacked title={t('FORM_PAGE.SETTINGS.OPEN_DATE.TITLE')} description={t('FORM_PAGE.SETTINGS.OPEN_DATE.DESCRIPTION')}>
+                                <OpenDateControl
+                                    key={`open-${form.formId}`}
+                                    value={form?.settings?.formOpenDate}
+                                    closeDate={form?.settings?.formCloseDate}
+                                    onSave={(instant) => patchSettings({ formOpenDate: instant }, form)}
                                 />
                             </SettingRow>
-                        )}
-                        {form?.settings?.provider === 'self' && (
-                            <SettingRow title={t(formPage.reviewPageTitle)} description={t(formPage.reviewPageDescription)}>
-                                <Switch
-                                    data-umami-event="Show Review Page Switch"
-                                    data-testid="show-review-page-switch"
-                                    checked={!!form?.settings?.showReviewPage}
-                                    disabled={!canEditForm}
-                                    onCheckedChange={(checked) => {
-                                        onShowReviewPageChange(checked, form);
-                                    }}
-                                />
-                            </SettingRow>
-                        )}
-                        {form?.settings?.provider === 'self' && form?.settings?.requireVerifiedIdentity && (
-                            <SettingRow title={t('STAFF.FORM_SETTINGS.EDITING_TITLE')} description={t('STAFF.FORM_SETTINGS.EDITING_DESC')}>
-                                <Switch
-                                    data-umami-event="Allow Response Editing Switch"
-                                    data-testid="allow-response-editing-switch"
-                                    checked={!!form?.settings?.allowEditingResponse}
-                                    onCheckedChange={(checked) => {
-                                        onAllowResponseEditingChange(checked, form);
-                                    }}
-                                />
-                            </SettingRow>
-                        )}
-                        {form?.settings?.provider === 'self' && (
-                            <SettingRow
-                                title={t('STAFF.FORM_SETTINGS.FEEDBACK_TITLE')}
-                                description={
-                                    form?.settings?.requireVerifiedIdentity
-                                        ? t('STAFF.FORM_SETTINGS.FEEDBACK_DESC_VERIFIED')
-                                        : t('STAFF.FORM_SETTINGS.FEEDBACK_DESC')
-                                }
-                                hint={form?.settings?.respondentFeedbackEnabled ? <FeedbackStatusesEditor key={form.formId} statuses={form?.settings?.feedbackStatuses} onSave={(feedbackStatuses) => patchSettings({ feedbackStatuses }, form)} /> : undefined}
-                            >
-                                <Switch
-                                    data-umami-event="Respond To Submissions Switch"
-                                    data-testid="respondent-feedback-switch"
-                                    checked={!!form?.settings?.respondentFeedbackEnabled}
-                                    onCheckedChange={() => patchSettings({ respondentFeedbackEnabled: !form?.settings?.respondentFeedbackEnabled }, form)}
-                                />
-                            </SettingRow>
-                        )}
-                        {form?.settings?.provider === 'self' && (
-                            <SettingRow
-                                title={t('FORM_PAGE.SETTINGS.SAVE_DRAFT.TITLE')}
-                                description={t('FORM_PAGE.SETTINGS.SAVE_DRAFT.DESCRIPTION')}
-                                hint={
-                                    !saveDraftsEnabled ? (
-                                        // Read-only while the server has the feature switched off (SAVE_DRAFTS_ENABLED).
-                                        <span data-testid="save-draft-off-note" className="text-black-600 flex items-center gap-1 text-xs">
-                                            <Lock className="h-3 w-3" /> {t('FORM_PAGE.SETTINGS.SAVE_DRAFT.OFF_NOTE')}
-                                        </span>
-                                    ) : form?.settings?.allowSaveDraft ? (
-                                        <DraftRetentionControl key={`draft-days-${form.formId}`} value={form?.settings?.draftRetentionDays} onSave={(draftRetentionDays) => patchSettings({ draftRetentionDays }, form)} />
-                                    ) : undefined
-                                }
-                            >
-                                <Switch
-                                    data-umami-event="Save Draft Switch"
-                                    data-testid="save-draft-switch"
-                                    disabled={!saveDraftsEnabled}
-                                    checked={!!form?.settings?.allowSaveDraft}
-                                    onCheckedChange={(checked) => patchSettings({ allowSaveDraft: checked }, form)}
-                                />
-                            </SettingRow>
-                        )}
-                        {form?.isPublished && isFormOpen && (
-                            <>
-                                {!form?.settings?.private && (
-                                    <SettingRow title={t(formPage.pinFormTitle)} description={t(formPage.pinFormDescription)}>
-                                        <Switch data-umami-event="Pin Form Switch" data-testid="pinned-switch" checked={!!form?.settings?.pinned} onCheckedChange={(checked) => onPinnedChange(checked, form)} />
+                            {form?.isPublished && (
+                                <div className="flex w-full flex-col">
+                                    <SettingRow title={t(formPage.closeForm)} description={t(formPage.closeFormDescription)}>
+                                        <Switch
+                                            data-umami-event="Close Form Switch"
+                                            data-testid="close-form-switch"
+                                            checked={closeFormChecked}
+                                            onCheckedChange={(checked) => {
+                                                if (closeFormChecked) {
+                                                    openModal('REOPEN_FORM_CONFIRMATION_MODAL', { reopenForm });
+                                                } else {
+                                                    openModal('CLOSE_FORM_CONFIRMATION_MODAL', { closeForm });
+                                                }
+                                            }}
+                                        />
                                     </SettingRow>
-                                )}
-                                <SettingRow
-                                    title={t(formPage.brandingTitle)}
-                                    titleExtra={<ProLogo />}
-                                    description={t(formPage.brandingDescription)}
-                                    hint={
-                                        !isProPlan ? (
-                                            <span className="text-black-600 flex items-center gap-1 text-xs">
-                                                <Lock className="h-3 w-3" /> {t('STAFF.FORM_SETTINGS.PRO_LOCKED')}
-                                            </span>
-                                        ) : undefined
-                                    }
-                                >
-                                    <Switch
-                                        disabled={!isProPlan}
-                                        data-umami-event="Disable Branding Switch"
-                                        data-testid="disable-branding-switch"
-                                        checked={!form?.settings?.disableBranding}
-                                        onCheckedChange={(checked) => onDisableBrandingChange(checked, form)}
-                                    />
-                                </SettingRow>
-                            </>
-                        )}
-                        {form?.settings?.provider === 'self' && form?.isPublished && (
-                            <div className="flex w-full flex-col">
-                                <SettingRow title={t(formPage.closeForm)} description={t(formPage.closeFormDescription)}>
-                                    <Switch
-                                        data-umami-event="Close Form Switch"
-                                        data-testid="close-form-switch"
-                                        checked={closeFormChecked}
-                                        onCheckedChange={(checked) => {
-                                            if (closeFormChecked) {
-                                                openModal('REOPEN_FORM_CONFIRMATION_MODAL', { reopenForm });
-                                            } else {
-                                                openModal('CLOSE_FORM_CONFIRMATION_MODAL', { closeForm });
-                                            }
-                                        }}
-                                    />
-                                </SettingRow>
-                                {!closeFormChecked && !moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
-                                    <Button
-                                        data-umami-event="Select Form Close Date Button"
-                                        className="mb-4 w-fit"
-                                        variant="ghost"
-                                        onClick={() => {
-                                            openBottomSheetModal('SELECT_FORM_CLOSE_DATE', {
-                                                onFormClosedChange: onFormClosedChange,
-                                                closeDate: form?.settings?.formCloseDate
-                                            });
-                                        }}
-                                    >
-                                        {t(formPage.schedule)}
-                                    </Button>
-                                )}
-                                {form?.settings?.formCloseDate && moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
-                                    <div className="bg-black-200 mb-4 flex w-full justify-between rounded-md p-5">
-                                        <div>
-                                            {t(formPage.automaticallyCloseOn)} {utcToLocalDateTimeIn(form?.settings?.formCloseDate, i18n.language)}
-                                        </div>
-                                        <div>
-                                            <div onClick={reopenForm}>
-                                                <Close width="24px" height="24px" className="text-black-800" />
+                                    {!closeFormChecked && !moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
+                                        <Button
+                                            data-umami-event="Select Form Close Date Button"
+                                            className="mb-4 w-fit"
+                                            variant="ghost"
+                                            onClick={() => {
+                                                openBottomSheetModal('SELECT_FORM_CLOSE_DATE', {
+                                                    onFormClosedChange: onFormClosedChange,
+                                                    closeDate: form?.settings?.formCloseDate
+                                                });
+                                            }}
+                                        >
+                                            {t(formPage.schedule)}
+                                        </Button>
+                                    )}
+                                    {form?.settings?.formCloseDate && moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
+                                        <div className="bg-black-200 mb-4 flex w-full items-center justify-between gap-2 rounded-md p-5">
+                                            <div>
+                                                {t(formPage.automaticallyCloseOn)} {utcToLocalDateTimeIn(form?.settings?.formCloseDate, i18n.language)}
                                             </div>
+                                            <button type="button" data-testid="remove-close-date" aria-label={t('STAFF.FORM_SETTINGS.CLOSE_DATE_REMOVE')} onClick={reopenForm} className="text-black-800 hover:bg-black-300 shrink-0 rounded p-1">
+                                                <Close width="24px" height="24px" className="text-black-800" aria-hidden="true" />
+                                            </button>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
+                            )}
+                            <SettingRow stacked title={t('FORM_PAGE.SETTINGS.RESPONSE_LIMIT.TITLE')} description={t('FORM_PAGE.SETTINGS.RESPONSE_LIMIT.DESCRIPTION')}>
+                                <ResponseLimitControl key={`limit-${form.formId}`} value={form?.settings?.responseLimit} onSave={(limit) => patchSettings({ responseLimit: limit }, form)} />
+                            </SettingRow>
+                        </div>
+                    </div>
+                );
+            case 'EXPERIENCE':
+                return (
+                    <div className="flex flex-col gap-8">
+                        {isSelf && (
+                            <div>
+                                <GroupHeading>{t('STAFF.FORM_SETTINGS.GROUP_FILLING')}</GroupHeading>
+                                <div className="divide-black-300 flex flex-col divide-y">
+                                    <SettingRow title={t(formPage.reviewPageTitle)} description={t(formPage.reviewPageDescription)}>
+                                        <Switch
+                                            data-umami-event="Show Review Page Switch"
+                                            data-testid="show-review-page-switch"
+                                            checked={!!form?.settings?.showReviewPage}
+                                            disabled={!canEditForm}
+                                            onCheckedChange={(checked) => {
+                                                onShowReviewPageChange(checked, form);
+                                            }}
+                                        />
+                                    </SettingRow>
+                                    <SettingRow
+                                        title={t('FORM_PAGE.SETTINGS.SAVE_DRAFT.TITLE')}
+                                        description={t('FORM_PAGE.SETTINGS.SAVE_DRAFT.DESCRIPTION')}
+                                        hint={
+                                            !saveDraftsEnabled ? (
+                                                // Read-only while the server has the feature switched off (SAVE_DRAFTS_ENABLED).
+                                                <span data-testid="save-draft-off-note" className="text-black-600 flex items-center gap-1 text-xs">
+                                                    <Lock className="h-3 w-3" /> {t('FORM_PAGE.SETTINGS.SAVE_DRAFT.OFF_NOTE')}
+                                                </span>
+                                            ) : form?.settings?.allowSaveDraft ? (
+                                                <DraftRetentionControl key={`draft-days-${form.formId}`} value={form?.settings?.draftRetentionDays} onSave={(draftRetentionDays) => patchSettings({ draftRetentionDays }, form)} />
+                                            ) : undefined
+                                        }
+                                    >
+                                        <Switch
+                                            data-umami-event="Save Draft Switch"
+                                            data-testid="save-draft-switch"
+                                            disabled={!saveDraftsEnabled}
+                                            checked={!!form?.settings?.allowSaveDraft}
+                                            onCheckedChange={(checked) => patchSettings({ allowSaveDraft: checked }, form)}
+                                        />
+                                    </SettingRow>
+                                </div>
                             </div>
                         )}
-                        {form?.settings?.provider === 'self' && (
-                            <>
-                                <SettingRow stacked title={t('FORM_PAGE.SETTINGS.OPEN_DATE.TITLE')} description={t('FORM_PAGE.SETTINGS.OPEN_DATE.DESCRIPTION')}>
-                                    <OpenDateControl
-                                        key={`open-${form.formId}`}
-                                        value={form?.settings?.formOpenDate}
-                                        closeDate={form?.settings?.formCloseDate}
-                                        onSave={(instant) => patchSettings({ formOpenDate: instant }, form)}
-                                    />
-                                </SettingRow>
-                                <SettingRow stacked title={t('FORM_PAGE.SETTINGS.RESPONSE_LIMIT.TITLE')} description={t('FORM_PAGE.SETTINGS.RESPONSE_LIMIT.DESCRIPTION')}>
-                                    <ResponseLimitControl key={`limit-${form.formId}`} value={form?.settings?.responseLimit} onSave={(limit) => patchSettings({ responseLimit: limit }, form)} />
-                                </SettingRow>
-                            </>
+                        {isSelf && (
+                            <div>
+                                <GroupHeading>{t('STAFF.FORM_SETTINGS.GROUP_AFTER')}</GroupHeading>
+                                <div className="divide-black-300 flex flex-col divide-y">
+                                    <SettingRow title={t('STAFF.FORM_SETTINGS.NUMBER_TITLE')} description={t('STAFF.FORM_SETTINGS.NUMBER_DESC')}>
+                                        <Switch
+                                            data-umami-event="Show Submission Number Switch"
+                                            data-testid="show-submission-number-switch"
+                                            checked={!!form?.settings?.showSubmissionNumber}
+                                            onCheckedChange={(checked) => {
+                                                onShowSubmissionNumberChange(checked, form);
+                                            }}
+                                        />
+                                    </SettingRow>
+                                    <SettingRow
+                                        title={t('STAFF.FORM_SETTINGS.EDITING_TITLE')}
+                                        description={t('STAFF.FORM_SETTINGS.EDITING_DESC')}
+                                        hint={
+                                            !form?.settings?.requireVerifiedIdentity ? (
+                                                // It needs verified identity, which is set under Access: say so, and point there.
+                                                <span data-testid="editing-needs-identity" className="text-black-600 flex flex-wrap items-center gap-x-2 text-xs">
+                                                    <Lock className="h-3 w-3" aria-hidden="true" /> {t('STAFF.FORM_SETTINGS.EDITING_NEEDS_IDENTITY')}
+                                                    <a href="#access" className="text-brand-500 underline">
+                                                        {t('STAFF.FORM_SETTINGS.EDITING_GO_ACCESS')}
+                                                    </a>
+                                                </span>
+                                            ) : undefined
+                                        }
+                                    >
+                                        <Switch
+                                            data-umami-event="Allow Response Editing Switch"
+                                            data-testid="allow-response-editing-switch"
+                                            disabled={!form?.settings?.requireVerifiedIdentity}
+                                            checked={!!form?.settings?.allowEditingResponse}
+                                            onCheckedChange={(checked) => {
+                                                onAllowResponseEditingChange(checked, form);
+                                            }}
+                                        />
+                                    </SettingRow>
+                                    <SettingRow
+                                        title={t('STAFF.FORM_SETTINGS.FEEDBACK_TITLE')}
+                                        description={
+                                            form?.settings?.requireVerifiedIdentity
+                                                ? t('STAFF.FORM_SETTINGS.FEEDBACK_DESC_VERIFIED')
+                                                : t('STAFF.FORM_SETTINGS.FEEDBACK_DESC')
+                                        }
+                                        hint={form?.settings?.respondentFeedbackEnabled ? <FeedbackStatusesEditor key={form.formId} statuses={form?.settings?.feedbackStatuses} onSave={(feedbackStatuses) => patchSettings({ feedbackStatuses }, form)} /> : undefined}
+                                    >
+                                        <Switch
+                                            data-umami-event="Respond To Submissions Switch"
+                                            data-testid="respondent-feedback-switch"
+                                            checked={!!form?.settings?.respondentFeedbackEnabled}
+                                            onCheckedChange={() => patchSettings({ respondentFeedbackEnabled: !form?.settings?.respondentFeedbackEnabled }, form)}
+                                        />
+                                    </SettingRow>
+                                </div>
+                            </div>
+                        )}
+                        {form?.isPublished && (
+                            <div>
+                                <GroupHeading>{t('STAFF.FORM_SETTINGS.GROUP_BRANDING')}</GroupHeading>
+                                <div className="divide-black-300 flex flex-col divide-y">
+                                    <SettingRow
+                                        title={t(formPage.brandingTitle)}
+                                        titleExtra={<ProLogo />}
+                                        description={t(formPage.brandingDescription)}
+                                        hint={
+                                            !isProPlan ? (
+                                                <span className="text-black-600 flex items-center gap-1 text-xs">
+                                                    <Lock className="h-3 w-3" /> {t('STAFF.FORM_SETTINGS.PRO_LOCKED')}
+                                                </span>
+                                            ) : undefined
+                                        }
+                                    >
+                                        <Switch
+                                            disabled={!isProPlan}
+                                            data-umami-event="Disable Branding Switch"
+                                            data-testid="disable-branding-switch"
+                                            checked={!form?.settings?.disableBranding}
+                                            onCheckedChange={(checked) => onDisableBrandingChange(checked, form)}
+                                        />
+                                    </SettingRow>
+                                </div>
+                            </div>
                         )}
                     </div>
                 );
@@ -525,6 +545,9 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
 
     return <>{showSettingsTabView(view)}</>;
 }
+
+/** The small caps label above a group of rows inside a settings section (an h3, under the section's h2). */
+export const GroupHeading = ({ children }: { children: React.ReactNode }) => <h3 className="text-black-600 mb-1 text-xs font-semibold uppercase tracking-wide">{children}</h3>;
 
 /**
  * One settings row: label + description on the left, control on the right.

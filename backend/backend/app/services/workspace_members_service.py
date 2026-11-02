@@ -56,7 +56,10 @@ class WorkspaceMembersService:
         authorization_service: AuthorizationService,
         scim_directory_repo=None,
         email_action_service=None,
+        totp_service=None,
     ):
+        # which members have an authenticator app (services/mfa/workspace.py)
+        self._totp_service = totp_service
         # a membership the workspace's SCIM directory manages is shown as such
         self._scim_directories = scim_directory_repo
         self._email_action_service = email_action_service
@@ -92,6 +95,11 @@ class WorkspaceMembersService:
             if info and info.get("_id") is not None
         }
         has_directory = await self._has_directory(workspace_id)
+        with_factor = (
+            await self._totp_service.flags([str(u.user_id) for u in workspace_users])
+            if self._totp_service is not None
+            else None
+        )
         response_user_list = []
         for workspace_user in sorted(workspace_users, key=lambda m: str(m.user_id)):
             user_info = users_by_id.get(str(workspace_user.user_id))
@@ -111,6 +119,8 @@ class WorkspaceMembersService:
             user.role = primary_role(workspace_user.roles, is_owner=is_owner)
             user.billing_owner = is_billing_owner(workspace, workspace_user.user_id)
             user.disabled = workspace_user.disabled
+            if with_factor is not None:
+                user.totp_enabled = str(workspace_user.user_id) in with_factor
             user.provisioned_by = workspace_user.provisioned_by
             # the directory never changes an owner (docs/sso.md)
             user.managed_by_directory = bool(

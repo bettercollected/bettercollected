@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { NEEDS_REVIEW_BANNER_HEIGHT_PX, NeedsReviewBanner, useShowNeedsReviewBanner } from '@app/components/open-formulieren-import/needs-review';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { useInspectorEscape } from '@app/lib/hooks/use-inspector-escape';
+import { usePropertiesTabFromUrl } from '@app/lib/hooks/use-properties-tab-from-url';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -116,6 +117,9 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     // Esc goes up one inspector level (question → page → form), unless a
     // popover, menu or dialog handles it.
     useInspectorEscape();
+
+    // `/edit?tab=form` opens the drawer on the Form tab (the link from a form's Settings to its privacy text).
+    usePropertiesTabFromUrl();
 
     useEffect(() => {
         return () => {

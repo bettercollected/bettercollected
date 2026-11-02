@@ -59,6 +59,7 @@ SEALED_TABLES = (
     "scim_directories",
     "registration_services",
     "form_webhooks",
+    "user_totp_factors",
     # the previous values of response edits, sealed with the response keyset (keyset.*)
     "response_revisions",
 )
@@ -365,6 +366,10 @@ APP_DENIED = [
     # the sealed-value tables: their documents only, never another column
     "SELECT form_id FROM app.forms",
     "SELECT created_at FROM app.form_webhooks",
+    "SELECT created_at FROM app.user_totp_factors",
+    "SELECT code_hash FROM app.user_recovery_codes",
+    "UPDATE app.user_totp_factors SET updated_at = now()",
+    "DELETE FROM app.user_totp_factors",
     "UPDATE app.forms SET created_at = now()",
     "UPDATE app.scim_directories SET updated_at = now()",
     "INSERT INTO app.forms (id, doc, _bc_checksum) VALUES ('a', '{}', 'c')",
