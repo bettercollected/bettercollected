@@ -1122,7 +1122,10 @@ version (`GET .../versions/{version}`) is not part of it. Docs: `docs/form-versi
   `params`); the sentences are the webapp's (`utils/version-changes.ts`, EN and NL), so add a kind in both. Values are
   form content (titles, option labels, cut at 160 characters), never answers; rule bodies are not spelt out. A form
   that has no spec form (before page-based forms) is 422 `not_comparable`.
-- Restore goes through `form_writes.persist_form(..., parts=FORM_PARTS, expected_updated_at=...)`: every switch gate of a
+- Restore first runs the content checks of a save on the version's copy (`check_form_content_early` and
+  `check_form_content`, module functions of `workspace_form_service.py` that `update_form` calls too: images, patterns,
+  ending links, themes, calculations, date rules, field rules, option sources, title styles; add a save check there so
+  both get it), then goes through `form_writes.persist_form(..., parts=FORM_PARTS, expected_updated_at=..., lists_check=...)`: every switch gate of a
   builder save applies (field rules, choice logic, question types, containers) and a stale `expectedUpdatedAt` is 409
   `form_changed`. A draft with unpublished work is 409 `draft_has_changes` unless `replaceDraft` is true. It writes no
   version and deletes none: only a later publish makes version N+1. Not restored: logo and cover files, consent list,

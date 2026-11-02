@@ -1158,6 +1158,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_repo=form_repo,
         form_service=form_service,
         member_directory=member_directory,
+        option_source_service=LazyRepository(lambda: container.option_source_service()),
     )
     open_formulieren_export_service: OpenFormulierenExportService = providers.Singleton(
         OpenFormulierenExportService,
