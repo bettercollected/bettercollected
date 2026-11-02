@@ -93,16 +93,34 @@ entry.
 - `sessionId` is returned only to an Owner or an Admin.
 - `labels` resolves the ids of the page, now, inside this workspace only:
   `members` (a current member by display name, never an address; anyone else is
-  `former` with no name, shown as "a member who has left"), `forms` (current
+  `former` with no name, shown as "a member who has left"; a member whose
+  membership is disabled counts as `former` too), `forms` (current
   title, or `gone`) and `teams` (current name, or `gone`). A name that could
   not be looked up is empty and the page still loads.
 - `retentionDays` is how long entries are kept; the page states it.
+
+## The dashboard pages
+
+While the switch is on, whoever holds `audit.read` gets an **Activity** item in
+the sidebar (`/dashboard/activity`) and an **Activity** item in each form's side
+menu, after Versions (`/dashboard/forms/{id}/activity`: the same list with the
+form fixed). With the switch off there is no item, the routes redirect to the
+forms list and the dashboard makes no request.
+
+Each entry is one sentence in the reader's language, built in the browser from
+the codes and labels; an event kind the dashboard does not know reads "An action
+was recorded." The filters (type, person, form, from and to in UTC) are kept in
+the address. By default the break-glass requests (one entry per request of an
+owner's email-code session) are left out of the list; choosing the Security
+type shows them. The page states how long entries are kept.
 
 ## Who sees what
 
 A Privacy officer holds `audit.read` and never an answer permission, so the
 feed of a restricted form (who was granted what, who read its response
-history) is open to them without a link into the responses. A member who may
+history) is open to them without a link into the responses. A Privacy officer
+can read a restricted form's activity (ids only), while the webhook and email
+delivery logs of that form stay withheld from them. A member who may
 edit a form through a grant (a grantee Editor) does not see that form's
 activity: the log is for the roles that hold `audit.read`.
 

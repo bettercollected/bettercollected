@@ -79,6 +79,8 @@ export function useWorkspacePermissions() {
     const csvImportEnabled = !!userId && !isError && !!data?.csvImportEnabled;
     // ...and form-level access (its FORM_ACCESS_ENABLED): the Teams tab, a form's "who can open it" card and the Restricted chips. Nothing of it is asked for or shown while it is off.
     const formAccessEnabled = !!userId && !isError && !!data?.formAccessEnabled;
+    // ...and the Activity pages (its AUDIT_LOG_UI_ENABLED): the workspace's and a form's list of who did what. Nothing of it is asked for or shown while it is off.
+    const auditLogUiEnabled = !!userId && !isError && !!data?.auditLogUiEnabled;
     return {
         can,
         permissions,
@@ -99,6 +101,7 @@ export function useWorkspacePermissions() {
         responseRevisionsEnabled,
         formEmbedEnabled,
         csvImportEnabled,
-        formAccessEnabled
+        formAccessEnabled,
+        auditLogUiEnabled
     };
 }

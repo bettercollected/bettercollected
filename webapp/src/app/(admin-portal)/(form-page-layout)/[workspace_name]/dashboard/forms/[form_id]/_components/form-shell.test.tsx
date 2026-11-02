@@ -441,6 +441,33 @@ describe('buildFormNav, who sees which section', () => {
         expect(items({}, [WorkspacePermission.FORM_READ], `${BASE}/preview`, true)).toEqual(['preview', 'analytics', 'links', 'versions']);
     });
 
+    describe('Activity, after Versions', () => {
+        const withActivity = (granted: string[], form: Record<string, unknown> = {}, pathname = `${BASE}/preview`, on = true) =>
+            buildFormNav({ form: { ...baseForm, ...form }, base: BASE, pathname, can: (p) => granted.includes(p), formRevisionsUiEnabled: true, auditLogUiEnabled: on, t }).map((item) => item.key);
+
+        it('sits between Versions and Settings for audit.read, while the server has it on', () => {
+            expect(withActivity([...ALL, WorkspacePermission.AUDIT_READ])).toEqual(['preview', 'responses', 'analytics', 'links', 'versions', 'activity', 'settings']);
+        });
+
+        it('is the page of its own address', () => {
+            const item = buildFormNav({ form: baseForm, base: BASE, pathname: `${BASE}/activity`, can: () => true, formRevisionsUiEnabled: true, auditLogUiEnabled: true, t }).find((i) => i.key === 'activity');
+            expect(item).toMatchObject({ href: `${BASE}/activity`, label: 'AUDIT_LOG.NAV', active: true });
+        });
+
+        it('is there for a Privacy officer, who has no form.edit and no response.read', () => {
+            expect(withActivity([WorkspacePermission.AUDIT_READ, WorkspacePermission.FORM_READ, WorkspacePermission.PRIVACY_MANAGE])).toEqual(['preview', 'deletion-requests', 'analytics', 'links', 'versions', 'activity']);
+        });
+
+        it('is there for a draft too: access changes are made before a form is published', () => {
+            expect(withActivity([WorkspacePermission.AUDIT_READ], { isPublished: false })).toEqual(['preview', 'activity']);
+        });
+
+        it('is not there without audit.read (a grantee Editor holds form rights, not this one) or while the server has it off', () => {
+            expect(withActivity(ALL)).not.toContain('activity');
+            expect(withActivity([...ALL, WorkspacePermission.AUDIT_READ], {}, `${BASE}/preview`, false)).not.toContain('activity');
+        });
+    });
+
     it('treats the old Visibility and Integrations addresses as Settings', () => {
         const visibility = buildFormNav({ form: baseForm, base: BASE, pathname: `${BASE}/visibility`, can: () => true, formRevisionsUiEnabled: false, t });
         expect(visibility.find((item) => item.active)?.key).toBe('settings');
