@@ -684,6 +684,23 @@ responses through `services/api_responses.py`, ops through
 records live in `api_idempotency_keys` (`services/idempotency.py`). Rate limit
 per key on the shared limiter (`API_PUBLIC_API_*`). Docs: `docs/api/README.md`.
 
+### Submissions through an API key (`SUBMISSIONS_API_ENABLED`, default off)
+
+`POST` / `PATCH /forms/{id}/submissions[/{rid}]` (`public_api/routes.py`, logic in `services/submissions_api/`). **There
+is no second implementation of any respondent rule**: `create_submission` builds the respondent's request object and
+calls `WorkspaceFormService.submit_response(user=None, source=SubmissionSource(...))`; `update_submission` calls
+`patch_response_as_key`, which gates on the key and then runs `_apply_edit` (the respondent edit's checks and merge,
+shared with `patch_response`). The service only adds refusals in front: the key's form list (`submission_form_ids`
+on the key document), identity forms (`require_verified_identity`, `private`), the asserted consent, answers read
+into typed objects (`answers.py`: shorthand or the stored typed shape; file / signature / payment questions and
+slots refused) and errors re-located as `/answers/<id>`. Never add a path that stores a response without going
+through `submit_response`. The scope `submissions:write` (`api_keys.VALID_SCOPES`, creator permission `form.edit`, checked per call) can't be
+granted while the switch is off (`mode.py`), the endpoints answer 404 before authentication, and writes count against
+their own rate scopes (`auth.py`). `submission_source` lives on the response document (JSON, no migration), is
+`exclude=True` on `StandardFormResponseCamelModel` (no respondent view serialises it) and is set by
+`save_form_response(source=...)` only; staff get it as `SingleSubmissionResponse.source`. After the commit a key submission never fails (`_after_commit` in `workspace_form_service.py`, `_already_stored` in the service): a retry must not store a second response. Updates apply the create's identity/private gates and refuse closed / not-yet-open forms. A webhook body carries
+`"source": "api"` for such a response. Docs: `docs/submissions-api.md`.
+
 ## AI consent (#715)
 
 No user content (form content, prompts, the AI profile, memory, responses, uploaded
@@ -1330,8 +1347,11 @@ a `form_answers` source. Tests: `tests/app/reusable_sections/`.
   route via `TemporalRouter._authorise_run`, run still in force, only the `Credentials` secret (`RunSecretDto`: any other name is a 422) and only when the form's
   action already holds one, sealed with the current key in `FormActionsService.update_run_secret`). The hand-out of opened
   secrets is logged with ids and a count, never a value. The key-only `PATCH /temporal/forms/{f}/actions/{a}/secrets` stays for
-  executors before 4.3 and lets any holder of the job key write any form's secret: do not add routes like it. Tests:
-  `tests/app/jobs/test_action_run_secrets.py`.
+  executors before 4.3 and is restricted to the `Credentials` name (422 otherwise; removed in 4.4): do not add routes like it.
+  `ACTION_SECRETS_SEALED_ALLOWED` (default true; false at the 4.3 deploy) refuses the sealed context and that key-only route with
+  426 and an error log line naming the setting, so an executor that still holds `AES_HEX_KEY` fails loudly; plain with no key
+  configured is a 503 (never an empty or sealed answer); the context and the run-scoped write-back send `Cache-Control: no-store`.
+  Tests: `tests/app/jobs/test_action_run_secrets.py`.
   Tests: `tests/app/jobs/test_action_runs.py`, `test_executor_role.py`, `test_ensure_jobs_exec_role.py`,
   `test_legacy_scrub.py`, `test_job_log_safety.py`.
   The workers call back into the internal job routes (`/temporal/*`, action update, template preview,
@@ -1422,3 +1442,17 @@ feature switch). Docs: `docs/response-export.md`. Rules to keep:
 - The audit entry never holds an answer, the search text or a file name made from content. Do not add one.
 - Every route re-checks `response.export`, the job and the download too; an export is its requester's alone (someone
   else's is a 404). The export takes the responses list's filters (`ResponseListFilters`, SQL in `_list_filters`): a new list filter reaches the export by adding it to the request DTO (`models/dtos/response_export_dto.py`) and the audit summary.
+
+## Form embedding (`FORM_EMBED_ENABLED`, docs/embed.md)
+
+Router `controllers/form_embed_router.py`, service `services/form_embed.py`. Rules to keep:
+- Off (the default): `GET`/`PUT /workspaces/{id}/embed/settings` answer 404 *after* the permission check (a caller with no
+  place in the workspace gets 403), the public `GET /workspaces/embed/policy` says `enabled: false`, and the webapp serves
+  form pages with no framing header, as before. `form_embed_enabled` in `/permissions` is the one switch the webapp reads.
+- The allowed sites are `embed_allowed_origins` on the workspace record (no migration; **never** copy the field into
+  `WorkspaceResponseDto`: the public workspace answer must not list who embeds a form). They are written only through
+  `canonical_origin` / `normalize_origins` (https origins, `https://*.` only under a registrable domain by the Public
+  Suffix List, `http` for localhost only, at most 20): the webapp writes them into a `frame-ancestors` header, so
+  anything that could add a source or a directive must stay refused. A new entry kind needs a test in
+  `tests/app/embed/test_origins.py` for the injection cases first.
+- The policy route never distinguishes an unknown workspace from one with an empty list.

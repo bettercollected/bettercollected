@@ -8,17 +8,22 @@ nothing of the cookie-authenticated API (sessions, CSRF) applies to it.
 """
 
 import json
+import re
 from http import HTTPStatus
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from loguru import logger
 
-from backend.app.public_api.auth import AUDIT_STATE
+from backend.app.public_api.auth import AUDIT_EXTRA, AUDIT_STATE
 from backend.app.public_api.errors import error_payload, install_error_handlers
 from backend.app.public_api.models import CloseDeletionRequest, OpsRequest
 from backend.app.public_api.routes import router
 from backend.app.services.api_access import audit_key_call
+from backend.app.services.submissions_api.service import (
+    CreateSubmission,
+    UpdateSubmission,
+)
 
 PUBLIC_API_PATH = "/public/v1"
 PUBLIC_API_VERSION = "1.0.0"
@@ -27,16 +32,29 @@ Create, read, change, publish and delete forms as **form spec v1** documents,
 read their responses and close deletion requests. Authenticate with a
 workspace API key: `Authorization: Bearer bc_...`. A key works in its own
 workspace only, with its scopes (`forms:read`, `forms:write`, `forms:delete`,
-`responses:read`, `deletion_requests:write`), and never does more than the
-person who created it may do at the time of the call.
+`responses:read`, `deletion_requests:write`, `submissions:write`), and never
+does more than the person who created it may do at the time of the call.
+`submissions:write` creates and updates responses (only where the instance
+has turned that on; the endpoints answer 404 otherwise).
 
 - Errors: `{"code", "message", "errors"?: [{"path", "message"}]}`; `path` is
   a JSON pointer into the request body.
 - Versions: `GET /forms/{formId}` answers an `ETag`; `PUT` needs it as
   `If-Match` (428 without, 412 when stale), operations accept it.
-- Retries: `Idempotency-Key` on `POST /forms`, `/ops` and `/publish`.
+- Retries: `Idempotency-Key` on `POST /forms`, `/ops`, `/publish` and the
+  submissions.
 - Rate limits per API key and per workspace: 429 with `Retry-After`.
 """
+
+
+_AUDIT_ID = re.compile(r"[A-Za-z0-9_-]{1,64}")
+
+
+def _audit_id(value) -> str:
+    """A path id as the audit row keeps it: an id-shaped segment as it is,
+    anything else (text a caller chose) only as ``invalid``."""
+    text = str(value)
+    return text if _AUDIT_ID.fullmatch(text) else "invalid"
 
 
 class AuditAndErrors:
@@ -89,8 +107,13 @@ class AuditAndErrors:
             if audit is not None:
                 key, operation = audit
                 ids = " ".join(
-                    f"{k}={v}" for k, v in (scope.get("path_params") or {}).items()
+                    f"{k}={_audit_id(v)}"
+                    for k, v in (scope.get("path_params") or {}).items()
                 )
+                # ids the endpoint added (the response a submission made)
+                extra = state.get(AUDIT_EXTRA)
+                if extra:
+                    ids = f"{ids} {extra}".strip()
                 await audit_key_call(
                     key,
                     operation,
@@ -118,6 +141,10 @@ def build_public_api() -> FastAPI:
                 "description": "Edit a form with typed operations.",
             },
             {"name": "Responses", "description": "Read a form's responses."},
+            {
+                "name": "Submissions",
+                "description": "Create and update responses with an API key.",
+            },
         ],
     )
     install_error_handlers(app)
@@ -139,6 +166,8 @@ def build_public_api() -> FastAPI:
             for name, model in (
                 ("OpsRequest", OpsRequest),
                 ("CloseDeletionRequest", CloseDeletionRequest),
+                ("CreateSubmission", CreateSubmission),
+                ("UpdateSubmission", UpdateSubmission),
             ):
                 schema["components"]["schemas"].setdefault(
                     name,

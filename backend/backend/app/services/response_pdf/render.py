@@ -152,6 +152,8 @@ def clean_text(text: str) -> str:
 
 @lru_cache(maxsize=4096)
 def _char_width(ch: str, font: str, size: float) -> float:
+    # the bundled fonts are registered by the first drawing; measuring may come first
+    _ensure_fonts()
     return pdfmetrics.stringWidth(ch, font, size)
 
 

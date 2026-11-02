@@ -173,7 +173,8 @@ export default function FormDashboardLayoutClient({
                                             onClick={() =>
                                                 openModal('SHARE_VIEW', {
                                                     url: getFormShareURL(workspaceForm, workspace),
-                                                    title: t(formConstant.shareThisForm)
+                                                    title: t(formConstant.shareThisForm),
+                                                    formTitle: workspaceForm?.title
                                                 })
                                             }
                                         >
@@ -205,7 +206,8 @@ export default function FormDashboardLayoutClient({
                                             onClick={() =>
                                                 openModal('SHARE_VIEW', {
                                                     url: getFormShareURL(workspaceForm, workspace),
-                                                    title: t(formConstant.shareThisForm)
+                                                    title: t(formConstant.shareThisForm),
+                                                    formTitle: workspaceForm?.title
                                                 })
                                             }
                                         >

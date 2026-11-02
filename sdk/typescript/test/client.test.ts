@@ -116,6 +116,29 @@ describe("BetterCollected", () => {
     assert.equal(seen[1]?.url, "/api/v1/public/v1/forms/f1/responses/r1");
   });
 
+  it("creates and updates a submission", async () => {
+    handler = (entry, res) =>
+      entry.method === "POST"
+        ? reply(res, 201, { responseId: "r9", formId: "f1", submittedAt: null, formVersion: 2 })
+        : reply(res, 200, { responseId: "r9", updatedAt: null });
+    const created = await client().createSubmission(
+      "f1",
+      { answers: { name: "Ada" }, consent: true },
+      { idempotencyKey: "order-1" },
+    );
+    assert.equal(created.responseId, "r9");
+    assert.equal(seen[0]?.method, "POST");
+    assert.equal(seen[0]?.url, "/api/v1/public/v1/forms/f1/submissions");
+    assert.deepEqual(seen[0]?.body, { answers: { name: "Ada" }, consent: true });
+    assert.equal(seen[0]?.headers["idempotency-key"], "order-1");
+
+    const updated = await client().updateSubmission("f1", "r9", { name: "Ada L." });
+    assert.equal(updated.responseId, "r9");
+    assert.equal(seen[1]?.method, "PATCH");
+    assert.equal(seen[1]?.url, "/api/v1/public/v1/forms/f1/submissions/r9");
+    assert.deepEqual(seen[1]?.body, { answers: { name: "Ada L." } });
+  });
+
   it("throws the API's error, with the located errors", async () => {
     handler = (_, res) =>
       reply(res, 422, {
