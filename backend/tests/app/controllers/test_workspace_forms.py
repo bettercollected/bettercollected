@@ -487,6 +487,7 @@ class TestWorkspaceForm:
                 "needsReview": None,
                 "importSource": None,
                 "importId": None,
+                "promotedFrom": None,
                 "formOpenDate": None,
                 "responseLimit": None,
                 "showReviewPage": None,

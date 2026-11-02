@@ -875,6 +875,8 @@ class WorkspaceFormService:
         cover_image: UploadFile = None,
         drop_unusable_settings: bool = False,
         keep_theme: bool = False,
+        form_id: Optional[str] = None,
+        access_mode: Optional[str] = None,
     ):
         """Create a form in the workspace.
 
@@ -887,6 +889,12 @@ class WorkspaceFormService:
         A form that brings no theme starts with the new-form theme
         (constants/themes.py NEW_FORM_THEME); ``keep_theme`` is for a copy (a
         template), which keeps its source's theme, or none.
+
+        Used by the promotion of a form into this workspace only: ``form_id`` is
+        the id the new form takes (chosen by the caller so that an audit entry
+        written before the change can name it), ``access_mode`` the mode its link
+        is stored with in the same write (a copy of a restricted form is never
+        created open).
         """
         await self.authorization_service.authorize(
             user, Permission.FORM_CREATE, workspace_id
@@ -957,7 +965,7 @@ class WorkspaceFormService:
             settings, drop_unusable=drop_unusable_settings
         )
         checked_logo = await read_logo_upload(logo) if logo else None
-        form.form_id = str(RecordId())
+        form.form_id = str(form_id) if form_id else str(RecordId())
         if form.theme is None and not keep_theme:
             form.theme = new_form_theme()
         keep_section_titles(form, None)
@@ -996,12 +1004,24 @@ class WorkspaceFormService:
             # held to the current publish checks.
             publish_checks_version=PUBLISH_CHECKS_VERSION,
         )
-        await self.workspace_form_repository.save_workspace_form(
-            workspace_id=workspace_id,
-            form_id=form.form_id,
-            user_id=user.id,
-            workspace_form_settings=workspace_form_settings,
-        )
+        if access_mode:
+            # one write: the link never exists without its mode (as a duplicate)
+            await self.workspace_form_repository.save_new_link_with_access_mode(
+                WorkspaceFormDocument(
+                    form_id=str(form.form_id),
+                    workspace_id=workspace_id,
+                    user_id=user.id,
+                    settings=workspace_form_settings,
+                ),
+                access_mode,
+            )
+        else:
+            await self.workspace_form_repository.save_workspace_form(
+                workspace_id=workspace_id,
+                form_id=form.form_id,
+                user_id=user.id,
+                workspace_form_settings=workspace_form_settings,
+            )
         saved_form.settings = _settings_as_read(workspace_form_settings, form)
         return saved_form
 

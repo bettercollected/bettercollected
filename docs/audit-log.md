@@ -35,7 +35,11 @@ list, an id that is not an id, or a range that ends before it starts is 422
 Areas: `access` (grants, a form's access mode, teams), `members`, `forms`,
 `responses` (previous answers read, answers edited, responses deleted, exports),
 `api_keys`, `security` (single sign-on break-glass use, the authenticator-app
-rule).
+rule). Under `forms` too: `form_copied_out` (a form's structure was copied to
+another workspace or downloaded as a file) and `form_promoted` (a form was copied
+here from another workspace), behind `FORM_PROMOTION_ENABLED`; each holds the
+form's id and, in the workspace's own records, the other side's ids and a count
+of what was adjusted, never a title (docs/environments.md).
 
 ## What an entry holds
 

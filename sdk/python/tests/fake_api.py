@@ -33,6 +33,8 @@ class FakeApi:
     def __init__(self, key: str = KEY, refuse_types: tuple[str, ...] = ()) -> None:
         self.key = key
         self.refuse_types = refuse_types
+        # a key an admin limited to certain forms: it cannot create a form
+        self.cannot_create = False
         self.forms: dict[str, dict] = {}
         self.versions: dict[str, int] = {}
         self.requests: list[httpx.Request] = []
@@ -110,6 +112,13 @@ class FakeApi:
                 },
             )
         if parts == ["forms"] and method == "POST":
+            if self.cannot_create:
+                return self.error(
+                    403,
+                    "key_form_scope",
+                    "This API key is limited to certain forms, so it cannot "
+                    "create a form.",
+                )
             errors = self.problems(body)
             if errors:
                 return self.error(

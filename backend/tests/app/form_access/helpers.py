@@ -37,7 +37,11 @@ def fail_audit(monkeypatch):
     async def refuse(document):
         raise RuntimeError("audit store down")
 
+    async def refuse_many(documents):
+        raise RuntimeError("audit store down")
+
     monkeypatch.setattr(container.workspace_audit_repo(), "record", refuse)
+    monkeypatch.setattr(container.workspace_audit_repo(), "record_many", refuse_many)
 
 
 async def add_member(workspace, *roles, disabled=False) -> User:

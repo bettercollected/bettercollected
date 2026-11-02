@@ -101,6 +101,13 @@ class PostgresFormRegistrationRepository(RecordRepository):
     ) -> FormRegistrationDocument:
         return await self.save_document(document)
 
+    async def count_for_form(self, workspace_id, form_id) -> int:
+        """How many hand-overs to a case system the form has (a count only)."""
+        return await self.count(
+            FormRegistrationRow.workspace_id == _id(workspace_id),
+            FormRegistrationRow.form_id == _id(form_id),
+        )
+
     async def count_for_service(self, service_id) -> int:
         return await self.count(FormRegistrationRow.service_id == _id(service_id))
 

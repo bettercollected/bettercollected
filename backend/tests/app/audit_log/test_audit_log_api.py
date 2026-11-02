@@ -340,6 +340,13 @@ def test_every_field_of_a_stored_entry_is_returned_or_withheld_on_purpose():
         "updated_at",
         "invitation_id",  # an invitation has no screen
         "export_id",  # a pointer to a row the page cannot open
+        # the other side of a copy of a form to another workspace: that workspace's
+        # ids are no business of this workspace's readers (a Privacy officer need
+        # not be a member of the other one)
+        "source_workspace_id",
+        "source_form_id",
+        "target_workspace_id",
+        "target_form_id",
     }
     dto = {n for n in AuditEntryDto.model_fields}
     stored = set(WorkspaceAuditEventDocument.model_fields)

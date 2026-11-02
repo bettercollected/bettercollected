@@ -38,7 +38,10 @@ from backend.app.services.api_key_roles.mode import (
 )
 from backend.app.services.api_key_roles.model import SCOPE_ALL, SCOPE_LISTED
 from backend.app.services.authorization_service import AuthorizationService
-from backend.app.services.form_access.audit import record_or_refuse
+from backend.app.services.form_access.audit import (
+    record_many_or_refuse,
+    record_or_refuse,
+)
 from backend.app.models.enum.permission import Permission
 
 # Scopes gate tool/endpoint access. Deliberately coarse in v1.
@@ -255,25 +258,26 @@ class APIKeyService:
         key_id = str(document.id)
         # the entries first (ids and enum values, never the name, the prefix or the
         # token): the key is not made when they cannot be stored
-        await record_or_refuse(
+        await record_many_or_refuse(
             self._audit_repo,
-            API_KEY_CREATED,
+            [
+                (
+                    API_KEY_CREATED,
+                    dict(
+                        key_id=key_id,
+                        key_role=_role_value(role),
+                        form_scope=form_scope,
+                        count=len(list_ids),
+                    ),
+                ),
+                *[
+                    (API_KEY_FORM_ADDED, dict(key_id=key_id, form_id=form_id))
+                    for form_id in list_ids
+                ],
+            ],
             workspace_id,
             user,
-            key_id=key_id,
-            key_role=_role_value(role),
-            form_scope=form_scope,
-            count=len(list_ids),
         )
-        for form_id in list_ids:
-            await record_or_refuse(
-                self._audit_repo,
-                API_KEY_FORM_ADDED,
-                workspace_id,
-                user,
-                key_id=key_id,
-                form_id=form_id,
-            )
         await self._api_key_repo.save(document)
         if listed:
             try:
@@ -486,13 +490,48 @@ class APIKeyService:
         self, workspace_id: RecordId, key_id: str, dto: UpdateAPIKeyDto, user: User
     ) -> APIKeyDto:
         """Change a key's name, role and list of forms (security.manage; Owner and
-        Admin). Widening is allowed to them and recorded as such. An entry per
-        change is stored first; the change is refused when one cannot be."""
+        Admin). Widening is allowed to them and recorded as such. The key's row is
+        locked before anything is computed or recorded, so the entries describe
+        exactly the change that is made (a revocation landing meanwhile waits, and
+        then wins: nothing is recorded for it), and the entries are stored in one
+        batch before the change is committed; the change is refused when they
+        cannot be stored."""
         await self._authorization.authorize(
             user, Permission.SECURITY_MANAGE, workspace_id
         )
         refuse_when_off()
-        document = await self._live_key(workspace_id, key_id)
+        await self._find_in_workspace(workspace_id, key_id)
+        plan: Dict[str, object] = {}
+
+        async def change(document: WorkspaceAPIKeyDocument):
+            plan.update(await self._plan_edit(workspace_id, user, document, dto))
+            return plan["name"], plan["role"], plan["form_scope"]
+
+        updated = await self._api_key_repo.update_limits(
+            workspace_id, RecordId(key_id), change
+        )
+        if updated is None:
+            await self._live_key(workspace_id, key_id)  # 409 when it was revoked
+            raise _not_found()
+        # the key first, then its rows: a failure in between leaves the key
+        # narrower than asked (a list with no rows opens nothing), never wider
+        if plan["rows_stale"]:
+            await self._write_rows(workspace_id, updated, plan["new_ids"], user)
+        elif plan["was_listed"] and not plan["listed"]:
+            await self._grants.delete_for_subject(
+                workspace_id, SUBJECT_KEY, str(updated.id)
+            )
+        return (await self._dtos(workspace_id, user, [updated]))[0]
+
+    async def _plan_edit(
+        self,
+        workspace_id: RecordId,
+        user: User,
+        document: WorkspaceAPIKeyDocument,
+        dto: UpdateAPIKeyDto,
+    ) -> Dict[str, object]:
+        """Validate the edit against the key as it is now (the caller holds the
+        key's row), record it and say what to write. Runs inside the row lock."""
         fields = dto.model_fields_set
         role = (
             validation.normalise_role(dto.role) if "role" in fields else document.role
@@ -510,9 +549,7 @@ class APIKeyService:
         elif listed and was_listed:
             new_ids = old_ids  # the list is left as it is
         elif listed:
-            validation.refuse(
-                "form_ids_required", "formScope 'listed' needs formIds."
-            )
+            validation.refuse("form_ids_required", "formScope 'listed' needs formIds.")
         else:
             new_ids = []
         validation.check_matrix(role, form_scope, document.scopes)
@@ -520,14 +557,15 @@ class APIKeyService:
         # acts as (whom it follows at every request anyway)
         await self._require_within_creator(workspace_id, user, role, document.scopes)
         if role != document.role and role is not None:
-            from backend.app.services.api_access import acting_user
-
             await self._require_within_creator(
-                workspace_id,
-                acting_user(document, with_ceiling=False),
-                role,
-                document.scopes,
+                workspace_id, self._creator_of(document), role, document.scopes
             )
+        role_cleared = role is None and document.role is not None
+        scope_lifted = was_listed and not listed
+        if role_cleared or scope_lifted:
+            # "as its creator" and "every form" give the key whatever the creator
+            # may do, so the editor must be able to do all of it too
+            await self._require_editor_covers_creator(workspace_id, user, document)
         self._require_submission_forms_listed(
             document.submission_form_ids, listed, new_ids
         )
@@ -539,62 +577,80 @@ class APIKeyService:
         )
         added = sorted(set(new_ids) - set(old_ids))
         removed = sorted(set(old_ids) - set(new_ids))
-        scope_widened = (was_listed and not listed) or (
-            listed and was_listed and bool(added)
-        )
-        rows_stale = listed and (role_changed or added or removed or not was_listed)
+        scope_widened = scope_lifted or (listed and was_listed and bool(added))
         key = str(document.id)
+        entries = []
         if role_changed:
-            await record_or_refuse(
-                self._audit_repo,
-                API_KEY_ROLE_CHANGED,
-                workspace_id,
-                user,
-                key_id=key,
-                key_role=_role_value(role),
-                key_role_before=_role_value(document.role),
-                widened=validation.widens_role(document.role, role, document.scopes),
+            entries.append(
+                (
+                    API_KEY_ROLE_CHANGED,
+                    dict(
+                        key_id=key,
+                        key_role=_role_value(role),
+                        key_role_before=_role_value(document.role),
+                        widened=validation.widens_role(
+                            document.role, role, document.scopes
+                        ),
+                    ),
+                )
             )
         if scope_changed:
-            await record_or_refuse(
-                self._audit_repo,
-                API_KEY_SCOPE_CHANGED,
-                workspace_id,
-                user,
-                key_id=key,
-                form_scope=form_scope,
-                count=len(new_ids),
-                widened=scope_widened,
-            )
-        for event, form_ids in (
-            (API_KEY_FORM_ADDED, added),
-            (API_KEY_FORM_REMOVED, removed),
-        ):
-            for form_id in form_ids:
-                await record_or_refuse(
-                    self._audit_repo,
-                    event,
-                    workspace_id,
-                    user,
-                    key_id=key,
-                    form_id=form_id,
+            entries.append(
+                (
+                    API_KEY_SCOPE_CHANGED,
+                    dict(
+                        key_id=key,
+                        form_scope=form_scope,
+                        count=len(new_ids),
+                        widened=scope_widened,
+                    ),
                 )
-        updated = await self._api_key_repo.update_limits(
-            workspace_id,
-            document.id,
-            name=name,
-            role=role,
-            form_scope=form_scope,
+            )
+        entries += [(API_KEY_FORM_ADDED, dict(key_id=key, form_id=f)) for f in added]
+        entries += [
+            (API_KEY_FORM_REMOVED, dict(key_id=key, form_id=f)) for f in removed
+        ]
+        await record_many_or_refuse(
+            self._audit_repo, entries, workspace_id, user
         )
-        if updated is None:
-            raise _not_found()
-        # the key first, then its rows: a failure in between leaves the key
-        # narrower than asked (a list with no rows opens nothing), never wider
-        if rows_stale:
-            await self._write_rows(workspace_id, updated, new_ids, user)
-        elif was_listed and not listed:
-            await self._grants.delete_for_subject(workspace_id, SUBJECT_KEY, key)
-        return (await self._dtos(workspace_id, user, [updated]))[0]
+        return {
+            "name": name,
+            "role": role,
+            "form_scope": form_scope,
+            "listed": listed,
+            "was_listed": was_listed,
+            "new_ids": new_ids,
+            "rows_stale": listed
+            and (role_changed or added or removed or not was_listed),
+        }
+
+    @staticmethod
+    def _creator_of(document: WorkspaceAPIKeyDocument) -> User:
+        """The person the key acts as, exactly (no role ceiling)."""
+        from backend.app.services.api_access import acting_user
+
+        return acting_user(document, with_ceiling=False)
+
+    async def _require_editor_covers_creator(
+        self, workspace_id: RecordId, editor: User, document: WorkspaceAPIKeyDocument
+    ) -> None:
+        """403 unless ``editor`` may do everything the key's creator may do now:
+        clearing a key's role or its list of forms makes the key follow its
+        creator, which would otherwise hand the editor's key more than the
+        editor has."""
+        mine = await self._authorization.effective_permissions(editor, workspace_id)
+        theirs = await self._authorization.effective_permissions(
+            self._creator_of(document), workspace_id
+        )
+        if not theirs <= mine:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN,
+                content={
+                    "code": "key_exceeds_editor",
+                    "message": "A key cannot be made to follow a person who may "
+                    "do more than you may.",
+                },
+            )
 
     async def _stored_list(
         self, workspace_id: RecordId, document: WorkspaceAPIKeyDocument
@@ -602,16 +658,24 @@ class APIKeyService:
         rows = await self._grants.for_key(workspace_id, document.id)
         return sorted(str(r.form_id) for r in rows)
 
-    async def _live_key(
+    async def _find_in_workspace(
         self, workspace_id: RecordId, key_id: str
     ) -> WorkspaceAPIKeyDocument:
-        """The key of this workspace, not revoked: 404 for a key that is not
-        there or belongs to another workspace, 409 for a revoked one."""
+        """The key of this workspace: one 404 for an id that is not a key, one that
+        is not there and one that belongs to another workspace."""
         if not ObjectId.is_valid(str(key_id)):
             raise _not_found()
         document = await self._api_key_repo.find_by_id(RecordId(key_id))
         if not document or str(document.workspace_id) != str(workspace_id):
             raise _not_found()
+        return document
+
+    async def _live_key(
+        self, workspace_id: RecordId, key_id: str
+    ) -> WorkspaceAPIKeyDocument:
+        """The key of this workspace, not revoked: 404 as ``_find_in_workspace``,
+        409 for a revoked one."""
+        document = await self._find_in_workspace(workspace_id, key_id)
         if document.revoked:
             raise HTTPException(
                 status_code=HTTPStatus.CONFLICT,
@@ -629,9 +693,7 @@ class APIKeyService:
         await self._authorization.authorize(
             user, Permission.SECURITY_MANAGE, workspace_id
         )
-        document = await self._api_key_repo.get_or_404(RecordId(key_id))
-        if not document or str(document.workspace_id) != str(workspace_id):
-            raise _not_found()
+        document = await self._find_in_workspace(workspace_id, key_id)
         if not document.revoked:
             # the entry first; the key and its form rows go in one transaction
             await record_or_refuse(

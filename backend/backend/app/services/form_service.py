@@ -70,7 +70,11 @@ from backend.app.services.form_drafts.mode import (
     save_drafts_enabled,
 )
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
-from backend.app.services.internal_fields import respondent_view
+from backend.app.services.internal_fields import (
+    has_promotion_mark,
+    respondent_view,
+    strip_promotion_mark,
+)
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.app.services.internal_auth import auth_service_headers
@@ -89,6 +93,8 @@ def _stub_settings(workspace_form, form) -> Optional[FormSettingsCamelModel]:
     settings.language = language
     # the limit is the creator's: respondents learn only that a form is full
     settings.response_limit = None
+    # where the form was copied from is staff information (FORM_PROMOTION_ENABLED)
+    settings.promoted_from = None
     if not save_drafts_enabled():
         settings.allow_save_draft = None
         settings.draft_retention_days = None
@@ -110,11 +116,12 @@ def _unavailable_stub(form: Any, reason: str, settings: Any = None) -> dict:
 
     form_id = get("form_id")
     shown = settings if settings is not None else get("settings")
-    hidden = {"response_limit": None}
+    hidden = {"response_limit": None, "promoted_from": None}
     if not save_drafts_enabled():
         hidden.update(allow_save_draft=None, draft_retention_days=None)
     if isinstance(shown, dict):
         shown = {**shown, **hidden}
+        shown.pop("promotedFrom", None)
     elif shown is not None:
         shown = shown.model_copy(update=hidden)
     return {
@@ -220,6 +227,10 @@ class FormService:
                 if str(form.form_id) in as_respondent:
                     respondent_view(form)
 
+        if has_access_to_workspace:
+            await self._hide_promotion_from_readers(
+                user, workspace_id, forms_page.items
+            )
         if has_access_to_workspace and not published:
             await self._attach_access(
                 user, workspace_id, forms_page.items, as_respondent
@@ -235,6 +246,22 @@ class FormService:
                     )
 
         return forms_page
+
+    async def _hide_promotion_from_readers(
+        self, user: Optional[User], workspace_id: RecordId, forms: Iterable[Any]
+    ) -> None:
+        """Where a form was copied from (``promotedFrom``: other workspace's ids,
+        who copied it, counts of its automations) is for those who may edit the
+        form: a member who may only read it does not get it. Nothing is looked up
+        for a page without a mark (so nothing extra while the feature is unused)."""
+        marked = [form for form in forms if has_promotion_mark(form)]
+        if not marked:
+            return
+        held = await self._authorization.effective_permissions(user, workspace_id)
+        if Permission.FORM_EDIT in held:
+            return
+        for form in marked:
+            strip_promotion_mark(form)
 
     async def _attach_access(
         self,
@@ -410,6 +437,8 @@ class FormService:
                 if str(form.get("form_id")) in as_respondent:
                     respondent_view(form)
 
+        if staff:
+            await self._hide_promotion_from_readers(user, workspace_id, forms)
         if staff and not published:
             await self._attach_access(user, workspace_id, forms, as_respondent)
             importers = await self._importer_details(
@@ -455,6 +484,8 @@ class FormService:
             draft=draft and is_admin,
         )
         if is_admin:
+            if isinstance(form, FormDtoCamelModel):
+                await self._hide_promotion_from_readers(user, workspace_id, [form])
             if not published and isinstance(form, FormDtoCamelModel):
                 await self._attach_access(user, workspace_id, [form])
             return form
