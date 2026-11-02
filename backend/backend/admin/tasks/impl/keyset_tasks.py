@@ -488,8 +488,12 @@ class DropOld(_Base):
                         stopped = True
                         break
                     # an empty store looks like a wrong or empty database
-                    if counts.get("records", 0) == 0 and not (
-                        target is core.GOOGLE_CREDENTIALS and params.allow_empty_google
+                    if (
+                        counts.get("records", 0) == 0
+                        and not target.may_be_empty
+                        and not (
+                            target is core.GOOGLE_CREDENTIALS and params.allow_empty_google
+                        )
                     ):
                         empty.append(f"{name}.{store.name}")
             out[name] = catalog.StoreCounts(

@@ -1,7 +1,7 @@
 """workspace library sections (reusable groups of questions)
 
 Revision ID: 0034
-Revises: 0031
+Revises: 0032
 Create Date: 2026-11-02
 
 One new table (``backend/app/services/reusable_sections``): a workspace's named
@@ -20,7 +20,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0034"
-down_revision: Union[str, None] = "0031"
+down_revision: Union[str, None] = "0032"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

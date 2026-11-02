@@ -413,7 +413,7 @@ def selected_targets(chosen: Sequence[Targets]) -> List[core.Target]:
     wanted = set(chosen) or set(Targets)
     return [
         core.TARGETS[name]
-        for name in ("responses", "google-credentials")
+        for name in ("responses", "google-credentials", "response-revisions")
         if Targets(name.replace("-", "_")) in wanted
     ]
 
