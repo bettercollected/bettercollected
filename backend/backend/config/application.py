@@ -123,6 +123,13 @@ class Application(StoreBackedSettings):
     # those saves are refused with 422 layout_containers_disabled; containers a
     # form already has keep being shown and may lose questions or be removed.
     LAYOUT_CONTAINERS_ENABLED: bool = False
+    # The public API's submissions endpoints (services/submissions_api): a
+    # workspace API key with the submissions:write scope creates and updates
+    # responses through the respondent's own submit path. Off (the default,
+    # until the release that turns it on): both endpoints answer 404, the
+    # scope can't be granted and a key that has it is refused; responses that
+    # were made this way stay as they are.
+    SUBMISSIONS_API_ENABLED: bool = False
     # Choice logic (services/option_logic.py: options shown or hidden by
     # answers, options filtered by an earlier answer) may be created or
     # changed through the API, the builder save, edit operations, templates and
@@ -146,6 +153,12 @@ class Application(StoreBackedSettings):
     # answers 404 and the webapp shows no import control; the hourly sweep
     # that deletes uploaded files still runs.
     CSV_IMPORT_ENABLED: bool = False
+    # Forms may be embedded in other sites (services/form_embed.py, docs/embed.md):
+    # a workspace lists the sites allowed to frame its forms and the respondent
+    # pages are served with that list as their frame-ancestors. Off (the
+    # default, until it is released): the settings routes answer 404, the
+    # policy says not enabled and the pages are served as before.
+    FORM_EMBED_ENABLED: bool = False
     # The admin task runner presents this key to the internal admin-task
     # routes (controllers/admin_tasks_router.py; the runner's
     # ADMIN_TASKS_API_KEY). Empty: those routes answer 503.

@@ -67,5 +67,7 @@ export function useWorkspacePermissions() {
     const saveDraftsEnabled = !!userId && !isError && !!data?.saveDraftsEnabled;
     // ...and importing responses from a CSV file (its CSV_IMPORT_ENABLED): the responses screen offers it from it.
     const csvImportEnabled = !!userId && !isError && !!data?.csvImportEnabled;
-    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, optionSourcesEnabled, layoutContainersEnabled, saveDraftsEnabled, csvImportEnabled };
+    // ...and embedding forms in other sites (its FORM_EMBED_ENABLED): the share dialog's Embed tab and the Embedding settings.
+    const formEmbedEnabled = !!userId && !isError && !!data?.formEmbedEnabled;
+    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, optionSourcesEnabled, layoutContainersEnabled, saveDraftsEnabled, formEmbedEnabled, csvImportEnabled };
 }

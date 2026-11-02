@@ -179,3 +179,20 @@ class ResponseDetail(_Model):
         "field id."
     )
     deletion_request: Optional[DeletionRequestInfo] = None
+
+
+class SubmissionCreated(_Model):
+    response_id: str = Field(
+        description="The new response's id: the id `GET .../responses/{id}` "
+        "(with `responses:read`) and `PATCH .../submissions/{id}` take."
+    )
+    form_id: str
+    submitted_at: Optional[str] = Field(None, description="ISO 8601.")
+    form_version: Optional[int] = Field(
+        None, description="The published version the answers were checked against."
+    )
+
+
+class SubmissionUpdated(_Model):
+    response_id: str
+    updated_at: Optional[str] = Field(None, description="ISO 8601.")

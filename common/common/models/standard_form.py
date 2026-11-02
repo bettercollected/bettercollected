@@ -2021,6 +2021,19 @@ class ResponseState(BaseModel):
     choices_total_point: Optional[float] = Field(None)
 
 
+class SubmissionSource(BaseModel):
+    """How a response reached the server when it was not a respondent filling
+    in the form: a workspace API key (the public API's submissions endpoint).
+    Set by the server only, never read from a request; shown to staff and
+    never serialised to respondents. ``consent_asserted``: the key's caller
+    asserted the respondent's consent (the form has a consent step)."""
+
+    channel: Literal["api"] = "api"
+    key_id: str
+    key_name: Optional[str] = None
+    consent_asserted: bool = False
+
+
 class StandardFormResponse(BaseModel):
     """
     Data transfer object for a standard form response.
@@ -2082,3 +2095,6 @@ class StandardFormResponse(BaseModel):
     # from a submission's body. The importer is read from the job, so a
     # deleted account is pseudonymised in one place.
     csv_import_id: Optional[str] = None
+    # Set when a workspace API key made the response (SubmissionSource); None
+    # for a response a respondent submitted. Server-set only.
+    submission_source: Optional[SubmissionSource] = None

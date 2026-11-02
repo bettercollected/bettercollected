@@ -148,6 +148,38 @@ class ResponseSummary(BaseModel):
     )
 
 
+class SubmissionCreated(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    response_id: str = Field(
+        ...,
+        alias="responseId",
+        description="The new response's id: the id `GET .../responses/{id}` (with `responses:read`) and `PATCH .../submissions/{id}` take.",
+        title="Responseid",
+    )
+    form_id: str = Field(..., alias="formId", title="Formid")
+    submitted_at: str | None = Field(
+        None, alias="submittedAt", description="ISO 8601.", title="Submittedat"
+    )
+    form_version: int | None = Field(
+        None,
+        alias="formVersion",
+        description="The published version the answers were checked against.",
+        title="Formversion",
+    )
+
+
+class SubmissionUpdated(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    response_id: str = Field(..., alias="responseId", title="Responseid")
+    updated_at: str | None = Field(
+        None, alias="updatedAt", description="ISO 8601.", title="Updatedat"
+    )
+
+
 class ValidationResult(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -204,6 +236,43 @@ class CloseDeletionRequest(BaseModel):
         None,
         description="Required with declined, refused with completed. A fixed list, so no free text (and no personal data) reaches the respondent.",
         title="Reason",
+    )
+
+
+class CreateSubmission(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    answers: dict[str, Any] = Field(
+        ...,
+        description="By question id. Each value is the stored typed answer object (what a response read returns) or a shorthand for the common question types; null leaves a question unanswered.",
+        max_length=500,
+        title="Answers",
+    )
+    hidden_fields: dict[str, str] | None = Field(
+        None,
+        alias="hiddenFields",
+        description="Values for the form's declared hidden fields (what a share link's query string would carry), by name; names the form does not declare are left out.",
+        title="Hiddenfields",
+    )
+    consent: bool | None = Field(
+        None,
+        description="true: you assert that the respondent has given the consent the form asks for. Required when the form has a consent step; it is recorded as asserted by this API key.",
+        title="Consent",
+    )
+
+
+class UpdateSubmission(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    answers: dict[str, Any] = Field(
+        ...,
+        description="By question id: the questions sent replace their stored answers, the others stay. Same value shapes as when creating.",
+        max_length=500,
+        title="Answers",
     )
 
 

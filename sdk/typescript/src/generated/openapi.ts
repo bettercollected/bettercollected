@@ -210,6 +210,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/forms/{form_id}/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a response to a published form
+         * @description Creates a response the way a respondent's submission does: the same checks and the same storage, on the form's **published** version. Answers are keyed by question id; a value is the typed answer object a response read returns, or a shorthand for the common question types. The caller asserts the respondent's consent with `"consent": true` when the form has a consent step. Not for forms that ask for a verified respondent (422 `respondent_identity_required`), and not for questions that take a file, a signature or a payment (422 `invalid_answers`, rule `question_not_supported`). A closed or full form answers 409 (`form_closed`, `form_not_open`, `form_full`). Each problem answer is one entry in `errors`. The response records that this API key made it (visible to staff only); no receipt and no email goes to anyone. Actions, webhooks and email actions run as for a respondent's submission. Needs `submissions:write`; an optional `Idempotency-Key` makes a retry safe.
+         */
+        post: operations["createSubmission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/forms/{form_id}/submissions/{response_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change answers of a response this key made
+         * @description Partial: the questions sent replace their stored answers, the others stay. Same value shapes and the same checks as a respondent's own edit, against the form's latest published version. Only a response made through this same API key can be changed (404 for any other), and not once the form is closed (409 `form_closed`), not open yet (409 `form_not_open`), needs a verified respondent or is private (422 `respondent_identity_required`). A `null` is refused (422, rule `clear_not_supported`). Needs `submissions:write`.
+         */
+        patch: operations["updateSubmission"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1041,6 +1081,36 @@ export interface components {
              */
             expression?: unknown | null;
         };
+        /** SubmissionCreated */
+        SubmissionCreated: {
+            /**
+             * Responseid
+             * @description The new response's id: the id `GET .../responses/{id}` (with `responses:read`) and `PATCH .../submissions/{id}` take.
+             */
+            responseId: string;
+            /** Formid */
+            formId: string;
+            /**
+             * Submittedat
+             * @description ISO 8601.
+             */
+            submittedAt?: string | null;
+            /**
+             * Formversion
+             * @description The published version the answers were checked against.
+             */
+            formVersion?: number | null;
+        };
+        /** SubmissionUpdated */
+        SubmissionUpdated: {
+            /** Responseid */
+            responseId: string;
+            /**
+             * Updatedat
+             * @description ISO 8601.
+             */
+            updatedAt?: string | null;
+        };
         /**
          * Theme
          * @description Colours and style of the form (or of one page, as an override).
@@ -1262,6 +1332,40 @@ export interface components {
              * @default null
              */
             reason: ("legal_obligation" | "legal_claims" | "public_interest" | "identity_not_verified" | "other") | null;
+        };
+        /** CreateSubmission */
+        CreateSubmission: {
+            /**
+             * Answers
+             * @description By question id. Each value is the stored typed answer object (what a response read returns) or a shorthand for the common question types; null leaves a question unanswered.
+             */
+            answers: {
+                [key: string]: unknown;
+            };
+            /**
+             * Hiddenfields
+             * @description Values for the form's declared hidden fields (what a share link's query string would carry), by name; names the form does not declare are left out.
+             * @default null
+             */
+            hiddenFields: {
+                [key: string]: string;
+            } | null;
+            /**
+             * Consent
+             * @description true: you assert that the respondent has given the consent the form asks for. Required when the form has a consent step; it is recorded as asserted by this API key.
+             * @default null
+             */
+            consent: boolean | null;
+        };
+        /** UpdateSubmission */
+        UpdateSubmission: {
+            /**
+             * Answers
+             * @description By question id: the questions sent replace their stored answers, the others stay. Same value shapes as when creating.
+             */
+            answers: {
+                [key: string]: unknown;
+            };
         };
     };
     responses: never;
@@ -2485,6 +2589,207 @@ export interface operations {
             };
             /** @description A request with the same Idempotency-Key is still running. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The body is not valid; `errors` locates each problem. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited; see Retry-After. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createSubmission: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Retry safely: the same key and request within 24 hours returns the first response (Idempotent-Replayed: true) instead of running again; the same key with another request is refused (422). */
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                form_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "answers": {
+                 *         "name": "Ada Lovelace",
+                 *         "dinner": true
+                 *       },
+                 *       "consent": true
+                 *     }
+                 */
+                "application/json": components["schemas"]["CreateSubmission"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionCreated"];
+                };
+            };
+            /** @description No valid API key. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The key lacks the scope, or its creator lacks the permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No such form (or response) in the key's workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A request with the same Idempotency-Key is still running. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The body is larger than 1 MB. */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The body is not valid; `errors` locates each problem. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited; see Retry-After. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateSubmission: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Retry safely: the same key and request within 24 hours returns the first response (Idempotent-Replayed: true) instead of running again; the same key with another request is refused (422). */
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                form_id: string;
+                response_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "answers": {
+                 *         "dinner": false
+                 *       }
+                 *     }
+                 */
+                "application/json": components["schemas"]["UpdateSubmission"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionUpdated"];
+                };
+            };
+            /** @description No valid API key. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The key lacks the scope, or its creator lacks the permission. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No such form (or response) in the key's workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A request with the same Idempotency-Key is still running. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The body is larger than 1 MB. */
+            413: {
                 headers: {
                     [name: string]: unknown;
                 };
