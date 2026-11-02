@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { RefObject, useLayoutEffect, useRef, useState } from 'react';
 
 import { Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -12,29 +12,41 @@ import FormSlidePreview from '@app/views/organism/form-preview/form-slide-previe
 import WelcomePage from '@app/views/organism/form/welcome-page';
 import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
 
-const computeContainerWidth = () => {
-    if (typeof window === 'undefined') return 0;
-    const windowWidth = window.innerWidth;
-    let padding = 5 * 4 * 2;
-    if (windowWidth > 768) padding = 10 * 4 * 2;
-    if (windowWidth > 1024) padding = 28 * 4 * 2 + 4 * 4;
-    let containerWidth = windowWidth - padding;
-    if (windowWidth > 1024) containerWidth = containerWidth / 2;
-    return containerWidth;
-};
+/** The gap of the grid below (`gap-6`) and the width from which it has two columns (`lg`). */
+const GRID_GAP = 24;
+const TWO_COLUMNS_FROM = 1024;
+
+/**
+ * The width of one card: the grid's own width (which depends on the side menu and the page padding) shared by its
+ * columns. It follows the grid when the window or the side menu changes size.
+ */
+function useCardWidth(grid: RefObject<HTMLElement | null>) {
+    const [width, setWidth] = useState(0);
+    useLayoutEffect(() => {
+        const element = grid.current;
+        if (!element) return;
+        const measure = () => {
+            const columns = window.innerWidth >= TWO_COLUMNS_FROM ? 2 : 1;
+            setWidth(Math.max(0, Math.floor((element.clientWidth - GRID_GAP * (columns - 1)) / columns)));
+        };
+        measure();
+        const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+        observer?.observe(element);
+        window.addEventListener('resize', measure);
+        return () => {
+            observer?.disconnect();
+            window.removeEventListener('resize', measure);
+        };
+    }, [grid]);
+    return width;
+}
 
 export const FormTabContent = ({ form }: { form: StandardFormDto }) => {
     const { t } = useTranslation();
     const { openModal: openFullScreenModal } = useFullScreenModal();
 
-    // Track the width so the grid survives a window resize (it used to be
-    // computed once at mount).
-    const [containerWidth, setContainerWidth] = useState(computeContainerWidth);
-    useEffect(() => {
-        const onResize = () => setContainerWidth(computeContainerWidth());
-        window.addEventListener('resize', onResize);
-        return () => window.removeEventListener('resize', onResize);
-    }, []);
+    const grid = useRef<HTMLDivElement>(null);
+    const containerWidth = useCardWidth(grid);
 
     const previewStyles = {
         scale: (containerWidth / 1440).toString(),
@@ -45,7 +57,14 @@ export const FormTabContent = ({ form }: { form: StandardFormDto }) => {
 
     const isSlideEmpty = (slide: StandardFormFieldDto) => !slide?.properties?.fields?.length;
 
-    if (form?.builderVersion !== 'v2') return null;
+    // A form imported from elsewhere has no pages of ours to show.
+    if (form?.builderVersion !== 'v2') {
+        return (
+            <p data-testid="pages-not-available" className="text-black-700 max-w-[62ch] text-sm leading-relaxed">
+                {t('STAFF.FORM_PAGES.NOT_AVAILABLE')}
+            </p>
+        );
+    }
 
     return (
         <div className="flex w-full flex-col gap-4">
@@ -55,7 +74,7 @@ export const FormTabContent = ({ form }: { form: StandardFormDto }) => {
                     {t('STAFF.FORM_PAGES.OPEN_PREVIEW')}
                 </Button>
             </div>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div ref={grid} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <PreviewCard label={t('STAFF.FORM_PAGES.WELCOME')} width={containerWidth} onClick={openPreview}>
                     <div className="pointer-events-none h-[810px] w-[1440px]" style={previewStyles}>
                         <LayoutWrapper showDesktopLayout theme={form?.theme} disabled layout={form.welcomePage?.layout} imageUrl={form?.welcomePage?.imageUrl}>
