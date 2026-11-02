@@ -123,6 +123,18 @@ class FormPermissions:
     field_rules: Optional[object] = None
 
 
+@dataclass(frozen=True)
+class FormAccessSummary:
+    """What the caller's own screens need about one form's access, and
+    nothing about anyone else's: whether the form is restricted, whether the
+    caller may change who opens it, and the form-scoped permissions they hold
+    on it."""
+
+    restricted: bool
+    can_manage: bool
+    permissions: FrozenSet[Permission]
+
+
 def is_restricted(access_mode: Optional[str], hidden: Optional[bool]) -> bool:
     """Whether a form is restricted. An explicit mode always wins: only
     ``workspace`` opens a form to the roles, any other value (one a newer

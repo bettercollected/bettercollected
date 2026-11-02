@@ -1,15 +1,17 @@
 from http import HTTPStatus
-from typing import List
+from typing import List, Literal
 
 from classy_fastapi import Routable, delete, get, patch, post, put
 from common.ids import RecordId
 from common.models.user import User
-from fastapi import Depends, Response
+from fastapi import Depends, Query, Response
 
 from backend.app.container import container
 from backend.app.router import router
 from backend.app.services.form_access.admin import (
+    CandidatesDto,
     FormAccessDto,
+    ImpactDto,
     GrantDto,
     GrantRequestDto,
     MemberAccessDto,
@@ -155,6 +157,32 @@ class FormAccessRouter(Routable):
     ) -> FormAccessDto:
         return await container.form_access_admin_service().get_access(
             workspace_id, form_id, user
+        )
+
+    @get("/{workspace_id}/forms/{form_id}/access/candidates")
+    async def get_form_access_candidates(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        user: User = Depends(get_full_user),
+    ) -> CandidatesDto:
+        """The people (id, name) and teams (id, name, size) who could be given
+        access to this form, for whoever may change its circle."""
+        return await container.form_access_admin_service().candidates(
+            workspace_id, form_id, user
+        )
+
+    @get("/{workspace_id}/forms/{form_id}/access/impact")
+    async def get_form_access_impact(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        mode: Literal["workspace", "restricted"] = Query(...),
+        user: User = Depends(get_full_user),
+    ) -> ImpactDto:
+        """A dry run of the mode change: how many members would lose access."""
+        return await container.form_access_admin_service().impact(
+            workspace_id, form_id, mode, user
         )
 
     @put("/{workspace_id}/forms/{form_id}/access/mode")

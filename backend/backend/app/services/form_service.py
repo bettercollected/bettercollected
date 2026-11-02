@@ -33,7 +33,10 @@ from backend.app.models.dtos.action_dto import (
     ActionDto,
 )
 from backend.app.models.dtos.event_dto import UserEventType
-from backend.app.models.dtos.minified_form import FormDtoCamelModel
+from backend.app.models.dtos.minified_form import (
+    FormAccessSummaryDto,
+    FormDtoCamelModel,
+)
 from backend.app.models.dtos.response_dtos import FormSettingsCamelModel
 from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.models.dtos.workspace_member_dto import (
@@ -218,6 +221,9 @@ class FormService:
                     respondent_view(form)
 
         if has_access_to_workspace and not published:
+            await self._attach_access(
+                user, workspace_id, forms_page.items, as_respondent
+            )
             importers = await self._importer_details(
                 form.imported_by for form in forms_page.items
             )
@@ -229,6 +235,47 @@ class FormService:
                     )
 
         return forms_page
+
+    async def _attach_access(
+        self,
+        user: Optional[User],
+        workspace_id: RecordId,
+        forms: Iterable[Any],
+        skip: Iterable[str] = (),
+    ) -> None:
+        """Give each staff-view form of a dashboard list its ``access`` block
+        (see ``FormAccessSummaryDto``): the reader's own summary, read once for
+        the whole page. The forms listed as to a respondent (``skip``) carry
+        none. Nothing at all while form-level access is off."""
+        if not form_access_enabled():
+            return
+        forms = list(forms)
+
+        def field(form, name):
+            return form.get(name) if isinstance(form, dict) else getattr(form, name, None)
+
+        skipped = {str(f) for f in skip}
+        listed = [
+            str(field(form, "form_id"))
+            for form in forms
+            if field(form, "form_id") and str(field(form, "form_id")) not in skipped
+        ]
+        summaries = await self._authorization.form_access_summaries(
+            user, workspace_id, listed
+        )
+        for form in forms:
+            summary = summaries.get(str(field(form, "form_id")))
+            if summary is None:
+                continue
+            block = FormAccessSummaryDto(
+                restricted=summary.restricted,
+                can_manage=summary.can_manage,
+                permissions=sorted(p.value for p in summary.permissions),
+            )
+            if isinstance(form, dict):
+                form["access"] = block
+            else:
+                form.access = block
 
     async def _staff_view(
         self, user: Optional[User], workspace_id: RecordId, published: bool
@@ -364,6 +411,7 @@ class FormService:
                     respondent_view(form)
 
         if staff and not published:
+            await self._attach_access(user, workspace_id, forms, as_respondent)
             importers = await self._importer_details(
                 form.get("imported_by") for form in forms
             )
@@ -407,6 +455,8 @@ class FormService:
             draft=draft and is_admin,
         )
         if is_admin:
+            if not published and isinstance(form, FormDtoCamelModel):
+                await self._attach_access(user, workspace_id, [form])
             return form
         # The questions of a form that takes no responses (closed, not open
         # yet, full) are not served to respondents: its welcome page says why.
