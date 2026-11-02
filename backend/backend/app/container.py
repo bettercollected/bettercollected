@@ -732,6 +732,7 @@ class AppContainer(containers.DeclarativeContainer):
         crypto=crypto,
         aws_service=aws_service,
         rate_limiter=rate_limiter,
+        audit_repo=workspace_audit_repo,
     )
 
     webhook_service: WebhookService = providers.Singleton(
@@ -811,6 +812,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_service=form_response_service,
         copy_recipient_service=copy_recipient_service,
         rate_limiter=rate_limiter,
+        audit_repo=workspace_audit_repo,
     )
 
     pdf_import_store = providers.Singleton(
@@ -868,6 +870,7 @@ class AppContainer(containers.DeclarativeContainer):
         WorkspaceDomainService,
         authorization_service=authorization_service,
         domain_repo=workspace_domain_repo,
+        audit_repo=workspace_audit_repo,
     )
 
     sso_policy_service: SsoPolicyService = providers.Singleton(
@@ -916,6 +919,7 @@ class AppContainer(containers.DeclarativeContainer):
         option_list_repo=option_list_repo,
         reusable_section_repo=reusable_section_repo,
         response_revision_repo=response_revision_repo,
+        audit_repo=workspace_audit_repo,
     )
 
     reusable_section_service: ReusableSectionService = providers.Singleton(
@@ -946,6 +950,7 @@ class AppContainer(containers.DeclarativeContainer):
         AIConsentService,
         workspace_repo=workspace_repo,
         authorization_service=authorization_service,
+        audit_repo=workspace_audit_repo,
     )
 
     form_embed_service: FormEmbedService = providers.Singleton(
@@ -1119,6 +1124,7 @@ class AppContainer(containers.DeclarativeContainer):
         polis=polis_admin_client,
         api_key_repo=workspace_api_key_repo,
         http_client=http_client,
+        audit_repo=workspace_audit_repo,
         # defined further down
         on_default_role_changed=providers.Object(
             lambda workspace: container.scim_sync_service().recompute_workspace(
@@ -1158,6 +1164,7 @@ class AppContainer(containers.DeclarativeContainer):
         sync_service=scim_sync_service,
         polis=polis_directory_client,
         crypto=crypto,
+        audit_repo=workspace_audit_repo,
     )
 
     scim_webhook_service: ScimWebhookService = providers.Singleton(

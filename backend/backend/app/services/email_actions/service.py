@@ -43,6 +43,13 @@ from pydantic.alias_generators import to_camel
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
 from backend.app.schemas.email_action import EmailTemplate, FormEmailActionDocument
+from backend.app.schemas.workspace_audit_event import (
+    EMAIL_ACTION_CREATED,
+    EMAIL_ACTION_DELETED,
+    EMAIL_ACTION_DISABLED,
+    EMAIL_ACTION_ENABLED,
+    EMAIL_ACTION_UPDATED,
+)
 from backend.app.schemas.webhook import (
     ActionCondition,
     ActionLogDocument,
@@ -55,6 +62,7 @@ from backend.app.services.builtin_actions.mapping import all_questions_mapping
 from backend.app.services.calculated_fields import hidden_calculation_ids
 from backend.app.services.copy_recipient import normalize_address, rate_limit_key
 from backend.app.services.email_actions import templates
+from backend.app.services.form_access import audit
 from backend.app.services.email_actions.mode import (
     email_actions_enabled,
     mail_configured,
@@ -321,7 +329,11 @@ class EmailActionService:
         transport=None,
         defer: Optional[Callable[[str], Awaitable[None]]] = None,
         clock: Callable[[], dt.datetime] = utcnow,
+        audit_repo=None,
     ):
+        # the workspace's audit log: ids and the names of what changed, never
+        # an address, a template or a field's content
+        self._audit_repo = audit_repo
         self._authorization = authorization_service
         self._actions = action_repo
         self._logs = log_repo
@@ -551,6 +563,34 @@ class EmailActionService:
             changed or [],
         )
 
+    async def _audited(
+        self,
+        event: str,
+        workspace_id,
+        form_id,
+        action_id,
+        user: User,
+        *,
+        refuse: bool,
+        **more,
+    ) -> None:
+        """One entry of the workspace's audit log. One rule for email actions
+        and the case-system registration: a change to something that is switched
+        on, or is being switched on (``refuse``), decides where answers go, so
+        it is recorded first and refused (503) when it cannot be. A change to
+        something switched off, or switching it off, sends nothing and is
+        recorded best effort, after the change."""
+        write = audit.record_or_refuse if refuse else audit.record
+        await write(
+            self._audit_repo,
+            event,
+            workspace_id,
+            user,
+            form_id=str(form_id),
+            action_id=str(action_id),
+            **more,
+        )
+
     async def create_action(
         self,
         workspace_id: RecordId,
@@ -580,22 +620,42 @@ class EmailActionService:
             respondent_copy=request.respondent_copy,
             condition=request.condition,
         )
-        document = await self._actions.save(
-            FormEmailActionDocument(
-                workspace_id=workspace_id,
-                form_id=str(form_id),
-                name=name,
-                enabled=request.enabled,
-                en=en,
-                nl=nl,
-                fields=fields,
-                team_recipients=team,
-                respondent_copy=respondent_copy,
-                condition=condition,
-                created_by=str(user.id),
-                updated_by=str(user.id),
-            )
+        new_action = FormEmailActionDocument(
+            workspace_id=workspace_id,
+            form_id=str(form_id),
+            name=name,
+            enabled=request.enabled,
+            en=en,
+            nl=nl,
+            fields=fields,
+            team_recipients=team,
+            respondent_copy=respondent_copy,
+            condition=condition,
+            created_by=str(user.id),
+            updated_by=str(user.id),
         )
+        new_action.ensure_id()
+        if request.enabled:
+            await self._audited(
+                EMAIL_ACTION_CREATED,
+                workspace_id,
+                form_id,
+                new_action.id,
+                user,
+                refuse=True,
+                enabled=True,
+            )
+        document = await self._actions.save(new_action)
+        if not request.enabled:
+            await self._audited(
+                EMAIL_ACTION_CREATED,
+                workspace_id,
+                form_id,
+                new_action.id,
+                user,
+                refuse=False,
+                enabled=False,
+            )
         self._record("created", document, user)
         return _action_dto(document)
 
@@ -689,9 +749,42 @@ class EmailActionService:
             changed.append("enabled")
         if not changed:
             return _action_dto(document)
+        # what it sends and to whom changed while it is on (or it is being
+        # switched on): recorded first, or refused. A switched-off action sends
+        # nothing, and switching it off closes one: best effort, after.
+        parts = [part for part in changed if part != "enabled"]
+        live = bool(document.enabled)
+        if enabling:
+            await self._audited(
+                EMAIL_ACTION_ENABLED, workspace_id, form_id, document.id, user, refuse=True
+            )
+        if parts and live:
+            await self._audited(
+                EMAIL_ACTION_UPDATED,
+                workspace_id,
+                form_id,
+                document.id,
+                user,
+                refuse=True,
+                changed=parts,
+            )
         document.updated_by = str(user.id)
         document.touch()
         document = await self._actions.save(document)
+        if parts and not live:
+            await self._audited(
+                EMAIL_ACTION_UPDATED,
+                workspace_id,
+                form_id,
+                document.id,
+                user,
+                refuse=False,
+                changed=parts,
+            )
+        if "enabled" in changed and not enabling:
+            await self._audited(
+                EMAIL_ACTION_DISABLED, workspace_id, form_id, document.id, user, refuse=False
+            )
         self._record("updated", document, user, changed)
         return _action_dto(document)
 
@@ -700,7 +793,17 @@ class EmailActionService:
     ) -> None:
         await self._manage(user, workspace_id, form_id)
         document = await self._action_of(workspace_id, form_id, action_id)
+        # an action that is on is removed with what it sends: recorded first; a
+        # switched-off one sends nothing: best effort
+        if document.enabled:
+            await self._audited(
+                EMAIL_ACTION_DELETED, workspace_id, form_id, document.id, user, refuse=True
+            )
         await self._actions.delete(workspace_id, form_id, action_id)
+        if not document.enabled:
+            await self._audited(
+                EMAIL_ACTION_DELETED, workspace_id, form_id, document.id, user, refuse=False
+            )
         # its waiting runs are cancelled by the job (the action is gone); the
         # log rows stay until their 30 days are over
         self._record("deleted", document, user)

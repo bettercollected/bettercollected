@@ -27,7 +27,10 @@ from backend.app.exceptions import HTTPException
 from backend.app.schemas.workspace_audit_event import (
     ACCESS_EVENTS,
     API_KEY_EVENTS,
+    AUTOMATION_EVENTS,
+    AUTOMATION_PARTS,
     MEMBER_FORM_EVENTS,
+    SETTINGS_EVENTS,
     PROMOTION_EVENTS,
     WorkspaceAuditEventDocument,
 )
@@ -36,6 +39,10 @@ __all__ = ["record", "record_many_or_refuse", "record_or_refuse"]
 
 
 def _entry(event: str, workspace_id, user, **ids) -> WorkspaceAuditEventDocument:
+    if ids.get("changed") is not None:
+        # a fixed vocabulary of part names: whatever else a caller passes is
+        # never stored
+        ids["changed"] = [p for p in ids["changed"] if p in AUTOMATION_PARTS]
     return WorkspaceAuditEventDocument(
         id=RecordId(),
         workspace_id=RecordId(str(workspace_id)),
@@ -48,8 +55,13 @@ def _entry(event: str, workspace_id, user, **ids) -> WorkspaceAuditEventDocument
 
 async def record(repo, event: str, workspace_id, user, **ids) -> bool:
     """Store the entry; a failure is logged (ids only) and never raised."""
-    assert (
-        event in ACCESS_EVENTS + API_KEY_EVENTS + MEMBER_FORM_EVENTS + PROMOTION_EVENTS
+    assert event in (
+        ACCESS_EVENTS
+        + API_KEY_EVENTS
+        + MEMBER_FORM_EVENTS
+        + PROMOTION_EVENTS
+        + SETTINGS_EVENTS
+        + AUTOMATION_EVENTS
     ), event
     if repo is None:
         return False

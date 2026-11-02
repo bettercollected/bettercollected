@@ -15,7 +15,10 @@ from loguru import logger
 from backend.app.container import container
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.sso_connection import SsoConnectionStatus
-from backend.app.schemas.workspace_audit_event import WorkspaceAuditEventDocument
+from backend.app.schemas.workspace_audit_event import (
+    SSO_EVENTS,
+    WorkspaceAuditEventDocument,
+)
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.ai.api_keys import CreateAPIKeyDto
 from backend.app.services.session_service import decode_token
@@ -256,7 +259,7 @@ async def test_break_glass_is_audited_once_per_session_and_hour(
     assert (await client.get(forms_url(required), cookies=cookies)).status_code == 200
     assert len(_audits(audit_lines)) == 3
     # the table has one row per request: 4 + 1 + 1 (the log line is the throttled one)
-    rows = await container.workspace_audit_repo().page(required.id, 50)
+    rows = await container.workspace_audit_repo().page(required.id, 50, events=SSO_EVENTS)
     assert sorted(r.session_id for r in rows) == sorted([owner.sid] * 5 + [other.sid])
     assert {r.event for r in rows} == {"sso_break_glass_request"}
     assert {r.user_id for r in rows} == {owner.id}
@@ -586,7 +589,7 @@ async def test_switching_the_requirement_off_never_asks(client, sso_workspace):
 
 # -- the persisted break-glass audit -------------------------------------------------
 async def _entries(workspace):
-    return await container.workspace_audit_repo().page(workspace.id, 50)
+    return await container.workspace_audit_repo().page(workspace.id, 50, events=SSO_EVENTS)
 
 
 async def test_every_break_glass_request_writes_one_row_with_a_path_template(
@@ -763,7 +766,7 @@ async def test_the_audit_is_kept_a_year_and_goes_with_the_workspace(
         document.created_at = now - dt.timedelta(days=age_days)
         await repo.record(document)
     assert await policy.purge_audit(now) == 1
-    assert [e.session_id for e in await repo.page(required.id, 50)] == ["new"]
+    assert [e.session_id for e in await repo.page(required.id, 50, events=SSO_EVENTS)] == ["new"]
     await repo.record(
         WorkspaceAuditEventDocument(
             id=RecordId(),
@@ -775,7 +778,7 @@ async def test_the_audit_is_kept_a_year_and_goes_with_the_workspace(
     )
     await container.sso_connection_service().release_workspaces([required.id])
     assert await repo.page(required.id, 50) == []
-    assert len(await repo.page(workspace_1.id, 50)) == 1
+    assert len(await repo.page(workspace_1.id, 50, events=SSO_EVENTS)) == 1
 
 
 # -- a replaced identity provider ends its sessions ----------------------------------
