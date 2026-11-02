@@ -134,6 +134,7 @@ from backend.app.services.form_service import FormService
 from backend.app.services.media_library_service import MediaLibraryService
 from backend.app.services.image_service import ImageService
 from backend.app.services.ai.api_keys import APIKeyService
+from backend.app.services.api_key_lifecycle import ApiKeyLifecycle
 from backend.app.services.ai.chat import FormAIChatService
 from backend.app.services.ai.proposals import FormAIProposalService
 from backend.app.services.ai.consent import AIConsentService
@@ -590,11 +591,18 @@ class AppContainer(containers.DeclarativeContainer):
         http_client=http_client,
     )
 
+    api_key_lifecycle: ApiKeyLifecycle = providers.Singleton(
+        ApiKeyLifecycle,
+        api_key_repo=workspace_api_key_repo,
+        audit_repo=workspace_audit_repo,
+    )
+
     workspace_user_service: WorkspaceUserService = providers.Singleton(
         WorkspaceUserService,
         workspace_user_repository=workspace_user_repo,
         workspace_repo=workspace_repo,
         form_access_cleanup=form_access_cleanup,
+        api_key_lifecycle=api_key_lifecycle,
     )
 
     copy_recipient_service: CopyRecipientService = providers.Singleton(
@@ -1186,6 +1194,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_access_cleanup=form_access_cleanup,
         audit_repo=workspace_audit_repo,
         member_removal_repo=member_removal_repo,
+        api_key_lifecycle=api_key_lifecycle,
     )
 
     stripe_service: StripeService = providers.Singleton(

@@ -894,7 +894,9 @@ class WorkspaceService:
         # before the account's own cleanup, so no entry is written into a
         # workspace that is going away
         await self._workspace_user_service.forget_access_of_workspaces(workspace_ids)
-        await self._workspace_user_service.delete_user_form_all_workspaces(user)
+        await self._workspace_user_service.delete_user_form_all_workspaces(
+            user, going_workspaces=workspace_ids
+        )
         if self._email_action_service is not None:
             # their address leaves the team lists of every workspace they were in
             await self._email_action_service.forget_address(user.sub)

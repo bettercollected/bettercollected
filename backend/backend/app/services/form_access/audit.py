@@ -26,6 +26,7 @@ from loguru import logger
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.workspace_audit_event import (
     ACCESS_EVENTS,
+    API_KEY_EVENTS,
     MEMBER_FORM_EVENTS,
     WorkspaceAuditEventDocument,
 )
@@ -46,7 +47,7 @@ def _entry(event: str, workspace_id, user, **ids) -> WorkspaceAuditEventDocument
 
 async def record(repo, event: str, workspace_id, user, **ids) -> bool:
     """Store the entry; a failure is logged (ids only) and never raised."""
-    assert event in ACCESS_EVENTS or event in MEMBER_FORM_EVENTS, event
+    assert event in ACCESS_EVENTS + API_KEY_EVENTS + MEMBER_FORM_EVENTS, event
     if repo is None:
         return False
     try:

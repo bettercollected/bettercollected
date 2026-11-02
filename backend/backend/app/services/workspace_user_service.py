@@ -29,12 +29,16 @@ class WorkspaceUserService:
         workspace_user_repository: PostgresWorkspaceUserRepository,
         workspace_repo: PostgresWorkspaceRepository,
         form_access_cleanup=None,
+        api_key_lifecycle=None,
     ):
         self.workspace_user_repository = workspace_user_repository
         self.workspace_repo = workspace_repo
         # grants and team memberships go with a membership
         # (services/form_access/cleanup.py)
         self._form_access_cleanup = form_access_cleanup
+        # the keys a person made go with their membership
+        # (services/api_key_lifecycle.py)
+        self._api_key_lifecycle = api_key_lifecycle
 
     async def get_users_in_workspace(self, workspace_id):
         return await self.workspace_user_repository.get_workspace_users(
@@ -184,7 +188,26 @@ class WorkspaceUserService:
             await self._form_access_cleanup.forget_member(workspace_id, user_id)
         return deleted
 
-    async def delete_user_form_all_workspaces(self, user: User):
+    async def revoke_api_keys_of_member(
+        self, workspace_id: RecordId, user_id, actor, reason: str
+    ) -> int:
+        """Revoke the API keys the person created in this workspace (the
+        membership is ending or being suspended by the directory)."""
+        if self._api_key_lifecycle is None:
+            return 0
+        return await self._api_key_lifecycle.revoke_member_keys(
+            workspace_id, user_id, actor, reason
+        )
+
+    async def delete_user_form_all_workspaces(
+        self, user: User, going_workspaces: Optional[List[RecordId]] = None
+    ):
+        if self._api_key_lifecycle is not None:
+            # their keys, in every workspace, before the memberships go
+            # (``going_workspaces``: deleted with the account, so no entry)
+            await self._api_key_lifecycle.revoke_account_keys(
+                user.id, going_workspaces or ()
+            )
         deleted = await self.workspace_user_repository.delete_user_form_all_workspaces(
             user
         )

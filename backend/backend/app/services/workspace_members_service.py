@@ -39,6 +39,7 @@ from backend.app.schemas.workspace_audit_event import (
     MEMBER_INVITED,
     MEMBER_REMOVED,
     MEMBER_ROLE_CHANGED,
+    REVOKED_MEMBER_REMOVED,
 )
 from backend.app.services.form_access import audit
 from backend.app.services.workspace_form_service import WorkspaceFormService
@@ -70,8 +71,12 @@ class WorkspaceMembersService:
         form_access_cleanup=None,
         audit_repo=None,
         member_removal_repo=None,
+        api_key_lifecycle=None,
     ):
         self._member_removal_repo = member_removal_repo
+        # the API keys a removed member made are revoked with them
+        # (services/api_key_lifecycle.py)
+        self._api_key_lifecycle = api_key_lifecycle
         # a removed member's grants and teams go with them, recorded first
         # (services/form_access)
         self._form_access_cleanup = form_access_cleanup
@@ -414,7 +419,16 @@ class WorkspaceMembersService:
                 target_user_id=str(user_id),
                 count=held,
             )
-        # membership, forms and access rows in one transaction
+        keys_recorded = (
+            # their API keys are revoked with them, recorded first (the
+            # removal is refused when an entry cannot be stored)
+            await self._api_key_lifecycle.record_member_keys(
+                workspace_id, user_id, user, REVOKED_MEMBER_REMOVED
+            )
+            if self._api_key_lifecycle is not None
+            else set()
+        )
+        # membership, forms, access rows and API keys in one transaction
         removal = await self._member_removal_repo.remove(workspace_id, user_id, heir)
         if removal is None:
             raise HTTPException(
@@ -422,6 +436,16 @@ class WorkspaceMembersService:
             )
         if self._form_access_cleanup is not None:
             self._form_access_cleanup.forget_memo()
+        if self._api_key_lifecycle is not None:
+            # a key made between the look and the removal was revoked too
+            await self._api_key_lifecycle.record_late_keys(
+                workspace_id,
+                user_id,
+                user,
+                REVOKED_MEMBER_REMOVED,
+                removal.keys,
+                keys_recorded,
+            )
         for form_id in sorted(set(removal.forms) - set(forms)):
             # a form the member created between the look and the removal
             await audit.record(
