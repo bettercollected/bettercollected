@@ -57,11 +57,18 @@ export function whereOf(path: string | null | undefined): { page: number; questi
     return { page: Number(found[1]) + 1, question: found[2] === undefined ? undefined : Number(found[2]) + 1 };
 }
 
-/** A fresh Idempotency-Key (printable ASCII, short). */
+/**
+ * A fresh Idempotency-Key (printable ASCII, short, unguessable): `crypto.randomUUID()`, else 16 bytes of
+ * `crypto.getRandomValues` as hex. No weaker source is used: without a secure random source it throws, and the copy is
+ * not sent.
+ */
 export function newIdempotencyKey(): string {
     const c: Crypto | undefined = typeof globalThis !== 'undefined' ? globalThis.crypto : undefined;
     if (c && typeof c.randomUUID === 'function') return c.randomUUID();
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+    if (c && typeof c.getRandomValues === 'function') {
+        return Array.from(c.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join('');
+    }
+    throw new Error('No secure random source for the Idempotency-Key');
 }
 
 /** A dashboard address in another workspace, every part encoded as one path segment (names and ids come from the server). */

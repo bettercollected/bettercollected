@@ -856,16 +856,19 @@ class FormService:
         form: StandardForm,
         expected_updated_at: datetime,
         accept_replay: bool = False,
+        in_write=None,
     ):
         """``update_form`` only while the stored draft is not newer than
         ``expected_updated_at``; otherwise 409 (form_concurrency.py).
         ``accept_replay``: except for a save that changes nothing, because the
-        draft already is what it sends (see the repository)."""
+        draft already is what it sends (see the repository). ``in_write``: a
+        check awaited in the write's own transaction (see the repository)."""
         return await self._form_repo.update_form_if_unchanged(
             form_id=form_id,
             form=form,
             expected_updated_at=expected_updated_at,
             accept_replay=accept_replay,
+            in_write=in_write,
         )
 
     async def get_form_document_by_id(self, form_id: str):

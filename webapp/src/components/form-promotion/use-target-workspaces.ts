@@ -7,6 +7,22 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetAllMineWorkspacesQuery, workspacesApi } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
+/** How many workspaces' permissions are asked for at once. */
+export const PERMISSION_CHECKS_AT_ONCE = 4;
+
+/** Run `task` over `items` with at most `limit` running at once, in order of start; `each` is called after every one finishes. */
+export async function runLimited<T>(items: T[], limit: number, task: (item: T) => Promise<void>, each?: () => void): Promise<void> {
+    let next = 0;
+    const worker = async () => {
+        while (next < items.length) {
+            const item = items[next++];
+            await task(item);
+            each?.();
+        }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker));
+}
+
 export type TargetWorkspace = Pick<WorkspaceDto, 'id' | 'title' | 'workspaceName'>;
 
 export interface TargetWorkspaces {
@@ -41,26 +57,37 @@ export function useTargetWorkspaces(enabled: boolean): TargetWorkspaces {
         }
         if (!userId) return;
         let cancelled = false;
-        const subscriptions: Array<{ unsubscribe: () => void }> = [];
-        setState((previous) => ({ ...previous, loading: true, failed: false }));
-        Promise.all(
-            others.map(async (workspace) => {
+        const subscriptions = new Set<{ unsubscribe: () => void }>();
+        const allowed = new Map<string, boolean>();
+        setState({ workspaces: [], loading: true, failed: false });
+        // at most a few permission requests at a time, however many workspaces there are; each answer shows its workspace at once
+        runLimited(
+            others,
+            PERMISSION_CHECKS_AT_ONCE,
+            async (workspace) => {
                 const request: any = dispatch(workspacesApi.endpoints.getWorkspacePermissions.initiate({ workspaceId: workspace.id, userId }));
-                subscriptions.push(request);
-                const result = await request;
-                const permissions: string[] = result?.data?.permissions ?? [];
-                return permissions.includes(WorkspacePermission.FORM_CREATE) ? workspace : null;
-            })
-        )
-            .then((found) => {
-                if (!cancelled) setState({ workspaces: found.filter((w): w is TargetWorkspace => w !== null), loading: false, failed: false });
-            })
-            .catch(() => {
-                if (!cancelled) setState({ workspaces: [], loading: false, failed: true });
-            });
+                subscriptions.add(request);
+                try {
+                    const result = await request;
+                    const permissions: string[] = result?.data?.permissions ?? [];
+                    allowed.set(workspace.id, permissions.includes(WorkspacePermission.FORM_CREATE));
+                } catch {
+                    // one workspace that does not answer is one that is not offered
+                    allowed.set(workspace.id, false);
+                } finally {
+                    subscriptions.delete(request);
+                    request?.unsubscribe?.();
+                }
+            },
+            () => {
+                if (!cancelled) setState((previous) => ({ ...previous, workspaces: others.filter((w) => allowed.get(w.id)) }));
+            }
+        ).then(() => {
+            if (!cancelled) setState({ workspaces: others.filter((w) => allowed.get(w.id)), loading: false, failed: false });
+        });
         return () => {
             cancelled = true;
-            subscriptions.forEach((s) => s.unsubscribe());
+            subscriptions.forEach((s) => s.unsubscribe?.());
         };
         // `key` stands for the list of ids
         // eslint-disable-next-line react-hooks/exhaustive-deps

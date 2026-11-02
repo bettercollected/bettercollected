@@ -245,3 +245,34 @@ async def test_a_target_opened_after_the_plan_is_refused_at_the_write(
     assert done.status_code == 409, done.text
     assert done.json() == {"code": "target_not_restricted", "message": MESSAGE}
     assert (await stored_spec(world.b, target))[0]["title"] == "Oud"
+
+
+async def test_a_target_opened_inside_the_write_is_refused_by_the_locked_check(
+    client, world, monkeypatch
+):
+    """The mode is checked in the transaction of the write itself (under a share
+    lock on the link), not before it: even a target opened after every earlier
+    read of the write, right before its UPDATE, gets nothing."""
+    from backend.app.repositories.postgres.forms import PostgresFormRepository
+    from backend.app.services.form_access.model import MODE_WORKSPACE
+
+    await restrict_source(world, monkeypatch)
+    target, etag = await _existing_target(world)
+    repo = container.workspace_form_repo()
+    await repo.set_access_mode(world.b.id, target, MODE_RESTRICTED)
+    stored_draft = PostgresFormRepository._stored_draft
+    opened = []
+
+    async def opened_after_the_last_read(self, form_id):
+        found = await stored_draft(self, form_id)
+        if str(form_id) == target and not opened:
+            opened.append(True)
+            await repo.set_access_mode(world.b.id, target, MODE_WORKSPACE)
+        return found
+
+    monkeypatch.setattr(PostgresFormRepository, "_stored_draft", opened_after_the_last_read)
+    done = await apply(client, world, targetFormId=target, targetEtag=etag)
+    assert opened == [True]
+    assert done.status_code == 409, done.text
+    assert done.json() == {"code": "target_not_restricted", "message": MESSAGE}
+    assert (await stored_spec(world.b, target))[0]["title"] == "Oud"

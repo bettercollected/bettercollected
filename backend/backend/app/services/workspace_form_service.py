@@ -1036,8 +1036,13 @@ class WorkspaceFormService:
         expected_updated_at: Optional[dt.datetime] = None,
         dropped_rules: Optional[List[Dict[str, Any]]] = None,
         dropped_option_logic: Optional[List[Dict[str, Any]]] = None,
+        in_write=None,
     ):
-        """``expected_updated_at``: the draft's ``updated_at`` as the caller
+        """``in_write``: ``async (session)``, awaited in the transaction of the
+        form's conditional write right before it (it raises to refuse the write);
+        only with ``expected_updated_at``.
+
+        ``expected_updated_at``: the draft's ``updated_at`` as the caller
         last saw it; when the stored draft is newer the save is refused with
         409 (form_concurrency.py). None skips the check.
 
@@ -1156,6 +1161,7 @@ class WorkspaceFormService:
                     form=form,
                     expected_updated_at=expected_updated_at,
                     accept_replay=True,
+                    in_write=in_write,
                 )
             except HTTPException:
                 # nothing was written: drop the logo this save uploaded
