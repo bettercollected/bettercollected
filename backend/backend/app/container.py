@@ -215,6 +215,7 @@ from backend.app.services.builtin_actions.sheets import SheetsRunService
 from backend.app.services.form_spec.editor_ops import EditorOpsService
 from backend.app.services.form_spec.service import FormSpecService
 from backend.app.services.audit_log.reader import AuditLogReader
+from backend.app.services.audit_log.retention import AuditRetention
 from backend.app.services.form_versions.service import FormVersionsService
 from backend.app.services.member_directory import MemberDirectory
 from backend.app.services.response_revisions.service import ResponseRevisionService
@@ -1358,6 +1359,12 @@ class AppContainer(containers.DeclarativeContainer):
         form_repo=form_repo,
     )
     # The audit log, read: the workspace's and a form's (switch off by default).
+    audit_retention: AuditRetention = providers.Singleton(
+        AuditRetention,
+        authorization_service=authorization_service,
+        workspace_repo=workspace_repo,
+        audit_repo=workspace_audit_repo,
+    )
     audit_log_reader: AuditLogReader = providers.Singleton(
         AuditLogReader,
         authorization_service=authorization_service,
@@ -1365,6 +1372,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_repo=workspace_form_repo,
         group_repo=member_group_repo,
         member_directory=member_directory,
+        retention=audit_retention,
     )
     # A form's published versions: list, compare, restore (switch off by default).
     form_versions_service: FormVersionsService = providers.Singleton(

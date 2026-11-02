@@ -9203,7 +9203,7 @@
   "document": "WorkspaceUserDocument"
  },
  "workspaces/full": {
-  "checksum": "sha256:881191e5a1cbaa6d38e45cb9b49df7c32b0aa8a4dcb27cc806c6f648c62448ee",
+  "checksum": "sha256:32bf36d090864382799676ed611b77f30a947494de854efaebb21c2a1e449499",
   "doc": {
    "_id": {
     "$oid": "a809c17de9bfb723bacb0d11"
@@ -9214,6 +9214,7 @@
    "ai_enabled_at": "2026-03-04T05:06:07.891234+02:00",
    "ai_enabled_by": "WorkspaceDocument.ai_enabled_by tëxt ✓ \"quoted\" \\ line\nbreak",
    "ai_provider": "WorkspaceDocument.ai_provider tëxt ✓ \"quoted\" \\ line\nbreak",
+   "audit_retention_months": 9007199254740993,
    "banner_image": "WorkspaceDocument.banner_image tëxt ✓ \"quoted\" \\ line\nbreak",
    "created_at": "2026-01-02T03:04:05.678901+00:00",
    "custom_domain": "WorkspaceDocument.custom_domain tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -9457,7 +9458,7 @@
   "document": "WorkspaceDocument"
  },
  "workspaces/minimal": {
-  "checksum": "sha256:1a9610b13f1794bbfe601e9e8c36efc684ce8fec948596e707802563c9a55075",
+  "checksum": "sha256:aeef063c11d6379e5d4391e53ffe5dc012d55d3464de4cb5f3c9f554719d992c",
   "doc": {
    "_id": {
     "$oid": "0662a96fe8066d1ed2683b39"
@@ -9468,6 +9469,7 @@
    "ai_enabled_at": null,
    "ai_enabled_by": null,
    "ai_provider": null,
+   "audit_retention_months": null,
    "banner_image": null,
    "created_at": "2026-01-02T03:04:05.678901+00:00",
    "custom_domain": null,
@@ -9501,7 +9503,7 @@
   "document": "WorkspaceDocument"
  },
  "workspaces/naive": {
-  "checksum": "sha256:c0fca1f91723b27e3552c860fccfb52c531486cfc1038ae8eb080a51484b5523",
+  "checksum": "sha256:ce3fec0ccb19e4203a80895efab342b8f910629928ed46a61376abbc09e89934",
   "doc": {
    "_id": {
     "$oid": "89649ece376f31ff66edc1a2"
@@ -9512,6 +9514,7 @@
    "ai_enabled_at": "2026-03-04T05:06:07.891234",
    "ai_enabled_by": "WorkspaceDocument.ai_enabled_by tëxt ✓ \"quoted\" \\ line\nbreak",
    "ai_provider": "WorkspaceDocument.ai_provider tëxt ✓ \"quoted\" \\ line\nbreak",
+   "audit_retention_months": 9007199254740993,
    "banner_image": "WorkspaceDocument.banner_image tëxt ✓ \"quoted\" \\ line\nbreak",
    "created_at": "2026-01-02T03:04:05.678901",
    "custom_domain": "WorkspaceDocument.custom_domain tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -9755,7 +9758,7 @@
   "document": "WorkspaceDocument"
  },
  "workspaces/nulls": {
-  "checksum": "sha256:7f964295eb05e798adabb128427bdcfef5faccebaeb6794284b95b5af510b840",
+  "checksum": "sha256:796cfa8db024fb92bff5b4697846ebbebf82464de366c073a5186ac5a82639e8",
   "doc": {
    "_id": {
     "$oid": "8078bb88933d2e712c661301"
@@ -9766,6 +9769,7 @@
    "ai_enabled_at": null,
    "ai_enabled_by": null,
    "ai_provider": null,
+   "audit_retention_months": null,
    "banner_image": null,
    "created_at": "2026-01-02T03:04:05.678901+00:00",
    "custom_domain": null,

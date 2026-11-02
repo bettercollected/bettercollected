@@ -42,6 +42,8 @@ const trigger = (arg: { workspaceId: string; formId?: string; query: string }) =
 };
 const lazy = [trigger];
 vi.mock('@app/store/workspaces/audit-log-api', () => ({ useLazyGetAuditLogQuery: () => lazy }));
+// the retention setting has its own tests (retention-setting.test.tsx); here nobody can change it
+vi.mock('@app/store/workspaces/audit-retention-api', () => ({ useGetAuditRetentionQuery: () => ({ data: undefined }), useSetAuditRetentionMutation: () => [vi.fn(), { isLoading: false }] }));
 
 // ---- data (made up) ------------------------------------------------------------------------------------------------
 

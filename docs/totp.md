@@ -68,7 +68,7 @@ This **removes protection that people and workspace owners were relying on**. Be
 - Recovery codes are stored as an unkeyed SHA-256 bound to the account (80 random bits each), so a key rotation does not affect them.
 - Tables (Postgres only): `user_totp_factors`, `user_recovery_codes`. The workspace rule is a field of the workspace document. Sessions record `mfa_at` and `mfa_method`; tokens carry `mfa`, only ever set by the backend from the session's record.
 - The challenge cookie is signed with the access key ring and carries an audience, so no access-token decoder (backend, auth, the Google service) accepts it.
-- Audit entries (`app.workspace_audit_events`, kept for a year): `totp_enrolled`, `totp_removed`, `totp_reset`, `totp_recovery_used`, `totp_recovery_regenerated`, `totp_locked`, `totp_policy_changed`. Ids only: never a code, a secret or an address.
+- Audit entries (`app.workspace_audit_events`, kept 12 months): `totp_enrolled`, `totp_removed`, `totp_reset`, `totp_recovery_used`, `totp_recovery_regenerated`, `totp_locked`, `totp_policy_changed`. Ids only: never a code, a secret or an address.
 - The mails come from the auth service (`POST /notifications/security`, internal key only; the wording is fixed in `mail_text.py`, the recipient is found from the account id). They are sent in the background, once, after the change.
 - Clocks: servers should run NTP. A person whose phone clock is off by more than about 30 seconds gets "not valid" (the answer is always the same, never "wrong by one step").
 - Daily job `totp_pending_purge` deletes setups never confirmed. Deleting an account deletes its factor.

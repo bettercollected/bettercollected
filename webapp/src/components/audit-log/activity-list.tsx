@@ -17,10 +17,12 @@ import { cn } from '@app/shadcn/util/lib';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { WORKSPACE_PERMISSIONS_TAG, workspacesApi } from '@app/store/workspaces/api';
 import { useLazyGetAuditLogQuery } from '@app/store/workspaces/audit-log-api';
+import { useGetAuditRetentionQuery } from '@app/store/workspaces/audit-retention-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { formVersionsUrl, responsePageUrl, responsesListUrl } from '@app/utils/response-urls';
 
 import { AuditFilters, EMPTY_FILTERS, activeFilterCount, auditQuery, filtersToSearch, hidesBreakGlass, parseFilters } from './filters';
+import { AuditRetentionSetting } from './retention-setting';
 import { describeEntry } from './sentences';
 
 const PAGE_SIZE = 20;
@@ -62,6 +64,8 @@ export function ActivityList({ formId }: { formId?: string }) {
     const workspaceId: string = workspace?.id ?? '';
     const workspaceName: string = workspace?.workspaceName ?? '';
     const filtersId = useId();
+    // the workspace's own period (the form's page states the list's); it follows a change made on this page at once
+    const { data: setting } = useGetAuditRetentionQuery(workspaceId, { skip: !workspaceId || !!formId });
 
     const search = searchParams?.toString() ?? '';
     const filters = useMemo(() => parseFilters(new URLSearchParams(search)), [search]);
@@ -185,7 +189,8 @@ export function ActivityList({ formId }: { formId?: string }) {
         // `i18n.language` re-words the day names when the language changes
     }, [view, day, locale, i18n.language, t]);
 
-    const retention = view.status === 'ready' && typeof view.retentionDays === 'number' && view.retentionDays > 0 ? retentionText(t, view.retentionDays) : '';
+    const retentionDays = setting?.days ?? (view.status === 'ready' ? view.retentionDays : undefined);
+    const retention = view.status === 'ready' && typeof retentionDays === 'number' && retentionDays > 0 ? retentionText(t, retentionDays) : '';
 
     return (
         <div data-testid="activity-list" className="flex w-full max-w-[860px] flex-col gap-5 pb-10">
@@ -202,6 +207,7 @@ export function ActivityList({ formId }: { formId?: string }) {
                 <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">
                     {t(formId ? 'AUDIT_LOG.FORM_INTRO' : 'AUDIT_LOG.INTRO')} {retention}
                 </p>
+                {!formId && <AuditRetentionSetting workspaceId={workspaceId} />}
                 {formId && (
                     <p className="text-sm">
                         <Link href={`/${workspaceName}/dashboard/activity?form=${encodeURIComponent(formId)}`} className="inline-flex min-h-11 items-center underline underline-offset-2 md:min-h-8">

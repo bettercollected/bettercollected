@@ -43,6 +43,9 @@ export interface AuditEntryDto {
     directoryType?: string | null;
     enabled?: boolean | null;
     provider?: string | null;
+    /** `audit_retention_changed`: how many months entries are kept now and before (whole numbers, never a name). */
+    retentionMonths?: number | null;
+    previousRetentionMonths?: number | null;
     /** Integration entries: which parts of the configuration changed, by a fixed vocabulary (never their content). */
     changed?: string[] | null;
     method?: string | null;
@@ -77,4 +80,18 @@ export interface AuditPageDto {
     labels?: Partial<AuditLabels>;
     /** How many days an entry is kept (the page states it). */
     retentionDays?: number;
+}
+
+/** How long this workspace keeps its entries (backend `AuditRetentionDto`, docs/audit-log.md). */
+export interface AuditRetentionDto {
+    months: number;
+    days: number;
+    /** The choices, shortest first; none is shorter than `minimumMonths`. */
+    options: number[];
+    minimumMonths: number;
+    defaultMonths: number;
+    /** Only an owner changes it. */
+    canChange: boolean;
+    /** Set by a change that shortened the period: entries past it go at the next daily clean-up, not at once. */
+    appliesAtNextPurge?: boolean;
 }

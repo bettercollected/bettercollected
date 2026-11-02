@@ -44,7 +44,6 @@ from backend.app.models.enum.permission import Permission
 from backend.app.schemas.workspace_audit_event import WorkspaceAuditEventDocument
 from backend.app.services.audit_log import catalog
 from backend.app.services.audit_log.mode import refuse_when_off
-from backend.app.services.audit_log.retention import retention_days
 from backend.app.services.sso.policy import (
     AUDIT_PAGE_MAX,
     AUDIT_PAGE_SIZE,
@@ -85,12 +84,14 @@ class AuditLogReader:
         workspace_form_repo,
         group_repo,
         member_directory,
+        retention,
     ):
         self._authorization = authorization_service
         self._audit = audit_repo
         self._forms = workspace_form_repo
         self._groups = group_repo
         self._members = member_directory
+        self._retention = retention
 
     # -- the two routes -------------------------------------------------------
     async def workspace_page(
@@ -235,7 +236,7 @@ class AuditLogReader:
             entries=entries,
             next_cursor=next_cursor,
             labels=await self._labels(workspace_id, rows),
-            retention_days=await retention_days(workspace_id),
+            retention_days=await self._retention.days(workspace_id),
         )
 
     async def _readable_responses(self, user, workspace_id, rows) -> Optional[set]:
@@ -291,6 +292,8 @@ class AuditLogReader:
             directory_type=row.directory_type,
             enabled=row.enabled,
             provider=row.provider,
+            retention_months=row.retention_months,
+            previous_retention_months=row.previous_retention_months,
             changed=row.changed,
             method=row.method,
             path=row.path,
