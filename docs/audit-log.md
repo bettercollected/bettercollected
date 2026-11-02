@@ -44,6 +44,7 @@ language from `event` and the fields; the server returns no sentence. There is
 no answer, no email address, no name typed into a form and no free text in an
 entry.
 
+- A `team_linked` entry says which team (`groupId`) and whether a directory group was linked to it or unlinked from it (`linked`); it names no directory group.
 - `responseId` is returned only to someone who may read that form's responses.
   A Privacy officer sees who read or changed which form's response history, and
   when, but gets no response id.
