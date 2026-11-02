@@ -26,6 +26,7 @@ from common.models.standard_form import (
     LayoutType,
     RepeatSettings,
     RespondentFeedback,
+    SubmissionSource,
     Theme,
     check_field_date_rules,
     check_repeating_group_structure,
@@ -219,6 +220,11 @@ class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):
     # SingleSubmissionResponse.feedback. (A submission carrying one has it
     # dropped in WorkspaceFormService.submit_response.)
     respondent_feedback: Optional[List[RespondentFeedback]] = Field(None, exclude=True)
+    # How an API key made this response (common SubmissionSource): the
+    # staff's to see (SingleSubmissionResponse.source), never serialised here,
+    # so no respondent-facing read carries it. The submit path overwrites
+    # whatever a request body says.
+    submission_source: Optional[SubmissionSource] = Field(None, exclude=True)
     feedback: Optional[RespondentFeedbackView] = None
     # Encrypted fields whose stored value does not decrypt ("answers",
     # "hidden_fields", "internal_answers"): returned empty, named here.

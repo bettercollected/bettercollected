@@ -96,6 +96,7 @@ environment, whatever the tier.
 | `RESPONSE_VALIDATION_ENFORCE` | features | backend | bool |  | R | T2 | `true` |
 | `SAVE_DRAFTS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `SIGNATURE_QUESTION_ENABLED` | features | backend | bool |  | R | T2 | `false` |
+| `SUBMISSIONS_API_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `AUTH_CALLBACK_URI` | google | backend | url |  | R | T3 |  |
 | `GOOGLE_API_SERVICE_NAME` | google | google | str max 64 |  | R | T1 | `drive` |
 | `GOOGLE_API_VERSION` | google | google | str max 16 |  | R | T1 | `v2` |

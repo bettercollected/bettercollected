@@ -26,6 +26,8 @@ class WorkspacePermissionsDto(CamelModel):
     offers the source picker and the workspace its lists page from it.
     ``layout_containers_enabled`` is the same for panels, tabs and field sets
     (``LAYOUT_CONTAINERS_ENABLED``).
+    ``submissions_api_enabled`` is the same for ``SUBMISSIONS_API_ENABLED``
+    (the API key dialog offers the ``submissions:write`` scope from it).
     ``save_drafts_enabled`` is the same for ``SAVE_DRAFTS_ENABLED`` ("Let
     respondents save and continue later": the builder shows the setting
     read-only while it is off)."""
@@ -42,3 +44,4 @@ class WorkspacePermissionsDto(CamelModel):
     signature_question_enabled: bool = False
     option_sources_enabled: bool = False
     layout_containers_enabled: bool = False
+    submissions_api_enabled: bool = False

@@ -684,6 +684,23 @@ responses through `services/api_responses.py`, ops through
 records live in `api_idempotency_keys` (`services/idempotency.py`). Rate limit
 per key on the shared limiter (`API_PUBLIC_API_*`). Docs: `docs/api/README.md`.
 
+### Submissions through an API key (`SUBMISSIONS_API_ENABLED`, default off)
+
+`POST` / `PATCH /forms/{id}/submissions[/{rid}]` (`public_api/routes.py`, logic in `services/submissions_api/`). **There
+is no second implementation of any respondent rule**: `create_submission` builds the respondent's request object and
+calls `WorkspaceFormService.submit_response(user=None, source=SubmissionSource(...))`; `update_submission` calls
+`patch_response_as_key`, which gates on the key and then runs `_apply_edit` (the respondent edit's checks and merge,
+shared with `patch_response`). The service only adds refusals in front: the key's form list (`submission_form_ids`
+on the key document), identity forms (`require_verified_identity`, `private`), the asserted consent, answers read
+into typed objects (`answers.py`: shorthand or the stored typed shape; file / signature / payment questions and
+slots refused) and errors re-located as `/answers/<id>`. Never add a path that stores a response without going
+through `submit_response`. The scope `submissions:write` (`api_keys.VALID_SCOPES`, creator permission `form.edit`, checked per call) can't be
+granted while the switch is off (`mode.py`), the endpoints answer 404 before authentication, and writes count against
+their own rate scopes (`auth.py`). `submission_source` lives on the response document (JSON, no migration), is
+`exclude=True` on `StandardFormResponseCamelModel` (no respondent view serialises it) and is set by
+`save_form_response(source=...)` only; staff get it as `SingleSubmissionResponse.source`. After the commit a key submission never fails (`_after_commit` in `workspace_form_service.py`, `_already_stored` in the service): a retry must not store a second response. Updates apply the create's identity/private gates and refuse closed / not-yet-open forms. A webhook body carries
+`"source": "api"` for such a response. Docs: `docs/submissions-api.md`.
+
 ## AI consent (#715)
 
 No user content (form content, prompts, the AI profile, memory, responses, uploaded

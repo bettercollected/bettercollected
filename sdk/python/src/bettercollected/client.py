@@ -272,3 +272,53 @@ class BetterCollected:
             "GET", f"/forms/{_q(form_id)}/responses/{_q(response_id)}"
         )
         return api.ResponseDetail.model_validate(response.json())
+
+    # -- submissions -------------------------------------------------------
+
+    def create_submission(
+        self,
+        form_id: str,
+        answers: Mapping[str, Any],
+        *,
+        consent: bool | None = None,
+        hidden_fields: Mapping[str, str] | None = None,
+        idempotency_key: str | None = None,
+    ) -> api.SubmissionCreated:
+        """Submit a response to a published form, through the respondent's
+        own checks (needs the ``submissions:write`` scope). ``answers`` is
+        keyed by question id; a value is the typed answer object a response
+        read returns, or a shorthand (text, a number, a boolean, an option's id
+        or text, a list for tags or a multiple selection). ``consent=True``
+        asserts the respondent's consent when the form asks for it. Problems
+        come per question in ``BetterCollectedError.errors`` (``/answers/<id>``).
+        """
+        body: dict[str, Any] = {"answers": dict(answers)}
+        if consent is not None:
+            body["consent"] = consent
+        if hidden_fields is not None:
+            body["hiddenFields"] = dict(hidden_fields)
+        response = self._request(
+            "POST",
+            f"/forms/{_q(form_id)}/submissions",
+            json=body,
+            headers={"Idempotency-Key": idempotency_key},
+        )
+        return api.SubmissionCreated.model_validate(response.json())
+
+    def update_submission(
+        self,
+        form_id: str,
+        response_id: str,
+        answers: Mapping[str, Any],
+        *,
+        idempotency_key: str | None = None,
+    ) -> api.SubmissionUpdated:
+        """Change answers of a response this API key made: the questions
+        sent replace their stored answers, the others stay."""
+        response = self._request(
+            "PATCH",
+            f"/forms/{_q(form_id)}/submissions/{_q(response_id)}",
+            json={"answers": dict(answers)},
+            headers={"Idempotency-Key": idempotency_key},
+        )
+        return api.SubmissionUpdated.model_validate(response.json())
