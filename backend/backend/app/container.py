@@ -78,6 +78,7 @@ from backend.app.repositories.postgres.option_lists import (
 from backend.app.repositories.postgres.email_actions import (
     PostgresFormEmailActionRepository,
 )
+from backend.app.repositories.postgres.user_totp import PostgresUserTotpRepository
 from backend.app.repositories.postgres.workspace_audit import (
     PostgresWorkspaceAuditRepository,
 )
@@ -109,6 +110,7 @@ from backend.app.services.sheets_grant_revocation import SheetsGrantService
 from backend.app.services.sheets_reconsent import SheetsReconsentService
 from backend.app.services.auth_service import AuthService
 from backend.app.services.case_duplicate_accounts import CaseDuplicateAccounts
+from backend.app.services.mfa.service import MfaService
 from backend.app.services.session_service import SessionService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.coupon_service import CouponService
@@ -345,6 +347,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
     workspace_audit_repo: PostgresWorkspaceAuditRepository = providers.Singleton(
         PostgresWorkspaceAuditRepository, pg_sessionmaker
+    )
+    user_totp_repo: PostgresUserTotpRepository = providers.Singleton(
+        PostgresUserTotpRepository, pg_sessionmaker
     )
     workspace_api_key_repo: PostgresWorkspaceAPIKeyRepository = providers.Singleton(
         PostgresWorkspaceAPIKeyRepository, pg_sessionmaker
@@ -943,6 +948,17 @@ class AppContainer(containers.DeclarativeContainer):
         SessionService, session_repo=session_repo, sso_policy=sso_policy_service
     )
 
+    # the authenticator-app second factor (services/mfa, docs/totp.md)
+    mfa_service: MfaService = providers.Singleton(
+        MfaService,
+        factor_repo=user_totp_repo,
+        session_repo=session_repo,
+        session_service=session_service,
+        rate_limiter=rate_limiter,
+        crypto=crypto,
+        audit_repo=workspace_audit_repo,
+    )
+
     # a deleted account's stored provider credentials (services/credential_purge.py)
     credential_purge_service: CredentialPurgeService = providers.Singleton(
         CredentialPurgeService,
@@ -966,6 +982,7 @@ class AppContainer(containers.DeclarativeContainer):
         allowed_origins_repo=allowed_origins_repo,
         sso_policy=sso_policy_service,
         draft_service=form_draft_service,
+        mfa_service=mfa_service,
     )
 
     # admin task auth.resolve_case_duplicate_accounts (admin_tasks_router)

@@ -605,6 +605,9 @@ SERVICES: Tuple[SettingSpec, ...] = (
           "Email actions per form: on, or off (creating or enabling one answers 422, nothing is "
           "queued or sent; saved actions and the log stay).",
           tier=T2),
+    _bool("TOTP_ENABLED", "security", (BACKEND,), False,
+          "Authenticator app (TOTP) second factor for staff: on, or off (nobody is asked for a code, "
+          "no policy is enforced; stored factors stay).", tier=T2),
 )
 
 PDF = dict(section="pdf_import", readers=(BACKEND,))

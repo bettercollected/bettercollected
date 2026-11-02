@@ -41,12 +41,21 @@ class SessionDocument(Record):
     # ... and the connection it signed in through: the session ends when the
     # workspace's enabled connection is another one (a replaced IdP)
     sso_connection_id: Optional[str] = None
+    # the second factor this session presented (docs/totp.md): when, and how
+    # ("totp" or "recovery"); None = none was presented in this session
+    mfa_at: Optional[dt.datetime] = None
+    mfa_method: Optional[str] = None
     user_agent: Optional[str] = None
     revoked_at: Optional[dt.datetime] = None
     revoke_reason: Optional[str] = None
 
     @field_validator(
-        "rotated_at", "last_refreshed_at", "expires_at", "revoked_at", mode="after"
+        "rotated_at",
+        "last_refreshed_at",
+        "expires_at",
+        "revoked_at",
+        "mfa_at",
+        mode="after",
     )
     @classmethod
     def _utc(cls, value: Optional[dt.datetime]) -> Optional[dt.datetime]:

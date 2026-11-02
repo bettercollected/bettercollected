@@ -66,6 +66,8 @@ class RevokeReason:
     REPLACED = "replaced_by_sign_in"
     # the workspace's SCIM directory deactivated or deleted the user
     SCIM_DEPROVISIONED = "scim_deprovisioned"
+    # the account's authenticator-app factor was turned off or reset
+    MFA_RESET = "mfa_reset"
 
 
 class SessionEnded(HTTPException):
