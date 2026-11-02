@@ -99,6 +99,15 @@ from backend.app.schemas.standard_form_response import (
     import_closure,
     staff_closure,
 )
+from backend.app.schemas.response_revision import (
+    MAX_REVISIONS,
+    ActorKind,
+    ResponseRevisionDocument,
+    RevisionEditor,
+    plain_answer,
+    same_answer,
+    seal_context,
+)
 from backend.app.schemas.workspace_responder import (
     WorkspaceResponderDocument,
     WorkspaceTags,
@@ -109,6 +118,7 @@ from backend.db.models import (
     ResponderGroupFormRow,
     ResponderGroupMemberRow,
     ResponderGroupRow,
+    ResponseRevisionRow,
     WorkspaceResponderRow,
     WorkspaceTagRow,
 )
@@ -536,6 +546,76 @@ class PostgresFormResponseRepository(RecordRepository):
                     data=json.dumps(answers),
                 )
                 await session.execute(self._upsert_statement(row_values(stored)))
+        return changed
+
+    async def redact_history_option_labels(
+        self,
+        response_pks: Iterable[str],
+        workspace_id: RecordId,
+        form_id: str,
+        field_ids: Iterable[str],
+        option_ids: Set[str],
+    ) -> int:
+        """The revision log of those responses: replace the label snapshots of
+        ``option_ids`` in the previous values of ``field_ids`` (the same rule as
+        the answers, ``redact_option_labels``), entry by entry under its row
+        lock, re-sealing what changed. A shared answer an erased respondent
+        gave must not survive in another response's history. Returns the
+        snapshots changed."""
+        from backend.app.services.option_sources import erasure
+
+        pks = [str(pk) for pk in response_pks]
+        if not pks:
+            return 0
+        field_ids = list(field_ids)
+        async with self._session() as session:
+            entry_ids = (
+                (
+                    await session.execute(
+                        select(ResponseRevisionRow.id).where(
+                            ResponseRevisionRow.response_pk.in_(pks)
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+        changed = 0
+        for entry_id in entry_ids:
+            async with self._session() as session, session.begin():
+                entry = await _locked_doc(
+                    session,
+                    ResponseRevisionRow,
+                    ResponseRevisionRow.id == str(entry_id),
+                    document=ResponseRevisionDocument,
+                )
+                if entry is None or not entry.previous_values:
+                    continue
+                context = seal_context(entry.response_pk, entry.seq)
+                try:
+                    previous = json.loads(
+                        crypto_service.decrypt(
+                            workspace_id=workspace_id,
+                            form_id=form_id,
+                            data=bytes(entry.previous_values),
+                            context=context,
+                        )
+                    )
+                except (UnreadableCiphertext, ValueError):
+                    continue
+                found = erasure.redact_answers(previous, field_ids, option_ids)
+                if not found:
+                    continue
+                entry.previous_values = crypto_service.encrypt(
+                    workspace_id=workspace_id,
+                    form_id=form_id,
+                    data=json.dumps(previous),
+                    context=context,
+                )
+                await session.execute(
+                    self._upsert_statement(row_values(entry), ResponseRevisionRow)
+                )
+                changed += found
         return changed
 
     # -- composition over the forms group ---------------------------------
@@ -1468,6 +1548,9 @@ class PostgresFormResponseRepository(RecordRepository):
         response: StandardFormResponse,
         workspace_id: RecordId,
         user=User,
+        editor: Optional[RevisionEditor] = None,
+        record: bool = False,
+        outcome: Optional[dict] = None,
         source_key_id: Optional[str] = None,
     ):
         """Merge the sent answers into the stored response, decrypting and
@@ -1475,10 +1558,28 @@ class PostgresFormResponseRepository(RecordRepository):
         both keep their answers, and one landing on top of a respondent
         feedback or an internal-answers write keeps those.
 
-        Who may edit: the verified respondent who submitted it (``user``), or,
-        with ``source_key_id``, the API key that made it (its id on the
-        stored ``submission_source``). Checked under the lock; a response
-        another key or a respondent made is 404 to a key."""
+        Who may edit, exactly one of three (never two: ``editor`` together with
+        ``source_key_id`` is refused):
+
+        * the verified respondent who submitted it (``user``; neither
+          ``editor`` nor ``source_key_id``);
+        * with ``source_key_id``, the API key that made it (its id on the stored
+          ``submission_source``), checked under the lock; a response another
+          key or a respondent made is 404 to a key;
+        * with ``editor`` (a staff member, whose permission the service
+          checked) no ownership test applies.
+
+        With ``record`` the edit is also written to the revision log
+        (``response_revisions``) in the same transaction, whoever made it (a
+        respondent, a staff member or an API key): the questions whose answer
+        really changed and the values they had, sealed. An edit that changes
+        nothing writes no entry (and, by staff or a key, no response either).
+        ``outcome``, when given, receives ``changed`` (question ids) and
+        ``seq`` (the entry's number, or None)."""
+        if editor is not None and source_key_id is not None:
+            # a programming error, never a request: the three ways to edit
+            # are exclusive, and a staff permission must not widen a key's
+            raise ValueError("an edit is by a staff member or by an API key, not both")
         async with self._session() as session, session.begin():
             response_document = await _locked_doc(
                 session,
@@ -1491,7 +1592,9 @@ class PostgresFormResponseRepository(RecordRepository):
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND, content="Response not found"
                 )
-            if source_key_id is not None:
+            if editor is not None:
+                pass  # a staff member: the service checked the permission
+            elif source_key_id is not None:
                 made_by = response_document.submission_source
                 if made_by is None or made_by.key_id != str(source_key_id):
                     raise HTTPException(
@@ -1520,12 +1623,22 @@ class PostgresFormResponseRepository(RecordRepository):
                         status_code=HTTPStatus.CONFLICT,
                         content="This submission can't be read, so it can't be edited.",
                     )
+            previous: Dict[str, Any] = {}
             for k, v in (response.answers or {}).items():
-                answers[k] = (
+                new_answer = (
                     v.model_dump(mode="json")
                     if isinstance(v, StandardFormResponseAnswer)
                     else v
                 )
+                if not same_answer(answers.get(k), new_answer):
+                    previous[k] = plain_answer(answers.get(k))
+                answers[k] = new_answer
+            if outcome is not None:
+                outcome["changed"] = sorted(previous)
+                outcome["seq"] = None
+            if editor is not None and not previous:
+                # a staff edit that changes nothing leaves the response as it is
+                return response_document
             response_document.answers = crypto_service.encrypt(
                 workspace_id=workspace_id,
                 form_id=form_id,
@@ -1538,8 +1651,99 @@ class PostgresFormResponseRepository(RecordRepository):
                 response_document.workspace_id = RecordId(workspace_id)
             # an edit keeps the submission time and records when it changed
             response_document.touch()
+            if record and previous:
+                seq = await self._write_revision(
+                    session,
+                    response_document,
+                    form_id,
+                    workspace_id,
+                    editor,
+                    previous,
+                    source_key_id,
+                )
+                if outcome is not None:
+                    outcome["seq"] = seq
             await session.execute(self._upsert_statement(row_values(response_document)))
         return response_document
+
+    async def _write_revision(
+        self,
+        session,
+        response_document: FormResponseDocument,
+        form_id: RecordId,
+        workspace_id: RecordId,
+        editor: Optional[RevisionEditor],
+        previous: Dict[str, Any],
+        source_key_id: Optional[str] = None,
+    ) -> int:
+        """One entry of the revision log, in the edit's own transaction (the
+        response row is locked, so the count and the insert cannot race): the
+        questions that changed and their previous values, sealed like the
+        answers. The actor is the staff member (``editor``), the API key
+        (``source_key_id``: its id, no user) or the respondent. 409
+        ``revision_limit`` for a staff or key edit once the response already has
+        ``MAX_REVISIONS`` staff and key entries: the history is never trimmed,
+        and a respondent's own edit is neither counted nor refused."""
+        assert editor is None or source_key_id is None
+        response_pk = str(response_document.id)
+        count = (
+            await session.execute(
+                select(func.count())
+                .select_from(ResponseRevisionRow)
+                .where(ResponseRevisionRow.response_pk == response_pk)
+            )
+        ).scalar_one()
+        if editor is not None or source_key_id is not None:
+            # the limit is on staff and key edits: a respondent correcting
+            # their own answers is never refused for it (it is still recorded)
+            limited_entries = (
+                await session.execute(
+                    select(func.count())
+                    .select_from(ResponseRevisionRow)
+                    .where(
+                        ResponseRevisionRow.response_pk == response_pk,
+                        ResponseRevisionRow.doc["actor_kind"].astext.in_(
+                            [ActorKind.STAFF.value, ActorKind.API_KEY.value]
+                        ),
+                    )
+                )
+            ).scalar_one()
+            if limited_entries >= MAX_REVISIONS:
+                raise HTTPException(
+                    HTTPStatus.CONFLICT,
+                    content={
+                        "code": "revision_limit",
+                        "message": "This response has been edited by staff or an API key as often as the history keeps. "
+                        "It can't be edited that way again.",
+                    },
+                )
+        if editor is not None:
+            kind, actor_id, role = ActorKind.STAFF, editor.user_id, editor.role
+        elif source_key_id is not None:
+            kind, actor_id, role = ActorKind.API_KEY, str(source_key_id), None
+        else:
+            kind, actor_id, role = ActorKind.RESPONDENT, None, None
+        entry = ResponseRevisionDocument(
+            response_pk=response_pk,
+            response_id=response_document.response_id,
+            form_id=str(form_id),
+            workspace_id=str(workspace_id),
+            seq=count + 1,
+            actor_kind=kind,
+            actor_id=actor_id,
+            actor_role=role,
+            changed=sorted(previous),
+            previous_values=crypto_service.encrypt(
+                workspace_id=workspace_id,
+                form_id=form_id,
+                data=json.dumps(previous),
+                context=seal_context(response_pk, count + 1),
+            ),
+        )
+        await session.execute(
+            self._upsert_statement(row_values(entry), ResponseRevisionRow)
+        )
+        return entry.seq
 
     async def delete_form_response(
         self,

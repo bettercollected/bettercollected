@@ -159,6 +159,12 @@ class Application(StoreBackedSettings):
     # released): those routes are refused with 422 form_revisions_disabled and
     # the dashboard does not show the Versions page.
     FORM_REVISIONS_UI_ENABLED: bool = False
+    # Staff holding response.edit may change a response's answers, and every
+    # edit (staff or respondent) is kept in a revision log with the previous
+    # values sealed (services/response_revisions). Off (the default, until it
+    # is released): staff edit and the history are refused with 422
+    # response_revisions_disabled and nothing is recorded.
+    RESPONSE_REVISIONS_ENABLED: bool = False
     # The admin task runner presents this key to the internal admin-task
     # routes (controllers/admin_tasks_router.py; the runner's
     # ADMIN_TASKS_API_KEY). Empty: those routes answer 503.

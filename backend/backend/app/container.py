@@ -188,6 +188,10 @@ from backend.app.services.form_spec.editor_ops import EditorOpsService
 from backend.app.services.form_spec.service import FormSpecService
 from backend.app.services.form_versions.service import FormVersionsService
 from backend.app.services.member_directory import MemberDirectory
+from backend.app.services.response_revisions.service import ResponseRevisionService
+from backend.app.repositories.postgres.response_revisions import (
+    PostgresResponseRevisionRepository,
+)
 from backend.app.services.form_spec.writes import FormSpecWriter
 from backend.app.services.idempotency import IdempotencyService
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
@@ -232,6 +236,13 @@ class AppContainer(containers.DeclarativeContainer):
     )
     workspace_repo: PostgresWorkspaceRepository = providers.Singleton(
         PostgresWorkspaceRepository, pg_sessionmaker, action_repository
+    )
+    # Who a staff member is, for screens that name them (versions, history).
+    member_directory: MemberDirectory = providers.Singleton(
+        MemberDirectory,
+        workspace_repo=workspace_repo,
+        workspace_user_repo=workspace_user_repo,
+        http_client=http_client,
     )
     allowed_origins_repo: PostgresAllowedOriginsRepository = providers.Singleton(
         PostgresAllowedOriginsRepository, pg_sessionmaker
@@ -339,6 +350,12 @@ class AppContainer(containers.DeclarativeContainer):
         pg_sessionmaker,
         LazyRepository(lambda: container.form_repo()),
         LazyRepository(lambda: container.workspace_form_repo()),
+    )
+
+    # the revision log of response edits (written by form_response_repo, in the
+    # transaction of the edit; this one reads it)
+    response_revision_repo: PostgresResponseRevisionRepository = providers.Singleton(
+        PostgresResponseRevisionRepository, pg_sessionmaker
     )
 
     responder_groups_repository: PostgresResponderGroupsRepository = providers.Singleton(
@@ -592,6 +609,18 @@ class AppContainer(containers.DeclarativeContainer):
         response_export_service=LazyRepository(lambda: container.response_export_service()),
         email_action_service=LazyRepository(lambda: container.email_action_service()),
         option_source_service=LazyRepository(lambda: container.option_source_service()),
+        member_directory=member_directory,
+    )
+
+    # The history of a response: who edited it, when, which questions, and (on
+    # demand) the previous values. Behind RESPONSE_REVISIONS_ENABLED.
+    response_revision_service: ResponseRevisionService = providers.Singleton(
+        ResponseRevisionService,
+        authorization_service=authorization_service,
+        form_response_service=form_response_service,
+        revision_repo=response_revision_repo,
+        form_repo=form_repo,
+        member_directory=member_directory,
     )
 
     registration_service: RegistrationService = providers.Singleton(
@@ -768,6 +797,7 @@ class AppContainer(containers.DeclarativeContainer):
         response_export_service=response_export_service,
         email_action_service=email_action_service,
         option_list_repo=option_list_repo,
+        response_revision_repo=response_revision_repo,
     )
 
     ai_profile_service: AIProfileService = providers.Singleton(
@@ -1119,13 +1149,6 @@ class AppContainer(containers.DeclarativeContainer):
         authorization_service=authorization_service,
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
-    )
-    # Who a staff member is, for screens that name them (versions, history).
-    member_directory: MemberDirectory = providers.Singleton(
-        MemberDirectory,
-        workspace_repo=workspace_repo,
-        workspace_user_repo=workspace_user_repo,
-        http_client=http_client,
     )
     # A form's published versions: list, compare, restore (switch off by default).
     form_versions_service: FormVersionsService = providers.Singleton(

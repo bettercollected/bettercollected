@@ -98,6 +98,8 @@ NO_DOCUMENT_CLASS = {
     "option_source_erasures",
     # and the workspaces' security events (break-glass audit)
     "workspace_audit_events",
+    # and the revision log of response edits
+    "response_revisions",
 }
 
 # The document classes, all on ``Record`` (every group is served from Postgres
