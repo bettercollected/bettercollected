@@ -335,6 +335,10 @@ BEGIN
         ['scim_directories', 'id,doc', 'doc,_bc_checksum'],
         ['registration_services', 'id,doc', 'doc,_bc_checksum'],
         ['form_webhooks', 'id,doc', 'doc,_bc_checksum'],
+        -- the previous values of response edits, sealed with the response keyset
+        -- (keyset.* tasks, docs/response-keyset-rotation.md): the documents are read
+        -- and their sealed value rewritten whole (the checksum follows)
+        ['response_revisions', 'id,doc', 'doc,_bc_checksum'],
         -- whether the forms' links were imported from 4.0 (a finished backfill
         -- of workspace_forms that skipped nothing, and up to which Mongo _id),
         -- before a task writes from them

@@ -93,12 +93,16 @@ NO_DOCUMENT_CLASS = {
     # and the response exports (audit entries and a job's file chunks)
     "response_exports",
     "response_export_chunks",
+    "response_imports",
+    "response_import_files",
     "form_email_actions",
     "workspace_option_lists",
     "option_source_erasures",
     "workspace_library_sections",
     # and the workspaces' security events (break-glass audit)
     "workspace_audit_events",
+    # and the revision log of response edits
+    "response_revisions",
 }
 
 # The document classes, all on ``Record`` (every group is served from Postgres

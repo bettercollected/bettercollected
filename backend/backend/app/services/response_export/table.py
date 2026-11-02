@@ -760,8 +760,15 @@ def formula_safe_cell(value: CellValue) -> CellValue:
     visible apostrophe keeps the data intact, while a phone number a
     spreadsheet evaluates (``+31-6-1234-5678`` is a subtraction) is corrupted.
     (The XLSX file marks such a cell as text with a flag instead: see
-    ``xlsx.py``.)"""
-    return f"'{value}" if formula_like(value) else value
+    ``xlsx.py``.)
+
+    A value that is itself apostrophes followed by something formula-like
+    (``'=x``, ``''=x``) is guarded too (one more apostrophe): the CSV import
+    takes off exactly one apostrophe from such a cell, so the round trip is
+    exact for every value."""
+    if isinstance(value, str) and formula_like(value.lstrip("'")):
+        return f"'{value}"
+    return value
 
 
 def csv_line(cells: Iterable[CellValue]) -> str:

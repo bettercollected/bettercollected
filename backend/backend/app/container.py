@@ -59,6 +59,9 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceUserRepository,
 )
 from backend.app.repositories.postgres.form_drafts import PostgresFormDraftRepository
+from backend.app.repositories.postgres.response_imports import (
+    PostgresResponseImportRepository,
+)
 from backend.app.repositories.postgres.response_exports import (
     PostgresResponseExportRepository,
 )
@@ -170,6 +173,7 @@ from backend.app.services.registration.service import RegistrationService
 from backend.app.services.form_drafts.service import FormDraftService
 from backend.app.services.webhooks.service import WebhookService
 from backend.app.services.response_export.service import ResponseExportService
+from backend.app.services.response_import.service import ResponseImportService
 from backend.app.services.email_actions.service import EmailActionService
 from backend.app.services.option_lists.service import OptionListService
 from backend.app.services.reusable_sections.service import ReusableSectionService
@@ -192,6 +196,10 @@ from backend.app.services.form_spec.editor_ops import EditorOpsService
 from backend.app.services.form_spec.service import FormSpecService
 from backend.app.services.form_versions.service import FormVersionsService
 from backend.app.services.member_directory import MemberDirectory
+from backend.app.services.response_revisions.service import ResponseRevisionService
+from backend.app.repositories.postgres.response_revisions import (
+    PostgresResponseRevisionRepository,
+)
 from backend.app.services.form_spec.writes import FormSpecWriter
 from backend.app.services.idempotency import IdempotencyService
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
@@ -236,6 +244,13 @@ class AppContainer(containers.DeclarativeContainer):
     )
     workspace_repo: PostgresWorkspaceRepository = providers.Singleton(
         PostgresWorkspaceRepository, pg_sessionmaker, action_repository
+    )
+    # Who a staff member is, for screens that name them (versions, history).
+    member_directory: MemberDirectory = providers.Singleton(
+        MemberDirectory,
+        workspace_repo=workspace_repo,
+        workspace_user_repo=workspace_user_repo,
+        http_client=http_client,
     )
     allowed_origins_repo: PostgresAllowedOriginsRepository = providers.Singleton(
         PostgresAllowedOriginsRepository, pg_sessionmaker
@@ -304,6 +319,9 @@ class AppContainer(containers.DeclarativeContainer):
     response_export_repo: PostgresResponseExportRepository = providers.Singleton(
         PostgresResponseExportRepository, pg_sessionmaker
     )
+    response_import_repo: PostgresResponseImportRepository = providers.Singleton(
+        PostgresResponseImportRepository, pg_sessionmaker
+    )
     sso_connection_repo: PostgresSsoConnectionRepository = providers.Singleton(
         PostgresSsoConnectionRepository, pg_sessionmaker
     )
@@ -346,6 +364,12 @@ class AppContainer(containers.DeclarativeContainer):
         pg_sessionmaker,
         LazyRepository(lambda: container.form_repo()),
         LazyRepository(lambda: container.workspace_form_repo()),
+    )
+
+    # the revision log of response edits (written by form_response_repo, in the
+    # transaction of the edit; this one reads it)
+    response_revision_repo: PostgresResponseRevisionRepository = providers.Singleton(
+        PostgresResponseRevisionRepository, pg_sessionmaker
     )
 
     responder_groups_repository: PostgresResponderGroupsRepository = providers.Singleton(
@@ -599,6 +623,18 @@ class AppContainer(containers.DeclarativeContainer):
         response_export_service=LazyRepository(lambda: container.response_export_service()),
         email_action_service=LazyRepository(lambda: container.email_action_service()),
         option_source_service=LazyRepository(lambda: container.option_source_service()),
+        member_directory=member_directory,
+    )
+
+    # The history of a response: who edited it, when, which questions, and (on
+    # demand) the previous values. Behind RESPONSE_REVISIONS_ENABLED.
+    response_revision_service: ResponseRevisionService = providers.Singleton(
+        ResponseRevisionService,
+        authorization_service=authorization_service,
+        form_response_service=form_response_service,
+        revision_repo=response_revision_repo,
+        form_repo=form_repo,
+        member_directory=member_directory,
     )
 
     registration_service: RegistrationService = providers.Singleton(
@@ -640,6 +676,25 @@ class AppContainer(containers.DeclarativeContainer):
         export_repo=response_export_repo,
         crypto=providers.Object(crypto_service),
         rate_limiter=rate_limiter,
+        import_hooks=LazyRepository(lambda: container.response_import_service()),
+    )
+
+    # the import of submissions from a CSV file (a dry run or the import runs as
+    # a job; the upload is kept encrypted with the responses' own keyset)
+    response_import_service: ResponseImportService = providers.Singleton(
+        ResponseImportService,
+        authorization_service=authorization_service,
+        form_service=form_service,
+        workspace_form_repo=workspace_form_repo,
+        form_response_service=form_response_service,
+        response_repo=form_response_repo,
+        import_repo=response_import_repo,
+        crypto=providers.Object(crypto_service),
+        rate_limiter=rate_limiter,
+        export_service=LazyRepository(lambda: container.response_export_service()),
+        schedule_deletion=providers.Callable(
+            lambda service: service.add_scheduled_job_for_deleting_response, temporal_service
+        ),
     )
 
     # options from a workspace list or from another form's answers (a public
@@ -776,6 +831,7 @@ class AppContainer(containers.DeclarativeContainer):
         email_action_service=email_action_service,
         option_list_repo=option_list_repo,
         reusable_section_repo=reusable_section_repo,
+        response_revision_repo=response_revision_repo,
     )
 
     reusable_section_service: ReusableSectionService = providers.Singleton(
@@ -809,6 +865,7 @@ class AppContainer(containers.DeclarativeContainer):
         FormEmbedService,
         workspace_repo=workspace_repo,
         authorization_service=authorization_service,
+        rate_limiter=rate_limiter,
     )
 
     openai_service: OpenAIService = providers.Singleton(
@@ -1134,13 +1191,6 @@ class AppContainer(containers.DeclarativeContainer):
         authorization_service=authorization_service,
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
-    )
-    # Who a staff member is, for screens that name them (versions, history).
-    member_directory: MemberDirectory = providers.Singleton(
-        MemberDirectory,
-        workspace_repo=workspace_repo,
-        workspace_user_repo=workspace_user_repo,
-        http_client=http_client,
     )
     # A form's published versions: list, compare, restore (switch off by default).
     form_versions_service: FormVersionsService = providers.Singleton(

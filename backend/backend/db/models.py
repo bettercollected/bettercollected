@@ -10,7 +10,7 @@ duplicates exist.
 
 from __future__ import annotations
 
-from sqlalchemy import CheckConstraint, Index, SmallInteger, Text, UniqueConstraint, text
+from sqlalchemy import CheckConstraint, ForeignKeyConstraint, Index, SmallInteger, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -398,6 +398,30 @@ class FormResponseRow(Base, BaseRow):
     )
 
 
+class ResponseRevisionRow(Base, BaseRow):
+    """One entry of the revision log of a response (revision 0032): an edit
+    by staff or by the respondent, with the previous values sealed. Deleted
+    with the response row (``ON DELETE CASCADE``), whatever deletes it."""
+
+    __tablename__ = "response_revisions"
+    response_pk = S.text("response_pk")
+    form_id = S.text("form_id")
+    workspace_id = S.text("workspace_id")
+    actor_id = S.text("actor_id")
+    seq = S.int("seq")
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["response_pk"],
+            ["app.form_responses.id"],
+            name="fk_response_revisions_response_pk_form_responses",
+            ondelete="CASCADE",
+        ),
+        Index("uq_response_revisions_response_seq", "response_pk", "seq", unique=True),
+        Index(None, "actor_id"),
+        Index(None, "form_id"),
+    )
+
+
 class ResponseDeletionRequestRow(Base, BaseRow):
     __tablename__ = "responses_deletion_requests"
     form_id = S.text("form_id")
@@ -778,6 +802,40 @@ class ResponseExportChunkRow(Base, BaseRow):
     chunk_index = S.int("index", name="chunk_index")
     __table_args__ = (
         UniqueConstraint("export_id", "chunk_index"),
+        Index(None, "workspace_id", "form_id"),
+        Index(None, "form_id"),
+    )
+
+
+class ResponseImportRow(Base, BaseRow):
+    __tablename__ = "response_imports"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    actor_id = S.text("actor_id")
+    status = S.text("status")
+    __table_args__ = (
+        Index(None, "workspace_id", "form_id", "created_at"),
+        Index(None, "status", "created_at"),
+        Index(None, "form_id"),
+        # one import being checked, queued or run per form: the check and the
+        # insert of a request cannot race past each other
+        Index(
+            "uq_response_imports_one_busy",
+            "workspace_id",
+            "form_id",
+            unique=True,
+            postgresql_where=text("status IN ('checking', 'queued', 'running')"),
+        ),
+    )
+
+
+class ResponseImportFileRow(Base, BaseRow):
+    __tablename__ = "response_import_files"
+    import_id = S.text("import_id")
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    __table_args__ = (
+        UniqueConstraint("import_id"),
         Index(None, "workspace_id", "form_id"),
         Index(None, "form_id"),
     )

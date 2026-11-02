@@ -23,8 +23,10 @@ from backend.app.services.option_logic import choice_logic_enabled
 from backend.app.services.option_sources.mode import option_sources_enabled
 from backend.app.services.reusable_sections.mode import reusable_sections_enabled
 from backend.app.services.form_drafts.mode import save_drafts_enabled
+from backend.app.services.response_import.mode import csv_import_enabled
 from backend.app.services.form_embed import form_embed_enabled
 from backend.app.services.form_versions.mode import form_revisions_ui_enabled
+from backend.app.services.response_revisions.mode import response_revisions_enabled
 from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
@@ -248,6 +250,8 @@ class WorkspaceRouter(Routable):
             reusable_sections_enabled=reusable_sections_enabled(),
             save_drafts_enabled=save_drafts_enabled(),
             form_revisions_ui_enabled=form_revisions_ui_enabled(),
+            response_revisions_enabled=response_revisions_enabled(),
+            csv_import_enabled=csv_import_enabled(),
             submissions_api_enabled=submissions_api_enabled(),
             form_embed_enabled=form_embed_enabled(),
         )

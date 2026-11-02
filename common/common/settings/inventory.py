@@ -191,6 +191,13 @@ SERVER: Tuple[SettingSpec, ...] = (
     _bool("FORM_REVISIONS_UI_ENABLED", "features", (BACKEND,), False,
           "Lets staff list a form's versions, compare two and restore one into the draft (off: those routes answer 422 and the Versions tab is hidden).",
           tier=T2),
+    _bool("RESPONSE_REVISIONS_ENABLED", "features", (BACKEND,), False,
+          "Lets staff with response.edit change answers and logs every edit, respondents' too (off: staff edit and history refused, nothing recorded).",
+          tier=T2),
+    _bool("CSV_IMPORT_ENABLED", "features", (BACKEND,), False,
+          "Lets members who may (Owner, Admin) import submissions from a CSV file into a form "
+          "(off: the import routes answer 404 and the control is hidden).",
+          tier=T2),
     _bool("NEW_QUESTION_TYPES_ENABLED", "features", (BACKEND,), False,
           "Allows adding or changing the newer question types (time, day, currency, date range, tags); "
           "questions a form already has keep working either way.",
@@ -223,9 +230,9 @@ SERVER: Tuple[SettingSpec, ...] = (
     _bool("DEFAULT_SHOW_TEMPLATES", "workspace", (BACKEND,), False, "Shows the template gallery."),
     _bool("DEFAULT_SEED_FLOW_TEMPLATES", "workspace", (BACKEND,), True,
           "Seeds the built-in flow templates at startup."),
-    _bool("FORM_EMBED_ENABLED", "features", (BACKEND,), False,
-          "Lets a workspace list the sites that may show its forms in a frame (docs/embed.md); "
-          "off: no site is listed or served, the pages keep their current framing.",
+    _bool("FORM_EMBED_ENABLED", "features", (BACKEND, WEBAPP), False,
+          "Lets a workspace list the sites allowed to frame its forms; off: pages keep their framing. "
+          "The webapp reads it if its start-up lookup fails (docs/embed.md).",
           tier=T2),
 )
 

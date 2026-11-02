@@ -71,6 +71,18 @@ async def test_a_rename_that_read_the_row_before_a_content_save_never_overwrites
     assert [v.version for v in now.history] == [1]
 
 
+async def test_a_content_save_that_read_the_row_before_a_rename_keeps_the_rename(workspace):
+    created = await make_section(workspace, fields=[q("a", title="One")], containers=[])
+    stale = await repo().get(workspace.id, created.id)
+    await service().update_details(workspace.id, created.id, SectionDetailsDto(name="Renamed", description="Note"), testUser)
+    stale.fields = [dict(stale.fields[0], title="Two")]
+    stale.version = 2
+    await repo().replace(stale, 1, bump=True)
+    now = await repo().get(workspace.id, created.id)
+    assert (now.name, now.description, now.version) == ("Renamed", "Note", 2)
+    assert now.fields[0]["title"] == "Two"
+
+
 async def test_a_rename_and_a_content_save_at_once_lose_nothing(workspace):
     created = await make_section(workspace, fields=[q("a", title="One")], containers=[])
     await asyncio.gather(
