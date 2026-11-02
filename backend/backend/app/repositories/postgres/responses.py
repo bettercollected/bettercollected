@@ -581,6 +581,7 @@ class PostgresFormResponseRepository(RecordRepository):
                 .all()
             )
         changed = 0
+        unreadable = 0
         for entry_id in entry_ids:
             async with self._session() as session, session.begin():
                 entry = await _locked_doc(
@@ -602,6 +603,7 @@ class PostgresFormResponseRepository(RecordRepository):
                         )
                     )
                 except (UnreadableCiphertext, ValueError):
+                    unreadable += 1
                     continue
                 found = erasure.redact_answers(previous, field_ids, option_ids)
                 if not found:
@@ -616,6 +618,16 @@ class PostgresFormResponseRepository(RecordRepository):
                     self._upsert_statement(row_values(entry), ResponseRevisionRow)
                 )
                 changed += found
+        if unreadable:
+            # an entry that cannot be opened cannot be redacted: said, with how
+            # many (counts only), so the erasure is not taken for complete
+            logger.warning(
+                "option sources: {} history entr{} of {} response(s) could not be "
+                "read for redaction",
+                unreadable,
+                "y" if unreadable == 1 else "ies",
+                len(pks),
+            )
         return changed
 
     # -- composition over the forms group ---------------------------------
@@ -1330,19 +1342,34 @@ class PostgresFormResponseRepository(RecordRepository):
     async def add_deletion_request(
         self, response: FormResponseDocument, response_id: str
     ) -> FormResponseDeletionRequest:
+        request = FormResponseDeletionRequest(
+            form_id=response.form_id,
+            response_id=response_id,
+            dataOwnerIdentifier=response.dataOwnerIdentifier,
+            anonymous_identity=response.anonymous_identity,
+            provider=response.provider,
+            workspace_id=response.workspace_id,
+            deleted_at=None,
+        )
         try:
-            return await self.save_document(
-                FormResponseDeletionRequest(
-                    form_id=response.form_id,
-                    response_id=response_id,
-                    dataOwnerIdentifier=response.dataOwnerIdentifier,
-                    anonymous_identity=response.anonymous_identity,
-                    provider=response.provider,
-                    workspace_id=response.workspace_id,
-                    deleted_at=None,
-                ),
-                row=ResponseDeletionRequestRow,
-            )
+            async with self._session() as session, session.begin():
+                if response.id is not None:
+                    # the response's row lock, as an edit takes it: a staff edit
+                    # in progress finishes first, and one that starts after
+                    # sees this request (patch_form_response)
+                    await _locked_doc(
+                        session,
+                        FormResponseRow,
+                        FormResponseRow.id == str(response.id),
+                        document=FormResponseDocument,
+                    )
+                request.touch()
+                await session.execute(
+                    self._upsert_statement(
+                        row_values(request), ResponseDeletionRequestRow
+                    )
+                )
+            return request
         except IntegrityError:
             # one request per response, provider and workspace (the unique
             # index of app revision 0020): a second one filed while the first
@@ -1552,6 +1579,7 @@ class PostgresFormResponseRepository(RecordRepository):
         record: bool = False,
         outcome: Optional[dict] = None,
         source_key_id: Optional[str] = None,
+        expected_seq: Optional[int] = None,
     ):
         """Merge the sent answers into the stored response, decrypting and
         re-encrypting under the response's row lock: two edits made at once
@@ -1575,7 +1603,13 @@ class PostgresFormResponseRepository(RecordRepository):
         really changed and the values they had, sealed. An edit that changes
         nothing writes no entry (and, by staff or a key, no response either).
         ``outcome``, when given, receives ``changed`` (question ids) and
-        ``seq`` (the entry's number, or None)."""
+        ``seq`` (the entry's number, or None).
+
+        A staff edit (``editor``) is also checked under the lock for what
+        changed since the editor looked: a deletion request filed meanwhile
+        (409 ``deletion_requested``), and, with ``expected_seq`` (the number of
+        the newest history entry the editor saw, 0 for none), any edit recorded
+        since (409 ``response_changed``)."""
         if editor is not None and source_key_id is not None:
             # a programming error, never a request: the three ways to edit
             # are exclusive, and a staff permission must not widen a key's
@@ -1593,7 +1627,11 @@ class PostgresFormResponseRepository(RecordRepository):
                     status_code=HTTPStatus.NOT_FOUND, content="Response not found"
                 )
             if editor is not None:
-                pass  # a staff member: the service checked the permission
+                # a staff member: the service checked the permission; what can
+                # have changed since is checked here, under the row lock
+                await self._check_staff_edit_still_possible(
+                    session, response_document, expected_seq
+                )
             elif source_key_id is not None:
                 made_by = response_document.submission_source
                 if made_by is None or made_by.key_id != str(source_key_id):
@@ -1665,6 +1703,56 @@ class PostgresFormResponseRepository(RecordRepository):
                     outcome["seq"] = seq
             await session.execute(self._upsert_statement(row_values(response_document)))
         return response_document
+
+    async def _check_staff_edit_still_possible(
+        self,
+        session,
+        response_document: FormResponseDocument,
+        expected_seq: Optional[int],
+    ) -> None:
+        """Under the response's row lock: no deletion request is pending (the
+        service looked before the lock; one filed since waits for this edit, as
+        ``add_deletion_request`` takes the same lock), and nothing was recorded
+        since the editor's ``expected_seq``."""
+        dr = ResponseDeletionRequestRow
+        request = (
+            await session.execute(
+                select(dr.doc)
+                .where(*self._request_of(response_document))
+                .order_by(dr.created_at, dr.id)
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if (
+            request is not None
+            and decode(FormResponseDeletionRequest, request).status
+            == DeletionRequestStatus.PENDING
+        ):
+            raise HTTPException(
+                HTTPStatus.CONFLICT,
+                content={
+                    "code": "deletion_requested",
+                    "message": "This response has a deletion request, so it can't be edited.",
+                },
+            )
+        if expected_seq is not None:
+            current = (
+                await session.execute(
+                    select(func.count())
+                    .select_from(ResponseRevisionRow)
+                    .where(ResponseRevisionRow.response_pk == str(response_document.id))
+                )
+            ).scalar_one()
+            if current != int(expected_seq):
+                raise HTTPException(
+                    HTTPStatus.CONFLICT,
+                    content={
+                        "code": "response_changed",
+                        "message": "This response was changed since you opened it. "
+                        "Reload it and make your change again.",
+                        "currentSeq": current,
+                    },
+                )
 
     async def _write_revision(
         self,

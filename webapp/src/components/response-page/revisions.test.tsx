@@ -15,7 +15,7 @@ import ResponseHistory from './response-history';
 const editMock = vi.fn();
 const loadValues = vi.fn();
 const history: { data: any; isLoading: boolean; isError: boolean } = { data: undefined, isLoading: false, isError: false };
-const valuesState: { data: any; isFetching: boolean; isError: boolean } = { data: undefined, isFetching: false, isError: false };
+const valuesState: { data: any; isFetching: boolean; isError: boolean; error?: any } = { data: undefined, isFetching: false, isError: false };
 vi.mock('@app/store/workspaces/response-revisions-api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
@@ -66,6 +66,7 @@ beforeEach(() => {
     valuesState.data = undefined;
     valuesState.isFetching = false;
     valuesState.isError = false;
+    valuesState.error = undefined;
 });
 afterEach(async () => {
     await i18n.changeLanguage('en');
@@ -92,7 +93,7 @@ describe('editing answers', () => {
         const dialog = screen.getByRole('dialog');
         fireEvent.change(within(dialog).getByLabelText(/Your name/), { target: { value: 'Ada Lovelace' } });
         fireEvent.click(within(dialog).getByRole('button', { name: 'Save 1 change' }));
-        await waitFor(() => expect(editMock).toHaveBeenCalledWith({ workspaceId: 'ws1', formId: 'f1', responseId: 'r1', answers: { name: { field: { id: 'name' }, type: 'text', text: 'Ada Lovelace' } } }));
+        await waitFor(() => expect(editMock).toHaveBeenCalledWith({ workspaceId: 'ws1', formId: 'f1', responseId: 'r1', answers: { name: { field: { id: 'name' }, type: 'text', text: 'Ada Lovelace' } }, expectedSeq: 0 }));
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
         expect(toast).toHaveBeenCalledWith({ description: 'Saved. 1 answer was changed.' });
     });
@@ -117,6 +118,57 @@ describe('editing answers', () => {
         fireEvent.change(within(dialog).getByLabelText(/Your name/), { target: { value: 'Eve' } });
         fireEvent.click(within(dialog).getByRole('button', { name: 'Save 1 change' }));
         expect(await within(dialog).findByText("This response has a deletion request, so it can't be edited.")).toBeInTheDocument();
+    });
+
+    it('sends the newest history number it was opened on, and none while the history is unknown', async () => {
+        editMock.mockResolvedValue({ data: { changed: ['name'], revision: 3 } });
+        history.data = {
+            revisions: [
+                { seq: 1, actor: { kind: 'respondent', former: false }, changed: [] },
+                { seq: 2, actor: { kind: 'respondent', former: false }, changed: [] }
+            ]
+        };
+        const { unmount } = renderEdit();
+        open();
+        fireEvent.change(within(screen.getByRole('dialog')).getByLabelText(/Your name/), { target: { value: 'Eve' } });
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Save 1 change' }));
+        await waitFor(() => expect(editMock).toHaveBeenCalledWith(expect.objectContaining({ expectedSeq: 2 })));
+        unmount();
+        editMock.mockClear();
+        history.data = undefined;
+        renderEdit();
+        open();
+        fireEvent.change(within(screen.getByRole('dialog')).getByLabelText(/Your name/), { target: { value: 'Eve' } });
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Save 1 change' }));
+        await waitFor(() => expect(editMock).toHaveBeenCalled());
+        expect(editMock.mock.calls[0][0].expectedSeq).toBeUndefined();
+    });
+
+    it('says the response changed meanwhile, offers Reload, and reloads without sending the change again', async () => {
+        editMock.mockResolvedValue({ error: { status: 409, data: { code: 'response_changed', currentSeq: 1 } } });
+        renderEdit();
+        open();
+        const dialog = screen.getByRole('dialog');
+        fireEvent.change(within(dialog).getByLabelText(/Your name/), { target: { value: 'Eve' } });
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Save 1 change' }));
+        expect(await within(dialog).findByText('This response was changed since you opened it. Reload it and make your change again.')).toBeInTheDocument();
+        expect(editMock).toHaveBeenCalledTimes(1);
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Reload' }));
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+        expect(toast).toHaveBeenCalledWith({ description: 'Reloaded. Open Edit answers again to change the current answers.' });
+        expect(editMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('says it in Dutch too', async () => {
+        await i18n.changeLanguage('nl');
+        editMock.mockResolvedValue({ error: { status: 409, data: { code: 'response_changed' } } });
+        renderEdit();
+        fireEvent.click(screen.getByRole('button', { name: 'Antwoorden bewerken' }));
+        const dialog = screen.getByRole('dialog');
+        fireEvent.change(within(dialog).getByLabelText(/Your name/), { target: { value: 'Eve' } });
+        fireEvent.click(within(dialog).getByRole('button', { name: '1 wijziging opslaan' }));
+        expect(await within(dialog).findByText('Deze reactie is gewijzigd sinds u haar opende. Laad haar opnieuw en voer uw wijziging nogmaals door.')).toBeInTheDocument();
+        expect(within(dialog).getByRole('button', { name: 'Opnieuw laden' })).toBeInTheDocument();
     });
 
     it('starts again from the stored answers each time it is opened', () => {
@@ -187,6 +239,15 @@ describe('the history', () => {
         expect(within(screen.getByTestId('revision-values-1')).getByText('Ada')).toBeInTheDocument();
         fireEvent.click(within(first).getByRole('button', { name: 'Hide previous values' }));
         expect(screen.queryByTestId('revision-values-1')).toBeNull();
+    });
+
+    it('says when the access could not be recorded, so no value was shown', () => {
+        history.data = { revisions: entries };
+        valuesState.isError = true;
+        (valuesState as any).error = { status: 503, data: { code: 'audit_unavailable' } };
+        renderHistory();
+        fireEvent.click(within(screen.getByTestId('revision-1')).getByRole('button', { name: 'Show previous values' }));
+        expect(screen.getByText('The access could not be recorded, so the previous values were not shown. Try again.')).toBeInTheDocument();
     });
 
     it('shows "No answer" for a question that had none', () => {

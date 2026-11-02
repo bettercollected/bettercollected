@@ -30,11 +30,11 @@ export const RESPONSE_REVISIONS_TAG = 'RESPONSE_REVISIONS_TAG';
 export const responseRevisionsApi = workspacesApi.enhanceEndpoints({ addTagTypes: [RESPONSE_REVISIONS_TAG] }).injectEndpoints({
     endpoints: (builder) => ({
         // `answers`: only the questions that changed, each as a respondent's answer.
-        editResponseAnswers: builder.mutation<{ changed: string[]; revision?: number | null }, ResponseKey & { answers: Record<string, Record<string, any>> }>({
-            query: ({ workspaceId, formId, responseId, answers }) => ({
+        editResponseAnswers: builder.mutation<{ changed: string[]; revision?: number | null }, ResponseKey & { answers: Record<string, Record<string, any>>; expectedSeq?: number }>({
+            query: ({ workspaceId, formId, responseId, answers, expectedSeq }) => ({
                 url: `/workspaces/${workspaceId}/forms/${formId}/submissions/${encodeURIComponent(responseId)}/answers`,
                 method: 'PATCH',
-                body: { answers }
+                body: { answers, ...(expectedSeq === undefined ? {} : { expectedSeq }) }
             }),
             invalidatesTags: [SUBMISSION_TAG, RESPONSE_REVISIONS_TAG]
         }),

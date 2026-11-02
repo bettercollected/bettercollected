@@ -2398,8 +2398,11 @@
       "not_editable": "Een reactie die uit een andere dienst is geïmporteerd, kan hier niet worden bewerkt.",
       "revision_limit": "Deze reactie is door medewerkers zo vaak bewerkt als de geschiedenis bewaart. Medewerkers kunnen haar niet opnieuw bewerken.",
       "busy": "Er wordt al een andere wijziging aan deze reactie doorgevoerd. Probeer het zo meteen opnieuw.",
-      "generic": "De antwoorden konden niet worden opgeslagen."
-    }
+      "generic": "De antwoorden konden niet worden opgeslagen.",
+      "response_changed": "Deze reactie is gewijzigd sinds u haar opende. Laad haar opnieuw en voer uw wijziging nogmaals door."
+    },
+    "RELOAD": "Opnieuw laden",
+    "RELOADED": "Opnieuw geladen. Open Antwoorden bewerken opnieuw om de actuele antwoorden te wijzigen."
   },
   "RESPONSE_HISTORY": {
     "TITLE": "Geschiedenis",
@@ -2420,6 +2423,7 @@
     "SHOW_VALUES": "Eerdere waarden tonen",
     "HIDE_VALUES": "Eerdere waarden verbergen",
     "VALUES_ERROR": "De eerdere waarden konden niet worden getoond.",
-    "NO_ANSWER": "Geen antwoord"
+    "NO_ANSWER": "Geen antwoord",
+    "VALUES_AUDIT_ERROR": "De toegang kon niet worden vastgelegd, dus de eerdere waarden zijn niet getoond. Probeer het opnieuw."
   }
 }

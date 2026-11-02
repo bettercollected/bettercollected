@@ -610,6 +610,7 @@ class AppContainer(containers.DeclarativeContainer):
         email_action_service=LazyRepository(lambda: container.email_action_service()),
         option_source_service=LazyRepository(lambda: container.option_source_service()),
         member_directory=member_directory,
+        audit_repo=workspace_audit_repo,
     )
 
     # The history of a response: who edited it, when, which questions, and (on
@@ -621,6 +622,7 @@ class AppContainer(containers.DeclarativeContainer):
         revision_repo=response_revision_repo,
         form_repo=form_repo,
         member_directory=member_directory,
+        audit_repo=workspace_audit_repo,
     )
 
     registration_service: RegistrationService = providers.Singleton(

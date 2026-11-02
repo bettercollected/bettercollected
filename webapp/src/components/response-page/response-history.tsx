@@ -86,7 +86,7 @@ export default function ResponseHistory({ workspaceId, formId, responseId, form 
                                     {opened && values.isFetching && <p className="text-sm text-black-700">{t('RESPONSE_HISTORY.LOADING')}</p>}
                                     {opened && values.isError && (
                                         <p role="alert" className="text-sm">
-                                            {t('RESPONSE_HISTORY.VALUES_ERROR')}
+                                            {t((values.error as any)?.data?.code === 'audit_unavailable' ? 'RESPONSE_HISTORY.VALUES_AUDIT_ERROR' : 'RESPONSE_HISTORY.VALUES_ERROR')}
                                         </p>
                                     )}
                                     {shown && (
