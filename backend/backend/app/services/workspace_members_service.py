@@ -34,6 +34,11 @@ from backend.app.services.authorization_service import (
 from backend.app.schemas.workspace_audit_event import (
     ACCESS_MEMBER_PURGED,
     FORM_CREATOR_REASSIGNED,
+    MEMBER_INVITATION_ACCEPTED,
+    MEMBER_INVITATION_REVOKED,
+    MEMBER_INVITED,
+    MEMBER_REMOVED,
+    MEMBER_ROLE_CHANGED,
 )
 from backend.app.services.form_access import audit
 from backend.app.services.workspace_form_service import WorkspaceFormService
@@ -168,6 +173,16 @@ class WorkspaceMembersService:
                 invited_by=str(user.id),
             )
         )
+        # recorded before the mail that carries the token goes out: an invitation
+        # that cannot be recorded is never sent (ids and the role only)
+        await audit.record_or_refuse(
+            self._audit_repo,
+            MEMBER_INVITED,
+            workspace_id,
+            user,
+            invitation_id=str(workspace_invitation.id),
+            role=role.value,
+        )
         await self.http_client.get(
             settings.auth_settings.BASE_URL + "/users/invite/send/mail",
             params={
@@ -290,6 +305,18 @@ class WorkspaceMembersService:
         else:
             invitation_request.invitation_status = InvitationStatus.DECLINED
         await self.workspace_invitation_repository.save(invitation_request)
+        if response_status == InvitationResponse.ACCEPTED:
+            # the member's own act, after it is stored: the invitation was
+            # recorded when it was sent, so this entry never blocks joining
+            await audit.record(
+                self._audit_repo,
+                MEMBER_INVITATION_ACCEPTED,
+                workspace_id,
+                user,
+                invitation_id=str(invitation_request.id),
+                target_user_id=str(user.id),
+                role=getattr(canonical_role(invitation_request.role), "value", None),
+            )
         return "Request Processed Successfully."
 
     async def _refuse_if_inviter_lost_the_role(self, workspace_id, invitation) -> None:
@@ -344,6 +371,15 @@ class WorkspaceMembersService:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Resource doesn't exist"
             )
+        # the removal itself, recorded before anything changes (the entries of
+        # what goes with the member follow, each before its own change)
+        await audit.record_or_refuse(
+            self._audit_repo,
+            MEMBER_REMOVED,
+            workspace_id,
+            user,
+            target_user_id=str(user_id),
+        )
         # The forms they created or imported stay with the workspace: a person
         # leaving never takes them, or their responses, along (removal used to
         # delete every form with their id on it). They are handed to the
@@ -414,6 +450,23 @@ class WorkspaceMembersService:
     ):
         await self.authorization_service.authorize(
             user, Permission.MEMBERS_MANAGE, workspace_id
+        )
+        # looked up in this workspace first (404 for another's token), so the
+        # entry names the invitation and is stored before it is withdrawn
+        try:
+            invitation = await self.workspace_invitation_repository.get_workspace_invitation_by_token(
+                workspace_id=workspace_id, invitation_token=invitation_token
+            )
+        except HTTPException as missing:
+            if missing.status_code != HTTPStatus.NOT_FOUND:
+                raise
+            raise HTTPException(HTTPStatus.NOT_FOUND, "Invitation not found") from None
+        await audit.record_or_refuse(
+            self._audit_repo,
+            MEMBER_INVITATION_REVOKED,
+            workspace_id,
+            user,
+            invitation_id=str(invitation.id),
         )
         await self.workspace_invitation_repository.delete_invitation_by_token_if_pending_state(
             workspace_id=workspace_id, invitation_token=invitation_token
@@ -507,6 +560,17 @@ class WorkspaceMembersService:
                     "group mapping.",
                 },
             )
+        # recorded before the role changes (the role it was and the role it
+        # becomes, as enum values)
+        await audit.record_or_refuse(
+            self._audit_repo,
+            MEMBER_ROLE_CHANGED,
+            workspace_id,
+            user,
+            target_user_id=str(member_id),
+            role=new_role.value,
+            previous_role=primary_role(membership.roles, is_owner=target_is_owner),
+        )
         membership.roles = [stored_role(new_role)]
         await self.workspace_user_service.save_workspace_user(membership)
         return WorkspaceMemberDto(

@@ -1,6 +1,9 @@
 """The audit entries of form-level access: a team created, renamed or deleted,
 a person added to or removed from one, a grant added, changed or removed, a
-form's access mode changed, a member's grants and teams removed with them.
+form's access mode changed, a member's grants and teams removed with them. The
+workspace's member and form events (``MEMBER_FORM_EVENTS``: invited, removed,
+role changed, form published or deleted, responses deleted, an export) are
+written through the same two functions.
 
 One entry in the workspace's audit log (``workspace_audit_events``): who made
 the change, when, and **ids and enum values only** (the form, the team, the
@@ -23,6 +26,7 @@ from loguru import logger
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.workspace_audit_event import (
     ACCESS_EVENTS,
+    MEMBER_FORM_EVENTS,
     WorkspaceAuditEventDocument,
 )
 
@@ -42,7 +46,7 @@ def _entry(event: str, workspace_id, user, **ids) -> WorkspaceAuditEventDocument
 
 async def record(repo, event: str, workspace_id, user, **ids) -> bool:
     """Store the entry; a failure is logged (ids only) and never raised."""
-    assert event in ACCESS_EVENTS, event
+    assert event in ACCESS_EVENTS or event in MEMBER_FORM_EVENTS, event
     if repo is None:
         return False
     try:

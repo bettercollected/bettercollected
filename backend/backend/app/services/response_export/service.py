@@ -57,7 +57,9 @@ from backend.app.schemas.response_export import (
     ResponseExportChunkDocument,
     ResponseExportDocument,
 )
+from backend.app.schemas.workspace_audit_event import RESPONSE_EXPORT
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_access import audit
 from backend.app.services.form_access.mode import form_if_enforced
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.app.services.response_export import limits, links
@@ -173,7 +175,11 @@ class ResponseExportService:
         defer: Optional[Callable[[str], Awaitable[None]]] = None,
         clock: Callable[[], dt.datetime] = utcnow,
         import_hooks=None,
+        audit_repo=None,
     ):
+        # the workspace's audit log: one pointer entry per export a person asks
+        # for (``_point``)
+        self._audit_repo = audit_repo
         # the CSV import (services/response_import) keeps records of a form and
         # of an account too: it follows the same deletions
         self._import_hooks = import_hooks
@@ -192,6 +198,26 @@ class ResponseExportService:
     async def _authorize(self, user: User, workspace_id: RecordId, form_id: str) -> None:
         await self._authorization.authorize(
             user, Permission.RESPONSE_EXPORT, workspace_id, form_id=form_id
+        )
+
+    async def _point(
+        self, export: ResponseExportDocument, user: User, rows: Optional[int]
+    ) -> None:
+        """The workspace audit log's pointer to this export's own row: who, when,
+        the form, the export's id, channel and format, and how many rows. Ids and
+        enum values only. Best effort: the export row is the record (kept as long
+        as the form) and is already stored, so a failure here never fails the
+        export; it is logged (ids only)."""
+        await audit.record(
+            self._audit_repo,
+            RESPONSE_EXPORT,
+            export.workspace_id,
+            user,
+            form_id=str(export.form_id),
+            export_id=str(export.id),
+            export_channel=export.channel,
+            export_format=export.format,
+            count=rows,
         )
 
     async def _form(self, form_id: str) -> Dict[str, Any]:
@@ -362,22 +388,22 @@ class ResponseExportService:
             await _settle(self._release_pdf_budget(scope, str(user.id)))
             raise
         data = await self._draw(document)
-        await self._exports.save(
-            ResponseExportDocument(
-                workspace_id=workspace_id,
-                form_id=str(form.get("form_id") or response.form_id),
-                actor_id=str(user.id),
-                channel="response_pdf",
-                kind=ExportKind.STREAM,
-                status=ExportStatus.COMPLETED,
-                format="pdf",
-                filters={"response_id": str(response.response_id)},
-                expected_rows=1,
-                row_count=1,
-                started_at=started,
-                finished_at=self._clock(),
-            )
-        )
+        record = ResponseExportDocument(
+            workspace_id=workspace_id,
+            form_id=str(form.get("form_id") or response.form_id),
+            actor_id=str(user.id),
+            channel="response_pdf",
+            kind=ExportKind.STREAM,
+            status=ExportStatus.COMPLETED,
+            format="pdf",
+            filters={"response_id": str(response.response_id)},
+            expected_rows=1,
+            row_count=1,
+            started_at=started,
+            finished_at=self._clock(),
+        ).ensure_id()
+        await self._exports.save(record)
+        await self._point(record, user, 1)
         short = str(response.response_id or "")[:8]
         title = str(form.get("title") or "").strip()
         return PdfFile(data=data, file_name=export_file_name(f"{title} - {short}" if title else short, extension="pdf"))
@@ -466,6 +492,7 @@ class ResponseExportService:
             )
             await _settle(self._end_bulk(export.id, ExportStatus.FAILED, 0, code))
             raise
+        await self._point(export, user, len(responses))
         if background is not None:
             background.add_task(self._end_bulk, export.id, ExportStatus.COMPLETED, len(responses), None)
         else:
@@ -597,6 +624,7 @@ class ResponseExportService:
 
         if export.kind == ExportKind.STREAM:
             await self._admit_stream(export)
+            await self._point(export, user, count)
             return StreamStart(
                 export=export,
                 file_name=file_name,
@@ -641,6 +669,7 @@ class ResponseExportService:
                 "Several exports of this workspace are being prepared. Try again in a few minutes.",
                 **{"Retry-After": "60"},
             ) from None
+        await self._point(export, user, count)
         await self._queue(export)
         return export
 
