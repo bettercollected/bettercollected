@@ -164,6 +164,30 @@ class FormAccessService:
             )
         return decided
 
+    async def may_save_as_template(self, base: BaseAccess, form_id: str) -> bool:
+        """Whether the member may copy the form's structure into the
+        workspace's template library (every member sees a template, and a
+        template has no access mode): always for an open form; for a restricted
+        form only for an Owner or Admin and the form's creator (an active
+        member), not for a grantee or a workspace Editor. A form that is not
+        one of the workspace's decides nothing here (the caller's 404
+        follows). Always true while the switch is off."""
+        if not self._enabled():
+            return True
+        if not base.permissions or base.workspace_disabled:
+            return False
+        if base.privileged:
+            return True
+        facts = await self._facts(base, form_id)
+        if facts.link is None:
+            return True
+        settings = facts.link.settings
+        if not is_restricted(
+            getattr(settings, "access_mode", None), getattr(settings, "hidden", None)
+        ):
+            return True
+        return str(facts.link.user_id) == base.user_id
+
     # -- lists -----------------------------------------------------------------
     async def visible_ids(
         self,

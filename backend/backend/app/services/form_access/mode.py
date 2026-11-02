@@ -19,6 +19,13 @@ OFF_CODE = "form_access_off"
 OFF_MESSAGE = "Form-level access is turned off on this instance."
 
 
+TEMPLATE_FROM_RESTRICTED_CODE = "template_from_restricted_form"
+TEMPLATE_FROM_RESTRICTED_MESSAGE = (
+    "Only an Owner, an Admin or the creator of a restricted form can save it as "
+    "a template: a template is open to every member of the workspace."
+)
+
+
 def form_access_enabled() -> bool:
     return bool(settings.form_access.ENABLED)
 

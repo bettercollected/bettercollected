@@ -26,7 +26,11 @@ from backend.app.repositories.postgres.forms import (
     PostgresWorkspaceFormRepository,
 )
 from backend.app.exceptions import HTTPException
-from backend.app.services.form_access.mode import form_access_enabled
+from backend.app.services.form_access.mode import (
+    TEMPLATE_FROM_RESTRICTED_CODE,
+    TEMPLATE_FROM_RESTRICTED_MESSAGE,
+    form_access_enabled,
+)
 from backend.app.services.form_access.model import (
     BaseAccess,
     FormPermissions,
@@ -244,6 +248,31 @@ class AuthorizationService:
         permissions (an Owner or Admin, a Privacy officer). Nothing held for
         anyone who is not an active, unblocked member."""
         return await self._base_access(user, workspace_id, raise_sso_required)
+
+    async def authorize_template_from_form(
+        self,
+        user: Optional[User],
+        workspace_id: Union[RecordId, str, None],
+        form_id: Union[RecordId, str],
+    ) -> None:
+        """403 ``template_from_restricted_form`` unless ``user`` may save the
+        form as a workspace template (see ``FormAccessService.
+        may_save_as_template``). Call it after ``authorize`` on the form, so a
+        member the form is closed to has had their 404. Nothing while the
+        switch is off."""
+        if not form_access_enabled():
+            return
+        base = await self._base_access(user, workspace_id, raise_sso_required=True)
+        if not await self._required_form_access().may_save_as_template(
+            base, str(form_id)
+        ):
+            raise HTTPException(
+                HTTPStatus.FORBIDDEN,
+                content={
+                    "code": TEMPLATE_FROM_RESTRICTED_CODE,
+                    "message": TEMPLATE_FROM_RESTRICTED_MESSAGE,
+                },
+            )
 
     async def visible_form_ids(
         self,
