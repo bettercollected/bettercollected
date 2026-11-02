@@ -12,7 +12,6 @@ import google.oauth2.credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from configs.cipher import crypto
 from models.date import GOOGLE_DATETIME_FORMAT
 from models.exception_enum import ExceptionType
 from utilities.exceptions import HTTPException
@@ -126,11 +125,18 @@ def fetch_oauth_token(oauth_credential, action_id, form_id, writeback=None):
             updated_creds = refresh_access_token(
                 oauth_credential=oauth_credential, action_id=action_id
             )
-            # todo call backend to update creds
             if writeback is not None:
                 writeback(updated_creds)
             else:
-                update_credentials_in_form(updated_creds, action_id, form_id)
+                # no run-scoped route to hand it back on (the backend sent the
+                # secrets sealed, or no run scope): the key-only route that used
+                # to take it was removed in 4.4
+                logger.warning(
+                    "the refreshed credential was not stored: no run-scoped "
+                    "write-back (action %s); run an executor and a backend of "
+                    "4.3 or later",
+                    action_id,
+                )
             return updated_creds
         return oauth_credential
     except HttpError:
@@ -173,16 +179,3 @@ def get_current_dt_in_google_format():
     current_date = current_date.strftime(GOOGLE_DATETIME_FORMAT)
     current_date = datetime.strptime(current_date, GOOGLE_DATETIME_FORMAT)
     return current_date
-
-
-def update_credentials_in_form(credentials: dict, action_id: str, form_id: str):
-    creds = crypto.encrypt(json.dumps(credentials))
-    payload = {"name": "Credentials", "value": creds, "type": "secrets"}
-    # call backend to update the credentials in form
-    httpx.patch(
-        # in-network (SERVER_URL), never the public BACKEND_URL: the backend
-        # refuses its internal routes through the public ingress
-        url=f"{settings.server_url}/temporal/forms/{form_id}/actions/{action_id}/secrets",
-        headers={"api-key": settings.api_key},
-        json=payload,
-    )

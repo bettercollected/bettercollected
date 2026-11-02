@@ -41,8 +41,6 @@ def posts(monkeypatch):
         return _Response({"access_token": "new-access", "expires_in": 3600})
 
     monkeypatch.setattr(google_service.httpx, "post", fake_post)
-    # the refreshed credential is sent back to the backend: not under test
-    monkeypatch.setattr(google_service, "update_credentials_in_form", lambda *a: None)
     return calls
 
 
