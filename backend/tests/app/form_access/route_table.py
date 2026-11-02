@@ -171,6 +171,9 @@ ROUTES: Dict[Tuple[str, str], Route] = {
     ("POST", F + "/versions/{version}/restore"): route(
         FORM, P.FORM_EDIT, case="forms.versions.restore"
     ),
+    # the audit log of one form: audit.read, which a Privacy officer keeps on a
+    # restricted form (services/audit_log); a grantee Editor never holds it
+    ("GET", F + "/audit-log"): route(FORM, P.AUDIT_READ, case="forms.audit_log"),
     ("POST", F + "/ops"): route(FORM, P.FORM_EDIT, case="forms.ops.save"),
     ("POST", F + "/ops/dry-run"): route(FORM, P.FORM_EDIT, case="spec.dry_run"),
     ("GET", F + "/open-formulieren-export"): route(
@@ -473,6 +476,7 @@ OUTCOMES: Dict[Tuple[str, str], Tuple[int, ...]] = {
     ("GET", F + "/submissions/{submission_id}/revisions"): (200,),
     ("GET", F + "/submissions/{submission_id}/revisions/{seq}"): (404,),
     ("GET", F + "/version-diff"): (422,),
+    ("GET", F + "/audit-log"): (200,),
     ("GET", F + "/versions"): (200,),
     ("POST", F + "/versions/{version}/restore"): (200,),
     ("GET", F + "/webhooks"): (200,),
@@ -523,6 +527,10 @@ def _id(ctx, key):
 CHECKS = {
     ("GET", F): _data(form=lambda c, r: r.json()["formId"] == _id(c, "form")),
     ("GET", F + "/versions"): _data(first=lambda c, r: r.json()["versions"][0]["version"] == 1),
+    ("GET", F + "/audit-log"): _data(
+        page=lambda c, r: isinstance(r.json()["entries"], list)
+        and isinstance(r.json()["labels"], dict)
+    ),
     ("GET", F + "/submissions"): _data(
         answer=lambda c, r: _id(c, "response") in r.text,
         page=lambda c, r: isinstance(r.json()["items"], list),
