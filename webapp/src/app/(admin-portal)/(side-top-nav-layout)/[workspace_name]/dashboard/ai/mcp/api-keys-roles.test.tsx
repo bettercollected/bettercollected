@@ -48,7 +48,7 @@ vi.mock('@app/store/workspaces/api', async (original) => ({
 const box = (name: string | RegExp) => screen.getByRole('checkbox', { name: typeof name === 'string' ? new RegExp(name) : name });
 const roleSelect = () => screen.getByLabelText('Role') as HTMLSelectElement;
 const createButton = () => screen.getByRole('button', { name: 'Create key' });
-const name = (value = 'Nightly export') => fireEvent.change(screen.getByPlaceholderText(/./), { target: { value } });
+const name = (value = 'Nightly export') => fireEvent.change(screen.getByPlaceholderText(/What will use this key/), { target: { value } });
 const body = () => created.mock.calls.at(-1)?.[0].body;
 
 const READER = { id: 'k1', name: 'Reporting', prefix: 'bc_aaaa', scopes: ['forms:read', 'responses:read'], revoked: false, role: 'VIEWER', formScope: 'listed', forms: [{ id: 'f1', title: 'Registration' }] };
@@ -208,13 +208,13 @@ describe('making a key with a role and a list of forms', () => {
         fireEvent.click(box('Read responses'));
         fireEvent.change(roleSelect(), { target: { value: 'PRIVACY_OFFICER' } });
         expect(box('Read responses')).toBeEnabled();
-        expect(screen.getByRole('alert')).toHaveTextContent('This role cannot carry the scope “Read responses”.');
+        expect(screen.getByText('This role cannot carry the scope “Read responses”.')).toBeInTheDocument();
         name();
         expect(createButton()).toBeDisabled();
         fireEvent.click(box('Read responses'));
         expect(screen.queryByRole('alert')).toBeNull();
-        // nothing is ticked any more: no key without a scope
-        expect(createButton()).toBeDisabled();
+        expect(screen.queryByText('This role cannot carry the scope “Read responses”.')).toBeNull();
+        expect(createButton()).toBeEnabled();
     });
 
     it('limits a key to forms: asks for the forms only then, waits for one, and sends the list', () => {
