@@ -1,18 +1,23 @@
 """The audit log for staff holding ``audit.read`` (docs/audit-log.md): the
 workspace's entries and a form's, newest first, read only. Both behind
 ``AUDIT_LOG_UI_ENABLED`` (422 ``audit_log_off`` while off). Reading the log is
-not itself audited."""
+not itself audited. The workspace's retention (how long entries are kept) is read
+here too and changed by an owner."""
 
 import datetime as dt
 from typing import List, Optional
 
-from classy_fastapi import Routable, get
+from classy_fastapi import Routable, get, put
 from common.ids import RecordId
 from common.models.user import User
 from fastapi import Depends, Query
 
 from backend.app.container import container
-from backend.app.models.dtos.audit_log_dto import AuditPageDto
+from backend.app.models.dtos.audit_log_dto import (
+    AuditPageDto,
+    AuditRetentionDto,
+    SetAuditRetentionDto,
+)
 from backend.app.router import router
 from backend.app.services.sso.policy import AUDIT_PAGE_MAX, AUDIT_PAGE_SIZE
 from backend.app.services.user_service import get_full_user
@@ -101,4 +106,27 @@ class AuditLogRouter(Routable):
             involving=involving,
             since=from_time,
             until=to_time,
+        )
+
+    @get("/audit-log/retention", response_model=AuditRetentionDto)
+    async def audit_retention(
+        self, workspace_id: RecordId, user: User = Depends(get_full_user)
+    ):
+        """How long the workspace's entries are kept, the choices, and whether
+        the caller may change it (``audit.read``)."""
+        return await container.audit_retention().overview(workspace_id, user)
+
+    @put("/audit-log/retention", response_model=AuditRetentionDto)
+    async def set_audit_retention(
+        self,
+        workspace_id: RecordId,
+        body: SetAuditRetentionDto,
+        user: User = Depends(get_full_user),
+    ):
+        """Owners only: keep the entries 6, 12, 24 or 60 months (422
+        ``retention_below_minimum`` under 6, ``invalid_retention`` for any other
+        number). Recorded first; a shorter period applies at the next daily
+        purge (``appliesAtNextPurge``)."""
+        return await container.audit_retention().set_months(
+            workspace_id, user, body.months
         )

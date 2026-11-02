@@ -14,12 +14,15 @@ says `auditLogUiEnabled: false`, so the dashboard shows no Activity page.
 
 ## Routes
 
-Both are read only and need `audit.read` (Owner, Admin and Privacy officer).
+The two lists are read only and need `audit.read` (Owner, Admin and Privacy
+officer). The retention routes follow the same switch.
 
 | Route | Notes |
 |---|---|
 | `GET /workspaces/{workspace_id}/audit-log` | the workspace's entries |
 | `GET /workspaces/{workspace_id}/forms/{form_id}/audit-log` | the entries about one form; 404 for a form that is not this workspace's |
+| `GET /workspaces/{workspace_id}/audit-log/retention` | how long entries are kept, the choices, and whether the caller may change it |
+| `PUT /workspaces/{workspace_id}/audit-log/retention` | change it: owners only (below) |
 
 Entries come newest first, a page at a time (`limit` 20 by default, at most
 100). The reply has `nextCursor`; send it back as `cursor` for the next, older
@@ -80,6 +83,45 @@ is recorded best effort after the change.
 - Enabling a single sign-on connection disables the others: each gets its own
   `sso_connection_disabled` entry.
 
+## Retention
+
+An owner chooses how long the workspace's entries are kept: **6, 12, 24 or 60
+months**. The default is 12 months and nothing shorter than 6 months is ever
+accepted or applied. The choice is a field of the workspace's own record
+(`audit_retention_months`; no migration, and a workspace that never chose has
+none). A stored value that is not one of the four reads as the default, never as
+a shorter period.
+
+`PUT /workspaces/{id}/audit-log/retention` with `{"months": 24}` is for owners
+only (403 for anyone else, Admin included). Under 6 is 422
+`retention_below_minimum`; any other number that is not a choice is 422
+`invalid_retention`. The change is recorded first, as an `audit_retention_changed`
+entry (area Security) holding the months before (`previousRetentionMonths`) and
+after (`retentionMonths`), and refused with 503 `audit_unavailable` when the
+entry cannot be stored. Setting the value it already has records nothing.
+
+Shortening deletes nothing at once: the reply says `appliesAtNextPurge: true`
+and the entries past the new period go at the next daily purge. Lengthening
+cannot bring back entries an earlier purge deleted. The Activity page states
+the workspace's figure, and an owner changes it there.
+
+The daily purge (the `audit_log_purge` job, 03:53; it was called
+`sso_audit_purge` before it applied to every kind of entry, and a job still
+queued under the old name is run all the same) deletes each workspace's entries
+older than that workspace's own period, and the entries of workspaces that never
+chose, and those that belong to no workspace, older than 12 months. It runs
+whether or not `AUDIT_LOG_UI_ENABLED` is on. Entries also go with their workspace.
+
+The purge deletes oldest first, 2000 entries to a transaction, so shortening from
+60 to 6 months never holds one long transaction. A failure in one workspace is
+logged at ERROR (the workspace's id and the kind of error, nothing else) and the
+others still run; the job then fails, so that it shows in the job queue.
+
+The entries of reading and editing a response's previous answers
+(`response_revision_read`, `response_staff_edit`) follow the same setting, with
+no separate floor: they are kept for the workspace's activity-log retention
+(6–60 months, default 12).
+
 ## What an entry holds
 
 Codes, ids and enum values. The dashboard words each entry in the reader's
@@ -98,7 +140,7 @@ entry.
   membership is disabled counts as `former` too), `forms` (current
   title, or `gone`) and `teams` (current name, or `gone`). A name that could
   not be looked up is empty and the page still loads.
-- `retentionDays` is how long entries are kept; the page states it.
+- `retentionDays` is how long this workspace keeps entries; the page states it.
 
 ## The dashboard pages
 

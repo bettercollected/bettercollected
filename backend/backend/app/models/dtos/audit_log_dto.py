@@ -65,6 +65,9 @@ class AuditEntryDto(CamelModel):
     directory_type: Optional[str] = None
     enabled: Optional[bool] = None
     provider: Optional[str] = None
+    # AUDIT_RETENTION_CHANGED: the retention now and the one it replaced, in months
+    retention_months: Optional[int] = None
+    previous_retention_months: Optional[int] = None
     # integration entries: which parts of the configuration changed (names
     # from a fixed list, never their content)
     changed: Optional[List[str]] = None
@@ -113,3 +116,24 @@ class AuditPageDto(CamelModel):
     labels: AuditLabelsDto
     # how many days an entry is kept (the page states it)
     retention_days: int
+
+
+class AuditRetentionDto(CamelModel):
+    """How long this workspace's audit entries are kept."""
+
+    # the setting, in whole months, and what it comes to in days
+    months: int
+    days: int
+    # the choices, shortest first; none is shorter than ``minimum_months``
+    options: List[int]
+    minimum_months: int
+    default_months: int
+    # only an owner changes it
+    can_change: bool
+    # set by a change that shortened the period: entries older than the new
+    # period are deleted by the next daily clean-up, not at once
+    applies_at_next_purge: bool = False
+
+
+class SetAuditRetentionDto(CamelModel):
+    months: int

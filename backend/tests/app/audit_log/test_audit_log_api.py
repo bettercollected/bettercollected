@@ -15,9 +15,8 @@ from backend.app.container import container
 from backend.app.models.dtos.audit_log_dto import AuditEntryDto
 from backend.app.schemas import workspace_audit_event as E
 from backend.app.schemas.workspace_audit_event import WorkspaceAuditEventDocument
-from backend.app.services.audit_log import reader
 from backend.app.services.audit_log.mode import OFF_CODE
-from backend.app.services.sso.policy import AUDIT_RETENTION
+from backend.app.services.audit_log.retention import DAYS_OF_MONTHS
 from backend.config import settings
 from tests.app.controllers.data import testUser, testUser1
 from tests.app.form_access.helpers import (
@@ -349,7 +348,7 @@ def test_every_field_of_a_stored_entry_is_returned_or_withheld_on_purpose():
         "access_mode", "linked", "scim_group_id", "role", "previous_role", "count", "required", "export_channel",
         "export_format", "key_id", "reason", "key_role", "key_role_before", "form_scope",
         "widened", "method", "path", "connection_type", "directory_type", "enabled",
-        "provider", "changed",
+        "provider", "changed", "retention_months", "previous_retention_months",
     }
     # actor_id is user_id; at is created_at
     withheld = {
@@ -432,12 +431,12 @@ async def test_a_failed_name_lookup_leaves_the_page_without_names(
 async def test_the_retention_comes_from_one_place_not_from_the_page(
     client: AsyncClient, workspace, monkeypatch
 ):
-    assert (await read(client, workspace)).json()["retentionDays"] == AUDIT_RETENTION.days
+    assert (await read(client, workspace)).json()["retentionDays"] == DAYS_OF_MONTHS[12]
 
     async def six_months(workspace_id):
         return 183
 
-    monkeypatch.setattr(reader, "retention_days", six_months)
+    monkeypatch.setattr(container.audit_retention(), "days", six_months)
     assert (await read(client, workspace)).json()["retentionDays"] == 183
 
 
