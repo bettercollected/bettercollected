@@ -3,7 +3,7 @@
 # Such a stack never runs deploy.sh. It changes the image tags in its stack, restarts, and the services
 # migrate themselves (DB_AUTO_MIGRATE=true). This check does the same:
 #
-#   (1) old     a stack of the previous release (V4 default v4.1.2): its own docker-compose.deployment.yml
+#   (1) old     a stack of the previous release (V4 default v4.2.0): its own docker-compose.deployment.yml
 #               (git show <tag>), its published images, installed with ITS deploy.sh (first install only),
 #               then seeded: a workspace and a user, a form with six questions and three responses (through
 #               the API), one waiting and one finished 4.1-style action job that carries its payload
@@ -22,7 +22,7 @@
 # container, network, volume and image it created when it exits. Nothing else is touched.
 #
 # Parameters (environment):
-#   SWAP_CHECK_OLD_TAG=v4.1.2       the release the stack starts on (files from `git show <tag>:...`, images
+#   SWAP_CHECK_OLD_TAG=v4.2.0       the release the stack starts on (files from `git show <tag>:...`, images
 #                                   bettercollected/{backend,auth,webapp}:<tag>)
 #   SWAP_CHECK_CANDIDATE=build      (default) images built from this checkout: bc-swapcheck-{backend,auth,
 #                                   webapp}:local. Or a published tag, e.g. v4.2.0: bettercollected/*:<tag>
@@ -54,7 +54,7 @@ for tool in docker curl openssl script uv git; do
 done
 docker compose version >/dev/null 2>&1 || { echo "docker compose v2 is required" >&2; exit 2; }
 
-old_tag="${SWAP_CHECK_OLD_TAG:-v4.1.2}"
+old_tag="${SWAP_CHECK_OLD_TAG:-v4.2.0}"
 candidate="${SWAP_CHECK_CANDIDATE:-build}"
 min_free_mb="${SWAP_CHECK_MIN_FREE_MB:-2500}"
 git -C "$root" rev-parse -q --verify "refs/tags/$old_tag" >/dev/null || { echo "the tag $old_tag is not in this checkout" >&2; exit 2; }
@@ -423,13 +423,27 @@ services:
       WEBHOOKS_ENABLED: "true"
       EMAIL_ACTIONS_ENABLED: "true"
       SAVE_DRAFTS_ENABLED: "true"
+      SIGNATURE_QUESTION_ENABLED: "true"
+      ADDRESS_QUESTION_ENABLED: "true"
+      LAYOUT_CONTAINERS_ENABLED: "true"
+      OPTION_SOURCES_ENABLED: "true"
+      FORM_EMBED_ENABLED: "true"
+      SUBMISSIONS_API_ENABLED: "true"
+      FORM_REVISIONS_UI_ENABLED: "true"
+      RESPONSE_REVISIONS_ENABLED: "true"
+      CSV_IMPORT_ENABLED: "true"
+      REUSABLE_SECTIONS_ENABLED: "true"
 $mail
   jobs-worker:
     environment:
       DB_AUTO_MIGRATE: "true"
       WEBHOOKS_ENABLED: "true"
       EMAIL_ACTIONS_ENABLED: "true"
+      CSV_IMPORT_ENABLED: "true"
 $mail
+  webapp:
+    environment:
+      FORM_EMBED_ENABLED: "true"
   auth:
     environment:
       DB_AUTO_MIGRATE: "true"
@@ -563,7 +577,7 @@ part_swap() {
 }
 
 checks_a_to_d() {
-  local expect_head="${SWAP_CHECK_EXPECT_ALEMBIC:-0028}"
+  local expect_head="${SWAP_CHECK_EXPECT_ALEMBIC:-0034}"
   section "(3a) migrations"
   local version="" deadline=$((SECONDS + 60))
   while [ "$SECONDS" -lt "$deadline" ]; do
@@ -607,7 +621,7 @@ checks_a_to_d() {
   section "(3d) the jobs worker"
   grep -E "jobs worker: queues|Starting worker on queues" "$work/jobs-worker.log" | cut -c1-200 | sed 's/^/        /'
   local q
-  for q in default webhooks emails exports; do
+  for q in default webhooks emails exports imports; do
     check "the jobs worker serves the '$q' queue" grep -qE "Starting worker on queues.*(^|[ ,])$q([ ,]|\$)" "$work/jobs-worker.log"
   done
   expect "no 'queue not served' warning in the jobs worker's log" "0" "$(grep -c "does not serve the '" "$work/jobs-worker.log")"

@@ -13,6 +13,418 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-11-02
+
+4.3.0 adds signature, address and layout to the form builder, options from a workspace list or another form, exports as Excel, JSON and a PDF of one response, embedding forms in other sites, a submissions API, CSV import of responses, form versions with staff edits and a history of every edit, and reusable sections. It also confines the actions executor and closes framing and denial-of-service gaps.
+
+**Upgrading from 4.2.x:** no new required secret. The changes that need your attention:
+
+- **New settings, all off by default:** `SIGNATURE_QUESTION_ENABLED`, `ADDRESS_QUESTION_ENABLED` and `ADDRESS_LOOKUP_ENABLED` (the lookup calls `api.pdok.nl` from the backend), `LAYOUT_CONTAINERS_ENABLED`, `OPTION_SOURCES_ENABLED`, `FORM_EMBED_ENABLED`, `SUBMISSIONS_API_ENABLED`, `FORM_REVISIONS_UI_ENABLED`, `RESPONSE_REVISIONS_ENABLED`, `CSV_IMPORT_ENABLED` and `REUSABLE_SECTIONS_ENABLED`, on the backend. Two of them are also read elsewhere: `FORM_EMBED_ENABLED` must also be set on the **webapp** service, and `CSV_IMPORT_ENABLED` on the **jobs worker**.
+- **Job queues:** the jobs worker now serves `default,webhooks,emails,exports,imports`. If you set `JOBS_QUEUES` yourself, include all five.
+- **Database migrations** `0030` to `0034` run with the backend's usual migrate step (`./deploy.sh`, or `DB_AUTO_MIGRATE=true`).
+- **Admin service, on a stack that does not run `./deploy.sh`:** 4.3 adds the admin schema's migration `0020`, and the admin service never migrates itself. It refuses to start until its schema is at the head. Before you move the admin service to 4.3, run, in this order (`deploy.sh` does both on every deploy):
+  1. `postgres/ensure-admin-roles.sh` as the database superuser, inside the Postgres container (`docker exec -i <postgres container> bash -s < postgres/ensure-admin-roles.sh`). It also grants the admin portal's key rotation tasks access to the newly sealed values.
+  2. The admin migration as the admin migration role, from a 4.3 backend container: `alembic -c /api/backend/backend/admin/alembic.ini upgrade head`, with `DATABASE_URL` set to `postgresql+asyncpg://bc_admin_mig:<password>@<host>:5432/<database>`. Pass the password through the environment, not the command line.
+- **Actions executor:** it now runs custom action code in a confined child, applies one set of egress rules to every outgoing call, and runs as a non-root user (see Changed and Security). An executor on the Postgres jobs queue no longer needs `AES_HEX_KEY` once the backend is 4.3; an executor on Temporal (`JOBS_BACKEND=temporal`) still needs it, so leave `ACTION_EXECUTOR_KEY_ALLOWED` and `ACTION_SECRETS_SEALED_ALLOWED` at their defaults there.
+- **`AUTH_JWT_SECRET` and `AUTH_AES_HEX_KEY`** may now hold a key ring, `<current>[,<previous>]`, so a single key must not contain a comma.
+- **Framing:** every page except a published form's page now refuses to be framed by other sites; published form pages are unchanged until embedding is turned on.
+
+### Added
+
+- An address question: street, house number, an optional addition, postcode, city and country
+  (the Netherlands by default, other countries when the creator allows them). The server checks
+  every answer (Dutch postcodes as `1234 AB`, Dutch house numbers, the allowed countries), the
+  public API, the MCP server and both SDKs carry it, logic conditions compare its postcode, the
+  CSV export writes it as one line, and the AI never reads it. It is behind
+  `ADDRESS_QUESTION_ENABLED`, which is off by default.
+- Street and city can be filled in from a Dutch postcode and house number through the server
+  (the respondent's browser and address are not shared with the address service, the house
+  number addition is never sent, nothing that was asked is stored or logged, and the respondent
+  can always type the address). It is behind a second setting, `ADDRESS_LOOKUP_ENABLED`, which is
+  off by default, with rate limits per client and form (`API_ADDRESS_LOOKUP_*`). See
+  `docs/address-question.md`.
+- Webhooks, registrations and email actions can send an address answer: an object of its six
+  parts (`street`, `house_number`, `house_number_addition`, `postcode`, `city`, `country`), as
+  the public API answers it; an email action writes it as one line, and a condition on it
+  compares the postcode.
+- The form builder and the respondent page support the address question: respondents pick a
+  country and fill in the parts, and for a Dutch address the street and city are filled in from
+  the postcode and house number when the server's lookup is on (always editable, never over what
+  the respondent typed, announced politely to screen readers). Staff see the address with the
+  response, and the privacy panel says what the lookup sends. Offered only while the server
+  setting `ADDRESS_QUESTION_ENABLED` is on.
+- The admin portal can rotate the auth keys without losing data: the tasks `authkeys.add_key`,
+  `authkeys.promote`, `authkeys.reencrypt`, `authkeys.verify` and `authkeys.drop_old` (each
+  mutating step after a dry run) replace `AUTH_JWT_SECRET` or `AUTH_AES_HEX_KEY`, move every
+  stored secret to the new encryption key and drop the old key only when nothing still needs it,
+  with counts and ids only in results, events and the audit trail. Signing the session tokens
+  with a new secret signs nobody out until the old secret is dropped, and the dry run counts
+  who that would affect. The new host command `settings-grant-runner` lets the task runner read
+  keys stored before this release. See `docs/auth-key-rotation.md`.
+- Responses can be imported from a CSV file (`CSV_IMPORT_ENABLED`, off by default; Owner and Admin, new permission
+  `response.import`). A file exported from the same form imports as it is. The columns are matched to the questions, a
+  dry run checks every row with the respondent rules and stores nothing, and the import is all or nothing. Imported
+  responses are anonymous, are marked as imported, trigger no mails, webhooks or other actions, and the whole import
+  can be undone for 14 days. The uploaded file is kept encrypted only until the import has run (an hour at most) and
+  the audit entry never holds a value. See `docs/response-import.md`.
+- The responses screen has an **Import responses** button (when `CSV_IMPORT_ENABLED` is on and you may import, in English
+  and Dutch): choose a CSV file, match its columns to the questions, check every row without storing anything, confirm
+  and import with progress, and undo the import for 14 days. Imported responses show an "Imported" badge in the list
+  and on the response.
+- The staff dashboard now follows the browser's language: Dutch for any Dutch browser
+  language, English otherwise. The account menu has an "English / Nederlands" switch;
+  the choice is remembered in the browser and `<html lang>` follows. Respondent forms and
+  portal pages keep their own language logic and stay as they are.
+- The run's context route (`POST /temporal/.../runs/{r}/context`) takes an optional `{"secrets": "plain"}`
+  request: the action's, the workspace's and the form's secrets for that action then come back already opened, so
+  the actions executor needs no encryption key. A new run-scoped route
+  (`PATCH /temporal/.../runs/{r}/secrets`: the run's token and job, as the context route) takes a refreshed Google
+  credential back in plain (only the `Credentials` secret) and seals it with the backend's key. Each hand-out of
+  opened secrets is logged with the run's ids and a count. Nothing changes for an executor that asks for neither.
+- Exports in more formats: `POST .../exports` takes a `format`, `csv` (as before), `xlsx` or `json`. The
+  other formats take the same columns, filters, limits, permission and audit as a CSV export, large
+  exports are still prepared in the background, and nothing is held in memory or written to disk while
+  the file is made. In the Excel file, text is never a formula (a cell that starts with `=`, `+`, `-` or
+  `@` stays as written and is flagged as text), the submission time and date answers are real dates,
+  and a repeating group exported as a table is a sheet of its own. The JSON follows the REST API's
+  response shape and says what each question is.
+- The PDF of one response: `GET /workspaces/{id}/submissions/{response_id}/pdf` draws the form's title,
+  when it was submitted (in the viewer's time zone), and every question with its answer, in English or
+  Dutch, with page numbers and a tagged structure, for people who may read the response. It is made
+  when asked and never stored, rate limited and recorded in the export audit (who and which response,
+  never its content). Internal fields are not printed, files are listed by name, and a drawn signature
+  is listed rather than drawn.
+- The Export control on a form's responses page offers a file format, CSV, Excel or JSON, and the
+  response page has a "Download PDF" button (English and Dutch) next to Print. The analytics event of
+  the export button is now `Export Button` (with the format as a property), no longer
+  `Export CSV Button`.
+- Forms can be embedded in other websites. A workspace lists the sites that may show its
+  forms in a frame (`https://` sites, or `https://*.` plus a domain of its own; none by
+  default), and the form pages are served with that list as their `frame-ancestors`, on a
+  custom domain as well. The share dialog gets an Embed tab with the code to paste: a small
+  script (`/embed.js`, no dependencies) that shows the form in an accessible frame, keeps the
+  frame as tall as the form's page needs and tells the host page only that the form loaded,
+  how tall it needs to be and that it was submitted, never an answer or a page number.
+  Signing in opens in a new tab. It is behind `FORM_EMBED_ENABLED`, which is off by default;
+  while it is off the pages are served as before. See `docs/embed.md`.
+- Layout containers: a form creator can group the questions of a page into a panel (a titled group
+  that opens and closes, open or closed when the page opens), a field set (a bordered group with a
+  legend) or tabs (one group of questions shown at a time). It is layout only: answers, logic,
+  field rules, calculations, piping and the exports see the questions as before, and a container
+  can be shown or hidden by an earlier answer (the questions in a hidden container are not
+  required, and what they hold stays stored). The form spec has a `containers` key on a page
+  (documented in `docs/spec/README.md`), the operation `set_page_containers` edits them, and the
+  MCP server and the AI assistant know it. It is behind `LAYOUT_CONTAINERS_ENABLED`, which is off
+  by default; containers a form already has keep working either way.
+- The form builder and the respondent page support layout containers: the Insert menu adds a
+  panel, tabs or a field set, a frame on the canvas holds its questions (title, closed by default,
+  tabs, add a question, ungroup), a question's inspector can put it in a container, the
+  inspector of a container sets when it is shown, and the outline and flow view show them.
+  Respondents get a disclosure for a panel, the tabs pattern with arrow keys, Home and End, and a
+  field set with a legend; a closed panel or another tab that holds the first problem opens (and
+  says so), the review page and the response views list the questions in order under the
+  container's title. Offered only while the server setting `LAYOUT_CONTAINERS_ENABLED` is on.
+- A dropdown or multiple choice question can take its options from a workspace list (reference data
+  with an optional group per item, CSV import and export, managed by whoever can edit forms) or from the
+  answers given to a question of another form of the same workspace. Everything is read on the server;
+  a respondent receives only the labels, searchable and paged. A dependent list follows an earlier
+  question's answer through the items' groups. Another form's answers are used only from a question whose
+  creator turned on "answers may be shown as choices in other forms" (off by default; respondents
+  are told next to the question), and only answers given while that was on; the saver also needs
+  permission to read that form's responses. Answers from respondents with a deletion request,
+  anonymous submissions and expired responses are never offered, and a choice made from an answer shows
+  "[removed]" once that answer is erased. The server checks every chosen option when a
+  response is submitted or a choice is changed, stores a label snapshot beside it that exports,
+  webhooks, email actions and the Google Sheets action show, and refuses an option that is no longer
+  offered. It is behind `OPTION_SOURCES_ENABLED`, which is off by default. See
+  `docs/option-sources.md`.
+- The webapp supports options from a data source: workspace lists get their own dashboard page (add,
+  edit, group, import and export CSV), the question settings choose a list or another form's answers
+  (with the dependent-list parent and the opt-in on the source question), and respondents get a
+  searchable, paged choice control that clears a dependent answer when its parent on the same page
+  changes. English and Dutch. Shown only while the server setting `OPTION_SOURCES_ENABLED` is on.
+- Reusable sections, the library: a workspace keeps groups of questions saved once and copies them into
+  forms. A copy gets new ids and its show/hide rules, choice logic, field rules, calculations, answer pipes
+  and repeating groups point at the copy's own questions, and what pointed outside the group is left out
+  when it is saved, with a note. A copy is never a live link, so a published form never changes by itself;
+  a question remembers which section it came from, so a copy can be compared with the newest version and
+  updated while the form's question ids stay for questions that stay the same. The edit operation
+  `insert_library_section` lets the AI assistant, MCP and the API insert a section, and the builder's new
+  `splice_fields` operation inserts and replaces complete questions. Library sections never leave their
+  workspace. Needs the server setting `REUSABLE_SECTIONS_ENABLED` (off by default).
+- The webapp supports reusable sections: "Save as reusable section" for a question or a panel, field set or
+  tabs, a Sections group in the Insert menu, "Update from library" with a diff of what was added, changed
+  or removed, "Save this copy to the library" as a new version, and a library page (search, preview,
+  rename, delete). English and Dutch. Shown only while the server setting `REUSABLE_SECTIONS_ENABLED` is on.
+- Versions page for a form (behind `FORM_REVISIONS_UI_ENABLED`, off by default): staff list the published versions
+  with who published each and when, read one read-only, compare two in plain language (English and Dutch) and
+  restore one into the draft. Restoring never changes or deletes a version; publishing the draft makes a new one.
+  A response page names the version the response was given in and links to it.
+  A restore holds the old version to the checks of a save (first-party images, http(s) links), so a version
+  published before a check existed cannot bring a refused value back.
+- Staff edit of answers with a history (behind `RESPONSE_REVISIONS_ENABLED`, off by default): a new permission,
+  `response.edit` (Owner, Admin and Editor), lets staff change a response's answers, checked like a respondent's own
+  edit (not for signatures or files, nor with a deletion request pending). Every edit, by staff or by the respondent,
+  is kept in the response's history: who, when, which questions, and the previous values sealed with the response
+  keyset. The history is deleted with the response. Adds a database table (revision 0032).
+  The history is part of the response keyset rotation (`response-revisions`), and a respondent's own edit is never
+  refused for the history's limit of 200 staff edits per response.
+- The server accepts a signature question (form spec, builder save, API, MCP, CSV): the
+  respondent signs by drawing or by typing a name. A drawn signature is stored as a private
+  file that the isolated document sandbox re-encodes; a typed one is stored in the encrypted
+  answer. It records a name and does not check who signed. Behind a new server setting,
+  `SIGNATURE_QUESTION_ENABLED` (off by default).
+- The form builder and the respondent page support the signature question: respondents draw
+  their signature or type their name (both work with mouse, finger, pen, keyboard and screen
+  reader), and staff see it with the response. Offered only while the server setting
+  `SIGNATURE_QUESTION_ENABLED` is on.
+- Submit responses through the public API (`POST /forms/{formId}/submissions`, and `PATCH` to change
+  one a key made itself), with a new API key scope `submissions:write` that no other scope implies.
+  A submission goes through the same checks, storage and follow-up as a respondent's (published
+  version only, open and close dates, response limit, validation, retention, encryption, actions,
+  webhooks and email actions). A key is not a respondent: no identity or receipt is stored, forms that
+  ask for a verified respondent refuse it, the caller asserts the respondent's consent, and the
+  response records that the key made it (staff see it, respondents never do). Files and signatures
+  are not accepted yet. The Python and TypeScript SDKs and the command line have `submit` and
+  `update-submission`. A webhook body has a new `source` member (`"api"`) for such a response. A key's
+  update is refused once the form is closed, not open yet, needs a verified respondent or is private.
+  It is behind `SUBMISSIONS_API_ENABLED`, which is off by default (the endpoints answer 404 and the
+  scope can't be granted).
+- The API key dialog offers the "Submit responses" scope (when the server has the feature on) and can
+  limit such a key to chosen forms; a response made through the API shows its source to staff on the
+  response page. English and Dutch.
+- Webhooks, email actions and registrations can now send the answers to time, day, currency, date
+  range and tags questions. They went out as nothing before (the questions were greyed out as
+  "cannot be sent yet"). Each is sent in the shape the public API answers it in: `"HH:MM"`, a date,
+  `{"code": "EUR", "amount": "12.50"}` (the amount stays a decimal string), `{"start": …, "end": …}`
+  and a list of strings. A test event carries made-up values of the same shapes.
+
+### Changed
+
+- `AUTH_JWT_SECRET` and `AUTH_AES_HEX_KEY` can now hold a key ring, `<current>[,<previous>]`: the
+  first key signs and encrypts, every key verifies and decrypts (session tokens, stored secrets,
+  OAuth and single sign-on state, sign-in codes, saved-draft links, list cursors and download
+  links). A single key works exactly as before. This is what lets the keys be rotated without
+  losing data or signing everyone out; the Temporal worker and the actions executor accept the
+  same ring in `AES_HEX_KEY`.
+- A secret the actions executor writes back (a refreshed Google Sheets credential) is opened
+  with the backend's key ring and sealed again with its current key; a value no key of the ring
+  opens is refused with a 422. The services now report in their heartbeat that they understand
+  key rings.
+- Upgrade note: the sign-in code hash and the PKCE verifiers of the Google Sheets and Google Forms
+  OAuth flows are now derived from the encryption key as the one key parser reads it (surrounding
+  spaces and one pair of quotes removed). A key stored with quotes or spaces gives different codes
+  and verifiers than before: a sign-in code or an OAuth authorization started before the upgrade
+  and finished after it fails once and is simply started again. A key without them is unchanged.
+- The form builder reads Dutch (formal "u") when Dutch is chosen: the canvas (question toolbar,
+  insert slots, empty states, matrix, table, option and repeating-group editors), the outline and
+  its menus, the page and form settings, the inspector of every question type, the insert menu, the
+  logic, page-jump and flow editors, answer, date and calculation rules, the publish dialog and its
+  checks, the AI assistant, the Start with AI dialog and its outline review, the PDF import review,
+  the media picker and the text toolbar, with their toasts. Dates, numbers and plurals follow the
+  chosen language. Messages written by the server or the AI, formula syntax errors, the default
+  text a new question or page starts with, and what respondents see stay as they are.
+- The whole staff dashboard reads Dutch (formal "u") when Dutch is chosen: the sidebar and its
+  groups, the help menu, the form page's settings, Share and Analytics (with Dutch chart labels and
+  numbers), the share, QR, close, reopen, visibility and delete dialogs, workspace settings
+  (site, themes with their editor, members, verified domains, custom domain, single sign-on, API
+  keys, AI profile, memory and settings), the account page's sessions and AI memory, onboarding and
+  the New Form page, with their toasts, empty and error states. Dates and numbers follow the chosen
+  language. Messages that come from the server, the page titles in the browser tab and the form
+  builder's canvas, outline and inspector stay English for now.
+- A few Dutch labels that read as raw or wrong are corrected (Share, Back, Login, Home, Switch
+  account).
+- **Upgrade note for the actions executor:** a webhook, Slack or Discord address that is private or not https, or a
+  workspace SMTP server that is internal, is now refused; list such hosts in `ACTION_EGRESS_ALLOW` on the executor if
+  that is deliberate. Custom action code no longer has `type`, `str.format`, `fetch_oauth_token` or
+  `build_google_service`, and `get_secret()` returns a handle to pass to a call rather than the value. Once the backend
+  and the executor are both upgraded, remove `AES_HEX_KEY` from the executor service. `ACTION_ISOLATION=legacy` restores
+  the previous in-process run.
+  The executor image now runs as a non-root user (the sandbox then confines its child with Landlock); a container
+  that runs it as root with `cap_drop: [ALL]` is not supported.
+- The responses page head is one row: the responder search, a Filters button (the date range,
+  deletion-request state, anonymous or identified and form version open under it, and what is in
+  force stays in view as removable chips with a count on the button), the sort and the export.
+  The AI summary is a button beside the Responses and Deletion requests tabs instead of a card
+  above the list, and is not loaded until it is opened.
+- On a phone the responses list and the deletion requests are a list of cards (responder,
+  submitted time, form version, the first answers, and the same actions) instead of a table,
+  and the filters, the pager and the export fit the screen without a sideways scroll.
+- The responses list, a response's page, the export control, the filters, the pager and the
+  deletion-requests tab have their text in the translation catalogue in English and Dutch
+  (formal "u"), and their dates and times are written in the viewer's language and time zone.
+  The dashboard has no language switch yet, so it still renders in English.
+- The address lookup no longer answers for a form that is closed, not open yet, full or hidden, nor for a
+  private form unless the signed-in respondent is admitted by one of its responder groups (the same 404 as
+  an unknown form, nothing is sent to the address service). Its in-memory tables now drop the entry used
+  longest ago instead of emptying when full, and one process makes at most 10 calls a second and 300 a
+  minute to the address service (60 a minute for one form); past that the respondent types the address.
+- CSV import of responses (still off by default): unused uploads are deleted within about five minutes of their hour, not up to two hours; a failed import whose cleanup could not delete the rows it had stored is cleaned up again by the sweep (and can be undone by hand); uploads are limited per workspace as well as per person; imports run on a queue of their own, `imports`, which the jobs worker serves by default (include it if you set `JOBS_QUEUES`).
+- `GET /workspaces/{id}/forms/{form_id}/all-submissions` builds its answer in memory, so
+  it now holds at most 5,000 responses. A form with more is refused with 413
+  `too_many_rows`; use the export (up to 100,000 responses) for those. Smaller forms
+  get the same answer as before.
+- When an owner requires single sign-on, the workspace's API keys are now listed
+  for review on the single sign-on page, with their creator and last use and a
+  revoke button (keys stay valid, as before). An owner who would be signed out by
+  the requirement themselves is warned and has to confirm before it is switched on.
+- Webhook and registration bodies are stricter about what a mapped answer may hold. A `date`
+  answer stored as an empty string is now sent as `null` (4.2 sent `""`), and a part that
+  is not in its published format goes out as `null`: a date that is not a calendar date, a time
+  that is not `HH:MM`, a currency code that is not three capital letters, an amount that is not a
+  plain decimal or is longer than any question allows, and a date range that ends before it
+  starts. This also covers answers that logic hid or a jump skipped, which are stored as they
+  came. A tags answer is cut to 30 tags of 1 to 40 characters, as the question itself allows.
+  The body's `values_schema` says the same (`maxItems`, `maxLength`). Receivers of live
+  webhooks may see `null` for a `date` question where they saw an empty string or an odd value.
+
+### Fixed
+
+- The files stored with a response (an upload, now also a drawn signature) are deleted when
+  the response is deleted because its retention period ran out, and when a form is unlinked
+  from one of several workspaces; before, they stayed in storage.
+- A responses export refused because your previous export of the form is still being
+  prepared or waits to be downloaded (409) no longer uses up the hourly export limit.
+- Response exports are bounded better. Exports that stream to the browser (and the
+  bulk JSON read) now count as running: at most 2 per person and 6 per workspace at once,
+  counted in the database so the limit holds across several backend replicas (429
+  `export_busy` or `workspace_busy`). A large export that no worker takes within 2 hours
+  now fails as `queue_timeout` (shown as a failed export) instead of waiting for ever and
+  holding the workspace's export slots. A running export job now records its own
+  heartbeat, also while it reads rows, so a stuck job is told apart without losing when
+  it started.
+  While a rolling update is under way, a backend still on the previous version reads a
+  running export job's start time as its heartbeat, so it may queue a job again after 30
+  minutes; update every backend replica promptly (the job itself stays safe).
+- A failure while an email action's rate counters were written no longer lets the retry
+  send the mail unchecked: a delivery is marked as counted only after its counters went
+  up, so the retry counts again (at worst one extra count) instead of skipping the limits.
+  A counter that fails half way gives back what the earlier ones admitted.
+- The "Optional" and "Read only" labels beside a question follow the form's theme: on a dark
+  custom theme they are a light colour instead of a fixed dark grey that was hard to read. The
+  colour is derived from the theme (the questions' ink softened towards the page, never under
+  4.5:1), and the theme contrast check, in the builder and on the server, now measures it.
+- The enter and exit animations of dialogs, side sheets, menus, popovers and select lists
+  were silently doing nothing since the move to Tailwind 4 (their classes had no stylesheet);
+  they run again, and not at all for people who ask their device for reduced motion. A few
+  misspelled class names in the dashboard and the dialogs (`tex-black-800`, `fap-2`,
+  `sm:w-auo`, `px-auto`, `space-between`) are corrected.
+- Staff edit of answers (still off by default, `RESPONSE_REVISIONS_ENABLED`): a deletion request filed while an edit is
+  made is now checked under the response's lock, a save made on an out-of-date history is refused with a "changed
+  meanwhile, reload" message (`expectedSeq`), only the question types the dialog offers can be written, a staff edit
+  and every read of previous values are recorded in the workspace audit log (ids only, never a value), and an entry
+  that cannot be opened for option-source redaction is counted in a log warning.
+- Submitting responses through the API now records consent as it was asserted: `"consent": true`
+  accepts the form's required consent items only, and an optional item is accepted only when its id
+  is named in the new `consentItems` (an unknown id is refused, an unnamed optional item is stored as
+  not accepted); the SDKs take `consent_items` / `consentItems` and the command line `--consent-item`.
+  A response with an open deletion request takes no update from a key (409 `deletion_requested`). A
+  client that disconnects after a write started no longer frees its `Idempotency-Key`. One form takes
+  at most 60 submissions a minute through the API. The documentation now says that the form's own
+  email actions, webhooks and actions still run for a key's submissions.
+- Submissions API: a key that may not write to a form no longer uses up that form's per-window
+  write budget; `consentItems` naming an unknown id is refused (422 `unknown_consent_item`) also on
+  a form with no consent items; and a write that is finishing after its client disconnected can no
+  longer be dropped before its idempotency key is finished. The API key dialog's "Only for these
+  forms" list now reaches every published form (it stopped at 100).
+
+### Security
+
+- **The actions executor is isolated** (`ACTION_ISOLATION`, on by default). Custom action code now runs in a
+  per-run child process that has no environment, files, network, keys or other runs' data (Landlock, seccomp,
+  `no_new_privs`, resource limits), behind a broker that makes every outside call: only to hosts the run is
+  configured with, and secrets are handles the code cannot read. Every outgoing call of an action (webhook, Slack,
+  Discord, a workspace's SMTP server) follows one set of rules: https on port 443, public addresses only (checked at
+  every call, connected to the address that was checked), no redirects. The executor no longer needs `AES_HEX_KEY`:
+  the backend opens the run's secrets for it (new optional request `{"secrets": "plain"}` on the run's context route)
+  and takes a refreshed Google credential back on a new run-scoped route, which seals it. See
+  `docs/executor-isolation.md`.
+- A drawn signature's image is now stored encrypted with the response keyset, bound to its
+  workspace, form, response and question, and is served only through an authorised route
+  (`no-store`, `nosniff`, `image/png`) for people who may read the response, instead of a
+  link to the stored file. An image stored before this change is not served.
+- A file sent with a response or with a respondent's edit must belong to a file upload (or
+  signature) question of the form, and can no longer carry the id of a file another question
+  of that response holds; before, an edit could replace a stored file of its own response
+  with other content under any question id. A file for a signature question is only taken as
+  the drawing a signature answer of the same request names (re-encoded by the sandbox), also
+  in an edit that sends no answers.
+- Hardening of form embedding before `FORM_EMBED_ENABLED` is turned on. A freshly started
+  webapp whose first look-up of a workspace's allowed sites fails now serves its form pages
+  with `frame-ancestors 'self'` and the dashboard when the webapp's own `FORM_EMBED_ENABLED`
+  environment variable is on (it is passed through by the deployment compose file, default
+  off), instead of no framing header at all; with it off or unset nothing changes, and
+  whenever the backend answers its answer decides. The public policy route is rate limited
+  (per client address and per workspace, 429 with `Retry-After`). The embed script is now a
+  versioned file that never changes (`/embed/v1.js`, served immutable with CORS for any
+  site), the share dialog's code pins it with `integrity` and `crossorigin`, and the Embed
+  tab and `docs/embed.md` show a script-free iframe version and note the iframe `sandbox`
+  attribute.
+- **The actions executor can no longer hold the encryption key unnoticed, and an administrator's
+  secret goes only where the administrator said.** A secret the instance's administrators stored on an
+  action now goes only to the exact address they set (scheme, host, port, path and query), not to any
+  address on the same host, and custom code does not see the reply of such a call. New setting
+  `ACTION_SECRETS_SEALED_ALLOWED` on the backend (default `true`; set `false` once the executor is 4.3):
+  the sealed run context and the key-only credential write-back are then refused with 426 and a log
+  line. New setting `ACTION_EXECUTOR_KEY_ALLOWED` on the executor (default `true`; set `false` after
+  removing `AES_HEX_KEY`): the executor then refuses to start while the key is set. The key-only
+  write-back only replaces the `Credentials` secret, a run context asked with opened secrets answers
+  503 when the backend has no key (never an empty or sealed answer), and the run context and the
+  run-scoped write-back are sent with `Cache-Control: no-store`.
+- Reads of responses through workspace API keys (the REST API and the MCP server) now
+  leave an entry in the export audit log, like an export does: the key's id, the form and
+  the number of responses returned, never an answer. A read that cannot be recorded fails
+  instead of going unrecorded.
+- The actions executor's database role is kept from creating temporary tables by
+  `postgres/ensure-jobs-exec-role.sh` itself (it revokes TEMPORARY from PUBLIC and gives
+  it back by name to the service roles), not only by `ensure-admin-roles.sh`. The
+  trigger-function owner `bc_jobs_def` is reset to the grants the queue's triggers need.
+  The executor refuses to start when its role can create temporary tables or is a member
+  of any role (it could switch to `bc_jobs_def`), or when `bc_jobs_def` holds a privilege
+  in another service's schema; the script repairs all of these and exits non-zero if a revoke did not take. A stack that has not
+  yet run `postgres/ensure-admin-roles.sh` or this script since 4.1 re-runs the script
+  before updating the executor image (`deploy.sh` does it on every deploy).
+- Every page of the webapp except a published form's page now sends
+  `Content-Security-Policy: frame-ancestors 'self'` plus the dashboard's own origin, so no
+  other site can show the staff dashboard, the sign-in page or a respondent's submissions
+  in a frame. They carried `X-Frame-Options: ALLOW-FROM https://undefined` instead, a value
+  no browser honours, so any site could frame them. The header is now set per request from
+  the running server's `DASHBOARD_DOMAIN` and `HTTP_SCHEME`, on the dashboard, client and
+  custom domains and on a single-domain setup alike. Published form pages are unchanged.
+- The field-rule check no longer slows down on a run of spaces inside an answer pipe. A title or
+  description with `{{field:` followed by many spaces made each save take seconds (about 5 s at the
+  1,000-character rule-description limit). The pattern now reads in linear time.
+- **Answer pipes in the form builder and on respondent pages are read in linear time.** A question title,
+  description or ending holding `{{field:` followed by a very long run of spaces made the pattern that finds pipe
+  tokens backtrack until the browser tab froze, for the creator in the builder and for a respondent opening the
+  form. The patterns now cut the key at `|` or a brace and trim it in code, as the server does.
+- Key rotation: `reencrypt` now exits with a failure and lists the response ids when a signature
+  image written again for a response that had lost its signature could not be removed, so an
+  erased signature left in storage is no longer reported as a clean run.
+- Rotating the response encryption keyset now covers drawn signature images: `reencrypt`
+  seals each image still under an old key again under the new one, and `drop-old` refuses
+  to remove a key while any image is sealed under it or cannot be checked. The
+  `keyset.drop_old` admin task cannot reach the file store, so it refuses while a drawn
+  signature exists and an old key is still to drop. On a stack whose keyset lives only in
+  the settings store (no `MASTER_ENCRYPTION_KEYSET` in the services' environment, so the
+  script cannot be used), the old keys therefore stay while any drawn signature exists:
+  nothing is lost, and keeping a key is safe.
+- A workspace that requires single sign-on now refuses a session that did not sign in
+  with SSO on every request (403 `sso_required`), not only when the session next
+  refreshes, so turning the requirement on takes effect at once instead of up to
+  15 minutes later. Owners keep email-code sign-in as break-glass, guests on other
+  domains and API keys are unaffected, and nothing changes while single sign-on is
+  off. The dashboard sends the user to the workspace selection to sign in with SSO.
+- Single sign-on sessions now belong to the workspace and identity provider that
+  signed them in: if a verified domain moves to another workspace that requires
+  single sign-on, or the workspace replaces its identity provider, the old sessions
+  no longer count and people sign in again. Sessions from before this change have
+  no workspace recorded and sign in once more where single sign-on is required.
+  Every request an owner makes through the email-code break-glass into a workspace
+  that requires single sign-on is now recorded (session, user, method and route
+  template, ids only, kept for a year) and shown, paged, on the single sign-on page;
+  a failing audit write never blocks the owner.
+
 ## [4.2.0] - 2026-10-31
 
 4.2.0 adds logic and new question types to the form builder, self-service webhooks and email actions, save and continue later for respondents, and a responses list and export that stay fast at any size. Every new feature a form creator configures ships behind a setting that is **off by default**: an operator turns each one on when they are ready (see the settings below). Stored data keeps working whether a setting is on or off.
@@ -2836,7 +3248,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.2.0...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.3.0...HEAD
+[4.3.0]: https://github.com/bettercollected/bettercollected/compare/v4.2.0...v4.3.0
 [4.2.0]: https://github.com/bettercollected/bettercollected/compare/v4.1.2...v4.2.0
 [4.1.2]: https://github.com/bettercollected/bettercollected/compare/v4.1.1...v4.1.2
 [4.1.1]: https://github.com/bettercollected/bettercollected/compare/v4.1.0...v4.1.1
