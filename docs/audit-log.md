@@ -87,7 +87,7 @@ language from `event` and the fields; the server returns no sentence. There is
 no answer, no email address, no name typed into a form and no free text in an
 entry.
 
-- A `team_linked` entry says which team (`groupId`) and whether a directory group was linked to it or unlinked from it (`linked`); it names no directory group.
+- A `team_linked` entry says which team (`groupId`) and whether a directory group was linked to it or unlinked from it (`linked`), and carries our id of the directory group (`scimGroupId`); the directory's own name for the group is not stored. An unlink that the directory causes (it deletes a linked group, or the directory is removed) is written by the directory's own actor, not a member. The page reads the entry as "linked a directory group to the team" or "unlinked a directory group from the team".
 - `responseId` is returned only to someone who may read that form's responses.
   A Privacy officer sees who read or changed which form's response history, and
   when, but gets no response id.

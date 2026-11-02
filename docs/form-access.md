@@ -77,7 +77,7 @@ If your workspace has a directory connected ([directory sync, in single sign-on]
 
 - The people in that group in your directory are in the team. It is **read each time access is checked, never copied**, so there is nothing to keep in step. Take someone out of the group, deactivate them, or delete them in your directory, and their team access ends on their next request.
 - **One directory group is in one team.** Linking a group to another team moves it. **One team can take several groups.** A person in two of them, or also listed by hand, is one member.
-- Someone who is in a team only through a directory group is removed in the directory, not on the team page (the page says "From your directory" and refuses a manual removal).
+- Someone who is in a team only through a directory group is removed in the directory, not on the team page (the page says "From your directory" and refuses a manual removal, `409 managed_by_directory`). Someone who is listed by hand and is also in the group is labelled "Also from your directory": removing the listing leaves them in the team. A team's page lists the first 200 people, with the total.
 - Unlinking, or deleting the team, takes the group's people out of the team. Nobody is deleted and the team keeps its other members and its grants.
 - If the directory deletes the group, the link ends the same way.
 - Only the owner links and unlinks, like the other directory settings, and only the owner sees this section.
@@ -142,7 +142,7 @@ Every change to access is written to the workspace's audit log **before** it is 
 | `access_mode_changed` | A form was restricted or opened |
 | `team_created`, `team_renamed`, `team_deleted` | A team |
 | `team_member_added`, `team_member_removed` | A person listed by hand |
-| `team_linked` | A directory group was linked to a team or unlinked from it (`linked` says which; also when the directory deletes a linked group) |
+| `team_linked` | A directory group was linked to a team or unlinked from it (`linked` says which, `scimGroupId` which group; an unlink is also written when the directory deletes a linked group or the directory is removed, by the directory's own actor) |
 | `access_member_purged` | A person who left the workspace or deleted their account had N grants and team memberships removed |
 | `form_creator_reassigned` | A removed member's forms were handed to the workspace's billing owner |
 
@@ -171,7 +171,8 @@ Access per form is controlled by the server setting **`FORM_ACCESS_ENABLED`**. I
 - Nothing is enforced. Every member opens forms as their workspace role allows, as before, and the server does no extra work to decide it.
 - The Access card, the Teams tab and the chip are hidden.
 - The routes that change teams, grants, modes or directory links answer **422 `form_access_off`** and write nothing. (Reading a form's access answers `enabled: false`.)
-- **What you saved stays**: grants, teams, team members, each form's mode and directory links. Turning it back on applies them all at once.
+- **What you saved stays, but is ignored**: restricted forms, grants, teams, team members, each form's mode and directory links are kept and decide nothing. Turning it back on applies them all at once.
+- **A warning at startup.** When the switch is off while any of that is stored, the server logs one warning when it starts, with the counts of restricted forms, grants and teams (counts only, no names), saying those forms are open to every member's workspace role until the switch is turned on.
 - **Private forms** go back to their old meaning: hidden from other members' lists, with the endpoints open to any member who knows the address.
 
 **Turning it off while restricted forms exist re-opens them to every member's role.** Turning grants off only removes extra access; turning restricted forms off removes protection. If you rely on a restricted form to keep people out, do not switch the feature off without first deciding what should happen to those forms.
