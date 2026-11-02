@@ -270,3 +270,33 @@ async def test_deleting_the_account_removes_the_factor_and_codes():
     assert await repo.codes_left(account.user.id) == 0
     assert await repo.confirmed(other.user.id) is not None
     assert await repo.codes_left(other.user.id) == 10
+
+
+async def lock_out(svc, account, secret, clock):
+    bad = wrong_code(secret, clock)
+    for _ in range(5):
+        await refusal(svc.check_code(account.user, bad))
+    locked = await refusal(svc.check_code(account.user, code_now(secret, clock)))
+    assert code_of(locked) == "mfa_locked"
+    return locked.content["retry_after"]
+
+
+async def test_each_lock_before_an_accepted_code_lasts_longer_and_a_code_starts_over(notices):
+    clock = new_clock()
+    svc = service(clock, notifier=container.mfa_notifier())
+    account = await signed_in("esc@example.org", now=clock.now())
+    secret, _ = await enrolled(svc, clock, account)
+    clock.advance(30)
+    waits = []
+    for expected in (15, 60, 360, 1440, 1440):
+        retry = await lock_out(svc, account, secret, clock)
+        waits.append(round(retry / 60))
+        assert abs(retry - expected * 60) <= 5
+        clock.advance(expected * 60 + 60)
+    assert waits == [15, 60, 360, 1440, 1440]
+    # a code accepted after the lock ran out begins again from the shortest
+    assert (await svc.check_code(account.user, code_now(secret, clock))).method == "totp"
+    clock.advance(30)
+    assert abs(await lock_out(svc, account, secret, clock) - 15 * 60) <= 5
+    await container.mfa_notifier().flush()
+    assert [n["minutes"] for n in notices if n["kind"] == "locked"] == [15, 60, 360, 1440, 1440, 15]

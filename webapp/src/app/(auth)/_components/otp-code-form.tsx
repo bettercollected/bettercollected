@@ -15,20 +15,28 @@ import { signInScreen } from '@app/constants/locales/signin-screen';
 import { usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { browserMailLocale } from '@app/utils/mail-locale';
+import { reloadPage } from '@app/utils/browser-navigation';
+import { isMfaRequired } from '@app/utils/mfa';
+
+import MfaCodeForm from '@app/components/mfa/mfa-code-form';
 
 interface OtpCodeFormProps {
     email: string;
     isModal?: boolean;
     setEmail: Dispatch<SetStateAction<string>>;
+    // told when the sign-in turns out to need a second factor (true) and when the person goes back (false)
+    onMfaChange?: (active: boolean) => void;
 }
 
-export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }: OtpCodeFormProps) {
+export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail, onMfaChange }: OtpCodeFormProps) {
     const { t } = useTranslation();
     const { toast } = useToast();
     const { closeModal } = useFullScreenModal();
     const [otp, setOtp] = useState('');
     const [counter, setCounter] = useState(60);
     const [isError, setIsError] = useState(false);
+    // an account with an authenticator app: the email code was the first step
+    const [secondFactor, setSecondFactor] = useState(false);
 
     useEffect(() => {
         if (counter > 0) {
@@ -53,6 +61,14 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }
         signInButton: t(signInScreen.signInButton),
     };
 
+    const signedIn = () => {
+        toast({ description: constants.otpVerificationSuccess });
+        closeModal();
+        if (typeof window !== 'undefined') {
+            reloadPage();
+        }
+    };
+
     const handleOtpPost = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!otp) return;
@@ -66,12 +82,12 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }
         };
         const res = await postVerifyOtp(data);
 
-        if ('data' in res && !!res.data) {
-            toast({ description: constants.otpVerificationSuccess });
-            closeModal();
-            if (typeof window !== 'undefined') {
-                window.location.reload();
-            }
+        if ('data' in res && isMfaRequired(res.data)) {
+            // no session yet: the second step makes it
+            setSecondFactor(true);
+            onMfaChange?.(true);
+        } else if ('data' in res && !!res.data) {
+            signedIn();
         } else {
             setIsError(true);
             toast({ description: constants.otpVerificationFailure, variant: 'destructive' });
@@ -85,6 +101,18 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }
             setCounter(60);
         }
     };
+
+    if (secondFactor) {
+        return (
+            <MfaCodeForm
+                onSignedIn={signedIn}
+                onBack={() => {
+                    onMfaChange?.(false);
+                    setParentEmail('');
+                }}
+            />
+        );
+    }
 
     return (
         <form onSubmit={handleOtpPost} className="w-full">

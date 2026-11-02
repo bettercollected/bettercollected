@@ -1,18 +1,23 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
 import { Globe, ShieldCheck, Trash2 } from 'lucide-react';
 
 import SiretoFooter from '@app/components/layout/sireto-footer';
+import { useMfaT } from '@app/components/mfa/use-mfa-t';
 import Logo from '@app/components/ui/logo';
 import { localesCommon } from '@app/constants/locales/common';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { signUpScreen } from '@app/constants/locales/signup-screen';
 import TopNavLayout from '@app/layouts/top-navbar-layout';
+import { navigateTo } from '@app/utils/browser-navigation';
+import { safeNextPath } from '@app/utils/mfa';
 
+import MfaCodeForm from '@app/components/mfa/mfa-code-form';
 import OtpCodeForm from './otp-code-form';
 import OtpEmailForm from './otp-email-form';
 
@@ -31,6 +36,12 @@ export default function LoginView() {
     // builder at them would be talking to the wrong person.
     const isResponder = searchParams?.get('type') === 'responder';
     const [email, setEmail] = useState('');
+    const router = useRouter();
+    const { t: tMfa, language: mfaLanguage } = useMfaT();
+    // Google (or another provider) passed the first step and the server sent the browser back here for the second
+    const arrivedForSecondFactor = searchParams?.get('mfa') === '1';
+    const [secondFactorAfterEmail, setSecondFactorAfterEmail] = useState(false);
+    const secondFactor = arrivedForSecondFactor || secondFactorAfterEmail;
 
     const creatorBullets = [
         { icon: ShieldCheck, text: 'A trust footer on every form — who is collecting, why, and the rights responders keep' },
@@ -38,7 +49,7 @@ export default function LoginView() {
         { icon: Trash2, text: 'Responders can view or delete their responses at any time' }
     ];
 
-    const panel = isResponder
+    const signInPanel = isResponder
         ? {
               title: 'See your submissions',
               description: "Verify your email to see every response you've submitted to this workspace — and request deletion of any of them.",
@@ -55,6 +66,13 @@ export default function LoginView() {
                 description: t(isSignup ? signUpScreen.features.description : signInScreen.features.description),
                 bullets: creatorBullets
             };
+
+    const panel = secondFactor ? { title: tMfa('STAFF.MFA.SIGNIN.PANEL_TITLE'), description: tMfa('STAFF.MFA.SIGNIN.PANEL_DESCRIPTION'), bullets: undefined } : signInPanel;
+
+    // after the second step: the page the sign-in came from (a path of this site), else the sign-in page, which sends a signed-in person on
+    const finishSignIn = () => {
+        navigateTo(safeNextPath(searchParams?.get('next')) ?? '/login');
+    };
 
     return (
         <TopNavLayout className="min-h-screen mt-0! p-0!">
@@ -79,11 +97,19 @@ export default function LoginView() {
                         <h1 className="body4 text-black-800! mt-2">{t(signUpScreen.logoDescription)}</h1>
                     </div>
 
-                    <div className="w-full">{!email ? <OtpEmailForm setEmail={setEmail} isSignup={isSignup} /> : <OtpCodeForm email={email} setEmail={setEmail} />}</div>
+                    <div className="w-full">
+                        {arrivedForSecondFactor ? (
+                            <MfaCodeForm onSignedIn={finishSignIn} onBack={() => router.replace('/login')} />
+                        ) : !email ? (
+                            <OtpEmailForm setEmail={setEmail} isSignup={isSignup} />
+                        ) : (
+                            <OtpCodeForm email={email} setEmail={setEmail} onMfaChange={setSecondFactorAfterEmail} />
+                        )}
+                    </div>
 
                     <div className="mt-24 flex w-full flex-col gap-4 lg:mt-0">
-                        <TermsAndCondition isSignup={isSignup} />
-                        <SiretoFooter className="text-left" />
+                        <TermsAndCondition isSignup={isSignup} translate={secondFactor ? tMfa : undefined} language={secondFactor ? mfaLanguage : undefined} />
+                        <SiretoFooter className="text-left" language={secondFactor ? mfaLanguage : undefined} />
                     </div>
                 </div>
             </div>
@@ -91,10 +117,12 @@ export default function LoginView() {
     );
 }
 
-const TermsAndCondition = ({ isSignup }: { isSignup: boolean }) => {
-    const { t } = useTranslation();
+// `translate`/`language`: the second step of a sign-in follows the person's language (Dutch for a Dutch browser), the rest of the page stays English
+const TermsAndCondition = ({ isSignup, translate, language }: { isSignup: boolean; translate?: TFunction; language?: string }) => {
+    const { t: pageT } = useTranslation();
+    const t = translate ?? pageT;
     return (
-        <div className="body4">
+        <div className="body4" lang={language}>
             {t(isSignup ? signUpScreen.signUpAgreementDescription : signInScreen.signinAgreementDescription)}
             <a href="https://bettercollected.com/terms-of-service" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
                 {t(localesCommon.termsOfServices.title)}

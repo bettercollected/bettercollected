@@ -283,6 +283,8 @@ class AuthService:
                 "scope_workspace_id": signed_in.scope_workspace_id,
                 "sso_workspace_id": signed_in.sso_workspace_id,
                 "sso_connection_id": signed_in.sso_connection_id,
+                # the same session: a second factor it presented still counts
+                "mfa": signed_in.mfa,
             }
         )
         decrypted_data = json.loads(self.crypto.decrypt(state))

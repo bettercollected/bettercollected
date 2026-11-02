@@ -23,6 +23,10 @@ from backend.app.repositories.postgres.forms import (
     PostgresWorkspaceFormRepository,
 )
 from backend.app.exceptions import HTTPException
+from backend.app.services.mfa.policy import (
+    blocks_session as totp_blocks,
+    mfa_required_error,
+)
 from backend.app.models.enum.permission import Permission
 from backend.app.models.enum.workspace_roles import (
     WorkspaceRoles,
@@ -186,7 +190,9 @@ class AuthorizationService:
         single sign-on requirement (docs/sso.md, the rule the token refresh
         applies, here on every request): with ``raise_sso_required`` the
         403 ``sso_required`` the webapp reacts to, otherwise just no
-        permissions."""
+        permissions. A workspace that requires an authenticator app
+        (``services/mfa/policy.py``) is the same rule with 403
+        ``mfa_required``."""
         workspace_oid = _object_id(workspace_id)
         user_oid = _object_id(user.id) if user else None
         if workspace_oid is None or user_oid is None:
@@ -208,6 +214,12 @@ class AuthorizationService:
         if await self._sso_blocks(user, workspace, is_owner):
             if raise_sso_required:
                 raise self._sso_required(user)
+            return NO_PERMISSIONS
+        if totp_blocks(workspace, user):
+            # the workspace requires an authenticator app and this session has
+            # not presented one (docs/totp.md): the same rule on every request
+            if raise_sso_required:
+                raise mfa_required_error()
             return NO_PERMISSIONS
         if workspace.disabled:
             return DISABLED_WORKSPACE_OWNER_PERMISSIONS if is_owner else NO_PERMISSIONS

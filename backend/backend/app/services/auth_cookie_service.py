@@ -45,6 +45,10 @@ def _encode(user: User, *, typ: str, exp: int, jti: str) -> str:
         claims["sso_workspace_id"] = user.sso_workspace_id
         if user.sso_connection_id:
             claims["sso_connection_id"] = user.sso_connection_id
+    if user.mfa:
+        # a second factor was presented in this session (docs/totp.md); always
+        # taken from the session's record, never from a client
+        claims["mfa"] = True
     if user.session_scope:
         # "respondent": no workspace permissions (authorization_service)
         claims["session_scope"] = user.session_scope

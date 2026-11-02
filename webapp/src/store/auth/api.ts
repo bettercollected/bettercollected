@@ -3,12 +3,12 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import environments from '@app/configs/environments';
 import { UserStatus } from '@app/models/dtos/user-status';
 
-import { AUTH_OTP_TAGS, AUTH_REFRESH_TAG, AUTH_SESSIONS_TAG, AUTH_TAG_TYPES, AuthSession, VerifyOtp } from './types';
+import { AUTH_MFA_TAG, AUTH_OTP_TAGS, AUTH_REFRESH_TAG, AUTH_SESSIONS_TAG, AUTH_TAG_TYPES, AuthSession, MfaStatus, TotpEnrolment, VerifyOtp } from './types';
 
 export const AUTH_REDUCER_PATH = 'authApi';
 export const authApi = createApi({
     reducerPath: AUTH_REDUCER_PATH,
-    tagTypes: [AUTH_TAG_TYPES, AUTH_OTP_TAGS, AUTH_REFRESH_TAG, AUTH_SESSIONS_TAG],
+    tagTypes: [AUTH_TAG_TYPES, AUTH_OTP_TAGS, AUTH_REFRESH_TAG, AUTH_SESSIONS_TAG, AUTH_MFA_TAG],
     refetchOnReconnect: true,
     refetchOnMountOrArgChange: true,
     keepUnusedDataFor: 0,
@@ -80,6 +80,37 @@ export const authApi = createApi({
             }),
             invalidatesTags: [AUTH_SESSIONS_TAG]
         }),
+        // The authenticator-app second factor (/auth/mfa/*). Secrets and recovery codes
+        // are only in the answers of enrol/confirm/recovery-codes: nothing here caches
+        // them (keepUnusedDataFor is 0) and no tag provides them.
+        getMfaStatus: builder.query<MfaStatus, void>({
+            query: () => ({ url: '/auth/mfa/status', method: 'GET' }),
+            providesTags: [AUTH_MFA_TAG]
+        }),
+        startTotpEnrolment: builder.mutation<TotpEnrolment, { code?: string } | void>({
+            query: (body) => ({ url: '/auth/mfa/totp/enrol', method: 'POST', body: body ?? {} })
+        }),
+        confirmTotpEnrolment: builder.mutation<{ recoveryCodes: string[] }, { factorId: string; code: string }>({
+            query: (body) => ({ url: '/auth/mfa/totp/confirm', method: 'POST', body }),
+            invalidatesTags: [AUTH_MFA_TAG, AUTH_SESSIONS_TAG]
+        }),
+        regenerateRecoveryCodes: builder.mutation<{ recoveryCodes: string[] }, { code: string }>({
+            query: (body) => ({ url: '/auth/mfa/recovery-codes', method: 'POST', body }),
+            invalidatesTags: [AUTH_MFA_TAG]
+        }),
+        disableTotp: builder.mutation<MfaStatus, { code: string }>({
+            query: (body) => ({ url: '/auth/mfa/totp/disable', method: 'POST', body }),
+            invalidatesTags: [AUTH_MFA_TAG, AUTH_SESSIONS_TAG]
+        }),
+        // present the second factor in the session that is already signed in (what a workspace that requires one asks for)
+        verifyMfa: builder.mutation<MfaStatus, { code: string }>({
+            query: (body) => ({ url: '/auth/mfa/verify', method: 'POST', body }),
+            invalidatesTags: [AUTH_MFA_TAG]
+        }),
+        // the second step of a sign-in: the challenge cookie and a code (or a recovery code)
+        postMfaChallenge: builder.mutation<{ loggedIn: boolean; recoveryLeft?: number | null }, { code: string }>({
+            query: (body) => ({ url: '/auth/mfa/challenge', method: 'POST', body })
+        }),
         deleteAccount: builder.mutation<string, any>({
             query: (body) => ({
                 url: '/auth/user/delete/workflow',
@@ -100,5 +131,12 @@ export const {
     useRefreshTokenMutation,
     useGetSessionsQuery,
     useRevokeSessionMutation,
-    useRevokeOtherSessionsMutation
+    useRevokeOtherSessionsMutation,
+    useGetMfaStatusQuery,
+    useStartTotpEnrolmentMutation,
+    useConfirmTotpEnrolmentMutation,
+    useRegenerateRecoveryCodesMutation,
+    useDisableTotpMutation,
+    useVerifyMfaMutation,
+    usePostMfaChallengeMutation
 } = authApi;

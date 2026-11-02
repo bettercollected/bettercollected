@@ -99,6 +99,8 @@ Folders, and grants on folders, come later. The model already allows it: a folde
 - Keys belong to the workspace, so removing their creator does not orphan them, but admins see who created each one.
 - Today's scopes map onto permissions: `forms:read` → `form.read`; `forms:write` → `form.edit`; `responses:read` → `response.read` **and** `response.export` (a bulk read through the API is an export); `deletion_requests:*` → `privacy.manage`.
 
+- **A workspace that requires an authenticator app ([totp.md](totp.md)) does not cover API keys and MCP**, exactly as "require SSO" does not ([sso.md](sso.md)): they are machine credentials issued inside the workspace. A member without an authenticator app can still hold a key; closing that is the key-role step below, not the second factor.
+
 ### 5. SSO / SCIM mapping (Phases 1–3)
 Status: SSO (Phase 1–2) and SCIM directory sync (Phase 3) are built ([sso.md](sso.md), "Directory sync"); mapping to member groups waits for member groups (step c).
 - **Workspace roles:** IdP groups map to a workspace role (one per group; Admin allowed, never Owner). The highest role wins, and members with no mapped group get the workspace default (the SSO "role for new members", Viewer by default, never Owner). **Built.** Members the directory manages show "Managed by your directory" and their role can't be changed by hand (409 `managed_by_directory`); it follows their groups. Members invited by hand keep their role, and no owner's role is ever changed by the directory; an owner may still make a directory-managed member an owner. The directory still deactivates (and reactivates) a co-owner like any member; only the billing owner is never touched.

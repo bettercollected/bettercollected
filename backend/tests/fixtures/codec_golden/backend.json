@@ -9167,7 +9167,7 @@
   "document": "WorkspaceUserDocument"
  },
  "workspaces/full": {
-  "checksum": "sha256:4b4ba38be77dced498d980d372f2ae3187b8043e0ff316c7268674831f7e2e32",
+  "checksum": "sha256:881191e5a1cbaa6d38e45cb9b49df7c32b0aa8a4dcb27cc806c6f648c62448ee",
   "doc": {
    "_id": {
     "$oid": "a809c17de9bfb723bacb0d11"
@@ -9408,6 +9408,7 @@
    "owner_id": "WorkspaceDocument.owner_id tëxt ✓ \"quoted\" \\ line\nbreak",
    "privacy_policy": "WorkspaceDocument.privacy_policy tëxt ✓ \"quoted\" \\ line\nbreak",
    "profile_image": "WorkspaceDocument.profile_image tëxt ✓ \"quoted\" \\ line\nbreak",
+   "require_totp": true,
    "sso_default_role": "WorkspaceDocument.sso_default_role tëxt ✓ \"quoted\" \\ line\nbreak",
    "sso_required": true,
    "sso_required_changed_at": "2026-03-04T05:06:07.891234+02:00",
@@ -9420,7 +9421,7 @@
   "document": "WorkspaceDocument"
  },
  "workspaces/minimal": {
-  "checksum": "sha256:e4ec4aad2ec4cc16662cc15099a8ee96f9249136f84e62de36b4e2b1a2ae9e43",
+  "checksum": "sha256:1a9610b13f1794bbfe601e9e8c36efc684ce8fec948596e707802563c9a55075",
   "doc": {
    "_id": {
     "$oid": "0662a96fe8066d1ed2683b39"
@@ -9451,6 +9452,7 @@
    "owner_id": null,
    "privacy_policy": null,
    "profile_image": null,
+   "require_totp": false,
    "sso_default_role": null,
    "sso_required": false,
    "sso_required_changed_at": null,
@@ -9463,7 +9465,7 @@
   "document": "WorkspaceDocument"
  },
  "workspaces/naive": {
-  "checksum": "sha256:01c831921d597dd3f53d59fadd7bae4eba6dab56e5bbe48b70236ee0662b04ec",
+  "checksum": "sha256:c0fca1f91723b27e3552c860fccfb52c531486cfc1038ae8eb080a51484b5523",
   "doc": {
    "_id": {
     "$oid": "89649ece376f31ff66edc1a2"
@@ -9704,6 +9706,7 @@
    "owner_id": "WorkspaceDocument.owner_id tëxt ✓ \"quoted\" \\ line\nbreak",
    "privacy_policy": "WorkspaceDocument.privacy_policy tëxt ✓ \"quoted\" \\ line\nbreak",
    "profile_image": "WorkspaceDocument.profile_image tëxt ✓ \"quoted\" \\ line\nbreak",
+   "require_totp": true,
    "sso_default_role": "WorkspaceDocument.sso_default_role tëxt ✓ \"quoted\" \\ line\nbreak",
    "sso_required": true,
    "sso_required_changed_at": "2026-03-04T05:06:07.891234",
@@ -9716,7 +9719,7 @@
   "document": "WorkspaceDocument"
  },
  "workspaces/nulls": {
-  "checksum": "sha256:c7ae2ecfd8d5a803f65cfe1293e2786a0383128ecd2acd71abafc42dcd38e819",
+  "checksum": "sha256:7f964295eb05e798adabb128427bdcfef5faccebaeb6794284b95b5af510b840",
   "doc": {
    "_id": {
     "$oid": "8078bb88933d2e712c661301"
@@ -9747,6 +9750,7 @@
    "owner_id": null,
    "privacy_policy": null,
    "profile_image": null,
+   "require_totp": null,
    "sso_default_role": null,
    "sso_required": null,
    "sso_required_changed_at": null,

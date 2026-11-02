@@ -45,6 +45,7 @@ TARGET_ORDER = (
     "scim_directories",
     "registration_services",
     "form_webhooks",
+    "user_totp_factors",
 )
 COUNTERS = (
     "records",

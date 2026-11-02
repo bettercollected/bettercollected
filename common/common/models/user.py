@@ -86,6 +86,10 @@ class User(BaseModel):
     # ... and the connection (identity provider) it signed in through: a
     # session ends when the workspace's enabled connection is replaced.
     sso_connection_id: Optional[str] = None
+    # The session presented a second factor (an authenticator app or a recovery
+    # code). Set only by the backend when it signs the tokens, from the
+    # session's own record; absent = none was presented (docs/totp.md).
+    mfa: Optional[bool] = None
 
     def is_admin(self):
         """

@@ -31,6 +31,11 @@ from auth.config import settings
 SUBMISSION_UPDATE_TEMPLATE = "submission_update.html"
 SHEETS_RECONNECT_TEMPLATE = "sheets_reconnect.html"
 DRAFT_LINK_TEMPLATE = "draft_link.html"
+SECURITY_NOTICE_TEMPLATE = "security_notice.html"
+# what a security notice may be about (the backend names one; the wording is ours)
+SECURITY_KINDS = ("enrolled", "removed", "recovery_used", "locked", "reset", "reset_owner")
+# per account and process: a backstop (the backend sends one per event)
+SECURITY_NOTICES_PER_ACCOUNT_PER_HOUR = 20
 # a workspace handle and a form id, as path segments of the admin client
 WORKSPACE_NAME = re.compile(r"[A-Za-z0-9._~-]{1,200}")
 FORM_ID = re.compile(r"[A-Za-z0-9-]{1,64}")
@@ -196,6 +201,36 @@ def render_sheets_reconnect(
     )
 
 
+def render_security_notice(
+    kind: str,
+    locale: Optional[str] = None,
+    recovery_left: Optional[int] = None,
+    minutes: Optional[int] = None,
+    workspace_title: Optional[str] = None,
+) -> Tuple[str, str]:
+    """``(subject, html)`` of a notice about the recipient's own second factor.
+    Fixed wording: the only values are a count, a number of minutes and, for a
+    workspace owner's reset, the workspace's title (in the body only)."""
+    t = texts(locale)
+    product = sender_name()
+    subject = t[f"sec_subject_{kind}"]
+    body = t[f"sec_body_{kind}"].format(
+        product=product,
+        left=recovery_left if recovery_left is not None else 0,
+        minutes=minutes if minutes is not None else 15,
+        workspace=one_line(workspace_title) or "—",
+    )
+    html = render(
+        SECURITY_NOTICE_TEMPLATE,
+        t=t,
+        lang=mail_locale(locale),
+        subject=subject,
+        heading=t[f"sec_heading_{kind}"],
+        body=body,
+    )
+    return subject, html
+
+
 class NotificationService:
     def __init__(self):
         self._sent: Dict[str, Deque[float]] = defaultdict(deque)
@@ -261,6 +296,28 @@ class NotificationService:
             await MailService().send_message(message)
         except Exception as exc:  # noqa: BLE001 — background task, nothing to answer
             logger.warning(f"Draft link not sent ({type(exc).__name__})")
+
+    async def send_security_notice(
+        self,
+        recipient: str,
+        kind: str,
+        locale: Optional[str] = None,
+        recovery_left: Optional[int] = None,
+        minutes: Optional[int] = None,
+        workspace_title: Optional[str] = None,
+    ) -> None:
+        """Tell an account that something changed about its second factor. Runs
+        after the response was sent: failures are logged without the address."""
+        try:
+            subject, html = render_security_notice(
+                kind, locale, recovery_left, minutes, workspace_title
+            )
+            message = MessageSchema(
+                subject=subject, recipients=[recipient], body=html, subtype="html"
+            )
+            await MailService().send_message(message)
+        except Exception as exc:  # noqa: BLE001 — background task, nothing to answer
+            logger.warning(f"Security notice not sent ({type(exc).__name__})")
 
     async def send_sheets_reconnect(
         self,

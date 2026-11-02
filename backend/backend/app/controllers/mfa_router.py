@@ -15,6 +15,7 @@ from starlette.responses import Response
 
 from backend.app.container import container
 from backend.app.router import router
+from backend.app.services.auth_cookie_service import set_access_token_to_response
 from backend.app.services.mfa.service import (
     EnrolDto,
     MfaStatusDto,
@@ -39,6 +40,17 @@ class EnrolBody(CamelModel):
 class ConfirmBody(CamelModel):
     factor_id: str = Field(max_length=64)
     code: str = Field(max_length=CODE_MAX)
+
+
+class ChallengeDto(CamelModel):
+    logged_in: bool = True
+    recovery_left: Optional[int] = None
+
+
+def _promoted(user: User, response: Response) -> None:
+    """The session now holds a second factor: its access token says so at once
+    (the claim comes from the session's record, set just before)."""
+    set_access_token_to_response(user.model_copy(update={"mfa": True}), response)
 
 
 def _no_store(response: Response) -> None:
@@ -87,9 +99,11 @@ class MfaRouter(Routable):
         """Finish the setup with the first code. The recovery codes are in this
         response only."""
         _no_store(response)
-        return await container.mfa_service().confirm_enrolment(
+        codes = await container.mfa_service().confirm_enrolment(
             user, body.factor_id, body.code, request_client_ip(request)
         )
+        _promoted(user, response)
+        return codes
 
     @post("/verify")
     async def verify(
@@ -101,9 +115,24 @@ class MfaRouter(Routable):
     ) -> MfaStatusDto:
         """Present the second factor in this session."""
         _no_store(response)
-        return await container.mfa_service().step_up(
+        status = await container.mfa_service().step_up(
             user, body.code, request_client_ip(request)
         )
+        _promoted(user, response)
+        return status
+
+    @post("/challenge")
+    async def challenge(
+        self, body: CodeBody, request: Request, response: Response
+    ) -> ChallengeDto:
+        """The second step of a sign-in: the challenge cookie and a code (or a
+        recovery code) make the session. No session is needed, and none exists
+        before this succeeds."""
+        _no_store(response)
+        signed = await container.mfa_signin_service().complete(
+            request, response, body.code, request_client_ip(request)
+        )
+        return ChallengeDto(recovery_left=signed.recovery_left)
 
     @post("/recovery-codes")
     async def regenerate_recovery_codes(
