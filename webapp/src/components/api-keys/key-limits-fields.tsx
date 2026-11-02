@@ -10,7 +10,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-import { KEY_ROLE_OPTIONS, KeyFormScope, KeyRole, MAX_KEY_FORMS, lowestRoleFor, scopeProblems } from './key-rules';
+import { KEY_ROLE_OPTIONS, KeyFormScope, KeyRole, MAX_KEY_FORMS, StoredRole, UNKNOWN_ROLE, lowestRoleFor, scopeProblems } from './key-rules';
 
 // the most the forms list sends in one page
 const FORMS_PAGE_SIZE = 100;
@@ -148,7 +148,9 @@ function FormPicker({ formIds, onChange, knownForms }: { formIds: string[]; onCh
 export interface KeyLimitsFieldsProps {
     /** The scopes of the key (ticked in the create form, the key's own in the edit dialog). */
     scopes: string[];
-    role: KeyRole | null;
+    role: StoredRole;
+    /** The role the key stores when these screens do not know it (shown as the select's current value until another is chosen). */
+    unknownRole?: string | null;
     /** While true (a new key whose role nobody has chosen), the role follows the scopes: the lowest that allows them. */
     roleFollowsScopes?: boolean;
     onRoleChange: (role: KeyRole | null) => void;
@@ -169,11 +171,11 @@ export interface KeyLimitsFieldsProps {
  * server has key roles on, `apiKeyRolesEnabled`). Controls are labelled, the role select and the two radios are
  * native, rows are 44 px tall on a phone, and a combination the server would refuse is explained here first.
  */
-export default function KeyLimitsFields({ scopes, role, roleFollowsScopes = false, onRoleChange, formScope, onFormScopeChange, formIds, onFormIdsChange, knownForms = [], idPrefix, hideScopeProblems }: KeyLimitsFieldsProps) {
+export default function KeyLimitsFields({ scopes, role, unknownRole, roleFollowsScopes = false, onRoleChange, formScope, onFormScopeChange, formIds, onFormIdsChange, knownForms = [], idPrefix, hideScopeProblems }: KeyLimitsFieldsProps) {
     const { t } = useTranslation();
     const listed = formScope === 'listed';
     const suggested = lowestRoleFor(scopes);
-    const shownRole = roleFollowsScopes ? suggested : role;
+    const shownRole = roleFollowsScopes ? suggested : role === UNKNOWN_ROLE ? null : role;
     const roleId = `${idPrefix}-role`;
     const roleHelpId = `${idPrefix}-role-help`;
 
@@ -183,7 +185,12 @@ export default function KeyLimitsFields({ scopes, role, roleFollowsScopes = fals
                 <label htmlFor={roleId} className="text-[13px] font-semibold text-black-900">
                     {t('STAFF.API_KEYS.ROLE_TITLE')}
                 </label>
-                <select id={roleId} aria-describedby={roleHelpId} value={shownRole ?? ''} onChange={(event) => onRoleChange((event.target.value || null) as KeyRole | null)} className={`${fieldClass} py-0 pr-8`}>
+                <select id={roleId} aria-describedby={roleHelpId} value={role === UNKNOWN_ROLE && !roleFollowsScopes ? UNKNOWN_ROLE : (shownRole ?? '')} onChange={(event) => onRoleChange((event.target.value || null) as KeyRole | null)} className={`${fieldClass} py-0 pr-8`}>
+                    {role === UNKNOWN_ROLE && (
+                        <option value={UNKNOWN_ROLE} disabled>
+                            {t('STAFF.API_KEYS.ROLE_UNKNOWN', { role: unknownRole ?? '' })}
+                        </option>
+                    )}
                     <option value="">{t('STAFF.API_KEYS.ROLE_CREATOR')}</option>
                     {KEY_ROLE_OPTIONS.map((option) => (
                         <option key={option} value={option}>

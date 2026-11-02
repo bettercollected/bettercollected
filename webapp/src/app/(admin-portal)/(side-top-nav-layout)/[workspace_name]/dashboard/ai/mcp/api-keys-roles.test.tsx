@@ -7,7 +7,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import i18n from 'i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { KEY_ERROR_CODES, listAllowsScope, lowestRoleFor, roleAllowsScope, scopeProblems, submissionFormsOutsideList, widensKey, widensRole } from '@app/components/api-keys/key-rules';
+import { KEY_ERROR_CODES, UNKNOWN_ROLE, listAllowsScope, lowestRoleFor, roleAllowsScope, scopeProblems, submissionFormsOutsideList, widensKey, widensRole } from '@app/components/api-keys/key-rules';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import '@app/shared/hocs/i18n-provider';
 import { axeViolations } from '@app/test/axe';
@@ -104,6 +104,11 @@ describe('the rules a key must keep, as the browser checks them', () => {
         expect(widensRole('VIEWER', null, scopes)).toBe(true);
         expect(widensRole(null, 'VIEWER', scopes)).toBe(false);
         expect(widensRole('VIEWER', 'VIEWER', scopes)).toBe(false);
+        // a role the screens do not know allows nothing: any role, or none, is more
+        expect(widensRole(UNKNOWN_ROLE, 'VIEWER', scopes)).toBe(true);
+        expect(widensRole(UNKNOWN_ROLE, null, scopes)).toBe(true);
+        expect(widensRole(UNKNOWN_ROLE, UNKNOWN_ROLE, scopes)).toBe(false);
+        expect(widensRole('VIEWER', UNKNOWN_ROLE, scopes)).toBe(false);
         const listed = { role: 'VIEWER' as const, formScope: 'listed' as const, formIds: ['a', 'b'] };
         expect(widensKey(listed, { ...listed, formScope: 'all', formIds: [] }, scopes)).toBe(true);
         expect(widensKey(listed, { ...listed, formIds: ['a', 'b', 'c'] }, scopes)).toBe(true);
@@ -300,6 +305,7 @@ describe('making a key with a role and a list of forms', () => {
 describe('what the server refuses is said in words', () => {
     const cases: Array<[string, string]> = [
         ['api_key_roles_off', 'Key roles are turned off on this instance.'],
+        ['audit_unavailable', 'The change could not be written to the audit log, so it was not made. Try again in a moment.'],
         ['key_exceeds_editor', 'You cannot make this key follow a person who may do more than you may. Ask an Owner to change it.'],
         ['key_role_exceeds_creator', 'A key cannot have a role that allows more than the person who created it may do.'],
         ['key_form_scope', 'This key is limited to certain forms, so it cannot create a form.'],
@@ -562,6 +568,84 @@ function cases(): Array<[string, string]> {
         ['scope_not_allowed_by_role', 'This role cannot carry the scope “Delete forms”.']
     ];
 }
+
+describe('the follow-ups of the review', () => {
+    const open = (key: any) => {
+        KEYS.push(key);
+        render(<APIKeysPage />);
+        fireEvent.click(screen.getByRole('button', { name: `Edit “${key.name}”` }));
+        return screen.getByRole('dialog', { name: `Edit “${key.name}”` });
+    };
+    const save = () => screen.getByRole('button', { name: /^(Save|Widen and save)$/ });
+
+    it('says in Dutch that the change was not recorded, when the audit log is down', async () => {
+        await act(() => i18n.changeLanguage('nl'));
+        KEYS.push(READER);
+        render(<APIKeysPage />);
+        fireEvent.click(screen.getByRole('button', { name: 'Wijzigen “Reporting”' }));
+        const dialog = screen.getByRole('dialog');
+        fireEvent.change(within(dialog).getByLabelText('Naam'), { target: { value: 'Rapportage' } });
+        updated.mockReturnValueOnce({ error: { status: 503, data: { code: 'audit_unavailable', message: 'x' } } });
+        fireEvent.click(screen.getByRole('button', { name: 'Opslaan' }));
+        await waitFor(() => expect(dialog).toHaveTextContent('De wijziging kon niet in het auditlogboek worden vastgelegd en is daarom niet doorgevoerd.'));
+    });
+
+    it('renames a listed key whose forms are all gone, and still waits for a form when the list itself changes', async () => {
+        const dialog = open({ ...READER, forms: [] });
+        fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Reporting (old)' } });
+        expect(within(dialog).queryByText('Pick at least one form, or choose every form.')).toBeNull();
+        expect(save()).toBeEnabled();
+        fireEvent.click(save());
+        await waitFor(() => expect(updated).toHaveBeenCalled());
+        // only the name goes: the list is not touched
+        expect(updated.mock.calls[0][0].body).toEqual({ name: 'Reporting (old)' });
+    });
+
+    it('waits for a form when the last form is taken off a list', () => {
+        const dialog = open(READER);
+        fireEvent.click(within(dialog).getByRole('checkbox', { name: /Registration/ }));
+        expect(within(dialog).getByText('Pick at least one form, or choose every form.')).toBeInTheDocument();
+        expect(save()).toBeDisabled();
+    });
+
+    it('shows a stored role the screens do not know as a warning, in the list and in the dialog', async () => {
+        KEYS.push({ ...READER, role: 'AUDITOR', formScope: 'all', forms: [] });
+        render(<APIKeysPage />);
+        expect(screen.getByText('Unknown role: AUDITOR')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Edit “Reporting”' }));
+        const dialog = screen.getByRole('dialog');
+        expect(within(dialog).getByRole('alert')).toHaveTextContent('This key has the role “AUDITOR”, which this version does not know, so the server lets it do nothing.');
+        expect(within(dialog).getByLabelText('Role')).toHaveDisplayValue('Unknown role “AUDITOR”');
+        // nothing else is saved while the role is what the server reads as "allows nothing"
+        fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Renamed' } });
+        expect(save()).toBeDisabled();
+        // choosing a role replaces it: that gives the key more than nothing, so the usual warning follows
+        fireEvent.change(within(dialog).getByLabelText('Role'), { target: { value: 'VIEWER' } });
+        expect(within(dialog).queryByText(/which this version does not know/)).toBeNull();
+        expect(within(dialog).getByText(/more access/)).toBeInTheDocument();
+        expect(save()).toBeEnabled();
+        fireEvent.click(save());
+        await waitFor(() => expect(updated).toHaveBeenCalled());
+        expect(updated.mock.calls[0][0].body).toEqual({ name: 'Renamed', role: 'VIEWER' });
+    });
+
+    it('explains a refused list that holds forms the editor cannot open', async () => {
+        const dialog = open({ ...READER, forms: [{ id: 'f1', title: 'Registration' }, { id: 'zz', title: null }, { id: 'yy', title: null }] });
+        fireEvent.click(within(dialog).getByRole('checkbox', { name: /Staff survey/ }));
+        updated.mockReturnValueOnce({ error: { status: 400, data: { code: 'form_not_in_workspace', message: 'x' } } });
+        fireEvent.click(save());
+        await waitFor(() => expect(dialog).toHaveTextContent('The list holds 2 forms you cannot open'));
+        expect(dialog).toHaveTextContent('take them off the list, or ask someone who can open them');
+    });
+
+    it('keeps the general sentence when every form on the list can be opened', async () => {
+        const dialog = open(READER);
+        fireEvent.click(within(dialog).getByRole('checkbox', { name: /Staff survey/ }));
+        updated.mockReturnValueOnce({ error: { status: 400, data: { code: 'form_not_in_workspace', message: 'x' } } });
+        fireEvent.click(save());
+        await waitFor(() => expect(dialog).toHaveTextContent('One of the forms is not in this workspace, or you cannot open it.'));
+    });
+});
 
 describe('in Dutch, and for assistive technology', () => {
     it('is written in Dutch', async () => {
