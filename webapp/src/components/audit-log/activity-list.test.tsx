@@ -115,7 +115,7 @@ describe('the workspace Activity page', () => {
         expect(within(items[0]).getByText('Access')).toBeInTheDocument();
     });
 
-    it('names the people and forms in bold and never shows an id', async () => {
+    it('names the people and forms in bold and never shows the id of a person, form or team', async () => {
         await show();
         const first = screen.getAllByRole('listitem').filter((li) => li.querySelector('time'))[0];
         expect([...first.querySelectorAll('strong')].map((s) => s.textContent)).toEqual(['Sanne de Vries', 'Intake', 'Join the volunteers']);
@@ -183,6 +183,21 @@ describe('the filters, kept in the address', () => {
         expect(chips.getByRole('button', { name: 'Remove filter: Type: Access' })).toBeInTheDocument();
         fireEvent.click(chips.getByRole('button', { name: /Remove filter: Form: / }));
         expect(replace).toHaveBeenLastCalledWith('/acme/dashboard/activity?area=access&who=u_pim&about=1&from=2026-10-01&to=2026-10-31', { scroll: false });
+    });
+
+    it('names the date chips by their UTC day, whatever the time zone of the viewer', async () => {
+        const zone = process.env.TZ;
+        process.env.TZ = 'America/Los_Angeles';
+        try {
+            search = 'from=2026-10-01&to=2026-10-31';
+            await show();
+            const chips = within(screen.getByRole('list', { name: 'Active filters' }));
+            expect(chips.getByRole('button', { name: 'Remove filter: From Thursday, 1 October 2026' })).toBeInTheDocument();
+            expect(chips.getByRole('button', { name: 'Remove filter: To Saturday, 31 October 2026' })).toBeInTheDocument();
+        } finally {
+            if (zone === undefined) delete process.env.TZ;
+            else process.env.TZ = zone;
+        }
     });
 
     it('clears every filter', async () => {
@@ -329,6 +344,17 @@ describe('the switch and the permission', () => {
         expect(screen.queryByTestId('activity-list')).not.toBeInTheDocument();
         expect(requests).toHaveLength(0);
         await waitFor(() => expect(replace).toHaveBeenCalledWith('/acme/dashboard/forms'));
+    });
+
+    it('says so, with a way to try again, when the permissions request failed: never a blank page', () => {
+        flags.answered = false;
+        const dispatch = vi.spyOn(store, 'dispatch');
+        render(<ActivityGate />);
+        expect(screen.getByRole('alert')).toHaveTextContent('Your access to this page could not be checked.');
+        expect(requests).toHaveLength(0);
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+        expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: expect.stringContaining('invalidateTags') }));
+        dispatch.mockRestore();
     });
 
     it('asks for nothing until the permissions have arrived', () => {

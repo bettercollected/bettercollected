@@ -3,7 +3,9 @@ import { resolve } from 'path';
 
 import { describe, expect, it } from 'vitest';
 
-import { EMPTY_FILTERS, SECURITY_KINDS_SHOWN_BY_DEFAULT, activeFilterCount, auditQuery, filtersToSearch, hidesBreakGlass, parseFilters } from './filters';
+import { AUDIT_AREAS } from '@app/models/dtos/audit-log-dto';
+
+import { DEFAULT_AREAS, EMPTY_FILTERS, SECURITY_KINDS_SHOWN_BY_DEFAULT, activeFilterCount, auditQuery, filtersToSearch, hidesBreakGlass, parseFilters } from './filters';
 
 const parse = (search: string) => parseFilters(new URLSearchParams(search));
 
@@ -53,7 +55,8 @@ describe('the request for a page', () => {
 
     it("shows every kind of the server's Security area but the break-glass requests (backend catalog.py)", () => {
         const catalog = resolve(__dirname, '../../../../backend/backend/app/services/audit_log/catalog.py');
-        if (!existsSync(catalog)) return;
+        // the catalogue is part of this repository: a missing file is a failure, not a reason to skip the check
+        expect(existsSync(catalog), `${catalog} is missing`).toBe(true);
         const schema = readFileSync(resolve(__dirname, '../../../../backend/backend/app/schemas/workspace_audit_event.py'), 'utf8');
         const constants = Object.fromEntries([...schema.matchAll(/^([A-Z_]+) = "([a-z_]+)"$/gm)].map((m) => [m[1], m[2]]));
         const tuple = (name: string) => [...(schema.match(new RegExp(`^${name} = \\(([^)]*)\\)`, 'm'))?.[1] ?? '').matchAll(/([A-Z_]+),/g)].map((m) => m[1]);
@@ -68,6 +71,16 @@ describe('the request for a page', () => {
         kinds.delete('sso_break_glass_request');
         // a Security kind missing here would be hidden by default: that is the failure this guards
         expect([...kinds].filter((kind) => !SECURITY_KINDS_SHOWN_BY_DEFAULT.includes(kind))).toEqual([]);
+    });
+
+    it("offers the server's areas, and shows by default every one of them but Security (backend catalog.py)", () => {
+        const catalog = resolve(__dirname, '../../../../backend/backend/app/services/audit_log/catalog.py');
+        expect(existsSync(catalog), `${catalog} is missing`).toBe(true);
+        const areas = [...readFileSync(catalog, 'utf8').matchAll(/^AREA_[A-Z_]+ = "([a-z_]+)"$/gm)].map((m) => m[1]);
+        expect(areas.length).toBeGreaterThan(0);
+        expect([...AUDIT_AREAS].sort()).toEqual([...areas].sort());
+        // an area added to the server cannot silently drop out of the default view
+        expect([...DEFAULT_AREAS].sort()).toEqual(areas.filter((area) => area !== 'security').sort());
     });
 
     it('asks for exactly the chosen areas, and shows the break-glass requests when Security is chosen', () => {

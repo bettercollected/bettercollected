@@ -2781,6 +2781,7 @@
     "LOADED_MORE_one": "{{count}} more entry loaded",
     "LOADED_MORE_other": "{{count}} more entries loaded",
     "LOAD_MORE_ERROR": "Older entries could not be loaded.",
+    "PERMISSIONS_ERROR": "Your access to this page could not be checked.",
     "NO_ACCESS": "You do not have access to the activity of this workspace.",
     "OPEN_RESPONSE": "Open response",
     "OPEN_RESPONSE_AT": "Open the response from {{time}}",

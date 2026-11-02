@@ -2781,6 +2781,7 @@
     "LOADED_MORE_one": "{{count}} extra regel geladen",
     "LOADED_MORE_other": "{{count}} extra regels geladen",
     "LOAD_MORE_ERROR": "Oudere regels konden niet worden geladen.",
+    "PERMISSIONS_ERROR": "Uw toegang tot deze pagina kon niet worden gecontroleerd.",
     "NO_ACCESS": "U hebt geen toegang tot de activiteit van deze werkruimte.",
     "OPEN_RESPONSE": "Reactie openen",
     "OPEN_RESPONSE_AT": "Open de reactie van {{time}}",

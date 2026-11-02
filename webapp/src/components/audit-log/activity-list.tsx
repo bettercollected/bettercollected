@@ -14,7 +14,8 @@ import { AUDIT_AREAS, AuditArea, AuditEntryDto, AuditLabels } from '@app/models/
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { buttonClassName } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
-import { useAppSelector } from '@app/store/hooks';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { WORKSPACE_PERMISSIONS_TAG, workspacesApi } from '@app/store/workspaces/api';
 import { useLazyGetAuditLogQuery } from '@app/store/workspaces/audit-log-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { formVersionsUrl, responsePageUrl, responsesListUrl } from '@app/utils/response-urls';
@@ -134,6 +135,8 @@ export function ActivityList({ formId }: { formId?: string }) {
 
     const when = useMemo(() => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }), [locale]);
     const day = useMemo(() => new Intl.DateTimeFormat(locale, { dateStyle: 'full' }), [locale]);
+    // the date filters are UTC days: their chips name the same day wherever the viewer is
+    const dayUtc = useMemo(() => new Intl.DateTimeFormat(locale, { dateStyle: 'full', timeZone: 'UTC' }), [locale]);
     const count = activeFilterCount(effective, !formId);
     const Heading = formId ? 'h3' : 'h2';
 
@@ -148,7 +151,7 @@ export function ActivityList({ formId }: { formId?: string }) {
         .sort((a, b) => a.title.localeCompare(b.title, locale));
     const personName = (id: string) => people.find((p) => p.id === id)?.name ?? t('AUDIT_LOG.NAME.FORMER_MEMBER');
     const formTitle = (id: string) => forms.find((f) => f.id === id)?.title ?? t('AUDIT_LOG.NAME.GONE');
-    const dateText = (value: string) => day.format(new Date(`${value}T00:00:00Z`)).replace(/^./, (c) => c.toLocaleUpperCase(locale));
+    const dateText = (value: string) => dayUtc.format(new Date(`${value}T00:00:00Z`)).replace(/^./, (c) => c.toLocaleUpperCase(locale));
 
     const chips: Array<{ key: string; text: string; remove: () => void }> = [
         ...effective.areas.map((area) => ({ key: `area-${area}`, text: t('AUDIT_LOG.CHIP_AREA', { area: t(`AUDIT_LOG.AREA.${area}`) }), remove: () => setFilters({ ...effective, areas: effective.areas.filter((a) => a !== area) }) })),
@@ -426,6 +429,7 @@ export function ActivityList({ formId }: { formId?: string }) {
 export function ActivityGate({ formId }: { formId?: string }) {
     const { t } = useTranslation();
     const router = useRouter();
+    const dispatch = useAppDispatch();
     const workspace = useAppSelector(selectWorkspace);
     const { ready, answered, can, auditLogUiEnabled } = useWorkspacePermissions();
     const workspaceName: string = workspace?.workspaceName ?? '';
@@ -436,7 +440,18 @@ export function ActivityGate({ formId }: { formId?: string }) {
     }, [off, workspaceName, router]);
 
     if (!ready) return <div role="status" aria-live="polite" />;
-    if (!answered || off) return null;
+    if (off) return null;
+    // the permissions request failed: that proves nothing about the viewer's rights, so say so and let them try again
+    if (!answered) {
+        return (
+            <div role="alert" className="flex max-w-2xl flex-wrap items-center gap-3 rounded border border-black-300 bg-white p-4 text-sm">
+                <span>{t('AUDIT_LOG.PERMISSIONS_ERROR')}</span>
+                <button type="button" className={actionClass} onClick={() => dispatch(workspacesApi.util.invalidateTags([WORKSPACE_PERMISSIONS_TAG]))}>
+                    {t('AUDIT_LOG.RETRY')}
+                </button>
+            </div>
+        );
+    }
     if (!can(WorkspacePermission.AUDIT_READ)) {
         return (
             <p role="status" className="max-w-2xl text-sm text-black-700">

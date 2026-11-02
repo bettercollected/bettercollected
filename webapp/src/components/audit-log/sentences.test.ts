@@ -92,7 +92,8 @@ const say = (lng: 'en' | 'nl', e: AuditEntryDto, formId?: string) => describeEnt
 describe('the sentence table', () => {
     it('lists every kind the server can return (backend services/audit_log/catalog.py)', () => {
         const catalog = resolve(__dirname, '../../../../backend/backend/app/services/audit_log/catalog.py');
-        if (!existsSync(catalog)) return; // the webapp is built on its own: nothing to compare with there
+        // the catalogue is part of this repository: a missing file is a failure, not a reason to skip the check
+        expect(existsSync(catalog), `${catalog} is missing`).toBe(true);
         const schema = readFileSync(resolve(__dirname, '../../../../backend/backend/app/schemas/workspace_audit_event.py'), 'utf8');
         const source = readFileSync(catalog, 'utf8');
         const constants = Object.fromEntries([...schema.matchAll(/^([A-Z_]+) = "([a-z_]+)"$/gm)].map((m) => [m[1], m[2]]));
@@ -115,7 +116,7 @@ describe('the sentence table', () => {
     for (const lng of ['en', 'nl'] as const) {
         describe(lng, () => {
             for (const event of AUDIT_EVENTS) {
-                it(`${event} reads as a plain sentence, with no id and no raw key`, () => {
+                it(`${event} reads as a plain sentence, with no id of a person, form or response and no raw key`, () => {
                     const sentence = say(lng, entry(event, SAMPLES[event]));
                     expect(sentence.key).not.toBe('AUDIT_LOG.SENTENCE.FALLBACK');
                     expect(sentence.text).toMatch(/\.$/);

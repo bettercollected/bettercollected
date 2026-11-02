@@ -2,7 +2,7 @@ import { AuditEntryDto, AuditLabels } from '@app/models/dtos/audit-log-dto';
 
 // One plain sentence per audit entry, in the reader's language. The server sends codes, ids and the current labels of
 // the ids on the page (never prose, never an answer or an address); the words are here and in
-// `public/locales/<lang>/common.json` under `AUDIT_LOG.SENTENCE`. An id never reaches the screen: a person who has left
+// `public/locales/<lang>/common.json` under `AUDIT_LOG.SENTENCE`. No id of a person, form or response reaches the sentence (a session id, which the server sends only to an Owner or an Admin, is shown beside it): a person who has left
 // is "a member who has left", a form or team that is gone is "an item that no longer exists". An event kind this file
 // does not know gets the neutral fallback sentence, so a newer server never breaks the page.
 

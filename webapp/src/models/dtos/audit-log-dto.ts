@@ -1,5 +1,5 @@
 // What the audit log routes answer (backend app/models/dtos/audit_log_dto.py, docs/audit-log.md). Codes, ids and
-// enum values only: the dashboard words each entry in the reader's language and never shows an id. A field the
+// enum values only: the dashboard words each entry in the reader's language and never shows the id of a person, form or response. A field the
 // server leaves out (a session id for a Privacy officer, a response id for someone who may not open it) is absent.
 
 /** The areas the Type filter offers, in order (the server's catalogue). */

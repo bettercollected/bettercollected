@@ -66,7 +66,7 @@ export function activeFilterCount(filters: AuditFilters, withForm: boolean): num
 // most entries). The other kinds of the Security area stay: the sign-ins, the authenticator rule, the settings changes.
 // The reader can only include (areas and kinds together), not exclude, so the default view names every area but
 // Security plus every Security kind but the break-glass requests (a test keeps this list equal to the server's catalogue).
-const DEFAULT_AREAS: AuditArea[] = ['access', 'members', 'forms', 'responses', 'api_keys', 'integrations'];
+export const DEFAULT_AREAS: AuditArea[] = ['access', 'members', 'forms', 'responses', 'api_keys', 'integrations'];
 export const SECURITY_KINDS_SHOWN_BY_DEFAULT = [
     'sso_break_glass_sign_in',
     'totp_policy_changed',
