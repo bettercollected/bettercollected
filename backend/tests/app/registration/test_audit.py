@@ -9,6 +9,8 @@ nothing changed) when the entry cannot be stored; creating a service, saving a
 switched-off form and switching a form off are best effort. Everything here is
 synthetic."""
 
+from urllib.parse import urlsplit
+
 import pytest
 
 from backend.app.container import container
@@ -140,7 +142,7 @@ async def test_a_service_change_that_cannot_be_recorded_is_refused_and_not_made(
         )
     )
     row = await container.registration_service_repo().get(workspace.id, created.id)
-    assert "other.example" not in row.base_url and "case.example.org" in row.base_url
+    assert urlsplit(row.base_url).hostname == "case.example.org"
 
 
 async def test_deleting_an_unused_service_is_recorded_after_and_never_blocked(
