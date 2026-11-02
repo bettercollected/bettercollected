@@ -892,12 +892,19 @@ class SessionDocument(MongoDocument):
     # "sso" sessions: the workspace whose identity provider signed in
     sso_workspace_id: Optional[str] = None
     sso_connection_id: Optional[str] = None
+    mfa_at: Optional[dt.datetime] = None
+    mfa_method: Optional[str] = None
     user_agent: Optional[str] = None
     revoked_at: Optional[dt.datetime] = None
     revoke_reason: Optional[str] = None
 
     @field_validator(
-        "rotated_at", "last_refreshed_at", "expires_at", "revoked_at", mode="after"
+        "rotated_at",
+        "last_refreshed_at",
+        "expires_at",
+        "revoked_at",
+        "mfa_at",
+        mode="after",
     )
     @classmethod
     def _utc(cls, value: Optional[dt.datetime]) -> Optional[dt.datetime]:
