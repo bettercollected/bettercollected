@@ -83,7 +83,9 @@ const SAMPLES: Record<(typeof AUDIT_EVENTS)[number], Partial<AuditEntryDto>> = {
     registration_service_deleted: { actorId: 'u_sanne' },
     form_registration_enabled: { actorId: 'u_sanne', formId: 'f_join' },
     form_registration_changed: { actorId: 'u_sanne', formId: 'f_join', changed: ['path'] },
-    form_registration_disabled: { actorId: 'u_sanne', formId: 'f_join' }
+    form_registration_disabled: { actorId: 'u_sanne', formId: 'f_join' },
+    form_copied_out: { actorId: 'u_sanne', formId: 'f_join' },
+    form_promoted: { actorId: 'u_sanne', formId: 'f_join', count: 3 }
 };
 
 const entry = (event: string, extra: Partial<AuditEntryDto> = {}): AuditEntryDto => ({ id: 'e1', event, at: '2026-11-01T12:00:00Z', ...extra });
@@ -208,6 +210,13 @@ describe('the sentence table', () => {
         expect(say('en', entry('registration_service_updated', { actorId: 'u_sanne', changed: ['secret'] })).text).toBe('Sanne de Vries changed a case-system service (changed: secret).');
         // the id of the AI provider and of a directory never reach the screen
         expect(say('en', entry('ai_consent_changed', { actorId: 'u_sanne', enabled: true, provider: 'openai' })).text).not.toMatch(/openai/i);
+    });
+
+    it('words a form copied to or from another workspace, naming no workspace', () => {
+        expect(say('en', entry('form_copied_out', { actorId: 'u_sanne', formId: 'f_join' })).text).toBe('Sanne de Vries copied Join the volunteers to another workspace.');
+        expect(say('en', entry('form_promoted', { actorId: 'u_sanne', formId: 'f_join', count: 3 })).text).toBe('Sanne de Vries copied Join the volunteers in from another workspace (3 adjustments to fit).');
+        expect(say('nl', entry('form_promoted', { actorId: 'u_sanne', formId: 'f_join', count: 1 })).text).toBe('Sanne de Vries kopieerde Join the volunteers vanuit een andere werkruimte hierheen (1 aanpassing om te passen).');
+        expect(say('en', entry('form_promoted', { actorId: 'u_sanne', formId: 'f_join', count: 0 })).text).toBe('Sanne de Vries copied Join the volunteers in from another workspace.');
     });
 
     it('falls back to a neutral sentence for a kind it does not know, in both languages', () => {

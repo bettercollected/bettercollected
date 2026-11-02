@@ -69,7 +69,9 @@ export const AUDIT_EVENTS = [
     'registration_service_deleted',
     'form_registration_enabled',
     'form_registration_changed',
-    'form_registration_disabled'
+    'form_registration_disabled',
+    'form_copied_out',
+    'form_promoted'
 ] as const;
 
 /** The parts of an integration's configuration an entry may name as changed (backend `AUTOMATION_PARTS`); any other is not shown. */
@@ -255,6 +257,15 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
         case 'form_deleted':
             key = entry.event.toUpperCase();
             values = { actor, form: form(entry.formId) };
+            break;
+        case 'form_copied_out':
+            key = 'FORM_COPIED_OUT';
+            values = { actor, form: form(entry.formId) };
+            break;
+        case 'form_promoted':
+            key = 'FORM_PROMOTED';
+            values = { actor, form: form(entry.formId) };
+            if (typeof entry.count === 'number' && entry.count > 0) details.push(t(`${SENTENCE}.DETAIL_ADJUSTED`, { count: entry.count }));
             break;
         case 'form_creator_reassigned':
             key = 'FORM_CREATOR_REASSIGNED';
