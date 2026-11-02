@@ -16,7 +16,11 @@ from common.security.clock import FakeClock
 import backend
 from backend.app.container import container
 from backend.app.services.auth_cookie_service import access_token_for
-from backend.app.services.mfa.signin import CHALLENGE_COOKIE, CHALLENGE_TYP
+from backend.app.services.mfa.signin import (
+    CHALLENGE_AUDIENCE,
+    CHALLENGE_COOKIE,
+    CHALLENGE_TYP,
+)
 from backend.app.services.session_service import (
     SessionService,
     decode_token,
@@ -39,6 +43,16 @@ def cookies_of(response) -> dict:
         for name, morsel in jar.items():
             found[name] = morsel.value if morsel["max-age"] != "0" else None
     return found
+
+
+def challenge_claims(token: str) -> dict:
+    """What a challenge says (it can only be read by asking for its audience)."""
+    return jwt.decode(
+        token,
+        settings.auth_settings.JWT_SECRET.split(",")[0],
+        algorithms=["HS256"],
+        audience=CHALLENGE_AUDIENCE,
+    )
 
 
 def code_for(secret: str, offset: int = 0) -> str:
@@ -96,9 +110,9 @@ async def test_an_account_with_a_factor_gets_a_challenge_and_no_session(client, 
     assert await session_count() == before
     # the challenge carries no permission: it is not an access token
     assert user_from_access_token(cookies[CHALLENGE_COOKIE]) is None
-    claims = decode_token(cookies[CHALLENGE_COOKIE])
-    assert claims["typ"] == CHALLENGE_TYP and claims["id"] == account.user.id
-    assert set(claims) <= {"typ", "jti", "exp", "id", "sub", "roles", "plan", "email_verified", "method"}
+    claims = challenge_claims(cookies[CHALLENGE_COOKIE])
+    assert claims["typ"] == CHALLENGE_TYP and claims["aud"] == CHALLENGE_AUDIENCE and claims["id"] == account.user.id
+    assert set(claims) <= {"typ", "aud", "jti", "exp", "id", "sub", "roles", "plan", "email_verified", "method"}
 
 
 async def test_the_right_code_makes_the_session_with_the_claim(client, staff):
@@ -160,13 +174,16 @@ async def test_a_challenge_makes_one_session_only(client, staff):
 async def test_a_bad_challenge_is_refused(client, staff):
     account, secret, codes = staff
     good = cookies_of(await first_factor(client, account))[CHALLENGE_COOKIE]
-    claims = decode_token(good)
+    claims = challenge_claims(good)
     key = settings.auth_settings.JWT_SECRET.split(",")[0]
     expired = jwt.encode({**claims, "exp": int(time.time()) - 5}, key, algorithm="HS256")
     forged = jwt.encode(claims, "another-secret-" * 4, algorithm="HS256")
+    # right key and shape, but without the audience: an access-token-like body
+    no_audience = jwt.encode({k: v for k, v in claims.items() if k != "aud"}, key, algorithm="HS256")
+    wrong_audience = jwt.encode({**claims, "aud": "somebody-else"}, key, algorithm="HS256")
     as_access = access_token_for(account.user)
     unsigned = jwt.encode(claims, key=None, algorithm="none")
-    for bad in (expired, forged, as_access, unsigned, "garbage", ""):
+    for bad in (expired, forged, no_audience, wrong_audience, as_access, unsigned, "garbage", ""):
         reply = await client.post(
             CHALLENGE, cookies={CHALLENGE_COOKIE: bad} if bad else {}, json={"code": codes[0]}
         )
@@ -174,6 +191,42 @@ async def test_a_bad_challenge_is_refused(client, staff):
         assert reply.json()["code"] == "mfa_challenge_expired"
     # and none of them used a recovery code up
     assert (await service(new_clock()).status(account.user)).recovery_left == 10
+
+
+async def test_no_decoder_of_access_tokens_accepts_a_challenge(client, staff):
+    """The challenge is signed with the access key ring and names the same
+    account: only the audience keeps a decoder that ignores ``typ`` (the Google
+    service's, the auth service's, the shared JwtService) from taking it for a
+    login. Every one of them decodes through ``decode_with_ring`` with no
+    audience, which PyJWT refuses for a token that has one."""
+    from common.services.jwt_service import JwtService, decode_with_ring
+
+    account, secret, codes = staff
+    token = cookies_of(await first_factor(client, account))[CHALLENGE_COOKIE]
+    ring = settings.auth_settings.JWT_SECRET
+    with pytest.raises(jwt.InvalidAudienceError):
+        decode_with_ring(token, ring, algorithms=["HS256"])
+    with pytest.raises(jwt.PyJWTError):
+        JwtService(ring).decode(token, User)
+    assert decode_token(token) is None
+    assert user_from_access_token(token) is None
+    # and the way in: the cookie the browser sends to a route that reads the
+    # access cookie is no login (a challenge in the place of the access cookie)
+    reply = await client.get("/api/v1/auth/mfa/status", cookies={"Authorization": token})
+    assert reply.status_code == 401
+
+
+def test_no_decoder_in_the_repository_opts_out_of_the_audience_check():
+    """A decoder that turned the audience check off would take a challenge for
+    an access token."""
+    root = Path(backend.__file__).parents[2]
+    offenders = []
+    for package in ("backend/backend", "common/common", "auth/auth", "integrations/google/googleform"):
+        for path in (root / package).rglob("*.py"):
+            text = path.read_text()
+            if "verify_aud" in text or "\"verify_signature\"" in text:
+                offenders.append(str(path.relative_to(root)))
+    assert offenders == []
 
 
 async def test_a_challenge_for_a_user_whose_factor_was_removed_gets_no_session(client, staff):

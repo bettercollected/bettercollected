@@ -44,6 +44,13 @@ CHALLENGE_COOKIE = "McChallenge"
 CHALLENGE_TYP = "mfa_challenge"
 CHALLENGE_LIFETIME = dt.timedelta(minutes=5)
 CLAIM_SCOPE = "mfa_challenge"
+# The challenge is signed with the same key ring as the access token and names
+# the same account, so a token decoder that ignores ``typ`` would take it for an
+# access token. The audience closes that: PyJWT refuses any token that has an
+# ``aud`` unless the caller asks for that audience, so every decoder of access
+# tokens (backend, auth, the Google service) rejects a challenge, and only
+# ``MfaSignIn`` asks for it.
+CHALLENGE_AUDIENCE = "bc:mfa-challenge"
 
 
 class SignedIn:
@@ -92,6 +99,7 @@ class MfaSignIn:
         now = dt.datetime.now(dt.timezone.utc)
         claims = {
             "typ": CHALLENGE_TYP,
+            "aud": CHALLENGE_AUDIENCE,
             "jti": new_jti(),
             "exp": int((now + CHALLENGE_LIFETIME).timestamp()),
             "id": user.id,
@@ -116,6 +124,8 @@ class MfaSignIn:
                 token or "",
                 settings.auth_settings.JWT_SECRET,
                 algorithms=["HS256"],
+                audience=CHALLENGE_AUDIENCE,
+                options={"require": ["exp", "aud", "jti"]},
             )
         except jwt.PyJWTError:
             claims = None
