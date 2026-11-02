@@ -219,3 +219,31 @@ async def test_a_person_in_a_workspace_that_requires_one_cannot_turn_theirs_off(
     await require_totp(workspace, False)
     clock.advance(30)
     assert (await svc.disable(account.user, codes[1])).enabled is False
+
+
+async def test_a_disabled_workspace_is_not_exempt(client, totp_on, workspace):
+    """The owners of a disabled workspace still read, export and delete the
+    respondents' data there: they need the second factor too."""
+    from tests.app.response_export.helpers import answers, publish, start, submit
+
+    form = await publish(workspace)
+    await submit(workspace, form, answers("Ada"))
+    await require_totp(workspace)
+    await container.workspace_repo().set_fields(workspace, {"disabled": True})
+    # the owner without a second factor in this session: refused, on a response
+    # export and on a plain read alike
+    refused = await start(client, workspace, form)
+    assert refused.status_code == 403
+    assert refused.json()["code"] == "mfa_required"
+    assert (await probe(client, workspace, OWNER)).json()["code"] == "mfa_required"
+    other = await client.get(
+        f"/api/v1/workspaces/{workspace.id}/forms/{form.form_id}/exports",
+        cookies=cookies_of_user(OWNER),
+    )
+    assert other.status_code == 403 and other.json()["code"] == "mfa_required"
+    # with the second factor the owner keeps what a disabled workspace allows
+    ok = await start(client, workspace, form, user=OWNER.model_copy(update={"mfa": True}))
+    assert ok.status_code == 200, ok.text
+    # and the rule off again: no question asked
+    await require_totp(workspace, False)
+    assert (await start(client, workspace, form)).status_code == 200

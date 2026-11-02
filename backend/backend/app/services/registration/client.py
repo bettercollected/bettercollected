@@ -277,6 +277,7 @@ async def request(
     user_agent: bytes = USER_AGENT,
     timeouts=None,
     total_timeout: Optional[float] = None,
+    content_type: bytes = b"application/json",
 ) -> Reply:
     """One request to ``target`` (``POST`` with ``body``, or ``GET``). Returns
     the 2xx :class:`Reply` or raises :class:`SendFailed`. ``query`` pairs are
@@ -304,7 +305,7 @@ async def request(
     ]
     if body is not None:
         headers += [
-            (b"Content-Type", b"application/json"),
+            (b"Content-Type", content_type),
             (b"Content-Length", str(len(body)).encode()),
         ]
     if idempotency_key is not None:

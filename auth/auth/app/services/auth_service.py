@@ -9,7 +9,12 @@ from common.enums.roles import Roles
 from common.models.user import User, UserResponseDto
 from common.models.user import UserInfo
 from common.services.http_client import HttpClient
-from common.services.jwt_service import decode_with_ring
+from common.services.jwt_service import (
+    ACCESS_TOKEN_TYPE,
+    REFRESH_TOKEN_TYPE,
+    decode_access_token,
+    decode_with_ring,
+)
 from fastapi_mail import MessageSchema
 from pydantic import EmailStr
 
@@ -58,7 +63,7 @@ class AuthService:
 
     @staticmethod
     def get_logged_user(jwt_token: str) -> User:
-        jwt_response = decode_with_ring(
+        jwt_response = decode_access_token(
             jwt_token, settings.AUTH_JWT_SECRET, algorithms=["HS256"]
         )
         user = User(**jwt_response)
@@ -70,6 +75,9 @@ class AuthService:
         decoded_data = decode_with_ring(
             jwt_token, settings.AUTH_JWT_SECRET, algorithms=["HS256"]
         )
+        if decoded_data.get("typ") in (ACCESS_TOKEN_TYPE, REFRESH_TOKEN_TYPE):
+            # a session token is not the backend's signed email exchange
+            raise HTTPException(status_code=401, content="Invalid token.")
         user_info = UserInfo(**decoded_data)
         # Only the backend's import-OAuth flow calls this, and it sends only the
         # signed-in user's own email (the import provider's email proves

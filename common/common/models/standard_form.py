@@ -1826,6 +1826,12 @@ class ParameterValue(BaseModel):
 class ActionState(BaseModel):
     id: RecordId
     enabled: Optional[bool] = True
+    # set when the backend took over running a built-in action (4.4): ``kind``
+    # says how (``sheets``: the backend's own Google Sheets runner runs this
+    # entry; ``webhook`` / ``email``: a webhook or an email action replaced it and
+    # ``id`` names that). None: the actions executor runs it, as before
+    migrated_to: Optional[Dict[str, str]] = None
+    migrated_at: Optional[dt.datetime] = None
 
 
 class WelcomePageField(BaseModel):

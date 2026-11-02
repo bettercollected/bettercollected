@@ -1,7 +1,7 @@
 from http import HTTPStatus
 
-from common.services.jwt_service import decode_with_ring
-from jwt import InvalidSignatureError, ExpiredSignatureError
+from common.services.jwt_service import decode_access_token
+from jwt import PyJWTError
 from starlette.requests import Request
 
 from googleform.app.containers import Container
@@ -15,10 +15,10 @@ async def get_user_credential(request: Request) -> Oauth2CredentialDocument:
     if not access_token:
         raise HTTPException(401, "No Access Token provided.")
     try:
-        jwt_response = decode_with_ring(
+        jwt_response = decode_access_token(
             access_token, settings.AUTH_JWT_SECRET, algorithms=["HS256"]
         )
-    except (InvalidSignatureError, ExpiredSignatureError):
+    except PyJWTError:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, content="Invalid JWT Signature"
         )
