@@ -11,8 +11,8 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@app/shadcn/components/ui/dialog';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppDispatch } from '@app/store/hooks';
-import { SUBMISSION_TAG, workspacesApi } from '@app/store/workspaces/api';
-import { RESPONSE_REVISIONS_TAG, useEditResponseAnswersMutation, useGetResponseRevisionsQuery } from '@app/store/workspaces/response-revisions-api';
+import { SUBMISSION_TAG } from '@app/store/workspaces/api';
+import { RESPONSE_REVISIONS_TAG, responseRevisionsApi, useEditResponseAnswersMutation, useGetResponseRevisionsQuery } from '@app/store/workspaces/response-revisions-api';
 import { InternalInputValue } from '@app/utils/internal-fields';
 import { changedAnswers, editableQuestions, inputsFor, lockedQuestions, questionTitle } from '@app/utils/staff-answers';
 
@@ -63,7 +63,7 @@ export default function EditAnswers({ workspaceId, formId, responseId, form, ans
 
     // the response changed meanwhile: fresh answers and history, and the dialog is opened again on them
     const reload = () => {
-        dispatch(workspacesApi.util.invalidateTags([SUBMISSION_TAG, RESPONSE_REVISIONS_TAG]));
+        dispatch(responseRevisionsApi.util.invalidateTags([SUBMISSION_TAG, RESPONSE_REVISIONS_TAG]));
         setOpen(false);
         setConflict(false);
         toast({ description: t('RESPONSE_EDIT.RELOADED') });
