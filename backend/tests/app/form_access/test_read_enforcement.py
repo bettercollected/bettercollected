@@ -19,7 +19,6 @@ from common.models.standard_form import StandardForm, StandardFormResponse
 from httpx import AsyncClient
 
 from backend.app.container import container
-from backend.app.models.enum.permission import Permission
 from backend.app.schemas.form_access_grant import ROLE_REVIEWER, ROLE_VIEWER
 from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import formData, formResponse, testUser, testUser2
@@ -549,7 +548,7 @@ async def test_the_mcp_tools_see_only_the_forms_the_keys_creator_may_open(
     admin_sees = await _workspace_form_ids(_key(world, world.who.admin))
     assert set(admin_sees) == {world.open_id, world.closed_id}
     privacy = await _workspace_form_ids(
-        _key(world, world.who.officer), Permission.PRIVACY_MANAGE
+        _key(world, world.who.officer), "deletion_requests:read"
     )
     assert world.closed_id in privacy
 
