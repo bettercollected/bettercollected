@@ -33,6 +33,7 @@ from backend.app.services.ai.ops import (
     too_many_ops,
 )
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_access.mode import form_if_enforced
 from backend.app.services.form_patterns import pattern_problem, pattern_reason
 from backend.app.services.form_spec.checks import check_spec_document
 from backend.app.services.form_spec.diff import spec_diff
@@ -201,7 +202,12 @@ class FormSpecService:
         request: DryRunRequest,
         user: User,
     ) -> DryRunResponse:
-        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
+        await self._authorization.authorize(
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
+        )
         form, settings = await self.load(workspace_id, form_id)
         return await self.preview_async(
             form, settings, request.ops, request.atomic, workspace_id=workspace_id
