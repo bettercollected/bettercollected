@@ -24,9 +24,9 @@ interface InternalFieldsPanelProps {
     workspaceId: string;
 }
 
-const inputClass = 'w-full text-sm!';
+export const inputClass = 'w-full text-sm!';
 
-function InternalFieldInput({ field, value, onChange }: { field: StandardFormFieldDto; value: InternalInputValue; onChange: (value: InternalInputValue) => void }) {
+export function InternalFieldInput({ field, value, onChange, labelledBy }: { field: StandardFormFieldDto; value: InternalInputValue; onChange: (value: InternalInputValue) => void; labelledBy?: string }) {
     const { t } = useTranslation();
     const id = `internal-${field.id}`;
     const choices = field.properties?.choices ?? [];
@@ -56,7 +56,7 @@ function InternalFieldInput({ field, value, onChange }: { field: StandardFormFie
             if (field.properties?.allowMultipleSelection) {
                 const selected = Array.isArray(value) ? value : [];
                 return (
-                    <div id={id} role="group" className="flex flex-col gap-1.5">
+                    <div id={id} role="group" aria-labelledby={labelledBy} className="flex flex-col gap-1.5">
                         {choices.map((choice, idx) => (
                             <label key={choice.id} className="text-black-800 flex cursor-pointer items-center gap-2 text-sm">
                                 <input

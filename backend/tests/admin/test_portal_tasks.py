@@ -850,7 +850,7 @@ def test_keyset_task_forms_cover_lists_of_enums_flags_and_bounded_ids():
     from backend.admin.tasks.catalog import keyset
 
     fields = {f.name: f for f in taskform.fields_for(keyset.REENCRYPT)}
-    assert fields["targets"].kind == "multi" and fields["targets"].choices == ("responses", "google_credentials")
+    assert fields["targets"].kind == "multi" and fields["targets"].choices == ("responses", "google_credentials", "response_revisions")
     assert fields["primary_id"].kind == "int" and fields["primary_id"].maximum == 4294967295
     assert fields["google_in_use"].default is True and "typeform_acknowledged" not in fields
     parsed = taskform.parse(

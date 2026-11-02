@@ -1133,6 +1133,49 @@ version (`GET .../versions/{version}`) is not part of it. Docs: `docs/form-versi
 - Tests: `tests/app/form_versions/` (`test_compare.py` classification, `test_versions_api.py` switch, list, compare,
   restore), rows `forms.versions.*` in `test_permission_matrix.py`.
 
+## Staff edit of answers and the revision log
+
+Behind `RESPONSE_REVISIONS_ENABLED` (default off; `services/response_revisions/mode.py`, served as
+`responseRevisionsEnabled` by `GET /workspaces/{id}/permissions`). Off means 422 `response_revisions_disabled` on the
+three routes below and **nothing is recorded**, not even for a respondent's own edit; entries already stored stay and
+are erased with their response. Docs: `docs/response-revisions.md`. Rules to keep:
+
+- **Staff edit** `PATCH .../forms/{id}/submissions/{rid}/answers` (`WorkspaceFormService.staff_edit_answers`): the new
+  permission `response.edit` (Owner, Admin, Editor; never a Privacy officer, so it is in `ANSWER_PERMISSIONS`; not in
+  the disabled-workspace owner set; never an API-key or MCP scope) **and** `response.read`, both with `form_id`.
+  Validation is the respondent edit's, not a copy: `patch_response` and the staff edit both call `_apply_edit`
+  (unknown and internal ids dropped, group answers, calculations, field rules, option logic, required/types/patterns,
+  date rules), so a change there is a change for both. Staff differences: no identity/edit-switch/ownership test; the
+  form version the response was given in (`form_version`, set by `submit_response` from the latest published version,
+  never from the body; the latest for an older response that has none or one beyond the latest) instead of the latest;
+  a signature or file answer, or a question shared as choices, in the latest OR that version is 422
+  `question_not_editable`; a pending deletion
+  request 409 `deletion_requested`; a form not made here 409 `not_editable`. No notice to the respondent and no action,
+  webhook or email action runs again (the respondent's edit does not either).
+- **The log** `response_revisions` (revision 0032, `schemas/response_revision.py`, repository
+  `repositories/postgres/response_revisions.py`): one entry per edit with `seq`, `actor_kind` (staff or respondent),
+  `actor_id` and `actor_role` (staff only), `changed` (question ids) and `previous_values` sealed with the response
+  keyset like the answers. It is **written by `PostgresFormResponseRepository.patch_form_response`, in the transaction
+  that merges the answers** (row locked): the change and its entry commit or roll back together, "changed" is what
+  really differs from the stored answers (a no-op edit writes neither an entry nor, for staff, a response), and the
+  limit is `MAX_REVISIONS` (409 `revision_limit`; the history is never trimmed). `response_pk` is a foreign key to
+  `form_responses.id` with `ON DELETE CASCADE`: **never delete a response by any path that avoids the row delete**.
+  A deleted staff account's entries get `deleted-user` (`WorkspaceService.forget_exports_of_user`).
+- **Reading** (`services/response_revisions/service.py`): `GET .../revisions` (who, role, time, question ids and
+  titles, no values) and `GET .../revisions/{seq}` (the unsealed previous values, links to files removed), both
+  `response.read`. No serializer of a response, the public API, MCP, exports, webhooks or AI reads this table.
+- **Sealing and rotation.** `previous_values` is sealed with `crypto_service` bound to the workspace, the form and
+  `seal_context(response_pk, seq)`: an entry copied elsewhere does not open. It is the third target of the keyset
+  rotation (`admin/tasks/impl/keyset_core.py` `REVISIONS`: context derived from the row; the `keyset.*` tasks and
+  `scripts/rotate_response_keyset.py` count it, so `drop_old` is refused while an entry is sealed with the old key).
+  A new place that seals with the response keyset must be a target there too. The data role reads/rewrites it
+  (`postgres/ensure-admin-roles.sh`). Option-source erasure redacts the label snapshots in the entries too
+  (`redact_history_option_labels`). The limit (`MAX_REVISIONS`, 200) counts staff entries only: a respondent's own
+  edit is never refused for it.
+- Tests: `tests/app/response_revisions/` (`test_staff_edit.py` switch, validation parity, versions, what staff cannot
+  change, atomicity and the limit; `test_history.py` who reads what, sealing, erasure through every delete path,
+  account deletion), rows `responses.answers.edit` and `responses.revisions.*` in `test_permission_matrix.py`.
+
 ## Drafts (save and continue later)
 
 Behind the server switch `SAVE_DRAFTS_ENABLED` (default off until it is released; `services/form_drafts/mode.py`, served as `saveDraftsEnabled` by `GET /workspaces/{id}/permissions`) and a per-form setting, off by default (`WorkspaceFormSettings.allow_save_draft`, `draft_retention_days` 1 to 90, none =

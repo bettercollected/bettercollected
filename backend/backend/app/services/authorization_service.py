@@ -58,6 +58,7 @@ EDITOR_PERMISSIONS: FrozenSet[Permission] = frozenset(
         P.RESPONSE_ANNOTATE,
         P.RESPONSE_EXPORT,
         P.RESPONSE_DELETE,
+        P.RESPONSE_EDIT,
         P.ANALYTICS_READ,
     }
 )
@@ -84,7 +85,7 @@ ADMIN_PERMISSIONS: FrozenSet[Permission] = ALL_PERMISSIONS - {P.WORKSPACE_BILLIN
 
 # What a Privacy officer never holds, even with another role beside it.
 ANSWER_PERMISSIONS: FrozenSet[Permission] = frozenset(
-    {P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.RESPONSE_EXPORT}
+    {P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.RESPONSE_EXPORT, P.RESPONSE_EDIT}
 )
 
 # Every owner holds every permission: the billing owner (``owner_id``) and
