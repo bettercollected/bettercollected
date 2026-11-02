@@ -86,7 +86,8 @@ export const SECURITY_KINDS_SHOWN_BY_DEFAULT = [
     'scim_group_role_changed',
     'ai_consent_changed',
     'custom_domain_changed',
-    'custom_domain_removed'
+    'custom_domain_removed',
+    'audit_retention_changed'
 ];
 
 /** Whether the break-glass requests are left out of this view. */
