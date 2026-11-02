@@ -17,6 +17,7 @@ import { menuDropdown } from '@app/constants/locales/menu-dropdown';
 import { workspaceSelect } from '@app/constants/locales/workspace-select';
 import { rememberWorkspace, SELECT_WORKSPACE_PATH } from '@app/lib/workspace-selection';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import { WorkspaceRole, roleLocale, toWorkspaceRole } from '@app/models/enums/workspace-role';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { selectAuthStatus } from '@app/store/auth/selectors';
 import { selectIsProPlan } from '@app/store/auth/slice';
@@ -34,6 +35,21 @@ import { ChevronRight, LayoutGrid } from 'lucide-react';
  * or export from there. Other members' access is switched off with it.
  */
 export const canOpenWorkspace = (space: WorkspaceDto | undefined) => !!space && (!space.disabled || !!space.isOwner);
+
+/**
+ * The signed-in user's role in `space`: Owner for every owner (a workspace can
+ * have several), else the role the workspace list reports. Undefined when it
+ * is not known: the switcher then shows no label rather than a wrong one.
+ */
+export const workspaceRoleOf = (space: WorkspaceDto | undefined, authId?: string): WorkspaceRole | undefined => {
+    if (!space) return undefined;
+    if (space.isOwner === true) return WorkspaceRole.OWNER;
+    const role = toWorkspaceRole(space.role);
+    if (role) return role;
+    // an older list without isOwner: the billing owner is an owner
+    if (space.isOwner === undefined && authId && authId === space.ownerId) return WorkspaceRole.OWNER;
+    return undefined;
+};
 
 interface IWorkspaceMenuDropdownProps {
     fullWidth?: boolean;
@@ -94,10 +110,12 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
         return usersWorkspaces.length < Number(5);
     };
 
+    // the label of the user's role in `space`, or '' when it is not known;
+    // the current workspace (from the store) takes its role from the list
     const getWorkspaceRole = (space: WorkspaceDto) => {
-        // a workspace can have several owners; the list says which are ours
-        if (auth && space && (space.isOwner ?? auth?.id === space?.ownerId)) return t(dashboardConstants.drawer.owner);
-        return t(dashboardConstants.drawer.collaborator);
+        const listed = Array.isArray(data) ? data.find((item: WorkspaceDto) => item.id === space?.id) : undefined;
+        const role = workspaceRoleOf(listed ?? space, auth?.id);
+        return role ? t(roleLocale(role).name) : '';
     };
 
     return (
@@ -113,7 +131,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                         <AuthAccountProfileImage size={36} image={workspace?.profileImage} name={workspace?.title || 'Untitled'} variant="circular" />
                         <div className="flex min-w-0 flex-col items-start">
                             <span className="body3 truncate">{toEndDottedStr(workspace?.title || 'Untitled', 14)}</span>
-                            <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(workspace)}</p>
+                            {getWorkspaceRole(workspace) && <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(workspace)}</p>}
                         </div>
                     </div>
                     {showExpandMore && (
@@ -157,10 +175,17 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                                             <Tooltip label={trimTooltipTitle(space?.title)}>
                                                 <p className="body3">{toEndDottedStr(space?.title || 'Untitled', 20)}</p>
                                             </Tooltip>
-                                            <p className="text-black-700 text-[12px] leading-none">
-                                                {getWorkspaceRole(space)}
-                                                {space?.disabled && <> · {t(dashboardConstants.drawer.readOnly)}</>}
-                                            </p>
+                                            {(!!getWorkspaceRole(space) || !!space?.disabled) && (
+                                                <p className="text-black-700 text-[12px] leading-none">
+                                                    {getWorkspaceRole(space)}
+                                                    {space?.disabled && (
+                                                        <>
+                                                            {getWorkspaceRole(space) && ' · '}
+                                                            {t(dashboardConstants.drawer.readOnly)}
+                                                        </>
+                                                    )}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                     {workspace.id === space.id && <Check color="#123FC9" />}
@@ -181,7 +206,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                                     <Tooltip label={trimTooltipTitle(fullWorkspaceName)}>
                                         <p className="body3">{workspaceName}</p>
                                     </Tooltip>
-                                    <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(workspace)}</p>
+                                    {getWorkspaceRole(workspace) && <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(workspace)}</p>}
                                 </div>
                             </div>
                             <Check color="#123FC9" />
