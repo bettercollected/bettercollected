@@ -856,9 +856,30 @@ class PostgresFormRepository(RecordRepository):
             FormVersionRow.version == int(version),
         )
 
-    async def publish_form(self, form: FormDocument, version: int):
+    async def list_version_summaries(self, form_id: RecordId, limit: int = 200):
+        """``(version, created_at, published_by)`` of the form's published
+        versions, newest first, at most ``limit``: three columns of each row,
+        never the version's document."""
+        async with self._session() as session:
+            rows = await session.execute(
+                select(
+                    FormVersionRow.version,
+                    FormVersionRow.created_at,
+                    FormVersionRow.doc["published_by"].astext,
+                )
+                .where(FormVersionRow.form_id == _oid(form_id))
+                .order_by(FormVersionRow.version.desc(), FormVersionRow.id)
+                .limit(limit)
+            )
+            return [tuple(row) for row in rows.all()]
+
+    async def publish_form(
+        self, form: FormDocument, version: int, published_by: Optional[str] = None
+    ):
         new_form_version = FormVersionsDocument(
-            **form.model_dump(mode="json"), version=version
+            **form.model_dump(mode="json"),
+            version=version,
+            published_by=published_by,
         )
         new_form_version.id = None
         return await self.save_document(new_form_version, row=FormVersionRow)

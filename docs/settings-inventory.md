@@ -92,6 +92,7 @@ environment, whatever the tier.
 | `ENABLE_SUGGEST_PRICE` | features | backend | bool |  | R | T1 | `false` |
 | `FIELD_RULES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `FORM_EMBED_ENABLED` | features | backend | bool |  | R | T2 | `false` |
+| `FORM_REVISIONS_UI_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `LAYOUT_CONTAINERS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `NEW_QUESTION_TYPES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `OPTION_SOURCES_ENABLED` | features | backend | bool |  | R | T2 | `false` |

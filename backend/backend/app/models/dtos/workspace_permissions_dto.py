@@ -31,6 +31,8 @@ class WorkspacePermissionsDto(CamelModel):
     ``save_drafts_enabled`` is the same for ``SAVE_DRAFTS_ENABLED`` ("Let
     respondents save and continue later": the builder shows the setting
     read-only while it is off).
+    ``form_revisions_ui_enabled`` is the same for ``FORM_REVISIONS_UI_ENABLED``
+    (the Versions page of a form: list, compare, restore).
     ``csv_import_enabled`` is the same for ``CSV_IMPORT_ENABLED`` (import
     responses from a CSV file: the responses screen offers it from it).
     ``form_embed_enabled`` is the same for ``FORM_EMBED_ENABLED`` (embedding
@@ -50,5 +52,6 @@ class WorkspacePermissionsDto(CamelModel):
     signature_question_enabled: bool = False
     option_sources_enabled: bool = False
     layout_containers_enabled: bool = False
+    form_revisions_ui_enabled: bool = False
     submissions_api_enabled: bool = False
     form_embed_enabled: bool = False

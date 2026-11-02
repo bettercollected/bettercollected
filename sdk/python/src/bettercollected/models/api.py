@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 
 class ClosedDeletionRequestResult(BaseModel):
@@ -239,6 +239,15 @@ class CloseDeletionRequest(BaseModel):
     )
 
 
+class ConsentItems(RootModel[list[str]]):
+    root: list[str] = Field(
+        None,
+        description="The ids of the form's optional consent items the respondent accepted. Ids the form does not have are refused (422); optional items not named are stored as not accepted.",
+        max_length=50,
+        title="Consentitems",
+    )
+
+
 class CreateSubmission(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -258,8 +267,14 @@ class CreateSubmission(BaseModel):
     )
     consent: bool | None = Field(
         None,
-        description="true: you assert that the respondent has given the consent the form asks for. Required when the form has a consent step; it is recorded as asserted by this API key.",
+        description="true: you assert that the respondent has given the consent the form requires (its required items). Needed when the form has a required consent item; it is recorded as asserted by this API key. Optional items are accepted only when named in consentItems.",
         title="Consent",
+    )
+    consent_items: ConsentItems | None = Field(
+        None,
+        alias="consentItems",
+        description="The ids of the form's optional consent items the respondent accepted. Ids the form does not have are refused (422); optional items not named are stored as not accepted.",
+        title="Consentitems",
     )
 
 
