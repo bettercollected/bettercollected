@@ -273,6 +273,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
                 response_id=RecordId(submission_id),
                 answers=body.answers,
                 user=user,
+                expected_seq=body.expected_seq,
             )
         )
 

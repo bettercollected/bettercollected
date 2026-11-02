@@ -1158,7 +1158,7 @@ are erased with their response. Docs: `docs/response-revisions.md`. Rules to kee
   keyset like the answers. It is **written by `PostgresFormResponseRepository.patch_form_response`, in the transaction
   that merges the answers** (row locked): the change and its entry commit or roll back together, "changed" is what
   really differs from the stored answers (a no-op edit writes neither an entry nor, for staff, a response), and the
-  limit is `MAX_REVISIONS` (409 `revision_limit`; the history is never trimmed). `response_pk` is a foreign key to
+  limit is `MAX_REVISIONS` (409 `revision_limit`; the history is never trimmed). A staff edit is checked **under the row lock** for a pending deletion request (`_check_staff_edit_still_possible`; `add_deletion_request` takes the same lock, so the two serialise) and for `expected_seq` (the optional `expectedSeq` of the PATCH body: 409 `response_changed`). `response_pk` is a foreign key to
   `form_responses.id` with `ON DELETE CASCADE`: **never delete a response by any path that avoids the row delete**.
   A deleted staff account's entries get `deleted-user` (`WorkspaceService.forget_exports_of_user`).
 - **Reading** (`services/response_revisions/service.py`): `GET .../revisions` (who, role, time, question ids and
@@ -1172,7 +1172,8 @@ are erased with their response. Docs: `docs/response-revisions.md`. Rules to kee
   (`postgres/ensure-admin-roles.sh`). Option-source erasure redacts the label snapshots in the entries too
   (`redact_history_option_labels`). The limit (`MAX_REVISIONS`, 200) counts staff entries only: a respondent's own
   edit is never refused for it.
-- Tests: `tests/app/response_revisions/` (`test_staff_edit.py` switch, validation parity, versions, what staff cannot
+- Staff-writable types are the allow-list `STAFF_WRITABLE_TYPES` in `workspace_form_service.py` (the dialog's set): a new type is not writable until added on purpose. A staff edit and every read of previous values are audited by `services/response_revisions/audit.py` into `workspace_audit_events` (ids and the entry number only, never a value; a read is refused, 503 `audit_unavailable`, when it cannot be recorded). The SSO page lists only `SSO_EVENTS`.
+- Tests: `tests/app/response_revisions/` (`test_before_switch.py` lock, `expectedSeq`, allow-list, audit; `test_staff_edit.py` switch, validation parity, versions, what staff cannot
   change, atomicity and the limit; `test_history.py` who reads what, sealing, erasure through every delete path,
   account deletion), rows `responses.answers.edit` and `responses.revisions.*` in `test_permission_matrix.py`.
 

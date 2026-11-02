@@ -10,6 +10,16 @@ SSO_BREAK_GLASS_REQUEST = "sso_break_glass_request"
 SSO_BREAK_GLASS_SIGN_IN = "sso_break_glass_sign_in"
 
 
+# a staff member changed answers of a response (docs/response-revisions.md):
+# who, when, the form and response and the history entry's number, no value
+RESPONSE_STAFF_EDIT = "response_staff_edit"
+# a staff member opened the previous values of one history entry
+RESPONSE_REVISION_READ = "response_revision_read"
+
+# the events of the single sign-on break-glass log (what its page lists)
+SSO_EVENTS = (SSO_BREAK_GLASS_REQUEST, SSO_BREAK_GLASS_SIGN_IN)
+
+
 class WorkspaceAuditEventDocument(Record):
     """A security event of a workspace (docs/sso.md, "Owner break-glass is
     audited"): ids only, never an address or a name. The time is
@@ -24,6 +34,10 @@ class WorkspaceAuditEventDocument(Record):
     # concrete id from the path
     method: Optional[str] = None
     path: Optional[str] = None
+    # response entries (RESPONSE_*): ids and the history entry's number only
+    form_id: Optional[str] = None
+    response_id: Optional[str] = None
+    revision: Optional[int] = None
 
     class Settings:
         name = "workspace_audit_events"

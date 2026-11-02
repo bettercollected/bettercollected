@@ -28,10 +28,15 @@ class PostgresWorkspaceAuditRepository(RecordRepository):
         workspace_id,
         limit: int,
         before: Optional[Tuple[dt.datetime, str]] = None,
+        events: Optional[Sequence[str]] = None,
     ) -> List[WorkspaceAuditEventDocument]:
         """Newest first (keyset: ``before`` is the (time, id) of the last
-        entry of the previous page); at most ``limit`` entries."""
+        entry of the previous page); at most ``limit`` entries. ``events``:
+        only those kinds of entry (a page lists its own, not every kind the
+        log holds)."""
         where = [WorkspaceAuditEventRow.workspace_id == _id(workspace_id)]
+        if events is not None:
+            where.append(WorkspaceAuditEventRow.event.in_(list(events)))
         if before is not None:
             where.append(
                 tuple_(WorkspaceAuditEventRow.created_at, WorkspaceAuditEventRow.id)

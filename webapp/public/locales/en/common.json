@@ -2401,8 +2401,11 @@
       "not_editable": "A response imported from another service can't be edited here.",
       "revision_limit": "This response has been edited by staff as often as the history keeps. Staff can't edit it again.",
       "busy": "Another change to this response is in progress. Try again in a moment.",
-      "generic": "The answers could not be saved."
-    }
+      "generic": "The answers could not be saved.",
+      "response_changed": "This response was changed since you opened it. Reload it and make your change again."
+    },
+    "RELOAD": "Reload",
+    "RELOADED": "Reloaded. Open Edit answers again to change the current answers."
   },
   "RESPONSE_HISTORY": {
     "TITLE": "History",
@@ -2423,6 +2426,7 @@
     "SHOW_VALUES": "Show previous values",
     "HIDE_VALUES": "Hide previous values",
     "VALUES_ERROR": "The previous values could not be shown.",
-    "NO_ANSWER": "No answer"
+    "NO_ANSWER": "No answer",
+    "VALUES_AUDIT_ERROR": "The access could not be recorded, so the previous values were not shown. Try again."
   }
 }

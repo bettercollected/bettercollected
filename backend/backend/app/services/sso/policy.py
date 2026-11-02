@@ -65,6 +65,7 @@ from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_audit_event import (
     SSO_BREAK_GLASS_REQUEST,
     SSO_BREAK_GLASS_SIGN_IN,
+    SSO_EVENTS,
     WorkspaceAuditEventDocument,
 )
 from backend.app.services.domains.names import display_domain, domain_of
@@ -485,7 +486,9 @@ class SsoPolicyService:
             return [], None
         limit = max(1, min(int(limit or AUDIT_PAGE_SIZE), AUDIT_PAGE_MAX))
         before = decode_audit_cursor(cursor) if cursor else None
-        entries = await self._audit.page(workspace_id, limit + 1, before)
+        entries = await self._audit.page(
+            workspace_id, limit + 1, before, events=SSO_EVENTS
+        )
         more = len(entries) > limit
         entries = entries[:limit]
         return entries, (encode_audit_cursor(entries[-1]) if more and entries else None)
