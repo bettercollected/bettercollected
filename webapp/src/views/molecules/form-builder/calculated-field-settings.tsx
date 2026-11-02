@@ -1,6 +1,7 @@
 'use client';
 
 import { useId, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { ExprNode, ExprValue, evaluateExpression, formatExpressionValue } from '@app/lib/expressions';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
@@ -28,8 +29,6 @@ import { NumberSetting, SettingSwitch } from '@app/views/molecules/form-builder/
 
 // The formula box moved to formula-input.tsx; its helpers are still imported from here.
 export { FORMULA_IDLE_MS, isIncompleteError, openReference, suggestionsFor };
-
-const STYLE_LABELS: Record<string, string> = { number: 'Number', currency: 'Amount (€)', percent: 'Percentage', text: 'Plain text' };
 
 /** The value a formula gives with sample answers (other calculations computed first). */
 export function previewValue(slides: StandardFormFieldDto[], field: StandardFormFieldDto, expression: ExprNode | undefined, variables: CalculationVariable[], emptyKey?: string): ExprValue {
@@ -93,6 +92,7 @@ export default function CalculatedFieldSettings({
     endings?: Array<{ title?: string; message?: string }>;
     onChange: (property: 'expression' | 'format' | 'hiddenFromRespondents' | 'unansweredAsZero', value: unknown) => void;
 }) {
+    const { t, i18n } = useTranslation('builder');
     const id = useId();
     const variables = useMemo(() => calculationVariables(slides, hiddenNames).filter((variable) => variable.key !== field.id), [slides, hiddenNames, field.id]);
     const expression = field.properties?.expression as ExprNode | undefined;
@@ -102,7 +102,7 @@ export default function CalculatedFieldSettings({
     const problems = calculationProblems(slides, hiddenNames).filter((problem) => problem.fieldId === field.id);
     const format: CalculationFormat = field.properties?.format ?? {};
     const style = format.style ?? 'number';
-    const show = (value: ExprValue) => (value === null ? '' : typeof value === 'number' ? formatCalculatedValue(value, format, 'en') : formatExpressionValue(value));
+    const show = (value: ExprValue) => (value === null ? '' : typeof value === 'number' ? formatCalculatedValue(value, format, i18n.language?.startsWith('nl') ? 'nl' : 'en') : formatExpressionValue(value));
     const previewText = error ? '' : show(previewValue(slides, field, expression, variables));
     // The same with one answer left out: what "unanswered as 0" changes.
     const emptied = error ? undefined : firstQuestionKey(expression, variables, slides);
@@ -118,32 +118,32 @@ export default function CalculatedFieldSettings({
     return (
         <div className="flex w-full flex-col gap-4">
             <FormulaInput
-                label="Formula"
+                label={t('CALC.FORMULA')}
                 resetKey={field.id}
                 expression={expression}
                 variables={variables}
                 onExpression={(next) => onChange('expression', next)}
                 onError={setError}
                 problem={problems[0]?.message}
-                placeholder="e.g. round({Price} * {Quantity} * 1.21, 2)"
-                help={`Type { to pick a question. Use + − * / and functions like sum, round, if, min, max.`}
+                placeholder={t('CALC.FORMULA_PLACEHOLDER')}
+                help={t('CALC.FORMULA_HELP')}
             />
 
             <div className="flex flex-col gap-1 rounded-lg bg-black-100 px-3 py-2">
-                <span className="text-[11px] text-black-600">Preview with sample answers</span>
+                <span className="text-[11px] text-black-600">{t('CALC.PREVIEW')}</span>
                 <span className="text-sm font-semibold text-black-800 tabular-nums" data-testid="calculation-preview">
                     {previewText || '—'}
                 </span>
                 {emptied && (
                     <span className="text-[11px] text-black-600" data-testid="calculation-preview-empty">
-                        Without an answer to {emptied.label}: <span className="font-semibold text-black-800 tabular-nums">{emptiedText || 'no value'}</span>
+                        {t('CALC.WITHOUT_ANSWER', { label: emptied.label })} <span className="font-semibold text-black-800 tabular-nums">{emptiedText || t('CALC.NO_VALUE')}</span>
                     </span>
                 )}
             </div>
 
             <div className="flex w-full flex-col gap-1">
                 <label htmlFor={`${id}-style`} className="text-xs text-black-700">
-                    Show as
+                    {t('CALC.SHOW_AS')}
                 </label>
                 <select
                     id={`${id}-style`}
@@ -153,37 +153,37 @@ export default function CalculatedFieldSettings({
                 >
                     {CALCULATION_STYLES.map((option) => (
                         <option key={option} value={option}>
-                            {STYLE_LABELS[option]}
+                            {t(`CALC.STYLE_${option}`)}
                         </option>
                     ))}
                 </select>
-                {style === 'percent' && <p className="text-[11px] leading-relaxed text-black-600">0.25 shows as 25%.</p>}
+                {style === 'percent' && <p className="text-[11px] leading-relaxed text-black-600">{t('CALC.PERCENT_HINT')}</p>}
             </div>
             {style !== 'text' && (
                 <NumberSetting
-                    label="Decimals"
+                    label={t('CALC.DECIMALS')}
                     value={format.decimals}
                     min={0}
                     max={CALCULATION_MAX_DECIMALS}
-                    placeholder={style === 'currency' ? '2' : style === 'percent' ? '0' : 'As computed'}
+                    placeholder={style === 'currency' ? '2' : style === 'percent' ? '0' : t('CALC.AS_COMPUTED')}
                     onChange={(value) => setFormat({ decimals: value === undefined ? undefined : Math.min(CALCULATION_MAX_DECIMALS, Math.max(0, Math.round(value))) })}
                 />
             )}
             <SettingSwitch
-                label="Treat unanswered as 0"
+                label={t('CALC.UNANSWERED_ZERO')}
                 checked={asZero}
                 onCheckedChange={(checked) => onChange('unansweredAsZero', checked)}
-                hint={asZero ? 'A question left empty counts as 0, so one empty optional answer does not blank the result.' : 'The result stays empty until every question it uses is answered.'}
+                hint={asZero ? t('CALC.UNANSWERED_ZERO_ON') : t('CALC.UNANSWERED_ZERO_OFF')}
             />
             <SettingSwitch
-                label="Hide from respondents"
+                label={t('CALC.HIDE')}
                 checked={!!field.properties?.hiddenFromRespondents}
                 onCheckedChange={(checked) => onChange('hiddenFromRespondents', checked || undefined)}
-                hint={field.properties?.hiddenFromRespondents ? 'Computed and stored with each response; respondents never see it. The formula is part of the form page, so it is not a secret.' : 'Respondents see the value update as they answer.'}
+                hint={field.properties?.hiddenFromRespondents ? t('CALC.HIDE_ON') : t('CALC.HIDE_OFF')}
             />
             {field.properties?.hiddenFromRespondents && pipedTo.length > 0 && (
                 <p role="status" className="text-[11px] leading-relaxed text-amber-700" data-testid="hidden-piped-warning">
-                    This value is piped into {pipedTo.join(', ')}, so respondents would see it there. Remove it from that text, or show the calculation.
+                    {t('CALC.PIPED', { where: pipedTo.join(', ') })}
                 </p>
             )}
         </div>

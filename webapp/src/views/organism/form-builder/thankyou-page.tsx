@@ -1,3 +1,6 @@
+import { useTranslation } from 'react-i18next';
+
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { useBuilderFormLogo } from '@app/lib/hooks/use-form-logo';
 import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
@@ -14,6 +17,8 @@ import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '../layout
 import GreetingLayoutWrapper from '../layout/greeting-layout-wrapper';
 
 const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
+    const { t } = useTranslation('builder');
+    const { t: tr } = useRespondentLanguage();
     const { formState, theme, setThankYouPageTitle, setThankYouPageDescription } = useFormState();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
     const logo = useBuilderFormLogo();
@@ -32,8 +37,8 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                         <div className={cn(FORM_COLUMN, columnPlacementClass(layout))}>
                             <AutosizeTextarea
                                 style={{ resize: 'none', fontFamily: leafletSerif.style.fontFamily, fontWeight: 600 }}
-                                placeholder="Thank you"
-                                aria-label="Ending title"
+                                placeholder={tr('ENDING.TITLE')}
+                                aria-label={t('PAGE_PROPS.ENDING_TITLE')}
                                 className="w-full border-0 bg-transparent px-0 py-0 text-[30px] leading-[1.15] text-white placeholder:text-white/80 sm:text-[38px]"
                                 value={page?.title ?? ''}
                                 onChange={(event: any) => setThankYouPageTitle(activeThankYouPageComponent?.index || 0, event.target.value)}
@@ -43,9 +48,9 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                     <div className="-mx-5 px-5 py-4 sm:-mx-8 sm:px-8" style={{ background: leafletColours(theme).band }}>
                         <div className={cn(FORM_COLUMN, columnPlacementClass(layout))}>
                             <AutosizeTextarea
-                                placeholder="Your answers have been sent."
+                                placeholder={tr('ENDING.SUBMITTED')}
                                 value={page?.message ?? ''}
-                                aria-label="Ending message"
+                                aria-label={t('PAGE_PROPS.ENDING_MESSAGE')}
                                 style={{ resize: 'none', color: theme?.primary }}
                                 className="ring-none w-full border-0 bg-transparent px-0 py-0 text-base leading-[1.6] outline-hidden"
                                 onChange={(e: any) => setThankYouPageDescription(activeThankYouPageComponent?.index || 0, e.target.value)}
@@ -72,8 +77,8 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                 <div className={cn(FORM_COLUMN, columnPlacementClass(layout), 'flex flex-col pt-6', greetingAlignClass(layout))}>
                     <AutosizeTextarea
                         style={{ resize: 'none' }}
-                        placeholder="Thank you"
-                        aria-label="Ending title"
+                        placeholder={tr('ENDING.TITLE')}
+                        aria-label={t('PAGE_PROPS.ENDING_TITLE')}
                         // Textareas don't inherit text-align; [text-align:inherit] follows the column.
                         // The theme's title face and width, as on the live page (theme-root.ts).
                         className="form-title-face form-display-title w-full border-0 bg-transparent px-0 py-0 [text-align:inherit] text-[40px] leading-[48px] font-bold"
@@ -82,9 +87,9 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                     />
                     {formState.thankyouPage && IsValidString(formState.thankyouPage?.[activeThankYouPageComponent?.index || 0]?.message) ? (
                         <AutosizeTextarea
-                            placeholder="Your answers have been sent."
+                            placeholder={tr('ENDING.SUBMITTED')}
                             value={formState.thankyouPage?.[activeThankYouPageComponent?.index || 0]?.message}
-                            aria-label="Ending message"
+                            aria-label={t('PAGE_PROPS.ENDING_MESSAGE')}
                             className="ring-none mt-4 w-full border-0 bg-transparent px-0 [text-align:inherit] text-base text-black-700 outline-hidden"
                             onChange={(e: any) => setThankYouPageDescription(activeThankYouPageComponent?.index || 0, e.target.value)}
                         />

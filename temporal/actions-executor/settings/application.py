@@ -46,6 +46,12 @@ class ApplicationSettings(BaseSettings):
     # hosts (``host`` or ``host:port``, comma separated) the operator allows
     # actions to call although they are internal or not https
     action_egress_allow: str = ""
+    # While true (the default of 4.3) the executor may start with AES_HEX_KEY
+    # set, with a warning. False (set at the 4.3 deploy, together with the
+    # backend's ACTION_SECRETS_SEALED_ALLOWED): under ``enforce`` it refuses to
+    # start while the key is set, so the API key and the encryption key are
+    # never held by one process (docs/executor-isolation.md).
+    action_executor_key_allowed: bool = True
     action_sandbox_memory_mb: int = 256
     action_sandbox_cpu_seconds: int = 10
     action_sandbox_timeout_seconds: int = 30
@@ -83,6 +89,25 @@ def isolation_enforced(current: Optional[ApplicationSettings] = None) -> bool:
     """Whether custom action code and outgoing calls run under the isolation
     (``ACTION_ISOLATION=enforce``, the default)."""
     return (current or settings).action_isolation == "enforce"
+
+
+def refuse_key_when_not_allowed(current: Optional[ApplicationSettings] = None) -> None:
+    """Exit at start when ``ACTION_EXECUTOR_KEY_ALLOWED`` is off, the isolation
+    is enforced and ``AES_HEX_KEY`` is still set. Names the setting, never the
+    value. Not applied to ``legacy`` (a way back that needs the key) nor to the
+    Temporal path (it gets sealed secrets by design); the callers decide."""
+    current = current or settings
+    if (
+        isolation_enforced(current)
+        and current.aes_hex_key
+        and not current.action_executor_key_allowed
+    ):
+        raise SystemExit(
+            "Refusing to start the actions-executor: AES_HEX_KEY is set while "
+            "ACTION_EXECUTOR_KEY_ALLOWED is off. Since 4.3 the backend opens a run's "
+            "secrets, so this service must not hold the encryption key next to "
+            "the API key: remove AES_HEX_KEY from the executor service."
+        )
 
 
 def log_if_api_key_missing(current: Optional[ApplicationSettings] = None) -> bool:

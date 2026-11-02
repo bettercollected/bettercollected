@@ -4,6 +4,7 @@ import FieldInputWrapper from '@Components/hocs/field-input-wrapper';
 import { ArrowDown } from '@Components/icons/arrow-down';
 import { PlusIcon } from 'lucide-react';
 
+import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { Close } from '@app/components/icons/close';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
@@ -17,6 +18,7 @@ import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {
     const { updateChoiceFieldValue } = useFieldActions();
     const { t } = useBuilderTranslation();
+    const { t: tr } = useRespondentLanguage();
     const { addChoiceField, removeChoiceField } = useBuilderActions();
     const { theme } = useFormState();
     const [backspaceCount, setBackspaceCount] = useState(0);
@@ -54,7 +56,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                     }}
                     className="mb-2 flex w-full items-center justify-between border-0 border-b py-2 text-3xl"
                 >
-                    <h1>Select an option</h1>
+                    <h1>{tr('FIELD.SELECT_OPTION')}</h1>
                     <ArrowDown
                         style={{
                             color: slide.properties?.theme?.secondary || theme?.secondary
@@ -65,7 +67,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                 field.properties &&
                 field.properties.allowMultipleSelection && (
                     <p style={{ color: rowTheme?.primary }} className="text-[13px] leading-snug opacity-90">
-                        Choose as many as you like.
+                        {tr('FIELD.CHOOSE_MANY')}
                     </p>
                 )
             )}
@@ -79,7 +81,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                             <FieldInputWrapper
                                 onFocus={() => setBackspaceCount(0)}
                                 value={choice.value}
-                                placeholder={`Item ${index + 1}`}
+                                placeholder={t('CANVAS.ITEM_N', { n: index + 1 })}
                                 onChange={(value: any) => updateChoiceFieldValue(field.id, choice.id, value)}
                                 className={isChoiceList ? 'min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 text-base' : 'flex justify-between rounded-md border p-2 px-4 text-base'}
                                 style={{ color: isChoiceList ? rowTheme?.primary : rowTheme?.secondary }}
@@ -107,8 +109,8 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                                     visibility, so the button stays reachable by Tab. */}
                                 <button
                                     type="button"
-                                    aria-label={`Remove option ${index + 1}${choice.value ? `: ${choice.value}` : ''}`}
-                                    title="Remove option"
+                                    aria-label={choice.value ? t('CANVAS.REMOVE_OPTION_NAMED', { n: index + 1, value: choice.value }) : t('CANVAS.REMOVE_OPTION_N', { n: index + 1 })}
+                                    title={t('CANVAS.REMOVE_OPTION')}
                                     onClick={() => removeChoiceField(field.index, slide.index, choice.id)}
                                     className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center justify-center rounded p-1 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-[#123FC9]"
                                 >
@@ -131,7 +133,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                     }}
                     className={'flex justify-between rounded-md border p-2 px-4 text-base'}
                 >
-                    Other
+                    {tr('FIELD.OTHER')}
                 </div>
             )}
             <button
@@ -144,7 +146,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                 className="p2-new mt-4 flex items-center gap-2 rounded font-semibold! focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123FC9]"
             >
                 <PlusIcon className="h-4 w-4" aria-hidden="true" />
-                Add Option
+                {t('CANVAS.ADD_OPTION')}
             </button>
         </>
     );

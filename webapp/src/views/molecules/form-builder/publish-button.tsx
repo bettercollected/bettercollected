@@ -1,9 +1,9 @@
 import { useState } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
-import { useTranslation } from 'react-i18next';
 
 import { useShowNeedsReviewBanner } from '@app/components/open-formulieren-import/needs-review';
 import { PublishBlockedByReviewDialog } from '@app/components/open-formulieren-import/publish-blocked-dialog';
@@ -68,6 +68,7 @@ const PublishButton = ({
     fields?: Array<StandardFormFieldDto>;
     /** The live pages, read when the checks run (instead of `fields`). */ getFields?: () => Array<StandardFormFieldDto>;
 }) => {
+    const { t } = useTranslation('builder');
     const { toast } = useToast();
     const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
@@ -101,11 +102,11 @@ const PublishButton = ({
         const saved = await flushAutosave();
         setWaiting(false);
         if (saved === 'conflict') {
-            toast({ description: 'This form was changed somewhere else. Reload the latest version before publishing.', variant: 'destructive' });
+            toast({ description: t('PUBLISH_DIALOG.CONFLICT'), variant: 'destructive' });
             return;
         }
         if (saved !== 'saved') {
-            toast({ description: "Your latest changes aren't saved yet, so the form was not published. Check your connection and try again.", variant: 'destructive' });
+            toast({ description: t('PUBLISH_DIALOG.NOT_SAVED'), variant: 'destructive' });
             return;
         }
         const response: any = await publishV2Form({
@@ -116,7 +117,7 @@ const PublishButton = ({
         if (response.data) {
             if (refresh && pathname) {
                 router.push(pathname);
-                toast({ description: 'Form Published' });
+                toast({ description: t('PUBLISH_DIALOG.PUBLISHED_TOAST') });
                 return;
             }
             openDialogModal('FORM_PUBLISHED');
@@ -128,7 +129,7 @@ const PublishButton = ({
         // never silent: without an import id the dialog still explains (it just has no report to link to)
         if (unreviewed) setReviewDialog({ importId: unreviewed.importId || standardForm?.settings?.importId || '', othersFollow: refused.length > 1 });
         else if (refused.length) setProblems(refused);
-        else toast({ description: "Couldn't publish the form. Please try again.", variant: 'destructive' });
+        else toast({ description: t('PUBLISH_DIALOG.FAILED'), variant: 'destructive' });
     };
 
     // The colours the form went live with: its theme, null while it was never published, undefined when they
@@ -205,7 +206,7 @@ const PublishButton = ({
     return (
         <>
             <Button isLoading={isLoading || waiting} onClick={publishForm} className="text-white" data-umami-event={'Publish Button'} title={heldForReview ? importText('PUBLISH_BLOCKED.BUTTON_HINT') : undefined}>
-                Publish
+                {t('PUBLISH.DEFAULT')}
             </Button>
             <PublishBlockedByReviewDialog
                 open={!!reviewDialog}
@@ -259,7 +260,7 @@ export function PublishProblemsDialog({
     const { t } = useTranslation('builder');
     const open = blocking.length + recommended.length > 0;
     const advisoryColours = recommended.some((problem) => problem.code === 'theme_contrast' && problem.advisory);
-    const count = (n: number) => (n === 1 ? 'One thing' : `${n} things`);
+    const count = (n: number) => (n === 1 ? t('PUBLISH_DIALOG.ONE_THING') : t('PUBLISH_DIALOG.THINGS', { count: n }));
     const list = (items: PublishProblem[], testId: string) => (
         <ul className="flex flex-col gap-2" data-testid={testId}>
             {items.map((problem) => (
@@ -282,7 +283,7 @@ export function PublishProblemsDialog({
                     )}
                     {problem.code !== 'workspace_title_missing' && canShowQuestion(problem.fieldId) && (
                         <button type="button" onClick={() => onShowQuestion(problem.fieldId)} className="w-fit text-xs font-semibold text-brand-600 underline underline-offset-2 hover:text-brand-700">
-                            {problem.code === 'missing_ending' ? 'Show the page' : problem.code === 'theme_contrast' ? (problem.advisory ? t('PUBLISH_CONTRAST.SHOW') : 'Show the theme') : 'Show the question'}
+                            {problem.code === 'missing_ending' ? t('PUBLISH_PROBLEM.SHOW_PAGE') : problem.code === 'theme_contrast' ? (problem.advisory ? t('PUBLISH_CONTRAST.SHOW') : t('PUBLISH_PROBLEM.SHOW_THEME')) : t('PUBLISH_PROBLEM.SHOW_QUESTION')}
                         </button>
                     )}
                 </li>
@@ -291,14 +292,14 @@ export function PublishProblemsDialog({
     );
     return (
         <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-            <DialogContent className="max-w-lg" title="Before you publish">
+            <DialogContent className="max-w-lg" title={t('PUBLISH_DIALOG.TITLE')}>
                 <DialogHeader>
                     <div aria-hidden="true" className="text-lg leading-none font-semibold tracking-tight">
-                        Before you publish
+                        {t('PUBLISH_DIALOG.TITLE')}
                     </div>
                     <DialogDescription>
                         {blocking.length > 0
-                            ? `${count(blocking.length)} would mislead or stop the people filling in this form. Fix ${blocking.length === 1 ? 'it' : 'them'} and publish again.`
+                            ? t('PUBLISH_DIALOG.BLOCKING', { count: blocking.length, things: count(blocking.length) })
                             : advisoryColours
                               ? t('PUBLISH_CONTRAST.INTRO')
                               : t('PUBLISH_CONTRAST.WHY_WE_ASK_INTRO')}
@@ -308,7 +309,7 @@ export function PublishProblemsDialog({
                     {blocking.length > 0 && list(blocking, 'publish-problems')}
                     {recommended.length > 0 && (
                         <>
-                            {blocking.length > 0 && <div className="text-xs font-semibold tracking-wide text-black-600 uppercase">Also recommended</div>}
+                            {blocking.length > 0 && <div className="text-xs font-semibold tracking-wide text-black-600 uppercase">{t('PUBLISH_DIALOG.ALSO')}</div>}
                             {list(recommended, 'publish-recommendations')}
                         </>
                     )}
@@ -316,10 +317,10 @@ export function PublishProblemsDialog({
                 {blocking.length === 0 && (
                     <div className="flex justify-end gap-2">
                         <Button variant="secondary" onClick={onClose}>
-                            Not now
+                            {t('PUBLISH_DIALOG.NOT_NOW')}
                         </Button>
                         <Button onClick={onPublishAnyway} className="text-white">
-                            Publish anyway
+                            {t('PUBLISH_DIALOG.ANYWAY')}
                         </Button>
                     </div>
                 )}

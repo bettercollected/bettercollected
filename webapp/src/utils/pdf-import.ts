@@ -1,3 +1,5 @@
+import i18n from 'i18next';
+
 /**
  * Pure helpers for the PDF form import screens: progress through the
  * pipeline stages, the import report in plain words, and placing the
@@ -33,40 +35,41 @@ export function progressPercent(states: Record<string, StageState>): number {
     return Math.round(((done + current) / STAGES.length) * 100);
 }
 
-const RULE_LABELS: Record<string, (n: number) => string> = {
-    other_option_gets_specify_field: (n) => `${n} "Other" option${n > 1 ? 's' : ''} got a "Please specify" field`,
-    follow_up_shown_on_yes: (n) => `${n} follow-up question${n > 1 ? 's' : ''} shown only after "Yes"`,
-    statement_verbatim: (n) => `${n} instruction${n > 1 ? 's' : ''} or declaration${n > 1 ? 's' : ''} kept word for word`,
-    long_terms_to_terms_page: () => 'Long terms moved to a "Terms and declarations" page with an agreement',
-    signature_to_typed_name_and_confirmation: (n) => `${n} signature${n > 1 ? 's' : ''} replaced by a typed full name and a confirmation`,
-    bs_ad_date_pair_to_two_dates: (n) => `${n} B.S./A.D. date pair${n > 1 ? 's' : ''} split into two date fields`,
-    location_sketch_to_questions: () => 'The location sketch became landmark, distance and direction questions',
-    photo_box_to_upload: (n) => `${n} photo box${n > 1 ? 'es' : ''} became an image upload`,
-    character_cells_to_text: (n) => `${n} character-box field${n > 1 ? 's' : ''} became text fields`,
-    open_table_to_repeating_group: (n) => `${n} table${n > 1 ? 's' : ''} became ${n > 1 ? 'repeating groups' : 'a repeating group'}: respondents add one entry per row`,
-    fixed_table_to_fields: (n) => `${n} table${n > 1 ? 's' : ''} with labelled rows became a grid of fields`,
-    applicant_blocks_to_repeating_group: () => 'The blocks for joint applicants became one repeating group with an entry per applicant',
-    applicant_blocks_prefixed: (n) => `${n} question${n > 1 ? 's' : ''} for further applicants ${n > 1 ? 'were' : 'was'} labelled "Applicant 2", "Applicant 3"…`,
-    staff_only_to_internal_fields: (n) => `${n} staff-only field${n > 1 ? 's' : ''} became internal field${n > 1 ? 's' : ''} that staff fill in`,
-    long_section_split: (n) => `${n} long section${n > 1 ? 's were' : ' was'} split across pages`,
-    tiny_section_merged: (n) => `${n} short section${n > 1 ? 's were' : ' was'} merged into the page before`,
-    theme_from_document: () => "The form's colours were taken from the document",
-    staff_only_listed: (n) => `${n} staff-only part${n > 1 ? 's were' : ' was'} left out: nothing to fill in was found`,
-    consent: (n) => `${n} agreement${n > 1 ? 's' : ''} added`
-};
+// The wording of each rule is builder.json `PDF_REVIEW.RULE.<key>` (plural per count), in the builder's language.
+const RULE_KEYS = new Set([
+    'other_option_gets_specify_field',
+    'follow_up_shown_on_yes',
+    'statement_verbatim',
+    'long_terms_to_terms_page',
+    'signature_to_typed_name_and_confirmation',
+    'bs_ad_date_pair_to_two_dates',
+    'location_sketch_to_questions',
+    'photo_box_to_upload',
+    'character_cells_to_text',
+    'open_table_to_repeating_group',
+    'fixed_table_to_fields',
+    'applicant_blocks_to_repeating_group',
+    'applicant_blocks_prefixed',
+    'staff_only_to_internal_fields',
+    'long_section_split',
+    'tiny_section_merged',
+    'theme_from_document',
+    'staff_only_listed',
+    'consent'
+]);
 
 export function describeRules(rules: Record<string, number> | undefined): string[] {
     return Object.entries(rules ?? {})
         .filter(([, n]) => n > 0)
-        .map(([key, n]) => (RULE_LABELS[key] ? RULE_LABELS[key](n) : `${key.replace(/_/g, ' ')} (${n})`));
+        .map(([key, n]) => (RULE_KEYS.has(key) ? i18n.t(`builder:PDF_REVIEW.RULE.${key}`, { count: n }) : `${key.replace(/_/g, ' ')} (${n})`));
 }
 
 /** A staff-only part of the paper form, as the review screen lists it. */
 export function describeStaffPart(part: { heading?: string | null; internal_fields?: number | null }): string {
-    const heading = part.heading?.trim() || 'Staff-only part';
+    const heading = part.heading?.trim() || i18n.t('builder:PDF_REVIEW.STAFF_PART');
     const n = Number(part.internal_fields ?? 0);
-    if (n > 0) return `${heading}: ${n} internal field${n === 1 ? '' : 's'} that staff fill in on each submission. Respondents never see ${n === 1 ? 'it' : 'them'}.`;
-    return `${heading}: left out, nothing to fill in was found. Respondents never see it.`;
+    if (n > 0) return i18n.t('builder:PDF_REVIEW.STAFF_FIELDS', { heading, count: n });
+    return i18n.t('builder:PDF_REVIEW.STAFF_LEFT_OUT', { heading });
 }
 
 /** Where a box (PDF points, top-left origin) sits on an image displayed at `displayWidth` pixels. */
@@ -81,9 +84,9 @@ export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 
 export function validateUpload(file: { type: string; size: number; name: string }): string | null {
     const byName = /\.(pdf|png|jpe?g|webp)$/i.test(file.name);
-    if (!ACCEPTED_TYPES.includes(file.type) && !byName) return 'Choose a PDF, or a PNG, JPEG or WebP photo of a form.';
-    if (file.size === 0) return 'This file is empty.';
-    if (file.size > MAX_UPLOAD_BYTES) return 'This file is larger than 15 MB.';
+    if (!ACCEPTED_TYPES.includes(file.type) && !byName) return i18n.t('builder:PDF_REVIEW.UPLOAD_TYPE');
+    if (file.size === 0) return i18n.t('builder:PDF_REVIEW.UPLOAD_EMPTY');
+    if (file.size > MAX_UPLOAD_BYTES) return i18n.t('builder:PDF_REVIEW.UPLOAD_LARGE');
     return null;
 }
 
@@ -94,7 +97,7 @@ export function isAiWording(box: { grounded?: boolean | null }): boolean {
 
 /** The progress and review screens say whether the AI read the document. */
 export function aiStructuringNote(aiConsent: boolean | undefined): string {
-    return aiConsent ? 'AI structuring: on' : 'AI structuring: off (built-in reader only)';
+    return aiConsent ? i18n.t('builder:PDF_REVIEW.AI_ON') : i18n.t('builder:PDF_REVIEW.AI_OFF');
 }
 
 /** Pages where words were kept out of the questions because they looked like filled-in answers. */
@@ -105,7 +108,7 @@ export function describeWithheld(withheld: Record<string, number> | undefined | 
         .sort((a, b) => a.page - b.page)
         .map(({ page, count }) => ({
             page,
-            text: `Page ${page}: ${count} ${count === 1 ? 'word' : 'words'} inside answer boxes looked like filled-in answers and ${count === 1 ? 'was' : 'were'} left out of the questions. Check the questions there.`
+            text: i18n.t('builder:PDF_REVIEW.WITHHELD', { page, count })
         }));
 }
 

@@ -42,9 +42,6 @@ import SlideOptions from './slide-options';
  * step. A list of buttons, so every row works with Tab and Enter.
  */
 
-const SR_INSTRUCTIONS =
-    'To reorder, press Space or Enter on the move handle, use the up and down arrow keys to move, then Space or Enter to drop, or Escape to cancel. The options menu next to each item also has Move up and Move down.';
-
 // The outline only reorders: drags stay on the vertical axis.
 const verticalOnly: Modifier = ({ transform }) => ({ ...transform, x: 0 });
 
@@ -69,49 +66,48 @@ function Chip({ tone, title, children }: { tone: 'logic' | 'danger' | 'warning' 
 
 /** ``aiChanges``: changes an open AI proposal makes on this page. */
 function PageChips({ status, aiChanges = 0 }: { status: PageStatus; aiChanges?: number }) {
+    const { t } = useTranslation('builder');
     const chips: ReactNode[] = [];
     if (aiChanges > 0)
         chips.push(
-            <Chip key="ai" tone="ai" title={`The AI proposes ${aiChanges} change${aiChanges === 1 ? '' : 's'} on this page`}>
+            <Chip key="ai" tone="ai" title={t('OUTLINE.AI_CHANGES_TITLE', { count: aiChanges })}>
                 <span aria-hidden="true">AI · {aiChanges}</span>
-                <span className="sr-only">
-                    {aiChanges} proposed AI change{aiChanges === 1 ? '' : 's'}
-                </span>
+                <span className="sr-only">{t('OUTLINE.AI_CHANGES_SR', { count: aiChanges })}</span>
             </Chip>
         );
     if (status.brokenJumps > 0)
         chips.push(
-            <Chip key="broken" tone="danger" title="A page jump points at a page or an ending that no longer exists">
+            <Chip key="broken" tone="danger" title={t('OUTLINE.BROKEN_JUMP_TITLE')}>
                 <AlertTriangle className="h-3 w-3" aria-hidden="true" />
-                Broken jump
+                {t('OUTLINE.BROKEN_JUMP')}
             </Chip>
         );
     if (status.empty)
         chips.push(
-            <Chip key="empty" tone="warning" title="Respondents will see a blank page: add a question or delete it">
-                Empty
+            <Chip key="empty" tone="warning" title={t('OUTLINE.EMPTY_TITLE')}>
+                {t('OUTLINE.EMPTY')}
             </Chip>
         );
     if (status.missingWhyWeAsk > 0)
         chips.push(
-            <Chip key="why" tone="warning" title={`${status.missingWhyWeAsk} question${status.missingWhyWeAsk === 1 ? ' asks' : 's ask'} for personal details without a "Why we ask this" line`}>
+            <Chip key="why" tone="warning" title={t('OUTLINE.WHY_TITLE', { count: status.missingWhyWeAsk })}>
                 <AlertTriangle className="h-3 w-3" aria-hidden="true" />
-                <span aria-hidden="true">Why we ask</span>
-                <span className="sr-only">Missing why we ask</span>
+                <span aria-hidden="true">{t('OUTLINE.WHY_CHIP')}</span>
+                <span className="sr-only">{t('OUTLINE.WHY_SR')}</span>
             </Chip>
         );
     if (status.hasLogic)
         chips.push(
-            <Chip key="logic" tone="logic" title="This page has logic">
+            <Chip key="logic" tone="logic" title={t('OUTLINE.LOGIC_TITLE')}>
                 <LogicOutlinedIcon className="h-2.5 w-2.5" aria-hidden="true" />
-                Logic
+                {t('OUTLINE.LOGIC')}
             </Chip>
         );
     if (status.internal > 0)
         chips.push(
-            <Chip key="internal" tone="neutral" title="Respondents never see internal questions; your team fills them in">
+            <Chip key="internal" tone="neutral" title={t('OUTLINE.INTERNAL_TITLE')}>
                 <Lock className="h-2.5 w-2.5" aria-hidden="true" />
-                {status.internal} internal
+                {t('OUTLINE.INTERNAL_COUNT', { count: status.internal })}
             </Chip>
         );
     return chips.length ? <span className="flex flex-wrap gap-1 pt-0.5">{chips}</span> : null;
@@ -119,11 +115,12 @@ function PageChips({ status, aiChanges = 0 }: { status: PageStatus; aiChanges?: 
 
 /** A row the outline can drag: `children` gets the move handle to render. */
 function SortableRow({ id, label, disabled, selected, className, children }: { id: string; label: string; disabled: boolean; selected: boolean; className?: string; children: (handle: ReactNode) => ReactNode }) {
+    const { t } = useTranslation('builder');
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
     const handle = disabled ? (
         <span className="w-5 shrink-0" aria-hidden="true" />
     ) : (
-        <button type="button" ref={setActivatorNodeRef} {...attributes} {...listeners} aria-label={`Move ${label}`} className={cn(handleClass, selected && 'opacity-100')}>
+        <button type="button" ref={setActivatorNodeRef} {...attributes} {...listeners} aria-label={t('OUTLINE.MOVE_LABEL', { label })} className={cn(handleClass, selected && 'opacity-100')}>
             <GripVertical className="h-4 w-4" aria-hidden="true" />
         </button>
     );
@@ -153,6 +150,7 @@ function StaticRow({ label, secondary, selected, onSelect, chip }: { label: stri
  * cancels (`onDone(null)`). The name is internal; respondents never see it.
  */
 function EndingNameInput({ initial, placeholder, onDone }: { initial: string; placeholder: string; onDone: (name: string | null) => void }) {
+    const { t } = useTranslation('builder');
     const [value, setValue] = useState(initial);
     const done = useRef(false);
     // Leaving the field saves, but only once it has had focus: the menu that
@@ -176,7 +174,7 @@ function EndingNameInput({ initial, placeholder, onDone }: { initial: string; pl
             type="text"
             value={value}
             maxLength={ENDING_NAME_MAX_LENGTH}
-            aria-label="Ending name (respondents never see it)"
+            aria-label={t('OUTLINE.ENDING_NAME_LABEL')}
             placeholder={placeholder}
             onChange={(event) => setValue(event.target.value)}
             onFocus={() => (focused.current = true)}
@@ -194,7 +192,6 @@ function EndingNameInput({ initial, placeholder, onDone }: { initial: string; pl
         />
     );
 }
-
 
 /** The endings as the outline shows them (ids given; a form without any shows the default one). */
 const outlineEndingsAtom = atom((get) => {
@@ -299,22 +296,22 @@ const OutlineQuestionRow = memo(function OutlineQuestionRow({
                     {t(groupStart[0] === 'fieldset' ? 'LAYOUT.FIELDSET' : groupStart[0] === 'tabs' ? 'LAYOUT.TABS' : 'LAYOUT.PANEL')} · {groupStart[1]}
                 </p>
             )}
-            <SortableRow id={qKey} label={`question ${title}`} disabled={filtering} selected={selected}>
+            <SortableRow id={qKey} label={t('OUTLINE.QUESTION_LABEL', { title })} disabled={filtering} selected={selected}>
                 {(handle) => (
                     <>
                         {handle}
                         <button type="button" data-outline-key={qKey} className={cn(selectButtonClass, 'flex-row items-center gap-1')} aria-current={selected ? 'true' : undefined} onClick={() => onSelectQuestion(pageId, pageIndex, fieldId, fieldIndex)}>
                             <span className="text-black-800 min-w-0 flex-1 truncate text-sm">{title}</span>
                             {aiMark && (
-                                <span title={aiMark === 'added' ? 'The AI proposes adding this question' : 'The AI proposes changing this question'} className="shrink-0 rounded bg-[#FDF3E7] px-1 text-[10px] font-semibold leading-4 text-[#8A4A08]">
+                                <span title={aiMark === 'added' ? t('OUTLINE.AI_ADDED_TITLE') : t('OUTLINE.AI_CHANGED_TITLE')} className="shrink-0 rounded bg-[#FDF3E7] px-1 text-[10px] font-semibold leading-4 text-[#8A4A08]">
                                     <span aria-hidden="true">AI</span>
-                                    <span className="sr-only">, {aiMark === 'added' ? 'added' : 'changed'} by an AI proposal</span>
+                                    <span className="sr-only">{aiMark === 'added' ? t('OUTLINE.AI_ADDED_SR') : t('OUTLINE.AI_CHANGED_SR')}</span>
                                 </span>
                             )}
                             {missingWhy && (
-                                <span title='Asks for personal details without a "Why we ask this" line' className="text-brand-olive shrink-0">
+                                <span title={t('OUTLINE.MISSING_WHY_TITLE')} className="text-brand-olive shrink-0">
                                     <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
-                                    <span className="sr-only">, missing why we ask</span>
+                                    <span className="sr-only">{t('OUTLINE.MISSING_WHY_SR')}</span>
                                 </span>
                             )}
                             {rulesCount > 0 && (
@@ -324,15 +321,15 @@ const OutlineQuestionRow = memo(function OutlineQuestionRow({
                                 </span>
                             )}
                             {fieldHasLogic(field) && (
-                                <span title="Shown or hidden by a logic rule" className="text-brand-500 shrink-0">
+                                <span title={t('OUTLINE.LOGIC_ROW_TITLE')} className="text-brand-500 shrink-0">
                                     <LogicOutlinedIcon className="h-3 w-3" aria-hidden="true" />
-                                    <span className="sr-only">, has logic</span>
+                                    <span className="sr-only">{t('OUTLINE.HAS_LOGIC_SR')}</span>
                                 </span>
                             )}
                             {field.internal && (
-                                <span title="Internal: respondents never see it" className="text-black-600 shrink-0">
+                                <span title={t('OUTLINE.INTERNAL_ROW_TITLE')} className="text-black-600 shrink-0">
                                     <Lock className="h-3 w-3" aria-hidden="true" />
-                                    <span className="sr-only">, internal</span>
+                                    <span className="sr-only">{t('OUTLINE.INTERNAL_SR')}</span>
                                 </span>
                             )}
                         </button>
@@ -384,6 +381,7 @@ const OutlinePage = memo(function OutlinePage({
     onToggle: (pageId: string) => void;
     onMenuMoved: MenuMoved;
 }) {
+    const { t } = useTranslation('builder');
     const view = useAtomValue(outlinePageViewAtom(pageId));
     const allIds = usePageFieldIds(pageId);
     if (!view) return null;
@@ -403,7 +401,7 @@ const OutlinePage = memo(function OutlinePage({
                                 type="button"
                                 aria-expanded={expanded}
                                 aria-controls={expanded ? listId : undefined}
-                                aria-label={`Questions on ${name}`}
+                                aria-label={t('OUTLINE.QUESTIONS_ON', { name })}
                                 onClick={() => onToggle(pageId)}
                                 className="text-black-600 hover:text-black-900 flex h-6 w-5 shrink-0 items-center justify-center rounded-sm"
                             >
@@ -415,8 +413,8 @@ const OutlinePage = memo(function OutlinePage({
                         <button type="button" data-outline-key={key} className={selectButtonClass} aria-current={selected ? 'true' : undefined} onClick={() => onSelectPage(pageId, index)}>
                             <span className="text-black-900 line-clamp-2 text-sm font-medium">{name}</span>
                             <span className="text-black-600 text-xs">
-                                {view.sectionTitle.trim() ? `Page ${index + 1} · ` : ''}
-                                {count} question{count === 1 ? '' : 's'}
+                                {view.sectionTitle.trim() ? t('OUTLINE.PAGE_PREFIX', { n: index + 1 }) : ''}
+                                {t('OUTLINE.QUESTIONS_COUNT', { count })}
                             </span>
                             <PageChips status={view.status} aiChanges={aiChanges} />
                         </button>
@@ -425,7 +423,7 @@ const OutlinePage = memo(function OutlinePage({
                 )}
             </SortableRow>
             {showQuestions && (
-                <ul id={listId} aria-label={`Questions on ${name}`} className="flex flex-col gap-0.5 pl-4">
+                <ul id={listId} aria-label={t('OUTLINE.QUESTIONS_ON', { name })} className="flex flex-col gap-0.5 pl-4">
                     {questionIds.map((fieldId) => (
                         <OutlineQuestionRow
                             key={fieldId}
@@ -456,6 +454,7 @@ const OutlinePage = memo(function OutlinePage({
  * pages and questions render their own rows.
  */
 function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveFormBuilderComponent | null }) {
+    const { t } = useTranslation('builder');
     const { activeFieldComponent } = useActiveFieldComponent();
     const setActiveFieldComponent = useSetAtom(activeFieldAtom);
     const setActiveSlideComponent = useSetAtom(activeSlideAtom);
@@ -503,7 +502,7 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
             return outlinePageName(slides[index], index);
         }
         const at = locateField(slides, id);
-        return at ? `question ${fieldText(slides[at.pageIndex].properties!.fields![at.fieldIndex])}` : 'item';
+        return at ? t('OUTLINE.QUESTION_LABEL', { title: fieldText(slides[at.pageIndex].properties!.fields![at.fieldIndex]) }) : t('OUTLINE.ITEM');
     };
 
     /** Where dropping `active` on `over` would put it, in words. */
@@ -512,23 +511,23 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
         const drop = resolveOutlineDrop(flatKeys, String(active), String(over));
         if (!drop) return null;
         const slides = getFormFields();
-        if (drop.kind === 'page') return `position ${drop.to + 1} of ${slides.length}`;
+        if (drop.kind === 'page') return t('OUTLINE.POSITION_OF', { position: drop.to + 1, total: slides.length });
         const target = questionDropTarget(slides, drop.fieldId, drop.toPageId, drop.afterFieldId);
         if (!target) return null;
-        return `${outlinePageName(slides[target.toPageIndex], target.toPageIndex)}, position ${target.toIndex + 1}`;
+        return t('OUTLINE.PAGE_POSITION', { page: outlinePageName(slides[target.toPageIndex], target.toPageIndex), position: target.toIndex + 1 });
     };
 
     const announcements: Announcements = {
-        onDragStart: ({ active }) => `Picked up ${nameOf(active.id)}.`,
+        onDragStart: ({ active }) => t('OUTLINE.PICKED_UP', { name: nameOf(active.id) }),
         onDragOver: ({ active, over }) => {
             const where = describeDrop(active.id, over?.id);
-            return where ? `${nameOf(active.id)} would move to ${where}.` : `${nameOf(active.id)} stays where it was.`;
+            return where ? t('OUTLINE.WOULD_MOVE', { name: nameOf(active.id), where }) : t('OUTLINE.STAYS', { name: nameOf(active.id) });
         },
         onDragEnd: ({ active, over }) => {
             const where = describeDrop(active.id, over?.id);
-            return where ? `Dropped ${nameOf(active.id)} at ${where}.` : `Dropped ${nameOf(active.id)} where it was.`;
+            return where ? t('OUTLINE.DROPPED_AT', { name: nameOf(active.id), where }) : t('OUTLINE.DROPPED', { name: nameOf(active.id) });
         },
-        onDragCancel: ({ active }) => `Moving ${nameOf(active.id)} was cancelled.`
+        onDragCancel: ({ active }) => t('OUTLINE.CANCELLED', { name: nameOf(active.id) })
     };
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
@@ -615,9 +614,9 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
     const pageCount = entries.length;
 
     return (
-        <aside id="slides-preview" aria-label="Form outline" className="h-body-content border-r-black-300 flex w-[256px] shrink-0 flex-col overflow-hidden border-r bg-white">
+        <aside id="slides-preview" aria-label={t('OUTLINE.LABEL')} className="h-body-content border-r-black-300 flex w-[256px] shrink-0 flex-col overflow-hidden border-r bg-white">
             <div className="flex w-full items-center justify-between px-4 pb-2 pt-4">
-                <h2 className="text-black-900 text-sm font-semibold">Outline</h2>
+                <h2 className="text-black-900 text-sm font-semibold">{t('OUTLINE.TITLE')}</h2>
                 <AddSlidePopover />
             </div>
             <div className="relative px-3 pb-3">
@@ -626,19 +625,19 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
                     type="search"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    aria-label="Filter questions by title"
-                    placeholder="Filter questions"
+                    aria-label={t('OUTLINE.FILTER_LABEL')}
+                    placeholder={t('OUTLINE.FILTER')}
                     className="border-control text-black-900 placeholder:text-black-600 focus:border-brand-500 w-full rounded border bg-white py-1.5 pl-8 pr-2 text-sm"
                 />
             </div>
             <div id="outline-announcer" className="sr-only" aria-live="polite" role="status">
-                {filtering ? `${matchCount} question${matchCount === 1 ? '' : 's'} match.` : message}
+                {filtering ? t('OUTLINE.MATCH', { count: matchCount }) : message}
             </div>
 
             <div className="border-t-black-300 flex-1 overflow-y-auto overflow-x-hidden border-t px-2 py-2">
                 {!filtering && (
                     <StaticRow
-                        label="Welcome"
+                        label={t('OUTLINE.WELCOME')}
                         // The welcome page shows the form's title.
                         secondary={formState.title || undefined}
                         selected={isActiveSlide('welcome-page')}
@@ -649,20 +648,20 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
                     />
                 )}
 
-                {filtering && pages.length === 0 && <p className="text-black-600 px-2 py-3 text-sm">No questions match “{query.trim()}”.</p>}
+                {filtering && pages.length === 0 && <p className="text-black-600 px-2 py-3 text-sm">{t('OUTLINE.NO_MATCH', { query: query.trim() })}</p>}
 
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
                     modifiers={[verticalOnly]}
                     measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
-                    accessibility={{ announcements, screenReaderInstructions: { draggable: SR_INSTRUCTIONS } }}
+                    accessibility={{ announcements, screenReaderInstructions: { draggable: t('OUTLINE.SR_INSTRUCTIONS') } }}
                     onDragStart={onDragStart}
                     onDragEnd={onDragEnd}
                     onDragCancel={() => setDragging(null)}
                 >
                     <SortableContext items={flatKeys} strategy={verticalListSortingStrategy}>
-                        <ul aria-label="Pages" className="flex flex-col gap-0.5 py-1">
+                        <ul aria-label={t('OUTLINE.PAGES')} className="flex flex-col gap-0.5 py-1">
                             {pages.map((page) => (
                                 <OutlinePage
                                     key={page.id}
@@ -693,23 +692,23 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
                 {!filtering && (
                     <div className="border-t-black-300 mt-1 border-t pt-2">
                         <div className="flex items-center justify-between px-2 pb-1">
-                            <h3 className="text-black-600 text-xs font-medium">{endings.length > 1 ? 'Endings' : 'Ending'}</h3>
+                            <h3 className="text-black-600 text-xs font-medium">{endings.length > 1 ? t('OUTLINE.ENDINGS') : t('OUTLINE.ENDING')}</h3>
                             <button
                                 type="button"
                                 disabled={!canAdd}
-                                title={canAdd ? undefined : 'A form can have at most 20 endings'}
+                                title={canAdd ? undefined : t('OUTLINE.MAX_ENDINGS')}
                                 onClick={() => {
                                     const index = addEnding();
                                     setActiveFieldComponent(null);
-                                    setMessage(`Ending ${index + 1} added.`);
+                                    setMessage(t('OUTLINE.ENDING_ADDED', { n: index + 1 }));
                                 }}
                                 className="text-brand-500 hover:text-brand-600 hover:bg-black-200 flex h-6 items-center gap-0.5 rounded-sm px-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                                Add ending
+                                {t('OUTLINE.ADD_ENDING')}
                             </button>
                         </div>
-                        <ul aria-label="Endings" className="flex flex-col gap-0.5">
+                        <ul aria-label={t('OUTLINE.ENDINGS')} className="flex flex-col gap-0.5">
                             {endings.map((ending, index) => {
                                 const label = endingLabel(ending, index, endings.length);
                                 const selected = isActiveSlide('thank-you-page') && activeEnding === index;
@@ -727,11 +726,11 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
                                             {renaming === ending.id ? (
                                                 <EndingNameInput
                                                     initial={ending.name ?? ''}
-                                                    placeholder={endings.length > 1 ? `Ending ${index + 1}` : 'Thank you'}
+                                                    placeholder={endings.length > 1 ? t('OUTLINE.ENDING_N', { n: index + 1 }) : t('OUTLINE.THANK_YOU')}
                                                     onDone={(name) => {
                                                         if (name !== null) {
                                                             renameEnding(index, name);
-                                                            setMessage(name.trim() ? `Ending renamed to ${name.trim()}.` : 'Ending name cleared.');
+                                                            setMessage(name.trim() ? t('OUTLINE.RENAMED', { name: name.trim() }) : t('OUTLINE.NAME_CLEARED'));
                                                         }
                                                         setRenaming(null);
                                                         setFocusKey(`ending:${ending.id}`);
@@ -744,13 +743,13 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
                                                     {endings.length > 1 && (isDefault || !reached) ? (
                                                         <span className="flex flex-wrap gap-1 pt-0.5">
                                                             {isDefault && (
-                                                                <Chip tone="neutral" title="Shown after a plain submit, and when no jump chooses another ending">
-                                                                    Default
+                                                                <Chip tone="neutral" title={t('OUTLINE.DEFAULT_TITLE')}>
+                                                                    {t('OUTLINE.DEFAULT')}
                                                                 </Chip>
                                                             )}
                                                             {!reached && (
-                                                                <Chip tone="warning" title="No page jump goes to this ending, so respondents never see it. Add a jump to it in a page's Logic, or in the Flow view.">
-                                                                    Not reached by any jump
+                                                                <Chip tone="warning" title={t('OUTLINE.NOT_REACHED_TITLE')}>
+                                                                    {t('OUTLINE.NOT_REACHED')}
                                                                 </Chip>
                                                             )}
                                                         </span>
@@ -771,11 +770,11 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
                                                 }}
                                                 onDuplicate={() => {
                                                     duplicateEnding(index);
-                                                    setMessage(`${label} duplicated.`);
+                                                    setMessage(t('OUTLINE.DUPLICATED', { label }));
                                                 }}
                                                 onMakeDefault={() => {
                                                     makeDefault(index);
-                                                    setMessage(`${label} is now the default ending.`);
+                                                    setMessage(t('OUTLINE.NOW_DEFAULT', { label }));
                                                 }}
                                                 onDelete={() => deleteEnding(index)}
                                             />

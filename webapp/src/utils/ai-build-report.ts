@@ -1,3 +1,5 @@
+import i18n from 'i18next';
+
 // What building a form from an AI outline left to check, carried from the
 // Start with AI dialog to the editor (sessionStorage, per form). Only codes,
 // severities, ids and the backend's notes (counts, never form text) are kept.
@@ -59,7 +61,8 @@ export function clearBuildReport(formId: string): void {
     }
 }
 
-// Plain-language text per quality finding code (backend services/ai/quality.py).
+// Plain-language text per quality finding code (backend services/ai/quality.py), in the builder's language
+// (`BUILD_CHECK.<code>`); these English lines are the fallback for a code that has none.
 const FINDING_TEXT: Record<string, string> = {
     missing_title: 'The form has no title.',
     no_questions: 'The form has no question to answer yet.',
@@ -84,5 +87,7 @@ const FINDING_TEXT: Record<string, string> = {
 };
 
 export function findingText(code: string): string {
-    return FINDING_TEXT[code] ?? 'Something on this form needs a look before publishing.';
+    // only the codes the backend makes (the report is kept in the browser: a code must not pick any other text)
+    if (!Object.prototype.hasOwnProperty.call(FINDING_TEXT, code)) return i18n.t('builder:BUILD_CHECK.GENERIC');
+    return i18n.t(`builder:BUILD_CHECK.${code}`, { defaultValue: FINDING_TEXT[code] });
 }
