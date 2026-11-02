@@ -9,6 +9,7 @@ from temporalio.worker import Worker
 from activities.run_action_code import run_action_code
 from settings.application import (
     log_if_api_key_missing,
+    refuse_key_when_not_allowed,
     require_aes_hex_key,
     settings,
 )
@@ -71,6 +72,7 @@ if __name__ == "__main__":
     # JOBS_BACKEND=temporal keeps the workflow.
     if jobs_backend() == "postgres":
         require_database_url()
+        refuse_key_when_not_allowed()
         if settings.aes_hex_key:
             # still validated when set; not needed since 4.3 (see below)
             require_aes_hex_key()

@@ -814,6 +814,12 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
     _text("ACTION_EGRESS_ALLOW", "services", (EXECUTOR,),
           "Comma separated host or host:port entries that actions may call although they are "
           "internal or not https.", tier=T5),
+    _bool("ACTION_SECRETS_SEALED_ALLOWED", "services", (BACKEND,), True,
+          "False (at the 4.3 deploy): refuse sealed run secrets and the key-only write-back (426).",
+          tier=T5),
+    _bool("ACTION_EXECUTOR_KEY_ALLOWED", "services", (EXECUTOR,), True,
+          "False (at the 4.3 deploy): the executor refuses to start while AES_HEX_KEY is set.",
+          tier=T5),
     _int("ACTION_SANDBOX_MEMORY_MB", "services", (EXECUTOR,), 256, 32, 4096,
          "Address space of a custom-code child.", tier=T5),
     _int("ACTION_SANDBOX_CPU_SECONDS", "services", (EXECUTOR,), 10, 1, 120,
