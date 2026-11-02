@@ -842,8 +842,6 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
           "API address compiled into the web app (build argument).", tier=T5, reload_class=B),
     _text("NEXT_PUBLIC_NODE_ENV", "webapp", (WEBAPP,),
           "Environment label compiled into the web app (build argument).", tier=T5, reload_class=B),
-    _text("NEXT_PUBLIC_DASHBOARD_DOMAIN", "webapp", (WEBAPP,),
-          "Dashboard domain used by the frame header (build argument).", tier=T5, reload_class=B),
     _text("NEXT_PUBLIC_APP_URL", "webapp", (WEBAPP,),
           "Public address compiled into the web app (build argument).", tier=T5, reload_class=B),
     _text("BASE_DEPLOY_PATH", "webapp", (WEBAPP,),
