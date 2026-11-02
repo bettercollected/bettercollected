@@ -22,6 +22,7 @@ from urllib.parse import urlsplit
 from bson.errors import InvalidId
 from common.constants import MESSAGE_FORBIDDEN
 from common.ids import RecordId
+from loguru import logger
 from common.models.user import User
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -252,8 +253,20 @@ class FormEmbedService:
                 status_code=HTTPStatus.UNPROCESSABLE_ENTITY, content=content
             )
         workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
+        before = list(workspace.embed_allowed_origins or [])
         await self._workspace_repo.set_fields(
             workspace, {"embed_allowed_origins": origins}
+        )
+        # a security setting: who changed it and by how many sites, ids and counts only
+        # (the sites themselves are visible in the response headers anyway)
+        logger.info(
+            "embed allowed sites changed: workspace={} user={} before={} after={} added={} removed={}",
+            workspace_id,
+            getattr(user, "id", None),
+            len(before),
+            len(origins),
+            len([o for o in origins if o not in before]),
+            len([o for o in before if o not in origins]),
         )
         return EmbedSettingsDto(origins=origins, can_manage=True)
 

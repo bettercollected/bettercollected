@@ -15,7 +15,7 @@ vi.mock('@app/configs/environments', () => ({ default: env }));
 
 const request = (path: string, host: string, headers: Record<string, string> = {}) => new NextRequest(`http://internal:3000${path}`, { headers: { host, ...headers } });
 
-const policyOf = (body: unknown, ok = true) => vi.fn().mockResolvedValue({ ok, json: async () => body });
+const policyOf = (body: unknown, ok = true, status = ok ? 200 : 500) => vi.fn().mockResolvedValue({ ok, status, json: async () => body });
 const csp = async (value: ReturnType<typeof proxy>) => (await value).headers.get('content-security-policy');
 
 describe('proxy: who may frame a page', () => {
@@ -61,12 +61,119 @@ describe('proxy: who may frame a page', () => {
         expect(await csp(proxy(request('/acme/forms/contact', 'forms.example.test')))).toBe("frame-ancestors 'self' https://admin.example.test https://ok.example.org");
     });
 
-    it('refuses other sites (does not open the page) when the backend cannot be asked', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));
-        expect(await csp(proxy(request('/acme/forms/contact', 'forms.example.test')))).toBe("frame-ancestors 'self' https://admin.example.test");
-        clearEmbedPolicyCache();
-        vi.stubGlobal('fetch', policyOf({}, false));
-        expect(await csp(proxy(request('/acme/forms/contact', 'forms.example.test')))).toBe("frame-ancestors 'self' https://admin.example.test");
+    describe('when the backend cannot be asked or does not know the route', () => {
+        const form = () => proxy(request('/acme/forms/contact', 'forms.example.test'));
+        const STRICT = "frame-ancestors 'self' https://admin.example.test";
+        afterEach(() => vi.useRealTimers());
+
+        it('treats a 404 (or 405) from the route as the switch being off: no header, as before the feature', async () => {
+            vi.stubGlobal('fetch', policyOf({}, false, 404));
+            expect(await csp(form())).toBeNull();
+            clearEmbedPolicyCache();
+            vi.stubGlobal('fetch', policyOf({}, false, 405));
+            expect(await csp(form())).toBeNull();
+        });
+
+        it('treats an error with nothing known as off too, so a rollout in either order changes nothing', async () => {
+            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));
+            expect(await csp(form())).toBeNull();
+            clearEmbedPolicyCache();
+            vi.stubGlobal('fetch', policyOf({}, false, 503));
+            expect(await csp(form())).toBeNull();
+            clearEmbedPolicyCache();
+            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new DOMException('timed out', 'TimeoutError')));
+            expect(await csp(form())).toBeNull();
+        });
+
+        it('keeps the last good policy through errors, and a 404 after it ends it', async () => {
+            vi.useFakeTimers({ toFake: ['Date'] });
+            vi.setSystemTime(new Date('2026-11-02T10:00:00Z'));
+            vi.stubGlobal('fetch', policyOf({ enabled: true, origins: ['https://www.example.org'] }));
+            const good = "frame-ancestors 'self' https://admin.example.test https://www.example.org";
+            expect(await csp(form())).toBe(good);
+            // the backend goes down: the answer is not asked again for a while, then the last good one is kept
+            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));
+            vi.setSystemTime(new Date('2026-11-02T10:01:00Z'));
+            expect(await csp(form())).toBe(good);
+            vi.stubGlobal('fetch', policyOf({}, false, 500));
+            vi.setSystemTime(new Date('2026-11-02T10:05:00Z'));
+            expect(await csp(form())).toBe(good);
+            // an older backend without the route says the feature is gone: off
+            vi.stubGlobal('fetch', policyOf({}, false, 404));
+            vi.setSystemTime(new Date('2026-11-02T10:06:00Z'));
+            expect(await csp(form())).toBeNull();
+        });
+
+        it('falls back to the strict policy once the last good one is ten minutes old, never to an open page', async () => {
+            vi.useFakeTimers({ toFake: ['Date'] });
+            vi.setSystemTime(new Date('2026-11-02T10:00:00Z'));
+            vi.stubGlobal('fetch', policyOf({ enabled: true, origins: ['https://www.example.org'] }));
+            await form();
+            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));
+            vi.setSystemTime(new Date('2026-11-02T10:11:00Z'));
+            expect(await csp(form())).toBe(STRICT);
+        });
+
+        it('keeps a workspace with the switch off off through an error', async () => {
+            vi.useFakeTimers({ toFake: ['Date'] });
+            vi.setSystemTime(new Date('2026-11-02T10:00:00Z'));
+            vi.stubGlobal('fetch', policyOf({ enabled: false, origins: [] }));
+            expect(await csp(form())).toBeNull();
+            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));
+            vi.setSystemTime(new Date('2026-11-02T11:00:00Z'));
+            expect(await csp(form())).toBeNull();
+        });
+
+        it('is strict for a workspace nobody asked about yet once the backend has said the switch is on', async () => {
+            vi.stubGlobal('fetch', policyOf({ enabled: true, origins: ['https://www.example.org'] }));
+            await form();
+            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));
+            expect(await csp(proxy(request('/other/forms/contact', 'forms.example.test')))).toBe(STRICT);
+        });
+
+        it('asks the backend again after the retry delay, and not before', async () => {
+            vi.useFakeTimers({ toFake: ['Date'] });
+            vi.setSystemTime(new Date('2026-11-02T10:00:00Z'));
+            const down = vi.fn().mockRejectedValue(new Error('down'));
+            vi.stubGlobal('fetch', down);
+            await form();
+            await form();
+            expect(down).toHaveBeenCalledTimes(1);
+            vi.setSystemTime(new Date('2026-11-02T10:00:06Z'));
+            await form();
+            expect(down).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    it('asks once for requests that arrive together', async () => {
+        const fetcher = policyOf({ enabled: true, origins: [] });
+        vi.stubGlobal('fetch', fetcher);
+        await Promise.all([1, 2, 3, 4, 5].map(() => proxy(request('/acme/forms/contact', 'forms.example.test'))));
+        expect(fetcher).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps at most 500 answers, forgetting the least recently used', async () => {
+        const fetcher = policyOf({ enabled: true, origins: [] });
+        vi.stubGlobal('fetch', fetcher);
+        await proxy(request('/first/forms/contact', 'forms.example.test'));
+        for (let i = 0; i < 500; i++) await proxy(request(`/w${i}/forms/contact`, 'forms.example.test'));
+        expect(fetcher).toHaveBeenCalledTimes(501);
+        await proxy(request('/w499/forms/contact', 'forms.example.test'));
+        expect(fetcher).toHaveBeenCalledTimes(501);
+        await proxy(request('/first/forms/contact', 'forms.example.test'));
+        expect(fetcher).toHaveBeenCalledTimes(502);
+    });
+
+    it('allows http only for localhost in the header, whatever the backend stored', async () => {
+        vi.stubGlobal('fetch', policyOf({ enabled: true, origins: ['http://localhost:3000', 'http://127.0.0.1:5173', 'http://www.example.org', 'http://localhost.example.org', 'https://ok.example.org'] }));
+        expect(await csp(proxy(request('/acme/forms/contact', 'forms.example.test')))).toBe("frame-ancestors 'self' https://admin.example.test http://localhost:3000 http://127.0.0.1:5173 https://ok.example.org");
+    });
+
+    it('asks by the workspace name as written, so another spelling is another (unknown, strict) workspace', async () => {
+        const fetcher = policyOf({ enabled: true, origins: [] });
+        vi.stubGlobal('fetch', fetcher);
+        expect(await csp(proxy(request('/Acme/forms/contact', 'forms.example.test')))).toBe("frame-ancestors 'self' https://admin.example.test");
+        expect(Object.fromEntries(new URL(fetcher.mock.calls[0][0] as string).searchParams)).toEqual({ workspace_name: 'Acme' });
     });
 
     it('keeps the answer for a short while, per workspace', async () => {
@@ -82,7 +189,8 @@ describe('proxy: who may frame a page', () => {
     it('gives every other page the plain rule, and the dashboard host never gets a form policy', async () => {
         const fetcher = policyOf({ enabled: true, origins: [] });
         vi.stubGlobal('fetch', fetcher);
-        expect(await csp(proxy(request('/acme/forms/contact', 'admin.example.test')))).toBeNull();
+        // a form-shaped path on the dashboard host is no published form's page: the plain rule
+        expect(await csp(proxy(request('/acme/forms/contact', 'admin.example.test')))).toBe("frame-ancestors 'self' https://admin.example.test");
         // any other page has the plain rule (lib/frame-ancestors.ts), not a policy
         const plain = "frame-ancestors 'self' https://admin.example.test";
         expect(await csp(proxy(request('/acme', 'forms.example.test')))).toBe(plain);

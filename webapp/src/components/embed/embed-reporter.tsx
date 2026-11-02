@@ -4,20 +4,12 @@ import { useEffect, useRef } from 'react';
 
 import { heightChanged, measureNeededHeight, scrollAreaOf } from '@app/lib/embed/embed-height';
 import { guardLinks } from '@app/lib/embed/embed-links';
-import { PageKind, heightMessage, loadedMessage, pageMessage, postToParent, submittedMessage } from '@app/lib/embed/embed-messages';
+import { heightMessage, loadedMessage, postToParent, submittedMessage } from '@app/lib/embed/embed-messages';
 import { useEmbed } from '@app/lib/embed/use-embed';
-import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useResponderState, useShownSlide } from '@app/store/jotai/responder-form-state';
-import { REVIEW_SLIDE } from '@app/utils/review-page';
-
-/** welcome (-1), review, ending (-2), else a question page. */
-export function pageKindOf(slide: number): PageKind {
-    if (slide === -1) return 'welcome';
-    if (slide === REVIEW_SLIDE) return 'review';
-    if (slide === -2) return 'ending';
-    return 'question';
-}
+import { useGetEmbedPolicyQuery } from '@app/store/workspaces/embed-api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 /** Moments, after a page change, at which the new page is measured again (the page slides in over 350 ms). */
 const REMEASURE_AFTER_MS = [0, 120, 450];
@@ -25,55 +17,53 @@ const REMEASURE_AFTER_MS = [0, 120, 450];
 const SETTLE_MS = 80;
 
 /**
- * In embed mode (a frame on another site, docs/embed.md) tells the page around the form that it loaded,
- * which kind of page it is on, how tall it needs to be and that it was submitted. Only those: the
- * messages are built from fixed fields (lib/embed/embed-messages.ts). Renders nothing, and does nothing
- * outside embed mode. It also sends links that leave the form's page to a new tab.
+ * In embed mode (a frame on another site, docs/embed.md) tells the page around the form that it loaded, how
+ * tall it needs to be and that it was submitted. Only those three: the messages are built from fixed fields
+ * (lib/embed/embed-messages.ts), with no page number or counter (the number of pages a respondent sees can
+ * depend on their answers when a form branches). The height is the one thing that still varies with the page
+ * on screen.
+ *
+ * It tells the page around it only while this server has embedding switched on (the public embed policy
+ * says so): with the switch off a site that frames a form anyway learns nothing. Renders nothing, and
+ * outside embed mode does nothing. In embed mode it also sends links that leave the form's page to a new tab.
  */
 export default function EmbedReporter() {
     const { embedded, parentOrigin } = useEmbed();
     const { responderState } = useResponderState();
     const slide = useShownSlide();
-    const form = useAppSelector(selectResponderForm);
-    const total = form?.fields?.length ?? 0;
-    const passed = responderState.history?.length ?? 0;
+    const workspace = useAppSelector(selectWorkspace);
+    const policy = useGetEmbedPolicyQuery(workspace?.id as string, { skip: !embedded || !workspace?.id });
+    // messages only while the server's switch is on
+    const active = embedded && policy.data?.enabled === true;
     const submitted = slide === -2 && !!responderState.responderId;
     const lastHeight = useRef<number | null>(null);
     const sentSubmitted = useRef(false);
     const sentLoaded = useRef(false);
-    const lastPage = useRef('');
 
     useEffect(() => {
         if (!embedded) return;
         document.documentElement.setAttribute('data-bc-embed', '');
         const stop = guardLinks();
-        if (!sentLoaded.current) {
-            sentLoaded.current = true;
-            postToParent(loadedMessage(), parentOrigin);
-        }
         return () => {
             stop();
             document.documentElement.removeAttribute('data-bc-embed');
         };
-    }, [embedded, parentOrigin]);
+    }, [embedded]);
 
     useEffect(() => {
-        if (!embedded) return;
-        // the form's page count arrives a moment after the first page: say it again once it is known
-        const key = `${pageKindOf(slide)}:${passed}:${total}`;
-        if (key === lastPage.current) return;
-        lastPage.current = key;
-        postToParent(pageMessage(pageKindOf(slide), passed, total), parentOrigin);
-    }, [embedded, parentOrigin, slide, passed, total]);
+        if (!active || sentLoaded.current) return;
+        sentLoaded.current = true;
+        postToParent(loadedMessage(), parentOrigin);
+    }, [active, parentOrigin]);
 
     useEffect(() => {
-        if (!embedded || !submitted || sentSubmitted.current) return;
+        if (!active || !submitted || sentSubmitted.current) return;
         sentSubmitted.current = true;
         postToParent(submittedMessage(), parentOrigin);
-    }, [embedded, parentOrigin, submitted]);
+    }, [active, parentOrigin, submitted]);
 
     useEffect(() => {
-        if (!embedded) return;
+        if (!active) return;
         let pending: number | undefined;
         const report = () => {
             pending = undefined;
@@ -106,7 +96,7 @@ export default function EmbedReporter() {
             observer?.disconnect();
             if (pending !== undefined) window.clearTimeout(pending);
         };
-    }, [embedded, parentOrigin, slide]);
+    }, [active, parentOrigin, slide]);
 
     return null;
 }

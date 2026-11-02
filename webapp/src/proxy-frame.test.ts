@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { frameAncestorsFor, isPublishedFormPath } from './lib/frame-ancestors';
+import { frameAncestorsFor } from './lib/frame-ancestors';
 import { clearEmbedPolicyCache } from './lib/server/embed-policy';
 import { config, proxy } from './proxy';
 
@@ -46,7 +46,8 @@ describe('which pages may be framed by whom', () => {
         ["a custom domain's front page", '/', 'forms.customer.test'],
         ["a custom domain's submissions", '/my-submissions', 'forms.customer.test'],
         ['a page that does not exist (the 404 page)', '/no/such/page/at/all', 'forms.example.test'],
-        ['the form page of the dashboard host (not a form page there)', '/acme/dashboard/forms/x', 'admin.example.test']
+        ['the form page of the dashboard host (not a form page there)', '/acme/dashboard/forms/x', 'admin.example.test'],
+        ['a form-shaped path on the dashboard host (no published form there)', '/acme/forms/contact', 'admin.example.test']
     ])('lets only this site and the dashboard frame %s', async (_name, path, host) => {
         expect(await csp(path, host)).toBe(SELF_AND_DASHBOARD);
     });
@@ -111,16 +112,11 @@ describe('which pages may be framed by whom', () => {
     });
 });
 
-describe("what is a published form's page", () => {
-    it.each(['/acme/forms/contact', '/acme/forms/contact/preview', '/forms/contact', '/forms/contact/', '/a.b/forms/c-1'])('%s is', (path) => {
-        expect(isPublishedFormPath(path)).toBe(true);
-    });
-    it.each(['/', '/acme', '/acme/forms', '/forms', '/acme/forms/contact/extra', '/acme/dashboard/forms/x', '/forms/contact/preview', '/acme/forms/contact/preview/x', '/acme/submissions/forms/x'])('%s is not', (path) => {
-        expect(isPublishedFormPath(path)).toBe(false);
-    });
-    it('is decided on the path only', async () => {
-        expect(frameAncestorsFor('/acme/forms/contact', 'https://admin.example.test')).toBeNull();
-        expect(frameAncestorsFor('/acme', 'https://admin.example.test')).toBe(SELF_AND_DASHBOARD);
+describe('the plain rule', () => {
+    it('names this site and the dashboard, for any path', () => {
+        expect(frameAncestorsFor('https://admin.example.test')).toBe(SELF_AND_DASHBOARD);
+        expect(frameAncestorsFor('')).toBe("frame-ancestors 'self'");
+        expect(frameAncestorsFor('x; script-src *')).toBe("frame-ancestors 'self'");
     });
 });
 

@@ -116,6 +116,26 @@ async def test_the_owner_saves_and_reads_the_list(
     assert cleared.json()["origins"] == []
 
 
+async def test_a_change_is_logged_with_ids_and_counts_only(
+    client, workspace, test_user_cookies, on
+):
+    from loguru import logger
+
+    lines = []
+    sink = logger.add(lambda message: lines.append(str(message)), level="INFO")
+    try:
+        await client.put(settings_url(workspace), json={"origins": [SITE, "https://b.example.org"]}, cookies=test_user_cookies)
+        await client.put(settings_url(workspace), json={"origins": ["https://b.example.org"]}, cookies=test_user_cookies)
+    finally:
+        logger.remove(sink)
+    changes = [line for line in lines if "embed allowed sites changed" in line]
+    assert len(changes) == 2
+    assert "before=0 after=2 added=2 removed=0" in changes[0]
+    assert "before=2 after=1 added=0 removed=1" in changes[1]
+    assert str(workspace.id) in changes[0]
+    assert "example.org" not in "".join(changes)
+
+
 async def test_a_bad_origin_is_refused_with_its_place_and_nothing_is_kept(
     client, workspace, test_user_cookies, on
 ):

@@ -12,10 +12,20 @@ export interface EmbedSettings {
     maxOrigins: number;
 }
 
+/** The public policy of a workspace: whether this server has embedding on, and the sites it allows. */
+export interface EmbedPolicy {
+    enabled: boolean;
+    origins: string[];
+}
+
 const EMBED_SETTINGS_TAG = 'EMBED_SETTINGS_TAG';
 
 export const embedApi = workspacesApi.enhanceEndpoints({ addTagTypes: [EMBED_SETTINGS_TAG] }).injectEndpoints({
     endpoints: (builder) => ({
+        // Public (no sign-in): the respondent page asks it to know whether it may tell the page around it anything.
+        getEmbedPolicy: builder.query<EmbedPolicy, string>({
+            query: (workspaceId) => ({ url: `/workspaces/embed/policy?workspace_id=${encodeURIComponent(workspaceId)}`, method: 'GET' })
+        }),
         getEmbedSettings: builder.query<EmbedSettings, string>({
             query: (workspaceId) => ({ url: `/workspaces/${workspaceId}/embed/settings`, method: 'GET' }),
             providesTags: [EMBED_SETTINGS_TAG]
@@ -28,4 +38,4 @@ export const embedApi = workspacesApi.enhanceEndpoints({ addTagTypes: [EMBED_SET
     })
 });
 
-export const { useGetEmbedSettingsQuery, useUpdateEmbedSettingsMutation } = embedApi;
+export const { useGetEmbedPolicyQuery, useGetEmbedSettingsQuery, useUpdateEmbedSettingsMutation } = embedApi;

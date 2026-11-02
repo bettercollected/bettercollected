@@ -55,26 +55,31 @@ The script dispatches DOM events on the placeholder element (they bubble) and ca
 | Event | `detail` | When |
 |---|---|---|
 | `bc-form:loaded` | `{ type: "loaded" }` | the form is on screen |
-| `bc-form:height` | `{ type: "height", height }` | the page needs another height (the script has already applied it) |
-| `bc-form:page` | `{ type: "page", kind, step, total }` | the respondent moved to another page. `kind` is `welcome`, `question`, `review` or `ending`; `step` counts the pages passed on this path; `total` is the form's number of pages |
+| `bc-form:height` | `{ type: "height", height }` | the page needs another height, in steps of 40 px (the script has already applied it) |
 | `bc-form:submitted` | `{ type: "submitted" }` | the response was accepted |
 
 ```js
 document.querySelector('[data-bc-form]').addEventListener('bc-form:submitted', () => {
     // thank the visitor, close a dialog, send your own analytics event ...
 });
-BetterCollectedEmbed.on('page', (detail, element) => { /* ... */ });
+BetterCollectedEmbed.on('height', (detail, element) => { /* ... */ });
 ```
 
 `BetterCollectedEmbed.scan(root)` mounts placeholders added later (single-page applications);
 `BetterCollectedEmbed.version` is the protocol version (`1`). Loading the script twice is harmless.
 
-### What your page does not learn
+### What your page learns, and what it does not
 
-Never an answer, a field, the response's id, the form's title or any other text of the form. `step` is a
-counter, not a page number: with branching, a page number could reveal an answer. The embedded form shows its
-own privacy information and consent exactly as on a shared link, and nothing the visitor does in it is
-visible to your page beyond the table above.
+Exactly three things: that the form loaded, how tall the page on screen needs to be (in steps of 40 px) and that
+the response was submitted. Never an answer, a field, the response's id, the form's title or any other text of the
+form, and no page number or counter (with branching, the number of pages a respondent sees depends on their
+answers). The height is the one value that still varies with the page shown, so on a form that branches it can
+depend on earlier answers; use a form whose pages have the same height where that matters. The embedded form
+shows its own privacy information and consent exactly as on a shared link.
+
+The messages are sent only while the server has embedding switched on (`FORM_EMBED_ENABLED`). With the switch off a
+form can still be framed by any site, as before the feature (see "Allowed sites"), but the framed page tells the
+site around it nothing, even with `?embed=1&parent=...` in its address.
 
 ### React
 
@@ -116,16 +121,36 @@ list. At most 20 entries.
 - `https://*.example.org`: every subdomain of a domain of your own. It does **not** cover `example.org`
   itself: add that too. A wildcard under a shared suffix (`https://*.com`, `https://*.co.uk`,
   `https://*.github.io`) is refused (checked against the Public Suffix List).
-- `http://localhost` and `http://127.0.0.1` (any port) are accepted for trying it on your own computer.
+- `http://localhost` and `http://127.0.0.1` (any port) are accepted for trying it on your own computer. They let any
+  application on a visitor's own machine frame the form, so leave them out of a production list.
 - Nothing else: no path, query, user name, IP address, one-label host or other scheme.
 
-A change applies within 30 seconds. With no site on the list the form can only be shown by this site and the
+`https://*.example.org` also trusts every subdomain that is later taken over or pointed at someone else, so list the
+exact sites where that matters. A change applies within 30 seconds. With no site on the list the form can only be shown by this site and the
 dashboard's preview. Custom domains behave the same: the policy is chosen from the workspace the custom
 domain's verified edge assertion names, and a request without a valid assertion gets the strict default.
 
 While `FORM_EMBED_ENABLED` is off no framing header is sent for form pages (as before this feature), so
 a site that already frames a form keeps working until the switch is turned on. **Turning it on starts refusing every
 site that is not listed**: tell the people who embed your forms to add their sites first.
+
+The same holds while the webapp cannot tell what the server's switch is, so a rollout in either order changes
+nothing for embeds that work today: a backend that does not know the route yet (404) counts as "off"; so does a
+failing or unreachable backend when nothing has been learned about the workspace yet. After the backend has
+answered, an outage keeps the last answer it gave (for up to ten minutes; then the strict default), so a blip
+neither opens a workspace's forms to every site nor closes them to the sites it lists. Deploy the backend before
+the webapp where you can.
+
+### Things that silently stop it working
+
+- The script trusts the origin of the form address you gave. If that address redirects to another origin (a
+  moved domain), every message from the frame is ignored and the frame keeps its minimum height: use the final
+  address.
+- A host page with an opaque origin (a `file:` page, a sandboxed frame) cannot be named in `parent`, so the form
+  sends it nothing and the frame does not resize.
+- The script accepts `http` form addresses on `localhost`, `*.localhost` and `127.0.0.1` for local trials; the
+  allowed-sites list accepts `http` for `localhost` and `127.0.0.1` only (a host page on `*.localhost` needs
+  an entry for its exact `http://localhost` origin or an https site).
 
 ## Signing in, drafts and cookies
 
@@ -146,8 +171,10 @@ opens the form on its own address, not in the frame.
   dropped, heights are clamped).
 - The webapp's proxy sets `Content-Security-Policy: frame-ancestors ...` on `/<workspace>/forms/<form>` (and
   its `/preview`) and `/forms/<form>` on custom domains from `GET /workspaces/embed/policy` (public: it answers
-  only what the header itself shows; unknown workspaces get an empty list). If the backend cannot be asked the
-  header is the strict default, never an open one.
+  only what the header itself shows; unknown workspaces get an empty list). The answer is kept 30 s per workspace
+  (one request at a time, at most 500 workspaces remembered). If the backend cannot be asked, the last answer is
+  kept (see above); the strict default is used when a workspace had the switch on and its answer is ten minutes
+  old, and for a custom-domain request whose edge assertion fails, never an open header.
 - Every other page carries `frame-ancestors 'self' <dashboard origin>` (see "Who may frame a page" in the developers guide).
 - API: `GET`/`PUT /workspaces/{id}/embed/settings` (`form.share` or `workspace.manage` reads, `workspace.manage`
   writes; 404 while the switch is off). No migration: the list is a field of the workspace record.

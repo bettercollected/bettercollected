@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { MAX_FRAME_HEIGHT, MIN_FRAME_HEIGHT, heightChanged, measureNeededHeight, neededHeight } from './embed-height';
 import { guardLinks, opensOutside } from './embed-links';
-import { EMBED_SOURCE, EMBED_VERSION, heightMessage, loadedMessage, pageMessage, postToParent, submittedMessage } from './embed-messages';
+import { EMBED_SOURCE, EMBED_VERSION, heightMessage, loadedMessage, postToParent, submittedMessage } from './embed-messages';
 import { asOrigin, readEmbedContext } from './embed-params';
 
 describe('embed address', () => {
@@ -43,13 +43,12 @@ describe('embed messages', () => {
         expect(EMBED_VERSION).toBe(1);
         expect(loadedMessage()).toEqual({ ...base, type: 'loaded' });
         expect(heightMessage(640)).toEqual({ ...base, type: 'height', height: 640 });
-        expect(pageMessage('question', 2, 5)).toEqual({ ...base, type: 'page', kind: 'question', step: 2, total: 5 });
         expect(submittedMessage()).toEqual({ ...base, type: 'submitted' });
     });
 
     it('carry no answer, id or text: every key of every message is a known one', () => {
-        const allowed = new Set(['source', 'v', 'type', 'height', 'kind', 'step', 'total']);
-        for (const message of [loadedMessage(), heightMessage(300), pageMessage('ending', 3, 3), submittedMessage()]) {
+        const allowed = new Set(['source', 'v', 'type', 'height']);
+        for (const message of [loadedMessage(), heightMessage(300), submittedMessage()]) {
             for (const key of Object.keys(message)) expect(allowed.has(key)).toBe(true);
             for (const value of Object.values(message)) expect(['string', 'number']).toContain(typeof value);
         }
@@ -87,10 +86,10 @@ describe('embed messages', () => {
 });
 
 describe('embed height', () => {
-    it('is what surrounds the scroll area plus the content, within bounds', () => {
+    it('is what surrounds the scroll area plus the content, within bounds, in steps of 40 px', () => {
         // a 700 px frame, a 560 px scroll area (the strips take 140), 900 px of content
         expect(neededHeight({ frameHeight: 700, scrollAreaHeight: 560, contentHeight: 900 })).toBe(1040);
-        expect(neededHeight({ frameHeight: 700, scrollAreaHeight: 560, contentHeight: 300.2 })).toBe(441);
+        expect(neededHeight({ frameHeight: 700, scrollAreaHeight: 560, contentHeight: 300.2 })).toBe(480);
         expect(neededHeight({ frameHeight: 700, scrollAreaHeight: 560, contentHeight: 10 })).toBe(MIN_FRAME_HEIGHT);
         expect(neededHeight({ frameHeight: 700, scrollAreaHeight: 560, contentHeight: 99999 })).toBe(MAX_FRAME_HEIGHT);
     });
@@ -122,7 +121,7 @@ describe('embed height', () => {
         Object.defineProperty(area(2), 'clientHeight', { value: 500, configurable: true });
         Object.defineProperty(area(1), 'clientHeight', { value: 100 });
         (document.getElementById('new') as HTMLElement).getBoundingClientRect = () => ({ height: 640 }) as DOMRect;
-        expect(measureNeededHeight(document, 600, 2)).toBe(100 + 640);
+        expect(measureNeededHeight(document, 600, 2)).toBe(760);
         expect(measureNeededHeight(document, 600, 9)).toBeNull();
         Object.defineProperty(area(2), 'clientHeight', { value: 0, configurable: true });
         expect(measureNeededHeight(document, 600, 2)).toBeNull();

@@ -177,20 +177,18 @@ describe('embed.js', () => {
             expect(frameOf(a).style.height).toBe('240px');
         });
 
-        it('reports loaded, page and submitted as DOM events with exactly the known data', () => {
+        it('reports loaded, height and submitted as DOM events with exactly the known data', () => {
             const element = place();
             load();
             const seen: Array<[string, unknown]> = [];
-            for (const type of ['loaded', 'height', 'page', 'submitted']) {
+            for (const type of ['loaded', 'height', 'submitted']) {
                 element.addEventListener(`bc-form:${type}`, (event) => seen.push([type, (event as CustomEvent).detail]));
             }
             send(frameOf(element), message('loaded', { extra: 'dropped' }));
-            send(frameOf(element), message('page', { kind: 'question', step: 2, total: 5, answer: 'secret', fieldId: 'x' }));
             send(frameOf(element), message('submitted', { responseId: 'r1', answers: { a: 1 } }));
             send(frameOf(element), message('height', { height: 500, title: 'Form title' }));
             expect(seen).toEqual([
                 ['loaded', { type: 'loaded' }],
-                ['page', { type: 'page', kind: 'question', step: 2, total: 5 }],
                 ['submitted', { type: 'submitted' }],
                 ['height', { type: 'height', height: 500 }]
             ]);
@@ -213,12 +211,12 @@ describe('embed.js', () => {
         it('keeps working when a host handler throws', () => {
             const element = place();
             load();
-            window.BetterCollectedEmbed?.on('page', () => {
+            window.BetterCollectedEmbed?.on('submitted', () => {
                 throw new Error('host bug');
             });
             const later = vi.fn();
-            window.BetterCollectedEmbed?.on('page', later);
-            send(frameOf(element), message('page', { kind: 'welcome', step: 0, total: 3 }));
+            window.BetterCollectedEmbed?.on('submitted', later);
+            send(frameOf(element), message('submitted'));
             expect(later).toHaveBeenCalledTimes(1);
         });
 
@@ -229,7 +227,7 @@ describe('embed.js', () => {
                 element = place();
                 load();
                 seen = [];
-                for (const type of ['loaded', 'height', 'page', 'submitted']) element.addEventListener(`bc-form:${type}`, (event) => seen.push((event as CustomEvent).detail));
+                for (const type of ['loaded', 'height', 'submitted']) element.addEventListener(`bc-form:${type}`, (event) => seen.push((event as CustomEvent).detail));
             });
 
             it('a message from another origin, also from the right frame', () => {
@@ -259,10 +257,7 @@ describe('embed.js', () => {
                 ['an unknown type', message('answers', { answers: { a: 1 } })],
                 ['a height that is no number', message('height', { height: '900' })],
                 ['an infinite height', message('height', { height: Infinity })],
-                ['a page of an unknown kind', message('page', { kind: 'secret', step: 1, total: 2 })],
-                ['a page step that is no count', message('page', { kind: 'question', step: 1.5, total: 2 })],
-                ['a page step beyond any form', message('page', { kind: 'question', step: 5000, total: 2 })],
-                ['a negative total', message('page', { kind: 'question', step: 1, total: -2 })]
+                ['a page message (there is none in protocol v1: a page number can reveal an answer)', message('page', { kind: 'question', step: 1, total: 2 })]
             ])('%s', (_name, data) => {
                 send(frameOf(element), data);
                 expect(seen).toEqual([]);

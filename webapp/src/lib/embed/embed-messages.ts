@@ -1,25 +1,22 @@
 /**
  * What a framed form page tells the page around it (docs/embed.md, protocol v1). Lifecycle only: that
- * the form loaded, how tall it needs to be, which kind of page it is on with a step counter, and that
- * it was submitted. Never an answer, a field, a response id or any text of the form: the builders
- * below take exactly the fields of each message, so nothing else can ride along.
+ * the form loaded, how tall it needs to be (in steps of 40 px) and that it was submitted. No page number or
+ * counter (with branching the number of pages seen depends on earlier answers). Never an answer, a field, a
+ * response id or any text of the form: the builders below take exactly the fields of each message, so
+ * nothing else can ride along.
  */
 export const EMBED_SOURCE = 'bettercollected-form';
 export const EMBED_VERSION = 1;
 
-export type PageKind = 'welcome' | 'question' | 'review' | 'ending';
-
 export type EmbedMessage =
     | { source: typeof EMBED_SOURCE; v: typeof EMBED_VERSION; type: 'loaded' }
     | { source: typeof EMBED_SOURCE; v: typeof EMBED_VERSION; type: 'height'; height: number }
-    | { source: typeof EMBED_SOURCE; v: typeof EMBED_VERSION; type: 'page'; kind: PageKind; step: number; total: number }
     | { source: typeof EMBED_SOURCE; v: typeof EMBED_VERSION; type: 'submitted' };
 
 const base = { source: EMBED_SOURCE, v: EMBED_VERSION } as const;
 
 export const loadedMessage = (): EmbedMessage => ({ ...base, type: 'loaded' });
 export const heightMessage = (height: number): EmbedMessage => ({ ...base, type: 'height', height });
-export const pageMessage = (kind: PageKind, step: number, total: number): EmbedMessage => ({ ...base, type: 'page', kind, step, total });
 export const submittedMessage = (): EmbedMessage => ({ ...base, type: 'submitted' });
 
 /**

@@ -5,8 +5,8 @@
  * <script async src="https://forms.example.org/embed.js"></script>
  *
  * Shows each [data-bc-form] placeholder's form in an iframe and keeps the frame as tall as the form's
- * page needs. The form tells this page only that it loaded, how tall it is, which kind of page it is on
- * (a step counter, never an answer) and that it was submitted. A message counts only when it comes from
+ * page needs. The form tells this page only that it loaded, how tall it needs to be and that it was
+ * submitted (no page number, never an answer; only while the server has embedding on). A message counts only when it comes from
  * the frame this script made and from the origin of the form's address. Nothing is ever sent to the form
  * but the address's own query (embed=1, the host's origin, an optional language).
  *
@@ -14,7 +14,7 @@
  * frame's accessible name, default "Form"), data-bc-min-height (px, 240-4000, default 480),
  * data-bc-lang (en|nl), data-bc-theme (light|dark|auto: the frame's colour scheme only).
  * API: BetterCollectedEmbed.scan(root), .on(type, fn), .version. DOM events on the placeholder:
- * bc-form:loaded, bc-form:height, bc-form:page, bc-form:submitted (detail = the message's data).
+ * bc-form:loaded, bc-form:height, bc-form:submitted (detail = the message's data).
  */
 (function () {
     'use strict';
@@ -24,7 +24,6 @@
     var MIN_HEIGHT = 240;
     var MAX_HEIGHT = 4000;
     var DEFAULT_HEIGHT = 480;
-    var KINDS = { welcome: 1, question: 1, review: 1, ending: 1 };
 
     var existing = window.BetterCollectedEmbed;
     if (existing && typeof existing.scan === 'function') {
@@ -89,16 +88,9 @@
             case 'height':
                 if (typeof data.height !== 'number' || !isFinite(data.height)) return null;
                 return { type: 'height', height: Math.round(clamp(data.height, MIN_HEIGHT, MAX_HEIGHT)) };
-            case 'page':
-                if (!KINDS[data.kind] || !isCount(data.step) || !isCount(data.total)) return null;
-                return { type: 'page', kind: data.kind, step: data.step, total: data.total };
             default:
                 return null;
         }
-    }
-
-    function isCount(value) {
-        return typeof value === 'number' && isFinite(value) && Math.floor(value) === value && value >= 0 && value <= 1000;
     }
 
     function onMessage(event) {

@@ -15,50 +15,125 @@ export interface EmbedPolicy {
 export type PolicyQuery = { workspace_name: string } | { custom_domain: string } | { workspace_id: string };
 
 const CACHE_MS = 30_000;
-const FAILURE_CACHE_MS = 5_000;
+/** After a failed ask, how long before the backend is asked again. */
+const RETRY_MS = 5_000;
+/** How long a policy that was good is still used while the backend cannot be asked. */
+const STALE_MS = 10 * 60_000;
 const CACHE_LIMIT = 500;
 const TIMEOUT_MS = 2_000;
 
-const cache = new Map<string, { at: number; policy: EmbedPolicy | null }>();
+interface Entry {
+    /** The last answer the backend gave for this workspace, and when. */
+    good: EmbedPolicy | null;
+    goodAt: number;
+    /** When the backend was last asked (successfully or not), for the retry delay. */
+    askedAt: number;
+    failed: boolean;
+}
+
+// Least recently used first: an entry is re-inserted when it is read.
+const cache = new Map<string, Entry>();
+const inFlight = new Map<string, Promise<EmbedPolicy>>();
+// Whether the backend has ever said the switch is on, in this process: after that, a failure to ask about a
+// workspace nobody asked about yet must not open its forms.
+let switchSeenOn = false;
+
+const OFF: EmbedPolicy = { enabled: false, origins: [] };
+/** Nobody may frame it but this site and the dashboard. */
+const STRICT: EmbedPolicy = { enabled: true, origins: [] };
 
 export function clearEmbedPolicyCache() {
     cache.clear();
+    inFlight.clear();
+    switchSeenOn = false;
 }
 
-/** The policy of the workspace, kept for 30 s; null when the backend cannot be asked (kept for 5 s). */
-export async function fetchEmbedPolicy(query: PolicyQuery, now: number = Date.now(), fetcher: typeof fetch = fetch): Promise<EmbedPolicy | null> {
-    const params = new URLSearchParams(query as Record<string, string>);
-    const key = params.toString();
+function remember(key: string, entry: Entry) {
+    cache.delete(key);
+    cache.set(key, entry);
+    while (cache.size > CACHE_LIMIT) {
+        const oldest = cache.keys().next().value;
+        if (oldest === undefined) break;
+        cache.delete(oldest);
+    }
+}
+
+/**
+ * The policy of the workspace. Kept 30 s; asked once at a time per workspace.
+ *
+ * - The backend says what the switch is: `enabled: false` means no header, as before the feature.
+ * - A 404 or 405 means this backend has no such route yet (the webapp was rolled out first): the same as off.
+ * - A failure (5xx, a timeout, no connection) never changes what was last known: the last good answer is used
+ *   (up to 10 minutes), and that is also the fail-closed case, because it names the sites of a workspace
+ *   that had the switch on. With no last answer, the switch is taken as off unless the backend has ever said
+ *   it is on (then the strict policy), so a rollout order or an outage of the backend alone changes nothing
+ *   for embeds that work today.
+ */
+export async function fetchEmbedPolicy(query: PolicyQuery, now: number = Date.now(), fetcher: typeof fetch = fetch): Promise<EmbedPolicy> {
+    const key = new URLSearchParams(query as Record<string, string>).toString();
     const hit = cache.get(key);
-    if (hit && now - hit.at < (hit.policy ? CACHE_MS : FAILURE_CACHE_MS)) return hit.policy;
-    let policy: EmbedPolicy | null = null;
+    if (hit) {
+        if (hit.good && !hit.failed && now - hit.askedAt < CACHE_MS) {
+            remember(key, hit);
+            return hit.good;
+        }
+        if (hit.failed && now - hit.askedAt < RETRY_MS) {
+            remember(key, hit);
+            return staleOrDefault(hit, now);
+        }
+    }
+    const pending = inFlight.get(key);
+    if (pending) return pending;
+    const request = ask(key, hit, now, fetcher).finally(() => inFlight.delete(key));
+    inFlight.set(key, request);
+    return request;
+}
+
+function staleOrDefault(entry: Entry | undefined, now: number): EmbedPolicy {
+    if (entry?.good) {
+        if (!entry.good.enabled) return OFF;
+        return now - entry.goodAt < STALE_MS ? entry.good : STRICT;
+    }
+    return switchSeenOn ? STRICT : OFF;
+}
+
+async function ask(key: string, previous: Entry | undefined, now: number, fetcher: typeof fetch): Promise<EmbedPolicy> {
     try {
         const response = await fetcher(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/embed/policy?${key}`, { cache: 'no-store', signal: AbortSignal.timeout(TIMEOUT_MS) });
-        if (response.ok) {
-            const body = await response.json();
-            policy = { enabled: body?.enabled === true, origins: Array.isArray(body?.origins) ? body.origins.filter((item: unknown): item is string => typeof item === 'string') : [] };
+        if (response.status === 404 || response.status === 405) {
+            switchSeenOn = false;
+            remember(key, { good: OFF, goodAt: now, askedAt: now, failed: false });
+            return OFF;
         }
+        if (!response.ok) throw new Error(`policy answered ${response.status}`);
+        const body = await response.json();
+        const policy: EmbedPolicy = { enabled: body?.enabled === true, origins: Array.isArray(body?.origins) ? body.origins.filter((item: unknown): item is string => typeof item === 'string') : [] };
+        switchSeenOn = policy.enabled;
+        remember(key, { good: policy, goodAt: now, askedAt: now, failed: false });
+        return policy;
     } catch {
-        policy = null;
+        const entry: Entry = { good: previous?.good ?? null, goodAt: previous?.goodAt ?? 0, askedAt: now, failed: true };
+        remember(key, entry);
+        return staleOrDefault(entry, now);
     }
-    if (cache.size >= CACHE_LIMIT) cache.clear();
-    cache.set(key, { at: now, policy });
-    return policy;
 }
 
 // What the backend stores (services/form_embed.py), checked again here before anything is written into a
 // header: scheme://host[:port] with an optional leading "*." and nothing that could add a source or a directive.
-const ORIGIN = /^https?:\/\/(\*\.)?[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?$/;
+const ORIGIN = /^(?:https:\/\/(?:\*\.)?[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?|http:\/\/(?:localhost|127\.0\.0\.1))(?::[0-9]{1,5})?$/;
+
+// The dashboard's own origin comes from this server's settings (any scheme and port).
+const DASHBOARD_ORIGIN = /^https?:\/\/[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?(:[0-9]{1,5})?$/;
 
 /**
  * The `frame-ancestors` value for a respondent form page. `null`: send none (the server's switch is off,
- * so the page is served as before). Otherwise this site, the dashboard (the builder's preview frames the
+ * so the page is served as before, or this backend does not know the feature yet). Otherwise this site, the dashboard (the builder's preview frames the
  * page) and the workspace's allowed sites; with no policy at all (the backend did not answer) just the
  * first two: a failure never opens the page to every site.
  */
 export function frameAncestorsValue(policy: EmbedPolicy | null, dashboardOrigin: string): string | null {
     if (policy && !policy.enabled) return null;
-    const sources = ["'self'", ...(ORIGIN.test(dashboardOrigin) ? [dashboardOrigin] : [])];
+    const sources = ["'self'", ...(DASHBOARD_ORIGIN.test(dashboardOrigin) ? [dashboardOrigin] : [])];
     for (const origin of policy?.origins ?? []) {
         if (ORIGIN.test(origin) && !sources.includes(origin)) sources.push(origin);
     }

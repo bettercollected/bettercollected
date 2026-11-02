@@ -1,14 +1,14 @@
 import { render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import EmbedReporter, { pageKindOf } from './embed-reporter';
+import EmbedReporter from './embed-reporter';
 
 const state = vi.hoisted(() => ({
     embed: { embedded: true, parentOrigin: 'https://www.example.org' as string | null },
+    switchOn: true as boolean | undefined,
     slide: -1,
     responderId: undefined as string | undefined,
-    history: [] as number[],
-    fields: [{}, {}, {}]
+    history: [] as number[]
 }));
 
 vi.mock('@app/lib/embed/use-embed', () => ({ useEmbed: () => state.embed }));
@@ -16,19 +16,39 @@ vi.mock('@app/store/jotai/responder-form-state', () => ({
     useResponderState: () => ({ responderState: { currentSlide: state.slide, responderId: state.responderId, history: state.history } }),
     useShownSlide: () => state.slide
 }));
-vi.mock('@app/store/hooks', () => ({ useAppSelector: () => ({ fields: state.fields, title: 'A secret form title', description: 'and its text' }) }));
-vi.mock('@app/store/forms/slice', () => ({ selectResponderForm: () => null }));
+vi.mock('@app/store/hooks', () => ({ useAppSelector: () => ({ id: 'ws1' }) }));
+vi.mock('@app/store/workspaces/slice', () => ({ selectWorkspace: () => ({}) }));
+const policyCalls: Array<{ arg: unknown; skip: boolean | undefined }> = [];
+vi.mock('@app/store/workspaces/embed-api', () => ({
+    useGetEmbedPolicyQuery: (arg: unknown, options?: { skip?: boolean }) => {
+        policyCalls.push({ arg, skip: options?.skip });
+        return { data: options?.skip || state.switchOn === undefined ? undefined : { enabled: state.switchOn, origins: [] } };
+    }
+}));
 
 const posted = () => (window.parent.postMessage as ReturnType<typeof vi.fn>).mock.calls as Array<[Record<string, unknown>, string]>;
+const types = () => posted().map(([message]) => message.type);
+
+function setUpPage(contentHeight: number) {
+    document.body.innerHTML = '<div data-slide="-1"><div data-radix-scroll-area-viewport><div id="content"></div></div></div>';
+    const area = document.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+    Object.defineProperty(area, 'clientHeight', { value: 500, configurable: true });
+    const content = document.getElementById('content') as HTMLElement;
+    const box = { height: contentHeight };
+    content.getBoundingClientRect = () => ({ height: box.height }) as DOMRect;
+    Object.defineProperty(window, 'innerHeight', { value: 640, configurable: true });
+    return box;
+}
 
 describe('EmbedReporter', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         state.embed = { embedded: true, parentOrigin: 'https://www.example.org' };
+        state.switchOn = true;
         state.slide = -1;
         state.responderId = undefined;
         state.history = [];
-        state.fields = [{}, {}, {}];
+        policyCalls.length = 0;
         // jsdom's top window is its own parent: a stand-in makes this page "framed"
         Object.defineProperty(window, 'parent', { configurable: true, value: { postMessage: vi.fn() } });
     });
@@ -40,82 +60,76 @@ describe('EmbedReporter', () => {
         document.body.innerHTML = '';
     });
 
-    it('names the kind of each page', () => {
-        expect(pageKindOf(-1)).toBe('welcome');
-        expect(pageKindOf(0)).toBe('question');
-        expect(pageKindOf(7)).toBe('question');
-        expect(pageKindOf(-2)).toBe('ending');
-        expect(pageKindOf(-3)).toBe('review');
-    });
-
-    it('says loaded and which page it is on, to the parent origin only', () => {
+    it('says loaded, to the parent origin only', () => {
         render(<EmbedReporter />);
-        const calls = posted();
-        expect(calls.map(([message]) => message.type)).toEqual(['loaded', 'page']);
-        expect(calls[1][0]).toMatchObject({ kind: 'welcome', step: 0, total: 3 });
-        expect(calls.every(([, origin]) => origin === 'https://www.example.org')).toBe(true);
+        expect(types()).toEqual(['loaded']);
+        expect(posted().every(([, origin]) => origin === 'https://www.example.org')).toBe(true);
         expect(document.documentElement.hasAttribute('data-bc-embed')).toBe(true);
     });
 
-    it('reports a step counter on the way, then the ending, then submitted once', () => {
+    it('says submitted once, when the ending comes with a response', () => {
         const view = render(<EmbedReporter />);
         state.slide = 0;
-        state.history = [-1];
-        view.rerender(<EmbedReporter />);
-        state.slide = 1;
-        state.history = [-1, 0];
         view.rerender(<EmbedReporter />);
         state.slide = -2;
         state.responderId = 'response-id-1';
         view.rerender(<EmbedReporter />);
         view.rerender(<EmbedReporter />);
-        const messages = posted().map(([message]) => message);
-        expect(messages.filter((m) => m.type === 'page').map((m) => [m.kind, m.step])).toEqual([
-            ['welcome', 0],
-            ['question', 1],
-            ['question', 2],
-            ['ending', 2]
-        ]);
-        expect(messages.filter((m) => m.type === 'submitted')).toHaveLength(1);
-    });
-
-    it("does not repeat itself: loaded once, and a page only when it or the form's page count changed", () => {
-        const view = render(<EmbedReporter />);
-        view.rerender(<EmbedReporter />);
-        view.rerender(<EmbedReporter />);
-        expect(posted().map(([message]) => message.type)).toEqual(['loaded', 'page']);
-        state.fields = [{}, {}, {}, {}];
-        view.rerender(<EmbedReporter />);
-        const pages = posted()
-            .map(([message]) => message)
-            .filter((message) => message.type === 'page');
-        expect(pages.map((message) => message.total)).toEqual([3, 4]);
-    });
-
-    it('never puts an answer, a response id or a title in a message', () => {
-        state.slide = -2;
-        state.responderId = 'response-id-1';
-        render(<EmbedReporter />);
-        const text = JSON.stringify(posted().map(([message]) => message));
-        expect(text).not.toContain('response-id-1');
-        expect(text).not.toContain('secret form title');
-        expect(text).not.toContain('responderId');
+        expect(types().filter((type) => type === 'submitted')).toHaveLength(1);
+        expect(JSON.stringify(posted())).not.toContain('response-id-1');
     });
 
     it('does not say submitted for an ending reached without a response', () => {
         state.slide = -2;
         render(<EmbedReporter />);
-        expect(posted().map(([message]) => message.type)).not.toContain('submitted');
+        expect(types()).not.toContain('submitted');
     });
 
-    it('reports the height the page needs, once, and again only on a real change', () => {
-        document.body.innerHTML = '<div data-slide="-1"><div data-radix-scroll-area-viewport><div id="content"></div></div></div>';
-        const area = document.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-        Object.defineProperty(area, 'clientHeight', { value: 500, configurable: true });
-        const content = document.getElementById('content') as HTMLElement;
-        let contentHeight = 400;
-        content.getBoundingClientRect = () => ({ height: contentHeight }) as DOMRect;
-        Object.defineProperty(window, 'innerHeight', { value: 640, configurable: true });
+    it('sends only loaded, height and submitted, and each with fixed fields: no page, step, count, id or text', () => {
+        const box = setUpPage(400);
+        const view = render(<EmbedReporter />);
+        vi.advanceTimersByTime(600);
+        for (const slide of [0, 1, -3, -2]) {
+            state.slide = slide;
+            state.responderId = slide === -2 ? 'response-id-1' : undefined;
+            box.height += 100;
+            view.rerender(<EmbedReporter />);
+            vi.advanceTimersByTime(600);
+        }
+        const messages = posted().map(([message]) => message);
+        expect(new Set(messages.map((message) => message.type))).toEqual(new Set(['loaded', 'height', 'submitted']));
+        for (const message of messages) {
+            const keys = Object.keys(message).filter((key) => !['source', 'v', 'type'].includes(key));
+            expect(keys).toEqual(message.type === 'height' ? ['height'] : []);
+        }
+        expect(JSON.stringify(messages)).not.toMatch(/page|step|total|kind|response-id-1|responderId/);
+    });
+
+    it("does not tell a branching form's paths apart: the same messages whichever pages were seen", () => {
+        const run = (history: number[]) => {
+            posted().length = 0;
+            (window.parent.postMessage as ReturnType<typeof vi.fn>).mockClear();
+            state.slide = -1;
+            state.responderId = undefined;
+            state.history = [];
+            const view = render(<EmbedReporter />);
+            // answer "no" on the first page: the jump skips two pages (history 3 long) or not (history 1 long)
+            state.history = history;
+            state.slide = -2;
+            state.responderId = 'r1';
+            view.rerender(<EmbedReporter />);
+            const sequence = posted().map(([message]) => message);
+            view.unmount();
+            return sequence;
+        };
+        const longPath = run([-1, 0, 1, 2]);
+        const shortPath = run([-1, 0]);
+        expect(longPath).toEqual(shortPath);
+        expect(longPath.map((message) => message.type)).toEqual(['loaded', 'submitted']);
+    });
+
+    it('reports the height the page needs in steps of 40 px, once, and again only on a real change', () => {
+        const box = setUpPage(400);
         render(<EmbedReporter />);
         vi.advanceTimersByTime(600);
         const heights = () =>
@@ -123,34 +137,70 @@ describe('EmbedReporter', () => {
                 .map(([m]) => m)
                 .filter((m) => m.type === 'height')
                 .map((m) => m.height);
-        expect(heights()).toEqual([140 + 400]);
-        contentHeight = 401;
+        // 140 around the page and 400 of content is 540: reported as 560
+        expect(heights()).toEqual([560]);
+        box.height = 401;
         window.dispatchEvent(new Event('resize'));
         vi.advanceTimersByTime(100);
-        expect(heights()).toEqual([540]);
-        contentHeight = 700;
+        expect(heights()).toEqual([560]);
+        box.height = 700;
         window.dispatchEvent(new Event('resize'));
         vi.advanceTimersByTime(100);
-        expect(heights()).toEqual([540, 840]);
+        expect(heights()).toEqual([560, 840]);
     });
 
     it('waits for the page to settle: a size that is gone again within a moment is never reported', () => {
-        document.body.innerHTML = '<div data-slide="-1"><div data-radix-scroll-area-viewport><div id="content"></div></div></div>';
-        const area = document.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-        Object.defineProperty(area, 'clientHeight', { value: 500, configurable: true });
-        let contentHeight = 1200;
-        (document.getElementById('content') as HTMLElement).getBoundingClientRect = () => ({ height: contentHeight }) as DOMRect;
-        Object.defineProperty(window, 'innerHeight', { value: 640, configurable: true });
+        const box = setUpPage(1200);
         render(<EmbedReporter />);
         vi.advanceTimersByTime(40);
-        contentHeight = 400;
+        box.height = 400;
         window.dispatchEvent(new Event('resize'));
         vi.advanceTimersByTime(600);
         const heights = posted()
             .map(([m]) => m)
             .filter((m) => m.type === 'height')
             .map((m) => m.height);
-        expect(heights).toEqual([540]);
+        expect(heights).toEqual([560]);
+    });
+
+    describe('while the server has embedding switched off', () => {
+        it('sends nothing, even in embed mode with a parent, but still keeps links in a new tab', () => {
+            state.switchOn = false;
+            setUpPage(400);
+            const view = render(<EmbedReporter />);
+            state.slide = -2;
+            state.responderId = 'r1';
+            view.rerender(<EmbedReporter />);
+            vi.advanceTimersByTime(1000);
+            expect(posted()).toEqual([]);
+            expect(document.documentElement.hasAttribute('data-bc-embed')).toBe(true);
+        });
+
+        it('sends nothing before the policy has arrived, or when it cannot be read', () => {
+            state.switchOn = undefined;
+            setUpPage(400);
+            render(<EmbedReporter />);
+            vi.advanceTimersByTime(1000);
+            expect(posted()).toEqual([]);
+        });
+
+        it('starts to send once the policy says it is on', () => {
+            state.switchOn = undefined;
+            const view = render(<EmbedReporter />);
+            expect(posted()).toEqual([]);
+            state.switchOn = true;
+            view.rerender(<EmbedReporter />);
+            expect(types()).toEqual(['loaded']);
+        });
+    });
+
+    it('asks for the policy of this workspace only in embed mode', () => {
+        render(<EmbedReporter />);
+        expect(policyCalls[0]).toEqual({ arg: 'ws1', skip: false });
+        policyCalls.length = 0;
+        state.embed = { embedded: false, parentOrigin: null };
+        render(<EmbedReporter />);
+        expect(policyCalls[0].skip).toBe(true);
     });
 
     it('does nothing outside embed mode', () => {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import environments from '@app/configs/environments';
 import { frameAncestorsFor } from '@app/lib/frame-ancestors';
-import { ASSERTION_HEADER, customDomainTarget } from '@app/lib/server/custom-domain';
+import { ASSERTION_HEADER, customDomainTarget } from '@app/lib/server/custom-domain-assertion';
 import { EmbedPolicy, PolicyQuery, fetchEmbedPolicy, frameAncestorsValue } from '@app/lib/server/embed-policy';
 
 /**
@@ -54,7 +54,8 @@ function requestHost(request: NextRequest): string {
 export function embedPolicyQuery(request: NextRequest): { query: PolicyQuery | null } | null {
     const host = requestHost(request);
     const { pathname } = request.nextUrl;
-    if (host === environments.DASHBOARD_DOMAIN) return null;
+    // a published form's page is on the form domain, which on a single-domain setup is the dashboard's too
+    if (host === environments.DASHBOARD_DOMAIN && host !== environments.FORM_DOMAIN) return null;
     if (host === environments.FORM_DOMAIN) {
         const match = FORM_DOMAIN_FORM_PATH.exec(pathname);
         if (!match) return null;
@@ -98,7 +99,7 @@ export function proxy(request: NextRequest): NextResponse | Promise<NextResponse
     const target = DASHBOARD_PATH.test(pathname) ? null : embedPolicyQuery(request);
     if (target) return answerForm(target.query);
     const response = (DASHBOARD_PATH.test(pathname) ? signInRedirect(request) : null) ?? NextResponse.next();
-    return withFrameAncestors(response, frameAncestorsFor(pathname, dashboardOrigin()));
+    return withFrameAncestors(response, frameAncestorsFor(dashboardOrigin()));
 }
 
 async function answerForm(query: PolicyQuery | null): Promise<NextResponse> {
