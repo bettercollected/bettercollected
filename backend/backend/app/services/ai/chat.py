@@ -59,6 +59,7 @@ from backend.app.services.ai.prompt_builder import (
 from backend.config import settings
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
+from backend.app.services.form_access.mode import form_if_enforced
 
 # Context discipline: resend at most this many prior turns.
 MAX_HISTORY_MESSAGES = 20
@@ -298,7 +299,12 @@ class FormAIChatService:
         user: User,
         background_tasks: Optional[BackgroundTasks] = None,
     ) -> FormAIChatResponse:
-        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
+        await self._authorization.authorize(
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
+        )
 
         # The form must belong to THIS workspace — access to workspace A must
         # not allow editing workspace B's forms by id (MCP has the same rule).

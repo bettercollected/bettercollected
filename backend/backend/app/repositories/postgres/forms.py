@@ -1197,6 +1197,31 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             await session.execute(self._upsert_statement(row_values(stored)))
         return stored
 
+    async def set_access_mode(
+        self, workspace_id: RecordId, form_id: str, mode: str
+    ) -> Optional[str]:
+        """Write the form's access mode (form-level access) on the workspace's
+        link, under its row lock: the one writer of the mode (everything else
+        keeps the stored value, ``_keeping_access_mode``). Only the mode
+        changes, not ``updated_at`` of other writers' fields. Returns the mode
+        stored before (none when no mode was ever chosen); raises 404 when the
+        form is not linked to the workspace."""
+        async with self._session() as session, session.begin():
+            stored = await self._locked_link(
+                session,
+                WorkspaceFormRow.workspace_id == _oid(workspace_id),
+                WorkspaceFormRow.form_id == form_id,
+            )
+            if stored is None:
+                raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in workspace")
+            previous = stored.settings.access_mode if stored.settings else None
+            stored.settings = (stored.settings or WorkspaceFormSettings()).model_copy(
+                update={"access_mode": mode}
+            )
+            stored.touch()
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return previous
+
     async def set_review_mark(
         self,
         workspace_id: RecordId,

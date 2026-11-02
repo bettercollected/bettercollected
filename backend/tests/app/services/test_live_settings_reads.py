@@ -381,7 +381,7 @@ async def test_editor_ops_save_flag_is_read_per_call(monkeypatch):
     # API_EDITOR_OPS_SAVE_ENABLED: off means no permission lookup at all
     asked = []
 
-    async def has_permission(*args):
+    async def has_permission(*args, **_form):
         asked.append(args)
         return False
 

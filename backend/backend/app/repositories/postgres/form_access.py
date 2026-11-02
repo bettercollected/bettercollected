@@ -5,7 +5,7 @@ Every query carries the workspace id, and the form id wherever the caller names
 one, so a grant can never be read or changed across workspaces or forms.
 """
 
-from typing import Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional
 
 from common.records import derived_id
 from common.records.repository import RecordRepository
@@ -69,6 +69,35 @@ class PostgresFormAccessGrantRepository(RecordRepository):
         if form_ids is not None:
             where.append(FormAccessGrantRow.form_id.in_([_id(f) for f in form_ids]))
         return await self.many(*where)
+
+    async def held_on_form(
+        self, workspace_id, form_id
+    ) -> Dict[str, List[FormAccessGrantDocument]]:
+        """Every grant of one form by the user who holds it, directly or through
+        a team (a user holding it twice is listed under both): what the decision
+        for all the members needs, in two queries however many members and
+        teams there are."""
+        held: Dict[str, List[FormAccessGrantDocument]] = {}
+        grants = await self.list_for_form(workspace_id, form_id)
+        teams: Dict[str, List[FormAccessGrantDocument]] = {}
+        for grant in grants:
+            if grant.subject_type == SUBJECT_USER:
+                held.setdefault(str(grant.subject_id), []).append(grant)
+            elif grant.subject_type == SUBJECT_GROUP:
+                teams.setdefault(str(grant.subject_id), []).append(grant)
+        if teams:
+            async with self._session() as session:
+                rows = await session.execute(
+                    select(
+                        MemberGroupMemberRow.group_id, MemberGroupMemberRow.user_id
+                    ).where(
+                        MemberGroupMemberRow.workspace_id == _id(workspace_id),
+                        MemberGroupMemberRow.group_id.in_(list(teams)),
+                    )
+                )
+            for group_id, user_id in rows.all():
+                held.setdefault(str(user_id), []).extend(teams[str(group_id)])
+        return held
 
     # -- the grants of a form --------------------------------------------------
     async def list_for_form(

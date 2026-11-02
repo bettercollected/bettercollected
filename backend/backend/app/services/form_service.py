@@ -50,7 +50,10 @@ from backend.app.services.ai.notice_token import (
 )
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.event_service import event_logger_service
-from backend.app.services.form_access.mode import form_access_enabled
+from backend.app.services.form_access.mode import (
+    form_access_enabled,
+    form_if_enforced,
+)
 from backend.app.services.form_availability import (
     UNAVAILABLE_FULL,
     UNAVAILABLE_REASONS,
@@ -620,11 +623,14 @@ class FormService:
         settings: SettingsPatchDto,
         user: User,
     ):
-        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
+        form_ref = form_if_enforced(form_id)
+        await self._authorization.authorize(
+            user, Permission.FORM_EDIT, workspace_id, form_id=form_ref
+        )
         if settings.hidden is not None or settings.private is not None:
             # who may see and answer the form
             await self._authorization.authorize(
-                user, Permission.FORM_SHARE, workspace_id
+                user, Permission.FORM_SHARE, workspace_id, form_id=form_ref
             )
         workspace_form = (
             await self._workspace_form_repo.get_workspace_form_in_workspace(

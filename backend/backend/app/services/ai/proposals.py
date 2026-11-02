@@ -59,6 +59,7 @@ from starlette.concurrency import run_in_threadpool
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.models.enum.permission import Permission
+from backend.app.services.form_access.mode import form_if_enforced
 from backend.app.services.ai.ops import (
     MAX_OPS_PER_BATCH,
     OpResult,
@@ -732,7 +733,12 @@ class FormAIProposalService:
         # Resolved at call time: the container imports the chat module.
         from backend.app.services.ai.chat import camel_form_reply, persist_ops_to_form
 
-        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
+        await self._authorization.authorize(
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
+        )
         session, message = await self._load(workspace_id, form_id, proposal_id, user)
         record = message["proposal"]
         status = record.get("status")
@@ -858,7 +864,12 @@ class FormAIProposalService:
         proposal_id: str,
         user: User,
     ) -> ProposalStatusResponse:
-        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
+        await self._authorization.authorize(
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
+        )
         session, message = await self._load(workspace_id, form_id, proposal_id, user)
         record = message["proposal"]
         status = record.get("status")

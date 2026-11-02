@@ -49,6 +49,7 @@ from loguru import logger
 from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
+from backend.app.services.form_access.mode import form_access_enabled
 from backend.app.services.option_sources import ids, read, text
 from backend.app.services.option_sources import erasure
 from backend.app.services.option_sources.erasure import answer_labels
@@ -727,6 +728,12 @@ class OptionSourceService:
         if not await self._workspace_forms.check_if_form_exists_in_workspace(
             workspace_id, form_id
         ):
+            raise invalid("That form does not exist in this workspace.")
+        if form_access_enabled() and (
+            await self._authorization.form_permissions(user, workspace_id, form_id)
+        ).hidden:
+            # a form closed to the user (restricted, no grant) is, to them, a
+            # form that does not exist
             raise invalid("That form does not exist in this workspace.")
         if not await self._authorization.has_permission(
             user, Permission.RESPONSE_READ, workspace_id, form_id=form_id

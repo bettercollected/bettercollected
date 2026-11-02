@@ -62,6 +62,7 @@ from backend.app.services.internal_fields import (
 )
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
+from backend.app.services.form_access.mode import form_if_enforced
 from backend.config import settings
 
 MAX_RESPONSES = 200
@@ -435,7 +436,9 @@ class FormAIInsightsService:
     ) -> tuple:
         # Insights summarise respondents' answers: whoever may read them.
         # Allowing them on a form is an AI opt-in (ai.manage).
-        await self._authorization.authorize(user, permission, workspace_id)
+        await self._authorization.authorize(
+            user, permission, workspace_id, form_id=form_if_enforced(form_id)
+        )
         association = await self._workspace_form_repo.find_workspace_form(
             workspace_id, form_id
         )

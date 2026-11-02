@@ -563,9 +563,23 @@ class WorkspaceService:
                 workspace_id=workspace_id, workspace_form_ids=form_ids
             )
         )
+        # Deletion requests are the privacy programme's: a Privacy officer
+        # counts those of the restricted forms too (no analytics there), anyone
+        # else those of the forms whose analytics they may read.
+        privacy_ids = set(
+            await self._authorization.restrict_to_visible(
+                user, workspace_id, all_form_ids, Permission.PRIVACY_MANAGE
+            )
+        )
+        analytics_ids = set(form_ids)
+        deletion_ids = [
+            str(f)
+            for f in all_form_ids
+            if str(f) in privacy_ids or str(f) in analytics_ids
+        ]
         deletion_count = (
             await self.form_response_service.get_deletion_requests_count_in_workspace(
-                workspace_id=workspace_id, form_ids=form_ids
+                workspace_id=workspace_id, form_ids=deletion_ids
             )
         )
 
