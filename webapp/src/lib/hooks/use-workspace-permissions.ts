@@ -83,6 +83,8 @@ export function useWorkspacePermissions() {
     const apiKeyRolesEnabled = !!userId && !isError && !!data?.apiKeyRolesEnabled;
     // ...and the Activity pages (its AUDIT_LOG_UI_ENABLED): the workspace's and a form's list of who did what. Nothing of it is asked for or shown while it is off.
     const auditLogUiEnabled = !!userId && !isError && !!data?.auditLogUiEnabled;
+    // ...and copying a form to another workspace (its FORM_PROMOTION_ENABLED): the form menu's item, the dialog and the Advanced settings' file card. No request is made while it is off.
+    const formPromotionEnabled = !!userId && !isError && !!data?.formPromotionEnabled;
     return {
         can,
         permissions,
@@ -105,6 +107,7 @@ export function useWorkspacePermissions() {
         csvImportEnabled,
         formAccessEnabled,
         auditLogUiEnabled,
+        formPromotionEnabled,
         apiKeyRolesEnabled
     };
 }
