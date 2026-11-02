@@ -112,6 +112,16 @@ older than that workspace's own period, and the entries of workspaces that never
 chose, and those that belong to no workspace, older than 12 months. It runs
 whether or not `AUDIT_LOG_UI_ENABLED` is on. Entries also go with their workspace.
 
+The purge deletes oldest first, 2000 entries to a transaction, so shortening from
+60 to 6 months never holds one long transaction. A failure in one workspace is
+logged at ERROR (the workspace's id and the kind of error, nothing else) and the
+others still run; the job then fails, so that it shows in the job queue.
+
+The entries of reading and editing a response's previous answers
+(`response_revision_read`, `response_staff_edit`) follow the same setting, with
+no separate floor: they are kept for the workspace's activity-log retention
+(6–60 months, default 12).
+
 ## What an entry holds
 
 Codes, ids and enum values. The dashboard words each entry in the reader's
