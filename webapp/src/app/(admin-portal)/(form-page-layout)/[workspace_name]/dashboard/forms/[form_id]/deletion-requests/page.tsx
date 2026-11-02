@@ -1,7 +1,6 @@
 'use client';
 
 import FormResponsesTable from '@Components/datatable/form-responses';
-import ResponseSegments from '@app/components/form/response-segments';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -12,9 +11,6 @@ export default function Page() {
 
     return (
         <div>
-            <div className="mb-4">
-                <ResponseSegments />
-            </div>
             <FormResponsesTable props={{ formId: form.formId, workspace, requestForDeletion: true }} />
         </div>
     );

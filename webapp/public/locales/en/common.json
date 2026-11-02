@@ -1491,7 +1491,11 @@
     "BACK": "Back to forms",
     "SKIP": "Skip to content",
     "SECTIONS": "Form sections",
-    "NEW_TAB": "(opens in a new tab)"
+    "NEW_TAB": "(opens in a new tab)",
+    "COLLAPSE": "Collapse sections",
+    "EXPAND": "Expand sections",
+    "GO_TO": "Go to section",
+    "SWITCH_OPEN": "Section: {{name}}. Choose another section"
   },
   "STAFF_LANGUAGE": {
     "LABEL": "Language",

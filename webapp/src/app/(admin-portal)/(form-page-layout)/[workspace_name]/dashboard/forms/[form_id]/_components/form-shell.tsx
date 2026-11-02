@@ -6,12 +6,14 @@ import { useTranslation } from 'react-i18next';
 
 import { StandardFormDto } from '@app/models/dtos/form';
 
-import { BackToForms, FormBarActions, FormTabs, SkipLink, StatusChip, useFormNav } from './form-nav';
+import { BackToForms, FormBarActions, SkipLink, StatusChip, useFormNav } from './form-nav';
+import { FormRail, SectionSwitcher } from './form-side-menu';
 
 /**
  * A form's pages, without the workspace navbar: one sticky bar (back to the
- * forms, the title and its status, the actions), the sections of the form, and
- * the page. The title is the page's one h1; the bar only truncates it by eye.
+ * forms, the title and its status, the actions), the sections of the form down
+ * the side (a sheet from a "current section" row on a phone), and the page.
+ * The title is the page's one h1; the bar only truncates it by eye.
  */
 export default function FormShell({ form, base, children }: { form: StandardFormDto; base: string; children: React.ReactNode }) {
     const { t } = useTranslation();
@@ -34,10 +36,13 @@ export default function FormShell({ form, base, children }: { form: StandardForm
                     <FormBarActions form={form} />
                 </div>
             </header>
-            <FormTabs items={items} />
-            <main id="form-main" tabIndex={-1} className="px-4 py-6 outline-none md:px-6 lg:px-8">
-                {children}
-            </main>
+            <SectionSwitcher items={items} />
+            <div className="flex">
+                <FormRail items={items} />
+                <main id="form-main" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 outline-none md:px-6 lg:px-8">
+                    {children}
+                </main>
+            </div>
         </div>
     );
 }
