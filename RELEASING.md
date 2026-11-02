@@ -108,7 +108,7 @@ backend's startup does not apply them to a queue that already exists; expected, 
 notes), then runs the documented step (`postgres/ensure-jobs-exec-role.sh` as the database superuser, then
 `python -m backend.jobs.schema` in the backend container) and requires the restrictions to be in force. Update its checks
 (the expected alembic head, `SWAP_CHECK_EXPECT_ALEMBIC`, and the switches it turns on) when a release
-adds a migration or a switch. `SWAP_CHECK_CANDIDATE=v4.2.0` runs the same upgrade with the published
+adds a migration or a switch. `SWAP_CHECK_CANDIDATE=v4.3.0` runs the same upgrade with the published
 images of a tag instead of images built from the checkout (use it once more after the images are
 published, before the stack edit on an orchestrated stack). What it cannot cover, because the product forbids it
 (a webhook delivery to a private address), goes on the release's post-deploy smoke list.
