@@ -18,6 +18,7 @@ AREA_FORMS = "forms"
 AREA_RESPONSES = "responses"
 AREA_API_KEYS = "api_keys"
 AREA_SECURITY = "security"
+AREA_INTEGRATIONS = "integrations"
 
 # area -> its kinds, in the order the page's filter offers them
 AREAS: Dict[str, Tuple[str, ...]] = {
@@ -58,13 +59,19 @@ AREAS: Dict[str, Tuple[str, ...]] = {
         E.RESPONSE_EXPORT,
     ),
     AREA_API_KEYS: E.API_KEY_EVENTS,
-    # single sign-on break-glass use and the workspace's authenticator rule
+    # single sign-on, break-glass use, the workspace's authenticator rule and the
+    # rest of its security settings
     AREA_SECURITY: (
         E.SSO_BREAK_GLASS_REQUEST,
         E.SSO_BREAK_GLASS_SIGN_IN,
         E.TOTP_POLICY_CHANGED,
         E.TOTP_RESET,
+        # single sign-on, verified domains, directory sync, AI consent, custom
+        # domain
+        *E.SETTINGS_EVENTS,
     ),
+    # email actions and case-system services and registrations
+    AREA_INTEGRATIONS: E.AUTOMATION_EVENTS,
 }
 
 # the second-factor events of one account (written with ``NO_WORKSPACE``): shown

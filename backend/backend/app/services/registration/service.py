@@ -49,7 +49,16 @@ from backend.app.schemas.registration import (
     ServiceKind,
     VariableMapping,
 )
+from backend.app.schemas.workspace_audit_event import (
+    FORM_REGISTRATION_CHANGED,
+    FORM_REGISTRATION_DISABLED,
+    FORM_REGISTRATION_ENABLED,
+    REGISTRATION_SERVICE_CREATED,
+    REGISTRATION_SERVICE_DELETED,
+    REGISTRATION_SERVICE_UPDATED,
+)
 from backend.app.services import safe_http
+from backend.app.services.form_access import audit
 from backend.app.services.registration import body as body_builder
 from backend.app.services.registration import client, objects_api
 from backend.app.services.registration.retry import (  # noqa: F401
@@ -282,7 +291,11 @@ class RegistrationService:
         rate_limiter=None,
         defer: Optional[Callable[[str], Awaitable[None]]] = None,
         clock: Callable[[], dt.datetime] = utcnow,
+        audit_repo=None,
     ):
+        # the workspace's audit log: ids and the names of what changed, never
+        # an address, a secret or a mapping's content
+        self._audit_repo = audit_repo
         self._authorization = authorization_service
         self._services = service_repo
         self._registrations = registration_repo
@@ -483,6 +496,14 @@ class RegistrationService:
             raise _refused(
                 HTTPStatus.CONFLICT, "name_taken", "A service with this name exists."
             )
+        # nothing is sent to it until a form uses it: best effort
+        await audit.record(
+            self._audit_repo,
+            REGISTRATION_SERVICE_CREATED,
+            workspace_id,
+            user,
+            service_id=str(document.id),
+        )
         logger.info(
             "registration service created: workspace={} service={} by={}",
             workspace_id,
@@ -508,6 +529,14 @@ class RegistrationService:
     ) -> ServiceDto:
         await self._manage(user, workspace_id)
         document = await self._service_of(workspace_id, service_id)
+        before = (
+            document.name,
+            document.organisation_name,
+            document.base_url,
+            document.objecttypes_base_url,
+            document.auth,
+            document.auth_name,
+        )
         objects = document.kind is ServiceKind.OBJECTS_API
         auth = self._auth_for_kind(
             document.kind, request.auth if request.auth is not None else document.auth
@@ -568,6 +597,44 @@ class RegistrationService:
             )
             document.secret_set_at = self._clock()
         document.updated_by = str(user.id)
+        # where answers go, or the credentials they go with, may have changed:
+        # recorded first, or refused. Only the names of the parts are stored.
+        after = (
+            document.name,
+            document.organisation_name,
+            document.base_url,
+            document.objecttypes_base_url,
+            document.auth,
+            document.auth_name,
+        )
+        parts = [
+            part
+            for part, old, new in zip(
+                (
+                    "name",
+                    "organisation_name",
+                    "base_url",
+                    "objecttypes_base_url",
+                    "auth",
+                    "auth",
+                ),
+                before,
+                after,
+            )
+            if old != new
+        ]
+        if request.secret:
+            parts.append("secret")
+        parts = list(dict.fromkeys(parts))
+        if parts:
+            await audit.record_or_refuse(
+                self._audit_repo,
+                REGISTRATION_SERVICE_UPDATED,
+                workspace_id,
+                user,
+                service_id=str(document.id),
+                changed=parts,
+            )
         try:
             document = await self._services.save(document)
         except ServiceNameTaken:
@@ -594,6 +661,15 @@ class RegistrationService:
                 "A form still sends its submissions to this service.",
             )
         await self._services.delete(workspace_id, document.id)
+        # no form uses it any more (refused above), so nothing is sent through
+        # it: best effort, after
+        await audit.record(
+            self._audit_repo,
+            REGISTRATION_SERVICE_DELETED,
+            workspace_id,
+            user,
+            service_id=str(document.id),
+        )
         logger.info(
             "registration service deleted: workspace={} service={} by={}",
             workspace_id,
@@ -755,16 +831,79 @@ class RegistrationService:
                 workspace_id=workspace_id, form_id=str(form_id)
             )
             document.ensure_id()
+        was_enabled = bool(document.enabled)
+        old_service_id = document.service_id
+        new_service_id = str(service.id) if service else None
+        new_transform = list(dict.fromkeys(request.transform_to_list))
+        # which parts of the configuration change (names only)
+        parts = [
+            part
+            for part, old, new in (
+                ("service", document.service_id, new_service_id),
+                ("path", document.path, request.path),
+                ("variables", document.variables, mapping),
+                ("variables", document.transform_to_list, new_transform),
+                ("object_type", document.object_type_url, object_type_url),
+                ("object_type", document.object_type_version, object_type_version),
+                ("reference_path", document.reference_path, reference_path),
+            )
+            if (old or None) != (new or None)
+        ]
+        parts = list(dict.fromkeys(parts))
+        audit_ids = dict(service_id=new_service_id)
+        if request.enabled and not was_enabled:
+            # answers start to leave for another system: recorded first, or
+            # refused
+            await audit.record_or_refuse(
+                self._audit_repo,
+                FORM_REGISTRATION_ENABLED,
+                workspace_id,
+                user,
+                form_id=str(form_id),
+                **audit_ids,
+            )
+        elif request.enabled and parts:
+            await audit.record_or_refuse(
+                self._audit_repo,
+                FORM_REGISTRATION_CHANGED,
+                workspace_id,
+                user,
+                form_id=str(form_id),
+                changed=parts,
+                **audit_ids,
+            )
         document.enabled = request.enabled
-        document.service_id = str(service.id) if service else None
+        document.service_id = new_service_id
         document.path = request.path
         document.variables = mapping
-        document.transform_to_list = list(dict.fromkeys(request.transform_to_list))
+        document.transform_to_list = new_transform
         document.object_type_url = object_type_url
         document.object_type_version = object_type_version
         document.reference_path = reference_path
         document.updated_by = str(user.id)
         await self._registrations.save(document)
+        if was_enabled and not request.enabled:
+            # it stops sending: best effort. The entry names the service that
+            # was turned off (the saved one may be another, or none).
+            await audit.record(
+                self._audit_repo,
+                FORM_REGISTRATION_DISABLED,
+                workspace_id,
+                user,
+                form_id=str(form_id),
+                service_id=str(old_service_id) if old_service_id else None,
+            )
+        elif not request.enabled and parts:
+            # saved switched off: nothing is sent, best effort
+            await audit.record(
+                self._audit_repo,
+                FORM_REGISTRATION_CHANGED,
+                workspace_id,
+                user,
+                form_id=str(form_id),
+                changed=parts,
+                **audit_ids,
+            )
         logger.info(
             "form registration saved: workspace={} form={} enabled={} variables={} by={}",
             workspace_id,

@@ -58,6 +58,16 @@ class AuditEntryDto(CamelModel):
     key_role_before: Optional[str] = None
     form_scope: Optional[str] = None
     widened: Optional[bool] = None
+    # settings entries: the kind of single sign-on connection or directory
+    # (``saml`` / ``oidc``, the directory's type), an on/off setting's new
+    # value and the AI provider's id; never a name, a hostname or a URL
+    connection_type: Optional[str] = None
+    directory_type: Optional[str] = None
+    enabled: Optional[bool] = None
+    provider: Optional[str] = None
+    # integration entries: which parts of the configuration changed (names
+    # from a fixed list, never their content)
+    changed: Optional[List[str]] = None
     # request entries (break-glass): the method and the route's template
     method: Optional[str] = None
     path: Optional[str] = None

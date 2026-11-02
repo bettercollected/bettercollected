@@ -40,11 +40,17 @@ from backend.app.schemas.scim import (
     ScimGroupDocument,
     ScimUserState,
 )
-from backend.app.schemas.workspace_audit_event import TEAM_LINKED
+from backend.app.schemas.workspace_audit_event import (
+    SCIM_GROUP_ROLE_CHANGED,
+    SCIM_TOKEN_CREATED,
+    SCIM_TOKEN_REVOKED,
+    SCIM_TOKEN_ROTATED,
+    TEAM_LINKED,
+)
 from backend.app.services.api_key_lifecycle import SystemActor
-from backend.app.services.form_access import audit as access_audit
 from backend.app.services.form_access.mode import refuse_when_off
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_access import audit
 from backend.app.services.scim.polis_dsync import (
     PolisDirectoryClient,
     scim_endpoint,
@@ -253,11 +259,13 @@ class ScimDirectoryService:
         sync_service: ScimSyncService,
         polis: PolisDirectoryClient,
         crypto,
-        member_group_repo=None,
         audit_repo=None,
+        member_group_repo=None,
         form_access=None,
         team_link_repo=None,
     ):
+        # the workspace's audit log (ids and enum values only, never a token)
+        self._audit_repo = audit_repo
         self._authorization = authorization_service
         self._directories = directory_repo
         self._users = user_repo
@@ -270,7 +278,6 @@ class ScimDirectoryService:
         self._crypto = crypto
         # linking a group to a team (FORM_ACCESS_ENABLED)
         self._teams = member_group_repo
-        self._audit = audit_repo
         self._form_access = form_access
         self._team_links = team_link_repo
 
@@ -409,6 +416,15 @@ class ScimDirectoryService:
         directory_id = RecordId()
         name = (request.name or "").strip() or DIRECTORY_TYPES[request.type]
         webhook_secret = secrets.token_urlsafe(32)
+        # a token that can provision members is about to exist: recorded first
+        await audit.record_or_refuse(
+            self._audit_repo,
+            SCIM_TOKEN_CREATED,
+            workspace_id,
+            user,
+            directory_id=str(directory_id),
+            directory_type=request.type,
+        )
         try:
             created = await self._polis.create_directory(
                 str(workspace_id),
@@ -500,6 +516,17 @@ class ScimDirectoryService:
             await self._directories.update_fields(
                 directory.id, {"stale_polis_directory_id": old_polis_id}
             )
+        # Best effort, and after the change: rotating is the only way to stop
+        # a leaked token, so a failing audit store must never stand in its way
+        # (the old token has stopped working by now).
+        await audit.record(
+            self._audit_repo,
+            SCIM_TOKEN_ROTATED,
+            workspace_id,
+            user,
+            directory_id=str(directory.id),
+            directory_type=directory.type,
+        )
         logger.info(
             "SCIM directory {} of workspace {} rotated by {}",
             directory.id,
@@ -555,6 +582,18 @@ class ScimDirectoryService:
         seat is free; otherwise they stay disabled (``seat_limit``)."""
         await self._authorize_owner(workspace_id, user)
         directory = await self._directory(workspace_id)
+        # Recorded first, and refused when it cannot be: unlike a rotation this
+        # lifts the directory's own deactivations (members are enabled again,
+        # ``release_directory_disables``), so it opens access. A leaked token is
+        # stopped by rotating it, which is never blocked by the audit store.
+        await audit.record_or_refuse(
+            self._audit_repo,
+            SCIM_TOKEN_REVOKED,
+            workspace_id,
+            user,
+            directory_id=str(directory.id),
+            directory_type=directory.type,
+        )
         if settings.sso.is_configured:
             try:
                 await self._polis.delete_directory(directory.polis_directory_id)
@@ -580,8 +619,8 @@ class ScimDirectoryService:
             for group in await self._groups.list_by_directory(directory.id):
                 if str(group.id) in team_of:
                     # the links end with the directory: one entry each (ids only)
-                    await access_audit.record(
-                        self._audit,
+                    await audit.record(
+                        self._audit_repo,
                         TEAM_LINKED,
                         directory.workspace_id,
                         SystemActor("scim"),
@@ -610,6 +649,18 @@ class ScimDirectoryService:
                 HTTPStatus.UNPROCESSABLE_ENTITY,
                 "invalid_role",
                 "That role can't be given by a directory group.",
+            )
+        if role != group.role:
+            # a group's members get this role: recorded first, or refused
+            await audit.record_or_refuse(
+                self._audit_repo,
+                SCIM_GROUP_ROLE_CHANGED,
+                workspace_id,
+                user,
+                directory_id=str(directory.id),
+                directory_group_id=str(group.id),
+                role=role,
+                previous_role=group.role,
             )
         group.role = role
         group.needs_review = None
@@ -676,8 +727,8 @@ class ScimDirectoryService:
         if current == str(team.id):
             return await self._group_dto(group, current)
         if current:
-            await access_audit.record_or_refuse(
-                self._audit,
+            await audit.record_or_refuse(
+                self._audit_repo,
                 TEAM_LINKED,
                 workspace_id,
                 user,
@@ -685,8 +736,8 @@ class ScimDirectoryService:
                 scim_group_id=str(group.id),
                 linked=False,
             )
-        await access_audit.record_or_refuse(
-            self._audit,
+        await audit.record_or_refuse(
+            self._audit_repo,
             TEAM_LINKED,
             workspace_id,
             user,
@@ -723,8 +774,8 @@ class ScimDirectoryService:
         current = await self._team_of(workspace_id, group)
         if not current:
             return await self._group_dto(group, "")
-        await access_audit.record_or_refuse(
-            self._audit,
+        await audit.record_or_refuse(
+            self._audit_repo,
             TEAM_LINKED,
             workspace_id,
             user,

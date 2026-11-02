@@ -287,6 +287,11 @@ class AuditLogReader:
             key_role_before=row.key_role_before,
             form_scope=row.form_scope,
             widened=row.widened,
+            connection_type=row.connection_type,
+            directory_type=row.directory_type,
+            enabled=row.enabled,
+            provider=row.provider,
+            changed=row.changed,
             method=row.method,
             path=row.path,
         )
