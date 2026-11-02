@@ -129,12 +129,11 @@ class ResponseImportsRouter(Routable):
         workspace_id: RecordId,
         form_id: str,
         import_id: str,
-        request: Request,
         body: ResponseImportRequest = Body(default_factory=ResponseImportRequest),
         user: User = Depends(get_full_user),
+        _json: None = Depends(require_json),
     ):
         """Queue a dry run: nothing is stored."""
-        require_json(request)
         view = await container.response_import_service().check(
             workspace_id, form_id, import_id, user, body.mapping, {"skipInvalidRows": body.skip_invalid_rows}
         )
@@ -146,12 +145,11 @@ class ResponseImportsRouter(Routable):
         workspace_id: RecordId,
         form_id: str,
         import_id: str,
-        request: Request,
         body: ResponseImportRequest = Body(default_factory=ResponseImportRequest),
         user: User = Depends(get_full_user),
+        _json: None = Depends(require_json),
     ):
         """Queue the import (needs ``confirmedLawfulBasis``)."""
-        require_json(request)
         view = await container.response_import_service().run(
             workspace_id,
             form_id,
@@ -169,11 +167,10 @@ class ResponseImportsRouter(Routable):
         workspace_id: RecordId,
         form_id: str,
         import_id: str,
-        request: Request,
         user: User = Depends(get_full_user),
+        _json: None = Depends(require_json),
     ):
         """Delete the responses a completed import created (within 14 days)."""
-        require_json(request)
         view = await container.response_import_service().rollback(workspace_id, form_id, import_id, user)
         return JSONResponse(jsonable_encoder(view), headers=_NO_STORE)
 
