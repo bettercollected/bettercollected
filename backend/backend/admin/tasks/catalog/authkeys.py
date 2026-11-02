@@ -46,6 +46,7 @@ class Targets(str, enum.Enum):
     scim_directories = "scim_directories"
     registration_services = "registration_services"
     form_webhooks = "form_webhooks"
+    user_totp_factors = "user_totp_factors"
 
 
 class Refusals(str, enum.Enum):
@@ -138,7 +139,7 @@ class ReencryptParams(Params):
     which: Which
     # the first member the stored ring must have now (guards against a stale view)
     primary_id: MemberId
-    targets: Annotated[list[Targets], Field(max_length=7)] = []  # empty: all
+    targets: Annotated[list[Targets], Field(max_length=8)] = []  # empty: all
     batch_size: Annotated[int, Field(ge=50, le=1000)] = 200
     external_consumers_updated: Annotated[
         bool,
@@ -155,7 +156,7 @@ class ReencryptParams(Params):
 
 class VerifyParams(Params):
     which: Which
-    targets: Annotated[list[Targets], Field(max_length=7)] = []
+    targets: Annotated[list[Targets], Field(max_length=8)] = []
     batch_size: Annotated[int, Field(ge=50, le=1000)] = 500
     google_in_use: bool = True
 
@@ -266,6 +267,7 @@ class ScanResult(Result):
     scim_directories: Optional[TargetCounts] = None
     registration_services: Optional[TargetCounts] = None
     form_webhooks: Optional[TargetCounts] = None
+    user_totp_factors: Optional[TargetCounts] = None
     values_stale: int = 0
     values_unopenable: int = 0
     gates: Optional[Gates] = None
@@ -296,6 +298,7 @@ class DropOldResult(Result):
     scim_directories: Optional[TargetCounts] = None
     registration_services: Optional[TargetCounts] = None
     form_webhooks: Optional[TargetCounts] = None
+    user_totp_factors: Optional[TargetCounts] = None
     gates: Optional[Gates] = None
 
 
