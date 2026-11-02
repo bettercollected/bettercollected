@@ -75,7 +75,8 @@ export default function FormRegistrationSection() {
     return <FormRegistrationSettings workspaceId={workspace.id} workspaceName={workspace.workspaceName} formId={form.formId} />;
 }
 
-export function FormRegistrationSettings({ workspaceId, workspaceName, formId }: { workspaceId: string; workspaceName?: string; formId: string }) {
+/** `headless`: inside a card's side sheet, which has the title and intro. */
+export function FormRegistrationSettings({ workspaceId, workspaceName, formId, headless = false }: { workspaceId: string; workspaceName?: string; formId: string; headless?: boolean }) {
     const { t } = useTranslation('builder');
     const typeLabel = (type: string) => {
         const key = variableTypeKey(type);
@@ -326,11 +327,15 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId }:
     const checkFailed = !!check && check !== 'checking' && ('error' in check || !check.ok);
 
     return (
-        <section className="flex flex-col gap-3" aria-labelledby="registration-form-title" data-testid="registration-form-settings">
-            <h2 id="registration-form-title" className="text-xs font-semibold tracking-wide text-black-600 uppercase">
-                {t('REGISTRATION.FORM.TITLE')}
-            </h2>
-            <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('REGISTRATION.FORM.INTRO')}</p>
+        <section className="flex flex-col gap-3" aria-labelledby={headless ? undefined : 'registration-form-title'} data-testid="registration-form-settings">
+            {!headless && (
+                <>
+                    <h2 id="registration-form-title" className="text-xs font-semibold tracking-wide text-black-600 uppercase">
+                        {t('REGISTRATION.FORM.TITLE')}
+                    </h2>
+                    <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('REGISTRATION.FORM.INTRO')}</p>
+                </>
+            )}
             <p className="max-w-[62ch] rounded-md border border-black-300 bg-black-100 px-3 py-2 text-xs leading-relaxed text-black-700">{t('REGISTRATION.NOTICE')}</p>
 
             {loading && <p className="text-sm text-black-600">{t('REGISTRATION.LOADING')}</p>}

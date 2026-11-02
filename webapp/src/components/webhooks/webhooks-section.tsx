@@ -50,7 +50,8 @@ export default function FormWebhooksSection() {
 type Editing = { kind: 'add' } | { kind: 'edit'; id: string } | null;
 type Pending = { kind: 'delete' | 'rotate' | 'switch'; id: string } | null;
 
-export function WebhooksSettings({ workspaceId, formId }: { workspaceId: string; formId: string }) {
+/** `headless`: inside a card's side sheet, which has the title and intro, and its own deliveries drawer. */
+export function WebhooksSettings({ workspaceId, formId, headless = false }: { workspaceId: string; formId: string; headless?: boolean }) {
     const { t } = useTranslation('builder');
     const hooks = useGetWebhooksQuery({ workspaceId, formId });
     const variables = useGetWebhookVariablesQuery({ workspaceId, formId });
@@ -123,11 +124,15 @@ export function WebhooksSettings({ workspaceId, formId }: { workspaceId: string;
 
     return (
         <>
-            <section className="flex flex-col gap-4" aria-labelledby="webhooks-title" data-testid="webhooks-section">
-                <h2 id="webhooks-title" className="text-xs font-semibold tracking-wide text-black-600 uppercase">
-                    {t('WEBHOOKS.TITLE')}
-                </h2>
-                <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('WEBHOOKS.INTRO')}</p>
+            <section className="flex flex-col gap-4" aria-labelledby={headless ? undefined : 'webhooks-title'} data-testid="webhooks-section">
+                {!headless && (
+                    <>
+                        <h2 id="webhooks-title" className="text-xs font-semibold tracking-wide text-black-600 uppercase">
+                            {t('WEBHOOKS.TITLE')}
+                        </h2>
+                        <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('WEBHOOKS.INTRO')}</p>
+                    </>
+                )}
                 <p className="max-w-[62ch] rounded-md border border-black-300 bg-black-100 px-3 py-2 text-xs leading-relaxed text-black-700">{t('WEBHOOKS.NOTICE')}</p>
 
                 {loading && <p className="text-sm text-black-600">{t('WEBHOOKS.LOADING')}</p>}
@@ -282,7 +287,7 @@ export function WebhooksSettings({ workspaceId, formId }: { workspaceId: string;
                     </>
                 )}
             </section>
-            <WebhookDeliveries workspaceId={workspaceId} formId={formId} />
+            {!headless && <WebhookDeliveries workspaceId={workspaceId} formId={formId} />}
         </>
     );
 }

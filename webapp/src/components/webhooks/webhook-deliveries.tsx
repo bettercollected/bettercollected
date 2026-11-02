@@ -29,7 +29,7 @@ const FILTER_STATUSES: Record<Filter, DeliveryStatus[]> = {
  * an answer, a request or a reply, and is kept 30 days. Next to it, who
  * changed the webhooks and when.
  */
-export default function WebhookDeliveries({ workspaceId, formId }: { workspaceId: string; formId: string }) {
+export default function WebhookDeliveries({ workspaceId, formId, headless = false }: { workspaceId: string; formId: string; headless?: boolean }) {
     const { t, i18n } = useTranslation('builder');
     const [filter, setFilter] = useState<Filter>('all');
     const [limit, setLimit] = useState(PAGE);
@@ -48,13 +48,15 @@ export default function WebhookDeliveries({ workspaceId, formId }: { workspaceId
     if (!settled || forbidden) return null;
 
     return (
-        <section className="flex flex-col gap-4 rounded-lg border border-black-300 bg-white p-4 md:p-5" aria-labelledby="webhook-deliveries-title" data-testid="webhook-deliveries">
-            <div className="flex flex-col gap-1">
-                <h2 id="webhook-deliveries-title" className="text-sm font-semibold text-black-900">
-                    {t('WEBHOOKS.DELIVERIES.TITLE')}
-                </h2>
-                <p className="max-w-[62ch] text-xs leading-relaxed text-black-600">{t('WEBHOOKS.DELIVERIES.INTRO')}</p>
-            </div>
+        <section className="flex flex-col gap-4 rounded-lg border border-black-300 bg-white p-4 md:p-5" aria-labelledby={headless ? undefined : 'webhook-deliveries-title'} data-testid="webhook-deliveries">
+            {!headless && (
+                <div className="flex flex-col gap-1">
+                    <h2 id="webhook-deliveries-title" className="text-sm font-semibold text-black-900">
+                        {t('WEBHOOKS.DELIVERIES.TITLE')}
+                    </h2>
+                    <p className="max-w-[62ch] text-xs leading-relaxed text-black-600">{t('WEBHOOKS.DELIVERIES.INTRO')}</p>
+                </div>
+            )}
 
             <dl className="flex flex-wrap gap-x-8 gap-y-2">
                 <Count label={t('WEBHOOKS.DELIVERIES.DELIVERED')} value={delivered.data?.total ?? 0} testId="webhook-count-delivered" />

@@ -22,7 +22,7 @@ const FILTER_STATUSES: Record<Filter, DeliveryStatus[]> = { all: [], delivered: 
  * statuses, attempt counts and timings only: never an address, a subject or an
  * answer. Kept 30 days.
  */
-export default function EmailDeliveries({ workspaceId, formId }: { workspaceId: string; formId: string }) {
+export default function EmailDeliveries({ workspaceId, formId, headless = false }: { workspaceId: string; formId: string; headless?: boolean }) {
     const { t, i18n } = useTranslation('builder');
     const [filter, setFilter] = useState<Filter>('all');
     const [limit, setLimit] = useState(PAGE);
@@ -38,13 +38,15 @@ export default function EmailDeliveries({ workspaceId, formId }: { workspaceId: 
     if (!settled || (waiting.error as any)?.status === 403) return null;
 
     return (
-        <section className="flex flex-col gap-4 rounded-lg border border-black-300 bg-white p-4 md:p-5" aria-labelledby="email-deliveries-title" data-testid="email-deliveries">
-            <div className="flex flex-col gap-1">
-                <h2 id="email-deliveries-title" className="text-sm font-semibold text-black-900">
-                    {t('EMAIL_ACTIONS.DELIVERIES.TITLE')}
-                </h2>
-                <p className="max-w-[62ch] text-xs leading-relaxed text-black-600">{t('EMAIL_ACTIONS.DELIVERIES.INTRO')}</p>
-            </div>
+        <section className="flex flex-col gap-4 rounded-lg border border-black-300 bg-white p-4 md:p-5" aria-labelledby={headless ? undefined : 'email-deliveries-title'} data-testid="email-deliveries">
+            {!headless && (
+                <div className="flex flex-col gap-1">
+                    <h2 id="email-deliveries-title" className="text-sm font-semibold text-black-900">
+                        {t('EMAIL_ACTIONS.DELIVERIES.TITLE')}
+                    </h2>
+                    <p className="max-w-[62ch] text-xs leading-relaxed text-black-600">{t('EMAIL_ACTIONS.DELIVERIES.INTRO')}</p>
+                </div>
+            )}
             <dl className="flex flex-wrap gap-x-8 gap-y-2">
                 <Count label={t('EMAIL_ACTIONS.DELIVERIES.SENT')} value={delivered.data?.total ?? 0} testId="email-count-delivered" />
                 <Count label={t('EMAIL_ACTIONS.DELIVERIES.WAITING')} value={waiting.data?.total ?? 0} testId="email-count-waiting" />

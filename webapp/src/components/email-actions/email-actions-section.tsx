@@ -38,7 +38,8 @@ export default function FormEmailActionsSection() {
 
 type Editing = { kind: 'add' } | { kind: 'edit'; id: string } | null;
 
-export function EmailActionsSettings({ workspaceId, formId, configured }: { workspaceId: string; formId: string; configured: boolean }) {
+/** `headless`: inside a card's side sheet, which has the title and intro, and its own deliveries drawer. */
+export function EmailActionsSettings({ workspaceId, formId, configured, headless = false }: { workspaceId: string; formId: string; configured: boolean; headless?: boolean }) {
     const { t } = useTranslation('builder');
     const actions = useGetEmailActionsQuery({ workspaceId, formId });
     const variables = useGetEmailVariablesQuery({ workspaceId, formId });
@@ -91,11 +92,15 @@ export function EmailActionsSettings({ workspaceId, formId, configured }: { work
 
     return (
         <>
-            <section className="flex flex-col gap-4" aria-labelledby="email-actions-title" data-testid="email-actions-section">
-                <h2 id="email-actions-title" className="text-xs font-semibold tracking-wide text-black-600 uppercase">
-                    {t('EMAIL_ACTIONS.TITLE')}
-                </h2>
-                <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('EMAIL_ACTIONS.INTRO')}</p>
+            <section className="flex flex-col gap-4" aria-labelledby={headless ? undefined : 'email-actions-title'} data-testid="email-actions-section">
+                {!headless && (
+                    <>
+                        <h2 id="email-actions-title" className="text-xs font-semibold tracking-wide text-black-600 uppercase">
+                            {t('EMAIL_ACTIONS.TITLE')}
+                        </h2>
+                        <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('EMAIL_ACTIONS.INTRO')}</p>
+                    </>
+                )}
                 <p className="max-w-[62ch] rounded-md border border-black-300 bg-black-100 px-3 py-2 text-xs leading-relaxed text-black-700">{t('EMAIL_ACTIONS.NOTICE')}</p>
                 {!configured && (
                     <p role="alert" className="max-w-[62ch] text-sm font-medium text-[#A83434]">
@@ -228,7 +233,7 @@ export function EmailActionsSettings({ workspaceId, formId, configured }: { work
                     </>
                 )}
             </section>
-            <EmailDeliveries workspaceId={workspaceId} formId={formId} />
+            {!headless && <EmailDeliveries workspaceId={workspaceId} formId={formId} />}
         </>
     );
 }

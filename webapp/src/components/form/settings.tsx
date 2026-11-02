@@ -3,10 +3,7 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 
 import FormSettingsTab, { GroupHeading, SettingRow } from '@app/components/dashboard/form-settings';
-import FormIntegrations from '@app/components/form/integrations';
-import FormRegistrationSection from '@app/components/registration/form-registration-settings';
-import FormEmailActionsSection from '@app/components/email-actions/email-actions-section';
-import FormWebhooksSection from '@app/components/webhooks/webhooks-section';
+import AutomationsSection from '@app/components/form/automations/automations-section';
 import { useModal } from '@app/components/modal-views/context';
 import { memberRoles } from '@app/constants/locales/member-roles';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
@@ -27,9 +24,6 @@ const Section = ({ id, title, intro, children }: { id: string; title: string; in
         <div className="mt-2 flex flex-col gap-8">{children}</div>
     </section>
 );
-
-/** 12px-caps section header — same rhythm as the builder's panel headers. */
-const SectionHeader = ({ children }: { children: React.ReactNode }) => <h2 className="text-black-600 text-xs font-semibold uppercase tracking-wide">{children}</h2>;
 
 /**
  * The Settings tab hosts everything about how the form behaves and who can
@@ -52,7 +46,6 @@ export default function FormSettings() {
     }
 
     const isSelf = form?.settings?.provider === 'self';
-    const showIntegrations = isSelf && form?.builderVersion === 'v2' && form?.isPublished;
     // The builder is where purpose, retention and the privacy link are written (same rule as the header's Edit button).
     const canOpenBuilder = isSelf && form?.builderVersion === 'v2';
     const canDelete = can(WorkspacePermission.FORM_DELETE);
@@ -80,23 +73,8 @@ export default function FormSettings() {
                 </Section>
             )}
 
-            {/* Automations: untouched in this step (they become cards later). */}
-            <div id="automations" className="flex scroll-mt-6 flex-col gap-12 empty:hidden">
-                {showIntegrations && (
-                    <section className="flex flex-col gap-2">
-                        <SectionHeader>{t('STAFF.FORM_SETTINGS.INTEGRATIONS')}</SectionHeader>
-                        <FormIntegrations />
-                    </section>
-                )}
-
-                {/* Owners and admins, while this server sends to case systems; renders nothing otherwise. */}
-                <FormRegistrationSection />
-
-                {/* Owners and admins configure, editors see the deliveries, while this server has webhooks on; renders nothing otherwise. */}
-                <FormWebhooksSection />
-                {/* Mail to the form's team and a copy to the respondent, while this server has email actions on; renders nothing otherwise. */}
-                <FormEmailActionsSection />
-            </div>
+            {/* Email, webhooks, a case system and the integration actions: one card each, their settings in side sheets. */}
+            <AutomationsSection />
 
             {showAdvanced && (
                 <Section id="advanced" title={t('STAFF.FORM_SETTINGS.ADVANCED')}>
