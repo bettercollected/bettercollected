@@ -133,8 +133,13 @@ class ScimGroupDocument(Record):
     # (after a rotation several previous groups had its name, so none was
     # matched and no role carried over)
     needs_review: Optional[str] = None
-    # TODO(member-groups): map to a member group too once member groups exist
-    # (docs/enterprise-access-model.md §3, step c)
+    # the team (member group, ``FORM_ACCESS_ENABLED``) the members of this group
+    # are in, or None. One group is in at most one team; a team may take several
+    # groups. Who is in the team is read from this group's members at call time
+    # (``team_membership``), never copied; deleting the group in the directory,
+    # or the team here, ends the link.
+    member_group_id: Optional[str] = None
+    member_group_linked_by: Optional[str] = None
 
     class Settings:
         name = "scim_groups"

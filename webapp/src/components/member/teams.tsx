@@ -5,6 +5,7 @@ import { FormEvent, useId, useMemo, useState } from 'react';
 import { UsersRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import TeamDirectoryGroups from '@app/components/member/team-directory-groups';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@app/shadcn/components/ui/alert-dialog';
@@ -152,6 +153,7 @@ function TeamsList() {
                                     <span className="text-xs text-black-600">
                                         {t('STAFF.TEAMS.PEOPLE', { count: team.memberCount })}
                                         {team.source && team.source !== 'manual' ? ` · ${t('STAFF.TEAMS.MANAGED')}` : ''}
+                                        {team.linkedGroups ? ` · ${t('STAFF.TEAMS.LINKED', { count: team.linkedGroups })}` : ''}
                                     </span>
                                 </div>
                             </div>
@@ -162,6 +164,8 @@ function TeamsList() {
                     ))}
                 </ul>
             )}
+
+            <TeamDirectoryGroups workspaceId={workspaceId} teams={list} />
 
             {openTeam && <TeamDialog workspaceId={workspaceId} team={openTeam} onClose={() => setOpenTeam(null)} />}
         </div>
@@ -276,9 +280,13 @@ function TeamDialog({ workspaceId, team, onClose }: { workspaceId: string; team:
                                         return (
                                             <li key={member.userId} className="flex items-center justify-between gap-3 px-3 py-2">
                                                 <span className="min-w-0 truncate text-sm text-black-900">{label}</span>
-                                                <Button type="button" variant="v2Button" className="min-h-11 shrink-0 md:min-h-9" disabled={busy} aria-label={t('STAFF.TEAMS.REMOVE_MEMBER_ARIA', { name: label, team: teamName })} onClick={() => remove(member.userId)}>
-                                                    {t('STAFF.TEAMS.REMOVE')}
-                                                </Button>
+                                                {member.viaDirectory ? (
+                                                    <span className="shrink-0 text-xs text-black-600">{t('STAFF.TEAMS.VIA_DIRECTORY')}</span>
+                                                ) : (
+                                                    <Button type="button" variant="v2Button" className="min-h-11 shrink-0 md:min-h-9" disabled={busy} aria-label={t('STAFF.TEAMS.REMOVE_MEMBER_ARIA', { name: label, team: teamName })} onClick={() => remove(member.userId)}>
+                                                        {t('STAFF.TEAMS.REMOVE')}
+                                                    </Button>
+                                                )}
                                             </li>
                                         );
                                     })}

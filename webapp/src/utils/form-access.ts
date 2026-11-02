@@ -18,6 +18,7 @@ export const FORM_ACCESS_ERROR_CODES = [
     'team_name_taken',
     'too_many_teams',
     'team_full',
+    'managed_by_directory',
     'invalid_name',
     'invalid_description',
     'audit_unavailable'

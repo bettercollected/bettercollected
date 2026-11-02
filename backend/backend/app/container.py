@@ -465,6 +465,7 @@ class AppContainer(containers.DeclarativeContainer):
         grant_repo=form_access_grant_repo,
         group_repo=member_group_repo,
         audit_repo=workspace_audit_repo,
+        scim_group_repo=scim_group_repo,
         invalidate=providers.Object(lambda: container.form_access_service().invalidate()),
     )
 
@@ -703,6 +704,7 @@ class AppContainer(containers.DeclarativeContainer):
         cleanup=form_access_cleanup,
         member_directory=member_directory,
         form_repo=form_repo,
+        scim_group_repo=scim_group_repo,
     )
 
     # The history of a response: who edited it, when, which questions, and (on
@@ -1135,6 +1137,7 @@ class AppContainer(containers.DeclarativeContainer):
         session_service=session_service,
         http_client=http_client,
         email_action_service=email_action_service,
+        audit_repo=workspace_audit_repo,
     )
 
     polis_directory_client: PolisDirectoryClient = providers.Singleton(
@@ -1153,6 +1156,9 @@ class AppContainer(containers.DeclarativeContainer):
         sync_service=scim_sync_service,
         polis=polis_directory_client,
         crypto=crypto,
+        member_group_repo=member_group_repo,
+        audit_repo=workspace_audit_repo,
+        form_access=form_access_service,
     )
 
     scim_webhook_service: ScimWebhookService = providers.Singleton(

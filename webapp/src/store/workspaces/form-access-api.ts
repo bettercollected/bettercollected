@@ -1,3 +1,4 @@
+import type { ScimGroupDto } from '@app/models/dtos/workspace-scim-dto';
 import { workspacesApi } from '@app/store/workspaces/api';
 
 // Form-level access (backend controllers/form_access_router.py): who on the team may open one form, the teams
@@ -45,6 +46,8 @@ export interface TeamDto {
     description?: string | null;
     source?: string;
     memberCount: number;
+    /** How many directory groups feed the team (a number; the groups are listed under Linked directory groups). */
+    linkedGroups?: number;
     createdAt?: string | null;
 }
 
@@ -52,6 +55,8 @@ export interface TeamMemberDto {
     userId: string;
     name?: string | null;
     role?: string | null;
+    /** In the team through a linked directory group: removed in the directory, not here. */
+    viaDirectory?: boolean;
 }
 
 export interface TeamDetailDto extends TeamDto {
@@ -126,6 +131,16 @@ export const formAccessApi = workspacesApi.enhanceEndpoints({ addTagTypes: [FORM
             query: ({ workspaceId, teamId, memberId }) => ({ url: `/workspaces/${workspaceId}/member-groups/${teamId}/members/${memberId}`, method: 'DELETE' }),
             invalidatesTags: [TEAMS_TAG, MEMBER_ACCESS_TAG]
         }),
+        // Directory groups feeding a team (backend controllers/scim_router.py): owner only; the people in the group are in
+        // the team while the directory says so (read when asked, never copied).
+        setScimGroupTeam: builder.mutation<ScimGroupDto, { workspaceId: string; groupId: string; teamId: string }>({
+            query: ({ workspaceId, groupId, teamId }) => ({ url: `/workspaces/${workspaceId}/scim/groups/${groupId}/team`, method: 'PUT', body: { teamId } }),
+            invalidatesTags: [TEAMS_TAG, MEMBER_ACCESS_TAG, 'SCIM_TAG']
+        }),
+        clearScimGroupTeam: builder.mutation<ScimGroupDto, { workspaceId: string; groupId: string }>({
+            query: ({ workspaceId, groupId }) => ({ url: `/workspaces/${workspaceId}/scim/groups/${groupId}/team`, method: 'DELETE' }),
+            invalidatesTags: [TEAMS_TAG, MEMBER_ACCESS_TAG, 'SCIM_TAG']
+        }),
         getMemberAccess: builder.query<MemberAccessDto, { workspaceId: string; memberId: string }>({
             query: ({ workspaceId, memberId }) => ({ url: `/workspaces/${workspaceId}/members/${memberId}/access`, method: 'GET' }),
             providesTags: [MEMBER_ACCESS_TAG]
@@ -145,5 +160,7 @@ export const {
     useDeleteTeamMutation,
     useAddTeamMemberMutation,
     useRemoveTeamMemberMutation,
+    useSetScimGroupTeamMutation,
+    useClearScimGroupTeamMutation,
     useGetMemberAccessQuery
 } = formAccessApi;
