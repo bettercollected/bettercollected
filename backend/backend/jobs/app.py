@@ -23,6 +23,9 @@ WEBHOOKS_QUEUE = "webhooks"
 # the file of a large responses export: its own queue, served by the backend's
 # own worker, so a long build never waits behind (or holds up) a deletion
 EXPORTS_QUEUE = "exports"
+# the CSV import of responses: its own queue, so a long import never waits behind
+# a large export (or the reverse); the worker serves it by default
+IMPORTS_QUEUE = "imports"
 # email actions (mail to the form's team, a copy to the respondent): same rules
 EMAILS_QUEUE = "emails"
 JOB_NAMES = (

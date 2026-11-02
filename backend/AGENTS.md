@@ -1491,6 +1491,7 @@ Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
 - Imported responses carry `csv_import_id` (set by the server; `submit_response` clears it from a body), no identity,
   no consent, no AI-notice stamp; nothing fires (no actions, webhooks, registration, email actions): do not call those
   services from the import. `save_form_response(submitted_at=, internal_answers=)` exist for this path only.
+- The job runs on the `imports` queue (own queue, served by default; the worker warns when `JOBS_QUEUES` leaves it out). One helper (`_delete_rows`) deletes an import's rows (undo, retry, cleanup, expiry); a cleanup that fails marks the import `undo_pending` and the 5-minute redefer (and the undo) try again.
 - All or nothing: validate every row first; a failure while storing, or a dead worker, deletes by
   `delete_imported(scope, import_id)`. A run owns the import while its `attempts` claim is current.
 - The audit row holds codes, counts and positions, never a value, header (beyond the life of the file), file name or title.

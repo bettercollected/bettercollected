@@ -405,7 +405,12 @@ class ResponseImportService:
     def _targets(self, published, draft) -> List[Target]:
         return build_targets(self._dump(published), self._dump(draft))
 
-    def _context_bytes(self, workspace_id, form_id, import_id) -> bytes:
+    @staticmethod
+    def _context_bytes(import_id) -> bytes:
+        """The extra context both ciphertexts of an import are bound to. It names
+        only the import: the workspace and the form are bound by the crypto
+        service's own arguments (the key is derived from them), so a row copied
+        to another import, workspace or form does not decrypt."""
         return b"import-file|" + str(import_id).encode()
 
     def _seal(self, document: ResponseImportDocument, data: bytes) -> str:
@@ -413,7 +418,7 @@ class ResponseImportService:
             document.workspace_id,
             document.form_id,
             data,
-            context=self._context_bytes(document.workspace_id, document.form_id, document.id),
+            context=self._context_bytes(document.id),
         )
         return base64.b64encode(sealed).decode()
 
@@ -422,7 +427,7 @@ class ResponseImportService:
             document.workspace_id,
             document.form_id,
             base64.b64decode(sealed),
-            context=self._context_bytes(document.workspace_id, document.form_id, document.id),
+            context=self._context_bytes(document.id),
         )
 
     def _seal_headers(self, document: ResponseImportDocument, headers: List[str]) -> str:
@@ -561,6 +566,7 @@ class ResponseImportService:
         await self._authorize(user, workspace_id, form_id)
         _, published, draft = await self._context(workspace_id, form_id)
         await self._take_rate_limit(workspace_id, form_id, str(user.id))
+        await self._take_workspace_upload_limit(workspace_id)
         try:
             parsed = await run_in_threadpool(parse, data)
         except CsvRefused as refused:
@@ -627,6 +633,22 @@ class ResponseImportService:
                 HTTPStatus.TOO_MANY_REQUESTS,
                 "rate_limited",
                 f"Too many imports of this form. Try again in {verdict.retry_after} seconds.",
+                **{"Retry-After": str(verdict.retry_after)},
+            )
+
+    async def _take_workspace_upload_limit(self, workspace_id: RecordId) -> None:
+        """Uploads are limited per workspace too, whoever uploads."""
+        verdict = await self._limiter.admit(
+            f"response-import-workspace:{workspace_id}",
+            "workspace",
+            limits.WORKSPACE_UPLOADS_PER_WINDOW,
+            limits.WINDOW_SECONDS,
+        )
+        if not verdict.allowed:
+            raise _error(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                "workspace_rate_limited",
+                f"Too many imports in this workspace. Try again in {verdict.retry_after} seconds.",
                 **{"Retry-After": str(verdict.retry_after)},
             )
 
@@ -783,33 +805,38 @@ class ResponseImportService:
             await self._end_waiting(document.id, ImportStatus.DISCARDED)
 
     async def rollback(self, workspace_id, form_id, import_id, user) -> Dict[str, Any]:
-        """Delete the responses a completed import created, within
-        ``ROLLBACK_WINDOW`` of its end. 409 ``not_rollbackable`` for an import
-        that is not completed, ``rollback_expired`` past the window. The delete
-        comes first and is idempotent, the status flips after it: a failure in
-        between leaves the import completed, to be undone again."""
+        """Delete the responses an import created, within ``ROLLBACK_WINDOW`` of
+        its end: a completed import, or a failed or cancelled one whose own
+        cleanup could not delete what it had stored (``undo_pending``). 409
+        ``not_rollbackable`` for any other, ``rollback_expired`` past the window.
+        The delete comes first and is idempotent, the status flips after it: a
+        failure in between leaves the import as it was, to be undone again."""
         self._ensure_enabled()
         await self._authorize(user, workspace_id, form_id)
         document = await self._mine(workspace_id, form_id, import_id)
-        if document.status != ImportStatus.COMPLETED:
+        stray = document.status in (ImportStatus.FAILED, ImportStatus.CANCELLED) and document.undo_pending
+        if document.status != ImportStatus.COMPLETED and not stray:
             raise _error(HTTPStatus.CONFLICT, "not_rollbackable", "Only a completed import can be undone.")
         if document.finished_at is None or document.finished_at + limits.ROLLBACK_WINDOW <= self._clock():
             raise _error(HTTPStatus.CONFLICT, "rollback_expired", "This import can no longer be undone.")
         now = self._clock()
-        scope = await self._responses.scope(workspace_id, [str(form_id)])
-        deleted = await self._response_repo.delete_imported(scope, str(document.id))
-        if self._export_service is not None:
-            # responses of the form were deleted: stored export files go at once
-            await self._export_service.forget_files_of_form(workspace_id, str(form_id))
+        deleted = await self._delete_rows(workspace_id, form_id, document.id, forget_exports=True)
 
         def done(row: ResponseImportDocument):
-            if row.status != ImportStatus.COMPLETED:
-                return None
-            row.status = ImportStatus.ROLLED_BACK
-            row.rolled_back_by = str(user.id)
-            row.rolled_back_at = now
-            row.rolled_back_count = deleted
-            return row
+            if row.status == ImportStatus.COMPLETED:
+                row.status = ImportStatus.ROLLED_BACK
+                row.rolled_back_by = str(user.id)
+                row.rolled_back_at = now
+                row.rolled_back_count = deleted
+                return row
+            if row.status in (ImportStatus.FAILED, ImportStatus.CANCELLED) and row.undo_pending:
+                # the failed import stays failed; its stray rows are gone
+                row.undo_pending = False
+                row.rolled_back_by = str(user.id)
+                row.rolled_back_at = now
+                row.rolled_back_count = deleted
+                return row
+            return None
 
         final = await self._imports.update_locked(document.id, done)
         if final is None:
@@ -952,13 +979,74 @@ class ResponseImportService:
             found = await self._imports.get_by_id(document.id)
             return found.status if found else ImportStatus.FAILED
 
-    async def _undo(self, document: ResponseImportDocument) -> None:
-        """Delete whatever this import stored (it stores all or nothing)."""
+    async def _delete_rows(self, workspace_id, form_id, import_id, forget_exports: bool = False) -> int:
+        """Delete the responses an import created, in the form and workspace only
+        (the one place that does: an undo, a retry's clean start, a failed job's
+        cleanup, an expiry). Idempotent. ``forget_exports``: stored export files
+        of the form go too (responses of it were deleted). Raises on failure."""
+        scope = await self._responses.scope(workspace_id, [str(form_id)])
+        deleted = await self._response_repo.delete_imported(scope, str(import_id))
+        if forget_exports and self._export_service is not None:
+            await self._export_service.forget_files_of_form(workspace_id, str(form_id))
+        return deleted
+
+    async def _undo(self, document: ResponseImportDocument) -> bool:
+        """Delete whatever this import stored (it stores all or nothing). When
+        the delete fails the import is marked ``undo_pending``: the sweep and the
+        undo try again, so rows never stay behind unseen. True when it worked."""
         try:
-            scope = await self._responses.scope(document.workspace_id, [document.form_id])
-            await self._response_repo.delete_imported(scope, str(document.id))
+            await self._delete_rows(document.workspace_id, document.form_id, document.id)
+            return True
         except Exception as error:  # noqa: BLE001 - the failure is recorded either way
             logger.error("could not undo response import {} ({})", document.id, type(error).__name__)
+
+            def mark(row: ResponseImportDocument):
+                row.undo_pending = True
+                return row
+
+            try:
+                await self._imports.update_locked(document.id, mark, touch=False)
+            except Exception:  # noqa: BLE001 - the log line above is all that is left
+                logger.error("could not mark response import {} as needing an undo", document.id)
+            return False
+
+    async def retry_pending_undos(self) -> int:
+        """Delete again the rows of failed or cancelled imports whose cleanup
+        failed. Counts only."""
+        done = 0
+        for row in await self._imports.list_undo_pending():
+            try:
+                await self._delete_rows(row.workspace_id, row.form_id, row.id, forget_exports=True)
+            except Exception as error:  # noqa: BLE001 - the next sweep tries again
+                logger.error("could not undo response import {} again ({})", row.id, type(error).__name__)
+                continue
+
+            def clear(document: ResponseImportDocument):
+                if not document.undo_pending:
+                    return None
+                document.undo_pending = False
+                return document
+
+            await self._imports.update_locked(row.id, clear, touch=False)
+            done += 1
+        return done
+
+    def _check_budget(self, started: dt.datetime, expires_at: Optional[dt.datetime] = None) -> None:
+        now = self._clock()
+        # the file's hour is absolute: a job running past it stops, whatever its state
+        if expires_at is not None and now >= expires_at:
+            raise _Expired()
+        if now - started > dt.timedelta(seconds=limits.JOB_MAX_SECONDS):
+            raise _OverBudget()
+
+    async def _fail(self, document: ResponseImportDocument, code: str, rollback: bool = False, **fields) -> ImportStatus:
+        if rollback and document.mode == ImportMode.IMPORT:
+            await self._undo(document)
+        try:
+            return await self._end(document, ImportStatus.FAILED, code, **fields)
+        except _Superseded:
+            found = await self._imports.get_by_id(document.id)
+            return found.status if found else ImportStatus.FAILED
 
     async def _process(self, document: ResponseImportDocument) -> ImportStatus:
         import_id, workspace_id, form_id = document.id, document.workspace_id, document.form_id
@@ -1183,16 +1271,23 @@ class ResponseImportService:
         return response
 
     # ------------------------------------------------------------------- the sweep
-    async def purge_expired(self) -> Dict[str, int]:
-        """Hourly: uploads that outlived their hour (the importer left, or a
-        job died) are deleted, and imports no worker took or whose worker died
-        are queued again or failed. Counts only."""
-        counts = {"expired": 0, "orphans": 0, "queued": 0, "failed": 0}
+    async def _expire_waiting(self) -> int:
+        """End the uploads nobody used within their hour (uploaded or checked):
+        their file goes with them."""
+        expired = 0
         now = self._clock()
         for row in await self._imports.list_by_status([ImportStatus.UPLOADED, ImportStatus.CHECKED]):
             if row.expires_at is not None and row.expires_at <= now:
                 if await self._end_waiting(row.id, ImportStatus.EXPIRED) is not None:
-                    counts["expired"] += 1
+                    expired += 1
+        return expired
+
+    async def purge_expired(self) -> Dict[str, int]:
+        """Hourly: uploads that outlived their hour (the importer left, or a
+        job died) are deleted, and imports no worker took or whose worker died
+        are queued again or failed (the 5-minute redefer does the same). Counts only."""
+        counts = {"expired": 0, "orphans": 0, "queued": 0, "failed": 0, "undone": 0}
+        now = self._clock()
         # an upload whose row is gone or ended (a crash between the two writes)
         cutoff = now - limits.FILE_TTL - dt.timedelta(minutes=5)
         for import_id in await self._imports.file_ids_older_than(cutoff):
@@ -1201,11 +1296,17 @@ class ResponseImportService:
                 await self._imports.delete_file(import_id)
                 counts["orphans"] += 1
         redo = await self.redefer_pending()
-        counts["queued"], counts["failed"] = redo["queued"], redo["failed"]
+        counts.update({k: redo[k] for k in ("expired", "queued", "failed", "undone")})
         return counts
 
     async def redefer_pending(self) -> Dict[str, int]:
+        """Every 5 minutes: unused uploads past their hour are deleted, busy
+        imports past it are failed and undone, imports no worker took are queued
+        again, those whose worker died are queued or failed, and cleanups that
+        failed are tried again. Counts only."""
         queued = failed = 0
+        expired = await self._expire_waiting()
+        undone = await self.retry_pending_undos()
         now = self._clock()
         for row in await self._imports.list_by_status([ImportStatus.QUEUED, ImportStatus.CHECKING, ImportStatus.RUNNING]):
             # the file's hour is absolute: a busy import past it is failed, its rows
@@ -1229,7 +1330,7 @@ class ResponseImportService:
                         failed += 1
                 elif await self._queue(row):
                     queued += 1
-        return {"queued": queued, "failed": failed}
+        return {"queued": queued, "failed": failed, "expired": expired, "undone": undone}
 
     async def _expire_job(self, row: ResponseImportDocument, code: str) -> bool:
         """End a job nobody runs: what it stored is undone, its file deleted."""

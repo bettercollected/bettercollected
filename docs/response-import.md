@@ -124,9 +124,9 @@ title; the file's headings are kept only while its file is.
 
 The switch also stops work already queued: a job that finds `CSV_IMPORT_ENABLED` off ends `cancelled` (`switched_off`) and nothing is stored, so the jobs worker needs the same `CSV_IMPORT_ENABLED` as the backend (as for webhooks and email actions). A 5 MiB body has to pass the reverse proxy in front of the API (nginx defaults to 1 MiB: raise `client_max_body_size` for the API before turning the switch on).
 
-10 uploads per user and form per hour; one import being checked, queued or run per form (a partial
-unique index); at most 2 per workspace. The job runs on the `exports` queue (served by the
-backend's jobs worker, so no `JOBS_QUEUES` change). It reads and stores 25 rows at a time, beats
+10 uploads per user and form per hour and 30 per workspace (`workspace_rate_limited`); one import being checked, queued or run per form (a partial
+unique index); at most 2 per workspace. The job runs on its own **`imports` queue**, so a long import never waits behind a large export
+(or the reverse); the backend's jobs worker serves it by default and logs a warning at start when `JOBS_QUEUES` leaves it out (include `imports`, here or on a worker of its own). It reads and stores 25 rows at a time, beats
 (`heartbeat_at`) at least every 20 seconds, and owns the import only while its claim is current. The
 sweep queues an import no worker took after 2 minutes, fails one that waited an hour
 (`queue_timeout`) and one whose worker died three times (`worker_lost`), undoing what it stored. All
@@ -136,3 +136,7 @@ limits are constants in `services/response_import/limits.py`.
 
 XLSX, a ZIP with a group's table, mapping a column to a respondent identity, opt-in side effects
 for imported responses, skipping rows whose response id already exists.
+
+## Housekeeping every five minutes
+
+The `response_import_redefer` task (and the hourly sweep, which includes it) deletes uploads nobody used within their hour, fails and undoes imports still busy past it, queues again imports no worker took, fails those whose worker died, and deletes again the rows of a failed or cancelled import whose own cleanup failed (`undo_pending`; the undo button also works for such an import).
