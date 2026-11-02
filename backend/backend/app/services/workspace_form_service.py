@@ -68,7 +68,7 @@ from backend.app.services.form_logo import (
     logo_key,
     read_logo_upload,
 )
-from backend.app.services.form_concurrency import ensure_not_changed_since
+from backend.app.services.form_concurrency import form_changed, is_changed_since
 from backend.app.services.form_availability import (
     FORM_FULL,
     ensure_accepting_responses,
@@ -290,6 +290,14 @@ _WORKSPACE_SETTINGS_IN_SAVE = (
     "response_expiration_type",
     "response_expiration",
 )
+
+
+def _carries_workspace_settings(form: StandardForm) -> bool:
+    """Whether a whole-form save changes the workspace's settings of the form
+    too (not only the form's own language)."""
+    return bool(form.settings) and any(
+        getattr(form.settings, key) is not None for key in _WORKSPACE_SETTINGS_IN_SAVE
+    )
 
 
 def _apply_retention_update(stored, incoming: StandardFormSettings) -> None:
@@ -1059,20 +1067,33 @@ class WorkspaceFormService:
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found in workspace"
             )
         existing_form = await self.form_service.get_form_document_by_id(str(form_id))
-        # Before anything is written, settings included.
-        ensure_not_changed_since(
+        # Before anything is written, settings included. A save based on an
+        # older draft is refused (409) unless it changes nothing: the builder
+        # sends a save again when its answer was lost, and the draft then
+        # already is what it sends (the repository tells, at the write). That
+        # is never so for a save that uploads a file or carries the
+        # workspace's settings: those are written alongside, once.
+        stale = is_changed_since(
             existing_form.updated_at if existing_form else None, expected_updated_at
         )
-        await check_form_content(
-            form,
-            existing_form,
-            workspace_id=workspace_id,
-            user=user,
-            own_form_id=str(form_id),
-            option_source_service=self._option_source_service,
-            dropped_rules=dropped_rules,
-            dropped_option_logic=dropped_option_logic,
-        )
+        if stale and (logo or cover_image or _carries_workspace_settings(form)):
+            raise form_changed()
+        try:
+            await check_form_content(
+                form,
+                existing_form,
+                workspace_id=workspace_id,
+                user=user,
+                own_form_id=str(form_id),
+                option_source_service=self._option_source_service,
+                dropped_rules=dropped_rules,
+                dropped_option_logic=dropped_option_logic,
+            )
+        except HTTPException:
+            # a save on an older draft is a conflict before it is anything else
+            if stale:
+                raise form_changed() from None
+            raise
         # Settings are checked and applied here but stored after the form:
         # the form's conditional write is what can still refuse the save.
         # The form's language: one a form can declare (FORM_LANGUAGES), as
@@ -1088,10 +1109,7 @@ class WorkspaceFormService:
             )
         # (the builder's saves send the form's language alone: that is the
         # form's own setting, written with the form, not the workspace's)
-        settings_changed = bool(form.settings) and any(
-            getattr(form.settings, key) is not None
-            for key in _WORKSPACE_SETTINGS_IN_SAVE
-        )
+        settings_changed = _carries_workspace_settings(form)
         if settings_changed:
             if form.settings.response_data_owner_field is not None:
                 workspace_form.settings.response_data_owner_field = (
@@ -1134,7 +1152,10 @@ class WorkspaceFormService:
         else:
             try:
                 updated = await self.form_service.update_form_if_unchanged(
-                    form_id=form_id, form=form, expected_updated_at=expected_updated_at
+                    form_id=form_id,
+                    form=form,
+                    expected_updated_at=expected_updated_at,
+                    accept_replay=True,
                 )
             except HTTPException:
                 # nothing was written: drop the logo this save uploaded

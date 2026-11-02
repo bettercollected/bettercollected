@@ -5,6 +5,11 @@
  *   only the latest state is sent next.
  * - Network failures retry on their own with backoff; a save the server
  *   refuses waits for the next edit.
+ * - A save whose answer never came may have been stored. It is sent again
+ *   first, on the version it was sent with, and the edits made meanwhile only
+ *   after it: the server recognises its own save (it answers with the stored
+ *   version), so what follows builds on it instead of reading it as a change
+ *   made elsewhere.
  * - Every save carries the version (`updatedAt`) the editor last saw. When
  *   the server answers that the form changed elsewhere (409), the queue stops
  *   and never overwrites it.
@@ -58,6 +63,8 @@ export class SaveQueue {
     private send: SaveQueueOptions['send'];
     private pending: string | null = null;
     private inFlightBody: string | null = null;
+    // A save sent whose answer never came: it may have been stored.
+    private unanswered: string | null = null;
     private lastSavedBody: string | null = null;
     private retryTimer: ReturnType<typeof setTimeout> | null = null;
     private attempt = 0;
@@ -135,7 +142,7 @@ export class SaveQueue {
     private settledResult(): FlushResult | null {
         if (this.state === 'conflict') return 'conflict';
         if (this.state === 'error' && this.pending === null && this.inFlightBody === null) return 'error';
-        if (this.pending === null && this.inFlightBody === null && !this.retryTimer) return 'saved';
+        if (this.pending === null && this.inFlightBody === null && this.unanswered === null && !this.retryTimer) return 'saved';
         return null;
     }
 
@@ -153,9 +160,11 @@ export class SaveQueue {
     }
 
     private async pump(): Promise<void> {
-        if (this.disposed || this.inFlightBody !== null || this.pending === null || this.retryTimer || this.state === 'conflict') return;
-        const body = this.pending;
-        this.pending = null;
+        if (this.disposed || this.inFlightBody !== null || (this.pending === null && this.unanswered === null) || this.retryTimer || this.state === 'conflict') return;
+        // A save whose answer never came goes first (see the top of this file).
+        const body = this.unanswered ?? (this.pending as string);
+        if (this.unanswered !== null) this.unanswered = null;
+        if (this.pending === body) this.pending = null;
         this.inFlightBody = body;
         this.setState('saving');
 
@@ -185,6 +194,7 @@ export class SaveQueue {
             this.setState('conflict');
         } else if (outcome.kind === 'retryable') {
             if (this.pending === null) this.pending = body;
+            this.unanswered = body;
             const backoff = this.options.backoffMs ?? DEFAULT_BACKOFF_MS;
             const wait = backoff[Math.min(this.attempt, backoff.length - 1)];
             this.attempt += 1;
