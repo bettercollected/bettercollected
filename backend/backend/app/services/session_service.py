@@ -184,6 +184,7 @@ class SessionService:
         scope_workspace_id: Optional[str] = None,
         sso_workspace_id: Optional[str] = None,
         sso_connection_id: Optional[str] = None,
+        mfa_method: Optional[str] = None,
     ) -> User:
         """A new session for a user who just signed in; sets both cookies and
         returns the user as the tokens describe them (with ``sid``).
@@ -191,7 +192,9 @@ class SessionService:
         ``scope``: "respondent" for a session limited to answering the forms
         of ``scope_workspace_id``. ``sso_workspace_id``: for an SSO session,
         the workspace whose identity provider signed it in (default: the
-        user's own claim)."""
+        user's own claim). ``mfa_method``: "totp" or "recovery" when the
+        sign-in presented a second factor (the session records it, and its
+        tokens carry ``mfa``)."""
         method = method or user.auth_method
         sso_workspace_id = (
             str(sso_workspace_id or user.sso_workspace_id or "") or None
@@ -220,6 +223,8 @@ class SessionService:
             scope_workspace_id=str(scope_workspace_id) if scope else None,
             sso_workspace_id=sso_workspace_id,
             sso_connection_id=sso_connection_id,
+            mfa_at=now if mfa_method else None,
+            mfa_method=mfa_method,
             user_agent=user_agent[:USER_AGENT_MAX] if user_agent else None,
             created_at=now,
             updated_at=now,
@@ -234,6 +239,7 @@ class SessionService:
                 "scope_workspace_id": session.scope_workspace_id,
                 "sso_workspace_id": session.sso_workspace_id,
                 "sso_connection_id": session.sso_connection_id,
+                "mfa": True if session.mfa_at is not None else None,
                 "roles": session_roles(user.roles, method, scope),
             }
         )
@@ -384,6 +390,7 @@ class SessionService:
                 "scope_workspace_id": session.scope_workspace_id,
                 "sso_workspace_id": session.sso_workspace_id,
                 "sso_connection_id": session.sso_connection_id,
+                "mfa": True if session.mfa_at is not None else None,
                 "roles": session_roles(body.get("roles"), session.method, session.scope),
             }
         )
