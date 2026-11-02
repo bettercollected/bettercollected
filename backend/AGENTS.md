@@ -698,7 +698,7 @@ through `submit_response`. The scope `submissions:write` (`api_keys.VALID_SCOPES
 granted while the switch is off (`mode.py`), the endpoints answer 404 before authentication, and writes count against
 their own rate scopes (`auth.py`). `submission_source` lives on the response document (JSON, no migration), is
 `exclude=True` on `StandardFormResponseCamelModel` (no respondent view serialises it) and is set by
-`save_form_response(source=...)` only; staff get it as `SingleSubmissionResponse.source`. After the commit a key submission never fails (`_after_commit` in `workspace_form_service.py`, `_already_stored` in the service): a retry must not store a second response. Updates apply the create's identity/private gates and refuse closed / not-yet-open forms. A webhook body carries
+`save_form_response(source=...)` only; staff get it as `SingleSubmissionResponse.source`. After the commit a key submission never fails (`_after_commit` in `workspace_form_service.py`, `_already_stored` in the service): a retry must not store a second response. Updates apply the create's identity/private gates and refuse closed / not-yet-open forms. Consent is stored as asserted (`consent: true` accepts the required items, optional ones only when named in `consentItems`). An update refuses a response with an open deletion request (409). `_idempotent` runs the write and records its answer as one shielded task, so a cancelled request can't release the key after a commit. One form takes `SUBMISSIONS_PER_FORM_PER_WINDOW` (60) writes a window (`auth.form_budget`). A webhook body carries
 `"source": "api"` for such a response. Docs: `docs/submissions-api.md`.
 
 ## AI consent (#715)
