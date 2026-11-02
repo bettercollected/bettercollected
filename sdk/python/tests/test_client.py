@@ -135,3 +135,11 @@ def test_a_submission_without_consent_is_refused_with_its_code(api, client):
     with pytest.raises(BetterCollectedError) as refused:
         client.create_submission("f1", {"name": "Ada"})
     assert refused.value.status == 422 and refused.value.code == "consent_required"
+
+
+def test_a_submission_names_the_optional_consent_items_it_accepts(api, client):
+    api.add("f1", SPEC)
+    client.create_submission("f1", {"name": "Ada"}, consent=True, consent_items=["newsletter"])
+    assert json.loads(api.requests[-1].content)["consentItems"] == ["newsletter"]
+    client.create_submission("f1", {"name": "Bo"}, consent=True)
+    assert "consentItems" not in json.loads(api.requests[-1].content)

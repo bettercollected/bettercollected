@@ -281,6 +281,7 @@ class BetterCollected:
         answers: Mapping[str, Any],
         *,
         consent: bool | None = None,
+        consent_items: Sequence[str] | None = None,
         hidden_fields: Mapping[str, str] | None = None,
         idempotency_key: str | None = None,
     ) -> api.SubmissionCreated:
@@ -289,12 +290,16 @@ class BetterCollected:
         keyed by question id; a value is the typed answer object a response
         read returns, or a shorthand (text, a number, a boolean, an option's id
         or text, a list for tags or a multiple selection). ``consent=True``
-        asserts the respondent's consent when the form asks for it. Problems
+        asserts the respondent's consent to what the form requires;
+        ``consent_items`` names the optional consent items (by id) the
+        respondent accepted, the others are stored as not accepted. Problems
         come per question in ``BetterCollectedError.errors`` (``/answers/<id>``).
         """
         body: dict[str, Any] = {"answers": dict(answers)}
         if consent is not None:
             body["consent"] = consent
+        if consent_items is not None:
+            body["consentItems"] = list(consent_items)
         if hidden_fields is not None:
             body["hiddenFields"] = dict(hidden_fields)
         response = self._request(

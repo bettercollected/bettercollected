@@ -30,18 +30,26 @@ submission goes through**. Nothing is checked twice or differently:
 
 What is different, on purpose:
 
-- **A key is not a respondent.** No identity is stored with the response, no
-  receipt number or receipt email goes anywhere, nothing is sent to an email
-  address. Because the response belongs to no signed-in person, the respondent
+- **A key is not a respondent.** No identity is stored with the response, and
+  the respondent gets no receipt number and no copy of their answers (there is
+  no account or address to send them to). **The form's own actions still run**:
+  its email actions (for example a mail to the team about each response), its
+  webhooks and its other actions fire exactly as for a respondent's submission,
+  so check them before you give a key a form. Because the response belongs to no signed-in person, the respondent
   can't find it by signing in (self-service access, edit and deletion by
   sign-in); the people who run the form handle such requests, as they do for
   any anonymous response. Forms that ask for a verified respondent, and private forms, refuse
   API submissions (422 `respondent_identity_required`).
-- **You assert the consent.** A form with a consent step (every form that has
-  not removed it) needs `"consent": true` in the body: you state that the
-  respondent has given the consent the form asks for. The stored consent is
-  built by the server from the form's own items; the response records that the
-  key asserted it. Without it: 422 `consent_required`.
+- **You assert the consent, and say which optional items.** `"consent": true`
+  states that the respondent gave the consent the form **requires**: it accepts
+  the form's required items and is needed when the form has one (422
+  `consent_required` without it; every form has the two default items unless the
+  creator removed them). An **optional** consent item is accepted only when you
+  name its id in `"consentItems": ["newsletter"]` (an id the form does not have:
+  422 `unknown_consent_item`); the optional items you do not name are stored as
+  **not accepted**, so the record never says more than you asserted. The stored
+  consent is built by the server from the form's own items, and the response
+  records that the key asserted it.
 - **The source is recorded** (`api`, the key's name, whether consent was
   asserted). Staff see it on the response page; respondents never do. A
   webhook body carries `"source": "api"` for such a response (and has no
@@ -67,7 +75,8 @@ scope `submissions:write` (also listed in the [API reference](api/README.md)).
     "age": { "type": "number", "number": 36 }
   },
   "hiddenFields": { "utm_source": "crm" },
-  "consent": true
+  "consent": true,
+  "consentItems": ["newsletter"]
 }
 ```
 
@@ -112,7 +121,8 @@ refused when the form **now** asks for a verified respondent or is private
 (422 `respondent_identity_required`), is closed (409 `form_closed`) or has not
 opened yet (409 `form_not_open`): nobody can gate a machine caller any other
 way, so closing a form freezes what keys made. (The response limit does not
-apply to an update.)
+apply to an update.) As for a staff edit, a response with an open deletion
+request takes no update either (409 `deletion_requested`).
 
 ## Errors
 
@@ -142,8 +152,9 @@ Rule codes: `required`, `too_short`, `too_long`, `pattern`, `too_small`,
 
 Other codes: `form_not_allowed` (403: the key is limited to other forms),
 `missing_scope` and `key_creator_lacks_permission` (403), `consent_required`,
-`respondent_identity_required` (422), `form_closed`, `form_not_open`,
-`form_full` (409), `rate_limited` (429, with `Retry-After`).
+`respondent_identity_required`, `unknown_consent_item` (422), `form_closed`,
+`form_not_open`, `form_full`, `deletion_requested` (409), `rate_limited` (429,
+with `Retry-After`).
 
 ## Keys
 
@@ -167,12 +178,18 @@ writes.
   kept, never an answer. A 404 is not kept (a form that is not published yet
   works with the same key once it is), nor a 5xx. If a step after the response
   was stored fails (an action, a webhook, a mail queue), the call still answers
-  `201` and the failure is logged: a retry never makes a second response.
+  `201` and the failure is logged: a retry never makes a second response. A
+  client that disconnects after the write started does not release the key
+  either: the write finishes and the key keeps its answer, so the retry gets
+  the stored `201`.
 - Submissions count against their **own** rate budget per key and per
   workspace (the same ceilings as reads, `API_PUBLIC_API_REQUESTS_PER_WINDOW`
   and `API_PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW`): reads never use it up,
   nor the other way round. A key without the scope is refused before it
-  spends any of it.
+  spends any of it. One form also takes at most **60 submissions a minute**
+  (creates and updates, all the workspace's keys together; 429 `rate_limited`
+  with `Retry-After`), so a burst at one form can't use up the workspace's
+  budget or flood that form's actions and mails; the ceiling is fixed.
 - Every write is one row in the workspace's API audit log: the key, the
   operation, the status, the form id and the response id. Never an answer.
 
@@ -194,9 +211,10 @@ await client.updateSubmission(formId, created.responseId, { name: "Ada L." });
 ```
 
 ```bash
-bettercollected submit <form-id> answers.json --consent --idempotency-key order-1042
+bettercollected submit <form-id> answers.json --consent --consent-item newsletter --idempotency-key order-1042
 bettercollected update-submission <form-id> <response-id> answers.json
 ```
 
 `answers.json` holds `{"answers": {...}}` (and optionally `hiddenFields`);
-consent is asserted on the command line, never from the file.
+consent is asserted on the command line (`--consent`, and `--consent-item ID`
+for each optional item), never from the file.

@@ -50,6 +50,8 @@ FORM_NOT_ALLOWED = "form_not_allowed"
 MAX_HIDDEN_FIELDS = 50
 MAX_HIDDEN_NAME = 200
 MAX_HIDDEN_VALUE = 2000
+MAX_CONSENT_ITEMS = 50
+UNKNOWN_CONSENT_ITEM = "unknown_consent_item"
 
 
 class _Body(BaseModel):
@@ -76,8 +78,16 @@ class CreateSubmission(_Body):
     consent: Optional[StrictBool] = Field(
         None,
         description="true: you assert that the respondent has given the "
-        "consent the form asks for. Required when the form has a consent "
-        "step; it is recorded as asserted by this API key.",
+        "consent the form requires (its required items). Needed when the form "
+        "has a required consent item; it is recorded as asserted by this API "
+        "key. Optional items are accepted only when named in consentItems.",
+    )
+    consent_items: Optional[List[str]] = Field(
+        None,
+        max_length=MAX_CONSENT_ITEMS,
+        description="The ids of the form's optional consent items the "
+        "respondent accepted. Ids the form does not have are refused (422); "
+        "optional items not named are stored as not accepted.",
     )
 
 
@@ -216,28 +226,47 @@ def _consent_items(form: Any) -> list:
 
 
 def _consent_given(
-    form: Any, asserted: Optional[bool]
+    form: Any, asserted: Optional[bool], named: Optional[List[str]] = None
 ) -> Optional[List[Dict[str, Any]]]:
-    """The stored consent of the response: what a respondent who ticked the
-    boxes would send, built by the server from the form's own items. 422
-    ``consent_required`` when the form has a consent step and the caller did
-    not assert it."""
+    """The stored consent of the response, built by the server from the form's
+    own items, accepting only what the caller said:
+
+    * ``consent: true`` accepts the form's **required** items (422
+      ``consent_required`` when the form has one and it was not sent);
+    * an **optional** item is accepted only when its id is named in
+      ``consentItems`` (an id the form does not have is 422
+      ``unknown_consent_item``); the others are stored as not accepted;
+    * an information item has nothing to accept.
+    """
     items = _consent_items(form)
+    wanted = set(named or [])
+    # (a form with no items has none to name either)
+    unknown = wanted - {item.consent_id for item in items if item.consent_id}
+    if unknown:
+        raise _invalid(
+            UNKNOWN_CONSENT_ITEM,
+            "consentItems names an item this form does not have.",
+        )
     if not items:
         return None
-    if asserted is not True:
+    required = [item for item in items if item.required]
+    if required and asserted is not True:
         raise _invalid(
             CONSENT_REQUIRED,
-            "This form asks for the respondent's consent. Send "
+            "This form requires the respondent's consent. Send "
             '"consent": true to assert that it has been given.',
         )
-    return [
-        ConsentResponse(
-            **item.model_dump(),
-            accepted=True if item.type == ConsentType.CHECKBOX else None,
-        ).model_dump()
-        for item in items
-    ]
+    stored = []
+    for item in items:
+        if item.type != ConsentType.CHECKBOX:
+            accepted = None
+        else:
+            accepted = bool(
+                (item.required and asserted is True)
+                or (item.consent_id and item.consent_id in wanted)
+            )
+        stored.append(ConsentResponse(**item.model_dump(), accepted=accepted).model_dump())
+    return stored
 
 
 def _hidden_values(form: Any, values: Optional[Dict[str, str]]) -> Dict[str, str]:
@@ -364,7 +393,7 @@ async def create_submission(
     ensure_form_allowed(key, form_id)
     ensure_acts_as_nobody_allowed(association.settings)
     published = await _published(form_id)
-    consent = _consent_given(published, body.consent)
+    consent = _consent_given(published, body.consent, body.consent_items)
     answers, problems = build_answers(published, body.answers)
     _refuse_problems(published, problems)
     request = _request_model(
@@ -390,7 +419,7 @@ async def create_submission(
                 channel="api",
                 key_id=str(key.id),
                 key_name=key.name,
-                consent_asserted=consent is not None,
+                consent_asserted=consent is not None and body.consent is True,
             ),
         )
     except HTTPException as refused:

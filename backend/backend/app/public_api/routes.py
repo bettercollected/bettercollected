@@ -1,6 +1,7 @@
 """The public API's endpoints. Thin: each authenticates the key for its
 scope, then calls the same services as the MCP server and the builder."""
 
+import asyncio
 import json
 from http import HTTPStatus
 from typing import Any, Awaitable, Callable, Dict, List, Optional
@@ -13,7 +14,7 @@ from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
-from backend.app.public_api.auth import AUDIT_EXTRA, ApiCaller, api_key
+from backend.app.public_api.auth import AUDIT_EXTRA, ApiCaller, api_key, form_budget
 from backend.app.public_api.errors import error_payload
 from backend.app.models.dtos.deletion_request_dto import CloseDeletionRequestBody
 from backend.app.public_api.models import (
@@ -51,6 +52,7 @@ from backend.app.services.submissions_api.service import (
     CreateSubmission,
     UpdateSubmission,
     create_submission,
+    ensure_form_allowed,
     parse_body,
     update_submission,
 )
@@ -232,6 +234,12 @@ def _location(request: Request, form_id: str) -> str:
     return f"{request.scope.get('root_path', '')}/forms/{form_id}"
 
 
+# Strong references to the shielded tasks of _idempotent: the event loop keeps
+# a task only weakly, so once the request's frame is gone (a disconnected
+# client) nothing else would stop a running write from being collected.
+_RUNNING: "set[asyncio.Future]" = set()
+
+
 async def _idempotent(
     request: Request,
     caller: ApiCaller,
@@ -241,7 +249,13 @@ async def _idempotent(
     run: Callable[[], Awaitable[JSONResponse]],
 ) -> Response:
     """Run ``run`` once per Idempotency-Key (services/idempotency.py);
-    ``kind`` says what to keep for a replay (created, ops or body)."""
+    ``kind`` says what to keep for a replay (created, ops or body).
+
+    The run and the recording of its answer are one task that the request
+    only waits for (``asyncio.shield``): a client that disconnects, or a
+    cancelled request, after the write has committed does not stop the task,
+    so the key is finished with the real answer and never released while the
+    write stands (a retry would otherwise write a second time)."""
     if idempotency_key is None:
         return await run()
     service = _c().idempotency_service()
@@ -249,33 +263,43 @@ async def _idempotent(
     stored = await service.begin(caller.key_id, idempotency_key, fingerprint)
     if stored is not None:
         return await _replay(request, caller, stored)
-    try:
-        response = await run()
-    except HTTPException as error:
-        if error.status_code == HTTPStatus.NOT_FOUND:
-            # depends on state that can change (a form not yet published, a
-            # response not yet made): never kept, so the same key works later
+
+    async def run_and_record() -> Response:
+        try:
+            response = await run()
+        except HTTPException as error:
+            if error.status_code == HTTPStatus.NOT_FOUND:
+                # depends on state that can change (a form not yet published,
+                # a response not yet made): never kept, so the same key works
+                # later
+                await service.abandon(caller.key_id, idempotency_key)
+                raise
+            payload = error_payload(error.status_code, error.content)
+            await service.finish(
+                caller.key_id,
+                idempotency_key,
+                error.status_code,
+                {"kind": "body", "body": payload},
+            )
+            raise
+        except BaseException:
             await service.abandon(caller.key_id, idempotency_key)
             raise
-        payload = error_payload(error.status_code, error.content)
         await service.finish(
             caller.key_id,
             idempotency_key,
-            error.status_code,
-            {"kind": "body", "body": payload},
+            response.status_code,
+            _summary(kind, response),
+            response.headers.get("etag"),
         )
-        raise
-    except BaseException:
-        await service.abandon(caller.key_id, idempotency_key)
-        raise
-    await service.finish(
-        caller.key_id,
-        idempotency_key,
-        response.status_code,
-        _summary(kind, response),
-        response.headers.get("etag"),
-    )
-    return response
+        return response
+
+    task = asyncio.ensure_future(run_and_record())
+    _RUNNING.add(task)
+    task.add_done_callback(_RUNNING.discard)
+    # (a task nobody waits for any more must not leave its error unretrieved)
+    task.add_done_callback(lambda done: done.cancelled() or done.exception())
+    return await asyncio.shield(task)
 
 
 # -- forms ---------------------------------------------------------------------
@@ -752,16 +776,21 @@ async def close_deletion_request(
     "version. Answers are keyed by question id; a value is the typed answer "
     "object a response read returns, or a shorthand for the common question "
     "types. The caller asserts the respondent's consent with "
-    '`"consent": true` when the form has a consent step. Not for forms that '
+    '`"consent": true` when the form has a required consent item; an optional '
+    "item is accepted only when its id is in `consentItems` (422 "
+    "`unknown_consent_item` for an id the form does not have), and stored as "
+    "not accepted otherwise. Not for forms that "
     "ask for a verified respondent (422 `respondent_identity_required`), and "
     "not for questions that take a file, a signature or a payment (422 "
     "`invalid_answers`, rule `question_not_supported`). A closed or full form "
     "answers 409 (`form_closed`, `form_not_open`, `form_full`). Each problem "
     "answer is one entry in `errors`. The response records that this API key "
-    "made it (visible to staff only); no receipt and no email goes to anyone. "
-    "Actions, webhooks and email actions run as for a respondent's "
-    "submission. Needs `submissions:write`; an optional `Idempotency-Key` "
-    "makes a retry safe.",
+    "made it (visible to staff only); no receipt or copy of the answers goes to "
+    "the respondent (there is no account to send it to). Actions, webhooks and "
+    "the form's own email actions (a mail to its team, say) run as for a "
+    "respondent's submission. A form takes at most 60 submissions a minute "
+    "(creates and updates, all keys together; 429). Needs `submissions:write`; "
+    "an optional `Idempotency-Key` makes a retry safe.",
     status_code=201,
     response_model=SubmissionCreated,
     responses=_errors(401, 403, 404, 409, 413, 422, 429),
@@ -781,6 +810,9 @@ async def create_submission_endpoint(
     ),
 ):
     _object_id(form_id)
+    # a key that may not write to this form must not spend the form's budget
+    ensure_form_allowed(caller.key, form_id)
+    await form_budget(caller, form_id)
     body = await read_document_bytes(request)
 
     async def run() -> JSONResponse:
@@ -804,7 +836,8 @@ async def create_submission_endpoint(
     "a response made through this same API key can be changed (404 for any "
     "other), and not once the form is closed (409 `form_closed`), not open yet "
     "(409 `form_not_open`), needs a verified respondent or is private (422 "
-    "`respondent_identity_required`). A `null` is refused (422, rule "
+    "`respondent_identity_required`), or the response has an open deletion request "
+    "(409 `deletion_requested`). A `null` is refused (422, rule "
     "`clear_not_supported`). Needs `submissions:write`.",
     response_model=SubmissionUpdated,
     responses=_errors(401, 403, 404, 409, 413, 422, 429),
@@ -825,6 +858,9 @@ async def update_submission_endpoint(
     ),
 ):
     _object_id(form_id)
+    # a key that may not write to this form must not spend the form's budget
+    ensure_form_allowed(caller.key, form_id)
+    await form_budget(caller, form_id)
     body = await read_document_bytes(request)
 
     async def run() -> JSONResponse:

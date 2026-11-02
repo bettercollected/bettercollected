@@ -124,6 +124,7 @@ class FakeApi:
             self.submissions = getattr(self, "submissions", {})
             response_id = f"r{len(self.submissions) + 1}"
             self.submissions[response_id] = body["answers"]
+            self.consent_items = body.get("consentItems")
             return httpx.Response(
                 201,
                 json={

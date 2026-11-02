@@ -185,6 +185,9 @@ SERVER: Tuple[SettingSpec, ...] = (
     _bool("SAVE_DRAFTS_ENABLED", "features", (BACKEND,), False,
           "Lets respondents save a draft and continue later (off: the per-form setting cannot be turned on and drafts are not saved or opened).",
           tier=T2),
+    _bool("FORM_REVISIONS_UI_ENABLED", "features", (BACKEND,), False,
+          "Lets staff list a form's versions, compare two and restore one into the draft (off: those routes answer 422 and the Versions tab is hidden).",
+          tier=T2),
     _bool("CSV_IMPORT_ENABLED", "features", (BACKEND,), False,
           "Lets members who may (Owner, Admin) import submissions from a CSV file into a form "
           "(off: the import routes answer 404 and the control is hidden).",

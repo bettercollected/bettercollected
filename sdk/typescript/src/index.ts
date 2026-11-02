@@ -249,7 +249,14 @@ export class BetterCollected {
    */
   async createSubmission(
     formId: string,
-    submission: { answers: SubmissionAnswers; consent?: boolean; hiddenFields?: Record<string, string> },
+    submission: {
+      answers: SubmissionAnswers;
+      /** true: the respondent gave the consent the form requires (its required items). */
+      consent?: boolean;
+      /** Ids of the optional consent items the respondent accepted; the others are stored as not accepted. */
+      consentItems?: string[];
+      hiddenFields?: Record<string, string>;
+    },
     options: { idempotencyKey?: string } = {},
   ): Promise<SubmissionCreated> {
     return (

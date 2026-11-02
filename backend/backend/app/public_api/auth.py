@@ -36,6 +36,12 @@ WORKSPACE_RATE_LIMIT_SCOPE = "public-api-workspace"
 # burst of reads never uses up the submissions' budget, nor the other way round
 SUBMISSIONS_RATE_LIMIT_SCOPE = "public-api-submissions"
 SUBMISSIONS_WORKSPACE_RATE_LIMIT_SCOPE = "public-api-submissions-workspace"
+# and one form takes at most this many submissions (creates and updates, all of
+# the workspace's keys together) in a window: a burst at one form can't use up
+# the workspace's budget, nor flood that form's actions, webhooks and mails.
+# Fixed on purpose (no setting); it follows the other limits' "0 = off".
+SUBMISSIONS_FORM_RATE_LIMIT_SCOPE = "public-api-submissions-form"
+SUBMISSIONS_PER_FORM_PER_WINDOW = 60
 # where the wrapper in app.py finds extra ids to audit (the new response's id)
 AUDIT_EXTRA = "public_api_audit_extra"
 
@@ -108,6 +114,20 @@ async def _rate_limit(key: WorkspaceAPIKeyDocument, submissions: bool = False) -
         str(key.workspace_id),
         api.PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW,
         "from this workspace's API keys",
+    )
+
+
+async def form_budget(caller: "ApiCaller", form_id: str) -> None:
+    """429 when ``form_id`` has taken its share of submissions in this window
+    (see SUBMISSIONS_PER_FORM_PER_WINDOW); a no-op while the API's request
+    limit is off (0)."""
+    if live().api.PUBLIC_API_REQUESTS_PER_WINDOW <= 0:
+        return
+    await _hit(
+        SUBMISSIONS_FORM_RATE_LIMIT_SCOPE,
+        f"{caller.workspace_id}:{form_id}",
+        SUBMISSIONS_PER_FORM_PER_WINDOW,
+        "to this form",
     )
 
 

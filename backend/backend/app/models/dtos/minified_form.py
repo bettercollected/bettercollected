@@ -55,6 +55,8 @@ class FormDtoCamelModel(CamelModel):
     parameters: Optional[Dict[str, List[ParameterValue]]] = None
     # Action credentials: readable in-process, never serialized into a response.
     secrets: Optional[Dict[str, List[ParameterValue]]] = Field(None, exclude=True)
+    # Who published a version (a user id): only the versions page shows it, as a name.
+    published_by: Optional[str] = Field(None, exclude=True)
     row_titles: Optional[List[str]] = None
     column_titles: Optional[List[str]] = None
     tabular_value: Optional[List[List[str]]] = None

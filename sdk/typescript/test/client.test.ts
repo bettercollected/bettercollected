@@ -130,6 +130,9 @@ describe("BetterCollected", () => {
     assert.equal(seen[0]?.method, "POST");
     assert.equal(seen[0]?.url, "/api/v1/public/v1/forms/f1/submissions");
     assert.deepEqual(seen[0]?.body, { answers: { name: "Ada" }, consent: true });
+    await client().createSubmission("f1", { answers: { name: "Bo" }, consent: true, consentItems: ["newsletter"] });
+    assert.deepEqual(seen[1]?.body, { answers: { name: "Bo" }, consent: true, consentItems: ["newsletter"] });
+    seen.length = 1;
     assert.equal(seen[0]?.headers["idempotency-key"], "order-1");
 
     const updated = await client().updateSubmission("f1", "r9", { name: "Ada L." });

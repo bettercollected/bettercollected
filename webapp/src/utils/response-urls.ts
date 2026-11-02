@@ -40,3 +40,8 @@ export function responsePageTitle(form: unknown, formId: string): string {
     const title = (form as { title?: unknown }).title;
     return `Response · ${(typeof title === 'string' && title.trim()) || 'Untitled form'}`;
 }
+
+/** A form's published versions (the Versions tab), one version read-only, and a comparison of two (`draft` is the draft). */
+export const formVersionsUrl = (workspaceName: string, formId: string) => `/${workspaceName}/dashboard/forms/${formId}/versions`;
+export const formVersionUrl = (workspaceName: string, formId: string, version: number) => `${formVersionsUrl(workspaceName, formId)}/${version}`;
+export const formVersionCompareUrl = (workspaceName: string, formId: string, from: number | 'draft', to: number | 'draft') => `${formVersionsUrl(workspaceName, formId)}/compare?from=${from}&to=${to}`;
