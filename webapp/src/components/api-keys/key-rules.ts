@@ -80,15 +80,22 @@ export function scopeProblems(role: KeyRole | null, formScope: KeyFormScope, sco
 }
 
 /** Whether `next` lets the key do something `previous` did not. */
-export function widensRole(previous: KeyRole | null, next: KeyRole | null, scopes: string[]): boolean {
-    if (next === null) return previous !== null;
+export function widensRole(previous: StoredRole, next: StoredRole, scopes: string[]): boolean {
+    if (next === previous) return false;
+    if (next === null) return true;
     if (previous === null) return false;
-    const before = roleCeiling(previous, scopes) as Set<string>;
-    return [...(roleCeiling(next, scopes) as Set<string>)].some((permission) => !before.has(permission));
+    // an unknown role allows nothing (the server's reading), so anything else is more
+    const before = previous === UNKNOWN_ROLE ? new Set<string>() : (roleCeiling(previous, scopes) as Set<string>);
+    const after = next === UNKNOWN_ROLE ? new Set<string>() : (roleCeiling(next, scopes) as Set<string>);
+    return [...after].some((permission) => !before.has(permission));
 }
 
+/** A role the stored key has that these screens do not know: the server reads it as allowing nothing. */
+export const UNKNOWN_ROLE = 'UNKNOWN' as const;
+export type StoredRole = KeyRole | null | typeof UNKNOWN_ROLE;
+
 export interface KeyLimits {
-    role: KeyRole | null;
+    role: StoredRole;
     formScope: KeyFormScope;
     formIds: string[];
 }
@@ -110,6 +117,7 @@ export function submissionFormsOutsideList(submissionFormIds: string[] | null | 
 /** The server's refusals of a key request, by `code`, each with the text that says what to do. */
 export const KEY_ERROR_CODES: Record<string, string> = {
     api_key_roles_off: 'STAFF.API_KEYS.ERR_OFF',
+    audit_unavailable: 'STAFF.API_KEYS.ERR_AUDIT_UNAVAILABLE',
     key_exceeds_editor: 'STAFF.API_KEYS.ERR_EXCEEDS_EDITOR',
     key_role_exceeds_creator: 'STAFF.API_KEYS.ERR_EXCEEDS_CREATOR',
     key_form_scope: 'STAFF.API_KEYS.ERR_FORM_SCOPE',

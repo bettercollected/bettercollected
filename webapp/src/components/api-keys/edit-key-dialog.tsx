@@ -8,19 +8,19 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@app/shadcn/components/ui/dialog';
 import { useUpdateAPIKeyMutation } from '@app/store/workspaces/api';
 
-import { APIKey, keyFormScopeOf, keyRoleOf } from './api-key';
+import { APIKey, keyFormScopeOf, keyStoredRoleOf } from './api-key';
 import { keyErrorText } from './key-errors';
 import KeyLimitsFields, { ScopeProblems, scopeLabelKey } from './key-limits-fields';
-import { KeyFormScope, KeyLimits, KeyRole, scopeProblems, submissionFormsOutsideList, widensKey } from './key-rules';
+import { KeyFormScope, KeyLimits, KeyRole, StoredRole, UNKNOWN_ROLE, scopeProblems, submissionFormsOutsideList, widensKey } from './key-rules';
 
 interface Draft {
     name: string;
-    role: KeyRole | null;
+    role: StoredRole;
     formScope: KeyFormScope;
     formIds: string[];
 }
 
-const draftOf = (key: APIKey): Draft => ({ name: key.name, role: keyRoleOf(key), formScope: keyFormScopeOf(key), formIds: (key.forms ?? []).map((form) => form.id) });
+const draftOf = (key: APIKey): Draft => ({ name: key.name, role: keyStoredRoleOf(key), formScope: keyFormScopeOf(key), formIds: (key.forms ?? []).map((form) => form.id) });
 
 const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((id) => b.includes(id));
 
@@ -58,7 +58,7 @@ export default function EditKeyDialog({
     }, [keyItem?.id]);
 
     if (!keyItem || !original || !draft) return null;
-    const before: KeyLimits = { role: keyRoleOf(original), formScope: keyFormScopeOf(original), formIds: (original.forms ?? []).map((form) => form.id) };
+    const before: KeyLimits = { role: keyStoredRoleOf(original), formScope: keyFormScopeOf(original), formIds: (original.forms ?? []).map((form) => form.id) };
     const after: KeyLimits = { role: draft.role, formScope: draft.formScope, formIds: draft.formScope === 'listed' ? draft.formIds : [] };
     const listed = draft.formScope === 'listed';
     const roleChanged = after.role !== before.role;
@@ -66,10 +66,14 @@ export default function EditKeyDialog({
     const nameChanged = draft.name.trim() !== original.name;
     const changed = roleChanged || scopeChanged || nameChanged;
     const widens = widensKey(before, after, original.scopes);
-    const problems = scopeProblems(draft.role, draft.formScope, original.scopes);
+    // a stored role these screens do not know allows nothing on the server: it has to be replaced before anything else is saved
+    const unknownRole = draft.role === UNKNOWN_ROLE;
+    const problems = unknownRole ? [] : scopeProblems(draft.role as KeyRole | null, draft.formScope, original.scopes);
     const outside = submissionFormsOutsideList(original.submissionFormIds, draft.formScope, draft.formIds);
-    const noForms = listed && draft.formIds.length === 0;
-    const blocked = !draft.name.trim() || problems.length > 0 || outside.length > 0 || noForms;
+    // a list with nothing on it waits for a form, but only when the list itself is being changed: a key whose forms are all gone can still be renamed
+    const listChanged = listed && (before.formScope !== 'listed' || !sameSet(after.formIds, before.formIds));
+    const noForms = listChanged && draft.formIds.length === 0;
+    const blocked = !draft.name.trim() || problems.length > 0 || outside.length > 0 || noForms || unknownRole;
 
     const patch = <K extends keyof Draft>(field: K, value: Draft[K]) => {
         setDraft((current) => (current ? { ...current, [field]: value } : current));
@@ -93,7 +97,11 @@ export default function EditKeyDialog({
             onClose();
             return;
         }
-        setError({ text: keyErrorText(t, response.error, 'STAFF.API_KEYS.SAVE_FAILED'), changed: response.error?.data?.code === 'key_changed' });
+        const code = response.error?.data?.code;
+        // a list that holds forms the editor cannot open is refused whole: say which forms those are
+        const unopenable = (original.forms ?? []).filter((form) => !form.title && draft.formIds.includes(form.id)).length;
+        const text = code === 'form_not_in_workspace' && unopenable > 0 ? t('STAFF.API_KEYS.ERR_FORM_UNOPENABLE', { count: unopenable }) : keyErrorText(t, response.error, 'STAFF.API_KEYS.SAVE_FAILED');
+        setError({ text, changed: code === 'key_changed' });
     };
 
     const reload = async () => {
@@ -141,6 +149,7 @@ export default function EditKeyDialog({
                         idPrefix="edit-key"
                         scopes={original.scopes}
                         role={draft.role}
+                        unknownRole={original.role}
                         onRoleChange={(role) => patch('role', role)}
                         formScope={draft.formScope}
                         onFormScopeChange={(formScope) => patch('formScope', formScope)}
@@ -149,13 +158,18 @@ export default function EditKeyDialog({
                         knownForms={original.forms}
                         hideScopeProblems
                     />
-                    <ScopeProblems role={draft.role} formScope={draft.formScope} scopes={original.scopes} />
+                    <ScopeProblems role={unknownRole ? null : (draft.role as KeyRole | null)} formScope={draft.formScope} scopes={original.scopes} />
                     {outside.length > 0 && (
                         <p role="alert" className="rounded-md border border-[#E8C4C4] bg-[#FBEFEF] p-3 text-xs text-[#8F2C2C]">
                             {t('STAFF.API_KEYS.ERR_SUBMISSION_OUTSIDE')}
                         </p>
                     )}
                     {noForms && <p className="text-xs text-black-700">{t('STAFF.API_KEYS.PICK_A_FORM')}</p>}
+                    {unknownRole && (
+                        <div role="alert" className="flex flex-col gap-1 rounded-md border border-[#F0D9B5] bg-[#FDF8EF] p-3">
+                            <p className="text-xs leading-relaxed text-black-800">{t('STAFF.API_KEYS.UNKNOWN_ROLE_WARNING', { role: original.role })}</p>
+                        </div>
+                    )}
                     {widens && (
                         <div role="alert" className="flex flex-col gap-1 rounded-md border border-[#F0D9B5] bg-[#FDF8EF] p-3">
                             <p className="text-xs leading-relaxed text-black-800">{t('STAFF.API_KEYS.WIDEN_WARNING')}</p>

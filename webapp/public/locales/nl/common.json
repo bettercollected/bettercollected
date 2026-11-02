@@ -1987,7 +1987,13 @@
       "ERR_FORMS_REQUIRED": "Kies de formulieren die deze sleutel mag gebruiken.",
       "ERR_FORMS_NEED_LIST": "Een lijst met formulieren hoort alleen bij “Alleen de formulieren die ik kies”.",
       "ERR_FORM_UNKNOWN": "Een van de formulieren staat niet in deze werkruimte, of u kunt het niet openen. Laad de pagina opnieuw en kies opnieuw.",
-      "ERR_SUBMISSION_OUTSIDE": "Deze sleutel dient in bij een formulier dat niet op de lijst staat. Zet dat formulier op de lijst of maak een nieuwe sleutel."
+      "ERR_SUBMISSION_OUTSIDE": "Deze sleutel dient in bij een formulier dat niet op de lijst staat. Zet dat formulier op de lijst of maak een nieuwe sleutel.",
+      "ERR_AUDIT_UNAVAILABLE": "De wijziging kon niet in het auditlogboek worden vastgelegd en is daarom niet doorgevoerd. Probeer het zo meteen opnieuw.",
+      "ERR_FORM_UNOPENABLE_one": "De lijst bevat {{count}} formulier dat u niet kunt openen (getoond als “Een formulier dat u niet kunt openen”). Een lijst kan alleen worden opgeslagen met formulieren die u kunt openen: haal het van de lijst, of vraag iemand die het kan openen de wijziging door te voeren.",
+      "ERR_FORM_UNOPENABLE_other": "De lijst bevat {{count}} formulieren die u niet kunt openen (getoond als “Een formulier dat u niet kunt openen”). Een lijst kan alleen worden opgeslagen met formulieren die u kunt openen: haal ze van de lijst, of vraag iemand die ze kan openen de wijziging door te voeren.",
+      "UNKNOWN_ROLE_WARNING": "Deze sleutel heeft de rol “{{role}}”, die deze versie niet kent, dus de server laat hem niets doen. Kies een rol om hem te vervangen voordat u iets anders opslaat.",
+      "ROLE_UNKNOWN": "Onbekende rol “{{role}}”",
+      "ROLE_CHIP_UNKNOWN": "Onbekende rol: {{role}}"
     },
     "AI": {
       "DEFAULT_PROVIDER": "de AI-aanbieder"

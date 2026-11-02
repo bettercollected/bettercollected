@@ -1,4 +1,4 @@
-import { KEY_ROLE_OPTIONS, KeyFormScope, KeyRole } from './key-rules';
+import { KEY_ROLE_OPTIONS, KeyFormScope, KeyRole, StoredRole, UNKNOWN_ROLE } from './key-rules';
 
 /** An API key as the server lists it (backend `APIKeyDto`). */
 export interface APIKey {
@@ -23,3 +23,6 @@ export const keyRoleOf = (key: Pick<APIKey, 'role'>): KeyRole | null => (KEY_ROL
 
 /** Anything but "all" is a list, as the server reads it. */
 export const keyFormScopeOf = (key: Pick<APIKey, 'formScope'>): KeyFormScope => (!key.formScope || key.formScope === 'all' ? 'all' : 'listed');
+
+/** What the key stores as its role: one of ours, none (as its creator), or a value these screens do not know. */
+export const keyStoredRoleOf = (key: Pick<APIKey, 'role'>): StoredRole => (key.role == null ? null : keyRoleOf(key) ?? UNKNOWN_ROLE);

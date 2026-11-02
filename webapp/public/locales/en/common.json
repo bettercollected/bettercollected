@@ -1987,7 +1987,13 @@
       "ERR_FORMS_REQUIRED": "Pick the forms this key may use.",
       "ERR_FORMS_NEED_LIST": "A list of forms only goes with “Only the forms I pick”.",
       "ERR_FORM_UNKNOWN": "One of the forms is not in this workspace, or you cannot open it. Reload the page and pick again.",
-      "ERR_SUBMISSION_OUTSIDE": "This key submits to a form that is not on the list. Add that form to the list, or create a new key."
+      "ERR_SUBMISSION_OUTSIDE": "This key submits to a form that is not on the list. Add that form to the list, or create a new key.",
+      "ERR_AUDIT_UNAVAILABLE": "The change could not be written to the audit log, so it was not made. Try again in a moment.",
+      "ERR_FORM_UNOPENABLE_one": "The list holds {{count}} form you cannot open (shown as “A form you cannot open”). A list can only be saved with forms you can open: take it off the list, or ask someone who can open it to make the change.",
+      "ERR_FORM_UNOPENABLE_other": "The list holds {{count}} forms you cannot open (shown as “A form you cannot open”). A list can only be saved with forms you can open: take them off the list, or ask someone who can open them to make the change.",
+      "UNKNOWN_ROLE_WARNING": "This key has the role “{{role}}”, which this version does not know, so the server lets it do nothing. Choose a role to replace it before you save anything else.",
+      "ROLE_UNKNOWN": "Unknown role “{{role}}”",
+      "ROLE_CHIP_UNKNOWN": "Unknown role: {{role}}"
     },
     "AI": {
       "DEFAULT_PROVIDER": "the AI provider"
