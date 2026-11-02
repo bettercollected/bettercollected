@@ -136,8 +136,10 @@ The backend's `ACTION_SECRETS_SEALED_ALLOWED` (default `true`; `false` at the 4.
 sealed run context with `426`.
 
 The key-only credential write-back `PATCH /temporal/forms/{f}/actions/{a}/secrets` of executors older than 4.3 was removed in 4.4
-(it answers `404`): **the executor must be 4.3 or later before the backend is 4.4**. An older executor that refreshes a Google
-credential can no longer store it, so the run keeps working only until the stored access token expires.
+(it answers `404`): **the executor must be 4.3 or later before the backend is 4.4**. An older executor on the Postgres queue
+that refreshes a Google credential can no longer store it; it still works, because it refreshes the access token again at
+every run. The Temporal entry point (`JOBS_BACKEND=temporal`) never wrote a refreshed credential back, in any version: it
+refreshes at every run too, so Google Sheets keeps working there.
 
 ## Known limits
 
