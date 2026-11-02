@@ -21,7 +21,9 @@ const nextConfig = {
         // custom-domain service probes (github.com/sireto/custom-domain)
         return [
             { source: '/.well-known/custom-domain-workspace', destination: '/api/custom-domain/workspace' },
-            { source: '/.well-known/custom-domain-origin-verification', destination: '/api/custom-domain/origin-verification' }
+            { source: '/.well-known/custom-domain-origin-verification', destination: '/api/custom-domain/origin-verification' },
+            // the unpinned address of the embed script is the current version (docs/embed.md)
+            { source: '/embed.js', destination: '/embed/v1.js' }
         ];
     },
     async redirects() {
@@ -37,6 +39,23 @@ const nextConfig = {
     },
     async headers() {
         return [
+            // The embed script (docs/embed.md): versioned files that never change, readable by any site (the
+            // snippet pins them with `integrity` and `crossorigin="anonymous"`, which needs CORS).
+            {
+                source: '/embed/:path*',
+                headers: [
+                    { key: 'Access-Control-Allow-Origin', value: '*' },
+                    { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
+                ]
+            },
+            // ...and its moving alias: the current version, cached for an hour
+            {
+                source: '/embed.js',
+                headers: [
+                    { key: 'Access-Control-Allow-Origin', value: '*' },
+                    { key: 'Cache-Control', value: 'public, max-age=3600' }
+                ]
+            },
             {
                 source: '/(.*)',
                 headers: [

@@ -32,7 +32,7 @@ export default function EmbedReporter() {
     const { responderState } = useResponderState();
     const slide = useShownSlide();
     const workspace = useAppSelector(selectWorkspace);
-    const policy = useGetEmbedPolicyQuery(workspace?.id as string, { skip: !embedded || !workspace?.id });
+    const policy = useGetEmbedPolicyQuery(workspace?.id as string, { skip: !embedded || !parentOrigin || !workspace?.id });
     // messages only while the server's switch is on
     const active = embedded && policy.data?.enabled === true;
     const submitted = slide === -2 && !!responderState.responderId;
