@@ -121,6 +121,37 @@ class TestCompleted:
         assert request.status == DeletionRequestStatus.SUCCESS
         assert request.closed_by == testUser.id and request.closed_at is not None
 
+    async def test_the_deletion_is_recorded_first_and_refused_unrecorded(
+        self, client: AsyncClient, workspace, test_user_cookies, imported, monkeypatch
+    ):
+        from tests.app.form_access.helpers import audit_events, fail_audit
+
+        service = container.form_response_service()
+        fail_audit(monkeypatch)
+        refused = await client.post(
+            _close_url(workspace, imported),
+            cookies=test_user_cookies,
+            json={"outcome": "completed"},
+        )
+        assert refused.status_code == 503
+        assert await service.workspace_response(workspace.id, ASKED) is not None
+        assert (await _request(workspace, imported)).status == DeletionRequestStatus.PENDING
+        monkeypatch.undo()
+
+        done = await client.post(
+            _close_url(workspace, imported),
+            cookies=test_user_cookies,
+            json={"outcome": "completed"},
+        )
+        assert done.status_code == 200, done.text
+        (entry,) = await audit_events(workspace, "responses_deleted")
+        assert (entry.user_id, entry.form_id, entry.response_id, entry.count) == (
+            testUser.id,
+            imported,
+            ASKED,
+            1,
+        )
+
     async def test_a_later_sync_does_not_bring_the_response_back(
         self, client: AsyncClient, workspace, test_user_cookies, imported, google_source
     ):

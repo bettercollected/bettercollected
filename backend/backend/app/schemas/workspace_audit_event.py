@@ -68,6 +68,31 @@ ACCESS_EVENTS = (
     ACCESS_MEMBER_PURGED,
     FORM_CREATOR_REASSIGNED,
 )
+# workspace members (members.manage): ids and enum values only, never an
+# address. An invitation has no account yet, so it is named by its id.
+MEMBER_INVITED = "member_invited"
+MEMBER_INVITATION_REVOKED = "member_invitation_revoked"
+MEMBER_INVITATION_ACCEPTED = "member_invitation_accepted"
+MEMBER_REMOVED = "member_removed"
+MEMBER_ROLE_CHANGED = "member_role_changed"
+# forms and responses: the form, how many responses, never a title or an answer
+FORM_PUBLISHED = "form_published"
+FORM_DELETED = "form_deleted"
+RESPONSES_DELETED = "responses_deleted"
+# data left through an export, a bulk read or a response PDF: a pointer to the
+# export's own audit row (``export_id``), with its channel, format and rows
+RESPONSE_EXPORT = "response_export"
+MEMBER_FORM_EVENTS = (
+    MEMBER_INVITED,
+    MEMBER_INVITATION_REVOKED,
+    MEMBER_INVITATION_ACCEPTED,
+    MEMBER_REMOVED,
+    MEMBER_ROLE_CHANGED,
+    FORM_PUBLISHED,
+    FORM_DELETED,
+    RESPONSES_DELETED,
+    RESPONSE_EXPORT,
+)
 # API key lifecycle events: ids and enum values only, never a key's name, prefix
 # or token, nor a form title.
 # an API key was revoked (key_id, reason): because its creator left (removed
@@ -132,6 +157,16 @@ class WorkspaceAuditEventDocument(Record):
     grant_export: Optional[bool] = None
     access_mode: Optional[str] = None
     count: Optional[int] = None
+    # MEMBER_*: the invitation, the role it gives or the member now holds (an
+    # enum value of WorkspaceRoles) and, for a change, the one it replaced
+    invitation_id: Optional[str] = None
+    role: Optional[str] = None
+    previous_role: Optional[str] = None
+    # RESPONSE_EXPORT: the id of the export's row (``response_exports``), its
+    # channel and format (enum values); the number of rows is ``count``
+    export_id: Optional[str] = None
+    export_channel: Optional[str] = None
+    export_format: Optional[str] = None
     # API_KEY_* entries: the key (its id only), why it was revoked, its role (and
     # the one before), its form scope and whether the change gave the key more
     # access
