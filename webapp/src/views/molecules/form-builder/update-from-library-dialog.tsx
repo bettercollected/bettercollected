@@ -107,7 +107,7 @@ function UpdatePlan({ loadPlan, onOpenChange, apply, sharedContainers }: { loadP
             {sharedContainers > 0 && <p className="text-xs text-amber-900">{t('SECTIONS_LIB.UPDATE.SHARED_CONTAINER', { count: sharedContainers })}</p>}
             <p className="text-xs text-black-600">{t('SECTIONS_LIB.UPDATE.NOTE')}</p>
             <div className="flex justify-end gap-2">
-                <Button type="button" variant="secondary" className="min-h-11" onClick={() => onOpenChange(false)}>
+                <Button type="button" variant="v2Button" className="min-h-11" onClick={() => onOpenChange(false)}>
                     {t('SECTIONS_LIB.CANCEL')}
                 </Button>
                 <Button

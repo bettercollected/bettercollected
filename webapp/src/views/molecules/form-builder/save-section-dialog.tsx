@@ -81,7 +81,7 @@ export default function SaveSectionDialog({
                             <AppInput value={description} maxLength={500} onChange={(event: any) => setDescription(event.target.value)} />
                         </label>
                         <div className="flex justify-end gap-2">
-                            <Button type="button" variant="secondary" className="min-h-11" onClick={() => close(false)}>
+                            <Button type="button" variant="v2Button" className="min-h-11" onClick={() => close(false)}>
                                 {t('SECTIONS_LIB.CANCEL')}
                             </Button>
                             <Button type="submit" className="min-h-11" disabled={!name.trim() || busy}>
