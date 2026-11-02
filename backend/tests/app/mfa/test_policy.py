@@ -106,6 +106,7 @@ async def test_only_owners_set_the_rule_and_only_with_their_own_factor(
     events = await container.workspace_audit_repo().many()
     assert [e.event for e in events] == [TOTP_POLICY_CHANGED]
     assert events[0].workspace_id == workspace.id and events[0].user_id == owner.id
+    assert events[0].required is True
 
 
 async def test_turning_the_rule_off_takes_effect_at_once(client, totp_on, workspace):
@@ -124,6 +125,9 @@ async def test_turning_the_rule_off_takes_effect_at_once(client, totp_on, worksp
     )
     assert ok.status_code == 200 and ok.json()["required"] is False
     assert (await probe(client, workspace, user)).status_code == 200
+    # the audit trail says which way each change went
+    changes = sorted(await container.workspace_audit_repo().many(), key=lambda e: e.created_at)
+    assert [e.required for e in changes if e.event == TOTP_POLICY_CHANGED] == [False]
 
 
 async def test_the_setting_answers_422_while_the_switch_is_off(client, workspace):
@@ -215,3 +219,31 @@ async def test_a_person_in_a_workspace_that_requires_one_cannot_turn_theirs_off(
     await require_totp(workspace, False)
     clock.advance(30)
     assert (await svc.disable(account.user, codes[1])).enabled is False
+
+
+async def test_a_disabled_workspace_is_not_exempt(client, totp_on, workspace):
+    """The owners of a disabled workspace still read, export and delete the
+    respondents' data there: they need the second factor too."""
+    from tests.app.response_export.helpers import answers, publish, start, submit
+
+    form = await publish(workspace)
+    await submit(workspace, form, answers("Ada"))
+    await require_totp(workspace)
+    await container.workspace_repo().set_fields(workspace, {"disabled": True})
+    # the owner without a second factor in this session: refused, on a response
+    # export and on a plain read alike
+    refused = await start(client, workspace, form)
+    assert refused.status_code == 403
+    assert refused.json()["code"] == "mfa_required"
+    assert (await probe(client, workspace, OWNER)).json()["code"] == "mfa_required"
+    other = await client.get(
+        f"/api/v1/workspaces/{workspace.id}/forms/{form.form_id}/exports",
+        cookies=cookies_of_user(OWNER),
+    )
+    assert other.status_code == 403 and other.json()["code"] == "mfa_required"
+    # with the second factor the owner keeps what a disabled workspace allows
+    ok = await start(client, workspace, form, user=OWNER.model_copy(update={"mfa": True}))
+    assert ok.status_code == 200, ok.text
+    # and the rule off again: no question asked
+    await require_totp(workspace, False)
+    assert (await start(client, workspace, form)).status_code == 200

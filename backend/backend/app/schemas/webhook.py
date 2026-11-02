@@ -98,6 +98,7 @@ class LogStatus(str, enum.Enum):
 class ActionType(str, enum.Enum):
     WEBHOOK = "webhook"
     EMAIL = "email"
+    SHEETS = "sheets"
 
 
 class ActionLogDocument(Record):
@@ -136,6 +137,10 @@ class ActionLogDocument(Record):
     last_attempt_at: Optional[dt.datetime] = None
     next_attempt_at: Optional[dt.datetime] = None
     finished_at: Optional[dt.datetime] = None
+    # Google Sheets runs only: how many parts of the run are done (the row of
+    # answers, then one per group tab), so a retry carries on after them and
+    # does not append a part twice
+    steps_done: int = 0
 
     _tz = field_validator(
         "first_attempt_at", "last_attempt_at", "next_attempt_at", "finished_at"

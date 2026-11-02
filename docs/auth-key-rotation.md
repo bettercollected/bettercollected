@@ -47,6 +47,7 @@ one of them to the new key:
 | `scim_directories` | the secret SCIM webhooks are signed with |
 | `registration_services` | the secret of a registration service |
 | `form_webhooks` | a webhook's address and signing secret |
+| `user_totp_factors` | the shared secret of an account's authenticator app (second factor) |
 
 Short-lived values (OAuth and single sign-on state, sign-in codes, template preview tokens) need
 no re-encryption: the ring reads them under either key for as long as both are in it.
@@ -161,7 +162,7 @@ harm, but one that does not hold the new key cannot read what `reencrypt` moved.
 # restart them, then delete the file
 ```
 
-**What `reencrypt` does.** It walks the seven tables in batches, decrypts each value that only the
+**What `reencrypt` does.** It walks the eight tables in batches, decrypts each value that only the
 previous key opens, encrypts it with the new key, checks that the result decrypts to the same text
 with the new key alone, and writes it back only if the stored value has not changed since it was read
 (a compare-and-swap under the row lock), then reads the row back before counting it. It is idempotent

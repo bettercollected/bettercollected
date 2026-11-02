@@ -4,7 +4,7 @@ Applied next to the single sign-on rule on every request that reaches a
 workspace (``AuthorizationService``): a member's session without a second factor
 (no ``mfa`` claim) is refused with 403 ``mfa_required``, and the webapp sends the
 person to set up or present the factor in that same session. Nobody is signed
-out. Only while ``TOTP_ENABLED`` is on.
+out. Only while ``TOTP_ENABLED`` is on. A disabled workspace is covered too.
 
 Not covered, on purpose, as for single sign-on: API keys and MCP (machine
 credentials issued inside the workspace), and a respondent-scoped session (it
@@ -41,7 +41,10 @@ def blocks_session(workspace, user) -> bool:
     nothing is read."""
     if workspace is None or not totp_enabled():
         return False
-    if workspace.disabled or not getattr(workspace, "require_totp", False):
+    # a disabled workspace is not exempt: its owners still read, export and delete
+    # respondents' data there (``DISABLED_WORKSPACE_OWNER_PERMISSIONS``), and
+    # whoever can needs the second factor as much as anywhere else
+    if not getattr(workspace, "require_totp", False):
         return False
     if getattr(user, "mfa", None):
         return False

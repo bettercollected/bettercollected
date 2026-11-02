@@ -349,6 +349,55 @@ async def test_a_refresh_token_is_not_an_access_token(monkeypatch):
         )
 
 
+def typed_token(typ, **extra) -> str:
+    exp = dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=1)
+    claims = {
+        "id": testUser.id,
+        "sub": testUser.sub,
+        "roles": ["FORM_CREATOR"],
+        "sid": "5f0000000000000000000001",
+        "jti": "j",
+        "exp": calendar.timegm(exp.utctimetuple()),
+        **extra,
+    }
+    if typ is not None:
+        claims["typ"] = typ
+    return jwt.encode(claims, settings.auth_settings.JWT_SECRET, algorithm="HS256")
+
+
+async def test_only_an_access_token_is_an_access_token():
+    from backend.app.services.session_service import user_from_access_token
+
+    assert user_from_access_token(typed_token("access")).id == testUser.id
+    for refused in (
+        typed_token("refresh"),
+        typed_token("other"),
+        typed_token(None),
+        typed_token(["access"]),
+        typed_token("access", sid=None),
+        "not-a-jwt",
+        None,
+    ):
+        assert user_from_access_token(refused) is None
+
+
+async def test_only_a_refresh_token_continues_a_session(client):
+    tokens, sid = await sign_in()
+    # an access token in the refresh cookie ends nothing and refreshes nothing
+    for cookie in (tokens["Authorization"], typed_token("other"), typed_token(None)):
+        with pytest.raises(SessionEnded):
+            await container.session_service().refresh(
+                request_with(RefreshToken=cookie), Response(), rotate=True
+            )
+    # the real refresh token still does
+    reply = Response()
+    user = await container.session_service().refresh(
+        request_with(RefreshToken=tokens["RefreshToken"]), reply, rotate=True
+    )
+    assert user.id == testUser.id
+    assert claims(issued(reply, "Authorization"))["typ"] == "access"
+
+
 # -- tokens from before sessions -----------------------------------------------
 
 

@@ -1,7 +1,7 @@
 """The backend's job worker: ``python -m backend.jobs.worker``.
 
 Same image and configuration as the API; boots the container (the Postgres
-engine; Mongo is not used) and consumes the ``default``, ``webhooks``, ``emails``, ``exports`` and ``imports`` queues — never
+engine; Mongo is not used) and consumes the ``default``, ``webhooks``, ``emails``, ``exports``, ``imports`` and ``integrations`` queues — never
 ``actions``, which belongs to the actions-executor. Concurrency is small on
 purpose (jobs are deletions).
 """
@@ -32,6 +32,7 @@ from backend.jobs.app import (
     EMAILS_QUEUE,
     EXPORTS_QUEUE,
     IMPORTS_QUEUE,
+    INTEGRATIONS_QUEUE,
     WEBHOOKS_QUEUE,
     app,
 )
@@ -103,11 +104,28 @@ def warn_if_imports_unserved(queues: list) -> bool:
     return True
 
 
+def warn_if_integrations_unserved(queues: list) -> bool:
+    """``JOBS_QUEUES`` leaves out the ``integrations`` queue: the rows of the
+    Google Sheets action (once the backend runs it) would be queued and never
+    appended. Warns (True) at worker start."""
+    if INTEGRATIONS_QUEUE in queues:
+        return False
+    logger.warning(
+        "this worker does not serve the '{}' queue (JOBS_QUEUES={}): Google "
+        "Sheets rows stay queued until a worker serves it. Add '{}' to "
+        "JOBS_QUEUES, here or on a worker of its own.",
+        INTEGRATIONS_QUEUE,
+        ",".join(queues),
+        INTEGRATIONS_QUEUE,
+    )
+    return True
+
+
 async def main() -> None:
     queues = [
         q
         for q in os.environ.get(
-            "JOBS_QUEUES", f"{DEFAULT_QUEUE},{WEBHOOKS_QUEUE},{EMAILS_QUEUE},{EXPORTS_QUEUE},{IMPORTS_QUEUE}"
+            "JOBS_QUEUES", f"{DEFAULT_QUEUE},{WEBHOOKS_QUEUE},{EMAILS_QUEUE},{EXPORTS_QUEUE},{IMPORTS_QUEUE},{INTEGRATIONS_QUEUE}"
         ).split(",")
         if q
     ]
@@ -121,6 +139,7 @@ async def main() -> None:
     warn_if_emails_unserved(queues)
     warn_if_exports_unserved(queues)
     warn_if_imports_unserved(queues)
+    warn_if_integrations_unserved(queues)
     try:
         async with app.open_async():
             await app.run_worker_async(

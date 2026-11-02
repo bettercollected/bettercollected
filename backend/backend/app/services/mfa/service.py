@@ -273,6 +273,7 @@ class MfaService:
             [hash_recovery_code(user.id, c) for c in codes],
             now,
             enrolled_via=ENROLLED_RECENT_SIGN_IN,
+            locale=notifier_module.request_locale(),
         )
         if not stored:
             raise invalid_code()
@@ -324,6 +325,9 @@ class MfaService:
             await self._limiter.release(GUESS_SCOPE, user_id, GUESS_WINDOW_SECONDS)
             if factor.lock_count:
                 await self._factors.clear_locks(str(factor.id))
+            await self._factors.remember_locale(
+                str(factor.id), notifier_module.request_locale()
+            )
             if method == RECOVERY_METHOD:
                 await self._record(TOTP_RECOVERY_USED, user_id, session_id)
                 left = await self._factors.codes_left(user_id)
