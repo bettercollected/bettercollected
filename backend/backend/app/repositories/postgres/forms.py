@@ -1210,16 +1210,35 @@ class PostgresWorkspaceFormRepository(RecordRepository):
 
     @staticmethod
     def _keeping_access_mode(
-        settings: Optional[WorkspaceFormSettings], stored_mode: Optional[str]
+        settings: Optional[WorkspaceFormSettings],
+        stored_mode: Optional[str],
+        stored_promoted_from=None,
     ) -> Optional[WorkspaceFormSettings]:
-        """``settings`` as it is to be stored, with the access mode the link
-        already has (none for a new link). The mode (form-level access) is
-        written by its own endpoint only: a create, an import, a replace or
-        any read-modify-write of the settings can neither set nor clear it."""
-        if settings is None and stored_mode is None:
+        """``settings`` as it is to be stored, with the access mode and the
+        copied-from mark the link already has (none for a new link). The mode
+        (form-level access) is written by its own endpoint only, and the mark
+        (``promoted_from``, where a form was copied from) by the promotion's
+        ``set_promoted_from`` only: a create, an import (settings that arrive
+        in a file or from another instance included), a replace or any
+        read-modify-write of the settings can neither set, forge nor clear
+        either."""
+        if settings is None and stored_mode is None and stored_promoted_from is None:
             return None
         return (settings or WorkspaceFormSettings()).model_copy(
-            update={"access_mode": stored_mode}
+            update={
+                "access_mode": stored_mode,
+                "promoted_from": stored_promoted_from,
+            }
+        )
+
+    @staticmethod
+    def _stored_marks(stored) -> tuple:
+        """``(access mode, copied-from mark)`` of a stored link, for
+        ``_keeping_access_mode``."""
+        settings = stored.settings if stored else None
+        return (
+            settings.access_mode if settings else None,
+            settings.promoted_from if settings else None,
         )
 
     async def save(
@@ -1247,8 +1266,7 @@ class PostgresWorkspaceFormRepository(RecordRepository):
                 session, WorkspaceFormRow.id == _oid(workspace_form.id)
             )
             workspace_form.settings = self._keeping_access_mode(
-                workspace_form.settings,
-                stored.settings.access_mode if stored and stored.settings else None,
+                workspace_form.settings, *self._stored_marks(stored)
             )
             workspace_form.touch()
             await session.execute(self._upsert_statement(row_values(workspace_form)))
@@ -1291,7 +1309,7 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             if stored is None:
                 raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in ")
             stored.settings = self._keeping_access_mode(
-                item.settings, stored.settings.access_mode if stored.settings else None
+                item.settings, *self._stored_marks(stored)
             )
             stored.last_update_status = item.last_update_status
             stored.touch()
@@ -1417,8 +1435,7 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             )
             if stored is not None:
                 stored.settings = self._keeping_access_mode(
-                    workspace_form_settings,
-                    stored.settings.access_mode if stored.settings else None,
+                    workspace_form_settings, *self._stored_marks(stored)
                 )
                 stored.touch()
                 await session.execute(self._upsert_statement(row_values(stored)))

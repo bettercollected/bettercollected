@@ -218,3 +218,30 @@ async def test_preview_and_the_picker_are_rate_limited_apart_from_apply(
     assert picker.status_code == 429
     # a copy is counted on its own
     assert (await apply(client, world)).status_code == 201
+
+
+async def test_a_target_opened_after_the_plan_is_refused_at_the_write(
+    client, world, monkeypatch
+):
+    """The target's mode is read again right before the write: a target that was
+    restricted when the copy was planned and opened since (no version tag changes
+    with the mode) gets nothing."""
+    from backend.app.services.form_access.model import MODE_WORKSPACE
+    from backend.app.services.form_spec import writes
+
+    await restrict_source(world, monkeypatch)
+    target, etag = await _existing_target(world)
+    repo = container.workspace_form_repo()
+    await repo.set_access_mode(world.b.id, target, MODE_RESTRICTED)
+    checked = writes._checked_spec
+
+    async def opened_meanwhile(raw):
+        result = await checked(raw)
+        await repo.set_access_mode(world.b.id, target, MODE_WORKSPACE)
+        return result
+
+    monkeypatch.setattr(writes, "_checked_spec", opened_meanwhile)
+    done = await apply(client, world, targetFormId=target, targetEtag=etag)
+    assert done.status_code == 409, done.text
+    assert done.json() == {"code": "target_not_restricted", "message": MESSAGE}
+    assert (await stored_spec(world.b, target))[0]["title"] == "Oud"

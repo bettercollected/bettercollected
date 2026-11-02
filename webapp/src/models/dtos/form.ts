@@ -272,6 +272,11 @@ export interface StandardFormDto {
         importSource?: string | null;
         /** The import record holding the report of an imported form. */
         importId?: string | null;
+        /**
+         * Where the form was last copied from (copying to another workspace): ids and a date, never a title. The server
+         * sends it to people who may edit the form only.
+         */
+        promotedFrom?: { workspaceId: string; formId: string; at: string } | null;
         /** Trust-layer content: why the data is collected (shown to responders). */
         purpose?: string;
         /** Legacy free-text note on retention. Not shown to respondents: the period they read comes from responseExpiration* only (utils/retention.ts). */

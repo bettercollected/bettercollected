@@ -497,6 +497,8 @@ async def test_both_sides_are_audited_with_ids_and_counts_only(client, world):
     assert out.user_id == came.user_id == testUser.id
     assert out.form_id == world.form_id
     assert out.target_workspace_id == str(world.b.id)
+    # a copy to a workspace has no channel: only the file download does
+    assert out.export_channel is None
     assert came.form_id == new_id
     assert (came.source_workspace_id, came.source_form_id) == (
         str(world.a.id),
@@ -593,6 +595,8 @@ async def test_the_form_file_is_the_document_and_is_audited_and_never_cached(
     assert response.json() == (await stored_spec(world.a, world.form_id))[0]
     (out,) = await audit_events(world.a, FORM_COPIED_OUT)
     assert out.form_id == world.form_id and out.target_workspace_id is None
+    # the Activity page tells the download from a copy to a workspace by the channel
+    assert out.export_channel == "file"
 
 
 async def test_no_audit_row_no_file(client, world, monkeypatch):

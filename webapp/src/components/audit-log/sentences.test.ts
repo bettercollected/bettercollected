@@ -228,6 +228,15 @@ describe('the sentence table', () => {
         expect(say('en', entry('form_promoted', { actorId: 'u_sanne', formId: 'f_join', count: 3 })).text).toBe('Sanne de Vries copied Join the volunteers in from another workspace (3 adjustments to fit).');
         expect(say('nl', entry('form_promoted', { actorId: 'u_sanne', formId: 'f_join', count: 1 })).text).toBe('Sanne de Vries kopieerde Join the volunteers vanuit een andere werkruimte hierheen (1 aanpassing om te passen).');
         expect(say('en', entry('form_promoted', { actorId: 'u_sanne', formId: 'f_join', count: 0 })).text).toBe('Sanne de Vries copied Join the volunteers in from another workspace.');
+        expect(say('nl', entry('form_copied_out', { actorId: 'u_sanne', formId: 'f_join' })).text).toBe('Sanne de Vries kopieerde Join the volunteers naar een andere werkruimte.');
+    });
+
+    it('words the download of a form file as a download, not as a copy to another workspace', () => {
+        // the download is recorded with the channel "file" and names no other workspace
+        expect(say('en', entry('form_copied_out', { actorId: 'u_sanne', formId: 'f_join', exportChannel: 'file' })).text).toBe('Sanne de Vries downloaded the file of Join the volunteers.');
+        expect(say('nl', entry('form_copied_out', { actorId: 'u_sanne', formId: 'f_join', exportChannel: 'file' })).text).toBe('Sanne de Vries downloadde het bestand van Join the volunteers.');
+        // a copy to a workspace carries no channel, and any other channel keeps the copy wording
+        expect(say('en', entry('form_copied_out', { actorId: 'u_sanne', formId: 'f_join', exportChannel: 'something' })).text).toBe('Sanne de Vries copied Join the volunteers to another workspace.');
     });
 
     it('falls back to a neutral sentence for a kind it does not know, in both languages', () => {
