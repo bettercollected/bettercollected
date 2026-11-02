@@ -238,6 +238,20 @@ class TemporalService:
             )
             pass
 
+    async def open_action_workflows(self, form_id=None) -> list:
+        """Ids of the ``run_action_code`` workflows that are running now (a form's
+        action runs, when ``run_action`` is on Temporal), those of ``form_id`` only
+        when it is given (a run's id holds the form's id). Raises when the Temporal
+        server cannot be reached."""
+        await self.check_temporal_client_and_try_to_connect_if_not_connected()
+        found = []
+        async for workflow in self.temporal_client.list_workflows(
+            query='WorkflowType="run_action_code" AND ExecutionStatus="Running"'
+        ):
+            if form_id is None or str(form_id) in workflow.id:
+                found.append(workflow.id)
+        return found
+
     async def start_action_execution(
         self,
         action: ActionResponse,

@@ -948,8 +948,13 @@ class EmailActionService:
         form: Any = None,
         answers: Optional[Dict[str, Any]] = None,
         verified_account_id: Optional[str] = None,
+        executor_handled: Any = (),
     ) -> List[str]:
-        """Called after a response is stored. ``verified_account_id``: the account
+        """Called after a response is stored. ``executor_handled``: the ids of the
+        form actions the executor was given a run for in this submission's own
+        snapshot; an email action that replaced one of them (``source_action_id``)
+        is skipped for this submission (it would be delivered twice if the move
+        landed in between). ``verified_account_id``: the account
         of a respondent who submitted signed in with a verified email, and not
         anonymously (``copy_recipient.verified_account_id_of``). The respondent's
         copy is planned only for such an account, and goes to that account's
@@ -967,6 +972,8 @@ class EmailActionService:
                 return queued
             for action in await self._actions.list_for_form(workspace_id, form_id):
                 if not action.enabled:
+                    continue
+                if action.created_via and action.source_action_id in executor_handled:
                     continue
                 runs, code = action_conditions.conditions_hold(
                     action.condition, form, answers or {}

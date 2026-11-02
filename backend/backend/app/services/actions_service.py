@@ -1,4 +1,5 @@
 import asyncio
+import datetime as dt
 from typing import Optional
 
 from common.models.standard_form import Trigger
@@ -34,10 +35,36 @@ from backend.app.services.copy_recipient import (
 )
 
 
+from backend.app.services.builtin_actions.marks import entry_moved  # noqa: F401
 from backend.app.services.builtin_actions.sheets import SHEETS_ACTION, runs_in_backend
 
 QUEUE_ATTEMPTS = 3
 QUEUE_RETRY_SECONDS = 0.3
+
+
+def entry_in_force(entry, stored) -> bool:
+    """Whether a form's action entry still applies to the stored response
+    ``stored``: it is on, or the built-in action was moved to a webhook or an
+    email action (``migrated_to``) after the response was submitted, so a run that
+    was queued before the move still completes on the executor instead of
+    being lost (a submission after the move is delivered by the new row only)."""
+    if entry.enabled and not entry_moved(entry):
+        return True
+    marker = getattr(entry, "migrated_to", None) or {}
+    moved_at = getattr(entry, "migrated_at", None)
+    submitted = getattr(stored, "created_at", None)
+    if (
+        marker.get("kind") not in ("webhook", "email")
+        or marker.get("was_enabled") != "true"
+        or moved_at is None
+        or submitted is None
+    ):
+        return False
+    if moved_at.tzinfo is None:
+        moved_at = moved_at.replace(tzinfo=dt.timezone.utc)
+    if submitted.tzinfo is None:
+        submitted = submitted.replace(tzinfo=dt.timezone.utc)
+    return submitted < moved_at
 
 
 def _only(settings_by_action, action_id):
@@ -140,7 +167,9 @@ class ActionService:
         entries = {
             str(entry.id): entry
             for entry in (form.actions.get(Trigger.on_submit) or [])
-            if entry.enabled
+            # a moved built-in action never runs on the executor again, switched
+            # on or not: its webhook or email action delivers
+            if entry.enabled and not entry_moved(entry)
         }
         submission_actions = [entry.id for entry in entries.values()]
         if len(submission_actions) == 0:
@@ -226,16 +255,16 @@ class ActionService:
         form_document = await self.form_repo.get_form_document_by_id(str(form_id))
         if form_document is None:
             return False
-        on_submit = (form_document.actions or {}).get(Trigger.on_submit) or []
-        if not any(
-            str(configured.id) == str(action_id) and configured.enabled
-            for configured in on_submit
-        ):
-            return False
         stored = await self.form_response_service.workspace_response(
             workspace_id, str(response_id)
         )
-        return stored is not None and str(stored.form_id) == str(form_id)
+        if stored is None or str(stored.form_id) != str(form_id):
+            return False
+        on_submit = (form_document.actions or {}).get(Trigger.on_submit) or []
+        return any(
+            str(configured.id) == str(action_id) and entry_in_force(configured, stored)
+            for configured in on_submit
+        )
 
     async def action_run_context(
         self,
@@ -276,16 +305,17 @@ class ActionService:
         latest = await self.form_repo.get_latest_version_of_form(RecordId(str(form_id)))
         if form_document is None or latest is None:
             return None
-        on_submit = (form_document.actions or {}).get(Trigger.on_submit) or []
-        if not any(
-            str(configured.id) == str(action_id) and configured.enabled
-            for configured in on_submit
-        ):
-            return None
         stored = await self.form_response_service.workspace_response(
             workspace_id, str(response_id)
         )
         if stored is None or str(stored.form_id) != str(form_id):
+            return None
+        on_submit = (form_document.actions or {}).get(Trigger.on_submit) or []
+        if not any(
+            str(configured.id) == str(action_id)
+            and entry_in_force(configured, stored)
+            for configured in on_submit
+        ):
             return None
         action = await self.action_repository.get_action_by_id(action_id)
         if action is None:

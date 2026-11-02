@@ -53,6 +53,7 @@ from backend.app.models.template import StandardTemplateSetting
 from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.actions_service import ActionService
+from backend.app.services.builtin_actions.marks import executor_sources
 from backend.app.services.ai.notice_token import stamp_response as stamp_ai_notice
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
@@ -1902,6 +1903,9 @@ class WorkspaceFormService:
                     form_id=str(form_id),
                     response_id=str(form_response.response_id),
                 )
+        # what the executor was given in this submission's own snapshot of the
+        # form: a webhook or an email action that replaced one of those skips it
+        executor_handled = executor_sources(form.actions)
         if self._webhook_service is not None:
             # one log row and one job (by log id) per enabled webhook: nothing
             # external, never fails the submission (services/webhooks/service.py)
@@ -1912,6 +1916,7 @@ class WorkspaceFormService:
                     response_id=str(form_response.response_id),
                     form=latest_version_of_form,
                     answers=form_response.answers,
+                    executor_handled=executor_handled,
                 )
         if self._email_action_service is not None:
             # one log row and one job (by log id) per mail: nothing external,
@@ -1925,6 +1930,7 @@ class WorkspaceFormService:
                     response_id=str(form_response.response_id),
                     form=latest_version_of_form,
                     answers=form_response.answers,
+                    executor_handled=executor_handled,
                     # the copy goes only to the verified account email of a
                     # signed-in respondent who did not submit anonymously
                     verified_account_id=verified_account_id_of(
