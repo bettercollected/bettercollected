@@ -105,8 +105,7 @@ containers. The start log says which it is:
    1. set `ACTION_EXECUTOR_KEY_ALLOWED=false` on the **executor**. Under `ACTION_ISOLATION=enforce` it then refuses to start
       while `AES_HEX_KEY` is set, so a leftover key cannot sit next to the API key;
    2. once every executor is 4.3 and has restarted, set `ACTION_SECRETS_SEALED_ALLOWED=false` on the **backend**. The sealed run
-      context (what an executor older than 4.3 asks for) and the key-only credential write-back
-      `PATCH /temporal/forms/{f}/actions/{a}/secrets` are then refused with `426` and a line in the backend's log naming the
+      context (what an executor older than 4.3 asks for) is then refused with `426` and a line in the backend's log naming the
       setting, so an old executor that still holds the key fails loudly instead of running quietly. An executor of 4.3 is not
       affected: it asks for opened secrets and writes back on the run-scoped route.
    Both default to `true` so that the upgrade itself changes nothing; to go back, set them to `true` again. The Temporal
@@ -134,7 +133,11 @@ Postgres and the Temporal entry points) and a warning at every run.
 | `ACTION_SANDBOX_MAX_CALLS` | 20 | outside calls per run |
 
 The backend's `ACTION_SECRETS_SEALED_ALLOWED` (default `true`; `false` at the 4.3 deploy, see the operator steps) refuses the
-sealed run context and the key-only credential write-back with `426`.
+sealed run context with `426`.
+
+The key-only credential write-back `PATCH /temporal/forms/{f}/actions/{a}/secrets` of executors older than 4.3 was removed in 4.4
+(it answers `404`): **the executor must be 4.3 or later before the backend is 4.4**. An older executor that refreshes a Google
+credential can no longer store it, so the run keeps working only until the stored access token expires.
 
 ## Known limits
 
