@@ -36,6 +36,7 @@ from backend.app.public_api.models import (
 )
 from backend.app.services.api_access import (
     SCOPE_PERMISSIONS,
+    key_may_use_form,
     require_key_on_form,
     restrict_to_key_visible,
 )
@@ -188,6 +189,16 @@ async def _require_form(caller: ApiCaller, form_id: str) -> None:
     )
     if association is None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found")
+
+
+async def _may_read_response_of(
+    caller: ApiCaller, form_id: str, response_form_id: str
+) -> bool:
+    """Whether a response found by id belongs to the form of the path and the
+    key may read that form's answers."""
+    return response_form_id == form_id and await key_may_use_form(
+        caller.key, caller.scope or "responses:read", response_form_id
+    )
 
 
 def _summary(kind: str, response: JSONResponse) -> Dict[str, Any]:
@@ -713,7 +724,13 @@ async def get_response(
     caller: ApiCaller = Depends(api_key("responses:read", "api:get_response")),
 ):
     await _require_form(caller, form_id)
-    detail = await response_detail(caller.workspace_id, response_id)
+    # a response of another form, or of one the key may not read, is never
+    # decrypted: it is decided on its form first
+    detail = await response_detail(
+        caller.workspace_id,
+        response_id,
+        may_read=lambda found: _may_read_response_of(caller, form_id, found),
+    )
     if detail is None or detail["formId"] != form_id:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, content="Response not found"
@@ -836,8 +853,11 @@ async def create_submission_endpoint(
     _object_id(form_id)
     # a key that may not write to this form must not spend the form's budget
     ensure_form_allowed(caller.key, form_id)
-    # and a form closed to the key's creator is a 404, before it spends a budget
-    await require_key_on_form(caller.key, SUBMISSIONS_SCOPE, form_id)
+    # and a form closed to the key's creator, or not there, is the same 404,
+    # before it spends a budget
+    await require_key_on_form(
+        caller.key, SUBMISSIONS_SCOPE, form_id, must_exist=True
+    )
     await form_budget(caller, form_id)
     body = await read_document_bytes(request)
 
@@ -886,8 +906,11 @@ async def update_submission_endpoint(
     _object_id(form_id)
     # a key that may not write to this form must not spend the form's budget
     ensure_form_allowed(caller.key, form_id)
-    # and a form closed to the key's creator is a 404, before it spends a budget
-    await require_key_on_form(caller.key, SUBMISSIONS_SCOPE, form_id)
+    # and a form closed to the key's creator, or not there, is the same 404,
+    # before it spends a budget
+    await require_key_on_form(
+        caller.key, SUBMISSIONS_SCOPE, form_id, must_exist=True
+    )
     await form_budget(caller, form_id)
     body = await read_document_bytes(request)
 
