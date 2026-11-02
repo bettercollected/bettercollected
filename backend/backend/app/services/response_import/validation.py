@@ -3,7 +3,7 @@
 ``check_submission`` runs the building blocks the submission path runs
 (``WorkspaceFormService.submit_response``), in the same order, on answers
 read from a CSV file: repeating-group structure, calculated values and field
-rules, Required, types, answer rules, choice logic and option sources
+rules, Required, types, answer rules and choice logic
 (``calculate_and_check``), the ending the answers reach, and date rules. It
 returns the problems instead of raising. The shape (``form, answers ->
 answers, ending, problems``) is deliberately small: a server-side caller that
@@ -14,7 +14,11 @@ test_parity.py`` holds one fixture set both paths must agree on.
 An import always enforces: ``RESPONSE_VALIDATION_ENFORCE`` softens the rollout
 of respondent validation and never applies here. Signatures are not part of it
 (a typed one is checked as a shape by ``check_answers``; a drawn one cannot be
-imported), nor are files.
+imported), nor are files. Questions whose options come from a list or another
+question (option sources) are not importable in 4.3 (``targets.py`` leaves them
+out of the mapping): the submit path's ``OptionSourceService.apply`` step, which
+checks the chosen option is offered and writes the label snapshot, is not run
+here.
 """
 
 from dataclasses import dataclass

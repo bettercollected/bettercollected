@@ -35,8 +35,8 @@ columns are recognised and its cells are read back exactly as the export wrote t
 | Question | Cell |
 |---|---|
 | text, email, link, phone | the text |
-| number, rating | `12`, `12.5`, `12,5` (a decimal comma); no thousands separators |
-| date, day | `YYYY-MM-DD`, also `DD-MM-YYYY`, `DD/MM/YYYY`, `DD.MM.YYYY` |
+| number, rating | `12`, `12.5`; `12,5` only in a file separated by `;` (in a file separated by commas a comma in a number is refused: `1,234` is never read as 1.234); no thousands separators |
+| date, day | `YYYY-MM-DD`, also `DD-MM-YYYY`, `DD/MM/YYYY`, `DD.MM.YYYY`: always day first (a file saved by a month-first spreadsheet swaps day and month for days up to 12) |
 | time | `HH:MM` |
 | currency | `EUR 12.50`; a bare amount only when the question allows one currency |
 | date range | `YYYY-MM-DD/YYYY-MM-DD` (either side may be empty) |
@@ -74,11 +74,12 @@ An empty cell is no answer (Required decides). The export's formula guard (a lea
 `services/response_import/validation.py` `check_submission(published, draft, answers,
 hidden_values, form_id=...)` runs, in the submission path's own order, `validate_group_answers`,
 `drop_hidden_group_answers`, `drop_draft_calculations`, `calculate_and_check` (field rules,
-calculated values, Required, types, answer rules, choice logic, option sources; with `enforce=True`,
+calculated values, Required, types, answer rules, choice logic; with `enforce=True`,
 so `RESPONSE_VALIDATION_ENFORCE` never softens an import), `reached_ending_id` and the date
 rules, and returns the problems instead of raising. `tests/app/response_import/test_parity.py` runs one
 fixture set through the respondent submission and through it and requires the same verdict.
 The submissions API can call the same function; `submit_response` calling it too is a follow-up.
+Questions whose options come from a list or another question (option sources) cannot be imported in 4.3: they are left out of the mapping with a note, because the submit path's `OptionSourceService.apply` step (the chosen option is offered now; the label snapshot) is not run by the import.
 
 ## Routes
 
@@ -87,12 +88,12 @@ and `CSV_IMPORT_ENABLED` (else 404). Answers are `Cache-Control: no-store`.
 
 | Route | What it does |
 |---|---|
-| `POST /` | The file as the body. 201 with the import: `headers`, the form's `targets`, the suggested `mapping` and `notes`. |
+| `POST /` | The file as the body, `Content-Type: text/csv` only (a type a cross-site page cannot send without a preflight). 201 with the import: `headers`, the form's `targets`, the suggested `mapping` and `notes`. |
 | `GET /` | The form's imports, newest first. |
 | `GET /{id}` | One import; `targets` while its file waits. |
-| `POST /{id}/check` | `{mapping, skipInvalidRows}`: queue a dry run (202). |
+| `POST /{id}/check` | `{mapping, skipInvalidRows}`, `application/json`: queue a dry run (202). |
 | `POST /{id}/run` | `{mapping, skipInvalidRows, confirmedLawfulBasis}`: queue the import (202). |
-| `POST /{id}/rollback` | Delete what a completed import created, within 14 days of its end. |
+| `POST /{id}/rollback` | `application/json`: delete what a completed import created, within 14 days of its end (the delete comes first, so a failed undo is asked again). It also deletes staff notes and updates added to those responses since. |
 | `DELETE /{id}` | Discard an upload that is not being processed; its file is deleted. |
 
 Errors carry a `code`: `unsupported_format` (415), `too_large`, `too_many_rows` (413),
@@ -106,10 +107,12 @@ Errors carry a `code`: `unsupported_format` (415), `too_large`, `too_many_rows` 
 
 The upload waits **encrypted** in `response_import_files` (the responses' keyset; the context
 names the import, and the key is bound to the workspace and the form), never on disk, never in a
-job argument or a log line. It is deleted when the job ends in any outcome, when the importer
-discards it, with the form or the workspace, and at the latest an hour after it was uploaded (the
-hourly `response_import_sweep`, which runs whether or not the switch is on). The job's only argument is
-the import id.
+job argument or a log line; its heading cells are kept encrypted beside it, never on the import
+row (a file without a heading row would otherwise put a person's data there in clear). It is
+deleted when the job ends in any outcome, when the importer discards it, with the form or the
+workspace, and, when nothing used it, an hour after it was uploaded: the hour is set at the upload
+and a check or a run never extends it (the hourly `response_import_sweep`, which runs whether or
+not the switch is on, deletes what is left). The job's only argument is the import id.
 
 One `response_imports` row per import is the audit entry and the job state: who (`deleted-user`
 after an account is deleted), the form, the counts, the status and outcome code, the mapping as
@@ -119,9 +122,11 @@ title; the file's headings are kept only while its file is.
 
 ## Limits and jobs
 
+The switch also stops work already queued: a job that finds `CSV_IMPORT_ENABLED` off ends `cancelled` (`switched_off`) and nothing is stored, so the jobs worker needs the same `CSV_IMPORT_ENABLED` as the backend (as for webhooks and email actions). A 5 MiB body has to pass the reverse proxy in front of the API (nginx defaults to 1 MiB: raise `client_max_body_size` for the API before turning the switch on).
+
 10 uploads per user and form per hour; one import being checked, queued or run per form (a partial
 unique index); at most 2 per workspace. The job runs on the `exports` queue (served by the
-backend's jobs worker, so no `JOBS_QUEUES` change). It reads and stores 100 rows at a time, beats
+backend's jobs worker, so no `JOBS_QUEUES` change). It reads and stores 25 rows at a time, beats
 (`heartbeat_at`) at least every 20 seconds, and owns the import only while its claim is current. The
 sweep queues an import no worker took after 2 minutes, fails one that waited an hour
 (`queue_timeout`) and one whose worker died three times (`worker_lost`), undoing what it stored. All

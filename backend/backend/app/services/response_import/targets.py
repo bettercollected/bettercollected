@@ -61,6 +61,7 @@ IGNORED_RESPONSE_ID = "response_id_ignored"
 IGNORED_CALCULATED = "calculated_ignored"
 IGNORED_GROUP_ROWS = "group_rows_ignored"
 UNSUPPORTED_TYPE = "type_unsupported"
+UNSUPPORTED_OPTION_SOURCE = "option_source_unsupported"
 
 
 @dataclass
@@ -95,6 +96,11 @@ def _field_status(field_: Dict[str, Any]) -> tuple:
     kind = field_.get("type")
     if kind == "calculated":
         return STATUS_IGNORED, IGNORED_CALCULATED
+    properties = field_.get("properties")
+    if isinstance(properties, dict) and properties.get("option_source"):
+        # the options come from a list or another question: the submit path
+        # resolves them (OptionSourceService.apply), the import does not (4.3)
+        return STATUS_UNSUPPORTED, UNSUPPORTED_OPTION_SOURCE
     if kind in SIMPLE_TYPES:
         return STATUS_OK, None
     return STATUS_UNSUPPORTED, UNSUPPORTED_TYPE

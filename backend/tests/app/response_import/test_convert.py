@@ -26,13 +26,13 @@ def field(kind, **properties):
     return {"id": "q", "type": kind, "properties": properties}
 
 
-def slot(kind, text, **properties):
-    return convert_cell(field(kind, **properties), text, NOW)
+def slot(kind, text, comma=False, **properties):
+    return convert_cell(field(kind, **properties), text, NOW, comma)
 
 
-def problem(kind, text, **properties):
+def problem(kind, text, comma=False, **properties):
     with pytest.raises(CellProblem) as caught:
-        slot(kind, text, **properties)
+        slot(kind, text, comma, **properties)
     return caught.value.code
 
 
@@ -47,7 +47,8 @@ def test_the_formula_guard_is_taken_off_once():
     assert clean("'  =x") == "=x"
     # an apostrophe the export would not have added is data
     assert clean("'tis") == "'tis"
-    assert clean("''=x") == "''=x"
+    # the export guards a real "'=x" as "''=x": one apostrophe comes off
+    assert clean("''=x") == "'=x"
     assert clean("plain") == "plain"
 
 
@@ -64,8 +65,18 @@ def test_text_like_questions():
     [("30", 30), ("-4", -4), ("12.5", 12.5), ("12,5", 12.5), ("0", 0), ("7.0", 7)],
 )
 def test_numbers(text, value):
-    answer = slot("number", text)
+    answer = slot("number", text, comma=True)
     assert answer["number"] == value and isinstance(answer["number"], type(value))
+
+
+def test_a_comma_is_a_decimal_point_only_in_a_file_separated_by_semicolons():
+    assert slot("number", "12,5", comma=True)["number"] == 12.5
+    # in a comma-separated file "1,234" is a thousand, never 1.234
+    assert problem("number", "1,234") == "invalid_number"
+    assert problem("number", "12,5", comma=False) == "invalid_number"
+    assert slot("number", "1234")["number"] == 1234
+    assert problem("currency", "EUR 12,50") == "invalid_amount"
+    assert slot("currency", "EUR 12,50", comma=True)["currency"]["amount"] == "12.50"
 
 
 @pytest.mark.parametrize("text", ["1,234.5", "abc", "1e5", "--1", "1 2", "٣"])
@@ -97,7 +108,7 @@ def test_times():
 def test_currency():
     assert slot("currency", "EUR 12.50")["currency"] == {"code": "EUR", "amount": "12.50"}
     assert slot("currency", "gbp 3")["currency"] == {"code": "GBP", "amount": "3"}
-    assert slot("currency", "EUR 12,50")["currency"] == {"code": "EUR", "amount": "12.50"}
+    assert slot("currency", "EUR 12,50", comma=True)["currency"] == {"code": "EUR", "amount": "12.50"}
     assert slot("currency", "-4.5", currencies=["EUR"])["currency"] == {"code": "EUR", "amount": "-4.5"}
     assert problem("currency", "12.50") == "currency_missing"
     assert problem("currency", "12.50", currencies=["EUR", "GBP"]) == "currency_missing"
@@ -226,3 +237,32 @@ def test_the_guard_pattern_is_the_exports():
     for value in ("=1", "+1", "-a", "@a", "\tx", "\rx", "  =x"):
         assert table.formula_safe_cell(value) == f"'{value}"
         assert clean(table.formula_safe_cell(value)) == value.strip()
+
+
+def test_a_real_leading_apostrophe_survives_the_export_and_back():
+    # the export guards a value that is itself an apostrophe and a formula
+    for value in ("'=x", "''=x", "'+31 6", "'-abc", "'@home", "=x", "+31 6", "tis", "'tis", "'", "'-5", "-5"):
+        assert clean(table.formula_safe_cell(value)) == value.strip(), value
+
+
+def test_a_cell_of_garbage_choices_is_read_in_bounded_time():
+    import time
+
+    options = [{"id": f"c{i}", "value": f"Option {i}"} for i in range(60)]
+    field_ = field("multiple_choice", choices=options, allow_multiple_selection=True, allow_other_choice=True)
+    cell = "; ".join(f"nothing{i}" for i in range(190))
+    started = time.perf_counter()
+    answer = convert_cell(field_, cell, NOW)
+    assert time.perf_counter() - started < 0.5
+    assert len(answer["choices"]["other"].split("; ")) == 190
+
+
+def test_a_cell_of_blanks_in_an_address_is_refused_not_searched():
+    import time
+
+    started = time.perf_counter()
+    with pytest.raises(CellProblem):
+        parse_address("a" + " " * 8000 + "b")
+    assert time.perf_counter() - started < 0.2
+    with pytest.raises(CellProblem):
+        convert_cell(field("address"), "Street " + " " * 5000 + " 12", NOW)

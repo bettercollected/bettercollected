@@ -7,7 +7,7 @@ import datetime as dt
 import hashlib
 from typing import Callable, List, Optional, Sequence
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 
 from backend.app.schemas.response_import import (
@@ -220,18 +220,26 @@ class PostgresResponseImportRepository(RecordRepository):
         user replaced by ``DELETED_ACTOR``; an upload it still had waiting is
         deleted, a job of it that is running is told to stop."""
         changed = 0
-        for found in await self.many(ResponseImportRow.actor_id == _id(user_id)):
+        uid = _id(user_id)
+        mine = or_(
+            ResponseImportRow.actor_id == uid,
+            ResponseImportRow.doc["rolled_back_by"].astext == uid,
+        )
+        for found in await self.many(mine):
 
             def change(document: ResponseImportDocument):
-                if document.actor_id != _id(user_id):
-                    return None
-                if document.status == ImportStatus.RUNNING:
-                    document.invalidated_at = utcnow()
-                elif document.status in (ImportStatus.UPLOADED, ImportStatus.CHECKED):
-                    document.status = ImportStatus.DISCARDED
-                    document.headers = []
-                document.actor_id = DELETED_ACTOR
-                return document
+                touched = False
+                if document.rolled_back_by == uid:
+                    document.rolled_back_by = DELETED_ACTOR
+                    touched = True
+                if document.actor_id == uid:
+                    if document.status == ImportStatus.RUNNING:
+                        document.invalidated_at = utcnow()
+                    elif document.status in (ImportStatus.UPLOADED, ImportStatus.CHECKED):
+                        document.status = ImportStatus.DISCARDED
+                    document.actor_id = DELETED_ACTOR
+                    touched = True
+                return document if touched else None
 
             # ``touch=False``: only the user is replaced, a queued job keeps its age
             updated = await self.update_locked(found.id, change, touch=False)

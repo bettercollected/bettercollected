@@ -26,6 +26,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import datetime as dt
+import json
 from dataclasses import dataclass, field
 from http import HTTPStatus
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
@@ -104,6 +105,31 @@ class _Stopped(Exception):
     """The importer's account was deleted while the job ran."""
 
 
+class _OverBudget(Exception):
+    """The job ran past ``limits.JOB_MAX_SECONDS``."""
+
+
+class _Problems:
+    """The problems of a run: exact totals per code, the first ``PROBLEMS_LISTED``
+    kept as they come (a file of nothing but problems never fills memory)."""
+
+    def __init__(self) -> None:
+        self.listed: List[Dict[str, Any]] = []
+        self.counts: Dict[str, int] = {}
+        self.total = 0
+
+    def add(self, problems: List[Dict[str, Any]]) -> None:
+        for problem in problems:
+            self.total += 1
+            self.counts[problem["code"]] = self.counts.get(problem["code"], 0) + 1
+            if len(self.listed) < limits.PROBLEMS_LISTED:
+                self.listed.append(problem)
+
+    @property
+    def truncated(self) -> bool:
+        return self.total > len(self.listed)
+
+
 def disabled_error() -> HTTPException:
     """A switched-off import answers like a route that does not exist."""
     return HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Not Found")
@@ -138,6 +164,8 @@ class Plan:
     form_id: str
     known_ids: set
     workspace_form_settings: Any = None
+    # a comma in a number is a decimal point only in a file separated by ";"
+    decimal_comma: bool = False
     # field id (or group key) -> CSV column, to say which cell a problem is in
     column_of_field: Dict[str, int] = field(default_factory=dict)
     column_of_key: Dict[str, int] = field(default_factory=dict)
@@ -145,7 +173,9 @@ class Plan:
     first_column_of_group: Dict[str, int] = field(default_factory=dict)
 
     @classmethod
-    def make(cls, columns, published, draft, form_id, workspace_form_settings=None) -> "Plan":
+    def make(
+        cls, columns, published, draft, form_id, workspace_form_settings=None, decimal_comma: bool = False
+    ) -> "Plan":
         plan = cls(
             columns=columns,
             published=published,
@@ -153,6 +183,7 @@ class Plan:
             form_id=str(form_id),
             known_ids=known_ids_of(draft, published),
             workspace_form_settings=workspace_form_settings,
+            decimal_comma=decimal_comma,
         )
         for index, target in columns:
             plan.column_of_key[target.key] = index
@@ -213,7 +244,7 @@ def process_row(
                 if text:
                     outcome.hidden[target.key.split(":", 1)[1]] = text
                 continue
-            answer = convert_cell(target.definition, raw, now_iso)
+            answer = convert_cell(target.definition, raw, now_iso, plan.decimal_comma)
             if answer is None:
                 continue
             if target.kind == "internal":
@@ -324,24 +355,27 @@ class ResponseImportService:
         if not self._enabled():
             raise disabled_error()
 
-    async def _authorize(self, user: User, workspace_id: RecordId) -> None:
-        await self._authorization.authorize(user, Permission.RESPONSE_IMPORT, workspace_id)
+    async def _authorize(self, user: User, workspace_id: RecordId, form_id: Optional[str] = None) -> None:
+        """403 without ``response.import``; with ``form_id``, 404 unless that exact
+        id is a form of the workspace (never a custom URL: the export's rule)."""
+        await self._authorization.authorize(user, Permission.RESPONSE_IMPORT, workspace_id, form_id=form_id)
 
-    async def ensure_allowed(self, workspace_id: RecordId, user: User) -> None:
+    async def ensure_allowed(self, workspace_id: RecordId, user: User, form_id: Optional[str] = None) -> None:
         """The switch and the permission, before a body is read."""
         self._ensure_enabled()
-        await self._authorize(user, workspace_id)
+        await self._authorize(user, workspace_id, form_id)
 
     async def _context(self, workspace_id: RecordId, form_id: str):
         """The form an import goes into: ``(workspace form, published version,
         draft)``. 404 for a form of another workspace, 409 for one that is not
         collected here or has never been published."""
-        workspace_form = await self._workspace_forms.get_workspace_form_in_workspace(
-            workspace_id=workspace_id, query=str(form_id)
-        )
-        if workspace_form is None:
+        # by the form's own id only: the lookup by id or custom URL would let a
+        # custom URL equal to another workspace's form id reach that form
+        workspace_form = await self._workspace_forms.find_workspace_form(workspace_id, str(form_id))
+        if workspace_form is None or str(workspace_form.form_id) != str(form_id):
             raise HTTPException(HTTPStatus.NOT_FOUND, FORM_NOT_FOUND)
-        draft = await self._forms.get_form_document_by_id(str(form_id))
+        form_id = str(workspace_form.form_id)
+        draft = await self._forms.get_form_document_by_id(form_id)
         if draft is None:
             raise HTTPException(HTTPStatus.NOT_FOUND, FORM_NOT_FOUND)
         provider = getattr(getattr(workspace_form, "settings", None), "provider", None)
@@ -351,7 +385,7 @@ class ResponseImportService:
                 "form_not_importable",
                 "Responses can only be imported into a form collected here.",
             )
-        published = await self._forms.get_latest_version_of_form(form_id=RecordId(str(form_id)))
+        published = await self._forms.get_latest_version_of_form(form_id=RecordId(form_id))
         if published is None:
             raise _error(
                 HTTPStatus.CONFLICT,
@@ -387,6 +421,35 @@ class ResponseImportService:
             context=self._context_bytes(document.workspace_id, document.form_id, document.id),
         )
 
+    def _seal_headers(self, document: ResponseImportDocument, headers: List[str]) -> str:
+        sealed = self._crypto.encrypt(
+            document.workspace_id,
+            document.form_id,
+            json.dumps(headers).encode(),
+            context=b"import-headers|" + str(document.id).encode(),
+        )
+        return base64.b64encode(sealed).decode()
+
+    async def _headers_of(self, document: ResponseImportDocument) -> List[str]:
+        """The file's heading cells while its file waits, read from the encrypted
+        file (never kept on the import row); none once the file is gone."""
+        if not document.status.has_file:
+            return []
+        file = await self._imports.get_file(document.id)
+        if file is None or not file.headers_sealed:
+            return []
+        try:
+            plain = self._crypto.decrypt(
+                document.workspace_id,
+                document.form_id,
+                base64.b64decode(file.headers_sealed),
+                context=b"import-headers|" + str(document.id).encode(),
+            )
+            found = json.loads(plain)
+        except Exception:  # noqa: BLE001 - the screens show "column N" instead
+            return []
+        return [h for h in found if isinstance(h, str)] if isinstance(found, list) else []
+
     async def _mine(self, workspace_id, form_id, import_id) -> ResponseImportDocument:
         found = await self._imports.get(workspace_id, str(form_id), import_id)
         if found is None:
@@ -411,7 +474,6 @@ class ResponseImportService:
             if document.status not in (ImportStatus.UPLOADED, ImportStatus.CHECKED):
                 return None
             document.status = status
-            document.headers = []
             document.finished_at = self._clock()
             document.expires_at = None
             return document
@@ -422,7 +484,13 @@ class ResponseImportService:
         return updated
 
     # ----------------------------------------------------------------- presenting
-    def present(self, document: ResponseImportDocument, user: User, targets: Optional[List[Target]] = None) -> Dict[str, Any]:
+    def present(
+        self,
+        document: ResponseImportDocument,
+        user: User,
+        targets: Optional[List[Target]] = None,
+        headers: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
         """The import as the API shows it (camelCase)."""
         window_end = (
             document.finished_at + limits.ROLLBACK_WINDOW
@@ -439,7 +507,7 @@ class ResponseImportService:
             "separator": document.separator,
             "rowCount": document.row_count,
             "columnCount": document.column_count,
-            "headers": document.headers,
+            "headers": headers or [],
             "mapping": document.mapping,
             "options": document.options,
             "rowsValid": document.rows_valid,
@@ -486,7 +554,7 @@ class ResponseImportService:
         without ``response.import``, 413/415/422 for a file that cannot be
         imported (a code, never a value from it), 429 over the rate limit."""
         self._ensure_enabled()
-        await self._authorize(user, workspace_id)
+        await self._authorize(user, workspace_id, form_id)
         _, published, draft = await self._context(workspace_id, form_id)
         await self._take_rate_limit(workspace_id, form_id, str(user.id))
         try:
@@ -511,7 +579,6 @@ class ResponseImportService:
             separator=parsed.separator,
             row_count=len(parsed.rows),
             column_count=len(parsed.headers),
-            headers=parsed.headers,
             form_version=getattr(published, "version", None),
             mapping=mapping,
             notes=notes,
@@ -525,12 +592,13 @@ class ResponseImportService:
                     workspace_id=workspace_id,
                     form_id=str(form_id),
                     data=await run_in_threadpool(self._seal, document, data),
+                    headers_sealed=self._seal_headers(document, parsed.headers),
                 )
             )
         except BaseException:
             await self._imports.delete_by_id(document.id)
             raise
-        return self.present(document, user, targets)
+        return self.present(document, user, targets, parsed.headers)
 
     def _refusal(self, refused: CsvRefused) -> HTTPException:
         status = {
@@ -558,19 +626,35 @@ class ResponseImportService:
                 **{"Retry-After": str(verdict.retry_after)},
             )
 
+    async def _take_run_limit(self, workspace_id: RecordId, form_id: str, actor_id: str) -> None:
+        """Checks and runs of a form's imports are limited per person too."""
+        verdict = await self._limiter.admit(
+            f"response-import-run:{workspace_id}:{form_id}",
+            actor_id,
+            limits.RUNS_PER_WINDOW,
+            limits.WINDOW_SECONDS,
+        )
+        if not verdict.allowed:
+            raise _error(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                "rate_limited",
+                f"Too many checks of this form's imports. Try again in {verdict.retry_after} seconds.",
+                **{"Retry-After": str(verdict.retry_after)},
+            )
+
     async def get(self, workspace_id: RecordId, form_id: str, import_id: str, user: User) -> Dict[str, Any]:
         self._ensure_enabled()
-        await self._authorize(user, workspace_id)
+        await self._authorize(user, workspace_id, form_id)
         document = await self._mine(workspace_id, form_id, import_id)
         targets = None
         if document.status in (ImportStatus.UPLOADED, ImportStatus.CHECKED):
             _, published, draft = await self._context(workspace_id, form_id)
             targets = self._targets(published, draft)
-        return self.present(document, user, targets)
+        return self.present(document, user, targets, await self._headers_of(document))
 
     async def recent(self, workspace_id: RecordId, form_id: str, user: User) -> List[Dict[str, Any]]:
         self._ensure_enabled()
-        await self._authorize(user, workspace_id)
+        await self._authorize(user, workspace_id, form_id)
         rows = await self._imports.list_for_form(workspace_id, str(form_id))
         out = []
         for row in rows:
@@ -615,7 +699,7 @@ class ResponseImportService:
         confirmed: bool,
     ) -> Dict[str, Any]:
         self._ensure_enabled()
-        await self._authorize(user, workspace_id)
+        await self._authorize(user, workspace_id, form_id)
         document = await self._mine(workspace_id, form_id, import_id)
         if document.status not in (ImportStatus.UPLOADED, ImportStatus.CHECKED):
             if document.status.busy:
@@ -630,6 +714,7 @@ class ResponseImportService:
         _, published, draft = await self._context(workspace_id, form_id)
         targets = self._targets(published, draft)
         checked_mapping = self._validated_mapping(mapping, targets, document.column_count)
+        await self._take_run_limit(workspace_id, form_id, str(user.id))
         now = self._clock()
 
         def change(row: ResponseImportDocument):
@@ -647,7 +732,8 @@ class ResponseImportService:
             row.attempts = 0
             row.started_at = row.heartbeat_at = row.finished_at = None
             row.error_code = None
-            row.expires_at = now + limits.FILE_TTL
+            # the file's hour runs from the upload (set once there): a check or a
+            # run never extends it
             return row
 
         try:
@@ -664,7 +750,7 @@ class ResponseImportService:
         if admitted is None:
             raise _error(HTTPStatus.CONFLICT, "not_ready", "This import can no longer be run.")
         await self._queue(admitted)
-        return self.present(admitted, user)
+        return self.present(admitted, user, headers=await self._headers_of(admitted))
 
     async def check(self, workspace_id, form_id, import_id, user, mapping, options=None) -> Dict[str, Any]:
         """Queue a dry run: every row is read and checked, nothing is stored."""
@@ -683,7 +769,7 @@ class ResponseImportService:
     async def discard(self, workspace_id, form_id, import_id, user) -> None:
         """Throw an upload away before an import ran (its file is deleted)."""
         self._ensure_enabled()
-        await self._authorize(user, workspace_id)
+        await self._authorize(user, workspace_id, form_id)
         document = await self._mine(workspace_id, form_id, import_id)
         if document.status.busy:
             raise _error(HTTPStatus.CONFLICT, "import_in_progress", "This import is being processed.")
@@ -693,40 +779,37 @@ class ResponseImportService:
     async def rollback(self, workspace_id, form_id, import_id, user) -> Dict[str, Any]:
         """Delete the responses a completed import created, within
         ``ROLLBACK_WINDOW`` of its end. 409 ``not_rollbackable`` for an import
-        that is not completed, ``rollback_expired`` past the window."""
+        that is not completed, ``rollback_expired`` past the window. The delete
+        comes first and is idempotent, the status flips after it: a failure in
+        between leaves the import completed, to be undone again."""
         self._ensure_enabled()
-        await self._authorize(user, workspace_id)
+        await self._authorize(user, workspace_id, form_id)
         document = await self._mine(workspace_id, form_id, import_id)
         if document.status != ImportStatus.COMPLETED:
             raise _error(HTTPStatus.CONFLICT, "not_rollbackable", "Only a completed import can be undone.")
         if document.finished_at is None or document.finished_at + limits.ROLLBACK_WINDOW <= self._clock():
             raise _error(HTTPStatus.CONFLICT, "rollback_expired", "This import can no longer be undone.")
         now = self._clock()
-
-        def claim(row: ResponseImportDocument):
-            if row.status != ImportStatus.COMPLETED:
-                return None
-            row.status = ImportStatus.ROLLED_BACK
-            row.rolled_back_by = str(user.id)
-            row.rolled_back_at = now
-            return row
-
-        claimed = await self._imports.update_locked(document.id, claim)
-        if claimed is None:
-            raise _error(HTTPStatus.CONFLICT, "not_rollbackable", "Only a completed import can be undone.")
         scope = await self._responses.scope(workspace_id, [str(form_id)])
         deleted = await self._response_repo.delete_imported(scope, str(document.id))
         if self._export_service is not None:
             # responses of the form were deleted: stored export files go at once
             await self._export_service.forget_files_of_form(workspace_id, str(form_id))
 
-        def count(row: ResponseImportDocument):
+        def done(row: ResponseImportDocument):
+            if row.status != ImportStatus.COMPLETED:
+                return None
+            row.status = ImportStatus.ROLLED_BACK
+            row.rolled_back_by = str(user.id)
+            row.rolled_back_at = now
             row.rolled_back_count = deleted
             return row
 
-        final = await self._imports.update_locked(document.id, count, touch=False)
+        final = await self._imports.update_locked(document.id, done)
+        if final is None:
+            raise _error(HTTPStatus.CONFLICT, "not_rollbackable", "Only a completed import can be undone.")
         logger.info("response import {} rolled back ({} responses)", document.id, deleted)
-        return self.present(final or claimed, user)
+        return self.present(final, user)
 
     # ------------------------------------------------------------------- queueing
     async def _queue(self, document: ResponseImportDocument) -> bool:
@@ -751,6 +834,9 @@ class ResponseImportService:
         except _Superseded:
             found = await self._imports.get_by_id(import_id)
             return found.status.value if found else "missing"
+        except _OverBudget:
+            logger.warning("response import {} ran past its time budget", import_id)
+            outcome = await self._fail(claimed, "time_budget", rollback=True)
         except Exception as error:  # noqa: BLE001
             logger.warning("response import {} failed ({})", import_id, type(error).__name__)
             outcome = await self._fail(claimed, "build_failed", rollback=True)
@@ -830,7 +916,6 @@ class ResponseImportService:
             for key, value in fields.items():
                 setattr(row, key, value)
             if not keep_file:
-                row.headers = []
                 row.expires_at = None
             return row
 
@@ -840,6 +925,10 @@ class ResponseImportService:
         if not keep_file:
             await self._finish_file(document.id)
         return updated.status
+
+    def _check_budget(self, started: dt.datetime) -> None:
+        if self._clock() - started > dt.timedelta(seconds=limits.JOB_MAX_SECONDS):
+            raise _OverBudget()
 
     async def _fail(self, document: ResponseImportDocument, code: str, rollback: bool = False, **fields) -> ImportStatus:
         if rollback and document.mode == ImportMode.IMPORT:
@@ -858,15 +947,16 @@ class ResponseImportService:
         except Exception as error:  # noqa: BLE001 - the failure is recorded either way
             logger.error("could not undo response import {} ({})", document.id, type(error).__name__)
 
-    def _counts(self, problems: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], Dict[str, int], bool]:
-        counts: Dict[str, int] = {}
-        for problem in problems:
-            counts[problem["code"]] = counts.get(problem["code"], 0) + 1
-        return problems[: limits.PROBLEMS_LISTED], counts, len(problems) > limits.PROBLEMS_LISTED
-
     async def _process(self, document: ResponseImportDocument) -> ImportStatus:
         import_id, workspace_id, form_id = document.id, document.workspace_id, document.form_id
         attempt = document.attempts
+        started = self._clock()
+        if document.mode == ImportMode.IMPORT and attempt > 1:
+            # a run presumed dead may have stored rows: this run starts clean,
+            # before it can end any other way (a cancelled retry would leave them)
+            await self._undo(document)
+        if not self._enabled():
+            return await self._end(document, ImportStatus.CANCELLED, "switched_off")
         actor = User(id=document.actor_id, sub=document.actor_id)
         # who asked may no longer be allowed (a role removed since)
         if not await self._authorization.has_permission(actor, Permission.RESPONSE_IMPORT, workspace_id):
@@ -874,9 +964,6 @@ class ResponseImportService:
         file = await self._imports.get_file(import_id)
         if file is None:
             return await self._end(document, ImportStatus.FAILED, "file_gone")
-        if document.mode == ImportMode.IMPORT and attempt > 1:
-            # a run presumed dead may have stored rows: this run starts clean
-            await self._undo(document)
         try:
             workspace_form, published, draft = await self._context(workspace_id, form_id)
         except HTTPException:
@@ -895,11 +982,18 @@ class ResponseImportService:
                 # the form changed since the mapping was made
                 return await self._end(document, ImportStatus.FAILED, "form_changed")
             columns.append((int(column), target))
-        plan = Plan.make(columns, published, draft, form_id, getattr(workspace_form, "settings", None))
+        plan = Plan.make(
+            columns,
+            published,
+            draft,
+            form_id,
+            getattr(workspace_form, "settings", None),
+            decimal_comma=parsed.separator == ";",
+        )
         skip = bool(document.options.get("skipInvalidRows"))
         now = self._clock()
 
-        problems: List[Dict[str, Any]] = []
+        log = _Problems()
         valid = 0
         invalid_rows = 0
         total = len(parsed.rows)
@@ -912,11 +1006,12 @@ class ResponseImportService:
                     valid += 1
                 else:
                     invalid_rows += 1
-                    problems.extend(outcome.problems)
+                    log.add(outcome.problems)
+            self._check_budget(started)
             if self._clock() - last_beat >= limits.HEARTBEAT_EVERY:
                 last_beat = self._clock()
                 await self._beat(import_id, attempt, start + len(batch))
-        listed, counts, truncated = self._counts(problems)
+        listed, counts, truncated = log.listed, log.counts, log.truncated
 
         if document.mode == ImportMode.CHECK:
             return await self._end(
@@ -956,12 +1051,12 @@ class ResponseImportService:
                 problems_truncated=truncated,
             )
         return await self._store(
-            document, parsed, plan, workspace_form, published, now, valid, invalid_rows, listed, counts, truncated
+            document, parsed, plan, workspace_form, published, now, valid, invalid_rows, listed, counts, truncated, started
         )
 
     async def _store(
         self, document, parsed: ParsedCsv, plan: Plan, workspace_form, published, now, valid, invalid_rows,
-        listed, counts, truncated,
+        listed, counts, truncated, started,
     ) -> ImportStatus:
         import_id, workspace_id, form_id = document.id, document.workspace_id, document.form_id
         attempt = document.attempts
@@ -976,6 +1071,7 @@ class ResponseImportService:
             for start in range(0, len(parsed.rows), limits.BATCH_SIZE):
                 batch = parsed.rows[start : start + limits.BATCH_SIZE]
                 outcomes = await run_in_threadpool(process_batch, batch, plan, now, parsed.ragged)
+                self._check_budget(started)
                 await self._beat(import_id, attempt, start)
                 for outcome in outcomes:
                     if not outcome.ok:
@@ -1122,7 +1218,6 @@ class ResponseImportService:
             document.status = ImportStatus.FAILED
             document.error_code = code
             document.finished_at = self._clock()
-            document.headers = []
             document.expires_at = None
             return document
 
