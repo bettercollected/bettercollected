@@ -35,6 +35,7 @@ JOB_NAMES = (
     "register_submission",
     "deliver_webhook",
     "build_response_export",
+    "run_response_import",
     "deliver_email",
 )
 SEARCH_PATH_OPTIONS = "-c search_path=jobs"
