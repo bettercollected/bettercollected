@@ -34,6 +34,8 @@ from backend.app.services.copy_recipient import (
 )
 
 
+from backend.app.services.builtin_actions.sheets import SHEETS_ACTION, runs_in_backend
+
 QUEUE_ATTEMPTS = 3
 QUEUE_RETRY_SECONDS = 0.3
 
@@ -59,6 +61,7 @@ class ActionService:
         workspace_repo=PostgresWorkspaceRepository,
         sheets_reconsent=None,
         crypto=None,
+        sheets_runner=None,
     ):
         self.action_repository = action_repository
         self.form_repo = form_repo
@@ -73,6 +76,9 @@ class ActionService:
         # the Fernet key ring that seals the stored secrets: opens them for an
         # executor that asks (``action_run_context(plain_secrets=True)``)
         self.crypto = crypto
+        # services/builtin_actions/sheets.py: runs the Google Sheets action for
+        # entries the backend took over (``migrated_to`` ``sheets``)
+        self.sheets_runner = sheets_runner
 
     def _opened(self, values, action_id):
         """``values`` (secrets, each sealed) with every value opened, or None.
@@ -131,10 +137,12 @@ class ActionService:
         form_actions = form.actions
         if form_actions is None:
             return
-        submission_actions = form.actions.get(Trigger.on_submit)
-        submission_actions = [
-            action.id for action in submission_actions if action.enabled
-        ]
+        entries = {
+            str(entry.id): entry
+            for entry in (form.actions.get(Trigger.on_submit) or [])
+            if entry.enabled
+        }
+        submission_actions = [entry.id for entry in entries.values()]
         if len(submission_actions) == 0:
             return
         actions = await self.action_repository.get_actions_by_ids(
@@ -157,6 +165,17 @@ class ActionService:
             #                                           params={'google_sheet_id': google_sheet_id[0]},
             #                                           cookies=request.cookies)
             #     print(response)
+            if (
+                self.sheets_runner is not None
+                and getattr(action, "name", None) == SHEETS_ACTION
+                and runs_in_backend(entries.get(str(action.id)))
+            ):
+                # taken over by the backend: a log row and a job by its id, on
+                # the ``integrations`` queue (nothing goes to the executor)
+                await self.sheets_runner.queue_for_submission(
+                    workspace_id, str(form.form_id), str(response.response_id), str(action.id)
+                )
+                continue
             workspace = await self.workspace_repo.get_workspace_with_action_by_id(
                 workspace_id=workspace_id, action_id=action.id
             )

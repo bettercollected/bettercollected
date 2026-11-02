@@ -5,9 +5,9 @@ escaped values and links to this instance's submission pages only."""
 
 from unittest.mock import AsyncMock, patch
 
+import jwt
 import pytest
 
-from auth.app.container import container
 from auth.app.services import notification_service
 from auth.app.services.notification_service import (
     is_allowed_submission_link,
@@ -15,6 +15,7 @@ from auth.app.services.notification_service import (
 )
 from auth.config import settings
 from common.models.user import User
+from common.services.jwt_service import signing_secret
 from tests.integration.conftest import INTERNAL_KEY, without_internal_key
 
 URL = "notifications/submission-update"
@@ -23,11 +24,20 @@ LINK = f"{CLIENT}/acme/submissions/6a0000000000000000000001"
 KEY = INTERNAL_KEY
 
 
-def bearer(user_id="5f0000000000000000000000", key=KEY) -> dict:
-    """A signed-in user's token, plus the backend's internal key unless
-    ``key`` is None."""
+def session_token(typ="access", user_id="5f0000000000000000000000") -> str:
+    """A token the way the backend issues a session's: signed with the ring's
+    first secret, its ``typ`` naming the kind."""
     user = User(id=user_id, sub="staff@example.com", roles=["FORM_CREATOR"])
-    headers = {"Authorization": f"Bearer {container.jwt_service().encode(user)}"}
+    claims = user.model_dump(exclude_none=True)
+    if typ is not None:
+        claims["typ"] = typ
+    return jwt.encode(claims, signing_secret(settings.AUTH_JWT_SECRET), "HS256")
+
+
+def bearer(user_id="5f0000000000000000000000", key=KEY, typ="access") -> dict:
+    """A signed-in user's access token, plus the backend's internal key unless
+    ``key`` is None."""
+    headers = {"Authorization": f"Bearer {session_token(typ, user_id)}"}
     if key is not None:
         headers["X-Internal-Key"] = key
     return headers
@@ -70,6 +80,14 @@ class TestSubmissionUpdateNotice:
             json=notice(),
             headers={**key_only, "Authorization": "Bearer not-a-jwt"},
         )
+        assert response.status_code == 401
+        sent.assert_not_called()
+
+    @pytest.mark.parametrize("typ", ["refresh", "other", "", None])
+    def test_only_an_access_token_is_accepted(self, app_runner, sent, typ):
+        """A refresh token, or a signed token of no known kind, is not a
+        caller's access token."""
+        response = app_runner.post(URL, json=notice(), headers=bearer(typ=typ))
         assert response.status_code == 401
         sent.assert_not_called()
 
