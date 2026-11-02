@@ -36,9 +36,9 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     };
 });
 
-const access: { permissions: string[] } = { permissions: [] };
+const access: { permissions: string[]; revisions?: boolean } = { permissions: [] };
 vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
-    useWorkspacePermissions: () => ({ can: (permission: string) => access.permissions.includes(permission), permissions: new Set(access.permissions), isLoading: false, ready: true })
+    useWorkspacePermissions: () => ({ can: (permission: string) => access.permissions.includes(permission), permissions: new Set(access.permissions), isLoading: false, ready: true, formRevisionsUiEnabled: !!access.revisions })
 }));
 
 const neighbours: { value: { previousId?: string; nextId?: string; position?: number; total?: number }; asked: any[][] } = { value: {}, asked: [] };
@@ -65,6 +65,7 @@ beforeEach(() => {
     server.refetch = vi.fn();
     server.result = loaded();
     access.permissions = [WorkspacePermission.RESPONSE_READ];
+    access.revisions = false;
     openModal.mockReset();
     neighbours.value = {};
     neighbours.asked = [];
@@ -137,6 +138,28 @@ describe('the response page', () => {
         server.result = loaded({ ...RESPONSE, responseId: 'x3' });
         renderPage('x3');
         expect(document.title).toBe('Response · Summer meeting registration');
+    });
+
+    it('names the form version the response was given in, and links it only for form.read behind the switch', () => {
+        server.result = loaded({ ...RESPONSE, formVersion: 3 });
+        const { unmount } = renderPage();
+        const details = () => screen.getByRole('region', { name: 'Response details' });
+        expect(within(details()).getByText('Version 3')).toBeInTheDocument();
+        expect(within(details()).queryByRole('link', { name: /Open version 3/ })).toBeNull();
+        unmount();
+        access.revisions = true;
+        access.permissions = [WorkspacePermission.RESPONSE_READ];
+        const second = renderPage();
+        expect(within(details()).queryByRole('link', { name: /Open version 3/ })).toBeNull();
+        second.unmount();
+        access.permissions = [WorkspacePermission.RESPONSE_READ, WorkspacePermission.FORM_READ];
+        renderPage();
+        expect(within(details()).getByRole('link', { name: 'Open version 3 of the form, read-only' })).toHaveAttribute('href', '/acme/dashboard/forms/form-1/versions/3');
+    });
+
+    it('shows no version for a response that has none (an import)', () => {
+        renderPage();
+        expect(within(screen.getByRole('region', { name: 'Response details' })).queryByText('Form version')).toBeNull();
     });
 
     it('offers the PDF of the response to people who may read it, next to Print', () => {

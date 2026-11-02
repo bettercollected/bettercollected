@@ -52,8 +52,9 @@ export default function FormDashboardLayoutClient({
 
     const isMobile = useIsMobile();
     const isFormOpen = validateFormOpen(reduxStoreForm?.settings?.formCloseDate);
-    const { can } = useWorkspacePermissions();
+    const { can, formRevisionsUiEnabled } = useWorkspacePermissions();
     const canEditForm = can(WorkspacePermission.FORM_EDIT);
+    const canReadForm = can(WorkspacePermission.FORM_READ);
     const canReadResponses = can(WorkspacePermission.RESPONSE_READ);
     const canManagePrivacy = can(WorkspacePermission.PRIVACY_MANAGE);
 
@@ -94,11 +95,15 @@ export default function FormDashboardLayoutClient({
                 tabs.push({ title: t('FORM_SHELL.SHARE_TAB'), path: 'links', matches: ['links'] });
             }
         }
+        // the published versions of the form: list, compare, restore (the server's FORM_REVISIONS_UI_ENABLED)
+        if (form?.isPublished && formRevisionsUiEnabled && can(WorkspacePermission.FORM_READ)) {
+            tabs.push({ title: t('FORM_VERSIONS.TAB'), path: 'versions', matches: ['versions'] });
+        }
         if (canEditForm) {
             tabs.push({ title: t(localesCommon.settings), path: 'settings', matches: ['settings', 'visibility', 'integrations'] });
         }
         return tabs;
-    }, [form, t, isFormOpen, canEditForm, canReadResponses, canManagePrivacy]);
+    }, [form, t, isFormOpen, canEditForm, canReadResponses, canManagePrivacy, formRevisionsUiEnabled, can]);
 
     const handleBackClick = () => {
         router.push(`/${workspace?.workspaceName}/dashboard/forms`);
@@ -256,7 +261,14 @@ export default function FormDashboardLayoutClient({
                     </div>
                     {form?.isPublished && (
                         <div className="border-black-300 text-black-600 mx-4 mt-16 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t py-4 text-[13px] md:mx-10 lg:mx-28">
-                            {typeof (form as any)?.version === 'number' && <span>{t('FORM_SHELL.VERSION', { n: (form as any).version })}</span>}
+                            {typeof (form as any)?.version === 'number' &&
+                                (formRevisionsUiEnabled && canReadForm ? (
+                                    <Link href={`/${params.workspace_name}/dashboard/forms/${params.form_id}/versions`} className="hover:text-black-900 underline decoration-dotted underline-offset-2">
+                                        {t('FORM_SHELL.VERSION', { n: (form as any).version })}
+                                    </Link>
+                                ) : (
+                                    <span>{t('FORM_SHELL.VERSION', { n: (form as any).version })}</span>
+                                ))}
                             {typeof (form as any)?.version === 'number' && <span className="text-black-600">·</span>}
                             <a href={getFormShareURL(workspaceForm ?? form, workspace)} target="_blank" rel="noopener noreferrer" className="hover:text-black-900 underline decoration-dotted underline-offset-2">
                                 {t('FORM_SHELL.OPEN_FORM')}
