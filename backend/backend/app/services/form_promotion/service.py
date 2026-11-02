@@ -881,19 +881,28 @@ class FormPromotionService:
                 access_mode=MODE_RESTRICTED if plan.restricted else None,
             )
         else:
+            written = []
+
+            async def in_write(session) -> None:
+                written.append(True)
+                await self._still_restricted(plan, session)
+
             stored_spec, etag = await self._writer.replace(
                 plan.target_workspace_id,
                 plan.target.form_id,
                 plan.document,
                 [plan.target.etag],
                 user,
-                in_write=lambda session: self._still_restricted(plan, session),
+                in_write=in_write,
             )
             form_id = plan.target.form_id
-        await self._mark(
-            user, source_workspace_id, source_form_id, plan, form_id, stored_spec,
-            adjusted,
-        )
+        # The write's own check ran only when something was written: a replay
+        # (the draft already was this document) writes nothing, so it marks nothing.
+        if plan.target is None or written:
+            await self._mark(
+                user, source_workspace_id, source_form_id, plan, form_id,
+                stored_spec, adjusted,
+            )
         return {
             "formId": str(form_id),
             "workspaceId": str(plan.target_workspace_id),

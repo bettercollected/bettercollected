@@ -79,6 +79,36 @@ describe('which workspaces are offered', () => {
         expect(result.current.failed).toBe(false);
     });
 
+    it('says it failed when every request failed, not that there is no workspace', async () => {
+        served.mine = workspaces(3);
+        served.answer = () => Promise.resolve({ error: { status: 500 } });
+        const { result } = renderHook(() => useTargetWorkspaces(true));
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.failed).toBe(true);
+        expect(result.current.workspaces).toEqual([]);
+    });
+
+    it('is not failed when some answered, even with none where the person can create', async () => {
+        served.mine = workspaces(3);
+        served.answer = (id) => (id === 'ws-0' ? Promise.resolve({ data: { permissions: ['form.read'] } }) : Promise.reject(new Error('down')));
+        const { result } = renderHook(() => useTargetWorkspaces(true));
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.failed).toBe(false);
+        expect(result.current.workspaces).toEqual([]);
+    });
+
+    it('starts no further request once the dialog is closed', async () => {
+        served.mine = workspaces(20);
+        const release: Array<() => void> = [];
+        served.answer = () => new Promise((resolve) => release.push(() => resolve({ data: { permissions: ['form.create'] } })));
+        const { unmount } = renderHook(() => useTargetWorkspaces(true));
+        await waitFor(() => expect(served.calls).toHaveLength(PERMISSION_CHECKS_AT_ONCE));
+        unmount();
+        release.splice(0).forEach((resolve) => resolve());
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        expect(served.calls).toHaveLength(PERMISSION_CHECKS_AT_ONCE);
+    });
+
     it('asks nothing while the dialog is not open', () => {
         served.mine = workspaces(3);
         renderHook(() => useTargetWorkspaces(false));
@@ -100,6 +130,23 @@ describe('runLimited', () => {
         });
         expect(peak).toBe(3);
         expect(done.sort((a, b) => a - b)).toEqual([...Array(25).keys()]);
+    });
+
+    it('starts nothing more once it is told to stop', async () => {
+        let stopped = false;
+        const started: number[] = [];
+        await runLimited(
+            [...Array(10).keys()],
+            2,
+            async (n) => {
+                started.push(n);
+                stopped = true;
+            },
+            undefined,
+            () => stopped
+        );
+        // the two workers that had begun before the first answer; no third item
+        expect(started.length).toBeLessThanOrEqual(2);
     });
 
     it('is fine with nothing to do', async () => {

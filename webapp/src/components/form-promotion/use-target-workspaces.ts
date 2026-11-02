@@ -10,11 +10,14 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 /** How many workspaces' permissions are asked for at once. */
 export const PERMISSION_CHECKS_AT_ONCE = 4;
 
-/** Run `task` over `items` with at most `limit` running at once, in order of start; `each` is called after every one finishes. */
-export async function runLimited<T>(items: T[], limit: number, task: (item: T) => Promise<void>, each?: () => void): Promise<void> {
+/**
+ * Run `task` over `items` with at most `limit` running at once, in order of start; `each` is called after every one finishes.
+ * `stopped` is asked before each item starts: once it says true nothing more is started (the dialog was closed).
+ */
+export async function runLimited<T>(items: T[], limit: number, task: (item: T) => Promise<void>, each?: () => void, stopped?: () => boolean): Promise<void> {
     let next = 0;
     const worker = async () => {
-        while (next < items.length) {
+        while (next < items.length && !stopped?.()) {
             const item = items[next++];
             await task(item);
             each?.();
@@ -59,6 +62,7 @@ export function useTargetWorkspaces(enabled: boolean): TargetWorkspaces {
         let cancelled = false;
         const subscriptions = new Set<{ unsubscribe: () => void }>();
         const allowed = new Map<string, boolean>();
+        let failures = 0;
         setState({ workspaces: [], loading: true, failed: false });
         // at most a few permission requests at a time, however many workspaces there are; each answer shows its workspace at once
         runLimited(
@@ -69,10 +73,13 @@ export function useTargetWorkspaces(enabled: boolean): TargetWorkspaces {
                 subscriptions.add(request);
                 try {
                     const result = await request;
+                    // an answer that is an error (the request failed) is no answer, not "no permission"
+                    if (result?.error || !result?.data) failures += 1;
                     const permissions: string[] = result?.data?.permissions ?? [];
                     allowed.set(workspace.id, permissions.includes(WorkspacePermission.FORM_CREATE));
                 } catch {
                     // one workspace that does not answer is one that is not offered
+                    failures += 1;
                     allowed.set(workspace.id, false);
                 } finally {
                     subscriptions.delete(request);
@@ -81,9 +88,11 @@ export function useTargetWorkspaces(enabled: boolean): TargetWorkspaces {
             },
             () => {
                 if (!cancelled) setState((previous) => ({ ...previous, workspaces: others.filter((w) => allowed.get(w.id)) }));
-            }
+            },
+            () => cancelled
         ).then(() => {
-            if (!cancelled) setState({ workspaces: others.filter((w) => allowed.get(w.id)), loading: false, failed: false });
+            // when every request failed the person sees an error, not "no other workspace where you can create forms"
+            if (!cancelled) setState({ workspaces: others.filter((w) => allowed.get(w.id)), loading: false, failed: others.length > 0 && failures === others.length });
         });
         return () => {
             cancelled = true;

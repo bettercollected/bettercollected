@@ -245,6 +245,9 @@ async def test_a_target_opened_after_the_plan_is_refused_at_the_write(
     assert done.status_code == 409, done.text
     assert done.json() == {"code": "target_not_restricted", "message": MESSAGE}
     assert (await stored_spec(world.b, target))[0]["title"] == "Oud"
+    # nothing marks the target as copied into
+    link = await container.workspace_form_repo().find_workspace_form(world.b.id, target)
+    assert link.settings is None or link.settings.promoted_from is None
 
 
 async def test_a_target_opened_inside_the_write_is_refused_by_the_locked_check(
@@ -276,3 +279,45 @@ async def test_a_target_opened_inside_the_write_is_refused_by_the_locked_check(
     assert done.status_code == 409, done.text
     assert done.json() == {"code": "target_not_restricted", "message": MESSAGE}
     assert (await stored_spec(world.b, target))[0]["title"] == "Oud"
+    # nothing marks the target as copied into
+    link = await container.workspace_form_repo().find_workspace_form(world.b.id, target)
+    assert link.settings is None or link.settings.promoted_from is None
+
+
+async def test_a_write_that_wrote_nothing_marks_nothing(client, world, monkeypatch):
+    """A replay (the target's draft already is the document: the conditional write
+    answers with the stored draft and never runs the in-write check) is not marked
+    as a copy."""
+    target, etag = await _existing_target(world)
+    writer = container.form_spec_writer()
+
+    async def nothing_to_write(**kwargs):
+        return None
+
+    monkeypatch.setattr(writer._workspace_forms, "update_form", nothing_to_write)
+    done = await apply(client, world, targetFormId=target, targetEtag=etag)
+    assert done.status_code == 200, done.text
+    link = await container.workspace_form_repo().find_workspace_form(world.b.id, target)
+    assert link.settings is None or link.settings.promoted_from is None
+
+
+async def test_the_in_write_check_needs_the_conditional_write(world):
+    """``in_write`` runs in the conditional write's transaction: without
+    ``expected_updated_at`` there is none, and a check that would be silently
+    skipped is refused."""
+    from backend.app.services.form_spec import writes
+
+    writer = container.form_spec_writer()
+    _, existing, settings = await writer._load(world.a.id, world.form_id)
+    spec = await writes._checked_spec(spec_document())
+    form = writes._replacement(existing, settings, spec)
+    called = []
+
+    async def check(session):
+        called.append(True)
+
+    with pytest.raises(ValueError, match="in_write needs expected_updated_at"):
+        await container.workspace_form_service().update_form(
+            world.a.id, RecordId(world.form_id), form, testUser, in_write=check
+        )
+    assert called == []
