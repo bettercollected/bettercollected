@@ -24,6 +24,9 @@ RUNS_PER_WINDOW = 30
 JOB_MAX_SECONDS = 20 * 60
 # imports being checked, queued or run per workspace
 WORKSPACE_MAX_JOBS = 2
+# uploads per workspace in a window, whoever uploads (the per-person limit above
+# keeps one person from using it all)
+WORKSPACE_UPLOADS_PER_WINDOW = 30
 # a running job beats at least this often; one silent for STALE_RUNNING_AFTER is dead
 HEARTBEAT_EVERY = dt.timedelta(seconds=20)
 STALE_RUNNING_AFTER = dt.timedelta(minutes=15)
@@ -37,5 +40,5 @@ REDEFER_AFTER = dt.timedelta(minutes=2)
 ROLLBACK_WINDOW = dt.timedelta(days=14)
 # rows older than this are refused as a date typo (a submission time before it)
 OLDEST_SUBMISSION_YEAR = 1990
-# the queue the job runs on (the backend's own worker serves it)
-IMPORTS_QUEUE = "exports"
+# the queue the job runs on (the backend's own worker serves it by default)
+IMPORTS_QUEUE = "imports"

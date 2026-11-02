@@ -87,6 +87,15 @@ class PostgresResponseImportRepository(RecordRepository):
             limit=limit,
         )
 
+    async def list_undo_pending(self, limit: int = 100) -> List[ResponseImportDocument]:
+        """Failed or cancelled imports whose rows could not be deleted."""
+        return await self.many(
+            ResponseImportRow.status.in_([ImportStatus.FAILED.value, ImportStatus.CANCELLED.value]),
+            ResponseImportRow.doc["undo_pending"].astext == "true",
+            order_by=(ResponseImportRow.created_at, ResponseImportRow.id),
+            limit=limit,
+        )
+
     async def waiting_files_of_form(self, workspace_id, form_id) -> List[ResponseImportDocument]:
         """The form's imports whose upload is still held and no worker has."""
         return await self.many(
