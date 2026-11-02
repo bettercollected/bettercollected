@@ -525,3 +525,132 @@ async def test_off_the_key_calls_run_no_more_statements_than_before(
     limits = {**OFF_API_STATEMENTS, **OFF_MCP_STATEMENTS}
     over = {k: (n, limits[k]) for k, n in measured.items() if n > limits[k]}
     assert not over, (over, measured)
+
+
+# -- a closed form and a missing form answer alike, whatever the input ---------------
+
+JSON = {"Content-Type": "application/json"}
+
+
+def _bad_inputs(form_id, response_id):
+    """Requests that are wrong in some way, one kind each: validation that
+    runs before the form is looked at would tell a missing form from a closed
+    one."""
+    f = f"/forms/{form_id}"
+    r = f"{f}/responses/{response_id}"
+    bad_json = {"content": b"{", "headers": JSON}
+    return [
+        ("page=0", "GET", f"{f}/responses?page=0", {}),
+        ("size=0", "GET", f"{f}/responses?size=0", {}),
+        ("page=x", "GET", f"{f}/responses?page=x", {}),
+        ("put without If-Match", "PUT", f, {"json": SPEC}),
+        ("put bad json", "PUT", f, {**bad_json, "headers": {**JSON, "If-Match": '"x"'}}),
+        ("replace preview bad body", "POST", f"{f}/replace/dry-run", {"json": [1]}),
+        ("ops bad json", "POST", f"{f}/ops", bad_json),
+        ("ops bad shape", "POST", f"{f}/ops", {"json": {"ops": "x"}}),
+        ("ops preview bad shape", "POST", f"{f}/ops/dry-run", {"json": {"ops": "x"}}),
+        ("close bad outcome", "POST", f"{r}/deletion-request/close", {"json": {"outcome": "no"}}),
+        ("close no body", "POST", f"{r}/deletion-request/close", {"content": b""}),
+        ("create bad answers", "POST", f"{f}/submissions", {"json": {"answers": 5}}),
+        ("create bad json", "POST", f"{f}/submissions", bad_json),
+        ("create extra member", "POST", f"{f}/submissions", {"json": {"answers": {}, "owner": "x"}}),
+        ("update bad answers", "PATCH", f"{f}/submissions/{response_id}", {"json": {"answers": 5}}),
+        ("update no answers", "PATCH", f"{f}/submissions/{response_id}", {"json": {}}),
+    ]
+
+
+async def test_a_missing_form_and_a_closed_form_answer_alike_for_every_input(
+    client: AsyncClient, world, switch_on
+):
+    ghost_form, ghost_response = _unknown_ids()
+    inputs = _routes(world.closed_id, world.closed_response) + _bad_inputs(
+        world.closed_id, world.closed_response
+    )
+    ghosts = _routes(ghost_form, ghost_response) + _bad_inputs(ghost_form, ghost_response)
+    assert len(inputs) == len(ghosts)
+    for (name, method, path, kw), (_, _, gpath, gkw) in zip(inputs, ghosts):
+        closed = await _call(client, world.token.editor, method, path, **kw)
+        missing = await _call(client, world.token.editor, method, gpath, **gkw)
+        assert (closed.status_code, closed.json()) == (
+            missing.status_code,
+            missing.json(),
+        ), name
+        assert closed.status_code in (403, 404), (name, closed.status_code)
+        # the Admin's key, which may open the closed form, still gets the 404 of
+        # a missing one for every input
+        admin = await _call(client, world.token.admin, method, gpath, **gkw)
+        assert admin.status_code == 404, (name, admin.status_code, admin.text)
+
+
+async def test_neither_a_closed_nor_a_missing_form_spends_the_submission_budget(
+    client: AsyncClient, world, switch_on, monkeypatch
+):
+    from backend.app.public_api import routes
+
+    spent = []
+
+    async def spy(caller, form_id):
+        spent.append(form_id)
+
+    monkeypatch.setattr(routes, "form_budget", spy)
+    ghost_form, ghost_response = _unknown_ids()
+    bad = [
+        ("POST", "/forms/{f}/submissions", {"json": {"answers": 5}}),
+        ("POST", "/forms/{f}/submissions", {"content": b"{", "headers": JSON}),
+        ("PATCH", "/forms/{f}/submissions/" + ghost_response, {"json": {"answers": 5}}),
+    ]
+    for form_id, token in (
+        (world.closed_id, world.token.editor),
+        (ghost_form, world.token.editor),
+        (ghost_form, world.token.admin),
+    ):
+        for method, path, kw in bad:
+            got = await _call(client, token, method, path.format(f=form_id), **kw)
+            assert got.status_code == 404, (path, form_id, got.status_code)
+    assert spent == []
+    # the form's budget is for the keys that may use the form
+    await _call(
+        client,
+        world.token.editor,
+        "POST",
+        f"/forms/{world.open_id}/submissions",
+        json={"answers": 5},
+    )
+    assert spent == [world.open_id]
+
+
+async def test_a_response_outside_the_keys_reach_is_never_decrypted(
+    client: AsyncClient, world, switch_on, monkeypatch
+):
+    from backend.app.services import api_responses
+
+    decrypted = []
+    real = api_responses._decrypted
+
+    def spy(workspace_id, form_id, data):
+        decrypted.append(form_id)
+        return real(workspace_id, form_id, data)
+
+    monkeypatch.setattr(api_responses, "_decrypted", spy)
+    # the response of the closed form, asked for through the open form's path
+    # (a form the key may open) and through its own path (one the Editor's
+    # key may not)
+    for token, form_id in (
+        (world.token.admin, world.open_id),
+        (world.token.editor, world.open_id),
+        (world.token.editor, world.closed_id),
+    ):
+        got = await _call(
+            client, token, "GET", f"/forms/{form_id}/responses/{world.closed_response}"
+        )
+        assert got.status_code == 404, (form_id, got.status_code)
+    assert decrypted == []
+    # while a response of the right form, to a key that may read it, is
+    got = await _call(
+        client,
+        world.token.admin,
+        "GET",
+        f"/forms/{world.closed_id}/responses/{world.closed_response}",
+    )
+    assert got.status_code == 200
+    assert decrypted

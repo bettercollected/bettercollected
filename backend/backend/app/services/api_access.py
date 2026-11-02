@@ -19,6 +19,7 @@ import datetime as dt
 from http import HTTPStatus
 from typing import Dict, Iterable, List, Optional, Tuple
 
+from bson import ObjectId
 from common.models.user import User
 
 from backend.app.exceptions import HTTPException
@@ -104,7 +105,9 @@ async def require_key_scope(
             },
         )
     if form_id is not None:
-        await require_key_on_form(key, scope, form_id)
+        # a call on one form: a form that is not there answers exactly as one
+        # that is closed to the creator, before anything else of the request
+        await require_key_on_form(key, scope, form_id, must_exist=True)
 
 
 async def key_permissions_on_form(
@@ -121,18 +124,20 @@ async def key_permissions_on_form(
 
 
 async def require_key_on_form(
-    key: WorkspaceAPIKeyDocument, scope: str, form_id: str
+    key: WorkspaceAPIKeyDocument, scope: str, form_id: str, must_exist: bool = False
 ) -> None:
     """While form-level access is on: 404 (as for a form that does not exist)
     when the form is closed to the key, 403 when the key can open it but lacks
     a permission ``scope`` needs on it. A form that is not one of the
     workspace's decides nothing here (the creator's workspace-level permissions
-    stand, and the caller's own 404 follows). Switched off: nothing, and no
-    query."""
+    stand, and the caller's own 404 follows), unless ``must_exist``: then it is
+    the very same 404 as for a closed form, so that the answer to any input,
+    good or bad, never tells a missing form from a closed one. Switched off:
+    nothing, and no query."""
     if not form_access_enabled():
         return
     decided = await key_permissions_on_form(key, form_id)
-    if decided.hidden:
+    if decided.hidden or (must_exist and not await _form_is_there(key, form_id, decided)):
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found")
     missing = [
         p.value for p in SCOPE_PERMISSIONS[scope] if p not in decided.permissions
@@ -146,6 +151,22 @@ async def require_key_on_form(
                 f"not have {', '.join(repr(p) for p in missing)} on this form.",
             },
         )
+
+
+async def _form_is_there(
+    key: WorkspaceAPIKeyDocument, form_id: str, decided: FormPermissions
+) -> bool:
+    """Whether ``form_id`` is a form of the key's workspace (the decision found
+    it, or a lookup does: Owners and Admins are decided without one)."""
+    if decided.form_found:
+        return True
+    if not ObjectId.is_valid(str(form_id)):
+        return False
+    return (
+        await _c()
+        .workspace_form_repo()
+        .find_workspace_form(key.workspace_id, str(form_id))
+    ) is not None
 
 
 async def key_may_use_form(
