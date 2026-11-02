@@ -13,12 +13,19 @@ What is encrypted with the keyset (``common.services.crypto_service``):
 * ``google-credentials``: the Google Forms integration's OAuth credentials
   (``personal|<user_id>|``). Postgres ``google.oauth_credentials``.
 
+* ``response-revisions``: in each entry of the revision log of response edits,
+  ``previous_values`` (the values an edit replaced), with the associated data
+  ``<workspace_id>|<form_id>|<response row id>|<entry number>`` (the entry is
+  bound to its response and number). Postgres ``app.response_revisions``.
+
 * the drawn signature images of the responses: objects in the file store, not
   rows. Only a walk given ``images`` (``scripts.rotate_images.DrawnImages``) counts or
   re-seals them; the admin tasks are not given one (the runner has no file
   store access).
 
-Nothing else is encrypted with it (the Fernet-encrypted values use another key).
+Nothing else is encrypted with it (the Fernet-encrypted values use another key):
+a new place that seals a value with the response keyset must be a target here,
+or the drop of the old key would be blind to it.
 Never prints or returns a value or the keyset: counts and key ids only.
 """
 
@@ -57,7 +64,8 @@ class Target:
     table: str  # Postgres table
     fields: Tuple[str, ...]  # the document fields read
     values: Callable[[Dict[str, Any]], List[Tuple[Path, bytes]]]
-    contexts: Callable[[Dict[str, Any], Dict[str, List[str]]], List[Tuple[str, str]]]
+    # candidate (workspace, form[, extra associated data as bytes]) contexts
+    contexts: Callable[[Dict[str, Any], Dict[str, List[str]]], List[Tuple[Any, ...]]]
     needs_links: bool = False
     # the target's records name drawn signature images, objects in the file
     # store sealed with the keyset (``scripts/rotate_images.py``)
@@ -65,6 +73,9 @@ class Target:
     # the 4.0 collections the import copies into this target's table (the rows of
     # ``<schema>.migration_progress`` that say whether the import finished)
     import_collections: Tuple[str, ...] = ()
+    # a store with no record is normal (the table is new, or nothing was
+    # written yet), not a sign of a wrong database
+    may_be_empty: bool = False
 
 
 def _response_values(record: Dict[str, Any]) -> List[Tuple[Path, bytes]]:
@@ -133,7 +144,40 @@ GOOGLE_CREDENTIALS = Target(
     contexts=_credential_contexts,
     import_collections=("Oauth2CredentialDocument",),
 )
-TARGETS = {target.name: target for target in (RESPONSES, GOOGLE_CREDENTIALS)}
+
+
+def _revision_values(record: Dict[str, Any]) -> List[Tuple[Path, bytes]]:
+    value = record.get("previous_values")
+    return [(("previous_values",), bytes(value))] if is_ciphertext(value) else []
+
+
+def _revision_contexts(record: Dict[str, Any], _links) -> List[Tuple[Any, ...]]:
+    # ResponseRevisionDocument: sealed with the workspace and form of the entry
+    # and ``seal_context(response_pk, seq)`` (the third member, bytes)
+    return [
+        (
+            str(record.get("workspace_id")),
+            str(record.get("form_id")),
+            f"{record.get('response_pk')}|{record.get('seq')}".encode(),
+        )
+    ]
+
+
+REVISIONS = Target(
+    name="response-revisions",
+    group="responses",
+    schema="app",
+    table="response_revisions",
+    fields=("form_id", "workspace_id", "response_pk", "seq", "previous_values"),
+    values=_revision_values,
+    contexts=_revision_contexts,
+    # new in 4.3: never in 4.0's Mongo, so no import to wait for
+    import_collections=(),
+    may_be_empty=True,
+)
+TARGETS = {
+    target.name: target for target in (RESPONSES, GOOGLE_CREDENTIALS, REVISIONS)
+}
 
 
 # -------------------------------------------------------------------- stores
@@ -324,15 +368,25 @@ class Rotation:
     def stale(self, values: Iterable[Tuple[Path, bytes]]) -> List[Tuple[Path, bytes]]:
         return [(p, v) for p, v in values if ciphertext_key_id(v) != self.primary]
 
-    def _encrypt(self, context: Tuple[str, str], plaintext: bytes) -> bytes:
+    @staticmethod
+    def _parts(context: Tuple[Any, ...]) -> Tuple[str, str, bytes]:
+        workspace, form, *rest = context
+        return workspace, form, (rest[0] if rest else b"")
+
+    def _encrypt(self, context: Tuple[Any, ...], plaintext: bytes) -> bytes:
         # always encrypts, even a plaintext that starts with "v1:"
-        return self.cipher.encrypt(*context, plaintext)
+        workspace, form, extra = self._parts(context)
+        return self.cipher.encrypt(workspace, form, plaintext, extra)
+
+    def _decrypt(self, context: Tuple[Any, ...], value: bytes) -> bytes:
+        workspace, form, extra = self._parts(context)
+        return self.cipher.decrypt(workspace, form, value, extra)
 
     def _open(self, contexts, value: bytes):
         """The first candidate context that decrypts ``value``, and the plaintext."""
         for context in contexts:
             try:
-                return context, self.cipher.decrypt(*context, value)
+                return context, self._decrypt(context, value)
             except UnreadableCiphertext:  # this context does not authenticate it
                 continue
         return None, None
@@ -355,7 +409,7 @@ class Rotation:
             new = self._encrypt(context, plaintext)
             if (
                 ciphertext_key_id(new) != self.primary
-                or self.cipher.decrypt(*context, new) != plaintext
+                or self._decrypt(context, new) != plaintext
             ):
                 raise RuntimeError("a re-encrypted value did not read back")
             updates.append((path, old, new))

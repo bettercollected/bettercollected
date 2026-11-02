@@ -24,6 +24,10 @@ What is encrypted with the keyset (``common.services.crypto_service``):
   is linked to is tried. Postgres ``app.form_responses``.
 * ``google-credentials``: the Google Forms integration's OAuth credentials
   (``personal|<user_id>|``). Postgres ``google.oauth_credentials``.
+* ``response-revisions``: ``previous_values`` of each entry of the revision log
+  of response edits, bound to the workspace, the form, its response and its
+  number (``<workspace_id>|<form_id>|<response row id>|<number>``). Postgres
+  ``app.response_revisions``; an empty table is normal.
 * the drawn signature images of the responses (the signature question): not
   rows but objects in the file store, ``private/<workspace>/<form>/<response>/
   <file id>``, sealed with the same keyset and bound to their response and
@@ -102,6 +106,7 @@ from backend.admin.tasks.catalog.responses_common import StoreChoice
 from backend.admin.tasks.impl.keyset_core import (  # noqa: F401 - re-exported
     GOOGLE_CREDENTIALS,
     RESPONSES,
+    REVISIONS,
     TARGETS,
     PostgresStore,
     Rotation,
@@ -476,7 +481,9 @@ async def _main(argv: List[str]) -> int:
             f"{target} in {store}"
             for target, stores in report["records"].items()
             for store, records in stores.items()
-            if records == 0
+            # (a target that may be empty, like the revision log of a stack that
+            # never edited a response, is no sign of a wrong database)
+            if records == 0 and not TARGETS[target].may_be_empty
         ]
         reasons = []
         if stale:

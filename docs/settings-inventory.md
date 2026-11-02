@@ -95,6 +95,7 @@ environment, whatever the tier.
 | `LAYOUT_CONTAINERS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `NEW_QUESTION_TYPES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `OPTION_SOURCES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
+| `RESPONSE_REVISIONS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `RESPONSE_VALIDATION_ENFORCE` | features | backend | bool |  | R | T2 | `true` |
 | `SAVE_DRAFTS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `SIGNATURE_QUESTION_ENABLED` | features | backend | bool |  | R | T2 | `false` |

@@ -59,6 +59,8 @@ SEALED_TABLES = (
     "scim_directories",
     "registration_services",
     "form_webhooks",
+    # the previous values of response edits, sealed with the response keyset (keyset.*)
+    "response_revisions",
 )
 # exactly what each role holds: (schema, table, column, privilege)
 EXPECTED = {

@@ -25,15 +25,13 @@ class MemberDirectory:
         self._members = workspace_user_repo
         self._http_client = http_client
 
-    async def lookup(
-        self, workspace_id, user_ids: Iterable[str]
-    ) -> Tuple[Dict[str, Optional[str]], Dict[str, str]]:
-        """``(roles, names)``: ``roles`` has an entry for each id among
-        ``user_ids`` that is a current member (its role, or None when it has
-        no known one); ``names`` the display names found, by id."""
-        wanted = {str(u) for u in user_ids if u}
-        if not wanted:
-            return {}, {}
+    async def role_of(self, workspace_id, user_id) -> Optional[str]:
+        """The role of one current member (None when they are not one, or hold
+        no known role). No lookup of names."""
+        roles, _ = await self._roles(workspace_id, [str(user_id)])
+        return roles.get(str(user_id))
+
+    async def _roles(self, workspace_id, wanted):
         workspace = await self._workspaces.find_by_id(workspace_id)
         roles: Dict[str, Optional[str]] = {}
         for member in await self._members.get_workspace_users(workspace_id):
@@ -43,6 +41,18 @@ class MemberDirectory:
             roles[user_id] = primary_role(
                 member.roles, is_owner=is_owner_membership(workspace, member)
             )
+        return roles, workspace
+
+    async def lookup(
+        self, workspace_id, user_ids: Iterable[str]
+    ) -> Tuple[Dict[str, Optional[str]], Dict[str, str]]:
+        """``(roles, names)``: ``roles`` has an entry for each id among
+        ``user_ids`` that is a current member (its role, or None when it has
+        no known one); ``names`` the display names found, by id."""
+        wanted = {str(u) for u in user_ids if u}
+        if not wanted:
+            return {}, {}
+        roles, _ = await self._roles(workspace_id, wanted)
         if not roles or self._http_client is None:
             return roles, {}
         try:

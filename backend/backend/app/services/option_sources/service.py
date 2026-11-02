@@ -652,6 +652,15 @@ class OptionSourceService:
                     redacted += await self._responses.redact_option_labels(
                         row_id, RecordId(str(workspace_id)), row_form, field_ids, option_ids
                     )
+                # what these responses held before an edit is the same
+                # respondent's shared answer: the revision log is redacted too
+                redacted += await self._responses.redact_history_option_labels(
+                    [str(response.id) for response in batch],
+                    RecordId(str(workspace_id)),
+                    consumer,
+                    field_ids,
+                    option_ids,
+                )
                 if len(batch) < BATCH:
                     break
         return redacted

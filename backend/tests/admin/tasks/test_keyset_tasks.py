@@ -194,7 +194,8 @@ async def all_readable(flow, keyset_value):
         if (target, record, path) not in flow.data.expected:
             continue  # stored by the repository from plain data: no known context
         context, plaintext = flow.data.expected[(target, record, path)]
-        assert cipher.decrypt(*context, value) == plaintext
+        workspace, form, *extra = context
+        assert cipher.decrypt(workspace, form, value, *extra) == plaintext
     return seen
 
 
@@ -713,6 +714,49 @@ async def test_drop_old_refuses_while_values_remain_on_an_old_key(world, flow):
     assert events and all(e["code"] == "counted" for e in events)
     assert any(e["counts"].get("values_stale") for e in events)  # the counts are in the record
     assert len(parse_keyset((await flow.stored()).value).key) == 2
+
+
+async def test_drop_old_counts_the_revision_log_and_waits_for_it(world, flow):
+    """Only the revision log of response edits is still on the old key: the
+    old key stays (values_on_old_key) until keyset.reencrypt has moved it."""
+    new_id = await flow.rotate_to_new_primary()
+    params = flow.params(primary_id=new_id, stores=flow.store_choice)
+    # everything but the log
+    only = dict(params, targets=["responses", "google_credentials"])
+    await flow.run("keyset.reencrypt", only, dry_run=True)
+    run_id, run = await flow.run("keyset.reencrypt", only)
+    assert run["state"] == "succeeded", run
+    _, dry = await flow.run("keyset.drop_old", flow.params(), dry_run=True)
+    assert dry["state"] == "refused" and dry["refusal_code"] == "values_on_old_key", dry
+    assert len(parse_keyset((await flow.stored()).value).key) == 2
+    # the log moved: every value reads back with its context, the old key goes
+    logged = dict(params, targets=["response_revisions"])
+    await flow.run("keyset.reencrypt", logged, dry_run=True)
+    _, run = await flow.run("keyset.reencrypt", logged)
+    assert run["state"] == "succeeded", run
+    assert run["result"]["response_revisions"]["postgres"]["values_reencrypted"] == 1
+    stored = await flow.stored()
+    assert await all_readable(flow, stored.value) == {new_id}
+    _, dropped = await flow.both("keyset.drop_old", flow.params())
+    assert dropped["state"] == "succeeded", dropped
+    assert len(parse_keyset((await flow.stored()).value).key) == 1
+
+
+async def test_an_empty_revision_log_is_not_an_empty_store(world, stores):
+    """A stack that never edited a response has no entry: the drop is not
+    refused for it (store_empty)."""
+    data = Data(with_revisions=False)
+    await seed(stores, data)
+    await import_keyset(world.admin, OLD)
+    flow = Flow(world, stores, data)
+    await flow.beat()
+    new_id = await flow.rotate_to_new_primary()
+    params = flow.params(primary_id=new_id, stores=flow.store_choice)
+    await flow.run("keyset.reencrypt", params, dry_run=True)
+    await flow.run("keyset.reencrypt", params)
+    _, dropped = await flow.both("keyset.drop_old", flow.params())
+    assert dropped["state"] == "succeeded", dropped
+    assert dropped["result"]["response_revisions"]["postgres"]["records"] == 0
 
 
 async def test_drop_old_refuses_while_a_response_holds_a_drawn_signature(world, flow):

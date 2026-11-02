@@ -37,6 +37,7 @@ def test_the_catalogue_is_the_documented_one():
         "response.annotate",
         "response.export",
         "response.delete",
+        "response.edit",
         "privacy.manage",
         "analytics.read",
     }
@@ -67,6 +68,7 @@ ROLE_TABLE = {
         P.RESPONSE_ANNOTATE,
         P.RESPONSE_EXPORT,
         P.RESPONSE_DELETE,
+        P.RESPONSE_EDIT,
         P.ANALYTICS_READ,
     },
     "REVIEWER": {P.FORM_READ, P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.ANALYTICS_READ},
@@ -100,7 +102,7 @@ def test_a_collaborator_is_an_editor_without_privacy_manage():
 
 def test_the_privacy_officer_never_reads_answers():
     granted = permissions_for([WorkspaceRoles.PRIVACY_OFFICER], is_owner=False)
-    for answers in (P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.RESPONSE_EXPORT):
+    for answers in (P.RESPONSE_READ, P.RESPONSE_ANNOTATE, P.RESPONSE_EXPORT, P.RESPONSE_EDIT):
         assert answers not in granted
 
 

@@ -2376,5 +2376,50 @@
       "VIDEO_CONTENT": "Video"
     },
     "LIST_TRUNCATED": "Alleen de nieuwste {{count}} versies worden getoond."
+  },
+  "RESPONSE_EDIT": {
+    "BUTTON": "Antwoorden bewerken",
+    "TITLE": "Antwoorden bewerken",
+    "NOTE": "Elke wijziging wordt bewaard in de geschiedenis van deze reactie. De respondent krijgt hiervan geen bericht en er wordt niets opnieuw doorgestuurd. Gecontroleerd zoals de eigen bewerking van de respondent.",
+    "UNTITLED": "Een vraag zonder titel",
+    "REQUIRED": "Verplicht",
+    "NOTHING_TO_EDIT": "Dit formulier heeft geen vraag die hier kan worden gewijzigd.",
+    "LOCKED": "Deze kunnen hier niet worden gewijzigd: {{questions}}.",
+    "CANCEL": "Annuleren",
+    "SAVE_one": "{{count}} wijziging opslaan",
+    "SAVE_other": "{{count}} wijzigingen opslaan",
+    "SAVED_one": "Opgeslagen. {{count}} antwoord is gewijzigd.",
+    "SAVED_other": "Opgeslagen. {{count}} antwoorden zijn gewijzigd.",
+    "NOTHING_CHANGED": "Er was geen verschil, dus er is niets gewijzigd.",
+    "ERROR": {
+      "response_revisions_disabled": "Antwoorden bewerken is op deze server niet ingeschakeld.",
+      "question_not_editable": "Een handtekening, een bestand of een vraag waarvan de antwoorden in andere formulieren als keuzes worden aangeboden, kan hier niet worden gewijzigd.",
+      "deletion_requested": "Voor deze reactie ligt een verwijderverzoek, dus zij kan niet worden bewerkt.",
+      "not_editable": "Een reactie die uit een andere dienst is geïmporteerd, kan hier niet worden bewerkt.",
+      "revision_limit": "Deze reactie is door medewerkers zo vaak bewerkt als de geschiedenis bewaart. Medewerkers kunnen haar niet opnieuw bewerken.",
+      "busy": "Er wordt al een andere wijziging aan deze reactie doorgevoerd. Probeer het zo meteen opnieuw.",
+      "generic": "De antwoorden konden niet worden opgeslagen."
+    }
+  },
+  "RESPONSE_HISTORY": {
+    "TITLE": "Geschiedenis",
+    "NOTE": "Wie antwoorden van deze reactie heeft gewijzigd, en wanneer. De waarden van vóór een wijziging worden alleen getoond als u erom vraagt.",
+    "LOADING": "Laden",
+    "LOAD_ERROR": "De geschiedenis kon niet worden geladen.",
+    "RETRY": "Probeer het opnieuw",
+    "EMPTY": "Sinds deze reactie is ingediend is geen enkel antwoord gewijzigd.",
+    "BY_RESPONDENT": "De respondent",
+    "BY_MEMBER": "{{name}} ({{role}})",
+    "BY_ROLE": "Een teamlid ({{role}})",
+    "BY_STAFF": "Een teamlid",
+    "BY_FORMER": "Een voormalig teamlid",
+    "BY_FORMER_ROLE": "Een voormalig teamlid ({{role}})",
+    "CHANGED_one": "heeft {{count}} antwoord gewijzigd",
+    "CHANGED_other": "heeft {{count}} antwoorden gewijzigd",
+    "UNTITLED": "Een vraag zonder titel",
+    "SHOW_VALUES": "Eerdere waarden tonen",
+    "HIDE_VALUES": "Eerdere waarden verbergen",
+    "VALUES_ERROR": "De eerdere waarden konden niet worden getoond.",
+    "NO_ANSWER": "Geen antwoord"
   }
 }

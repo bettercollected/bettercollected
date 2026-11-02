@@ -2376,5 +2376,50 @@
       "VIDEO_CONTENT": "Video"
     },
     "LIST_TRUNCATED": "Only the newest {{count}} versions are listed."
+  },
+  "RESPONSE_EDIT": {
+    "BUTTON": "Edit answers",
+    "TITLE": "Edit answers",
+    "NOTE": "Each change is kept in the history of this response. The respondent is not told, and nothing is sent on again. Checked like the respondent's own edit.",
+    "UNTITLED": "A question without a title",
+    "REQUIRED": "Required",
+    "NOTHING_TO_EDIT": "This form has no question that can be changed here.",
+    "LOCKED": "These cannot be changed here: {{questions}}.",
+    "CANCEL": "Cancel",
+    "SAVE_one": "Save {{count}} change",
+    "SAVE_other": "Save {{count}} changes",
+    "SAVED_one": "Saved. {{count}} answer was changed.",
+    "SAVED_other": "Saved. {{count}} answers were changed.",
+    "NOTHING_CHANGED": "Nothing was different, so nothing was changed.",
+    "ERROR": {
+      "response_revisions_disabled": "Editing answers is not switched on on this server.",
+      "question_not_editable": "A signature, a file, or a question whose answers other forms offer as choices can't be changed here.",
+      "deletion_requested": "This response has a deletion request, so it can't be edited.",
+      "not_editable": "A response imported from another service can't be edited here.",
+      "revision_limit": "This response has been edited by staff as often as the history keeps. Staff can't edit it again.",
+      "busy": "Another change to this response is in progress. Try again in a moment.",
+      "generic": "The answers could not be saved."
+    }
+  },
+  "RESPONSE_HISTORY": {
+    "TITLE": "History",
+    "NOTE": "Who changed answers of this response, and when. The values before a change are shown only when you ask for them.",
+    "LOADING": "Loading",
+    "LOAD_ERROR": "The history could not be loaded.",
+    "RETRY": "Try again",
+    "EMPTY": "No answer has been changed since this response was submitted.",
+    "BY_RESPONDENT": "The respondent",
+    "BY_MEMBER": "{{name}} ({{role}})",
+    "BY_ROLE": "A team member ({{role}})",
+    "BY_STAFF": "A team member",
+    "BY_FORMER": "A former team member",
+    "BY_FORMER_ROLE": "A former team member ({{role}})",
+    "CHANGED_one": "changed {{count}} answer",
+    "CHANGED_other": "changed {{count}} answers",
+    "UNTITLED": "A question without a title",
+    "SHOW_VALUES": "Show previous values",
+    "HIDE_VALUES": "Hide previous values",
+    "VALUES_ERROR": "The previous values could not be shown.",
+    "NO_ANSWER": "No answer"
   }
 }
