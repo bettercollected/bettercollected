@@ -53,12 +53,21 @@ export function safeNextPath(next: string | null | undefined, origin?: string): 
     if (!next) return undefined;
     const here = origin ?? (typeof window !== 'undefined' ? window.location.origin : undefined);
     if (!here) return undefined;
-    if (isSameSitePath(next, here)) return next;
+    // A path that says "another host" once its percent-encoding is read ("/%5Cevil.example", "/%2F/evil.example")
+    // is refused too, whatever a later decoder would do with it.
+    const holds = (path: string) => {
+        try {
+            return isSameSitePath(path, here) && isSameSitePath(decodeURIComponent(path), here);
+        } catch {
+            return false;
+        }
+    };
+    if (holds(next)) return next;
     try {
         const url = new URL(next);
         if (url.origin !== here) return undefined;
         const path = `${url.pathname}${url.search}${url.hash}`;
-        return isSameSitePath(path, here) ? path : undefined;
+        return holds(path) ? path : undefined;
     } catch {
         return undefined;
     }

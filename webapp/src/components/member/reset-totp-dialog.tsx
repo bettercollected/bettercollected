@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
+import OwnFactorGate from '@app/components/mfa/own-factor-gate';
 import { WorkspaceMembersDto } from '@app/models/dtos/workspace-member-dto';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
@@ -13,6 +14,7 @@ import { mfaFailureOf } from '@app/utils/mfa';
 
 /** What the person who asked to reset a member's second factor is told when the server refuses. */
 export function resetFailureKey(failure: { status?: number; code?: string }): string {
+    if (failure.code === 'reset_admin_not_allowed') return 'STAFF.MFA.RESET.ADMIN_NOT_ALLOWED';
     if (failure.code === 'reset_not_allowed') return 'STAFF.MFA.RESET.NOT_ALLOWED';
     if (failure.code === 'reset_self') return 'STAFF.MFA.RESET.SELF';
     if (failure.status === 404) return 'STAFF.MFA.RESET.GONE';
@@ -29,17 +31,36 @@ export default function ResetTotpDialog({ workspaceId, member, onClose }: { work
     const { t } = useTranslation();
     const { toast } = useToast();
     const [reset, { isLoading }] = useResetMemberTotpMutation();
+    // 409 `enrol_first`: the owner's own session must have used its own app before removing someone else's
+    const [gate, setGate] = useState(false);
     const name = [member.firstName, member.lastName].filter(Boolean).join(' ') || member.email;
 
     const submit = async () => {
         const answer = await reset({ workspaceId, userId: member.id });
         if ('error' in answer && answer.error) {
-            toast({ description: t(resetFailureKey(mfaFailureOf(answer.error))), variant: 'destructive' });
+            const failure = mfaFailureOf(answer.error);
+            if (failure.code === 'enrol_first') {
+                setGate(true);
+                return;
+            }
+            toast({ description: t(resetFailureKey(failure)), variant: 'destructive' });
             return;
         }
         toast({ description: t('STAFF.MFA.RESET.DONE') });
         onClose();
     };
+
+    if (gate) {
+        return (
+            <OwnFactorGate
+                onCancel={() => setGate(false)}
+                onDone={() => {
+                    setGate(false);
+                    void submit();
+                }}
+            />
+        );
+    }
 
     return (
         <Dialog open onOpenChange={(open) => !open && onClose()}>

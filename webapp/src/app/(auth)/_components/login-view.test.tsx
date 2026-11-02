@@ -11,7 +11,6 @@ let searchParams = new URLSearchParams();
 const replace = vi.fn();
 vi.mock('next/navigation', () => ({ useSearchParams: () => searchParams, useRouter: () => ({ replace }) }));
 vi.mock('@app/layouts/top-navbar-layout', () => ({ default: ({ children }: any) => <div>{children}</div> }));
-vi.mock('@app/components/layout/sireto-footer', () => ({ default: () => null }));
 vi.mock('@app/components/ui/logo', () => ({ default: () => null }));
 vi.mock('./otp-email-form', () => ({ default: () => <p>email form</p> }));
 vi.mock('./otp-code-form', () => ({ default: () => <p>otp form</p> }));
@@ -56,6 +55,27 @@ describe('LoginView after a provider sign-in that needs the second factor', () =
         fireEvent.change(screen.getByLabelText('6-digit code'), { target: { value: '123456' } });
         fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
         await waitFor(() => expect(assign).toHaveBeenCalledWith('/login'));
+    });
+
+    it.each(['%2F%2Fevil.com', '/%5Cevil.com', '/\\evil.com', '//evil.com', 'https:evil.com'])('falls back to the sign-in page for the next %j', async (hostile) => {
+        searchParams = new URLSearchParams({ mfa: '1', next: hostile });
+        render(<LoginView />);
+        fireEvent.change(screen.getByLabelText('6-digit code'), { target: { value: '123456' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+        await waitFor(() => expect(assign).toHaveBeenCalledWith('/login'));
+    });
+
+    it('speaks Dutch, footer and terms included, at the second step for a Dutch browser; the first step stays as it was', async () => {
+        const languages = vi.spyOn(window.navigator, 'languages', 'get').mockReturnValue(['nl-NL', 'en']);
+        try {
+            searchParams = new URLSearchParams({ mfa: '1' });
+            const { container } = render(<LoginView />);
+            expect(await screen.findByText(/Door in te loggen, gaat u akkoord met onze/)).toBeInTheDocument();
+            expect(screen.getByText('Privacybeleid')).toBeInTheDocument();
+            expect(container.querySelector('footer')?.getAttribute('lang')).toBe('nl');
+        } finally {
+            languages.mockRestore();
+        }
     });
 
     it('goes back to the plain sign-in page', () => {

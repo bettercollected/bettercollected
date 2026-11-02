@@ -65,6 +65,9 @@ describe('MfaVerifyView (a workspace requires the second factor)', () => {
         expect(verifiedDestination('acme', '/other/dashboard')).toBe('/acme/dashboard');
         expect(verifiedDestination('acme', 'https://evil.example/acme/dashboard')).toBe('/acme/dashboard');
         expect(verifiedDestination('acme', '//evil.example')).toBe('/acme/dashboard');
+        for (const hostile of ['%2F%2Fevil.com', '/%5Cevil.com', '/\\evil.com', '//evil.com', 'https:evil.com']) {
+            expect(verifiedDestination('acme', hostile)).toBe('/acme/dashboard');
+        }
         expect(verifiedDestination('acme', undefined)).toBe('/acme/dashboard');
         expect(verifiedDestination('acme', '/acme/dashboardx')).toBe('/acme/dashboard');
     });

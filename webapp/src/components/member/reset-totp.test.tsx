@@ -20,6 +20,18 @@ vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
 }));
 
 const resetMock = vi.fn();
+const verifyMock = vi.fn();
+const mine: { data: any } = { data: { available: true, enabled: true } };
+vi.mock('@app/store/auth/api', async (importOriginal) => {
+    const actual: any = await importOriginal();
+    return {
+        ...actual,
+        useGetMfaStatusQuery: () => mine,
+        useLogoutMutation: () => [vi.fn()],
+        useVerifyMfaMutation: () => [verifyMock, { isLoading: false }],
+        usePostMfaChallengeMutation: () => [vi.fn(), { isLoading: false }]
+    };
+});
 vi.mock('@app/store/workspaces/members-n-invitations-api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
@@ -45,6 +57,7 @@ const openMenu = () => fireEvent.pointerDown(screen.getByRole('button', { name: 
 describe('the member list and the second factor', () => {
     beforeEach(() => {
         resetMock.mockReset().mockResolvedValue({ data: undefined });
+        verifyMock.mockReset().mockResolvedValue({ data: { available: true, enabled: true } });
         toastMock.mockReset();
         access.permissions = OWNER;
         store.dispatch(setWorkspace({ id: 'ws-1', ownerId: 'someone-else', workspaceName: 'acme', default: false, isPro: false }));
@@ -97,7 +110,29 @@ describe('the member list and the second factor', () => {
         await waitFor(() => expect(toastMock).toHaveBeenCalled());
         expect(toastMock.mock.calls[0][0].description).toMatch(/also reaches another workspace/);
         expect(resetFailureKey({ status: 409, code: 'reset_self' })).toBe('STAFF.MFA.RESET.SELF');
+        expect(resetFailureKey({ status: 409, code: 'reset_admin_not_allowed' })).toBe('STAFF.MFA.RESET.ADMIN_NOT_ALLOWED');
         expect(resetFailureKey({ status: 404 })).toBe('STAFF.MFA.RESET.GONE');
         expect(resetFailureKey({ status: 500 })).toBe('STAFF.MFA.RESET.FAILED');
+    });
+
+    it('names the administrator case in words', async () => {
+        resetMock.mockResolvedValue({ error: { status: 409, data: { code: 'reset_admin_not_allowed', message: 'x' } } });
+        renderWith(<ResetTotpDialog workspaceId="ws-1" member={member('ada', true) as any} onClose={vi.fn()} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+        await waitFor(() => expect(toastMock).toHaveBeenCalled());
+        expect(toastMock.mock.calls[0][0].description).toMatch(/administrator of this service/);
+    });
+
+    it("asks for the owner's own code on enrol_first, then tries the reset again", async () => {
+        resetMock.mockResolvedValueOnce({ error: { status: 409, data: { code: 'enrol_first', message: 'x' } } }).mockResolvedValueOnce({ data: undefined });
+        renderWith(<ResetTotpDialog workspaceId="ws-1" member={member('ada', true) as any} onClose={vi.fn()} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+        expect(await screen.findByRole('dialog', { name: 'Use your own authenticator app first' })).toBeInTheDocument();
+        expect(toastMock).not.toHaveBeenCalled();
+        fireEvent.change(screen.getByLabelText('6-digit code'), { target: { value: '123456' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+        await waitFor(() => expect(verifyMock).toHaveBeenCalledWith({ code: '123456' }));
+        await waitFor(() => expect(resetMock).toHaveBeenCalledTimes(2));
+        await waitFor(() => expect(toastMock).toHaveBeenCalledWith({ description: 'The second factor was reset.' }));
     });
 });

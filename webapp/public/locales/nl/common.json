@@ -1060,7 +1060,7 @@
     "AI_SECTIONS": "Onderdelen van AI",
     "VERIFY_DOMAIN": "Verifieer een domein",
     "EMBEDDING": "Insluiten",
-    "AUTHENTICATOR": "Authenticator-app"
+    "SECURITY": "Beveiliging"
   },
   "SSO": {
     "NOT_ENABLED": "Single sign-on is niet ingeschakeld op deze installatie. De beheerder schakelt het in (SSO_ENABLED, zie docs/sso.md).",
@@ -1675,6 +1675,7 @@
         "DONE": "De tweede stap is gereset.",
         "FAILED": "De tweede stap kon niet worden gereset. Probeer het opnieuw.",
         "NOT_ALLOWED": "Het account van deze persoon heeft ook toegang tot een andere werkruimte, dus u kunt het niet resetten. Zij kunnen inloggen met een herstelcode of de beheerder van deze dienst vragen.",
+        "ADMIN_NOT_ALLOWED": "Deze persoon is beheerder van deze dienst. Alleen de beheerder van de dienst kan hun authenticator-app verwijderen.",
         "SELF": "Uw eigen authenticator-app beheert u in Accountinstellingen.",
         "GONE": "Dit lid heeft geen authenticator-app."
       },

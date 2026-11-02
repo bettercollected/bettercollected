@@ -4,18 +4,15 @@ import React, { useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
-import TotpEnrolDialog from '@app/components/account-settings/totp-enrol-dialog';
 import { mfaErrorText } from '@app/components/mfa/error-text';
-import MfaCodeForm from '@app/components/mfa/mfa-code-form';
+import OwnFactorGate from '@app/components/mfa/own-factor-gate';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { useGetMfaStatusQuery, useLogoutMutation } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceTotpPolicyQuery, useSetWorkspaceTotpPolicyMutation } from '@app/store/workspaces/api';
-import { navigateTo } from '@app/utils/browser-navigation';
 import { mfaFailureOf } from '@app/utils/mfa';
 
 /**
@@ -37,9 +34,7 @@ export default function WorkspaceTotpSection() {
     // every owner holds workspace.billing; the server decides on its own
     const isOwner = can(WorkspacePermission.WORKSPACE_BILLING);
     const { data: policy, isLoading } = useGetWorkspaceTotpPolicyQuery(workspace?.id as string, { skip: !workspace?.id || !canSee });
-    const { data: mine } = useGetMfaStatusQuery();
     const [setPolicy, { isLoading: saving }] = useSetWorkspaceTotpPolicyMutation();
-    const [logout] = useLogoutMutation();
     const [confirming, setConfirming] = useState(false);
     const [gate, setGate] = useState(false);
     const [error, setError] = useState('');
@@ -59,18 +54,14 @@ export default function WorkspaceTotpSection() {
             return;
         }
         const refused = mfaFailureOf((answer as { error?: unknown }).error);
-        if (refused.code === 'enrol_first' || refused.code === 'mfa_required') {
-            // the owner's own session has not used its app yet
+        if (refused.code === 'enrol_first') {
+            // the owner's own session has not used its app yet. (403 `mfa_required` is not handled here:
+            // the store's middleware sends the page to the verify page before this answer is read.)
             setConfirming(false);
             setGate(true);
             return;
         }
         setError(mfaErrorText(t, refused));
-    };
-
-    const signInAgain = async () => {
-        await logout();
-        navigateTo(`/login?redirect_to=${encodeURIComponent(window.location.pathname)}`);
     };
 
     return (
@@ -139,30 +130,11 @@ export default function WorkspaceTotpSection() {
                 </Dialog>
             )}
 
-            {gate && mine?.enabled && (
-                <Dialog open onOpenChange={(open) => !open && setGate(false)}>
-                    <DialogContent className="max-w-md" title={t('STAFF.MFA.POLICY.FIRST_TITLE')}>
-                        <div className="flex flex-col gap-4 pr-6">
-                            <MfaCodeForm
-                                session
-                                heading={t('STAFF.MFA.POLICY.FIRST_TITLE')}
-                                intro={t('STAFF.MFA.POLICY.FIRST_INTRO')}
-                                backLabel={t('STAFF.MFA.POLICY.CANCEL')}
-                                onBack={() => setGate(false)}
-                                onSignedIn={() => {
-                                    setGate(false);
-                                    void change(true);
-                                }}
-                            />
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            )}
-            {gate && !mine?.enabled && (
-                <TotpEnrolDialog
-                    onClose={() => setGate(false)}
-                    onSignInAgain={signInAgain}
-                    onEnrolled={() => {
+            {gate && (
+                <OwnFactorGate
+                    onCancel={() => setGate(false)}
+                    onDone={() => {
+                        setGate(false);
                         void change(true);
                     }}
                 />

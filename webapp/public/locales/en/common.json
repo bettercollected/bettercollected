@@ -1060,7 +1060,7 @@
     "AI_SECTIONS": "AI sections",
     "VERIFY_DOMAIN": "Verify a domain",
     "EMBEDDING": "Embedding",
-    "AUTHENTICATOR": "Authenticator app"
+    "SECURITY": "Security"
   },
   "SSO": {
     "NOT_ENABLED": "Single sign-on is not enabled on this instance. The operator turns it on (SSO_ENABLED, see docs/sso.md).",
@@ -1675,6 +1675,7 @@
         "DONE": "The second factor was reset.",
         "FAILED": "The second factor could not be reset. Please try again.",
         "NOT_ALLOWED": "This person’s account also reaches another workspace, so you cannot reset it. They can sign in with a recovery code, or ask the administrator of this service.",
+        "ADMIN_NOT_ALLOWED": "This person is an administrator of this service. Only the administrator of the service can remove their authenticator app.",
         "SELF": "Your own authenticator app is managed in Account settings.",
         "GONE": "This member has no authenticator app."
       },

@@ -57,8 +57,8 @@ describe('the Single sign-on section', () => {
     it('adds the Authenticator app tab while the server has it on', () => {
         mfaAvailable = true;
         renderSection(true);
-        expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/acme/dashboard/sso', '/acme/dashboard/sso/domains', '/acme/dashboard/sso/authenticator']);
-        expect(screen.getByRole('link', { name: 'Authenticator app' })).toBeInTheDocument();
+        expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['/acme/dashboard/sso', '/acme/dashboard/sso/domains', '/acme/dashboard/sso/security']);
+        expect(screen.getByRole('link', { name: 'Security' })).toBeInTheDocument();
     });
 
     it('marks Domains as current on its own route', () => {

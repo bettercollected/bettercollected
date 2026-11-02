@@ -54,7 +54,7 @@ describe('safeNextPath', () => {
         expect(safeNextPath('https://admin.example.test/acme/dashboard#top', origin)).toBe('/acme/dashboard#top');
     });
 
-    it.each(['https://evil.example/', '//evil.example/x', '/\\evil.example', 'javascript:alert(1)', '/\t/evil.example', '', undefined, null])('never follows %j', (value) => {
+    it.each(['https://evil.example/', '//evil.example/x', '/\\evil.example', 'javascript:alert(1)', '/\t/evil.example', '%2F%2Fevil.com', '/%5Cevil.com', '/%5cevil.com', '/%2F/evil.com', '/\\evil.com', '//evil.com', 'https:evil.com', '', undefined, null])('never follows %j', (value) => {
         expect(safeNextPath(value as string | undefined, origin)).toBeUndefined();
     });
 });

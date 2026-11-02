@@ -29,7 +29,7 @@ export const workspaceSectionLabels = {
     themes: 'WORKSPACE_SECTIONS.THEMES',
     sso: 'WORKSPACE_SECTIONS.SSO',
     domains: 'WORKSPACE_SECTIONS.DOMAINS',
-    authenticator: 'WORKSPACE_SECTIONS.AUTHENTICATOR',
+    security: 'WORKSPACE_SECTIONS.SECURITY',
     caseSystem: 'WORKSPACE_SECTIONS.CASE_SYSTEM',
     lists: 'WORKSPACE_SECTIONS.LISTS',
     sections: 'WORKSPACE_SECTIONS.SECTIONS',
@@ -53,7 +53,7 @@ export const workspaceSectionUrls = (workspaceName?: string) => {
     return {
         sso: `${base}/sso`,
         domains: `${base}/sso/domains`,
-        authenticator: `${base}/sso/authenticator`,
+        security: `${base}/sso/security`,
         caseSystem: `${base}/case-system`,
         lists: `${base}/lists`,
         sections: `${base}/sections`,
@@ -81,7 +81,7 @@ const SSO_TABS: Array<TabDefinition & { needsSso?: boolean; needsTotp?: boolean 
     { key: 'sso', labelKey: workspaceSectionLabels.sso, path: 'sso', exact: true, permission: WorkspacePermission.SECURITY_MANAGE, needsSso: true },
     { key: 'domains', labelKey: workspaceSectionLabels.domains, path: 'sso/domains', permission: WorkspacePermission.SECURITY_MANAGE },
     // The workspace's rule for an authenticator app (TOTP_ENABLED on the server).
-    { key: 'authenticator', labelKey: workspaceSectionLabels.authenticator, path: 'sso/authenticator', permission: WorkspacePermission.SECURITY_MANAGE, needsTotp: true }
+    { key: 'security', labelKey: workspaceSectionLabels.security, path: 'sso/security', permission: WorkspacePermission.SECURITY_MANAGE, needsTotp: true }
 ];
 
 const toTab = (base: string, { key, labelKey, path, exact }: TabDefinition): SectionTab => ({ key, labelKey, href: `${base}/${path}`, ...(exact ? { exact } : {}) });
@@ -97,7 +97,7 @@ export function defaultAiTabUrl(workspaceName: string | undefined, can: Can): st
     return aiTabs(workspaceName, can)[0]?.href ?? workspaceSectionUrls(workspaceName).aiMemory;
 }
 
-/** The Single sign-on tabs this member may use; without SSO only Domains is left. The Authenticator app tab shows while the server has TOTP on. */
+/** The Single sign-on tabs this member may use; without SSO only Domains is left. The Security tab (the authenticator-app rule) shows while the server has TOTP on. */
 export function ssoTabs(workspaceName: string | undefined, can: Can, ssoEnabled: boolean, totpAvailable = false): Array<SectionTab> {
     const base = dashboardUrl(workspaceName);
     return SSO_TABS.filter((tab) => (!tab.needsSso || ssoEnabled) && (!tab.needsTotp || totpAvailable) && (!tab.permission || can(tab.permission))).map((tab) => toTab(base, tab));
