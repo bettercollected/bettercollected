@@ -77,6 +77,8 @@ export function useWorkspacePermissions() {
     const formEmbedEnabled = !!userId && !isError && !!data?.formEmbedEnabled;
     // ...and importing responses from a CSV file (its CSV_IMPORT_ENABLED): the responses screen offers it from it.
     const csvImportEnabled = !!userId && !isError && !!data?.csvImportEnabled;
+    // ...and form-level access (its FORM_ACCESS_ENABLED): the Teams tab, a form's "who can open it" card and the Restricted chips. Nothing of it is asked for or shown while it is off.
+    const formAccessEnabled = !!userId && !isError && !!data?.formAccessEnabled;
     return {
         can,
         permissions,
@@ -96,6 +98,7 @@ export function useWorkspacePermissions() {
         formRevisionsUiEnabled,
         responseRevisionsEnabled,
         formEmbedEnabled,
-        csvImportEnabled
+        csvImportEnabled,
+        formAccessEnabled
     };
 }

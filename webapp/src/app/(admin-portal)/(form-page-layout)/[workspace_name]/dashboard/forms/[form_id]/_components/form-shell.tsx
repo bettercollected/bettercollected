@@ -4,6 +4,7 @@ import React from 'react';
 
 import { useTranslation } from 'react-i18next';
 
+import { FormBarRestrictedChip } from '@app/components/form/access/restricted-chip';
 import { StandardFormDto } from '@app/models/dtos/form';
 
 import { BackToForms, FormBarActions, SkipLink, StatusChip, useFormNav } from './form-nav';
@@ -29,8 +30,11 @@ export default function FormShell({ form, base, children }: { form: StandardForm
                     <h1 className="max-w-full min-w-0 truncate text-base leading-6 font-semibold tracking-title-sm text-black-900" title={title}>
                         {title}
                     </h1>
-                    <StatusChip form={form} />
-                    {form?.settings?.pinned && <span className="hidden shrink-0 rounded-full bg-black-200 px-2 py-0.5 text-xs font-semibold text-black-700 md:inline-block">{t('FORM.PINNED')}</span>}
+                    <div className="flex items-center gap-1.5">
+                        <StatusChip form={form} />
+                        <FormBarRestrictedChip form={form} />
+                        {form?.settings?.pinned && <span className="hidden shrink-0 rounded-full bg-black-200 px-2 py-0.5 text-xs font-semibold text-black-700 md:inline-block">{t('FORM.PINNED')}</span>}
+                    </div>
                 </div>
                 <div className="ml-auto shrink-0">
                     <FormBarActions form={form} />

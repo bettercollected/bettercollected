@@ -207,6 +207,12 @@ export interface StandardFormDto {
     builderVersion?: string;
     isMultiPage?: boolean;
     /**
+     * Form-level access, while the server has it on: whether only selected people and teams can open this form in
+     * the dashboard. The forms payload does not carry it yet (the Restricted chip on a card shows from it once it
+     * does); a form's own page asks `GET .../forms/{id}/access` instead.
+     */
+    access?: { restricted: boolean; canManage?: boolean; permissions?: string[] };
+    /**
      * Only on the published form read, while this form also sends its answers
      * to a case system: the organisation that runs it. The privacy panel names it.
      */
