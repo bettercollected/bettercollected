@@ -40,6 +40,15 @@ class FormEmailActionDocument(Record):
     condition: Optional[ActionCondition] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
+    # name every question the form has now (new ones included, none a file),
+    # under its own id, instead of the ``fields`` list. Set by the move of a
+    # built-in action (which sent every question); cleared when the creator
+    # picks questions. A creator cannot turn it on
+    all_questions: bool = False
+    # how the action came to be and from what: ``migrated_builtin`` and the id of
+    # the form action it replaced; None for one a person made
+    created_via: Optional[str] = None
+    source_action_id: Optional[str] = None
 
     @model_validator(mode="before")
     @classmethod
