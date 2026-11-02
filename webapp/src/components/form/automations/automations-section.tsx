@@ -26,6 +26,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
+import { actionDescription } from './action-description';
 import AutomationCard from './automation-card';
 import { Panel, panelName } from './panels';
 import { Chip, chipFor } from './summary';
@@ -63,12 +64,13 @@ function IntegrationCard({ integration, onOpen }: { integration: Action; onOpen:
     const reconnect = useSheetsNeedsReconnect({ workspaceId: workspace?.id, formId: form?.formId, action: integration });
     const chip: Chip = chipFor({ configured: !!state, on: !!state?.enabled, reconnect });
     const title = integration.title || t('STAFF.INTEGRATIONS.UNTITLED');
+    const description = actionDescription(t, integration);
     const opener = panelName({ kind: 'action', actionId: integration.id, view: 'manage' });
     return (
         <AutomationCard
             id={`action-${integration.id}`}
             title={title}
-            summary={integration.description || t('STAFF.FORM_SETTINGS.CARD_NOT_SET_UP')}
+            summary={description || t('STAFF.FORM_SETTINGS.CARD_NOT_SET_UP')}
             icon={<Image src={integration.url || '/integration/default.svg'} alt="" width={24} height={24} />}
             chip={chip}
             manage={{
@@ -102,7 +104,7 @@ function CardSheet({ panel, cards, integrations }: { panel: Panel; cards: CardDa
         const integration = integrations.find((item) => item.id === panel.actionId);
         if (!integration) return null;
         title = integration.title || t('STAFF.INTEGRATIONS.UNTITLED');
-        description = integration.description;
+        description = actionDescription(t, integration);
         body = <FormIntegrations onlyActionId={integration.id} headless />;
     } else {
         const card = cards.find((item) => item.kind === panel.kind);
@@ -140,7 +142,8 @@ function CardSheet({ panel, cards, integrations }: { panel: Panel; cards: CardDa
                 document.querySelector<HTMLElement>(`[data-panel-opener="${panelName(panel)}"]`)?.focus();
             }}
         >
-            <SheetHeader className="pr-10 text-left">
+            {/* The close button is 50px wide at 16px from the edge, inside the sheet's 24px padding: keep the text clear of it. */}
+            <SheetHeader className="pr-14 text-left">
                 <SheetTitle className="text-xl">{title}</SheetTitle>
                 {description && (
                     <SheetDescription id={descriptionId} className="max-w-[62ch] leading-relaxed">

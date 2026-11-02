@@ -21,7 +21,8 @@ import commonNl from '../../../public/locales/nl/common.json';
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }), usePathname: () => '/acme/dashboard/forms' }));
 vi.mock('@app/components/workspace-dashboard/workspace-dashboard-form-cards', () => ({ default: () => <p>form cards</p> }));
 vi.mock('@app/components/modal-views/context', () => ({ useModal: () => ({ openModal: vi.fn(), closeModal: vi.fn() }) }));
-vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ can: () => true, ready: true, isLoading: false }) }));
+const workspacePermissions = vi.hoisted(() => ({ formRevisionsUiEnabled: false }));
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ can: () => true, ready: true, isLoading: false, formRevisionsUiEnabled: workspacePermissions.formRevisionsUiEnabled }) }));
 vi.mock('@app/lib/hooks/use-open-formulieren-export-mode', () => ({ useOpenFormulierenExportOn: () => ({ on: true }) }));
 vi.mock('@app/lib/hooks/use-breakpoint', () => ({ useIsMobile: () => false }));
 vi.mock('@app/lib/hooks/use-google-forms-import-mode', () => ({ useGoogleFormsImportMode: () => ({ mode: 'on' }) }));
@@ -163,6 +164,48 @@ describe('the form menu in the form page header', () => {
         renderMenu({ settings: { provider: 'self', pinned: true } });
         fireEvent.keyDown(screen.getByRole('button', { name: /More actions/ }), { key: 'Enter' });
         expect(await screen.findByRole('menuitem', { name: 'Unpin form' })).toBeInTheDocument();
+    });
+
+    it('ends with the form\'s version and, for an imported form, where it came from; Open form opens the respondent page in a new tab', async () => {
+        renderMenu({ version: 3, settings: { provider: 'google' } });
+        fireEvent.keyDown(screen.getByRole('button', { name: /More actions/ }), { key: 'Enter' });
+        const open = await screen.findByRole('menuitem', { name: /Open form/ });
+        expect(open).toHaveAttribute('target', '_blank');
+        expect(open).toHaveAttribute('rel', expect.stringContaining('noopener'));
+        expect(screen.getByText('Version 3')).toBeInTheDocument();
+        expect(screen.getByText('Imported from Google Forms')).toBeInTheDocument();
+    });
+
+    it('links the version to Versions when the server offers them, and says nothing of origin for a native form', async () => {
+        workspacePermissions.formRevisionsUiEnabled = true;
+        try {
+            renderMenu({ version: 2 });
+            fireEvent.keyDown(screen.getByRole('button', { name: /More actions/ }), { key: 'Enter' });
+            expect(await screen.findByRole('menuitem', { name: 'Version 2' })).toHaveAttribute('href', '/acme/dashboard/forms/f1/versions');
+            expect(screen.queryByText(/Imported from/)).toBeNull();
+            expect(screen.queryByText('bettercollected form')).toBeNull();
+        } finally {
+            workspacePermissions.formRevisionsUiEnabled = false;
+        }
+    });
+
+    it('has Preview first when the bar gives it (a phone), and is Dutch in Dutch', async () => {
+        await inLanguage('nl');
+        const onPreview = vi.fn();
+        store.dispatch(setWorkspace(workspace));
+        render(
+            <ReduxProvider store={store}>
+                <FormOptionsDropdownMenu workspace={workspace} form={{ ...headerForm, version: 3, settings: { provider: 'typeform' } }} hasCustomDomain={false} inHeader onPreview={onPreview} />
+            </ReduxProvider>
+        );
+        fireEvent.keyDown(screen.getByRole('button', { name: /Meer acties/ }), { key: 'Enter' });
+        const items = await screen.findAllByRole('menuitem');
+        expect(items[0]).toHaveTextContent('Voorbeeld');
+        expect(screen.getByText('Versie 3')).toBeInTheDocument();
+        expect(screen.getByText('Geïmporteerd uit Typeform')).toBeInTheDocument();
+        expect(screen.getByText('Formulier openen')).toBeInTheDocument();
+        fireEvent.click(items[0]);
+        expect(onPreview).toHaveBeenCalled();
     });
 
     it('still has Open and Edit on a form card', async () => {

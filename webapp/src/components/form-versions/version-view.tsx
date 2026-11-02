@@ -34,10 +34,10 @@ export default function VersionView({ version }: { version: number }) {
     const { data, isLoading, isError, error } = useGetWorkspaceFormVersionQuery({ workspaceId, formId, version }, { skip: !allowed || !workspaceId || !formId });
     const back = formVersionsUrl(workspace?.workspaceName ?? '', formId);
 
-    if (!ready) return <div className="px-4 md:px-10 lg:px-28" role="status" aria-live="polite" />;
+    if (!ready) return <div role="status" aria-live="polite" />;
     if (!allowed) {
         return (
-            <div className="px-4 md:px-10 lg:px-28">
+            <div>
                 <p role="status" className="text-sm text-black-700">
                     {t('FORM_VERSIONS.DISABLED')}
                 </p>
@@ -46,7 +46,7 @@ export default function VersionView({ version }: { version: number }) {
     }
 
     return (
-        <div className="px-4 md:px-10 lg:px-28" data-testid="version-view">
+        <div data-testid="version-view">
             <section aria-labelledby="version-view-title" className="flex max-w-3xl flex-col gap-4">
                 <Link href={back} className="w-fit text-sm text-black-700 underline underline-offset-2 hover:text-black-900">
                     {t('FORM_VERSIONS.VIEW_PAGE.BACK')}
