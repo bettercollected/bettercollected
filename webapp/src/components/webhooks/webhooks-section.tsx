@@ -14,20 +14,20 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import {
     Webhook,
     WebhookVariable,
     WebhookWithSecret,
-    useGetWebhookDetailQuery,
     useDeleteWebhookMutation,
+    useGetWebhookDetailQuery,
     useGetWebhookVariablesQuery,
     useGetWebhooksQuery,
     useRotateWebhookSecretMutation,
     useSendWebhookTestMutation,
     useUpdateWebhookMutation
 } from '@app/store/workspaces/webhooks-api';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-import { errorCodeOf, errorKey } from '@app/utils/webhooks';
+import { errorCodeOf, errorKey, sendsEveryQuestionByFormat } from '@app/utils/webhooks';
 
 /**
  * The Settings tab's "Webhooks": owners and admins (workspace.manage) send the
@@ -48,7 +48,7 @@ export default function FormWebhooksSection() {
 }
 
 type Editing = { kind: 'add' } | { kind: 'edit'; id: string } | null;
-type Pending = { kind: 'delete' | 'rotate'; id: string } | null;
+type Pending = { kind: 'delete' | 'rotate' | 'switch'; id: string } | null;
 
 export function WebhooksSettings({ workspaceId, formId }: { workspaceId: string; formId: string }) {
     const { t } = useTranslation('builder');
@@ -98,6 +98,15 @@ export function WebhooksSettings({ workspaceId, formId }: { workspaceId: string;
             hook.id,
             () => rotate({ workspaceId, formId, webhookId: hook.id }),
             (data: WebhookWithSecret) => setSecret({ value: data.secret, host: hook.host, rotated: true })
+        );
+    };
+
+    const switchToSigned = (hook: Webhook) => {
+        setPending(null);
+        return run(
+            hook.id,
+            () => update({ workspaceId, formId, webhookId: hook.id, body: { format: 'envelope' } }),
+            () => say(t('WEBHOOKS.LIST.SWITCHED', { host: hook.host }))
         );
     };
 
@@ -159,7 +168,14 @@ export function WebhooksSettings({ workspaceId, formId }: { workspaceId: string;
                                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                                     <div className="flex min-w-0 flex-col">
                                                         <span className="text-sm font-semibold break-all text-black-900">{hook.host}</span>
-                                                        <span className="text-xs text-black-600">{t('WEBHOOKS.LIST.QUESTIONS', { count: hook.fields.length })}</span>
+                                                        {hook.format && hook.format !== 'envelope' && (
+                                                            <span className="mt-1 inline-flex w-fit rounded-full border border-black-400 bg-black-100 px-2 py-0.5 text-xs font-medium text-black-800" data-testid={`webhook-format-${hook.id}`}>
+                                                                {t(`WEBHOOKS.LIST.FORMAT_${hook.format.toUpperCase()}`)}
+                                                            </span>
+                                                        )}
+                                                        <span className="text-xs text-black-600">
+                                                            {sendsEveryQuestionByFormat(hook.format) || (hook.allQuestions && hook.fields.length === 0) ? t('WEBHOOKS.LIST.QUESTIONS_ALL') : t('WEBHOOKS.LIST.QUESTIONS', { count: hook.fields.length })}
+                                                        </span>
                                                         {hook.condition && hook.condition.conditions.length > 0 && <span className="text-xs text-black-600">{t('ACTION_CONDITION.BADGE')}</span>}
                                                     </div>
                                                     <div className="flex items-center gap-2">
@@ -182,21 +198,54 @@ export function WebhooksSettings({ workspaceId, formId }: { workspaceId: string;
                                                     <Button type="button" variant="v2Button" size="sm" isLoading={busy === hook.id} disabled={busy !== null} onClick={() => test(hook)} aria-label={t('WEBHOOKS.LIST.TEST_NAMED', { host: hook.host })}>
                                                         {t('WEBHOOKS.LIST.TEST')}
                                                     </Button>
-                                                    <Button type="button" variant="v2Button" size="sm" disabled={busy !== null} onClick={() => setPending({ kind: 'rotate', id: hook.id })} aria-label={t('WEBHOOKS.LIST.ROTATE_NAMED', { host: hook.host })}>
-                                                        {t('WEBHOOKS.LIST.ROTATE')}
-                                                    </Button>
-                                                    <Button type="button" variant="dangerGhost" size="sm" disabled={busy !== null} onClick={() => setPending({ kind: 'delete', id: hook.id })} aria-label={t('WEBHOOKS.LIST.DELETE_NAMED', { host: hook.host })}>
+                                                    {hook.format === 'legacy_list' && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="v2Button"
+                                                            size="sm"
+                                                            disabled={busy !== null}
+                                                            onClick={() => setPending({ kind: 'switch', id: hook.id })}
+                                                            aria-label={t('WEBHOOKS.LIST.SWITCH_NAMED', { host: hook.host })}
+                                                        >
+                                                            {t('WEBHOOKS.LIST.SWITCH')}
+                                                        </Button>
+                                                    )}
+                                                    {hook.hasSecret !== false && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="v2Button"
+                                                            size="sm"
+                                                            disabled={busy !== null}
+                                                            onClick={() => setPending({ kind: 'rotate', id: hook.id })}
+                                                            aria-label={t('WEBHOOKS.LIST.ROTATE_NAMED', { host: hook.host })}
+                                                        >
+                                                            {t('WEBHOOKS.LIST.ROTATE')}
+                                                        </Button>
+                                                    )}
+                                                    <Button
+                                                        type="button"
+                                                        variant="dangerGhost"
+                                                        size="sm"
+                                                        disabled={busy !== null}
+                                                        onClick={() => setPending({ kind: 'delete', id: hook.id })}
+                                                        aria-label={t('WEBHOOKS.LIST.DELETE_NAMED', { host: hook.host })}
+                                                    >
                                                         {t('WEBHOOKS.LIST.DELETE')}
                                                     </Button>
                                                 </div>
                                                 {confirming && (
                                                     <div role="alertdialog" aria-labelledby={`webhook-confirm-${hook.id}`} className="flex flex-col gap-2 rounded-md border border-[#E5B9B9] bg-[#FBEFEF] p-3">
                                                         <p id={`webhook-confirm-${hook.id}`} className="text-sm text-black-900">
-                                                            {t(confirming === 'delete' ? 'WEBHOOKS.LIST.CONFIRM_DELETE' : 'WEBHOOKS.LIST.CONFIRM_ROTATE', { host: hook.host })}
+                                                            {t(confirming === 'delete' ? 'WEBHOOKS.LIST.CONFIRM_DELETE' : confirming === 'switch' ? 'WEBHOOKS.LIST.CONFIRM_SWITCH' : 'WEBHOOKS.LIST.CONFIRM_ROTATE', { host: hook.host })}
                                                         </p>
                                                         <div className="flex flex-wrap gap-2">
-                                                            <Button type="button" size="sm" variant={confirming === 'delete' ? 'danger' : 'primary'} onClick={() => (confirming === 'delete' ? deleteHook(hook) : rotateSecret(hook))}>
-                                                                {t(confirming === 'delete' ? 'WEBHOOKS.LIST.DELETE' : 'WEBHOOKS.LIST.ROTATE')}
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                variant={confirming === 'delete' ? 'danger' : 'primary'}
+                                                                onClick={() => (confirming === 'delete' ? deleteHook(hook) : confirming === 'switch' ? switchToSigned(hook) : rotateSecret(hook))}
+                                                            >
+                                                                {t(confirming === 'delete' ? 'WEBHOOKS.LIST.DELETE' : confirming === 'switch' ? 'WEBHOOKS.LIST.SWITCH_CONFIRM' : 'WEBHOOKS.LIST.ROTATE')}
                                                             </Button>
                                                             <Button type="button" size="sm" variant="v2Button" onClick={() => setPending(null)}>
                                                                 {t('WEBHOOKS.EDITOR.CANCEL')}

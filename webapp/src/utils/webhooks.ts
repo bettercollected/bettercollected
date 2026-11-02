@@ -22,7 +22,11 @@ export const ERROR_CODES = [
     'rate_limited',
     'forbidden',
     'not_found',
-    'invalid_condition'
+    'invalid_condition',
+    'host_not_allowed',
+    'format_locked',
+    'format_has_no_fields',
+    'format_not_signed'
 ] as const;
 
 export const DELIVERY_ERROR_CODES = [
@@ -74,6 +78,7 @@ export function errorField(code: string): 'url' | 'fields' | 'condition' | null 
         case 'not_https':
         case 'not_allowed':
         case 'unreachable':
+        case 'host_not_allowed':
             return 'url';
         case 'invalid_key':
         case 'unknown_variable':
@@ -109,6 +114,9 @@ export function urlProblem(value: string): 'empty' | 'not_https' | 'invalid_url'
     if (!parsed.hostname || !parsed.hostname.includes('.') || /^[\d.]+$/.test(parsed.hostname) || parsed.hostname.startsWith('[')) return 'invalid_url';
     return null;
 }
+
+/** Whether a webhook sends every question, so there is nothing to pick: a built-in action that moved here (`legacy_list`, `slack`, `discord`). */
+export const sendsEveryQuestionByFormat = (format?: string | null) => !!format && format !== 'envelope';
 
 export const defaultKeyOf = (source: string) => source.replace(/[^A-Za-z0-9_]/g, '_');
 export const isValidKey = (key: string) => KEY_PATTERN.test(key);
