@@ -17,6 +17,9 @@ import { useAppSelector } from '@app/store/hooks';
 import { useCreateAPIKeyMutation, useGetAPIKeysQuery, useGetWorkspaceFormsQuery, useRevokeAPIKeyMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
+// the most the forms list sends in one page
+const FORMS_PAGE_SIZE = 100;
+
 interface APIKey {
     id: string;
     name: string;
@@ -99,8 +102,20 @@ export default function APIKeysPage() {
     const submits = scopes.includes(SUBMISSIONS_SCOPE.key);
     const [limitForms, setLimitForms] = useState(false);
     const [formIds, setFormIds] = useState<string[]>([]);
-    const { data: publishedForms } = useGetWorkspaceFormsQuery({ workspace_id: workspace?.id, published: true, page: 1, size: 100 }, { skip: !workspace?.id || !submits || !submissionsApiEnabled });
-    const formChoices: Array<{ formId: string; title?: string }> = (publishedForms as any)?.items ?? [];
+    // the picker pages through every published form, FORMS_PAGE_SIZE at a time (the API's largest page)
+    const [formsPage, setFormsPage] = useState(1);
+    const [formPages, setFormPages] = useState<Record<number, Array<{ formId: string; title?: string }>>>({});
+    const { data: publishedForms } = useGetWorkspaceFormsQuery({ workspace_id: workspace?.id, published: true, page: formsPage, size: FORMS_PAGE_SIZE }, { skip: !workspace?.id || !submits || !submissionsApiEnabled });
+    useEffect(() => {
+        const loaded = publishedForms as any;
+        if (loaded) setFormPages((current) => ({ ...current, [loaded.page ?? formsPage]: loaded.items ?? [] }));
+    }, [publishedForms]);
+    const formChoices = Object.keys(formPages)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .flatMap((page) => formPages[page])
+        .filter((form, index, all) => all.findIndex((other) => other.formId === form.formId) === index);
+    const moreForms = ((publishedForms as any)?.pages ?? 1) > formsPage;
     const scopeChoices = submissionsApiEnabled ? [...SCOPES, SUBMISSIONS_SCOPE] : SCOPES;
     // The one and only time the full token is visible.
     const [freshToken, setFreshToken] = useState<{ name: string; token: string } | null>(null);
@@ -222,6 +237,13 @@ export default function APIKeysPage() {
                                     ))}
                                 </ul>
                             ))}
+                        {limitForms && moreForms && (
+                            <div className="pl-6">
+                                <Button size="sm" variant="v2GhostButton" onClick={() => setFormsPage((current) => current + 1)}>
+                                    {t('STAFF.API_KEYS.MORE_FORMS')}
+                                </Button>
+                            </div>
+                        )}
                     </fieldset>
                 )}
                 {readsResponses && (

@@ -20,18 +20,27 @@ vi.mock('@app/shadcn/components/ui/use-toast', () => ({ useToast: () => ({ toast
 const created = vi.fn();
 const toasted = vi.fn();
 const KEYS: any[] = [];
+const formsAsked = vi.fn();
+// the published forms, a page each (the API's pages: `pages` is how many there are)
+const ONE_PAGE = [
+    {
+        page: 1,
+        pages: 1,
+        items: [
+            { formId: 'f1', title: 'Registration' },
+            { formId: 'f2', title: '' }
+        ]
+    }
+];
+let formPages: any[] = ONE_PAGE;
 vi.mock('@app/store/workspaces/api', () => ({
     useGetAPIKeysQuery: () => ({ data: KEYS, isLoading: false }),
     useCreateAPIKeyMutation: () => [(arg: any) => Promise.resolve(created(arg) ?? { data: { name: 'k', token: 'bc_x' } }), { isLoading: false }],
     useRevokeAPIKeyMutation: () => [vi.fn()],
-    useGetWorkspaceFormsQuery: () => ({
-        data: {
-            items: [
-                { formId: 'f1', title: 'Registration' },
-                { formId: 'f2', title: '' }
-            ]
-        }
-    })
+    useGetWorkspaceFormsQuery: (arg: any) => {
+        formsAsked(arg);
+        return { data: formPages[arg.page - 1] ?? formPages[0] };
+    }
 }));
 
 const scopeBox = (name: string) => screen.getByRole('checkbox', { name: new RegExp(name) });
@@ -40,6 +49,8 @@ beforeEach(() => {
     permissions.enabled = true;
     created.mockReset();
     toasted.mockReset();
+    formsAsked.mockReset();
+    formPages = ONE_PAGE;
     KEYS.length = 0;
 });
 
@@ -68,6 +79,28 @@ describe('the API key dialog and submissions', () => {
         fireEvent.click(screen.getByRole('checkbox', { name: 'Registration' }));
         fireEvent.click(screen.getByRole('button', { name: 'Create key' }));
         expect(created.mock.calls[0][0].body.submissionFormIds).toEqual(['f1']);
+    });
+
+    it('pages through every published form, keeping the ones picked on earlier pages', () => {
+        formPages = [
+            { page: 1, pages: 2, items: [{ formId: 'f1', title: 'Registration' }] },
+            { page: 2, pages: 2, items: [{ formId: 'f101', title: 'Feedback' }] }
+        ];
+        render(<APIKeysPage />);
+        fireEvent.change(screen.getByPlaceholderText(/./), { target: { value: 'CRM sync' } });
+        fireEvent.click(scopeBox('Submit responses'));
+        fireEvent.click(scopeBox('Only for these forms'));
+        expect(formsAsked.mock.calls.at(-1)[0]).toMatchObject({ published: true, page: 1, size: 100 });
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Registration' }));
+        expect(screen.queryByRole('checkbox', { name: 'Feedback' })).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Show more forms' }));
+        expect(formsAsked.mock.calls.at(-1)[0]).toMatchObject({ page: 2 });
+        // the second page is added below the first; the last page has no button
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Feedback' }));
+        expect(screen.getByRole('checkbox', { name: 'Registration' })).toBeChecked();
+        expect(screen.queryByRole('button', { name: 'Show more forms' })).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Create key' }));
+        expect(created.mock.calls[0][0].body.submissionFormIds).toEqual(['f1', 'f101']);
     });
 
     it('says which forms a key submits to', () => {

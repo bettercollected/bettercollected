@@ -1679,6 +1679,7 @@
       "SUBMISSIONS_BODY": "Een sleutel met deze rechten verstuurt antwoorden langs dezelfde controles als de antwoorden van een respondent. Hij meldt zich nooit aan als respondent, en formulieren die een geverifieerde respondent vragen, weigeren hem. Wie de sleutel gebruikt, verklaart dat de respondent toestemming heeft gegeven, en elke reactie legt vast dat deze sleutel haar heeft gemaakt. De sleutel kan alleen reacties wijzigen die hij zelf heeft gemaakt.",
       "LIMIT_FORMS": "Alleen voor deze formulieren",
       "NO_PUBLISHED_FORMS": "Deze werkruimte heeft nog geen gepubliceerde formulieren.",
+      "MORE_FORMS": "Meer formulieren tonen",
       "UNTITLED_FORM": "Formulier zonder titel",
       "SUBMITS_TO_FORMS_one": "dient in bij {{count}} formulier",
       "SUBMITS_TO_FORMS_other": "dient in bij {{count}} formulieren",
