@@ -188,6 +188,10 @@ SERVER: Tuple[SettingSpec, ...] = (
     _bool("FORM_REVISIONS_UI_ENABLED", "features", (BACKEND,), False,
           "Lets staff list a form's versions, compare two and restore one into the draft (off: those routes answer 422 and the Versions tab is hidden).",
           tier=T2),
+    _bool("CSV_IMPORT_ENABLED", "features", (BACKEND,), False,
+          "Lets members who may (Owner, Admin) import submissions from a CSV file into a form "
+          "(off: the import routes answer 404 and the control is hidden).",
+          tier=T2),
     _bool("NEW_QUESTION_TYPES_ENABLED", "features", (BACKEND,), False,
           "Allows adding or changing the newer question types (time, day, currency, date range, tags); "
           "questions a form already has keep working either way.",

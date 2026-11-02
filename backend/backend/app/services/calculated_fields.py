@@ -663,6 +663,7 @@ def calculate_and_check(
     known_ids: Optional[Set[str]] = None,
     only: Optional[Iterable[str]] = None,
     with_locked: bool = False,
+    enforce: Optional[bool] = None,
 ) -> Any:
     """The server's values (calculated fields, and what field rules set or
     lock: services/field_rules.py), then answer validation with them
@@ -670,7 +671,9 @@ def calculate_and_check(
     one call, run off the event loop by the caller. Returns the answers with
     the server's values; ``with_locked``: ``(answers, locked ids)``, the
     questions whose value a rule set or locked (``only`` then includes
-    them: an edit reports what an active rule now decides).
+    them: an edit reports what an active rule now decides). ``enforce``: None
+    follows ``RESPONSE_VALIDATION_ENFORCE``; True refuses whatever it says
+    (the CSV import).
 
     A replay over its evaluation budget (data no save accepted) refuses the
     response, 422 ``field_rules_too_costly``: nothing goes unchecked."""
@@ -698,6 +701,12 @@ def calculate_and_check(
     if with_locked and only is not None:
         only = list(only) + sorted(states.locked)
     check_answers(
-        form, answers, form_id, known_ids=known_ids, only=only, rule_states=states
+        form,
+        answers,
+        form_id,
+        known_ids=known_ids,
+        only=only,
+        rule_states=states,
+        enforce=enforce,
     )
     return (answers, set(states.locked)) if with_locked else answers

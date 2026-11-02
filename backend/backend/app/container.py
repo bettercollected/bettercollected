@@ -59,6 +59,9 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceUserRepository,
 )
 from backend.app.repositories.postgres.form_drafts import PostgresFormDraftRepository
+from backend.app.repositories.postgres.response_imports import (
+    PostgresResponseImportRepository,
+)
 from backend.app.repositories.postgres.response_exports import (
     PostgresResponseExportRepository,
 )
@@ -167,6 +170,7 @@ from backend.app.services.registration.service import RegistrationService
 from backend.app.services.form_drafts.service import FormDraftService
 from backend.app.services.webhooks.service import WebhookService
 from backend.app.services.response_export.service import ResponseExportService
+from backend.app.services.response_import.service import ResponseImportService
 from backend.app.services.email_actions.service import EmailActionService
 from backend.app.services.option_lists.service import OptionListService
 from backend.app.services.option_sources.service import OptionSourceService
@@ -296,6 +300,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
     response_export_repo: PostgresResponseExportRepository = providers.Singleton(
         PostgresResponseExportRepository, pg_sessionmaker
+    )
+    response_import_repo: PostgresResponseImportRepository = providers.Singleton(
+        PostgresResponseImportRepository, pg_sessionmaker
     )
     sso_connection_repo: PostgresSsoConnectionRepository = providers.Singleton(
         PostgresSsoConnectionRepository, pg_sessionmaker
@@ -633,6 +640,25 @@ class AppContainer(containers.DeclarativeContainer):
         export_repo=response_export_repo,
         crypto=providers.Object(crypto_service),
         rate_limiter=rate_limiter,
+        import_hooks=LazyRepository(lambda: container.response_import_service()),
+    )
+
+    # the import of submissions from a CSV file (a dry run or the import runs as
+    # a job; the upload is kept encrypted with the responses' own keyset)
+    response_import_service: ResponseImportService = providers.Singleton(
+        ResponseImportService,
+        authorization_service=authorization_service,
+        form_service=form_service,
+        workspace_form_repo=workspace_form_repo,
+        form_response_service=form_response_service,
+        response_repo=form_response_repo,
+        import_repo=response_import_repo,
+        crypto=providers.Object(crypto_service),
+        rate_limiter=rate_limiter,
+        export_service=LazyRepository(lambda: container.response_export_service()),
+        schedule_deletion=providers.Callable(
+            lambda service: service.add_scheduled_job_for_deleting_response, temporal_service
+        ),
     )
 
     # options from a workspace list or from another form's answers (a public

@@ -771,3 +771,37 @@ class ResponseExportChunkRow(Base, BaseRow):
         Index(None, "workspace_id", "form_id"),
         Index(None, "form_id"),
     )
+
+
+class ResponseImportRow(Base, BaseRow):
+    __tablename__ = "response_imports"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    actor_id = S.text("actor_id")
+    status = S.text("status")
+    __table_args__ = (
+        Index(None, "workspace_id", "form_id", "created_at"),
+        Index(None, "status", "created_at"),
+        Index(None, "form_id"),
+        # one import being checked, queued or run per form: the check and the
+        # insert of a request cannot race past each other
+        Index(
+            "uq_response_imports_one_busy",
+            "workspace_id",
+            "form_id",
+            unique=True,
+            postgresql_where=text("status IN ('checking', 'queued', 'running')"),
+        ),
+    )
+
+
+class ResponseImportFileRow(Base, BaseRow):
+    __tablename__ = "response_import_files"
+    import_id = S.text("import_id")
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    __table_args__ = (
+        UniqueConstraint("import_id"),
+        Index(None, "workspace_id", "form_id"),
+        Index(None, "form_id"),
+    )

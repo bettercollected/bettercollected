@@ -1522,6 +1522,8 @@ class WorkspaceFormService:
         )
         # Feedback is the staff's to write, never part of a submission.
         response.respondent_feedback = None
+        # "Imported from a CSV file" is the server's mark, never a body's claim.
+        response.csv_import_id = None
         response.response_id = response_id or str(RecordId())
 
         workspace_form_ids = (

@@ -25,6 +25,8 @@ class Permission(str, enum.Enum):
     RESPONSE_READ = "response.read"
     RESPONSE_ANNOTATE = "response.annotate"
     RESPONSE_EXPORT = "response.export"
+    # import submissions from a CSV file (Owner and Admin only)
+    RESPONSE_IMPORT = "response.import"
     RESPONSE_DELETE = "response.delete"
     # privacy and aggregates
     PRIVACY_MANAGE = "privacy.manage"

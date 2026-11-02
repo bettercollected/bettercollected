@@ -148,6 +148,11 @@ class Application(StoreBackedSettings):
     # is refused with 422 save_drafts_disabled, and saving or opening a draft is
     # refused.
     SAVE_DRAFTS_ENABLED: bool = False
+    # Importing submissions from a CSV file (services/response_import/). Off
+    # (the default, until the release that turns it on): every import route
+    # answers 404 and the webapp shows no import control; the hourly sweep
+    # that deletes uploaded files still runs.
+    CSV_IMPORT_ENABLED: bool = False
     # Forms may be embedded in other sites (services/form_embed.py, docs/embed.md):
     # a workspace lists the sites allowed to frame its forms and the respondent
     # pages are served with that list as their frame-ancestors. Off (the

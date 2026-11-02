@@ -1407,6 +1407,8 @@ class PostgresFormResponseRepository(RecordRepository):
         workspace_id: RecordId,
         response_limit: Optional[int] = None,
         scope: Optional[ResponseScope] = None,
+        submitted_at: Optional[dt.datetime] = None,
+        internal_answers: Optional[Dict[str, Any]] = None,
         source: Optional[SubmissionSource] = None,
     ):
         """Store a new response. ``source``: how an API key made it (None for
@@ -1415,7 +1417,12 @@ class PostgresFormResponseRepository(RecordRepository):
         count is taken over) the count and the insert happen in one
         transaction under an advisory lock on the form in this workspace, so
         concurrent submissions queue up and the one that would pass the limit
-        is refused: 409 ``form_full``, nothing stored."""
+        is refused: 409 ``form_full``, nothing stored.
+
+        ``submitted_at`` and ``internal_answers`` are for the CSV import only
+        (``services/response_import``): the submission time a file states
+        (a respondent's submission is always stamped now) and the staff-only
+        answers it holds, encrypted here like ``answers``."""
         response_document = FormResponseDocument(**response.model_dump(mode="json"))
         response_document.submission_uuid = str(uuid4())
         if workspace_id:
@@ -1441,8 +1448,16 @@ class PostgresFormResponseRepository(RecordRepository):
         # submitted now, whatever the client sent: the time must not be the
         # respondent's to choose (newest-first order, "submitted since")
         now = utcnow()
+        if submitted_at is not None:
+            now = submitted_at
         response_document.created_at = now
         response_document.updated_at = now
+        if internal_answers and workspace_id:
+            response_document.internal_answers = crypto_service.encrypt(
+                workspace_id=workspace_id,
+                form_id=form_id,
+                data=json.dumps(internal_answers),
+            )
         if response_limit is None:
             return await self.save_document(response_document)
         if scope is None:
@@ -1606,6 +1621,22 @@ class PostgresFormResponseRepository(RecordRepository):
         async with self._session() as session:
             rows = (await session.execute(stmt)).all()
         return sorted((response_id, value) for response_id, value in rows)
+
+    async def count_imported(self, scope: ResponseScope, import_id: str) -> int:
+        """The stored responses a CSV import created (``csv_import_id``)."""
+        return await self.count(
+            _in_scope(FormResponseRow, scope),
+            FormResponseRow.doc["csv_import_id"].astext == str(import_id),
+        )
+
+    async def delete_imported(self, scope: ResponseScope, import_id: str) -> int:
+        """Delete the responses a CSV import created, in the form and workspace
+        of ``scope`` only (the undo of an import, and the cleanup of one that
+        failed half way). Returns how many were deleted."""
+        return await self.delete_where(
+            _in_scope(FormResponseRow, scope),
+            FormResponseRow.doc["csv_import_id"].astext == str(import_id),
+        )
 
     async def delete_response(self, response_id: str):
         await self.delete_one_where(FormResponseRow.response_id == response_id)

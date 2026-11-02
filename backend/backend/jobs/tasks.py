@@ -494,6 +494,52 @@ async def response_export_purge(timestamp: int) -> str:
     return f"{deleted} deleted"
 
 
+@app.task(
+    name="run_response_import",
+    queue=EXPORTS_QUEUE,
+)
+async def run_response_import(import_id: str) -> str:
+    """Check or run an import of submissions from a CSV file
+    (docs/response-import.md). The only argument is the import id: the file
+    waits encrypted on its own row, the rows are read and stored inside the
+    job and never queued or logged. A failed run ends the import as failed (the
+    importer starts again); a worker that died is found by
+    ``response_import_sweep``."""
+    return await _container().response_import_service().run_job(import_id)
+
+
+@app.periodic(cron="*/5 * * * *", periodic_id="response_import_redefer")
+@app.task(
+    name="response_import_redefer",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="response_import_redefer",
+)
+async def response_import_redefer(timestamp: int) -> str:
+    """Every 5 minutes: queue again imports whose job was never queued, fail those
+    that waited too long and those whose worker died (an import that stored rows
+    undoes them). Cheap; the hourly sweep also does it. Counts only."""
+    counts = await _container().response_import_service().redefer_pending()
+    return f"{counts['queued']} queued, {counts['failed']} failed"
+
+
+@app.periodic(cron="23 * * * *", periodic_id="response_import_sweep")
+@app.task(
+    name="response_import_sweep",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="response_import_sweep",
+)
+async def response_import_sweep(timestamp: int) -> str:
+    """Hourly: delete the uploaded files of imports that were left unused for an
+    hour, queue imports no worker took and fail those whose worker died (an
+    import that stored rows undoes them). Runs whether or not CSV_IMPORT_ENABLED
+    is on. Counts only."""
+    counts = await _container().response_import_service().purge_expired()
+    return (
+        f"{counts['expired']} expired, {counts['orphans']} orphans, "
+        f"{counts['queued']} queued, {counts['failed']} failed"
+    )
+
+
 @app.periodic(cron="29 3 * * *", periodic_id="purge_form_drafts")
 @app.task(
     name="purge_form_drafts",

@@ -85,6 +85,8 @@ NOT_IMPORTED_TABLES = (
     "form_drafts",
     "response_exports",
     "response_export_chunks",
+    "response_imports",
+    "response_import_files",
     "form_email_actions",
     "workspace_option_lists",
     "option_source_erasures",

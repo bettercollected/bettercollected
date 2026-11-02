@@ -214,3 +214,16 @@ def test_the_submission_time_is_utc_iso(value, expected):
     moment = None if value is None else dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
     assert submitted_at_cell(moment) == expected
     assert submitted_at_cell("not a date") == ""  # type: ignore[arg-type]
+
+
+def test_a_value_that_is_apostrophes_and_a_formula_is_guarded_too():
+    # the CSV import takes off exactly one apostrophe from a guarded cell, so a
+    # real "'=x" must be written as "''=x" for the round trip to be exact
+    from backend.app.services.response_export.table import formula_safe_cell
+
+    assert formula_safe_cell("=x") == "'=x"
+    assert formula_safe_cell("'=x") == "''=x"
+    assert formula_safe_cell("''+1") == "'''+1"
+    assert formula_safe_cell("'tis") == "'tis"
+    assert formula_safe_cell("'-5") == "'-5"
+    assert formula_safe_cell("'") == "'"
