@@ -192,8 +192,8 @@ SERVER: Tuple[SettingSpec, ...] = (
           "Lets staff list a form's versions, compare two and restore one into the draft (off: those routes answer 422 and the Versions tab is hidden).",
           tier=T2),
     _bool("AUDIT_LOG_UI_ENABLED", "features", (BACKEND,), False,
-          "Lets staff with audit.read (Owner, Admin, Privacy officer) read the workspace's audit log and a form's "
-          "(off: those routes answer 422 and the Activity pages are hidden; events are recorded either way).",
+          "Lets staff with audit.read read the workspace's and a form's audit log (off: routes answer 422, "
+          "Activity pages hidden; events are recorded anyway).",
           tier=T2),
     _bool("RESPONSE_REVISIONS_ENABLED", "features", (BACKEND,), False,
           "Lets staff with response.edit change answers and logs every edit, respondents' too (off: staff edit and history refused, nothing recorded).",
