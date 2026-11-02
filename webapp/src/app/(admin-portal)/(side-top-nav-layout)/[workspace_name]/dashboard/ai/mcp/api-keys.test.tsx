@@ -33,7 +33,8 @@ const ONE_PAGE = [
     }
 ];
 let formPages: any[] = ONE_PAGE;
-vi.mock('@app/store/workspaces/api', () => ({
+vi.mock('@app/store/workspaces/api', async (original) => ({
+    ...((await original()) as object),
     useGetAPIKeysQuery: () => ({ data: KEYS, isLoading: false }),
     useCreateAPIKeyMutation: () => [(arg: any) => Promise.resolve(created(arg) ?? { data: { name: 'k', token: 'bc_x' } }), { isLoading: false }],
     useRevokeAPIKeyMutation: () => [vi.fn()],
