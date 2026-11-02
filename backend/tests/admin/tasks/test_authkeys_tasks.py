@@ -32,6 +32,7 @@ from backend.admin.tasks.impl import authkeys_state as ring_state
 from backend.admin.tasks.impl import keyset_state as state
 from backend.admin.tasks.registry import check_meta
 from backend.admin.tasks.runner.runner import lock_names
+from backend.app.services.mfa import sealing as totp_sealing
 from backend.app.services.registration import secrets as registration_secrets
 from backend.app.services.webhooks import sealing as webhook_sealing
 from common.configs.crypto import Crypto
@@ -51,8 +52,10 @@ FORM = "65e5501d00000000000000f1"
 ACTION = "65e5501d00000000000000c1"
 SERVICE = "65e5501d00000000000000d1"
 HOOK = "65e5501d00000000000000e1"
+USER = "65e5501d00000000000000b1"
+FACTOR = "65e5501d00000000000000b2"
 CREDENTIAL = json.dumps({"token": "access-1", "refresh_token": "refresh-1", "scopes": "x"})
-PLAINS = ("access-1", "refresh-1", "whsec-scim", "reg-secret-1", "https://hook.example/h?k=1", "hook-secret-1", "token-plain-1")
+PLAINS = ("access-1", "refresh-1", "whsec-scim", "reg-secret-1", "https://hook.example/h?k=1", "hook-secret-1", "token-plain-1", "TOTPSECRETBASE32")
 KEYSET = generated_keyset()  # the heartbeats' keyset value (unused by the ring checks)
 
 
@@ -202,6 +205,12 @@ async def seed(key: str = OLD_F) -> Seeded:
         url_sealed=webhook_sealing.seal_url(crypto, WS, HOOK, "https://hook.example/h?k=1"),
         secret_sealed=registration_secrets.seal(crypto, WS, HOOK, "hook-secret-1"),
     )
+    seeded.ids["user_totp_factors"] = await insert(
+        "user_totp_factors",
+        user_id=USER,
+        state="confirmed",
+        secret_sealed=totp_sealing.seal_secret(crypto, USER, FACTOR, "TOTPSECRETBASE32"),
+    )
     return seeded
 
 
@@ -225,6 +234,11 @@ def check_round_trip(docs: dict, crypto: Crypto) -> None:
     hook = docs["form_webhooks"]
     assert webhook_sealing.unseal_url(crypto, WS, HOOK, hook["url_sealed"]) == "https://hook.example/h?k=1"
     assert registration_secrets.unseal(crypto, WS, HOOK, hook["secret_sealed"]) == "hook-secret-1"
+    # the authenticator-app secret still opens through its bound envelope
+    assert (
+        totp_sealing.unseal_secret(crypto, USER, FACTOR, docs["user_totp_factors"]["secret_sealed"])
+        == "TOTPSECRETBASE32"
+    )
 
 
 async def all_docs(seeded: Seeded) -> dict:
@@ -395,7 +409,7 @@ async def test_the_whole_aes_rotation_moves_every_value_and_the_old_key_is_not_n
     params = {"which": "aes", "primary_id": new_id, "external_consumers_updated": True}
     _, counted = await flow.run("authkeys.reencrypt", params, dry_run=True)
     assert counted["state"] == "succeeded", counted
-    assert counted["result"]["values_stale"] == 10  # 2+2 form secrets, 1+1 actions, 1 directory, 1 service, 2 webhook
+    assert counted["result"]["values_stale"] == 11  # 2+2 form secrets, 1+1 actions, 1 directory, 1 service, 2 webhook, 1 authenticator app
     assert await all_docs(seeded) == before
     _, run = await flow.both("authkeys.reencrypt", params)
     assert run["state"] == "succeeded", run
@@ -500,12 +514,13 @@ async def test_the_dry_run_reports_what_will_move(world, flow):
     )
     result = meta.ScanResult.model_validate(counted["result"])
     # forms and versions: 2 sealed + 1 empty each; actions 1; workspace actions 1; scim 1;
-    # registration 1; webhooks 2
+    # registration 1; webhooks 2; authenticator-app factors 1
     assert (result.forms.values, result.forms.values_stale, result.forms.values_plain) == (2, 2, 1)
     assert result.form_versions.values_stale == 2 and result.actions.values_stale == 1
     assert result.workspace_actions.values_stale == 1 and result.scim_directories.values_stale == 1
     assert result.registration_services.values_stale == 1 and result.form_webhooks.values_stale == 2
-    assert result.values_stale == 10 and result.values_unopenable == 0
+    assert result.user_totp_factors.values_stale == 1
+    assert result.values_stale == 11 and result.values_unopenable == 0
 
 
 # --------------------------------------------------- the signing secret, whole
@@ -816,6 +831,25 @@ async def test_drop_old_refuses_a_value_no_key_opens(world, flow):
     # everything else moved; the foreign value is still the foreign value
     await refused(flow, "authkeys.drop_old", DROP(new_id), "values_not_readable")
     check_round_trip(await all_docs(seeded), Crypto((await flow.stored("aes")).value.split(",")[0]))
+
+
+async def test_drop_old_refuses_an_authenticator_secret_no_key_opens(world, flow):
+    seeded = await seed()
+    foreign = totp_sealing.seal_secret(Crypto(FOREIGN), "65e5501d00000000000000b3", "65e5501d00000000000000b4", "X")
+    other = await insert("user_totp_factors", user_id="65e5501d00000000000000b3", state="confirmed", secret_sealed=foreign)
+    plain = await insert("user_totp_factors", user_id="65e5501d00000000000000b5", state="pending", secret_sealed="not-sealed")
+    new_id = await promoted_flow(flow)
+    params = {"which": "aes", "primary_id": new_id, "external_consumers_updated": True}
+    _, run = await flow.both("authkeys.reencrypt", params)
+    result = meta.ScanResult.model_validate(run["result"])
+    assert run["state"] == "succeeded", run
+    counts = result.user_totp_factors
+    # the seeded factor moved; the foreign one is left alone and counted; the plain one is untouched
+    assert counts.records_reencrypted == 1 and counts.values_unopenable == 1 and counts.values_plain == 1
+    assert (await doc_of("user_totp_factors", other))["secret_sealed"] == foreign
+    assert (await doc_of("user_totp_factors", plain))["secret_sealed"] == "not-sealed"
+    await refused(flow, "authkeys.drop_old", DROP(new_id), "values_not_readable")
+    assert await checksum_ok("user_totp_factors", seeded.ids["user_totp_factors"])
 
 
 async def test_drop_old_refuses_an_empty_store_unless_told(world, flow):

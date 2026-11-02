@@ -14,6 +14,7 @@ target                   table                                      path in ``do
 ``registration_services````app.registration_services``              ``secret_sealed``
 ``form_webhooks``        ``app.form_webhooks``                      ``url_sealed``,
                                                                     ``secret_sealed``
+``user_totp_factors``    ``app.user_totp_factors``                  ``secret_sealed``
 =======================  =========================================  ==========================
 
 A Fernet token carries no key id, so which key sealed a value is found by
@@ -126,6 +127,12 @@ TARGETS: Dict[str, Target] = {
             "form_webhooks", "app", "form_webhooks",
             "(doc ->> 'url_sealed' IS NOT NULL OR doc ->> 'secret_sealed' IS NOT NULL)",
             _fields("url_sealed", "secret_sealed"),
+        ),
+        # the shared secret of an account's authenticator app: its envelope binds
+        # it to the account and the factor, which a re-encryption keeps
+        Target(
+            "user_totp_factors", "app", "user_totp_factors",
+            "doc ->> 'secret_sealed' IS NOT NULL", _fields("secret_sealed"),
         ),
     )
 }

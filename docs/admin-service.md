@@ -1200,11 +1200,11 @@ happens to signed-in people are in [auth-key-rotation.md](auth-key-rotation.md).
 `authkeys` and `keyset` (so never beside a response keyset rotation). The data they re-encrypt is the
 backend's own (`DATABASE_URL`, the same role as the responses tasks: column grants on `forms`,
 `form_versions`, `actions`, `workspace_actions`, `scim_directories`, `registration_services` and
-`form_webhooks`, their `doc` and checksum only); the counts a drop of the previous key is gated on
+`form_webhooks` and `user_totp_factors`, their `doc` and checksum only); the counts a drop of the previous key is gated on
 (`admin.sealed_jobs_pending()`, `admin.sessions_on_old_key(ts)`, `admin.drafts_on_old_key(ts)`) are
 definer functions only the runner may execute. What these grants allow, stated plainly: the runner
 holds both rings (it reads section `auth_keys`, like the keyset) and, through the data role, can
-read and rewrite the `doc` of those seven tables and nothing else of them, so it can decrypt and
+read and rewrite the `doc` of those eight tables and nothing else of them, so it can decrypt and
 re-seal exactly the values listed in [auth-key-rotation.md](auth-key-rotation.md) (it writes only values
 it just re-encrypted, one path each, never the rest of a document, and every write is compared with the
 value it read); the count functions read a session's and a draft's `doc` (for its dates and whether it
