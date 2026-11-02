@@ -1,11 +1,13 @@
 """Removing a member from a workspace, as one transaction: the membership, the
 forms they created (handed to another member, so the workspace keeps its forms
-and the removed person is nobody's creator any more), and their grants and team
-memberships. Postgres only.
+and the removed person is nobody's creator any more), their grants and team
+memberships, and the API keys they created here (revoked, the rows stay).
+Postgres only.
 
 One transaction so a person is never half removed: no membership with their
-grants gone, and no removed member whose grants would come back when they are
-invited again.
+grants gone, no removed member whose grants would come back when they are
+invited again, and no removed member whose keys would work again under the
+role they are given the next time.
 """
 
 from dataclasses import dataclass, field
@@ -15,12 +17,14 @@ from common.records import decode, row_values
 from common.records.repository import RecordRepository
 from sqlalchemy import select
 
+from backend.app.repositories.postgres.identity import revoke_live_keys
 from backend.app.schemas.form_access_grant import SUBJECT_USER
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.db.models import (
     FormAccessGrantRow,
     MemberGroupMemberRow,
+    WorkspaceApiKeyRow,
     WorkspaceFormRow,
     WorkspaceUserRow,
 )
@@ -36,6 +40,8 @@ class Removal:
     forms: List[str] = field(default_factory=list)
     grants: int = 0
     teams: int = 0
+    # the ids of the API keys they created in this workspace, now revoked
+    keys: List[str] = field(default_factory=list)
 
 
 class PostgresMemberRemovalRepository(RecordRepository):
@@ -55,8 +61,8 @@ class PostgresMemberRemovalRepository(RecordRepository):
 
     async def remove(self, workspace_id, user_id, heir_id) -> Optional[Removal]:
         """Delete the membership, hand the member's forms in this workspace to
-        ``heir_id``, drop their grants and team memberships. ``None`` when they
-        are not a member."""
+        ``heir_id``, drop their grants and team memberships and revoke the API
+        keys they created here. ``None`` when they are not a member."""
         ws, uid, heir = _id(workspace_id), _id(user_id), _id(heir_id)
         removal = Removal()
         async with self._session() as session, session.begin():
@@ -99,6 +105,17 @@ class PostgresMemberRemovalRepository(RecordRepository):
                 MemberGroupMemberRow,
                 MemberGroupMemberRow.workspace_id == ws,
                 MemberGroupMemberRow.user_id == uid,
+            )
+            # revoked, not deleted: the audit and "last used" stay, and a
+            # person invited again does not get their old keys back
+            removal.keys = sorted(
+                key_id
+                for key_id, _ws in await revoke_live_keys(
+                    session,
+                    self._upsert_statement,
+                    WorkspaceApiKeyRow.workspace_id == ws,
+                    WorkspaceApiKeyRow.created_by == uid,
+                )
             )
         await self._prune_tombstones_if_due(WorkspaceUserRow)
         removal.forms.sort()
