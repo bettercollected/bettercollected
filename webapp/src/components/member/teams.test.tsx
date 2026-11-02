@@ -99,6 +99,23 @@ describe('Workspace, Members, Teams', () => {
         expect(within(rows[1]).getByText('1 person')).toBeInTheDocument();
     });
 
+    it('says how many directory groups feed a team, and leaves removing a person from a group to the directory', () => {
+        served.teams = { data: [{ ...team('t-1', 'Vrijwilligersteam', 3), linkedGroups: 2 }, team('t-2', 'Bestuur', 1)], isLoading: false, isError: false };
+        served.team = { data: { ...team('t-1', 'Vrijwilligersteam', 5), linkedGroups: 2, formCount: 1, members: [{ userId: 'u-a', name: 'Anna Bakker', role: 'EDITOR' }, { userId: 'u-b', name: 'Jeroen Visser', role: 'VIEWER', viaDirectory: true }, { userId: 'u-c', name: 'Lotte Smit', role: 'VIEWER', alsoViaDirectory: true }], membersTruncated: true }, isLoading: false, isError: false };
+        renderTeams();
+        const rows = within(screen.getByRole('list', { name: 'Teams' })).getAllByRole('listitem');
+        expect(within(rows[0]).getByText(/Fed by 2 directory groups/)).toBeInTheDocument();
+        expect(within(rows[1]).queryByText(/Fed by/)).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Manage the team Vrijwilligersteam' }));
+        expect(screen.getByRole('button', { name: 'Remove Anna Bakker from Vrijwilligersteam' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Remove Jeroen Visser from Vrijwilligersteam' })).toBeNull();
+        expect(screen.getByText('From your directory')).toBeInTheDocument();
+        // listed by hand and in the group too: removable, and it says the person stays in
+        expect(screen.getByRole('button', { name: 'Remove Lotte Smit from Vrijwilligersteam' })).toBeInTheDocument();
+        expect(screen.getByText('Also from your directory')).toBeInTheDocument();
+        expect(screen.getByText('Showing 3 of 5 people.')).toBeInTheDocument();
+    });
+
     it('says nothing, and asks for nothing, to anyone but an owner or admin, and while the switch is off', () => {
         served.admin = false;
         const view = renderTeams();

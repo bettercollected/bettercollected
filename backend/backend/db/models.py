@@ -212,9 +212,13 @@ class ScimUserRow(Base, BaseRow):
     workspace_id = S.text("workspace_id")
     polis_user_id = S.text("polis_user_id")
     email = S.text("email")
+    # the account the record maps to (0039): what "is this person in a linked
+    # group" is read by, on every access check while form-level access is on
+    user_id = S.text("user_id")
     __table_args__ = (
         UniqueConstraint("directory_id", "polis_user_id"),
         Index(None, "workspace_id", "email"),
+        Index("ix_scim_users_workspace_user", "workspace_id", "user_id"),
     )
 
 
@@ -234,6 +238,22 @@ class ScimGroupMemberRow(Base, BaseRow):
         Index(None, "group_id"),
         Index(None, "scim_user_id"),
         Index(None, "directory_id"),
+    )
+
+
+class ScimGroupTeamLinkRow(Base, BaseRow):
+    """The team a directory group feeds (revision 0039): one row per group
+    (unique), any number per team. Kept out of ``scim_groups.doc`` so that
+    saving a group document can never restore a link that was removed."""
+
+    __tablename__ = "scim_group_team_links"
+    group_id = S.text("group_id")
+    team_id = S.text("team_id")
+    workspace_id = S.text("workspace_id")
+    __table_args__ = (
+        UniqueConstraint("group_id"),
+        Index(None, "team_id"),
+        Index(None, "workspace_id"),
     )
 
 

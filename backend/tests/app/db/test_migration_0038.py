@@ -108,7 +108,12 @@ def test_upgrade_adds_the_columns_and_indexes_and_downgrade_removes_them(scratch
     command.upgrade(config, "0038")
     assert _columns(scratch_url) == COLUMNS
     assert _indexes(scratch_url) == INDEXES
-    assert asyncio.run(_diff(scratch_url)) == []  # exactly what the models declare
+    # exactly what the models declare, but for what 0039 adds
+    assert [
+        d
+        for d in asyncio.run(_diff(scratch_url))
+        if "scim_group_team_links" not in repr(d) and "scim_users" not in repr(d)
+    ] == []
     # the existing row has them filled, the indexes see it
     assert _run(
         scratch_url,
@@ -131,7 +136,11 @@ def test_upgrade_adds_the_columns_and_indexes_and_downgrade_removes_them(scratch
     command.upgrade(config, "0038")
     assert _columns(scratch_url) == COLUMNS
     assert _indexes(scratch_url) == INDEXES
-    assert asyncio.run(_diff(scratch_url)) == []
+    assert [
+        d
+        for d in asyncio.run(_diff(scratch_url))
+        if "scim_group_team_links" not in repr(d) and "scim_users" not in repr(d)
+    ] == []
 
 
 def _plan(url, statement) -> str:
