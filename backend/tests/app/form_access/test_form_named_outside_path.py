@@ -70,6 +70,14 @@ REFERENCES: Dict[Tuple[str, str], Tuple[str, str]] = {
         "matches nothing (AuditLogReader)",
         "test_nothing_crosses_workspaces (audit_log/test_audit_log_api.py)",
     ),
+    ("GET", "/workspaces/{workspace_id}/audit-log/export"): (
+        "query.form_id",
+        "audit.read (Owner, Admin, Privacy officer); the id only filters this "
+        "workspace's rows, exactly as in the list, so another workspace's form "
+        "matches nothing (AuditLogReader.scope), and the export is recorded first",
+        "test_the_export_holds_exactly_what_the_list_shows_for_each_filter "
+        "(audit_log/test_export.py)",
+    ),
     ("POST", "/workspaces/{workspace_id}/option-sources/preview"): (
         "body.formId, body.source.formId",
         "authorize_source: a form closed to the caller does not exist for them",

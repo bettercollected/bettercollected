@@ -925,6 +925,22 @@ CASES = [
         switches={"AUDIT_LOG_UI_ENABLED": True},
     ),
     Case(
+        "workspace.audit_log_export",
+        "GET",
+        W + "/audit-log/export",
+        P.AUDIT_READ,
+        ok=200,
+        switches={"AUDIT_LOG_UI_ENABLED": True},
+    ),
+    Case(
+        "forms.audit_log_export",
+        "GET",
+        F + "/audit-log/export",
+        P.AUDIT_READ,
+        ok=200,
+        switches={"AUDIT_LOG_UI_ENABLED": True},
+    ),
+    Case(
         "forms.versions.diff",
         "GET",
         # (the matrix form is a first-generation one: not comparable, 422)

@@ -42,6 +42,8 @@ const trigger = (arg: { workspaceId: string; formId?: string; query: string }) =
 };
 const lazy = [trigger];
 vi.mock('@app/store/workspaces/audit-log-api', () => ({ useLazyGetAuditLogQuery: () => lazy }));
+// the export has its own tests (export-menu.test.tsx)
+vi.mock('@app/store/workspaces/audit-export', () => ({ requestAuditExport: vi.fn(), saveBlob: vi.fn() }));
 
 // ---- data (made up) ------------------------------------------------------------------------------------------------
 
@@ -100,6 +102,12 @@ const show = async (formId?: string) => {
 // ---- the tests -------------------------------------------------------------------------------------------------------
 
 describe('the workspace Activity page', () => {
+    it('offers the export of the filters on screen, on the workspace page and on a form page', async () => {
+        search = 'area=access&who=u_sanne';
+        await show();
+        expect(screen.getByRole('button', { name: /Export/ })).toBeInTheDocument();
+    });
+
     it('lists one sentence per entry under day headings, newest first, with the retention figure', async () => {
         await show();
         expect(screen.getByRole('heading', { level: 1, name: 'Activity' })).toBeInTheDocument();

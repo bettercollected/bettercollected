@@ -234,6 +234,23 @@ AUTOMATION_PARTS = (
     "object_type",
     "reference_path",
 )
+# the audit log itself: a staff member took the log (or part of it) out as a file.
+# Written before the file starts: ``export_format`` (``csv`` / ``json``), ``count``
+# (how many entries the file holds), ``export_filters`` (the NAMES of the filters
+# that narrowed it, from ``AUDIT_EXPORT_FILTERS``, never their values) and the
+# form's id when the export was of one form.
+AUDIT_LOG_EXPORTED = "audit_log_exported"
+AUDIT_LOG_EVENTS = (AUDIT_LOG_EXPORTED,)
+AUDIT_EXPORT_FILTERS = (
+    "area",
+    "event",
+    "actor",
+    "target",
+    "involving",
+    "form",
+    "from",
+    "to",
+)
 # the reserved workspace id of an event that belongs to no workspace
 NO_WORKSPACE = "000000000000000000000000"
 
@@ -255,6 +272,7 @@ ALL_KINDS = (
     + AUTOMATION_EVENTS
     + SSO_EVENTS
     + RESPONSE_REVISION_EVENTS
+    + AUDIT_LOG_EVENTS
 )
 
 
@@ -332,6 +350,9 @@ class WorkspaceAuditEventDocument(Record):
     source_form_id: Optional[str] = None
     target_workspace_id: Optional[str] = None
     target_form_id: Optional[str] = None
+    # AUDIT_LOG_EXPORTED: the names of the filters the export applied (a fixed
+    # vocabulary, ``AUDIT_EXPORT_FILTERS``; never their values)
+    export_filters: Optional[List[str]] = None
 
     class Settings:
         name = "workspace_audit_events"

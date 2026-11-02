@@ -213,6 +213,7 @@ from backend.app.services.form_actions_service import FormActionsService
 from backend.app.services.builtin_actions.sheets import SheetsRunService
 from backend.app.services.form_spec.editor_ops import EditorOpsService
 from backend.app.services.form_spec.service import FormSpecService
+from backend.app.services.audit_log.export import AuditLogExport
 from backend.app.services.audit_log.reader import AuditLogReader
 from backend.app.services.form_versions.service import FormVersionsService
 from backend.app.services.member_directory import MemberDirectory
@@ -1365,6 +1366,13 @@ class AppContainer(containers.DeclarativeContainer):
         form_service=form_service,
         member_directory=member_directory,
         option_source_service=LazyRepository(lambda: container.option_source_service()),
+    )
+    # The audit log taken out as a file (switch off by default).
+    audit_log_export: AuditLogExport = providers.Singleton(
+        AuditLogExport,
+        reader=audit_log_reader,
+        audit_repo=workspace_audit_repo,
+        rate_limiter=rate_limiter,
     )
     open_formulieren_export_service: OpenFormulierenExportService = providers.Singleton(
         OpenFormulierenExportService,

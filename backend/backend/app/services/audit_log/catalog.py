@@ -69,6 +69,8 @@ AREAS: Dict[str, Tuple[str, ...]] = {
         # single sign-on, verified domains, directory sync, AI consent, custom
         # domain
         *E.SETTINGS_EVENTS,
+        # the log itself taken out as a file
+        *E.AUDIT_LOG_EVENTS,
     ),
     # email actions and case-system services and registrations
     AREA_INTEGRATIONS: E.AUTOMATION_EVENTS,

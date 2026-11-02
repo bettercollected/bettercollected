@@ -20,6 +20,7 @@ import { useLazyGetAuditLogQuery } from '@app/store/workspaces/audit-log-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { formVersionsUrl, responsePageUrl, responsesListUrl } from '@app/utils/response-urls';
 
+import { AuditExportMenu } from './export-menu';
 import { AuditFilters, EMPTY_FILTERS, activeFilterCount, auditQuery, filtersToSearch, hidesBreakGlass, parseFilters } from './filters';
 import { describeEntry } from './sentences';
 
@@ -202,6 +203,7 @@ export function ActivityList({ formId }: { formId?: string }) {
                 <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">
                     {t(formId ? 'AUDIT_LOG.FORM_INTRO' : 'AUDIT_LOG.INTRO')} {retention}
                 </p>
+                <AuditExportMenu workspaceId={workspaceId} formId={formId} query={auditQuery(effective, {}, formId ? undefined : effective.form)} />
                 {formId && (
                     <p className="text-sm">
                         <Link href={`/${workspaceName}/dashboard/activity?form=${encodeURIComponent(formId)}`} className="inline-flex min-h-11 items-center underline underline-offset-2 md:min-h-8">
