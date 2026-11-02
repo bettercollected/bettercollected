@@ -548,6 +548,8 @@ class WorkspaceAPIKeyDocument(MongoDocument):
     responses_read_acknowledged_at: Optional[dt.datetime] = None
     last_used_at: Optional[dt.datetime] = None
     submission_form_ids: Optional[List[str]] = None
+    role: Optional[str] = None
+    form_scope: str = "all"
 
     class Settings:
         name = "workspace_api_keys"
