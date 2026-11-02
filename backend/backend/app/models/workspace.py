@@ -245,6 +245,15 @@ class WorkspaceFormSettings(BaseModel):
     custom_url: Optional[str] = None
     private: Optional[bool] = False
     hidden: Optional[bool] = False
+    # Who may open the form in the dashboard (form-level access, only while
+    # FORM_ACCESS_ENABLED is on): "restricted" = only owners, admins, the
+    # creator and holders of a grant; "workspace" = every member by their
+    # role; none = not chosen (a Private form, ``hidden``, then counts as
+    # restricted). Not a caller-settable field: no create, import, replace or
+    # settings patch reads it from input, and the workspace-form repository
+    # keeps the stored value when it writes settings back
+    # (services/form_access).
+    access_mode: Optional[str] = None
     response_data_owner_field: Optional[str] = None
     provider: Optional[str] = None
     privacy_policy_url: Optional[str] = None

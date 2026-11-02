@@ -866,6 +866,57 @@ class UserTotpFactorRow(Base, BaseRow):
     )
 
 
+class MemberGroupRow(Base, BaseRow):
+    """A team of a workspace's members (revision 0037). Names are unique per
+    workspace by ``name_key`` (trimmed, case-folded)."""
+
+    __tablename__ = "member_groups"
+    workspace_id = S.text("workspace_id")
+    name_key = S.text("name_key")
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "name_key"),
+        Index(None, "workspace_id"),
+    )
+
+
+class MemberGroupMemberRow(Base, BaseRow):
+    """A member of a manual team (revision 0037); the id is derived from the
+    pair, so one row per (team, user)."""
+
+    __tablename__ = "member_group_members"
+    group_id = S.text("group_id")
+    workspace_id = S.text("workspace_id")
+    user_id = S.text("user_id")
+    __table_args__ = (
+        UniqueConstraint("group_id", "user_id"),
+        Index(None, "workspace_id", "user_id"),
+    )
+
+
+class FormAccessGrantRow(Base, BaseRow):
+    """A role on one form for a person or a team (revision 0037).
+    ``subject_type`` is free text (``user``, ``group``; later ``key``)."""
+
+    __tablename__ = "form_access_grants"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    subject_type = S.text("subject_type")
+    subject_id = S.text("subject_id")
+    __table_args__ = (
+        # one grant per subject on a form of a workspace (a form can be linked
+        # into two workspaces; grants never reach across them)
+        UniqueConstraint(
+            "workspace_id",
+            "form_id",
+            "subject_type",
+            "subject_id",
+            name="uq_form_access_grants_subject",
+        ),
+        Index(None, "workspace_id", "subject_type", "subject_id"),
+        Index(None, "form_id"),
+    )
+
+
 class UserRecoveryCodeRow(Base, BaseRow):
     """One recovery code of a factor (revision 0035): only its hash is stored."""
 

@@ -608,6 +608,9 @@ SERVICES: Tuple[SettingSpec, ...] = (
     _bool("TOTP_ENABLED", "security", (BACKEND,), False,
           "Authenticator app (TOTP) second factor for staff: on, or off (nobody is asked for a code, "
           "no policy is enforced; stored factors stay).", tier=T2),
+    _bool("FORM_ACCESS_ENABLED", "security", (BACKEND,), False,
+          "Form-level access: grants on a single form, member teams and restricted forms: on, or off "
+          "(nothing is enforced; saved grants, teams and modes stay).", tier=T2),
 )
 
 PDF = dict(section="pdf_import", readers=(BACKEND,))

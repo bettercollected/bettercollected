@@ -187,6 +187,7 @@ environment, whatever the tier.
 | `API_RECEIPT_WINDOW_SECONDS` | rate_limits | backend | int 1..86400 |  | H | T1 | `600` |
 | `OPEN_FORMULIEREN_REGISTRATION` | registration | backend | enum on/off |  | R | T2 | `off` |
 | `API_FLOW_EVENTS_RETENTION_DAYS` | retention | backend | int 0..3650 |  | R | T2 | `395` |
+| `FORM_ACCESS_ENABLED` | security | backend | bool |  | R | T2 | `false` |
 | `TOTP_ENABLED` | security | backend | bool |  | R | T2 | `false` |
 | `API_CLIENT_URL` | server | backend, auth | url |  | R | T3 |  |
 | `API_DESCRIPTION` | server | backend | str max 500 |  | R | T1 |  |

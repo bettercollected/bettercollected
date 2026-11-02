@@ -35,6 +35,35 @@ TOTP_EVENTS = (
     TOTP_LOCKED,
     TOTP_POLICY_CHANGED,
 )
+# form-level access events (``FORM_ACCESS_ENABLED``): grants, teams and a
+# form's access mode. Ids and enum values only, never a team name, a form title
+# or an address.
+ACCESS_GRANT_ADDED = "access_grant_added"
+ACCESS_GRANT_CHANGED = "access_grant_changed"
+ACCESS_GRANT_REMOVED = "access_grant_removed"
+ACCESS_MODE_CHANGED = "access_mode_changed"
+TEAM_CREATED = "team_created"
+TEAM_RENAMED = "team_renamed"
+TEAM_DELETED = "team_deleted"
+TEAM_MEMBER_ADDED = "team_member_added"
+TEAM_MEMBER_REMOVED = "team_member_removed"
+# a directory group linked to or unlinked from a team
+TEAM_LINKED = "team_linked"
+# removing a member deleted N grants and team memberships
+ACCESS_MEMBER_PURGED = "access_member_purged"
+ACCESS_EVENTS = (
+    ACCESS_GRANT_ADDED,
+    ACCESS_GRANT_CHANGED,
+    ACCESS_GRANT_REMOVED,
+    ACCESS_MODE_CHANGED,
+    TEAM_CREATED,
+    TEAM_RENAMED,
+    TEAM_DELETED,
+    TEAM_MEMBER_ADDED,
+    TEAM_MEMBER_REMOVED,
+    TEAM_LINKED,
+    ACCESS_MEMBER_PURGED,
+)
 # the reserved workspace id of an event that belongs to no workspace
 NO_WORKSPACE = "000000000000000000000000"
 
@@ -65,6 +94,13 @@ class WorkspaceAuditEventDocument(Record):
     # TOTP_* entries made by someone else (an owner or the platform admin
     # resetting a member's factor): the account it was done to
     target_user_id: Optional[str] = None
+    # ACCESS_* / TEAM_* entries (form-level access): the team, the role and
+    # export flag of a grant, a form's new access mode, a number of rows
+    group_id: Optional[str] = None
+    grant_role: Optional[str] = None
+    grant_export: Optional[bool] = None
+    access_mode: Optional[str] = None
+    count: Optional[int] = None
 
     class Settings:
         name = "workspace_audit_events"

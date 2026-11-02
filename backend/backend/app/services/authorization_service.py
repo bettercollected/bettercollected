@@ -3,7 +3,9 @@
 Services name the permission an action needs and call ``authorize`` (raises)
 or ``has_permission`` (bool); controllers and repositories never decide
 access. The model is docs/enterprise-access-model.md: its workspace roles
-(step b); form grants and restricted forms come later.
+(step b); form grants and restricted forms (step c, behind
+``FORM_ACCESS_ENABLED``) are combined with them by ``services/form_access``
+wherever a form id is passed.
 
 Respondent-facing paths (a submitter's own submission, receipts, "my
 submissions", deletion requests by the submitter) authorise by the
@@ -23,6 +25,12 @@ from backend.app.repositories.postgres.forms import (
     PostgresWorkspaceFormRepository,
 )
 from backend.app.exceptions import HTTPException
+from backend.app.services.form_access.mode import form_access_enabled
+from backend.app.services.form_access.model import (
+    BaseAccess,
+    FormPermissions,
+)
+from backend.app.services.form_access.service import FormAccessService
 from backend.app.services.mfa.policy import (
     blocks_session as totp_blocks,
     mfa_required_error,
@@ -165,10 +173,15 @@ class AuthorizationService:
         workspace_user_repo: PostgresWorkspaceUserRepository,
         workspace_form_repo: PostgresWorkspaceFormRepository,
         sso_policy: Callable[[], object],
+        form_access: Optional[FormAccessService] = None,
     ):
         self._workspace_repo = workspace_repo
         self._workspace_user_repo = workspace_user_repo
         self._workspace_form_repo = workspace_form_repo
+        # Form grants and restricted forms (FORM_ACCESS_ENABLED). Only read
+        # while that switch is on, and then required: a service built without
+        # it must not silently skip a restricted form.
+        self._form_access = form_access
         # Returns the SsoPolicyService, resolved per call: the policy depends
         # on services that depend on this one (the container wires it late).
         # Required: a service built without it must not silently skip the
@@ -180,6 +193,7 @@ class AuthorizationService:
         user: Optional[User],
         workspace_id: Union[RecordId, str, None],
         raise_sso_required: bool = False,
+        form_id: Optional[str] = None,
     ) -> FrozenSet[Permission]:
         """What ``user`` may do in the workspace. Nothing without an active
         membership (a disabled one counts as none) or in a missing workspace;
@@ -192,38 +206,118 @@ class AuthorizationService:
         403 ``sso_required`` the webapp reacts to, otherwise just no
         permissions. A workspace that requires an authenticator app
         (``services/mfa/policy.py``) is the same rule with 403
-        ``mfa_required``."""
+        ``mfa_required``.
+
+        With ``form_id`` and while ``FORM_ACCESS_ENABLED`` is on: what the
+        user may do on that form (grants and the form's access mode applied
+        to the above); otherwise the workspace-level answer, unchanged."""
+        base = await self._base_access(user, workspace_id, raise_sso_required)
+        if form_id is None or not form_access_enabled():
+            return base.permissions
+        return (await self._form_permissions(base, form_id)).permissions
+
+    async def form_permissions(
+        self,
+        user: Optional[User],
+        workspace_id: Union[RecordId, str, None],
+        form_id: Optional[str],
+        raise_sso_required: bool = False,
+    ) -> FormPermissions:
+        """``user``'s permissions on one form and where they come from (their
+        role, a grant, being the creator), for the payloads that tell the
+        webapp. With the switch off it is the workspace-level answer."""
+        base = await self._base_access(user, workspace_id, raise_sso_required)
+        if form_id is None or not form_access_enabled():
+            return FormPermissions(base.permissions)
+        return await self._form_permissions(base, form_id)
+
+    async def visible_form_ids(
+        self,
+        user: Optional[User],
+        workspace_id: Union[RecordId, str, None],
+        permission: Permission,
+        form_ids: Optional[Iterable[str]] = None,
+    ) -> Optional[FrozenSet[str]]:
+        """The ids of the workspace's forms (of ``form_ids`` when given) on
+        which ``user`` holds ``permission``; ``None`` means every form (the
+        switch is off, or an Owner or Admin holds it). For a list that must not
+        name a form its reader may not open: filter before counting or
+        searching."""
+        base = await self._base_access(user, workspace_id)
+        return await self._required_form_access().visible_ids(
+            base, permission, form_ids
+        )
+
+    async def _form_permissions(self, base: BaseAccess, form_id) -> FormPermissions:
+        return await self._required_form_access().permissions_on(base, str(form_id))
+
+    def _required_form_access(self) -> FormAccessService:
+        if self._form_access is None:
+            # fail closed: never allow because the resolver is not wired
+            raise RuntimeError("AuthorizationService: form access is not wired")
+        return self._form_access
+
+    async def _base_access(
+        self,
+        user: Optional[User],
+        workspace_id: Union[RecordId, str, None],
+        raise_sso_required: bool = False,
+    ) -> BaseAccess:
+        """The workspace-level decision (every rule but the form's), with what
+        the form-level one needs to know about the member."""
         workspace_oid = _object_id(workspace_id)
         user_oid = _object_id(user.id) if user else None
+        nobody = BaseAccess(
+            user_id=str(user_oid or ""),
+            workspace_id=str(workspace_oid or ""),
+            permissions=NO_PERMISSIONS,
+        )
         if workspace_oid is None or user_oid is None:
-            return NO_PERMISSIONS
+            return nobody
         if getattr(user, "session_scope", None) == RESPONDENT_SCOPE:
             # a respondent-scoped session (an email code for an address whose
             # domain requires SSO elsewhere) only answers forms: it holds no
             # workspace permission anywhere, the user's own workspaces included
-            return NO_PERMISSIONS
+            return nobody
         membership = await self._workspace_user_repo.find_workspace_user(
             workspace_oid, user_oid
         )
         if membership is None or membership.disabled:
-            return NO_PERMISSIONS
+            return nobody
         workspace = await self._workspace_repo.find_by_id(workspace_oid)
         if workspace is None:
-            return NO_PERMISSIONS
+            return nobody
         is_owner = is_owner_membership(workspace, membership)
         if await self._sso_blocks(user, workspace, is_owner):
             if raise_sso_required:
                 raise self._sso_required(user)
-            return NO_PERMISSIONS
+            return nobody
         if totp_blocks(workspace, user):
             # the workspace requires an authenticator app and this session has
             # not presented one (docs/totp.md): the same rule on every request
             if raise_sso_required:
                 raise mfa_required_error()
-            return NO_PERMISSIONS
+            return nobody
+        roles = {canonical_role(role) for role in (membership.roles or [])}
+        base = dict(
+            user_id=str(user_oid),
+            workspace_id=str(workspace_oid),
+            privileged=is_owner
+            or has_owner_role(membership.roles)
+            or WorkspaceRoles.ADMIN in roles,
+            privacy_officer=WorkspaceRoles.PRIVACY_OFFICER in roles,
+        )
         if workspace.disabled:
-            return DISABLED_WORKSPACE_OWNER_PERMISSIONS if is_owner else NO_PERMISSIONS
-        return permissions_for(membership.roles, is_owner=is_owner)
+            return BaseAccess(
+                permissions=(
+                    DISABLED_WORKSPACE_OWNER_PERMISSIONS if is_owner else NO_PERMISSIONS
+                ),
+                workspace_disabled=True,
+                **base,
+            )
+        return BaseAccess(
+            permissions=permissions_for(membership.roles, is_owner=is_owner), **base
+        )
 
     async def has_permission(
         self,
@@ -233,8 +327,12 @@ class AuthorizationService:
         form_id: Optional[str] = None,
     ) -> bool:
         """Whether ``user`` holds ``permission`` in the workspace (and, with
-        ``form_id``, the form belongs to it)."""
-        if permission not in await self.effective_permissions(user, workspace_id):
+        ``form_id``, the form belongs to it; while ``FORM_ACCESS_ENABLED`` is on
+        the permission is the one held on that form, and a form closed to the
+        user is no form of theirs)."""
+        if permission not in await self.effective_permissions(
+            user, workspace_id, form_id=form_id
+        ):
             return False
         if form_id is not None:
             return await self._form_in_workspace(workspace_id, form_id)
@@ -252,15 +350,23 @@ class AuthorizationService:
         with ``form_id``, 404 unless the form belongs to the workspace (so
         only someone allowed in learns whether a form exists). A session that
         misses the workspace's single sign-on requirement gets 403
-        ``sso_required`` instead, whatever the permission."""
-        held = await self.effective_permissions(
-            user, workspace_id, raise_sso_required=True
-        )
+        ``sso_required`` instead, whatever the permission.
+
+        While ``FORM_ACCESS_ENABLED`` is on, ``form_id`` also narrows or widens
+        what the user holds (grants, restricted forms): a member the form is
+        closed to gets the 404 of an unknown form, whatever the permission."""
+        base = await self._base_access(user, workspace_id, raise_sso_required=True)
+        decided: Optional[FormPermissions] = None
+        if form_id is not None and form_access_enabled():
+            decided = await self._form_permissions(base, form_id)
+            if decided.hidden:
+                raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in workspace")
+        held = base.permissions if decided is None else decided.permissions
         if permission not in held:
             raise HTTPException(status_code=HTTPStatus.FORBIDDEN, content=message)
-        if form_id is not None and not await self._form_in_workspace(
-            workspace_id, form_id
-        ):
+        if form_id is not None and not (
+            decided is not None and decided.form_found
+        ) and not await self._form_in_workspace(workspace_id, form_id):
             raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in workspace")
 
     async def _sso_blocks(self, user: User, workspace, is_owner: bool) -> bool:
