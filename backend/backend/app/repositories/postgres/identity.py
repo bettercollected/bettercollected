@@ -41,6 +41,7 @@ from backend.app.schemas.scim import (
     ScimGroupMemberDocument,
     ScimUserDocument,
 )
+from backend.app.schemas.form_access_grant import SUBJECT_KEY
 from backend.app.schemas.sso_used_state import SsoUsedStateDocument
 from backend.app.schemas.session import SessionDocument
 from backend.app.schemas.sso_connection import (
@@ -60,6 +61,7 @@ from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from backend.db.base import SCHEMA
 from backend.app.repositories.postgres.form_access import AccessTargetNotFound
 from backend.db.models import (
+    FormAccessGrantRow,
     MemberGroupRow,
     ScimDirectoryRow,
     ScimEventRow,
@@ -550,12 +552,17 @@ class PostgresWorkspaceInvitationRepo(RecordRepository):
             await session.execute(self._upsert_statement(row_values(invitation)))
 
 
-async def revoke_live_keys(session, upsert, *where) -> List[Tuple[str, str]]:
+async def revoke_live_keys(
+    session, upsert, delete_recorded, *where
+) -> List[Tuple[str, str]]:
     """Revoke, in ``session``'s transaction, every key matching ``where`` that
-    is not revoked yet. The rows stay (revoked, not deleted), so the audit and
-    "last used" remain. ``upsert`` is a key repository's ``_upsert_statement``
-    (so the member removal transaction can revoke too). Returns the
-    ``(key id, workspace id)`` of what it revoked."""
+    is not revoked yet. The key rows stay (revoked, not deleted), so the audit
+    and "last used" remain; the form rows of a key limited to a list of forms
+    (``form_access_grants``, ``subject_type='key'``) go with the revocation, in
+    the same transaction. ``upsert`` is a key repository's ``_upsert_statement``
+    and ``delete_recorded`` its ``_delete_recorded`` (so the member removal
+    transaction can revoke too). Returns the ``(key id, workspace id)`` of what
+    it revoked."""
     docs = (
         (
             await session.execute(
@@ -574,6 +581,13 @@ async def revoke_live_keys(session, upsert, *where) -> List[Tuple[str, str]]:
         key.revoked = True
         key.touch()
         await session.execute(upsert(row_values(key), WorkspaceApiKeyRow))
+        await delete_recorded(
+            session,
+            FormAccessGrantRow,
+            FormAccessGrantRow.workspace_id == str(key.workspace_id),
+            FormAccessGrantRow.subject_type == SUBJECT_KEY,
+            FormAccessGrantRow.subject_id == str(key.id),
+        )
         revoked.append((str(key.id), str(key.workspace_id)))
     return revoked
 
@@ -592,6 +606,11 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
 
     async def get_or_404(self, key_id: RecordId) -> WorkspaceAPIKeyDocument:
         return await self.get_or_raise(key_id)
+
+    async def find_by_id(
+        self, key_id: RecordId
+    ) -> Optional[WorkspaceAPIKeyDocument]:
+        return await self.one(WorkspaceApiKeyRow.id == _oid(key_id))
 
     async def find_by_key_hash(
         self, key_hash: str
@@ -626,7 +645,76 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
         if workspace_id is not None:
             where.append(WorkspaceApiKeyRow.workspace_id == _oid(workspace_id))
         async with self._session() as session, session.begin():
-            return await revoke_live_keys(session, self._upsert_statement, *where)
+            return await revoke_live_keys(
+                session, self._upsert_statement, self._delete_recorded, *where
+            )
+
+    async def revoke_one(self, workspace_id: RecordId, key_id: RecordId) -> bool:
+        """Revoke one key of the workspace (and delete its form rows), in one
+        transaction on the locked row, so a concurrent last-used update is never
+        written back over it. Whether it was live and is now revoked."""
+        async with self._session() as session, session.begin():
+            return bool(
+                await revoke_live_keys(
+                    session,
+                    self._upsert_statement,
+                    self._delete_recorded,
+                    WorkspaceApiKeyRow.id == _oid(key_id),
+                    WorkspaceApiKeyRow.workspace_id == _oid(workspace_id),
+                )
+            )
+
+    async def revoke_in_workspaces(self, workspace_ids: List[RecordId]) -> int:
+        """Revoke every live key of these workspaces, whoever made it (the
+        workspaces are being deleted). Returns how many."""
+        ids = [_oid(w) for w in workspace_ids]
+        if not ids:
+            return 0
+        async with self._session() as session, session.begin():
+            return len(
+                await revoke_live_keys(
+                    session,
+                    self._upsert_statement,
+                    self._delete_recorded,
+                    WorkspaceApiKeyRow.workspace_id.in_(ids),
+                )
+            )
+
+    async def update_limits(
+        self,
+        workspace_id: RecordId,
+        key_id: RecordId,
+        *,
+        name: str,
+        role: Optional[str],
+        form_scope: str,
+    ) -> Optional[WorkspaceAPIKeyDocument]:
+        """Change the name, role and form scope of a live key of the workspace
+        and nothing else (not its scopes, its creator or its secret): the row is
+        locked and re-read, so a revocation or a last-used update made since the
+        caller read the key is never written back. ``None`` when the key is not
+        there, not of this workspace or already revoked."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(WorkspaceApiKeyRow.doc)
+                    .where(
+                        WorkspaceApiKeyRow.id == _oid(key_id),
+                        WorkspaceApiKeyRow.workspace_id == _oid(workspace_id),
+                        WorkspaceApiKeyRow.revoked.is_not(True),
+                    )
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return None
+            stored = decode(WorkspaceAPIKeyDocument, doc)
+            stored.name = name
+            stored.role = role
+            stored.form_scope = form_scope
+            stored.touch()
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return stored
 
     async def touch_last_used(self, key_id: RecordId, now: datetime.datetime) -> bool:
         """Record that the key was used at ``now``, changing nothing else, and

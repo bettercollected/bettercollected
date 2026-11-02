@@ -261,6 +261,20 @@ class PostgresFormAccessGrantRepository(RecordRepository):
             where.append(FormAccessGrantRow.form_id.in_([_id(f) for f in form_ids]))
         return await self.many(*where)
 
+    async def for_keys(
+        self, workspace_id, key_ids: Iterable[str]
+    ) -> List[FormAccessGrantDocument]:
+        """The rows of several keys of the workspace, in one query (the keys
+        page lists every key's forms)."""
+        ids = [_id(k) for k in key_ids]
+        if not ids:
+            return []
+        return await self.many(
+            FormAccessGrantRow.workspace_id == _id(workspace_id),
+            FormAccessGrantRow.subject_type == SUBJECT_KEY,
+            FormAccessGrantRow.subject_id.in_(ids),
+        )
+
     async def replace_for_key(
         self, workspace_id, key_id, rows: Iterable[FormAccessGrantDocument]
     ) -> List[FormAccessGrantDocument]:
