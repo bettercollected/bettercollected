@@ -58,6 +58,8 @@ bearer = HTTPBearer(
 class ApiCaller:
     key: WorkspaceAPIKeyDocument
     user: User
+    # the scope the endpoint asked for (empty when built outside a request)
+    scope: str = ""
 
     @property
     def workspace_id(self) -> RecordId:
@@ -169,7 +171,15 @@ def api_key(
             # exhausts) the workspace's submissions budget
             require_key_has_scope(key, scope)
         await _rate_limit(key, submissions)
-        await require_key_scope(key, scope)
-        return ApiCaller(key=key, user=acting_user(key))
+        # an endpoint on one form (``/forms/{form_id}/...``) is decided on that
+        # form too, before the handler reads or parses anything: a form closed
+        # to the key's creator is a 404, as for a form that does not exist. The
+        # submissions endpoints judge the key's own form list first (a form
+        # outside it is a 403 whether it exists or not), so they decide on the
+        # form themselves, right after that list.
+        await require_key_scope(
+            key, scope, None if submissions else request.path_params.get("form_id")
+        )
+        return ApiCaller(key=key, user=acting_user(key), scope=scope)
 
     return dependency

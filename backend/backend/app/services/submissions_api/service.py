@@ -172,6 +172,19 @@ async def _workspace_form(workspace_id: RecordId, form_id: str):
     return association
 
 
+async def _require_creator_on_form(key: WorkspaceAPIKeyDocument, form_id: str) -> None:
+    """While form-level access is on: the key's creator must still be able to
+    edit this form (404 for one closed to them, as for an unknown form; the key's
+    own form list is judged after, so a closed form never answers 403). It only
+    refuses what the creator may not do: the submission itself is the
+    respondent's, whatever the form's access mode."""
+    # at call time: api_access imports the key service, which imports this package
+    from backend.app.services.api_access import require_key_on_form
+    from backend.app.services.submissions_api.mode import SCOPE
+
+    await require_key_on_form(key, SCOPE, form_id)
+
+
 def ensure_acts_as_nobody_allowed(form_settings: Any) -> None:
     """A form that asks for a verified respondent, or is limited to admitted
     responders, has someone to be: an API key is nobody (no identity, no
@@ -390,6 +403,7 @@ async def create_submission(
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Not found")
     workspace_id = key.workspace_id
     association = await _workspace_form(workspace_id, form_id)
+    await _require_creator_on_form(key, form_id)
     ensure_form_allowed(key, form_id)
     ensure_acts_as_nobody_allowed(association.settings)
     published = await _published(form_id)
@@ -469,6 +483,7 @@ async def update_submission(
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Not found")
     workspace_id = key.workspace_id
     association = await _workspace_form(workspace_id, form_id)
+    await _require_creator_on_form(key, form_id)
     ensure_form_allowed(key, form_id)
     # the create's own gates: a machine caller can't change data on a form that
     # now needs a verified respondent, is private, is closed or is not open
