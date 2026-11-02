@@ -507,7 +507,8 @@ async def test_who_may_read_a_form_is_decided_with_a_fixed_number_of_queries(
 # while the switch is off has to raise a number here knowingly.
 OFF_WRITE_STATEMENTS = {
     "forms.update": 7,
-    "forms.publish": 9,
+    # one more: the publish's audit entry (the workspace audit log)
+    "forms.publish": 10,
     "forms.settings": 8,
     "forms.settings.hidden": 8,
     "forms.actions.update": 7,
@@ -519,7 +520,7 @@ OFF_WRITE_STATEMENTS = {
     # 33 before the grants cascade; the cascade adds two statements whatever the
     # switch says: the DELETE on the grants table and the tombstone row the
     # delete records for the grants it removed
-    "forms.delete": 35,
+    "forms.delete": 36,
 }
 
 

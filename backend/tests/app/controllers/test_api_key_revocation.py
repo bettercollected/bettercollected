@@ -160,12 +160,14 @@ async def test_each_revoked_key_is_recorded_with_ids_only(
     assert KEY_NAME not in text and "bc_" not in text and "@" not in text
 
 
-async def test_a_removal_with_no_keys_writes_no_key_entry_and_needs_no_audit(
-    client: AsyncClient, workspace, auth_lookup, monkeypatch
+async def test_a_removal_with_no_keys_writes_no_key_entry(
+    client: AsyncClient, workspace, auth_lookup
 ):
     person = await add_member(workspace, "VIEWER")
-    fail_audit(monkeypatch)
     assert (await remove(client, workspace, person)).status_code == 200
+    # only the removal itself is recorded (``member_removed``); no key was held
+    assert await audit_events(workspace, API_KEY_REVOKED) == []
+    assert len(await audit_events(workspace, "member_removed")) == 1
 
 
 async def test_a_removal_that_cannot_record_the_revocation_changes_nothing(
