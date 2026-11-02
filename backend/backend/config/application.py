@@ -148,6 +148,12 @@ class Application(StoreBackedSettings):
     # is refused with 422 save_drafts_disabled, and saving or opening a draft is
     # refused.
     SAVE_DRAFTS_ENABLED: bool = False
+    # Forms may be embedded in other sites (services/form_embed.py, docs/embed.md):
+    # a workspace lists the sites allowed to frame its forms and the respondent
+    # pages are served with that list as their frame-ancestors. Off (the
+    # default, until it is released): the settings routes answer 404, the
+    # policy says not enabled and the pages are served as before.
+    FORM_EMBED_ENABLED: bool = False
     # The admin task runner presents this key to the internal admin-task
     # routes (controllers/admin_tasks_router.py; the runner's
     # ADMIN_TASKS_API_KEY). Empty: those routes answer 503.

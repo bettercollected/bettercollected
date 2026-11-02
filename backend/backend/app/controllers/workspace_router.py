@@ -22,6 +22,7 @@ from backend.app.services.layout_containers import layout_containers_enabled
 from backend.app.services.option_logic import choice_logic_enabled
 from backend.app.services.option_sources.mode import option_sources_enabled
 from backend.app.services.form_drafts.mode import save_drafts_enabled
+from backend.app.services.form_embed import form_embed_enabled
 from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
@@ -244,6 +245,7 @@ class WorkspaceRouter(Routable):
             option_sources_enabled=option_sources_enabled(),
             save_drafts_enabled=save_drafts_enabled(),
             submissions_api_enabled=submissions_api_enabled(),
+            form_embed_enabled=form_embed_enabled(),
         )
 
     @get("/{workspace_id}/ai-profile")

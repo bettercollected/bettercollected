@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import environments from '@app/configs/environments';
 import { frameAncestorsFor } from '@app/lib/frame-ancestors';
+import { ASSERTION_HEADER, customDomainTarget } from '@app/lib/server/custom-domain-assertion';
+import { EmbedPolicy, PolicyQuery, fetchEmbedPolicy, frameAncestorsValue } from '@app/lib/server/embed-policy';
 
 /**
  * A link to a workspace dashboard page opened without a session goes to the
@@ -39,20 +41,70 @@ function deployBasePath(): string {
 }
 
 const DASHBOARD_PATH = /^\/[^/]+\/dashboard(\/|$)/;
+// A published form's page: /<workspace>/forms/<form> (the client domain, also its /preview, which the
+// builder frames) and /forms/<form> on a custom domain.
+const FORM_DOMAIN_FORM_PATH = /^\/([^/]+)\/forms\/[^/]+(\/preview)?\/?$/;
+const CUSTOM_DOMAIN_FORM_PATH = /^\/forms\/[^/]+\/?$/;
 
-/**
- * Two jobs, both at request time (next.config.js `headers()` is evaluated when the image is built, without
- * the running server's domains, which is how the old `X-Frame-Options: ALLOW-FROM` named an undefined host):
- * a link to a dashboard page without a session goes to sign-in, and every page except a published form's
- * says who may frame it (lib/frame-ancestors.ts). The matcher covers every route but `_next/` and files
- * with a static-file extension (a workspace handle may contain a dot), the 404 page included. The proxy is the only place this header is set.
- */
-export function proxy(request: NextRequest) {
+function requestHost(request: NextRequest): string {
+    return request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
+}
+
+/** Which workspace's policy a request for a published form's page is answered with, or null for any other page. */
+export function embedPolicyQuery(request: NextRequest): { query: PolicyQuery | null } | null {
+    const host = requestHost(request);
     const { pathname } = request.nextUrl;
-    const response = (DASHBOARD_PATH.test(pathname) ? signInRedirect(request) : null) ?? NextResponse.next();
-    const value = frameAncestorsFor(pathname, `${dashboardScheme()}://${environments.DASHBOARD_DOMAIN}`);
+    // a published form's page is on the form domain, which on a single-domain setup is the dashboard's too
+    if (host === environments.DASHBOARD_DOMAIN && host !== environments.FORM_DOMAIN) return null;
+    if (host === environments.FORM_DOMAIN) {
+        const match = FORM_DOMAIN_FORM_PATH.exec(pathname);
+        if (!match) return null;
+        try {
+            return { query: { workspace_name: decodeURIComponent(match[1]) } };
+        } catch {
+            return { query: null };
+        }
+    }
+    if (!CUSTOM_DOMAIN_FORM_PATH.test(pathname)) return null;
+    // The workspace is chosen exactly as the page's layout chooses it: by the edge's verified assertion.
+    const target = customDomainTarget(host, request.headers.get(ASSERTION_HEADER));
+    if (target.kind === 'workspaceId') return { query: { workspace_id: target.workspaceId } };
+    if (target.kind === 'host') return { query: { custom_domain: target.host } };
+    return { query: null };
+}
+
+function withFrameAncestors(response: NextResponse, value: string | null): NextResponse {
     if (value) response.headers.set('Content-Security-Policy', value);
     return response;
+}
+
+function dashboardOrigin(): string {
+    return `${dashboardScheme()}://${environments.DASHBOARD_DOMAIN}`;
+}
+
+/**
+ * Framing, by page, at request time (next.config.js `headers()` is evaluated when the image is built, without
+ * the running server's domains, which is how the old `X-Frame-Options: ALLOW-FROM` named an undefined host).
+ * A published form's page is answered from the workspace's embed policy (docs/embed.md): with the server's
+ * switch off no header at all (as before); on, this site, the dashboard's preview and the workspace's allowed
+ * sites. Every other page says `frame-ancestors 'self' <dashboard origin>` (lib/frame-ancestors.ts). The two
+ * branches are exclusive, so a response carries one policy at most: a form page that has no embed target
+ * (a custom-domain request whose assertion fails) is answered by the first branch with the strict default,
+ * never by both. The matcher covers every route but `_next/` and files with a static-file extension (a
+ * workspace handle may contain a dot), the 404 page included. A link to a dashboard page without a session
+ * goes to sign-in.
+ */
+export function proxy(request: NextRequest): NextResponse | Promise<NextResponse> {
+    const { pathname } = request.nextUrl;
+    const target = DASHBOARD_PATH.test(pathname) ? null : embedPolicyQuery(request);
+    if (target) return answerForm(target.query);
+    const response = (DASHBOARD_PATH.test(pathname) ? signInRedirect(request) : null) ?? NextResponse.next();
+    return withFrameAncestors(response, frameAncestorsFor(dashboardOrigin()));
+}
+
+async function answerForm(query: PolicyQuery | null): Promise<NextResponse> {
+    const policy: EmbedPolicy | null = query ? await fetchEmbedPolicy(query) : null;
+    return withFrameAncestors(NextResponse.next(), frameAncestorsValue(policy, dashboardOrigin()));
 }
 
 export const config = {

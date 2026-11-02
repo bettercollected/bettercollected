@@ -67,5 +67,7 @@ export function useWorkspacePermissions() {
     const saveDraftsEnabled = !!userId && !isError && !!data?.saveDraftsEnabled;
     // ...and whether API keys may submit responses (its SUBMISSIONS_API_ENABLED): the key dialog offers the scope from it.
     const submissionsApiEnabled = !!userId && !isError && !!data?.submissionsApiEnabled;
-    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, optionSourcesEnabled, layoutContainersEnabled, saveDraftsEnabled, submissionsApiEnabled };
+    // ...and embedding forms in other sites (its FORM_EMBED_ENABLED): the share dialog's Embed tab and the Embedding settings.
+    const formEmbedEnabled = !!userId && !isError && !!data?.formEmbedEnabled;
+    return { can, permissions, isLoading, ready, answered, fieldRulesEnabled, choiceLogicEnabled, newQuestionTypesEnabled, addressQuestionEnabled, addressLookupEnabled, signatureQuestionEnabled, optionSourcesEnabled, layoutContainersEnabled, saveDraftsEnabled, submissionsApiEnabled, formEmbedEnabled };
 }
