@@ -124,6 +124,23 @@ describe('the response page', () => {
         expect(within(details).queryByText('anna@example.com')).toBeNull();
     });
 
+    it('says an API key made the response, for staff, with the key name and the asserted consent', () => {
+        server.result = loaded(ANONYMOUS_RESPONSE, { source: { channel: 'api', keyName: 'CRM sync', consentAsserted: true } });
+        renderPage('resp-2');
+        const details = screen.getByRole('region', { name: 'Response details' });
+        // not "Anonymous": nothing was hidden, a program sent it
+        expect(within(details).queryByText('Anonymous')).toBeNull();
+        expect(within(details).getByTestId('response-source-badge')).toHaveTextContent('Submitted through the API');
+        expect(within(details).getByTestId('response-source')).toHaveTextContent('API key “CRM sync”');
+        expect(within(details).getByTestId('response-source')).toHaveTextContent('The key asserted the respondent’s consent');
+    });
+
+    it('shows no source for a respondent’s own response', () => {
+        server.result = loaded(ANONYMOUS_RESPONSE);
+        renderPage('resp-2');
+        expect(screen.queryByTestId('response-source')).toBeNull();
+    });
+
     it('leaves the tab title to the route metadata (one writer: page.test.ts), so nothing races it', () => {
         document.title = 'Response · Summer meeting registration';
         renderPage();

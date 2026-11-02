@@ -69,6 +69,8 @@ export function useWorkspacePermissions() {
     const formRevisionsUiEnabled = !!userId && !isError && !!data?.formRevisionsUiEnabled;
     // ...and staff edit of answers with the history of a response (its RESPONSE_REVISIONS_ENABLED).
     const responseRevisionsEnabled = !!userId && !isError && !!data?.responseRevisionsEnabled;
+    // ...and whether API keys may submit responses (its SUBMISSIONS_API_ENABLED): the key dialog offers the scope from it.
+    const submissionsApiEnabled = !!userId && !isError && !!data?.submissionsApiEnabled;
     // ...and embedding forms in other sites (its FORM_EMBED_ENABLED): the share dialog's Embed tab and the Embedding settings.
     const formEmbedEnabled = !!userId && !isError && !!data?.formEmbedEnabled;
     return {
@@ -86,6 +88,7 @@ export function useWorkspacePermissions() {
         optionSourcesEnabled,
         layoutContainersEnabled,
         saveDraftsEnabled,
+        submissionsApiEnabled,
         formRevisionsUiEnabled,
         responseRevisionsEnabled,
         formEmbedEnabled
