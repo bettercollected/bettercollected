@@ -55,7 +55,12 @@ from backend.app.services.webhooks.mode import webhooks_enabled
 from backend.app.services.webhooks.sealing import seal_url, unseal_url
 from backend.app.services.webhooks.service import MAX_WEBHOOKS_PER_FORM, new_secret
 from backend.config import settings
-from backend.db.models import FormRow, WorkspaceFormRow
+from backend.db.models import (
+    FormEmailActionRow,
+    FormRow,
+    FormWebhookRow,
+    WorkspaceFormRow,
+)
 
 MIGRATED_VIA = "migrated_builtin"
 TEMPORAL_TIMEOUT_SECONDS = 30
@@ -85,6 +90,16 @@ def target_id(kind: str, form_id: str, action_id: str) -> RecordId:
 
 def _norm(name: Any) -> str:
     return "".join(ch for ch in str(name).lower() if ch.isalnum())
+
+
+def _undefined_table(error: Exception) -> bool:
+    """Whether a database error is "the relation does not exist" (SQLSTATE 42P01)."""
+    original = getattr(error, "orig", None)
+    for name in ("sqlstate", "pgcode"):
+        code = getattr(original, name, None) or getattr(getattr(original, "__cause__", None), name, None)
+        if code:
+            return code == "42P01"
+    return "does not exist" in str(original).lower()
 
 
 class TemporalUnreachable(Exception):
@@ -173,6 +188,7 @@ class BuiltinMigration:
         self._temporal_override = temporal_override
         self._actions_by_id: Optional[Dict[str, Any]] = None
         self.check_skipped = False
+        self._planned_at: Dict[str, Any] = {}
 
     # ------------------------------------------------------------ reading
 
@@ -185,14 +201,19 @@ class BuiltinMigration:
             }
         return self._actions_by_id
 
-    async def form_ids(self, workspace: Optional[str] = None) -> List[str]:
-        """The ids of the forms that have an action on submit, by id."""
+    async def form_ids(
+        self, workspace: Optional[str] = None, form: Optional[str] = None
+    ) -> List[str]:
+        """The ids of the forms that have an action on submit, by id; one form
+        (``form``) or the forms of one workspace for a staged move."""
         query = select(FormRow.form_id).where(
             func.coalesce(
                 func.jsonb_array_length(FormRow.doc["actions"]["on_submit"]), 0
             )
             > 0
         )
+        if form:
+            query = query.where(FormRow.form_id == str(form))
         if workspace:
             query = query.where(
                 FormRow.form_id.in_(
@@ -227,10 +248,17 @@ class BuiltinMigration:
         w_params = (workspace.parameters or {}).get(key)
         f_params = (form.parameters or {}).get(key)
         parameters = sheets._layer(action.parameters, w_params, f_params)
-        overrides = {_norm(i.name) for i in [*(w_params or []), *(f_params or [])]}
+        def named(items):
+            return {
+                _norm(i.name)
+                for i in items or []
+                if getattr(i, "value", None) not in (None, "")
+            }
+
+        overrides = named(w_params) | named(f_params)
         w_secrets = (workspace.secrets or {}).get(key)
         f_secrets = (form.secrets or {}).get(key)
-        overrides |= {_norm(i.name) for i in [*(w_secrets or []), *(f_secrets or [])]}
+        overrides |= named(w_secrets) | named(f_secrets)
         return parameters, overrides, workspace
 
     async def plan_form(self, form_id: str) -> List[Item]:
@@ -239,6 +267,9 @@ class BuiltinMigration:
         form = await self._forms.get_form_document_by_id(str(form_id))
         if form is None:
             return []
+        # the form as it was read: a change made before the write (a creator
+        # saving a new address) is not moved stale
+        self._planned_at[str(form_id)] = form.updated_at
         builtins = await self._builtin_actions()
         workspace_id = await self._workspace_of(form_id)
         items: List[Item] = []
@@ -269,7 +300,9 @@ class BuiltinMigration:
             parameters, overrides, _workspace = layers
             if kind == "sheets":
                 continue
-            if overrides & SMTP_NAMES and kind == "email":
+            if kind == "email" and any(
+                name in SMTP_NAMES or name.startswith("smtp") for name in overrides
+            ):
                 item.dropped.append("mail_server")
             if kind == "webhook":
                 await self._plan_webhook(item, parameters)
@@ -373,7 +406,9 @@ class BuiltinMigration:
                 continue
             report.add(f"movable.{item.name}")
 
-    async def preflight(self, workspace: Optional[str] = None) -> Report:
+    async def preflight(
+        self, workspace: Optional[str] = None, form: Optional[str] = None
+    ) -> Report:
         report = Report()
         if self._temporal_open_runs is not None:
             try:
@@ -384,7 +419,7 @@ class BuiltinMigration:
                     self._warn_override(unreachable.reason)
                 else:
                     report.add("blocked.temporal_unreachable")
-        for form_id in await self.form_ids(workspace):
+        for form_id in await self.form_ids(workspace, form):
             items = await self.plan_form(form_id)
             if items:
                 report.add("forms_with_builtins")
@@ -393,15 +428,19 @@ class BuiltinMigration:
 
     # --------------------------------------------------------------- apply
 
-    async def _open_runs(self, form_id: str) -> int:
+    async def _open_runs(self, form_id: str, action_ids=None) -> int:
         """Runs of the form's built-in actions still waiting for, or being run
         by, the executor: on the Postgres queue and, when ``run_action`` is on
         Temporal, the form's open workflows (asked of Temporal itself)."""
-        count = await self._queued_runs(form_id)
+        count = await self._queued_runs(form_id, action_ids)
         self.check_skipped = False
         if self._temporal_open_runs is not None:
             try:
-                count += len(await self._ask_temporal(form_id))
+                open_ids = await self._ask_temporal(form_id)
+                if action_ids is not None:
+                    # a run of the form's own code action does not hold the move
+                    open_ids = [w for w in open_ids if any(a in w for a in action_ids)]
+                count += len(open_ids)
             except TemporalUnreachable as unreachable:
                 # fail closed: a Temporal that cannot be asked is never "no open
                 # workflows"; only the operator's explicit word skips the check
@@ -432,7 +471,7 @@ class BuiltinMigration:
             reason,
         )
 
-    async def _queued_runs(self, form_id: str) -> int:
+    async def _queued_runs(self, form_id: str, action_ids=None) -> int:
         try:
             async with self._forms._session() as session:
                 return int(
@@ -440,27 +479,36 @@ class BuiltinMigration:
                         await session.execute(
                             text(
                                 "select count(*) from jobs.procrastinate_jobs "
-                                "where queue_name='actions' and status in ('todo','doing') "
-                                "and args->>'form_id' = :f"
+                                "where queue_name='actions' and task_name='run_action' "
+                                "and status in ('todo','doing') "
+                                "and args->>'form_id' = :f "
+                                "and (:all or args->>'action_id' = any(:ids))"
                             ),
-                            {"f": str(form_id)},
+                            {
+                                "f": str(form_id),
+                                "all": action_ids is None,
+                                "ids": [str(a) for a in (action_ids or [])],
+                            },
                         )
                     ).scalar()
                     or 0
                 )
-        except ProgrammingError:
+        except ProgrammingError as error:
+            if not _undefined_table(error):
+                raise  # a refused query is not "no runs"
             # no queue table: this database never queued a run on Postgres
             return 0
 
     async def apply(
         self,
         workspace: Optional[str] = None,
+        form: Optional[str] = None,
         *,
         wait_queue_seconds: int = 0,
         poll=asyncio.sleep,
     ) -> Report:
         report = Report()
-        for form_id in await self.form_ids(workspace):
+        for form_id in await self.form_ids(workspace, form):
             items = await self.plan_form(form_id)
             probe = Report()
             self._classify(probe, items)
@@ -471,13 +519,14 @@ class BuiltinMigration:
             if not movable:
                 continue
             waited = 0
+            ours = [i.action_id for i in movable]
             try:
-                while await self._open_runs(form_id):
+                while await self._open_runs(form_id, ours):
                     if waited >= wait_queue_seconds:
                         break
                     await poll(2)
                     waited += 2
-                open_runs = await self._open_runs(form_id)
+                open_runs = await self._open_runs(form_id, ours)
             except TemporalUnreachable:
                 report.add("blocked.temporal_unreachable")
                 break  # no form can be checked: nothing more is moved
@@ -506,6 +555,9 @@ class BuiltinMigration:
             stored = await self._forms._locked_draft(session, form_id)
             if stored is None:
                 return None
+            planned = self._planned_at.get(str(form_id))
+            if planned is not None and stored.updated_at != planned:
+                return None  # saved by someone since it was planned
             entries = {str(e.id): e for e in (stored.actions or {}).get("on_submit") or []}
             for item in items:
                 current = entries.get(item.action_id)
@@ -621,20 +673,22 @@ class BuiltinMigration:
 
     # -------------------------------------------------------------- verify
 
-    async def _moved_entries(self, workspace: Optional[str]):
-        for form_id in await self.form_ids(workspace):
+    async def _moved_entries(self, workspace: Optional[str], form: Optional[str] = None):
+        for form_id in await self.form_ids(workspace, form):
             form = await self._forms.get_form_document_by_id(form_id)
             workspace_id = await self._workspace_of(form_id)
             for entry in (form.actions or {}).get("on_submit") or []:
                 if entry.migrated_to:
                     yield form_id, workspace_id, form, entry
 
-    async def verify(self, workspace: Optional[str] = None) -> Report:
+    async def verify(
+        self, workspace: Optional[str] = None, form: Optional[str] = None
+    ) -> Report:
         """Every moved entry has its target, which opens and is on exactly when
         the old action was; the old entry is off (never both on)."""
         report = Report()
         builtins = await self._builtin_actions()
-        async for form_id, workspace_id, form, entry in self._moved_entries(workspace):
+        async for form_id, workspace_id, form_doc, entry in self._moved_entries(workspace, form):
             marker = entry.migrated_to
             kind = marker.get("kind")
             report.add(f"checked.{kind}")
@@ -661,16 +715,54 @@ class BuiltinMigration:
                     report.add("problem.webhook_unreadable")
             if str(entry.id) not in builtins:
                 report.add("problem.action_unknown")
+        await self._verify_targets(report, workspace, form)
         return report
+
+    async def _verify_targets(
+        self, report: Report, workspace: Optional[str], form: Optional[str]
+    ) -> None:
+        """The other way round: every webhook and email action the move made has
+        its source entry, still marked and pointing at it. One that is on while
+        its source is not marked (a stale save dropped the mark, an entry was
+        switched on again) would deliver next to the old action: a problem. One
+        that is off is what ``rollback`` leaves, and is only counted."""
+        wanted = None if not (workspace or form) else set(await self.form_ids(workspace, form))
+        for kind, repo, row in (
+            ("webhook", self._webhooks, FormWebhookRow),
+            ("email", self._emails, FormEmailActionRow),
+        ):
+            for target in await repo.many(row.doc["created_via"].astext == MIGRATED_VIA):
+                if wanted is not None and str(target.form_id) not in wanted:
+                    continue
+                report.add(f"checked.{kind}_row")
+                document = await self._forms.get_form_document_by_id(str(target.form_id))
+                entry = next(
+                    (
+                        e
+                        for e in ((document.actions or {}).get("on_submit") or [] if document else [])
+                        if str(e.id) == str(target.source_action_id)
+                    ),
+                    None,
+                )
+                marked = bool(
+                    entry is not None
+                    and entry.migrated_to
+                    and entry.migrated_to.get("id") == str(target.id)
+                )
+                if marked:
+                    continue
+                report.add(f"problem.{kind}_on_without_mark" if target.enabled else f"unmarked.{kind}_off")
 
     # ------------------------------------------------------------ rollback
 
-    async def rollback(self, workspace: Optional[str] = None) -> Report:
+    async def rollback(
+        self, workspace: Optional[str] = None, form: Optional[str] = None
+    ) -> Report:
         """Give the old entries back (on as they were) and switch the moved
         webhooks and email actions off. Their rows and logs stay."""
         report = Report()
         now = self._clock()
-        for form_id in await self.form_ids(workspace):
+        for form_id in await self.form_ids(workspace, form):
             async with self._forms._session() as session, session.begin():
                 stored = await self._forms._locked_draft(session, form_id)
                 if stored is None:

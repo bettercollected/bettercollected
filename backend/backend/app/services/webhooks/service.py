@@ -811,8 +811,14 @@ class WebhookService:
         *,
         form: Any = None,
         answers: Optional[Dict[str, Any]] = None,
+        executor_handled: Any = (),
     ) -> List[str]:
-        """Called after a response is stored. Writes one log row per enabled
+        """Called after a response is stored. ``executor_handled``: the ids of the
+        form actions the executor was given a run for in this submission's own
+        snapshot (``marks.executor_sources``): a webhook that replaced one of
+        them (``source_action_id``) is skipped for this submission, which would
+        otherwise be delivered twice if the move of the action landed in between.
+        Writes one log row per enabled
         webhook whose condition holds on ``answers`` (the submitted answers,
         read in memory and not kept) and queues a job for each; a condition
         that does not hold writes a ``cancelled`` row with its code and no job.
@@ -824,6 +830,8 @@ class WebhookService:
                 return queued
             for hook in await self._webhooks.list_for_form(workspace_id, form_id):
                 if not hook.enabled:
+                    continue
+                if hook.created_via and hook.source_action_id in executor_handled:
                     continue
                 runs, code = action_conditions.conditions_hold(
                     hook.condition, form, answers or {}

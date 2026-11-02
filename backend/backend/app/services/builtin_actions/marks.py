@@ -17,6 +17,17 @@ MOVABLE_BUILTINS = (
 MOVED_VIA = "migrated_builtin"
 
 
+def executor_sources(actions: Any) -> set:
+    """The ids of the form's on-submit entries the executor is given a run for
+    in a submission that read ``actions`` (a form's actions as that submission
+    saw them): on, and not moved. A moved action's webhook or email action skips
+    a submission whose snapshot still had it here, or both would deliver."""
+    from common.models.standard_form import Trigger
+
+    entries = (actions or {}).get(Trigger.on_submit) or (actions or {}).get("on_submit") or []
+    return {str(e.id) for e in entries if e.enabled and not entry_moved(e)}
+
+
 def entry_moved(entry: Any) -> bool:
     """Whether the built-in action of this entry was moved to a webhook or an
     email action (``migrated_to``): the entry is then off for good, whatever its

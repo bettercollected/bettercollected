@@ -323,7 +323,7 @@ async def test_a_form_with_runs_still_queued_is_refused_and_one_that_drains_is_m
     migration = tool()
     queued = {"n": 1}
 
-    async def count(form_id):
+    async def count(form_id, action_ids=None):
         return queued["n"]
 
     monkeypatch.setattr(migration, "_queued_runs", count)
@@ -426,16 +426,16 @@ async def test_the_command_exit_codes():
         def __init__(self, blocked=0):
             self.report = migrate.Report({"blocked.x": blocked} if blocked else {"ok": 1})
 
-        async def preflight(self, workspace=None):
+        async def preflight(self, workspace=None, form=None):
             return self.report
 
-        async def apply(self, workspace=None, wait_queue_seconds=0):
+        async def apply(self, workspace=None, form=None, wait_queue_seconds=0):
             return self.report
 
-        async def verify(self, workspace=None):
+        async def verify(self, workspace=None, form=None):
             return migrate.Report({"problem.both_on": 1})
 
-        async def rollback(self, workspace=None):
+        async def rollback(self, workspace=None, form=None):
             return self.report
 
     run = migrate_builtins.run
@@ -581,10 +581,10 @@ async def test_the_command_refuses_with_its_own_exit_code_and_a_message(capsys):
     parser = migrate_builtins.build_parser()
 
     class Down:
-        async def preflight(self, workspace=None):
+        async def preflight(self, workspace=None, form=None):
             return migrate.Report({"blocked.temporal_unreachable": 1})
 
-        async def apply(self, workspace=None, wait_queue_seconds=0):
+        async def apply(self, workspace=None, form=None, wait_queue_seconds=0):
             return migrate.Report({"blocked.temporal_unreachable": 1, "blocked.queued_runs": 2})
 
     assert await migrate_builtins.run(parser.parse_args(["preflight"]), Down(), temporal=True) == 3
@@ -786,3 +786,143 @@ async def test_removing_an_action_racing_the_move_keeps_the_mark(workspace):
     entries = await entries_of(setup_.form)
     assert list(entries) == [str(setup_.actions["send_webhook"].id)]
     assert entries[str(setup_.actions["send_webhook"].id)].migrated_to
+
+
+# ------------------------------------------------------------ review follow-ups
+
+
+async def test_a_creator_saving_the_form_between_the_plan_and_the_write_is_not_moved_stale(workspace):
+    setup_ = await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    migration = tool()
+    items = await migration.plan_form(setup_.form.form_id)
+    # a save that changes nothing the checks read still moves updated_at: the form is planned again
+    document = await container.form_repo().get_form_document_by_id(setup_.form.form_id)
+    document.description = "edited meanwhile"
+    await container.form_repo().save_form(document)
+    assert await migration._apply_form(setup_.form.form_id, [i for i in items if i.movable]) is None
+    report = await tool().apply()
+    assert report.counts["moved.send_webhook"] == 1
+
+
+async def test_a_submission_that_read_the_form_before_the_move_is_not_delivered_twice(workspace, memory_jobs):
+    """The submission's own snapshot of the form still had the old action on, so
+    the executor got its run; the webhook that replaced it skips this submission
+    even though the move landed before the webhooks were queued."""
+    from backend.app.services.builtin_actions.marks import executor_sources
+
+    setup_ = await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    action = setup_.actions["send_webhook"]
+    snapshot = await container.form_repo().get_form_document_by_id(setup_.form.form_id)
+    handled = executor_sources(snapshot.actions)
+    assert handled == {str(action.id)}
+    await tool().apply()
+    response = await submit(workspace, setup_.form)  # delivers by the new row, as any later one does
+    memory_jobs.jobs.clear()
+    # the submission whose snapshot is older than the move: the executor has it
+    queued = await container.webhook_service().queue_for_submission(
+        workspace.id, setup_.form.form_id, "65b0000000000000000000ee", executor_handled=handled
+    )
+    assert queued == [] and memory_jobs.jobs == {}
+    queued = await container.webhook_service().queue_for_submission(
+        workspace.id, setup_.form.form_id, "65b0000000000000000000ef", executor_handled=set()
+    )
+    assert len(queued) == 1
+    assert executor_sources(
+        (await container.form_repo().get_form_document_by_id(setup_.form.form_id)).actions
+    ) == set()  # after the move the executor is given nothing
+
+
+async def test_a_run_of_the_forms_own_code_action_does_not_hold_the_move_but_a_built_in_one_does(
+    workspace, monkeypatch
+):
+    setup_ = await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    migration = tool()
+    seen = []
+
+    async def fake(form_id, action_ids=None):
+        seen.append(action_ids)
+        return 0
+
+    monkeypatch.setattr(migration, "_queued_runs", fake)
+    assert (await migration.apply()).counts["moved.send_webhook"] == 1
+    assert seen and seen[0] == [str(setup_.actions["send_webhook"].id)]  # only this form's built-in action ids
+
+
+async def test_only_a_missing_queue_table_counts_as_no_runs(workspace, monkeypatch):
+    from sqlalchemy.exc import ProgrammingError
+
+    class Missing(Exception):
+        sqlstate = "42P01"
+
+    class Denied(Exception):
+        sqlstate = "42501"
+
+    migration = tool()
+
+    class Session:
+        def __init__(self, error):
+            self.error = error
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+        async def execute(self, *a, **k):
+            raise ProgrammingError("select", {}, self.error("x"))
+
+    for error, expected in ((Missing, 0), (Denied, None)):
+        monkeypatch.setattr(migration._forms, "_session", lambda e=error: Session(e))
+        if expected == 0:
+            assert await migration._queued_runs("f1") == 0
+        else:
+            with pytest.raises(ProgrammingError):
+                await migration._queued_runs("f1")  # a refused query is not "no runs"
+
+
+async def test_only_the_form_asked_for_is_moved(workspace):
+    first = await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    second = await setup(workspace, [("send_to_slack", {"Slack Webhook URL": SLACK}, True)])
+    report = await tool().apply(form=second.form.form_id)
+    assert report.counts == {"moved.send_to_slack": 1}
+    assert await container.form_webhook_repo().list_for_form(workspace.id, first.form.form_id) == []
+    assert (await tool().preflight(form=first.form.form_id)).counts["movable.send_webhook"] == 1
+    assert (await tool().verify(form=second.form.form_id)).counts["checked.webhook"] == 1
+    await tool().rollback(form=second.form.form_id)
+    assert all(not e.migrated_to for e in (await entries_of(second.form)).values())
+
+
+async def test_verify_finds_a_moved_webhook_that_is_on_while_its_source_is_not_marked(workspace):
+    setup_ = await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    await tool().apply()
+    assert not any(k.startswith("problem.") for k in (await tool().verify()).counts)
+    # a stale save dropped the mark and switched the old entry on: both deliver
+    document = await container.form_repo().get_form_document_by_id(setup_.form.form_id)
+    entry = document.actions[Trigger.on_submit][0]
+    entry.migrated_to, entry.migrated_at, entry.enabled = None, None, True
+    await container.form_repo().save_form(document)
+    counts = (await tool().verify()).counts
+    assert counts["problem.webhook_on_without_mark"] == 1
+    # a target that is off while its entry is unmarked is what rollback leaves: only counted
+    repo = container.form_webhook_repo()
+    (target,) = await repo.list_for_form(workspace.id, setup_.form.form_id)
+    target.enabled = False
+    await repo.save(target)
+    after = (await tool().verify()).counts
+    assert not any(k.startswith("problem.") for k in after) and after["unmarked.webhook_off"] == 1
+
+
+async def test_a_mail_server_override_counts_by_name_and_only_when_it_has_a_value(workspace):
+    setup_ = await setup(workspace, [("creator_copy_mail", {"Receiving Mail Address": OWNER}, True)])
+    action_id = str(setup_.actions["creator_copy_mail"].id)
+    document = await container.form_repo().get_form_document_by_id(setup_.form.form_id)
+    document.parameters[action_id] += [
+        ParameterValue(name="SMTP Host", value="smtp.mine.example"),
+        ParameterValue(name="Username", value=""),
+    ]
+    await container.form_repo().save_form(document)
+    assert (await tool().preflight()).counts["dropped.mail_server"] == 1
+    document.parameters[action_id] = [p for p in document.parameters[action_id] if p.name != "SMTP Host"]
+    await container.form_repo().save_form(document)
+    assert "dropped.mail_server" not in (await tool().preflight()).counts  # an empty value is no override
