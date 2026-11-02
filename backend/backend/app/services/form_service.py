@@ -50,6 +50,7 @@ from backend.app.services.ai.notice_token import (
 )
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.event_service import event_logger_service
+from backend.app.services.form_access.mode import form_access_enabled
 from backend.app.services.form_availability import (
     UNAVAILABLE_FULL,
     UNAVAILABLE_REASONS,
@@ -176,6 +177,16 @@ class FormService:
             user=user,
             filter_closed=published or pinned_only,
         )
+        # Form-level access: a member sees only the forms they may open, decided
+        # BEFORE the full-form check, the count and the page, so neither a total
+        # nor a page size tells of a form that is closed to them. In the public
+        # (published) listing a form closed to a member is listed as it is to
+        # any respondent: the public ones, without internal fields.
+        as_respondent: set = set()
+        if has_access_to_workspace:
+            workspace_form_ids, as_respondent = await self._staff_listing_ids(
+                workspace_id, user, workspace_form_ids, published, pinned_only
+            )
         if published or pinned_only:
             workspace_form_ids = await self._without_full_forms(
                 workspace_id, workspace_form_ids
@@ -198,6 +209,10 @@ class FormService:
             # Public listing: internal fields belong to the organisation.
             for form in forms_page.items:
                 respondent_view(form)
+        elif as_respondent:
+            for form in forms_page.items:
+                if str(form.form_id) in as_respondent:
+                    respondent_view(form)
 
         if has_access_to_workspace and not published:
             importers = await self._importer_details(
@@ -230,6 +245,52 @@ class FormService:
         return await self._authorization.has_permission(
             user, Permission.FORM_READ, workspace_id
         )
+
+    async def _staff_listing_ids(
+        self,
+        workspace_id: RecordId,
+        user: User,
+        form_ids: List[str],
+        published: bool,
+        pinned_only: bool,
+    ):
+        """``form_ids`` narrowed to the forms ``user`` may open as staff, and
+        (public listing only) the ids of the forms closed to them that are listed
+        anyway because any respondent would be offered them. Switch off: the
+        ids unchanged, no query."""
+        if not form_access_enabled():
+            return form_ids, set()
+        allowed = await self._authorization.restrict_to_visible(
+            user, workspace_id, form_ids, Permission.FORM_READ
+        )
+        closed = set(form_ids) - set(allowed)
+        if not closed or not published:
+            return allowed, set()
+        offered = await self._workspace_form_repo.get_form_ids_in_workspace(
+            workspace_id,
+            True,
+            pinned_only=pinned_only,
+            user=user,
+            filter_closed=True,
+        )
+        as_respondent = closed & set(offered)
+        return allowed + sorted(as_respondent), as_respondent
+
+    async def _can_open_as_staff(
+        self, user: Optional[User], workspace_id: RecordId, form_ref: str
+    ) -> bool:
+        """Whether a member (staff by role) may open this form (its id or slug)
+        as staff: false for a form restricted against them. A form that is not
+        the workspace's decides nothing here (the caller's own 404 follows)."""
+        link = await self._workspace_form_repo.get_workspace_form_with_custom_slug_form_id(
+            workspace_id=workspace_id, custom_url=form_ref
+        )
+        if link is None:
+            return True
+        decided = await self._authorization.form_permissions(
+            user, workspace_id, str(link.form_id)
+        )
+        return not decided.hidden and Permission.FORM_READ in decided.permissions
 
     async def _importer_details(self, importer_ids: Iterable[Optional[str]]):
         """importer id -> the auth service's details for them: one call with
@@ -270,6 +331,19 @@ class FormService:
             # offered to respondents
             filter_closed=not staff,
         )
+        # Form-level access: the ids are narrowed BEFORE the title query, so a
+        # result, a count or a typeahead never names a form closed to the
+        # member (the public search still offers it as to any respondent).
+        as_respondent: set = set()
+        if staff:
+            form_ids, as_respondent = await self._staff_listing_ids(
+                workspace_id, user, form_ids, published, False
+            )
+            if as_respondent:
+                # offered as to any respondent: not full either
+                kept = await self._without_full_forms(workspace_id, sorted(as_respondent))
+                form_ids = [f for f in form_ids if f not in as_respondent or f in kept]
+                as_respondent = as_respondent & set(kept)
         if not staff:
             form_ids = await self._without_full_forms(workspace_id, form_ids)
         forms = await self._form_repo.search_form_in_workspace(
@@ -281,6 +355,10 @@ class FormService:
         if not staff:
             for form in forms:
                 respondent_view(form)
+        elif as_respondent:
+            for form in forms:
+                if str(form.get("form_id")) in as_respondent:
+                    respondent_view(form)
 
         if staff and not published:
             importers = await self._importer_details(
@@ -307,6 +385,16 @@ class FormService:
         # lookup, whether or not the form exists. ``draft`` (the draft of a
         # never-published form in place of its published version) likewise.
         is_admin = await self._staff_view(user, workspace_id, published)
+        if is_admin and form_access_enabled():
+            # a form restricted against this member: no staff payload. A draft
+            # read is the same 404 as an unknown form; the public read is the
+            # respondent's, as for anyone.
+            if not await self._can_open_as_staff(user, workspace_id, form_id):
+                if not published:
+                    raise HTTPException(
+                        status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
+                    )
+                is_admin = False
         form = await self._get_form_by_id(
             workspace_id=workspace_id,
             form_id=form_id,
@@ -742,6 +830,8 @@ class FormService:
         is_admin = await self._authorization.has_permission(
             user, Permission.FORM_READ, workspace_id
         )
+        if is_admin and form_access_enabled():
+            is_admin = await self._can_open_as_staff(user, workspace_id, form_id)
         form = await self._get_form_by_version(
             workspace_id, form_id, version, user, is_admin
         )

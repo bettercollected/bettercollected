@@ -34,6 +34,7 @@ from backend.app.services.respondent_feedback import (
     feedback_entries,
     staff_feedback,
 )
+from backend.app.services.form_access.mode import form_if_enforced
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
@@ -81,7 +82,10 @@ class RespondentFeedbackService:
         never fails the update. ``access_token`` is the poster's, forwarded
         to the auth service that sends the mail."""
         await self._authorization.authorize(
-            user, Permission.RESPONSE_ANNOTATE, workspace_id
+            user,
+            Permission.RESPONSE_ANNOTATE,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
         )
         workspace_form = (
             await self._workspace_form_repo.get_workspace_form_in_workspace(
