@@ -43,7 +43,7 @@ def _entry(event: str, workspace_id, user, **ids) -> WorkspaceAuditEventDocument
 
 async def record(repo, event: str, workspace_id, user, **ids) -> bool:
     """Store the entry; a failure is logged (ids only) and never raised."""
-    assert event in ACCESS_EVENTS or event in API_KEY_EVENTS, event
+    assert event in ACCESS_EVENTS + API_KEY_EVENTS, event
     if repo is None:
         return False
     try:
