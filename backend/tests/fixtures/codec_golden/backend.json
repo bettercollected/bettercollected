@@ -7345,7 +7345,7 @@
   "document": "ScimUserDocument"
  },
  "sessions/full": {
-  "checksum": "sha256:421149af7091fcf4b60db63483d0f4980d9a2be1e9b5e3124e058e385b8e720f",
+  "checksum": "sha256:057b4251ebee798b4e9ed87b70b75594821365da40a5ffe997524d5d378e68a6",
   "doc": {
    "_id": {
     "$oid": "bf887a7ff8335cf1577b5eb0"
@@ -7361,6 +7361,10 @@
     "$date": "2026-03-04T03:06:07.891Z"
    },
    "method": "SessionDocument.method tëxt ✓ \"quoted\" \\ line\nbreak",
+   "mfa_at": {
+    "$date": "2026-03-04T03:06:07.891Z"
+   },
+   "mfa_method": "SessionDocument.mfa_method tëxt ✓ \"quoted\" \\ line\nbreak",
    "previous_refresh_jti": "SessionDocument.previous_refresh_jti tëxt ✓ \"quoted\" \\ line\nbreak",
    "refresh_jti": "SessionDocument.refresh_jti tëxt ✓ \"quoted\" \\ line\nbreak",
    "revoke_reason": "SessionDocument.revoke_reason tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -7383,7 +7387,7 @@
   "document": "SessionDocument"
  },
  "sessions/minimal": {
-  "checksum": "sha256:dd130b52b5058c72358a7306bca338dd7ad6d458d8e4d3df5a495be1d88f8932",
+  "checksum": "sha256:fbafbf55ca1ac3a9608c41a15c7e11b2f064229fb676fa6bb4ee680653a26edd",
   "doc": {
    "_id": {
     "$oid": "868c1e4469afbd5dc99bfc80"
@@ -7397,6 +7401,8 @@
    },
    "last_refreshed_at": null,
    "method": null,
+   "mfa_at": null,
+   "mfa_method": null,
    "previous_refresh_jti": null,
    "refresh_jti": "SessionDocument.refresh_jti tëxt ✓ \"quoted\" \\ line\nbreak",
    "revoke_reason": null,
@@ -7415,7 +7421,7 @@
   "document": "SessionDocument"
  },
  "sessions/naive": {
-  "checksum": "sha256:0f08910db5447f5ced49950d11d56ead0f09f5fe231b5621a6a5354e9c20e514",
+  "checksum": "sha256:fffe6617377651abb276f345a69467429ed377c1e2b9675a1b57c8fe6045a2b4",
   "doc": {
    "_id": {
     "$oid": "fa2998a27a4be6202b64b377"
@@ -7431,6 +7437,10 @@
     "$date": "2026-03-04T05:06:07.891Z"
    },
    "method": "SessionDocument.method tëxt ✓ \"quoted\" \\ line\nbreak",
+   "mfa_at": {
+    "$date": "2026-03-04T05:06:07.891Z"
+   },
+   "mfa_method": "SessionDocument.mfa_method tëxt ✓ \"quoted\" \\ line\nbreak",
    "previous_refresh_jti": "SessionDocument.previous_refresh_jti tëxt ✓ \"quoted\" \\ line\nbreak",
    "refresh_jti": "SessionDocument.refresh_jti tëxt ✓ \"quoted\" \\ line\nbreak",
    "revoke_reason": "SessionDocument.revoke_reason tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -7453,7 +7463,7 @@
   "document": "SessionDocument"
  },
  "sessions/nulls": {
-  "checksum": "sha256:ad45fc0209f1bd21cd0af86cae32d20ed46dff5a60d4c4e7e4d9bd33c59943f5",
+  "checksum": "sha256:4b43e4a571d68e650fffc167add1ba6a455a2dbd561ee4359f4c47b64af68c03",
   "doc": {
    "_id": {
     "$oid": "30f1d91595be97609be50b70"
@@ -7467,6 +7477,8 @@
    },
    "last_refreshed_at": null,
    "method": null,
+   "mfa_at": null,
+   "mfa_method": null,
    "previous_refresh_jti": null,
    "refresh_jti": "SessionDocument.refresh_jti tëxt ✓ \"quoted\" \\ line\nbreak",
    "revoke_reason": null,

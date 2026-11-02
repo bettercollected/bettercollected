@@ -222,6 +222,19 @@ async def sso_audit_purge(timestamp: int) -> str:
     return f"{deleted} deleted"
 
 
+@app.periodic(cron="29 3 * * *", periodic_id="totp_pending_purge")
+@app.task(
+    name="totp_pending_purge",
+    queue=DEFAULT_QUEUE,
+    queueing_lock="totp_pending_purge",
+)
+async def totp_pending_purge(timestamp: int) -> str:
+    """Daily: delete the authenticator-app factors that were started and never
+    confirmed (docs/totp.md). Counts only."""
+    deleted = await _container().mfa_service().purge_pending()
+    return f"{deleted} deleted"
+
+
 DOMAIN_RECHECK_BATCH = 100
 DOMAIN_RECHECK_MAX_BATCHES = 20
 
@@ -484,7 +497,7 @@ async def sheets_redefer(timestamp: int) -> str:
     """Queue again Google Sheets runs whose job was never queued or whose worker
     died. Counts only."""
     counts = await _container().sheets_run_service().redefer_pending()
-    return f"{counts['queued']} queued, {counts['rescued']} rescued"
+    return f"{counts['queued']} queued, {counts['rescued']} rescued, {counts['failed']} failed"
 
 
 @app.task(

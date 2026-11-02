@@ -68,6 +68,7 @@ class PluginProxy(BasePluginRoute):
         form_id: str,
         provider: FormProvider,
         request: Request,
+        user: User = Depends(get_full_user),
     ):
         # Google Forms: only while GOOGLE_FORMS_IMPORT=on (403 readonly, 410 off)
         refuse_google_forms_processing(provider)
@@ -78,7 +79,11 @@ class PluginProxy(BasePluginRoute):
         return data
 
     async def import_forms(
-        self, provider: FormProvider, request: Request, response: Response
+        self,
+        provider: FormProvider,
+        request: Request,
+        response: Response,
+        user: User = Depends(get_full_user),
     ):
         # Google Forms: only while GOOGLE_FORMS_IMPORT=on (403 readonly, 410 off)
         refuse_google_forms_processing(provider)

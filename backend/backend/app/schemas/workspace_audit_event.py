@@ -16,6 +16,28 @@ RESPONSE_STAFF_EDIT = "response_staff_edit"
 # a staff member opened the previous values of one history entry
 RESPONSE_REVISION_READ = "response_revision_read"
 
+# second-factor (authenticator app) events of an account (docs/totp.md): ids
+# only, never a code, a secret or an address. ``workspace_id`` is NO_WORKSPACE
+# when no workspace is involved.
+TOTP_ENROLLED = "totp_enrolled"
+TOTP_REMOVED = "totp_removed"
+TOTP_RESET = "totp_reset"
+TOTP_RECOVERY_USED = "totp_recovery_used"
+TOTP_RECOVERY_REGENERATED = "totp_recovery_regenerated"
+TOTP_LOCKED = "totp_locked"
+TOTP_POLICY_CHANGED = "totp_policy_changed"
+TOTP_EVENTS = (
+    TOTP_ENROLLED,
+    TOTP_REMOVED,
+    TOTP_RESET,
+    TOTP_RECOVERY_USED,
+    TOTP_RECOVERY_REGENERATED,
+    TOTP_LOCKED,
+    TOTP_POLICY_CHANGED,
+)
+# the reserved workspace id of an event that belongs to no workspace
+NO_WORKSPACE = "000000000000000000000000"
+
 # the events of the single sign-on break-glass log (what its page lists)
 SSO_EVENTS = (SSO_BREAK_GLASS_REQUEST, SSO_BREAK_GLASS_SIGN_IN)
 
@@ -38,6 +60,9 @@ class WorkspaceAuditEventDocument(Record):
     form_id: Optional[str] = None
     response_id: Optional[str] = None
     revision: Optional[int] = None
+    # TOTP_* entries made by someone else (an owner or the platform admin
+    # resetting a member's factor): the account it was done to
+    target_user_id: Optional[str] = None
 
     class Settings:
         name = "workspace_audit_events"

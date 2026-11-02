@@ -186,7 +186,7 @@ def test_the_forms_routes_find_the_credential_the_callback_stored(client, google
     monkeypatch.setattr(OauthCredentialService, "verify_oauth_token", verify_oauth_token)
     monkeypatch.setattr(OauthCredentialService, "verify_token_validity", verify_token_validity)
     assert _round_trip(client, google).status_code == 200
-    token = jwt.encode({"sub": google.email}, settings.AUTH_JWT_SECRET, algorithm="HS256")
+    token = jwt.encode({"sub": google.email, "typ": "access"}, settings.AUTH_JWT_SECRET, algorithm="HS256")
     client.cookies.set("Authorization", token)
 
     response = client.get(settings.API_ROOT_PATH + "/google/forms/oauth/verify")

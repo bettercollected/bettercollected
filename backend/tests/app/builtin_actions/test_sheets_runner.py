@@ -477,7 +477,7 @@ async def test_a_run_whose_job_was_never_queued_is_queued_again(workspace, memor
 
     await age(log, dt.timedelta(minutes=10))
     counts = await container.sheets_run_service().redefer_pending()
-    assert counts == {"queued": 1, "rescued": 0}
+    assert counts == {"queued": 1, "rescued": 0, "failed": 0}
     assert [j["task_name"] for j in memory_jobs.jobs.values()] == ["run_sheets_append"]
 
 
@@ -540,3 +540,56 @@ def test_the_worker_serves_the_integrations_queue_and_warns_when_it_does_not():
     import inspect
 
     assert "INTEGRATIONS_QUEUE}" in inspect.getsource(worker.main)
+
+
+async def test_a_run_whose_last_attempt_died_ends_failed_and_one_with_attempts_left_goes_again(
+    workspace, memory_jobs, google
+):
+    from backend.app.schemas.webhook import LogStatus as Status
+    setup = await setup_run(workspace, memory_jobs)
+    _first, last = await run_one(setup)
+    _second, spare = await run_one(setup)
+    repo = container.action_log_repo()
+    for row, attempts in ((last, sheets.MAX_ATTEMPTS), (spare, 1)):
+        stuck = await repo.get(row.id)
+        stuck.status = Status.IN_PROGRESS
+        stuck.attempts = attempts
+        await repo.save_existing(stuck)
+    memory_jobs.jobs.clear()
+    service = container.sheets_run_service()
+    original = service._clock
+    service._clock = lambda: original() + dt.timedelta(hours=2)  # two hours on
+    try:
+        counts = await service.redefer_pending()
+    finally:
+        service._clock = original
+    assert counts == {"queued": 0, "rescued": 1, "failed": 1}
+    ended = await repo.get(last.id)
+    assert ended.status is Status.FAILED and ended.last_error_code == "worker_lost" and ended.finished_at
+    assert (await repo.get(spare.id)).status is Status.PENDING
+    assert [j["args"]["log_id"] for j in memory_jobs.jobs.values()] == [str(spare.id)]
+    # the failed one is not queued again by the next sweep (the other one is pending)
+    memory_jobs.jobs.clear()
+    service._clock = lambda: original() + dt.timedelta(hours=3)
+    try:
+        again = await service.redefer_pending()
+    finally:
+        service._clock = original
+    assert again["failed"] == 0 and str(last.id) not in {j["args"]["log_id"] for j in memory_jobs.jobs.values()}
+
+
+async def test_a_question_title_is_written_as_it_is_never_as_a_formula(workspace, memory_jobs, google):
+    fields = [{"id": "name", "type": "short_text", "title": "=HYPERLINK(\"http://x\")"}]
+    form = await publish(workspace, fields=fields)
+    action = await attach(workspace, form)
+    setup = SimpleNamespace(workspace=workspace, form=form, action=action)
+    _response, log = await run_one(setup, answers={"name": {"type": "text", "text": "=1+1"}})
+    assert (await run(log)).status == "delivered"
+    header_writes = [c for c in google.calls if c.url.endswith("values:batchUpdate")]
+    assert json.loads(header_writes[0].body)["valueInputOption"] == "RAW"
+    assert google.tabs["Sheet1"]["header"] == ['=HYPERLINK("http://x")']  # no apostrophe: RAW keeps it text
+    (row,) = google.tabs["Sheet1"]["rows"]
+    assert row == ["'=1+1"]  # an answer is still guarded
+    appends = google.appends()
+    assert json.loads(appends[0].body)["values"] == [["'=1+1"]]
+    assert appends[0].query["valueInputOption"] == "USER_ENTERED"

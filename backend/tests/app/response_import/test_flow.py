@@ -457,6 +457,15 @@ async def test_discard_deletes_the_file(client: AsyncClient, workspace):
 # ------------------------------------------------------------------ audit, firing
 
 
+def _leaves(node):
+    """Every string and number the audit row holds, one by one."""
+    if isinstance(node, dict):
+        return [leaf for value in node.values() for leaf in _leaves(value)]
+    if isinstance(node, (list, tuple)):
+        return [leaf for value in node for leaf in _leaves(value)]
+    return [node]
+
+
 async def test_the_audit_row_holds_no_content(client: AsyncClient, workspace):
     form = await simple_form(workspace)
     secret = "Zebediah-Ferdinand-Q"
@@ -464,9 +473,14 @@ async def test_the_audit_row_holds_no_content(client: AsyncClient, workspace):
     body = await import_all(client, workspace, form, data, options={"skipInvalidRows": True})
     assert body["status"] == "completed"
     row = await container.response_import_repo().get_by_id(body["id"])
-    stored = json.dumps(row.model_dump(mode="json"))
-    for needle in (secret, "Bob", "Full name", "Colour", "999", "Red"):
+    dumped = row.model_dump(mode="json")
+    stored = json.dumps(dumped)
+    for needle in (secret, "Bob", "Full name", "Colour", "Red"):
         assert needle not in stored, needle
+    # "999" is short enough to turn up inside an id or a timestamp by chance
+    # (this assertion failed now and then for that reason): look for it as a
+    # value of the row, not as a piece of the text
+    assert "999" not in _leaves(dumped) and 999 not in _leaves(dumped)
     assert row.actor_id == str(testUser.id) and row.file_size > 0
     assert sorted(body["problems"][0]) == ["code", "column", "field", "row"]
     assert "Zebediah" not in json.dumps(body)

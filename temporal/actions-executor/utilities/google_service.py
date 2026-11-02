@@ -128,13 +128,14 @@ def fetch_oauth_token(oauth_credential, action_id, form_id, writeback=None):
             if writeback is not None:
                 writeback(updated_creds)
             else:
-                # no run-scoped route to hand it back on (the backend sent the
-                # secrets sealed, or no run scope): the key-only route that used
-                # to take it was removed in 4.4
+                # nothing to hand it back on (the Temporal entry point never did;
+                # on the Postgres queue the backend sent the secrets sealed, or
+                # there is no run scope): the key-only route that used to take it
+                # was removed in 4.4. The token serves this run and is refreshed
+                # again at the next one.
                 logger.warning(
-                    "the refreshed credential was not stored: no run-scoped "
-                    "write-back (action %s); run an executor and a backend of "
-                    "4.3 or later",
+                    "the refreshed credential is used for this run only, no "
+                    "write-back is available (action %s)",
                     action_id,
                 )
             return updated_creds

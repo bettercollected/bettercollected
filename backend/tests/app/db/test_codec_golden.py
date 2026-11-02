@@ -103,6 +103,9 @@ NO_DOCUMENT_CLASS = {
     "workspace_audit_events",
     # and the revision log of response edits
     "response_revisions",
+    # and the authenticator-app factors and their recovery codes
+    "user_totp_factors",
+    "user_recovery_codes",
 }
 
 # The document classes, all on ``Record`` (every group is served from Postgres

@@ -839,3 +839,42 @@ class ResponseImportFileRow(Base, BaseRow):
         Index(None, "workspace_id", "form_id"),
         Index(None, "form_id"),
     )
+
+
+class UserTotpFactorRow(Base, BaseRow):
+    """The authenticator-app factor of an account (revision 0035): at most one
+    confirmed and one pending per user. The secret is sealed inside ``doc``."""
+
+    __tablename__ = "user_totp_factors"
+    user_id = S.text("user_id")
+    state = S.text("state")
+    __table_args__ = (
+        Index(
+            "uq_user_totp_factors_confirmed",
+            "user_id",
+            unique=True,
+            postgresql_where=text("state = 'confirmed'"),
+        ),
+        Index(
+            "uq_user_totp_factors_pending",
+            "user_id",
+            unique=True,
+            postgresql_where=text("state = 'pending'"),
+        ),
+        # the purge of pending factors
+        Index(None, "created_at"),
+    )
+
+
+class UserRecoveryCodeRow(Base, BaseRow):
+    """One recovery code of a factor (revision 0035): only its hash is stored."""
+
+    __tablename__ = "user_recovery_codes"
+    factor_id = S.text("factor_id")
+    user_id = S.text("user_id")
+    code_hash = S.text("code_hash")
+    __table_args__ = (
+        UniqueConstraint("code_hash"),
+        Index(None, "user_id"),
+        Index(None, "factor_id"),
+    )
