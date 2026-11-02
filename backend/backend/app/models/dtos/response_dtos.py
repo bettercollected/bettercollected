@@ -52,6 +52,9 @@ from backend.app.schemas.standard_form_response import (
 
 class WorkspaceFormSettingsCamelModal(WorkspaceFormSettings, CamelModel):
     is_published: Optional[bool] = None
+    # the form's access mode is not part of the settings a response carries
+    # (form-level access tells the webapp through its own ``access`` block)
+    access_mode: Optional[str] = Field(None, exclude=True)
 
 
 class FormSettingsCamelModel(WorkspaceFormSettingsCamelModal):

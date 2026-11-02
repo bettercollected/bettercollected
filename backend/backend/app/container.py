@@ -79,6 +79,12 @@ from backend.app.repositories.postgres.email_actions import (
     PostgresFormEmailActionRepository,
 )
 from backend.app.repositories.postgres.user_totp import PostgresUserTotpRepository
+from backend.app.repositories.postgres.form_access import (
+    PostgresFormAccessGrantRepository,
+)
+from backend.app.repositories.postgres.member_groups import (
+    PostgresMemberGroupRepository,
+)
 from backend.app.repositories.postgres.workspace_audit import (
     PostgresWorkspaceAuditRepository,
 )
@@ -174,6 +180,7 @@ from backend.app.services.workspace_selection_service import (
 )
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_access.service import FormAccessService
 from backend.app.services.registration.service import RegistrationService
 from backend.app.services.form_drafts.service import FormDraftService
 from backend.app.services.webhooks.service import WebhookService
@@ -355,6 +362,12 @@ class AppContainer(containers.DeclarativeContainer):
     user_totp_repo: PostgresUserTotpRepository = providers.Singleton(
         PostgresUserTotpRepository, pg_sessionmaker
     )
+    form_access_grant_repo: PostgresFormAccessGrantRepository = providers.Singleton(
+        PostgresFormAccessGrantRepository, pg_sessionmaker
+    )
+    member_group_repo: PostgresMemberGroupRepository = providers.Singleton(
+        PostgresMemberGroupRepository, pg_sessionmaker
+    )
     workspace_api_key_repo: PostgresWorkspaceAPIKeyRepository = providers.Singleton(
         PostgresWorkspaceAPIKeyRepository, pg_sessionmaker
     )
@@ -428,12 +441,21 @@ class AppContainer(containers.DeclarativeContainer):
         AIUsageGuard, limiter=rate_limiter
     )
 
+    # Grants, teams and restricted forms (FORM_ACCESS_ENABLED): combined with
+    # the workspace role by authorization_service whenever a form id is given.
+    form_access_service: FormAccessService = providers.Singleton(
+        FormAccessService,
+        workspace_form_repo=workspace_form_repo,
+        grant_repo=form_access_grant_repo,
+    )
+
     # Every workspace-scoped access decision (services call authorize()).
     authorization_service: AuthorizationService = providers.Singleton(
         AuthorizationService,
         workspace_repo=workspace_repo,
         workspace_user_repo=workspace_user_repo,
         workspace_form_repo=workspace_form_repo,
+        form_access=form_access_service,
         # late: the policy needs services that need this one
         sso_policy=providers.Object(lambda: container.sso_policy_service()),
     )

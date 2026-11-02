@@ -106,6 +106,10 @@ NO_DOCUMENT_CLASS = {
     # and the authenticator-app factors and their recovery codes
     "user_totp_factors",
     "user_recovery_codes",
+    # and the member groups and form grants of form-level access
+    "member_groups",
+    "member_group_members",
+    "form_access_grants",
 }
 
 # The document classes, all on ``Record`` (every group is served from Postgres

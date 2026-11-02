@@ -9,7 +9,7 @@ concrete id from the path.
 """
 
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Tuple
 
 MAX_PATH = 200
@@ -20,6 +20,10 @@ class RequestContext:
     scope: dict
     # one audit row per request, however many times it is authorised
     audited: bool = False
+    # decisions that are asked again and again within one request (form-level
+    # access reads a form's grants once per request, services/form_access).
+    # Lives and dies with the request: never shared with another request.
+    memo: dict = field(default_factory=dict)
 
 
 _current: ContextVar[Optional[RequestContext]] = ContextVar(

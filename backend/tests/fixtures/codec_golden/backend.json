@@ -8655,7 +8655,7 @@
   "document": "WorkspaceDomainDocument"
  },
  "workspace_forms/full": {
-  "checksum": "sha256:dc793922348c8d260be1aee29c526ebd7ac5091ec6d9f2f18e75a9f1c8215840",
+  "checksum": "sha256:42b56d08371977d56da5c91f465002add33615aef67d6d246c08f051c046b5ba",
   "doc": {
    "_id": {
     "$oid": "57fc021e64025f5a380473ba"
@@ -8664,6 +8664,7 @@
    "form_id": "WorkspaceFormDocument.form_id tëxt ✓ \"quoted\" \\ line\nbreak",
    "last_update_status": "NOT_FOUND",
    "settings": {
+    "access_mode": "WorkspaceFormDocument.settings.access_mode tëxt ✓ \"quoted\" \\ line\nbreak",
     "ai_insights_enabled": true,
     "ai_insights_enabled_at": "2026-03-04T05:06:07.891234+02:00",
     "ai_insights_enabled_by": "WorkspaceFormDocument.settings.ai_insights_enabled_by tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -8729,7 +8730,7 @@
   "document": "WorkspaceFormDocument"
  },
  "workspace_forms/naive": {
-  "checksum": "sha256:ae84ad7db0fc499eeed174bff4bfe9c3bdc5ebcbc3b980913a2a649bd4c0c3d2",
+  "checksum": "sha256:e3557d08e0bb45c5ebc8f7a208f1b3f53ded06e480b2c8839b45fa5f691a1bba",
   "doc": {
    "_id": {
     "$oid": "9dcc24b50c63c287e6a3cbf8"
@@ -8738,6 +8739,7 @@
    "form_id": "WorkspaceFormDocument.form_id tëxt ✓ \"quoted\" \\ line\nbreak",
    "last_update_status": "NOT_FOUND",
    "settings": {
+    "access_mode": "WorkspaceFormDocument.settings.access_mode tëxt ✓ \"quoted\" \\ line\nbreak",
     "ai_insights_enabled": true,
     "ai_insights_enabled_at": "2026-03-04T05:06:07.891234",
     "ai_insights_enabled_by": "WorkspaceFormDocument.settings.ai_insights_enabled_by tëxt ✓ \"quoted\" \\ line\nbreak",

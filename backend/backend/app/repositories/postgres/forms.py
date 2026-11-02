@@ -1140,9 +1140,28 @@ class PostgresWorkspaceFormRepository(RecordRepository):
     ) -> List[WorkspaceFormDocument]:
         return await self.many(WorkspaceFormRow.workspace_id == _oid(workspace_id))
 
+    @staticmethod
+    def _keeping_access_mode(
+        settings: Optional[WorkspaceFormSettings], stored_mode: Optional[str]
+    ) -> Optional[WorkspaceFormSettings]:
+        """``settings`` as it is to be stored, with the access mode the link
+        already has (none for a new link). The mode (form-level access) is
+        written by its own endpoint only: a create, an import, a replace or
+        any read-modify-write of the settings can neither set nor clear it."""
+        if settings is None and stored_mode is None:
+            return None
+        return (settings or WorkspaceFormSettings()).model_copy(
+            update={"access_mode": stored_mode}
+        )
+
     async def save(
         self, workspace_form: WorkspaceFormDocument
     ) -> WorkspaceFormDocument:
+        if workspace_form.id is None:
+            # a new link starts without an access mode, whatever it was built from
+            workspace_form.settings = self._keeping_access_mode(
+                workspace_form.settings, None
+            )
         return await self.save_document(workspace_form)
 
     async def _locked_link(self, session, *where) -> Optional[WorkspaceFormDocument]:
@@ -1169,7 +1188,9 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             stored = await self._locked_link(session, WorkspaceFormRow.id == _oid(item_id))
             if stored is None:
                 raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in ")
-            stored.settings = item.settings
+            stored.settings = self._keeping_access_mode(
+                item.settings, stored.settings.access_mode if stored.settings else None
+            )
             stored.last_update_status = item.last_update_status
             stored.touch()
             await session.execute(self._upsert_statement(row_values(stored)))
@@ -1247,7 +1268,10 @@ class PostgresWorkspaceFormRepository(RecordRepository):
                 WorkspaceFormRow.user_id == user_id,
             )
             if stored is not None:
-                stored.settings = workspace_form_settings
+                stored.settings = self._keeping_access_mode(
+                    workspace_form_settings,
+                    stored.settings.access_mode if stored.settings else None,
+                )
                 stored.touch()
                 await session.execute(self._upsert_statement(row_values(stored)))
         if stored is not None:
@@ -1256,7 +1280,7 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             workspace_id=workspace_id,
             form_id=form_id,
             user_id=user_id,
-            settings=workspace_form_settings,
+            settings=self._keeping_access_mode(workspace_form_settings, None),
         )
         try:
             return await self.save_document(workspace_form)

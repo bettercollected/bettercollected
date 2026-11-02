@@ -77,6 +77,19 @@ membership read directly: access goes through `AuthorizationService`.
 - **Respondent paths** (a submitter's own submission, receipts, "my submissions", their deletion
   requests) authorise by the submitter's identity, not through permissions. Platform admin
   (`get_logged_admin`) is separate.
+- **Form-level access** (`services/form_access/`, behind `FORM_ACCESS_ENABLED`, off by default):
+  `authorize/has_permission/effective_permissions(..., form_id=...)` also apply the member's
+  grants on that form (`form_access_grants`, to a person or a team of `member_groups`) and the
+  form's access mode (`settings.access_mode`: `restricted` = only Owners, Admins, the creator and
+  grant holders; a Private form without a mode counts as restricted). The decision is the pure
+  `resolve()` in `model.py`; `FormAccessService` only feeds it. A grant gives form-scoped
+  permissions only, capped by its role (never `form.delete`; `response.export` for Reviewer and
+  Viewer grants only with the `export` flag), and never applies to a Privacy officer. A restricted
+  form a member has no way into answers 404 like an unknown id. Off, or for an Owner or Admin, no
+  query is added. Nothing is cached across requests; a form's facts are remembered on the
+  request context only. Pass `form_id` wherever the action is on one form, and never write
+  `access_mode` from caller input (the repository keeps the stored value when it writes the
+  settings back).
 - **Tests:** a new workspace endpoint gets a row in `tests/app/controllers/test_permission_matrix.py`.
 
 ## Adding a route
