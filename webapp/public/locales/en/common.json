@@ -2073,7 +2073,8 @@
       "WELCOME": "Welcome page",
       "PAGE_N": "Page {{n}}",
       "OPEN_AT": "Open preview at {{label}}",
-      "EMPTY": "Empty"
+      "EMPTY": "Empty",
+      "NOT_AVAILABLE": "Page previews are only available for forms made here."
     },
     "BANNER": {
       "ADD": "Add banner image",

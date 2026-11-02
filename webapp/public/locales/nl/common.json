@@ -2073,7 +2073,8 @@
       "WELCOME": "Welkomstpagina",
       "PAGE_N": "Pagina {{n}}",
       "OPEN_AT": "Voorbeeld openen bij {{label}}",
-      "EMPTY": "Leeg"
+      "EMPTY": "Leeg",
+      "NOT_AVAILABLE": "Paginavoorbeelden zijn alleen beschikbaar voor formulieren die hier zijn gemaakt."
     },
     "BANNER": {
       "ADD": "Bannerafbeelding toevoegen",
