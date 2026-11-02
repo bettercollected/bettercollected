@@ -145,11 +145,11 @@ function Body({ onOpenChange, workspace, form }: Omit<FormPromotionDialogProps, 
             confirmShorterRetention: copyPrivacy && retentionAsk && confirmRetention
         };
         const fingerprint = JSON.stringify(body);
-        if (keyed.current?.body !== fingerprint) keyed.current = { body: fingerprint, key: newIdempotencyKey() };
         setApplyFailure(null);
         setApplyProblems(null);
         setNotice(null);
         try {
+            if (keyed.current?.body !== fingerprint) keyed.current = { body: fingerprint, key: newIdempotencyKey() };
             const result = await runApply({ ...body, idempotencyKey: keyed.current.key }).unwrap();
             setApplied(result);
             setStep(3);

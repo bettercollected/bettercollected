@@ -96,7 +96,14 @@ FILE_CHANNEL = "file"
 TARGETS_MAX = 50
 # answers about the forms' versions, not the request: not kept for the key, so
 # the same request resent after a new preview runs again
-_NOT_KEPT = {HTTPStatus.PRECONDITION_FAILED}
+_NOT_KEPT = {HTTPStatus.PRECONDITION_FAILED, HTTPStatus.TOO_MANY_REQUESTS}
+
+
+def _kept_for_key(status_code: int) -> bool:
+    """Whether a refusal is stored as the answer to its Idempotency-Key. A server
+    failure (5xx: the audit log was down, say) is transient and never kept: the
+    same request sent again with the same key can succeed."""
+    return status_code not in _NOT_KEPT and int(status_code) < 500
 
 # What never moves, besides the counted automations: shown with the counts.
 ALSO_NOT_COPIED = (
@@ -445,15 +452,17 @@ class FormPromotionService:
         is not changed as a side effect of copying into it."""
         return plan.restricted and plan.target is not None and not plan.target_restricted
 
-    async def _still_restricted(self, plan: _Plan) -> None:
-        """Awaited by the writer right before it writes the target: a restricted
-        source's structure never lands in a form that was opened after the plan
-        read its mode (no version tag covers the mode). Reads the link again, so
-        what is left is the few statements between this read and the write."""
+    async def _still_restricted(self, plan: _Plan, session) -> None:
+        """Awaited by the writer in the transaction of the target's write, right
+        before it: a restricted source's structure never lands in a form that was
+        opened after the plan read its mode (no version tag covers the mode). The
+        link is read there under a share lock, which ``set_access_mode`` waits for
+        until the write commits, so the mode checked is the mode the write lands
+        in."""
         if not plan.restricted or plan.target is None:
             return
-        link = await self._links.find_workspace_form(
-            plan.target_workspace_id, plan.target.form_id
+        link = await self._links.lock_link_shared(
+            session, plan.target_workspace_id, plan.target.form_id
         )
         if link is None:
             raise _not_found()
@@ -711,11 +720,11 @@ class FormPromotionService:
         except HTTPException as error:
             content = error.content if isinstance(error.content, dict) else {}
             if (
-                error.status_code in _NOT_KEPT
+                not _kept_for_key(error.status_code)
                 or content.get("code") == RETENTION_CONFIRMATION_CODE
             ):
-                # a question for the person, not an outcome: the same key goes
-                # again with their answer
+                # not an outcome of this request (a question for the person, a
+                # stale version, a transient failure): the same key goes again
                 await self._idempotency.abandon(scope, idempotency_key)
             else:
                 await self._idempotency.finish(
@@ -878,7 +887,7 @@ class FormPromotionService:
                 plan.document,
                 [plan.target.etag],
                 user,
-                before_write=lambda: self._still_restricted(plan),
+                in_write=lambda session: self._still_restricted(plan, session),
             )
             form_id = plan.target.form_id
         await self._mark(

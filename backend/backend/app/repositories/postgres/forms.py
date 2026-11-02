@@ -767,6 +767,7 @@ class PostgresFormRepository(RecordRepository):
         form: StandardForm,
         expected_updated_at: datetime,
         accept_replay: bool = False,
+        in_write=None,
     ):
         """``update_form`` as a conditional write: refused with 409 when the
         stored draft is newer than ``expected_updated_at``
@@ -778,7 +779,11 @@ class PostgresFormRepository(RecordRepository):
         ``accept_replay``: a save that would change nothing, because the draft
         already is what it sends (the same save stored a moment ago, its
         answer lost on the way back), is answered with the stored draft
-        instead of 409: nothing is written."""
+        instead of 409: nothing is written.
+
+        ``in_write``: ``async (session)``, awaited in the write's own transaction
+        right before the UPDATE; it raises to refuse the write (nothing is
+        stored), and what it locks stays locked until the write commits."""
         found = await self._stored_draft(form_id)
         if found is None:
             return None
@@ -796,6 +801,8 @@ class PostgresFormRepository(RecordRepository):
             else FormRow.updated_at == found.updated_at
         )
         async with self._session() as session, session.begin():
+            if in_write is not None:
+                await in_write(session)
             result = await session.execute(
                 update(FormRow)
                 .where(FormRow.id == found.id, unchanged)
@@ -1259,8 +1266,12 @@ class PostgresWorkspaceFormRepository(RecordRepository):
         """Store an existing link as the caller read and changed it, except for
         the access mode: that is the one stored now, read under the row lock in
         the same transaction as the write, so a restriction set between the
-        caller's read and this save is never written back over. (While form-level
-        access is off no mode can change, and the plain write is kept.)"""
+        caller's read and this save is never written back over; the copied-from
+        mark is kept the same way. (While form-level access is off no mode can
+        change, and the plain one-statement write is kept: a stale read can then
+        write back over a mark set meanwhile by ``set_promoted_from``, which is
+        advisory: it only orders the copy picker and prompts "changed since the
+        last copy".)"""
         async with self._session() as session, session.begin():
             stored = await self._locked_link(
                 session, WorkspaceFormRow.id == _oid(workspace_form.id)
@@ -1283,6 +1294,27 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             workspace_form.settings, mode
         )
         return await self.save_document(workspace_form)
+
+    async def lock_link_shared(
+        self, session, workspace_id: RecordId, form_id: str
+    ) -> Optional[WorkspaceFormDocument]:
+        """The stored link, read in the caller's transaction (``session``) under a
+        SHARE row lock until that transaction ends: ``set_access_mode`` (which
+        takes the row FOR UPDATE) waits for it, so the mode read here is the mode
+        while the caller's write commits. None when there is no link."""
+        doc = (
+            await session.execute(
+                select(WorkspaceFormRow.doc)
+                .where(
+                    WorkspaceFormRow.workspace_id == _oid(workspace_id),
+                    WorkspaceFormRow.form_id == form_id,
+                )
+                .order_by(WorkspaceFormRow.created_at, WorkspaceFormRow.id)
+                .limit(1)
+                .with_for_update(read=True)
+            )
+        ).scalar_one_or_none()
+        return None if doc is None else decode(WorkspaceFormDocument, doc)
 
     async def _locked_link(self, session, *where) -> Optional[WorkspaceFormDocument]:
         """The stored link, its row locked for the rest of ``session``'s

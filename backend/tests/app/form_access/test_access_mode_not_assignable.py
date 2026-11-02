@@ -261,3 +261,4 @@ async def test_writing_settings_back_keeps_the_stored_mark_and_forges_none(
     assert after.pinned is True
     assert after.promoted_from is not None
     assert after.promoted_from.source_hash == "d4" * 8
+
