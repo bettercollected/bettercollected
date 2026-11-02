@@ -945,7 +945,9 @@
       "ENABLED_HINT": "Turn this off to pause the webhook without deleting it. Submissions made while it is off are not sent later.",
       "ADD": "Add webhook",
       "SAVE": "Save changes",
-      "CANCEL": "Cancel"
+      "CANCEL": "Cancel",
+      "SENDS_EVERY_QUESTION": "This webhook came from a built-in action and sends every question of the form, as before. There is nothing to choose; you can change its address and switch it on or off.",
+      "SENDS_EVERY_QUESTION_UNTIL_PICKED": "This webhook sends every question of the form, new ones included. Tick questions below to send only those instead."
     },
     "LIST": {
       "LABEL": "Webhooks of this form",
@@ -970,7 +972,16 @@
       "SWITCHED_OFF": "{{host}} is off.",
       "TEST_QUEUED": "A test event with sample data is on its way to {{host}}. Its result appears under Deliveries.",
       "DELETED": "The webhook for {{host}} was deleted.",
-      "SAVED": "The webhook for {{host}} was saved."
+      "SAVED": "The webhook for {{host}} was saved.",
+      "FORMAT_LEGACY_LIST": "Legacy format",
+      "FORMAT_SLACK": "Slack message",
+      "FORMAT_DISCORD": "Discord message",
+      "QUESTIONS_ALL": "Every question is sent",
+      "SWITCH": "Switch to signed format",
+      "SWITCH_NAMED": "Switch the webhook for {{host}} to the signed format",
+      "SWITCH_CONFIRM": "Switch to signed format",
+      "CONFIRM_SWITCH": "Switch {{host}} to the signed format? From the next submission it receives one signed JSON object (the event, the form, the response and the answers under their names) instead of the plain list it gets now, with an X-Bettercollected-Signature header. Your receiver must read the new format and verify that signature before you switch, or it will mis-read or reject every delivery. This cannot be undone. Use Rotate secret afterwards to see the signing secret.",
+      "SWITCHED": "{{host}} now receives the signed format."
     },
     "ERROR": {
       "webhooks_off": "Webhooks are turned off on this server. Ask the person who runs it to turn them on.",
@@ -989,7 +1000,11 @@
       "not_found": "This webhook no longer exists. Reload the page.",
       "url_unreadable": "The address of this webhook could not be read. Enter it again.",
       "unknown": "That did not work. Try again.",
-      "invalid_condition": "The condition could not be saved. Check that every question still exists and every condition is complete."
+      "invalid_condition": "The condition could not be saved. Check that every question still exists and every condition is complete.",
+      "host_not_allowed": "A Slack or Discord webhook only goes to that service’s own webhook address.",
+      "format_locked": "Only a legacy format webhook can be switched to the signed format.",
+      "format_has_no_fields": "This webhook sends every question. There is nothing to choose.",
+      "format_not_signed": "A Slack or Discord webhook has no signing secret."
     },
     "DELIVERIES": {
       "TITLE": "Deliveries",

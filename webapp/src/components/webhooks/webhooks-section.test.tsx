@@ -313,7 +313,15 @@ describe('the list', () => {
                 workspaceId: 'ws1',
                 formId: 'f1',
                 webhookId: 'w1',
-                body: { url: 'https://hooks.example.org/in?key=tok-1', fields: [{ source: 'name', key: 'full_name' }, { source: 'age', key: 'age' }], enabled: true, condition: null }
+                body: {
+                    url: 'https://hooks.example.org/in?key=tok-1',
+                    fields: [
+                        { source: 'name', key: 'full_name' },
+                        { source: 'age', key: 'age' }
+                    ],
+                    enabled: true,
+                    condition: null
+                }
             })
         );
         expect(await screen.findByText('The webhook for hooks.example.org was saved.')).toBeInTheDocument();
@@ -371,6 +379,114 @@ describe('the list', () => {
         fireEvent.click(screen.getByTestId('webhook-add'));
         fireEvent.click(screen.getByRole('button', { name: 'Add webhook' }));
         fireEvent.click(screen.getByLabelText('Full name'));
+        expect(await axeViolations(document.body)).toEqual([]);
+        await i18n.changeLanguage('nl');
+        expect(await axeViolations(document.body)).toEqual([]);
+    });
+});
+
+describe('webhooks that came from built-in actions', () => {
+    const legacy = () => hook({ id: 'w2', host: 'old.example.org', format: 'legacy_list', fields: [], allQuestions: false });
+
+    it('marks a legacy format webhook and says it sends every question', () => {
+        hooksState.data = [hook(), legacy()];
+        render(<WebhooksSettings workspaceId="ws1" formId="f1" />, { wrapper });
+        expect(screen.getByTestId('webhook-format-w2')).toHaveTextContent('Legacy format');
+        expect(screen.queryByTestId('webhook-format-w1')).not.toBeInTheDocument();
+        expect(screen.getByTestId('webhook-w2')).toHaveTextContent('Every question is sent');
+        expect(screen.getByTestId('webhook-w1')).toHaveTextContent('1 question sent');
+    });
+
+    it('offers the switch to the signed format on a legacy webhook only, and explains it before it does anything', async () => {
+        hooksState.data = [hook(), legacy()];
+        render(<WebhooksSettings workspaceId="ws1" formId="f1" />, { wrapper });
+        expect(screen.queryByRole('button', { name: 'Switch the webhook for hooks.example.org to the signed format' })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Switch the webhook for old.example.org to the signed format' }));
+        const dialog = screen.getByRole('alertdialog');
+        expect(dialog).toHaveTextContent('Your receiver must read the new format and verify that signature');
+        expect(dialog).toHaveTextContent('This cannot be undone');
+        expect(updateMock).not.toHaveBeenCalled();
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+        expect(updateMock).not.toHaveBeenCalled();
+        updateMock.mockReturnValue(ok({ ...legacy(), format: 'envelope', allQuestions: true }));
+        fireEvent.click(screen.getByRole('button', { name: 'Switch the webhook for old.example.org to the signed format' }));
+        fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Switch to signed format' }));
+        await waitFor(() => expect(updateMock).toHaveBeenCalledWith({ workspaceId: 'ws1', formId: 'f1', webhookId: 'w2', body: { format: 'envelope' } }));
+        expect(await screen.findByRole('status')).toHaveTextContent('old.example.org now receives the signed format.');
+    });
+
+    it('shows a refused switch in words', async () => {
+        hooksState.data = [legacy()];
+        updateMock.mockReturnValue(fail(422, 'format_locked'));
+        render(<WebhooksSettings workspaceId="ws1" formId="f1" />, { wrapper });
+        fireEvent.click(screen.getByRole('button', { name: 'Switch the webhook for old.example.org to the signed format' }));
+        fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Switch to signed format' }));
+        expect(await screen.findByRole('status')).toHaveTextContent('Only a legacy format webhook can be switched to the signed format.');
+    });
+
+    it('marks Slack and Discord messages, which have no secret to rotate and cannot be switched', () => {
+        hooksState.data = [hook({ id: 's1', host: 'hooks.slack.com', format: 'slack', fields: [], hasSecret: false }), hook({ id: 'd1', host: 'discord.com', format: 'discord', fields: [], hasSecret: false })];
+        render(<WebhooksSettings workspaceId="ws1" formId="f1" />, { wrapper });
+        expect(screen.getByTestId('webhook-format-s1')).toHaveTextContent('Slack message');
+        expect(screen.getByTestId('webhook-format-d1')).toHaveTextContent('Discord message');
+        expect(screen.queryByRole('button', { name: /Rotate the secret/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /to the signed format/ })).not.toBeInTheDocument();
+    });
+
+    it('edits the address of such a webhook without asking for questions, and sends none', async () => {
+        hooksState.data = [legacy()];
+        detailState.data = { ...legacy(), url: 'https://old.example.org/in' };
+        updateMock.mockReturnValue(ok(legacy()));
+        render(<WebhooksSettings workspaceId="ws1" formId="f1" />, { wrapper });
+        fireEvent.click(screen.getByRole('button', { name: 'Edit the webhook for old.example.org' }));
+        expect(screen.getByTestId('webhook-sends-every-question')).toHaveTextContent('sends every question');
+        expect(screen.queryByLabelText('Full name')).not.toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText('Address to send to'), { target: { value: 'https://new.example.org/in' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+        await waitFor(() => expect(updateMock).toHaveBeenCalled());
+        const body = updateMock.mock.calls[0][0].body;
+        expect(body.url).toBe('https://new.example.org/in');
+        expect('fields' in body).toBe(false);
+    });
+
+    it('lets a switched webhook keep every question until some are ticked', async () => {
+        const switched = hook({ id: 'w3', host: 'new.example.org', format: 'envelope', fields: [], allQuestions: true });
+        hooksState.data = [switched];
+        detailState.data = { ...switched, url: 'https://new.example.org/in' };
+        updateMock.mockReturnValue(ok(switched));
+        render(<WebhooksSettings workspaceId="ws1" formId="f1" />, { wrapper });
+        expect(screen.getByTestId('webhook-w3')).toHaveTextContent('Every question is sent');
+        fireEvent.click(screen.getByRole('button', { name: 'Edit the webhook for new.example.org' }));
+        expect(screen.getByTestId('webhook-sends-every-question')).toHaveTextContent('new ones included');
+        fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+        await waitFor(() => expect(updateMock).toHaveBeenCalledTimes(1));
+        expect('fields' in updateMock.mock.calls[0][0].body).toBe(false);
+        updateMock.mockClear();
+        fireEvent.click(await screen.findByRole('button', { name: 'Edit the webhook for new.example.org' }));
+        fireEvent.click(screen.getByLabelText('Full name'));
+        fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+        await waitFor(() => expect(updateMock).toHaveBeenCalledTimes(1));
+        expect(updateMock.mock.calls[0][0].body.fields).toEqual([{ source: 'name', key: 'name' }]);
+    });
+
+    it('speaks Dutch, with the same explanation', async () => {
+        await i18n.changeLanguage('nl');
+        hooksState.data = [legacy()];
+        render(<WebhooksSettings workspaceId="ws1" formId="f1" />, { wrapper });
+        expect(screen.getByTestId('webhook-format-w2')).toHaveTextContent('Oud formaat');
+        expect(screen.getByTestId('webhook-w2')).toHaveTextContent('Alle vragen worden verstuurd');
+        fireEvent.click(screen.getByRole('button', { name: 'De webhook voor old.example.org overschakelen naar het ondertekende formaat' }));
+        expect(screen.getByRole('alertdialog')).toHaveTextContent('die handtekening controleren');
+    });
+
+    it('has no accessibility violations (badge, confirmation, editor), in English and Dutch', async () => {
+        hooksState.data = [legacy()];
+        detailState.data = { ...legacy(), url: 'https://old.example.org/in' };
+        render(<WebhooksSettings workspaceId="ws1" formId="f1" />, { wrapper });
+        fireEvent.click(screen.getByRole('button', { name: 'Switch the webhook for old.example.org to the signed format' }));
+        expect(await axeViolations(document.body)).toEqual([]);
+        fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Edit the webhook for old.example.org' }));
         expect(await axeViolations(document.body)).toEqual([]);
         await i18n.changeLanguage('nl');
         expect(await axeViolations(document.body)).toEqual([]);

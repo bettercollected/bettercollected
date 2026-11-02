@@ -21,12 +21,25 @@ export interface WebhookField {
     key: string;
 }
 
+/**
+ * How a webhook's body looks. `envelope` is the signed body every webhook made
+ * here has. The other three belong to built-in actions that moved into webhooks:
+ * `legacy_list` (the plain list of questions and answers, now signed too),
+ * `slack` and `discord` (their own messages). They send every question, and a
+ * person can only move `legacy_list` to `envelope`.
+ */
+export type WebhookFormat = 'envelope' | 'legacy_list' | 'slack' | 'discord';
+
 /** What the list shows: the host, never the address (it can hold a token). */
 export interface Webhook {
     id: string;
     host: string;
     enabled: boolean;
     fields: WebhookField[];
+    /** Missing on a server older than 4.4: the signed envelope. */
+    format?: WebhookFormat;
+    /** An envelope webhook that sends every question the form has. */
+    allQuestions?: boolean;
     condition?: ActionCondition | null;
     hasSecret: boolean;
     secretSetAt?: string | null;
@@ -50,6 +63,8 @@ export interface WebhookInput {
     enabled?: boolean;
     /** null removes the condition; leaving it out keeps it */
     condition?: ActionCondition | null;
+    /** The only change a person can make: from `legacy_list` to the signed `envelope`. */
+    format?: 'envelope';
 }
 
 export interface WebhookVariable {
