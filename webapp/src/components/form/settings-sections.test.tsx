@@ -1,4 +1,4 @@
-// The Settings page in its sections: Access, Availability, Respondent experience,
+// The Settings pages (each one a route; here rendered together): Access, Availability, Respondent experience,
 // the automations and Advanced. Every setting is where the plan puts it, and the
 // conditions each setting had are unchanged (apart from the two the owner changed:
 // "Allow response editing" is shown disabled without verified identity, and the
@@ -11,12 +11,13 @@ import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import '@app/shared/hocs/i18n-provider';
-import { setForm } from '@app/store/forms/slice';
+import { selectForm, setForm } from '@app/store/forms/slice';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
 import { axeViolations } from '@app/test/axe';
 
-import FormSettings from './settings';
+import FormSettingsPage from './settings';
+import { settingsPages } from './settings-pages';
 
 import commonNl from '../../../public/locales/nl/common.json';
 
@@ -42,9 +43,14 @@ vi.mock('@app/components/form/automations/automations-section', () => ({
 const open = (settings: Record<string, unknown> = {}, form: Record<string, unknown> = {}, workspace: Record<string, unknown> = {}) => {
     store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'acme', isPro: true, ...workspace } as any));
     store.dispatch(setForm({ formId: 'f1', builderVersion: 'v2', title: 'Survey', fields: [], isPublished: true, responses: 3, settings: { provider: 'self', requireVerifiedIdentity: true, ...settings }, ...form } as any));
+    // every page this form has, one after the other (each page is a route of its own in the app)
+    const storedForm = selectForm(store.getState());
+    const can = (permission: string) => served.permissions.includes(permission);
     return render(
         <ReduxProvider store={store}>
-            <FormSettings />
+            {settingsPages(storedForm, can as any).map((page) => (
+                <FormSettingsPage key={page} page={page} />
+            ))}
         </ReduxProvider>
     );
 };
@@ -122,7 +128,7 @@ describe('the settings sections', () => {
         expect(toggle).toBeDisabled();
         const hint = screen.getByTestId('editing-needs-identity');
         expect(hint.textContent).toContain('Turn on “Require verified identity” first.');
-        expect(within(hint).getByRole('link', { name: 'Go to Access' })).toHaveAttribute('href', '#access');
+        expect(within(hint).getByRole('link', { name: 'Go to Access' })).toHaveAttribute('href', '/acme/dashboard/forms/f1/settings/access');
     });
 
     it('lets "Allow response editing" be switched while verified identity is on', async () => {
@@ -161,6 +167,8 @@ describe('the settings sections', () => {
         open();
         const advanced = within(section('Advanced'));
         expect(advanced.getByTestId('open-builder-privacy')).toHaveAttribute('href', '/acme/dashboard/forms/f1/edit?tab=form');
+        // its name starts with the words on it (WCAG 2.5.3) and says what it is for
+        expect(advanced.getByTestId('open-builder-privacy')).toHaveAccessibleName('Open in the builder: Purpose, retention and privacy policy');
         expect(advanced.getByRole('heading', { level: 3, name: 'Danger zone' })).toBeInTheDocument();
         fireEvent.click(advanced.getByRole('button', { name: 'Delete form' }));
         expect(openModal).toHaveBeenCalledWith('DELETE_FORM_MODAL', expect.objectContaining({ redirectToDashboard: true }));

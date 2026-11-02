@@ -228,6 +228,55 @@ describe('the side menu', () => {
     });
 });
 
+describe('the Settings pages in the side menu', () => {
+    const SETTINGS = ['Access', 'Availability', 'Respondent experience', 'Automations', 'Advanced'];
+
+    it('opens in place while Settings is the section: five pages, the current one marked, Settings itself not', () => {
+        show({}, { pathname: `${BASE}/settings/availability` });
+        const links = rail().getAllByRole('link');
+        expect(labels(links).slice(-6)).toEqual(['Settings', ...SETTINGS]);
+        expect(rail().getByRole('link', { name: 'Availability' })).toHaveAttribute('aria-current', 'page');
+        expect(rail().getByRole('link', { name: 'Availability' })).toHaveAttribute('href', `${BASE}/settings/availability`);
+        expect(rail().getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current');
+    });
+
+    it('stays closed on the other sections, and Settings leads to Access', () => {
+        show();
+        expect(rail().queryByRole('link', { name: 'Availability' })).toBeNull();
+        expect(rail().getByRole('link', { name: 'Settings' })).toHaveAttribute('href', `${BASE}/settings/access`);
+    });
+
+    it('lists only the pages an imported form has', () => {
+        show({ settings: { provider: 'google' }, builderVersion: undefined }, { pathname: `${BASE}/settings/access`, granted: [WorkspacePermission.FORM_EDIT, WorkspacePermission.RESPONSE_READ] });
+        expect(labels(rail().getAllByRole('link')).slice(-3)).toEqual(['Settings', 'Access', 'Respondent experience']);
+    });
+
+    it('is Dutch in Dutch', async () => {
+        await act(async () => {
+            await i18n.changeLanguage('nl');
+        });
+        show({}, { pathname: `${BASE}/settings/experience` });
+        expect(labels(within(screen.getByRole('navigation', { name: 'Onderdelen van het formulier' })).getAllByRole('link')).slice(-6)).toEqual(['Instellingen', 'Toegang', 'Beschikbaarheid', 'Ervaring van respondenten', 'Automatiseringen', 'Geavanceerd']);
+    });
+
+    it('is in the phone sheet whichever section is open, named with its section', async () => {
+        show({}, { pathname: `${BASE}/settings/automations` });
+        expect(screen.getByRole('button', { name: 'Section: Settings · Automations. Choose another section' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /^Section: / }));
+        const sheet = await screen.findByRole('dialog', { name: 'Go to section' });
+        expect(labels(within(sheet).getAllByRole('link')).slice(-6)).toEqual(['Settings', ...SETTINGS]);
+        expect(within(sheet).getByRole('link', { name: 'Automations' })).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('has no accessibility violations on a Settings page, with the sheet open', async () => {
+        show({}, { pathname: `${BASE}/settings/access` });
+        expect(await axeViolations(document.body, { page: true })).toEqual([]);
+        fireEvent.click(screen.getByRole('button', { name: /^Section: / }));
+        await screen.findByRole('dialog');
+        expect(await axeViolations(document.body)).toEqual([]);
+    });
+});
+
 describe('collapsing the side menu', () => {
     const toggle = () => screen.getByRole('button', { name: /sections$/ });
 
@@ -295,7 +344,7 @@ describe('the section switcher on a phone', () => {
         fireEvent.click(trigger());
         const sheet = await screen.findByRole('dialog', { name: 'Go to section' });
         const links = within(sheet).getAllByRole('link');
-        expect(labels(links)).toEqual(['Pages', 'Responses12', 'Deletion requests0', 'Analytics', 'Share', 'Settings']);
+        expect(labels(links)).toEqual(['Pages', 'Responses12', 'Deletion requests0', 'Analytics', 'Share', 'Settings', 'Access', 'Availability', 'Respondent experience', 'Automations', 'Advanced']);
         expect(within(sheet).getByRole('link', { name: /^Responses/ })).toHaveAttribute('aria-current', 'page');
     });
 

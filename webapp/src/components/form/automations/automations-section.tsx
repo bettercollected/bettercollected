@@ -188,7 +188,7 @@ export default function AutomationsSection() {
 
     return (
         <section id="automations" aria-labelledby="automations-title" className="flex scroll-mt-6 flex-col gap-2">
-            <h2 id="automations-title" className="text-xl font-semibold text-black-900">
+            <h2 id="automations-title" tabIndex={-1} className="text-xl font-semibold text-black-900">
                 {t('STAFF.FORM_SETTINGS.AUTOMATIONS')}
             </h2>
             <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('STAFF.FORM_SETTINGS.AUTOMATIONS_INTRO')}</p>
