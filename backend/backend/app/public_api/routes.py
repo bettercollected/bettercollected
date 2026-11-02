@@ -13,7 +13,7 @@ from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
-from backend.app.public_api.auth import ApiCaller, api_key
+from backend.app.public_api.auth import AUDIT_EXTRA, ApiCaller, api_key
 from backend.app.public_api.errors import error_payload
 from backend.app.models.dtos.deletion_request_dto import CloseDeletionRequestBody
 from backend.app.public_api.models import (
@@ -29,6 +29,8 @@ from backend.app.public_api.models import (
     ReplacePreview,
     ResponseDetail,
     ResponseList,
+    SubmissionCreated,
+    SubmissionUpdated,
     ValidationResult,
 )
 from backend.app.services.api_responses import (
@@ -43,6 +45,15 @@ from backend.app.services.form_spec.service import (
 )
 from backend.app.services.form_spec.writes import parse_if_match
 from backend.app.services.idempotency import StoredResponse, request_hash
+from backend.app.services.submissions_api.mode import SCOPE as SUBMISSIONS_SCOPE
+from backend.app.services.submissions_api.mode import hide_when_off
+from backend.app.services.submissions_api.service import (
+    CreateSubmission,
+    UpdateSubmission,
+    create_submission,
+    parse_body,
+    update_submission,
+)
 
 router = APIRouter()
 # deepest page a list goes to (with 100 per page: a million items)
@@ -51,6 +62,7 @@ MAX_PAGE = 10_000
 FORMS = "Forms"
 OPERATIONS = "Form operations"
 RESPONSES = "Responses"
+SUBMISSIONS = "Submissions"
 
 SPEC_EXAMPLE = {
     "specVersion": "1",
@@ -91,6 +103,15 @@ OPS_EXAMPLE = {
         },
     ],
     "atomic": True,
+}
+
+
+SUBMISSION_EXAMPLE = {
+    "answers": {
+        "name": "Ada Lovelace",
+        "dinner": True,
+    },
+    "consent": True,
 }
 
 
@@ -231,6 +252,11 @@ async def _idempotent(
     try:
         response = await run()
     except HTTPException as error:
+        if error.status_code == HTTPStatus.NOT_FOUND:
+            # depends on state that can change (a form not yet published, a
+            # response not yet made): never kept, so the same key works later
+            await service.abandon(caller.key_id, idempotency_key)
+            raise
         payload = error_payload(error.status_code, error.content)
         await service.finish(
             caller.key_id,
@@ -711,6 +737,103 @@ async def close_deletion_request(
             ),
         }
     )
+
+
+# -- submissions ---------------------------------------------------------------
+
+
+@router.post(
+    "/forms/{form_id}/submissions",
+    tags=[SUBMISSIONS],
+    operation_id="createSubmission",
+    summary="Submit a response to a published form",
+    description="Creates a response the way a respondent's submission does: "
+    "the same checks and the same storage, on the form's **published** "
+    "version. Answers are keyed by question id; a value is the typed answer "
+    "object a response read returns, or a shorthand for the common question "
+    "types. The caller asserts the respondent's consent with "
+    '`"consent": true` when the form has a consent step. Not for forms that '
+    "ask for a verified respondent (422 `respondent_identity_required`), and "
+    "not for questions that take a file, a signature or a payment (422 "
+    "`invalid_answers`, rule `question_not_supported`). A closed or full form "
+    "answers 409 (`form_closed`, `form_not_open`, `form_full`). Each problem "
+    "answer is one entry in `errors`. The response records that this API key "
+    "made it (visible to staff only); no receipt and no email goes to anyone. "
+    "Actions, webhooks and email actions run as for a respondent's "
+    "submission. Needs `submissions:write`; an optional `Idempotency-Key` "
+    "makes a retry safe.",
+    status_code=201,
+    response_model=SubmissionCreated,
+    responses=_errors(401, 403, 404, 409, 413, 422, 429),
+    openapi_extra=_json_body("CreateSubmission", SUBMISSION_EXAMPLE),
+)
+async def create_submission_endpoint(
+    form_id: str,
+    request: Request,
+    idempotency_key: Optional[str] = IDEMPOTENCY_KEY,
+    caller: ApiCaller = Depends(
+        api_key(
+            SUBMISSIONS_SCOPE,
+            "api:create_submission",
+            submissions=True,
+            before=hide_when_off,
+        )
+    ),
+):
+    _object_id(form_id)
+    body = await read_document_bytes(request)
+
+    async def run() -> JSONResponse:
+        parsed = parse_body(CreateSubmission, parse_json_document(body))
+        created = await create_submission(caller.key, form_id, parsed)
+        # one audit row per write: the response's id with the call's (no content)
+        setattr(request.state, AUDIT_EXTRA, f"response={created['responseId']}")
+        return JSONResponse(created, status_code=201)
+
+    return await _idempotent(request, caller, idempotency_key, body, "body", run)
+
+
+@router.patch(
+    "/forms/{form_id}/submissions/{response_id}",
+    tags=[SUBMISSIONS],
+    operation_id="updateSubmission",
+    summary="Change answers of a response this key made",
+    description="Partial: the questions sent replace their stored answers, "
+    "the others stay. Same value shapes and the same checks as a "
+    "respondent's own edit, against the form's latest published version. Only "
+    "a response made through this same API key can be changed (404 for any "
+    "other), and not once the form is closed (409 `form_closed`), not open yet "
+    "(409 `form_not_open`), needs a verified respondent or is private (422 "
+    "`respondent_identity_required`). A `null` is refused (422, rule "
+    "`clear_not_supported`). Needs `submissions:write`.",
+    response_model=SubmissionUpdated,
+    responses=_errors(401, 403, 404, 409, 413, 422, 429),
+    openapi_extra=_json_body("UpdateSubmission", {"answers": {"dinner": False}}),
+)
+async def update_submission_endpoint(
+    form_id: str,
+    response_id: str,
+    request: Request,
+    idempotency_key: Optional[str] = IDEMPOTENCY_KEY,
+    caller: ApiCaller = Depends(
+        api_key(
+            SUBMISSIONS_SCOPE,
+            "api:update_submission",
+            submissions=True,
+            before=hide_when_off,
+        )
+    ),
+):
+    _object_id(form_id)
+    body = await read_document_bytes(request)
+
+    async def run() -> JSONResponse:
+        parsed = parse_body(UpdateSubmission, parse_json_document(body))
+        updated = await update_submission(caller.key, form_id, response_id, parsed)
+        setattr(request.state, AUDIT_EXTRA, f"response={updated['responseId']}")
+        return JSONResponse(updated)
+
+    return await _idempotent(request, caller, idempotency_key, body, "body", run)
 
 
 __all__: List[str] = ["router"]

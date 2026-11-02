@@ -11,6 +11,16 @@ from backend.app.models.dtos.response_dtos import (
 )
 
 
+class SubmissionSourceView(CamelModel):
+    """Staff's view of how an API key made a response: the channel, the key's
+    name (what they know it by, never its id) and whether the caller asserted
+    the respondent's consent."""
+
+    channel: str = "api"
+    key_name: Optional[str] = None
+    consent_asserted: bool = False
+
+
 class SingleSubmissionResponse(CamelModel):
     form: FormDtoCamelModel
     response: StandardFormResponseCamelModel
@@ -21,6 +31,9 @@ class SingleSubmissionResponse(CamelModel):
     # Workspace members only: the updates posted for the respondent, with who
     # posted each (the respondent's own view is ``response.feedback``).
     feedback: Optional[StaffFeedback] = None
+    # Workspace members with response.read only: set when an API key made the
+    # response (never for a respondent's own view).
+    source: Optional[SubmissionSourceView] = None
 
 
 class InternalAnswersPatch(CamelModel):

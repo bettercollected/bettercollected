@@ -17,7 +17,18 @@ export type ReplacePreview = Schemas["ReplacePreview"];
 export type PublishResult = Schemas["PublishResult"];
 export type ResponseList = Schemas["ResponseList"];
 export type ResponseDetail = Schemas["ResponseDetail"];
+export type SubmissionCreated = Schemas["SubmissionCreated"];
+export type SubmissionUpdated = Schemas["SubmissionUpdated"];
 export type ApiErrorBody = Schemas["Error"];
+/**
+ * The answers of a submission, by question id. A value is the typed answer
+ * object a response read returns (`{ type: "text", text: "Ada" }`) or a
+ * shorthand: text, a number, a boolean, an option id or its text, a list for
+ * tags or a multiple selection, an object for a currency, date range or
+ * address, a list of objects for a repeating group. `null` leaves a question
+ * unanswered.
+ */
+export type SubmissionAnswers = Record<string, unknown>;
 /** One edit operation, e.g. `{ op: "add_field", pageId, field }` (docs/api/README.md). */
 export type Operation = { op: string; [key: string]: unknown };
 
@@ -227,6 +238,44 @@ export class BetterCollected {
   ): Promise<ResponseList> {
     return (
       await this.#request("GET", `/forms/${encodeURIComponent(formId)}/responses`, { query: options })
+    ).body;
+  }
+
+  /**
+   * Submit a response to a published form, through the respondent's own
+   * checks (needs the `submissions:write` scope). `consent: true` asserts the
+   * respondent's consent when the form asks for it. Errors come per question
+   * in `errors`, located as `/answers/<questionId>`.
+   */
+  async createSubmission(
+    formId: string,
+    submission: { answers: SubmissionAnswers; consent?: boolean; hiddenFields?: Record<string, string> },
+    options: { idempotencyKey?: string } = {},
+  ): Promise<SubmissionCreated> {
+    return (
+      await this.#request("POST", `/forms/${encodeURIComponent(formId)}/submissions`, {
+        body: submission,
+        headers: { "Idempotency-Key": options.idempotencyKey },
+      })
+    ).body;
+  }
+
+  /**
+   * Change answers of a response this API key made: the questions sent
+   * replace their stored answers, the others stay.
+   */
+  async updateSubmission(
+    formId: string,
+    responseId: string,
+    answers: SubmissionAnswers,
+    options: { idempotencyKey?: string } = {},
+  ): Promise<SubmissionUpdated> {
+    return (
+      await this.#request(
+        "PATCH",
+        `/forms/${encodeURIComponent(formId)}/submissions/${encodeURIComponent(responseId)}`,
+        { body: { answers }, headers: { "Idempotency-Key": options.idempotencyKey } },
+      )
     ).body;
   }
 

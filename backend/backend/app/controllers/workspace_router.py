@@ -12,6 +12,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_permissions_dto import WorkspacePermissionsDto
 from backend.app.services.address_lookup.mode import address_lookup_enabled
 from backend.app.services.field_rules import field_rules_enabled
+from backend.app.services.submissions_api.mode import submissions_api_enabled
 from backend.app.services.new_question_types import (
     address_question_enabled,
     new_question_types_enabled,
@@ -22,6 +23,7 @@ from backend.app.services.option_logic import choice_logic_enabled
 from backend.app.services.option_sources.mode import option_sources_enabled
 from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.services.response_import.mode import csv_import_enabled
+from backend.app.services.form_embed import form_embed_enabled
 from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
@@ -244,6 +246,8 @@ class WorkspaceRouter(Routable):
             option_sources_enabled=option_sources_enabled(),
             save_drafts_enabled=save_drafts_enabled(),
             csv_import_enabled=csv_import_enabled(),
+            submissions_api_enabled=submissions_api_enabled(),
+            form_embed_enabled=form_embed_enabled(),
         )
 
     @get("/{workspace_id}/ai-profile")
