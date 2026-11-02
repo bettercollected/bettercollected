@@ -173,6 +173,12 @@ class Application(StoreBackedSettings):
     # released): those routes are refused with 422 form_revisions_disabled and
     # the dashboard does not show the Versions page.
     FORM_REVISIONS_UI_ENABLED: bool = False
+    # Staff holding audit.read (Owner, Admin, Privacy officer) may read the
+    # workspace's audit log, and a form's (services/audit_log). Off (the
+    # default, until it is released): the two routes are refused with 422
+    # audit_log_off and the dashboard does not show the Activity pages. The
+    # events are written either way.
+    AUDIT_LOG_UI_ENABLED: bool = False
     # Staff holding response.edit may change a response's answers, and every
     # edit (staff or respondent) is kept in a revision log with the previous
     # values sealed (services/response_revisions). Off (the default, until it

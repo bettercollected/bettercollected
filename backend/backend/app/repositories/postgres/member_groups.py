@@ -222,6 +222,22 @@ class PostgresMemberGroupRepository(RecordRepository):
     async def count_in_workspace(self, workspace_id) -> int:
         return await self.count(MemberGroupRow.workspace_id == _id(workspace_id))
 
+    async def names_of(self, workspace_id, group_ids: Iterable) -> Dict[str, str]:
+        """The names of the given teams that belong to this workspace (one
+        query; a deleted team, or one of another workspace, is not in it)."""
+        ids = [_id(g) for g in dict.fromkeys(group_ids) if g]
+        if not ids:
+            return {}
+        async with self._session() as session:
+            rows = await session.execute(
+                select(MemberGroupRow.id, MemberGroupRow.doc["name"].astext)
+                .where(
+                    MemberGroupRow.workspace_id == _id(workspace_id),
+                    MemberGroupRow.id.in_(ids),
+                )
+            )
+        return {str(i): name for i, name in rows.all() if name}
+
     async def member_counts(self, workspace_id) -> Dict[str, int]:
         """The number of manual members of each team of the workspace."""
         async with self._session() as session:

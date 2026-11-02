@@ -1610,3 +1610,21 @@ hosts); an address that fails, a copy recipient who is not a member, a missing a
 **blocked and reported**, never relaxed; a disabled action that cannot move is left alone. Output is counts only. `apply` refuses a form with runs queued for the executor
 (`--wait-queue`), and on Temporal asks for `--temporal-drained`. A response submitted before `migrated_at` still counts as in force for the executor's run
 (`actions_service.entry_in_force`). **A moved entry is off for good** (`marks.entry_moved`): the submit path and the run check ignore its `enabled`, switching it on or adding it again answers 409, a new built-in webhook/chat/mail action is not attached once actions have moved, and add / remove / switch of an action run under the draft's row lock (`FormRepository.mutate_draft`) so they cannot write back a stale form that drops the mark. A submission passes the ids the executor was given from its own snapshot (`marks.executor_sources`) to the webhook and email queueing, which skip a moved action's replacement for it. `--form`, `verify` also scans the moved rows for a source entry that is unmarked while the row is on. Tests: `tests/app/builtin_actions/test_migrate_builtins.py`.
+
+## Audit log, read (`AUDIT_LOG_UI_ENABLED`)
+
+Behind `AUDIT_LOG_UI_ENABLED` (default off, off in dev too until released; `services/audit_log/mode.py`, served as
+`auditLogUiEnabled` by `GET /workspaces/{id}/permissions`): off means 422 `audit_log_off` on both routes, checked before
+any query. **The event writers are never switched.** Docs: `docs/audit-log.md`. Rules to keep:
+
+- Routes in `controllers/audit_log_router.py` (`GET /workspaces/{id}/audit-log`, `GET .../forms/{form_id}/audit-log`),
+  logic in `services/audit_log/reader.py`. Read only, keyset (`(created_at, id)` cursor of `sso/policy.py`), 20 per page, at most 100,
+  filters on the server. Needs `audit.read`; the form route passes `form_id` to `authorize` (another workspace's form is 404).
+- The reply is built field by field from `AuditEntryDto`; never copy a stored `doc`. A new field of
+  `WorkspaceAuditEventDocument` has to be decided in `tests/app/audit_log/test_audit_log_api.py` (shown or withheld).
+  `responseId` only with `response.read` on that form, `sessionId` only for an Owner or an Admin (so a Privacy officer gets
+  neither). Ids become names once per page, inside the workspace (`member_directory.lookup`, 3 s timeout; former members get
+  no name; forms by `titles_in_workspace`; teams by `names_of`). The number of queries must not grow with the entries.
+- `services/audit_log/catalog.py` lists every kind by area; the schema's kinds must each be in exactly one area or in
+  `ACCOUNT_LEVEL` (a test enforces it). The reader never returns a kind that is not listed.
+- Retention is read from `services/audit_log/retention.py`, never a literal in the reader.

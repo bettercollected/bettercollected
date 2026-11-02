@@ -16,7 +16,7 @@ import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-grou
 import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { FormAccessDto, FormAccessMode, FormGrantDto, GrantRole, useDeleteFormGrantMutation, useGetFormAccessQuery, useGetTeamsQuery, usePutFormGrantMutation, useSetFormAccessModeMutation } from '@app/store/workspaces/form-access-api';
+import { FormAccessDto, FormAccessMode, FormGrantDto, GrantRole, useDeleteFormGrantMutation, useGetFormAccessCandidatesQuery, useGetFormAccessImpactQuery, useGetFormAccessQuery, useGetTeamsQuery, usePutFormGrantMutation, useSetFormAccessModeMutation } from '@app/store/workspaces/form-access-api';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { exportFlagApplies, formAccessErrorKey, grantableRoles } from '@app/utils/form-access';
@@ -122,6 +122,7 @@ function AccessCard({ workspaceId, formId, hidden }: { workspaceId: string; form
                     <AlertDialogHeader>
                         <AlertDialogTitle>{pendingMode === 'restricted' ? t('STAFF.FORM_ACCESS.CONFIRM_RESTRICT_TITLE') : t('STAFF.FORM_ACCESS.CONFIRM_OPEN_TITLE')}</AlertDialogTitle>
                         <AlertDialogDescription>{pendingMode === 'restricted' ? t('STAFF.FORM_ACCESS.CONFIRM_RESTRICT_BODY') : t('STAFF.FORM_ACCESS.CONFIRM_OPEN_BODY')}</AlertDialogDescription>
+                        {pendingMode === 'restricted' && <RestrictImpact workspaceId={workspaceId} formId={formId} />}
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('STAFF.FORM_ACCESS.CANCEL')}</AlertDialogCancel>
@@ -137,6 +138,23 @@ function AccessCard({ workspaceId, formId, hidden }: { workspaceId: string; form
                 </AlertDialogContent>
             </AlertDialog>
         </section>
+    );
+}
+
+/**
+ * "N people will lose access": the server's dry run of restricting this form, asked each time the confirmation opens
+ * (it mounts with the dialog). A count only, never names. The status region is there from the start and filled when
+ * the answer arrives, so a screen reader announces the number without moving focus; a failed dry run says nothing,
+ * the change can still be confirmed.
+ */
+function RestrictImpact({ workspaceId, formId }: { workspaceId: string; formId: string }) {
+    const { t } = useTranslation();
+    const { data, isError } = useGetFormAccessImpactQuery({ workspaceId, formId, mode: 'restricted' }, { refetchOnMountOrArgChange: true });
+    const count = !isError && data && typeof data.membersLosingAccess === 'number' ? data.membersLosingAccess : null;
+    return (
+        <p role="status" data-testid="restrict-impact" className="text-sm font-medium text-black-900">
+            {count === null ? '' : t('STAFF.FORM_ACCESS.IMPACT', { count })}
+        </p>
     );
 }
 
@@ -157,7 +175,7 @@ function ModeOption({ id, value, title, description, icon, disabled }: { id: str
     );
 }
 
-type Subject = { key: string; type: 'user' | 'group'; id: string; label: string };
+type Subject = { key: string; type: 'user' | 'group'; id: string; label: string; memberCount?: number };
 
 function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { workspaceId: string; formId: string; access: FormAccessDto; setError: (value: string | null) => void; setNotice: (value: string | null) => void }) {
     const { t, i18n } = useTranslation();
@@ -176,9 +194,16 @@ function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { w
 
     const members = useGetWorkspaceMembersQuery({ workspaceId }, { skip: !canManage || !isAdmin });
     const teams = useGetTeamsQuery(workspaceId, { skip: !canManage || !isAdmin });
+    // Whoever may share the form without listing the members (an Editor who made it) gets the server's own picker: names and ids only.
+    const candidates = useGetFormAccessCandidatesQuery({ workspaceId, formId }, { skip: !canManage || isAdmin });
 
     const taken = useMemo(() => new Set(grants.map((grant: FormGrantDto) => `${grant.subjectType}:${grant.subjectId}`)), [grants]);
     const subjects = useMemo<Subject[]>(() => {
+        if (!isAdmin) {
+            const people: Subject[] = (candidates.data?.members ?? []).map((member) => ({ key: `user:${member.id}`, type: 'user' as const, id: member.id, label: member.name }));
+            const groups: Subject[] = (candidates.data?.teams ?? []).map((team) => ({ key: `group:${team.id}`, type: 'group' as const, id: team.id, label: team.name, memberCount: team.memberCount }));
+            return [...people, ...groups].filter((subject) => !taken.has(subject.key));
+        }
         const people: Subject[] = (members.data ?? [])
             .filter((member) => {
                 const role = memberRole(member);
@@ -186,9 +211,9 @@ function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { w
                 return !member.disabled && !member.accountDeleted && member.id !== auth?.id && role !== WorkspaceRole.OWNER && role !== WorkspaceRole.ADMIN && role !== WorkspaceRole.PRIVACY_OFFICER;
             })
             .map((member) => ({ key: `user:${member.id}`, type: 'user' as const, id: member.id, label: getFullNameFromUser(member) }));
-        const groups: Subject[] = (teams.data ?? []).map((team) => ({ key: `group:${team.id}`, type: 'group' as const, id: team.id, label: team.name }));
+        const groups: Subject[] = (teams.data ?? []).map((team) => ({ key: `group:${team.id}`, type: 'group' as const, id: team.id, label: team.name, memberCount: team.memberCount }));
         return [...people, ...groups].filter((subject) => !taken.has(subject.key));
-    }, [members.data, teams.data, taken, auth?.id]);
+    }, [isAdmin, candidates.data, members.data, teams.data, taken, auth?.id]);
 
     const [subjectKey, setSubjectKey] = useState('');
     const [role, setRole] = useState<GrantRole | ''>('');
@@ -229,6 +254,14 @@ function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { w
         else setNotice(t('STAFF.FORM_ACCESS.SAVED'));
     };
 
+    // "Added by Sanne on 1 Nov 2026"; without a name (no longer a member, or the directory could not say) "Added 1 Nov 2026"
+    const addedLine = (grant: FormGrantDto) => {
+        const date = grant.createdAt ? formatDay(grant.createdAt, i18n.language) : '';
+        const by = grant.grantedBy?.trim();
+        if (by) return date ? t('STAFF.FORM_ACCESS.ADDED_BY', { name: by, date }) : t('STAFF.FORM_ACCESS.ADDED_BY_NO_DATE', { name: by });
+        return date ? t('STAFF.FORM_ACCESS.ADDED', { date }) : '';
+    };
+
     const nameOf = (grant: FormGrantDto) => grant.name || t(grant.subjectType === 'group' ? 'STAFF.FORM_ACCESS.UNKNOWN_TEAM' : 'STAFF.FORM_ACCESS.UNKNOWN_PERSON');
 
     return (
@@ -257,7 +290,9 @@ function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { w
                                         <span className="flex flex-wrap gap-x-2 text-xs text-black-600">
                                             {grant.subjectType === 'group' && <span>{t('STAFF.FORM_ACCESS.TEAM')}</span>}
                                             {grant.disabled && <span className="font-medium text-[#C43D3D]">{t('STAFF.FORM_ACCESS.MEMBER_DISABLED')}</span>}
-                                            {grant.createdAt && <span>{t('STAFF.FORM_ACCESS.ADDED', { date: formatDay(grant.createdAt, i18n.language) })}</span>}
+                                            {grant.subjectType === 'group' && typeof grant.memberCount === 'number' && <span>{t('STAFF.TEAMS.PEOPLE', { count: grant.memberCount })}</span>}
+                                            {grant.subjectType === 'group' && grant.memberCount === 0 && <span className="font-medium text-[#C43D3D]">{t('STAFF.FORM_ACCESS.TEAM_EMPTY')}</span>}
+                                            {addedLine(grant) && <span>{addedLine(grant)}</span>}
                                         </span>
                                     </div>
                                 </div>
@@ -306,9 +341,9 @@ function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { w
             )}
 
             {canManage &&
-                (!isAdmin ? (
-                    <p role="note" className="text-sm text-black-700">
-                        {t('STAFF.FORM_ACCESS.NO_PICKER')}
+                (!isAdmin && candidates.isError ? (
+                    <p role="alert" className="text-sm text-[#C43D3D]">
+                        {t('STAFF.FORM_ACCESS.PICKER_FAILED')}
                     </p>
                 ) : roles.length === 0 ? (
                     <p role="note" className="text-sm text-black-700">
@@ -343,7 +378,7 @@ function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { w
                                                 .filter((item) => item.type === 'group')
                                                 .map((item) => (
                                                     <option key={item.key} value={item.key}>
-                                                        {item.label}
+                                                        {typeof item.memberCount === 'number' ? `${item.label} (${t('STAFF.TEAMS.PEOPLE', { count: item.memberCount })})` : item.label}
                                                     </option>
                                                 ))}
                                         </optgroup>
