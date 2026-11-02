@@ -2135,6 +2135,13 @@ class WorkspaceFormService:
                 workspace_id,
                 form_id=source_ref,
             )
+            if is_template:
+                # A template has no access mode, so a restricted form's
+                # structure would reach every member: only an Owner, an Admin
+                # or the creator may do that. Refused before anything is copied.
+                await self.authorization_service.authorize_template_from_form(
+                    user, workspace_id, form_id
+                )
         source_link = (
             await self.workspace_form_repository.get_workspace_form_in_workspace(
                 workspace_id=workspace_id, query=str(form_id)
