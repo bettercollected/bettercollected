@@ -221,6 +221,7 @@ from backend.app.repositories.postgres.response_revisions import (
     PostgresResponseRevisionRepository,
 )
 from backend.app.services.form_spec.writes import FormSpecWriter
+from backend.app.services.form_promotion.service import FormPromotionService
 from backend.app.services.idempotency import IdempotencyService
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 from backend.config import settings
@@ -1387,6 +1388,22 @@ class AppContainer(containers.DeclarativeContainer):
         authorization_service=authorization_service,
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
+        idempotency_service=idempotency_service,
+        rate_limiter=rate_limiter,
+    )
+    # Copy a form to another workspace as a draft (FORM_PROMOTION_ENABLED).
+    form_promotion_service: FormPromotionService = providers.Singleton(
+        FormPromotionService,
+        authorization_service=authorization_service,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+        form_spec_service=form_spec_service,
+        form_spec_writer=form_spec_writer,
+        option_list_repo=option_list_repo,
+        webhook_repo=form_webhook_repo,
+        email_action_repo=form_email_action_repo,
+        registration_repo=form_registration_repo,
+        audit_repo=workspace_audit_repo,
         idempotency_service=idempotency_service,
         rate_limiter=rate_limiter,
     )

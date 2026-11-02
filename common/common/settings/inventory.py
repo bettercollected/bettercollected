@@ -809,6 +809,11 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
     _bool("API_KEY_ROLES_ENABLED", "security", (BACKEND,), False,
           "API key roles and form scope: on, or off (no new limits can be set; saved ones still "
           "apply). Environment only until released.", tier=T5),
+    # Held in the environment while the feature is built up, like FORM_ACCESS_ENABLED.
+    _bool("FORM_PROMOTION_ENABLED", "features", (BACKEND,), False,
+          "Copy a form's structure to another workspace as a draft (promotion between "
+          "environments): on, or off (the routes answer 422). Environment only until "
+          "released.", tier=T5),
     _url("AUTH_BASE_URL", "services", (BACKEND,),
          "Address of the auth service. Code default: http://localhost:8001/api/v1.", tier=T5),
     _url("AUTH_SERVER_URL", "services", (GOOGLE,), "Address of the auth service.",

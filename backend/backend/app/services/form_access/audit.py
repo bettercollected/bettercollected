@@ -31,6 +31,7 @@ from backend.app.schemas.workspace_audit_event import (
     AUTOMATION_PARTS,
     MEMBER_FORM_EVENTS,
     SETTINGS_EVENTS,
+    PROMOTION_EVENTS,
     WorkspaceAuditEventDocument,
 )
 
@@ -58,6 +59,7 @@ async def record(repo, event: str, workspace_id, user, **ids) -> bool:
         ACCESS_EVENTS
         + API_KEY_EVENTS
         + MEMBER_FORM_EVENTS
+        + PROMOTION_EVENTS
         + SETTINGS_EVENTS
         + AUTOMATION_EVENTS
     ), event

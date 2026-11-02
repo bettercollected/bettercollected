@@ -41,6 +41,12 @@ email domains, directory sync tokens and group roles, the AI consent, the custom
 domain) and `integrations` (email actions and case-system services and
 registrations: created, changed, switched on or off, deleted).
 
+Under `forms` too: `form_copied_out` (a form's structure was copied to
+another workspace or downloaded as a file) and `form_promoted` (a form was copied
+here from another workspace), behind `FORM_PROMOTION_ENABLED`; each holds the
+form's id and, in the workspace's own records, the other side's ids and a count
+of what was adjusted, never a title (docs/environments.md).
+
 Settings and integration entries carry ids and enum values only: the kind of
 connection or directory (`connectionType`, `directoryType`), an on/off setting's
 new value (`required`, `enabled`), the AI provider's id (`provider`), the roles

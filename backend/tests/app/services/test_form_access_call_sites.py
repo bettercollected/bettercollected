@@ -160,6 +160,34 @@ ALLOWED: Dict[Tuple[str, str, str], str] = {
         "form is decided in authorize_source (a form closed to the caller does "
         "not exist for them)"
     ),
+    (
+        "app/services/form_promotion/service.py",
+        "FormPromotionService._target_permission",
+        "effective_permissions",
+    ): (
+        "whether the caller is a member of the TARGET workspace at all (nothing held: "
+        "the 404 of a workspace that does not exist); the form here is the "
+        "source's, decided in _source_link, and the target form (when there is one) "
+        "is decided by the authorize below with its own form id"
+    ),
+    (
+        "app/services/form_promotion/service.py",
+        "FormPromotionService._target_permission",
+        "authorize",
+    ): (
+        "form.create in the target workspace (no target form exists yet: workspace "
+        "level, the source's form id belongs to the other workspace); an existing "
+        "target form is decided in the same function with its own form id"
+    ),
+    (
+        "app/services/form_promotion/service.py",
+        "FormPromotionService.targets",
+        "effective_permissions",
+    ): (
+        "membership of the target workspace (nothing held: 404); the forms listed "
+        "are narrowed to those the caller may edit by visible_form_ids, which is "
+        "decided per form, and the source form is decided in _source_link"
+    ),
     ("app/services/ai/api_keys.py", "APIKeyService.create_key", "authorize"): (
         "security.manage is Owner/Admin-only and never granted per form; "
         "submission_form_ids are checked to be forms of this workspace "

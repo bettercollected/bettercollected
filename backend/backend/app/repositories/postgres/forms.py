@@ -1315,6 +1315,27 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             await session.execute(self._upsert_statement(row_values(stored)))
         return True
 
+    async def set_promoted_from(
+        self, workspace_id: RecordId, form_id: str, promoted_from
+    ) -> bool:
+        """Set where a form was copied from (``FORM_PROMOTION_ENABLED``) on its
+        link, under its row lock, and nothing else of the settings (a settings
+        change made meanwhile is kept). False when the form has no link here."""
+        async with self._session() as session, session.begin():
+            stored = await self._locked_link(
+                session,
+                WorkspaceFormRow.workspace_id == _oid(workspace_id),
+                WorkspaceFormRow.form_id == form_id,
+            )
+            if stored is None:
+                return False
+            stored.settings = (stored.settings or WorkspaceFormSettings()).model_copy(
+                update={"promoted_from": promoted_from}
+            )
+            stored.touch()
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return True
+
     async def set_review_mark_by_import(
         self, workspace_id: RecordId, import_id: str, needs_review: bool
     ) -> int:
