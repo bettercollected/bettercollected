@@ -109,6 +109,10 @@ class _OverBudget(Exception):
     """The job ran past ``limits.JOB_MAX_SECONDS``."""
 
 
+class _Expired(Exception):
+    """The upload's hour is over: the file is held no longer."""
+
+
 class _Problems:
     """The problems of a run: exact totals per code, the first ``PROBLEMS_LISTED``
     kept as they come (a file of nothing but problems never fills memory)."""
@@ -725,7 +729,9 @@ class ResponseImportService:
             row.mapping = checked_mapping
             row.options = {"skipInvalidRows": bool(options.get("skipInvalidRows"))}
             row.form_version = getattr(published, "version", None)
-            row.confirmed_at = now if mode == ImportMode.IMPORT else row.confirmed_at
+            if mode == ImportMode.IMPORT:
+                row.confirmed_at = now
+                row.confirmed_by = str(user.id)
             row.rows_valid = row.rows_invalid = row.rows_imported = row.rows_skipped = None
             row.problems, row.problem_counts, row.problems_truncated = [], {}, False
             row.progress = 0
@@ -834,6 +840,9 @@ class ResponseImportService:
         except _Superseded:
             found = await self._imports.get_by_id(import_id)
             return found.status.value if found else "missing"
+        except _Expired:
+            logger.warning("response import {} ran past its file's hour", import_id)
+            outcome = await self._fail(claimed, "expired", rollback=True)
         except _OverBudget:
             logger.warning("response import {} ran past its time budget", import_id)
             outcome = await self._fail(claimed, "time_budget", rollback=True)
@@ -926,8 +935,12 @@ class ResponseImportService:
             await self._finish_file(document.id)
         return updated.status
 
-    def _check_budget(self, started: dt.datetime) -> None:
-        if self._clock() - started > dt.timedelta(seconds=limits.JOB_MAX_SECONDS):
+    def _check_budget(self, started: dt.datetime, expires_at: Optional[dt.datetime] = None) -> None:
+        now = self._clock()
+        # the file's hour is absolute: a job running past it stops, whatever its state
+        if expires_at is not None and now >= expires_at:
+            raise _Expired()
+        if now - started > dt.timedelta(seconds=limits.JOB_MAX_SECONDS):
             raise _OverBudget()
 
     async def _fail(self, document: ResponseImportDocument, code: str, rollback: bool = False, **fields) -> ImportStatus:
@@ -957,7 +970,10 @@ class ResponseImportService:
             await self._undo(document)
         if not self._enabled():
             return await self._end(document, ImportStatus.CANCELLED, "switched_off")
-        actor = User(id=document.actor_id, sub=document.actor_id)
+        # an import runs on its confirmer's permission (who pressed Import, not
+        # who uploaded the file); a dry run on the uploader's
+        who = (document.confirmed_by if document.mode == ImportMode.IMPORT else None) or document.actor_id
+        actor = User(id=who, sub=who)
         # who asked may no longer be allowed (a role removed since)
         if not await self._authorization.has_permission(actor, Permission.RESPONSE_IMPORT, workspace_id):
             return await self._end(document, ImportStatus.CANCELLED, "permission_removed")
@@ -1007,7 +1023,7 @@ class ResponseImportService:
                 else:
                     invalid_rows += 1
                     log.add(outcome.problems)
-            self._check_budget(started)
+            self._check_budget(started, document.expires_at)
             if self._clock() - last_beat >= limits.HEARTBEAT_EVERY:
                 last_beat = self._clock()
                 await self._beat(import_id, attempt, start + len(batch))
@@ -1071,7 +1087,7 @@ class ResponseImportService:
             for start in range(0, len(parsed.rows), limits.BATCH_SIZE):
                 batch = parsed.rows[start : start + limits.BATCH_SIZE]
                 outcomes = await run_in_threadpool(process_batch, batch, plan, now, parsed.ragged)
-                self._check_budget(started)
+                self._check_budget(started, document.expires_at)
                 await self._beat(import_id, attempt, start)
                 for outcome in outcomes:
                     if not outcome.ok:
@@ -1153,7 +1169,7 @@ class ResponseImportService:
             internal_answers_meta=(
                 {
                     key: {
-                        "updated_by": str(document.actor_id),
+                        "updated_by": str(document.confirmed_by or document.actor_id),
                         "updated_by_email": None,
                         "updated_at": now,
                     }
@@ -1192,6 +1208,12 @@ class ResponseImportService:
         queued = failed = 0
         now = self._clock()
         for row in await self._imports.list_by_status([ImportStatus.QUEUED, ImportStatus.CHECKING, ImportStatus.RUNNING]):
+            # the file's hour is absolute: a busy import past it is failed, its rows
+            # undone and its file deleted
+            if row.expires_at is not None and row.expires_at <= now:
+                if await self._expire_job(row, "expired"):
+                    failed += 1
+                continue
             age = now - (row.updated_at or row.created_at or now)
             claimed = row.started_at is not None
             beat = row.heartbeat_at or row.started_at
@@ -1224,7 +1246,7 @@ class ResponseImportService:
         updated = await self._imports.update_locked(row.id, change)
         if updated is None:
             return False
-        if row.mode == ImportMode.IMPORT and row.status != ImportStatus.QUEUED:
+        if row.mode == ImportMode.IMPORT and (row.status != ImportStatus.QUEUED or row.attempts > 0):
             await self._undo(row)
         await self._finish_file(row.id)
         return True

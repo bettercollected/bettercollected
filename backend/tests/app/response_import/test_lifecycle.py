@@ -258,7 +258,8 @@ async def test_a_job_nobody_took_is_failed_after_its_maximum_age(client: AsyncCl
     monkeypatch.setattr(service(), "_clock", lambda: later)
     assert (await service().redefer_pending())["failed"] == 1
     row = await container.response_import_repo().get_by_id(first["id"])
-    assert row.error_code == "queue_timeout"
+    # the queue's maximum age is the file's hour: the hour ends it first
+    assert row.error_code == "expired"
     assert await container.response_import_repo().count_files(first["id"]) == 0
 
 

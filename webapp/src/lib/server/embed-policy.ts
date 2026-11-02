@@ -38,6 +38,19 @@ const inFlight = new Map<string, Promise<EmbedPolicy>>();
 // workspace nobody asked about yet must not open its forms.
 let switchSeenOn = false;
 
+const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on']);
+
+/**
+ * What the operator told this webapp about the server's switch (its own runtime environment variable
+ * `FORM_EMBED_ENABLED`, the same name and values as the backend's, read on every request). It decides only
+ * the case where nothing is known yet (a fresh webapp whose first ask failed): on means strict, unset or off
+ * means no header, as before the feature, so a webapp rolled out before its backend, or with the switch off,
+ * changes nothing. Whenever the backend answers, its answer is the truth, per workspace.
+ */
+export function embedSwitchHint(): boolean {
+    return TRUE_VALUES.has((process.env.FORM_EMBED_ENABLED ?? '').trim().toLowerCase());
+}
+
 const OFF: EmbedPolicy = { enabled: false, origins: [] };
 /** Nobody may frame it but this site and the dashboard. */
 const STRICT: EmbedPolicy = { enabled: true, origins: [] };
@@ -63,11 +76,12 @@ function remember(key: string, entry: Entry) {
  *
  * - The backend says what the switch is: `enabled: false` means no header, as before the feature.
  * - A 404 or 405 means this backend has no such route yet (the webapp was rolled out first): the same as off.
- * - A failure (5xx, a timeout, no connection) never changes what was last known: the last good answer is used
- *   (up to 10 minutes), and that is also the fail-closed case, because it names the sites of a workspace
- *   that had the switch on. With no last answer, the switch is taken as off unless the backend has ever said
- *   it is on (then the strict policy), so a rollout order or an outage of the backend alone changes nothing
- *   for embeds that work today.
+ * - A failure (5xx, 429, a timeout, no connection) never changes what was last known: the last good answer is
+ *   used (up to 10 minutes), and that is also the fail-closed case, because it names the sites of a workspace
+ *   that had the switch on. With no last answer the strict policy is used if the backend has ever said the
+ *   switch is on in this process or the operator says so in this webapp's own environment (`embedSwitchHint`,
+ *   which covers a cold start with the backend down); otherwise no header, so a rollout order or an outage
+ *   of the backend alone changes nothing for embeds that work today.
  */
 export async function fetchEmbedPolicy(query: PolicyQuery, now: number = Date.now(), fetcher: typeof fetch = fetch): Promise<EmbedPolicy> {
     const key = new URLSearchParams(query as Record<string, string>).toString();
@@ -94,7 +108,7 @@ function staleOrDefault(entry: Entry | undefined, now: number): EmbedPolicy {
         if (!entry.good.enabled) return OFF;
         return now - entry.goodAt < STALE_MS ? entry.good : STRICT;
     }
-    return switchSeenOn ? STRICT : OFF;
+    return switchSeenOn || embedSwitchHint() ? STRICT : OFF;
 }
 
 async function ask(key: string, previous: Entry | undefined, now: number, fetcher: typeof fetch): Promise<EmbedPolicy> {

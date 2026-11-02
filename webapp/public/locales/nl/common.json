@@ -1964,7 +1964,10 @@
         "too_many_origins": "U kunt maximaal {{max}} sites toestaan.",
         "forbidden": "U mag dit niet wijzigen.",
         "generic": "Opslaan is niet gelukt. Probeer het opnieuw."
-      }
+      },
+      "IFRAME_LABEL": "Of zonder script: een gewoon frame",
+      "IFRAME_COPY": "Framecode kopiëren",
+      "IFRAME_HINT": "Er draait geen script van ons op uw pagina. Het frame houdt de hoogte die u instelt (pas die aan uw formulier aan), past zich niet zelf aan en geeft uw pagina niets door. Aanmelden opent nog steeds in een nieuw tabblad."
     }
   },
   "ANALYTICS": {

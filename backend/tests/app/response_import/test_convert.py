@@ -160,14 +160,10 @@ def test_several_choices_split_on_semicolons_but_a_label_may_hold_one():
     assert problem("multiple_choice", "Red; Nope", **options) == "unknown_option"
 
 
-def test_signature_typed_only():
-    answer = slot("signature", "A. Lovelace")
-    assert answer["signature"] == {"method": "typed", "name": "A. Lovelace", "signed_at": NOW}
-    assert problem("signature", table_marker()) == "drawn_signature"
-
-
-def table_marker():
-    return "[drawn signature]"
+def test_a_signature_is_never_read_from_a_cell():
+    # evidence of someone signing at a moment cannot be stamped from text
+    assert problem("signature", "A. Lovelace") == "type_unsupported"
+    assert problem("signature", "[drawn signature]") == "type_unsupported"
 
 
 def test_unsupported_types():

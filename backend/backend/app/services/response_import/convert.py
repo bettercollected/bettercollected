@@ -20,7 +20,6 @@ from common.countries import DEFAULT_COUNTRY, is_country_code
 from backend.app.services.response_export import table
 from backend.app.services.response_import import limits
 
-DRAWN_SIGNATURE_MARKER = "[drawn signature]"
 _MAX_PIECES = 200
 _NUMBER = re.compile(r"-?[0-9]{1,30}(?:[.,][0-9]{1,30})?")
 _DATE_ISO = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})")
@@ -299,7 +298,7 @@ def convert_cell(
     field_: Dict[str, Any], raw: str, now_iso: str, decimal_comma: bool = False
 ) -> Optional[Dict[str, Any]]:
     """The answer a cell holds for ``field_`` (the question's definition), or
-    None for an empty cell. ``now_iso``: the time a typed signature is stamped.
+    None for an empty cell. ``now_iso`` is the import's time (no question type uses it now: a signature is not importable).
     Raises ``CellProblem``."""
     text = clean(raw)
     if not text:
@@ -337,10 +336,6 @@ def convert_cell(
         raise CellProblem("invalid_yes_no")
     if kind in ("multiple_choice", "dropdown"):
         return _choice(field_, text)
-    if kind == "signature":
-        if text == DRAWN_SIGNATURE_MARKER:
-            raise CellProblem("drawn_signature")
-        return _answer(field_, "signature", signature={"method": "typed", "name": text, "signed_at": now_iso})
     raise CellProblem("type_unsupported")
 
 

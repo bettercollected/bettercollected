@@ -19,12 +19,12 @@ columns are recognised and its cells are read back exactly as the export wrote t
    columns and a repeating group's `Job 2 – Employer`), then ignoring case and spacing, then by
    question id. The responder, the response id, calculated questions and a repeating group
    exported as its own table are left out on purpose (a note says why); file uploads, drawn
-   signatures, matrices and tables cannot be imported. Questions are those of the *published*
+   signatures, matrices and tables cannot be imported (a signature question is left out with the note `signature_unsupported`). Questions are those of the *published*
    version of the form.
 3. **Check** (a dry run). Every row is read and checked with the respondent rules; nothing is
    stored. The result lists up to 200 problems as row, column and a code (never a value) and the
    exact totals per code.
-4. **Import.** The importer confirms they may store the data (`confirmedLawfulBasis`), the job
+4. **Import.** The importer confirms they may store the data (`confirmedLawfulBasis`; the confirmer's id is kept on the import as `confirmed_by`, and the job asks for the confirmer's permission, not the uploader's), the job
    checks every row again and stores them. All or nothing: one failing row stores nothing, unless
    the importer chose "skip invalid rows"; a failure half way (a database error, the form's response
    limit, a worker that died) deletes what was stored.
@@ -44,7 +44,7 @@ columns are recognised and its cells are read back exactly as the export wrote t
 | yes/no | `Yes` / `No` (also `true`/`false`, `ja`/`nee`) |
 | choice | the option's label (case and spacing ignored), `Item N` for an option with no label, or its id; several joined with `;` (a label may contain `;`); a text that is no option is the "other" answer when the question allows it |
 | address | the export's one line, `street number addition, postcode city` and the country code unless `NL`, read back best effort |
-| signature | the typed name; `[drawn signature]` cannot be imported |
+| signature | not importable (`signature_unsupported`): a signature is evidence of someone signing at a moment, which an import cannot stamp from a cell of text; the column is left out with a note |
 | repeating group (columns layout) | one column per item and question |
 | hidden field | the text, for declared names |
 | staff-only question | as its type, imported as the form's internal answers |
@@ -112,7 +112,7 @@ row (a file without a heading row would otherwise put a person's data there in c
 deleted when the job ends in any outcome, when the importer discards it, with the form or the
 workspace, and, when nothing used it, an hour after it was uploaded: the hour is set at the upload
 and a check or a run never extends it (the hourly `response_import_sweep`, which runs whether or
-not the switch is on, deletes what is left). The job's only argument is the import id.
+not the switch is on, deletes what is left; the hour is absolute: a job still busy past it is failed by the 5-minute redefer task, its rows undone and its file deleted, and a running job stops at it). The job's only argument is the import id.
 
 One `response_imports` row per import is the audit entry and the job state: who (`deleted-user`
 after an account is deleted), the form, the counts, the status and outcome code, the mapping as
