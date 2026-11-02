@@ -197,8 +197,17 @@ API, the SDK and the command line are not part of the setting.
   `form.create` in the target workspace, or `form.edit` on the target form. A workspace
   the caller is not a member of answers as one that does not exist. A **restricted**
   form can be copied only by an Owner, an Admin or its creator (`403`
-  `promotion_from_restricted_form`), and the copy is **restricted** from the moment it
-  exists; no grant comes along.
+  `promotion_from_restricted_form`). A new form is **restricted** from the moment it
+  exists; no grant comes along. An existing target keeps its own mode (copying into a
+  form never changes who may open it), so a restricted form is copied onto an existing
+  form only when that form is restricted too: otherwise the preview is `valid: false`
+  and apply answers `409 target_not_restricted` ("Restrict the target form first").
+  `copyIsRestricted` says what the target will be.
+- **Counts and origin are for editors.** `notCarried` is `null` for someone who may
+  only read the source form, and `promotedFrom` is left out of a form's settings for
+  staff who may not edit it.
+- **Rate limited.** Preview and the picker share a per-person limit (counted apart
+  from apply, which has its own).
 - **Stale guards.** If either form changed since the preview, apply answers `412`.
   An existing target that was copied into before and changed since needs
   `overwrite: true` (`409 target_changed` otherwise). A retry with the same

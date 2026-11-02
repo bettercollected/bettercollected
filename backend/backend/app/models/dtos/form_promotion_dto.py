@@ -59,5 +59,6 @@ class PromotionApplied(CamelModel):
     workspace_id: str
     created: bool
     etag: Optional[str] = None
-    not_carried: Dict[str, Any] = Field(default_factory=dict)
+    # counts, for those who may edit the source form (null for a reader)
+    not_carried: Optional[Dict[str, int]] = None
     adjusted: Dict[str, int] = Field(default_factory=dict)

@@ -80,10 +80,15 @@ from common.settings.loader import live
 NOT_PROMOTABLE_CODE = "form_not_promotable"
 SAME_FORM_CODE = "same_form"
 TARGET_CHANGED_CODE = "target_changed"
+TARGET_NOT_RESTRICTED_CODE = "target_not_restricted"
+TARGET_NOT_RESTRICTED_MESSAGE = "Restrict the target form first"
 SESSION_ONLY_CODE = "promotion_needs_session"
 RETENTION_CONFIRMATION_CODE = "retention_confirmation_required"
 IDEMPOTENCY_KEY_REQUIRED_CODE = "idempotency_key_required"
 RATE_LIMIT_SCOPE = "form_promotion"
+# preview and the picker run the normaliser, the checks and the diff on every call:
+# the same per-person limit as apply, counted apart so a review never starves a copy
+READ_RATE_LIMIT_SCOPE = "form_promotion_read"
 RATE_LIMITED_CODE = "rate_limited"
 # the most forms the target picker lists
 TARGETS_MAX = 50
@@ -178,8 +183,13 @@ class _Plan:
     target_workspace_id: RecordId
     document: Dict[str, Any]
     report: Report
-    not_carried: Dict[str, int]
+    # counts of what does not move, for those who may edit the source form (None
+    # for a reader: how many automations a form has is for its editors)
+    not_carried: Optional[Dict[str, int]]
+    # the source form is restricted: its copy must not be open to more people
     restricted: bool
+    # the target form (when there is one) is restricted
+    target_restricted: bool
     changed_since_last: bool
 
 
@@ -408,16 +418,30 @@ class FormPromotionService:
             )
         )
         restricted = WorkspaceFormService._source_is_restricted(source_link)
+        target_restricted = target is not None and (
+            WorkspaceFormService._source_is_restricted(target.link)
+        )
+        can_edit_source = await self._authorization.has_permission(
+            user, Permission.FORM_EDIT, source_workspace_id, form_id=str(source_form_id)
+        )
         return _Plan(
             source=source,
             target=target,
             target_workspace_id=target_workspace_id,
             document=document,
             report=report,
-            not_carried=await self._not_carried(source),
+            not_carried=await self._not_carried(source) if can_edit_source else None,
             restricted=restricted,
+            target_restricted=target_restricted,
             changed_since_last=self._changed_since_last(target),
         )
+
+    @staticmethod
+    def _open_target_for_restricted(plan: _Plan) -> bool:
+        """A restricted form's structure would land in an existing form that is
+        open to more people. Never done silently: who may open an existing form
+        is not changed as a side effect of copying into it."""
+        return plan.restricted and plan.target is not None and not plan.target_restricted
 
     @staticmethod
     def _changed_since_last(target: Optional[_Side]) -> bool:
@@ -445,9 +469,19 @@ class FormPromotionService:
                 diff = await run_in_threadpool(
                     compare_specs, target.spec, result["form"]
                 )
+            valid, errors = result["valid"], list(result["errors"])
+            if self._open_target_for_restricted(plan):
+                valid = False
+                errors.append(
+                    {
+                        "path": "/targetFormId",
+                        "code": TARGET_NOT_RESTRICTED_CODE,
+                        "message": TARGET_NOT_RESTRICTED_MESSAGE,
+                    }
+                )
             return {
-                "valid": result["valid"],
-                "errors": result["errors"],
+                "valid": valid,
+                "errors": errors,
                 "warnings": result["warnings"],
                 "compliance": None,
                 "diff": diff,
@@ -491,6 +525,8 @@ class FormPromotionService:
         existing target, the checks of the target (every error, every warning),
         what is adjusted and what is not copied, and the two ETags to send back
         to apply."""
+        self._session_only(user)
+        await self._rate_limit(user, READ_RATE_LIMIT_SCOPE)
         plan = await self._plan(user, source_workspace_id, source_form_id, body)
         checked = await self._validity(plan)
         counts = counts_of(plan.document)
@@ -505,7 +541,11 @@ class FormPromotionService:
             "notCarried": plan.not_carried,
             "alsoNotCopied": list(ALSO_NOT_COPIED),
             "adjusted": plan.report.to_dict(),
-            "copyIsRestricted": plan.restricted,
+            # what the target will be: a new form takes its source's mode, an
+            # existing one keeps its own
+            "copyIsRestricted": plan.restricted
+            if plan.target is None
+            else plan.target_restricted,
             "sourceEtag": plan.source.etag,
             "targetEtag": plan.target.etag if plan.target else None,
             "targetChangedSinceLastPromotion": plan.changed_since_last,
@@ -528,6 +568,7 @@ class FormPromotionService:
         nothing there. ``query`` narrows by title. A workspace the caller is not a
         member of is a 404."""
         self._session_only(user)
+        await self._rate_limit(user, READ_RATE_LIMIT_SCOPE)
         await self._source_link(user, source_workspace_id, source_form_id)
         held = await self._authorization.effective_permissions(
             user, target_workspace_id, raise_sso_required=True
@@ -579,12 +620,12 @@ class FormPromotionService:
     def _idempotency_scope(user: User, source_form_id: str) -> str:
         return f"promotion:{user.id}:{source_form_id}"
 
-    async def _rate_limit(self, user: User) -> None:
+    async def _rate_limit(self, user: User, scope: str = RATE_LIMIT_SCOPE) -> None:
         limit = live().api.EDITOR_OPS_PER_WINDOW
         if self._limiter is None or limit <= 0:
             return
         verdict = await self._limiter.hit(
-            RATE_LIMIT_SCOPE,
+            scope,
             str(user.id),
             limit,
             live().api.EDITOR_OPS_WINDOW_SECONDS,
@@ -639,7 +680,7 @@ class FormPromotionService:
         )
         stored = await self._idempotency.begin(scope, idempotency_key, fingerprint)
         if stored is not None:
-            return await self._replay(stored)
+            return await self._replay(user, stored)
         try:
             summary = await self._apply(
                 user, source_workspace_id, source_form_id, body
@@ -696,7 +737,7 @@ class FormPromotionService:
         content = {k: v for k, v in summary.items() if k != "kind"}
         return JSONResponse(content, status, headers)
 
-    async def _replay(self, stored: StoredResponse) -> JSONResponse:
+    async def _replay(self, user: User, stored: StoredResponse) -> JSONResponse:
         summary = json.loads(stored.body)
         if summary.get("kind") != "promotion":
             return JSONResponse(
@@ -704,13 +745,19 @@ class FormPromotionService:
                 stored.status_code,
                 {"Idempotent-Replayed": "true"},
             )
-        # the form's version as it is now
-        try:
-            _, summary["etag"] = await self._writer.read(
-                RecordId(summary["workspaceId"]), summary["formId"]
-            )
-        except HTTPException:
-            summary["etag"] = None
+        # the form's version as it is now, for someone who may read that form
+        # (permission to create there is not that)
+        summary["etag"] = None
+        workspace_id = RecordId(summary["workspaceId"])
+        if await self._authorization.has_permission(
+            user, Permission.FORM_READ, workspace_id, form_id=summary["formId"]
+        ):
+            try:
+                _, summary["etag"] = await self._writer.read(
+                    workspace_id, summary["formId"]
+                )
+            except HTTPException:
+                pass
         return self._answer(summary, replayed=True)
 
     async def _apply(
@@ -732,6 +779,14 @@ class FormPromotionService:
             )
         if plan.target is not None and body.target_etag != plan.target.etag:
             raise precondition_failed()
+        if self._open_target_for_restricted(plan):
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT,
+                content={
+                    "code": TARGET_NOT_RESTRICTED_CODE,
+                    "message": TARGET_NOT_RESTRICTED_MESSAGE,
+                },
+            )
         checked = await self._validity(plan)
         if not checked["valid"]:
             raise HTTPException(
@@ -834,7 +889,7 @@ class FormPromotionService:
             at=dt.datetime.now(dt.timezone.utc),
             by=str(user.id),
             source_hash=spec_hash(stored_spec),
-            not_carried=plan.not_carried,
+            not_carried=plan.not_carried or {},
             adjusted=adjusted,
         )
         try:

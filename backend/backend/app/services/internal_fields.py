@@ -109,6 +109,25 @@ def internal_field_ids(form: Any) -> Set[str]:
     }
 
 
+def has_promotion_mark(form: Any) -> bool:
+    """Whether the form's settings carry where it was copied from."""
+    settings = _get(form, "settings")
+    return settings is not None and any(
+        _get(settings, key) is not None for key in PROMOTED_FROM_KEYS
+    )
+
+
+def strip_promotion_mark(form: Any) -> Any:
+    """Remove where the form was copied from, in place (staff who may only read
+    the form do not get it either)."""
+    settings = _get(form, "settings")
+    if settings is not None:
+        for key in PROMOTED_FROM_KEYS:
+            if _get(settings, key) is not None:
+                _set(settings, key, None)
+    return form
+
+
 def strip_internal_fields(form: Any) -> Any:
     """Remove internal fields from a form payload in place (and return it).
 
