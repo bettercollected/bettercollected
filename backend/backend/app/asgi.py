@@ -28,6 +28,7 @@ from backend.app.public_api.app import PUBLIC_API_PATH, build_public_api_asgi
 from backend.app.router import root_api_router
 from backend.app.services.internal_auth import log_if_internal_key_missing
 from backend.app.services.custom_domain_origins import prune_unverified_origins
+from backend.app.services.form_access.startup import log_if_form_access_data_stored
 from backend.app.services.internal_job_key import log_if_job_api_key_missing
 from backend.app.services.sso.startup import log_if_sso_incomplete
 from backend.app.services.umami_client import provision_umami_website
@@ -58,6 +59,9 @@ async def lifespan(app: FastAPI):
     AiohttpClient.get_aiohttp_client()
 
     await check_postgres_at_startup(container)
+    # form-level access off while restricted forms, grants or teams are stored:
+    # one counts-only warning (never blocks the start)
+    await log_if_form_access_data_stored(container.pg_sessionmaker())
     # A key that is not the one that converted the stored identities stops the
     # start here; the conversion itself runs in the background below, once the
     # API serves (matching refuses a non-v2 value meanwhile).
