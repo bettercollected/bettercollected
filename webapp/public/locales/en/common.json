@@ -2358,7 +2358,9 @@
     "FILE_ENCODING": "Read as {{encoding}}.",
     "ERROR_time_budget": "The import took too long and was stopped. Nothing was imported; split the file and try again.",
     "ERROR_switched_off": "Importing responses was switched off while this import waited. Nothing was imported.",
-    "ERROR_json_required": "Something went wrong. Try again."
+    "ERROR_json_required": "Something went wrong. Try again.",
+    "NOTE_signature_unsupported": "A signature cannot be imported: it is evidence of someone signing at a moment, which a cell of text cannot give.",
+    "ERROR_expired": "The file's hour was over before the import finished. Nothing was imported; upload the file again."
   },
   "FORM_VERSIONS": {
     "TAB": "Versions",

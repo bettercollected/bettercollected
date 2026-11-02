@@ -223,6 +223,13 @@ describe('the import dialog', () => {
         expect(screen.queryByText(/RESPONSE_IMPORT\.|a_code_from_a_newer_server/)).toBeNull();
     });
 
+    it('says why a signature column is left out', async () => {
+        routes['POST '] = () => json(201, { ...BASE, notes: [{ column: 2, code: 'signature_unsupported' }] });
+        open();
+        await upload();
+        expect(await screen.findByText(en.NOTE_signature_unsupported)).toBeInTheDocument();
+    });
+
     it('says how the file was read', async () => {
         routes['POST '] = () => json(201, { ...BASE, encoding: 'cp1252' });
         open();

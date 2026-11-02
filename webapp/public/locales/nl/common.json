@@ -2358,7 +2358,9 @@
     "FILE_ENCODING": "Gelezen als {{encoding}}.",
     "ERROR_time_budget": "De import duurde te lang en is gestopt. Er is niets geïmporteerd; splits het bestand en probeer het opnieuw.",
     "ERROR_switched_off": "Reacties importeren is uitgezet terwijl deze import wachtte. Er is niets geïmporteerd.",
-    "ERROR_json_required": "Er is iets misgegaan. Probeer het opnieuw."
+    "ERROR_json_required": "Er is iets misgegaan. Probeer het opnieuw.",
+    "NOTE_signature_unsupported": "Een handtekening kan niet worden geïmporteerd: het is bewijs dat iemand op een bepaald moment tekende, en dat kan een cel met tekst niet geven.",
+    "ERROR_expired": "Het uur van het bestand was voorbij voordat de import klaar was. Er is niets geïmporteerd; upload het bestand opnieuw."
   },
   "FORM_VERSIONS": {
     "TAB": "Versies",
