@@ -681,7 +681,7 @@ class WorkspaceLibrarySectionRow(Base, BaseRow):
     workspace_id = S.text("workspace_id")
     name_key = S.text("name_key")
     __table_args__ = (
-        # a section name once per workspace (revision 0033)
+        # a section name once per workspace (revision 0034)
         Index("uq_workspace_library_sections_name", "workspace_id", "name_key", unique=True),
     )
 

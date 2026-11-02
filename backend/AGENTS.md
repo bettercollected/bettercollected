@@ -1271,7 +1271,7 @@ form, in `controllers/workspace_responses.py`) fills in street and city from a D
 
 A workspace's library of question groups copied into forms (`docs/reusable-sections.md`). Switch `REUSABLE_SECTIONS_ENABLED`
 (off: every route 404s, `insert_library_section` fails, `reusableSectionsEnabled` in `/permissions`). Table
-`workspace_library_sections` (revision 0033, document with the current version's `fields`/`containers` as a **spec fragment** and
+`workspace_library_sections` (revision 0034, document with the current version's `fields`/`containers` as a **spec fragment** and
 `history` of earlier versions), `services/reusable_sections/`: `refs.py` is the pure walker (`isolate` drops what points outside,
 `remap` gives new ids and rewrites every reference, `assert_closed` raises when anything names a question outside the fragment: add a
 new kind of reference there first), `fragment.py` converts builder <-> spec and validates through `check_spec_document` plus the gates

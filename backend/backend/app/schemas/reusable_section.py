@@ -25,7 +25,7 @@ class SectionVersion(BaseModel):
 class ReusableSectionDocument(Record):
     workspace_id: RecordId
     name: str
-    # the folded name: a name is unique per workspace (revision 0033)
+    # the folded name: a name is unique per workspace (revision 0034)
     name_key: str
     description: Optional[str] = None
     # the current version; the content below is that version's
