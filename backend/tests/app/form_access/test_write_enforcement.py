@@ -515,7 +515,10 @@ OFF_WRITE_STATEMENTS = {
     "forms.logo.remove": 6,
     "spec.dry_run": 4,
     "forms.versions.restore": 9,
-    "forms.delete": 33,
+    # 33 before the grants cascade; the cascade adds two statements whatever the
+    # switch says: the DELETE on the grants table and the tombstone row the
+    # delete records for the grants it removed
+    "forms.delete": 35,
 }
 
 
@@ -546,7 +549,17 @@ async def test_off_the_write_rows_run_no_more_statements_than_before(
             with statements() as seen:
                 response = await _send(client, closed, case, who, monkeypatch)
             assert response.status_code < 500, (name, who, response.text)
-            assert not touching_new_tables(seen), (name, who)
+            touched = touching_new_tables(seen)
+            if name == "forms.delete":
+                # Deleting a form removes the grants on it whatever the switch
+                # says (grants stored while it was on must not outlive their
+                # form: services/form_access/cleanup.py): exactly one DELETE
+                # on the grants table, counted in the limit below.
+                assert len(touched) == 1 and touched[0].startswith(
+                    "DELETE FROM app.form_access_grants"
+                ), (name, who, touched)
+            else:
+                assert not touched, (name, who)
             counts.append(len(seen))
         measured[name] = max(counts)
     for name, limit in OFF_WRITE_STATEMENTS.items():
