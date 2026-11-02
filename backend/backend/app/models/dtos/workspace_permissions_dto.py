@@ -51,7 +51,10 @@ class WorkspacePermissionsDto(CamelModel):
     settings are shown only while it is on).
     ``form_promotion_enabled`` is the same for ``FORM_PROMOTION_ENABLED`` (copying
     a form to another workspace: the form menu's "Copy to another workspace" and
-    the form file are shown only while it is on)."""
+    the form file are shown only while it is on).
+    ``api_key_roles_enabled`` is the same for ``API_KEY_ROLES_ENABLED`` (a role
+    and a list of forms on an API key: the key dialog's role and forms controls
+    are shown only while it is on)."""
 
     permissions: List[Permission] = []
     field_rules_enabled: bool = False
@@ -74,3 +77,4 @@ class WorkspacePermissionsDto(CamelModel):
     form_embed_enabled: bool = False
     form_access_enabled: bool = False
     form_promotion_enabled: bool = False
+    api_key_roles_enabled: bool = False

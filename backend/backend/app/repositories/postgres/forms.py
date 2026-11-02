@@ -638,6 +638,18 @@ class PostgresFormRepository(RecordRepository):
     async def get_forms_by_form_ids(self, form_ids: List[str]) -> List[FormDocument]:
         return await self.many(FormRow.form_id.in_(form_ids))
 
+    async def titles_of(self, form_ids: List[str]) -> Dict[str, Optional[str]]:
+        """The titles of these forms (id -> title), in one query that reads no
+        form body."""
+        ids = [str(f) for f in form_ids]
+        if not ids:
+            return {}
+        async with self._session() as session:
+            rows = await session.execute(
+                select(FormRow.form_id, FormRow.title).where(FormRow.form_id.in_(ids))
+            )
+        return {str(form_id): title for form_id, title in rows.all()}
+
     async def delete_form(self, form_id: str):
         form = await self.one(FormRow.form_id == form_id)
         if not form:

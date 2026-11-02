@@ -128,6 +128,13 @@ REVOKED_SCIM_DEPROVISIONED = "scim_deprovisioned"
 FORM_COPIED_OUT = "form_copied_out"
 FORM_PROMOTED = "form_promoted"
 PROMOTION_EVENTS = (FORM_COPIED_OUT, FORM_PROMOTED)
+# an admin revoked the key on the API keys page
+REVOKED_BY_ADMIN = "admin"
+# the workspace was deleted (every key of it, whoever made it)
+REVOKED_WORKSPACE_DELETED = "workspace_deleted"
+# ``key_role`` / ``key_role_before`` of a key that has no role of its own: it acts
+# as its creator
+KEY_ROLE_AS_CREATOR = "creator"
 # the reserved workspace id of an event that belongs to no workspace
 NO_WORKSPACE = "000000000000000000000000"
 

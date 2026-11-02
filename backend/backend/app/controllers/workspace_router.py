@@ -25,6 +25,7 @@ from backend.app.services.reusable_sections.mode import reusable_sections_enable
 from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.services.response_import.mode import csv_import_enabled
 from backend.app.services.form_embed import form_embed_enabled
+from backend.app.services.api_key_roles.mode import api_key_roles_enabled
 from backend.app.services.form_access.mode import form_access_enabled
 from backend.app.services.form_promotion.mode import form_promotion_enabled
 from backend.app.services.audit_log.mode import audit_log_ui_enabled
@@ -41,6 +42,7 @@ from backend.app.services.ai.api_keys import (
     APIKeyDto,
     CreateAPIKeyDto,
     CreatedAPIKeyDto,
+    UpdateAPIKeyDto,
 )
 from backend.app.services.ai.consent import (
     LearnPreferencesDto,
@@ -260,6 +262,7 @@ class WorkspaceRouter(Routable):
             form_embed_enabled=form_embed_enabled(),
             form_access_enabled=form_access_enabled(),
             form_promotion_enabled=form_promotion_enabled(),
+            api_key_roles_enabled=api_key_roles_enabled(),
         )
 
     @get("/{workspace_id}/ai-profile")
@@ -337,6 +340,21 @@ class WorkspaceRouter(Routable):
     ) -> CreatedAPIKeyDto:
         """Create a key — the full token is returned exactly once, here."""
         return await container.api_key_service().create_key(workspace_id, request, user)
+
+    @patch("/{workspace_id}/api-keys/{key_id}")
+    async def update_api_key(
+        self,
+        workspace_id: RecordId,
+        key_id: str,
+        request: UpdateAPIKeyDto,
+        user: User = Depends(get_logged_user),
+    ) -> APIKeyDto:
+        """Change a key's name, role and forms (admin only; 422
+        ``api_key_roles_off`` while key roles are off). What the key does (its
+        scopes) and who made it never change: that is a new key."""
+        return await container.api_key_service().update_key(
+            workspace_id, key_id, request, user
+        )
 
     @delete("/{workspace_id}/api-keys/{key_id}")
     async def revoke_api_key(
