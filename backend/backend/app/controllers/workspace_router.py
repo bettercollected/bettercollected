@@ -26,6 +26,7 @@ from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.services.response_import.mode import csv_import_enabled
 from backend.app.services.form_embed import form_embed_enabled
 from backend.app.services.form_access.mode import form_access_enabled
+from backend.app.services.form_promotion.mode import form_promotion_enabled
 from backend.app.services.audit_log.mode import audit_log_ui_enabled
 from backend.app.services.form_versions.mode import form_revisions_ui_enabled
 from backend.app.services.response_revisions.mode import response_revisions_enabled
@@ -258,6 +259,7 @@ class WorkspaceRouter(Routable):
             submissions_api_enabled=submissions_api_enabled(),
             form_embed_enabled=form_embed_enabled(),
             form_access_enabled=form_access_enabled(),
+            form_promotion_enabled=form_promotion_enabled(),
         )
 
     @get("/{workspace_id}/ai-profile")

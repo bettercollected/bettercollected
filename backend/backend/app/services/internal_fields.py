@@ -40,6 +40,9 @@ from backend.app.services.form_drafts.mode import save_drafts_enabled
 
 SLIDE_TYPE = "slide"
 GROUP_TYPE = "group"
+# the settings key where a promoted form says where it came from (snake_case on the
+# stored link, camelCase in a served payload)
+PROMOTED_FROM_KEYS = ("promoted_from", "promotedFrom")
 _INTERNAL_ANSWER_KEYS = (
     "internal_answers",
     "internal_answers_meta",
@@ -129,7 +132,16 @@ def strip_internal_fields(form: Any) -> Any:
     if settings is not None:
         # the response limit is the creator's too: a full form says so
         # (``unavailable``), never how many it takes
-        for key in ("needs_review", "import_source", "import_id", "response_limit"):
+        for key in (
+            "needs_review",
+            "import_source",
+            "import_id",
+            "response_limit",
+            # where a form was copied from (FORM_PROMOTION_ENABLED): a workspace
+            # id and a person's id, staff information, stripped whatever the
+            # switch says
+            *PROMOTED_FROM_KEYS,
+        ):
             if _get(settings, key) is not None:
                 _set(settings, key, None)
     # saving drafts is offered only while the server has it switched on

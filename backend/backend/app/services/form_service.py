@@ -89,6 +89,8 @@ def _stub_settings(workspace_form, form) -> Optional[FormSettingsCamelModel]:
     settings.language = language
     # the limit is the creator's: respondents learn only that a form is full
     settings.response_limit = None
+    # where the form was copied from is staff information (FORM_PROMOTION_ENABLED)
+    settings.promoted_from = None
     if not save_drafts_enabled():
         settings.allow_save_draft = None
         settings.draft_retention_days = None
@@ -110,11 +112,12 @@ def _unavailable_stub(form: Any, reason: str, settings: Any = None) -> dict:
 
     form_id = get("form_id")
     shown = settings if settings is not None else get("settings")
-    hidden = {"response_limit": None}
+    hidden = {"response_limit": None, "promoted_from": None}
     if not save_drafts_enabled():
         hidden.update(allow_save_draft=None, draft_retention_days=None)
     if isinstance(shown, dict):
         shown = {**shown, **hidden}
+        shown.pop("promotedFrom", None)
     elif shown is not None:
         shown = shown.model_copy(update=hidden)
     return {

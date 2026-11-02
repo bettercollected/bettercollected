@@ -8663,7 +8663,7 @@
   "document": "WorkspaceDomainDocument"
  },
  "workspace_forms/full": {
-  "checksum": "sha256:42b56d08371977d56da5c91f465002add33615aef67d6d246c08f051c046b5ba",
+  "checksum": "sha256:b01f5f9cdba8608e3207e89589ca553bf606ec288c1013a3f003fc5a173a8e52",
   "doc": {
    "_id": {
     "$oid": "57fc021e64025f5a380473ba"
@@ -8697,6 +8697,19 @@
     "pinned": true,
     "privacy_policy_url": "WorkspaceFormDocument.settings.privacy_policy_url tëxt ✓ \"quoted\" \\ line\nbreak",
     "private": true,
+    "promoted_from": {
+     "adjusted": {
+      "WorkspaceFormDocument.settings.promoted_from.adjusted.key tëxt ✓ \"quoted\" \\ line\nbreak": 9007199254740993
+     },
+     "at": "2026-03-04T05:06:07.891234+02:00",
+     "by": "WorkspaceFormDocument.settings.promoted_from.by tëxt ✓ \"quoted\" \\ line\nbreak",
+     "formId": "WorkspaceFormDocument.settings.promoted_from.form_id tëxt ✓ \"quoted\" \\ line\nbreak",
+     "notCarried": {
+      "WorkspaceFormDocument.settings.promoted_from.not_carried.key tëxt ✓ \"quoted\" \\ line\nbreak": 9007199254740993
+     },
+     "sourceHash": "WorkspaceFormDocument.settings.promoted_from.source_hash tëxt ✓ \"quoted\" \\ line\nbreak",
+     "workspaceId": "WorkspaceFormDocument.settings.promoted_from.workspace_id tëxt ✓ \"quoted\" \\ line\nbreak"
+    },
     "provider": "WorkspaceFormDocument.settings.provider tëxt ✓ \"quoted\" \\ line\nbreak",
     "publish_checks_version": 9007199254740993,
     "purpose": "WorkspaceFormDocument.settings.purpose tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -8738,7 +8751,7 @@
   "document": "WorkspaceFormDocument"
  },
  "workspace_forms/naive": {
-  "checksum": "sha256:e3557d08e0bb45c5ebc8f7a208f1b3f53ded06e480b2c8839b45fa5f691a1bba",
+  "checksum": "sha256:132fd35aad6e627482e0f01a54a041156032e7c13b00fc50e5152db005cf4781",
   "doc": {
    "_id": {
     "$oid": "9dcc24b50c63c287e6a3cbf8"
@@ -8772,6 +8785,19 @@
     "pinned": true,
     "privacy_policy_url": "WorkspaceFormDocument.settings.privacy_policy_url tëxt ✓ \"quoted\" \\ line\nbreak",
     "private": true,
+    "promoted_from": {
+     "adjusted": {
+      "WorkspaceFormDocument.settings.promoted_from.adjusted.key tëxt ✓ \"quoted\" \\ line\nbreak": 9007199254740993
+     },
+     "at": "2026-03-04T05:06:07.891234",
+     "by": "WorkspaceFormDocument.settings.promoted_from.by tëxt ✓ \"quoted\" \\ line\nbreak",
+     "formId": "WorkspaceFormDocument.settings.promoted_from.form_id tëxt ✓ \"quoted\" \\ line\nbreak",
+     "notCarried": {
+      "WorkspaceFormDocument.settings.promoted_from.not_carried.key tëxt ✓ \"quoted\" \\ line\nbreak": 9007199254740993
+     },
+     "sourceHash": "WorkspaceFormDocument.settings.promoted_from.source_hash tëxt ✓ \"quoted\" \\ line\nbreak",
+     "workspaceId": "WorkspaceFormDocument.settings.promoted_from.workspace_id tëxt ✓ \"quoted\" \\ line\nbreak"
+    },
     "provider": "WorkspaceFormDocument.settings.provider tëxt ✓ \"quoted\" \\ line\nbreak",
     "publish_checks_version": 9007199254740993,
     "purpose": "WorkspaceFormDocument.settings.purpose tëxt ✓ \"quoted\" \\ line\nbreak",

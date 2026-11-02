@@ -518,6 +518,7 @@ async def world(matrix, workspace, umami, client, memory_jobs, monkeypatch):
         (settings, "FORM_REVISIONS_UI_ENABLED", True),
         (settings, "AUDIT_LOG_UI_ENABLED", True),
         (settings, "RESPONSE_REVISIONS_ENABLED", True),
+        (settings.form_promotion, "ENABLED", True),
     ):
         monkeypatch.setattr(target, name, value, raising=False)
     cookies = {name: _cookies(user) for name, user in users.items() if name in PRINCIPALS}
@@ -688,9 +689,9 @@ async def run_matrix(
                 if not (
                     response.status_code == 403
                     and isinstance(body, dict)
-                    and body.get("code") == TEMPLATE_FROM_RESTRICTED_CODE
+                    and body.get("code") == route.creator_only_code
                 ):
-                    failures.append(f"expected 403 {TEMPLATE_FROM_RESTRICTED_CODE}: {seen}")
+                    failures.append(f"expected 403 {route.creator_only_code}: {seen}")
             elif want == 422:
                 if response.status_code != 422:
                     failures.append(f"expected 422 (switch off): {seen}")

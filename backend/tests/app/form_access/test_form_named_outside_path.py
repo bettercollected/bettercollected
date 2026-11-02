@@ -66,6 +66,21 @@ REFERENCES: Dict[Tuple[str, str], Tuple[str, str]] = {
         "authorize_source: a form closed to the caller does not exist for them",
         "test_write_enforcement.py (option sources)",
     ),
+    ("POST", "/workspaces/{workspace_id}/forms/{form_id}/promotion/preview"): (
+        "body.targetFormId",
+        "form.edit on that form in the target workspace (authorize with the form id: "
+        "a form closed to the caller, or one of another workspace, is the 404 of an "
+        "unknown form); a target workspace the caller is not in is a 404 too",
+        "test_a_target_form_closed_to_the_caller_is_a_404 and "
+        "test_a_target_form_of_another_workspace_is_no_form_of_the_target "
+        "(form_promotion/test_permissions.py)",
+    ),
+    ("POST", "/workspaces/{workspace_id}/forms/{form_id}/promotion/apply"): (
+        "body.targetFormId",
+        "the same decision as the preview, made again before anything is written "
+        "(FormPromotionService._target_permission)",
+        "test_an_existing_target_needs_form_edit_on_it (form_promotion/test_permissions.py)",
+    ),
     ("POST", "/{workspace_id}/responder-groups"): (
         "query.form_id",
         "members.manage (Owner/Admin only, never granted per form); the form "
