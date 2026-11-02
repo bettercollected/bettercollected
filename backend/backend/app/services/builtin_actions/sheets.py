@@ -237,13 +237,15 @@ class GoogleApi:
         return list(rows[0]) if rows and isinstance(rows[0], list) else []
 
     async def write_row(self, sheet_id: str, token: str, range_: str, values: List[Any]):
-        """Replace the cells of ``range_`` (a header row)."""
+        """Replace the cells of ``range_`` (a header row). ``RAW``: the question
+        titles are the creator's, so no title is ever read as a formula or a
+        date, and what is written is what the form says."""
         await self._sheet(
             "POST",
             f"{sheet_id}/values:batchUpdate",
             token,
             body={
-                "valueInputOption": "USER_ENTERED",
+                "valueInputOption": "RAW",
                 "data": [{"range": range_, "values": [values]}],
             },
         )
@@ -597,9 +599,10 @@ class SheetsRunService:
         return fresh["token"]
 
     async def _append_row(self, sheet_id: str, token: str, data: List[Dict[str, Any]]) -> None:
-        # USER_ENTERED runs cells that start with = + - @ as formulas: never let
-        # a title or a respondent's answer become one
-        titles = [qa.formula_safe(entry["title"]) for entry in data]
+        # a title is written as it is (RAW: never a formula); USER_ENTERED runs
+        # cells that start with = + - @ as formulas, so an answer never goes
+        # in unguarded
+        titles = [entry["title"] for entry in data]
         answers = [qa.formula_safe(entry["answer"]) for entry in data]
         existing = await self._api.first_row(sheet_id, token)
         changed = False
@@ -654,7 +657,7 @@ class SheetsRunService:
                 sheet_id,
                 token,
                 f"'{title}'!A1:{qa.column_letter(len(table['headers']))}1",
-                [qa.formula_safe(v) for v in table["headers"]],
+                list(table["headers"]),
             )
             if table["rows"]:
                 await self._api.append(
@@ -677,16 +680,26 @@ class SheetsRunService:
             now - REDEFER_AFTER, SWEEP_BATCH, ActionType.SHEETS
         ):
             queued += 1 if await self._queue(log) else 0
-        rescued = 0
+        rescued = failed = 0
         for status, before in (
             (LogStatus.IN_PROGRESS, now - STUCK_AFTER),
             (LogStatus.RETRYING, now - STUCK_AFTER),
         ):
             for log in await self._logs.list_stuck(status, before, SWEEP_BATCH, ActionType.SHEETS):
+                if log.attempts >= MAX_ATTEMPTS:
+                    # the last attempt's worker died: there is no attempt left, so
+                    # the run ends visibly instead of going round again
+                    log.status = LogStatus.FAILED
+                    log.last_error_code = "worker_lost"
+                    log.next_attempt_at = None
+                    log.finished_at = now
+                    if await self._logs.save_existing(log):
+                        failed += 1
+                    continue
                 log.status = LogStatus.PENDING
                 if await self._logs.save_existing(log):
                     rescued += 1 if await self._queue(log) else 0
-        return {"queued": queued, "rescued": rescued}
+        return {"queued": queued, "rescued": rescued, "failed": failed}
 
 
 def _path_safe_title(title: str) -> bool:

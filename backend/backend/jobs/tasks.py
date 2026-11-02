@@ -484,7 +484,7 @@ async def sheets_redefer(timestamp: int) -> str:
     """Queue again Google Sheets runs whose job was never queued or whose worker
     died. Counts only."""
     counts = await _container().sheets_run_service().redefer_pending()
-    return f"{counts['queued']} queued, {counts['rescued']} rescued"
+    return f"{counts['queued']} queued, {counts['rescued']} rescued, {counts['failed']} failed"
 
 
 @app.task(
