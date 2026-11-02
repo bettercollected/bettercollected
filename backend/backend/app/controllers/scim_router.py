@@ -17,6 +17,7 @@ from backend.app.services.scim.directory_service import (
     DirectoryOverviewDto,
     GroupDto,
     GroupRoleDto,
+    GroupTeamDto,
     ResyncDto,
     ResyncRequestDto,
 )
@@ -85,6 +86,44 @@ class WorkspaceScimRouter(Routable):
     ) -> GroupDto:
         return await container.scim_directory_service().set_group_role(
             workspace_id, group_id, request, user
+        )
+
+    @put(
+        "/{workspace_id}/scim/groups/{group_id}/team",
+        responses={
+            404: {"description": "No such group or team in this workspace."},
+            422: {"description": "form_access_off: form-level access is turned off."},
+        },
+    )
+    async def link_group_to_team(
+        self,
+        workspace_id: RecordId,
+        group_id: str,
+        request: GroupTeamDto,
+        user: User = Depends(get_full_user),
+    ) -> GroupDto:
+        """The members of the directory group are in the team (read when
+        asked, never copied). Owner only."""
+        return await container.scim_directory_service().set_group_team(
+            workspace_id, group_id, request, user
+        )
+
+    @delete(
+        "/{workspace_id}/scim/groups/{group_id}/team",
+        responses={
+            404: {"description": "No such group in this workspace."},
+            422: {"description": "form_access_off: form-level access is turned off."},
+        },
+    )
+    async def unlink_group_from_team(
+        self,
+        workspace_id: RecordId,
+        group_id: str,
+        user: User = Depends(get_full_user),
+    ) -> GroupDto:
+        """The group's members are no longer in the team. Owner only."""
+        return await container.scim_directory_service().clear_group_team(
+            workspace_id, group_id, user
         )
 
     @post(

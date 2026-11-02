@@ -218,8 +218,12 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
             break;
         case 'team_created':
         case 'team_renamed':
-        case 'team_linked':
             key = entry.event.toUpperCase();
+            values = { actor, team: team(entry.groupId) };
+            break;
+        case 'team_linked':
+            // an entry that does not say (an older server) reads as a link
+            key = entry.linked === false ? 'TEAM_UNLINKED' : 'TEAM_LINKED';
             values = { actor, team: team(entry.groupId) };
             break;
         case 'team_deleted':

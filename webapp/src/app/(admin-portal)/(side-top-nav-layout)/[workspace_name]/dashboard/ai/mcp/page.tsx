@@ -340,7 +340,7 @@ export default function APIKeysPage() {
                                     </div>
                                     {(rolesOn || key.role != null || keyFormScopeOf(key) === 'listed') && (
                                         <div className="flex flex-wrap items-center gap-1.5">
-                                            <span className="bg-black-100 text-black-800 rounded px-1.5 py-0.5 text-[11px] font-medium">{keyRoleOf(key) ? t('STAFF.API_KEYS.ROLE_CHIP', { role: t(roleNameKey(keyRoleOf(key) as KeyRole)) }) : key.role ? t('STAFF.API_KEYS.ROLE_CHIP', { role: key.role }) : t('STAFF.API_KEYS.ROLE_CHIP_CREATOR')}</span>
+                                            <span className="bg-black-100 text-black-800 rounded px-1.5 py-0.5 text-[11px] font-medium">{keyRoleOf(key) ? t('STAFF.API_KEYS.ROLE_CHIP', { role: t(roleNameKey(keyRoleOf(key) as KeyRole)) }) : key.role ? t('STAFF.API_KEYS.ROLE_CHIP_UNKNOWN', { role: key.role }) : t('STAFF.API_KEYS.ROLE_CHIP_CREATOR')}</span>
                                             {keyFormScopeOf(key) === 'listed' ? (
                                                 <button
                                                     type="button"

@@ -712,7 +712,7 @@ export const workspacesApi = createApi({
                 body: request.body,
                 credentials: 'include'
             }),
-            invalidatesTags: ['API_KEYS_TAG', 'SSO_TAG']
+            invalidatesTags: ['API_KEYS_TAG']
         }),
         revokeAPIKey: builder.mutation<any, any>({
             query: (request) => ({

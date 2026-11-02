@@ -52,6 +52,7 @@ from backend.app.repositories.postgres.identity import (
     PostgresScimDirectoryRepository,
     PostgresScimEventRepository,
     PostgresScimGroupMemberRepository,
+    PostgresScimGroupTeamLinkRepository,
     PostgresScimGroupRepository,
     PostgresScimUserRepository,
     PostgresWorkspaceInvitationRepo,
@@ -361,6 +362,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
     scim_group_member_repo: PostgresScimGroupMemberRepository = providers.Singleton(
         PostgresScimGroupMemberRepository, pg_sessionmaker
+    )
+    scim_group_team_link_repo: PostgresScimGroupTeamLinkRepository = providers.Singleton(
+        PostgresScimGroupTeamLinkRepository, pg_sessionmaker
     )
     scim_event_repo: PostgresScimEventRepository = providers.Singleton(
         PostgresScimEventRepository, pg_sessionmaker
@@ -706,6 +710,7 @@ class AppContainer(containers.DeclarativeContainer):
         cleanup=form_access_cleanup,
         member_directory=member_directory,
         form_repo=form_repo,
+        scim_team_link_repo=scim_group_team_link_repo,
     )
 
     # The history of a response: who edited it, when, which questions, and (on
@@ -1147,6 +1152,8 @@ class AppContainer(containers.DeclarativeContainer):
         session_service=session_service,
         http_client=http_client,
         email_action_service=email_action_service,
+        audit_repo=workspace_audit_repo,
+        team_link_repo=scim_group_team_link_repo,
     )
 
     polis_directory_client: PolisDirectoryClient = providers.Singleton(
@@ -1165,7 +1172,10 @@ class AppContainer(containers.DeclarativeContainer):
         sync_service=scim_sync_service,
         polis=polis_directory_client,
         crypto=crypto,
+        member_group_repo=member_group_repo,
         audit_repo=workspace_audit_repo,
+        form_access=form_access_service,
+        team_link_repo=scim_group_team_link_repo,
     )
 
     scim_webhook_service: ScimWebhookService = providers.Singleton(

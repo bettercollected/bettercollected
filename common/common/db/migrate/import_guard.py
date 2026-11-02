@@ -72,7 +72,7 @@ PROBE_TIMEOUT_S = 120.0
 KNOWN_GROUPS = tuple(dict.fromkeys(g for gs in SERVICE_GROUPS.values() for g in gs))
 #: tables that hold no imported collection (never probed): the migration's own
 #: bookkeeping, and the tables that exist only in Postgres (new in 4.2:
-#: registration, webhooks, email actions, the action log, response exports and form drafts; new in 4.3: security events and the response revision log; new in 4.4: the authenticator-app factors and recovery codes, member groups and form grants), which 4.0 never had in Mongo
+#: registration, webhooks, email actions, the action log, response exports and form drafts; new in 4.3: security events and the response revision log; new in 4.4: the authenticator-app factors and recovery codes, member groups, form grants and the teams directory groups feed), which 4.0 never had in Mongo
 NOT_IMPORTED_TABLES = (
     "mirror_write_failures",
     "migration_progress",
@@ -98,6 +98,7 @@ NOT_IMPORTED_TABLES = (
     "member_groups",
     "member_group_members",
     "form_access_grants",
+    "scim_group_team_links",
 )
 
 
