@@ -328,22 +328,13 @@ class WorkspaceDomainService:
         document.verification_lost_at = None
         if document.status == DomainStatus.VERIFIED:
             return await self._domain_repo.save(document)
-        if by is not None:
-            # a verified domain hands its addresses to this workspace's single
-            # sign-on: recorded before it is stored, or the check is refused
-            await audit.record_or_refuse(
-                self._audit_repo,
-                DOMAIN_VERIFIED,
-                document.workspace_id,
-                by,
-                domain_id=str(document.id),
-            )
+        previous_status = document.status
         document.status = DomainStatus.VERIFIED
         document.verified_domain = document.domain
         document.verified_at = now
         document.verified_by = verified_by
         try:
-            return await self._domain_repo.save(document)
+            saved = await self._domain_repo.save(document)
         except DomainVerifiedElsewhere:
             # another workspace verified it between our look and our write
             document.status = DomainStatus.PENDING
@@ -351,6 +342,27 @@ class WorkspaceDomainService:
             document.verified_at = None
             document.verified_by = None
             return await self._store_failure(document, VERIFIED_ELSEWHERE, now)
+        if by is not None:
+            # A verified domain hands its addresses to this workspace's single
+            # sign-on. The entry is written once the verification has stood
+            # (never for one another workspace won), and when it cannot be
+            # written the verification is taken back and the check is refused.
+            try:
+                await audit.record_or_refuse(
+                    self._audit_repo,
+                    DOMAIN_VERIFIED,
+                    saved.workspace_id,
+                    by,
+                    domain_id=str(saved.id),
+                )
+            except HTTPException:
+                saved.status = previous_status
+                saved.verified_domain = None
+                saved.verified_at = None
+                saved.verified_by = None
+                await self._domain_repo.save(saved)
+                raise
+        return saved
 
     async def _store_failure(
         self, document: WorkspaceDomainDocument, error: str, now: dt.datetime

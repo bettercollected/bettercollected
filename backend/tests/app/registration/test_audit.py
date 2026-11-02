@@ -143,20 +143,21 @@ async def test_a_service_change_that_cannot_be_recorded_is_refused_and_not_made(
     assert "other.example" not in row.base_url and "case.example.org" in row.base_url
 
 
-async def test_deleting_a_service_is_recorded_first_and_refused_unrecorded(
+async def test_deleting_an_unused_service_is_recorded_after_and_never_blocked(
     workspace, monkeypatch
 ):
-    created = await make_service(workspace)
-
+    # no form uses it (that is refused), so nothing is sent through it
+    gone = await make_service(workspace, name="Down")
     with monkeypatch.context() as patched:
         fail_audit(patched)
-        await refused_unrecorded(service().delete_service(workspace.id, created.id, testUser))
-    assert await container.registration_service_repo().get(workspace.id, created.id)
+        await service().delete_service(workspace.id, gone.id, testUser)
+    assert await container.registration_service_repo().get(workspace.id, gone.id) is None
+    assert await audit_events(workspace, REGISTRATION_SERVICE_DELETED) == []
 
+    created = await make_service(workspace)
     await service().delete_service(workspace.id, created.id, testUser)
     (entry,) = await audit_events(workspace, REGISTRATION_SERVICE_DELETED)
     assert entry.service_id == created.id
-    assert await container.registration_service_repo().get(workspace.id, created.id) is None
     clean([entry])
 
 
@@ -196,6 +197,13 @@ async def test_switching_a_form_on_is_recorded_first_and_off_is_best_effort(
     await configure(workspace, form, case_service, ["name"], enabled=False)
     (off,) = await audit_events(workspace, FORM_REGISTRATION_DISABLED)
     assert (off.form_id, off.service_id) == (form.form_id, case_service.id)
+
+    # switching off while naming no service records the one that was turned off
+    other = await make_service(workspace, name="Other system")
+    await configure(workspace, form, other, ["name"])
+    await configure(workspace, form, None, ["name"], enabled=False)
+    last = (await audit_events(workspace, FORM_REGISTRATION_DISABLED))[-1]
+    assert last.service_id == other.id
     clean(await audit_events(workspace, *EVENTS))
 
 

@@ -847,9 +847,25 @@ class SsoConnectionService:
             connection.enabled_by = str(user.id)
             connection.updated_at = now
             await self._connections.save(connection)
+        # the connections this one replaces: each gets its own entry, as if it
+        # had been disabled by hand (closing a way in: best effort, after)
+        replaced = [
+            other
+            for other in await self._connections.list_by_workspace(workspace_id)
+            if other.is_enabled and other.id != connection.id
+        ]
         await self._connections.disable_others(
             RecordId(workspace_id), connection.id, str(user.id), now
         )
+        for other in replaced:
+            await audit.record(
+                self._audit_repo,
+                SSO_CONNECTION_DISABLED,
+                workspace_id,
+                user,
+                connection_id=str(other.id),
+                connection_type=other.type.value,
+            )
         return SsoConnectionDto.of(connection)
 
     async def disable_connection(
@@ -987,7 +1003,11 @@ class SsoConnectionService:
                     "sso_required_changed_at": now,
                 }
             )
-        # who may sign in, and with which role, is recorded first, or refused
+        # Who may sign in, and with which role, is recorded first, or refused.
+        # That includes turning "Require single sign-on" off: it widens
+        # sign-in again, so the way out of a lockout depends on the audit store
+        # being up (the owner's email-code break-glass and a platform admin's
+        # database access do not, docs/sso.md and docs/audit-log.md).
         if "sso_required" in fields:
             await audit.record_or_refuse(
                 self._audit_repo,

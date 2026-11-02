@@ -451,15 +451,6 @@ class ScimDirectoryService:
         self._require_available()
         directory = await self._directory(workspace_id)
         webhook_secret = secrets.token_urlsafe(32)
-        # a new token replaces the old one, which stops working: recorded first
-        await audit.record_or_refuse(
-            self._audit_repo,
-            SCIM_TOKEN_ROTATED,
-            workspace_id,
-            user,
-            directory_id=str(directory.id),
-            directory_type=directory.type,
-        )
         try:
             created = await self._polis.create_directory(
                 str(workspace_id),
@@ -495,6 +486,17 @@ class ScimDirectoryService:
             await self._directories.update_fields(
                 directory.id, {"stale_polis_directory_id": old_polis_id}
             )
+        # Best effort, and after the change: rotating is the only way to stop
+        # a leaked token, so a failing audit store must never stand in its way
+        # (the old token has stopped working by now).
+        await audit.record(
+            self._audit_repo,
+            SCIM_TOKEN_ROTATED,
+            workspace_id,
+            user,
+            directory_id=str(directory.id),
+            directory_type=directory.type,
+        )
         logger.info(
             "SCIM directory {} of workspace {} rotated by {}",
             directory.id,
@@ -550,7 +552,10 @@ class ScimDirectoryService:
         seat is free; otherwise they stay disabled (``seat_limit``)."""
         await self._authorize_owner(workspace_id, user)
         directory = await self._directory(workspace_id)
-        # the token stops working and the directory's records go: recorded first
+        # Recorded first, and refused when it cannot be: unlike a rotation this
+        # lifts the directory's own deactivations (members are enabled again,
+        # ``release_directory_disables``), so it opens access. A leaked token is
+        # stopped by rotating it, which is never blocked by the audit store.
         await audit.record_or_refuse(
             self._audit_repo,
             SCIM_TOKEN_REVOKED,

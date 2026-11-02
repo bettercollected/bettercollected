@@ -660,15 +660,16 @@ class RegistrationService:
                 "service_in_use",
                 "A form still sends its submissions to this service.",
             )
-        # its stored secret goes with it: recorded first, or refused
-        await audit.record_or_refuse(
+        await self._services.delete(workspace_id, document.id)
+        # no form uses it any more (refused above), so nothing is sent through
+        # it: best effort, after
+        await audit.record(
             self._audit_repo,
             REGISTRATION_SERVICE_DELETED,
             workspace_id,
             user,
             service_id=str(document.id),
         )
-        await self._services.delete(workspace_id, document.id)
         logger.info(
             "registration service deleted: workspace={} service={} by={}",
             workspace_id,
@@ -831,6 +832,7 @@ class RegistrationService:
             )
             document.ensure_id()
         was_enabled = bool(document.enabled)
+        old_service_id = document.service_id
         new_service_id = str(service.id) if service else None
         new_transform = list(dict.fromkeys(request.transform_to_list))
         # which parts of the configuration change (names only)
@@ -881,14 +883,15 @@ class RegistrationService:
         document.updated_by = str(user.id)
         await self._registrations.save(document)
         if was_enabled and not request.enabled:
-            # it stops sending: best effort
+            # it stops sending: best effort. The entry names the service that
+            # was turned off (the saved one may be another, or none).
             await audit.record(
                 self._audit_repo,
                 FORM_REGISTRATION_DISABLED,
                 workspace_id,
                 user,
                 form_id=str(form_id),
-                **audit_ids,
+                service_id=str(old_service_id) if old_service_id else None,
             )
         elif not request.enabled and parts:
             # saved switched off: nothing is sent, best effort

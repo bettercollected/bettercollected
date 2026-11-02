@@ -198,3 +198,38 @@ async def test_deleting_is_recorded_first_and_refused_unrecorded(workspace, monk
     assert (entry.form_id, entry.action_id) == (form.form_id, created.id)
     assert await stored(workspace, form) == []
     clean([entry])
+
+
+async def test_a_switched_off_action_is_changed_and_removed_best_effort(
+    workspace, monkeypatch
+):
+    """One rule with the case-system registration: what is switched off sends
+    nothing, so the store being down never blocks changing or removing it."""
+    form = await publish(workspace)
+    with monkeypatch.context() as patched:
+        fail_audit(patched)
+        created = await make_action(workspace, form, enabled=False)
+        await service().update_action(
+            workspace.id,
+            form.form_id,
+            created.id,
+            EmailActionUpdateDto(name="Another name"),
+            testUser,
+        )
+        assert (await stored(workspace, form))[0].name == "Another name"
+        await service().delete_action(workspace.id, form.form_id, created.id, testUser)
+    assert await stored(workspace, form) == []
+    assert await audit_events(workspace, *EVENTS) == []
+
+    # with the store up the same changes are recorded, after the fact
+    again = await make_action(workspace, form, enabled=False)
+    await service().update_action(
+        workspace.id,
+        form.form_id,
+        again.id,
+        EmailActionUpdateDto(name="Another name"),
+        testUser,
+    )
+    await service().delete_action(workspace.id, form.form_id, again.id, testUser)
+    kinds = [e.event for e in await audit_events(workspace, *EVENTS)]
+    assert kinds == [EMAIL_ACTION_CREATED, EMAIL_ACTION_UPDATED, EMAIL_ACTION_DELETED]

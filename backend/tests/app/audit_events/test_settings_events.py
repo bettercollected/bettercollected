@@ -346,21 +346,26 @@ async def test_creating_the_directory_records_the_token_creation_without_the_tok
     clean([entry], body["bearerToken"], body["scimEndpoint"])
 
 
-async def test_rotating_the_token_is_recorded_and_refused_unrecorded(
+async def test_rotating_the_token_is_recorded_after_and_never_blocked(
     client: AsyncClient, workspace, scim_on, members_list, monkeypatch
 ):
     polis, _ = scim_on
     directory, _ = await create_directory(client, workspace, OWNER)
-    before = dict(polis.directories)
+    old_polis_id = directory.polis_directory_id
     url = scim(workspace, "/directory/rotate")
 
+    # the audit store is down: rotating is the way to stop a leaked token, so
+    # it still works, the old token stops working and the new one is issued
     with monkeypatch.context() as patched:
         fail_audit(patched)
-        refused_unrecorded(await client.post(url, cookies=OWNER))
-    # the working token is still the working token
-    assert polis.directories == before
+        reply = await client.post(url, cookies=OWNER)
+        assert reply.status_code == 200, reply.text
+        assert reply.json()["bearerToken"]
+    assert old_polis_id not in polis.directories
     stored = await container.scim_directory_repo().get(directory.id)
-    assert stored.polis_directory_id == directory.polis_directory_id
+    assert stored.polis_directory_id != old_polis_id
+    assert stored.polis_directory_id in polis.directories
+    assert await audit_events(workspace, SCIM_TOKEN_ROTATED) == []
 
     reply = await client.post(url, cookies=OWNER)
     assert reply.status_code == 200, reply.text
@@ -525,3 +530,45 @@ async def test_the_reader_lists_the_new_kinds_in_their_areas_with_only_the_enum_
     )
     # ids with no screen of their own are not returned
     assert "connectionId" not in entry
+
+
+async def test_enabling_a_connection_records_each_one_it_replaces(
+    client: AsyncClient, workspace, sso_on, monkeypatch
+):
+    first = await add_connection(workspace.id, enabled=True)
+    second = await add_connection(workspace.id, enabled=True)
+    third = await add_connection(workspace.id, enabled=False)
+
+    reply = await client.post(
+        sso(workspace, f"/connections/{third.id}/enable"), cookies=OWNER
+    )
+    assert reply.status_code == 200, reply.text
+
+    (enabled,) = await audit_events(workspace, SSO_CONNECTION_ENABLED)
+    assert enabled.connection_id == str(third.id)
+    disabled = await audit_events(workspace, SSO_CONNECTION_DISABLED)
+    assert sorted(e.connection_id for e in disabled) == sorted([str(first.id), str(second.id)])
+    clean(disabled)
+
+
+async def test_a_verification_another_workspace_won_is_not_recorded(
+    client: AsyncClient, workspace, fake_dns, monkeypatch
+):
+    from backend.app.repositories.postgres.identity import DomainVerifiedElsewhere
+
+    claim = (await client.post(domains(workspace), json={"domain": "acme.com"}, cookies=OWNER)).json()
+    fake_dns.set_txt(RECORD, "v=spf1 -all", claim["txtRecordValue"])
+
+    repo = container.workspace_domain_repo()
+    save = repo.save
+
+    async def lost_the_race(document):
+        if document.status.value == "verified":
+            raise DomainVerifiedElsewhere()
+        return await save(document)
+
+    monkeypatch.setattr(repo, "save", lost_the_race)
+    reply = await client.post(domains(workspace, claim["id"], "verify"), cookies=OWNER)
+    assert reply.status_code == 200, reply.text
+    assert reply.json()["status"] != "verified"
+    assert await audit_events(workspace, DOMAIN_VERIFIED) == []
