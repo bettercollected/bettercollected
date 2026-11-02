@@ -73,6 +73,8 @@ export function useWorkspacePermissions() {
     const submissionsApiEnabled = !!userId && !isError && !!data?.submissionsApiEnabled;
     // ...and embedding forms in other sites (its FORM_EMBED_ENABLED): the share dialog's Embed tab and the Embedding settings.
     const formEmbedEnabled = !!userId && !isError && !!data?.formEmbedEnabled;
+    // ...and importing responses from a CSV file (its CSV_IMPORT_ENABLED): the responses screen offers it from it.
+    const csvImportEnabled = !!userId && !isError && !!data?.csvImportEnabled;
     return {
         can,
         permissions,
@@ -91,6 +93,7 @@ export function useWorkspacePermissions() {
         submissionsApiEnabled,
         formRevisionsUiEnabled,
         responseRevisionsEnabled,
-        formEmbedEnabled
+        formEmbedEnabled,
+        csvImportEnabled
     };
 }
