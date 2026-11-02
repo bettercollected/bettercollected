@@ -14,6 +14,7 @@ from backend.app.repositories.postgres.forms import (
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.form_integration import FormIntegrationType
 from backend.app.models.enum.permission import Permission
+from backend.app.services.form_access.mode import form_if_enforced
 from backend.app.repositories.postgres.actions import PostgresActionRepository
 from backend.app.repositories.postgres.identity import PostgresSsoUsedStateRepository
 from backend.app.services.authorization_service import AuthorizationService
@@ -87,7 +88,10 @@ class IntegrationService:
             workspace_id
         ) in await self._workspace_form_repo.get_workspace_ids_for_form_id(form_id):
             if await self._authorization.has_permission(
-                user, Permission.FORM_EDIT, workspace_id
+                user,
+                Permission.FORM_EDIT,
+                workspace_id,
+                form_id=form_if_enforced(form_id),
             ):
                 return
         raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)

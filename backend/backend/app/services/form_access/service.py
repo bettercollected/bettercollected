@@ -133,6 +133,37 @@ class FormAccessService:
             return FormPermissions(base.permissions, SOURCE_ROLE)
         return _decide(base, facts.link, facts.grants)
 
+    async def permissions_for_members(
+        self, bases: Iterable[BaseAccess], form_id: str
+    ) -> dict:
+        """``permissions_on`` for each of ``bases`` (members of one workspace)
+        on one form, keyed by user id: the form and its grants are read once,
+        not once per member."""
+        bases = list(bases)
+        decided: dict = {}
+        pending = [b for b in bases if not self._passes_through(b)]
+        for base in bases:
+            if base not in pending:
+                decided[base.user_id] = FormPermissions(base.permissions, SOURCE_ROLE)
+        if not pending:
+            return decided
+        workspace_id = pending[0].workspace_id
+        link = await self._workspace_form_repo.find_workspace_form(
+            workspace_id, str(form_id)
+        )
+        held = (
+            await self._grant_repo.held_on_form(workspace_id, str(form_id))
+            if link is not None
+            else {}
+        )
+        for base in pending:
+            decided[base.user_id] = (
+                FormPermissions(base.permissions, SOURCE_ROLE)
+                if link is None
+                else _decide(base, link, held.get(base.user_id, ()))
+            )
+        return decided
+
     # -- lists -----------------------------------------------------------------
     async def visible_ids(
         self,
