@@ -29,6 +29,31 @@ def decode_with_ring(token: str, secret_ring: str, **options: Any) -> dict:
     raise failure
 
 
+# The ``typ`` claim of the session tokens the backend issues
+# (backend/app/services/auth_cookie_service.py).
+ACCESS_TOKEN_TYPE = "access"
+REFRESH_TOKEN_TYPE = "refresh"
+
+
+def decode_typed_with_ring(
+    token: str, secret_ring: str, token_type: str, **options: Any
+) -> dict:
+    """The claims of ``token`` like :func:`decode_with_ring`, but only when its
+    ``typ`` claim is exactly ``token_type``; a token of another kind, or one
+    without a ``typ``, raises ``InvalidTokenError`` (checked after the
+    signature, so a forgery still raises ``InvalidSignatureError``)."""
+    claims = decode_with_ring(token, secret_ring, **options)
+    if claims.get("typ") != token_type:
+        raise jwt.InvalidTokenError(f"Not a {token_type} token")
+    return claims
+
+
+def decode_access_token(token: str, secret_ring: str, **options: Any) -> dict:
+    """The claims of a session *access* token (``typ == "access"``); a refresh
+    token or any other signed token is refused."""
+    return decode_typed_with_ring(token, secret_ring, ACCESS_TOKEN_TYPE, **options)
+
+
 def signing_secret(secret_ring: str) -> str:
     """The member that signs: the first of the ring."""
     return primary(token_members(secret_ring)) or secret_ring
