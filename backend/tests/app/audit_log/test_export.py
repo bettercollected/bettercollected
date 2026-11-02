@@ -397,7 +397,7 @@ async def test_an_export_is_recorded_before_it_starts_with_names_of_filters_neve
     # no value of a filter, no name, no row content in the entry
     present = {k: v for k, v in row.model_dump().items() if v is not None}
     # nothing but the format, the count, the filters' names and the form is stored
-    assert set(present) - {"id", "workspace_id", "user_id", "event", "created_at", "updated_at"} == {
+    assert set(present) - {"id", "workspace_id", "user_id", "session_id", "event", "created_at", "updated_at"} == {
         "form_id", "count", "export_format", "export_filters",
     }
     assert not {"actor", "area", "from"} & {str(v) for v in present.values() if isinstance(v, str)}
