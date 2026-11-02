@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import PrivateFormButtonWrapper from '@Components/common/private-form-button-wrapper';
-import { ArrowLeft, Edit2, Play, Share2 } from 'lucide-react';
+import { ArrowLeft, BarChart3, Edit2, History, Inbox, LayoutGrid, type LucideIcon, Play, Settings, Share2, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import FormOptionsDropdownMenu from '@app/components/datatable/form-options-dropdown';
@@ -34,10 +34,13 @@ export interface FormNavItem {
     key: string;
     label: string;
     href: string;
+    icon: LucideIcon;
     /** Shown as a badge next to the label (the number of responses). */
     count?: number;
     /** On this section's page (Responses is also active on Deletion requests). */
     active: boolean;
+    /** Sub-pages of a section (Deletion requests under Responses). */
+    children?: FormNavItem[];
 }
 
 interface NavInput {
@@ -51,36 +54,56 @@ interface NavInput {
 
 /**
  * The sections of a form, in order, for the person looking at it. Who sees what
- * is what the tab row decided before: Preview always; for a published form
- * Responses (response.read; privacy.manage alone gets Deletion requests),
+ * is what the tab row decided before: Pages always; for a published form
+ * Responses (response.read) with Deletion requests under it (privacy.manage;
+ * privacy.manage alone gets Deletion requests as a section of its own),
  * Analytics and Share while the form is open, Versions (server flag, form.read);
  * Settings for form.edit.
  */
 export function buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled, t }: NavInput): FormNavItem[] {
     const on = (...paths: string[]) => paths.some((path) => pathname.includes(`/${path}`));
     const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
-    const items: FormNavItem[] = [{ key: 'preview', label: t('STAFF.FORM_PAGES.PAGES'), href: `${base}/preview`, active: on('preview') }];
+    const deletion = (icon: LucideIcon): FormNavItem => ({ key: 'deletion-requests', label: t(formConstant.deletionRequests), href: `${base}/deletion-requests`, icon, count: form?.deletionRequests ?? 0, active: on('deletion-requests') });
+    const items: FormNavItem[] = [{ key: 'preview', label: t('STAFF.FORM_PAGES.PAGES'), href: `${base}/preview`, icon: LayoutGrid, active: on('preview') }];
 
     if (form?.isPublished) {
         if (can(WorkspacePermission.RESPONSE_READ)) {
-            items.push({ key: 'responses', label: t('FORM_SHELL.RESPONSES_TAB'), href: `${base}/responses`, count: form.responses ?? 0, active: on('responses', 'deletion-requests') });
+            items.push({
+                key: 'responses',
+                label: t('FORM_SHELL.RESPONSES_TAB'),
+                href: `${base}/responses`,
+                icon: Inbox,
+                count: form.responses ?? 0,
+                active: on('responses', 'deletion-requests'),
+                children: can(WorkspacePermission.PRIVACY_MANAGE) ? [deletion(Trash2)] : undefined
+            });
         } else if (can(WorkspacePermission.PRIVACY_MANAGE)) {
             // a privacy officer handles deletion requests, never answers
-            items.push({ key: 'deletion-requests', label: t(formConstant.deletionRequests), href: `${base}/deletion-requests`, active: on('deletion-requests') });
+            items.push(deletion(Inbox));
         }
         if (isFormOpen) {
-            items.push({ key: 'analytics', label: t('FORM_SHELL.ANALYTICS_TAB'), href: `${base}/analytics`, active: on('analytics') });
-            items.push({ key: 'links', label: t('FORM_SHELL.SHARE_TAB'), href: `${base}/links`, active: on('links') });
+            items.push({ key: 'analytics', label: t('FORM_SHELL.ANALYTICS_TAB'), href: `${base}/analytics`, icon: BarChart3, active: on('analytics') });
+            items.push({ key: 'links', label: t('FORM_SHELL.SHARE_TAB'), href: `${base}/links`, icon: Share2, active: on('links') });
         }
         // the published versions of the form: list, compare, restore (the server's FORM_REVISIONS_UI_ENABLED)
         if (formRevisionsUiEnabled && can(WorkspacePermission.FORM_READ)) {
-            items.push({ key: 'versions', label: t('FORM_VERSIONS.TAB'), href: `${base}/versions`, active: on('versions') });
+            items.push({ key: 'versions', label: t('FORM_VERSIONS.TAB'), href: `${base}/versions`, icon: History, active: on('versions') });
         }
     }
     if (can(WorkspacePermission.FORM_EDIT)) {
-        items.push({ key: 'settings', label: t(localesCommon.settings), href: `${base}/settings`, active: on('settings', 'visibility', 'integrations') });
+        items.push({ key: 'settings', label: t(localesCommon.settings), href: `${base}/settings`, icon: Settings, active: on('settings', 'visibility', 'integrations') });
     }
     return items;
+}
+
+/** The item that is the page itself: a sub-page when one is open, else the section (this one carries `aria-current`). */
+export function currentItem(items: FormNavItem[]): FormNavItem | undefined {
+    for (const item of items) {
+        const child = item.children?.find((c) => c.active);
+        if (child) return child;
+        if (item.active) return item;
+    }
+    return undefined;
 }
 
 export function useFormNav(form: StandardFormDto, base: string): FormNavItem[] {
@@ -185,41 +208,5 @@ export function FormBarActions({ form }: { form: StandardFormDto }) {
                 : canEdit && <PublishButton refresh />}
             <FormOptionsDropdownMenu workspace={workspace} form={form} hasCustomDomain={false} redirectToDashboard inHeader onPreview={isPhone && v2 ? preview : undefined} className="flex h-11 w-11 items-center justify-center md:h-10 md:w-10" />
         </div>
-    );
-}
-
-/* ------------------------------------------------------------- the tabs */
-
-/** The sections as a row of links under the bar. It scrolls sideways when it overflows and keeps the active one in view. */
-export function FormTabs({ items }: { items: FormNavItem[] }) {
-    const { t } = useTranslation();
-    const pathname = usePathname();
-    const container = useRef<HTMLElement | null>(null);
-
-    useEffect(() => {
-        // Defer to the next frame so tab widths are final before scrolling.
-        const id = requestAnimationFrame(() => {
-            container.current?.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
-        });
-        return () => cancelAnimationFrame(id);
-    }, [pathname, items.length]);
-
-    return (
-        <nav ref={container} aria-label={t('FORM_NAV.SECTIONS')} className="flex overflow-x-auto border-b border-black-400 px-4 md:px-6 lg:px-8">
-            <ul className="m-0 flex list-none gap-1 p-0">
-                {items.map((item) => (
-                    <li key={item.key} className="flex">
-                        <Link
-                            href={item.href}
-                            aria-current={item.active ? 'page' : undefined}
-                            className={cn('flex min-h-11 items-center gap-1.5 border-b-2 px-4 text-sm whitespace-nowrap', item.active ? 'border-brand-500 font-semibold text-black-900' : 'border-transparent font-medium text-black-600 hover:text-black-900')}
-                        >
-                            {item.label}
-                            {typeof item.count === 'number' && <span className="rounded-full bg-black-200 px-2 py-0.5 text-xs font-medium text-black-700 tabular-nums">{item.count}</span>}
-                        </Link>
-                    </li>
-                ))}
-            </ul>
-        </nav>
     );
 }

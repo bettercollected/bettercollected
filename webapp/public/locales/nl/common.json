@@ -1491,7 +1491,11 @@
     "BACK": "Terug naar formulieren",
     "SKIP": "Direct naar de inhoud",
     "SECTIONS": "Onderdelen van het formulier",
-    "NEW_TAB": "(opent in een nieuw tabblad)"
+    "NEW_TAB": "(opent in een nieuw tabblad)",
+    "COLLAPSE": "Onderdelen inklappen",
+    "EXPAND": "Onderdelen uitklappen",
+    "GO_TO": "Ga naar onderdeel",
+    "SWITCH_OPEN": "Onderdeel: {{name}}. Kies een ander onderdeel"
   },
   "STAFF_LANGUAGE": {
     "LABEL": "Taal",
