@@ -13,8 +13,26 @@ PREFIX = "/api/v1/public/v1"
 KEY = "bc_" + "0" * 64
 
 
+def _fields(document: dict) -> dict[str, dict]:
+    found: dict[str, dict] = {}
+
+    def walk(fields) -> None:
+        for field in fields or []:
+            found[field["id"]] = field
+            walk(field.get("fields"))
+
+    for page in document.get("pages") or []:
+        walk(page.get("fields"))
+    return found
+
+
 class FakeApi:
-    def __init__(self) -> None:
+    """One workspace of one instance. ``key`` is the only key it accepts;
+    ``refuse_types`` are question types this instance has switched off."""
+
+    def __init__(self, key: str = KEY, refuse_types: tuple[str, ...] = ()) -> None:
+        self.key = key
+        self.refuse_types = refuse_types
         self.forms: dict[str, dict] = {}
         self.versions: dict[str, int] = {}
         self.requests: list[httpx.Request] = []
@@ -37,9 +55,35 @@ class FakeApi:
     def error(status: int, code: str, message: str, **extra) -> httpx.Response:
         return httpx.Response(status, json={"code": code, "message": message, **extra})
 
+    def problems(self, body: dict) -> list[dict]:
+        errors = []
+        if body.get("specVersion") != "1":
+            errors.append({"path": "/specVersion", "message": "Input should be '1'"})
+        for index, page in enumerate(body.get("pages") or []):
+            for at, field in enumerate(page.get("fields") or []):
+                if field.get("type") in self.refuse_types:
+                    errors.append(
+                        {
+                            "path": f"/pages/{index}/fields/{at}/type",
+                            "message": f"{field['type']} questions are not enabled here.",
+                        }
+                    )
+        return errors
+
+    @staticmethod
+    def merged(before: dict, body: dict) -> dict:
+        """A replace keeps a ``trust`` or ``logo`` key the document leaves out."""
+        result = dict(body)
+        for part in ("trust", "logo"):
+            if isinstance(before.get(part), dict) and part in body:
+                result[part] = {**before[part], **(body[part] or {})}
+            elif part in before and part not in body:
+                result[part] = before[part]
+        return result
+
     def handle(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
-        if request.headers.get("Authorization") != f"Bearer {KEY}":
+        if request.headers.get("Authorization") != f"Bearer {self.key}":
             return self.error(401, "unauthorized", "Provide a valid workspace API key.")
         assert request.url.path.startswith(PREFIX)
         parts = request.url.path[len(PREFIX) :].strip("/").split("/")
@@ -55,11 +99,7 @@ class FakeApi:
                 200, json={"items": items, "page": 1, "size": 50, "total": len(items)}
             )
         if parts == ["forms", "validate"]:
-            errors = []
-            if body.get("specVersion") != "1":
-                errors.append(
-                    {"path": "/specVersion", "message": "Input should be '1'"}
-                )
+            errors = self.problems(body)
             return httpx.Response(
                 200,
                 json={
@@ -70,6 +110,11 @@ class FakeApi:
                 },
             )
         if parts == ["forms"] and method == "POST":
+            errors = self.problems(body)
+            if errors:
+                return self.error(
+                    422, "invalid_spec", "The document is not valid.", errors=errors
+                )
             form_id = f"f{len(self.forms) + 1}"
             self.add(form_id, body)
             return httpx.Response(
@@ -90,30 +135,67 @@ class FakeApi:
                 return self.error(428, "precondition_required", "Send If-Match.")
             if if_match != self.etag(form_id):
                 return self.error(412, "precondition_failed", "The form changed.")
-            self.forms[form_id] = body
+            self.forms[form_id] = self.merged(self.forms[form_id], body)
             self.versions[form_id] += 1
-            return httpx.Response(200, json=body, headers={"ETag": self.etag(form_id)})
+            return httpx.Response(
+                200, json=self.forms[form_id], headers={"ETag": self.etag(form_id)}
+            )
         if parts[2:] == ["replace", "dry-run"]:
             before = self.forms[form_id]
+            after = self.merged(before, body)
             changes = [
-                {"path": f"/{k}", "before": before.get(k), "after": body.get(k)}
-                for k in sorted(set(before) | set(body))
-                if k != "pages" and before.get(k) != body.get(k)
+                {"path": f"/{k}", "before": before.get(k), "after": after.get(k)}
+                for k in sorted(set(before) | set(after))
+                if k != "pages" and before.get(k) != after.get(k)
             ]
-            diff = {
-                "form": changes,
-                "pages": {"added": [], "removed": [], "moved": [], "changed": []},
-                "fields": {"added": [], "removed": [], "moved": [], "changed": []},
-                "changed": bool(changes),
+            old, new = _fields(before), _fields(after)
+            fields = {
+                "added": [
+                    {"id": i, "path": f"/fields/{i}"} for i in new if i not in old
+                ],
+                "removed": [
+                    {"id": i, "path": f"/fields/{i}"} for i in old if i not in new
+                ],
+                "moved": [],
+                "changed": [
+                    {
+                        "id": i,
+                        "changes": [
+                            {
+                                "path": f"/fields/{i}/{k}",
+                                "before": old[i].get(k),
+                                "after": new[i].get(k),
+                            }
+                            for k in sorted(set(old[i]) | set(new[i]))
+                            if old[i].get(k) != new[i].get(k)
+                        ],
+                    }
+                    for i in old
+                    if i in new and old[i] != new[i]
+                ],
             }
+            changed = bool(
+                changes or fields["added"] or fields["removed"] or fields["changed"]
+            )
+            errors = self.problems(body)
             return httpx.Response(
                 200,
                 json={
-                    "valid": True,
-                    "errors": [],
+                    "valid": not errors,
+                    "errors": errors,
                     "warnings": [],
-                    "form": body,
-                    "diff": diff,
+                    "form": after,
+                    "diff": {
+                        "form": changes,
+                        "pages": {
+                            "added": [],
+                            "removed": [],
+                            "moved": [],
+                            "changed": [],
+                        },
+                        "fields": fields,
+                        "changed": changed,
+                    },
                 },
             )
         if parts[2:] == ["submissions"] and method == "POST":

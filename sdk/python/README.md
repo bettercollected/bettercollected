@@ -70,6 +70,29 @@ bettercollected push signup.json --force         # overwrite changes made since 
 the file (no secrets). `push` replaces the form only while it is still that
 version, and refuses otherwise; `--force` fetches the current version first.
 
+### Create, and promote between workspaces
+
+```bash
+bettercollected create signup.json               # a new draft from a file (never published)
+
+# staging -> production: the key of each workspace comes from the environment
+export BETTERCOLLECTED_STAGING_URL=https://staging.forms.example.org
+export BETTERCOLLECTED_STAGING_API_KEY=bc_...
+export BETTERCOLLECTED_PRODUCTION_URL=https://forms.example.org
+export BETTERCOLLECTED_PRODUCTION_API_KEY=bc_...
+
+bettercollected promote 6123abc --from staging --to production --dry-run
+bettercollected promote 6123abc --from staging --to production                    # a new draft
+bettercollected promote 6123abc --from staging --to production --to-form 6456def  # update its draft
+```
+
+`promote` copies the form's document, shows what is adjusted and what never
+moves (responses, automations, sharing, link, publish state, logo file), shows
+a diff against the target form when you name one, and always writes a draft.
+An existing target keeps its own retention, purpose and privacy link unless
+you add `--copy-privacy`. Keys are never read from the command line. See
+[Environments](https://github.com/bettercollected/bettercollected/blob/develop/docs/environments.md).
+
 ## Development
 
 From `sdk/python` in the repository:
