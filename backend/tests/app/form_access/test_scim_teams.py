@@ -651,3 +651,53 @@ async def test_a_person_listed_by_hand_and_in_the_group_is_flagged_as_both(world
     ).json()
     (member,) = detail["members"]
     assert (member["viaDirectory"], member["alsoViaDirectory"]) == (False, True)
+
+
+async def test_a_link_row_without_its_group_is_not_counted_as_feeding_the_team(world):
+    """A row left behind by a failed or interleaved clean-up (its group is gone)
+    must not leave the team's linked count wrong."""
+    await container.scim_group_team_link_repo().save_document(
+        ScimGroupTeamLinkDocument(
+            id=derived_id("scim_group_team_link", "6ae000000000000000000999"),
+            group_id=RecordId("6ae000000000000000000999"),
+            team_id=world.team.id,
+            workspace_id=world.workspace.id,
+        )
+    )
+    repo = container.scim_group_team_link_repo()
+    assert await repo.link_counts(world.workspace.id) == {}
+    await link(world, "g-hr", world.team)
+    assert await repo.link_counts(world.workspace.id) == {str(world.team.id): 1}
+    listed = (
+        await world.client.get(f"{api(world.workspace)}/member-groups", cookies=cookies(testUser))
+    ).json()
+    assert {t["name"]: t["linkedGroups"] for t in listed} == {"Hiring": 1}
+
+
+async def test_a_link_made_while_the_directory_drops_the_group_is_recorded_when_removed(
+    world, monkeypatch
+):
+    """The unlink entry is written for the link row that was actually removed,
+    not for one read before the delete."""
+    group = await scim_group(world, "g-hr")
+    members = container.scim_group_member_repo()
+    original = members.delete_by_group
+
+    async def delete_then_link(group_id):
+        removed = await original(group_id)
+        # the owner links the group at this very moment (it still exists)
+        await container.scim_group_team_link_repo().set(
+            world.workspace.id, group_id, world.team.id, str(testUser.id)
+        )
+        return removed
+
+    monkeypatch.setattr(members, "delete_by_group", delete_then_link)
+    await container.scim_sync_service()._drop_group(group)
+    monkeypatch.setattr(members, "delete_by_group", original)
+
+    assert await container.scim_group_team_link_repo().link_counts(world.workspace.id) == {}
+    (entry,) = await audit_events(world.workspace, TEAM_LINKED)
+    assert (entry.group_id, entry.scim_group_id, entry.linked) == (
+        str(world.team.id), str(group.id), False,
+    )
+    assert entry.user_id == "scim"

@@ -589,20 +589,18 @@ class ScimSyncService:
         return group
 
     async def _drop_group(self, group: ScimGroupDocument) -> None:
-        """The directory no longer has the group: its memberships, its link to
-        a team and the group go (the team keeps its other members and its
+        """The directory no longer has the group: its memberships, the group
+        and its link to a team go (the team keeps its other members and its
         grants; who it held through this group is read from the group, so they
-        are out at once). A linked group leaves an audit entry, ids only (best
-        effort: the directory's change is not held up)."""
-        team_id = None
-        if self._team_links is not None:
-            link = await self._team_links.find(group.workspace_id, group.id)
-            team_id = str(link.team_id) if link is not None else None
+        are out at once). The audit entry (ids only, best effort: the
+        directory's change is not held up) is written for the link row that was
+        actually removed, after the group is gone, so a link made while this
+        ran is recorded too."""
         await self._members.delete_by_group(group.id)
         await self._groups.delete(group.id)
-        if self._team_links is not None:
-            await self._team_links.delete_for_group(group.id)
-        if team_id:
+        if self._team_links is None:
+            return
+        for team_id in await self._team_links.delete_for_group(group.id):
             await access_audit.record(
                 self._audit,
                 TEAM_LINKED,

@@ -23,7 +23,7 @@ from http import HTTPStatus
 from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import and_, func, not_, or_, select
+from sqlalchemy import and_, delete, func, not_, or_, select
 from sqlalchemy.exc import IntegrityError
 
 from backend.app.exceptions import HTTPException
@@ -89,6 +89,7 @@ from common.records import (
     row_values,
     to_bson,
 )
+from common.db.tombstones import record_postgres
 from common.records.repository import RecordRepository
 from common.enums.workspace_invitation_status import InvitationStatus
 from common.clock import utcnow
@@ -1090,10 +1091,13 @@ class PostgresScimGroupTeamLinkRepository(RecordRepository):
         )
 
     async def link_counts(self, workspace_id) -> Dict[str, int]:
-        """team id -> how many directory groups of the workspace are linked to it."""
+        """team id -> how many directory groups of the workspace are linked to it.
+        Counts only links whose group still exists: a row left behind by a
+        failed or interleaved clean-up is not a group feeding the team."""
         async with self._session() as session:
             rows = await session.execute(
                 select(ScimGroupTeamLinkRow.team_id, func.count())
+                .join(ScimGroupRow, ScimGroupRow.id == ScimGroupTeamLinkRow.group_id)
                 .where(ScimGroupTeamLinkRow.workspace_id == _oid(workspace_id))
                 .group_by(ScimGroupTeamLinkRow.team_id)
             )
@@ -1152,9 +1156,25 @@ class PostgresScimGroupTeamLinkRepository(RecordRepository):
             ScimGroupTeamLinkRow.group_id == _oid(group_id),
         )
 
-    async def delete_for_group(self, group_id) -> int:
-        """The group is gone."""
-        return await self.delete_where(ScimGroupTeamLinkRow.group_id == _oid(group_id))
+    async def delete_for_group(self, group_id) -> List[str]:
+        """The group is gone: remove its link and return the team ids of the
+        rows actually removed (``DELETE ... RETURNING``), so the caller records
+        exactly what ended, including a link made a moment ago."""
+        async with self._session() as session, session.begin():
+            removed = (
+                await session.execute(
+                    delete(ScimGroupTeamLinkRow)
+                    .where(ScimGroupTeamLinkRow.group_id == _oid(group_id))
+                    .returning(ScimGroupTeamLinkRow.id, ScimGroupTeamLinkRow.team_id)
+                )
+            ).all()
+            await record_postgres(
+                session,
+                ScimGroupTeamLinkRow.__table__.schema,
+                ScimGroupTeamLinkRow.mongo_collection(),
+                [row_id for row_id, _ in removed],
+            )
+        return [str(team_id) for _, team_id in removed]
 
     async def delete_for_directory(self, directory_id) -> int:
         """The directory is gone: every link of its groups."""
