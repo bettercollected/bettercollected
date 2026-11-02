@@ -496,14 +496,23 @@ describe('the needs-review mark', () => {
     });
 
     it('shows the banner for a marked form, and drops it once the report says reviewed', async () => {
+        // The report is held back until the first check, so the banner is seen before the report arrives.
+        let sendReport: () => void = () => {};
+        const report = new Promise<void>((resolve) => {
+            sendReport = resolve;
+        });
         vi.stubGlobal(
             'fetch',
-            vi.fn(async () => json(200, { ...IMPORT, needsReview: false }))
+            vi.fn(async () => {
+                await report;
+                return json(200, { ...IMPORT, needsReview: false });
+            })
         );
         await act(async () => {
             render(wrap(<Probe settings={marked} />));
         });
         expect(screen.getByTestId('shown')).toHaveTextContent('true');
+        sendReport();
         await waitFor(() => expect(screen.getByTestId('shown')).toHaveTextContent('false'));
     });
 
