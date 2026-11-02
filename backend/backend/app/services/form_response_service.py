@@ -55,6 +55,8 @@ from backend.app.repositories.response_scope import (
     response_scope,
 )
 from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
+from backend.app.schemas.workspace_audit_event import RESPONSES_DELETED
+from backend.app.services.form_access import audit
 from backend.app.models.dtos.deletion_request_dto import DeletionRequestOutcome
 from backend.app.schemas.standard_form_response import (
     DeclineReason,
@@ -155,7 +157,11 @@ class FormResponseService:
         registration_delivery_repo=None,
         webhook_log_repo=None,
         response_export_repo=None,
+        audit_repo=None,
     ):
+        # a staff deletion of a response is recorded in the workspace's audit
+        # log before it is made (services/form_access/audit.py)
+        self._audit_repo = audit_repo
         self._form_response_repo = form_response_repo
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
@@ -1107,14 +1113,28 @@ class FormResponseService:
         response_id: str,
         workspace_id: RecordId,
         expected_closures: Optional[int] = None,
+        actor: Optional[User] = None,
     ):
         """``expected_closures``: completing a deletion request, the closes
-        the caller saw on it (see the repository's ``delete_form_response``)."""
+        the caller saw on it (see the repository's ``delete_form_response``).
+        ``actor``: the staff member deleting it; the deletion is recorded in the
+        audit log first (ids only) and refused (503) when that cannot be
+        stored. No actor, no entry (the system's own deletions)."""
         existing = await self.workspace_response(workspace_id, response_id)
         if existing is None or str(existing.form_id) != str(form_id):
             # gone, or collected through another workspace (#768): its copy
             # there is never touched
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        if actor is not None:
+            await audit.record_or_refuse(
+                self._audit_repo,
+                RESPONSES_DELETED,
+                workspace_id,
+                actor,
+                form_id=str(form_id),
+                response_id=str(response_id),
+                count=1,
+            )
         await self._form_response_repo.delete_form_response(
             existing, expected_closures=expected_closures
         )
@@ -1206,6 +1226,7 @@ class FormResponseService:
                     response_id,
                     workspace_id,
                     expected_closures=len(request.closures),
+                    actor=user,
                 )
             elif await self._unresolved_copy(workspace_id, form_id, response_id):
                 # a copy this workspace may own (e.g. stored before #768

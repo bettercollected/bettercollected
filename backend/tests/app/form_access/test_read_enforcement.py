@@ -534,7 +534,13 @@ async def test_the_recipient_rule_is_off_while_the_switch_is_off(
 
 def _key(world, user):
     return SimpleNamespace(
-        workspace_id=world.workspace.id, created_by=str(user.id), name="reader", id="k"
+        workspace_id=world.workspace.id,
+        created_by=str(user.id),
+        name="reader",
+        id="k",
+        scopes=[],
+        role=None,
+        form_scope="all",
     )
 
 

@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, List, Optional
+from typing import Dict, FrozenSet, List, Optional
 
 from common.ids import RecordId
 from pydantic import BaseModel, EmailStr, Field
@@ -90,6 +90,11 @@ class User(BaseModel):
     # code). Set only by the backend when it signs the tokens, from the
     # session's own record; absent = none was presented (docs/totp.md).
     mfa: Optional[bool] = None
+    # An API key acting as its creator (backend ``api_access.acting_user``): the
+    # most the key may do, as permission names. Authorization never lets such a
+    # user hold more than this, whatever its creator holds. ``None`` (every
+    # session user, a key without a role) = no ceiling. Never part of a token.
+    key_ceiling: Optional[FrozenSet[str]] = Field(default=None, exclude=True)
 
     def is_admin(self):
         """
