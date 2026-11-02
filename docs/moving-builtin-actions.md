@@ -38,8 +38,15 @@ A command, `python -m backend.migrate_builtins`, does the move, form by form, af
 Run the commands inside the backend image, as the application's database role, for example (the self-hosted compose file; use your own service name elsewhere):
 
 ```bash
+# the self-hosted compose file
 docker compose -f docker-compose.deployment.yml exec backend python -m backend.migrate_builtins preflight
+
+# a Docker Swarm stack (no deploy.sh): run it in the backend service's container
+docker exec -i $(docker ps -q -f label=com.docker.swarm.service.name=<stack>_backend | head -n1) \
+    python -m backend.migrate_builtins preflight
 ```
+
+Every command takes `--workspace <id>` or `--form <id>`, so the move can be staged: one form, then one workspace, then the rest.
 
 ## The steps
 
@@ -79,6 +86,7 @@ It prints counts as JSON (never an address, recipient or secret) and exits 0 onl
 - `found.<action>`, `movable.<action>`, `forms_with_builtins`;
 - `blocked.<code>` (and `blocked.<code>.<action>`): `address_missing`, `address_invalid`, `address_not_allowed` (resolves to a private address), `address_unreachable`, `host_not_allowed`
   (Slack/Discord off their own address), `recipient_missing`, `recipient_not_member`, `cap_exceeded`, `switch_off`, `mail_not_configured`, `workspace_unavailable`, `temporal_unreachable`;
+- `blocked.form_changed` (apply: the form was saved between the check and the write; run it again), `blocked.queued_runs`;
 - `not_moved.disabled.<action>` (an action nobody had on that cannot move: left as it is), `skipped.form_v1` (forms of the first builder never ran their actions), `skipped.already_moved`, `dropped.mail_server`;
 - `open_run_action_workflows` when the executor runs on Temporal (below).
 
@@ -96,7 +104,10 @@ Run it again after each fix.
   Fix the connection. Only if you know for certain that nothing is open, `--temporal-drained` skips the check; it logs a warning, shows as `temporal_check_skipped_by_operator` in the output, and is recorded on every action it moved
   (in the entry's `migrated_to` as `temporal_check` and in the webhook's change history).
 - To look yourself: `temporal workflow list --query 'WorkflowType="run_action_code" AND ExecutionStatus="Running"'` (count only).
-- Once a form is moved, new submissions start no workflow for its moved actions, so the open ones only run down.
+- Once a form is moved, a moved action is off for good: switching it on again, or adding it to the form again, is refused (409), so new submissions start no workflow for it and the open ones only run down.
+  A submission that was being processed while the move landed is delivered by the executor and skipped by the new webhook or email action, not delivered twice.
+- A workflow that does not finish (a stuck run) holds its form back. Look at it in the Temporal UI; if you accept that its delivery (webhook, mail or sheet row) is **never made**, end it with
+  `temporal workflow terminate --workflow-id <id> --reason "moved built-in actions"`, then run `apply` again. Count such runs before you do it.
 
 ### 4. `apply`
 
@@ -115,16 +126,32 @@ and is not delivered twice.
 python -m backend.migrate_builtins verify
 ```
 
-Every moved action has its target, the target opens (address and secret), is on exactly when the old action was, and the old entry is off. Exit 0 and no `problem.*` key.
+Every moved action has its target, the target opens (address and secret), is on exactly when the old action was, and the old entry is off; the other way round, every moved webhook or email action has its source entry still marked (`problem.*_on_without_mark`: one is on while its old action is not marked, which would deliver twice; a switched-off one with no mark is only counted, as after a `rollback`). Exit 0 and no `problem.*` key.
 
 ### 6. Observe
 
 Submit a test response to a migrated form and look at its **Deliveries** (webhooks and email actions) in the form's settings. A Sheets run is in the same action log (type `sheets`; `failed` with a code such as
-`sheet_missing`, `oauth_token_missing`, `sheet_access_denied`). Expect no `action_run_not_queued` errors in the backend's log. Keep the executor for at least one release: **`rollback` is possible until you finalize**.
+`sheet_missing`, `oauth_token_missing`, `sheet_access_denied`). Expect no `action_run_not_queued` errors in the backend's log. Keep the executor for at least one release: `rollback` stays possible as long as the executor is deployed. (There is no `finalize` step yet: a later release adds one that deletes the old, switched-off entries; until then nothing is deleted.)
 
 ### 7. Executor to 0
 
-When the delivery logs look right, no custom action is in use (step 1), `preflight` shows no open `run_action_code` workflows (or the Postgres queue is empty) and `verify` is clean:
+Only when **all** of this holds:
+
+- no custom action is in use (step 1's second query shows 0 attached);
+- **no built-in entry is still on and unmoved**: blocked or unmoved entries still need the executor. This must return no rows:
+
+  ```sql
+  SELECT a.doc->>'name' AS action, count(*) AS still_on
+    FROM app.forms f
+    CROSS JOIN LATERAL jsonb_array_elements(COALESCE(f.doc->'actions'->'on_submit','[]'::jsonb)) e
+    JOIN app.actions a ON a.id::text = e->>'id'
+   WHERE COALESCE((a.doc->>'predefined')::boolean,false)
+     AND COALESCE((e->>'enabled')::boolean,false)
+     AND (e->>'migrated_to') IS NULL
+   GROUP BY 1;
+  ```
+
+- `preflight` shows no open `run_action_code` workflows (or the Postgres queue is empty) and `verify` is clean; the delivery logs looked right in step 6.
 
 ```bash
 python -m backend.migrate_builtins preflight     # nothing blocked, open_run_action_workflows 0 (Temporal)
@@ -139,7 +166,8 @@ If a custom action is in use the executor stays (only for it). Removing the exec
 python -m backend.migrate_builtins rollback [--workspace <id>]
 ```
 
-The old entries are switched on again as they were (and the Sheets mark removed), the moved webhooks and email actions are switched **off** and their rows and logs kept. It needs the executor to be running. Running `apply` again
+The old entries are switched on again as they were (and the Sheets mark removed), the moved webhooks and email actions are switched **off** and their rows and logs kept. It needs the executor to be running.
+**Anything a creator changed on a moved webhook or email action after the move (its address, questions, words, condition) is not carried back:** the old action returns with the settings it had, and the changed one is kept, switched off and unused. Running `apply` again
 finds the same rows (their ids are derived from the form and the action): none is added twice.
 
 ## Exit codes
