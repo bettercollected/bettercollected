@@ -36,6 +36,7 @@ from backend.app.services.ai.untrusted import UNTRUSTED_CONTENT_RULES, fence
 from backend.app.services.ai.usage import AIUsageGuard
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.models.enum.permission import Permission
+from backend.app.services.form_access.mode import form_if_enforced
 from backend.config import settings
 
 # Baseline checks that apply to every form, before any org-specific rules.
@@ -194,7 +195,12 @@ class FormAIReviewService:
         self, workspace_id: RecordId, form_id: str, user: User
     ) -> FormDocument:
         # Reviewing and fixing are part of building the form.
-        await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
+        await self._authorization.authorize(
+            user,
+            Permission.FORM_EDIT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
+        )
         # The form must belong to THIS workspace (same rule as chat and MCP).
         association = await self._workspace_form_repo.find_workspace_form(
             workspace_id, form_id

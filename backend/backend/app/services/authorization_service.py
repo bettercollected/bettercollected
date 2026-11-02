@@ -280,6 +280,28 @@ class AuthorizationService:
         visible = await self.visible_form_ids(user, workspace_id, permission, ids)
         return ids if visible is None else [f for f in ids if f in visible]
 
+    async def delivery_log_permissions(
+        self,
+        user: Optional[User],
+        workspace_id: Union[RecordId, str, None],
+        form_id: Union[RecordId, str, None],
+    ) -> FrozenSet[Permission]:
+        """The workspace-level permissions that open a form's delivery log
+        (webhooks, email actions): ``effective_permissions`` exactly, except
+        that while form-level access is on ``audit.read`` alone does not open
+        the log of a restricted form (a Privacy officer sees no log of a form
+        they may not edit), whoever may edit the form or is an Owner or Admin
+        still does."""
+        held = await self.effective_permissions(
+            user, workspace_id, raise_sso_required=True
+        )
+        if form_id is None or not form_access_enabled():
+            return held
+        decided = await self.form_permissions(user, workspace_id, form_id)
+        if decided.restricted and Permission.FORM_EDIT not in decided.permissions:
+            return held - {Permission.AUDIT_READ}
+        return held
+
     async def staff_permissions_on(
         self,
         user: Optional[User],
@@ -396,23 +418,28 @@ class AuthorizationService:
         workspace = await self._workspace_repo.find_by_id(workspace_oid)
         if workspace is None:
             return frozenset()
-        holders = set()
-        for membership in await self._workspace_user_repo.get_workspace_users(
-            workspace_oid
-        ):
-            if membership.disabled:
-                continue
-            base = self._membership_access(
+        bases = [
+            self._membership_access(
                 workspace,
                 membership,
                 str(membership.user_id),
                 str(workspace_oid),
                 is_owner_membership(workspace, membership),
             )
-            decided = await self._form_permissions(base, form_id)
-            if permission in decided.permissions:
-                holders.add(str(membership.user_id))
-        return frozenset(holders)
+            for membership in await self._workspace_user_repo.get_workspace_users(
+                workspace_oid
+            )
+            if not membership.disabled
+        ]
+        # the form and its grants are read once for every member, not per member
+        decided = await self._required_form_access().permissions_for_members(
+            bases, str(form_id)
+        )
+        return frozenset(
+            user_id
+            for user_id, held in decided.items()
+            if permission in held.permissions
+        )
 
     async def has_permission(
         self,
