@@ -49,6 +49,7 @@ from backend.app.repositories.postgres.member_groups import (
 from backend.app.schemas.form_access_grant import (
     ROLE_REVIEWER,
     ROLE_VIEWER,
+    MEMBER_SUBJECTS,
     SUBJECT_GROUP,
     SUBJECT_USER,
     FormAccessGrantDocument,
@@ -650,7 +651,10 @@ class FormAccessAdminService:
             if _valid_id(grant_id)
             else None
         )
-        if grant is None:
+        if grant is None or grant.subject_type not in MEMBER_SUBJECTS:
+            # (the repository already finds people's and teams' grants only: an
+            # API key's row is not a grant of this route, and is never named
+            # in its audit entry)
             raise _not_found("Grant not found")
         if not base.privileged:
             # the same caps as giving it: no taking away, then giving back

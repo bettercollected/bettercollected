@@ -306,6 +306,7 @@ environment, whatever the tier.
 | `DOC_SANDBOX_PARALLEL` | pdf_import | backend | int 1..64 |  | R | T5 | `2` |
 | `PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX` | pdf_import | backend | bool |  | R | T5 | `false` |
 | `PDF_IMPORT_SANDBOX_SOCKET` | pdf_import | backend | str |  | R | T5 |  |
+| `API_KEY_ROLES_ENABLED` | security | backend | bool |  | R | T5 | `false` |
 | `FORM_ACCESS_ENABLED` | security | backend | bool |  | R | T5 | `false` |
 | `ACTION_EGRESS_ALLOW` | services | actions_executor | str |  | R | T5 |  |
 | `ACTION_EXECUTOR_KEY_ALLOWED` | services | actions_executor | bool |  | R | T5 | `true` |

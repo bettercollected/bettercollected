@@ -49,7 +49,10 @@ async def test_the_subject_type_is_part_of_the_key(workspace, grants):
     await grant(workspace, form_id, "x1", ROLE_VIEWER, subject_type="user")
     await grant(workspace, form_id, "x1", ROLE_VIEWER, subject_type="group")
     await grant(workspace, form_id, "x1", ROLE_VIEWER, subject_type="key")
-    assert len(await grants.list_for_form(workspace.id, form_id)) == 3
+    # three rows, one per subject type; the member-facing reads see people and
+    # teams only, an API key's row is read through its own methods
+    assert len(await grants.list_for_form(workspace.id, form_id)) == 2
+    assert (await grants.for_key_on_form(workspace.id, "x1", form_id)).subject_type == "key"
 
 
 async def test_the_table_refuses_a_duplicate_the_repository_did_not_derive(workspace):

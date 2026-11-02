@@ -32,6 +32,7 @@ from backend.config.google_sheets_settings import GoogleSheetsSettings
 from backend.config.OpenAISettings import OpenAISettings
 from backend.config.open_formulieren_settings import OpenFormulierenSettings
 from backend.config.registration_settings import RegistrationSettings
+from backend.config.api_key_roles_settings import ApiKeyRolesSettings
 from backend.config.form_access_settings import FormAccessSettings
 from backend.config.totp_settings import TotpSettings
 from backend.config.webhooks_settings import WebhooksSettings
@@ -212,6 +213,7 @@ class Application(StoreBackedSettings):
     webhooks: WebhooksSettings = WebhooksSettings()
     totp: TotpSettings = TotpSettings()
     form_access: FormAccessSettings = FormAccessSettings()
+    api_key_roles: ApiKeyRolesSettings = ApiKeyRolesSettings()
     email_actions: EmailActionsSettings = EmailActionsSettings()
     mail_settings: MailSettings = MailSettings()
     # the From display name of mails the backend sends (never a workspace's)

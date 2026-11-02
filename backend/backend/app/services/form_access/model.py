@@ -99,6 +99,10 @@ class BaseAccess:
     privileged: bool = False
     privacy_officer: bool = False
     workspace_disabled: bool = False
+    # an API key acting as this member: the most the key may do (``permissions``
+    # is already narrowed to it; a grant or a creator's rights on a form are
+    # narrowed to it too). ``None`` = no ceiling, every session user.
+    ceiling: Optional[FrozenSet[Permission]] = None
 
 
 @dataclass(frozen=True)
