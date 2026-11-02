@@ -19,7 +19,9 @@ Rules this module keeps:
 * Bounded: at most ``MAX_ROWS`` rows (413 ``too_many_rows`` before anything is
   recorded or sent: narrow the filters), a few exports per person per window
   (429 ``rate_limited``), and the file is streamed in batches, never built in
-  memory.
+  memory. A request refused after the bounded scan (413, 503) has used its
+  slot, so repeating it cannot scan for free; only a failure of the scan itself
+  gives the slot back.
 * CSV cells are neutralised against spreadsheet formulas (names are text staff
   typed), through the response export's own guard.
 """
@@ -224,29 +226,35 @@ class AuditLogExport:
         scope = replace(scope, until=min(_aware(scope.until) or now, now))
         try:
             rows = await self._reader.count_up_to(scope, MAX_ROWS + 1)
-            if rows > MAX_ROWS:
-                raise _error(
-                    HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
-                    "too_many_rows",
-                    f"That is more than {MAX_ROWS} entries. Narrow the filters "
-                    "(a date range, a type or a person) and export again.",
-                )
-            await audit.record_or_refuse(
-                self._audit,
-                AUDIT_LOG_EXPORTED,
-                workspace_id,
-                user,
-                export_format=format,
-                count=rows,
-                export_filters=self._filter_names(
-                    areas, events, actor, target, involving, scope.form_id, since, until
-                ),
-                form_id=scope.form_id,
-            )
         except Exception:
-            # a request that was refused is not an export: it keeps no budget
+            # the scan itself failed (the store, not the caller): nothing was
+            # counted, so the request keeps no budget
             await self._give_back(limiter_scope, str(user.id))
             raise
+        # from here the scan has run: a request that is refused after it (too
+        # many entries, the entry not stored) has used its slot, so repeating it
+        # cannot scan for free
+        if rows > MAX_ROWS:
+            raise _error(
+                HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                "too_many_rows",
+                f"That is more than {MAX_ROWS} entries. Narrow the filters "
+                "(a date range, a type or a person) and export again.",
+            )
+        await audit.record_or_refuse(
+            self._audit,
+            AUDIT_LOG_EXPORTED,
+            workspace_id,
+            user,
+            export_format=format,
+            count=rows,
+            export_filters=self._filter_names(
+                areas, events, actor, target, involving, scope.form_id, since, until
+            ),
+            # the form's id only for a form's own export (its route); a form
+            # filter on the workspace's export is recorded as a filter name
+            form_id=str(form_id) if form_id else None,
+        )
         batches = self._limited(self._reader.batches(scope, BATCH), rows)
         if format == "csv":
             text, media = csv_text(batches), "text/csv; charset=utf-8"

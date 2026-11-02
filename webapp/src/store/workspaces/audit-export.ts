@@ -3,7 +3,7 @@ import { pathSegment } from '@app/store/workspaces/api';
 
 // Taking the audit log out as a file (backend controllers/audit_log_export_router.py, docs/audit-log.md): the file of
 // the filters on screen, CSV or JSON. The answer is a file, not JSON, so it is fetched here and handed to the browser
-// as a download; a refusal carries a `code` the dialog words in the reader's language.
+// as a download (a fetch, which the server requires: a followed link is refused); a refusal carries a `code` the dialog words in the reader's language.
 
 export type AuditExportFormat = 'csv' | 'json';
 
@@ -25,7 +25,7 @@ export async function requestAuditExport({ workspaceId, formId, query, format }:
     search.set('format', format);
     const path = `/workspaces/${pathSegment(workspaceId)}${formId ? `/forms/${pathSegment(formId)}` : ''}/audit-log/export?${search.toString()}`;
     try {
-        const response = await fetch(`${environments.API_ENDPOINT_HOST}${path}`, { method: 'GET', credentials: 'include' });
+        const response = await fetch(`${environments.API_ENDPOINT_HOST}${path}`, { method: 'GET', mode: 'cors', credentials: 'include' });
         if (!response.ok) {
             let code = `http_${response.status}`;
             try {

@@ -393,12 +393,13 @@ async def test_an_export_is_recorded_before_it_starts_with_names_of_filters_neve
     (row,) = await audit_events(workspace, E.AUDIT_LOG_EXPORTED)
     assert row.user_id == testUser.id and row.export_format == "json" and row.count == 2
     assert row.export_filters == ["area", "actor", "form", "from"]
-    assert row.form_id == form
+    # a form filter of the workspace export is a filter name, not the entry's form
+    assert row.form_id is None
     # no value of a filter, no name, no row content in the entry
     present = {k: v for k, v in row.model_dump().items() if v is not None}
-    # nothing but the format, the count, the filters' names and the form is stored
+    # nothing but the format, the count and the filters' names is stored (a form's own export adds its id)
     assert set(present) - {"id", "workspace_id", "user_id", "session_id", "event", "created_at", "updated_at"} == {
-        "form_id", "count", "export_format", "export_filters",
+        "count", "export_format", "export_filters",
     }
     assert not {"actor", "area", "from"} & {str(v) for v in present.values() if isinstance(v, str)}
     assert "2026-09-01" not in row.model_dump_json()
@@ -495,23 +496,87 @@ async def test_the_walk_never_sends_more_than_the_cap_whatever_arrived_since_the
     assert got == [2, 2, 1]
 
 
-async def test_a_person_has_a_budget_of_exports_and_a_refused_one_does_not_spend_it(
+async def test_a_person_has_a_budget_of_exports_and_a_request_refused_after_the_scan_has_used_it(
     client: AsyncClient, workspace, monkeypatch
 ):
     monkeypatch.setattr(X, "EXPORTS_PER_WINDOW", 2)
     monkeypatch.setattr(X, "MAX_ROWS", 1)
     await seed(workspace, E.ACCESS_MODE_CHANGED, 1)
     await seed(workspace, E.ACCESS_MODE_CHANGED, 2)
-    # over the cap: refused, and the budget is given back
-    for _ in range(3):
-        assert (await get(client, workspace)).status_code == 413
-    narrow = {"from": (BASE + dt.timedelta(minutes=2)).isoformat(), "event": E.ACCESS_MODE_CHANGED}
-    assert (await get(client, workspace, **narrow)).status_code == 200
-    assert (await get(client, workspace, **narrow)).status_code == 200
-    third = await get(client, workspace, **narrow)
+    # over the cap: refused, and each refusal used a slot (it scanned), so
+    # repeating it cannot scan for free
+    assert (await get(client, workspace)).status_code == 413
+    assert (await get(client, workspace)).status_code == 413
+    third = await get(client, workspace)
     assert third.status_code == 429, third.text
     assert third.json()["code"] == "rate_limited" and int(third.headers["retry-after"]) >= 1
-    assert len(await audit_events(workspace, E.AUDIT_LOG_EXPORTED)) == 2
+    assert await audit_events(workspace, E.AUDIT_LOG_EXPORTED) == []
     # another person has their own budget
+    narrow = {"from": (BASE + dt.timedelta(minutes=2)).isoformat(), "event": E.ACCESS_MODE_CHANGED}
     admin = await add_member(workspace, "ADMIN")
     assert (await get(client, workspace, admin, **narrow)).status_code == 200
+    assert (await get(client, workspace, admin, **narrow)).status_code == 200
+    again = await get(client, workspace, admin, **narrow)
+    assert again.status_code == 429
+    assert len(await audit_events(workspace, E.AUDIT_LOG_EXPORTED)) == 2
+
+
+async def test_a_failed_scan_gives_the_slot_back_and_a_refusal_before_it_never_took_one(
+    client: AsyncClient, workspace, monkeypatch
+):
+    monkeypatch.setattr(X, "EXPORTS_PER_WINDOW", 1)
+    reader = container.audit_log_reader()
+    real = reader.count_up_to
+
+    async def broken(scope, cap):
+        raise RuntimeError("store down")
+
+    monkeypatch.setattr(reader, "count_up_to", broken)
+    for _ in range(3):
+        assert (await get(client, workspace)).status_code == 500
+    monkeypatch.setattr(reader, "count_up_to", real)
+    # the slot came back each time: the one export of the window is still there
+    assert (await get(client, workspace)).status_code == 200
+    # refusals made before the scan (an invalid filter, no permission) took none
+    other = await add_member(workspace, "ADMIN")
+    assert (await get(client, workspace, other, area="nonsense")).status_code == 422
+    assert (await get(client, workspace, testUser1)).status_code == 403
+    assert (await get(client, workspace, other)).status_code == 200
+
+
+# -- a link on another site cannot start one ---------------------------------------------------------
+@pytest.mark.parametrize("mode", ["navigate", "no-cors", "same-origin", "websocket", "NAVIGATE"])
+async def test_a_browser_navigation_or_subresource_cannot_start_an_export(
+    client: AsyncClient, workspace, workspace_form, mode
+):
+    """The cookie is SameSite=Lax: a followed link (``Sec-Fetch-Mode: navigate``)
+    carries it, so such a request is refused, before anything is read, recorded
+    or counted against the budget."""
+    for form in (None, workspace_form.form_id):
+        response = await client.get(
+            url(workspace, form),
+            cookies=cookies(testUser),
+            headers={"Sec-Fetch-Mode": mode, "Sec-Fetch-Site": "cross-site", "Sec-Fetch-Dest": "document"},
+        )
+        assert response.status_code == 403, (mode, response.text)
+        assert response.json()["code"] == "export_needs_fetch"
+    assert await audit_events(workspace, E.AUDIT_LOG_EXPORTED) == []
+
+
+async def test_the_dashboards_fetch_and_clients_that_send_no_fetch_metadata_still_export(
+    client: AsyncClient, workspace, monkeypatch
+):
+    monkeypatch.setattr(X, "EXPORTS_PER_WINDOW", 3)
+    # the dashboard asks with fetch (cors), from its own site or a custom domain
+    for site in ("same-origin", "same-site", "cross-site"):
+        response = await client.get(
+            url(workspace),
+            cookies=cookies(testUser),
+            headers={"Sec-Fetch-Mode": "cors", "Sec-Fetch-Site": site, "Sec-Fetch-Dest": "empty"},
+        )
+        assert response.status_code == 200, (site, response.text)
+    # a script or curl sends none of these headers
+    monkeypatch.setattr(X, "EXPORTS_PER_WINDOW", 10)
+    assert (await get(client, workspace)).status_code == 200
+    # and the refused navigations above spent no budget: the count is the four exports
+    assert len(await audit_events(workspace, E.AUDIT_LOG_EXPORTED)) == 4

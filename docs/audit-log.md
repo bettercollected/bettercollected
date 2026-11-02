@@ -181,7 +181,8 @@ list; both answer 422 `audit_log_off` while the switch is off. The Activity page
 - **Recorded first.** An export is the one read of the log that is recorded: an
   `audit_log_exported` entry (area Security) holds the format, the number of
   entries, the names of the filters used (never their values) and, for a form's
-  export, the form's id. It is stored before the first byte is sent, and when it
+  own export (its route), the form's id; a form filter of the workspace export is
+  only the filter name `form`. It is stored before the first byte is sent, and when it
   cannot be stored the export is refused (503 `audit_unavailable`) and nothing is
   sent. A refused export (not allowed, an invalid filter, too many entries, over
   the budget) records nothing. The file holds what existed when it was asked for,
@@ -195,8 +196,17 @@ list; both answer 422 `audit_log_off` while the switch is off. The Activity page
   them, and the file starts with a byte order mark so a spreadsheet reads UTF-8.
 - **Bounded.** At most 100 000 entries (413 `too_many_rows`: narrow the filters, for
   example with a date range), and five exports per person and workspace in ten
-  minutes (429 `rate_limited`, with `Retry-After`; a refused request does not use
-  the budget). The file is streamed in batches of 500 and never built in memory.
+  minutes (429 `rate_limited`, with `Retry-After`). A request refused after the
+  count (413, or the entry not stored) has used its slot, so repeating it cannot
+  count for free; a refusal before the count (not allowed, an invalid filter) or a
+  failure of the count itself takes none. The file is streamed in batches of 500
+  and never built in memory.
+- **Only from the dashboard.** The export is a GET and the session cookie is
+  SameSite=Lax, which a link on another site still carries. A browser request
+  that is not a `fetch` (`Sec-Fetch-Mode` other than `cors`: a followed link, an
+  image, a frame) is refused with 403 `export_needs_fetch`, before anything is
+  read, recorded or counted. Scripts that send no such header are unaffected. The
+  file name reaches the webapp through the API's CORS-exposed `Content-Disposition`.
 - **Columns.** CSV columns are the list's fields in snake case (`id`, `event`,
   `area`, `at` in UTC, `actor_id`, ...) then `actor_name`, `target_name`,
   `to_name`, `form_title`, `team_name`; JSON has the same fields in camel case in
