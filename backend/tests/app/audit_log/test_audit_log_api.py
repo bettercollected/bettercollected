@@ -331,7 +331,8 @@ def test_every_field_of_a_stored_entry_is_returned_or_withheld_on_purpose():
         "form_id", "response_id", "revision", "group_id", "grant_role", "grant_export",
         "access_mode", "role", "previous_role", "count", "required", "export_channel",
         "export_format", "key_id", "reason", "key_role", "key_role_before", "form_scope",
-        "widened", "method", "path",
+        "widened", "method", "path", "connection_type", "directory_type", "enabled",
+        "provider", "changed",
     }
     # actor_id is user_id; at is created_at
     withheld = {
@@ -340,6 +341,9 @@ def test_every_field_of_a_stored_entry_is_returned_or_withheld_on_purpose():
         "updated_at",
         "invitation_id",  # an invitation has no screen
         "export_id",  # a pointer to a row the page cannot open
+        # ids of settings and integrations that have no screen of their own
+        "connection_id", "domain_id", "directory_id", "directory_group_id",
+        "action_id", "service_id",
     }
     dto = {n for n in AuditEntryDto.model_fields}
     stored = set(WorkspaceAuditEventDocument.model_fields)

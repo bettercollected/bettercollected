@@ -16,6 +16,7 @@ from httpx import AsyncClient
 from backend.app.container import container
 from backend.app.schemas.workspace_audit_event import (
     AI_CONSENT_CHANGED,
+    AUTOMATION_EVENTS,
     CUSTOM_DOMAIN_CHANGED,
     CUSTOM_DOMAIN_REMOVED,
     DOMAIN_CLAIMED,
@@ -33,6 +34,7 @@ from backend.app.schemas.workspace_audit_event import (
     SSO_DEFAULT_ROLE_CHANGED,
     SSO_REQUIRED_CHANGED,
 )
+from backend.app.services.audit_log import catalog
 from backend.config import settings
 from tests.app.auth_helpers import access_token
 from tests.app.controllers.data import testUser
@@ -411,7 +413,7 @@ async def test_mapping_a_group_to_a_role_records_ids_and_enum_roles(
     assert (await client.put(url, json={"role": "VIEWER"}, cookies=OWNER)).status_code == 200
 
     first, second = await audit_events(workspace, SCIM_GROUP_ROLE_CHANGED)
-    assert (first.group_id, first.role, first.previous_role) == (group["id"], "REVIEWER", None)
+    assert (first.directory_group_id, first.role, first.previous_role) == (group["id"], "REVIEWER", None)
     assert (second.role, second.previous_role) == ("VIEWER", "REVIEWER")
     assert first.directory_id == str(directory.id)
     # the group's name is not in the log
@@ -493,3 +495,33 @@ async def test_the_custom_domain_is_recorded_best_effort_without_the_hostname(
 def test_the_settings_kinds_are_distinct_and_listed():
     assert len(set(SETTINGS_EVENTS)) == len(SETTINGS_EVENTS) == 16
     assert RecordId  # the ids above are record ids
+
+
+async def test_the_reader_lists_the_new_kinds_in_their_areas_with_only_the_enum_fields(
+    client: AsyncClient, workspace, sso_on, monkeypatch
+):
+    from tests.app.form_access.helpers import api, cookies
+
+    monkeypatch.setattr(settings, "AUDIT_LOG_UI_ENABLED", True)
+    connection = await add_connection(workspace.id, enabled=False)
+    reply = await client.post(
+        sso(workspace, f"/connections/{connection.id}/enable"), cookies=OWNER
+    )
+    assert reply.status_code == 200, reply.text
+    for kind in SETTINGS_EVENTS:
+        assert catalog.area_of(kind) == "security", kind
+    for kind in AUTOMATION_EVENTS:
+        assert catalog.area_of(kind) == "integrations", kind
+
+    page = await client.get(
+        f"{api(workspace)}/audit-log", params={"area": "security"}, cookies=cookies(testUser)
+    )
+    assert page.status_code == 200, page.text
+    (entry,) = page.json()["entries"]
+    assert (entry["event"], entry["area"], entry["connectionType"]) == (
+        SSO_CONNECTION_ENABLED,
+        "security",
+        "saml",
+    )
+    # ids with no screen of their own are not returned
+    assert "connectionId" not in entry

@@ -608,7 +608,7 @@ class ScimDirectoryService:
                 workspace_id,
                 user,
                 directory_id=str(directory.id),
-                group_id=str(group.id),
+                directory_group_id=str(group.id),
                 role=role,
                 previous_role=group.role,
             )

@@ -35,7 +35,22 @@ list, an id that is not an id, or a range that ends before it starts is 422
 Areas: `access` (grants, a form's access mode, teams), `members`, `forms`,
 `responses` (previous answers read, answers edited, responses deleted, exports),
 `api_keys`, `security` (single sign-on break-glass use, the authenticator-app
-rule).
+rule, and changes to the workspace's security settings: single sign-on
+connections and the require-single-sign-on switch and default role, verified
+email domains, directory sync tokens and group roles, the AI consent, the custom
+domain) and `integrations` (email actions and case-system services and
+registrations: created, changed, switched on or off, deleted).
+
+Settings and integration entries carry ids and enum values only: the kind of
+connection or directory (`connectionType`, `directoryType`), an on/off setting's
+new value (`required`, `enabled`), the AI provider's id (`provider`), the roles
+before and after (`role`, `previousRole`) and, for an integration, `changed`:
+which parts changed, from a fixed list (for example `team_recipients`,
+`base_url`, `secret`), never their content. No hostname, URL, address, template,
+name, token or secret is stored. Changes that open access, send answers somewhere
+new or remove configuration are recorded before they are made and refused with
+503 `audit_unavailable` when the entry cannot be stored; closing a way in and
+creating something inert are best effort.
 
 ## What an entry holds
 

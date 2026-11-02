@@ -139,8 +139,8 @@ DOMAIN_REMOVED = "domain_removed"
 SCIM_TOKEN_CREATED = "scim_token_created"
 SCIM_TOKEN_ROTATED = "scim_token_rotated"
 SCIM_TOKEN_REVOKED = "scim_token_revoked"
-# a directory group mapped to a role or unmapped (``group_id``, ``role``,
-# ``previous_role``)
+# a directory group mapped to a role or unmapped (``directory_group_id``,
+# ``role``, ``previous_role``)
 SCIM_GROUP_ROLE_CHANGED = "scim_group_role_changed"
 # AI features turned on or off for the workspace (``enabled``, ``provider``)
 AI_CONSENT_CHANGED = "ai_consent_changed"
@@ -280,6 +280,9 @@ class WorkspaceAuditEventDocument(Record):
     domain_id: Optional[str] = None
     directory_id: Optional[str] = None
     directory_type: Optional[str] = None
+    # SCIM_GROUP_ROLE_CHANGED: the directory's group (not a team: ``group_id``
+    # is a team's)
+    directory_group_id: Optional[str] = None
     enabled: Optional[bool] = None
     provider: Optional[str] = None
     # AUTOMATION_EVENTS: the email action or case-system service (ids), and
