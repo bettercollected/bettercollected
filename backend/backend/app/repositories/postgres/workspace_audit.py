@@ -7,7 +7,7 @@ from sqlalchemy import or_, select, tuple_
 
 from backend.app.schemas.workspace_audit_event import WorkspaceAuditEventDocument
 from backend.db.models import WorkspaceAuditEventRow
-from common.records.codec import decode
+from common.records.codec import decode, row_values
 from common.records.repository import RecordRepository
 
 
@@ -22,6 +22,22 @@ class PostgresWorkspaceAuditRepository(RecordRepository):
     async def record(self, document: WorkspaceAuditEventDocument) -> None:
         """One plain INSERT: no read first, no uniqueness to check."""
         await self.upsert(document)
+
+    async def record_many(
+        self, documents: Sequence[WorkspaceAuditEventDocument]
+    ) -> None:
+        """Plain INSERTs of all the entries in one transaction: all are stored or
+        none."""
+        await self.upsert_many(documents)
+
+    async def record_many_in(
+        self, session, documents: Sequence[WorkspaceAuditEventDocument]
+    ) -> None:
+        """The same plain INSERTs in the caller's transaction, so the entries and
+        the change they describe are stored together or not at all."""
+        for document in documents:
+            self._check_collection(document, self.row)
+            await session.execute(self._upsert_statement(row_values(document)))
 
     @staticmethod
     def page_statement(

@@ -44,8 +44,8 @@ from backend.app.schemas.consent import WorkspaceConsentDocument
 from backend.app.services import form_availability
 from backend.app.services.form_access.mode import form_access_enabled
 from backend.app.services.form_concurrency import (
-    ensure_not_changed_since,
     form_changed,
+    is_changed_since,
     next_updated_at,
 )
 from backend.app.repositories.response_scope import ResponseScope
@@ -99,6 +99,23 @@ def apply_form_update(form_document: FormDocument, form: StandardForm) -> None:
     form_document.consent = form.consent if form.consent else form_document.consent
     if form.settings:
         _apply_settings_update(form_document, form.settings)
+
+
+def _is_already_stored(stored: FormDocument, form: StandardForm) -> bool:
+    """Whether a whole-form save would change nothing: applied to the stored
+    draft it gives the same draft. That is what a save looks like once it has
+    been stored: the builder sends it again when the answer never reached it,
+    and its version is then older than the stored one only because of that
+    very save. Nothing is lost or overwritten by answering it with the stored
+    draft, which is what makes it safe (services/form_concurrency.py)."""
+    candidate = stored.model_copy(deep=True)
+    apply_form_update(candidate, form)
+    return _content_of(candidate) == _content_of(stored)
+
+
+def _content_of(document: FormDocument) -> dict:
+    """The draft as stored, without the version that tells saves apart."""
+    return document.model_dump(mode="json", exclude={"updated_at"})
 
 
 def _apply_settings_update(form_document: FormDocument, sent) -> None:
@@ -638,6 +655,18 @@ class PostgresFormRepository(RecordRepository):
     async def get_forms_by_form_ids(self, form_ids: List[str]) -> List[FormDocument]:
         return await self.many(FormRow.form_id.in_(form_ids))
 
+    async def titles_of(self, form_ids: List[str]) -> Dict[str, Optional[str]]:
+        """The titles of these forms (id -> title), in one query that reads no
+        form body."""
+        ids = [str(f) for f in form_ids]
+        if not ids:
+            return {}
+        async with self._session() as session:
+            rows = await session.execute(
+                select(FormRow.form_id, FormRow.title).where(FormRow.form_id.in_(ids))
+            )
+        return {str(form_id): title for form_id, title in rows.all()}
+
     async def delete_form(self, form_id: str):
         form = await self.one(FormRow.form_id == form_id)
         if not form:
@@ -737,18 +766,27 @@ class PostgresFormRepository(RecordRepository):
         form_id: RecordId,
         form: StandardForm,
         expected_updated_at: datetime,
+        accept_replay: bool = False,
     ):
         """``update_form`` as a conditional write: refused with 409 when the
         stored draft is newer than ``expected_updated_at``
         (services/form_concurrency.py), including when another save lands
         between this read and this write: ``UPDATE ... WHERE id = :id AND
         updated_at = :stored``, the stored value being the one that passed
-        the check."""
+        the check.
+
+        ``accept_replay``: a save that would change nothing, because the draft
+        already is what it sends (the same save stored a moment ago, its
+        answer lost on the way back), is answered with the stored draft
+        instead of 409: nothing is written."""
         found = await self._stored_draft(form_id)
         if found is None:
             return None
         form_document = decode(FormDocument, found.doc)
-        ensure_not_changed_since(form_document.updated_at, expected_updated_at)
+        if is_changed_since(form_document.updated_at, expected_updated_at):
+            if accept_replay and _is_already_stored(form_document, form):
+                return form_document
+            raise form_changed()
         apply_form_update(form_document, form)
         form_document.updated_at = next_updated_at(form_document.updated_at)
         values = row_values(form_document)
@@ -772,6 +810,14 @@ class PostgresFormRepository(RecordRepository):
                 .execution_options(synchronize_session=False)
             )
         if result.rowcount != 1:
+            if accept_replay:
+                # another save landed first: perhaps the same one, sent again
+                # while the first was still being written
+                landed = await self._stored_draft(form_id)
+                if landed is not None:
+                    current = decode(FormDocument, landed.doc)
+                    if _is_already_stored(current, form):
+                        return current
             raise form_changed()
         return form_document
 
@@ -1164,16 +1210,35 @@ class PostgresWorkspaceFormRepository(RecordRepository):
 
     @staticmethod
     def _keeping_access_mode(
-        settings: Optional[WorkspaceFormSettings], stored_mode: Optional[str]
+        settings: Optional[WorkspaceFormSettings],
+        stored_mode: Optional[str],
+        stored_promoted_from=None,
     ) -> Optional[WorkspaceFormSettings]:
-        """``settings`` as it is to be stored, with the access mode the link
-        already has (none for a new link). The mode (form-level access) is
-        written by its own endpoint only: a create, an import, a replace or
-        any read-modify-write of the settings can neither set nor clear it."""
-        if settings is None and stored_mode is None:
+        """``settings`` as it is to be stored, with the access mode and the
+        copied-from mark the link already has (none for a new link). The mode
+        (form-level access) is written by its own endpoint only, and the mark
+        (``promoted_from``, where a form was copied from) by the promotion's
+        ``set_promoted_from`` only: a create, an import (settings that arrive
+        in a file or from another instance included), a replace or any
+        read-modify-write of the settings can neither set, forge nor clear
+        either."""
+        if settings is None and stored_mode is None and stored_promoted_from is None:
             return None
         return (settings or WorkspaceFormSettings()).model_copy(
-            update={"access_mode": stored_mode}
+            update={
+                "access_mode": stored_mode,
+                "promoted_from": stored_promoted_from,
+            }
+        )
+
+    @staticmethod
+    def _stored_marks(stored) -> tuple:
+        """``(access mode, copied-from mark)`` of a stored link, for
+        ``_keeping_access_mode``."""
+        settings = stored.settings if stored else None
+        return (
+            settings.access_mode if settings else None,
+            settings.promoted_from if settings else None,
         )
 
     async def save(
@@ -1201,8 +1266,7 @@ class PostgresWorkspaceFormRepository(RecordRepository):
                 session, WorkspaceFormRow.id == _oid(workspace_form.id)
             )
             workspace_form.settings = self._keeping_access_mode(
-                workspace_form.settings,
-                stored.settings.access_mode if stored and stored.settings else None,
+                workspace_form.settings, *self._stored_marks(stored)
             )
             workspace_form.touch()
             await session.execute(self._upsert_statement(row_values(workspace_form)))
@@ -1245,7 +1309,7 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             if stored is None:
                 raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in ")
             stored.settings = self._keeping_access_mode(
-                item.settings, stored.settings.access_mode if stored.settings else None
+                item.settings, *self._stored_marks(stored)
             )
             stored.last_update_status = item.last_update_status
             stored.touch()
@@ -1303,6 +1367,27 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             await session.execute(self._upsert_statement(row_values(stored)))
         return True
 
+    async def set_promoted_from(
+        self, workspace_id: RecordId, form_id: str, promoted_from
+    ) -> bool:
+        """Set where a form was copied from (``FORM_PROMOTION_ENABLED``) on its
+        link, under its row lock, and nothing else of the settings (a settings
+        change made meanwhile is kept). False when the form has no link here."""
+        async with self._session() as session, session.begin():
+            stored = await self._locked_link(
+                session,
+                WorkspaceFormRow.workspace_id == _oid(workspace_id),
+                WorkspaceFormRow.form_id == form_id,
+            )
+            if stored is None:
+                return False
+            stored.settings = (stored.settings or WorkspaceFormSettings()).model_copy(
+                update={"promoted_from": promoted_from}
+            )
+            stored.touch()
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return True
+
     async def set_review_mark_by_import(
         self, workspace_id: RecordId, import_id: str, needs_review: bool
     ) -> int:
@@ -1350,8 +1435,7 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             )
             if stored is not None:
                 stored.settings = self._keeping_access_mode(
-                    workspace_form_settings,
-                    stored.settings.access_mode if stored.settings else None,
+                    workspace_form_settings, *self._stored_marks(stored)
                 )
                 stored.touch()
                 await session.execute(self._upsert_statement(row_values(stored)))

@@ -1628,3 +1628,36 @@ any query. **The event writers are never switched.** Docs: `docs/audit-log.md`. 
 - `services/audit_log/catalog.py` lists every kind by area; the schema's kinds must each be in exactly one area or in
   `ACCOUNT_LEVEL` (a test enforces it). The reader never returns a kind that is not listed.
 - Retention is read from `services/audit_log/retention.py`, never a literal in the reader.
+
+## Copying a form to another workspace (`FORM_PROMOTION_ENABLED`, docs/environments.md)
+
+Environment-only switch (`config/form_promotion_settings.py`, tier T5, off by default, off in dev too until released;
+`services/form_promotion/mode.py`, served as `formPromotionEnabled` by `GET /workspaces/{id}/permissions`). Off means 422
+`form_promotion_disabled` on all four routes, from a router dependency that runs before the session, the body and any query;
+nothing else is gated (public spec API, SDK, CLI, a stored `promotedFrom`). Rules to keep:
+
+- Routes in `controllers/form_promotion_router.py` (`spec-file`, `promotion/targets`, `promotion/preview`, `promotion/apply`),
+  logic in `services/form_promotion/service.py`; the pure normalising step is `normalise.py` (a table in
+  `tests/app/form_promotion/test_normalise.py`). The document goes through `FormSpecWriter.create` / `replace`, so every check
+  of the spec API holds in the target; the normaliser adds, never replaces, a check. Result: always a draft.
+- Both sides are authorised for the same person (`_source_link`, `_target_permission`): `form.read` on the source form,
+  `form.create` in the target workspace or `form.edit` on the target form; a target workspace the caller is not in is a 404
+  (`effective_permissions` empty), a source that is restricted needs `authorize_copy_out_of_workspace` (Owner, Admin, creator) and
+  gives a copy created with its mode in one write (`create_form(access_mode=...)`, `save_new_link_with_access_mode`). An API key's
+  acting user is refused (`promotion_needs_session`). New routes that name a form in the body go in
+  `tests/app/form_access/test_form_named_outside_path.py` REFERENCES and the route matrix (`route_table.py`).
+- Apply: `Idempotency-Key` required (scope `promotion:{user}:{form}`, a 412 is not kept), both ETags back (412), `target_changed` 409
+  unless `overwrite`, `retention_confirmation_required` 422 when copying the data protection settings would shorten a retention.
+  Both audit entries (`FORM_COPIED_OUT` source, `FORM_PROMOTED` target) are written with `record_or_refuse` BEFORE the write, so
+  the new form's id is chosen first (`create_form(form_id=...)`). Ids and counts only; the other workspace's ids are withheld
+  from the audit reader.
+- `workspace_forms.doc.settings.promoted_from` is staff-only: it is in `strip_internal_fields` (`PROMOTED_FROM_KEYS`), cleared in
+  the two stubs of `form_service.py` and not in `SettingsPatchDto`; it is written only by `set_promoted_from` (row lock, advisory:
+  a failure is logged and never fails a stored copy). `tests/app/form_promotion/test_promoted_from_private.py` pins what a
+  respondent reaches. A new serializer of `WorkspaceFormSettings` has to be added there.
+- An update onto an existing target re-reads the target's mode right before the write (`FormSpecWriter.replace(before_write=...)`,
+  `_still_restricted`): a restricted source never lands in a form opened after the plan read it (no version tag covers the mode).
+  The repository keeps the stored `promoted_from` (and the access mode) on every write of a link's settings and starts a new link
+  without one (`_keeping_access_mode`), so settings arriving in an import cannot forge it. The form file download is recorded
+  with `export_channel` `file` (the Activity page words it as a download; a copy to a workspace has no channel).
+- The report holds counts and question ids only: never a title, an address, a recipient or a secret (`notCarried`, `adjusted`).

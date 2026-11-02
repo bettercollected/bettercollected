@@ -6,7 +6,14 @@ from common.ids import RecordId
 from common.models.consent import ResponseRetentionType
 from common.models.standard_form import THEME_PATTERNS
 from fastapi_camelcase import CamelModel
-from pydantic import BaseModel, Field, field_validator, model_serializer
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_serializer,
+)
+from pydantic.alias_generators import to_camel
 
 from backend.app.constants.themes import THEME_STYLES
 
@@ -237,6 +244,28 @@ class Workspace(WorkspaceRequestDto):
     embed_allowed_origins: Optional[List[str]] = None
 
 
+class PromotedFrom(BaseModel):
+    """Where a form was last copied from (``FORM_PROMOTION_ENABLED``): ids, a
+    hash and counts, never a title or a name. Staff-only: respondents never get
+    it (``services/internal_fields.py``). Stored under camelCase keys."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    workspace_id: str
+    form_id: str
+    at: dt.datetime
+    # the person who copied it (an account id)
+    by: str
+    # a hash of the form's document as it was stored by that copy: a later
+    # difference means someone changed the form here since
+    source_hash: str
+    # what the copy did not bring, with counts: webhooks, emailActions, sheets,
+    # registrations
+    not_carried: Dict[str, int] = Field(default_factory=dict)
+    # what it adjusted to fit, with counts (images, patterns, lists, ...)
+    adjusted: Dict[str, int] = Field(default_factory=dict)
+
+
 class WorkspaceFormSettings(BaseModel):
     """Model for storing the form settings of a workspace."""
 
@@ -310,6 +339,10 @@ class WorkspaceFormSettings(BaseModel):
     needs_review: Optional[bool] = None
     import_source: Optional[str] = None
     import_id: Optional[str] = None
+    # Set when the form was made or last changed by copying another form from
+    # another workspace (FORM_PROMOTION_ENABLED). Staff-only; no input sets it:
+    # only the promotion service writes it.
+    promoted_from: Optional[PromotedFrom] = None
 
 
 class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
@@ -322,6 +355,9 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     # in the caller's own workspace list only: whether they are one of its
     # owners (the billing owner or a member with role OWNER)
     is_owner: Optional[bool] = None
+    # in the caller's own workspace list only: their role there (OWNER for
+    # every owner, else the membership's highest role); None when unknown
+    role: Optional[str] = None
     dashboard_access: Optional[bool] = None
     disabled: Optional[bool] = None
     default: Optional[bool] = None

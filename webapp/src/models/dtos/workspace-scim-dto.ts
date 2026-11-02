@@ -40,6 +40,8 @@ export interface ScimGroupDto {
     members: number;
     // 'duplicate_name': the mapping was not carried over by a rotation
     needsReview?: string | null;
+    // the team whose members the group's members are (form-level access), or none
+    teamId?: string | null;
 }
 
 export interface ScimIssueDto {

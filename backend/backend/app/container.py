@@ -52,6 +52,7 @@ from backend.app.repositories.postgres.identity import (
     PostgresScimDirectoryRepository,
     PostgresScimEventRepository,
     PostgresScimGroupMemberRepository,
+    PostgresScimGroupTeamLinkRepository,
     PostgresScimGroupRepository,
     PostgresScimUserRepository,
     PostgresWorkspaceInvitationRepo,
@@ -221,6 +222,7 @@ from backend.app.repositories.postgres.response_revisions import (
     PostgresResponseRevisionRepository,
 )
 from backend.app.services.form_spec.writes import FormSpecWriter
+from backend.app.services.form_promotion.service import FormPromotionService
 from backend.app.services.idempotency import IdempotencyService
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 from backend.config import settings
@@ -359,6 +361,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
     scim_group_member_repo: PostgresScimGroupMemberRepository = providers.Singleton(
         PostgresScimGroupMemberRepository, pg_sessionmaker
+    )
+    scim_group_team_link_repo: PostgresScimGroupTeamLinkRepository = providers.Singleton(
+        PostgresScimGroupTeamLinkRepository, pg_sessionmaker
     )
     scim_event_repo: PostgresScimEventRepository = providers.Singleton(
         PostgresScimEventRepository, pg_sessionmaker
@@ -704,6 +709,7 @@ class AppContainer(containers.DeclarativeContainer):
         cleanup=form_access_cleanup,
         member_directory=member_directory,
         form_repo=form_repo,
+        scim_team_link_repo=scim_group_team_link_repo,
     )
 
     # The history of a response: who edited it, when, which questions, and (on
@@ -731,6 +737,7 @@ class AppContainer(containers.DeclarativeContainer):
         crypto=crypto,
         aws_service=aws_service,
         rate_limiter=rate_limiter,
+        audit_repo=workspace_audit_repo,
     )
 
     webhook_service: WebhookService = providers.Singleton(
@@ -810,6 +817,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_service=form_response_service,
         copy_recipient_service=copy_recipient_service,
         rate_limiter=rate_limiter,
+        audit_repo=workspace_audit_repo,
     )
 
     pdf_import_store = providers.Singleton(
@@ -867,6 +875,7 @@ class AppContainer(containers.DeclarativeContainer):
         WorkspaceDomainService,
         authorization_service=authorization_service,
         domain_repo=workspace_domain_repo,
+        audit_repo=workspace_audit_repo,
     )
 
     sso_policy_service: SsoPolicyService = providers.Singleton(
@@ -915,6 +924,7 @@ class AppContainer(containers.DeclarativeContainer):
         option_list_repo=option_list_repo,
         reusable_section_repo=reusable_section_repo,
         response_revision_repo=response_revision_repo,
+        audit_repo=workspace_audit_repo,
     )
 
     reusable_section_service: ReusableSectionService = providers.Singleton(
@@ -936,12 +946,16 @@ class AppContainer(containers.DeclarativeContainer):
         APIKeyService,
         authorization_service=authorization_service,
         api_key_repo=workspace_api_key_repo,
+        audit_repo=workspace_audit_repo,
+        grant_repo=form_access_grant_repo,
+        form_repo=form_repo,
     )
 
     ai_consent_service: AIConsentService = providers.Singleton(
         AIConsentService,
         workspace_repo=workspace_repo,
         authorization_service=authorization_service,
+        audit_repo=workspace_audit_repo,
     )
 
     form_embed_service: FormEmbedService = providers.Singleton(
@@ -1115,6 +1129,7 @@ class AppContainer(containers.DeclarativeContainer):
         polis=polis_admin_client,
         api_key_repo=workspace_api_key_repo,
         http_client=http_client,
+        audit_repo=workspace_audit_repo,
         # defined further down
         on_default_role_changed=providers.Object(
             lambda workspace: container.scim_sync_service().recompute_workspace(
@@ -1136,6 +1151,8 @@ class AppContainer(containers.DeclarativeContainer):
         session_service=session_service,
         http_client=http_client,
         email_action_service=email_action_service,
+        audit_repo=workspace_audit_repo,
+        team_link_repo=scim_group_team_link_repo,
     )
 
     polis_directory_client: PolisDirectoryClient = providers.Singleton(
@@ -1154,6 +1171,10 @@ class AppContainer(containers.DeclarativeContainer):
         sync_service=scim_sync_service,
         polis=polis_directory_client,
         crypto=crypto,
+        member_group_repo=member_group_repo,
+        audit_repo=workspace_audit_repo,
+        form_access=form_access_service,
+        team_link_repo=scim_group_team_link_repo,
     )
 
     scim_webhook_service: ScimWebhookService = providers.Singleton(
@@ -1377,6 +1398,22 @@ class AppContainer(containers.DeclarativeContainer):
         authorization_service=authorization_service,
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
+        idempotency_service=idempotency_service,
+        rate_limiter=rate_limiter,
+    )
+    # Copy a form to another workspace as a draft (FORM_PROMOTION_ENABLED).
+    form_promotion_service: FormPromotionService = providers.Singleton(
+        FormPromotionService,
+        authorization_service=authorization_service,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+        form_spec_service=form_spec_service,
+        form_spec_writer=form_spec_writer,
+        option_list_repo=option_list_repo,
+        webhook_repo=form_webhook_repo,
+        email_action_repo=form_email_action_repo,
+        registration_repo=form_registration_repo,
+        audit_repo=workspace_audit_repo,
         idempotency_service=idempotency_service,
         rate_limiter=rate_limiter,
     )

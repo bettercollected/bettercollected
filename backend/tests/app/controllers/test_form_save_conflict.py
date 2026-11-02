@@ -263,6 +263,133 @@ class TestSimultaneousSaves:
         )
         assert again.status_code == 200
 
+    async def test_the_same_save_sent_twice_at_once_is_stored_once_and_answered_twice(
+        self,
+        client: AsyncClient,
+        form_url,
+        workspace_form,
+        test_user_cookies,
+        saves_read_together,
+    ):
+        first = await _patch(client, form_url, test_user_cookies, {"title": "One"})
+        seen = first.json()["updatedAt"]
+
+        def save():
+            return _patch(
+                client, form_url, test_user_cookies, {"title": "Twice"}, expected=seen
+            )
+
+        # a retry that overtakes the first attempt still being written
+        responses = await asyncio.gather(save(), save())
+        assert [r.status_code for r in responses] == [200, 200]
+        assert responses[0].json()["updatedAt"] == responses[1].json()["updatedAt"]
+        stored = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
+        assert stored.title == "Twice"
+
+
+class TestSaveWhoseAnswerWasLost:
+    """The builder sends the same save again when the answer to it never
+    arrived (a dropped connection, a gateway timeout). The first one may have
+    been stored: that is the editor's own change, never "changed elsewhere"."""
+
+    BODY = {"title": "Retried", "fields": []}
+
+    async def test_the_same_save_sent_again_is_answered_with_the_stored_draft(
+        self, client: AsyncClient, form_url, workspace_form, test_user_cookies
+    ):
+        seen = workspace_form.updated_at.isoformat()
+        first = await _patch(
+            client, form_url, test_user_cookies, self.BODY, expected=seen
+        )
+        assert first.status_code == 200
+        stored = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
+
+        again = await _patch(
+            client, form_url, test_user_cookies, self.BODY, expected=seen
+        )
+        assert again.status_code == 200
+        assert again.json()["title"] == "Retried"
+        # the same version, nothing written a second time
+        assert again.json()["updatedAt"] == first.json()["updatedAt"]
+        after = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
+        assert _in_ms(after.updated_at) == _in_ms(stored.updated_at)
+
+        # and the next save builds on the version it answered with
+        nxt = await _patch(
+            client,
+            form_url,
+            test_user_cookies,
+            {"title": "Next"},
+            expected=again.json()["updatedAt"],
+        )
+        assert nxt.status_code == 200
+
+    async def test_a_save_that_was_overtaken_by_another_is_still_refused(
+        self, client: AsyncClient, form_url, workspace_form, test_user_cookies
+    ):
+        seen = workspace_form.updated_at.isoformat()
+        mine = await _patch(
+            client, form_url, test_user_cookies, self.BODY, expected=seen
+        )
+        assert mine.status_code == 200
+        other = await _patch(
+            client,
+            form_url,
+            test_user_cookies,
+            {"title": "Another tab"},
+            expected=mine.json()["updatedAt"],
+        )
+        assert other.status_code == 200
+
+        again = await _patch(
+            client, form_url, test_user_cookies, self.BODY, expected=seen
+        )
+        assert again.status_code == 409
+        assert again.json()["code"] == FORM_CHANGED_CODE
+        stored = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
+        assert stored.title == "Another tab"
+
+    async def test_a_different_save_on_an_older_version_is_still_refused(
+        self, client: AsyncClient, form_url, workspace_form, test_user_cookies
+    ):
+        seen = workspace_form.updated_at.isoformat()
+        first = await _patch(
+            client, form_url, test_user_cookies, self.BODY, expected=seen
+        )
+        assert first.status_code == 200
+        different = await _patch(
+            client,
+            form_url,
+            test_user_cookies,
+            {"title": "Not the same"},
+            expected=seen,
+        )
+        assert different.status_code == 409
+
+    async def test_a_logo_upload_never_counts_as_a_replay(
+        self, client: AsyncClient, form_url, workspace_form, test_user_cookies
+    ):
+        seen = workspace_form.updated_at.isoformat()
+        first = await _patch(
+            client, form_url, test_user_cookies, self.BODY, expected=seen
+        )
+        assert first.status_code == 200
+        again = await client.patch(
+            form_url,
+            cookies=test_user_cookies,
+            data={"form_body": json.dumps(self.BODY), "expected_updated_at": seen},
+            files={"logo": ("logo.png", b"not an image", "image/png")},
+        )
+        assert again.status_code == 409
+
 
 class TestVersionComparison:
     def test_milliseconds_decide(self):

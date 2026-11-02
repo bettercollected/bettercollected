@@ -25,16 +25,19 @@ from loguru import logger
 
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.workspace_audit_event import (
-    ACCESS_EVENTS,
-    API_KEY_EVENTS,
-    MEMBER_FORM_EVENTS,
+    ALL_KINDS,
+    AUTOMATION_PARTS,
     WorkspaceAuditEventDocument,
 )
 
-__all__ = ["record", "record_or_refuse"]
+__all__ = ["record", "record_many_or_refuse", "record_or_refuse"]
 
 
 def _entry(event: str, workspace_id, user, **ids) -> WorkspaceAuditEventDocument:
+    if ids.get("changed") is not None:
+        # a fixed vocabulary of part names: whatever else a caller passes is
+        # never stored
+        ids["changed"] = [p for p in ids["changed"] if p in AUTOMATION_PARTS]
     return WorkspaceAuditEventDocument(
         id=RecordId(),
         workspace_id=RecordId(str(workspace_id)),
@@ -47,7 +50,7 @@ def _entry(event: str, workspace_id, user, **ids) -> WorkspaceAuditEventDocument
 
 async def record(repo, event: str, workspace_id, user, **ids) -> bool:
     """Store the entry; a failure is logged (ids only) and never raised."""
-    assert event in ACCESS_EVENTS + API_KEY_EVENTS + MEMBER_FORM_EVENTS, event
+    assert event in ALL_KINDS, event
     if repo is None:
         return False
     try:
@@ -75,3 +78,43 @@ async def record_or_refuse(repo, event: str, workspace_id, user, **ids) -> None:
             },
         )
 
+
+
+async def record_many_or_refuse(
+    repo, entries, workspace_id, user, session=None
+) -> None:
+    """Store every entry in one batch (one transaction: all or none) or refuse
+    the request (503 ``audit_unavailable``). ``entries`` is a list of ``(event,
+    ids)``; an empty list stores nothing. With ``session`` the entries are stored
+    in the caller's transaction instead (the change they describe is stored in it
+    too, so they commit or fail together; the refusal rolls it back)."""
+    if not entries:
+        return
+    documents = []
+    for event, ids in entries:
+        assert event in ALL_KINDS, event
+        documents.append(_entry(event, workspace_id, user, **ids))
+    stored = False
+    if repo is not None:
+        try:
+            if session is None:
+                await repo.record_many(documents)
+            else:
+                await repo.record_many_in(session, documents)
+            stored = True
+        except Exception as error:  # noqa: BLE001 - a failed batch refuses the request
+            logger.bind(audit=True).error(
+                "AUDIT {} entries NOT STORED workspace={} user={} ({})",
+                len(documents),
+                workspace_id,
+                getattr(user, "id", None),
+                type(error).__name__,
+            )
+    if not stored:
+        raise HTTPException(
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+            content={
+                "code": "audit_unavailable",
+                "message": "The change could not be recorded, so it was not made. Try again.",
+            },
+        )

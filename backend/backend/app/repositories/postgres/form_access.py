@@ -18,9 +18,12 @@ from backend.app.schemas.form_access_grant import (
     SUBJECT_USER,
     FormAccessGrantDocument,
 )
+from backend.app.repositories.postgres.team_membership import (
+    team_member_pairs,
+    teams_of_user,
+)
 from backend.db.models import (
     FormAccessGrantRow,
-    MemberGroupMemberRow,
     MemberGroupRow,
     WorkspaceApiKeyRow,
     WorkspaceFormRow,
@@ -48,12 +51,10 @@ class PostgresFormAccessGrantRepository(RecordRepository):
 
     @staticmethod
     def _held_by(workspace_id, user_id):
-        """Rows naming the user, or a team the user is a manual member of: one
-        condition, so one query however many teams there are."""
-        teams = select(MemberGroupMemberRow.group_id).where(
-            MemberGroupMemberRow.workspace_id == _id(workspace_id),
-            MemberGroupMemberRow.user_id == _id(user_id),
-        )
+        """Rows naming the user, or a team the user is in (listed by hand, or
+        through a linked directory group, read now): one condition, so one
+        query however many teams there are."""
+        teams = teams_of_user(workspace_id, user_id)
         return or_(
             and_(
                 FormAccessGrantRow.subject_type == SUBJECT_USER,
@@ -106,14 +107,8 @@ class PostgresFormAccessGrantRepository(RecordRepository):
                 teams.setdefault(str(grant.subject_id), []).append(grant)
         if teams:
             async with self._session() as session:
-                rows = await session.execute(
-                    select(
-                        MemberGroupMemberRow.group_id, MemberGroupMemberRow.user_id
-                    ).where(
-                        MemberGroupMemberRow.workspace_id == _id(workspace_id),
-                        MemberGroupMemberRow.group_id.in_(list(teams)),
-                    )
-                )
+                pairs = team_member_pairs(workspace_id, list(teams))
+                rows = await session.execute(select(pairs.c.group_id, pairs.c.user_id))
             for group_id, user_id in rows.all():
                 held.setdefault(str(user_id), []).extend(teams[str(group_id)])
         return held
@@ -266,6 +261,20 @@ class PostgresFormAccessGrantRepository(RecordRepository):
             where.append(FormAccessGrantRow.form_id.in_([_id(f) for f in form_ids]))
         return await self.many(*where)
 
+    async def for_keys(
+        self, workspace_id, key_ids: Iterable[str]
+    ) -> List[FormAccessGrantDocument]:
+        """The rows of several keys of the workspace, in one query (the keys
+        page lists every key's forms)."""
+        ids = [_id(k) for k in key_ids]
+        if not ids:
+            return []
+        return await self.many(
+            FormAccessGrantRow.workspace_id == _id(workspace_id),
+            FormAccessGrantRow.subject_type == SUBJECT_KEY,
+            FormAccessGrantRow.subject_id.in_(ids),
+        )
+
     async def replace_for_key(
         self, workspace_id, key_id, rows: Iterable[FormAccessGrantDocument]
     ) -> List[FormAccessGrantDocument]:
@@ -276,6 +285,38 @@ class PostgresFormAccessGrantRepository(RecordRepository):
         unrevoked key of the workspace and a form that is not linked to it,
         whatever the caller checked: the write keeps a row inside its workspace.
         A row is always written as a key row, whatever the document says."""
+        async with self._session() as session, session.begin():
+            return await self.replace_for_key_in(session, workspace_id, key_id, rows)
+
+    async def form_ids_for_key_in(self, session, workspace_id, key_id) -> List[str]:
+        """The ids of the forms the key holds a row for, sorted, read in the
+        caller's transaction (under the key's row lock, a list nobody can change
+        meanwhile)."""
+        found = await session.execute(
+            select(FormAccessGrantRow.form_id).where(
+                FormAccessGrantRow.workspace_id == _id(workspace_id),
+                FormAccessGrantRow.subject_type == SUBJECT_KEY,
+                FormAccessGrantRow.subject_id == _id(key_id),
+            )
+        )
+        return sorted(str(f) for f in found.scalars().all())
+
+    async def delete_for_key_in(self, session, workspace_id, key_id) -> int:
+        """Every row of the key, in the caller's transaction."""
+        return await self._delete_recorded(
+            session,
+            FormAccessGrantRow,
+            FormAccessGrantRow.workspace_id == _id(workspace_id),
+            FormAccessGrantRow.subject_type == SUBJECT_KEY,
+            FormAccessGrantRow.subject_id == _id(key_id),
+        )
+
+    async def replace_for_key_in(
+        self, session, workspace_id, key_id, rows: Iterable[FormAccessGrantDocument]
+    ) -> List[FormAccessGrantDocument]:
+        """``replace_for_key`` in the caller's transaction (the key edit writes
+        its rows under the key's row lock, in the transaction that stores the key
+        and its audit entries)."""
         workspace_id, key_id = _id(workspace_id), _id(key_id)
         wanted: Dict[str, FormAccessGrantDocument] = {}
         for row in rows:
@@ -287,43 +328,42 @@ class PostgresFormAccessGrantRepository(RecordRepository):
                 "form_access_grant", workspace_id, row.form_id, SUBJECT_KEY, key_id
             )
             wanted[row.form_id] = row
-        async with self._session() as session, session.begin():
-            key = await session.execute(
-                select(WorkspaceApiKeyRow.id)
+        key = await session.execute(
+            select(WorkspaceApiKeyRow.id)
+            .where(
+                WorkspaceApiKeyRow.id == key_id,
+                WorkspaceApiKeyRow.workspace_id == workspace_id,
+                WorkspaceApiKeyRow.revoked.is_not(True),
+            )
+            .limit(1)
+            .with_for_update(read=True)
+        )
+        if key.first() is None:
+            raise AccessTargetNotFound("key")
+        if wanted:
+            linked = await session.execute(
+                select(WorkspaceFormRow.form_id)
                 .where(
-                    WorkspaceApiKeyRow.id == key_id,
-                    WorkspaceApiKeyRow.workspace_id == workspace_id,
-                    WorkspaceApiKeyRow.revoked.is_not(True),
+                    WorkspaceFormRow.workspace_id == workspace_id,
+                    WorkspaceFormRow.form_id.in_(list(wanted)),
                 )
-                .limit(1)
                 .with_for_update(read=True)
             )
-            if key.first() is None:
-                raise AccessTargetNotFound("key")
-            if wanted:
-                linked = await session.execute(
-                    select(WorkspaceFormRow.form_id)
-                    .where(
-                        WorkspaceFormRow.workspace_id == workspace_id,
-                        WorkspaceFormRow.form_id.in_(list(wanted)),
-                    )
-                    .with_for_update(read=True)
-                )
-                if {str(f) for f in linked.scalars().all()} != set(wanted):
-                    raise AccessTargetNotFound("form")
-            await self._delete_recorded(
-                session,
-                FormAccessGrantRow,
-                FormAccessGrantRow.workspace_id == workspace_id,
-                FormAccessGrantRow.subject_type == SUBJECT_KEY,
-                FormAccessGrantRow.subject_id == key_id,
-                FormAccessGrantRow.form_id.not_in(list(wanted)),
+            if {str(f) for f in linked.scalars().all()} != set(wanted):
+                raise AccessTargetNotFound("form")
+        await self._delete_recorded(
+            session,
+            FormAccessGrantRow,
+            FormAccessGrantRow.workspace_id == workspace_id,
+            FormAccessGrantRow.subject_type == SUBJECT_KEY,
+            FormAccessGrantRow.subject_id == key_id,
+            FormAccessGrantRow.form_id.not_in(list(wanted)),
+        )
+        for row in wanted.values():
+            row.touch()
+            await session.execute(
+                self._upsert_statement(row_values(row), FormAccessGrantRow)
             )
-            for row in wanted.values():
-                row.touch()
-                await session.execute(
-                    self._upsert_statement(row_values(row), FormAccessGrantRow)
-                )
         return list(wanted.values())
 
     # -- a person's grants (the Members page, removal) ---------------------------

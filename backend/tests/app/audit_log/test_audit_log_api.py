@@ -323,15 +323,33 @@ async def test_an_entry_is_the_dto_and_nothing_else(client: AsyncClient, workspa
     assert (entry["grantRole"], entry["grantExport"], entry["formId"]) == ("EDITOR", True, "f1")
 
 
+async def test_a_team_link_entry_says_linked_or_unlinked_and_which_directory_group(
+    client: AsyncClient, workspace
+):
+    await seed(
+        workspace, E.TEAM_LINKED, 1, group_id="g1", scim_group_id="d1", linked=True
+    )
+    await seed(
+        workspace, E.TEAM_LINKED, 2, group_id="g1", scim_group_id="d1", linked=False
+    )
+    entries = (await read(client, workspace)).json()["entries"]
+    assert [(e["event"], e["linked"], e["groupId"]) for e in entries] == [
+        (E.TEAM_LINKED, False, "g1"),
+        (E.TEAM_LINKED, True, "g1"),
+    ]
+    assert {e["scimGroupId"] for e in entries} == {"d1"}
+
+
 def test_every_field_of_a_stored_entry_is_returned_or_withheld_on_purpose():
     """A field added to the schema has to be decided here: shown (it is in the
     DTO) or kept back. So a new field never reaches a page by being copied."""
     shown = {
         "id", "created_at", "event", "session_id", "target_user_id", "to_user_id",
         "form_id", "response_id", "revision", "group_id", "grant_role", "grant_export",
-        "access_mode", "role", "previous_role", "count", "required", "export_channel",
+        "access_mode", "linked", "scim_group_id", "role", "previous_role", "count", "required", "export_channel",
         "export_format", "key_id", "reason", "key_role", "key_role_before", "form_scope",
-        "widened", "method", "path",
+        "widened", "method", "path", "connection_type", "directory_type", "enabled",
+        "provider", "changed",
     }
     # actor_id is user_id; at is created_at
     withheld = {
@@ -340,6 +358,16 @@ def test_every_field_of_a_stored_entry_is_returned_or_withheld_on_purpose():
         "updated_at",
         "invitation_id",  # an invitation has no screen
         "export_id",  # a pointer to a row the page cannot open
+        # ids of settings and integrations that have no screen of their own
+        "connection_id", "domain_id", "directory_id", "directory_group_id",
+        "action_id", "service_id",
+        # the other side of a copy of a form to another workspace: that workspace's
+        # ids are no business of this workspace's readers (a Privacy officer need
+        # not be a member of the other one)
+        "source_workspace_id",
+        "source_form_id",
+        "target_workspace_id",
+        "target_form_id",
     }
     dto = {n for n in AuditEntryDto.model_fields}
     stored = set(WorkspaceAuditEventDocument.model_fields)

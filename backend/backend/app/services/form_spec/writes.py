@@ -20,7 +20,7 @@ import datetime as dt
 import hashlib
 import json
 from http import HTTPStatus
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 from common.ids import RecordId
 from common.form_spec import FormSpec, spec_to_form, spec_trust_settings
@@ -307,11 +307,21 @@ class FormSpecWriter:
             raise precondition_failed()
 
     async def create(
-        self, workspace_id: RecordId, raw: Any, user: User
+        self,
+        workspace_id: RecordId,
+        raw: Any,
+        user: User,
+        *,
+        form_id: Optional[str] = None,
+        access_mode: Optional[str] = None,
     ) -> Tuple[str, Dict[str, Any], str]:
         """Create a draft from a whole document: (form id, spec, ETag).
         All or nothing: the document is checked in full before anything is
-        stored."""
+        stored.
+
+        The keyword arguments are for copying a form from another workspace
+        (``services/form_promotion``): the id the form takes and the access mode its
+        link is created with. The public API passes none."""
         spec = await _checked_spec(raw)
         _ensure_drafts_allowed(spec, None)
         try:
@@ -322,7 +332,11 @@ class FormSpecWriter:
         form.logo = None
         with_builder_defaults(form)
         created = await self._workspace_forms.create_form(
-            workspace_id=workspace_id, form=form, user=user
+            workspace_id=workspace_id,
+            form=form,
+            user=user,
+            form_id=form_id,
+            access_mode=access_mode,
         )
         await _write_trust(workspace_id, created.form_id, spec)
         document, etag = await self.read(workspace_id, created.form_id)
@@ -335,10 +349,16 @@ class FormSpecWriter:
         raw: Any,
         if_match: Optional[List[str]],
         user: User,
+        before_write: Optional[Callable[[], Awaitable[None]]] = None,
     ) -> Tuple[Dict[str, Any], str]:
         """Replace a form from a whole document, only while it is still the
         version ``if_match`` names: 428 without it, 412 when stale (also
-        when another save lands between the check and the write)."""
+        when another save lands between the check and the write).
+
+        ``before_write``: a last check of the caller's, awaited after every
+        check of the document and immediately before the form is written (it
+        raises to refuse the write). Copying a form to another workspace uses it
+        to read the target's access mode again, which no version tag covers."""
         if if_match is None:
             raise precondition_required()
         document, existing, settings = await self._load(workspace_id, form_id)
@@ -347,6 +367,8 @@ class FormSpecWriter:
         spec = await _checked_spec(raw)
         _ensure_drafts_allowed(spec, settings)
         form = _replacement(existing, settings, spec)
+        if before_write is not None:
+            await before_write()
         try:
             await self._workspace_forms.update_form(
                 workspace_id=workspace_id,

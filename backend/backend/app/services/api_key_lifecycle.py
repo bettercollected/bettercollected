@@ -15,6 +15,10 @@ never a key's name, prefix or token).
 * A member removal writes the entries here and revokes inside its own
   transaction (:mod:`backend.app.repositories.postgres.member_removal`), and is
   refused (503 ``audit_unavailable``) when an entry cannot be stored.
+* A deleted workspace's keys are all revoked, those of its other members
+  included (no entry: the workspace and its log go).
+* Every revocation also deletes the key's rows for a list of forms
+  (``form_access_grants``, ``subject_type='key'``), in the same transaction.
 * Account deletion and directory deprovisioning revoke whatever the audit says:
   the entry is best effort (logged by id when it cannot be stored). Holding a
   deprovisioning or an erasure back because the log is down would leave the
@@ -122,3 +126,10 @@ class ApiKeyLifecycle:
                     False,
                 )
         return len(await self._keys.revoke_created_by(user_id))
+
+    # -- a workspace deletion ---------------------------------------------------
+    async def revoke_workspace_keys(self, workspace_ids: Iterable) -> int:
+        """Revoke every live key of these workspaces, whoever made it (the
+        workspaces are being deleted). No entry: nothing would read the log of
+        a workspace that is gone. Returns how many were revoked."""
+        return await self._keys.revoke_in_workspaces(list(workspace_ids))

@@ -96,8 +96,8 @@ A **form grant** is `(form, principal, form role, export?)`:
 Folders, and grants on folders, come later. The model already allows it: a folder grant is equivalent to a grant on every form in it.
 
 ### 4. API keys and MCP
-- A key gets a **role** (Editor, Reviewer or Viewer) and optional form grants. It acts with exactly those permissions, never more than its creator had when it was created.
-- Keys belong to the workspace, so removing their creator does not orphan them, but admins see who created each one.
+- A key gets a **role** (Editor, Reviewer, Viewer or Privacy officer) and optionally a list of forms. It acts with exactly those permissions, never more than its creator may do **right now**: the creator's rights are looked up on every request, so a demoted creator shrinks the key on its next call. Built behind the server setting `API_KEY_ROLES_ENABLED` (off by default; limits already stored are enforced even when it is off). How the rights are worked out, the editing rules, the errors and how to roll back: [api-keys.md](api-keys.md).
+- Keys belong to the workspace and admins see who created each one. When their creator is removed from the workspace, deletes their account or is deprovisioned by the directory, their keys are **revoked** (a key that only refused while its creator was gone would come back to life if the person were invited or provisioned again).
 - Today's scopes map onto permissions: `forms:read` → `form.read`; `forms:write` → `form.edit`; `responses:read` → `response.read` **and** `response.export` (a bulk read through the API is an export); `deletion_requests:*` → `privacy.manage`.
 
 - **A workspace that requires an authenticator app ([totp.md](totp.md)) does not cover API keys and MCP**, exactly as "require SSO" does not ([sso.md](sso.md)): they are machine credentials issued inside the workspace. A member without an authenticator app can still hold a key; closing that is the key-role step below, not the second factor.

@@ -336,6 +336,21 @@ def _list_map(path: str | None) -> dict[str, str]:
     return document
 
 
+def _create_form(client, document, idempotency_key):
+    """``client.create_form``, with a hint for a key that may not create forms
+    (limited to certain forms by an admin)."""
+    try:
+        return client.create_form(document, idempotency_key=idempotency_key)
+    except BetterCollectedError as error:
+        if error.code == "key_form_scope":
+            raise CliError(
+                "This API key is limited to certain forms, so it cannot create "
+                "a form. Create the form in the product, or ask a workspace "
+                "admin for a key that is not limited to forms."
+            ) from error
+        raise
+
+
 def cmd_create(args, out) -> int:
     path = Path(args.file)
     known = load_state(path).get("formId")
@@ -343,7 +358,7 @@ def cmd_create(args, out) -> int:
         raise CliError(f"{path.name} already belongs to form {known}: use push.")
     document = read_document(path)
     with _client(args) as client:
-        created = client.create_form(document, idempotency_key=args.idempotency_key)
+        created = _create_form(client, document, args.idempotency_key)
     save_state(path, created.form_id, created.etag)
     print(f"Created draft {created.form_id} from {path}", file=out)
     print("It is not published: publish it when it is ready.", file=out)
@@ -434,7 +449,7 @@ def cmd_promote(args, out) -> int:
                 raise
             print(f"Updated the draft of {args.to_form}.", file=out)
         else:
-            created = client.create_form(document, idempotency_key=uuid.uuid4().hex)
+            created = _create_form(client, document, uuid.uuid4().hex)
             print(f"Created draft {created.form_id}.", file=out)
     print("It is a draft: review it and publish it in the target when ready.", file=out)
     return 0

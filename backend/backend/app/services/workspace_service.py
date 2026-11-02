@@ -24,6 +24,7 @@ from backend.app.models.enum.workspace_roles import (
     WorkspaceRoles,
     has_owner_role,
     is_owner_membership,
+    primary_role,
 )
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
@@ -38,8 +39,13 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceUserRepository,
 )
 from backend.app.schemas.workspace import WorkspaceDocument
+from backend.app.schemas.workspace_audit_event import (
+    CUSTOM_DOMAIN_CHANGED,
+    CUSTOM_DOMAIN_REMOVED,
+)
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_access import audit
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_images import first_party_or_kept
 from backend.app.services.form_themes import (
@@ -141,7 +147,10 @@ class WorkspaceService:
         sso_policy=None,
         sso_release=None,
         response_revision_repo=None,
+        audit_repo=None,
     ):
+        # the workspace's audit log (no hostname is ever stored in it)
+        self._audit_repo = audit_repo
         # the revision log of response edits: a deleted account's entries lose the user id
         self._response_revision_repo = response_revision_repo
         self._authorization = authorization_service
@@ -323,6 +332,15 @@ class WorkspaceService:
                         event_type=UserEventType.CUSTOM_DOMAIN_CHANGED,
                         user_id=user.id,
                     )
+                    # the hostname is registered with the edge and CORS: best
+                    # effort, after the fact (the id of the workspace is all
+                    # the entry names)
+                    await audit.record(
+                        self._audit_repo,
+                        CUSTOM_DOMAIN_CHANGED,
+                        workspace_id,
+                        user,
+                    )
                 else:
                     raise HTTPException(409)
             except HTTPException as e:
@@ -448,9 +466,14 @@ class WorkspaceService:
             await self.update_https_server_for_certificate(
                 old_domain=workspace_document.custom_domain
             )
+        had_domain = bool(workspace_document.custom_domain)
         workspace_document.custom_domain = ""
         workspace_document.custom_domain_verified = False
         saved_workspace = await self._workspace_repo.save(workspace_document)
+        if had_domain:
+            await audit.record(
+                self._audit_repo, CUSTOM_DOMAIN_REMOVED, workspace_id, user
+            )
         return WorkspaceResponseDto(**saved_workspace.model_dump(mode="json"))
 
     async def generate_unique_names_from_the_workspace_handle(
@@ -503,16 +526,20 @@ class WorkspaceService:
         )
         listed = []
         for workspace in workspaces:
-            is_owner = is_owner_membership(
-                workspace, memberships.get(str(workspace.id))
-            )
+            membership = memberships.get(str(workspace.id))
+            is_owner = is_owner_membership(workspace, membership)
             if workspace.disabled and not is_owner:
                 # a downgraded workspace is its owners' alone: a member whose
                 # membership was left enabled doesn't see it either
                 continue
             listed.append(
                 WorkspaceResponseDto(
-                    **workspace.model_dump(mode="json"), is_owner=is_owner
+                    **workspace.model_dump(mode="json"),
+                    is_owner=is_owner,
+                    role=primary_role(
+                        membership.roles if membership else None,
+                        is_owner=is_owner,
+                    ),
                 )
             )
         return listed

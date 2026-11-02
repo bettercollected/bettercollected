@@ -11,6 +11,7 @@ stored here; the webhook secret is stored encrypted and never returned.
 """
 
 import datetime as dt
+import re
 import secrets
 from http import HTTPStatus
 from typing import Dict, List, Optional
@@ -32,12 +33,24 @@ from backend.app.repositories.postgres.identity import (
     PostgresScimUserRepository,
     PostgresWorkspaceRepository,
 )
+from backend.app.repositories.postgres.form_access import AccessTargetNotFound
 from backend.app.schemas.scim import (
     DIRECTORY_TYPES,
     ScimDirectoryDocument,
+    ScimGroupDocument,
     ScimUserState,
 )
+from backend.app.schemas.workspace_audit_event import (
+    SCIM_GROUP_ROLE_CHANGED,
+    SCIM_TOKEN_CREATED,
+    SCIM_TOKEN_REVOKED,
+    SCIM_TOKEN_ROTATED,
+    TEAM_LINKED,
+)
+from backend.app.services.api_key_lifecycle import SystemActor
+from backend.app.services.form_access.mode import refuse_when_off
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_access import audit
 from backend.app.services.scim.polis_dsync import (
     PolisDirectoryClient,
     scim_endpoint,
@@ -72,6 +85,11 @@ class CreateDirectoryDto(_CamelModel):
 class GroupRoleDto(_CamelModel):
     # a workspace role, or None to map the group to nothing
     role: Optional[str] = Field(None, max_length=64)
+
+
+class GroupTeamDto(_CamelModel):
+    # the team (member group) whose members the group's members are
+    team_id: str = Field(..., max_length=64)
 
 
 class DirectoryDto(_CamelModel):
@@ -138,6 +156,8 @@ class GroupDto(_CamelModel):
     # "duplicate_name": after a rotation the mapping could not be carried
     # over by name; the owner sets it again
     needs_review: Optional[str] = None
+    # the team the group's members are in (FORM_ACCESS_ENABLED), or None
+    team_id: Optional[str] = None
 
 
 class DirectoryIssueDto(_CamelModel):
@@ -192,6 +212,10 @@ def _refused(status: HTTPStatus, code: str, message: str) -> HTTPException:
     return HTTPException(status_code=status, content={"code": code, "message": message})
 
 
+def _is_id(value) -> bool:
+    return bool(re.fullmatch(r"[0-9a-f]{24}", str(value or "")))
+
+
 def _now() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
 
@@ -235,7 +259,13 @@ class ScimDirectoryService:
         sync_service: ScimSyncService,
         polis: PolisDirectoryClient,
         crypto,
+        audit_repo=None,
+        member_group_repo=None,
+        form_access=None,
+        team_link_repo=None,
     ):
+        # the workspace's audit log (ids and enum values only, never a token)
+        self._audit_repo = audit_repo
         self._authorization = authorization_service
         self._directories = directory_repo
         self._users = user_repo
@@ -246,6 +276,10 @@ class ScimDirectoryService:
         self._sync = sync_service
         self._polis = polis
         self._crypto = crypto
+        # linking a group to a team (FORM_ACCESS_ENABLED)
+        self._teams = member_group_repo
+        self._form_access = form_access
+        self._team_links = team_link_repo
 
     # -- access ---------------------------------------------------------------
     async def _authorize(self, workspace_id, user: User) -> None:
@@ -330,6 +364,11 @@ class ScimDirectoryService:
         per_group: Dict[str, int] = {}
         for link in links:
             per_group[str(link.group_id)] = per_group.get(str(link.group_id), 0) + 1
+        team_of = (
+            await self._team_links.by_group(workspace_id)
+            if self._team_links is not None
+            else {}
+        )
         dto.groups = [
             GroupDto(
                 id=str(g.id),
@@ -337,6 +376,7 @@ class ScimDirectoryService:
                 role=g.role,
                 members=per_group.get(str(g.id), 0),
                 needs_review=g.needs_review,
+                team_id=team_of.get(str(g.id)),
             )
             for g in sorted(
                 await self._groups.list_by_directory(directory.id),
@@ -376,6 +416,15 @@ class ScimDirectoryService:
         directory_id = RecordId()
         name = (request.name or "").strip() or DIRECTORY_TYPES[request.type]
         webhook_secret = secrets.token_urlsafe(32)
+        # a token that can provision members is about to exist: recorded first
+        await audit.record_or_refuse(
+            self._audit_repo,
+            SCIM_TOKEN_CREATED,
+            workspace_id,
+            user,
+            directory_id=str(directory_id),
+            directory_type=request.type,
+        )
         try:
             created = await self._polis.create_directory(
                 str(workspace_id),
@@ -467,6 +516,17 @@ class ScimDirectoryService:
             await self._directories.update_fields(
                 directory.id, {"stale_polis_directory_id": old_polis_id}
             )
+        # Best effort, and after the change: rotating is the only way to stop
+        # a leaked token, so a failing audit store must never stand in its way
+        # (the old token has stopped working by now).
+        await audit.record(
+            self._audit_repo,
+            SCIM_TOKEN_ROTATED,
+            workspace_id,
+            user,
+            directory_id=str(directory.id),
+            directory_type=directory.type,
+        )
         logger.info(
             "SCIM directory {} of workspace {} rotated by {}",
             directory.id,
@@ -522,6 +582,18 @@ class ScimDirectoryService:
         seat is free; otherwise they stay disabled (``seat_limit``)."""
         await self._authorize_owner(workspace_id, user)
         directory = await self._directory(workspace_id)
+        # Recorded first, and refused when it cannot be: unlike a rotation this
+        # lifts the directory's own deactivations (members are enabled again,
+        # ``release_directory_disables``), so it opens access. A leaked token is
+        # stopped by rotating it, which is never blocked by the audit store.
+        await audit.record_or_refuse(
+            self._audit_repo,
+            SCIM_TOKEN_REVOKED,
+            workspace_id,
+            user,
+            directory_id=str(directory.id),
+            directory_type=directory.type,
+        )
         if settings.sso.is_configured:
             try:
                 await self._polis.delete_directory(directory.polis_directory_id)
@@ -542,6 +614,21 @@ class ScimDirectoryService:
         return DirectoryDeletedDto(re_enabled=enabled, left_disabled=left)
 
     async def _forget(self, directory: ScimDirectoryDocument) -> None:
+        if self._team_links is not None:
+            team_of = await self._team_links.by_group(directory.workspace_id)
+            for group in await self._groups.list_by_directory(directory.id):
+                if str(group.id) in team_of:
+                    # the links end with the directory: one entry each (ids only)
+                    await audit.record(
+                        self._audit_repo,
+                        TEAM_LINKED,
+                        directory.workspace_id,
+                        SystemActor("scim"),
+                        group_id=team_of[str(group.id)],
+                        scim_group_id=str(group.id),
+                        linked=False,
+                    )
+            await self._team_links.delete_for_directory(directory.id)
         await self._members.delete_by_directory(directory.id)
         await self._groups.delete_by_directory(directory.id)
         await self._users.delete_by_directory(directory.id)
@@ -563,6 +650,18 @@ class ScimDirectoryService:
                 "invalid_role",
                 "That role can't be given by a directory group.",
             )
+        if role != group.role:
+            # a group's members get this role: recorded first, or refused
+            await audit.record_or_refuse(
+                self._audit_repo,
+                SCIM_GROUP_ROLE_CHANGED,
+                workspace_id,
+                user,
+                directory_id=str(directory.id),
+                directory_group_id=str(group.id),
+                role=role,
+                previous_role=group.role,
+            )
         group.role = role
         group.needs_review = None
         group.role_changed_by = str(user.id)
@@ -577,8 +676,126 @@ class ScimDirectoryService:
             changed,
             user.id,
         )
-        members = len(await self._members.list_by_group(group.id))
-        return GroupDto(id=str(group.id), name=group.name, role=role, members=members)
+        return await self._group_dto(group)
+
+    # -- teams ----------------------------------------------------------------
+    async def _group_of(self, workspace_id, group_id: str) -> ScimGroupDocument:
+        directory = await self._directory(workspace_id)
+        group = await self._groups.get(group_id) if _is_id(group_id) else None
+        if group is None or group.directory_id != directory.id:
+            raise _refused(HTTPStatus.NOT_FOUND, "not_found", "No such group.")
+        return group
+
+    async def _team_of(self, workspace_id, group) -> Optional[str]:
+        link = (
+            await self._team_links.find(workspace_id, group.id)
+            if self._team_links is not None
+            else None
+        )
+        return str(link.team_id) if link is not None else None
+
+    async def _group_dto(self, group: ScimGroupDocument, team_id=None) -> GroupDto:
+        if team_id is None:
+            team_id = await self._team_of(group.workspace_id, group)
+        return GroupDto(
+            id=str(group.id),
+            name=group.name,
+            role=group.role,
+            members=len(await self._members.list_by_group(group.id)),
+            needs_review=group.needs_review,
+            team_id=team_id or None,
+        )
+
+    async def set_group_team(
+        self, workspace_id, group_id: str, request: GroupTeamDto, user: User
+    ) -> GroupDto:
+        """Link a directory group to a team: whoever is in the group in the
+        directory is in the team (read at call time, never copied). One group is
+        in at most one team (linking it again moves it); a team may take several
+        groups. Owner only, like the role mapping, and only while
+        ``FORM_ACCESS_ENABLED`` is on. Audited (ids only) before it is made."""
+        await self._authorize_owner(workspace_id, user)
+        refuse_when_off()
+        group = await self._group_of(workspace_id, group_id)
+        team_id = request.team_id
+        team = (
+            await self._teams.find(workspace_id, team_id) if _is_id(team_id) else None
+        )
+        if team is None:
+            raise _refused(HTTPStatus.NOT_FOUND, "not_found", "No such team.")
+        current = await self._team_of(workspace_id, group)
+        if current == str(team.id):
+            return await self._group_dto(group, current)
+        if current:
+            await audit.record_or_refuse(
+                self._audit_repo,
+                TEAM_LINKED,
+                workspace_id,
+                user,
+                group_id=current,
+                scim_group_id=str(group.id),
+                linked=False,
+            )
+        await audit.record_or_refuse(
+            self._audit_repo,
+            TEAM_LINKED,
+            workspace_id,
+            user,
+            group_id=str(team.id),
+            scim_group_id=str(group.id),
+            linked=True,
+        )
+        try:
+            saved = await self._team_links.set(
+                workspace_id, group.id, team.id, str(user.id)
+            )
+        except AccessTargetNotFound:
+            raise _refused(HTTPStatus.NOT_FOUND, "not_found", "No such team.") from None
+        if saved is None:
+            raise _refused(HTTPStatus.NOT_FOUND, "not_found", "No such group.")
+        self._forget_access()
+        logger.info(
+            "SCIM group {} of workspace {} linked to team {} by {}",
+            group.id,
+            workspace_id,
+            team.id,
+            user.id,
+        )
+        return await self._group_dto(group, str(team.id))
+
+    async def clear_group_team(
+        self, workspace_id, group_id: str, user: User
+    ) -> GroupDto:
+        """Unlink the group: its members are no longer in the team (the people
+        and grants stay; nothing is deleted)."""
+        await self._authorize_owner(workspace_id, user)
+        refuse_when_off()
+        group = await self._group_of(workspace_id, group_id)
+        current = await self._team_of(workspace_id, group)
+        if not current:
+            return await self._group_dto(group, "")
+        await audit.record_or_refuse(
+            self._audit_repo,
+            TEAM_LINKED,
+            workspace_id,
+            user,
+            group_id=current,
+            scim_group_id=str(group.id),
+            linked=False,
+        )
+        await self._team_links.clear(workspace_id, group.id)
+        self._forget_access()
+        logger.info(
+            "SCIM group {} of workspace {} unlinked from its team by {}",
+            group.id,
+            workspace_id,
+            user.id,
+        )
+        return await self._group_dto(group, "")
+
+    def _forget_access(self) -> None:
+        if self._form_access is not None:
+            self._form_access.invalidate()
 
     # -- resync ---------------------------------------------------------------
     async def resync(self, workspace_id, user: User, force: bool = False) -> ResyncDto:

@@ -135,8 +135,11 @@ def _json_body(schema_ref: str, example: Optional[Dict[str, Any]] = None) -> dic
 def _errors(*statuses: int) -> Dict[int, Dict[str, Any]]:
     descriptions = {
         401: "No valid API key.",
-        403: "The key lacks the scope, or its creator lacks the permission.",
-        404: "No such form (or response) in the key's workspace.",
+        403: "The key lacks the scope, its creator lacks the permission, or the "
+        "key's role or form list does not allow it (`key_role_lacks_permission`, "
+        "`key_form_scope`).",
+        404: "No such form (or response) in the key's workspace, or the form is "
+        "not on the key's list of forms.",
         409: "A request with the same Idempotency-Key is still running.",
         412: "The form changed since the ETag in If-Match.",
         413: "The body is larger than 1 MB.",
@@ -386,7 +389,8 @@ async def list_forms(
     description="All or nothing: the whole document is checked first; any "
     "error is a 422 listing every problem, and nothing is created. A logo URL "
     "in the document is ignored (logos are uploaded). Answers 201 with the "
-    "stored document, its ETag and Location.",
+    "stored document, its ETag and Location. A key limited to certain forms "
+    "cannot create one (403 `key_form_scope`).",
     status_code=201,
     response_model=CreatedForm,
     responses=_errors(401, 403, 409, 413, 422, 429),
@@ -395,7 +399,9 @@ async def list_forms(
 async def create_form(
     request: Request,
     idempotency_key: Optional[str] = IDEMPOTENCY_KEY,
-    caller: ApiCaller = Depends(api_key("forms:write", "api:create_form")),
+    caller: ApiCaller = Depends(
+        api_key("forms:write", "api:create_form", creates=True)
+    ),
 ):
     body = await read_document_bytes(request)
 

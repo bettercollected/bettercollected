@@ -1,13 +1,14 @@
 import React from 'react';
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import i18n from 'i18next';
 import { Provider as ReduxProvider } from 'react-redux';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setWorkspace } from '@app/store/workspaces/slice';
 import { store } from '@app/store/store';
 
-import WorkspaceMenuDropdown, { canOpenWorkspace } from './workspace-menu-dropdown';
+import WorkspaceMenuDropdown, { canOpenWorkspace, workspaceRoleOf } from './workspace-menu-dropdown';
 
 const push = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push, replace: vi.fn() }) }));
@@ -77,5 +78,102 @@ describe('WorkspaceMenuDropdown', () => {
         openMenu();
         fireEvent.click(screen.getByText('Space downgraded'));
         expect(push).not.toHaveBeenCalled();
+    });
+});
+
+const ROLE_LABELS: Record<string, { en: string; nl: string }> = {
+    OWNER: { en: 'Owner', nl: 'Eigenaar' },
+    ADMIN: { en: 'Admin', nl: 'Beheerder' },
+    EDITOR: { en: 'Editor', nl: 'Bewerker' },
+    REVIEWER: { en: 'Reviewer', nl: 'Beoordelaar' },
+    VIEWER: { en: 'Viewer', nl: 'Kijker' },
+    PRIVACY_OFFICER: { en: 'Privacy officer', nl: 'Privacyfunctionaris' }
+};
+
+describe('workspaceRoleOf', () => {
+    it('is Owner for every owner, whatever the role says', () => {
+        expect(workspaceRoleOf(space('a', { isOwner: true, role: 'OWNER' }))).toBe('OWNER');
+        expect(workspaceRoleOf(space('a', { isOwner: true }))).toBe('OWNER');
+    });
+
+    it('reads the listed role, COLLABORATOR as Editor', () => {
+        expect(workspaceRoleOf(space('a', { isOwner: false, role: 'VIEWER' }))).toBe('VIEWER');
+        expect(workspaceRoleOf(space('a', { isOwner: false, role: 'collaborator' }))).toBe('EDITOR');
+    });
+
+    it('falls back to the billing owner only when the list says nothing about owners', () => {
+        expect(workspaceRoleOf(space('a', { ownerId: 'me' }), 'me')).toBe('OWNER');
+        expect(workspaceRoleOf(space('a', { ownerId: 'me', isOwner: false }), 'me')).toBeUndefined();
+    });
+
+    it('is unknown for a missing or unrecognised role', () => {
+        expect(workspaceRoleOf(space('a', { isOwner: false }))).toBeUndefined();
+        expect(workspaceRoleOf(space('a', { isOwner: false, role: 'SUPERUSER' }))).toBeUndefined();
+        expect(workspaceRoleOf(undefined)).toBeUndefined();
+    });
+});
+
+describe('WorkspaceMenuDropdown role labels', () => {
+    beforeEach(() => {
+        store.dispatch(setWorkspace(space('current')));
+    });
+    afterEach(async () => {
+        await i18n.changeLanguage('en');
+    });
+
+    const open = () => {
+        render(
+            <ReduxProvider store={store}>
+                <WorkspaceMenuDropdown />
+            </ReduxProvider>
+        );
+        fireEvent.click(screen.getAllByText('Space current')[0]);
+    };
+    const rowOf = (id: string) => screen.getAllByText(`Space ${id}`).map((node) => node.closest('div.flex.items-center.justify-between') as HTMLElement).find(Boolean) as HTMLElement;
+
+    for (const lang of ['en', 'nl'] as const) {
+        it(`shows each member's real role (${lang})`, async () => {
+            await i18n.changeLanguage(lang);
+            mine.data = [space('current', { isOwner: true, role: 'OWNER' }), ...Object.keys(ROLE_LABELS).filter((r) => r !== 'OWNER').map((role) => space(role.toLowerCase(), { isOwner: false, role }))];
+            open();
+            for (const [role, label] of Object.entries(ROLE_LABELS)) {
+                if (role === 'OWNER') continue;
+                expect(within(rowOf(role.toLowerCase())).getByText(label[lang])).toBeTruthy();
+            }
+            // never the old catch-all
+            expect(screen.queryByText(/Collaborator|Medewerker/)).toBeNull();
+        });
+
+        it(`labels a workspace of several owners Owner (${lang})`, async () => {
+            await i18n.changeLanguage(lang);
+            mine.data = [space('current', { isOwner: true, role: 'OWNER' }), space('co', { isOwner: true, role: 'OWNER', ownerId: 'someone-else' })];
+            open();
+            expect(within(rowOf('co')).getByText(ROLE_LABELS.OWNER[lang])).toBeTruthy();
+        });
+    }
+
+    it('shows the current workspace role in the switcher button from the list', () => {
+        store.dispatch(setWorkspace(space('current', { ownerId: 'someone' })));
+        mine.data = [space('current', { isOwner: false, role: 'REVIEWER' })];
+        render(
+            <ReduxProvider store={store}>
+                <WorkspaceMenuDropdown />
+            </ReduxProvider>
+        );
+        expect(screen.getByText('Reviewer')).toBeTruthy();
+    });
+
+    it('shows no label when the role is unknown', () => {
+        mine.data = [space('current', { isOwner: false }), space('odd', { isOwner: false, role: 'SUPERUSER' })];
+        open();
+        expect(screen.queryByText(/Collaborator|Editor|Owner|Admin|Reviewer|Viewer|Privacy officer/)).toBeNull();
+        expect(within(rowOf('odd')).queryByText(/./, { selector: 'p.text-black-700' })).toBeNull();
+    });
+
+    it('keeps "Read-only" without a stray separator when the role is unknown', () => {
+        mine.data = [space('current', { isOwner: true }), space('old', { isOwner: false, disabled: true })];
+        open();
+        const note = within(rowOf('old')).getByText(/Read-only/);
+        expect(note.textContent?.trim()).toBe('Read-only');
     });
 });

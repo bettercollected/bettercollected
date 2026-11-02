@@ -23,7 +23,7 @@ from http import HTTPStatus
 from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import and_, func, not_, or_, select
+from sqlalchemy import and_, delete, func, not_, or_, select
 from sqlalchemy.exc import IntegrityError
 
 from backend.app.exceptions import HTTPException
@@ -39,8 +39,10 @@ from backend.app.schemas.scim import (
     ScimEventDocument,
     ScimGroupDocument,
     ScimGroupMemberDocument,
+    ScimGroupTeamLinkDocument,
     ScimUserDocument,
 )
+from backend.app.schemas.form_access_grant import SUBJECT_KEY
 from backend.app.schemas.sso_used_state import SsoUsedStateDocument
 from backend.app.schemas.session import SessionDocument
 from backend.app.schemas.sso_connection import (
@@ -58,11 +60,15 @@ from backend.app.schemas.workspace_user import (
 )
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from backend.db.base import SCHEMA
+from backend.app.repositories.postgres.form_access import AccessTargetNotFound
 from backend.db.models import (
+    FormAccessGrantRow,
+    MemberGroupRow,
     ScimDirectoryRow,
     ScimEventRow,
     ScimGroupMemberRow,
     ScimGroupRow,
+    ScimGroupTeamLinkRow,
     ScimUserRow,
     SessionRow,
     SsoConnectionRow,
@@ -78,10 +84,12 @@ from common.constants import MESSAGE_NOT_FOUND
 from common.records import (
     RecordId,
     decode,
+    derived_id,
     from_canonical_document,
     row_values,
     to_bson,
 )
+from common.db.tombstones import record_postgres
 from common.records.repository import RecordRepository
 from common.enums.workspace_invitation_status import InvitationStatus
 from common.clock import utcnow
@@ -548,12 +556,17 @@ class PostgresWorkspaceInvitationRepo(RecordRepository):
             await session.execute(self._upsert_statement(row_values(invitation)))
 
 
-async def revoke_live_keys(session, upsert, *where) -> List[Tuple[str, str]]:
+async def revoke_live_keys(
+    session, upsert, delete_recorded, *where
+) -> List[Tuple[str, str]]:
     """Revoke, in ``session``'s transaction, every key matching ``where`` that
-    is not revoked yet. The rows stay (revoked, not deleted), so the audit and
-    "last used" remain. ``upsert`` is a key repository's ``_upsert_statement``
-    (so the member removal transaction can revoke too). Returns the
-    ``(key id, workspace id)`` of what it revoked."""
+    is not revoked yet. The key rows stay (revoked, not deleted), so the audit
+    and "last used" remain; the form rows of a key limited to a list of forms
+    (``form_access_grants``, ``subject_type='key'``) go with the revocation, in
+    the same transaction. ``upsert`` is a key repository's ``_upsert_statement``
+    and ``delete_recorded`` its ``_delete_recorded`` (so the member removal
+    transaction can revoke too). Returns the ``(key id, workspace id)`` of what
+    it revoked."""
     docs = (
         (
             await session.execute(
@@ -572,6 +585,13 @@ async def revoke_live_keys(session, upsert, *where) -> List[Tuple[str, str]]:
         key.revoked = True
         key.touch()
         await session.execute(upsert(row_values(key), WorkspaceApiKeyRow))
+        await delete_recorded(
+            session,
+            FormAccessGrantRow,
+            FormAccessGrantRow.workspace_id == str(key.workspace_id),
+            FormAccessGrantRow.subject_type == SUBJECT_KEY,
+            FormAccessGrantRow.subject_id == str(key.id),
+        )
         revoked.append((str(key.id), str(key.workspace_id)))
     return revoked
 
@@ -590,6 +610,11 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
 
     async def get_or_404(self, key_id: RecordId) -> WorkspaceAPIKeyDocument:
         return await self.get_or_raise(key_id)
+
+    async def find_by_id(
+        self, key_id: RecordId
+    ) -> Optional[WorkspaceAPIKeyDocument]:
+        return await self.one(WorkspaceApiKeyRow.id == _oid(key_id))
 
     async def find_by_key_hash(
         self, key_hash: str
@@ -624,13 +649,96 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
         if workspace_id is not None:
             where.append(WorkspaceApiKeyRow.workspace_id == _oid(workspace_id))
         async with self._session() as session, session.begin():
-            return await revoke_live_keys(session, self._upsert_statement, *where)
+            return await revoke_live_keys(
+                session, self._upsert_statement, self._delete_recorded, *where
+            )
+
+    async def revoke_one(self, workspace_id: RecordId, key_id: RecordId) -> bool:
+        """Revoke one key of the workspace (and delete its form rows), in one
+        transaction on the locked row, so a concurrent last-used update is never
+        written back over it. Whether it was live and is now revoked."""
+        async with self._session() as session, session.begin():
+            return bool(
+                await revoke_live_keys(
+                    session,
+                    self._upsert_statement,
+                    self._delete_recorded,
+                    WorkspaceApiKeyRow.id == _oid(key_id),
+                    WorkspaceApiKeyRow.workspace_id == _oid(workspace_id),
+                )
+            )
+
+    async def revoke_in_workspaces(self, workspace_ids: List[RecordId]) -> int:
+        """Revoke every live key of these workspaces, whoever made it (the
+        workspaces are being deleted). Returns how many."""
+        ids = [_oid(w) for w in workspace_ids]
+        if not ids:
+            return 0
+        async with self._session() as session, session.begin():
+            return len(
+                await revoke_live_keys(
+                    session,
+                    self._upsert_statement,
+                    self._delete_recorded,
+                    WorkspaceApiKeyRow.workspace_id.in_(ids),
+                )
+            )
+
+    async def update_limits(
+        self,
+        workspace_id: RecordId,
+        key_id: RecordId,
+        change,
+    ) -> Optional[WorkspaceAPIKeyDocument]:
+        """Change the name, role and form scope of a live key of the workspace
+        and nothing else (not its scopes, its creator or its secret). The row is
+        locked and read first and **stays locked while** ``change(document,
+        session)`` (an async callable, given the key as it is now and the open
+        transaction) runs; it returns ``(name, role, form_scope)`` to store. The
+        caller's other writes (the key's rows, its audit entries) go through that
+        session, so they commit with the key or not at all. Every request made
+        with the key locks this row too (``touch_last_used``, which skips it while
+        it is held), and a revocation waits for it, so ``change`` must be short:
+        check the key and its rows are as the caller read them, write, nothing
+        more. What ``change`` saw is what is changed and a revoked key is never
+        brought back. An exception from ``change`` stores nothing. ``None`` when
+        the key is not there, not of this workspace or already revoked (``change``
+        is not called)."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(WorkspaceApiKeyRow.doc)
+                    .where(
+                        WorkspaceApiKeyRow.id == _oid(key_id),
+                        WorkspaceApiKeyRow.workspace_id == _oid(workspace_id),
+                        WorkspaceApiKeyRow.revoked.is_not(True),
+                    )
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return None
+            stored = decode(WorkspaceAPIKeyDocument, doc)
+            name, role, form_scope = await change(stored, session)
+            stored.name = name
+            stored.role = role
+            stored.form_scope = form_scope
+            stored.touch()
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return stored
 
     async def touch_last_used(self, key_id: RecordId, now: datetime.datetime) -> bool:
         """Record that the key was used at ``now``, changing nothing else, and
         only while it is not revoked: the row is locked and re-read, so a
         revocation (or any other change) made since the caller read the key
-        is never written back. Whether the key was live and touched."""
+        is never written back. Whether the key is live.
+
+        This runs on every request made with the key, so it never waits for a
+        lock: a row that someone else holds (an edit of the key's limits, a
+        revocation in progress) is skipped, and the request goes on with the
+        key as it was read, without a last-used update (the next request makes
+        it). A key that is gone or revoked is told apart from a locked one by
+        a read that takes no lock."""
         async with self._session() as session, session.begin():
             doc = (
                 await session.execute(
@@ -639,15 +747,22 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
                         WorkspaceApiKeyRow.id == _oid(key_id),
                         WorkspaceApiKeyRow.revoked.is_not(True),
                     )
-                    .with_for_update()
+                    .with_for_update(skip_locked=True)
                 )
             ).scalar_one_or_none()
-            if doc is None:
-                return False
-            stored = decode(WorkspaceAPIKeyDocument, doc)
-            stored.last_used_at = now
-            await session.execute(self._upsert_statement(row_values(stored)))
-        return True
+            if doc is not None:
+                stored = decode(WorkspaceAPIKeyDocument, doc)
+                stored.last_used_at = now
+                await session.execute(self._upsert_statement(row_values(stored)))
+                return True
+            return (
+                await session.execute(
+                    select(WorkspaceApiKeyRow.id).where(
+                        WorkspaceApiKeyRow.id == _oid(key_id),
+                        WorkspaceApiKeyRow.revoked.is_not(True),
+                    )
+                )
+            ).first() is not None
 
 
 class PostgresWorkspaceDomainRepository(RecordRepository):
@@ -972,6 +1087,119 @@ class PostgresScimGroupRepository(RecordRepository):
 
     async def delete_by_directory(self, directory_id: RecordId) -> int:
         return await self.delete_where(ScimGroupRow.directory_id == _oid(directory_id))
+
+
+class PostgresScimGroupTeamLinkRepository(RecordRepository):
+    """The team each directory group feeds (``FORM_ACCESS_ENABLED``): rows of
+    ``scim_group_team_links``, written only here, never by a save of a group
+    document. Every query carries the workspace."""
+
+    row = ScimGroupTeamLinkRow
+    document = ScimGroupTeamLinkDocument
+
+    async def by_group(self, workspace_id) -> Dict[str, str]:
+        """group id -> team id, for the workspace's links."""
+        rows = await self.many(ScimGroupTeamLinkRow.workspace_id == _oid(workspace_id))
+        return {str(r.group_id): str(r.team_id) for r in rows}
+
+    async def find(self, workspace_id, group_id) -> Optional[ScimGroupTeamLinkDocument]:
+        return await self.one(
+            ScimGroupTeamLinkRow.workspace_id == _oid(workspace_id),
+            ScimGroupTeamLinkRow.group_id == _oid(group_id),
+        )
+
+    async def link_counts(self, workspace_id) -> Dict[str, int]:
+        """team id -> how many directory groups of the workspace are linked to it.
+        Counts only links whose group still exists: a row left behind by a
+        failed or interleaved clean-up is not a group feeding the team."""
+        async with self._session() as session:
+            rows = await session.execute(
+                select(ScimGroupTeamLinkRow.team_id, func.count())
+                .join(ScimGroupRow, ScimGroupRow.id == ScimGroupTeamLinkRow.group_id)
+                .where(ScimGroupTeamLinkRow.workspace_id == _oid(workspace_id))
+                .group_by(ScimGroupTeamLinkRow.team_id)
+            )
+        return {str(team_id): int(total) for team_id, total in rows.all()}
+
+    async def set(
+        self, workspace_id, group_id, team_id, by: Optional[str]
+    ) -> Optional[ScimGroupTeamLinkDocument]:
+        """Link the group to a team of the workspace (an existing link moves).
+        The group row and the team row are shared-locked for the write, so a
+        group dropped by the directory or a team deleted at the same moment
+        either waits for this write (and its own clean-up then removes the row)
+        or is refused here. ``AccessTargetNotFound("group")`` for a team that is
+        not the workspace's; ``None`` for a group that is gone or is another
+        workspace's."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(ScimGroupRow.doc)
+                    .where(ScimGroupRow.id == _oid(group_id))
+                    .limit(1)
+                    .with_for_update(read=True)
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return None
+            if _oid(decode(ScimGroupDocument, doc).workspace_id) != _oid(workspace_id):
+                return None
+            found = await session.execute(
+                select(MemberGroupRow.id)
+                .where(
+                    MemberGroupRow.workspace_id == _oid(workspace_id),
+                    MemberGroupRow.id == _oid(team_id),
+                )
+                .limit(1)
+                .with_for_update(read=True)
+            )
+            if found.first() is None:
+                raise AccessTargetNotFound("group")
+            link = ScimGroupTeamLinkDocument(
+                id=derived_id("scim_group_team_link", _oid(group_id)),
+                group_id=RecordId(_oid(group_id)),
+                team_id=RecordId(_oid(team_id)),
+                workspace_id=RecordId(_oid(workspace_id)),
+                linked_by=by,
+            )
+            link.touch()
+            await session.execute(
+                self._upsert_statement(row_values(link), ScimGroupTeamLinkRow)
+            )
+        return link
+
+    async def clear(self, workspace_id, group_id) -> int:
+        return await self.delete_where(
+            ScimGroupTeamLinkRow.workspace_id == _oid(workspace_id),
+            ScimGroupTeamLinkRow.group_id == _oid(group_id),
+        )
+
+    async def delete_for_group(self, group_id) -> List[str]:
+        """The group is gone: remove its link and return the team ids of the
+        rows actually removed (``DELETE ... RETURNING``), so the caller records
+        exactly what ended, including a link made a moment ago."""
+        async with self._session() as session, session.begin():
+            removed = (
+                await session.execute(
+                    delete(ScimGroupTeamLinkRow)
+                    .where(ScimGroupTeamLinkRow.group_id == _oid(group_id))
+                    .returning(ScimGroupTeamLinkRow.id, ScimGroupTeamLinkRow.team_id)
+                )
+            ).all()
+            await record_postgres(
+                session,
+                ScimGroupTeamLinkRow.__table__.schema,
+                ScimGroupTeamLinkRow.mongo_collection(),
+                [row_id for row_id, _ in removed],
+            )
+        return [str(team_id) for _, team_id in removed]
+
+    async def delete_for_directory(self, directory_id) -> int:
+        """The directory is gone: every link of its groups."""
+        groups = select(ScimGroupRow.id).where(
+            ScimGroupRow.directory_id == _oid(directory_id)
+        )
+        return await self.delete_where(ScimGroupTeamLinkRow.group_id.in_(groups))
 
 
 class PostgresScimGroupMemberRepository(RecordRepository):

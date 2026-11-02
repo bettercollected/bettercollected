@@ -42,8 +42,17 @@ from backend.app.schemas.sso_connection import (
     SsoConnectionStatus,
     SsoConnectionType,
 )
+from backend.app.schemas.workspace_audit_event import (
+    SSO_CONNECTION_CREATED,
+    SSO_CONNECTION_DELETED,
+    SSO_CONNECTION_DISABLED,
+    SSO_CONNECTION_ENABLED,
+    SSO_DEFAULT_ROLE_CHANGED,
+    SSO_REQUIRED_CHANGED,
+)
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.domains.names import display_domain, domain_of
+from backend.app.services.form_access import audit
 from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.session_service import RevokeReason, SessionService
 from backend.app.services.sso.polis_client import (
@@ -326,7 +335,10 @@ class SsoConnectionService:
         on_default_role_changed=None,
         api_key_repo=None,
         http_client=None,
+        audit_repo=None,
     ):
+        # the workspace's audit log (ids and enum values only)
+        self._audit_repo = audit_repo
         # the workspace's API keys, shown for review (docs/sso.md)
         self._api_keys = api_key_repo
         self._http_client = http_client
@@ -653,6 +665,15 @@ class SsoConnectionService:
         except Exception:
             await self._forget_unrecorded(client_id, workspace_id)
             raise
+        # inert until it is tested and enabled: best effort
+        await audit.record(
+            self._audit_repo,
+            SSO_CONNECTION_CREATED,
+            workspace_id,
+            user,
+            connection_id=str(document.id),
+            connection_type=document.type.value,
+        )
         logger.info(
             "SSO connection {} ({}) created in workspace {} by {}",
             document.id,
@@ -812,14 +833,41 @@ class SsoConnectionService:
             )
         now = _now()
         if not connection.is_enabled:
+            # it lets the IdP's users sign in: recorded first, or refused
+            await audit.record_or_refuse(
+                self._audit_repo,
+                SSO_CONNECTION_ENABLED,
+                workspace_id,
+                user,
+                connection_id=str(connection.id),
+                connection_type=connection.type.value,
+            )
             connection.status = SsoConnectionStatus.ENABLED
             connection.enabled_at = now
             connection.enabled_by = str(user.id)
             connection.updated_at = now
             await self._connections.save(connection)
+        # the connections this one replaces: each gets its own entry, as if it
+        # had been disabled by hand (closing a way in: best effort, after; one
+        # enabled between this read and the disable is not listed, which is
+        # acceptable for a best-effort entry)
+        replaced = [
+            other
+            for other in await self._connections.list_by_workspace(workspace_id)
+            if other.is_enabled and other.id != connection.id
+        ]
         await self._connections.disable_others(
             RecordId(workspace_id), connection.id, str(user.id), now
         )
+        for other in replaced:
+            await audit.record(
+                self._audit_repo,
+                SSO_CONNECTION_DISABLED,
+                workspace_id,
+                user,
+                connection_id=str(other.id),
+                connection_type=other.type.value,
+            )
         return SsoConnectionDto.of(connection)
 
     async def disable_connection(
@@ -835,6 +883,15 @@ class SsoConnectionService:
             connection.disabled_by = str(user.id)
             connection.updated_at = now
             await self._connections.save(connection)
+            # it closes a way in: best effort
+            await audit.record(
+                self._audit_repo,
+                SSO_CONNECTION_DISABLED,
+                workspace_id,
+                user,
+                connection_id=str(connection.id),
+                connection_type=connection.type.value,
+            )
         return SsoConnectionDto.of(connection)
 
     async def delete_connection(
@@ -843,6 +900,15 @@ class SsoConnectionService:
         await self._authorize_owner(workspace_id, user)
         connection = await self._connection_in_workspace(workspace_id, connection_id)
         await self._refuse_while_required(workspace_id, connection)
+        # removes the configuration (and its Polis side): recorded first
+        await audit.record_or_refuse(
+            self._audit_repo,
+            SSO_CONNECTION_DELETED,
+            workspace_id,
+            user,
+            connection_id=str(connection.id),
+            connection_type=connection.type.value,
+        )
         if settings.sso.is_configured:
             try:
                 await self._polis.delete_connection(connection.polis_client_id)
@@ -938,6 +1004,31 @@ class SsoConnectionService:
                     "sso_required_changed_by": str(user.id),
                     "sso_required_changed_at": now,
                 }
+            )
+        # Who may sign in, and with which role, is recorded first, or refused.
+        # That includes turning "Require single sign-on" off: it widens
+        # sign-in again, so the way out of a lockout depends on the audit store
+        # being up (the owner's email-code break-glass and a platform admin's
+        # database access do not, docs/sso.md and docs/audit-log.md).
+        if "sso_required" in fields:
+            await audit.record_or_refuse(
+                self._audit_repo,
+                SSO_REQUIRED_CHANGED,
+                workspace_id,
+                user,
+                required=bool(fields["sso_required"]),
+            )
+        if (
+            "sso_default_role" in fields
+            and fields["sso_default_role"] != workspace.sso_default_role
+        ):
+            await audit.record_or_refuse(
+                self._audit_repo,
+                SSO_DEFAULT_ROLE_CHANGED,
+                workspace_id,
+                user,
+                role=fields["sso_default_role"],
+                previous_role=workspace.sso_default_role or None,
             )
         if fields:
             fields["updated_at"] = now
