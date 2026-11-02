@@ -56,6 +56,34 @@ class PostgresOptionListRepository(RecordRepository):
             Row.workspace_id == _id(workspace_id), order_by=(Row.name_key, Row.id)
         )
 
+    async def name_keys(self, workspace_id, list_ids) -> Dict[str, str]:
+        """list id -> its folded name, for those of ``list_ids`` that are lists of
+        this workspace (the id and the name only, never the items)."""
+        ids = [_id(i) for i in dict.fromkeys(list_ids) if i]
+        if not ids:
+            return {}
+        async with self._session() as session:
+            rows = await session.execute(
+                select(Row.id, Row.name_key).where(
+                    Row.workspace_id == _id(workspace_id), Row.id.in_(ids)
+                )
+            )
+        return {str(list_id): name for list_id, name in rows.all()}
+
+    async def ids_by_name_key(self, workspace_id, name_keys) -> Dict[str, str]:
+        """folded name -> list id, for those of ``name_keys`` that name a list of
+        this workspace (a name is unique per workspace)."""
+        keys = [k for k in dict.fromkeys(name_keys) if k]
+        if not keys:
+            return {}
+        async with self._session() as session:
+            rows = await session.execute(
+                select(Row.name_key, Row.id).where(
+                    Row.workspace_id == _id(workspace_id), Row.name_key.in_(keys)
+                )
+            )
+        return {name: str(list_id) for name, list_id in rows.all()}
+
     async def count_for_workspace(self, workspace_id) -> int:
         return await self.count(Row.workspace_id == _id(workspace_id))
 

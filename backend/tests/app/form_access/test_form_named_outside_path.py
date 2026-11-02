@@ -49,10 +49,19 @@ REFERENCES: Dict[Tuple[str, str], Tuple[str, str]] = {
         "test_write_enforcement.py (R56)",
     ),
     ("POST", "/workspaces/{workspace_id}/api-keys"): (
-        "body.submissionFormIds",
+        "body.submissionFormIds, body.formIds",
         "security.manage (Owner/Admin) and every id must be a form of this "
-        "workspace (APIKeyService._checked_submission_forms)",
-        "test_a_key_cannot_be_limited_to_a_form_of_another_workspace",
+        "workspace that the caller may open (APIKeyService._checked_submission_forms, "
+        "_checked_list): a form of another workspace answers as one that is not there",
+        "test_a_key_cannot_be_limited_to_a_form_of_another_workspace, "
+        "test_the_form_list_is_checked",
+    ),
+    ("PATCH", "/workspaces/{workspace_id}/api-keys/{key_id}"): (
+        "body.formIds",
+        "security.manage (Owner/Admin), the key must be a live key of this workspace "
+        "and every id a form of it that the caller may open "
+        "(APIKeyService.update_key, _checked_list)",
+        "test_the_form_list_is_checked, test_a_key_of_another_workspace_is_not_found",
     ),
     ("GET", "/workspaces/{workspace_id}/audit-log"): (
         "query.form_id",
@@ -65,6 +74,21 @@ REFERENCES: Dict[Tuple[str, str], Tuple[str, str]] = {
         "body.formId, body.source.formId",
         "authorize_source: a form closed to the caller does not exist for them",
         "test_write_enforcement.py (option sources)",
+    ),
+    ("POST", "/workspaces/{workspace_id}/forms/{form_id}/promotion/preview"): (
+        "body.targetFormId",
+        "form.edit on that form in the target workspace (authorize with the form id: "
+        "a form closed to the caller, or one of another workspace, is the 404 of an "
+        "unknown form); a target workspace the caller is not in is a 404 too",
+        "test_a_target_form_closed_to_the_caller_is_a_404 and "
+        "test_a_target_form_of_another_workspace_is_no_form_of_the_target "
+        "(form_promotion/test_permissions.py)",
+    ),
+    ("POST", "/workspaces/{workspace_id}/forms/{form_id}/promotion/apply"): (
+        "body.targetFormId",
+        "the same decision as the preview, made again before anything is written "
+        "(FormPromotionService._target_permission)",
+        "test_an_existing_target_needs_form_edit_on_it (form_promotion/test_permissions.py)",
     ),
     ("POST", "/{workspace_id}/responder-groups"): (
         "query.form_id",

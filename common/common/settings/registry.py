@@ -99,6 +99,8 @@ ENV_ONLY_KEYS = frozenset(
         "FORM_ACCESS_ENABLED",
         # held until every API entry point enforces key roles and form scope
         "API_KEY_ROLES_ENABLED",
+        # held until copying a form between workspaces is released
+        "FORM_PROMOTION_ENABLED",
         "DOTENV_PATH",
         "PROJECT_NAME",
         "DOCS_URL",

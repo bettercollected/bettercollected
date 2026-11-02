@@ -8,7 +8,10 @@ from backend.app.schemas import workspace_audit_event as schema
 from backend.app.services.audit_log import catalog
 
 # string constants of the schema module that are not event kinds
-NOT_KINDS = {"NO_WORKSPACE"}
+NOT_KINDS = {
+    "NO_WORKSPACE",
+    "KEY_ROLE_AS_CREATOR",  # a value of ``key_role``, not a kind
+}
 NOT_KIND_PREFIXES = ("REVOKED_",)  # the reasons of API_KEY_REVOKED
 
 
@@ -41,6 +44,8 @@ def test_the_schemas_own_groups_are_covered():
         schema.ACCESS_EVENTS,
         schema.MEMBER_FORM_EVENTS,
         schema.API_KEY_EVENTS,
+        schema.SETTINGS_EVENTS,
+        schema.AUTOMATION_EVENTS,
     )
     for group in groups:
         for kind in group:

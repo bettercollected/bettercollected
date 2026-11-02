@@ -40,6 +40,19 @@ The creator's permissions are checked on every call: a key never does more
 than the person who created it may do at that moment. Every call is recorded
 in the workspace's API audit log.
 
+An admin can also limit a key to a role (Editor, Reviewer, Viewer or Privacy
+officer) and to a list of forms, when the server has API key roles switched
+on. The limits only ever narrow what the creator may do. A form that is not on
+the key's list answers exactly as a form that does not exist (404). The one
+exception is a key that also carries a list of forms it may submit to
+(`submissionFormIds`): the two submissions endpoints answer 403
+`form_not_allowed` for any form outside that list, because that check reads
+only the id in the path, so a form that exists and one that does not answer
+alike and nothing is revealed. A call the key's role does not allow is a 403
+`key_role_lacks_permission`. A key limited to a list of forms cannot create
+forms (`POST /forms`, and the MCP tools that create one): 403
+`key_form_scope`.
+
 ## Endpoints
 
 | Method and path | What it does |
@@ -122,7 +135,10 @@ Keys are per API key.
   `API_PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW`,
   `API_PUBLIC_API_WINDOW_SECONDS`); beyond that 429 with `Retry-After`. The
   submissions endpoints count against a budget of their own (the same
-  ceilings), so reads never use it up.
+  ceilings), so reads never use it up. The MCP server counts a key's tool
+  calls against the same ceilings, in budgets of their own (a tool call is a
+  request); a call over them is refused with the same text and `Retry-After`
+  seconds.
 - Lists: `size` at most 100, `page` at most 10000.
 - Request bodies: at most 1 MB (413). A document has at most 200 pages and
   2000 fields.

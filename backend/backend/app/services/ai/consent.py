@@ -21,7 +21,9 @@ from pydantic.alias_generators import to_camel
 from backend.app.exceptions import HTTPException
 from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.schemas.workspace import WorkspaceDocument
+from backend.app.schemas.workspace_audit_event import AI_CONSENT_CHANGED
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_access import audit
 from backend.app.models.enum.permission import Permission
 from backend.config import settings
 
@@ -114,7 +116,10 @@ class AIConsentService:
         self,
         workspace_repo: PostgresWorkspaceRepository,
         authorization_service: AuthorizationService,
+        audit_repo=None,
     ):
+        # the workspace's audit log (the provider's id only)
+        self._audit_repo = audit_repo
         self._workspace_repo = workspace_repo
         self._authorization = authorization_service
 
@@ -191,7 +196,31 @@ class AIConsentService:
                 "ai_disabled_by": str(user.id),
                 "ai_disabled_at": now,
             }
+        previous = workspace_ai_provider(workspace)
+        now_provider = fields["ai_provider"]
+        changed = previous != now_provider
+        if changed and now_provider:
+            # answers and form content may now go to a third party: recorded
+            # first, or refused
+            await audit.record_or_refuse(
+                self._audit_repo,
+                AI_CONSENT_CHANGED,
+                workspace_id,
+                user,
+                enabled=True,
+                provider=now_provider,
+            )
         await self._workspace_repo.set_fields(workspace, fields)
+        if changed and not now_provider:
+            # turning it off closes the flow: best effort
+            await audit.record(
+                self._audit_repo,
+                AI_CONSENT_CHANGED,
+                workspace_id,
+                user,
+                enabled=False,
+                provider=previous,
+            )
         workspace = await self._workspace_repo.find_by_id(workspace_id)
         from backend.app.services.ai.memory import AIMemoryService
 

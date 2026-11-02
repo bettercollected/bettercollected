@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from common.records import Record, RecordId
 
@@ -15,6 +15,9 @@ SSO_BREAK_GLASS_SIGN_IN = "sso_break_glass_sign_in"
 RESPONSE_STAFF_EDIT = "response_staff_edit"
 # a staff member opened the previous values of one history entry
 RESPONSE_REVISION_READ = "response_revision_read"
+# (written by ``services/response_revisions/audit.py``; grouped here so that
+# ``ALL_KINDS`` holds every kind there is)
+RESPONSE_REVISION_EVENTS = (RESPONSE_STAFF_EDIT, RESPONSE_REVISION_READ)
 
 # second-factor (authenticator app) events of an account (docs/totp.md): ids
 # only, never a code, a secret or an address. ``workspace_id`` is NO_WORKSPACE
@@ -118,11 +121,141 @@ API_KEY_EVENTS = (
 REVOKED_MEMBER_REMOVED = "member_removed"
 REVOKED_ACCOUNT_DELETED = "account_deleted"
 REVOKED_SCIM_DEPROVISIONED = "scim_deprovisioned"
+# a form's structure left a workspace for another one, or came from another one
+# (FORM_PROMOTION_ENABLED): ids and counts only, never a title, a name or a text of
+# the form. FORM_COPIED_OUT is written in the source workspace (form_id = the
+# source form, target_workspace_id, target_form_id when it updates one; the file
+# download names no target); FORM_PROMOTED in the target workspace (form_id = the
+# target form, source_workspace_id, source_form_id; ``count`` = what was adjusted
+# to fit). Both are stored before the change.
+FORM_COPIED_OUT = "form_copied_out"
+FORM_PROMOTED = "form_promoted"
+PROMOTION_EVENTS = (FORM_COPIED_OUT, FORM_PROMOTED)
+# an admin revoked the key on the API keys page
+REVOKED_BY_ADMIN = "admin"
+# the workspace was deleted (every key of it, whoever made it)
+REVOKED_WORKSPACE_DELETED = "workspace_deleted"
+# ``key_role`` / ``key_role_before`` of a key that has no role of its own: it acts
+# as its creator
+KEY_ROLE_AS_CREATOR = "creator"
+# workspace security settings (``security.manage``): single sign-on, the verified
+# email domains, directory sync (SCIM), the AI consent and the custom domain.
+# Ids and enum values only, never a name, a hostname, an address, a URL, a token
+# or a secret. A flag is only ever ``required`` / ``enabled`` (the new value).
+SSO_CONNECTION_CREATED = "sso_connection_created"
+SSO_CONNECTION_ENABLED = "sso_connection_enabled"
+SSO_CONNECTION_DISABLED = "sso_connection_disabled"
+SSO_CONNECTION_DELETED = "sso_connection_deleted"
+# "Require single sign-on" turned on or off (``required``)
+SSO_REQUIRED_CHANGED = "sso_required_changed"
+# the role members signing in through SSO get (``role``, ``previous_role``)
+SSO_DEFAULT_ROLE_CHANGED = "sso_default_role_changed"
+# a verified email domain claimed, verified or released (``domain_id``)
+DOMAIN_CLAIMED = "domain_claimed"
+DOMAIN_VERIFIED = "domain_verified"
+DOMAIN_REMOVED = "domain_removed"
+# directory sync: the token is created with the directory, replaced (the old one
+# stops working) or revoked with it (``directory_id``, ``directory_type``)
+SCIM_TOKEN_CREATED = "scim_token_created"
+SCIM_TOKEN_ROTATED = "scim_token_rotated"
+SCIM_TOKEN_REVOKED = "scim_token_revoked"
+# a directory group mapped to a role or unmapped (``directory_group_id``,
+# ``role``, ``previous_role``)
+SCIM_GROUP_ROLE_CHANGED = "scim_group_role_changed"
+# AI features turned on or off for the workspace (``enabled``, ``provider``)
+AI_CONSENT_CHANGED = "ai_consent_changed"
+# the workspace's own hostname set, replaced or removed (no hostname stored)
+CUSTOM_DOMAIN_CHANGED = "custom_domain_changed"
+CUSTOM_DOMAIN_REMOVED = "custom_domain_removed"
+SETTINGS_EVENTS = (
+    SSO_CONNECTION_CREATED,
+    SSO_CONNECTION_ENABLED,
+    SSO_CONNECTION_DISABLED,
+    SSO_CONNECTION_DELETED,
+    SSO_REQUIRED_CHANGED,
+    SSO_DEFAULT_ROLE_CHANGED,
+    DOMAIN_CLAIMED,
+    DOMAIN_VERIFIED,
+    DOMAIN_REMOVED,
+    SCIM_TOKEN_CREATED,
+    SCIM_TOKEN_ROTATED,
+    SCIM_TOKEN_REVOKED,
+    SCIM_GROUP_ROLE_CHANGED,
+    AI_CONSENT_CHANGED,
+    CUSTOM_DOMAIN_CHANGED,
+    CUSTOM_DOMAIN_REMOVED,
+)
+# a form's integrations (email actions and the case-system registration): the
+# action, service or form, never an address, a URL, a template, a name or a
+# secret. ``changed`` lists which parts of the configuration changed, by a fixed
+# vocabulary (``AUTOMATION_PARTS``), never their old or new content.
+EMAIL_ACTION_CREATED = "email_action_created"
+EMAIL_ACTION_UPDATED = "email_action_updated"
+EMAIL_ACTION_ENABLED = "email_action_enabled"
+EMAIL_ACTION_DISABLED = "email_action_disabled"
+EMAIL_ACTION_DELETED = "email_action_deleted"
+REGISTRATION_SERVICE_CREATED = "registration_service_created"
+REGISTRATION_SERVICE_UPDATED = "registration_service_updated"
+REGISTRATION_SERVICE_DELETED = "registration_service_deleted"
+FORM_REGISTRATION_ENABLED = "form_registration_enabled"
+FORM_REGISTRATION_DISABLED = "form_registration_disabled"
+FORM_REGISTRATION_CHANGED = "form_registration_changed"
+AUTOMATION_EVENTS = (
+    EMAIL_ACTION_CREATED,
+    EMAIL_ACTION_UPDATED,
+    EMAIL_ACTION_ENABLED,
+    EMAIL_ACTION_DISABLED,
+    EMAIL_ACTION_DELETED,
+    REGISTRATION_SERVICE_CREATED,
+    REGISTRATION_SERVICE_UPDATED,
+    REGISTRATION_SERVICE_DELETED,
+    FORM_REGISTRATION_ENABLED,
+    FORM_REGISTRATION_DISABLED,
+    FORM_REGISTRATION_CHANGED,
+)
+# the parts a ``changed`` list may name (anything else is dropped at write time)
+AUTOMATION_PARTS = (
+    "name",
+    "en",
+    "nl",
+    "fields",
+    "team_recipients",
+    "respondent_copy",
+    "condition",
+    "all_questions",
+    "base_url",
+    "objecttypes_base_url",
+    "auth",
+    "secret",
+    "organisation_name",
+    "service",
+    "path",
+    "variables",
+    "object_type",
+    "reference_path",
+)
 # the reserved workspace id of an event that belongs to no workspace
 NO_WORKSPACE = "000000000000000000000000"
 
 # the events of the single sign-on break-glass log (what its page lists)
 SSO_EVENTS = (SSO_BREAK_GLASS_REQUEST, SSO_BREAK_GLASS_SIGN_IN)
+
+# every kind of event there is: the union of the ``*_EVENTS`` groups above (the
+# response history's two kinds have a writer of their own but are in it too). The
+# writers in ``services/form_access/audit.py`` accept exactly these. A new group
+# of kinds is added here (``tests/app/audit_events/test_all_kinds.py`` fails until
+# it is).
+ALL_KINDS = (
+    TOTP_EVENTS
+    + ACCESS_EVENTS
+    + MEMBER_FORM_EVENTS
+    + API_KEY_EVENTS
+    + PROMOTION_EVENTS
+    + SETTINGS_EVENTS
+    + AUTOMATION_EVENTS
+    + SSO_EVENTS
+    + RESPONSE_REVISION_EVENTS
+)
 
 
 class WorkspaceAuditEventDocument(Record):
@@ -176,6 +309,29 @@ class WorkspaceAuditEventDocument(Record):
     key_role_before: Optional[str] = None
     form_scope: Optional[str] = None
     widened: Optional[bool] = None
+    # SETTINGS_EVENTS: the SSO connection (id and type, ``saml`` / ``oidc``),
+    # the verified-domain claim, the SCIM directory (id and type), the new value
+    # of an on/off setting and the AI provider's id (enum values, no names)
+    connection_id: Optional[str] = None
+    connection_type: Optional[str] = None
+    domain_id: Optional[str] = None
+    directory_id: Optional[str] = None
+    directory_type: Optional[str] = None
+    # SCIM_GROUP_ROLE_CHANGED: the directory's group (not a team: ``group_id``
+    # is a team's)
+    directory_group_id: Optional[str] = None
+    enabled: Optional[bool] = None
+    provider: Optional[str] = None
+    # AUTOMATION_EVENTS: the email action or case-system service (ids), and
+    # which parts of the configuration changed (``AUTOMATION_PARTS``)
+    action_id: Optional[str] = None
+    service_id: Optional[str] = None
+    changed: Optional[List[str]] = None
+    # FORM_COPIED_OUT / FORM_PROMOTED: the other side of the copy (ids only)
+    source_workspace_id: Optional[str] = None
+    source_form_id: Optional[str] = None
+    target_workspace_id: Optional[str] = None
+    target_form_id: Optional[str] = None
 
     class Settings:
         name = "workspace_audit_events"
