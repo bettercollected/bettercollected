@@ -23,4 +23,8 @@ see `docs/settings-inventory.md`). While it is off the routes answer 422 `form_r
   the consent list, the button text, settings such as purpose and retention, webhooks, email actions. The draft is
   replaced only with the caller's say-so (`replaceDraft`) when it holds unpublished changes (409 `draft_has_changes`), and
   not when it moved on since the page loaded (409 `form_changed`). A version with rules, choice logic, new question types
-  or layout containers is refused while the setting that allows them is off, as a builder save would be.
+  or layout containers is refused while the setting that allows them is off, as a builder save would be. A restore
+  also runs every content check of a save (`check_form_content_early` / `check_form_content` in
+  `workspace_form_service.py`, the same functions `update_form` calls): a version published before a check existed
+  cannot bring back a third-party image, a link that is not http(s) or a title style no editor writes (422), and
+  broken rules and choice logic are dropped.

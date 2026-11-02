@@ -15,6 +15,7 @@ from common.form_spec import SpecConversionError, form_to_spec_dict
 from common.ids import RecordId
 from common.models.standard_form import StandardForm
 from common.models.user import User
+from loguru import logger
 from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
@@ -32,6 +33,10 @@ from backend.app.models.enum.permission import Permission
 from backend.app.services.form_versions.compare import compare_specs
 from backend.app.services.form_versions.mode import ensure_enabled
 from backend.app.services.form_writes import FORM_PARTS, persist_form
+from backend.app.services.workspace_form_service import (
+    check_form_content,
+    check_form_content_early,
+)
 
 #: the draft, as a side of a comparison
 DRAFT = "draft"
@@ -57,6 +62,10 @@ MAX_VERSION = 1_000_000
 _VERSION = re.compile(r"[0-9]{1,7}")
 
 
+async def _value(value):
+    return value
+
+
 def parse_side(value: Optional[str]) -> Union[int, str]:
     """``draft`` or a version number (ASCII digits only, at most
     ``MAX_VERSION``); 422 otherwise. Never an unhandled error: ``int()`` also
@@ -79,7 +88,11 @@ class FormVersionsService:
         form_repo,
         form_service,
         member_directory,
+        option_source_service=None,
     ):
+        # options from a list or from another form's answers: a restored
+        # version's sources are checked as a save's are
+        self._option_sources = option_source_service
         self._authorization = authorization_service
         self._workspace_form_repo = workspace_form_repo
         self._form_repo = form_repo
@@ -233,17 +246,48 @@ class FormVersionsService:
                     "message": DRAFT_HAS_CHANGES_MESSAGE,
                 },
             )
+        restored = StandardForm(**target.model_dump())
+        # What an old version may still hold (a third-party image, a link that
+        # is not http(s), a title style no editor writes) is held to today's
+        # rules: the very checks of a save (``update_form``), with the current
+        # draft as the stored form. Broken rules and choice logic are dropped.
+        await check_form_content_early(restored, lambda: _value(draft))
+        await check_form_content(
+            restored,
+            draft,
+            workspace_id=workspace_id,
+            user=user,
+            own_form_id=str(form_id),
+            option_source_service=self._option_sources,
+        )
         stored = await persist_form(
             self._form_repo,
             draft,
-            StandardForm(**target.model_dump()),
+            restored,
             parts=FORM_PARTS,
             expected_updated_at=body.expected_updated_at,
+            lists_check=(
+                (
+                    lambda new, current: self._option_sources.ensure_lists_belong(
+                        workspace_id, new, current
+                    )
+                )
+                if self._option_sources is not None
+                else None
+            ),
         )
         if not stored:
             from backend.app.services.form_concurrency import form_changed
 
             raise form_changed()
+        # ids only: who restored which version of which form
+        logger.info(
+            "form version restored: workspace={} form={} version={} user={}",
+            workspace_id,
+            form_id,
+            version,
+            getattr(user, "id", None),
+        )
         return RestoreVersionResponse(
             restored_version=version, updated_at=draft.updated_at
         )
