@@ -27,12 +27,14 @@ from backend.app.services.user_service import user_for_deletion
 from backend.config import settings
 from backend.app.services.webhooks.retry import WebhookRetry, WebhookRetryStrategy
 from backend.app.services.email_actions.retry import EmailRetry, EmailRetryStrategy
+from backend.app.services.builtin_actions.sheets import SheetsRetry, SheetsRetryStrategy
 from backend.jobs.app import (
     ACTIONS_QUEUE,
     DEFAULT_QUEUE,
     EMAILS_QUEUE,
     EXPORTS_QUEUE,
     IMPORTS_QUEUE,
+    INTEGRATIONS_QUEUE,
     WEBHOOKS_QUEUE,
     app,
 )
@@ -453,6 +455,36 @@ async def purge_email_logs(timestamp: int) -> str:
     has the same purge for every action type). Counts only."""
     deleted = await _container().email_action_service().purge_expired()
     return f"{deleted} deleted"
+
+
+@app.task(
+    name="run_sheets_append",
+    queue=INTEGRATIONS_QUEUE,
+    retry=SheetsRetryStrategy(),
+)
+async def run_sheets_append(log_id: str) -> str:
+    """One attempt to append one submission to a form's Google Sheet (the
+    built-in Google Sheets action, run by the backend). The only argument is the
+    log row's id: the row is built here from the decrypted answers and never
+    queued. A transient failure raises so the job is retried (5 s, then 25 s); a
+    permanent one, or the last attempt, ends the run ``failed`` in the action log."""
+    outcome = await _container().sheets_run_service().run_delivery(log_id)
+    if outcome.retry:
+        raise SheetsRetry(outcome.retry_after)
+    return outcome.status
+
+
+@app.periodic(cron="*/5 * * * *", periodic_id="sheets_redefer")
+@app.task(
+    name="sheets_redefer",
+    queue=INTEGRATIONS_QUEUE,
+    queueing_lock="sheets_redefer",
+)
+async def sheets_redefer(timestamp: int) -> str:
+    """Queue again Google Sheets runs whose job was never queued or whose worker
+    died. Counts only."""
+    counts = await _container().sheets_run_service().redefer_pending()
+    return f"{counts['queued']} queued, {counts['rescued']} rescued"
 
 
 @app.task(
