@@ -752,7 +752,7 @@ async def test_an_edit_never_writes_over_a_revocation_made_meanwhile(workspace, 
     assert await repo.revoke_one(workspace.id, key.id) is True
     called = []
 
-    async def change(document):
+    async def change(document, session):
         called.append(document)
         return "x", "VIEWER", "all"
 
@@ -1024,8 +1024,8 @@ async def test_the_entries_of_an_edit_are_stored_in_one_batch(
         await create(client, workspace, formScope="listed", formIds=ids(forms)[:1])
     ).json()
     repo = container.workspace_audit_repo()
-    calls = {"record": 0, "record_many": []}
-    real_record, real_many = repo.record, repo.record_many
+    calls = {"record": 0, "record_many": [], "record_many_in": []}
+    real_record, real_many, real_in = repo.record, repo.record_many, repo.record_many_in
 
     async def record(document):
         calls["record"] += 1
@@ -1035,14 +1035,20 @@ async def test_the_entries_of_an_edit_are_stored_in_one_batch(
         calls["record_many"].append(len(documents))
         return await real_many(documents)
 
+    async def record_many_in(session, documents):
+        calls["record_many_in"].append(len(documents))
+        return await real_in(session, documents)
+
     monkeypatch.setattr(repo, "record", record)
     monkeypatch.setattr(repo, "record_many", record_many)
+    monkeypatch.setattr(repo, "record_many_in", record_many_in)
     edited = await patch(
         client, workspace, made["id"], role="EDITOR", formIds=ids(forms)
     )
     assert edited.status_code == 200, edited.text
-    # a role entry, a scope entry and two forms added: one batch, no single insert
-    assert calls == {"record": 0, "record_many": [4]}
+    # a role entry, a scope entry and two forms added: one batch, in the
+    # transaction that stores the key and its rows, and no single insert
+    assert calls == {"record": 0, "record_many": [], "record_many_in": [4]}
 
 
 async def test_a_batch_that_cannot_be_stored_stores_nothing(workspace, forms, monkeypatch):

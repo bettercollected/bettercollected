@@ -686,16 +686,18 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
     ) -> Optional[WorkspaceAPIKeyDocument]:
         """Change the name, role and form scope of a live key of the workspace
         and nothing else (not its scopes, its creator or its secret). The row is
-        locked and read first and **stays locked while** ``change(document)``
-        (an async callable, given the key as it is now) runs; it returns
-        ``(name, role, form_scope)`` to store. Every request made with the key
-        locks this row too (``touch_last_used``, which skips it while it is
-        held), and a revocation waits for it, so ``change`` must be short: check
-        the key is as the caller read it, record the entries, nothing more. What
-        ``change`` saw is what is changed and a revoked key is never brought back.
-        An exception from ``change`` stores nothing. ``None`` when the key is not
-        there, not of this workspace or already revoked (``change`` is not
-        called)."""
+        locked and read first and **stays locked while** ``change(document,
+        session)`` (an async callable, given the key as it is now and the open
+        transaction) runs; it returns ``(name, role, form_scope)`` to store. The
+        caller's other writes (the key's rows, its audit entries) go through that
+        session, so they commit with the key or not at all. Every request made
+        with the key locks this row too (``touch_last_used``, which skips it while
+        it is held), and a revocation waits for it, so ``change`` must be short:
+        check the key and its rows are as the caller read them, write, nothing
+        more. What ``change`` saw is what is changed and a revoked key is never
+        brought back. An exception from ``change`` stores nothing. ``None`` when
+        the key is not there, not of this workspace or already revoked (``change``
+        is not called)."""
         async with self._session() as session, session.begin():
             doc = (
                 await session.execute(
@@ -711,7 +713,7 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
             if doc is None:
                 return None
             stored = decode(WorkspaceAPIKeyDocument, doc)
-            name, role, form_scope = await change(stored)
+            name, role, form_scope = await change(stored, session)
             stored.name = name
             stored.role = role
             stored.form_scope = form_scope

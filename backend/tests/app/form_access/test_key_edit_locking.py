@@ -177,7 +177,7 @@ async def test_a_key_changed_while_the_edit_was_worked_out_is_worked_out_again(
         calls.append(1)
         if len(calls) == 1:
 
-            async def meanwhile(document):
+            async def meanwhile(document, session):
                 return document.name, "REVIEWER", document.form_scope
 
             await container.workspace_api_key_repo().update_limits(
@@ -206,7 +206,7 @@ async def test_an_edit_that_keeps_finding_the_key_changed_gives_up_with_409(
         plan = await real(*args, **kwargs)
         calls.append(1)
 
-        async def renamed(document):
+        async def renamed(document, session):
             return f"renamed {len(calls)}", document.role, document.form_scope
 
         await container.workspace_api_key_repo().update_limits(

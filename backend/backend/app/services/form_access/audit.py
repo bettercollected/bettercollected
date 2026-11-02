@@ -80,10 +80,14 @@ async def record_or_refuse(repo, event: str, workspace_id, user, **ids) -> None:
 
 
 
-async def record_many_or_refuse(repo, entries, workspace_id, user) -> None:
+async def record_many_or_refuse(
+    repo, entries, workspace_id, user, session=None
+) -> None:
     """Store every entry in one batch (one transaction: all or none) or refuse
     the request (503 ``audit_unavailable``). ``entries`` is a list of ``(event,
-    ids)``; an empty list stores nothing."""
+    ids)``; an empty list stores nothing. With ``session`` the entries are stored
+    in the caller's transaction instead (the change they describe is stored in it
+    too, so they commit or fail together; the refusal rolls it back)."""
     if not entries:
         return
     documents = []
@@ -93,7 +97,10 @@ async def record_many_or_refuse(repo, entries, workspace_id, user) -> None:
     stored = False
     if repo is not None:
         try:
-            await repo.record_many(documents)
+            if session is None:
+                await repo.record_many(documents)
+            else:
+                await repo.record_many_in(session, documents)
             stored = True
         except Exception as error:  # noqa: BLE001 - a failed batch refuses the request
             logger.bind(audit=True).error(

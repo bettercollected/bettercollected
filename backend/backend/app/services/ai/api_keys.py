@@ -395,6 +395,29 @@ class APIKeyService:
                     "submissionFormIds names a form that is not on the key's list.",
                 )
 
+    @staticmethod
+    def _rows_for(
+        workspace_id: RecordId,
+        key_id,
+        role: Optional[str],
+        list_ids: List[str],
+        user: User,
+    ) -> List[FormAccessGrantDocument]:
+        """The rows of a key's list, each with the role the key's role allows on a
+        row."""
+        row_role = validation.row_role_for(role)
+        return [
+            FormAccessGrantDocument(
+                workspace_id=workspace_id,
+                form_id=form_id,
+                subject_type=SUBJECT_KEY,
+                subject_id=str(key_id),
+                role=row_role,
+                created_by=str(user.id),
+            )
+            for form_id in list_ids
+        ]
+
     async def _write_rows(
         self,
         workspace_id: RecordId,
@@ -402,22 +425,10 @@ class APIKeyService:
         list_ids: List[str],
         user: User,
     ) -> None:
-        """Make ``list_ids`` the key's rows, each with the role the key's role
-        allows on a row, in one transaction."""
+        """Make ``list_ids`` the key's rows (a new key's), in one transaction."""
         from backend.app.repositories.postgres.form_access import AccessTargetNotFound
 
-        row_role = validation.row_role_for(document.role)
-        rows = [
-            FormAccessGrantDocument(
-                workspace_id=workspace_id,
-                form_id=form_id,
-                subject_type=SUBJECT_KEY,
-                subject_id=str(document.id),
-                role=row_role,
-                created_by=str(user.id),
-            )
-            for form_id in list_ids
-        ]
+        rows = self._rows_for(workspace_id, document.id, document.role, list_ids, user)
         try:
             await self._grants.replace_for_key(workspace_id, document.id, rows)
         except AccessTargetNotFound as error:
@@ -514,30 +525,56 @@ class APIKeyService:
         """Change a key's name, role and list of forms (security.manage; Owner and
         Admin). Widening is allowed to them and recorded as such.
 
-        The edit is worked out **before** the key's row is locked, from the key as
-        read, because every request made with the key locks that row (the
-        last-used update) and a lock held across several round trips would stall
-        them. The lock is then held only for the check that the key is still as it
-        was read (else the edit is worked out again, at most ``EDIT_ATTEMPTS``
-        times, then 409 ``key_changed``), the one batch insert of its audit
-        entries and the write: so the entries describe exactly the change that is
-        made, a revocation landing meanwhile waits and then wins (nothing is
-        recorded for it), and the change is refused when the entries cannot be
-        stored."""
+        The edit is worked out **before** the key's row is locked, from the key and
+        its list of forms as read, because every request made with the key locks
+        that row (the last-used update) and a lock held across several round trips
+        would stall them. The lock is then held only for a check that the key and
+        its list are still as they were read (else the edit is worked out again, at
+        most ``EDIT_ATTEMPTS`` times, then 409 ``key_changed``) and one transaction
+        that stores the audit entries, the key and its rows together: so the
+        entries describe exactly the change that is made, two edits never write
+        over each other's list, a revocation landing meanwhile waits and then wins
+        (nothing is recorded for it), and the change is refused, with nothing
+        stored, when the entries cannot be stored."""
         await self._authorization.authorize(
             user, Permission.SECURITY_MANAGE, workspace_id
         )
         refuse_when_off()
+        from backend.app.repositories.postgres.form_access import AccessTargetNotFound
+
         for _ in range(EDIT_ATTEMPTS):
             seen = await self._live_key(workspace_id, key_id)
             plan = await self._plan_edit(workspace_id, user, seen, dto)
 
-            async def change(document: WorkspaceAPIKeyDocument):
+            async def change(document: WorkspaceAPIKeyDocument, session):
                 if _edit_basis(document) != _edit_basis(seen):
                     raise _KeyChanged()
+                if plan["was_listed"]:
+                    stored = await self._grants.form_ids_for_key_in(
+                        session, workspace_id, document.id
+                    )
+                    if stored != plan["old_ids"]:
+                        raise _KeyChanged()  # another edit changed the list
                 await record_many_or_refuse(
-                    self._audit_repo, plan["entries"], workspace_id, user
+                    self._audit_repo,
+                    plan["entries"],
+                    workspace_id,
+                    user,
+                    session=session,
                 )
+                if plan["rows_stale"]:
+                    await self._grants.replace_for_key_in(
+                        session,
+                        workspace_id,
+                        document.id,
+                        self._rows_for(
+                            workspace_id, document.id, plan["role"], plan["new_ids"], user
+                        ),
+                    )
+                elif plan["was_listed"] and not plan["listed"]:
+                    await self._grants.delete_for_key_in(
+                        session, workspace_id, document.id
+                    )
                 return plan["name"], plan["role"], plan["form_scope"]
 
             try:
@@ -546,17 +583,14 @@ class APIKeyService:
                 )
             except _KeyChanged:
                 continue
+            except AccessTargetNotFound as error:
+                # a form deleted since it was checked, or a key revoked meanwhile
+                if error.what == "key":
+                    raise _not_found() from error
+                self._unknown_form()
             if updated is None:
                 await self._live_key(workspace_id, key_id)  # 409 when it was revoked
                 raise _not_found()
-            # the key first, then its rows: a failure in between leaves the key
-            # narrower than asked (a list with no rows opens nothing), never wider
-            if plan["rows_stale"]:
-                await self._write_rows(workspace_id, updated, plan["new_ids"], user)
-            elif plan["was_listed"] and not plan["listed"]:
-                await self._grants.delete_for_subject(
-                    workspace_id, SUBJECT_KEY, str(updated.id)
-                )
             return (await self._dtos(workspace_id, user, [updated]))[0]
         raise HTTPException(
             status_code=HTTPStatus.CONFLICT,
@@ -662,6 +696,7 @@ class APIKeyService:
             "listed": listed,
             "was_listed": was_listed,
             "new_ids": new_ids,
+            "old_ids": old_ids,
             "entries": entries,
             "rows_stale": listed
             and (role_changed or added or removed or not was_listed),

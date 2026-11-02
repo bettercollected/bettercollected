@@ -15,6 +15,9 @@ SSO_BREAK_GLASS_SIGN_IN = "sso_break_glass_sign_in"
 RESPONSE_STAFF_EDIT = "response_staff_edit"
 # a staff member opened the previous values of one history entry
 RESPONSE_REVISION_READ = "response_revision_read"
+# (written by ``services/response_revisions/audit.py``; grouped here so that
+# ``ALL_KINDS`` holds every kind there is)
+RESPONSE_REVISION_EVENTS = (RESPONSE_STAFF_EDIT, RESPONSE_REVISION_READ)
 
 # second-factor (authenticator app) events of an account (docs/totp.md): ids
 # only, never a code, a secret or an address. ``workspace_id`` is NO_WORKSPACE
@@ -237,7 +240,8 @@ NO_WORKSPACE = "000000000000000000000000"
 # the events of the single sign-on break-glass log (what its page lists)
 SSO_EVENTS = (SSO_BREAK_GLASS_REQUEST, SSO_BREAK_GLASS_SIGN_IN)
 
-# every kind of event there is: the union of the ``*_EVENTS`` groups above. The
+# every kind of event there is: the union of the ``*_EVENTS`` groups above (the
+# response history's two kinds have a writer of their own but are in it too). The
 # writers in ``services/form_access/audit.py`` accept exactly these. A new group
 # of kinds is added here (``tests/app/audit_events/test_all_kinds.py`` fails until
 # it is).
@@ -250,6 +254,7 @@ ALL_KINDS = (
     + SETTINGS_EVENTS
     + AUTOMATION_EVENTS
     + SSO_EVENTS
+    + RESPONSE_REVISION_EVENTS
 )
 
 

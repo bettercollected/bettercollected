@@ -36,6 +36,7 @@ def test_every_group_of_kinds_in_the_schema_is_in_all_kinds():
         "PROMOTION_EVENTS",
         "SETTINGS_EVENTS",
         "AUTOMATION_EVENTS",
+        "RESPONSE_REVISION_EVENTS",
     } <= set(groups)
     for name, kinds in groups.items():
         missing = [kind for kind in kinds if kind not in schema.ALL_KINDS]
