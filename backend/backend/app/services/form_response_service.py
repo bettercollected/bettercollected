@@ -64,6 +64,10 @@ from backend.app.schemas.standard_form_response import (
 )
 from backend.app.services import response_cursor
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_access.mode import (
+    form_access_enabled,
+    form_if_enforced,
+)
 from backend.app.services.response_paging import PageTooDeep
 from backend.app.services.signatures import (
     NO_STORE,
@@ -177,17 +181,22 @@ class FormResponseService:
     ):
         # Deletion requests and the data subjects (responders) are the privacy
         # programme; the answers themselves are response.read.
-        await self._authorization.authorize(
-            user,
-            (
-                Permission.PRIVACY_MANAGE
-                if data_subjects or request_for_deletion
-                else Permission.RESPONSE_READ
-            ),
-            workspace_id,
+        needed = (
+            Permission.PRIVACY_MANAGE
+            if data_subjects or request_for_deletion
+            else Permission.RESPONSE_READ
         )
-        form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
-            workspace_id=workspace_id
+        await self._authorization.authorize(user, needed, workspace_id)
+        # Form-level access: only the forms the member holds the permission on,
+        # narrowed before anything is read, counted or paged. Off: all of them,
+        # no query.
+        form_ids = await self._authorization.restrict_to_visible(
+            user,
+            workspace_id,
+            await self._workspace_form_repo.get_form_ids_in_workspace(
+                workspace_id=workspace_id
+            ),
+            needed,
         )
         responses_page = await self._form_response_repo.list(
             await self.scope(workspace_id, form_ids),
@@ -253,6 +262,8 @@ class FormResponseService:
         sort: SortRequest,
         user: User,
     ):
+        # with the form while form-level access is on: a member a restricted
+        # form is closed to gets the 404 of a form that is not there
         await self._authorization.authorize(
             user,
             (
@@ -261,6 +272,7 @@ class FormResponseService:
                 else Permission.RESPONSE_READ
             ),
             workspace_id,
+            form_id=form_if_enforced(form_id),
         )
         workspace_form = (
             await self._workspace_form_repo.get_workspace_form_in_workspace(
@@ -308,7 +320,7 @@ class FormResponseService:
         paged by keyset (``response.read``; the answers are decrypted after
         the page is chosen, as in ``get_workspace_form_submissions``)."""
         await self._authorization.authorize(
-            user, Permission.RESPONSE_READ, workspace_id
+            user, Permission.RESPONSE_READ, workspace_id, form_id=form_if_enforced(form_id)
         )
         workspace_form = (
             await self._workspace_form_repo.get_workspace_form_in_workspace(
@@ -409,7 +421,7 @@ class FormResponseService:
         # The answer is built in memory: with ``max_rows`` a form that holds
         # more is refused (413) after reading one row past the limit, never all.
         await self._authorization.authorize(
-            user, Permission.RESPONSE_EXPORT, workspace_id
+            user, Permission.RESPONSE_EXPORT, workspace_id, form_id=form_if_enforced(form_id)
         )
         await self._form_in_workspace(workspace_id, form_id)
         form_responses = await self._form_response_repo.list_by_form_id(
@@ -439,7 +451,7 @@ class FormResponseService:
         jumps and never leave: no answer values, identities, response ids or
         dates. Deletion-only stubs (no answers) are not submissions."""
         await self._authorization.authorize(
-            user, Permission.RESPONSE_READ, workspace_id
+            user, Permission.RESPONSE_READ, workspace_id, form_id=form_if_enforced(form_id)
         )
         await self._form_in_workspace(workspace_id, form_id)
         form = await self._form_repo.get_form_document_by_id(form_id)
@@ -511,12 +523,6 @@ class FormResponseService:
     async def get_workspace_submission(
         self, workspace_id: RecordId, response_id: str, user: User
     ):
-        # Staff read any response of the workspace; otherwise this is the
-        # respondent's own submission (checked by identity below).
-        permissions = await self._authorization.effective_permissions(
-            user, workspace_id
-        )
-        is_admin = Permission.RESPONSE_READ in permissions
         copies = await self._form_response_repo.list_by_response_id(response_id)
         if not copies:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
@@ -527,6 +533,14 @@ class FormResponseService:
         )
         if response is None:
             raise HTTPException(404, "Form not found in this workspace")
+        # Staff read the responses of the forms they may open; otherwise this
+        # is the respondent's own submission (checked by identity below). A
+        # form restricted against a member leaves them none of the staff's
+        # rights on it: they are a respondent of it, like anyone.
+        permissions = await self._authorization.staff_permissions_on(
+            user, workspace_id, response.form_id
+        )
+        is_admin = Permission.RESPONSE_READ in permissions
         if response.form_version:
             form = await self._form_repo.get_form_by_by_version(
                 response.form_id, response.form_version if response.form_version else 1
@@ -589,9 +603,7 @@ class FormResponseService:
                 entries=staff_feedback(entries),
                 current_status=current_status(entries),
                 can_post=bool(workspace_form.settings.respondent_feedback_enabled)
-                and await self._authorization.has_permission(
-                    user, Permission.RESPONSE_ANNOTATE, workspace_id
-                ),
+                and Permission.RESPONSE_ANNOTATE in permissions,
                 notifies_respondent=emails_respondent(
                     workspace_form.settings, response
                 ),
@@ -668,6 +680,16 @@ class FormResponseService:
             workspace_id, response.form_id
         ):
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        # on this response's form: one a restricted form is closed to is no
+        # response of theirs, the same 404 as above
+        if (
+            form_access_enabled()
+            and Permission.RESPONSE_READ
+            not in await self._authorization.staff_permissions_on(
+                user, workspace_id, response.form_id
+            )
+        ):
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         form = None
         if response.form_version:
             form = await self._form_repo.get_form_by_by_version(
@@ -700,9 +722,6 @@ class FormResponseService:
         not_found = HTTPException(
             HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND, headers=dict(NO_STORE)
         )
-        permissions = await self._authorization.effective_permissions(
-            user, workspace_id
-        )
         copies = await self._form_response_repo.list_by_response_id(response_id)
         if not copies:
             raise not_found
@@ -711,6 +730,11 @@ class FormResponseService:
         )
         if response is None:
             raise not_found
+        # staff on this response's form: none for one a restricted form is
+        # closed to (then only the response's own respondent reads it)
+        permissions = await self._authorization.staff_permissions_on(
+            user, workspace_id, response.form_id
+        )
         if not await self._workspace_form_repo.find_workspace_form(
             workspace_id, response.form_id
         ):
@@ -784,15 +808,16 @@ class FormResponseService:
     async def request_for_response_deletion(
         self, workspace_id: RecordId, response_id: str, user: User
     ):
-        # Staff may file one for any response; otherwise only its respondent.
-        permissions = await self._authorization.effective_permissions(
-            user, workspace_id
-        )
-        is_admin = Permission.PRIVACY_MANAGE in permissions
         # Membership only counts for responses collected in this workspace.
         response = await self.workspace_response(workspace_id, response_id)
         if response is None:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Response not found in workspace")
+        # Staff may file one for any response of a form they may open;
+        # otherwise only its respondent.
+        permissions = await self._authorization.staff_permissions_on(
+            user, workspace_id, response.form_id
+        )
+        is_admin = Permission.PRIVACY_MANAGE in permissions
 
         # Anonymous responses carry no dataOwnerIdentifier — their owner is
         # recognisable only by the anonymous identity hash. Without this check
@@ -1394,7 +1419,10 @@ class FormResponseService:
         Without it, the read-modify-write below is still conditional on the
         version it read, so two simultaneous saves never lose one."""
         await self._authorization.authorize(
-            user, Permission.RESPONSE_ANNOTATE, workspace_id
+            user,
+            Permission.RESPONSE_ANNOTATE,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
         )
         workspace_form = (
             await self._workspace_form_repo.get_workspace_form_in_workspace(

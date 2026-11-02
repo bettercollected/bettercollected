@@ -10,6 +10,7 @@ grants, teams and modes stay as they are. Read at call time from
 """
 
 from http import HTTPStatus
+from typing import Any, Optional
 
 from backend.app.exceptions import HTTPException
 from backend.config import settings
@@ -28,3 +29,11 @@ def refuse_when_off() -> None:
             HTTPStatus.UNPROCESSABLE_ENTITY,
             content={"code": OFF_CODE, "message": OFF_MESSAGE},
         )
+
+
+def form_if_enforced(form_id: Any) -> Optional[str]:
+    """``form_id`` to hand to an ``authorize`` / ``has_permission`` call that
+    already looks the form up itself: it decides on the form only while
+    form-level access is on. Off it is ``None``, so the call is exactly the
+    workspace-level check it always was (same queries, same answers)."""
+    return str(form_id) if form_id is not None and form_access_enabled() else None

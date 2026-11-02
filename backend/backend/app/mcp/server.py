@@ -28,6 +28,7 @@ from starlette.concurrency import run_in_threadpool
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import AI_PROMPT_MAX_LENGTH, CreateFormWithAI
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
+from backend.app.models.enum.permission import Permission
 from backend.app.repositories.response_scope import response_scope
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
@@ -133,10 +134,17 @@ async def _audit(tool: str, ok: bool, detail: str = "") -> None:
 
 
 async def _workspace_form_ids(
-    workspace_id: RecordId,
+    key: WorkspaceAPIKeyDocument, permission: Permission = Permission.FORM_READ
 ) -> Dict[str, WorkspaceFormDocument]:
-    docs = await _c().workspace_form_repo().list_in_workspace(workspace_id)
-    return {d.form_id: d for d in docs}
+    """The workspace's forms the key's creator holds ``permission`` on (every
+    form while form-level access is off): a form closed to them is not in the
+    result, so a tool answers for it as for one that does not exist."""
+    docs = await _c().workspace_form_repo().list_in_workspace(key.workspace_id)
+    visible = await _c().authorization_service().restrict_to_visible(
+        _acting_user(key), key.workspace_id, [str(d.form_id) for d in docs], permission
+    )
+    keep = set(visible)
+    return {d.form_id: d for d in docs if str(d.form_id) in keep}
 
 
 def _require_form_in_workspace(form_id: str, workspace_forms: Dict[str, Any]) -> None:
@@ -148,7 +156,7 @@ def _require_form_in_workspace(form_id: str, workspace_forms: Dict[str, Any]) ->
 async def list_forms() -> str:
     """List the workspace's forms: id, title, share slug and publish state."""
     key = await _key("forms:read")
-    workspace_forms = await _workspace_form_ids(key.workspace_id)
+    workspace_forms = await _workspace_form_ids(key)
     forms = await _c().form_repo().get_forms_by_form_ids(list(workspace_forms))
     items = [
         {
@@ -171,7 +179,7 @@ async def list_forms() -> str:
 async def get_form(form_id: str) -> str:
     """Get a form's full structure (pages, fields, settings) as JSON."""
     key = await _key("forms:read")
-    workspace_forms = await _workspace_form_ids(key.workspace_id)
+    workspace_forms = await _workspace_form_ids(key)
     _require_form_in_workspace(form_id, workspace_forms)
     form = await _c().form_repo().get_form_document_by_id(form_id)
     await _audit("get_form", True, form_id)
@@ -459,7 +467,7 @@ async def update_form(
     compares the postcode) and signature (a drawn or typed signature) can be added only where
     the server has turned them on: an op that adds one says so when it has not."""
     key = await _key("forms:write")
-    workspace_forms = await _workspace_form_ids(key.workspace_id)
+    workspace_forms = await _workspace_form_ids(key)
     _require_form_in_workspace(form_id, workspace_forms)
     form_document = await _c().form_repo().get_form_document_by_id(form_id)
     refusal = too_many_ops(len(ops))
@@ -492,7 +500,7 @@ async def get_form_spec(form_id: str) -> str:
     its creator controls, without server-owned data. Page-based forms
     only."""
     key = await _key("forms:read")
-    workspace_forms = await _workspace_form_ids(key.workspace_id)
+    workspace_forms = await _workspace_form_ids(key)
     _require_form_in_workspace(form_id, workspace_forms)
     service = _c().form_spec_service()
     form, settings = await service.load(key.workspace_id, form_id)
@@ -531,7 +539,7 @@ async def dry_run_ops(
     "results"}. Nothing is stored. Op shapes: see update_form
     (at most 200 ops)."""
     key = await _key("forms:write")
-    workspace_forms = await _workspace_form_ids(key.workspace_id)
+    workspace_forms = await _workspace_form_ids(key)
     _require_form_in_workspace(form_id, workspace_forms)
     service = _c().form_spec_service()
     form, settings = await service.load(key.workspace_id, form_id)
@@ -616,7 +624,7 @@ async def publish_form(form_id: str) -> str:
     key = await _key("forms:write")
     from backend.app.container import container
 
-    workspace_forms = await _workspace_form_ids(key.workspace_id)
+    workspace_forms = await _workspace_form_ids(key)
     _require_form_in_workspace(form_id, workspace_forms)
     try:
         await container.workspace_form_service().publish_form(
@@ -644,7 +652,7 @@ async def list_responses(form_id: str, limit: int = 20) -> str:
     time, answer count and any deletion request's status. Use get_response
     for full answers."""
     key = await _key("responses:read")
-    workspace_forms = await _workspace_form_ids(key.workspace_id)
+    workspace_forms = await _workspace_form_ids(key)
     _require_form_in_workspace(form_id, workspace_forms)
     # this workspace's responses only (#768)
     items, _ = await list_response_summaries(key.workspace_id, form_id, limit)
@@ -677,7 +685,9 @@ async def list_deletion_requests() -> str:
     """List pending response-deletion requests across the workspace — the
     privacy queue an operator (or agent) should act on."""
     key = await _key("deletion_requests:read")
-    workspace_forms = await _workspace_form_ids(key.workspace_id)
+    workspace_forms = await _workspace_form_ids(
+        key, Permission.PRIVACY_MANAGE
+    )
     scope = await response_scope(
         _c().workspace_form_repo(), key.workspace_id, list(workspace_forms)
     )
