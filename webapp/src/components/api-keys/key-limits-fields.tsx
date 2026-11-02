@@ -183,7 +183,7 @@ export default function KeyLimitsFields({ scopes, role, roleFollowsScopes = fals
                 <label htmlFor={roleId} className="text-[13px] font-semibold text-black-900">
                     {t('STAFF.API_KEYS.ROLE_TITLE')}
                 </label>
-                <select id={roleId} aria-describedby={roleHelpId} value={shownRole ?? ''} onChange={(event) => onRoleChange((event.target.value || null) as KeyRole | null)} className={`${fieldClass} pr-8`}>
+                <select id={roleId} aria-describedby={roleHelpId} value={shownRole ?? ''} onChange={(event) => onRoleChange((event.target.value || null) as KeyRole | null)} className={`${fieldClass} py-0 pr-8`}>
                     <option value="">{t('STAFF.API_KEYS.ROLE_CREATOR')}</option>
                     {KEY_ROLE_OPTIONS.map((option) => (
                         <option key={option} value={option}>
