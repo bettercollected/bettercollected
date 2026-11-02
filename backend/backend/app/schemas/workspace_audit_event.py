@@ -118,6 +118,13 @@ API_KEY_EVENTS = (
 REVOKED_MEMBER_REMOVED = "member_removed"
 REVOKED_ACCOUNT_DELETED = "account_deleted"
 REVOKED_SCIM_DEPROVISIONED = "scim_deprovisioned"
+# an admin revoked the key on the API keys page
+REVOKED_BY_ADMIN = "admin"
+# the workspace was deleted (every key of it, whoever made it)
+REVOKED_WORKSPACE_DELETED = "workspace_deleted"
+# ``key_role`` / ``key_role_before`` of a key that has no role of its own: it acts
+# as its creator
+KEY_ROLE_AS_CREATOR = "creator"
 # workspace security settings (``security.manage``): single sign-on, the verified
 # email domains, directory sync (SCIM), the AI consent and the custom domain.
 # Ids and enum values only, never a name, a hostname, an address, a URL, a token
