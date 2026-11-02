@@ -56,6 +56,7 @@ from backend.app.services.form_access.model import (
     MODE_RESTRICTED,
     MODE_WORKSPACE,
 )
+from backend.app.services.form_access.mode import TEMPLATE_FROM_RESTRICTED_CODE
 from backend.config import settings
 from tests.app.controllers.test_permission_matrix import (  # noqa: F401
     ADMIN,
@@ -73,7 +74,7 @@ from tests.app.controllers.test_permission_matrix import (  # noqa: F401
     outside_services,
     scim_on,
 )
-from tests.app.form_access.helpers import add_member, grant, set_mode
+from tests.app.form_access.helpers import add_member, grant, set_mode, team_with
 from tests.app.form_access.route_table import (
     EXEMPT,
     FORM,
@@ -89,6 +90,7 @@ from tests.app.controllers.test_signature_image_route import (  # noqa: F401
     signed_form,
     store,
 )
+from tests.app.registration.conftest import memory_jobs  # noqa: F401
 from tests.app.sso_helpers import sso_on  # noqa: F401
 
 P = Permission
@@ -136,6 +138,8 @@ GRANTS: Dict[str, FrozenSet[Permission]] = {
 }
 # a Privacy officer without a way in keeps these on a restricted form
 PRIVACY_ON_RESTRICTED = frozenset({P.FORM_READ, P.PRIVACY_MANAGE, P.AUDIT_READ})
+# what the export flag adds to a Reviewer or Viewer grant (an Editor grant has it)
+EXPORT = frozenset({P.RESPONSE_EXPORT})
 
 
 @dataclass(frozen=True)
@@ -143,6 +147,9 @@ class Principal:
     name: str
     role: str  # a key of ROLES_WITH's roles: owner, admin, editor, reviewer, viewer, ...
     grant: Optional[str] = None  # the grant role on the matrix's form
+    export: bool = False  # the grant carries the export flag (Reviewer / Viewer grants)
+    team: bool = False  # the grant is on a team the member belongs to
+    creator: bool = False  # the member created the form (the link's user)
 
     @property
     def privileged(self) -> bool:
@@ -169,12 +176,35 @@ PRINCIPALS: Dict[str, Principal] = {
         # an Editor whose grant is only Viewer: on a restricted form the grant is
         # all they have there, on an open form their role stands
         Principal("editor_viewer_grant", EDITOR, ROLE_VIEWER),
+        # an Editor with an Editor grant: holds everything but deleting the form
+        Principal("editor_editor_grant", EDITOR, ROLE_EDITOR),
+        # the export flag: a Viewer grant and a Reviewer grant that may export
+        Principal("viewer_export_grant", VIEWER, ROLE_VIEWER, export=True),
+        Principal("viewer_reviewer_export_grant", VIEWER, ROLE_REVIEWER, export=True),
+        # a grant given to a team the member belongs to
+        Principal("viewer_team_grant", VIEWER, ROLE_EDITOR, team=True),
+        # the form's creator: keeps their own role's rights on a restricted form
+        Principal("creator_editor", EDITOR, creator=True),
+        # a creator demoted to Viewer since
+        Principal("creator_viewer", VIEWER, creator=True),
+        # a creator whose membership was removed: nothing at all
+        Principal("creator_removed", "removed", creator=True),
     )
 }
-GRANTEE_ROLE = {  # the stored workspace role of the principals that need a member row
-    "viewer_editor_grant": WorkspaceRoles.VIEWER,
-    "viewer_reviewer_grant": WorkspaceRoles.VIEWER,
-    "editor_viewer_grant": WorkspaceRoles.COLLABORATOR,
+# the principals run together on the form made by the owner, and the creators,
+# each run on a form they made (the link's user), one per world
+CREATORS = [name for name, p in PRINCIPALS.items() if p.creator]
+NON_CREATORS = [name for name, p in PRINCIPALS.items() if not p.creator]
+# the stored workspace role of the principals that need a member row of their own
+STORED_ROLE = {
+    VIEWER: WorkspaceRoles.VIEWER,
+    EDITOR: WorkspaceRoles.COLLABORATOR,
+    "removed": WorkspaceRoles.COLLABORATOR,
+}
+GRANTEE_ROLE = {
+    name: STORED_ROLE[p.role]
+    for name, p in PRINCIPALS.items()
+    if p.grant is not None or p.creator
 }
 
 
@@ -186,16 +216,19 @@ def base_permissions(principal: Principal) -> FrozenSet[Permission]:
 def held_on_form(principal: Principal, mode: str, switch_on: bool) -> FrozenSet[Permission]:
     """What the member holds on the matrix's form (doc, section 2)."""
     base = base_permissions(principal)
-    if not switch_on or principal.privileged:
+    if not switch_on or principal.privileged or not base:
         return base
     granted = (
         frozenset()
         if principal.privacy or principal.grant is None
         else GRANTS[principal.grant]
+        | (EXPORT if principal.export and principal.grant != ROLE_EDITOR else frozenset())
     )
     if mode == MODE_WORKSPACE:
         return base | granted
     outside = base - FORM_SCOPED - {P.PRIVACY_MANAGE}
+    if principal.creator:
+        return base | granted
     if granted:
         return outside | granted
     if principal.privacy:
@@ -211,6 +244,7 @@ def closed_to(principal: Principal, mode: str, switch_on: bool) -> bool:
         and mode == MODE_RESTRICTED
         and not principal.privileged
         and not principal.privacy
+        and not principal.creator
         and principal.grant is None
         and P.FORM_READ in base_permissions(principal)
     )
@@ -231,8 +265,23 @@ def decide(principal: Principal, chain, mode: str, switch_on: bool):
 def expected(route: Route, principal: Principal, mode: str, switch_on: bool):
     if route.needs_switch and not switch_on:
         return 422
+    if (
+        route.creator_only
+        and switch_on
+        and mode == MODE_RESTRICTED
+        and not principal.privileged
+        and not principal.creator
+        and decide(principal, route.chain, mode, switch_on) == "allowed"
+    ):
+        # may do it by role or grant, but a restricted form's template is for its
+        # creator, an Owner or an Admin: the code, not the generic 403
+        return "creator_only"
     chain = route.chain
-    if route.respondent_rule and closed_to(principal, mode, switch_on):
+    if route.respondent_rule and (
+        closed_to(principal, mode, switch_on) or not base_permissions(principal)
+    ):
+        # no staff here (closed to them, or no member at all): the respondent rule
+        # answers "not found" for a response that is not theirs
         return 404
     if route.kind == LIST:
         # a workspace list answers the workspace-level permission; what it
@@ -298,6 +347,18 @@ def test_the_table_names_no_route_that_is_gone():
         "route_table.py lists routes that no longer exist (remove them):\n"
         + "\n".join(f"  {method} {path}" for method, path in gone)
     )
+
+
+def test_every_decided_route_has_its_outcome_pinned():
+    """The statuses an allowed member is answered with are pinned per route (see
+    ``route_table.OUTCOMES``): a new route has to say what a member who is let
+    through gets, and the routes that return data say what the data is."""
+    unpinned = sorted(key for key, route in ROUTES.items() if not route.ok)
+    assert not unpinned, (
+        "decided routes without a pinned outcome (route_table.OUTCOMES):\n"
+        + "\n".join(f"  {m} {p}" for m, p in unpinned)
+    )
+    assert sum(1 for route in ROUTES.values() if route.check) >= 20
 
 
 def test_every_exemption_names_its_reason_and_every_route_its_permission():
@@ -416,7 +477,7 @@ def umami(monkeypatch):
 
 
 @pytest.fixture()
-async def world(matrix, workspace, umami, monkeypatch):
+async def world(matrix, workspace, umami, client, memory_jobs, monkeypatch):
     """The permission matrix's workspace (an Owner, an Admin, an Editor, a
     Reviewer, a Viewer, a Privacy officer, a published form with answers and a
     deletion request) plus three members whose grant on the form lifts or
@@ -430,10 +491,23 @@ async def world(matrix, workspace, umami, monkeypatch):
         (PRIVACY, "privacy"),
     ):
         users[role] = USERS[name]
-    for name, grant_role in GRANTEE_ROLE.items():
-        member = await add_member(workspace, grant_role)
+    for name, stored in GRANTEE_ROLE.items():
+        principal = PRINCIPALS[name]
+        member = await add_member(workspace, stored)
         users[name] = member
-        await grant(workspace, matrix["form"], member.id, PRINCIPALS[name].grant)
+        if principal.grant and principal.team:
+            team = await team_with(workspace, member)
+            await grant(
+                workspace, matrix["form"], team.id, principal.grant,
+                export=principal.export, subject_type="group",
+            )
+        elif principal.grant:
+            await grant(
+                workspace, matrix["form"], member.id, principal.grant,
+                export=principal.export,
+            )
+        if name == "creator_removed":
+            await container.workspace_user_repo().delete(workspace.id, member.id)
     for target, name, value in (
         (settings.webhooks, "ENABLED", True),
         (settings.email_actions, "ENABLED", True),
@@ -446,7 +520,68 @@ async def world(matrix, workspace, umami, monkeypatch):
     ):
         monkeypatch.setattr(target, name, value, raising=False)
     cookies = {name: _cookies(user) for name, user in users.items() if name in PRINCIPALS}
-    return SimpleNamespace(ctx=dict(matrix), workspace=workspace, cookies=cookies)
+    ctx = dict(matrix)
+    ctx.update(await real_objects(client, workspace, matrix, monkeypatch))
+    return SimpleNamespace(ctx=ctx, workspace=workspace, cookies=cookies, users=users)
+
+
+async def real_objects(client, workspace, matrix, monkeypatch) -> dict:
+    """Real sub-objects of the matrix's form, made by the Owner while the switch
+    is off, so that a route that acts on one is let through to what it does (a
+    webhook, an email action, a built export and its link, an import, a grant, an
+    action on the form), not to a 404 for a made-up id."""
+    from backend.app.services.registration import client as registration_client
+    from backend.app.services.response_export import limits, links
+    from tests.app.email_actions.conftest import FakeTransport
+    from tests.app.registration.tls_server import PUBLIC_ADDRESS
+    from tests.app.response_import.helpers import csv_bytes
+    from tests.app.webhooks.helpers import make_webhook
+
+    async def resolve(host, port=443):
+        return [PUBLIC_ADDRESS]
+
+    monkeypatch.setattr(registration_client, "resolve", resolve)
+    monkeypatch.setattr(settings.mail_settings, "smtp_server", "smtp.example.test")
+    monkeypatch.setattr(settings.mail_settings, "sender", "noreply@example.test")
+    monkeypatch.setattr(container.email_action_service(), "_transport", FakeTransport())  # (an email action needs a mapped team: not made here)
+    monkeypatch.setattr(limits, "STREAM_MAX_ROWS", 1)
+    monkeypatch.setattr(limits, "CHUNK_BYTES", 120)
+    form = SimpleNamespace(form_id=matrix["form"])
+    ws, owner = matrix["ws"], USERS[OWNER]
+    base = f"{ROOT}/workspaces/{ws}/forms/{matrix['form']}"
+    webhook = await make_webhook(workspace, form, fields=(), user=owner)
+    started = await client.post(f"{base}/exports", json={}, cookies=_cookies(owner))
+    assert started.status_code == 202, started.text[:150]
+    export = started.json()["id"]
+    assert await container.response_export_service().run_job(export) == "ready"
+    uploaded = await client.post(
+        f"{base}/imports",
+        content=csv_bytes([["name"], ["Ada"]]),
+        headers={"content-type": "text/csv"},
+        cookies=_cookies(owner),
+    )
+    assert uploaded.status_code == 201, uploaded.text[:150]
+    attached = await client.post(
+        f"{base}/actions", json={"action_id": matrix["action"]}, cookies=_cookies(owner)
+    )
+    assert attached.status_code == 200, attached.text[:150]
+    row = await grant(workspace, matrix["form"], matrix["removable"], "VIEWER")
+    return {
+        "webhook": str(webhook.id),
+        "export": export,
+        "export_token": links.issue(export, workspace.id, matrix["form"], owner.id),
+        "import": uploaded.json()["id"],
+        "grant": str(row.id),
+        "action": matrix["action"],
+    }
+
+
+async def make_creator(world, name: str) -> None:
+    """The form's creator (the link's user) is this principal."""
+    repo = container.workspace_form_repo()
+    link = await repo.find_workspace_form(world.workspace.id, str(world.ctx["form"]))
+    link.user_id = str(world.users[name].id)
+    await repo.save(link)
 
 
 def _text(response) -> str:
@@ -478,7 +613,10 @@ async def _send(client, world, route: Route, template: str, principal: str, ghos
         else:
             overrides["form"] = unknown
     path, kwargs = build_request(route, ctx, template)
-    url = ROOT + path.format(**_ids(ctx, **overrides, response_key=route.response_key))
+    values = _ids(ctx, **overrides, response_key=route.response_key)
+    for parameter, key in route.ids:
+        values[parameter] = ctx[key]
+    url = ROOT + path.format(**values)
     return await client.request(
         route.method, url, cookies=world.cookies[principal], **kwargs
     )
@@ -539,8 +677,19 @@ async def run_matrix(
                     failures.append(f"refused, expected to pass: {seen}")
                 elif response.status_code == 404 and _body(response) == NOT_FOUND_BODY:
                     failures.append(f"form not found, expected to pass: {seen}")
-                elif route.kind == LIST:
-                    failures.extend(leaks(world, principal, label, response, mode, switch_on))
+                else:
+                    OBSERVED.setdefault((method, template), set()).add(response.status_code)
+                    failures.extend(
+                        outcome(route, template, world, principal, label, response, mode, switch_on)
+                    )
+            elif want == "creator_only":
+                body = _body(response)
+                if not (
+                    response.status_code == 403
+                    and isinstance(body, dict)
+                    and body.get("code") == TEMPLATE_FROM_RESTRICTED_CODE
+                ):
+                    failures.append(f"expected 403 {TEMPLATE_FROM_RESTRICTED_CODE}: {seen}")
             elif want == 422:
                 if response.status_code != 422:
                     failures.append(f"expected 422 (switch off): {seen}")
@@ -562,6 +711,45 @@ async def run_matrix(
                         f"404 differs from an unknown id ({ghost.status_code} "
                         f"{str(_body(ghost))[:80]}): {seen}"
                     )
+    return failures
+
+
+#: the statuses the allowed members were answered with, per route (calibration)
+OBSERVED: Dict[Tuple[str, str], Set[int]] = {}
+
+# a workspace list names a form (or its answers) to the member who holds this
+# permission on it, and to nobody else
+LIST_PRESENCE = {
+    ("GET", "/workspaces/{workspace_id}/forms"): (P.FORM_READ, "form"),
+    ("GET", "/workspaces/{workspace_id}/all-submissions"): (P.RESPONSE_READ, "response"),
+}
+
+
+def outcome(
+    route: Route, template: str, world, principal, label, response, mode, switch_on
+) -> List[str]:
+    """What an allowed member is answered: a status the route gives once it has
+    been let through (``Route.ok``), the data it is meant to return
+    (``Route.check``), and, for a list, the form or its answers exactly when the
+    member holds the permission on them."""
+    failures: List[str] = []
+    seen = f"{label}: {response.status_code} {str(_body(response))[:100]}"
+    if route.ok and response.status_code not in route.ok:
+        failures.append(f"outcome {response.status_code} not in {route.ok}: {seen}")
+    if route.check is not None and 200 <= response.status_code < 300:
+        problem = route.check(world.ctx, response)
+        if problem:
+            failures.append(f"data: {problem}: {seen}")
+    if route.kind == LIST:
+        failures.extend(leaks(world, principal, label, response, mode, switch_on))
+        presence = LIST_PRESENCE.get((route.method, template))
+        if presence and response.status_code == 200:
+            permission, what = presence
+            held = held_on_form(principal, mode, switch_on)
+            identifier = str(world.ctx["form" if what == "form" else "response"])
+            named = identifier in _text(response)
+            if (permission in held) and not named:
+                failures.append(f"the list leaves out what the member may open: {seen}")
     return failures
 
 
@@ -591,9 +779,18 @@ def _with(route: Route, **fields) -> Route:
 
 # -- the matrix, per mode ------------------------------------------------------------
 
-EVERY = list(PRINCIPALS)
-OPEN_SET = ["admin", "editor", "viewer", "privacy", "viewer_editor_grant", "viewer_reviewer_grant"]
-OFF_SET = ["admin", "editor", "reviewer", "viewer", "privacy", "viewer_editor_grant"]
+EVERY = NON_CREATORS
+OPEN_SET = [
+    "admin",
+    "editor",
+    "viewer",
+    "privacy",
+    "viewer_editor_grant",
+    "viewer_reviewer_grant",
+    "viewer_team_grant",
+    "viewer_export_grant",
+]
+OFF_SET = NON_CREATORS  # every principal: with the switch off the grants are inert
 
 
 async def test_the_matrix_on_a_restricted_form(client: AsyncClient, world, monkeypatch):
@@ -626,6 +823,29 @@ async def test_the_matrix_with_the_switch_off(client: AsyncClient, world, monkey
     failures = await run_matrix(
         client, world, OFF_SET, MODE_RESTRICTED, False
     )
+    assert not failures, "\n".join(failures[:60]) + f"\n({len(failures)} in all)"
+
+
+@pytest.mark.parametrize(
+    "creator,switch_on",
+    [
+        ("creator_editor", True),
+        ("creator_viewer", True),
+        ("creator_removed", True),
+        ("creator_removed", False),
+    ],
+)
+async def test_the_matrix_for_the_forms_creator(
+    client: AsyncClient, world, monkeypatch, creator, switch_on
+):
+    """The member who made the form: on a restricted form they keep what their own
+    role gives (an Editor everything, a demoted creator only a Viewer's reads, a
+    creator whose membership is gone nothing), never more; run on a form they
+    created, with the switch on and off."""
+    await set_mode(world.workspace, world.ctx["form"], MODE_RESTRICTED)
+    await make_creator(world, creator)
+    monkeypatch.setattr(settings.form_access, "ENABLED", switch_on)
+    failures = await run_matrix(client, world, [creator], MODE_RESTRICTED, switch_on)
     assert not failures, "\n".join(failures[:60]) + f"\n({len(failures)} in all)"
 
 

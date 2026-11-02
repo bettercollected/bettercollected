@@ -40,7 +40,24 @@ DECISIONS: Dict[str, int] = {
     "require_key_scope": 2,  # (key, scope, form_id=None)
     "require_key_on_form": 2,  # (key, scope, form_id)
 }
-FORM_PARAMETER = re.compile(r"(^|_)(form_id|slug|response_id|submission_id)$")
+FORM_PARAMETER = re.compile(
+    r"(^|_)(form_ids?|slug|response_id|submission_id)$"
+)
+# a form id that arrives inside a request body or a query object rather than as
+# an argument of its own: ``request.form_id``, ``body.source.form_id``, ``dto.form_ids``
+BODY_FORM_ATTRIBUTES = {"form_id", "form_ids", "formId", "formIds", "submission_form_ids"}
+
+
+def _reads_a_form_from_a_parameter(function) -> bool:
+    parameters = {p for p in _parameters(function) if p not in ("self", "cls")}
+    for node in ast.walk(function):
+        if isinstance(node, ast.Attribute) and node.attr in BODY_FORM_ATTRIBUTES:
+            base = node.value
+            while isinstance(base, ast.Attribute):
+                base = base.value
+            if isinstance(base, ast.Name) and base.id in parameters:
+                return True
+    return False
 
 
 class Site(NamedTuple):
@@ -93,8 +110,10 @@ def sites_in(path: Path, root: Path) -> Iterator[Site]:
         for child in ast.iter_child_nodes(node):
             if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 inner = scope + (child.name,)
-                has_form = form_function or any(
-                    FORM_PARAMETER.search(p) for p in _parameters(child)
+                has_form = (
+                    form_function
+                    or any(FORM_PARAMETER.search(p) for p in _parameters(child))
+                    or _reads_a_form_from_a_parameter(child)
                 )
                 yield from walk(child, inner, has_form)
                 continue
@@ -130,6 +149,40 @@ def all_sites(root: Path = PACKAGE) -> List[Site]:
 # instead, or why no form-level decision can differ (the permission is never
 # granted per form and Owner/Admin always hold it).
 ALLOWED: Dict[Tuple[str, str, str], str] = {
+    (
+        "app/controllers/option_lists_router.py",
+        "OptionListsRouter.preview_option_source",
+        "authorize",
+    ): (
+        "form.edit at workspace level; body.form_id is only the form being edited, "
+        "compared with the source's form to refuse a form that takes its options "
+        "from its own answers (nothing of it is read or returned); the source's "
+        "form is decided in authorize_source (a form closed to the caller does "
+        "not exist for them)"
+    ),
+    ("app/services/ai/api_keys.py", "APIKeyService.create_key", "authorize"): (
+        "security.manage is Owner/Admin-only and never granted per form; "
+        "submission_form_ids are checked to be forms of this workspace "
+        "(_checked_submission_forms), and an Owner or Admin reaches every form"
+    ),
+    (
+        "app/services/response_import/service.py",
+        "ResponseImportService._process",
+        "has_permission",
+    ): (
+        "the background re-check that the person who started the import still "
+        "holds response.import, which is Owner/Admin-only and never granted per "
+        "form; the form is the import's own"
+    ),
+    (
+        "app/services/workspace_form_service.py",
+        "WorkspaceFormService.create_form",
+        "authorize",
+    ): (
+        "form.create is a workspace permission and the form does not exist yet "
+        "(the id read from the body is the new form's own), so it has no access "
+        "mode or grants to decide on"
+    ),
     (
         "app/services/analytics_service.py",
         "AnalyticsService.check_user_can_view_analytics",
@@ -303,13 +356,13 @@ def test_every_mcp_tool_that_names_a_form_goes_through_require_form():
     for tool in tools:
         parameters = _parameters(tool)
         calls = _calls_in(tool)
-        if "form_id" in parameters:
+        if any(re.search(r"form_?ids?$", p, re.IGNORECASE) for p in parameters):
             named_a_form += 1
             assert "_require_form" in calls, (
                 f"MCP tool {tool.name} takes a form_id and does not call "
                 "_require_form(key, scope, form_id)"
             )
-        if "response_id" in parameters:
+        if any(re.search(r"(response|submission)_?ids?$", p, re.IGNORECASE) for p in parameters):
             assert "key_may_use_form" in calls or "_require_form" in calls, (
                 f"MCP tool {tool.name} takes a response_id and does not decide on "
                 "the response's form (key_may_use_form)"
@@ -333,7 +386,7 @@ def test_every_public_api_route_with_a_form_id_is_decided_on_the_form():
             for node in decorator.args[:1]
             if isinstance(node, ast.Constant) and isinstance(node.value, str)
         ]
-        if not any("{form_id}" in path for path in paths):
+        if not any(re.search(r"\{\w*form_?ids?\}", path, re.IGNORECASE) for path in paths):
             continue
         routes += 1
         keys = [
@@ -382,6 +435,11 @@ def test_the_guard_catches_a_missing_form_id(tmp_path):
         "        await inner()\n"
         "    async def options(self, user, workspace_id, form_id, **kw):\n"
         "        await self._authz.authorize(user, P.FORM_READ, workspace_id, **kw)\n"
+        "    async def body(self, user, workspace_id, request):\n"
+        "        ids = request.source.form_id\n"
+        "        await self._authz.authorize(user, P.FORM_READ, workspace_id)\n"  # 22
+        "    async def many(self, user, workspace_id, form_ids):\n"
+        "        await self._authz.authorize(user, P.FORM_READ, workspace_id)\n"  # 24
     )
     found = {s.line: s for s in sites_in(source, tmp_path / "")}
     assert {line for line, s in found.items() if s.in_form_function and not s.passes_form} == {
@@ -392,6 +450,8 @@ def test_the_guard_catches_a_missing_form_id(tmp_path):
         9,
         16,
         19,
+        22,
+        24,
     }
     assert not found[13].in_form_function
     assert found[16].function == "S.nested.inner"
