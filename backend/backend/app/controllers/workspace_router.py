@@ -26,6 +26,7 @@ from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.services.response_import.mode import csv_import_enabled
 from backend.app.services.form_embed import form_embed_enabled
 from backend.app.services.form_access.mode import form_access_enabled
+from backend.app.services.audit_log.mode import audit_log_ui_enabled
 from backend.app.services.form_versions.mode import form_revisions_ui_enabled
 from backend.app.services.response_revisions.mode import response_revisions_enabled
 from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
@@ -251,6 +252,7 @@ class WorkspaceRouter(Routable):
             reusable_sections_enabled=reusable_sections_enabled(),
             save_drafts_enabled=save_drafts_enabled(),
             form_revisions_ui_enabled=form_revisions_ui_enabled(),
+            audit_log_ui_enabled=audit_log_ui_enabled(),
             response_revisions_enabled=response_revisions_enabled(),
             csv_import_enabled=csv_import_enabled(),
             submissions_api_enabled=submissions_api_enabled(),
