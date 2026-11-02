@@ -1,16 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import { embedErrorKey, embedSnippet, escapeAttribute } from './form-embed';
+import { CURRENT_EMBED_SCRIPT } from '@app/lib/embed/embed-script';
+
+import { embedErrorKey, embedSnippet, escapeAttribute, iframeSnippet } from './form-embed';
 
 describe('embed snippet', () => {
     it("is a placeholder with the form address and name, and the script of the form's own host", () => {
         expect(embedSnippet('https://forms.example.org/acme/forms/contact', 'Contact form')).toBe(
-            '<div data-bc-form="https://forms.example.org/acme/forms/contact" data-bc-title="Contact form"></div>\n<script async src="https://forms.example.org/embed.js"></script>'
+            `<div data-bc-form="https://forms.example.org/acme/forms/contact" data-bc-title="Contact form"></div>
+<script async src="https://forms.example.org/embed/v1.js" integrity="${CURRENT_EMBED_SCRIPT.integrity}" crossorigin="anonymous"></script>`
         );
     });
 
     it('takes the script from a custom domain too', () => {
-        expect(embedSnippet('https://forms.customer.nl/forms/aanvraag', 'Aanvraag')).toContain('src="https://forms.customer.nl/embed.js"');
+        expect(embedSnippet('https://forms.customer.nl/forms/aanvraag', 'Aanvraag')).toContain('src="https://forms.customer.nl/embed/v1.js"');
     });
 
     it('names an untitled form "Form" and tidies and caps the title', () => {
@@ -29,6 +32,21 @@ describe('embed snippet', () => {
         expect(snippet).toContain('data-bc-title="&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;&lt;div a=&quot;"');
         expect(embedSnippet('https://forms.example.org/a"b/forms/c', 'T')).toContain('data-bc-form="https://forms.example.org/a&quot;b/forms/c"');
         expect(escapeAttribute('a&b"<>')).toBe('a&amp;b&quot;&lt;&gt;');
+    });
+});
+
+describe('iframe-only snippet', () => {
+    it('is a plain frame of the form at a fixed height, with no script', () => {
+        const snippet = iframeSnippet('https://forms.example.org/acme/forms/contact', 'Contact form');
+        expect(snippet).toBe('<iframe src="https://forms.example.org/acme/forms/contact?embed=1" title="Contact form" width="100%" height="640" style="border:0" loading="lazy" referrerpolicy="origin" allow=""></iframe>');
+        expect(snippet).not.toContain('<script');
+    });
+
+    it("keeps the address's own query, names an untitled form and cannot be broken out of", () => {
+        expect(iframeSnippet('https://forms.example.org/a/forms/b?field_source=news', undefined, 800)).toContain('src="https://forms.example.org/a/forms/b?field_source=news&amp;embed=1" title="Form" width="100%" height="800"');
+        const hostile = iframeSnippet('https://forms.example.org/a/forms/b', '"><script>alert(1)</script>');
+        expect(hostile).not.toContain('<script>');
+        expect(hostile.match(/<iframe/g)).toHaveLength(1);
     });
 });
 

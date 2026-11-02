@@ -2,7 +2,11 @@
  * BetterCollected form embed, protocol v1 (docs/embed.md).
  *
  * <div data-bc-form="https://forms.example.org/acme/forms/contact"></div>
- * <script async src="https://forms.example.org/embed.js"></script>
+ * <script async src="https://forms.example.org/embed/v1.js" integrity="sha384-..." crossorigin="anonymous"></script>
+ *
+ * This file never changes once released: its address and its sha384 are in the snippet the share dialog
+ * shows (src/lib/embed/embed-script.ts, with a test that pins the hash). A change is a new file (v2.js).
+ * /embed.js is a moving alias of the current version, for pages that do not pin it.
  *
  * Shows each [data-bc-form] placeholder's form in an iframe and keeps the frame as tall as the form's
  * page needs. The form tells this page only that it loaded, how tall it needs to be and that it was

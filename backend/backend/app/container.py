@@ -792,6 +792,7 @@ class AppContainer(containers.DeclarativeContainer):
         FormEmbedService,
         workspace_repo=workspace_repo,
         authorization_service=authorization_service,
+        rate_limiter=rate_limiter,
     )
 
     openai_service: OpenAIService = providers.Singleton(

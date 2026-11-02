@@ -41,10 +41,23 @@ describe('Embed panel', () => {
         const code = screen.getByText(/data-bc-form=/);
         expect(code.textContent).toContain(`data-bc-form="${URL_OF_FORM}"`);
         expect(code.textContent).toContain('data-bc-title="Contact form"');
-        expect(code.textContent).toContain('src="https://forms.example.org/embed.js"');
+        expect(code.textContent).toContain('src="https://forms.example.org/embed/v1.js"');
+        expect(code.textContent).toContain('integrity="sha384-');
+        expect(code.textContent).toContain('crossorigin="anonymous"');
         fireEvent.click(screen.getByRole('button', { name: en.COPY }));
         expect(copied).toEqual([code.textContent]);
         expect(screen.getByRole('button', { name: en.COPIED })).toBeInTheDocument();
+    });
+
+    it('also offers a plain frame with no script, and copies that one on its own', () => {
+        render(<EmbedPanel url={URL_OF_FORM} formTitle="Contact form" />);
+        const frame = screen.getByText(/<iframe /);
+        expect(frame.textContent).toContain(`src="${URL_OF_FORM}?embed=1"`);
+        expect(frame.textContent).toContain('title="Contact form"');
+        expect(frame.textContent).not.toContain('<script');
+        expect(screen.getByText(en.IFRAME_HINT)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: en.IFRAME_COPY }));
+        expect(copied).toEqual([frame.textContent]);
     });
 
     it('says embedding is refused until a site is added, and links admins to the settings', () => {

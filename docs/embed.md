@@ -15,12 +15,38 @@ exists: the settings answer 404, the Embed tab is hidden and form pages are serv
 
 ```html
 <div data-bc-form="https://forms.example.org/acme/forms/contact" data-bc-title="Contact form"></div>
-<script async src="https://forms.example.org/embed.js"></script>
+<script async src="https://forms.example.org/embed/v1.js"
+        integrity="sha384-IHR6t5d0yCNPCK4uaKckT/RXBuFfNSKj1x29Y1WV2d8FmZaGWF9q+5DupaXWAF+z"
+        crossorigin="anonymous"></script>
 ```
 
 3. Paste it where the form should appear. The form's address is the one you share as a link (the
    workspace's custom domain, when it has one, shows `https://forms.customer.example/forms/contact`); the
    script is always served by the same host as the form.
+
+The script file `/embed/v1.js` **never changes** once released (a change is a new file, `v2.js`, and a new snippet),
+so the tag pins it with `integrity` (Subresource Integrity) and `crossorigin="anonymous"`: if the file were ever
+altered on its way or on the server, the browser would refuse to run it. The file is served with a year-long
+immutable cache and `Access-Control-Allow-Origin: *`. `/embed.js` is a moving alias of the current version for
+pages that do not pin it (no `integrity` there, cached for an hour).
+
+### Without any script
+
+If you would rather run no script of ours on your page, use a plain frame (the Embed tab shows this too):
+
+```html
+<iframe src="https://forms.example.org/acme/forms/contact?embed=1" title="Contact form"
+        width="100%" height="640" style="border:0" loading="lazy" referrerpolicy="origin" allow=""></iframe>
+```
+
+The frame keeps the height you give it (set it to fit your form; pages differ), does not resize itself and tells
+your page nothing (the page learns no `parent`). Sign-in and other links that leave the form still open in a new
+tab (`embed=1`). The allowed-sites list applies exactly as for the script.
+
+**`sandbox`.** A host that sandboxes frames must keep `allow-scripts allow-forms allow-same-origin allow-popups
+allow-popups-to-escape-sandbox`: the form needs scripts, its own storage, the form submission and the new-tab
+sign-in. Without `allow-same-origin` the frame runs as an opaque origin and the form cannot keep its state, and with
+the script embed a message would come from the origin `null`, which the script refuses.
 
 Any site that is not on the list is refused by the browser: the frame stays empty.
 
@@ -93,7 +119,9 @@ export function BetterCollectedForm({ src, title, onSubmitted }: { src: string; 
         if (!element) return;
         const script = document.createElement('script');
         script.async = true;
-        script.src = `${new URL(src).origin}/embed.js`;
+        script.src = `${new URL(src).origin}/embed/v1.js`;
+        // pin it like the share dialog's snippet does: set script.integrity (the sha384 shown there) and
+        // script.crossOrigin = 'anonymous'
         script.onload = () => window.BetterCollectedEmbed?.scan(element);
         // the script mounts the placeholder as soon as it runs; a second load only scans
         document.head.appendChild(script);
@@ -141,6 +169,15 @@ answered, an outage keeps the last answer it gave (for up to ten minutes; then t
 neither opens a workspace's forms to every site nor closes them to the sites it lists. Deploy the backend before
 the webapp where you can.
 
+**Tell the webapp as well.** One case needs the webapp's own knowledge: a freshly started webapp whose first
+ask of the backend fails (the backend is down or restarting at that moment) and that has no earlier answer. With
+the switch on that must not leave forms open to every site, so the webapp reads its own environment variable
+`FORM_EMBED_ENABLED` (same name and values as the backend's, read on every request; the deployment compose file
+passes it through, default `false`): `true` means "strict until the backend answers" (`frame-ancestors 'self'` and
+the dashboard), anything else means no header. **Set it to `true` on the webapp when you turn the switch on in the
+backend**, in the same step. If you forget, the only effect is the old behaviour (no header) during such a
+start-up failure; it never changes what the backend says once it answers, which stays the truth per workspace.
+
 ### Things that silently stop it working
 
 - The script trusts the origin of the form address you gave. If that address redirects to another origin (a
@@ -171,7 +208,8 @@ opens the form on its own address, not in the frame.
   dropped, heights are clamped).
 - The webapp's proxy sets `Content-Security-Policy: frame-ancestors ...` on `/<workspace>/forms/<form>` (and
   its `/preview`) and `/forms/<form>` on custom domains from `GET /workspaces/embed/policy` (public: it answers
-  only what the header itself shows; unknown workspaces get an empty list). The answer is kept 30 s per workspace
+  only what the header itself shows; unknown workspaces get an empty list; limited to 600 requests a minute per
+  client address and 120 per workspace, then 429 with `Retry-After`, which the webapp treats like any failure). The answer is kept 30 s per workspace
   (one request at a time, at most 500 workspaces remembered). If the backend cannot be asked, the last answer is
   kept (see above); the strict default is used when a workspace had the switch on and its answer is ten minutes
   old, and for a custom-domain request whose edge assertion fails, never an open header.

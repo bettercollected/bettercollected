@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The script as a host page would load it: evaluated in the page's global scope, once per test.
-import source from '../../../public/embed.js?raw';
+import source from '../../../public/embed/v1.js?raw';
 
 const FORM = 'https://forms.example.org/acme/forms/contact';
 const FORM_ORIGIN = 'https://forms.example.org';

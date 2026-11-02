@@ -124,8 +124,16 @@ async def test_a_change_is_logged_with_ids_and_counts_only(
     lines = []
     sink = logger.add(lambda message: lines.append(str(message)), level="INFO")
     try:
-        await client.put(settings_url(workspace), json={"origins": [SITE, "https://b.example.org"]}, cookies=test_user_cookies)
-        await client.put(settings_url(workspace), json={"origins": ["https://b.example.org"]}, cookies=test_user_cookies)
+        await client.put(
+            settings_url(workspace),
+            json={"origins": [SITE, "https://b.example.org"]},
+            cookies=test_user_cookies,
+        )
+        await client.put(
+            settings_url(workspace),
+            json={"origins": ["https://b.example.org"]},
+            cookies=test_user_cookies,
+        )
     finally:
         logger.remove(sink)
     changes = [line for line in lines if "embed allowed sites changed" in line]
@@ -301,3 +309,86 @@ async def test_the_public_workspace_answer_leaves_the_list_out(
         assert SITE not in answer.text
         by_id = await client.get(f"/api/v1/workspaces/{workspace.id}", cookies=cookies)
         assert SITE not in by_id.text
+
+
+# ------------------------------------------------------------------ rate limit
+
+
+async def test_the_policy_is_limited_per_client_address(
+    client, workspace, on, monkeypatch
+):
+    from backend.app.services import form_embed
+
+    monkeypatch.setattr(form_embed, "POLICY_PER_IP_PER_MINUTE", 3)
+    for _ in range(3):
+        assert (
+            await client.get(
+                POLICY, params={"workspace_name": workspace.workspace_name}
+            )
+        ).status_code == 200
+    # a different workspace name does not help: it is the address that is counted
+    refused = await client.get(POLICY, params={"workspace_name": "another-one"})
+    assert refused.status_code == 429
+    assert refused.json()["code"] == "rate_limited"
+    assert 1 <= int(refused.headers["retry-after"]) <= 60
+    assert refused.headers["cache-control"] == "no-store"
+
+
+async def test_the_policy_is_limited_per_workspace(client, workspace, on, monkeypatch):
+    from backend.app.services import form_embed
+
+    monkeypatch.setattr(form_embed, "POLICY_PER_WORKSPACE_PER_MINUTE", 2)
+    name = workspace.workspace_name
+    assert (
+        await client.get(POLICY, params={"workspace_name": name})
+    ).status_code == 200
+    assert (
+        await client.get(POLICY, params={"workspace_name": name.upper()})
+    ).status_code == 200
+    third = await client.get(POLICY, params={"workspace_name": name})
+    assert third.status_code == 429 and "retry-after" in third.headers
+    # another workspace is not affected, and the three ways of naming one are counted separately
+    assert (
+        await client.get(POLICY, params={"workspace_name": "someone-else"})
+    ).status_code == 200
+    assert (
+        await client.get(POLICY, params={"workspace_id": str(workspace.id)})
+    ).status_code == 200
+
+
+async def test_ordinary_use_is_far_below_the_ceilings(client, workspace, on):
+    for _ in range(40):
+        assert (
+            await client.get(
+                POLICY, params={"workspace_name": workspace.workspace_name}
+            )
+        ).status_code == 200
+
+
+async def test_nothing_is_counted_or_refused_while_the_switch_is_off(
+    client, workspace, off, monkeypatch
+):
+    from backend.app.services import form_embed
+
+    monkeypatch.setattr(form_embed, "POLICY_PER_IP_PER_MINUTE", 1)
+    monkeypatch.setattr(form_embed, "POLICY_PER_WORKSPACE_PER_MINUTE", 1)
+    for _ in range(5):
+        answer = await client.get(
+            POLICY, params={"workspace_name": workspace.workspace_name}
+        )
+        assert answer.status_code == 200 and answer.json() == {
+            "enabled": False,
+            "origins": [],
+        }
+
+
+async def test_a_malformed_query_is_refused_before_it_counts(
+    client, workspace, on, monkeypatch
+):
+    from backend.app.services import form_embed
+
+    monkeypatch.setattr(form_embed, "POLICY_PER_IP_PER_MINUTE", 1)
+    assert (await client.get(POLICY)).status_code == 422
+    assert (
+        await client.get(POLICY, params={"workspace_name": workspace.workspace_name})
+    ).status_code == 200

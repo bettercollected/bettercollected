@@ -85,6 +85,80 @@ describe('proxy: who may frame a page', () => {
             expect(await csp(form())).toBeNull();
         });
 
+        describe('on a fresh webapp told that the switch is on (FORM_EMBED_ENABLED in its own environment)', () => {
+            const DOWN_STRICT = "frame-ancestors 'self' https://admin.example.test";
+
+            it('is strict, not open, while the backend cannot be asked (timeout, 5xx, 429, no connection)', async () => {
+                vi.stubEnv('FORM_EMBED_ENABLED', 'true');
+                for (const failing of [vi.fn().mockRejectedValue(new DOMException('timed out', 'TimeoutError')), policyOf({}, false, 500), policyOf({}, false, 429), vi.fn().mockRejectedValue(new Error('down'))]) {
+                    clearEmbedPolicyCache();
+                    vi.stubGlobal('fetch', failing);
+                    expect(await csp(form())).toBe(DOWN_STRICT);
+                }
+            });
+
+            it('takes any spelling of true the backend takes, and a number of other values as off', async () => {
+                vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));
+                for (const [value, strict] of [
+                    ['1', true],
+                    ['TRUE', true],
+                    [' on ', true],
+                    ['yes', true],
+                    ['false', false],
+                    ['0', false],
+                    ['', false],
+                    ['maybe', false]
+                ] as const) {
+                    clearEmbedPolicyCache();
+                    vi.stubEnv('FORM_EMBED_ENABLED', value);
+                    expect(await csp(form()), value).toBe(strict ? DOWN_STRICT : null);
+                }
+            });
+
+            it("still takes the backend's answer when it comes: off means no header, the lists mean the lists", async () => {
+                vi.stubEnv('FORM_EMBED_ENABLED', 'true');
+                vi.stubGlobal('fetch', policyOf({ enabled: false, origins: [] }));
+                expect(await csp(form())).toBeNull();
+                clearEmbedPolicyCache();
+                vi.stubGlobal('fetch', policyOf({ enabled: true, origins: ['https://www.example.org'] }));
+                expect(await csp(form())).toBe("frame-ancestors 'self' https://admin.example.test https://www.example.org");
+            });
+
+            it('treats a backend without the route as off, the switch being on or not (the feature is not there)', async () => {
+                vi.stubEnv('FORM_EMBED_ENABLED', 'true');
+                vi.stubGlobal('fetch', policyOf({}, false, 404));
+                expect(await csp(form())).toBeNull();
+            });
+
+            it('is the old behaviour with the variable unset: a webapp before its backend, or the switch off, changes nothing', async () => {
+                vi.stubEnv('FORM_EMBED_ENABLED', '');
+                vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));
+                expect(await csp(form())).toBeNull();
+                clearEmbedPolicyCache();
+                vi.stubGlobal('fetch', policyOf({}, false, 404));
+                expect(await csp(form())).toBeNull();
+            });
+
+            it('reads the variable on every request, not once at start', async () => {
+                vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));
+                expect(await csp(form())).toBeNull();
+                clearEmbedPolicyCache();
+                vi.stubEnv('FORM_EMBED_ENABLED', 'true');
+                expect(await csp(form())).toBe(DOWN_STRICT);
+            });
+        });
+
+        it('treats 429 like any failure: the last good policy stays', async () => {
+            vi.useFakeTimers({ toFake: ['Date'] });
+            vi.setSystemTime(new Date('2026-11-02T10:00:00Z'));
+            vi.stubGlobal('fetch', policyOf({ enabled: true, origins: ['https://www.example.org'] }));
+            const good = "frame-ancestors 'self' https://admin.example.test https://www.example.org";
+            expect(await csp(form())).toBe(good);
+            vi.stubGlobal('fetch', policyOf({}, false, 429));
+            vi.setSystemTime(new Date('2026-11-02T10:02:00Z'));
+            expect(await csp(form())).toBe(good);
+        });
+
         it('keeps the last good policy through errors, and a 404 after it ends it', async () => {
             vi.useFakeTimers({ toFake: ['Date'] });
             vi.setSystemTime(new Date('2026-11-02T10:00:00Z'));

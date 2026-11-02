@@ -80,6 +80,9 @@ services:
       # Single sign-on UI (docs/sso.md), read at runtime; the same root .env
       # switch as the backend and auth
       SSO_ENABLED: ${SSO_ENABLED:-false}
+      # Embedding forms in other sites (docs/embed.md): the same switch as the backend's. The webapp only uses
+      # it while the backend cannot be asked (strict instead of no framing header), the backend decides otherwise
+      FORM_EMBED_ENABLED: ${FORM_EMBED_ENABLED:-false}
     # Its own env file, not .env.deployment: the public webapp must not receive the
     # backend's secrets (Stripe, Google, mail, Mongo, keys). deploy.sh creates
     # .env.webapp once from the lines of .env.deployment the webapp reads; it is

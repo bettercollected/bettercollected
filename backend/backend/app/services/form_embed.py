@@ -31,6 +31,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
 from backend.app.repositories.postgres.identity import PostgresWorkspaceRepository
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.app.services.domains.names import (
     DomainRefused,
     canonical_domain,
@@ -41,6 +42,12 @@ MAX_ORIGINS = 20
 MAX_ORIGIN_LENGTH = 255
 LOCAL_HOSTS = ("localhost", "127.0.0.1")
 DEFAULT_PORTS = {"https": 443, "http": 80}
+
+# The public policy route is asked by the webapp's proxy (one ask per workspace and 30 s, shared by all pages)
+# and by respondent pages in a frame; the ceilings are far above that and only stop a flood. Fixed windows of a
+# minute, counted per client address (an IPv6 address by its /64) and per workspace asked about.
+POLICY_PER_IP_PER_MINUTE = 600
+POLICY_PER_WORKSPACE_PER_MINUTE = 120
 
 DISABLED_CODE = "form_embed_disabled"
 DISABLED_MESSAGE = (
@@ -210,9 +217,11 @@ class FormEmbedService:
         self,
         workspace_repo: PostgresWorkspaceRepository,
         authorization_service: AuthorizationService,
+        rate_limiter: Optional[FixedWindowRateLimiter] = None,
     ):
         self._workspace_repo = workspace_repo
         self._authorization = authorization_service
+        self._limiter = rate_limiter
 
     async def get_settings(
         self, workspace_id: RecordId, user: User
@@ -275,6 +284,7 @@ class FormEmbedService:
         workspace_name: Optional[str] = None,
         custom_domain: Optional[str] = None,
         workspace_id: Optional[str] = None,
+        client: Optional[str] = None,
     ) -> EmbedPolicyDto:
         """The policy of the workspace named by exactly one of its handle, its
         custom domain or its id. Never an error for an unknown or disabled
@@ -289,6 +299,9 @@ class FormEmbedService:
                 status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
                 content="Provide exactly one of workspace_name, custom_domain or workspace_id.",
             )
+        await self._throttle(
+            client, workspace_name or custom_domain or workspace_id or ""
+        )
         workspace = None
         if workspace_name:
             workspace = await self._workspace_repo.find_by_name(workspace_name)
@@ -306,6 +319,34 @@ class FormEmbedService:
         return EmbedPolicyDto(
             enabled=True, origins=list(workspace.embed_allowed_origins or [])
         )
+
+    async def _throttle(self, client: Optional[str], asked_about: str) -> None:
+        """429 with Retry-After once a client address, or one workspace, has been asked about more often
+        than the ceilings of the minute allow. Only the lookups that read the database count: while the
+        switch is off the route answers without one."""
+        if self._limiter is None:
+            return
+        for scope, key, limit in (
+            ("embed_policy_ip", client or "unknown", POLICY_PER_IP_PER_MINUTE),
+            (
+                "embed_policy_workspace",
+                asked_about.strip().lower()[:255],
+                POLICY_PER_WORKSPACE_PER_MINUTE,
+            ),
+        ):
+            verdict = await self._limiter.hit(scope, key, limit, 60)
+            if not verdict.allowed:
+                raise HTTPException(
+                    status_code=HTTPStatus.TOO_MANY_REQUESTS,
+                    content={
+                        "code": "rate_limited",
+                        "message": "Too many requests; try again later.",
+                    },
+                    headers={
+                        "Retry-After": str(verdict.retry_after),
+                        "Cache-Control": "no-store",
+                    },
+                )
 
     @staticmethod
     def _ensure_enabled() -> None:
