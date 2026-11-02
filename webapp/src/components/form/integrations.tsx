@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { useTranslation } from 'react-i18next';
@@ -63,19 +64,19 @@ export default function FormIntegrations() {
                 <div className="mb-10 flex flex-col gap-2">
                     <div className="h3-new text-black-800 mb-5">{t('STAFF.INTEGRATIONS.ADDED_TITLE')}</div>
                     {data?.map((integration, index) => (
-                        <>
+                        <Fragment key={`${integration?.id}_${index}`}>
                             {addedActions.includes(integration.id) && (
-                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col flex-wrap items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center">
-                                    <div className="flex items-start sm:min-w-0 sm:flex-1 sm:items-center">
+                                <div className="bg-black-50 mb-10 flex w-full flex-col flex-wrap items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center">
+                                    <div className="flex min-w-0 max-w-full items-start sm:flex-1 sm:items-center">
                                         {/*logo */}
-                                        <Image src={integration?.url || '/integration/default.svg'} alt="" width={50} height={50} className="mr-4" />
+                                        <Image src={integration?.url || '/integration/default.svg'} alt="" width={50} height={50} className="mr-4 shrink-0" />
                                         {/* Title and description */}
-                                        <div className="mt-2 sm:mt-0">
+                                        <div className="mt-2 min-w-0 sm:mt-0">
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <h3 className="text-base font-semibold sm:text-lg">{integration?.title || t('STAFF.INTEGRATIONS.UNTITLED')}</h3>
                                                 <ReconnectBadge workspaceId={workspace?.id} formId={form?.formId} action={integration} />
                                             </div>
-                                            <p className="text-sm text-gray-600">{integration.description}</p>
+                                            <p className="text-sm text-gray-600 break-words">{integration.description}</p>
                                             <span>
                                                 {integration?.parameters && getIntegrationIsAdded(integration) && (
                                                     <div className="flex flex-col">
@@ -84,7 +85,7 @@ export default function FormIntegrations() {
                                                                 parameter?.required && (
                                                                     <div key={parameter.name} className="p2-new mt-4 flex items-center gap-2 text-sm">
                                                                         <div className="whitespace-nowrap font-mono text-[13px] font-semibold">{parameter.name}</div>:
-                                                                        <div className="text-black-700 font-mono text-[13px] max-w-xs overflow-hidden text-ellipsis whitespace-nowrap sm:max-w-sm lg:max-w-md">
+                                                                        <div className="text-black-700 min-w-0 font-mono text-[13px] max-w-xs overflow-hidden text-ellipsis whitespace-nowrap sm:max-w-sm lg:max-w-md">
                                                                             {form?.parameters?.[integration.id]?.find((param: any) => param.name === parameter.name)?.value || 'N/A'}
                                                                         </div>
                                                                     </div>
@@ -147,16 +148,16 @@ export default function FormIntegrations() {
                                     />
                                 </div>
                             )}
-                        </>
+                        </Fragment>
                     ))}
                 </div>
             )}
             {data && Array.isArray(data) && data?.length !== addedActions?.length && (
                 <div className="flex w-full flex-col gap-2">
                     {data?.map((integration, index) => (
-                        <>
+                        <Fragment key={`${integration?.id}_${index}`}>
                             {(!addedActions || !addedActions.includes(integration.id)) && (
-                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center">
+                                <div className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center">
                                     <div className="flex items-start sm:items-center">
                                         {/* logo */}
                                         <Image src={integration?.url || '/integration/default.svg'} alt="" width={50} height={50} className="mr-4" />
@@ -180,7 +181,7 @@ export default function FormIntegrations() {
                                     </div>
                                 </div>
                             )}
-                        </>
+                        </Fragment>
                     ))}
                 </div>
             )}

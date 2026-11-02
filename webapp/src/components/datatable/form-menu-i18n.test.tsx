@@ -94,12 +94,14 @@ describe('the forms toolbar', () => {
 describe('the form menu', () => {
     const openMenu = () => {
         store.dispatch(setWorkspace(workspace));
-        const { container } = render(
+        render(
             <ReduxProvider store={store}>
                 <FormOptionsDropdownMenu workspace={workspace} form={form} hasCustomDomain={false} />
             </ReduxProvider>
         );
-        fireEvent.click(container.querySelector('.cursor-pointer') as HTMLElement);
+        // Radix opens the menu on pointer down or the keyboard, like a user does
+        const trigger = screen.getByRole('button');
+        fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false });
     };
 
     it('is Dutch in Dutch, Open starting with a capital', async () => {
@@ -121,5 +123,57 @@ describe('the form menu', () => {
         for (const label of ['Open', 'Copy link', 'Generate QR', 'Duplicate form', 'Delete form']) {
             expect(await screen.findByText(label)).toBeInTheDocument();
         }
+    });
+});
+
+describe('the form menu in the form page header', () => {
+    const headerForm = { ...form, title: 'Klantfeedback', settings: { provider: 'self', pinned: false } } as any;
+
+    const renderMenu = (overrides: object = {}) => {
+        store.dispatch(setWorkspace(workspace));
+        return render(
+            <ReduxProvider store={store}>
+                <FormOptionsDropdownMenu workspace={workspace} form={{ ...headerForm, ...overrides }} hasCustomDomain={false} inHeader />
+            </ReduxProvider>
+        );
+    };
+
+    it('opens from the keyboard on a real, named button, and Pin form is the first item', async () => {
+        renderMenu();
+        const trigger = screen.getByRole('button', { name: 'More actions for Klantfeedback' });
+        expect(trigger.tagName).toBe('BUTTON');
+        trigger.focus();
+        fireEvent.keyDown(trigger, { key: 'Enter' });
+        const items = await screen.findAllByRole('menuitem');
+        expect(items[0]).toHaveTextContent('Pin form');
+        // already on the form: no "Open" or "Edit" here (the header has its own Edit button)
+        expect(screen.queryByRole('menuitem', { name: 'Open' })).toBeNull();
+        expect(screen.queryByRole('menuitem', { name: 'Edit' })).toBeNull();
+    });
+
+    it('says why Pin form is off for a form that is not public', async () => {
+        renderMenu({ settings: { provider: 'self', private: true } });
+        fireEvent.keyDown(screen.getByRole('button', { name: /More actions/ }), { key: 'Enter' });
+        const pin = await screen.findByRole('menuitem', { name: /Pin form/ });
+        expect(pin).toHaveAttribute('aria-disabled', 'true');
+        expect(pin).toHaveTextContent('Visibility of the form should be public to pin it into the workspace.');
+    });
+
+    it('offers Unpin form for a pinned form', async () => {
+        renderMenu({ settings: { provider: 'self', pinned: true } });
+        fireEvent.keyDown(screen.getByRole('button', { name: /More actions/ }), { key: 'Enter' });
+        expect(await screen.findByRole('menuitem', { name: 'Unpin form' })).toBeInTheDocument();
+    });
+
+    it('still has Open and Edit on a form card', async () => {
+        store.dispatch(setWorkspace(workspace));
+        render(
+            <ReduxProvider store={store}>
+                <FormOptionsDropdownMenu workspace={workspace} form={headerForm} hasCustomDomain={false} />
+            </ReduxProvider>
+        );
+        fireEvent.keyDown(screen.getByRole('button', { name: /More actions/ }), { key: 'Enter' });
+        expect(await screen.findByRole('menuitem', { name: 'Open' })).toHaveAttribute('href', '/acme/dashboard/forms/f1');
+        expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
     });
 });

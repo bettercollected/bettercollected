@@ -44,3 +44,29 @@ export function opensBeforeCloses(open?: string | null, close?: string | null): 
     if (!open || !close) return true;
     return moment.utc(open).isBefore(moment.utc(close));
 }
+
+/** What respondents can do with a form right now, from its settings (the Availability status line). */
+export type AvailabilityState =
+    | { kind: 'draft' }
+    | { kind: 'closed'; since: string }
+    | { kind: 'full'; limit: number }
+    | { kind: 'not-open'; opens: string; closes?: string }
+    | { kind: 'open'; closes?: string };
+
+/**
+ * Closed beats everything, then a reached response limit ("full"), then an
+ * open date still ahead; a form that is not published is a draft whatever its
+ * dates say. A close date that is still ahead is part of "open" and "not open yet".
+ */
+export function availabilityState(
+    form: { isPublished?: boolean; responses?: number; settings?: { formOpenDate?: string | null; formCloseDate?: string | null; responseLimit?: number | null } },
+    now: moment.Moment = moment.utc()
+): AvailabilityState {
+    if (!form.isPublished) return { kind: 'draft' };
+    const { formOpenDate, formCloseDate, responseLimit } = form.settings ?? {};
+    if (formCloseDate && now.isAfter(moment.utc(formCloseDate))) return { kind: 'closed', since: formCloseDate };
+    if (responseLimit && (form.responses ?? 0) >= responseLimit) return { kind: 'full', limit: responseLimit };
+    const closes = formCloseDate || undefined;
+    if (formOpenDate && now.isBefore(moment.utc(formOpenDate))) return { kind: 'not-open', opens: formOpenDate, closes };
+    return { kind: 'open', closes };
+}
