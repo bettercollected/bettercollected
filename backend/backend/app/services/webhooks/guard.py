@@ -18,8 +18,12 @@ the backend (``services/safe_http.py``):
   unspecified, nor any of those inside an IPv4-mapped, 6to4, NAT64 or Teredo
   IPv6 address.
 
+A webhook that sends a Slack or a Discord message (``check_chat_destination``)
+may only go to that service's own webhook host, so the message shape cannot be
+used to read a body from an arbitrary address.
+
 Errors are our codes: ``invalid_url``, ``not_https``, ``not_allowed``,
-``unreachable``.
+``unreachable``, ``host_not_allowed``.
 """
 
 from __future__ import annotations
@@ -48,6 +52,13 @@ _LOCAL_SUFFIXES = (
 )
 _TLD = re.compile(r"^(?:[a-z][a-z0-9-]*)$")
 _LABEL = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+
+
+# the hosts (and path prefixes) the chat formats may be sent to
+CHAT_DESTINATIONS = {
+    "slack": (("hooks.slack.com",), "/"),
+    "discord": (("discord.com", "discordapp.com"), "/api/webhooks/"),
+}
 
 
 class DestinationRefused(Exception):
@@ -117,6 +128,27 @@ def normalise(url: str) -> Tuple[str, str]:
     if client.base_path_problem(checked.split("?", 1)[0]):
         raise invalid
     return checked, checked_host
+
+
+def check_chat_destination(format_: str, url: str) -> None:
+    """Raises ``host_not_allowed`` unless ``url`` is where a ``slack`` or a
+    ``discord`` webhook may go. Other formats have no host rule. Syntax is
+    :func:`normalise`'s job; this reads the stored, normalised address."""
+    rule = CHAT_DESTINATIONS.get(format_)
+    if rule is None:
+        return
+    hosts, prefix = rule
+    try:
+        parts = urlsplit(url)
+        host = (parts.hostname or "").rstrip(".").lower()
+    except ValueError:
+        raise DestinationRefused("host_not_allowed")
+    if (
+        parts.scheme.lower() != "https"
+        or host not in hosts
+        or not parts.path.startswith(prefix)
+    ):
+        raise DestinationRefused("host_not_allowed")
 
 
 async def check_destination(url: str, *, resolves: bool = True) -> Tuple[str, str]:

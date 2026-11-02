@@ -28,7 +28,7 @@ import re
 import secrets as token
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional
 
 from common.clock import utcnow
 from common.constants import MESSAGE_NOT_FOUND
@@ -40,6 +40,7 @@ from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
+from backend.config import settings
 from backend.app.schemas.webhook import (
     ActionCondition,
     ActionLogDocument,
@@ -49,10 +50,11 @@ from backend.app.schemas.webhook import (
     WebhookField,
 )
 from backend.app.services import action_conditions
+from backend.app.services.builtin_actions.mapping import all_questions_mapping
 from backend.app.services.registration import body as body_builder
 from backend.app.services.registration import client
 from backend.app.services.registration.secrets import SecretUnreadable, seal, unseal
-from backend.app.services.webhooks import guard, payload, sender
+from backend.app.services.webhooks import formats, guard, payload, sender
 from backend.app.services.webhooks.sealing import seal_url, unseal_url
 from backend.app.services.webhooks.mode import refuse_when_off, webhooks_enabled
 from backend.app.services.webhooks.retry import (  # noqa: F401
@@ -106,6 +108,12 @@ class WebhookDto(_CamelModel):
     fields: List[FieldDto] = Field(default_factory=list)
     # runs only when it holds on the submitted answers (None: every submission)
     condition: Optional[ActionCondition] = None
+    # the body's format: ``envelope`` (signed, the mapped questions) or, for a
+    # built-in action that moved here, ``legacy_list``, ``slack`` or ``discord``
+    # (every question; ``fields`` is not used). ``all_questions``: an
+    # ``envelope`` webhook that sends every question the form has
+    format: str = "envelope"
+    all_questions: bool = False
     # the secret itself is returned once, by create and rotate, never here
     has_secret: bool
     secret_set_at: Optional[dt.datetime] = None
@@ -139,6 +147,9 @@ class WebhookUpdateDto(_CamelModel):
     enabled: Optional[bool] = None
     # an explicit null removes the condition (``model_fields_set`` tells)
     condition: Optional[ActionCondition] = None
+    # the only change a creator can make to the format: from ``legacy_list`` to
+    # the signed ``envelope`` (``Literal``: any other value is a 422)
+    format: Optional[Literal["envelope"]] = None
 
 
 class VariableDto(_CamelModel):
@@ -202,6 +213,8 @@ def _webhook_dto(document: FormWebhookDocument) -> WebhookDto:
         enabled=document.enabled,
         fields=[FieldDto(source=f.source, key=f.key) for f in document.fields],
         condition=document.condition,
+        format=document.format,
+        all_questions=document.all_questions,
         has_secret=bool(document.secret_sealed),
         secret_set_at=document.secret_set_at,
         created_at=document.created_at,
@@ -267,6 +280,7 @@ class WebhookService:
         rate_limiter=None,
         defer: Optional[Callable[[str], Awaitable[None]]] = None,
         clock: Callable[[], dt.datetime] = utcnow,
+        workspace_repo=None,
     ):
         self._authorization = authorization_service
         self._webhooks = webhook_repo
@@ -279,6 +293,8 @@ class WebhookService:
         self._limiter = rate_limiter
         self._defer = defer or _defer_job
         self._clock = clock
+        # the Slack and Discord messages name the workspace in their link
+        self._workspaces = workspace_repo
 
     # ------------------------------------------------------------ status
 
@@ -382,7 +398,9 @@ class WebhookService:
                 headers={"Retry-After": str(verdict.retry_after)},
             )
 
-    async def _checked_url(self, url: str, workspace_id: RecordId) -> tuple[str, str]:
+    async def _checked_url(
+        self, url: str, workspace_id: RecordId, format_: str = formats.ENVELOPE
+    ) -> tuple[str, str]:
         # the answers (not allowed / unreachable / ok) say whether a name
         # resolves to a private address: bounded per workspace
         await self._rate_limit(
@@ -393,12 +411,17 @@ class WebhookService:
             "Too many address checks; try again in a minute.",
         )
         try:
-            return await guard.check_destination(url)
+            checked, host = await guard.check_destination(url)
+            guard.check_chat_destination(format_, checked)
+            return checked, host
         except guard.DestinationRefused as refused:
             messages = {
                 "not_https": "Use a https:// address.",
                 "not_allowed": "That address is not a public one.",
                 "unreachable": "That address does not resolve.",
+                "host_not_allowed": (
+                    f"A {format_} webhook goes to {format_}'s own webhook address."
+                ),
             }
             raise _refused(
                 HTTPStatus.UNPROCESSABLE_ENTITY,
@@ -548,8 +571,19 @@ class WebhookService:
         if enabling:
             refuse_when_off()
         changed: List[str] = []
+        if request.format is not None and request.format != document.format:
+            if document.format != formats.LEGACY_LIST:
+                raise _refused(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    "format_locked",
+                    "Only a legacy list webhook can be moved to the signed format.",
+                )
+            document.format = formats.ENVELOPE
+            changed.append("format")
         if request.url is not None:
-            url, host = await self._checked_url(request.url, workspace_id)
+            url, host = await self._checked_url(
+                request.url, workspace_id, document.format
+            )
             try:
                 same = url == unseal_url(
                     self._crypto, workspace_id, document.id, document.url_sealed
@@ -565,14 +599,26 @@ class WebhookService:
         elif enabling and not document.enabled:
             # switched on: the address is checked again, not trusted from when
             # it was saved
-            await self._checked_url(self._open_url(document), workspace_id)
+            await self._checked_url(
+                self._open_url(document), workspace_id, document.format
+            )
         if request.fields is not None:
+            if document.format != formats.ENVELOPE:
+                raise _refused(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    "format_has_no_fields",
+                    "This format sends every question; there is nothing to pick.",
+                )
             fields = await self._checked_fields(
                 await self._form_for_variables(form_id), request.fields
             )
             if fields != document.fields:
                 document.fields = fields
                 changed.append("fields")
+            if document.all_questions:
+                # the creator picked the questions: not every one any more
+                document.all_questions = False
+                changed.append("all_questions")
         if "condition" in request.model_fields_set:
             condition = action_conditions.checked_condition(
                 await self._form_for_variables(form_id), request.condition
@@ -601,6 +647,12 @@ class WebhookService:
     ) -> WebhookCreatedDto:
         await self._manage(user, workspace_id, form_id)
         document = await self._webhook_of(workspace_id, form_id, webhook_id)
+        if document.format not in formats.SIGNED:
+            raise _refused(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "format_not_signed",
+                "A Slack or Discord webhook has no signing secret.",
+            )
         secret = new_secret()
         document.secret_sealed = seal(self._crypto, workspace_id, document.id, secret)
         document.secret_set_at = self._clock()
@@ -926,17 +978,27 @@ class WebhookService:
             return await self._cancel(log, "disabled")
         if hook.host != log.host:
             return await self._cancel(log, "destination_changed")
-        try:
-            secret = unseal(self._crypto, hook.workspace_id, hook.id, hook.secret_sealed)
-        except SecretUnreadable:
-            secret = None
-        if not secret:
-            raise client.SendFailed("secret_unreadable", permanent=True)
+        signed = hook.format in formats.SIGNED
+        secret: Optional[str] = None
+        if signed:
+            try:
+                secret = unseal(
+                    self._crypto, hook.workspace_id, hook.id, hook.secret_sealed
+                )
+            except SecretUnreadable:
+                secret = None
+            if not secret:
+                raise client.SendFailed("secret_unreadable", permanent=True)
         try:
             url = unseal_url(self._crypto, hook.workspace_id, hook.id, hook.url_sealed)
         except SecretUnreadable:
             raise client.SendFailed("url_unreadable", permanent=True)
-        mapping = [(f.source, f.key) for f in hook.fields]
+        try:
+            # the message shape of Slack and Discord goes to their own hosts
+            # only, whatever was stored
+            guard.check_chat_destination(hook.format, url)
+        except guard.DestinationRefused as refused:
+            raise client.SendFailed(refused.code, permanent=True)
         response_id: Optional[str] = None
         submitted_at: Optional[str] = None
         source: Optional[str] = None
@@ -944,7 +1006,7 @@ class WebhookService:
             form = await self._forms.get_latest_version_of_form(
                 RecordId(str(log.form_id))
             ) or await self._forms.get_form_document_by_id(str(log.form_id))
-            data = payload.sample_data(form, mapping)
+            answers, hidden_fields = {}, None
         else:
             response = await self._responses.workspace_response(
                 log.workspace_id, str(log.response_id)
@@ -960,11 +1022,6 @@ class WebhookService:
             form = await self._form_of_response(response)
             # the only place answers are decrypted: in memory, for this attempt
             answers, hidden_fields = self._open_answers(log.workspace_id, response)
-            loop = asyncio.get_running_loop()
-            data = await loop.run_in_executor(
-                None,
-                lambda: payload.build_data(form, mapping, answers, hidden_fields),
-            )
             response_id = str(response.response_id)
             # a response an API key made says so; the key itself never leaves
             source = "api" if getattr(response, "submission_source", None) else None
@@ -974,17 +1031,44 @@ class WebhookService:
                 if created
                 else None
             )
-            del answers, hidden_fields
-        body = payload.serialize(
-            event=log.event,
-            delivery_id=str(log.id),
-            form_id=str(log.form_id),
-            response_id=response_id,
-            submitted_at=submitted_at,
-            data=data,
-            source=source,
-        )
-        del data
+        if hook.format == formats.ENVELOPE:
+            mapping = (
+                all_questions_mapping(form)
+                if hook.all_questions
+                else [(f.source, f.key) for f in hook.fields]
+            )
+            if log.event == payload.EVENT_TEST:
+                data = payload.sample_data(form, mapping)
+            else:
+                loop = asyncio.get_running_loop()
+                data = await loop.run_in_executor(
+                    None,
+                    lambda: payload.build_data(form, mapping, answers, hidden_fields),
+                )
+            body = payload.serialize(
+                event=log.event,
+                delivery_id=str(log.id),
+                form_id=str(log.form_id),
+                response_id=response_id,
+                submitted_at=submitted_at,
+                data=data,
+                source=source,
+            )
+            del data
+        else:
+            workspace_name = await self._workspace_name(hook)
+            loop = asyncio.get_running_loop()
+            body = await loop.run_in_executor(
+                None,
+                lambda: formats.build(
+                    hook.format,
+                    formats.form_view(form),
+                    formats.response_view(response_id, answers),
+                    workspace_name=workspace_name,
+                    client_url=settings.api_settings.CLIENT_URL,
+                ),
+            )
+        del answers, hidden_fields
         stopped = await self._still_wanted(log)
         if stopped is not None:
             return stopped
@@ -1011,6 +1095,17 @@ class WebhookService:
             log.attempts,
         )
         return Outcome("delivered")
+
+    async def _workspace_name(self, hook: FormWebhookDocument) -> str:
+        """The workspace's name, for the link of a Slack or a Discord message."""
+        workspace = (
+            await self._workspaces.find_by_id(hook.workspace_id)
+            if self._workspaces is not None
+            else None
+        )
+        if workspace is None:
+            raise client.SendFailed("config_invalid", permanent=True)
+        return workspace.workspace_name
 
     async def _still_wanted(self, log: ActionLogDocument) -> Optional[Outcome]:
         """Right before a send: ``None`` when it may go on, else the outcome
