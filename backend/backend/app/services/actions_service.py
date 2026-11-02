@@ -242,6 +242,17 @@ class ActionService:
         action's secrets arrive opened, and ``secrets_plain`` is true in the
         answer: the executor then needs no key. Otherwise they are sealed, as
         they are stored, and the executor opens them with its own copy of the key."""
+        if plain_secrets and self.crypto is None:
+            # fail closed: never fall back to answering sealed (or without the
+            # secrets) as if the executor had got what it asked for
+            logger.error(
+                "an executor asked for opened run secrets but this backend has "
+                "no encryption key configured"
+            )
+            raise AppHTTPException(
+                HTTPStatus.SERVICE_UNAVAILABLE,
+                "The backend cannot open stored secrets.",
+            )
         form_document = await self.form_repo.get_form_document_by_id(str(form_id))
         latest = await self.form_repo.get_latest_version_of_form(RecordId(str(form_id)))
         if form_document is None or latest is None:
@@ -287,7 +298,7 @@ class ActionService:
         form.parameters = _only(form.parameters, action.id)
         workspace.secrets = _only(workspace.secrets, action.id)
         workspace.parameters = _only(workspace.parameters, action.id)
-        if plain_secrets and self.crypto is not None:
+        if plain_secrets:
             action = action.model_copy(
                 update={"secrets": self._opened(action.secrets, action.id)}
             )
@@ -312,8 +323,6 @@ class ActionService:
                 response_id,
                 handed,
             )
-        else:
-            plain_secrets = False
         answer = {
             "action": action.model_dump_json(),
             "form": form.model_dump_json(),

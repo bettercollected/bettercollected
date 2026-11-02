@@ -37,6 +37,12 @@ operator does. Design background and the test list are at the end.
   in the **action's own parameters** (the defaults set when the instance's administrators created the action, including the
   instance's SMTP settings), and the hosts listed in `ACTION_EGRESS_ALLOW`. The same host on another scheme or port is not
   an exception.
+- **A secret the instance's administrators stored on the action itself** (an instance secret, not replaced by the workspace
+  or the form) goes only to the **exact address** the administrators set: scheme, host, port, path **and query** as
+  written. Another path or query on the same host is not that address: on a host many parties share (a chat service's
+  webhook host) a creator could otherwise point the address at their own channel and receive the secret. `ACTION_EGRESS_ALLOW`
+  does not widen this, and the reply of such a call is not shown to custom code (an endpoint that echoes the request would
+  hand the secret back). A secret the workspace or the form stored is theirs to send to their own address.
 
 A webhook that used to point at a private or plain-http address is therefore refused; list its host (or `host:port`) in
 `ACTION_EGRESS_ALLOW` on the executor if that is deliberate.
@@ -94,8 +100,19 @@ containers. The start log says which it is:
 3. Once the executor and the backend are both 4.3, **remove `AES_HEX_KEY` from the executor service**: the backend now opens the
    run's secrets, so the executor holds no encryption key. (While the backend is older, the executor still needs it and keeps
    working with it.)
-4. Optionally list internal hosts your actions deliberately call in `ACTION_EGRESS_ALLOW`.
-5. Keep the container as tight as your orchestrator allows (defence in depth, not relied on): a read-only root filesystem,
+4. Then make that rule enforced by the software, in this order (a service reads its environment at start, so restart each
+   after changing it):
+   1. set `ACTION_EXECUTOR_KEY_ALLOWED=false` on the **executor**. Under `ACTION_ISOLATION=enforce` it then refuses to start
+      while `AES_HEX_KEY` is set, so a leftover key cannot sit next to the API key;
+   2. once every executor is 4.3 and has restarted, set `ACTION_SECRETS_SEALED_ALLOWED=false` on the **backend**. The sealed run
+      context (what an executor older than 4.3 asks for) and the key-only credential write-back
+      `PATCH /temporal/forms/{f}/actions/{a}/secrets` are then refused with `426` and a line in the backend's log naming the
+      setting, so an old executor that still holds the key fails loudly instead of running quietly. An executor of 4.3 is not
+      affected: it asks for opened secrets and writes back on the run-scoped route.
+   Both default to `true` so that the upgrade itself changes nothing; to go back, set them to `true` again. The Temporal
+   entry point (`JOBS_BACKEND=temporal`) needs the key by design and ignores `ACTION_EXECUTOR_KEY_ALLOWED`.
+5. Optionally list internal hosts your actions deliberately call in `ACTION_EGRESS_ALLOW`.
+6. Keep the container as tight as your orchestrator allows (defence in depth, not relied on): a read-only root filesystem,
    `cap_drop: [ALL]` with the image's non-root user (the sandbox then uses Landlock alone; never `cap_drop: [ALL]` as root), memory and CPU limits, an internal network with
    a route to the backend's internal listener, the job database and the public internet only. Docker Swarm stack files do not apply every
    option a compose file can (`network_mode`, a custom seccomp profile, `tmpfs`); nothing here depends on them.
@@ -104,16 +121,20 @@ containers. The start log says which it is:
 process and can reach everything the process can, and calls follow no egress rules. It logs an error at start (on both the
 Postgres and the Temporal entry points) and a warning at every run.
 
-## Settings (executor environment)
+## Settings (executor environment; the backend has one more)
 
 | Name | Default | Meaning |
 |---|---|---|
 | `ACTION_ISOLATION` | `enforce` | `enforce` or `legacy` |
 | `ACTION_EGRESS_ALLOW` | empty | comma separated `host` or `host:port`: reachable although internal or not https |
+| `ACTION_EXECUTOR_KEY_ALLOWED` | `true` | `false`: under `enforce` the executor refuses to start while `AES_HEX_KEY` is set (set at the 4.3 deploy) |
 | `ACTION_SANDBOX_MEMORY_MB` | 256 | address space of a custom-code child |
 | `ACTION_SANDBOX_CPU_SECONDS` | 10 | CPU time of a child |
 | `ACTION_SANDBOX_TIMEOUT_SECONDS` | 30 | wall clock of a run |
 | `ACTION_SANDBOX_MAX_CALLS` | 20 | outside calls per run |
+
+The backend's `ACTION_SECRETS_SEALED_ALLOWED` (default `true`; `false` at the 4.3 deploy, see the operator steps) refuses the
+sealed run context and the key-only credential write-back with `426`.
 
 ## Known limits
 
