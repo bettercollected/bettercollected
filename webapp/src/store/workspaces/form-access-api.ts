@@ -1,5 +1,5 @@
 import type { ScimGroupDto } from '@app/models/dtos/workspace-scim-dto';
-import { workspacesApi } from '@app/store/workspaces/api';
+import { pathSegment, workspacesApi } from '@app/store/workspaces/api';
 
 // Form-level access (backend controllers/form_access_router.py): who on the team may open one form, the teams
 // that grants can name, and a member's own view of what they hold. Every route but the read of a form's access
@@ -22,7 +22,11 @@ export interface FormGrantDto {
     disabled?: boolean;
     createdBy?: string | null;
     createdAt?: string | null;
-    /** Only in a member's own access view, once the server names the form (see the PR notes). */
+    /** The display name of whoever gave the grant; none when they are no longer a member or the directory could not name them. */
+    grantedBy?: string | null;
+    /** A team grant only: how many people the team has now. Absent for a person (and from a server that does not send it). */
+    memberCount?: number | null;
+    /** Only in a member's own access view: the form the grant is on. `formTitle` is null for a form the reader may not open. */
     formId?: string | null;
     formTitle?: string | null;
 }
@@ -69,6 +73,18 @@ export interface MemberAccessDto {
     grants: FormGrantDto[];
 }
 
+/** The picker for whoever may share a form but not list the workspace's members (`GET .../forms/{id}/access/candidates`). Names and ids only. */
+export interface FormAccessCandidatesDto {
+    members: Array<{ id: string; name: string }>;
+    teams: Array<{ id: string; name: string; memberCount: number }>;
+}
+
+/** The dry run of a mode change (`GET .../forms/{id}/access/impact?mode=`): a count, never names. */
+export interface FormAccessImpactDto {
+    mode: FormAccessMode;
+    membersLosingAccess: number;
+}
+
 export interface GrantRequest {
     subjectType: GrantSubjectType;
     subjectId: string;
@@ -89,6 +105,14 @@ export const formAccessApi = workspacesApi.enhanceEndpoints({ addTagTypes: [FORM
         getFormAccess: builder.query<FormAccessDto, { workspaceId: string; formId: string }>({
             query: ({ workspaceId, formId }) => ({ url: `/workspaces/${workspaceId}/forms/${formId}/access`, method: 'GET' }),
             providesTags: (_result, _error, { formId }) => [{ type: FORM_ACCESS_TAG, id: formId }]
+        }),
+        getFormAccessCandidates: builder.query<FormAccessCandidatesDto, { workspaceId: string; formId: string }>({
+            query: ({ workspaceId, formId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/access/candidates`, method: 'GET' }),
+            providesTags: (_result, _error, { formId }) => [{ type: FORM_ACCESS_TAG, id: formId }, TEAMS_TAG]
+        }),
+        getFormAccessImpact: builder.query<FormAccessImpactDto, { workspaceId: string; formId: string; mode: FormAccessMode }>({
+            query: ({ workspaceId, formId, mode }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/access/impact`, method: 'GET', params: { mode } }),
+            providesTags: (_result, _error, { formId }) => [{ type: FORM_ACCESS_TAG, id: formId }, TEAMS_TAG]
         }),
         setFormAccessMode: builder.mutation<FormAccessDto, { workspaceId: string; formId: string; mode: FormAccessMode }>({
             query: ({ workspaceId, formId, mode }) => ({ url: `/workspaces/${workspaceId}/forms/${formId}/access/mode`, method: 'PUT', body: { mode } }),
@@ -134,11 +158,11 @@ export const formAccessApi = workspacesApi.enhanceEndpoints({ addTagTypes: [FORM
         // Directory groups feeding a team (backend controllers/scim_router.py): owner only; the people in the group are in
         // the team while the directory says so (read when asked, never copied).
         setScimGroupTeam: builder.mutation<ScimGroupDto, { workspaceId: string; groupId: string; teamId: string }>({
-            query: ({ workspaceId, groupId, teamId }) => ({ url: `/workspaces/${workspaceId}/scim/groups/${groupId}/team`, method: 'PUT', body: { teamId } }),
+            query: ({ workspaceId, groupId, teamId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/scim/groups/${pathSegment(groupId)}/team`, method: 'PUT', body: { teamId } }),
             invalidatesTags: [TEAMS_TAG, MEMBER_ACCESS_TAG, 'SCIM_TAG']
         }),
         clearScimGroupTeam: builder.mutation<ScimGroupDto, { workspaceId: string; groupId: string }>({
-            query: ({ workspaceId, groupId }) => ({ url: `/workspaces/${workspaceId}/scim/groups/${groupId}/team`, method: 'DELETE' }),
+            query: ({ workspaceId, groupId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/scim/groups/${pathSegment(groupId)}/team`, method: 'DELETE' }),
             invalidatesTags: [TEAMS_TAG, MEMBER_ACCESS_TAG, 'SCIM_TAG']
         }),
         getMemberAccess: builder.query<MemberAccessDto, { workspaceId: string; memberId: string }>({
@@ -150,6 +174,8 @@ export const formAccessApi = workspacesApi.enhanceEndpoints({ addTagTypes: [FORM
 
 export const {
     useGetFormAccessQuery,
+    useGetFormAccessCandidatesQuery,
+    useGetFormAccessImpactQuery,
     useSetFormAccessModeMutation,
     usePutFormGrantMutation,
     useDeleteFormGrantMutation,

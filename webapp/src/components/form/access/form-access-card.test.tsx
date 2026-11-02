@@ -29,6 +29,10 @@ const served = vi.hoisted(() => ({
     teamCalls: [] as any[],
     members: [] as any[],
     teams: [] as any[],
+    candidateCalls: [] as any[],
+    candidates: { data: undefined as any, isError: false },
+    impactCalls: [] as any[],
+    impact: { data: undefined as any, isError: false },
     setMode: (() => {}) as any,
     putGrant: (() => {}) as any,
     deleteGrant: (() => {}) as any
@@ -46,6 +50,14 @@ vi.mock('@app/store/workspaces/form-access-api', async (original) => ({
     useGetTeamsQuery: (_workspaceId: string, options: any) => {
         served.teamCalls.push(options);
         return { data: options?.skip ? undefined : served.teams };
+    },
+    useGetFormAccessCandidatesQuery: (args: unknown, options: any) => {
+        served.candidateCalls.push({ args, options });
+        return options?.skip ? { data: undefined, isError: false } : served.candidates;
+    },
+    useGetFormAccessImpactQuery: (args: unknown, options: any) => {
+        served.impactCalls.push({ args, options });
+        return served.impact;
     },
     useSetFormAccessModeMutation: () => [(...args: unknown[]) => served.setMode(...args), { isLoading: false }],
     usePutFormGrantMutation: () => [(...args: unknown[]) => served.putGrant(...args), { isLoading: false }],
@@ -100,6 +112,10 @@ describe('Settings, Access: who on your team can open this form', () => {
         served.queries = [];
         served.memberCalls = [];
         served.teamCalls = [];
+        served.candidateCalls = [];
+        served.candidates = { data: { members: [{ id: 'u-c', name: 'Cor Jansen' }], teams: [{ id: 't-9', name: 'Redactie', memberCount: 1 }] }, isError: false };
+        served.impactCalls = [];
+        served.impact = { data: { mode: 'restricted', membersLosingAccess: 3 }, isError: false };
         served.members = [person('u-a', 'Anna', 'Bakker'), person('u-b', 'Jeroen', 'Visser')];
         served.teams = [{ id: 't-2', name: 'Bestuur', memberCount: 3 }];
         served.setMode = vi.fn().mockResolvedValue({ data: {} });
@@ -114,6 +130,8 @@ describe('Settings, Access: who on your team can open this form', () => {
         expect(served.queries).toEqual([]);
         expect(served.memberCalls).toEqual([]);
         expect(served.teamCalls).toEqual([]);
+        expect(served.candidateCalls).toEqual([]);
+        expect(served.impactCalls).toEqual([]);
     });
 
     it('renders nothing when the server answers that it is off', () => {
@@ -191,7 +209,7 @@ describe('Settings, Access: who on your team can open this form', () => {
         renderCard();
         const choice = screen.getByLabelText('Person or team') as HTMLSelectElement;
         const labels = Array.from(choice.options).map((option) => option.textContent);
-        expect(labels).toEqual(['Choose a person or a team', 'Anna Bakker', 'Bestuur']);
+        expect(labels).toEqual(['Choose a person or a team', 'Anna Bakker', 'Bestuur (3 people)']);
         fireEvent.change(choice, { target: { value: 'user:u-a' } });
         fireEvent.change(screen.getByLabelText('Role on this form'), { target: { value: 'VIEWER' } });
         fireEvent.click(screen.getByRole('button', { name: 'Add' }));
@@ -290,17 +308,144 @@ describe('Settings, Access: who on your team can open this form', () => {
         expect(screen.queryByRole('list', { name: /People and teams with access/ })).toBeNull();
     });
 
-    it('a creator who is not an owner or admin cannot pick from the members and teams (they are not asked for), and is told so; they can still remove', () => {
+    it("someone who may share the form but not list members picks from the server's candidates, and asks for no member or team list", async () => {
         served.admin = false;
         renderCard();
         expect(served.memberCalls.every((options) => options?.skip === true)).toBe(true);
         expect(served.teamCalls.every((options) => options?.skip === true)).toBe(true);
-        expect(screen.getByText(/Choosing people and teams to add is for owners and admins/)).toBeInTheDocument();
+        expect(served.candidateCalls.at(-1)).toEqual({ args: { workspaceId: 'ws-1', formId: 'f1' }, options: { skip: false } });
+        const choice = screen.getByLabelText('Person or team') as HTMLSelectElement;
+        expect(Array.from(choice.options).map((option) => option.textContent)).toEqual(['Choose a person or a team', 'Cor Jansen', 'Redactie (1 person)']);
+        fireEvent.change(choice, { target: { value: 'group:t-9' } });
+        fireEvent.change(screen.getByLabelText('Role on this form'), { target: { value: 'VIEWER' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+        await waitFor(() => expect(served.putGrant).toHaveBeenCalledWith({ workspaceId: 'ws-1', formId: 'f1', grant: { subjectType: 'group', subjectId: 't-9', role: 'VIEWER', export: false } }));
+    });
+
+    it('the candidates leave out whoever already has a grant, and a person is added by id', async () => {
+        served.admin = false;
+        served.candidates = { data: { members: [{ id: 'u-g1', name: 'Sanne de Vries' }, { id: 'u-c', name: 'Cor Jansen' }], teams: [{ id: 't-1', name: 'Vrijwilligersteam', memberCount: 4 }] }, isError: false };
+        renderCard();
+        const choice = screen.getByLabelText('Person or team') as HTMLSelectElement;
+        expect(Array.from(choice.options).map((option) => option.textContent)).toEqual(['Choose a person or a team', 'Cor Jansen']);
+        fireEvent.change(choice, { target: { value: 'user:u-c' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+        await waitFor(() => expect(served.putGrant).toHaveBeenCalledWith({ workspaceId: 'ws-1', formId: 'f1', grant: { subjectType: 'user', subjectId: 'u-c', role: 'REVIEWER', export: false } }));
+    });
+
+    it('says so when the candidates cannot be loaded, and can still remove access', () => {
+        served.admin = false;
+        served.candidates = { data: undefined, isError: true };
+        renderCard();
+        expect(screen.getByRole('alert').textContent).toMatch(/The people and teams you can add could not be loaded/);
         expect(screen.queryByLabelText('Person or team')).toBeNull();
         expect(screen.getByRole('button', { name: 'Remove the access of Sanne de Vries' })).toBeEnabled();
         // a grant that allows exporting is not theirs to change
         expect(screen.getByRole('button', { name: 'Remove the access of Vrijwilligersteam' })).toBeDisabled();
         expect(screen.getByLabelText('Vrijwilligersteam may export responses')).toBeDisabled();
+    });
+
+    it('an owner or admin keeps the member and team lists and never asks for the candidates', () => {
+        renderCard();
+        expect(served.candidateCalls.every((call) => call.options?.skip === true)).toBe(true);
+        expect(served.memberCalls.some((options) => options?.skip === false)).toBe(true);
+    });
+
+    it('asks for no candidates when the reader may not manage the circle', () => {
+        served.admin = false;
+        served.access = { ...served.access, data: access({ canManage: false }) };
+        renderCard();
+        expect(served.candidateCalls.every((call) => call.options?.skip === true)).toBe(true);
+        expect(screen.queryByLabelText('Person or team')).toBeNull();
+    });
+
+    it('shows the size of a team grant, and says in words when the team has no members', () => {
+        served.access = {
+            ...served.access,
+            data: access({
+                grants: [
+                    grant('g1', { subjectType: 'group', subjectId: 't-1', name: 'Vrijwilligersteam', memberCount: 1 }),
+                    grant('g2', { subjectType: 'group', subjectId: 't-2', name: 'Bestuur', memberCount: 0 }),
+                    grant('g3', { subjectType: 'group', subjectId: 't-3', name: 'Redactie', memberCount: 12 }),
+                    grant('g4', { memberCount: null })
+                ]
+            })
+        };
+        renderCard();
+        const rows = within(screen.getByRole('list', { name: /People and teams with access/ })).getAllByRole('listitem');
+        expect(within(rows[0]).getByText('1 person')).toBeInTheDocument();
+        expect(within(rows[0]).queryByText('Team has no members')).toBeNull();
+        expect(within(rows[1]).getByText('0 people')).toBeInTheDocument();
+        expect(within(rows[1]).getByText('Team has no members')).toBeInTheDocument();
+        expect(within(rows[2]).getByText('12 people')).toBeInTheDocument();
+        // a person has no size
+        expect(within(rows[3]).queryByText(/people|person$/)).toBeNull();
+        expect(within(rows[3]).queryByText('Team has no members')).toBeNull();
+    });
+
+    it('shows nothing about a team size when the server sends no count', () => {
+        renderCard();
+        const rows = within(screen.getByRole('list', { name: /People and teams with access/ })).getAllByRole('listitem');
+        expect(within(rows[1]).queryByText(/people|person$/)).toBeNull();
+        expect(within(rows[1]).queryByText('Team has no members')).toBeNull();
+    });
+
+    it('says who added a grant and when, or only when if the name is not known', () => {
+        served.access = {
+            ...served.access,
+            data: access({ grants: [grant('g1', { grantedBy: 'Joris Smit' }), grant('g2', { grantedBy: null }), grant('g3', { grantedBy: 'Joris Smit', createdAt: null }), grant('g4', { grantedBy: undefined, createdAt: null })] })
+        };
+        renderCard();
+        const rows = within(screen.getByRole('list', { name: /People and teams with access/ })).getAllByRole('listitem');
+        expect(within(rows[0]).getByText('Added by Joris Smit on Nov 1, 2026')).toBeInTheDocument();
+        expect(within(rows[1]).getByText('Added Nov 1, 2026')).toBeInTheDocument();
+        expect(within(rows[2]).getByText('Added by Joris Smit')).toBeInTheDocument();
+        expect(within(rows[3]).queryByText(/Added/)).toBeNull();
+    });
+
+    it('asks the server how many people lose access when the restrict confirmation opens, and says the number in the dialog', async () => {
+        served.access = { ...served.access, data: access({ accessMode: 'workspace', restricted: false }) };
+        renderCard();
+        expect(served.impactCalls).toEqual([]);
+        fireEvent.click(screen.getByRole('radio', { name: 'Only selected people and teams' }));
+        const dialog = await screen.findByRole('alertdialog');
+        expect(served.impactCalls.at(-1)).toEqual({ args: { workspaceId: 'ws-1', formId: 'f1', mode: 'restricted' }, options: { refetchOnMountOrArgChange: true } });
+        // a polite status region inside the dialog announces the count; the body text is unchanged
+        const impact = within(dialog).getByTestId('restrict-impact');
+        expect(impact).toHaveAttribute('role', 'status');
+        expect(impact.textContent).toBe('3 people will lose access.');
+        expect(within(dialog).getByText(/Respondents are not affected/)).toBeInTheDocument();
+    });
+
+    it.each([
+        [0, 'No one will lose access.'],
+        [1, '1 person will lose access.'],
+        [7, '7 people will lose access.']
+    ])('words the dry run count %s', async (count, sentence) => {
+        served.access = { ...served.access, data: access({ accessMode: 'workspace', restricted: false }) };
+        served.impact = { data: { mode: 'restricted', membersLosingAccess: count }, isError: false };
+        renderCard();
+        fireEvent.click(screen.getByRole('radio', { name: 'Only selected people and teams' }));
+        expect((await screen.findByTestId('restrict-impact')).textContent).toBe(sentence);
+    });
+
+    it('says nothing, and still lets the change go ahead, when the dry run failed', async () => {
+        served.access = { ...served.access, data: access({ accessMode: 'workspace', restricted: false }) };
+        served.impact = { data: undefined, isError: true };
+        renderCard();
+        fireEvent.click(screen.getByRole('radio', { name: 'Only selected people and teams' }));
+        const dialog = await screen.findByRole('alertdialog');
+        expect(within(dialog).getByTestId('restrict-impact').textContent).toBe('');
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Restrict' }));
+        await waitFor(() => expect(served.setMode).toHaveBeenCalled());
+    });
+
+    it('does not ask for the dry run when opening a form to the workspace', async () => {
+        renderCard();
+        fireEvent.click(screen.getByRole('radio', { name: 'Everyone in the workspace, by their role' }));
+        const dialog = await screen.findByRole('alertdialog');
+        expect(within(dialog).queryByTestId('restrict-impact')).toBeNull();
+        expect(served.impactCalls).toEqual([]);
     });
 
     it('says what an empty list means for each mode', () => {
@@ -342,20 +487,40 @@ describe('Settings, Access: who on your team can open this form', () => {
 
     it('is Dutch in Dutch, formal', async () => {
         await i18n.changeLanguage('nl');
+        served.access = { ...served.access, data: access({ grants: [grant('g1', { grantedBy: 'Joris Smit' }), grant('g2', { subjectType: 'group', subjectId: 't-1', name: 'Vrijwilligersteam', role: 'VIEWER', export: true, memberCount: 0 })] }) };
         renderCard();
         expect(screen.getByRole('heading', { level: 3, name: 'Wie in uw team dit formulier kan openen' })).toBeInTheDocument();
         expect(screen.getByRole('radio', { name: 'Alleen geselecteerde personen en teams' })).toBeChecked();
         expect(screen.getByText('Eigenaren, beheerders en de maker hebben altijd toegang.')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Toegang van Sanne de Vries intrekken' })).toBeInTheDocument();
+        expect(screen.getByText('Toegevoegd door Joris Smit op 1 nov 2026')).toBeInTheDocument();
+        expect(screen.getByText('Team heeft geen leden')).toBeInTheDocument();
+        expect(screen.getByText('0 mensen')).toBeInTheDocument();
         fireEvent.change(screen.getByLabelText('Rol bij dit formulier'), { target: { value: 'VIEWER' } });
         expect(screen.getByText('Alleen eigenaren en beheerders kunnen een Beoordelaar of Kijker toestaan reacties te exporteren. Een Bewerker kan altijd exporteren.')).toBeInTheDocument();
     });
 
-    it('has no accessibility violations (list, add form and an open confirmation)', async () => {
-        const { container } = renderCard();
+    it('says the dry run in Dutch, formal', async () => {
+        await i18n.changeLanguage('nl');
+        served.access = { ...served.access, data: access({ accessMode: 'workspace', restricted: false }) };
+        renderCard();
+        fireEvent.click(screen.getByRole('radio', { name: 'Alleen geselecteerde personen en teams' }));
+        expect((await screen.findByTestId('restrict-impact')).textContent).toBe('3 mensen verliezen toegang.');
+    });
+
+    it('has no accessibility violations (list, add form, the picker for a non-manager, and the confirmation with its count)', async () => {
+        served.access = { ...served.access, data: access({ grants: [grant('g1', { grantedBy: 'Joris Smit' }), grant('g2', { subjectType: 'group', subjectId: 't-1', name: 'Vrijwilligersteam', memberCount: 0 })] }) };
+        const { container, unmount } = renderCard();
         expect(await axeViolations(container)).toEqual([]);
         fireEvent.click(screen.getByRole('radio', { name: 'Everyone in the workspace, by their role' }));
         const dialog = await screen.findByRole('alertdialog');
         expect(await axeViolations(dialog)).toEqual([]);
+        unmount();
+        served.admin = false;
+        served.access = { ...served.access, data: access({ accessMode: 'workspace', restricted: false }) };
+        const other = renderCard();
+        expect(await axeViolations(other.container)).toEqual([]);
+        fireEvent.click(screen.getByRole('radio', { name: 'Only selected people and teams' }));
+        expect(await axeViolations(await screen.findByRole('alertdialog'))).toEqual([]);
     });
 });
