@@ -237,6 +237,21 @@ NO_WORKSPACE = "000000000000000000000000"
 # the events of the single sign-on break-glass log (what its page lists)
 SSO_EVENTS = (SSO_BREAK_GLASS_REQUEST, SSO_BREAK_GLASS_SIGN_IN)
 
+# every kind of event there is: the union of the ``*_EVENTS`` groups above. The
+# writers in ``services/form_access/audit.py`` accept exactly these. A new group
+# of kinds is added here (``tests/app/audit_events/test_all_kinds.py`` fails until
+# it is).
+ALL_KINDS = (
+    TOTP_EVENTS
+    + ACCESS_EVENTS
+    + MEMBER_FORM_EVENTS
+    + API_KEY_EVENTS
+    + PROMOTION_EVENTS
+    + SETTINGS_EVENTS
+    + AUTOMATION_EVENTS
+    + SSO_EVENTS
+)
+
 
 class WorkspaceAuditEventDocument(Record):
     """A security event of a workspace (docs/sso.md, "Owner break-glass is
