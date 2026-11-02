@@ -194,11 +194,15 @@ describe('EmbedReporter', () => {
         });
     });
 
-    it('asks for the policy of this workspace only in embed mode', () => {
+    it('asks for the policy of this workspace only in embed mode with a parent to tell', () => {
         render(<EmbedReporter />);
         expect(policyCalls[0]).toEqual({ arg: 'ws1', skip: false });
         policyCalls.length = 0;
         state.embed = { embedded: false, parentOrigin: null };
+        render(<EmbedReporter />);
+        expect(policyCalls[0].skip).toBe(true);
+        policyCalls.length = 0;
+        state.embed = { embedded: true, parentOrigin: null };
         render(<EmbedReporter />);
         expect(policyCalls[0].skip).toBe(true);
     });
