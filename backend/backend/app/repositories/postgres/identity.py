@@ -548,6 +548,34 @@ class PostgresWorkspaceInvitationRepo(RecordRepository):
             await session.execute(self._upsert_statement(row_values(invitation)))
 
 
+async def revoke_live_keys(session, upsert, *where) -> List[Tuple[str, str]]:
+    """Revoke, in ``session``'s transaction, every key matching ``where`` that
+    is not revoked yet. The rows stay (revoked, not deleted), so the audit and
+    "last used" remain. ``upsert`` is a key repository's ``_upsert_statement``
+    (so the member removal transaction can revoke too). Returns the
+    ``(key id, workspace id)`` of what it revoked."""
+    docs = (
+        (
+            await session.execute(
+                select(WorkspaceApiKeyRow.doc)
+                .where(WorkspaceApiKeyRow.revoked.is_not(True), *where)
+                .order_by(WorkspaceApiKeyRow.created_at, WorkspaceApiKeyRow.id)
+                .with_for_update()
+            )
+        )
+        .scalars()
+        .all()
+    )
+    revoked = []
+    for doc in docs:
+        key = decode(WorkspaceAPIKeyDocument, doc)
+        key.revoked = True
+        key.touch()
+        await session.execute(upsert(row_values(key), WorkspaceApiKeyRow))
+        revoked.append((str(key.id), str(key.workspace_id)))
+    return revoked
+
+
 class PostgresWorkspaceAPIKeyRepository(RecordRepository):
     row = WorkspaceApiKeyRow
     document = WorkspaceAPIKeyDocument
@@ -567,6 +595,36 @@ class PostgresWorkspaceAPIKeyRepository(RecordRepository):
         self, key_hash: str
     ) -> Optional[WorkspaceAPIKeyDocument]:
         return await self.one(WorkspaceApiKeyRow.key_hash == key_hash)
+
+    async def live_created_by(
+        self, user_id: RecordId, workspace_id: Optional[RecordId] = None
+    ) -> List[Tuple[str, str]]:
+        """The ``(key id, workspace id)`` of the keys this person created that
+        are not revoked: in one workspace, or in every one."""
+        where = [
+            WorkspaceApiKeyRow.created_by == str(user_id),
+            WorkspaceApiKeyRow.revoked.is_not(True),
+        ]
+        if workspace_id is not None:
+            where.append(WorkspaceApiKeyRow.workspace_id == _oid(workspace_id))
+        async with self._session() as session:
+            rows = await session.execute(
+                select(WorkspaceApiKeyRow.id, WorkspaceApiKeyRow.workspace_id)
+                .where(*where)
+                .order_by(WorkspaceApiKeyRow.created_at, WorkspaceApiKeyRow.id)
+            )
+        return [(str(key_id), str(ws)) for key_id, ws in rows.all()]
+
+    async def revoke_created_by(
+        self, user_id: RecordId, workspace_id: Optional[RecordId] = None
+    ) -> List[Tuple[str, str]]:
+        """Revoke every live key this person created (in one workspace, or in
+        every one), in one transaction. Returns what it revoked."""
+        where = [WorkspaceApiKeyRow.created_by == str(user_id)]
+        if workspace_id is not None:
+            where.append(WorkspaceApiKeyRow.workspace_id == _oid(workspace_id))
+        async with self._session() as session, session.begin():
+            return await revoke_live_keys(session, self._upsert_statement, *where)
 
     async def touch_last_used(self, key_id: RecordId, now: datetime.datetime) -> bool:
         """Record that the key was used at ``now``, changing nothing else, and

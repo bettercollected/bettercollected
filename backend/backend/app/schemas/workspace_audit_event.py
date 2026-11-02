@@ -68,6 +68,16 @@ ACCESS_EVENTS = (
     ACCESS_MEMBER_PURGED,
     FORM_CREATOR_REASSIGNED,
 )
+# an API key was revoked because its creator left: removed from the workspace,
+# their account deleted or the directory deprovisioned them (key_id, reason,
+# target_user_id = the creator). Ids and enum values only, never a key's name,
+# prefix or token.
+API_KEY_REVOKED = "api_key_revoked"
+API_KEY_EVENTS = (API_KEY_REVOKED,)
+# the reasons of API_KEY_REVOKED
+REVOKED_MEMBER_REMOVED = "member_removed"
+REVOKED_ACCOUNT_DELETED = "account_deleted"
+REVOKED_SCIM_DEPROVISIONED = "scim_deprovisioned"
 # the reserved workspace id of an event that belongs to no workspace
 NO_WORKSPACE = "000000000000000000000000"
 
@@ -107,6 +117,9 @@ class WorkspaceAuditEventDocument(Record):
     grant_export: Optional[bool] = None
     access_mode: Optional[str] = None
     count: Optional[int] = None
+    # API_KEY_REVOKED: the key (its id only) and why it was revoked
+    key_id: Optional[str] = None
+    reason: Optional[str] = None
 
     class Settings:
         name = "workspace_audit_events"

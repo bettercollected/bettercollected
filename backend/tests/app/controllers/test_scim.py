@@ -512,6 +512,68 @@ async def test_deactivated_users_are_disabled_and_signed_out(
     assert record.deleted is (kind == "user.deleted")
 
 
+@pytest.mark.parametrize("kind", ["user.updated", "user.deleted"])
+async def test_deprovisioning_revokes_their_keys_in_this_workspace_only_and_reactivation_does_not_revive_them(
+    client, workspace, directory, scim_on, kind
+):
+    from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
+    from backend.app.schemas.workspace_audit_event import (
+        API_KEY_REVOKED,
+        REVOKED_SCIM_DEPROVISIONED,
+    )
+    from backend.app.services.ai.api_keys import _hash
+    from tests.app.form_access.helpers import audit_events
+
+    polis, auth = scim_on
+    for polis_id, email in (("u1", JANE), ("u2", BOB)):
+        await deliver(
+            client, directory, polis, event(directory, "user.created", user_data(polis_id, email))
+        )
+    jane, bob = auth.accounts[JANE]["id"], auth.accounts[BOB]["id"]
+    elsewhere = RecordId()
+
+    async def key(workspace_id, creator_id, token):
+        return await container.workspace_api_key_repo().save(
+            WorkspaceAPIKeyDocument(
+                workspace_id=workspace_id,
+                name="ci",
+                key_hash=_hash(token),
+                prefix=token[:11],
+                scopes=["forms:read"],
+                created_by=creator_id,
+            )
+        )
+
+    hers = await key(workspace.id, jane, "bc_jane_here")
+    hers_elsewhere = await key(elsewhere, jane, "bc_jane_elsewhere")
+    his = await key(workspace.id, bob, "bc_bob_here")
+    owners = await key(workspace.id, testUser.id, "bc_owner_here")
+
+    reply = await deliver(
+        client, directory, polis,
+        event(directory, kind, user_data("u1", JANE, active=kind == "user.deleted")),
+    )
+    assert reply.status_code == 200, reply.text
+
+    repo = container.workspace_api_key_repo()
+    assert (await repo.get_or_404(hers.id)).revoked is True  # the row stays
+    for untouched in (hers_elsewhere, his, owners):
+        assert (await repo.get_or_404(untouched.id)).revoked is False
+    (entry,) = await audit_events(workspace, API_KEY_REVOKED)
+    assert (entry.key_id, entry.reason, entry.target_user_id) == (
+        str(hers.id), REVOKED_SCIM_DEPROVISIONED, jane,
+    )
+    assert "bc_" not in str(entry.model_dump(mode="json"))
+
+    # provisioned again: the membership is back, the old key is not
+    await deliver(
+        client, directory, polis, event(directory, "user.updated", user_data("u1", JANE))
+    )
+    assert not (await member_of(workspace.id, jane)).disabled
+    assert (await repo.get_or_404(hers.id)).revoked is True
+    assert await repo.live_created_by(jane, workspace.id) == []
+
+
 async def test_reactivation_enables_the_member_again(
     client, workspace, directory, scim_on
 ):

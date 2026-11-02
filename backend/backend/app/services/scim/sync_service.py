@@ -47,6 +47,7 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
 )
+from backend.app.schemas.workspace_audit_event import REVOKED_SCIM_DEPROVISIONED
 from backend.app.schemas.workspace_user import (
     DISABLED_BY_DIRECTORY,
     DISABLED_BY_SEAT_LIMIT,
@@ -58,6 +59,7 @@ from backend.app.schemas.scim import (
     ScimUserDocument,
     ScimUserState,
 )
+from backend.app.services.api_key_lifecycle import SystemActor
 from backend.app.services.internal_auth import auth_service_headers
 from backend.app.services.scim.roles import highest_role
 from backend.app.services.session_service import RevokeReason, SessionService
@@ -450,7 +452,8 @@ class ScimSyncService:
         all of its sessions. Never the billing owner's; a co-owner (role
         OWNER) is disabled like any member. A membership invited by hand
         too, when the address is on this workspace's verified domains (the
-        directory speaks for those). Never deletes anything."""
+        directory speaks for those). Revokes the API keys they created here (the
+        rows stay). Never deletes anything else."""
         if workspace is None or is_billing_owner(workspace, account_id):
             return "owner"
         membership = await self._workspace_user_service.find_member(
@@ -461,6 +464,15 @@ class ScimSyncService:
         managed = membership.provisioned_by in MANAGEABLE
         if not managed and not await self._on_this_workspaces_domain(workspace, email):
             return "manual_off_domain"
+        # their API keys die with the access: revoked, not just refused while
+        # the membership is off, so provisioning the person again does not
+        # bring them back (the rows stay; an entry each, ids only)
+        await self._workspace_user_service.revoke_api_keys_of_member(
+            workspace.id,
+            account_id,
+            SystemActor("scim"),
+            REVOKED_SCIM_DEPROVISIONED,
+        )
         changed = membership.disable_for(DISABLED_BY_DIRECTORY)
         if managed and membership.provisioned_by != PROVISIONED_BY_SCIM:
             membership.provisioned_by = PROVISIONED_BY_SCIM
