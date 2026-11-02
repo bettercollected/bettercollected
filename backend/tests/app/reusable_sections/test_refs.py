@@ -254,3 +254,83 @@ def test_deeply_nested_expression_does_not_overflow_the_stack():
     fields.append({"id": "b", "type": "calculated", "title": "B", "expression": node})
     kept, _, warnings = refs.isolate(fields, [])
     assert warnings == [] and len(kept) == 2
+
+
+# ------------------------------------------------ the pipe tokens of plain strings
+
+
+def token_section(text):
+    """A repeating group g with a child c, and a question holding ``text``."""
+    return (
+        [
+            {"id": "g", "type": "group", "title": "G", "repeat": {"minItems": 1, "maxItems": 3}, "fields": [{"id": "c", "type": "number", "title": "C"}]},
+            {"id": "t", "type": "short_text", "title": "T", "description": text},
+        ],
+        [],
+    )
+
+
+def test_a_group_pipe_is_remapped_to_the_copys_group_and_child():
+    fields, containers = token_section("Total {{group:g:sum:c}} of {{ group : g : count }} and {{group:g:list:c|none}}")
+    mapping = fresh_mapping(fields)
+    kept, _ = refs.remap(fields, containers, mapping)
+    assert by_id(kept)["n-t"]["description"] == "Total {{group:n-g:sum:n-c}} of {{group:n-g:count}} and {{group:n-g:list:n-c|none}}"
+    refs.assert_closed(kept, [])
+
+
+def test_whitespace_in_a_field_pipe_is_read_and_written_normalised():
+    fields, containers = token_section("{{field: g }} / {{ field:c|x }}")
+    kept, _ = refs.remap(fields, containers, fresh_mapping(fields))
+    assert by_id(kept)["n-t"]["description"] == "{{field:n-g}} / {{field:n-c|x }}"
+
+
+def test_a_spaced_pipe_of_an_outside_question_is_dropped_on_save_and_refused_when_closed():
+    fields, containers = token_section("a {{ field:OUTSIDE }} b {{group:OUTSIDE:count|none}} c {{ field: g }}")
+    probe = copy.deepcopy((fields, containers))
+    with pytest.raises(refs.EscapeError):
+        refs.assert_closed(*probe)
+    kept, _, warnings = refs.isolate(fields, containers)
+    assert by_id(kept)["t"]["description"] == "a  b none c {{field:g}}"
+    assert [w.code for w in warnings] == [refs.PIPE_DROPPED, refs.PIPE_DROPPED]
+    refs.assert_closed(kept, [])
+
+
+def test_a_group_pipe_to_a_child_outside_the_group_is_dropped():
+    fields, containers = token_section("{{group:g:sum:nowhere}}")
+    kept, _, warnings = refs.isolate(fields, containers)
+    assert by_id(kept)["t"]["description"] == ""
+    assert [w.code for w in warnings] == [refs.PIPE_DROPPED]
+
+
+TOKEN_FORMS = [
+    "{{field:a}}",
+    "{{ field : a }}",
+    "{{field: a |fallback}}",
+    "{{hidden:utm}}",
+    "{{ hidden : utm | there }}",
+    "{{group:g:count}}",
+    "{{group: g : sum : c }}",
+    "{{group:g:list:c|none}}",
+    "{{nope:a}}",
+    "{{field:}}",
+    "{field:a}",
+]
+
+
+@pytest.mark.parametrize("text", TOKEN_FORMS)
+def test_the_remap_reads_exactly_the_pipe_forms_field_rules_reads(text):
+    """One grammar: what the rule checker calls a pipe, the remap rewrites or
+    drops, and nothing else."""
+    from backend.app.services import field_rules
+
+    seen = [(kind, key) for kind, key in field_rules._PIPE.findall(text)]
+    mine = [(m.group(1), m.group(2)) for m in refs._TOKEN.finditer(text)]
+    assert mine == seen
+
+
+def test_a_group_nested_far_beyond_the_limit_does_not_overflow_the_stack():
+    inner = {"id": "leaf", "type": "short_text", "title": "L"}
+    for i in range(5000):
+        inner = {"id": f"g{i}", "type": "group", "title": "G", "fields": [inner]}
+    kept, _, warnings = refs.isolate([inner], [])
+    assert warnings == [] and len(refs.question_ids(kept)) == 5001

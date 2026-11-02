@@ -370,12 +370,22 @@ def build_proposal(
     summary: str,
     session_id: Any,
     now: Optional[dt.datetime] = None,
+    preview_ops: Optional[list] = None,
 ) -> Tuple[Optional[ProposalDto], List[OpResult]]:
     """Dry-run ``ops`` on ``form`` (the chat's partial mode: an op that
     fails is reported and skipped). Returns the proposal, or None when no
     op would change anything, and the per-op results. Stores nothing."""
     now = now or dt.datetime.now(dt.timezone.utc)
-    new_form, results, before, steps = _step_diffs(form, settings, ops)
+    # ``preview_ops``: ``ops`` with each library section resolved (the engine cannot
+    # read the library); the proposal keeps ``ops`` as the AI wrote them, so
+    # accepting it resolves the section again and gives the copy new ids
+    renamed = {
+        i: o.op for i, (o, p) in enumerate(zip(ops, preview_ops or ops)) if o is not p
+    }
+    new_form, results, before, steps = _step_diffs(form, settings, preview_ops or ops)
+    for result in results:
+        if result.index in renamed:
+            result.op = renamed[result.index]
     if not any(r.ok for r in results):
         return None, results
     after = _spec(new_form, settings_after_ops(settings, ops, results))

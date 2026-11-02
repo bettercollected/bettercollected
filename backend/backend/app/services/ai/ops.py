@@ -113,6 +113,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    PrivateAttr,
     ValidationError,
     ValidationInfo,
     WithJsonSchema,
@@ -790,6 +791,9 @@ class InsertLibrarySectionOp(_CamelModel):
     page_id: str
     section_id: str = Field(min_length=1, max_length=64)
     index: Optional[int] = Field(None, ge=0)
+    # why the write path found no copy to put in its place (set by
+    # reusable_sections/resolve.py, never read from a payload)
+    _refusal: Optional[str] = PrivateAttr(default=None)
 
 
 class FormSettingsPatch(_CamelModel):
@@ -3954,16 +3958,33 @@ def _apply_splice_fields(form: StandardForm, op: SpliceFieldsOp) -> str:
         existing = [
             c for c in (page.properties.containers or []) if c.id not in set(op.replace_container_ids)
         ]
-        built: List[LayoutContainer] = []
-        for raw in op.containers:
-            try:
-                built.append(LayoutContainer.model_validate(raw))
-            except ValueError as e:
-                raise OpError(_validation_message(e))
         page.properties.containers = existing or None
-        if built:
+        built: List[LayoutContainer] = []
+        if op.containers:
             taken, earlier = _other_pages_layout(form, page)
             clash = container_ids_used(form) | form_item_ids(form)
+            # ids the specs give, then made-up ones (c1, t1, ... the smallest
+            # unused), as set_page_containers and the TypeScript engine do
+            explicit = [r.get("id") for r in op.containers if r.get("id")] + [
+                t.get("id")
+                for r in op.containers
+                for t in (r.get("tabs") or [])
+                if isinstance(t, dict) and t.get("id")
+            ]
+            if len(set(explicit)) != len(explicit) or any(i in clash for i in explicit):
+                raise OpError("Container and tab ids must be unique in the form.")
+            reserved = set(clash) | set(explicit)
+            for raw in op.containers:
+                spec = copy.deepcopy(raw)
+                if not spec.get("id"):
+                    spec["id"] = fresh_id(CONTAINER_ID_PREFIX, reserved)
+                for tab in spec.get("tabs") or []:
+                    if isinstance(tab, dict) and not tab.get("id"):
+                        tab["id"] = fresh_id(TAB_ID_PREFIX, reserved)
+                try:
+                    built.append(LayoutContainer.model_validate(spec))
+                except ValueError as e:
+                    raise OpError(_validation_message(e))
             ids_new = [x.id for x in built] + [t.id for x in built for t in (x.tabs or [])]
             if len(set(ids_new)) != len(ids_new) or any(i in clash for i in ids_new):
                 raise OpError("Container and tab ids must be unique in the form.")
@@ -3992,7 +4013,8 @@ def _apply_splice_fields(form: StandardForm, op: SpliceFieldsOp) -> str:
 
 def _apply_insert_library_section(form: StandardForm, op: InsertLibrarySectionOp) -> str:
     raise OpError(
-        "That library section could not be inserted: it does not exist in this "
+        op._refusal
+        or "That library section could not be inserted: it does not exist in this "
         "workspace, or reusable sections are not available here."
     )
 
@@ -4214,7 +4236,11 @@ def _resolve_refs(op, refs: Dict[str, Tuple[int, Optional[str]]]):
         return op
     try:
         # an editor op got here through parse_ops(allow_editor_ops=True)
-        return type(op).model_validate(resolved, context={EDITOR_CONTEXT: True})
+        rebuilt = type(op).model_validate(resolved, context={EDITOR_CONTEXT: True})
+        # a library op that found no copy keeps its reason through a ref rewrite
+        if getattr(op, "_refusal", None) is not None:
+            rebuilt._refusal = op._refusal
+        return rebuilt
     except ValueError as error:
         raise OpError(_validation_message(error))
 

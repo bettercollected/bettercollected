@@ -19,20 +19,23 @@ Nothing here reads an answer. Logs carry ids and counts, never a title.
 
 import copy
 import datetime as dt
+import json
 import secrets
 import uuid
 from http import HTTPStatus
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from common.models.user import User
 from common.records import RecordId
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
 from backend.app.repositories.postgres.reusable_sections import (
+    LimitReached,
     NameTaken,
     VersionChanged,
 )
@@ -136,9 +139,6 @@ class PlanDto(_Camel):
     changes: List[ChangeDto]
     fields: List[Dict[str, Any]]
     containers: List[Dict[str, Any]]
-    # the copy's questions the update removes (matched ones come back in
-    # ``fields`` with the same id)
-    replace_ids: List[str]
 
 
 def _not_found() -> HTTPException:
@@ -252,20 +252,47 @@ def instantiate_fragment(
     return work_fields, work_containers, mapping
 
 
-_SETTINGS_SKIP = {"id", "library"}
+_SETTINGS_SKIP = {"id", "library", "fields"}
+
+
+def _rule_content(rules: Any) -> Any:
+    """Rules without their ids: a rule's id is made up on every insert (ids are
+    unique per form), so two copies of one rule differ only by it."""
+    if not isinstance(rules, list):
+        return rules
+    return [{k: v for k, v in r.items() if k != "id"} if isinstance(r, dict) else r for r in rules]
+
+
+def _comparable(field: Dict[str, Any]) -> Dict[str, Any]:
+    """A question as two versions of it are compared: no ids of its own, no
+    marker, no children (those are questions of their own), rules by content."""
+    out = {k: v for k, v in field.items() if k not in _SETTINGS_SKIP}
+    if "rules" in out:
+        out["rules"] = _rule_content(out["rules"])
+    return out
+
+
+def answer_shape(field: Dict[str, Any]) -> Tuple[Any, ...]:
+    """What decides how a question's stored answer is shaped: its type, whether
+    a group repeats (an answer per item), whether a choice takes several options
+    and whether it takes an "other" text. Two questions with the same shape can
+    share a question id (answers stored under it stay readable); with another
+    shape they cannot."""
+    return (
+        field.get("type"),
+        field.get("repeat") is not None,
+        bool(field.get("allowMultipleSelection")),
+        bool(field.get("allowOtherChoice")),
+    )
 
 
 def _what_differs(old: Dict[str, Any], new: Dict[str, Any]) -> List[str]:
     """What differs between two questions (ids normalised to section keys)."""
-
-    def without(field: Dict[str, Any]) -> Dict[str, Any]:
-        return {k: v for k, v in field.items() if k not in _SETTINGS_SKIP and k != "fields"}
-
-    a, b = without(old), without(new)
+    a, b = _comparable(old), _comparable(new)
     if a == b:
         return []
     what: List[str] = []
-    if a.get("type") != b.get("type"):
+    if answer_shape(old) != answer_shape(new):
         what.append("type")
     if a.get("title") != b.get("title"):
         what.append("title")
@@ -373,9 +400,10 @@ def build_plan(
                 ChangeDto(key=key, title=refs.plain_title(library_question), status="added")
             )
             continue
-        if mine.get("type") != library_question.get("type"):
-            # the id is not kept for another type: answers stored under it were
-            # given to a question of a different shape
+        if answer_shape(mine) != answer_shape(library_question):
+            # the id is not kept for another answer shape (a retyped question, a
+            # group that now repeats, a choice that now takes several options):
+            # answers stored under it were given to a question of another shape
             changes.append(
                 ChangeDto(
                     key=key,
@@ -423,7 +451,6 @@ def build_plan(
     )
     # a retyped question is removed and re-added under a new id: it is in
     # ``replace_ids`` (its old id is not among the kept ones)
-    top_ids = [str(f["id"]) for f in copy_fields if f.get("id")]
     return PlanDto(
         section_id=str(document.id),
         version=document.version,
@@ -433,7 +460,6 @@ def build_plan(
         changes=changes,
         fields=new_fields,
         containers=new_containers,
-        replace_ids=top_ids,
     )
 
 
@@ -478,6 +504,17 @@ class ReusableSectionService:
             updated_at=document.updated_at,
         )
 
+    @staticmethod
+    def _summary_row(row: Dict[str, Any]) -> SectionSummaryDto:
+        return SectionSummaryDto(
+            id=str(row["id"]),
+            name=row["name"],
+            description=row["description"],
+            version=row["version"],
+            question_count=row["question_count"],
+            updated_at=row["updated_at"],
+        )
+
     def _detail(
         self,
         document: ReusableSectionDocument,
@@ -491,7 +528,16 @@ class ReusableSectionService:
             if entry is None:
                 raise _not_found()
             fields, containers, number = entry.fields, entry.containers, entry.version
-        shown_fields, shown_containers = fragment.to_builder(fields, containers)
+        try:
+            shown_fields, shown_containers = fragment.to_builder(fields, containers)
+        except ValueError:
+            # stored content a later change of the form model no longer accepts
+            raise fragment.refuse(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                "section_invalid",
+                "This section can no longer be shown: it was saved in a shape this "
+                "version does not read. Save it again from a form.",
+            )
         summary = self._summary(document).model_dump()
         summary["version"] = number
         summary["question_count"] = len(refs.question_ids(fields))
@@ -540,40 +586,65 @@ class ReusableSectionService:
         """The builder's questions as the content of a section: the spec
         fragment, references to the outside dropped, ids made the section's own
         (a question that is a copy of this section keeps its key), the shared
-        validation applied. Returns the content and the warnings."""
-        fields, containers = fragment.from_builder(builder_fields, builder_containers)
-        # the marker is a pointer to a library, never part of one's content
-        own = markers(fields)
-        _strip_markers(fields)
-        fields, containers, warnings = refs.isolate(fields, containers)
+        validation applied. Returns the content and the warnings. The size and
+        count of what was sent are checked before anything is converted, and the
+        conversion runs off the event loop."""
+        fragment.precheck(builder_fields, builder_containers)
+
+        def first():
+            fields, containers = fragment.from_builder(builder_fields, builder_containers)
+            # the marker is a pointer to a library, never part of one's content
+            own = markers(fields)
+            _strip_markers(fields)
+            fields, containers, warnings = refs.isolate(fields, containers)
+            return fields, containers, warnings, own
+
+        fields, containers, warnings, own = await run_in_threadpool(first)
         await self._drop_foreign_lists(workspace_id, fields, warnings)
-        existing = set(refs.question_ids(section.fields)) if section else set()
-        mapping: Dict[str, str] = {}
-        used: set = set()
-        for old in refs.question_ids(fields):
-            marker = own.get(old)
-            key = str(marker["key"]) if marker else None
-            if (
-                section is not None
-                and marker is not None
-                and marker.get("sectionId") == str(section.id)
-                and key in existing
-                and key not in used
-            ):
-                mapping[old] = key
-                used.add(key)
-        for old in refs.question_ids(fields):
-            if old not in mapping:
-                fresh = new_section_id()
-                while fresh in used:
+
+        def second():
+            existing = set(refs.question_ids(section.fields)) if section else set()
+            mapping: Dict[str, str] = {}
+            used: set = set()
+            for old in refs.question_ids(fields):
+                marker = own.get(old)
+                key = str(marker["key"]) if marker else None
+                if (
+                    section is not None
+                    and marker is not None
+                    and marker.get("sectionId") == str(section.id)
+                    and key in existing
+                    and key not in used
+                ):
+                    mapping[old] = key
+                    used.add(key)
+            for old in refs.question_ids(fields):
+                if old not in mapping:
                     fresh = new_section_id()
-                mapping[old] = fresh
-                used.add(fresh)
-        refs.remap(fields, containers, mapping)
-        refs.assert_closed(fields, containers)
-        fragment.check_limits(fields, containers)
-        fragment.validate(fields, containers)
+                    while fresh in used:
+                        fresh = new_section_id()
+                    mapping[old] = fresh
+                    used.add(fresh)
+            # rule ids are the section's own too (a form's are unique per form)
+            refs.remap(fields, containers, mapping, fresh_rule_id=_rule_id)
+            refs.assert_closed(fields, containers)
+            fragment.check_limits(fields, containers)
+            fragment.validate(fields, containers)
+
+        await run_in_threadpool(second)
         return fields, containers, warnings
+
+    async def _check_budget(self, workspace_id, fields, containers) -> None:
+        """A workspace's library takes at most ``limits.WORKSPACE_BYTES_MAX`` of
+        stored content (versions included)."""
+        added = len(json.dumps([fields, containers], separators=(",", ":")).encode())
+        if await self._repo.content_bytes(workspace_id) + added > limits.WORKSPACE_BYTES_MAX:
+            raise fragment.refuse(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                COUNT_CODE,
+                "The library of this workspace is full. Delete a section you no "
+                "longer use.",
+            )
 
     # ----------------------------------------------------------------- reads
 
@@ -582,8 +653,10 @@ class ReusableSectionService:
     ) -> List[SectionSummaryDto]:
         ensure_enabled()
         await self._authorization.authorize(user, Permission.FORM_READ, workspace_id)
+        # the columns of the list only: never the questions or the versions
         return [
-            self._summary(d) for d in await self._repo.list_for_workspace(workspace_id)
+            self._summary_row(row)
+            for row in await self._repo.list_summaries(workspace_id)
         ]
 
     async def get_section(
@@ -606,12 +679,6 @@ class ReusableSectionService:
         ensure_enabled()
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
         name, name_key, description = _details(body.name, body.description)
-        if await self._repo.count_for_workspace(workspace_id) >= limits.SECTIONS_PER_WORKSPACE:
-            raise fragment.refuse(
-                HTTPStatus.UNPROCESSABLE_ENTITY,
-                COUNT_CODE,
-                f"A workspace holds at most {limits.SECTIONS_PER_WORKSPACE} sections.",
-            )
         fields, containers, warnings = await self._prepare(
             workspace_id, body.fields, body.containers
         )
@@ -627,10 +694,19 @@ class ReusableSectionService:
             created_by=str(user.id),
             updated_by=str(user.id),
         )
+        await self._check_budget(workspace_id, fields, containers)
         try:
-            saved = await self._repo.create(document)
+            saved = await self._repo.create(
+                document, max_count=limits.SECTIONS_PER_WORKSPACE
+            )
         except NameTaken:
             raise _name_taken()
+        except LimitReached:
+            raise fragment.refuse(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                COUNT_CODE,
+                f"A workspace holds at most {limits.SECTIONS_PER_WORKSPACE} sections.",
+            )
         logger.info(
             "reusable section created: workspace={} section={} actor={} questions={} warnings={}",
             workspace_id,
@@ -656,6 +732,7 @@ class ReusableSectionService:
         fields, containers, warnings = await self._prepare(
             workspace_id, body.fields, body.containers, section=document
         )
+        await self._check_budget(workspace_id, fields, containers)
         previous = SectionVersion(
             version=document.version,
             saved_at=document.updated_at,
@@ -742,17 +819,65 @@ class ReusableSectionService:
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
         return await self._fragment(workspace_id, section_id)
 
-    async def fragment_for_ops(
-        self, workspace_id: RecordId, section_id: str
-    ) -> FragmentDto:
-        """For the edit operations: the caller has already been authorised to
-        edit forms of the workspace (the write path of the ops); the section is
-        still read through the workspace."""
-        ensure_enabled()
-        return await self._fragment(workspace_id, section_id)
+    async def fragments_for_ops(
+        self, workspace_id: RecordId, wanted: Dict[int, str]
+    ) -> Dict[int, Union[FragmentDto, str]]:
+        """For the edit operations (``wanted``: op index to section id): a copy
+        for each, or the plain reason it cannot be made. The caller has already
+        been authorised to edit forms of the workspace (the write path of the
+        ops); every section is still read through the workspace, once per
+        section however many ops name it, and the copies are made off the event
+        loop. A section that is not there (unknown, another workspace's, switch
+        off) gets one message that says which of those it is not."""
+        gone = (
+            "That library section could not be inserted: it does not exist in this "
+            "workspace, or reusable sections are not available here."
+        )
+        try:
+            ensure_enabled()
+        except HTTPException:
+            return {index: gone for index in wanted}
+        documents: Dict[str, Optional[ReusableSectionDocument]] = {}
+        for section_id in set(wanted.values()):
+            try:
+                documents[section_id] = await self._get(workspace_id, section_id)
+            except HTTPException:
+                documents[section_id] = None
+
+        def build() -> Dict[int, Union[FragmentDto, str]]:
+            found: Dict[int, Union[FragmentDto, str]] = {}
+            checked: Dict[str, Optional[str]] = {}
+            for index, section_id in wanted.items():
+                document = documents[section_id]
+                if document is None:
+                    found[index] = gone
+                    continue
+                try:
+                    # the check does not depend on the new ids: once per section
+                    found[index] = self._make_fragment(
+                        document, validate=section_id not in checked
+                    )
+                    checked.setdefault(section_id, None)
+                except HTTPException as error:
+                    # the section is there and the caller may edit forms: say why
+                    content = error.content
+                    reason = content.get("message") if isinstance(content, dict) else None
+                    found[index] = (
+                        f"That library section cannot be inserted: {reason}"
+                        if reason
+                        else gone
+                    )
+                    checked[section_id] = found[index]  # type: ignore[assignment]
+            return found
+
+        return await run_in_threadpool(build)
 
     async def _fragment(self, workspace_id, section_id: str) -> FragmentDto:
         document = await self._get(workspace_id, section_id)
+        return await run_in_threadpool(self._make_fragment, document, True)
+
+    @staticmethod
+    def _make_fragment(document: ReusableSectionDocument, validate: bool = True) -> FragmentDto:
         instance = str(uuid.uuid4())
         fields, containers, _ = instantiate_fragment(
             document.fields,
@@ -761,7 +886,8 @@ class ReusableSectionService:
             version=document.version,
             instance=instance,
         )
-        fragment.validate(fields, containers)
+        if validate:
+            fragment.validate(fields, containers)
         built_fields, built_containers = fragment.to_builder(fields, containers)
         return FragmentDto(
             section_id=str(document.id),
@@ -781,12 +907,16 @@ class ReusableSectionService:
         ensure_enabled()
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
         document = await self._get(workspace_id, section_id)
-        copy_fields, _ = fragment.from_builder(body.fields, [])
-        plan = build_plan(document, body.instance, copy_fields)
-        fragment.validate(plan.fields, plan.containers)
-        built_fields, built_containers = fragment.to_builder(plan.fields, plan.containers)
-        plan.fields, plan.containers = built_fields, built_containers
-        return plan
+        fragment.precheck(body.fields, [])
+
+        def compute() -> PlanDto:
+            copy_fields, _ = fragment.from_builder(body.fields, [])
+            plan = build_plan(document, body.instance, copy_fields)
+            fragment.validate(plan.fields, plan.containers)
+            plan.fields, plan.containers = fragment.to_builder(plan.fields, plan.containers)
+            return plan
+
+        return await run_in_threadpool(compute)
 
 
 def _name_taken() -> HTTPException:

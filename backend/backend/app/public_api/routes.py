@@ -640,7 +640,13 @@ async def dry_run_ops(
     payload = _ops_request(parse_json_document(await read_document_bytes(request)))
     service = _c().form_spec_service()
     form, settings = await service.load(caller.workspace_id, form_id)
-    preview = await service.preview_async(form, settings, payload.ops, payload.atomic)
+    preview = await service.preview_async(
+        form,
+        settings,
+        payload.ops,
+        payload.atomic,
+        workspace_id=caller.workspace_id,
+    )
     return JSONResponse(preview.model_dump(mode="json", by_alias=True))
 
 
