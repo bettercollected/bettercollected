@@ -36,6 +36,7 @@ from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.form_patterns import pattern_problem, pattern_reason
 from backend.app.services.form_spec.checks import check_spec_document
 from backend.app.services.form_spec.diff import spec_diff
+from backend.app.services.reusable_sections import resolve as library_ops
 
 # Largest spec document the validate endpoint (and MCP validate_form) reads.
 MAX_DOCUMENT_BYTES = 1024 * 1024
@@ -201,7 +202,18 @@ class FormSpecService:
     ) -> DryRunResponse:
         await self._authorization.authorize(user, Permission.FORM_EDIT, workspace_id)
         form, settings = await self.load(workspace_id, form_id)
-        return await self.preview_async(form, settings, request.ops, request.atomic)
+        # library sections an op names are read through the workspace here
+        # (the engine itself cannot read the library)
+        library = None
+        if library_ops.has_library_ops(request.ops):
+            from backend.app.container import container
+
+            library = await library_ops.fetch_fragments(
+                workspace_id, request.ops, container.reusable_section_service()
+            )
+        return await self.preview_async(
+            form, settings, request.ops, request.atomic, library
+        )
 
     async def preview_async(
         self,
@@ -209,10 +221,13 @@ class FormSpecService:
         settings: Any,
         raw_ops: List[Dict[str, Any]],
         atomic: bool,
+        library: Any = None,
     ) -> DryRunResponse:
         """``preview`` off the event loop: applying a batch, converting and
         diffing a large form is CPU-bound."""
-        return await run_in_threadpool(self.preview, form, settings, raw_ops, atomic)
+        return await run_in_threadpool(
+            self.preview, form, settings, raw_ops, atomic, library
+        )
 
     def preview(
         self,
@@ -220,9 +235,11 @@ class FormSpecService:
         settings: Any,
         raw_ops: List[Dict[str, Any]],
         atomic: bool,
+        library: Any = None,
     ) -> DryRunResponse:
         """What ``raw_ops`` would make of ``form``: the resulting spec, the
-        diff and per-op results. Stores nothing."""
+        diff and per-op results. Stores nothing. ``library``: the copies of the
+        library sections the batch names (``resolve.fetch_fragments``)."""
         refusal = too_many_ops(len(raw_ops))
         if refusal:
             raise _unprocessable(refusal, [{"path": "/ops", "message": refusal}])
@@ -231,7 +248,9 @@ class FormSpecService:
             ops = parse_ops(raw_ops)
         except ValidationError as error:
             raise _unprocessable("The operations are not valid.", ops_errors(error))
+        ops, renamed = library_ops.substitute(ops, library or {})
         new_form, results = apply_form_ops(form, ops, atomic=atomic)
+        library_ops.restore_names(results, renamed)
         did_apply = applied(results, atomic)
         after = (
             self.spec_of(new_form, settings_after_ops(settings, ops, results))

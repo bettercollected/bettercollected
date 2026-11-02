@@ -3161,7 +3161,7 @@
   "document": "FormResponseDocument"
  },
  "form_templates/full": {
-  "checksum": "sha256:b279b7b879529a8dc2cf78989bcc142f755d39f771c2ba181e7b4d9b5d654336",
+  "checksum": "sha256:1a0bc15f0a80744b18e70aaeb70144855aa3a5fe6b7d6c56c0103ec8854ef3a9",
   "doc": {
    "_id": {
     "$oid": "081f1de730ff4503d0f47270"
@@ -3215,6 +3215,7 @@
       "label": null,
       "labels": null,
       "layout": null,
+      "library": null,
       "logic": null,
       "logicalOperator": null,
       "maxTime": null,
@@ -3296,6 +3297,7 @@
       "label": null,
       "labels": null,
       "layout": null,
+      "library": null,
       "logic": null,
       "logicalOperator": null,
       "maxTime": null,
@@ -3454,7 +3456,7 @@
   "document": "FormTemplateDocument"
  },
  "form_templates/naive": {
-  "checksum": "sha256:a17fcf0855199d2e673fa5af4a184a95886adf2e4a4fb58322e4f516839d4a28",
+  "checksum": "sha256:bc98338dc68db07ba12236fca3188f052b1dad33d7d32f9edc08f7a8ae17f51a",
   "doc": {
    "_id": {
     "$oid": "e059e369c6a20f3d47778cec"
@@ -3508,6 +3510,7 @@
       "label": null,
       "labels": null,
       "layout": null,
+      "library": null,
       "logic": null,
       "logicalOperator": null,
       "maxTime": null,
@@ -3589,6 +3592,7 @@
       "label": null,
       "labels": null,
       "layout": null,
+      "library": null,
       "logic": null,
       "logicalOperator": null,
       "maxTime": null,
@@ -3742,7 +3746,7 @@
   "document": "FormTemplateDocument"
  },
  "form_versions/full": {
-  "checksum": "sha256:e02096964e90d61dfea9ea75f97c0acc3202a447ea8c29b27f7efe37e8797bb2",
+  "checksum": "sha256:ecda067142cc5e84ea9f50f30f31df3aff1c694d935888ac119a2125d15fce7d",
   "doc": {
    "_id": {
     "$oid": "4dba015f9787ef732cba733e"
@@ -3832,6 +3836,7 @@
       "label": null,
       "labels": null,
       "layout": null,
+      "library": null,
       "logic": null,
       "logicalOperator": null,
       "maxTime": null,
@@ -3913,6 +3918,7 @@
       "label": null,
       "labels": null,
       "layout": null,
+      "library": null,
       "logic": null,
       "logicalOperator": null,
       "maxTime": null,
@@ -4298,7 +4304,7 @@
   "document": "FormVersionsDocument"
  },
  "form_versions/naive": {
-  "checksum": "sha256:ead4aefe616fd5a1f456491e4dba49b3dd011e7de11c97d08b570d0721b27021",
+  "checksum": "sha256:4b4498ff37dd1240dc57b3c758959ff33bae8446b97e22dc554d60a87fa4880e",
   "doc": {
    "_id": {
     "$oid": "43be05d1a65c7a21699ae9d8"
@@ -4388,6 +4394,7 @@
       "label": null,
       "labels": null,
       "layout": null,
+      "library": null,
       "logic": null,
       "logicalOperator": null,
       "maxTime": null,
@@ -4469,6 +4476,7 @@
       "label": null,
       "labels": null,
       "layout": null,
+      "library": null,
       "logic": null,
       "logicalOperator": null,
       "maxTime": null,
@@ -4835,7 +4843,7 @@
   "document": "FormVersionsDocument"
  },
  "forms/full": {
-  "checksum": "sha256:1b9fd6f795c02d40a37309bc60c1716cad5d7d659b59ca3d58c736b44b907f42",
+  "checksum": "sha256:5250dde3b449a05ab6c2391d4c7d8ca8e5e91c5c50e543ee32f9c2af6f4f9383",
   "doc": {
    "_id": {
     "$oid": "59514663b83c1ab0eecfa44a"
@@ -4925,6 +4933,7 @@
       "label": null,
       "labels": null,
       "layout": null,
+      "library": null,
       "logic": null,
       "logicalOperator": null,
       "maxTime": null,
@@ -5006,6 +5015,7 @@
       "label": null,
       "labels": null,
       "layout": null,
+      "library": null,
       "logic": null,
       "logicalOperator": null,
       "maxTime": null,
@@ -5389,7 +5399,7 @@
   "document": "FormDocument"
  },
  "forms/naive": {
-  "checksum": "sha256:754fa3cff9ced78461b1845f4e6ba7e199316ab3e7f4678654a9f6bbe9143b27",
+  "checksum": "sha256:2afb3edc1db1c71aac5be345791e2a7e0f445fedbfed962ef1795d5b66972b7f",
   "doc": {
    "_id": {
     "$oid": "a3e31dcf7bba394ece4402b6"
@@ -5479,6 +5489,7 @@
       "label": null,
       "labels": null,
       "layout": null,
+      "library": null,
       "logic": null,
       "logicalOperator": null,
       "maxTime": null,
@@ -5560,6 +5571,7 @@
       "label": null,
       "labels": null,
       "layout": null,
+      "library": null,
       "logic": null,
       "logicalOperator": null,
       "maxTime": null,

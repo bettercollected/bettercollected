@@ -1166,6 +1166,18 @@
           "description": "A short text, dropdown or multiple choice question: its answers may be shown as choices in other forms of the same workspace (an optionSource of kind form_answers). Off unless true. Respondents are told next to the question; only answers given while a version with it on was filled are ever offered.",
           "title": "Shareaschoices"
         },
+        "library": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LibraryOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Set when the question was copied from a reusable section of the workspace's library (see LibraryOrigin)."
+        },
         "rules": {
           "anyOf": [
             {
@@ -1277,6 +1289,43 @@
       ],
       "title": "Layout",
       "type": "string"
+    },
+    "LibraryOrigin": {
+      "additionalProperties": false,
+      "description": "Where a question was copied from: the workspace library's reusable\nsection (``sectionId``), the version copied, the question's id in that\nsection (``key``) and the insert it belongs to (``instance``). Set by the\nserver when a section is inserted; read-only in spirit (a copy to another\nworkspace drops it).",
+      "properties": {
+        "sectionId": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Sectionid",
+          "type": "string"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "key": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "instance": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Instance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sectionId",
+        "version",
+        "key",
+        "instance"
+      ],
+      "title": "LibraryOrigin",
+      "type": "object"
     },
     "Logic": {
       "additionalProperties": false,

@@ -274,6 +274,27 @@ class Layout(
     )
 
 
+class LibraryOrigin(BaseModel):
+    """
+    Where a question was copied from: the workspace library's reusable
+    section (``sectionId``), the version copied, the question's id in that
+    section (``key``) and the insert it belongs to (``instance``). Set by the
+    server when a section is inserted; read-only in spirit (a copy to another
+    workspace drops it).
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+    section_id: str = Field(
+        ..., alias="sectionId", max_length=64, min_length=1, title="Sectionid"
+    )
+    version: int = Field(..., ge=1, title="Version")
+    key: str = Field(..., max_length=64, min_length=1, title="Key")
+    instance: str = Field(..., max_length=64, min_length=1, title="Instance")
+
+
 class Logic(BaseModel):
     """
     Show or hide this question when its conditions match (operator:
@@ -1175,6 +1196,10 @@ class FormField(BaseModel):
         alias="shareAsChoices",
         description="A short text, dropdown or multiple choice question: its answers may be shown as choices in other forms of the same workspace (an optionSource of kind form_answers). Off unless true. Respondents are told next to the question; only answers given while a version with it on was filled are ever offered.",
         title="Shareaschoices",
+    )
+    library: LibraryOrigin | None = Field(
+        None,
+        description="Set when the question was copied from a reusable section of the workspace's library (see LibraryOrigin).",
     )
     rules: Rules | None = Field(
         None,

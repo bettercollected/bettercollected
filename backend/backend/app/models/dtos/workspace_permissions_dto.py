@@ -24,6 +24,10 @@ class WorkspacePermissionsDto(CamelModel):
     ``option_sources_enabled`` is the same for options taken from a workspace
     list or another form's answers (``OPTION_SOURCES_ENABLED``): the builder
     offers the source picker and the workspace its lists page from it.
+    ``reusable_sections_enabled`` is the same for the workspace library of
+    reusable sections (``REUSABLE_SECTIONS_ENABLED``): the builder offers "Save
+    as section", the Insert menu's Sections group and "Update from library",
+    and the workspace its library page, from it.
     ``layout_containers_enabled`` is the same for panels, tabs and field sets
     (``LAYOUT_CONTAINERS_ENABLED``).
     ``save_drafts_enabled`` is the same for ``SAVE_DRAFTS_ENABLED`` ("Let
@@ -41,4 +45,5 @@ class WorkspacePermissionsDto(CamelModel):
     address_lookup_enabled: bool = False
     signature_question_enabled: bool = False
     option_sources_enabled: bool = False
+    reusable_sections_enabled: bool = False
     layout_containers_enabled: bool = False

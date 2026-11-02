@@ -3030,6 +3030,17 @@
             "title": "Shareaschoices",
             "description": "A short text, dropdown or multiple choice question: its answers may be shown as choices in other forms of the same workspace (an optionSource of kind form_answers). Off unless true. Respondents are told next to the question; only answers given while a version with it on was filled are ever offered."
           },
+          "library": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LibraryOrigin"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set when the question was copied from a reusable section of the workspace's library (see LibraryOrigin)."
+          },
           "rules": {
             "anyOf": [
               {
@@ -3364,6 +3375,43 @@
         ],
         "title": "Layout",
         "description": "How a page, the welcome page or an ending is laid out."
+      },
+      "LibraryOrigin": {
+        "properties": {
+          "sectionId": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Sectionid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          },
+          "key": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Key"
+          },
+          "instance": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Instance"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sectionId",
+          "version",
+          "key",
+          "instance"
+        ],
+        "title": "LibraryOrigin",
+        "description": "Where a question was copied from: the workspace library's reusable\nsection (``sectionId``), the version copied, the question's id in that\nsection (``key``) and the insert it belongs to (``instance``). Set by the\nserver when a section is inserted; read-only in spirit (a copy to another\nworkspace drops it)."
       },
       "Logic": {
         "properties": {

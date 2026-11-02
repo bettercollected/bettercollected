@@ -676,6 +676,16 @@ class WorkspaceOptionListRow(Base, BaseRow):
     )
 
 
+class WorkspaceLibrarySectionRow(Base, BaseRow):
+    __tablename__ = "workspace_library_sections"
+    workspace_id = S.text("workspace_id")
+    name_key = S.text("name_key")
+    __table_args__ = (
+        # a section name once per workspace (revision 0033)
+        Index("uq_workspace_library_sections_name", "workspace_id", "name_key", unique=True),
+    )
+
+
 class OptionSourceErasureRow(Base, BaseRow):
     __tablename__ = "option_source_erasures"
     workspace_id = S.text("workspace_id")

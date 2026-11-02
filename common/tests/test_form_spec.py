@@ -335,6 +335,7 @@ def test_every_stored_property_is_covered_or_excluded_on_purpose():
         "option_filter",
         "option_source",
         "share_as_choices",
+        "library",
     }
     assert (
         set(StandardFieldProperty.model_fields)

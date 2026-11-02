@@ -93,6 +93,8 @@ export const duplicatePage: Handler<DuplicatePageOp> = (ctx, op) => {
         if (field.properties && 'rules' in field.properties) delete (field.properties as any).rules;
         // Option logic is not copied either: a copy starts with every option offered (its conditions and filter name the original's options).
         if (field.properties) delete (field.properties as any).optionFilter;
+        // a copy of a library section's question is not another copy of that instance
+        if (field.properties) delete (field.properties as any).library;
         for (const choice of field.properties?.choices ?? []) delete (choice as any).logic;
         const repeat = field.properties?.repeat;
         if (repeat?.itemTitle) for (const [oldId, newId] of idMap) repeat.itemTitle = repeat.itemTitle.split(oldId).join(newId);

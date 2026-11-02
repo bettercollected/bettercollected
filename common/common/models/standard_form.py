@@ -761,6 +761,26 @@ class OptionSource(BaseModel):
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
 
+LIBRARY_ID_MAX_LENGTH = 64
+
+
+class LibraryOrigin(BaseModel):
+    """Where a question was copied from (``properties.library``): the reusable
+    section of the workspace's library (``section_id``), the version copied
+    (``version``), the question's id inside that section (``key``) and the
+    insert it belongs to (``instance``: one per insertion, so two copies of a
+    section in one form stay apart). Only a pointer for "update from library":
+    nothing is read through it at run time, and a copy to another workspace
+    drops it."""
+
+    section_id: str = Field(..., min_length=1, max_length=LIBRARY_ID_MAX_LENGTH)
+    version: int = Field(..., ge=1)
+    key: str = Field(..., min_length=1, max_length=LIBRARY_ID_MAX_LENGTH)
+    instance: str = Field(..., min_length=1, max_length=LIBRARY_ID_MAX_LENGTH)
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+
 # Jump target meaning "submit the form" (and show an ending).
 JUMP_TARGET_SUBMIT = "__SUBMIT__"
 # What an ending id may be: uuids from the builder, "ending-<n>" derived ids.
@@ -1438,6 +1458,9 @@ class StandardFieldProperty(BaseModel):
     # form_answers). Off unless true; only answers given while a version with
     # it on was filled count (``shared_as_choices`` of the response).
     share_as_choices: Optional[bool] = None
+    # Copied from a reusable section of the workspace's library (see
+    # LibraryOrigin); set by the server's insert, kept through saves.
+    library: Optional[LibraryOrigin] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 

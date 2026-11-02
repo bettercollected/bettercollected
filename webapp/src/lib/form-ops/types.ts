@@ -393,6 +393,22 @@ export interface InsertPageOp {
     page: FormField;
 }
 
+/**
+ * Insert complete questions (ids kept) on a page at `index` (the end when left out), optionally replacing
+ * top-level questions of that page (`replaceIds`; the ids may come back among `fields`) and adding layout
+ * containers (`replaceContainerIds` removes some). Checked as a whole after the splice. Reusable sections
+ * are inserted and updated with it (backend `splice_fields`).
+ */
+export interface SpliceFieldsOp {
+    op: 'splice_fields';
+    pageId: string;
+    index?: number | null;
+    fields?: FormField[];
+    containers?: ContainerSpec[];
+    replaceIds?: string[];
+    replaceContainerIds?: string[];
+}
+
 /** A page's own settings; a key left out stays, null clears it. */
 export interface PagePatch {
     layout?: string | null;
@@ -538,7 +554,7 @@ export type AiFormOp =
     | UpdateEndingOp
     | RemoveEndingOp;
 
-export type EditorFormOp = InsertFieldOp | ReplaceFieldOp | InsertPageOp | UpdatePageOp | UpdateWelcomePageOp | SetHiddenFieldsOp | UpdateLogoOp | SetChoiceOp | AddChoiceOp | RemoveChoiceOp | MoveChoiceOp | SetEndingsOp;
+export type EditorFormOp = InsertFieldOp | ReplaceFieldOp | InsertPageOp | UpdatePageOp | UpdateWelcomePageOp | SetHiddenFieldsOp | UpdateLogoOp | SetChoiceOp | AddChoiceOp | RemoveChoiceOp | MoveChoiceOp | SetEndingsOp | SpliceFieldsOp;
 
 export type FormOp = AiFormOp | EditorFormOp;
 export type FormOpName = FormOp['op'];

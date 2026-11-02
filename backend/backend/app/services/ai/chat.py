@@ -51,6 +51,7 @@ from backend.app.services.ai.proposals import (
 )
 from backend.app.services.ai.structured import chat_json
 from backend.app.services.form_writes import persist_form
+from backend.app.services.reusable_sections import resolve as library_ops
 from backend.app.services.ai.prompt_builder import (
     build_chat_system_prompt,
     project_form,
@@ -197,10 +198,19 @@ async def persist_ops_to_form(
     written to that workspace's association only.
     Returns (new_form, results, updated_settings_or_none).
     """
+    # library sections an op names are read here, through the workspace, and
+    # copied into the batch (the engine itself cannot read the library)
+    renamed: dict = {}
+    if library_ops.has_library_ops(ops) and workspace_id is not None:
+        fragments = await library_ops.fetch_fragments(
+            workspace_id, ops, _c().reusable_section_service()
+        )
+        ops, renamed = library_ops.substitute(ops, fragments)
     # CPU-bound on a large form: off the event loop
     new_form, results = await run_in_threadpool(
         apply_form_ops, form, ops, atomic=atomic
     )
+    library_ops.restore_names(results, renamed)
     if atomic and not all(r.ok for r in results):
         return new_form, results, None
     if any(r.ok for r in results):

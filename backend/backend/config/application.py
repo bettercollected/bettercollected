@@ -127,6 +127,12 @@ class Application(StoreBackedSettings):
     # source is refused with 422 option_sources_disabled; sources already
     # stored keep working.
     OPTION_SOURCES_ENABLED: bool = False
+    # A workspace's library of reusable sections (services/reusable_sections):
+    # groups of questions saved once and copied into forms. Off (the default,
+    # until it is released): the library's routes answer 404, the insert and
+    # the "update from library" are unavailable and the ops that use the
+    # library fail; a form that already holds a copy is not affected.
+    REUSABLE_SECTIONS_ENABLED: bool = False
     # Respondents may save a draft and continue later (services/form_drafts).
     # Off (the default, until it is released): turning the per-form setting on
     # is refused with 422 save_drafts_disabled, and saving or opening a draft is

@@ -142,6 +142,13 @@ def strip_internal_fields(form: Any) -> Any:
                 properties = _get(question, "properties")
                 if properties is not None:
                     _set(properties, "address_lookup", False)
+    # which library section a question was copied from is the creator's business
+    for question in iter_question_fields(form):
+        properties = _get(question, "properties")
+        if properties is not None and (
+            _get(properties, "library") is not None
+        ):
+            _set(properties, "library", None)
     # where a question's options come from is the creator's business: a
     # respondent's form keeps the kind (to render a searchable list) and the
     # parent question, never the list's or the other form's identity

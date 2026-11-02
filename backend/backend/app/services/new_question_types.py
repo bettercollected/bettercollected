@@ -56,6 +56,7 @@ GATED_OPS = frozenset(
         "insert_field",
         "insert_page",
         "replace_field",
+        "splice_fields",
     }
 )
 PROBLEMS_MAX = 50

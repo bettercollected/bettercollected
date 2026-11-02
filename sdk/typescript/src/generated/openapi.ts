@@ -590,6 +590,8 @@ export interface components {
              * @description A short text, dropdown or multiple choice question: its answers may be shown as choices in other forms of the same workspace (an optionSource of kind form_answers). Off unless true. Respondents are told next to the question; only answers given while a version with it on was filled are ever offered.
              */
             shareAsChoices?: boolean | null;
+            /** @description Set when the question was copied from a reusable section of the workspace's library (see LibraryOrigin). */
+            library?: components["schemas"]["LibraryOrigin"] | null;
             /**
              * Rules
              * @description At most 8 rules per question and 100 per form (see Rule).
@@ -693,6 +695,24 @@ export interface components {
          * @enum {string}
          */
         Layout: "TWO_COLUMN_IMAGE_LEFT" | "TWO_COLUMN_IMAGE_RIGHT" | "SINGLE_COLUMN_IMAGE_BACKGROUND" | "SINGLE_COLUMN_NO_BACKGROUND" | "SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN";
+        /**
+         * LibraryOrigin
+         * @description Where a question was copied from: the workspace library's reusable
+         *     section (``sectionId``), the version copied, the question's id in that
+         *     section (``key``) and the insert it belongs to (``instance``). Set by the
+         *     server when a section is inserted; read-only in spirit (a copy to another
+         *     workspace drops it).
+         */
+        LibraryOrigin: {
+            /** Sectionid */
+            sectionId: string;
+            /** Version */
+            version: number;
+            /** Key */
+            key: string;
+            /** Instance */
+            instance: string;
+        };
         /**
          * Logic
          * @description Show or hide this question when its conditions match (operator:

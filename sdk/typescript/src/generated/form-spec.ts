@@ -436,6 +436,10 @@ export interface FormField {
    */
   shareAsChoices?: boolean | null;
   /**
+   * Set when the question was copied from a reusable section of the workspace's library (see LibraryOrigin).
+   */
+  library?: LibraryOrigin | null;
+  /**
    * At most 8 rules per question and 100 per form (see Rule).
    */
   rules?: Rule[] | null;
@@ -568,6 +572,22 @@ export interface OptionSource {
   parentFieldId?: string | null;
   formId?: string | null;
   questionId?: string | null;
+}
+/**
+ * Where a question was copied from: the workspace library's reusable
+ * section (``sectionId``), the version copied, the question's id in that
+ * section (``key``) and the insert it belongs to (``instance``). Set by the
+ * server when a section is inserted; read-only in spirit (a copy to another
+ * workspace drops it).
+ *
+ * This interface was referenced by `FormSpec`'s JSON-Schema
+ * via the `definition` "LibraryOrigin".
+ */
+export interface LibraryOrigin {
+  sectionId: string;
+  version: number;
+  key: string;
+  instance: string;
 }
 /**
  * A field rule: while ``when`` holds, ``then`` applies. A field's rules

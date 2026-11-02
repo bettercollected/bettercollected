@@ -416,6 +416,10 @@ async def update_form(
     {"op":"remove_ending","endingId":str} (never the last one; its jumps then show the
     default ending) ·
     {"op":"duplicate_page","pageId":str,"index"?:int} (clone a page, fresh ids) ·
+    {"op":"insert_library_section","pageId":str,"sectionId":str,"index"?:int} (copy a reusable
+    section of this workspace's library into a page, new ids, its references pointing at the
+    copy; fails when reusable sections are not turned on or the section is not this
+    workspace's) ·
     {"op":"set_section_title","pageId"?:str,"pageIndex"?:int,"title":str|null} (a question
     page's section title, shown by the Leaflet style in the section bar and the welcome
     page's contents list; give pageId or pageIndex (0-based among the question pages); a few

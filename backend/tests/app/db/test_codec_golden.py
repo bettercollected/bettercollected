@@ -96,6 +96,7 @@ NO_DOCUMENT_CLASS = {
     "form_email_actions",
     "workspace_option_lists",
     "option_source_erasures",
+    "workspace_library_sections",
     # and the workspaces' security events (break-glass audit)
     "workspace_audit_events",
 }

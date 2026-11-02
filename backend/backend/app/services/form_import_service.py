@@ -19,6 +19,7 @@ from backend.app.services.field_rules import strip_field_rules
 from backend.app.services.layout_containers import ensure_valid_layout
 from backend.app.services.new_question_types import ensure_question_types_allowed
 from backend.app.services.option_logic import strip_option_logic
+from backend.app.services.reusable_sections.markers import strip_library_markers
 from backend.app.services.option_sources.checks import (
     strip_option_sources,
     strip_share_as_choices,
@@ -103,6 +104,7 @@ class FormImportService:
             logger.warning("A form import carried an option source; it was dropped")
         if form_data.form is not None:
             strip_share_as_choices(form_data.form)
+            strip_library_markers(form_data.form)
         standard_form = await self.form_service.save_form(form_data.form)
         # The responses are this workspace's copy (#768): the same provider
         # form may be linked to other workspaces, each with its own.

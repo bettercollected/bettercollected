@@ -97,6 +97,7 @@ from backend.app.services.field_rules import (
 from backend.app.services.layout_containers import ensure_valid_layout
 from backend.app.services.new_question_types import ensure_question_types_allowed
 from backend.app.services.option_sources.share_token import stamp as shared_notice_stamp
+from backend.app.services.reusable_sections.markers import strip_library_markers
 from backend.app.services.option_sources.checks import (
     ensure_option_sources_allowed,
     shared_ids as shared_question_ids,
@@ -788,6 +789,9 @@ class WorkspaceFormService:
         if drop_unusable_settings:
             strip_option_sources(form)
             strip_share_as_choices(form)
+            # a copy of a template: the marker names a section of another
+            # workspace's library
+            strip_library_markers(form)
         else:
             ensure_valid_option_sources(form)
             ensure_option_sources_allowed(form)
@@ -1808,6 +1812,9 @@ class WorkspaceFormService:
             duplicated_form, None if is_template else ("form_answers",)
         )
         strip_share_as_choices(duplicated_form)
+        if is_template:
+            # a template is shared across workspaces: no pointer to a library
+            strip_library_markers(duplicated_form)
         if is_template:
             duplicated_form.workspace_id = workspace_id
             duplicated_form.created_by = user.id

@@ -778,6 +778,20 @@ class DuplicatePageOp(_CamelModel):
     ref: _RefName = None
 
 
+class InsertLibrarySectionOp(_CamelModel):
+    """Copy a reusable section of the workspace's library into a page, at
+    ``index`` (the end when left out). The copy has new ids, its references
+    point at the copy's own questions, and it is checked like any other change.
+    Needs ``REUSABLE_SECTIONS_ENABLED``; the section must be one of the
+    form's workspace. The engine itself cannot read the library: the write path
+    (``persist_ops_to_form``, the dry run) resolves this operation first."""
+
+    op: Literal["insert_library_section"] = "insert_library_section"
+    page_id: str
+    section_id: str = Field(min_length=1, max_length=64)
+    index: Optional[int] = Field(None, ge=0)
+
+
 class FormSettingsPatch(_CamelModel):
     """AI-editable form settings — the Form tab's metadata.
 
@@ -1071,6 +1085,24 @@ class SetEndingsOp(_EditorOp):
     endings: List[Dict[str, Any]]
 
 
+class SpliceFieldsOp(_EditorOp):
+    """Insert complete questions (their ids kept) on a page at ``index`` (the
+    end when left out), optionally replacing top-level questions of that page
+    (``replace_ids``, the ids may come back among ``fields``) and adding layout
+    containers (``containers``; ``replace_container_ids`` removes containers).
+    Checked as a whole after the splice, so a calculation may read a later
+    question of the same insert. What reusable sections are inserted and
+    updated with (``insert_library_section`` becomes this op)."""
+
+    op: Literal["splice_fields"] = "splice_fields"
+    page_id: str
+    index: Optional[int] = Field(None, ge=0)
+    fields: List[EditorFieldPayload] = Field(default_factory=list, max_length=200)
+    containers: List[Dict[str, Any]] = Field(default_factory=list, max_length=50)
+    replace_ids: List[str] = Field(default_factory=list, max_length=200)
+    replace_container_ids: List[str] = Field(default_factory=list, max_length=50)
+
+
 EDITOR_OP_TYPES = (
     InsertFieldOp,
     ReplaceFieldOp,
@@ -1084,6 +1116,7 @@ EDITOR_OP_TYPES = (
     RemoveChoiceOp,
     MoveChoiceOp,
     SetEndingsOp,
+    SpliceFieldsOp,
 )
 # Ops only the form editor may send (refused by parse_ops without allow_editor_ops=True).
 EDITOR_ONLY_OPS = frozenset(t.model_fields["op"].default for t in EDITOR_OP_TYPES)
@@ -1135,6 +1168,9 @@ FormOp = Annotated[
         RemoveChoiceOp,
         MoveChoiceOp,
         SetEndingsOp,
+        SpliceFieldsOp,
+        # a section of the workspace's library (resolved before the engine runs)
+        InsertLibrarySectionOp,
     ],
     Field(discriminator="op"),
 ]
@@ -2545,6 +2581,9 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
         if field.properties is not None:
             field.properties.rules = None
             field.properties.option_filter = None
+            # a copy of a copy of a library section is not another copy of that
+            # section's instance (docs/reusable-sections.md)
+            field.properties.library = None
             for choice in field.properties.choices or []:
                 choice.logic = None
     # Layout containers follow the copy: new container and tab ids, members
@@ -3859,12 +3898,120 @@ def _apply_set_endings(form: StandardForm, op: SetEndingsOp) -> str:
     return f"Set {len(endings)} ending(s)"
 
 
+def _splice_ids_problem(
+    form: StandardForm, items: List[StandardFormField], removed: Set[str]
+) -> None:
+    taken = _form_ids(form) - removed
+    seen: Set[str] = set()
+    for item in items:
+        for field in _subtree(item):
+            if not isinstance(field.id, str) or not field.id.strip():
+                raise OpError("Every question needs an id.")
+            if field.id in taken or field.id in seen:
+                raise OpError(f"The id '{field.id}' is already used in this form.")
+            seen.add(field.id)
+            choice_ids = [
+                c.id for c in (field.properties.choices if field.properties else None) or []
+            ]
+            if len(set(choice_ids)) != len(choice_ids):
+                raise OpError(f"The choices of '{_title_text(field)}' need unique ids.")
+
+
+def _apply_splice_fields(form: StandardForm, op: SpliceFieldsOp) -> str:
+    from common.layout_containers import container_problems, repair_page
+
+    page = _find_page(form, op.page_id)
+    if page.properties is None:
+        page.properties = StandardFieldProperty(fields=[])
+    if page.properties.fields is None:
+        page.properties.fields = []
+    items = [_editor_item(raw, form, page=False) for raw in op.fields]
+    if not items and not op.replace_ids:
+        raise OpError("splice_fields needs questions to insert or to replace.")
+    if len(set(op.replace_ids)) != len(op.replace_ids):
+        raise OpError("A question is listed twice in replaceIds.")
+    top = page.properties.fields
+    by_id = {f.id: f for f in top}
+    for replace_id in op.replace_ids:
+        if replace_id not in by_id:
+            raise OpError(f"'{replace_id}' is not a question of page '{op.page_id}'.")
+    removed: Set[str] = set()
+    for replace_id in op.replace_ids:
+        removed.update(f.id for f in _subtree(by_id[replace_id]))
+    _splice_ids_problem(form, items, removed)
+    new_ids: Set[str] = set()
+    for item in items:
+        new_ids.update(f.id for f in _subtree(item))
+    known = _known_problems(form)
+    snapshot = copy.deepcopy(form.fields)
+    try:
+        kept = [f for f in top if f.id not in set(op.replace_ids)]
+        position = len(kept) if op.index is None else min(op.index, len(kept))
+        kept[position:position] = items
+        page.properties.fields = kept
+        # containers: those named go, the new ones come in, and what the removed
+        # questions left dangling is repaired (an emptied container goes)
+        existing = [
+            c for c in (page.properties.containers or []) if c.id not in set(op.replace_container_ids)
+        ]
+        built: List[LayoutContainer] = []
+        for raw in op.containers:
+            try:
+                built.append(LayoutContainer.model_validate(raw))
+            except ValueError as e:
+                raise OpError(_validation_message(e))
+        page.properties.containers = existing or None
+        if built:
+            taken, earlier = _other_pages_layout(form, page)
+            clash = container_ids_used(form) | form_item_ids(form)
+            ids_new = [x.id for x in built] + [t.id for x in built for t in (x.tabs or [])]
+            if len(set(ids_new)) != len(ids_new) or any(i in clash for i in ids_new):
+                raise OpError("Container and tab ids must be unique in the form.")
+            page.properties.containers = existing + built
+        if page.properties.containers:
+            repair_page(page)
+        if built:
+            problems = container_problems(
+                page, set(taken), set(earlier), form_item_ids(form)
+            )
+            if problems:
+                raise OpError(problems[0][1])
+        gone = removed - new_ids
+        problem = _new_problems(form, known, prune_rules=True)
+        if problem:
+            raise OpError(problem)
+    except OpError:
+        form.fields = snapshot
+        raise
+    note = _dropped_rules_note(form) + _dropped_references_note(form, gone)
+    first = items[0].id if items else op.replace_ids[0]
+    _note_created(first, nested=[i.id for i in items])
+    replaced = f", replacing {len(op.replace_ids)}" if op.replace_ids else ""
+    return f"Inserted {len(items)} question(s) on page '{op.page_id}'{replaced}{note}"
+
+
+def _apply_insert_library_section(form: StandardForm, op: InsertLibrarySectionOp) -> str:
+    raise OpError(
+        "That library section could not be inserted: it does not exist in this "
+        "workspace, or reusable sections are not available here."
+    )
+
+
 def _editor_growth(form: StandardForm, op) -> Tuple[int, int]:
     """Pages and fields an editor op adds (see _growth)."""
     if isinstance(op, InsertFieldOp):
         return 0, _payload_count(op.field)
     if isinstance(op, InsertPageOp):
         return 1, max(0, _payload_count(op.page) - 1)
+    if isinstance(op, SpliceFieldsOp):
+        removed = 0
+        try:
+            page = _find_page(form, op.page_id)
+            top = {f.id: f for f in (page.properties.fields if page.properties else None) or []}
+            removed = count_fields([top[i] for i in op.replace_ids if i in top])
+        except OpError:
+            pass
+        return 0, max(0, sum(_payload_count(raw) for raw in op.fields) - removed)
     if isinstance(op, ReplaceFieldOp):
         field_id = op.field.get("id")
         try:
@@ -3888,6 +4035,7 @@ _EDITOR_HANDLERS = {
     "remove_choice": _apply_remove_choice,
     "move_choice": _apply_move_choice,
     "set_endings": _apply_set_endings,
+    "splice_fields": _apply_splice_fields,
 }
 assert set(_EDITOR_HANDLERS) == EDITOR_ONLY_OPS
 
@@ -3924,6 +4072,7 @@ _HANDLERS = {
     "add_ending": _apply_add_ending,
     "update_ending": _apply_update_ending,
     "remove_ending": _apply_remove_ending,
+    "insert_library_section": _apply_insert_library_section,
 }
 _HANDLERS.update(_EDITOR_HANDLERS)
 OP_NAMES = frozenset(_HANDLERS)
@@ -4302,7 +4451,7 @@ def apply_form_ops(
             if op.op in LAYOUT_OPS and not layout_containers_enabled():
                 if started_layout is None:
                     started_layout = layout_signatures(form)
-                if op.op == "set_page_containers" or started_layout:
+                if op.op in ("set_page_containers", "splice_fields") or started_layout:
                     layout_snapshot = working.model_copy(deep=True)
             message = handler(working, op)
             if layout_snapshot is not None:

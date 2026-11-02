@@ -9,7 +9,7 @@ import { type Handler, ensureProperties, setKey } from './context';
 import { validatedConditions } from './fields';
 
 /** pydantic's message for a payload shape the backend refuses on parsing. */
-function shapeProblem(spec: SetPageContainersOp['containers'] extends Array<infer T> | null | undefined ? T : never): string | null {
+export function shapeProblem(spec: SetPageContainersOp['containers'] extends Array<infer T> | null | undefined ? T : never): string | null {
     if (!['panel', 'fieldset', 'tabs'].includes(spec.type)) return "Input should be 'panel', 'fieldset' or 'tabs'";
     for (const id of [spec.id, ...(spec.tabs ?? []).map((tab) => tab.id)]) if (id != null && !LAYOUT_ID_PATTERN.test(id)) return `String should match pattern '${LAYOUT_ID_PATTERN.source}'`;
     if (spec.title != null && [...spec.title].length > CONTAINER_TITLE_MAX) return `String should have at most ${CONTAINER_TITLE_MAX} characters`;
@@ -34,7 +34,7 @@ const plainTitle = (value: string): string => {
 };
 
 /** The stored container for a spec (the backend's LayoutContainer validation, message for message). */
-function buildContainer(spec: any, reserved: Set<string>, logic: LayoutContainer['logic'] | undefined): LayoutContainer {
+export function buildContainer(spec: any, reserved: Set<string>, logic: LayoutContainer['logic'] | undefined): LayoutContainer {
     const tabs: LayoutTab[] = (spec.tabs ?? []).map((tab: any) => ({ id: tab.id || freshId(TAB_ID_PREFIX, reserved), title: plainTitle(String(tab.title ?? '')), fields: [...(tab.fields ?? [])] }));
     const id = spec.id || freshId(CONTAINER_ID_PREFIX, reserved);
     if (spec.type === 'tabs') {

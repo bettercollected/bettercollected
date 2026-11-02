@@ -1250,6 +1250,20 @@ form, in `controllers/workspace_responses.py`) fills in street and city from a D
   URL, an access log or a referrer). Provider failures answer 503 `lookup_unavailable` and the form falls back to typing.
 - Tests give the service a fake transport (`tests/app/address_lookup/`); no test or script may call the real service.
 
+## Reusable sections (workspace library)
+
+A workspace's library of question groups copied into forms (`docs/reusable-sections.md`). Switch `REUSABLE_SECTIONS_ENABLED`
+(off: every route 404s, `insert_library_section` fails, `reusableSectionsEnabled` in `/permissions`). Table
+`workspace_library_sections` (revision 0033, document with the current version's `fields`/`containers` as a **spec fragment** and
+`history` of earlier versions), `services/reusable_sections/`: `refs.py` is the pure walker (`isolate` drops what points outside,
+`remap` gives new ids and rewrites every reference, `assert_closed` raises when anything names a question outside the fragment: add a
+new kind of reference there first), `fragment.py` converts builder <-> spec and validates through `check_spec_document` plus the gates
+`persist_form` applies, `service.py` (every call names the workspace; `form.read` reads, `form.edit` writes/inserts/updates),
+`resolve.py` (`insert_library_section` is resolved by `persist_ops_to_form` and the dry run into the editor op `splice_fields`; the
+pure engine never reads the library), `markers.py` (the `properties.library` marker, stripped from respondent copies and copies to
+other workspaces). The marker is in the builder DTO `StandardFieldPropertyCamelModel` too, or a save drops it. A section never keeps
+a `form_answers` source. Tests: `tests/app/reusable_sections/`.
+
 ## Cross-service integration points
 
 - **Auth:** `services/auth_service.py` — OAuth state + OTP, JWT via `common.services.jwt_service`; sessions in
