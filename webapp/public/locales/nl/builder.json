@@ -1714,7 +1714,8 @@
       "Scale": "Schaal",
       "Date & number": "Datum en getal",
       "Files": "Bestanden",
-      "Layout & content": "Indeling en inhoud"
+      "Layout & content": "Indeling en inhoud",
+      "Sections": "Secties"
     },
     "SEARCH": "Zoek een soort veld",
     "LIST": "Soorten velden",
@@ -2689,5 +2690,104 @@
     "GENERIC": "Uw formulier staat veilig op de server: er gaat niets verloren. Probeer het opnieuw of laad de editor opnieuw.",
     "RETRY": "Opnieuw proberen",
     "RELOAD": "Editor opnieuw laden"
+  },
+  "SECTIONS_LIB": {
+    "SECTION": "Bibliotheek",
+    "COPY_OF": "Gekopieerd uit de bibliotheeksectie “{{name}}”, versie {{version}}.",
+    "COPY_OF_GONE": "Gekopieerd uit een bibliotheeksectie die niet meer in de bibliotheek staat.",
+    "COPY_OF_LOADING": "Gekopieerd uit een bibliotheeksectie.",
+    "SAVE_COPY": "Deze kopie als nieuwe versie in de bibliotheek bewaren",
+    "SAVE_QUESTION": "Bewaren als herbruikbare sectie…",
+    "SAVE_CONTAINER": "{{kind}} bewaren als herbruikbare sectie…",
+    "SUBJECT_QUESTION": "deze vraag",
+    "SUBJECT_CONTAINER": "dit onderdeel ({{kind}}) en de bijbehorende vragen",
+    "UNTITLED": "Vraag zonder titel",
+    "CANCEL": "Annuleren",
+    "SAVE": {
+      "TITLE": "Bewaren als herbruikbare sectie",
+      "INTRO": "De bibliotheek bewaart {{subject}}, zodat u het in andere formulieren kunt kopiëren. Een kopie is van u: latere wijzigingen in de bibliotheek veranderen een formulier nooit vanzelf.",
+      "SAVED": "“{{name}}” staat in de bibliotheek.",
+      "LEFT_OUT": "De bibliotheek kon niet alles bewaren:",
+      "DONE": "Klaar",
+      "NAME": "Naam",
+      "NAME_PLACEHOLDER": "Bijvoorbeeld Gegevens aanvrager",
+      "DESCRIPTION": "Omschrijving (optioneel)",
+      "SUBMIT": "Bewaren in bibliotheek"
+    },
+    "WARNING": {
+      "CONDITION_DROPPED": "Een toon- of verbergregel van “{{title}}” las een vraag buiten deze sectie en is weggelaten.",
+      "OPTION_FILTER_DROPPED": "Het optiefilter van “{{title}}” las een vraag buiten deze sectie en is weggelaten.",
+      "SOURCE_PARENT_DROPPED": "De lijst van “{{title}}” hangt niet meer af van een vraag buiten deze sectie.",
+      "DATE_RULE_DROPPED": "Een datumregel van “{{title}}” vergeleek met een vraag buiten deze sectie en is weggelaten.",
+      "RULE_DROPPED": "Een regel van “{{title}}” las een vraag buiten deze sectie en is weggelaten.",
+      "PIPE_DROPPED": "“{{title}}” toonde een antwoord van buiten deze sectie; dat onderdeel is weggelaten.",
+      "CONTAINER_CONDITION_DROPPED": "Een regel van de groep las een vraag buiten deze sectie en is weggelaten.",
+      "CALCULATION_LEFT_OUT": "De berekening “{{title}}” leest vragen buiten deze sectie en is weggelaten.",
+      "FORM_ANSWERS_SOURCE_DROPPED": "“{{title}}” haalde zijn opties uit de antwoorden van een ander formulier. Kies dat opnieuw na het invoegen; dan wordt uw toegang tot dat formulier gecontroleerd.",
+      "LIST_SOURCE_DROPPED": "“{{title}}” gebruikte een lijst die niet bij deze werkruimte hoort en is weggelaten.",
+      "SHARE_AS_CHOICES_DROPPED": "“{{title}}” bood zijn antwoorden aan als keuzes in andere formulieren. Dat is per formulier een nieuwe beslissing, dus staat het in de bibliotheek uit."
+    },
+    "UPDATE": {
+      "BUTTON": "Bijwerken vanuit de bibliotheek…",
+      "TITLE": "Bijwerken vanuit de bibliotheek",
+      "INTRO": "Hiermee vervangt u de kopie door de nieuwste versie van de sectie. Vragen die de kopie en de bibliotheek gemeen hebben, behouden hun plek en hun antwoorden.",
+      "LOADING": "Vergelijken met de bibliotheek…",
+      "UP_TO_DATE": "Deze kopie is bij met de bibliotheek.",
+      "SUMMARY": "De bibliotheek staat op versie {{version}}: {{added}} toegevoegd, {{changed}} gewijzigd, {{removed}} verwijderd.",
+      "BASE_UNKNOWN": "De versie waaruit deze kopie komt, wordt niet meer bewaard. Wijzigingen die u in de kopie maakte, zijn daarom niet te herkennen.",
+      "LIST": "Wijzigingen per vraag",
+      "NOTE": "Een gepubliceerd formulier verandert pas als u het opnieuw publiceert. U kunt dit in de bouwer ongedaan maken.",
+      "APPLY": "Deze kopie bijwerken",
+      "STATUS_ADDED": "Toegevoegd",
+      "STATUS_CHANGED": "Gewijzigd",
+      "STATUS_REMOVED": "Verwijderd",
+      "STATUS_UNCHANGED": "Gelijk",
+      "MODIFIED_IN_COPY": "U hebt deze vraag ook in het formulier gewijzigd; de versie uit de bibliotheek vervangt uw wijziging."
+    },
+    "WHAT": {
+      "TITLE": "titel",
+      "TYPE": "vraagtype (wordt vervangen door een nieuwe vraag)",
+      "REQUIRED": "verplicht",
+      "OPTIONS": "opties",
+      "LOGIC": "toon- of verbergregel",
+      "RULES": "regels en berekening",
+      "SETTINGS": "instellingen"
+    },
+    "TOAST": {
+      "NOT_INSERTED": "De sectie kon hier niet worden ingevoegd.",
+      "INSERTED_one": "{{count}} vraag ingevoegd uit de bibliotheek.",
+      "INSERTED_other": "{{count}} vragen ingevoegd uit de bibliotheek.",
+      "NOT_SAVED": "De sectie kon niet worden bewaard.",
+      "NOT_UPDATED": "Deze kopie kon niet met de bibliotheek worden vergeleken.",
+      "UPDATED": "De kopie is bijgewerkt vanuit de bibliotheek.",
+      "NEWER_VERSION": "De bibliotheek heeft een nieuwere versie van deze sectie. Werk eerst deze kopie bij."
+    },
+    "INSERT": {
+      "DESCRIPTION_one": "Herbruikbare sectie, {{count}} vraag, versie {{version}}",
+      "DESCRIPTION_other": "Herbruikbare sectie, {{count}} vragen, versie {{version}}"
+    },
+    "PAGE": {
+      "TITLE": "Herbruikbare secties",
+      "LOADING": "Secties laden…",
+      "TURNED_OFF": "Herbruikbare secties staan niet aan op deze server. De beheerder zet ze aan met REUSABLE_SECTIONS_ENABLED (zie docs/reusable-sections.md).",
+      "INTRO": "Een herbruikbare sectie is een groep vragen die u één keer hebt bewaard, zoals de gegevens van een aanvrager. Kopieer haar via het menu Invoegen in elk formulier. Een kopie hoort bij haar formulier: een wijziging in de bibliotheek verandert een formulier nooit vanzelf, en u werkt een kopie bij wanneer u dat wilt.",
+      "EMPTY": "Nog geen secties. Selecteer in de formulierbouwer een vraag of een groep en kies “Bewaren als herbruikbare sectie”.",
+      "SEARCH": "Secties zoeken",
+      "NO_MATCH": "Geen sectie komt overeen met “{{query}}”.",
+      "QUESTIONS_one": "{{count}} vraag",
+      "QUESTIONS_other": "{{count}} vragen",
+      "VERSION": "Versie {{version}}",
+      "CONTAINERS_one": "Gegroepeerd in {{count}} paneel, vakgroep of tabbladen.",
+      "CONTAINERS_other": "Gegroepeerd in {{count}} panelen, vakgroepen of tabbladen.",
+      "PREVIEW_NAMED": "Toon de vragen van {{name}}",
+      "RENAME_NAMED": "{{name}} hernoemen",
+      "DELETE_NAMED": "{{name}} verwijderen",
+      "RENAME": "Hernoemen",
+      "NAME_TAKEN": "Er bestaat al een sectie met deze naam.",
+      "RENAME_FAILED": "Kon de sectie niet hernoemen.",
+      "CONFIRM_DELETE": "“{{name}}” uit de bibliotheek verwijderen? Formulieren die al een kopie bevatten, houden die.",
+      "DELETE_FAILED": "Kon de sectie niet verwijderen.",
+      "DELETED": "“{{name}}” is verwijderd."
+    }
   }
 }

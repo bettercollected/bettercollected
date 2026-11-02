@@ -13,6 +13,7 @@ import { activeContainerAtom } from '@app/store/jotai/active-builder-component';
 import { useBuilderFieldsValue, usePageShell } from '@app/store/jotai/entity-hooks';
 import { CONTAINER_CONDITIONS_MAX, membersOf, pageFieldsOf } from '@app/utils/layout-containers';
 import { ConditionRow, buildSourceFields, isConditionComplete, isConditionSource, newConditionFor, sameSourceFields, selectClass } from '@app/views/molecules/form-builder/condition-editor-shared';
+import { ContainerLibrarySection } from '@app/views/molecules/form-builder/field-library-section';
 import { InspectorSection } from '@app/views/molecules/form-builder/inspector-controls';
 
 /**
@@ -69,6 +70,7 @@ export default function LayoutContainerSettings() {
                 <p className="text-xs leading-relaxed text-black-600">{t('LAYOUT.NOTE')}</p>
                 {!layoutContainersEnabled && <p className="text-xs leading-relaxed text-black-700">{t('LAYOUT.OFF')}</p>}
             </InspectorSection>
+            <ContainerLibrarySection pageId={page.id} containerId={container.id} />
             <InspectorSection title={t('LAYOUT.VISIBILITY')}>
                 {sources.length === 0 && !logic ? (
                     <p className="text-xs text-black-600">{t('LAYOUT.VISIBILITY_NONE', { kind })}</p>

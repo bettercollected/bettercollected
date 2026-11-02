@@ -3,14 +3,18 @@ import { KeyboardEvent, useEffect, useId, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { INSERT_CATEGORIES, InsertCatalogItem, bestInsertMatch, containerCatalog, containerKindOf, filterInsertCatalog, insertCatalog } from '@app/constants/insert-field-catalog';
+import { INSERT_CATEGORIES, InsertCatalogItem, bestInsertMatch, containerCatalog, containerKindOf, filterInsertCatalog, insertCatalog, sectionCatalog, sectionIdOf } from '@app/constants/insert-field-catalog';
 import { typeIsOff } from '@app/lib/form-ops/new-question-types';
 import { InsertPlacement, useInsertField } from '@app/lib/hooks/use-insert-field';
 import { useLayoutContainerActions } from '@app/lib/hooks/use-layout-containers';
+import { useSectionActions } from '@app/lib/hooks/use-reusable-sections';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
+import { useAppSelector } from '@app/store/hooks';
 import { InsertTarget } from '@app/store/jotai/insert-target';
+import { useGetSectionsQuery } from '@app/store/reusable-sections/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 /**
  * The Insert menu: search, then pick. Type to filter, ↑/↓ to move, Enter to
@@ -21,6 +25,8 @@ import { InsertTarget } from '@app/store/jotai/insert-target';
 const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown, target }: { formFields: StandardFormFieldDto[]; activeSlideComponent: { id: string; index: number } | null; closeDropdown: () => void; target?: InsertTarget | null }) => {
     const { insert } = useInsertField();
     const containers = useLayoutContainerActions();
+    const sectionActions = useSectionActions();
+    const workspace = useAppSelector(selectWorkspace);
     const { t, i18n } = useTranslation('builder');
     const [query, setQuery] = useState('');
     const [activeIndex, setActiveIndex] = useState(0);
@@ -28,22 +34,25 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
     const optionId = (index: number) => `${baseId}-option-${index}`;
 
     // The newer question types are offered only while the server takes them (NEW_QUESTION_TYPES_ENABLED), the address and signature questions while ADDRESS_QUESTION_ENABLED and SIGNATURE_QUESTION_ENABLED are on.
-    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, layoutContainersEnabled } = useWorkspacePermissions();
+    const { newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, layoutContainersEnabled, reusableSectionsEnabled } = useWorkspacePermissions();
+    // ... and the workspace's reusable sections while REUSABLE_SECTIONS_ENABLED is on
+    const { data: library } = useGetSectionsQuery({ workspaceId: workspace?.id as string }, { skip: !reusableSectionsEnabled || !workspace?.id });
     // ... and panels, tabs and field sets while LAYOUT_CONTAINERS_ENABLED is on
     const offered = useMemo(
         () =>
             [
                 ...insertCatalog.filter((item) => !typeIsOff(item.type, { newQuestionTypes: newQuestionTypesEnabled, addressQuestion: addressQuestionEnabled, signatureQuestion: signatureQuestionEnabled })),
-                ...(layoutContainersEnabled ? containerCatalog : [])
+                ...(layoutContainersEnabled ? containerCatalog : []),
+                ...(reusableSectionsEnabled && library ? sectionCatalog(library, (section) => t('SECTIONS_LIB.INSERT.DESCRIPTION', { count: section.questionCount, version: section.version })) : [])
             ].map((item) => {
+                if (sectionIdOf(item)) return item;
                 // names and descriptions in the builder's language, so the search finds what the menu shows
                 const kind = containerKindOf(item);
                 return kind
                     ? { ...item, name: t(`LAYOUT.${kind.toUpperCase()}`), description: t(`LAYOUT.${kind.toUpperCase()}_DESCRIPTION`) }
                     : { ...item, name: t(`FIELD_TYPES.${item.type}.NAME`, { defaultValue: item.name }), description: t(`FIELD_TYPES.${item.type}.DESCRIPTION`, { defaultValue: item.description }) };
             }),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, layoutContainersEnabled, i18n.language]
+        [newQuestionTypesEnabled, addressQuestionEnabled, signatureQuestionEnabled, layoutContainersEnabled, reusableSectionsEnabled, library, i18n.language]
     );
     const results = useMemo(() => filterInsertCatalog(query, offered), [query, offered]);
     const active: InsertCatalogItem | undefined = results[Math.min(activeIndex, results.length - 1)];
@@ -57,6 +66,12 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
     const pick = (item: InsertCatalogItem | undefined, placement: InsertPlacement) => {
         if (!item) return;
         closeDropdown();
+        const sectionId = sectionIdOf(item);
+        if (sectionId) {
+            // a copy of a library section, where the menu was opened (or at the end of the selected page)
+            void sectionActions.insert(sectionId, target, activeSlideComponent);
+            return;
+        }
         const kind = containerKindOf(item);
         if (kind) {
             // a container with a new question in it, where the menu was opened (or at the end of the selected page)

@@ -22,6 +22,7 @@ const LABELS: Record<string, string> = {
     'WORKSPACE_SECTIONS.DOMAINS': 'Domains',
     'WORKSPACE_SECTIONS.CASE_SYSTEM': 'Case system',
     'WORKSPACE_SECTIONS.LISTS': 'Lists',
+    'WORKSPACE_SECTIONS.SECTIONS': 'Reusable sections',
     'WORKSPACE_SECTIONS.AI': 'AI'
 };
 const t = (key: string) => LABELS[key] ?? key;
@@ -117,6 +118,17 @@ describe('the Workspace group', () => {
         const items = workspaceNavItems({ workspaceName: 'acme', t, can: OWNER, ssoEnabled: true, optionSourcesEnabled: true });
         expect(navItemForPath('/acme/dashboard/lists', items)?.name).toBe('Lists');
         expect(items.filter((item) => isNavItemActive('/acme/dashboard/lists', item)).map((item) => item.name)).toEqual(['Lists']);
+    });
+
+    it('adds Reusable sections for everyone who reads forms, only while this server has the library', () => {
+        const listed = (can: (p: string) => boolean, reusableSectionsEnabled: boolean) => visibleNavItems(workspaceNavItems({ workspaceName: 'acme', t, can, ssoEnabled: true, reusableSectionsEnabled }), can);
+        expect(names(listed(OWNER, false))).not.toContain('Reusable sections');
+        expect(names(listed(OWNER, true))).toEqual(['Members', 'Themes', 'Single sign-on', 'Reusable sections', 'AI']);
+        expect(names(listed(holding(P.FORM_READ), true))).toEqual(['Reusable sections', 'AI']);
+        expect(names(listed(holding(P.RESPONSE_READ), true))).toEqual(['AI']);
+        const items = workspaceNavItems({ workspaceName: 'acme', t, can: OWNER, ssoEnabled: true, reusableSectionsEnabled: true });
+        expect(items.find((i) => i.key === 'sections')).toMatchObject({ url: '/acme/dashboard/sections', permission: P.FORM_READ });
+        expect(navItemForPath('/acme/dashboard/sections', items)?.name).toBe('Reusable sections');
     });
 
     it('titles the Case system page and keeps its item active', () => {

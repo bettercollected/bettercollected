@@ -26,6 +26,14 @@ export interface LayoutTab {
  * title of its own). A panel and a field set list their questions in `fields`.
  * `logic` shows or hides the whole container. Layout only.
  */
+/** Where a question was copied from: the workspace library's section, the version, the question's id in it and the insert it belongs to. */
+export interface LibraryOrigin {
+    sectionId: string;
+    version: number;
+    key: string;
+    instance: string;
+}
+
 export interface LayoutContainer {
     id: string;
     type: 'panel' | 'fieldset' | 'tabs';
@@ -68,6 +76,8 @@ export interface StandardFormFieldProperties {
     optionSource?: OptionSource;
     /** A short text, dropdown or multiple choice question whose answers other forms of the workspace may show as choices (off unless true; see utils/option-sources.ts). */
     shareAsChoices?: boolean;
+    /** Copied from a reusable section of the workspace's library (set by the server's insert, kept through saves). */
+    library?: LibraryOrigin;
     /** v2 page-jump / branching rules for this slide (see utils/conditional-logic). */
     jumps?: PageJump[];
     /** Layout containers of this page: panels, field sets and tabs that group its questions (see utils/layout-containers.ts). */

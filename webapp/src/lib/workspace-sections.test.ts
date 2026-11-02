@@ -82,6 +82,7 @@ describe('workspaceSectionUrls', () => {
             domains: '/acme/dashboard/sso/domains',
             caseSystem: '/acme/dashboard/case-system',
             lists: '/acme/dashboard/lists',
+            sections: '/acme/dashboard/sections',
             ai: '/acme/dashboard/ai',
             aiProfile: '/acme/dashboard/ai/profile',
             aiMemory: '/acme/dashboard/ai/memory',

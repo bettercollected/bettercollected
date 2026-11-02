@@ -13,7 +13,7 @@ import RatingIcon from '@Components/icons/rating-icon';
 import { TextIcon } from '@Components/icons/text';
 import UploadIcon from '@Components/icons/upload-icon';
 import { YesNoIcon } from '@Components/icons/yes-no-icon';
-import { AlignLeft, Banknote, Calculator, CalendarDays, CalendarRange, Clock, Image as ImageIcon, MapPin, PanelTop, PenLine, Repeat, SquareDashed, Table2, Tags, Type, Video, Rows3 } from 'lucide-react';
+import { AlignLeft, Banknote, Blocks, Calculator, CalendarDays, CalendarRange, Clock, Image as ImageIcon, MapPin, PanelTop, PenLine, Repeat, SquareDashed, Table2, Tags, Type, Video, Rows3 } from 'lucide-react';
 
 import { FieldTypes } from '@app/models/dtos/form';
 
@@ -23,9 +23,9 @@ import { FieldTypes } from '@app/models/dtos/form';
  * words people search for. One quiet ink for every icon (no per-type colours).
  */
 
-export type InsertCategory = 'Text' | 'Choice' | 'Scale' | 'Date & number' | 'Files' | 'Layout & content';
+export type InsertCategory = 'Text' | 'Choice' | 'Scale' | 'Date & number' | 'Files' | 'Layout & content' | 'Sections';
 
-export const INSERT_CATEGORIES: InsertCategory[] = ['Text', 'Choice', 'Scale', 'Date & number', 'Files', 'Layout & content'];
+export const INSERT_CATEGORIES: InsertCategory[] = ['Text', 'Choice', 'Scale', 'Date & number', 'Files', 'Layout & content', 'Sections'];
 
 export interface InsertCatalogItem {
     type: FieldTypes;
@@ -115,6 +115,29 @@ export const containerCatalog: InsertCatalogItem[] = [
 export function containerKindOf(item: Pick<InsertCatalogItem, 'type'> | undefined): 'panel' | 'tabs' | 'fieldset' | null {
     const type = String(item?.type ?? '');
     return type.startsWith(CONTAINER_ITEM_PREFIX) ? (type.slice(CONTAINER_ITEM_PREFIX.length) as 'panel' | 'tabs' | 'fieldset') : null;
+}
+
+/**
+ * The workspace's reusable sections the Insert menu lists (while REUSABLE_SECTIONS_ENABLED is on): not field
+ * types, picking one copies the section into the page (lib/hooks/use-reusable-sections.ts). `describe` writes
+ * the one-line description in the builder's language.
+ */
+export const SECTION_ITEM_PREFIX = 'section:';
+export function sectionCatalog(sections: Array<{ id: string; name: string; description?: string | null; questionCount: number; version: number }>, describe: (section: { description?: string | null; questionCount: number; version: number }) => string): InsertCatalogItem[] {
+    return sections.map((section) => ({
+        type: `${SECTION_ITEM_PREFIX}${section.id}` as unknown as FieldTypes,
+        name: section.name,
+        description: describe(section),
+        category: 'Sections' as const,
+        keywords: ['section', 'library', 'reusable', 'saved'],
+        icon: <Blocks className={ICON} strokeWidth={1.75} style={iconStyle} />
+    }));
+}
+
+/** The id of the library section an item of `sectionCatalog` copies, or null for any other item. */
+export function sectionIdOf(item: Pick<InsertCatalogItem, 'type'> | undefined): string | null {
+    const type = String(item?.type ?? '');
+    return type.startsWith(SECTION_ITEM_PREFIX) ? type.slice(SECTION_ITEM_PREFIX.length) : null;
 }
 
 export function bestInsertMatch(items: InsertCatalogItem[], query: string): number {

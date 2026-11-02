@@ -1714,7 +1714,8 @@
       "Scale": "Scale",
       "Date & number": "Date & number",
       "Files": "Files",
-      "Layout & content": "Layout & content"
+      "Layout & content": "Layout & content",
+      "Sections": "Sections"
     },
     "SEARCH": "Search field types",
     "LIST": "Field types",
@@ -2689,5 +2690,104 @@
     "GENERIC": "Your form is saved on the server — nothing is lost. Try again, or reload the editor.",
     "RETRY": "Try again",
     "RELOAD": "Reload editor"
+  },
+  "SECTIONS_LIB": {
+    "SECTION": "Library",
+    "COPY_OF": "Copied from the library section “{{name}}”, version {{version}}.",
+    "COPY_OF_GONE": "Copied from a library section that is no longer in the library.",
+    "COPY_OF_LOADING": "Copied from a library section.",
+    "SAVE_COPY": "Save this copy to the library as a new version",
+    "SAVE_QUESTION": "Save as reusable section…",
+    "SAVE_CONTAINER": "Save the {{kind}} as reusable section…",
+    "SUBJECT_QUESTION": "this question",
+    "SUBJECT_CONTAINER": "this {{kind}} and its questions",
+    "UNTITLED": "Untitled question",
+    "CANCEL": "Cancel",
+    "SAVE": {
+      "TITLE": "Save as reusable section",
+      "INTRO": "The library keeps {{subject}} so you can copy it into other forms. A copy is yours: later changes to the library never change a form by themselves.",
+      "SAVED": "“{{name}}” is in the library.",
+      "LEFT_OUT": "The library could not keep everything:",
+      "DONE": "Done",
+      "NAME": "Name",
+      "NAME_PLACEHOLDER": "For example Applicant details",
+      "DESCRIPTION": "Description (optional)",
+      "SUBMIT": "Save to library"
+    },
+    "WARNING": {
+      "CONDITION_DROPPED": "A show or hide rule of “{{title}}” read a question outside this section and was left out.",
+      "OPTION_FILTER_DROPPED": "The option filter of “{{title}}” read a question outside this section and was left out.",
+      "SOURCE_PARENT_DROPPED": "The list of “{{title}}” no longer depends on a question outside this section.",
+      "DATE_RULE_DROPPED": "A date rule of “{{title}}” compared with a question outside this section and was left out.",
+      "RULE_DROPPED": "A rule of “{{title}}” read a question outside this section and was left out.",
+      "PIPE_DROPPED": "“{{title}}” showed an answer from outside this section; that part was left out.",
+      "CONTAINER_CONDITION_DROPPED": "A rule of the group read a question outside this section and was left out.",
+      "CALCULATION_LEFT_OUT": "The calculation “{{title}}” reads questions outside this section and was left out.",
+      "FORM_ANSWERS_SOURCE_DROPPED": "“{{title}}” took its options from another form’s answers. Choose that again after inserting, where your access to that form is checked.",
+      "LIST_SOURCE_DROPPED": "“{{title}}” used a list that is not one of this workspace’s lists, so it was left out.",
+      "SHARE_AS_CHOICES_DROPPED": "“{{title}}” offered its answers as choices in other forms. That is a new decision for each form, so it is off in the library."
+    },
+    "UPDATE": {
+      "BUTTON": "Update from library…",
+      "TITLE": "Update from library",
+      "INTRO": "This replaces the copy with the section’s newest version. Questions the copy and the library share keep their place and their answers.",
+      "LOADING": "Comparing with the library…",
+      "UP_TO_DATE": "This copy is up to date with the library.",
+      "SUMMARY": "The library is at version {{version}}: {{added}} added, {{changed}} changed, {{removed}} removed.",
+      "BASE_UNKNOWN": "The version this copy came from is no longer kept, so changes made in the copy cannot be told apart.",
+      "LIST": "Changes per question",
+      "NOTE": "A published form does not change until you publish it again. You can undo this in the builder.",
+      "APPLY": "Update this copy",
+      "STATUS_ADDED": "Added",
+      "STATUS_CHANGED": "Changed",
+      "STATUS_REMOVED": "Removed",
+      "STATUS_UNCHANGED": "Same",
+      "MODIFIED_IN_COPY": "You also changed this question in the form; the library’s version replaces your change."
+    },
+    "WHAT": {
+      "TITLE": "title",
+      "TYPE": "question type (replaced by a new question)",
+      "REQUIRED": "required",
+      "OPTIONS": "options",
+      "LOGIC": "show or hide rule",
+      "RULES": "rules and calculation",
+      "SETTINGS": "settings"
+    },
+    "TOAST": {
+      "NOT_INSERTED": "The section could not be inserted here.",
+      "INSERTED_one": "{{count}} question inserted from the library.",
+      "INSERTED_other": "{{count}} questions inserted from the library.",
+      "NOT_SAVED": "The section could not be saved.",
+      "NOT_UPDATED": "This copy could not be compared with the library.",
+      "UPDATED": "The copy is updated from the library.",
+      "NEWER_VERSION": "The library has a newer version of this section. Update this copy first."
+    },
+    "INSERT": {
+      "DESCRIPTION_one": "Reusable section, {{count}} question, version {{version}}",
+      "DESCRIPTION_other": "Reusable section, {{count}} questions, version {{version}}"
+    },
+    "PAGE": {
+      "TITLE": "Reusable sections",
+      "LOADING": "Loading sections…",
+      "TURNED_OFF": "Reusable sections are not turned on on this server. The operator turns them on with REUSABLE_SECTIONS_ENABLED (see docs/reusable-sections.md).",
+      "INTRO": "A reusable section is a group of questions you saved once, such as applicant details. Copy it into any form from the Insert menu. A copy belongs to its form: changing the library never changes a form by itself, and you can update a copy when you choose.",
+      "EMPTY": "No sections yet. In the form builder, select a question or a group and choose “Save as reusable section”.",
+      "SEARCH": "Search sections",
+      "NO_MATCH": "No section matches “{{query}}”.",
+      "QUESTIONS_one": "{{count}} question",
+      "QUESTIONS_other": "{{count}} questions",
+      "VERSION": "Version {{version}}",
+      "CONTAINERS_one": "Grouped in {{count}} panel, field set or tabs.",
+      "CONTAINERS_other": "Grouped in {{count}} panels, field sets or tabs.",
+      "PREVIEW_NAMED": "Show the questions of {{name}}",
+      "RENAME_NAMED": "Rename {{name}}",
+      "DELETE_NAMED": "Delete {{name}}",
+      "RENAME": "Rename",
+      "NAME_TAKEN": "A section with this name already exists.",
+      "RENAME_FAILED": "Could not rename the section.",
+      "CONFIRM_DELETE": "Delete “{{name}}” from the library? Forms that already contain a copy keep it.",
+      "DELETE_FAILED": "Could not delete the section.",
+      "DELETED": "“{{name}}” was deleted."
+    }
   }
 }
