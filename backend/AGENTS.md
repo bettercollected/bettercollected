@@ -698,7 +698,7 @@ through `submit_response`. The scope `submissions:write` (`api_keys.VALID_SCOPES
 granted while the switch is off (`mode.py`), the endpoints answer 404 before authentication, and writes count against
 their own rate scopes (`auth.py`). `submission_source` lives on the response document (JSON, no migration), is
 `exclude=True` on `StandardFormResponseCamelModel` (no respondent view serialises it) and is set by
-`save_form_response(source=...)` only; staff get it as `SingleSubmissionResponse.source`. After the commit a key submission never fails (`_after_commit` in `workspace_form_service.py`, `_already_stored` in the service): a retry must not store a second response. Updates apply the create's identity/private gates and refuse closed / not-yet-open forms. A webhook body carries
+`save_form_response(source=...)` only; staff get it as `SingleSubmissionResponse.source`. After the commit a key submission never fails (`_after_commit` in `workspace_form_service.py`, `_already_stored` in the service): a retry must not store a second response. Updates apply the create's identity/private gates and refuse closed / not-yet-open forms. Consent is stored as asserted (`consent: true` accepts the required items, optional ones only when named in `consentItems`). An update refuses a response with an open deletion request (409). `_idempotent` runs the write and records its answer as one shielded task, so a cancelled request can't release the key after a commit. One form takes `SUBMISSIONS_PER_FORM_PER_WINDOW` (60) writes a window (`auth.form_budget`). A webhook body carries
 `"source": "api"` for such a response. Docs: `docs/submissions-api.md`.
 
 ## AI consent (#715)
@@ -1271,7 +1271,7 @@ form, in `controllers/workspace_responses.py`) fills in street and city from a D
 
 A workspace's library of question groups copied into forms (`docs/reusable-sections.md`). Switch `REUSABLE_SECTIONS_ENABLED`
 (off: every route 404s, `insert_library_section` fails, `reusableSectionsEnabled` in `/permissions`). Table
-`workspace_library_sections` (revision 0033, document with the current version's `fields`/`containers` as a **spec fragment** and
+`workspace_library_sections` (revision 0034, document with the current version's `fields`/`containers` as a **spec fragment** and
 `history` of earlier versions), `services/reusable_sections/`: `refs.py` is the pure walker (`isolate` drops what points outside,
 `remap` gives new ids and rewrites every reference, `assert_closed` raises when anything names a question outside the fragment: add a
 new kind of reference there first), `fragment.py` converts builder <-> spec and validates through `check_spec_document` plus the gates

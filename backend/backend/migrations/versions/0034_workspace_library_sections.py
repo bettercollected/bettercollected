@@ -1,6 +1,6 @@
 """workspace library sections (reusable groups of questions)
 
-Revision ID: 0033
+Revision ID: 0034
 Revises: 0031
 Create Date: 2026-11-02
 
@@ -19,7 +19,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0033"
+revision: str = "0034"
 down_revision: Union[str, None] = "0031"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

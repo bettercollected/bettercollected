@@ -4,7 +4,7 @@
     bettercollected diff form.json                   what push would change
     bettercollected push form.json [--force]         replace the form
     bettercollected validate form.json
-    bettercollected submit <form-id> answers.json --consent
+    bettercollected submit <form-id> answers.json --consent [--consent-item ID ...]
     bettercollected update-submission <form-id> <response-id> answers.json
 
 JSON is the canonical format; YAML (.yaml/.yml) is read and written too.
@@ -241,6 +241,7 @@ def cmd_submit(args, out) -> int:
             args.form_id,
             body["answers"],
             consent=True if args.consent else None,
+            consent_items=args.consent_item or None,
             hidden_fields=body.get("hiddenFields"),
             idempotency_key=args.idempotency_key,
         )
@@ -298,7 +299,13 @@ def build_parser() -> argparse.ArgumentParser:
     submit.add_argument(
         "--consent",
         action="store_true",
-        help="Assert that the respondent has given the consent the form asks for.",
+        help="Assert that the respondent has given the consent the form requires.",
+    )
+    submit.add_argument(
+        "--consent-item",
+        action="append",
+        metavar="ID",
+        help="An optional consent item the respondent accepted (repeat for several).",
     )
     submit.add_argument("--idempotency-key", help="Makes a retry safe (24 hours).")
     submit.set_defaults(run=cmd_submit)
