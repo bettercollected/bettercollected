@@ -2360,7 +2360,8 @@
     "ERROR_switched_off": "Reacties importeren is uitgezet terwijl deze import wachtte. Er is niets geïmporteerd.",
     "ERROR_json_required": "Er is iets misgegaan. Probeer het opnieuw.",
     "NOTE_signature_unsupported": "Een handtekening kan niet worden geïmporteerd: het is bewijs dat iemand op een bepaald moment tekende, en dat kan een cel met tekst niet geven.",
-    "ERROR_expired": "Het uur van het bestand was voorbij voordat de import klaar was. Er is niets geïmporteerd; upload het bestand opnieuw."
+    "ERROR_expired": "Het uur van het bestand was voorbij voordat de import klaar was. Er is niets geïmporteerd; upload het bestand opnieuw.",
+    "ERROR_workspace_rate_limited": "Er zijn op dit moment te veel imports in deze werkruimte. Probeer het later opnieuw."
   },
   "FORM_VERSIONS": {
     "TAB": "Versies",
