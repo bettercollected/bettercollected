@@ -123,7 +123,8 @@ class PostgresReusableSectionRepository(RecordRepository):
 
         ``bump``: a new version. The stored version must still be
         ``expected_version`` (else ``VersionChanged``, nothing written) and the
-        caller's whole document is written.
+        caller's document is written, except the name and description, which stay
+        as the locked row has them.
 
         Not ``bump`` (a rename): only the name, its key, the description and who
         changed it are taken from ``document`` and merged onto the row **as it is
@@ -148,6 +149,11 @@ class PostgresReusableSectionRepository(RecordRepository):
                 if expected_version is not None and current != expected_version:
                     raise VersionChanged()
                 target = document
+                # a content save does not touch the name: a rename that landed
+                # since the caller read the row stays
+                target.name = stored.get("name", document.name)
+                target.name_key = stored.get("name_key", document.name_key)
+                target.description = stored.get("description", document.description)
             else:
                 target = decode(self.document, stored)
                 target.name = document.name
