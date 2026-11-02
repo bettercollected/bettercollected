@@ -224,6 +224,17 @@ The webapp serves three logical hosts, matched by domain:
 Set `DASHBOARD_DOMAIN=localhost:3000` and `FORM_DOMAIN=localhost:3001` and
 `NEXT_PUBLIC_API_ENDPOINT_HOST=http://localhost:8000/api/v1` in `webapp/.env`.
 
+### Who may frame a page
+
+`webapp/src/proxy.ts` sets `Content-Security-Policy: frame-ancestors 'self' <dashboard origin>` on every page
+(the dashboard origin is `HTTP_SCHEME` + `DASHBOARD_DOMAIN` of the running server, so the builder's form
+preview, which frames the client domain, keeps working, also on a single-domain setup). A published form's page
+(`/<workspace>/forms/<form>`, its `/preview`, and `/forms/<form>` on a custom domain) sends no framing header.
+The header is set only there: `next.config.js` `headers()` is evaluated when the image is built, without the
+running server's domains, so it must not carry anything that names them. `X-Frame-Options` is not sent:
+`SAMEORIGIN` would stop the dashboard from framing the client domain, and every current browser honours the
+`frame-ancestors` directive. Rules in `src/lib/frame-ancestors.ts`, tests in `src/proxy-frame.test.ts`.
+
 ## Version in the dashboard sidebar
 
 The dashboard sidebar shows the version the webapp image was built as, under

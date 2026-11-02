@@ -136,6 +136,7 @@ from common.models.standard_form import (
     RespondentFeedback,
     StandardFormResponse,
     StandardFormResponseAnswer,
+    SubmissionSource,
 )
 from common.models.user import User
 from common.services.crypto_service import UnreadableCiphertext, crypto_service
@@ -1486,8 +1487,11 @@ class PostgresFormResponseRepository(RecordRepository):
         workspace_id: RecordId,
         response_limit: Optional[int] = None,
         scope: Optional[ResponseScope] = None,
+        source: Optional[SubmissionSource] = None,
     ):
-        """Store a new response. With ``response_limit`` (and the ``scope`` the
+        """Store a new response. ``source``: how an API key made it (None for
+        a respondent); always the caller's argument, never the request's.
+        With ``response_limit`` (and the ``scope`` the
         count is taken over) the count and the insert happen in one
         transaction under an advisory lock on the form in this workspace, so
         concurrent submissions queue up and the one that would pass the limit
@@ -1513,6 +1517,7 @@ class PostgresFormResponseRepository(RecordRepository):
         # collected in this workspace (#768)
         response_document.workspace_id = RecordId(workspace_id)
         response_document.provider = "self"
+        response_document.submission_source = source
         # submitted now, whatever the client sent: the time must not be the
         # respondent's to choose (newest-first order, "submitted since")
         now = utcnow()
@@ -1546,23 +1551,35 @@ class PostgresFormResponseRepository(RecordRepository):
         editor: Optional[RevisionEditor] = None,
         record: bool = False,
         outcome: Optional[dict] = None,
+        source_key_id: Optional[str] = None,
     ):
         """Merge the sent answers into the stored response, decrypting and
         re-encrypting under the response's row lock: two edits made at once
         both keep their answers, and one landing on top of a respondent
         feedback or an internal-answers write keeps those.
 
-        Without ``editor`` this is the respondent's own edit: only the
-        verified respondent who submitted the response may make it. With
-        ``editor`` (a staff member, whose permission the service checked) the
-        ownership test does not apply.
+        Who may edit, exactly one of three (never two: ``editor`` together with
+        ``source_key_id`` is refused):
+
+        * the verified respondent who submitted it (``user``; neither
+          ``editor`` nor ``source_key_id``);
+        * with ``source_key_id``, the API key that made it (its id on the stored
+          ``submission_source``), checked under the lock; a response another
+          key or a respondent made is 404 to a key;
+        * with ``editor`` (a staff member, whose permission the service
+          checked) no ownership test applies.
 
         With ``record`` the edit is also written to the revision log
-        (``response_revisions``) in the same transaction: the questions whose
-        answer really changed and the values they had, sealed. An edit that
-        changes nothing writes no entry (and, by staff, no response either).
+        (``response_revisions``) in the same transaction, whoever made it (a
+        respondent, a staff member or an API key): the questions whose answer
+        really changed and the values they had, sealed. An edit that changes
+        nothing writes no entry (and, by staff or a key, no response either).
         ``outcome``, when given, receives ``changed`` (question ids) and
         ``seq`` (the entry's number, or None)."""
+        if editor is not None and source_key_id is not None:
+            # a programming error, never a request: the three ways to edit
+            # are exclusive, and a staff permission must not widen a key's
+            raise ValueError("an edit is by a staff member or by an API key, not both")
         async with self._session() as session, session.begin():
             response_document = await _locked_doc(
                 session,
@@ -1575,10 +1592,16 @@ class PostgresFormResponseRepository(RecordRepository):
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND, content="Response not found"
                 )
-            # only the verified respondent who submitted it may edit a response
-            if editor is None and (
-                not user or response_document.dataOwnerIdentifier != user.sub
-            ):
+            if editor is not None:
+                pass  # a staff member: the service checked the permission
+            elif source_key_id is not None:
+                made_by = response_document.submission_source
+                if made_by is None or made_by.key_id != str(source_key_id):
+                    raise HTTPException(
+                        status_code=HTTPStatus.NOT_FOUND, content="Response not found"
+                    )
+            # otherwise only the verified respondent who submitted it may edit
+            elif not user or response_document.dataOwnerIdentifier != user.sub:
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
                 )
@@ -1636,6 +1659,7 @@ class PostgresFormResponseRepository(RecordRepository):
                     workspace_id,
                     editor,
                     previous,
+                    source_key_id,
                 )
                 if outcome is not None:
                     outcome["seq"] = seq
@@ -1650,13 +1674,17 @@ class PostgresFormResponseRepository(RecordRepository):
         workspace_id: RecordId,
         editor: Optional[RevisionEditor],
         previous: Dict[str, Any],
+        source_key_id: Optional[str] = None,
     ) -> int:
         """One entry of the revision log, in the edit's own transaction (the
         response row is locked, so the count and the insert cannot race): the
         questions that changed and their previous values, sealed like the
-        answers. 409 ``revision_limit`` for a staff edit once the response
-        already has ``MAX_REVISIONS`` staff entries: the history is never
-        trimmed, and a respondent's own edit is neither counted nor refused."""
+        answers. The actor is the staff member (``editor``), the API key
+        (``source_key_id``: its id, no user) or the respondent. 409
+        ``revision_limit`` for a staff or key edit once the response already has
+        ``MAX_REVISIONS`` staff and key entries: the history is never trimmed,
+        and a respondent's own edit is neither counted nor refused."""
+        assert editor is None or source_key_id is None
         response_pk = str(response_document.id)
         count = (
             await session.execute(
@@ -1665,38 +1693,45 @@ class PostgresFormResponseRepository(RecordRepository):
                 .where(ResponseRevisionRow.response_pk == response_pk)
             )
         ).scalar_one()
-        if editor is not None:
-            # the limit is on staff edits: a respondent correcting their own
-            # answers is never refused for it (it is still recorded)
-            staff_entries = (
+        if editor is not None or source_key_id is not None:
+            # the limit is on staff and key edits: a respondent correcting
+            # their own answers is never refused for it (it is still recorded)
+            limited_entries = (
                 await session.execute(
                     select(func.count())
                     .select_from(ResponseRevisionRow)
                     .where(
                         ResponseRevisionRow.response_pk == response_pk,
-                        ResponseRevisionRow.doc["actor_kind"].astext
-                        == ActorKind.STAFF.value,
+                        ResponseRevisionRow.doc["actor_kind"].astext.in_(
+                            [ActorKind.STAFF.value, ActorKind.API_KEY.value]
+                        ),
                     )
                 )
             ).scalar_one()
-            if staff_entries >= MAX_REVISIONS:
+            if limited_entries >= MAX_REVISIONS:
                 raise HTTPException(
                     HTTPStatus.CONFLICT,
                     content={
                         "code": "revision_limit",
-                        "message": "This response has been edited by staff as often as the history keeps. "
-                        "It can't be edited by staff again.",
+                        "message": "This response has been edited by staff or an API key as often as the history keeps. "
+                        "It can't be edited that way again.",
                     },
                 )
+        if editor is not None:
+            kind, actor_id, role = ActorKind.STAFF, editor.user_id, editor.role
+        elif source_key_id is not None:
+            kind, actor_id, role = ActorKind.API_KEY, str(source_key_id), None
+        else:
+            kind, actor_id, role = ActorKind.RESPONDENT, None, None
         entry = ResponseRevisionDocument(
             response_pk=response_pk,
             response_id=response_document.response_id,
             form_id=str(form_id),
             workspace_id=str(workspace_id),
             seq=count + 1,
-            actor_kind=ActorKind.RESPONDENT if editor is None else ActorKind.STAFF,
-            actor_id=editor.user_id if editor is not None else None,
-            actor_role=editor.role if editor is not None else None,
+            actor_kind=kind,
+            actor_id=actor_id,
+            actor_role=role,
             changed=sorted(previous),
             previous_values=crypto_service.encrypt(
                 workspace_id=workspace_id,

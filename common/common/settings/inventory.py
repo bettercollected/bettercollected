@@ -211,6 +211,9 @@ SERVER: Tuple[SettingSpec, ...] = (
           "Allows adding or changing layout containers (panels, tabs, field sets); "
           "containers a form already has keep working either way.",
           tier=T2),
+    _bool("SUBMISSIONS_API_ENABLED", "features", (BACKEND,), False,
+          "Lets API keys submit and update responses (off: 404, the scope can't be granted).",
+          tier=T2),
     _bool("COUPON_ENABLED", "features", (BACKEND,), False, "Enables coupon codes."),
     _int("COUPON_EXPIRY_IN_DAYS", "limits", (BACKEND,), 60, 1, 3650,
          "Days a coupon code stays valid."),
@@ -220,6 +223,10 @@ SERVER: Tuple[SettingSpec, ...] = (
     _bool("DEFAULT_SHOW_TEMPLATES", "workspace", (BACKEND,), False, "Shows the template gallery."),
     _bool("DEFAULT_SEED_FLOW_TEMPLATES", "workspace", (BACKEND,), True,
           "Seeds the built-in flow templates at startup."),
+    _bool("FORM_EMBED_ENABLED", "features", (BACKEND,), False,
+          "Lets a workspace list the sites that may show its forms in a frame (docs/embed.md); "
+          "off: no site is listed or served, the pages keep their current framing.",
+          tier=T2),
 )
 
 # ----------------------------------------------------- rate limits, retention
@@ -848,8 +855,6 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
           "API address compiled into the web app (build argument).", tier=T5, reload_class=B),
     _text("NEXT_PUBLIC_NODE_ENV", "webapp", (WEBAPP,),
           "Environment label compiled into the web app (build argument).", tier=T5, reload_class=B),
-    _text("NEXT_PUBLIC_DASHBOARD_DOMAIN", "webapp", (WEBAPP,),
-          "Dashboard domain used by the frame header (build argument).", tier=T5, reload_class=B),
     _text("NEXT_PUBLIC_APP_URL", "webapp", (WEBAPP,),
           "Public address compiled into the web app (build argument).", tier=T5, reload_class=B),
     _text("BASE_DEPLOY_PATH", "webapp", (WEBAPP,),

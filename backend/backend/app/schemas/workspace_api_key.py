@@ -26,6 +26,9 @@ class WorkspaceAPIKeyDocument(Record):
     responses_read_acknowledged_by: Optional[str] = None
     responses_read_acknowledged_at: Optional[dt.datetime] = None
     last_used_at: Optional[dt.datetime] = None
+    # With submissions:write: the forms the key may submit to (None = every
+    # form of the workspace).
+    submission_form_ids: Optional[List[str]] = None
 
     class Settings:
         name = "workspace_api_keys"

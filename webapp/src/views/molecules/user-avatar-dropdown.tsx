@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { SwitchIcon } from '@Components/icons/switch-icon';
 import { ChevronDown, UserRoundPlus } from 'lucide-react';
 
+import { openOutside } from '@app/lib/embed/embed-links';
+import { useEmbed } from '@app/lib/embed/use-embed';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { UserStatus } from '@app/models/dtos/user-status';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
@@ -57,8 +59,10 @@ const SwitchUserComponent = ({ authState, responderSignInUrl }: { authState: Use
     const router = useRouter();
     const [trigger] = useLazyLogOutQuery();
     const { t } = useRespondentLanguage();
+    const { embedded } = useEmbed();
+    // In another site's frame the sign-in page opens in a new tab (docs/embed.md).
     const handleSwitchAccount = () => {
-        responderSignInUrl && trigger('').then(() => router.push(responderSignInUrl));
+        responderSignInUrl && trigger('').then(() => (embedded ? openOutside(responderSignInUrl) : router.push(responderSignInUrl)));
     };
 
     return (

@@ -90,6 +90,7 @@ environment, whatever the tier.
 | `COUPON_ENABLED` | features | backend | bool |  | R | T1 | `false` |
 | `ENABLE_SUGGEST_PRICE` | features | backend | bool |  | R | T1 | `false` |
 | `FIELD_RULES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
+| `FORM_EMBED_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `FORM_REVISIONS_UI_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `LAYOUT_CONTAINERS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `NEW_QUESTION_TYPES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
@@ -98,6 +99,7 @@ environment, whatever the tier.
 | `RESPONSE_VALIDATION_ENFORCE` | features | backend | bool |  | R | T2 | `true` |
 | `SAVE_DRAFTS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `SIGNATURE_QUESTION_ENABLED` | features | backend | bool |  | R | T2 | `false` |
+| `SUBMISSIONS_API_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `AUTH_CALLBACK_URI` | google | backend | url |  | R | T3 |  |
 | `GOOGLE_API_SERVICE_NAME` | google | google | str max 64 |  | R | T1 | `drive` |
 | `GOOGLE_API_VERSION` | google | google | str max 16 |  | R | T1 | `v2` |
@@ -340,7 +342,6 @@ environment, whatever the tier.
 | `INTERNAL_DOCKER_API_ENDPOINT_HOST` | webapp | webapp | str |  | R | T5 |  |
 | `NEXT_PUBLIC_API_ENDPOINT_HOST` | webapp | webapp | str |  | B | T5 |  |
 | `NEXT_PUBLIC_APP_URL` | webapp | webapp | str |  | B | T5 |  |
-| `NEXT_PUBLIC_DASHBOARD_DOMAIN` | webapp | webapp | str |  | B | T5 |  |
 | `NEXT_PUBLIC_NODE_ENV` | webapp | webapp | str |  | B | T5 |  |
 | `UMAMI_SCRIPT_URL` | webapp | webapp | str |  | R | T5 |  |
 

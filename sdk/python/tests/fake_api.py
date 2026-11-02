@@ -116,6 +116,31 @@ class FakeApi:
                     "diff": diff,
                 },
             )
+        if parts[2:] == ["submissions"] and method == "POST":
+            if not body.get("consent"):
+                return self.error(
+                    422, "consent_required", "Send consent: true."
+                )
+            self.submissions = getattr(self, "submissions", {})
+            response_id = f"r{len(self.submissions) + 1}"
+            self.submissions[response_id] = body["answers"]
+            return httpx.Response(
+                201,
+                json={
+                    "responseId": response_id,
+                    "formId": form_id,
+                    "submittedAt": "2026-11-01T10:00:00+00:00",
+                    "formVersion": 1,
+                },
+            )
+        if len(parts) == 4 and parts[2] == "submissions" and method == "PATCH":
+            stored = getattr(self, "submissions", {})
+            if parts[3] not in stored:
+                return self.error(404, "not_found", "Response not found")
+            stored[parts[3]] = {**stored[parts[3]], **body["answers"]}
+            return httpx.Response(
+                200, json={"responseId": parts[3], "updatedAt": None}
+            )
         if parts[2:] == ["ops"]:
             return self.error(
                 422,

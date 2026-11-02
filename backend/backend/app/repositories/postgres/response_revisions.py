@@ -10,6 +10,7 @@ from sqlalchemy import select
 
 from backend.app.schemas.response_revision import (
     DELETED_ACTOR,
+    ActorKind,
     ResponseRevisionDocument,
 )
 from backend.db.models import ResponseRevisionRow
@@ -39,7 +40,10 @@ class PostgresResponseRevisionRepository(RecordRepository):
         changed, when, with the role), with the user replaced by
         ``DELETED_ACTOR``. Returns the entries changed."""
         changed = 0
-        for found in await self.many(ResponseRevisionRow.actor_id == str(user_id)):
+        for found in await self.many(
+            ResponseRevisionRow.actor_id == str(user_id),
+            ResponseRevisionRow.doc["actor_kind"].astext == ActorKind.STAFF.value,
+        ):
             async with self._session() as session, session.begin():
                 doc = (
                     await session.execute(

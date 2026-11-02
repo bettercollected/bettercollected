@@ -121,6 +121,9 @@ class ResponseRevisionService:
         def actor(entry) -> RevisionActorDto:
             if entry.actor_kind == ActorKind.RESPONDENT:
                 return RevisionActorDto(kind=ActorKind.RESPONDENT.value)
+            if entry.actor_kind == ActorKind.API_KEY:
+                # a workspace API key: neither its id nor a user is shown
+                return RevisionActorDto(kind=ActorKind.API_KEY.value)
             member = entry.actor_id in roles and entry.actor_id != DELETED_ACTOR
             return RevisionActorDto(
                 kind=ActorKind.STAFF.value,

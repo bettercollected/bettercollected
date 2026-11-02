@@ -25,6 +25,9 @@ MAX_REVISIONS = 200
 
 class ActorKind(str, enum.Enum):
     STAFF = "staff"
+    # a workspace API key editing a response it made (the submissions API);
+    # ``actor_id`` is the key's id, never a user
+    API_KEY = "api_key"
     # the person who submitted the response (nothing more is recorded of them)
     RESPONDENT = "respondent"
 
@@ -38,7 +41,8 @@ class ResponseRevisionDocument(Record):
     # 1.. in the order of the edits of one response
     seq: int
     actor_kind: ActorKind
-    # the user id (staff only; ``DELETED_ACTOR`` once the account is deleted)
+    # the user id (staff; ``DELETED_ACTOR`` once the account is deleted) or the
+    # API key's id (api_key); none for a respondent
     actor_id: Optional[str] = None
     # the member's role when they edited (staff only), e.g. "EDITOR"
     actor_role: Optional[str] = None

@@ -106,3 +106,26 @@ def test_the_key_comes_from_the_environment_only(api, monkeypatch):
     assert code == 1 and cli.API_KEY_ENV in err
     with pytest.raises(SystemExit):
         run("--api-key", KEY, "pull", "f1", "-o", "form.json")
+
+
+def test_submit_and_update_a_submission(api, tmp_path):
+    (tmp_path / "answers.json").write_text(json.dumps({"answers": {"name": "Ada"}}))
+    # consent is asserted on the command line, never from the file
+    code, _, err = run("submit", "f1", "answers.json")
+    assert code == 1 and "consent_required" in err
+    code, out, _ = run("submit", "f1", "answers.json", "--consent")
+    assert code == 0 and "response r1" in out
+    (tmp_path / "more.yaml").write_text(yaml.safe_dump({"answers": {"name": "Ada L."}}))
+    code, out, _ = run("update-submission", "f1", "r1", "more.yaml")
+    assert code == 0 and "response r1" in out
+    assert api.submissions["r1"] == {"name": "Ada L."}
+
+
+def test_a_submission_file_takes_answers_and_hidden_fields_only(api, tmp_path):
+    (tmp_path / "bad.json").write_text(
+        json.dumps({"answers": {}, "consent": True, "dataOwnerIdentifier": "x"})
+    )
+    code, _, err = run("submit", "f1", "bad.json", "--consent")
+    assert code == 1 and "consent" in err and "dataOwnerIdentifier" in err
+    (tmp_path / "list.json").write_text("[]")
+    assert run("submit", "f1", "list.json")[0] == 1

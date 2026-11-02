@@ -20,8 +20,9 @@ class StaffAnswersResult(CamelModel):
 
 
 class RevisionActorDto(CamelModel):
-    """Who edited: ``respondent`` (the person who answered), or ``staff``
-    with the member's current name and the role they held. ``former`` says the
+    """Who edited: ``respondent`` (the person who answered), ``api_key`` (a
+    workspace API key editing a response it made; nothing else is shown), or
+    ``staff`` with the member's current name and the role they held. ``former`` says the
     member is gone (an id never leaves)."""
 
     kind: str
