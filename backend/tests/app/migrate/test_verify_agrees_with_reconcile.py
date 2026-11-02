@@ -53,7 +53,12 @@ async def target(clean_postgres):
     # document, so Mongo's own TTL monitor (a sweep every 60 s) never deletes
     # a copy a test plants: what a test counts on is not left to a sweep
     # landing mid-test. Tests that need a drop make it themselves, at the
-    # point they mean (``ttl_deleted_after_count``, ``TtlDeletesWhileCounting``)
+    # point they mean (``ttl_deleted_after_count``, ``TtlDeletesWhileCounting``).
+    # The collection is dropped first: tests of other modules leave a plain
+    # ``expires_at_1`` TTL index behind in this worker's database, and an index
+    # of that name with other options is refused. verify finds the index by its
+    # key (``_ttl_of``), never by name, so the default name is kept
+    await database["rate_limit_counters"].drop()
     await database["rate_limit_counters"].create_index(
         "expires_at",
         expireAfterSeconds=0,
