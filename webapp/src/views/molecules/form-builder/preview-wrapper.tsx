@@ -85,7 +85,8 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                         onClick={() =>
                             openModal('SHARE_VIEW', {
                                 url: getFormShareURL(standardForm, workspace),
-                                title: t(formConstant.shareThisForm)
+                                title: t(formConstant.shareThisForm),
+                                formTitle: standardForm?.title
                             })
                         }
                     >
