@@ -674,6 +674,39 @@ class PostgresFormRepository(RecordRepository):
         ).scalar_one_or_none()
         return None if doc is None else decode(FormDocument, doc)
 
+    async def builtin_actions_were_moved(self) -> bool:
+        """Whether this instance has moved built-in actions to webhooks or email
+        actions (a row either has ``created_via`` ``migrated_builtin``)."""
+        from backend.db.models import FormEmailActionRow, FormWebhookRow
+
+        async with self._session() as session:
+            for row in (FormWebhookRow, FormEmailActionRow):
+                found = (
+                    await session.execute(
+                        select(row.id)
+                        .where(row.doc["created_via"].astext == "migrated_builtin")
+                        .limit(1)
+                    )
+                ).first()
+                if found is not None:
+                    return True
+        return False
+
+    async def mutate_draft(self, form_id: RecordId, mutate) -> Optional[FormDocument]:
+        """Apply ``mutate(stored)`` (a plain function; it may raise to refuse)
+        to the stored draft under its row lock and write it, so the change is
+        made on what is stored **now**, never on a copy read earlier: a
+        concurrent write (the move of built-in actions, a credential replaced, a
+        builder save) is kept. None when there is no draft."""
+        async with self._session() as session, session.begin():
+            stored = await self._locked_draft(session, form_id)
+            if stored is None:
+                return None
+            mutate(stored)
+            stored.updated_at = utcnow()
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return stored
+
     async def update_form(self, form_id: RecordId, form: StandardForm):
         """A whole-form save onto the stored draft (``apply_form_update``),
         under its row lock; None when there is no draft."""

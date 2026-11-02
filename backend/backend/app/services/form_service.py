@@ -25,6 +25,7 @@ from backend.app.repositories.postgres.forms import (
 from backend.app.constants.consents import default_consents
 from backend.app.constants.themes import new_form_theme
 from backend.app.exceptions import HTTPException
+from backend.app.services.builtin_actions.marks import MOVABLE_BUILTINS, entry_moved
 from backend.app.models.dtos.action_dto import (
     AddActionToFormDto,
     UpdateActionInFormDto,
@@ -823,49 +824,18 @@ class FormService:
         add_action_to_form_params: AddActionToFormDto,
         action: ActionDto,
     ):
-        form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
-        actions = []
-
-        if form.actions is not None:
-
-            if form.actions.get(add_action_to_form_params.trigger) is not None:
-                actions.extend(form.actions.get(add_action_to_form_params.trigger))
-
-            actions.append(
-                ActionState(id=add_action_to_form_params.action_id, enabled=True)
+        action_key = str(add_action_to_form_params.action_id)
+        trigger = add_action_to_form_params.trigger
+        # what needs the network or the key is worked out first; the form itself
+        # is changed under its row lock (``mutate_draft``), on what is stored now
+        form_params = None
+        if add_action_to_form_params.parameters and action.type == FormActionType.EXTERNAL:
+            form_params = await self.handle_external_integrations_services(
+                action_params=add_action_to_form_params,
+                integration_name=FormIntegrationType(action.name),
+                form_id=form_id,
             )
-
-            actions = actions
-
-            form.actions[add_action_to_form_params.trigger] = actions
-
-        else:
-            form.actions = {
-                add_action_to_form_params.trigger: [
-                    ActionState(id=add_action_to_form_params.action_id, enabled=True)
-                ]
-            }
-        if add_action_to_form_params.parameters:
-            if form.parameters is not None:
-                form.parameters[str(add_action_to_form_params.action_id)] = (
-                    add_action_to_form_params.parameters
-                )
-            else:
-                form.parameters = {
-                    str(
-                        add_action_to_form_params.action_id
-                    ): add_action_to_form_params.parameters
-                }
-            if action.type == FormActionType.EXTERNAL:
-                form_params = await self.handle_external_integrations_services(
-                    action_params=add_action_to_form_params,
-                    integration_name=FormIntegrationType(action.name),
-                    form_id=form_id,
-                )
-                form.parameters[str(add_action_to_form_params.action_id)].append(
-                    form_params
-                )
-
+        secrets = None
         if add_action_to_form_params.secrets:
             secrets = [
                 ParameterValue(
@@ -873,46 +843,87 @@ class FormService:
                 )
                 for secret in add_action_to_form_params.secrets
             ]
+        await self._refuse_moved_builtin(action)
 
-            if form.secrets is not None:
-                form.secrets[str(add_action_to_form_params.action_id)] = secrets
+        def attach(form):
+            existing = (form.actions or {}).get(trigger) or []
+            if any(
+                str(entry.id) == action_key and entry_moved(entry)
+                for entry in existing
+            ):
+                # a second entry would run the old built-in action next to its
+                # replacement
+                raise HTTPException(
+                    HTTPStatus.CONFLICT,
+                    "This action was moved to a webhook or an email action.",
+                )
+            entry = ActionState(id=add_action_to_form_params.action_id, enabled=True)
+            if form.actions is not None:
+                form.actions[trigger] = [*existing, entry]
             else:
-                form.secrets = {str(add_action_to_form_params.action_id): secrets}
+                form.actions = {trigger: [entry]}
+            if add_action_to_form_params.parameters:
+                values = list(add_action_to_form_params.parameters)
+                if form_params is not None:
+                    values.append(form_params)
+                if form.parameters is not None:
+                    form.parameters[action_key] = values
+                else:
+                    form.parameters = {action_key: values}
+            if secrets:
+                if form.secrets is not None:
+                    form.secrets[action_key] = secrets
+                else:
+                    form.secrets = {action_key: secrets}
 
-        return await self._form_repo.save_form(form)
+        return await self._form_repo.mutate_draft(form_id, attach)
+
+    async def _refuse_moved_builtin(self, action: ActionDto) -> None:
+        """Once the built-in webhook, chat and mail actions have moved to webhooks
+        and email actions, a new one is not attached to a form: it would run on
+        the executor, outside the delivery log and the privacy panel."""
+        if getattr(action, "name", None) not in MOVABLE_BUILTINS:
+            return
+        if await self._form_repo.builtin_actions_were_moved():
+            raise HTTPException(
+                HTTPStatus.CONFLICT,
+                "This action moved to webhooks and email actions: add a webhook or an email action instead.",
+            )
 
     async def remove_action_from_form(
         self, form_id: RecordId, action_id: RecordId, trigger: Trigger
     ):
-        form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
+        def detach(form):
+            if form.actions and trigger in form.actions:
+                form.actions[trigger] = [
+                    action for action in form.actions[trigger] if action.id != action_id
+                ]
+            if form.parameters and str(action_id) in form.parameters:
+                del form.parameters[str(action_id)]
+            if form.secrets and str(action_id) in form.secrets:
+                del form.secrets[str(action_id)]
 
-        if form.actions and trigger in form.actions:
-            form.actions[trigger] = [
-                action for action in form.actions[trigger] if action.id != action_id
-            ]
-
-        if form.parameters and str(action_id) in form.parameters:
-            del form.parameters[str(action_id)]
-
-        if form.secrets and str(action_id) in form.secrets:
-            del form.secrets[str(action_id)]
-
-        return (await self._form_repo.save_form(form)).actions
+        saved = await self._form_repo.mutate_draft(form_id, detach)
+        return saved.actions if saved is not None else None
 
     async def update_state_of_action_in_form(
         self, form_id: RecordId, update_action_dto: UpdateActionInFormDto
     ):
-        form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
-        if form.actions and update_action_dto.trigger in form.actions:
-            for action in form.actions[update_action_dto.trigger]:
-                if action.id == update_action_dto.action_id:
-                    action.enabled = (
-                        True
-                        if update_action_dto.update_type == ActionUpdateType.ENABLE
-                        else False
-                    )
+        enable = update_action_dto.update_type == ActionUpdateType.ENABLE
 
-        return await self._form_repo.save_form(form)
+        def toggle(form):
+            for action in (form.actions or {}).get(update_action_dto.trigger) or []:
+                if action.id == update_action_dto.action_id:
+                    if enable and entry_moved(action):
+                        # its webhook or email action delivers now: switching
+                        # the old action on would deliver everything twice
+                        raise HTTPException(
+                            HTTPStatus.CONFLICT,
+                            "This action was moved to a webhook or an email action; switch that one on instead.",
+                        )
+                    action.enabled = enable
+
+        return await self._form_repo.mutate_draft(form_id, toggle)
 
     async def handle_external_integrations_services(
         self,

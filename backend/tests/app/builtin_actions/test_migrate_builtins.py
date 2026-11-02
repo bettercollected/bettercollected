@@ -615,3 +615,174 @@ async def test_the_temporal_service_lists_only_open_run_action_workflows_of_the_
     assert await service.open_action_workflows() == ["action_x_f1_r1", "action_x_f2_r2", "action_y_f1_r3"]
     assert await service.open_action_workflows("f1") == ["action_x_f1_r1", "action_y_f1_r3"]
     assert 'WorkflowType="run_action_code"' in asked[0] and 'ExecutionStatus="Running"' in asked[0]
+
+
+# ------------------------------------------- a moved entry cannot come back on
+
+
+def _state(action, update, trigger=Trigger.on_submit):
+    from backend.app.models.dtos.action_dto import ActionUpdateType, UpdateActionInFormDto
+
+    return UpdateActionInFormDto(
+        action_id=action.id, update_type=ActionUpdateType(update), trigger=trigger
+    )
+
+
+async def force_on(form, action):
+    """The entry switched on behind the service's back (an old client, a row
+    edited by hand): the dispatch must not trust ``enabled`` alone."""
+    document = await container.form_repo().get_form_document_by_id(form.form_id)
+    for entry in document.actions[Trigger.on_submit]:
+        if str(entry.id) == str(action.id):
+            entry.enabled = True
+    await container.form_repo().save_form(document)
+
+
+async def test_a_moved_entry_that_is_switched_on_again_is_never_run_by_the_executor(
+    workspace, memory_jobs
+):
+    setup_ = await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    action = setup_.actions["send_webhook"]
+    before = await submit(workspace, setup_.form)
+    memory_jobs.jobs.clear()
+    await tool().apply()
+    await force_on(setup_.form, action)
+    after = await submit(workspace, setup_.form)
+    queues = [(j["queue_name"], j["task_name"]) for j in memory_jobs.jobs.values()]
+    assert queues == [("webhooks", "deliver_webhook")]  # the new row only: not the executor too
+    service = container.action_service()
+    # a run queued before the move still completes; one after never does, switched on or not
+    assert await service.run_in_force(workspace.id, setup_.form.form_id, action.id, before.response_id)
+    assert not await service.run_in_force(workspace.id, setup_.form.form_id, action.id, after.response_id)
+
+
+async def test_switching_a_moved_action_on_is_refused_and_off_is_fine(workspace):
+    from backend.app.exceptions import HTTPException
+
+    setup_ = await setup(workspace, FULL[:1] + FULL[5:])
+    hook, sheet = setup_.actions["send_webhook"], setup_.actions["integrate_google_sheets"]
+    await tool().apply()
+    form_service = container.form_service()
+    with pytest.raises(HTTPException) as refused:
+        await form_service.update_state_of_action_in_form(setup_.form.form_id, _state(hook, "enable"))
+    assert refused.value.status_code == 409
+    assert (await entries_of(setup_.form))[str(hook.id)].enabled is False
+    # off stays possible, and the Sheets entry (the backend runs it, on) toggles as ever
+    await form_service.update_state_of_action_in_form(setup_.form.form_id, _state(hook, "disable"))
+    await form_service.update_state_of_action_in_form(setup_.form.form_id, _state(sheet, "disable"))
+    assert (await entries_of(setup_.form))[str(sheet.id)].enabled is False
+    await form_service.update_state_of_action_in_form(setup_.form.form_id, _state(sheet, "enable"))
+    assert (await entries_of(setup_.form))[str(sheet.id)].migrated_to["kind"] == "sheets"
+
+
+async def test_an_action_that_was_moved_is_not_added_a_second_time(workspace):
+    from backend.app.exceptions import HTTPException
+    from backend.app.models.dtos.action_dto import AddActionToFormDto
+
+    setup_ = await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    action = setup_.actions["send_webhook"]
+    await tool().apply()
+    with pytest.raises(HTTPException) as refused:
+        await container.form_service().add_action_form(
+            setup_.form.form_id, AddActionToFormDto(action_id=action.id), ActionDto(name="send_webhook")
+        )
+    assert refused.value.status_code == 409
+    assert len((await entries_of(setup_.form))) == 1
+
+
+async def test_once_built_in_actions_have_moved_a_new_one_is_not_attached(workspace):
+    from backend.app.exceptions import HTTPException
+    from backend.app.models.dtos.action_dto import AddActionToFormDto
+
+    old = await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    other = await publish(workspace)
+    fresh = await builtin("send_to_slack")
+    # nothing moved yet: attaching works as ever
+    await container.form_service().add_action_form(
+        other.form_id, AddActionToFormDto(action_id=fresh.id), ActionDto(name="send_to_slack")
+    )
+    await tool().apply()
+    third = await publish(workspace)
+    with pytest.raises(HTTPException) as refused:
+        await container.form_service().add_action_form(
+            third.form_id, AddActionToFormDto(action_id=fresh.id), ActionDto(name="send_to_slack")
+        )
+    assert refused.value.status_code == 409 and "webhook" in str(refused.value.content)
+    # a custom action and the Sheets action are still attached normally
+    custom = await container.action_repository().create_global_action(
+        ActionDto(name="partner_sync", action_code="x()", type=FormActionType.EXTERNAL.value), testUser
+    )
+    await container.form_service().add_action_form(
+        third.form_id, AddActionToFormDto(action_id=custom.id), ActionDto(name="partner_sync")
+    )
+    assert str(custom.id) in (await entries_of(third))
+
+
+async def _race(workspace, specs, writer):
+    """``writer(form_id)`` is a form service call started while the move holds the
+    form's row lock; the move then writes its marks and commits. Returns the form."""
+    import asyncio
+
+    from common.records.codec import row_values
+
+    setup_ = await setup(workspace, specs)
+    repo = container.form_repo()
+    task = None
+    async with repo._session() as session, session.begin():
+        stored = await repo._locked_draft(session, setup_.form.form_id)
+        task = asyncio.create_task(writer(setup_))
+        await asyncio.sleep(0.4)  # the writer is under way: a read-then-write one has its copy by now
+        for entry in stored.actions[Trigger.on_submit]:
+            if str(entry.id) == str(setup_.actions["send_webhook"].id):
+                entry.enabled = False
+                entry.migrated_to = {"kind": "webhook", "id": "x", "was_enabled": "true"}
+        await session.execute(repo._upsert_statement(row_values(stored)))
+    await task
+    return setup_
+
+
+async def test_a_toggle_racing_the_move_does_not_write_back_a_stale_form(workspace):
+    specs = [("send_webhook", {"Webhook URL": HOOK}, True), ("send_to_slack", {"Slack Webhook URL": SLACK}, True)]
+
+    async def toggle(setup_):
+        return await container.form_service().update_state_of_action_in_form(
+            setup_.form.form_id, _state(setup_.actions["send_to_slack"], "disable")
+        )
+
+    setup_ = await _race(workspace, specs, toggle)
+    entries = await entries_of(setup_.form)
+    moved = entries[str(setup_.actions["send_webhook"].id)]
+    assert moved.migrated_to and moved.enabled is False  # the mark survived
+    assert entries[str(setup_.actions["send_to_slack"].id)].enabled is False  # and the toggle was made
+
+
+async def test_adding_an_action_racing_the_move_keeps_the_mark(workspace):
+    from backend.app.models.dtos.action_dto import AddActionToFormDto
+
+    custom = await container.action_repository().create_global_action(
+        ActionDto(name="partner_sync", action_code="x()", type=FormActionType.EXTERNAL.value), testUser
+    )
+
+    async def add(setup_):
+        return await container.form_service().add_action_form(
+            setup_.form.form_id, AddActionToFormDto(action_id=custom.id), ActionDto(name="partner_sync")
+        )
+
+    setup_ = await _race(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)], add)
+    entries = await entries_of(setup_.form)
+    assert entries[str(setup_.actions["send_webhook"].id)].migrated_to
+    assert str(custom.id) in entries
+
+
+async def test_removing_an_action_racing_the_move_keeps_the_mark(workspace):
+    specs = [("send_webhook", {"Webhook URL": HOOK}, True), ("send_to_slack", {"Slack Webhook URL": SLACK}, True)]
+
+    async def remove(setup_):
+        return await container.form_service().remove_action_from_form(
+            setup_.form.form_id, setup_.actions["send_to_slack"].id, Trigger.on_submit
+        )
+
+    setup_ = await _race(workspace, specs, remove)
+    entries = await entries_of(setup_.form)
+    assert list(entries) == [str(setup_.actions["send_webhook"].id)]
+    assert entries[str(setup_.actions["send_webhook"].id)].migrated_to
