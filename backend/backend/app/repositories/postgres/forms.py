@@ -1153,6 +1153,27 @@ class PostgresWorkspaceFormRepository(RecordRepository):
     ) -> List[WorkspaceFormDocument]:
         return await self.many(WorkspaceFormRow.workspace_id == _oid(workspace_id))
 
+    async def titles_in_workspace(
+        self, workspace_id: RecordId, form_ids: Iterable[str]
+    ) -> Dict[str, Optional[str]]:
+        """form_id -> title for the given forms that are linked into this
+        workspace (one query, the title column only: not the form's content). A
+        form deleted or linked into another workspace only is not in the
+        result."""
+        ids = [str(f) for f in dict.fromkeys(form_ids) if f]
+        if not ids:
+            return {}
+        async with self._session() as session:
+            rows = await session.execute(
+                select(WorkspaceFormRow.form_id, FormRow.title)
+                .join(FormRow, FormRow.form_id == WorkspaceFormRow.form_id)
+                .where(
+                    WorkspaceFormRow.workspace_id == _oid(workspace_id),
+                    WorkspaceFormRow.form_id.in_(ids),
+                )
+            )
+        return {str(form): title for form, title in rows.all()}
+
     @staticmethod
     def _keeping_access_mode(
         settings: Optional[WorkspaceFormSettings], stored_mode: Optional[str]

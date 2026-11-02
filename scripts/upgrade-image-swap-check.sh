@@ -430,6 +430,7 @@ services:
       FORM_EMBED_ENABLED: "true"
       SUBMISSIONS_API_ENABLED: "true"
       FORM_REVISIONS_UI_ENABLED: "true"
+      AUDIT_LOG_UI_ENABLED: "true"
       RESPONSE_REVISIONS_ENABLED: "true"
       CSV_IMPORT_ENABLED: "true"
       REUSABLE_SECTIONS_ENABLED: "true"

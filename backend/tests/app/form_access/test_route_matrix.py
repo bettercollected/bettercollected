@@ -516,6 +516,7 @@ async def world(matrix, workspace, umami, client, memory_jobs, monkeypatch):
         (settings.api_settings, "EDITOR_OPS_SAVE_ENABLED", True),
         (settings, "CSV_IMPORT_ENABLED", True),
         (settings, "FORM_REVISIONS_UI_ENABLED", True),
+        (settings, "AUDIT_LOG_UI_ENABLED", True),
         (settings, "RESPONSE_REVISIONS_ENABLED", True),
     ):
         monkeypatch.setattr(target, name, value, raising=False)

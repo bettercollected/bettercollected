@@ -164,10 +164,35 @@ class WorkspaceAuditEventRow(Base, BaseRow):
     workspace_id = S.text("workspace_id")
     session_id = S.text("session_id")
     event = S.text("event")
+    # the audit log page's filters (0038): the form, the actor and the person
+    # it was done to
+    form_id = S.text("form_id")
+    user_id = S.text("user_id")
+    target_user_id = S.text("target_user_id")
     __table_args__ = (
         Index(None, "workspace_id", "created_at"),
         # the daily purge
         Index(None, "created_at"),
+        # the page's keyset (newest first), a form's activity, what a person
+        # did and what was done to a person (0038)
+        Index("ix_workspace_audit_events_keyset", "workspace_id", "created_at", "id"),
+        Index(
+            "ix_workspace_audit_events_form",
+            "workspace_id",
+            "form_id",
+            "created_at",
+            postgresql_where=text("form_id IS NOT NULL"),
+        ),
+        Index(
+            "ix_workspace_audit_events_actor", "workspace_id", "user_id", "created_at"
+        ),
+        Index(
+            "ix_workspace_audit_events_target",
+            "workspace_id",
+            "target_user_id",
+            "created_at",
+            postgresql_where=text("target_user_id IS NOT NULL"),
+        ),
     )
 
 
