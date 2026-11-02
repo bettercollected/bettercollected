@@ -90,10 +90,12 @@ class AuthService:
         sso_policy=None,
         credential_purge_service=None,
         draft_service=None,
+        mfa_service=None,
     ):
         self.credential_purge_service = credential_purge_service
         # the account's own saved drafts, in every workspace
         self.draft_service = draft_service
+        self.mfa_service = mfa_service
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
         self.form_provider_service = form_provider_service
@@ -394,6 +396,9 @@ class AuthService:
             await self.draft_service.delete_for_account(str(user.id))
         # the export audit rows the user leaves in other workspaces stay, without them
         await self.workspace_service.forget_exports_of_user(user.id)
+        if self.mfa_service is not None:
+            # the second factor and its recovery codes go with the account
+            await self.mfa_service.delete_for_account(user.id)
         await self.delete_user_form_auth(user=user)
         await self.session_service.delete_all_for_user(user.id)
         # then the stored provider credentials, deleted now or purged by a

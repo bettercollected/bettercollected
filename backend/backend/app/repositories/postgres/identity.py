@@ -1078,6 +1078,28 @@ class PostgresSessionRepository(RecordRepository):
             )
         )
 
+    async def set_mfa(
+        self, session_id: str, user_id: str, at: datetime.datetime, method: str
+    ) -> bool:
+        """Record that ``user_id``'s live session presented a second factor
+        (``method``: "totp" or "recovery"); False when it is not theirs, or has
+        ended."""
+        if await self.get(session_id) is None:
+            return False
+
+        def change(document: SessionDocument) -> None:
+            document.mfa_at = at
+            document.mfa_method = method
+            document.updated_at = at
+
+        return bool(
+            await self._update_live(
+                change,
+                SessionRow.id == str(session_id),
+                SessionRow.user_id == str(user_id),
+            )
+        )
+
     async def delete_expired(self, now: datetime.datetime) -> int:
         return await self.delete_where(SessionRow.expires_at <= now)
 
