@@ -1681,7 +1681,7 @@
           "Submissions"
         ],
         "summary": "Submit a response to a published form",
-        "description": "Creates a response the way a respondent's submission does: the same checks and the same storage, on the form's **published** version. Answers are keyed by question id; a value is the typed answer object a response read returns, or a shorthand for the common question types. The caller asserts the respondent's consent with `\"consent\": true` when the form has a consent step. Not for forms that ask for a verified respondent (422 `respondent_identity_required`), and not for questions that take a file, a signature or a payment (422 `invalid_answers`, rule `question_not_supported`). A closed or full form answers 409 (`form_closed`, `form_not_open`, `form_full`). Each problem answer is one entry in `errors`. The response records that this API key made it (visible to staff only); no receipt and no email goes to anyone. Actions, webhooks and email actions run as for a respondent's submission. Needs `submissions:write`; an optional `Idempotency-Key` makes a retry safe.",
+        "description": "Creates a response the way a respondent's submission does: the same checks and the same storage, on the form's **published** version. Answers are keyed by question id; a value is the typed answer object a response read returns, or a shorthand for the common question types. The caller asserts the respondent's consent with `\"consent\": true` when the form has a required consent item; an optional item is accepted only when its id is in `consentItems` (422 `unknown_consent_item` for an id the form does not have), and stored as not accepted otherwise. Not for forms that ask for a verified respondent (422 `respondent_identity_required`), and not for questions that take a file, a signature or a payment (422 `invalid_answers`, rule `question_not_supported`). A closed or full form answers 409 (`form_closed`, `form_not_open`, `form_full`). Each problem answer is one entry in `errors`. The response records that this API key made it (visible to staff only); no receipt or copy of the answers goes to the respondent (there is no account to send it to). Actions, webhooks and the form's own email actions (a mail to its team, say) run as for a respondent's submission. A form takes at most 60 submissions a minute (creates and updates, all keys together; 429). Needs `submissions:write`; an optional `Idempotency-Key` makes a retry safe.",
         "operationId": "createSubmission",
         "security": [
           {
@@ -1824,7 +1824,7 @@
           "Submissions"
         ],
         "summary": "Change answers of a response this key made",
-        "description": "Partial: the questions sent replace their stored answers, the others stay. Same value shapes and the same checks as a respondent's own edit, against the form's latest published version. Only a response made through this same API key can be changed (404 for any other), and not once the form is closed (409 `form_closed`), not open yet (409 `form_not_open`), needs a verified respondent or is private (422 `respondent_identity_required`). A `null` is refused (422, rule `clear_not_supported`). Needs `submissions:write`.",
+        "description": "Partial: the questions sent replace their stored answers, the others stay. Same value shapes and the same checks as a respondent's own edit, against the form's latest published version. Only a response made through this same API key can be changed (404 for any other), and not once the form is closed (409 `form_closed`), not open yet (409 `form_not_open`), needs a verified respondent or is private (422 `respondent_identity_required`), or the response has an open deletion request (409 `deletion_requested`). A `null` is refused (422, rule `clear_not_supported`). Needs `submissions:write`.",
         "operationId": "updateSubmission",
         "security": [
           {
@@ -5455,8 +5455,25 @@
               }
             ],
             "default": null,
-            "description": "true: you assert that the respondent has given the consent the form asks for. Required when the form has a consent step; it is recorded as asserted by this API key.",
+            "description": "true: you assert that the respondent has given the consent the form requires (its required items). Needed when the form has a required consent item; it is recorded as asserted by this API key. Optional items are accepted only when named in consentItems.",
             "title": "Consent"
+          },
+          "consentItems": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "The ids of the form's optional consent items the respondent accepted. Ids the form does not have are refused (422); optional items not named are stored as not accepted.",
+            "title": "Consentitems"
           }
         },
         "required": [

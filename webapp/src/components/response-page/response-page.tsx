@@ -185,6 +185,7 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
                     <ResponseSummary
                         ref={detailsRef}
                         response={response}
+                        source={currentData?.source}
                         position={neighbours.position && neighbours.total ? { position: neighbours.position, total: neighbours.total } : undefined}
                         // the version it was given in opens read-only (the Versions page: form.read, behind its switch)
                         versionHref={formRevisionsUiEnabled && can(WorkspacePermission.FORM_READ) && typeof response.formVersion === 'number' ? formVersionUrl(workspace?.workspaceName ?? '', formId, response.formVersion) : undefined}
@@ -243,7 +244,8 @@ function NeighbourLink({ targetId, href, label, icon }: { targetId?: string; hre
  * Who answered, when (full local time with the zone) and the start of the
  * receipt number. Focusable from script only: previous/next move focus here.
  */
-const ResponseSummary = forwardRef<HTMLElement, { response: any; position?: { position: number; total: number }; versionHref?: string }>(function ResponseSummary({ response, position, versionHref }, ref) {
+// `source`: set when an API key made the response (staff only: the server never sends it to respondents)
+const ResponseSummary = forwardRef<HTMLElement, { response: any; source?: { channel: string; keyName?: string | null; consentAsserted?: boolean } | null; position?: { position: number; total: number }; versionHref?: string }>(function ResponseSummary({ response, source, position, versionHref }, ref) {
     const { t, i18n } = useTranslation();
     // The receipt number is a bearer token (anyone holding it can read the
     // response without signing in): shortened, never in full on screen,
@@ -257,12 +259,21 @@ const ResponseSummary = forwardRef<HTMLElement, { response: any; position?: { po
             <dl className="flex flex-wrap items-start gap-x-10 gap-y-4">
                 <div className="flex min-w-0 flex-col gap-1">
                     <dt className="text-xs font-medium text-black-600">{t('RESPONSE_PAGE.RESPONDER')}</dt>
-                    <dd className="flex min-w-0 items-center text-base font-medium text-black-900">{response?.dataOwnerIdentifier ? <span className="truncate [overflow-wrap:anywhere]">{response.dataOwnerIdentifier}</span> : <AnonymousBadge />}</dd>
+                    <dd className="flex min-w-0 items-center text-base font-medium text-black-900">{response?.dataOwnerIdentifier ? <span className="truncate [overflow-wrap:anywhere]">{response.dataOwnerIdentifier}</span> : source ? <span data-testid="response-source-badge" className="w-fit rounded-full bg-black-100 px-2 py-0.5 text-xs font-medium text-black-700">{t('RESPONSE_PAGE.SOURCE_API_RESPONDER')}</span> : <AnonymousBadge />}</dd>
                 </div>
                 <div className="flex flex-col gap-1">
                     <dt className="text-xs font-medium text-black-600">{t('RESPONSE_PAGE.SUBMITTED')}</dt>
                     <dd className="text-base text-black-900">{utcToLocalDateTimeWithZone(response?.createdAt, undefined, i18n.language)}</dd>
                 </div>
+                {source && (
+                    <div className="flex flex-col gap-1" data-testid="response-source">
+                        <dt className="text-xs font-medium text-black-600">{t('RESPONSE_PAGE.SOURCE')}</dt>
+                        <dd className="text-base text-black-900">
+                            {t('RESPONSE_PAGE.SOURCE_API', { name: source.keyName || '' })}
+                            {source.consentAsserted && <span className="block text-xs text-black-600">{t('RESPONSE_PAGE.SOURCE_API_CONSENT')}</span>}
+                        </dd>
+                    </div>
+                )}
                 {number && (
                     <div className="flex flex-col gap-1">
                         <dt className="text-xs font-medium text-black-600">{t('RESPONSE_PAGE.RECEIPT')}</dt>

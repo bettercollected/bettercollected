@@ -1302,6 +1302,19 @@ class WorkspaceFormService:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Response not found"
             )
+        # a pending deletion request: the data is on its way out, not changed
+        # (as for a staff edit of answers)
+        if await self.form_response_service.has_pending_deletion_request(
+            workspace_id, str(form_id), str(response_id)
+        ):
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT,
+                content={
+                    "code": "deletion_requested",
+                    "message": "This response has a deletion request, so it "
+                    "can't be changed.",
+                },
+            )
         form = await self.form_service.get_latest_version_of_form(form_id)
         if form is None:
             raise HTTPException(
