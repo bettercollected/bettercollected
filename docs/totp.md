@@ -36,9 +36,19 @@ Owners (only) can require an authenticator app for all members of a workspace (W
 ## Lost device and resets
 
 - A person who lost the device signs in with a recovery code and then makes new ones.
-- **An owner** can remove a member's app (member list, "Reset second factor") **only** for a member whose address is on one of the workspace's verified domains, or who belongs to no other workspace. Otherwise the answer is `reset_not_allowed`: the person's account reaches another workspace, so the person recovers with a recovery code or asks the administrator of the service. Nobody resets their own.
-- **The platform administrator** can remove anyone's (`DELETE /admin/users/{id}/totp`; the `ADMIN` role, never an SSO session).
-- A reset deletes the factor and its recovery codes, ends all of that person's sessions, mails them and is audited with the ids of the person who did it and the account it was done to.
+- **An owner** can remove a member's app (member list, "Reset second factor") **only** for a member whose address is on one of the workspace's verified domains (the exact domain: not a sub-domain), or who belongs to no other workspace. Otherwise the answer is `reset_not_allowed`: the person's account reaches another workspace, so the person recovers with a recovery code or asks the administrator of the service. An owner can never reset a **platform administrator's** app (`reset_admin_not_allowed`), and nobody resets their own.
+- **The platform administrator** can remove anyone's, another administrator's included (`DELETE /admin/users/{id}/totp`; the `ADMIN` role, never an SSO session).
+- **Whoever resets must have presented their own second factor in that session** (`enrol_first` otherwise), as for the workspace rule's setting: a session that passed only the first factor cannot strip anyone else's.
+- A reset deletes the factor and its recovery codes, ends all of that person's sessions, mails them (in the language they last used, else the instance's default) and is audited with the ids of the person who did it and the account it was done to. An unknown or malformed account id is a plain 404.
+
+## Runbook: someone is being locked out
+
+A lock needs the **first factor** to have passed (an email code or a Google sign-in, or a live session): wrong codes alone, from outside, only reach the per-address limit. So repeated locks on one account usually mean someone has that person's mailbox or Google account, or a person is fumbling their own app (wrong phone clock, an old entry). The step locks for 15 minutes, then 1 hour, 6 hours and 24 hours for repeated locks; a correct code starts it over. While locked, recovery codes do not work either.
+
+1. **Look.** `totp_locked` entries in the audit table and the lock mails the person gets. On the app database: `SELECT created_at, event, user_id FROM app.workspace_audit_events WHERE event IN ('totp_locked','totp_recovery_used') ORDER BY created_at DESC LIMIT 50;` (ids only; the person's address is in the auth service).
+2. **Ask the person.** If it is them: have them check that the phone's time is automatic, wait for the lock to end and use the right code or a recovery code. Nothing else is needed.
+3. **If it is not them**, treat the account as compromised: the person signs out everywhere (account settings, Sessions), secures their mailbox or Google account, and a platform administrator removes the authenticator app (`DELETE /admin/users/{id}/totp`, in a session that has presented the administrator's own second factor), which ends all of the account's sessions; the person then signs in and sets a new one up. A lock cannot be cleared without removing the app.
+4. A locked person who is a member of a workspace that requires an app can do nothing in that workspace until the lock ends or the app is reset; an owner of that workspace can reset it only under the rules above, otherwise the platform administrator does.
 
 ## Turning the switch off (the downgrade)
 
