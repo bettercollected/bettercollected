@@ -16,7 +16,7 @@ export interface paths {
         put?: never;
         /**
          * Create a draft form from a spec document
-         * @description All or nothing: the whole document is checked first; any error is a 422 listing every problem, and nothing is created. A logo URL in the document is ignored (logos are uploaded). Answers 201 with the stored document, its ETag and Location.
+         * @description All or nothing: the whole document is checked first; any error is a 422 listing every problem, and nothing is created. A logo URL in the document is ignored (logos are uploaded). Answers 201 with the stored document, its ETag and Location. A key limited to certain forms cannot create one (403 `key_form_scope`).
          */
         post: operations["createForm"];
         delete?: never;
@@ -1432,7 +1432,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1539,7 +1539,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1661,7 +1661,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1729,7 +1729,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1738,7 +1738,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description No such form (or response) in the key's workspace. */
+            /** @description No such form (or response) in the key's workspace, or the form is not on the key's list of forms. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -1848,7 +1848,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1857,7 +1857,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description No such form (or response) in the key's workspace. */
+            /** @description No such form (or response) in the key's workspace, or the form is not on the key's list of forms. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -1940,7 +1940,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1949,7 +1949,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description No such form (or response) in the key's workspace. */
+            /** @description No such form (or response) in the key's workspace, or the form is not on the key's list of forms. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2064,7 +2064,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2073,7 +2073,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description No such form (or response) in the key's workspace. */
+            /** @description No such form (or response) in the key's workspace, or the form is not on the key's list of forms. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2143,7 +2143,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2152,7 +2152,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description No such form (or response) in the key's workspace. */
+            /** @description No such form (or response) in the key's workspace, or the form is not on the key's list of forms. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2253,7 +2253,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2262,7 +2262,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description No such form (or response) in the key's workspace. */
+            /** @description No such form (or response) in the key's workspace, or the form is not on the key's list of forms. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2376,7 +2376,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2385,7 +2385,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description No such form (or response) in the key's workspace. */
+            /** @description No such form (or response) in the key's workspace, or the form is not on the key's list of forms. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2455,7 +2455,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2464,7 +2464,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description No such form (or response) in the key's workspace. */
+            /** @description No such form (or response) in the key's workspace, or the form is not on the key's list of forms. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2523,7 +2523,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2532,7 +2532,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description No such form (or response) in the key's workspace. */
+            /** @description No such form (or response) in the key's workspace, or the form is not on the key's list of forms. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2595,7 +2595,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2604,7 +2604,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description No such form (or response) in the key's workspace. */
+            /** @description No such form (or response) in the key's workspace, or the form is not on the key's list of forms. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2687,7 +2687,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2696,7 +2696,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description No such form (or response) in the key's workspace. */
+            /** @description No such form (or response) in the key's workspace, or the form is not on the key's list of forms. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2787,7 +2787,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The key lacks the scope, or its creator lacks the permission. */
+            /** @description The key lacks the scope, its creator lacks the permission, or the key's role or form list does not allow it (`key_role_lacks_permission`, `key_form_scope`). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2796,7 +2796,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description No such form (or response) in the key's workspace. */
+            /** @description No such form (or response) in the key's workspace, or the form is not on the key's list of forms. */
             404: {
                 headers: {
                     [name: string]: unknown;

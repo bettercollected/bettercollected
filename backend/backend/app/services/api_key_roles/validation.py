@@ -100,6 +100,14 @@ def check_matrix(role: Optional[str], form_scope: str, scopes: Iterable[str]) ->
                 "scope_not_allowed_for_listed_key",
                 f"A key limited to forms cannot carry the scope '{scope}'.",
             )
+        if scope not in SCOPE_PERMISSIONS:
+            # a scope this server no longer knows grants nothing: refuse the
+            # edit with a reason, never a crash
+            refuse(
+                "unknown_key_scope",
+                f"This key carries the scope '{scope}', which this server does "
+                "not know. Revoke it and create a new key.",
+            )
         needed = set(SCOPE_PERMISSIONS[scope])
         if ceiling is not None and not needed <= ceiling:
             refuse(
