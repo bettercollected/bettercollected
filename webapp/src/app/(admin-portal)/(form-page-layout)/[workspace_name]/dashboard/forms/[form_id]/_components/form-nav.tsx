@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import PrivateFormButtonWrapper from '@Components/common/private-form-button-wrapper';
-import { ArrowLeft, BarChart3, Edit2, History, Inbox, LayoutGrid, type LucideIcon, Play, Settings, Share2, Trash2 } from 'lucide-react';
+import { ArrowLeft, BarChart3, Edit2, History, Inbox, LayoutGrid, type LucideIcon, Play, ScrollText, Settings, Share2, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import FormOptionsDropdownMenu from '@app/components/datatable/form-options-dropdown';
@@ -52,6 +52,8 @@ interface NavInput {
     pathname: string;
     can: (permission: WorkspacePermission) => boolean;
     formRevisionsUiEnabled: boolean;
+    /** The Activity pages are on for this server (its AUDIT_LOG_UI_ENABLED). */
+    auditLogUiEnabled?: boolean;
     t: (key: string) => string;
 }
 
@@ -63,7 +65,7 @@ interface NavInput {
  * Analytics and Share while the form is open, Versions (server flag, form.read);
  * Settings for form.edit, with the pages that form has (`settingsPages`).
  */
-export function buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled, t }: NavInput): FormNavItem[] {
+export function buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled, auditLogUiEnabled = false, t }: NavInput): FormNavItem[] {
     const on = (...paths: string[]) => paths.some((path) => pathname.includes(`/${path}`));
     const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
     const deletion = (icon: LucideIcon): FormNavItem => ({ key: 'deletion-requests', label: t(formConstant.deletionRequests), href: `${base}/deletion-requests`, icon, count: form?.deletionRequests ?? 0, active: on('deletion-requests') });
@@ -93,6 +95,11 @@ export function buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled
             items.push({ key: 'versions', label: t('FORM_VERSIONS.TAB'), href: `${base}/versions`, icon: History, active: on('versions') });
         }
     }
+    // who changed what for this form, after Versions: for audit.read (Owner, Admin and the Privacy officer, who has no
+    // form.edit) while the server's AUDIT_LOG_UI_ENABLED is on. A grantee Editor does not hold audit.read, so never sees it.
+    if (auditLogUiEnabled && can(WorkspacePermission.AUDIT_READ)) {
+        items.push({ key: 'activity', label: t('AUDIT_LOG.NAV'), href: `${base}/activity`, icon: ScrollText, active: on('activity') });
+    }
     if (can(WorkspacePermission.FORM_EDIT)) {
         items.push({
             key: 'settings',
@@ -121,8 +128,8 @@ export function currentItem(items: FormNavItem[]): FormNavItem | undefined {
 export function useFormNav(form: StandardFormDto, base: string): FormNavItem[] {
     const { t } = useTranslation();
     const pathname = usePathname() ?? '';
-    const { can, formRevisionsUiEnabled } = useWorkspacePermissions();
-    return useMemo(() => buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled: !!formRevisionsUiEnabled, t: (key) => t(key) }), [form, base, pathname, can, formRevisionsUiEnabled, t]);
+    const { can, formRevisionsUiEnabled, auditLogUiEnabled } = useWorkspacePermissions();
+    return useMemo(() => buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled: !!formRevisionsUiEnabled, auditLogUiEnabled: !!auditLogUiEnabled, t: (key) => t(key) }), [form, base, pathname, can, formRevisionsUiEnabled, auditLogUiEnabled, t]);
 }
 
 /* --------------------------------------------------------------- the bar */
