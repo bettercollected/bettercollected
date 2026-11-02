@@ -91,6 +91,17 @@ const SAMPLES: Record<(typeof AUDIT_EVENTS)[number], Partial<AuditEntryDto>> = {
 const entry = (event: string, extra: Partial<AuditEntryDto> = {}): AuditEntryDto => ({ id: 'e1', event, at: '2026-11-01T12:00:00Z', ...extra });
 const say = (lng: 'en' | 'nl', e: AuditEntryDto, formId?: string) => describeEntry(e, { labels: LABELS, t: i18n.getFixedT(lng) as any, formId });
 
+describe('team link entries', () => {
+    it('say whether a directory group was linked or unlinked, in both languages', () => {
+        const linked = entry('team_linked', { actorId: 'u_sanne', groupId: 'g_intake', linked: true });
+        const unlinked = entry('team_linked', { actorId: 'u_sanne', groupId: 'g_intake', linked: false });
+        expect(say('en', linked).text).toContain('linked a directory group to the team Intake');
+        expect(say('en', unlinked).text).toContain('unlinked a directory group from the team Intake');
+        expect(say('nl', linked).text).toContain('koppelde een directorygroep aan het team Intake');
+        expect(say('nl', unlinked).text).toContain('ontkoppelde een directorygroep van het team Intake');
+    });
+});
+
 describe('the sentence table', () => {
     it('lists every kind the server can return (backend services/audit_log/catalog.py)', () => {
         const catalog = resolve(__dirname, '../../../../backend/backend/app/services/audit_log/catalog.py');

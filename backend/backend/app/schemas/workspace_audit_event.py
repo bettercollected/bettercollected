@@ -290,6 +290,10 @@ class WorkspaceAuditEventDocument(Record):
     grant_export: Optional[bool] = None
     access_mode: Optional[str] = None
     count: Optional[int] = None
+    # TEAM_LINKED: the directory group (our id for it), and whether it was
+    # linked to the team (``group_id``) or unlinked from it
+    scim_group_id: Optional[str] = None
+    linked: Optional[bool] = None
     # MEMBER_*: the invitation, the role it gives or the member now holds (an
     # enum value of WorkspaceRoles) and, for a change, the one it replaced
     invitation_id: Optional[str] = None

@@ -23,6 +23,9 @@ export interface AuditEntryDto {
     grantRole?: string | null;
     grantExport?: boolean | null;
     accessMode?: string | null;
+    // team_linked: a directory group was linked to the team (groupId), or unlinked from it
+    linked?: boolean | null;
+    scimGroupId?: string | null;
     role?: string | null;
     previousRole?: string | null;
     count?: number | null;

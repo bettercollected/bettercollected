@@ -47,7 +47,11 @@ from backend.app.repositories.postgres.identity import (
     PostgresWorkspaceRepository,
     PostgresWorkspaceUserRepository,
 )
-from backend.app.schemas.workspace_audit_event import REVOKED_SCIM_DEPROVISIONED
+from backend.app.schemas.workspace_audit_event import (
+    REVOKED_SCIM_DEPROVISIONED,
+    TEAM_LINKED,
+)
+from backend.app.services.form_access import audit as access_audit
 from backend.app.schemas.workspace_user import (
     DISABLED_BY_DIRECTORY,
     DISABLED_BY_SEAT_LIMIT,
@@ -189,6 +193,8 @@ class ScimSyncService:
         session_service: SessionService,
         http_client,
         email_action_service=None,
+        audit_repo=None,
+        team_link_repo=None,
     ):
         self._directories = directory_repo
         self._users = user_repo
@@ -201,6 +207,8 @@ class ScimSyncService:
         self._sessions = session_service
         self._email_actions = email_action_service
         self._http = http_client
+        self._audit = audit_repo
+        self._team_links = team_link_repo
 
     # -- the auth service -----------------------------------------------------
     async def _account(self, user: DirectoryUser, create: bool):
@@ -580,6 +588,29 @@ class ScimSyncService:
         await self._groups.save(group)
         return group
 
+    async def _drop_group(self, group: ScimGroupDocument) -> None:
+        """The directory no longer has the group: its memberships, the group
+        and its link to a team go (the team keeps its other members and its
+        grants; who it held through this group is read from the group, so they
+        are out at once). The audit entry (ids only, best effort: the
+        directory's change is not held up) is written for the link row that was
+        actually removed, after the group is gone, so a link made while this
+        ran is recorded too."""
+        await self._members.delete_by_group(group.id)
+        await self._groups.delete(group.id)
+        if self._team_links is None:
+            return
+        for team_id in await self._team_links.delete_for_group(group.id):
+            await access_audit.record(
+                self._audit,
+                TEAM_LINKED,
+                group.workspace_id,
+                SystemActor("scim"),
+                group_id=team_id,
+                scim_group_id=str(group.id),
+                linked=False,
+            )
+
     async def delete_group(
         self, directory: ScimDirectoryDocument, polis_group_id: str
     ) -> int:
@@ -588,8 +619,7 @@ class ScimSyncService:
             return 0
         links = await self._members.list_by_group(group.id)
         records = await self._users.list_by_ids([link.scim_user_id for link in links])
-        await self._members.delete_by_group(group.id)
-        await self._groups.delete(group.id)
+        await self._drop_group(group)
         workspace = await self._workspace_repo.find_by_id(directory.workspace_id)
         return await self.recompute(records, workspace)
 
@@ -777,8 +807,7 @@ class ScimSyncService:
         # previous directory's groups keep their mapping until matched)
         for group in await self._groups.list_by_directory(directory.id):
             if group.id not in seen_groups and not (group.replaced and in_grace):
-                await self._members.delete_by_group(group.id)
-                await self._groups.delete(group.id)
+                await self._drop_group(group)
         # 3. every user's membership, status and role
         for user in parsed:
             try:

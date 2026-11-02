@@ -110,6 +110,7 @@ NO_DOCUMENT_CLASS = {
     "member_groups",
     "member_group_members",
     "form_access_grants",
+    "scim_group_team_links",
 }
 
 # The document classes, all on ``Record`` (every group is served from Postgres

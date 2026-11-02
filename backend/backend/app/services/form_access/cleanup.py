@@ -66,7 +66,9 @@ class FormAccessCleanup:
         )
 
     async def forget_team(self, workspace_id, group_id) -> Tuple[int, bool]:
-        """The team is deleted: its grants and its member rows go with it.
+        """The team is deleted: its grants and its member rows go with it, and
+        (in the same transaction as the team) the directory groups linked to it
+        are unlinked.
         Returns ``(grants removed, team existed)``."""
         # the team first: a failure after it leaves grants for a team that is
         # gone (inert: nobody is in it, and none can be added), never a team
