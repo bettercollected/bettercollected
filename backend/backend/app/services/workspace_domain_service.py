@@ -44,7 +44,13 @@ from backend.app.services.domains.names import (
     domain_of,
 )
 from backend.app.models.enum.permission import Permission
+from backend.app.schemas.workspace_audit_event import (
+    DOMAIN_CLAIMED,
+    DOMAIN_REMOVED,
+    DOMAIN_VERIFIED,
+)
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_access import audit
 from backend.config import settings
 
 # check outcome stored when another workspace holds the domain verified
@@ -102,7 +108,10 @@ class WorkspaceDomainService:
         authorization_service: AuthorizationService,
         domain_repo: PostgresWorkspaceDomainRepository,
         resolver_factory: Optional[Callable] = None,
+        audit_repo=None,
     ):
+        # the workspace's audit log (the claim's id only, never the domain)
+        self._audit_repo = audit_repo
         self._authorization = authorization_service
         self._domain_repo = domain_repo
         self._resolver_factory = resolver_factory or self._default_resolver
@@ -163,6 +172,14 @@ class WorkspaceDomainService:
             await self._domain_repo.create(document)
         except DomainAlreadyClaimed:
             raise self._already_claimed()
+        # a claim does nothing until it is verified: best effort
+        await audit.record(
+            self._audit_repo,
+            DOMAIN_CLAIMED,
+            workspace_id,
+            user,
+            domain_id=str(document.id),
+        )
         return await self._to_dto(document)
 
     async def verify_domain(
@@ -172,7 +189,7 @@ class WorkspaceDomainService:
         and ``lastCheckError``; only a missing claim is an error (404)."""
         await self._authorize(workspace_id, user)
         document = await self._claim_in_workspace(workspace_id, domain_id)
-        document = await self._check(document, verified_by=str(user.id))
+        document = await self._check(document, verified_by=str(user.id), by=user)
         return await self._to_dto(document)
 
     async def delete_domain(
@@ -181,6 +198,15 @@ class WorkspaceDomainService:
         """Remove the claim; a verified domain is released for others."""
         await self._authorize(workspace_id, user)
         document = await self._claim_in_workspace(workspace_id, domain_id)
+        # single sign-on and directory sync depend on a verified domain, and
+        # releasing it hands it to whoever claims it next: recorded first
+        await audit.record_or_refuse(
+            self._audit_repo,
+            DOMAIN_REMOVED,
+            workspace_id,
+            user,
+            domain_id=str(document.id),
+        )
         await self._domain_repo.delete(document.id)
 
     # -- for single sign-on ---------------------------------------------------
@@ -279,8 +305,13 @@ class WorkspaceDomainService:
         return document
 
     async def _check(
-        self, document: WorkspaceDomainDocument, verified_by: Optional[str] = None
+        self,
+        document: WorkspaceDomainDocument,
+        verified_by: Optional[str] = None,
+        by: Optional[User] = None,
     ) -> WorkspaceDomainDocument:
+        """``by``: the person who asked for the check; a claim they verify is
+        recorded (the periodic re-check never verifies a claim)."""
         now = _now()
         owner = await self._domain_repo.find_verified(document.domain)
         if owner is not None and owner.id != document.id:
@@ -297,6 +328,16 @@ class WorkspaceDomainService:
         document.verification_lost_at = None
         if document.status == DomainStatus.VERIFIED:
             return await self._domain_repo.save(document)
+        if by is not None:
+            # a verified domain hands its addresses to this workspace's single
+            # sign-on: recorded before it is stored, or the check is refused
+            await audit.record_or_refuse(
+                self._audit_repo,
+                DOMAIN_VERIFIED,
+                document.workspace_id,
+                by,
+                domain_id=str(document.id),
+            )
         document.status = DomainStatus.VERIFIED
         document.verified_domain = document.domain
         document.verified_at = now

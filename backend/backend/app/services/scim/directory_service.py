@@ -37,7 +37,14 @@ from backend.app.schemas.scim import (
     ScimDirectoryDocument,
     ScimUserState,
 )
+from backend.app.schemas.workspace_audit_event import (
+    SCIM_GROUP_ROLE_CHANGED,
+    SCIM_TOKEN_CREATED,
+    SCIM_TOKEN_REVOKED,
+    SCIM_TOKEN_ROTATED,
+)
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_access import audit
 from backend.app.services.scim.polis_dsync import (
     PolisDirectoryClient,
     scim_endpoint,
@@ -235,7 +242,10 @@ class ScimDirectoryService:
         sync_service: ScimSyncService,
         polis: PolisDirectoryClient,
         crypto,
+        audit_repo=None,
     ):
+        # the workspace's audit log (ids and enum values only, never a token)
+        self._audit_repo = audit_repo
         self._authorization = authorization_service
         self._directories = directory_repo
         self._users = user_repo
@@ -376,6 +386,15 @@ class ScimDirectoryService:
         directory_id = RecordId()
         name = (request.name or "").strip() or DIRECTORY_TYPES[request.type]
         webhook_secret = secrets.token_urlsafe(32)
+        # a token that can provision members is about to exist: recorded first
+        await audit.record_or_refuse(
+            self._audit_repo,
+            SCIM_TOKEN_CREATED,
+            workspace_id,
+            user,
+            directory_id=str(directory_id),
+            directory_type=request.type,
+        )
         try:
             created = await self._polis.create_directory(
                 str(workspace_id),
@@ -432,6 +451,15 @@ class ScimDirectoryService:
         self._require_available()
         directory = await self._directory(workspace_id)
         webhook_secret = secrets.token_urlsafe(32)
+        # a new token replaces the old one, which stops working: recorded first
+        await audit.record_or_refuse(
+            self._audit_repo,
+            SCIM_TOKEN_ROTATED,
+            workspace_id,
+            user,
+            directory_id=str(directory.id),
+            directory_type=directory.type,
+        )
         try:
             created = await self._polis.create_directory(
                 str(workspace_id),
@@ -522,6 +550,15 @@ class ScimDirectoryService:
         seat is free; otherwise they stay disabled (``seat_limit``)."""
         await self._authorize_owner(workspace_id, user)
         directory = await self._directory(workspace_id)
+        # the token stops working and the directory's records go: recorded first
+        await audit.record_or_refuse(
+            self._audit_repo,
+            SCIM_TOKEN_REVOKED,
+            workspace_id,
+            user,
+            directory_id=str(directory.id),
+            directory_type=directory.type,
+        )
         if settings.sso.is_configured:
             try:
                 await self._polis.delete_directory(directory.polis_directory_id)
@@ -562,6 +599,18 @@ class ScimDirectoryService:
                 HTTPStatus.UNPROCESSABLE_ENTITY,
                 "invalid_role",
                 "That role can't be given by a directory group.",
+            )
+        if role != group.role:
+            # a group's members get this role: recorded first, or refused
+            await audit.record_or_refuse(
+                self._audit_repo,
+                SCIM_GROUP_ROLE_CHANGED,
+                workspace_id,
+                user,
+                directory_id=str(directory.id),
+                group_id=str(group.id),
+                role=role,
+                previous_role=group.role,
             )
         group.role = role
         group.needs_review = None
