@@ -126,8 +126,10 @@ export function resolvePipeValue(kind: PipeKind | string, pipeKey: string, conte
     return formatPipeValue(getComparableAnswerValue(context.answers?.[pipeKey], field.type));
 }
 
-// `{{field:<id>}}` / `{{hidden:<name>|fallback}}` — key stops at `|` or `}`.
-const TEXT_PIPE_PATTERN = /\{\{\s*(field|hidden|group)\s*:\s*([^}|]+?)\s*(?:\|([^}]*))?\}\}/g;
+// `{{field:<id>}}` / `{{hidden:<name>|fallback}}` — the key stops at `|` or a brace. It is trimmed in code, not
+// in the pattern: a lazy `\s*([^}|]+?)\s*` backtracks cubically on a long run of spaces. A key that is
+// empty (no character at all) is not a pipe.
+const TEXT_PIPE_PATTERN = /\{\{\s*(field|hidden|group)\s*:([^|{}]*)(?:\|([^{}]*))?\}\}/g;
 
 /**
  * Turn a plain-string title into TipTap JSON, text tokens becoming pipe
@@ -141,6 +143,7 @@ export function stringTitleToDoc(text: string, marks?: JSONContent['marks']): JS
     TEXT_PIPE_PATTERN.lastIndex = 0;
     let match: RegExpExecArray | null;
     while ((match = TEXT_PIPE_PATTERN.exec(text)) !== null) {
+        if (!match[2]) continue;
         if (match.index > last) content.push(withMarks({ type: 'text', text: text.slice(last, match.index) }));
         content.push(withMarks({ type: ANSWER_PIPE_NODE, attrs: { kind: match[1], pipeKey: match[2].trim(), label: match[2].trim(), fallback: (match[3] ?? '').trim() } }));
         last = match.index + match[0].length;
@@ -154,6 +157,7 @@ export function stringTitleToDoc(text: string, marks?: JSONContent['marks']): JS
 export function resolvePipesInText(text: string | null | undefined, context: PipeContext): string | null | undefined {
     if (!text || typeof text !== 'string') return text;
     return text.replace(TEXT_PIPE_PATTERN, (_match, kind, key, fallback) => {
+        if (!key) return _match;
         return resolvePipeValue(kind, key.trim(), context) ?? (fallback ?? '').trim();
     });
 }
@@ -190,8 +194,8 @@ export function resolvePipesInTitle(title: JSONContent | string | undefined, con
 export function titleHasPipes(title: JSONContent | string | undefined): boolean {
     if (!title) return false;
     if (typeof title === 'string') {
-        TEXT_PIPE_PATTERN.lastIndex = 0;
-        return TEXT_PIPE_PATTERN.test(title);
+        for (const match of title.matchAll(TEXT_PIPE_PATTERN)) if (match[2]) return true;
+        return false;
     }
     if (title.type === ANSWER_PIPE_NODE) return true;
     return (title.content ?? []).some((child) => titleHasPipes(child));
