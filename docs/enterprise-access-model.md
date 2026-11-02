@@ -79,6 +79,7 @@ Respondent feedback (#760, #762) is currently admin-only. It moves to `response.
 Each form has an **access mode**:
 - `workspace` (default; every existing form): members use their workspace role on it, as today.
 - `restricted`: only the **creator**, **Owner/Admins**, and **grantees** have access. Members see nothing else of it, not even in listings. The Privacy officer still sees its structure and its deletion requests, but no answers.
+  - **Templates:** a template has no access mode and is visible to every member, so only an Owner, an Admin or the creator may save a restricted form as one (403 `template_from_restricted_form`; a Private form with no mode chosen counts as restricted). A grantee, even an Editor, cannot. Answers are never part of a template.
 
 A **form grant** is `(form, principal, form role, export?)`:
 - **Principal:** a user, or a **member group**.
