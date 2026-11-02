@@ -4,6 +4,8 @@
     bettercollected diff form.json                   what push would change
     bettercollected push form.json [--force]         replace the form
     bettercollected validate form.json
+    bettercollected submit <form-id> answers.json --consent
+    bettercollected update-submission <form-id> <response-id> answers.json
 
 JSON is the canonical format; YAML (.yaml/.yml) is read and written too.
 The API key comes from ``BETTERCOLLECTED_API_KEY`` only (never a flag, so it
@@ -218,6 +220,44 @@ def cmd_validate(args, out) -> int:
     return 0 if result.valid else 1
 
 
+def _answers_body(path: Path) -> dict:
+    """The file of a submission: ``{"answers": {...}}`` (``hiddenFields`` is
+    optional). Nothing else is sent: consent is the command line's to assert."""
+    document = read_document(path)
+    if not isinstance(document, dict) or not isinstance(document.get("answers"), dict):
+        raise CliError(f'{path} must hold an object with an "answers" object.')
+    unknown = set(document) - {"answers", "hiddenFields"}
+    if unknown:
+        raise CliError(
+            f"{path} has keys the submission does not take: {', '.join(sorted(unknown))}."
+        )
+    return document
+
+
+def cmd_submit(args, out) -> int:
+    body = _answers_body(Path(args.file))
+    with _client(args) as client:
+        created = client.create_submission(
+            args.form_id,
+            body["answers"],
+            consent=True if args.consent else None,
+            hidden_fields=body.get("hiddenFields"),
+            idempotency_key=args.idempotency_key,
+        )
+    print(f"Submitted: response {created.response_id}", file=out)
+    return 0
+
+
+def cmd_update_submission(args, out) -> int:
+    body = _answers_body(Path(args.file))
+    with _client(args) as client:
+        updated = client.update_submission(
+            args.form_id, args.response_id, body["answers"]
+        )
+    print(f"Updated: response {updated.response_id}", file=out)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="bettercollected",
@@ -248,6 +288,29 @@ def build_parser() -> argparse.ArgumentParser:
                 help="Overwrite the current version, even if it changed since the pull.",
             )
         command.set_defaults(run=run)
+
+    submit = commands.add_parser(
+        "submit",
+        help="Submit a response to a published form (needs the submissions:write scope).",
+    )
+    submit.add_argument("form_id")
+    submit.add_argument("file", help='JSON or YAML: {"answers": {"<question id>": ...}}')
+    submit.add_argument(
+        "--consent",
+        action="store_true",
+        help="Assert that the respondent has given the consent the form asks for.",
+    )
+    submit.add_argument("--idempotency-key", help="Makes a retry safe (24 hours).")
+    submit.set_defaults(run=cmd_submit)
+
+    update = commands.add_parser(
+        "update-submission",
+        help="Change answers of a response this API key made.",
+    )
+    update.add_argument("form_id")
+    update.add_argument("response_id")
+    update.add_argument("file", help='JSON or YAML: {"answers": {"<question id>": ...}}')
+    update.set_defaults(run=cmd_update_submission)
 
     validate = commands.add_parser("validate", help="Check a file.")
     validate.add_argument("file")

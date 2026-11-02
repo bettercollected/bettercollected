@@ -2217,7 +2217,7 @@
   "document": "FormImportDocument"
  },
  "form_responses/full": {
-  "checksum": "sha256:4f74fc4596f566d3136de278e964405c0eb840510e5b411f834bfcf331e3f10b",
+  "checksum": "sha256:036e5a37f1605f60d8c413115ad934b87346a743acf795acfb9fd0f1709f8f7d",
   "doc": {
    "_id": {
     "$oid": "2badfbd5705103813c283a21"
@@ -2644,6 +2644,12 @@
      }
     }
    },
+   "submission_source": {
+    "channel": "api",
+    "consent_asserted": true,
+    "key_id": "FormResponseDocument.submission_source.key_id tëxt ✓ \"quoted\" \\ line\nbreak",
+    "key_name": "FormResponseDocument.submission_source.key_name tëxt ✓ \"quoted\" \\ line\nbreak"
+   },
    "submission_uuid": "FormResponseDocument.submission_uuid tëxt ✓ \"quoted\" \\ line\nbreak",
    "updated_at": "2026-02-03T04:05:06.789012+00:00",
    "workspace_id": {
@@ -2653,7 +2659,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/minimal": {
-  "checksum": "sha256:44b9f86237c1c324ac7e556288892d59415da1f7320ddffb1ec04dae5c5936d6",
+  "checksum": "sha256:2478363151c484f05bbc7202cda0d2734198a4d3dde698a1e66292de2f723ca6",
   "doc": {
    "_id": {
     "$oid": "539dc6c4ce1df29da7f7f496"
@@ -2682,6 +2688,7 @@
    "response_id": null,
    "shared_as_choices": null,
    "state": null,
+   "submission_source": null,
    "submission_uuid": null,
    "updated_at": "2026-02-03T04:05:06.789012+00:00",
    "workspace_id": null
@@ -2689,7 +2696,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/naive": {
-  "checksum": "sha256:ab2d3f53351749c74384e445f3bdcdbaec1860db571b7bdac26e6fab656cd1e9",
+  "checksum": "sha256:18ea7e43d664d0f9336fa239aae70d50902000bf1a0253c764a1ee930d833a8c",
   "doc": {
    "_id": {
     "$oid": "10cd94a70aa205bdc7631e61"
@@ -3116,6 +3123,12 @@
      }
     }
    },
+   "submission_source": {
+    "channel": "api",
+    "consent_asserted": true,
+    "key_id": "FormResponseDocument.submission_source.key_id tëxt ✓ \"quoted\" \\ line\nbreak",
+    "key_name": "FormResponseDocument.submission_source.key_name tëxt ✓ \"quoted\" \\ line\nbreak"
+   },
    "submission_uuid": "FormResponseDocument.submission_uuid tëxt ✓ \"quoted\" \\ line\nbreak",
    "updated_at": "2026-02-03T04:05:06.789012",
    "workspace_id": {
@@ -3125,7 +3138,7 @@
   "document": "FormResponseDocument"
  },
  "form_responses/nulls": {
-  "checksum": "sha256:f67f8fb0eda1ec706e0c8805363b78b93117d0bfc6eafe46abaf85693c88b843",
+  "checksum": "sha256:88e9f10e2105e69ac672137395fa0223a7736977e64e261e8f0eada87dc4c71e",
   "doc": {
    "_id": {
     "$oid": "75ee3a989c3d2809e5805fb7"
@@ -3154,6 +3167,7 @@
    "response_id": null,
    "shared_as_choices": null,
    "state": null,
+   "submission_source": null,
    "submission_uuid": null,
    "updated_at": "2026-02-03T04:05:06.789012+00:00",
    "workspace_id": null
@@ -8274,7 +8288,7 @@
   "document": "WorkspaceAIProfileDocument"
  },
  "workspace_api_keys/full": {
-  "checksum": "sha256:aaf24a7182b8d714872d5328b4eedde594fcd1714177976af61fd4703ca22e4b",
+  "checksum": "sha256:77187e1a0737422b64901153d361c728a7c8c658953b6fbb0ac0f86eeab4570c",
   "doc": {
    "_id": {
     "$oid": "0929f72fe78ffd00ab0c752d"
@@ -8292,6 +8306,10 @@
     "WorkspaceAPIKeyDocument.scopes[0] tëxt ✓ \"quoted\" \\ line\nbreak",
     "WorkspaceAPIKeyDocument.scopes[1] tëxt ✓ \"quoted\" \\ line\nbreak"
    ],
+   "submission_form_ids": [
+    "WorkspaceAPIKeyDocument.submission_form_ids[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+    "WorkspaceAPIKeyDocument.submission_form_ids[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+   ],
    "updated_at": "2026-02-03T04:05:06.789012+00:00",
    "workspace_id": {
     "$oid": "162868b04e551880199db31e"
@@ -8300,7 +8318,7 @@
   "document": "WorkspaceAPIKeyDocument"
  },
  "workspace_api_keys/minimal": {
-  "checksum": "sha256:95315b301c6de702eb129d4560c3e8ef27934f0a07a0097994e7e071eaf20278",
+  "checksum": "sha256:e5f82024572f2b4b61e67d19ce293940425911a114b39230c58add2c1f5a41bd",
   "doc": {
    "_id": {
     "$oid": "fd86952369f1803d29bfa5b3"
@@ -8315,6 +8333,7 @@
    "responses_read_acknowledged_by": null,
    "revoked": false,
    "scopes": [],
+   "submission_form_ids": null,
    "updated_at": "2026-02-03T04:05:06.789012+00:00",
    "workspace_id": {
     "$oid": "162868b04e551880199db31e"
@@ -8323,7 +8342,7 @@
   "document": "WorkspaceAPIKeyDocument"
  },
  "workspace_api_keys/naive": {
-  "checksum": "sha256:6c291eaa18dcc4508c97300a586245746ab70c672a2f6fcac08532faf02ea3d3",
+  "checksum": "sha256:65ad81a88bc5b0abd169d50ec3c022d4cc905c408f36cf04d6b52e53852741d7",
   "doc": {
    "_id": {
     "$oid": "6874974a413583e9fc6d4717"
@@ -8341,6 +8360,10 @@
     "WorkspaceAPIKeyDocument.scopes[0] tëxt ✓ \"quoted\" \\ line\nbreak",
     "WorkspaceAPIKeyDocument.scopes[1] tëxt ✓ \"quoted\" \\ line\nbreak"
    ],
+   "submission_form_ids": [
+    "WorkspaceAPIKeyDocument.submission_form_ids[0] tëxt ✓ \"quoted\" \\ line\nbreak",
+    "WorkspaceAPIKeyDocument.submission_form_ids[1] tëxt ✓ \"quoted\" \\ line\nbreak"
+   ],
    "updated_at": "2026-02-03T04:05:06.789012",
    "workspace_id": {
     "$oid": "162868b04e551880199db31e"
@@ -8349,7 +8372,7 @@
   "document": "WorkspaceAPIKeyDocument"
  },
  "workspace_api_keys/nulls": {
-  "checksum": "sha256:592cbc2d072f62939024ab2d2abf8bbd3ec9367735d98a82f53a6bb8a473382d",
+  "checksum": "sha256:1a83a9392c04f176b8d6b03a853461488ede3919e1fc474be1d28a249b3b45c7",
   "doc": {
    "_id": {
     "$oid": "f5ef0c0b492768ee823ad388"
@@ -8367,6 +8390,7 @@
     "WorkspaceAPIKeyDocument.scopes[0] tëxt ✓ \"quoted\" \\ line\nbreak",
     "WorkspaceAPIKeyDocument.scopes[1] tëxt ✓ \"quoted\" \\ line\nbreak"
    ],
+   "submission_form_ids": null,
    "updated_at": "2026-02-03T04:05:06.789012+00:00",
    "workspace_id": {
     "$oid": "162868b04e551880199db31e"

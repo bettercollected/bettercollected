@@ -530,7 +530,6 @@ def test_a_document_of_unbroken_answers_is_refused_quickly_not_laid_out_for_ever
 def test_a_long_title_is_cut_for_the_footer_in_linear_time():
     import time
 
-    render._ensure_fonts()  # registered by the first drawing otherwise
     started = time.monotonic()
     cut = render.ellipsize("W" * 200_000, render.REGULAR, render.FOOTER_SIZE, render.CONTENT_WIDTH - 90)
     assert time.monotonic() - started < 1.0
@@ -559,6 +558,14 @@ def test_the_total_text_and_the_layout_time_are_bounded(monkeypatch):
     monkeypatch.setattr(render, "MAX_LAYOUT_SECONDS", -1.0)
     with pytest.raises(render.PdfTooLarge):
         render_of([{"id": "a", "type": "short_text", "title": "Q"}], {"a": text("x")})
+
+
+def test_text_is_measured_before_any_drawing(monkeypatch):
+    # a fresh process measures before it draws (the footer, a wrap): the fonts register themselves
+    monkeypatch.setattr(render, "_registered", False)
+    render._char_width.cache_clear()
+    assert render.text_width("Wq", render.REGULAR, render.BODY_SIZE) > 0
+    assert render.wrap("one two", render.BOLD, render.BODY_SIZE, render.CONTENT_WIDTH) == ["one two"]
 
 
 def test_the_private_canvas_hook_still_exists():
