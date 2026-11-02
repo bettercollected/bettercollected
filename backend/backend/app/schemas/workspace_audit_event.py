@@ -60,6 +60,8 @@ class WorkspaceAuditEventDocument(Record):
     form_id: Optional[str] = None
     response_id: Optional[str] = None
     revision: Optional[int] = None
+    # TOTP_POLICY_CHANGED: what the workspace rule was set to
+    required: Optional[bool] = None
     # TOTP_* entries made by someone else (an owner or the platform admin
     # resetting a member's factor): the account it was done to
     target_user_id: Optional[str] = None

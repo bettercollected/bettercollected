@@ -119,12 +119,23 @@ async def draft_mail(locale, workspace="Acme Zorg", form="Aanvraag"):
     return mail.return_value.send_message.await_args.args[0]
 
 
+async def security_mail(locale, workspace="Acme Zorg", form="Aanvraag"):
+    with patch("auth.app.services.notification_service.MailService") as mail:
+        mail.return_value.send_message = AsyncMock()
+        await NotificationService().send_security_notice(
+            "p@example.com", "reset_owner", locale=locale, workspace_title=workspace
+        )
+    mail.assert_called_once_with()
+    return mail.return_value.send_message.await_args.args[0]
+
+
 MAILS = {
     "code": code_mail,
     "invitation": invitation_mail,
     "submission update": update_mail,
     "sheets reconnect": sheets_mail,
     "draft link": draft_mail,
+    "security notice": security_mail,
 }
 
 # words that are the same in both languages or are brand, link or legal text
@@ -143,7 +154,7 @@ async def test_every_mail_renders_with_nothing_missing(name, locale):
         assert leftover not in body, leftover
     assert "{" not in message.subject and "None" not in message.subject
     # the sender, never the workspace, is the product
-    assert "BetterCollected" in body or name in ("submission update", "sheets reconnect", "draft link")
+    assert "BetterCollected" in body or name in ("submission update", "sheets reconnect", "draft link", "security notice")
     # every text of the mail is in this language: none of the other one's
     # distinctive sentences appears
     other = "nl" if locale == "en" else "en"

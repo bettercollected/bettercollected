@@ -56,6 +56,7 @@ def test_every_expected_route_is_guarded():
         "/stripe/session/create/portal",
         "/notifications/submission-update",
         "/notifications/sheets-reconnect",
+        "/notifications/security",
     ):
         assert path in paths, path
 

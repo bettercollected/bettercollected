@@ -6,7 +6,7 @@ signed-in user could mail any address from this instance's domain.
 The user's token still names who caused the notice, for the per-sender cap."""
 
 from http import HTTPStatus
-from typing import Optional
+from typing import Literal, Optional
 
 from classy_fastapi import Routable, post
 from fastapi import Depends, Header
@@ -86,6 +86,23 @@ class SheetsReconnectNotice(BaseModel):
     locale: Optional[str] = Field(None, max_length=35)
 
 
+class SecurityNotice(BaseModel):
+    """A change to an account's own second factor. The recipient is found here
+    from ``user_id``: the caller can neither pick an address nor any wording."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: str = Field(..., min_length=1, max_length=64)
+    kind: Literal[
+        "enrolled", "removed", "recovery_used", "locked", "reset", "reset_owner"
+    ]
+    recovery_left: Optional[int] = Field(None, ge=0, le=100)
+    minutes: Optional[int] = Field(None, ge=1, le=1440)
+    # the workspace whose owner did it (kind "reset_owner"); body only
+    workspace_title: Optional[str] = Field(None, max_length=1000)
+    locale: Optional[str] = Field(None, max_length=35)
+
+
 @router(prefix="/notifications", tags=["Notifications"])
 class NotificationsRouter(Routable):
     def __init__(
@@ -159,6 +176,41 @@ class NotificationsRouter(Routable):
             link=notice.link,
             days=notice.days,
             locale=notice.locale,
+        )
+        return {"message": "Notice queued."}
+
+    @post("/security")
+    async def send_security_notice(
+        self,
+        notice: SecurityNotice,
+        background_tasks: BackgroundTasks,
+        _: None = Depends(require_internal_key),
+    ):
+        """Tell an account that its second factor changed (set up, turned off,
+        a recovery code used, locked, removed by an administrator). Sent by the
+        backend on its own, after the change: the internal key alone."""
+        if not self.notification_service.allow(
+            f"security:{notice.user_id}",
+            limit=notices.SECURITY_NOTICES_PER_ACCOUNT_PER_HOUR,
+        ):
+            raise HTTPException(
+                HTTPStatus.TOO_MANY_REQUESTS, "Too many notices; try again later."
+            )
+        try:
+            account = await self.user_repository.get_user_by_id(notice.user_id)
+        except Exception:  # noqa: BLE001 — a malformed id finds nobody
+            account = None
+        email = getattr(account, "email", None)
+        if not email:
+            return {"message": "No recipient."}
+        background_tasks.add_task(
+            self.notification_service.send_security_notice,
+            recipient=str(email),
+            kind=notice.kind,
+            locale=notice.locale,
+            recovery_left=notice.recovery_left,
+            minutes=notice.minutes,
+            workspace_title=one_line(notice.workspace_title),
         )
         return {"message": "Notice queued."}
 

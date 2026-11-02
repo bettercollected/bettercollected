@@ -83,6 +83,7 @@ class PostgresUserTotpRepository(RecordRepository):
         code_hashes: Sequence[str],
         now: dt.datetime,
         enrolled_via: Optional[str] = None,
+        locale: Optional[str] = None,
     ) -> bool:
         """The whole of a successful confirmation, or nothing: the pending
         factor becomes the confirmed one (``step`` is the code just used), any
@@ -119,6 +120,7 @@ class PostgresUserTotpRepository(RecordRepository):
             factor.confirmed_at = now
             factor.last_used_step = step
             factor.enrolled_via = enrolled_via
+            factor.locale = locale
             factor.updated_at = now
             await session.execute(self._upsert_statement(row_values(factor)))
             for code_hash in code_hashes:
@@ -188,10 +190,14 @@ class PostgresUserTotpRepository(RecordRepository):
             )
         return True
 
-    async def lock(self, factor_id: str, until: dt.datetime, now: dt.datetime) -> bool:
-        """Lock the second-factor step until ``until``: True when this call
-        started the lock (none was running), so the one that did mails and
-        audits it."""
+    async def lock(
+        self, factor_id: str, durations: Sequence[dt.timedelta], now: dt.datetime
+    ) -> Optional[dt.timedelta]:
+        """Lock the second-factor step for the next of ``durations`` (the first
+        lock since an accepted code gets the first, each further one the next,
+        the last again after that): the duration when this call started the lock
+        (none was running), so the one that did mails and audits it; None
+        otherwise."""
         async with self._session() as session, session.begin():
             doc = (
                 await session.execute(
@@ -204,13 +210,52 @@ class PostgresUserTotpRepository(RecordRepository):
                 )
             ).scalar_one_or_none()
             if doc is None:
-                return False
+                return None
             factor = decode(UserTotpFactorDocument, doc)
             if factor.locked_until is not None and factor.locked_until > now:
-                return False
-            factor.locked_until = until
+                return None
+            duration = durations[min(factor.lock_count, len(durations) - 1)]
+            factor.locked_until = now + duration
+            factor.lock_count += 1
             await session.execute(self._upsert_statement(row_values(factor)))
-        return True
+        return duration
+
+    async def remember_locale(self, factor_id: str, locale: Optional[str]) -> None:
+        """Keep the language of the person's latest use (written only when it
+        changed)."""
+        if not locale:
+            return
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(UserTotpFactorRow.doc)
+                    .where(UserTotpFactorRow.id == str(factor_id))
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return
+            factor = decode(UserTotpFactorDocument, doc)
+            if factor.locale != locale:
+                factor.locale = locale
+                await session.execute(self._upsert_statement(row_values(factor)))
+
+    async def clear_locks(self, factor_id: str) -> None:
+        """A code was accepted: the next lock starts from the shortest again."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(UserTotpFactorRow.doc)
+                    .where(UserTotpFactorRow.id == str(factor_id))
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return
+            factor = decode(UserTotpFactorDocument, doc)
+            if factor.lock_count:
+                factor.lock_count = 0
+                await session.execute(self._upsert_statement(row_values(factor)))
 
     async def replace_codes(
         self, user_id: str, factor_id: str, code_hashes: Sequence[str]
