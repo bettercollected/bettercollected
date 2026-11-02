@@ -35,7 +35,10 @@ DATE_RANGE_PARTS = ("start", "end")
 # (webapp answer-piping.ts, repeating-groups.ts) and field_rules._PIPE: whitespace
 # around the kind and the key is allowed, ``group`` keys are
 # ``<group>:count|list|sum..:<child>``. A test keeps this and field_rules in step.
-_TOKEN = re.compile(r"\{\{\s*(field|hidden|group)\s*:\s*([^|}]*?)\s*((?:\|[^}]*)?)\}\}")
+# the same grammar as field_rules._PIPE, with the fallback kept as a group; no whitespace quantifier
+# next to the key's class (it is stripped where read): adjacent space-matching quantifiers backtrack
+# cubically on "{{field:" followed by many spaces
+_TOKEN = re.compile(r"\{\{\s*(field|hidden|group)\s*:([^|{}]*)((?:\|[^{}]*)?)\}\}")
 
 # warning codes (the webapp has a sentence for each)
 CONDITION_DROPPED = "condition_dropped"
@@ -248,7 +251,7 @@ def _group_key(key: str, m: Mapper) -> Optional[str]:
 
 def _rewrite_tokens(text: str, m: Mapper, field: Dict[str, Any]) -> str:
     def swap(match: "re.Match[str]") -> str:
-        kind, key, tail = match.group(1), match.group(2), match.group(3)
+        kind, key, tail = match.group(1), match.group(2).strip(), match.group(3)
         mapped: Optional[str] = None
         if kind == "group":
             mapped = _group_key(key, m)

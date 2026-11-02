@@ -323,9 +323,18 @@ def test_the_remap_reads_exactly_the_pipe_forms_field_rules_reads(text):
     drops, and nothing else."""
     from backend.app.services import field_rules
 
-    seen = [(kind, key) for kind, key in field_rules._PIPE.findall(text)]
-    mine = [(m.group(1), m.group(2)) for m in refs._TOKEN.finditer(text)]
+    seen = [(kind, key.strip()) for kind, key in field_rules._PIPE.findall(text)]
+    mine = [(m.group(1), m.group(2).strip()) for m in refs._TOKEN.finditer(text)]
     assert mine == seen
+
+
+def test_the_token_pattern_is_linear_on_long_runs_of_spaces():
+    import time
+
+    for text in ("{{field:" + " " * 200_000, "{{ group :" + " " * 100_000 + "|" + " " * 100_000):
+        started = time.monotonic()
+        assert refs._TOKEN.findall(text) == []
+        assert time.monotonic() - started < 0.5
 
 
 def test_a_group_nested_far_beyond_the_limit_does_not_overflow_the_stack():
