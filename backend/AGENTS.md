@@ -95,6 +95,17 @@ membership read directly: access goes through `AuthorizationService`.
   write, and the repositories refuse a form, person or team outside the workspace themselves.
   Anything that deletes a form, member, account or workspace calls `FormAccessCleanup`
   (whatever the switch says). The switch is environment-only until released.
+- **API key roles and form scope** (`services/api_key_roles/`, behind `API_KEY_ROLES_ENABLED`, off by
+  default, environment-only until released): a key carries an optional `role` (null = as its
+  creator) and a `form_scope` (`all` or `listed`; a listed key opens only forms it holds a
+  `form_access_grants` row for, `subject_type='key'`). A key's permissions on a form are the creator's
+  current decision intersected with the role ceiling and the row ceiling (`key_decision`), recomputed
+  per request and never wider than the creator. Every key decision goes through `services/api_access.py`
+  only; `acting_user(key)` is the one factory and carries the role ceiling (`User.key_ceiling`) so
+  services cannot exceed it. A form outside a listed key answers 404 like a missing one. Key rows are
+  not grants of the member-facing routes: the grant repository's list/find/delete see `user` and
+  `group` rows only. Off: setting a role or list is 422 `api_key_roles_off`, limits already stored
+  are still enforced, and a key with neither limit takes the old path with no new query.
 - **Tests:** a new workspace endpoint gets a row in `tests/app/controllers/test_permission_matrix.py`.
 
 ## Adding a route
