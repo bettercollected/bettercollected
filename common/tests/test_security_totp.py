@@ -3,8 +3,8 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
-from backend.admin.security import totp
-from backend.admin.security.clock import FakeClock
+from common.security import totp
+from common.security.clock import FakeClock
 
 RFC_KEY = b"12345678901234567890"
 RFC_SECRET = base64.b32encode(RFC_KEY).decode()
