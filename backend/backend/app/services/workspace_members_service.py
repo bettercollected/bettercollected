@@ -31,6 +31,11 @@ from backend.app.services.authorization_service import (
     AuthorizationService,
     role_permissions,
 )
+from backend.app.schemas.workspace_audit_event import (
+    ACCESS_MEMBER_PURGED,
+    FORM_CREATOR_REASSIGNED,
+)
+from backend.app.services.form_access import audit
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import (
     PROVISIONED_BY_SCIM,
@@ -57,7 +62,15 @@ class WorkspaceMembersService:
         scim_directory_repo=None,
         email_action_service=None,
         totp_service=None,
+        form_access_cleanup=None,
+        audit_repo=None,
+        member_removal_repo=None,
     ):
+        self._member_removal_repo = member_removal_repo
+        # a removed member's grants and teams go with them, recorded first
+        # (services/form_access)
+        self._form_access_cleanup = form_access_cleanup
+        self._audit_repo = audit_repo
         # which members have an authenticator app (services/mfa/workspace.py)
         self._totp_service = totp_service
         # a membership the workspace's SCIM directory manages is shown as such
@@ -327,18 +340,63 @@ class WorkspaceMembersService:
         if workspace and is_owner_membership(workspace, membership):
             await self._require_owner_to_change_owner(workspace_id, user)
             await self._refuse_leaving_no_owner(workspace, without=user_id)
-        form_ids_imported_by_user = (
-            await self.workspace_form_service.get_form_ids_imported_by_user(
-                workspace_id, user_id
+        if workspace is None or membership is None:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Resource doesn't exist"
             )
-        )
-        for form_id in form_ids_imported_by_user:
-            await self.workspace_form_service.delete_form_from_workspace(
-                workspace_id, form_id, user
+        # The forms they created or imported stay with the workspace: a person
+        # leaving never takes them, or their responses, along (removal used to
+        # delete every form with their id on it). They are handed to the
+        # billing owner, so the removed person is nobody's creator any more:
+        # not when they delete their account later (that deletes the forms
+        # they created) and not when they are invited again.
+        heir = str(workspace.owner_id)
+        forms = await self._member_removal_repo.forms_of(workspace_id, user_id)
+        for form_id in forms:
+            # recorded before the change, so a handover never goes unrecorded
+            await audit.record_or_refuse(
+                self._audit_repo,
+                FORM_CREATOR_REASSIGNED,
+                workspace_id,
+                user,
+                form_id=form_id,
+                target_user_id=str(user_id),
+                to_user_id=heir,
             )
-        await self.workspace_user_service.delete_user_from_workspace(
-            workspace_id, user_id
+        held = (
+            await self._form_access_cleanup.count_member(workspace_id, user_id)
+            if self._form_access_cleanup is not None
+            else 0
         )
+        if held:
+            # their grants and teams go with them, recorded first
+            await audit.record_or_refuse(
+                self._audit_repo,
+                ACCESS_MEMBER_PURGED,
+                workspace_id,
+                user,
+                target_user_id=str(user_id),
+                count=held,
+            )
+        # membership, forms and access rows in one transaction
+        removal = await self._member_removal_repo.remove(workspace_id, user_id, heir)
+        if removal is None:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Resource doesn't exist"
+            )
+        if self._form_access_cleanup is not None:
+            self._form_access_cleanup.forget_memo()
+        for form_id in sorted(set(removal.forms) - set(forms)):
+            # a form the member created between the look and the removal
+            await audit.record(
+                self._audit_repo,
+                FORM_CREATOR_REASSIGNED,
+                workspace_id,
+                user,
+                form_id=form_id,
+                target_user_id=str(user_id),
+                to_user_id=heir,
+            )
         users_info = await self._get_user_info_from_ids([user_id])
         if users_info:
             await self.workspace_invitation_repository.update_status_to_removed(

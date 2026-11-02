@@ -187,7 +187,6 @@ environment, whatever the tier.
 | `API_RECEIPT_WINDOW_SECONDS` | rate_limits | backend | int 1..86400 |  | H | T1 | `600` |
 | `OPEN_FORMULIEREN_REGISTRATION` | registration | backend | enum on/off |  | R | T2 | `off` |
 | `API_FLOW_EVENTS_RETENTION_DAYS` | retention | backend | int 0..3650 |  | R | T2 | `395` |
-| `FORM_ACCESS_ENABLED` | security | backend | bool |  | R | T2 | `false` |
 | `TOTP_ENABLED` | security | backend | bool |  | R | T2 | `false` |
 | `API_CLIENT_URL` | server | backend, auth | url |  | R | T3 |  |
 | `API_DESCRIPTION` | server | backend | str max 500 |  | R | T1 |  |
@@ -307,6 +306,7 @@ environment, whatever the tier.
 | `DOC_SANDBOX_PARALLEL` | pdf_import | backend | int 1..64 |  | R | T5 | `2` |
 | `PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX` | pdf_import | backend | bool |  | R | T5 | `false` |
 | `PDF_IMPORT_SANDBOX_SOCKET` | pdf_import | backend | str |  | R | T5 |  |
+| `FORM_ACCESS_ENABLED` | security | backend | bool |  | R | T5 | `false` |
 | `ACTION_EGRESS_ALLOW` | services | actions_executor | str |  | R | T5 |  |
 | `ACTION_EXECUTOR_KEY_ALLOWED` | services | actions_executor | bool |  | R | T5 | `true` |
 | `ACTION_ISOLATION` | services | actions_executor | enum enforce/legacy |  | R | T5 | `enforce` |

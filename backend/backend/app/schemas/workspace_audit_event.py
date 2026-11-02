@@ -51,6 +51,9 @@ TEAM_MEMBER_REMOVED = "team_member_removed"
 TEAM_LINKED = "team_linked"
 # removing a member deleted N grants and team memberships
 ACCESS_MEMBER_PURGED = "access_member_purged"
+# removing a member handed a form they created to the workspace's billing owner
+# (form_id, target_user_id = who it was, to_user_id = who it is now)
+FORM_CREATOR_REASSIGNED = "form_creator_reassigned"
 ACCESS_EVENTS = (
     ACCESS_GRANT_ADDED,
     ACCESS_GRANT_CHANGED,
@@ -63,6 +66,7 @@ ACCESS_EVENTS = (
     TEAM_MEMBER_REMOVED,
     TEAM_LINKED,
     ACCESS_MEMBER_PURGED,
+    FORM_CREATOR_REASSIGNED,
 )
 # the reserved workspace id of an event that belongs to no workspace
 NO_WORKSPACE = "000000000000000000000000"
@@ -94,6 +98,8 @@ class WorkspaceAuditEventDocument(Record):
     # TOTP_* entries made by someone else (an owner or the platform admin
     # resetting a member's factor): the account it was done to
     target_user_id: Optional[str] = None
+    # FORM_CREATOR_REASSIGNED: the person the form was handed to
+    to_user_id: Optional[str] = None
     # ACCESS_* / TEAM_* entries (form-level access): the team, the role and
     # export flag of a grant, a form's new access mode, a number of rows
     group_id: Optional[str] = None

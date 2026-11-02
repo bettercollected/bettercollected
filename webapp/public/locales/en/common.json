@@ -648,7 +648,7 @@
   "READ_MORE": "Read more",
   "REMOVE": "Remove",
   "REMOVE_INVITATION_FOR": "Remove invitation for",
-  "REMOVE_WARNING_MESSAGE": "Removing a member will also remove all forms imported by the user",
+  "REMOVE_WARNING_MESSAGE": "Removing a member takes away their access to the workspace. The forms they created or imported stay in the workspace.",
   "RESPONDERS_AND_GROUPS": "Responders and Groups",
   "RESPONDER_SECTION": {
     "FEATURES_HEADING": "Once you sign in you will be able to:",

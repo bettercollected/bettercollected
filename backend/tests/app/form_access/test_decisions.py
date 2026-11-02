@@ -9,6 +9,7 @@ from common.ids import RecordId
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
+from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.schemas.form_access_grant import (
     ROLE_EDITOR,
     ROLE_REVIEWER,
@@ -147,6 +148,12 @@ async def test_a_team_of_another_workspace_does_not_reach_a_member_here(
     switch_on, authz, workspace, workspace_form, workspace_1
 ):
     viewer = await add_member(workspace, "VIEWER")
+    # the same person is also a member of the other workspace, in a team there
+    await container.workspace_user_repo().save(
+        WorkspaceUserDocument(
+            workspace_id=workspace_1.id, user_id=viewer.id, roles=["VIEWER"]
+        )
+    )
     foreign_team = await team_with(workspace_1, viewer, name="Foreign")
     await grant(
         workspace, workspace_form.form_id, foreign_team.id, ROLE_EDITOR, subject_type="group"
