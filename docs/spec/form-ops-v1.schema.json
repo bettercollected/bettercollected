@@ -11,6 +11,7 @@
     "set_choice",
     "set_endings",
     "set_hidden_fields",
+    "splice_fields",
     "update_logo",
     "update_page",
     "update_welcome_page"
@@ -2139,6 +2140,46 @@
       "type": "object",
       "x-editorOnly": true
     },
+    "InsertLibrarySectionOp": {
+      "description": "Copy a reusable section of the workspace's library into a page, at\n``index`` (the end when left out). The copy has new ids, its references\npoint at the copy's own questions, and it is checked like any other change.\nNeeds ``REUSABLE_SECTIONS_ENABLED``; the section must be one of the\nform's workspace. The engine itself cannot read the library: the write path\n(``persist_ops_to_form``, the dry run) resolves this operation first.",
+      "properties": {
+        "op": {
+          "const": "insert_library_section",
+          "default": "insert_library_section",
+          "title": "Op",
+          "type": "string"
+        },
+        "pageId": {
+          "title": "Pageid",
+          "type": "string"
+        },
+        "sectionId": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Sectionid",
+          "type": "string"
+        },
+        "index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index"
+        }
+      },
+      "required": [
+        "pageId",
+        "sectionId"
+      ],
+      "title": "InsertLibrarySectionOp",
+      "type": "object"
+    },
     "InsertPageOp": {
       "description": "Insert a complete page (type ``slide``, its questions included), ids\nkept, at ``index`` among the question pages.",
       "properties": {
@@ -2300,6 +2341,42 @@
       ],
       "title": "LayoutType",
       "type": "string"
+    },
+    "LibraryOrigin": {
+      "description": "Where a question was copied from (``properties.library``): the reusable\nsection of the workspace's library (``section_id``), the version copied\n(``version``), the question's id inside that section (``key``) and the\ninsert it belongs to (``instance``: one per insertion, so two copies of a\nsection in one form stay apart). Only a pointer for \"update from library\":\nnothing is read through it at run time, and a copy to another workspace\ndrops it.",
+      "properties": {
+        "sectionId": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Sectionid",
+          "type": "string"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "key": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "instance": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Instance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sectionId",
+        "version",
+        "key",
+        "instance"
+      ],
+      "title": "LibraryOrigin",
+      "type": "object"
     },
     "LogicConditionSpec": {
       "description": "One condition of a visibility rule / page jump. Mirrors the builder's\nlogic editor exactly: choice conditions carry the choice LABEL, yes/no\ncarries \"Yes\"/\"No\" (see webapp condition-editor-shared.tsx).",
@@ -4068,6 +4145,73 @@
       "title": "SetThemePresetOp",
       "type": "object"
     },
+    "SpliceFieldsOp": {
+      "description": "Insert complete questions (their ids kept) on a page at ``index`` (the\nend when left out), optionally replacing top-level questions of that page\n(``replace_ids``, the ids may come back among ``fields``) and adding layout\ncontainers (``containers``; ``replace_container_ids`` removes containers).\nChecked as a whole after the splice, so a calculation may read a later\nquestion of the same insert. What reusable sections are inserted and\nupdated with (``insert_library_section`` becomes this op).",
+      "properties": {
+        "op": {
+          "const": "splice_fields",
+          "default": "splice_fields",
+          "title": "Op",
+          "type": "string"
+        },
+        "pageId": {
+          "title": "Pageid",
+          "type": "string"
+        },
+        "index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index"
+        },
+        "fields": {
+          "items": {
+            "$ref": "#/$defs/EditorField"
+          },
+          "maxItems": 200,
+          "title": "Fields",
+          "type": "array"
+        },
+        "containers": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "maxItems": 50,
+          "title": "Containers",
+          "type": "array"
+        },
+        "replaceIds": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 200,
+          "title": "Replaceids",
+          "type": "array"
+        },
+        "replaceContainerIds": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Replacecontainerids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "pageId"
+      ],
+      "title": "SpliceFieldsOp",
+      "type": "object",
+      "x-editorOnly": true
+    },
     "StandardAttachmentProperties": {
       "properties": {
         "description": {
@@ -4859,6 +5003,17 @@
           ],
           "default": null,
           "title": "Shareaschoices"
+        },
+        "library": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LibraryOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "title": "StandardFieldProperty",
@@ -5488,6 +5643,17 @@
           ],
           "default": null,
           "title": "Shareaschoices"
+        },
+        "library": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LibraryOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "title": "StandardFieldPropertyCamelModel",
@@ -6707,6 +6873,7 @@
             "add_page": "#/$defs/AddPageOp",
             "duplicate_page": "#/$defs/DuplicatePageOp",
             "insert_field": "#/$defs/InsertFieldOp",
+            "insert_library_section": "#/$defs/InsertLibrarySectionOp",
             "insert_page": "#/$defs/InsertPageOp",
             "move_choice": "#/$defs/MoveChoiceOp",
             "move_field": "#/$defs/MoveFieldOp",
@@ -6730,6 +6897,7 @@
             "set_question_numbering": "#/$defs/SetQuestionNumberingOp",
             "set_section_title": "#/$defs/SetSectionTitleOp",
             "set_theme_preset": "#/$defs/SetThemePresetOp",
+            "splice_fields": "#/$defs/SpliceFieldsOp",
             "update_ending": "#/$defs/UpdateEndingOp",
             "update_field": "#/$defs/UpdateFieldOp",
             "update_form_info": "#/$defs/UpdateFormInfoOp",
@@ -6855,6 +7023,12 @@
           },
           {
             "$ref": "#/$defs/SetEndingsOp"
+          },
+          {
+            "$ref": "#/$defs/SpliceFieldsOp"
+          },
+          {
+            "$ref": "#/$defs/InsertLibrarySectionOp"
           }
         ]
       },

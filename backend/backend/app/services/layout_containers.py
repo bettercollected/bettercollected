@@ -51,6 +51,7 @@ LAYOUT_OPS = frozenset(
         "add_page",
         "insert_page",
         "duplicate_page",
+        "splice_fields",
     }
 )
 

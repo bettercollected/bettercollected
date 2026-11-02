@@ -26,7 +26,7 @@ export const SIGNATURE_TYPES = new Set<string>(['signature']);
 const ALL_GATED_TYPES = new Set<string>([...GATED_TYPES, ...ADDRESS_TYPES, ...SIGNATURE_TYPES]);
 
 /** Ops that can give a form such a question or change one (backend GATED_OPS). */
-export const GATED_OPS = new Set<string>(['add_field', 'add_group', 'add_page', 'duplicate_page', 'update_field', 'set_field_validation', 'insert_field', 'insert_page', 'replace_field']);
+export const GATED_OPS = new Set<string>(['add_field', 'add_group', 'add_page', 'duplicate_page', 'update_field', 'set_field_validation', 'insert_field', 'insert_page', 'replace_field', 'splice_fields']);
 
 export const NEW_QUESTION_TYPES_DISABLED_MESSAGE =
     'These question types (time, day, currency, date range and tags) cannot be added or changed on this server yet (NEW_QUESTION_TYPES_ENABLED is off). Questions of these types that a form already has are kept.';

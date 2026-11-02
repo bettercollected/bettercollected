@@ -40,6 +40,10 @@ MINIMAL = {
     "remove_choice": {"fieldId": "a", "choiceId": "c"},
     "move_choice": {"fieldId": "a", "choiceId": "c", "index": 0},
     "set_endings": {"endings": [{"id": "e1", "title": "Thanks"}]},
+    "splice_fields": {
+        "pageId": "p1",
+        "fields": [{"id": "n", "type": "short_text"}],
+    },
 }
 EDITOR_ONLY_MESSAGE = "only available in the form editor"
 

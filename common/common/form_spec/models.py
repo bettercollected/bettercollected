@@ -39,6 +39,7 @@ from common.models.standard_form import (
     OPTION_FILTER_PAIRS_MAX,
     OPTION_ID_MAX_LENGTH,
     OPTION_SOURCE_ID_MAX_LENGTH,
+    LIBRARY_ID_MAX_LENGTH,
     FORM_LANGUAGES,
     MAX_ENDINGS,
     LOGO_ALT_MAX_LENGTH,
@@ -413,6 +414,19 @@ class OptionSource(_Spec):
         return self
 
 
+class LibraryOrigin(_Spec):
+    """Where a question was copied from: the workspace library's reusable
+    section (``sectionId``), the version copied, the question's id in that
+    section (``key``) and the insert it belongs to (``instance``). Set by the
+    server when a section is inserted; read-only in spirit (a copy to another
+    workspace drops it)."""
+
+    section_id: str = Field(..., min_length=1, max_length=LIBRARY_ID_MAX_LENGTH)
+    version: int = Field(..., ge=1)
+    key: str = Field(..., min_length=1, max_length=LIBRARY_ID_MAX_LENGTH)
+    instance: str = Field(..., min_length=1, max_length=LIBRARY_ID_MAX_LENGTH)
+
+
 class RuleWhen(_Spec):
     """When a rule is active: ``conditions`` (as in ``logic``; operator AND
     when absent) or an expressions-v1 ``expression`` (active when its value
@@ -711,6 +725,11 @@ class FormField(_Spec):
         "optionSource of kind form_answers). Off unless true. Respondents are told "
         "next to the question; only answers given while a version with it on was "
         "filled are ever offered.",
+    )
+    library: Optional[LibraryOrigin] = Field(
+        None,
+        description="Set when the question was copied from a reusable section of "
+        "the workspace's library (see LibraryOrigin).",
     )
     rules: Optional[List[Rule]] = Field(
         None,

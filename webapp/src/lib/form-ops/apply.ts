@@ -55,13 +55,14 @@ function growth(doc: FormDoc, op: FormOp): [number, number] {
         case 'insert_field':
         case 'insert_page':
         case 'replace_field':
+        case 'splice_fields':
             return editorGrowth(doc, op);
         default:
             return [0, 0];
     }
 }
 
-const STRUCTURAL = new Set(['add_field', 'add_group', 'remove_field', 'move_field', 'add_page', 'remove_page', 'duplicate_page', 'insert_field', 'replace_field', 'insert_page']);
+const STRUCTURAL = new Set(['add_field', 'add_group', 'remove_field', 'move_field', 'add_page', 'remove_page', 'duplicate_page', 'insert_field', 'replace_field', 'insert_page', 'splice_fields']);
 
 /**
  * Ops that can leave a date rule dangling: they change which questions
@@ -277,7 +278,7 @@ export function applyOps(doc: FormDoc, ops: FormOp[], options: ApplyOptions = {}
             // LAYOUT_CONTAINERS_ENABLED off.
             if (options.layoutContainers === false && LAYOUT_OPS.has(name)) {
                 startedLayout ??= layoutSignatures(doc);
-                if (name === 'set_page_containers' || startedLayout.size) {
+                if (name === 'set_page_containers' || name === 'splice_fields' || startedLayout.size) {
                     const refusal = layoutProblem(working, startedLayout, name);
                     if (refusal) {
                         working = state;

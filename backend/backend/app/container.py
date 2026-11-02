@@ -68,6 +68,9 @@ from backend.app.repositories.postgres.response_exports import (
 from backend.app.repositories.postgres.option_erasures import (
     PostgresOptionErasureRepository,
 )
+from backend.app.repositories.postgres.reusable_sections import (
+    PostgresReusableSectionRepository,
+)
 from backend.app.repositories.postgres.option_lists import (
     PostgresOptionListRepository,
     PostgresOptionListUsage,
@@ -173,6 +176,7 @@ from backend.app.services.response_export.service import ResponseExportService
 from backend.app.services.response_import.service import ResponseImportService
 from backend.app.services.email_actions.service import EmailActionService
 from backend.app.services.option_lists.service import OptionListService
+from backend.app.services.reusable_sections.service import ReusableSectionService
 from backend.app.services.option_sources.service import OptionSourceService
 from backend.app.services.workspace_domain_service import WorkspaceDomainService
 from backend.app.services.sso.connection_service import SsoConnectionService
@@ -296,6 +300,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
     option_list_usage: PostgresOptionListUsage = providers.Singleton(
         PostgresOptionListUsage, pg_sessionmaker
+    )
+    reusable_section_repo: PostgresReusableSectionRepository = providers.Singleton(
+        PostgresReusableSectionRepository, pg_sessionmaker
     )
     option_erasure_repo: PostgresOptionErasureRepository = providers.Singleton(
         PostgresOptionErasureRepository, pg_sessionmaker
@@ -825,7 +832,15 @@ class AppContainer(containers.DeclarativeContainer):
         response_export_service=response_export_service,
         email_action_service=email_action_service,
         option_list_repo=option_list_repo,
+        reusable_section_repo=reusable_section_repo,
         response_revision_repo=response_revision_repo,
+    )
+
+    reusable_section_service: ReusableSectionService = providers.Singleton(
+        ReusableSectionService,
+        repo=reusable_section_repo,
+        authorization_service=authorization_service,
+        list_repo=option_list_repo,
     )
 
     ai_profile_service: AIProfileService = providers.Singleton(

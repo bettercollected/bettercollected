@@ -1,7 +1,7 @@
 import type { FormOp, FormOpName } from '../types';
 import { setPageContainers } from './containers';
 import type { Handler } from './context';
-import { addChoice, insertField, insertPage, moveChoice, removeChoice, replaceField, setChoice, setHiddenFields, updateLogo, updatePage, updateWelcomePage } from './editor';
+import { addChoice, insertField, insertPage, moveChoice, removeChoice, replaceField, setChoice, setHiddenFields, spliceFields, updateLogo, updatePage, updateWelcomePage } from './editor';
 import { addEnding, removeEnding, setEndings, updateEnding } from './endings';
 import { addField, addGroup, moveField, removeField, setFieldLogic, setFieldValidation, updateField } from './fields';
 import { setFormLanguage, setThemePreset, updateFormInfo, updateFormSettings, updateTheme } from './form';
@@ -48,7 +48,8 @@ export const HANDLERS: { [K in FormOpName]: Handler<Extract<FormOp, { op: K }>> 
     add_choice: addChoice,
     remove_choice: removeChoice,
     move_choice: moveChoice,
-    set_endings: setEndings
+    set_endings: setEndings,
+    splice_fields: spliceFields
 };
 
 /** Ops only the builder sends; the AI and the API never get them. */
@@ -64,7 +65,8 @@ export const EDITOR_ONLY_OPS: ReadonlySet<string> = new Set<FormOpName>([
     'add_choice',
     'remove_choice',
     'move_choice',
-    'set_endings'
+    'set_endings',
+    'splice_fields'
 ]);
 
 export const OP_NAMES: ReadonlySet<string> = new Set(Object.keys(HANDLERS));

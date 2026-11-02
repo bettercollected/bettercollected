@@ -10,6 +10,7 @@ import { themeProblems } from '@app/constants/theme';
 import { FieldTypes } from '@app/models/dtos/form';
 import { isCountryCode } from '@app/utils/countries';
 import { isCurrencyCode } from '@app/utils/currency';
+import { containerProblems, containersOf, formItemIds, repairContainers, usedIds } from '@app/utils/layout-containers';
 import { optionLogicProblems } from '@app/utils/option-logic';
 import { TAGS_MAX, TAG_LENGTH_MAX } from '@app/utils/tags';
 import { styleValueProblem } from '@app/utils/rich-text-style';
@@ -42,8 +43,9 @@ import {
     titleText,
     withoutNulls
 } from '../model';
-import type { AddChoiceOp, ApplyOptions, FormDoc, FormField, InsertFieldOp, InsertPageOp, MoveChoiceOp, RemoveChoiceOp, ReplaceFieldOp, SetChoiceOp, SetHiddenFieldsOp, UpdateLogoOp, UpdatePageOp, UpdateWelcomePageOp } from '../types';
+import type { AddChoiceOp, ApplyOptions, FormDoc, FormField, InsertFieldOp, InsertPageOp, MoveChoiceOp, RemoveChoiceOp, ReplaceFieldOp, SetChoiceOp, SetHiddenFieldsOp, SpliceFieldsOp, UpdateLogoOp, UpdatePageOp, UpdateWelcomePageOp } from '../types';
 import { type Handler, type OpContext, draftField, droppedHiddenReferencesNote, droppedReferencesNote, droppedRulesNote, ensureProperties, insertedAt, joinInPage, setFields, setKey } from './context';
+import { buildContainer, shapeProblem } from './containers';
 import { checkedPattern, repeatProblems } from './fields';
 
 /** A rich-text title, serialised: at most this many characters, nested at most this deep. */
@@ -466,6 +468,93 @@ export const insertPage: Handler<InsertPageOp> = (ctx, op) => {
     return `Inserted a page with ${childrenOf(page).length} field(s) at position ${fields.filter(isSlide).indexOf(page) + 1}`;
 };
 
+/** The ids of the questions an insert brings are given, unused in the form (apart from those of what it replaces) and unique among themselves. */
+function checkSpliceIds(doc: FormDoc, items: FormField[], removed: Set<string>): void {
+    const taken = formIds(doc);
+    const seen = new Set<string>();
+    for (const item of items) {
+        for (const field of subtree(item)) {
+            if (typeof field.id !== 'string' || !field.id.trim()) throw new OpError('Every question needs an id.');
+            if ((taken.has(field.id) && !removed.has(field.id)) || seen.has(field.id)) throw new OpError(`The id '${field.id}' is already used in this form.`);
+            seen.add(field.id);
+            const choiceIds = (field.properties?.choices ?? []).map((c: any) => c.id);
+            if (new Set(choiceIds).size !== choiceIds.length) throw new OpError(`The choices of '${titleText(field)}' need unique ids.`);
+        }
+    }
+}
+
+export const spliceFields: Handler<SpliceFieldsOp> = (ctx, op) => {
+    const { page, pos } = findPage(ctx.state, op.pageId);
+    const items = (op.fields ?? []).map((raw) => editorItem(raw, ctx, false));
+    const replaceIds = op.replaceIds ?? [];
+    if (!items.length && !replaceIds.length) throw new OpError('splice_fields needs questions to insert or to replace.');
+    if (new Set(replaceIds).size !== replaceIds.length) throw new OpError('A question is listed twice in replaceIds.');
+    const top = childrenOf(page);
+    const byId = new Map(top.map((f) => [f.id, f]));
+    for (const id of replaceIds) if (!byId.has(id)) throw new OpError(`'${id}' is not a question of page '${op.pageId}'.`);
+    const removed = new Set<string>();
+    for (const id of replaceIds) for (const f of subtree(byId.get(id)!)) removed.add(f.id);
+    checkSpliceIds(ctx.state, items, removed);
+    const newIds = new Set(items.flatMap((item) => [...subtreeIds(item)]));
+    const replaced = new Set(replaceIds);
+    const kept = top.filter((f) => !replaced.has(f.id));
+    const index = op.index == null ? kept.length : Math.min(checkIndex(op.index), kept.length);
+    const list = insertedAt(kept, index, ...items);
+    // containers: those named go, the new ones come in, and what the removed questions left dangling is repaired
+    const dropped = new Set(op.replaceContainerIds ?? []);
+    const existing = containersOf(page).filter((c) => !dropped.has(c.id));
+    const specs = op.containers ?? [];
+    let containers = [...existing];
+    const pages = pagesOf(ctx.state);
+    let nextPage: FormField = { ...page, properties: { ...page.properties, fields: list, containers: existing.length ? existing : undefined } };
+    let problems: Array<[string | null, string]> = [];
+    if (specs.length) {
+        for (const spec of specs) {
+            const problem = shapeProblem(spec as any);
+            if (problem) throw new OpError(problem);
+        }
+        const others = pages.filter((p) => p !== page);
+        const taken = usedIds(others);
+        const earlier = new Set<string>();
+        for (const other of pages) {
+            if (other === page) break;
+            for (const field of childrenOf(other)) {
+                earlier.add(field.id);
+                for (const child of childrenOf(field)) earlier.add(child.id);
+            }
+        }
+        const items_ = formItemIds(pages.map((p) => (p === page ? nextPage : p)));
+        const clash = new Set([...usedIds(pages.map((p) => (p === page ? nextPage : p))), ...items_]);
+        const explicit = [...specs.map((s) => s.id), ...specs.flatMap((s) => (s.tabs ?? []).map((t) => t.id))].filter((id): id is string => !!id);
+        if (new Set(explicit).size !== explicit.length || explicit.some((id) => clash.has(id))) throw new OpError('Container and tab ids must be unique in the form.');
+        const reserved = new Set([...clash, ...explicit]);
+        const built = specs.map((spec) => buildContainer(spec, reserved, (spec.logic as any) ?? undefined));
+        containers = [...existing, ...built];
+        nextPage = { ...nextPage, properties: { ...nextPage.properties, containers } };
+        const repaired = repairContainers(nextPage);
+        containers = repaired.containers ?? [];
+        nextPage = { ...nextPage, properties: { ...nextPage.properties, containers: containers.length ? containers : undefined } };
+        problems = containerProblems(nextPage, new Set(taken), earlier, formItemIds(pages.map((p) => (p === page ? nextPage : p))));
+    } else if (containers.length) {
+        containers = repairContainers(nextPage).containers ?? [];
+        nextPage = { ...nextPage, properties: { ...nextPage.properties, containers: containers.length ? containers : undefined } };
+    }
+    if (problems.length) throw new OpError(problems[0][1]);
+    const after: FormDoc = { ...ctx.state, fields: (ctx.state.fields ?? []).map((p) => (p === page ? nextPage : p)) };
+    const problem = newProblem(ctx.state, after, true);
+    if (problem) throw new OpError(problem);
+    const target = ctx.draft.fields![pos];
+    setFields(target, list);
+    setKey(ensureProperties(target), 'containers', containers.length ? (containers as any) : undefined);
+    const gone = new Set([...removed].filter((id) => !newIds.has(id)));
+    const first = items.length ? items[0].id : replaceIds[0];
+    ctx.noteCreated(
+        first,
+        items.map((item) => item.id)
+    );
+    return `Inserted ${items.length} question(s) on page '${op.pageId}'${replaceIds.length ? `, replacing ${replaceIds.length}` : ''}${droppedRulesNote()}${droppedReferencesNote(ctx, gone)}`;
+};
+
 const PAGE_PATCH_LABELS: Record<string, string> = { layout: 'layout', imageUrl: 'image', theme: 'theme', position: 'position', showQuestionNumbers: 'question numbers', sectionTitle: 'section title' };
 
 function checkPatchKeys(patch: Record<string, any>, allowed: Record<string, unknown>): void {
@@ -623,7 +712,17 @@ function payloadCount(raw: any): number {
 }
 
 /** Pages and fields an editor op adds (backend `_editor_growth`), known before it runs. */
-export function editorGrowth(doc: FormDoc, op: InsertFieldOp | InsertPageOp | ReplaceFieldOp): [number, number] {
+export function editorGrowth(doc: FormDoc, op: InsertFieldOp | InsertPageOp | ReplaceFieldOp | SpliceFieldsOp): [number, number] {
+    if (op.op === 'splice_fields') {
+        const added = (op.fields ?? []).reduce((sum, raw) => sum + payloadCount(raw), 0);
+        try {
+            const page = findPage(doc, op.pageId).page;
+            const replaced = new Set(op.replaceIds ?? []);
+            return [0, Math.max(0, added - countFields(childrenOf(page).filter((f) => replaced.has(f.id))))];
+        } catch {
+            return [0, added];
+        }
+    }
     if (op.op === 'insert_field') return [0, payloadCount(op.field)];
     if (op.op === 'insert_page') return [1, Math.max(0, payloadCount(op.page) - 1)];
     try {

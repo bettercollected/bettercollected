@@ -98,6 +98,7 @@ environment, whatever the tier.
 | `OPTION_SOURCES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `RESPONSE_REVISIONS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `RESPONSE_VALIDATION_ENFORCE` | features | backend | bool |  | R | T2 | `true` |
+| `REUSABLE_SECTIONS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `SAVE_DRAFTS_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `SIGNATURE_QUESTION_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `SUBMISSIONS_API_ENABLED` | features | backend | bool |  | R | T2 | `false` |

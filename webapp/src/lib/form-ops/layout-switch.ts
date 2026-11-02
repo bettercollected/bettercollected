@@ -16,7 +16,7 @@ import { pagesOf } from './model';
 import type { FormDoc } from './types';
 
 /** Ops that can leave a container new or changed (backend LAYOUT_OPS). */
-export const LAYOUT_OPS = new Set<string>(['set_page_containers', 'add_field', 'add_group', 'insert_field', 'move_field', 'replace_field', 'add_page', 'insert_page', 'duplicate_page']);
+export const LAYOUT_OPS = new Set<string>(['set_page_containers', 'add_field', 'add_group', 'insert_field', 'move_field', 'replace_field', 'add_page', 'insert_page', 'duplicate_page', 'splice_fields']);
 
 export const LAYOUT_CONTAINERS_DISABLED_MESSAGE =
     'Layout containers (panels, tabs and field sets) cannot be added or changed on this server yet (LAYOUT_CONTAINERS_ENABLED is off). Containers that a form already has are kept, and may lose questions or be removed.';

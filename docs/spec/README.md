@@ -327,6 +327,12 @@ question that is not before the container (the question moved below it, into
 it, or onto a later page) is refused with a message starting "would break a
 layout container", and changes nothing.
 
+**Library marker.** A question copied from a reusable section of the workspace's
+library carries `library: {sectionId, version, key, instance}` (see
+[reusable sections](../reusable-sections.md)). The server sets it when a section is
+inserted; send it back unchanged to keep the copy updatable. A copy to another
+workspace drops it.
+
 **Rollout.** Layout containers are behind the server setting
 `LAYOUT_CONTAINERS_ENABLED`, off by default. While it is off, every write that
 adds a container or changes one (its type, title, `collapsed`, rule, tabs, or
@@ -651,6 +657,13 @@ logo settings (`update_logo`), choices by id (`set_choice`, `add_choice`,
 (ids unique in the form, size limits, image addresses, answer patterns,
 repeating group rules). The public API, the MCP server and the AI assistant
 refuse them, with an error for each such operation.
+
+`insert_library_section {pageId, sectionId, index?}` copies a reusable section of the
+workspace's library into a page (see [reusable sections](../reusable-sections.md)); it fails
+when `REUSABLE_SECTIONS_ENABLED` is off or the section is not the workspace's. The
+builder-only operation `splice_fields {pageId, index?, fields, containers?, replaceIds?,
+replaceContainerIds?}` inserts complete questions (and containers) and can replace
+top-level questions in place; it is what the library's insert and update become.
 
 `set_option_logic {fieldId, choice, logic}` gives one option of a page-level
 choice question its own logic (`choice` is the option's label or id, `logic` is
