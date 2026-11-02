@@ -11,7 +11,8 @@ import { useAppSelector } from '@app/store/hooks';
 import { useCompareFormVersionsQuery } from '@app/store/workspaces/form-versions-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { formVersionsUrl } from '@app/utils/response-urls';
-import { describeChange, groupChanges } from '@app/utils/version-changes';
+
+import ChangeGroups from './change-groups';
 
 const SIDE = /^(\d{1,9}|draft)$/;
 
@@ -76,22 +77,7 @@ export default function VersionCompare({ from, to }: { from: string; to: string 
                         {!data.changed && data.entries.length === 0 ? (
                             <p className="text-sm">{t('FORM_VERSIONS.COMPARE.NO_CHANGES')}</p>
                         ) : (
-                            <div className="flex flex-col gap-5">
-                                {groupChanges(data.entries).map((group) => (
-                                    <section key={group.scope} aria-labelledby={`changes-${group.scope}`} className="flex flex-col gap-2">
-                                        <h3 id={`changes-${group.scope}`} className="text-xs font-semibold tracking-wide text-black-700 uppercase">
-                                            {t(`FORM_VERSIONS.COMPARE.SCOPE_${group.scope}`)}
-                                        </h3>
-                                        <ul className="flex flex-col divide-y divide-black-300 rounded border border-black-300 bg-white">
-                                            {group.changes.map((change, index) => (
-                                                <li key={`${change.kind}-${change.ref ?? ''}-${index}`} className="px-4 py-2.5 text-sm break-words">
-                                                    {describeChange(t, change)}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </section>
-                                ))}
-                            </div>
+                            <ChangeGroups entries={data.entries} />
                         )}
                         {data.truncated && <p className="text-sm text-black-700">{t('FORM_VERSIONS.COMPARE.TRUNCATED', { count: data.entries.length })}</p>}
                         <p className="text-xs text-black-700">{t('FORM_VERSIONS.COMPARE.NOTE')}</p>

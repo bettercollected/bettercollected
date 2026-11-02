@@ -197,3 +197,67 @@ def test_an_ai_settings_op_cannot_carry_it():
     assert apply_settings_ops(settings, [op], [result])
     assert settings.purpose == "To plan seats."
     assert settings.access_mode is None
+
+
+# -- the copied-from mark is written by the promotion only ------------------------------
+def _forged_mark():
+    import datetime as dt
+
+    from backend.app.models.workspace import PromotedFrom
+
+    return PromotedFrom(
+        workspace_id="a1" * 12,
+        form_id="b2" * 12,
+        at=dt.datetime(2026, 11, 2, tzinfo=dt.timezone.utc),
+        by="c3" * 12,
+        source_hash="d4" * 8,
+    )
+
+
+async def test_a_new_link_never_starts_with_a_copied_from_mark(workspace):
+    """Settings that arrive from an import (a file, another instance) cannot
+    forge where a form was copied from: that decides the picker's order and the
+    "changed since the last copy" prompt."""
+    repo = container.workspace_form_repo()
+    created = await repo.save_workspace_form(
+        workspace.id,
+        "d" * 24,
+        "u1",
+        WorkspaceFormSettings(promoted_from=_forged_mark()),
+    )
+    assert created.settings.promoted_from is None
+    assert (await link_of(workspace, "d" * 24)).settings.promoted_from is None
+    saved = await repo.save(
+        WorkspaceFormDocument(
+            workspace_id=workspace.id,
+            form_id="c" * 24,
+            user_id="u1",
+            settings=WorkspaceFormSettings(promoted_from=_forged_mark()),
+        )
+    )
+    assert saved.settings.promoted_from is None
+    assert (await link_of(workspace, "c" * 24)).settings.promoted_from is None
+
+
+async def test_writing_settings_back_keeps_the_stored_mark_and_forges_none(
+    workspace, workspace_form
+):
+    repo = container.workspace_form_repo()
+    stored = await link_of(workspace, workspace_form.form_id)
+    # nothing stored: a forged one is not taken
+    await repo.save_workspace_form(
+        workspace.id,
+        workspace_form.form_id,
+        stored.user_id,
+        WorkspaceFormSettings(promoted_from=_forged_mark()),
+    )
+    assert (await link_of(workspace, workspace_form.form_id)).settings.promoted_from is None
+    # the promotion's own writer sets it; a read-modify-write neither clears nor changes it
+    await repo.set_promoted_from(workspace.id, workspace_form.form_id, _forged_mark())
+    stored = await link_of(workspace, workspace_form.form_id)
+    stored.settings = WorkspaceFormSettings(pinned=True)
+    await repo.update(str(stored.id), stored)
+    after = (await link_of(workspace, workspace_form.form_id)).settings
+    assert after.pinned is True
+    assert after.promoted_from is not None
+    assert after.promoted_from.source_hash == "d4" * 8
