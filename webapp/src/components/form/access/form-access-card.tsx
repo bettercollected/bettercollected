@@ -372,7 +372,7 @@ function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { w
                                 {t('STAFF.FORM_ACCESS.EXPORT')}
                             </label>
                         )}
-                        <p className="text-xs text-black-600">{t('STAFF.FORM_ACCESS.EXPORT_NOTE')}</p>
+                        {chosenRole && exportFlagApplies(chosenRole) && <p className="text-xs text-black-600">{t('STAFF.FORM_ACCESS.EXPORT_NOTE')}</p>}
                     </form>
                 ))}
 

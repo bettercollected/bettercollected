@@ -208,6 +208,26 @@ describe('Settings, Access: who on your team can open this form', () => {
         await waitFor(() => expect(served.putGrant).toHaveBeenCalledWith({ workspaceId: 'ws-1', formId: 'f1', grant: { subjectType: 'group', subjectId: 't-2', role: 'REVIEWER', export: true } }));
     });
 
+    it('says who may allow export only for the roles it applies to: an Editor grant exports on its own', () => {
+        served.access = { ...served.access, data: access({ grants: [grant('g1', { role: 'EDITOR' }), grant('g2', { name: 'Lotte Smit', subjectId: 'u-g2', role: 'REVIEWER', export: true })] }) };
+        renderCard();
+        const note = /Only owners and admins can allow a Reviewer or Viewer to export responses/;
+        const form = within(screen.getByRole('form', { name: 'Add a person or a team' }));
+        // Editor chosen in the add form: no tick-box and no note
+        fireEvent.change(screen.getByLabelText('Role on this form'), { target: { value: 'EDITOR' } });
+        expect(form.queryByRole('checkbox')).toBeNull();
+        expect(screen.queryByText(note)).toBeNull();
+        // Reviewer or Viewer chosen: the tick-box and the note
+        fireEvent.change(screen.getByLabelText('Role on this form'), { target: { value: 'VIEWER' } });
+        expect(form.getByRole('checkbox', { name: 'May export responses' })).toBeInTheDocument();
+        expect(screen.getByText(note)).toBeInTheDocument();
+        // the list: an Editor row says it exports by its role, with no tick-box; a Reviewer row has the tick-box
+        const rows = within(screen.getByRole('list', { name: /People and teams with access/ })).getAllByRole('listitem');
+        expect(within(rows[0]).queryByRole('checkbox')).toBeNull();
+        expect(within(rows[0]).getByText('Can export responses')).toBeInTheDocument();
+        expect(within(rows[1]).getByRole('checkbox')).toBeChecked();
+    });
+
     it('offers only the roles the giver holds on the form (a hint: the server decides)', () => {
         served.access = { ...served.access, data: access({ myPermissions: EDITOR.filter((permission) => permission !== 'response.export') }) };
         renderCard();
@@ -327,6 +347,8 @@ describe('Settings, Access: who on your team can open this form', () => {
         expect(screen.getByRole('radio', { name: 'Alleen geselecteerde personen en teams' })).toBeChecked();
         expect(screen.getByText('Eigenaren, beheerders en de maker hebben altijd toegang.')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Toegang van Sanne de Vries intrekken' })).toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText('Rol bij dit formulier'), { target: { value: 'VIEWER' } });
+        expect(screen.getByText('Alleen eigenaren en beheerders kunnen een Beoordelaar of Kijker toestaan reacties te exporteren. Een Bewerker kan altijd exporteren.')).toBeInTheDocument();
     });
 
     it('has no accessibility violations (list, add form and an open confirmation)', async () => {
