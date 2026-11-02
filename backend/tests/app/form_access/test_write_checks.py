@@ -176,8 +176,11 @@ async def test_creating_a_team_respects_the_limit_even_when_creations_race(works
     results = await asyncio.gather(*attempts, return_exceptions=True)
     assert sum(isinstance(r, TeamLimit) for r in results) == 4
     assert await repo.count_in_workspace(workspace.id) == 2
+    existing = (await repo.list_in_workspace(workspace.id))[0].name
     with pytest.raises(IntegrityError):
-        await repo.create(MemberGroupDocument(workspace_id=workspace.id, name="team 0"), 5)
+        await repo.create(
+            MemberGroupDocument(workspace_id=workspace.id, name=existing.upper()), 5
+        )
 
 
 async def test_renaming_a_deleted_team_does_not_bring_it_back(workspace):
