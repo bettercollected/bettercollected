@@ -702,6 +702,7 @@ class AppContainer(containers.DeclarativeContainer):
         audit_repo=workspace_audit_repo,
         cleanup=form_access_cleanup,
         member_directory=member_directory,
+        form_repo=form_repo,
     )
 
     # The history of a response: who edited it, when, which questions, and (on

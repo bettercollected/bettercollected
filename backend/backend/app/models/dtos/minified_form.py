@@ -12,7 +12,7 @@ from common.models.standard_form import (
 )
 from common.models.standard_form import Theme
 from fastapi_camelcase import CamelModel
-from pydantic import Field
+from pydantic import Field, model_serializer
 
 from backend.app.models.dtos.consent import ConsentCamelModel
 from backend.app.models.dtos.response_dtos import (
@@ -21,6 +21,18 @@ from backend.app.models.dtos.response_dtos import (
 )
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
 from backend.app.models.dtos.workspace_member_dto import FormImporterDetails
+
+
+class FormAccessSummaryDto(CamelModel):
+    """A form's access as its reader sees it, while ``FORM_ACCESS_ENABLED`` is
+    on: ``restricted`` (only selected people and teams open it as staff),
+    ``can_manage`` (the reader may change who opens it) and ``permissions``
+    (the form-scoped permissions the reader holds on it). Never a grant, a
+    team or anyone else's access."""
+
+    restricted: bool = False
+    can_manage: bool = False
+    permissions: List[str] = []
 
 
 class FormDtoCamelModel(CamelModel):
@@ -99,3 +111,13 @@ class FormDtoCamelModel(CamelModel):
     # The draft's version (its ETag, services/form_spec/editor_ops.py): only
     # on the editor's read, for If-Match on its op-batch saves.
     etag: Optional[str] = None
+    # Form-level access, for the dashboard (staff reads of drafts only, while
+    # ``FORM_ACCESS_ENABLED`` is on). Left out of the payload otherwise.
+    access: Optional[FormAccessSummaryDto] = None
+
+    @model_serializer(mode="wrap")
+    def _leave_out_empty_access(self, handler):
+        data = handler(self)
+        if isinstance(data, dict) and data.get("access") is None:
+            data.pop("access", None)
+        return data
