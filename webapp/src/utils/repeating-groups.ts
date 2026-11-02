@@ -341,7 +341,8 @@ export function getItemHeaderParts(field: StandardFormFieldDto, index: number, c
 }
 
 // `{{field:<id>}}` / `{{group:<id>:<aggregate>:<id>}}` tokens with an optional `|fallback`.
-const TEXT_TOKEN_PATTERN = /\{\{\s*(field|group|hidden)\s*:\s*([^}|]+?)\s*(\|[^}]*)?\}\}/g;
+// The key is trimmed in code: a lazy `\s*([^}|]+?)\s*` backtracks cubically on a long run of spaces. An empty key is not a token.
+const TEXT_TOKEN_PATTERN = /\{\{\s*(field|group|hidden)\s*:([^|{}]*)(\|[^{}]*)?\}\}/g;
 
 const remapKey = (key: string, idMap: Record<string, string>) =>
     key
@@ -351,7 +352,7 @@ const remapKey = (key: string, idMap: Record<string, string>) =>
 
 /** Rewrite the field ids inside plain-text pipe tokens (hidden-field names are left alone). */
 export function remapTextTokens(text: string, idMap: Record<string, string>): string {
-    return text.replace(TEXT_TOKEN_PATTERN, (match, kind: string, key: string, fallback?: string) => (kind === 'hidden' ? match : `{{${kind}:${remapKey(key, idMap)}${fallback ?? ''}}}`));
+    return text.replace(TEXT_TOKEN_PATTERN, (match, kind: string, key: string, fallback?: string) => (kind === 'hidden' || !key ? match : `{{${kind}:${remapKey(key.trim(), idMap)}${fallback ?? ''}}}`));
 }
 
 /**

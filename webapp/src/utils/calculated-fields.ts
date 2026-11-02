@@ -142,7 +142,12 @@ export function pipedInto(slides: StandardFormFieldDto[] | undefined | null, fie
 
 /** A title as plain text with its answer pipes written `{Label}`. */
 function titleWithPipes(node: unknown, labels: Map<string, string>): string {
-    if (typeof node === 'string') return node.replace(/\{\{\s*field\s*:\s*([^}|]+?)\s*(\|[^}]*)?\}\}/g, (_m, key) => `{${labels.get(key) ?? key}}`);
+    if (typeof node === 'string')
+        return node.replace(/\{\{\s*field\s*:([^|{}]*)(\|[^{}]*)?\}\}/g, (match, raw: string) => {
+            if (!raw) return match;
+            const key = raw.trim();
+            return `{${labels.get(key) ?? key}}`;
+        });
     if (!node || typeof node !== 'object') return '';
     const item = node as { type?: string; text?: string; attrs?: { pipeKey?: string; label?: string }; content?: unknown[] };
     if (item.type === 'text' && typeof item.text === 'string') return item.text;

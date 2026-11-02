@@ -72,7 +72,8 @@ const NOT_RULE_TARGETS = new Set<string>([
     FieldTypes.CALCULATED,
     FieldTypes.GROUP
 ]);
-const PIPE = /\{\{\s*(field|hidden|group)\s*:\s*([^|}]*?)\s*(?:\|[^}]*)?\}\}/g;
+// The key is cut at `|` or a brace and trimmed where it is read: a lazy `\s*([^|}]*?)\s*` backtracks cubically on a long run of spaces.
+const PIPE = /\{\{\s*(field|hidden|group)\s*:([^|{}]*)(?:\|[^{}]*)?\}\}/g;
 
 /** What a form is for these checks: its pages and hidden-field names. */
 export interface RuleForm {
@@ -423,7 +424,8 @@ class Checker {
         const name = titleOf(target.field);
         const siblings = target.group ? this.siblings(target) : new Set<string>();
         for (const match of text.matchAll(PIPE)) {
-            const [, kind, key] = match;
+            const kind = match[1];
+            const key = match[2].trim();
             let ok: boolean;
             if (kind === 'hidden') ok = this.hiddenNames.has(key);
             else if (kind === 'group') {
