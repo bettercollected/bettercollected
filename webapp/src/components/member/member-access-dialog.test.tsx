@@ -55,8 +55,8 @@ describe('What can they open?', () => {
             data: {
                 teams: [{ id: 't-1', name: 'Vrijwilligersteam', memberCount: 3 }],
                 grants: [
-                    { id: 'g1', subjectType: 'user', subjectId: 'u-a', role: 'REVIEWER', export: true },
-                    { id: 'g2', subjectType: 'user', subjectId: 'u-a', role: 'VIEWER', export: false, formTitle: 'Join the volunteers' }
+                    { id: 'g1', subjectType: 'user', subjectId: 'u-a', role: 'REVIEWER', export: true, formId: null, formTitle: null },
+                    { id: 'g2', subjectType: 'user', subjectId: 'u-a', role: 'VIEWER', export: false, formId: 'f-2', formTitle: 'Join the volunteers' }
                 ]
             },
             isLoading: false,
@@ -79,7 +79,7 @@ describe('What can they open?', () => {
         expect(within(dialog).getByText('Vrijwilligersteam')).toBeInTheDocument();
         expect(within(dialog).getByText('Reviewer, may export responses')).toBeInTheDocument();
         expect(within(dialog).getByText('Join the volunteers')).toBeInTheDocument();
-        expect(within(dialog).getByText('A form')).toBeInTheDocument();
+        expect(within(dialog).getByText("A form you can't open")).toBeInTheDocument();
         expect(within(dialog).getByText(/Change this in a form's settings, under Access./)).toBeInTheDocument();
         expect(within(dialog).queryByRole('button', { name: /Remove|Delete/ })).toBeNull();
     });
@@ -103,6 +103,7 @@ describe('What can they open?', () => {
         open();
         expect(screen.getByRole('dialog', { name: 'Wat kan Anna Bakker openen?' })).toBeInTheDocument();
         expect(screen.getByText('Beoordelaar, mag reacties exporteren')).toBeInTheDocument();
+        expect(screen.getByText('Een formulier dat u niet kunt openen')).toBeInTheDocument();
     });
 
     it('has no accessibility violations', async () => {
