@@ -34,6 +34,20 @@ One action belongs to one form (at most 5 per form). It has:
 Permissions: configuring, the question list, the preview and the test mail need `workspace.manage` (owners and admins), because answers leave the system. Reading the log
 needs `form.edit` or `audit.read` (editors, admins, owners and the privacy officer, who never reads answers).
 
+## Actions that replaced a built-in action
+
+The built-in "send me a copy" and "copy for the respondent" actions moved into email actions in 4.4 ([Moving built-in actions](moving-builtin-actions.md)). An action made by that move
+is a normal email action with these differences, which a person cannot set:
+
+- **Every question** (`allQuestions`): the action names every question the form has at the time it sends (not files, not a group's items on their own, no internal field), under the question's own
+  id (made of letters, digits and `_`, made unique, and never `answers`, `form_title` or `submitted_at`). A question added later is in the next mail, as it was for the built-in action. Editing the
+  words is checked against all those names; picking questions in the editor ends it. The API shows it as `allQuestions`.
+- **Default words**: subject "You have got a new response in `{{form_title}}`" (Dutch: "U heeft een nieuwe reactie ontvangen op `{{form_title}}`"), and a message of `{{answers}}` and a line with a link to the
+  form's responses ("View all responses: ..." / "Bekijk alle reacties: ..."). Change them like any template.
+- `created_via` (`migrated_builtin`) and `source_action_id` (the form action it replaced) record where it came from; they are not in the API.
+- What is **different from the built-in action**: the mail is plain text (the old HTML look is gone); the team copy goes to one address, which must be a current member of the workspace, checked at every send; the respondent's copy goes
+  only to a signed-in respondent with a verified account email (not to whatever address an anonymous submission carried); and the instance's mail server (`MAIL_*`) is used, never a server of a workspace or a form.
+
 ## Templates
 
 Plain text only. No HTML is ever produced, so what a respondent typed is text and nothing else. A template uses `{{name}}` placeholders and no other syntax:
@@ -100,7 +114,7 @@ was removed) never runs the action (`condition_invalid`). A condition cannot be 
 ## The queue, retries and the log
 
 - Job `deliver_email`, plus the sweep `emails_redefer` (every 5 minutes) and the daily `purge_email_logs`, on the queue **`emails`** of the Postgres job queue, in the backend's jobs worker
-  (`python -m backend.jobs.worker`, which now consumes `default,webhooks,emails`; if you set `JOBS_QUEUES`, include `emails`; the worker logs a warning at start when email actions are
+  (`python -m backend.jobs.worker`, which now consumes `default,webhooks,emails,exports,imports,integrations`; if you set `JOBS_QUEUES`, include `emails`; the worker logs a warning at start when email actions are
   on and it does not serve the queue). The job's only argument is the log row's id: the message is built when the job runs, from the decrypted answers, and never queued.
 - 5 attempts with exponential backoff and jitter: about 1 minute, 4, 16 and 64 minutes (capped at 2 hours). `recipient_rejected`, `smtp_rejected`, `invalid_message` and
   `mail_not_configured` fail at once; connection, timeout, TLS, authentication and 4xx answers retry.
@@ -135,6 +149,7 @@ logs the outcome. 5 per action and 20 per workspace per minute, 20 per user per 
 | `GET /workspaces/{ws}/email-actions/status` | `{"enabled": bool, "configured": bool}` (any member) |
 | `GET /workspaces/{ws}/forms/{form}/email-actions` | the form's actions |
 | `GET .../email-actions/variables` | the form's questions that can be mapped |
+| `GET .../email-actions` (each) | also `allQuestions` (read-only) |
 | `POST .../email-actions` | `{name, en:{subject,body}, nl:{...}, fields:[{source,key}], teamRecipients, respondentCopy, condition, enabled}` -> 201 |
 | `PATCH .../email-actions/{id}` | any of those; `condition: null` removes the condition |
 | `DELETE .../email-actions/{id}` | 204 |

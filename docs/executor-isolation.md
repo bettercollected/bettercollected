@@ -1,5 +1,8 @@
 # Isolating the actions executor
 
+> **4.4:** the built-in actions below move onto the backend's own webhooks, email actions and Google Sheets runner, and the
+> executor is then needed only for custom actions: see [Moving built-in actions](moving-builtin-actions.md).
+
 The actions executor (`temporal/actions-executor`) runs the actions a form has switched on, when a response is
 submitted. Two kinds of action run there:
 
