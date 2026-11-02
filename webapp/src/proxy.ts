@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import environments from '@app/configs/environments';
+import { frameAncestorsFor } from '@app/lib/frame-ancestors';
 
 /**
  * A link to a workspace dashboard page opened without a session goes to the
@@ -37,10 +38,23 @@ function deployBasePath(): string {
     return base && base.startsWith('/') ? base : '';
 }
 
+const DASHBOARD_PATH = /^\/[^/]+\/dashboard(\/|$)/;
+
+/**
+ * Two jobs, both at request time (next.config.js `headers()` is evaluated when the image is built, without
+ * the running server's domains, which is how the old `X-Frame-Options: ALLOW-FROM` named an undefined host):
+ * a link to a dashboard page without a session goes to sign-in, and every page except a published form's
+ * says who may frame it (lib/frame-ancestors.ts). The matcher covers every route but `_next/` and files
+ * with a static-file extension (a workspace handle may contain a dot), the 404 page included. The proxy is the only place this header is set.
+ */
 export function proxy(request: NextRequest) {
-    return signInRedirect(request) ?? NextResponse.next();
+    const { pathname } = request.nextUrl;
+    const response = (DASHBOARD_PATH.test(pathname) ? signInRedirect(request) : null) ?? NextResponse.next();
+    const value = frameAncestorsFor(pathname, `${dashboardScheme()}://${environments.DASHBOARD_DOMAIN}`);
+    if (value) response.headers.set('Content-Security-Policy', value);
+    return response;
 }
 
 export const config = {
-    matcher: ['/:workspace_name/dashboard', '/:workspace_name/dashboard/:path*']
+    matcher: ['/((?!_next/|.*\\.(?:png|jpe?g|gif|svg|ico|webp|avif|css|js|mjs|map|json|txt|xml|woff2?|ttf|otf|webmanifest|mp4|pdf)$).*)']
 };

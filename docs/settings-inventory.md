@@ -339,7 +339,6 @@ environment, whatever the tier.
 | `INTERNAL_DOCKER_API_ENDPOINT_HOST` | webapp | webapp | str |  | R | T5 |  |
 | `NEXT_PUBLIC_API_ENDPOINT_HOST` | webapp | webapp | str |  | B | T5 |  |
 | `NEXT_PUBLIC_APP_URL` | webapp | webapp | str |  | B | T5 |  |
-| `NEXT_PUBLIC_DASHBOARD_DOMAIN` | webapp | webapp | str |  | B | T5 |  |
 | `NEXT_PUBLIC_NODE_ENV` | webapp | webapp | str |  | B | T5 |  |
 | `UMAMI_SCRIPT_URL` | webapp | webapp | str |  | R | T5 |  |
 
