@@ -111,6 +111,7 @@ from backend.app.services.sheets_reconsent import SheetsReconsentService
 from backend.app.services.auth_service import AuthService
 from backend.app.services.case_duplicate_accounts import CaseDuplicateAccounts
 from backend.app.services.mfa.service import MfaService
+from backend.app.services.mfa.signin import MfaSignIn
 from backend.app.services.session_service import SessionService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.coupon_service import CouponService
@@ -956,6 +957,14 @@ class AppContainer(containers.DeclarativeContainer):
         rate_limiter=rate_limiter,
         crypto=crypto,
         audit_repo=workspace_audit_repo,
+    )
+
+    mfa_signin_service: MfaSignIn = providers.Singleton(
+        MfaSignIn,
+        mfa_service=mfa_service,
+        session_service=session_service,
+        factor_repo=user_totp_repo,
+        rate_limiter=rate_limiter,
     )
 
     # a deleted account's stored provider credentials (services/credential_purge.py)

@@ -179,6 +179,19 @@ async def test_import_oauth_keeps_the_sessions_claim_and_session():
     assert service.http_client.get.await_args.kwargs["params"]["email_verified"]
 
 
+async def test_import_oauth_keeps_the_second_factor_of_the_session():
+    """The re-issued access token continues the session: a session that
+    presented a second factor keeps saying so, one that did not never gains it."""
+    exchanged = {"id": "u1", "sub": "ops@example.com", "roles": ["FORM_CREATOR"]}
+    for presented in (True, None):
+        signed_in = User(id="u1", sub="ops@example.com", sid=SID, mfa=presented)
+        service = _import_service("https://admin.example.com/forms", exchanged)
+        user, _ = await service.handle_backend_auth_callback(
+            provider_name="google", state="s", request=None, user=signed_in
+        )
+        assert user.mfa is presented
+
+
 async def test_import_oauth_of_an_unverified_session_stays_unverified():
     signed_in = User(id="u1", sub="ops@example.com", sid=SID)
     service = _import_service(
