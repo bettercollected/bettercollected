@@ -419,19 +419,17 @@ async def test_actions_of_someone_elses_own_are_never_touched(workspace):
 # --------------------------------------------------------------------- CLI
 
 
-async def test_the_command_exit_codes_and_the_temporal_guard():
+async def test_the_command_exit_codes():
     parser = migrate_builtins.build_parser()
 
     class Fake:
         def __init__(self, blocked=0):
             self.report = migrate.Report({"blocked.x": blocked} if blocked else {"ok": 1})
-            self.applied = False
 
         async def preflight(self, workspace=None):
             return self.report
 
         async def apply(self, workspace=None, wait_queue_seconds=0):
-            self.applied = True
             return self.report
 
         async def verify(self, workspace=None):
@@ -444,10 +442,176 @@ async def test_the_command_exit_codes_and_the_temporal_guard():
     assert await run(parser.parse_args(["preflight"]), Fake(), temporal=False) == 0
     assert await run(parser.parse_args(["preflight"]), Fake(2), temporal=False) == 1
     assert await run(parser.parse_args(["verify"]), Fake(), temporal=False) == 1
-    fake = Fake()
-    # the executor's queue is Temporal's: the operator has to confirm it is empty
-    assert await run(parser.parse_args(["apply"]), fake, temporal=True) == 3 and not fake.applied
-    assert await run(parser.parse_args(["apply", "--temporal-drained"]), fake, temporal=True) == 0 and fake.applied
     assert await run(parser.parse_args(["apply"]), Fake(), temporal=False) == 0
+    assert parser.parse_args(["apply", "--temporal-drained"]).temporal_drained is True
+    assert parser.parse_args(["preflight", "--temporal-drained"]).temporal_drained is True
     with pytest.raises(SystemExit):
         parser.parse_args(["destroy"])
+
+
+# ----------------------------------------------------------------- Temporal
+
+
+class FakeTemporal:
+    """The Temporal server's list of open ``run_action_code`` workflows."""
+
+    def __init__(self, open_ids=(), reachable=True):
+        self.open_ids = list(open_ids)
+        self.reachable = reachable
+        self.asked = []
+
+    async def __call__(self, form_id):
+        self.asked.append(form_id)
+        if not self.reachable:
+            raise ConnectionError("no temporal")
+        return [i for i in self.open_ids if form_id is None or str(form_id) in i]
+
+
+def temporal_tool(fake, override=False):
+    migration = migrate_builtins.migration_of(container, temporal=False, override=override)
+    migration._temporal_open_runs = fake
+    return migration
+
+
+async def test_on_temporal_a_form_with_open_workflows_is_not_moved(workspace):
+    setup_ = await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    other = await setup(workspace, [("send_to_slack", {"Slack Webhook URL": SLACK}, True)])
+    action = str(setup_.actions["send_webhook"].id)
+    # a run of the first form is open (the id holds the action, form and response)
+    fake = FakeTemporal([f"action_{action}{setup_.form.form_id}65b0000000000000000000ff"])
+    report = await temporal_tool(fake).apply()
+    assert report.counts["blocked.queued_runs"] == 1  # the first form waits
+    assert report.counts["moved.send_to_slack"] == 1  # the second one is not held up
+    assert await container.form_webhook_repo().list_for_form(workspace.id, setup_.form.form_id) == []
+    assert len(await container.form_webhook_repo().list_for_form(workspace.id, other.form.form_id)) == 1
+    # the workflow finishes while the command waits
+    async def finishes(seconds):
+        fake.open_ids.clear()
+
+    report = await temporal_tool(fake).apply(wait_queue_seconds=10, poll=finishes)
+    assert report.counts["moved.send_webhook"] == 1
+
+
+async def test_preflight_counts_the_open_workflows_and_stops_when_temporal_cannot_be_asked(workspace):
+    await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    fake = FakeTemporal(["action_aaaa" + "b" * 24 + "c" * 24])
+    report = await temporal_tool(fake).preflight()
+    assert report.counts["open_run_action_workflows"] == 1 and report.blocked() == 0
+    down = FakeTemporal(reachable=False)
+    report = await temporal_tool(down).preflight()
+    assert report.counts["blocked.temporal_unreachable"] == 1 and report.blocked() == 1
+
+
+async def test_apply_moves_nothing_while_temporal_cannot_be_asked(workspace):
+    setup_ = await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    report = await temporal_tool(FakeTemporal(reachable=False)).apply()
+    assert report.counts["blocked.temporal_unreachable"] == 1
+    assert not any(k.startswith("moved.") for k in report.counts)
+    assert await container.form_webhook_repo().list_for_form(workspace.id, setup_.form.form_id) == []
+
+
+async def test_the_override_skips_an_unreachable_temporal_loudly_and_records_it(workspace):
+    from loguru import logger
+
+    setup_ = await setup(workspace, FULL[:1] + FULL[5:])
+    seen = []
+    handler = logger.add(lambda message: seen.append((message.record["level"].name, str(message))), level="DEBUG")
+    try:
+        report = await temporal_tool(FakeTemporal(reachable=False), override=True).apply()
+    finally:
+        logger.remove(handler)
+    assert report.counts["moved.send_webhook"] == 1
+    assert report.counts["temporal_check_skipped_by_operator"] == 1  # in the output summary
+    warned = [text for level, text in seen if level == "WARNING" and "--temporal-drained" in text]
+    assert warned and "COULD NOT BE ASKED" in warned[0] and "operator's word" in warned[0]
+    # and with every moved action: its entry's marker and the webhook's audit row
+    for entry in (await entries_of(setup_.form)).values():
+        assert entry.migrated_to["temporal_check"] == "skipped_by_operator"
+    audit = await container.webhook_audit_repo().list_for_form(workspace.id, setup_.form.form_id)
+    assert [a.changed for a in audit] == [["temporal_check_skipped_by_operator"]]
+    # a verify and a rollback still understand such an entry
+    assert not any(k.startswith("problem.") for k in (await tool().verify()).counts)
+    assert (await tool().rollback()).counts["rolled_back.webhook"] == 1
+
+
+async def test_an_override_that_was_not_needed_leaves_no_mark(workspace):
+    setup_ = await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    report = await temporal_tool(FakeTemporal([]), override=True).apply()  # Temporal answered
+    assert "temporal_check_skipped_by_operator" not in report.counts
+    (entry,) = (await entries_of(setup_.form)).values()
+    assert "temporal_check" not in entry.migrated_to
+
+
+async def test_an_override_does_not_hide_an_open_workflow_temporal_reported(workspace):
+    setup_ = await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    action = str(setup_.actions["send_webhook"].id)
+    fake = FakeTemporal([f"action_{action}{setup_.form.form_id}65b0000000000000000000ff"])
+    assert (await temporal_tool(fake, override=True).apply()).counts["blocked.queued_runs"] == 1
+
+
+@pytest.mark.parametrize("failure", [ConnectionError("down"), PermissionError("auth"), TimeoutError()])
+async def test_any_failure_to_ask_temporal_fails_closed(workspace, failure):
+    setup_ = await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+
+    async def broken(form_id):
+        raise failure
+
+    migration = temporal_tool(broken)
+    assert (await migration.preflight()).counts["blocked.temporal_unreachable"] == 1
+    report = await migration.apply()
+    assert report.counts["blocked.temporal_unreachable"] == 1
+    assert not any(k.startswith("moved.") for k in report.counts)  # never "zero open"
+    assert await container.form_webhook_repo().list_for_form(workspace.id, setup_.form.form_id) == []
+
+
+async def test_a_temporal_that_does_not_answer_in_time_fails_closed(workspace, monkeypatch):
+    import asyncio
+
+    await setup(workspace, [("send_webhook", {"Webhook URL": HOOK}, True)])
+    monkeypatch.setattr(migrate, "TEMPORAL_TIMEOUT_SECONDS", 0.05)
+
+    async def hangs(form_id):
+        await asyncio.sleep(30)
+
+    report = await temporal_tool(hangs).apply()
+    assert report.counts["blocked.temporal_unreachable"] == 1
+
+
+async def test_the_command_refuses_with_its_own_exit_code_and_a_message(capsys):
+    parser = migrate_builtins.build_parser()
+
+    class Down:
+        async def preflight(self, workspace=None):
+            return migrate.Report({"blocked.temporal_unreachable": 1})
+
+        async def apply(self, workspace=None, wait_queue_seconds=0):
+            return migrate.Report({"blocked.temporal_unreachable": 1, "blocked.queued_runs": 2})
+
+    assert await migrate_builtins.run(parser.parse_args(["preflight"]), Down(), temporal=True) == 3
+    assert await migrate_builtins.run(parser.parse_args(["apply"]), Down(), temporal=True) == 3
+    err = capsys.readouterr().err
+    assert "could not be asked" in err and "--temporal-drained" in err
+
+
+async def test_the_temporal_service_lists_only_open_run_action_workflows_of_the_form(monkeypatch):
+    service = container.temporal_service()
+    asked = []
+
+    class Workflow:
+        def __init__(self, id):
+            self.id = id
+
+    class FakeClient:
+        def list_workflows(self, query=None):
+            asked.append(query)
+
+            async def stream():
+                for item in ("action_x_f1_r1", "action_x_f2_r2", "action_y_f1_r3"):
+                    yield Workflow(item)
+
+            return stream()
+
+    monkeypatch.setattr(service, "temporal_client", FakeClient())
+    assert await service.open_action_workflows() == ["action_x_f1_r1", "action_x_f2_r2", "action_y_f1_r3"]
+    assert await service.open_action_workflows("f1") == ["action_x_f1_r1", "action_y_f1_r3"]
+    assert 'WorkflowType="run_action_code"' in asked[0] and 'ExecutionStatus="Running"' in asked[0]

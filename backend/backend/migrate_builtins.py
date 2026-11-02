@@ -5,7 +5,7 @@ Google Sheets) onto the backend's own webhooks, email actions and Sheets runner
 (``services/builtin_actions/migrate.py`` says what and how). Runs as the app
 role in the backend image, against Postgres, one form at a time.
 
-    preflight [--workspace ID]            read-only: what would move, what blocks it
+    preflight [--workspace ID] [--temporal-drained]   read-only: what would move, what blocks it
     apply [--workspace ID] [--wait-queue SECONDS] [--temporal-drained]
     verify [--workspace ID]               every moved action has its target
     rollback [--workspace ID]             give the old actions back, switch the new ones off
@@ -13,12 +13,16 @@ role in the backend image, against Postgres, one form at a time.
 ``apply`` moves what it can and reports the rest; it never turns a switch on,
 never sends anything, and refuses a form that still has runs queued for the
 executor (``--wait-queue`` waits for them). When the executor's ``run_action``
-runs on Temporal, queued runs cannot be seen from here: confirm there are no
-open ``run_action_code`` workflows and pass ``--temporal-drained``.
+runs on Temporal (``JOBS_BACKEND``), ``preflight`` and ``apply`` ask the Temporal
+server (the backend's own ``TEMPORAL_*`` settings) for the open
+``run_action_code`` workflows: ``apply`` refuses a form while any of its runs are
+open, and both refuse (``blocked.temporal_unreachable``) when Temporal cannot be
+asked. ``--temporal-drained`` is only for that case: it skips the check, with an
+error line in the log, on the operator's word that nothing is open.
 
 Output is counts only, as JSON: no id, address, recipient or secret. Exit status:
 0 done and nothing blocked (``verify``: nothing wrong), 1 something is blocked or
-wrong, 2 usage, 3 refused (Temporal not confirmed drained).
+wrong, 2 usage, 3 Temporal could not be asked (nothing is moved or assumed).
 """
 
 from __future__ import annotations
@@ -38,12 +42,22 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument("--workspace", help="only this workspace's forms")
         if name == "apply":
             command.add_argument("--wait-queue", type=int, default=0, metavar="SECONDS")
-            command.add_argument("--temporal-drained", action="store_true")
+        if name in ("preflight", "apply"):
+            command.add_argument(
+                "--temporal-drained",
+                action="store_true",
+                help="only when Temporal cannot be reached: skip the open-workflow check",
+            )
     return parser
 
 
-def migration_of(container):
+def migration_of(container, temporal: bool = False, override: bool = False):
+    """``temporal``: the executor's ``run_action`` is on Temporal, so its open
+    workflows are asked of the Temporal server; ``override``: the operator's word
+    for a Temporal that cannot be reached (``--temporal-drained``)."""
     from backend.app.services.builtin_actions.migrate import BuiltinMigration
+
+    open_runs = container.temporal_service().open_action_workflows if temporal else None
 
     return BuiltinMigration(
         form_repo=container.form_repo(),
@@ -55,6 +69,8 @@ def migration_of(container):
         audit_repo=container.webhook_audit_repo(),
         copy_recipient_service=container.copy_recipient_service(),
         crypto=container.crypto(),
+        temporal_open_runs=open_runs,
+        temporal_override=override,
     )
 
 
@@ -64,26 +80,43 @@ def temporal_runs_actions(container) -> bool:
     return not container.temporal_service()._on_postgres("run_action")
 
 
+TEMPORAL_UNREACHABLE = 3
+
+
+def exit_code(report) -> int:
+    """3 when Temporal could not be asked (nothing was checked, so nothing is
+    claimed), 1 when anything else is blocked, else 0."""
+    if report.counts.get("blocked.temporal_unreachable"):
+        print(
+            "refused: Temporal could not be asked for the open run_action_code "
+            "workflows, so none are assumed to be closed. Fix the connection, or, "
+            "if you know nothing is open, pass --temporal-drained (it is logged and "
+            "recorded with every moved action).",
+            file=sys.stderr,
+        )
+        return TEMPORAL_UNREACHABLE
+    return 1 if report.blocked() else 0
+
+
 async def run(args, migration=None, temporal=None) -> int:
     async with open_container() as container:
-        migration = migration or migration_of(container)
+        if migration is None:
+            on_temporal = temporal_runs_actions(container) if temporal is None else temporal
+            migration = migration_of(
+                container,
+                temporal=on_temporal,
+                override=bool(getattr(args, "temporal_drained", False)),
+            )
         if args.command == "preflight":
             report = await migration.preflight(args.workspace)
             print(report.as_json())
-            return 1 if report.blocked() else 0
+            return exit_code(report)
         if args.command == "apply":
-            on_temporal = temporal_runs_actions(container) if temporal is None else temporal
-            if on_temporal and not args.temporal_drained:
-                print(
-                    '{"refused": "run_action_on_temporal: confirm no open '
-                    'run_action_code workflows, then pass --temporal-drained"}'
-                )
-                return 3
             report = await migration.apply(
                 args.workspace, wait_queue_seconds=args.wait_queue
             )
             print(report.as_json())
-            return 1 if report.blocked() else 0
+            return exit_code(report)
         if args.command == "verify":
             report = await migration.verify(args.workspace)
             print(report.as_json())

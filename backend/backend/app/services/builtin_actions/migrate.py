@@ -58,6 +58,11 @@ from backend.config import settings
 from backend.db.models import FormRow, WorkspaceFormRow
 
 MIGRATED_VIA = "migrated_builtin"
+TEMPORAL_TIMEOUT_SECONDS = 30
+# recorded on a moved entry (``migrated_to``) and in the webhook's audit row when
+# the open-workflow check was skipped by ``--temporal-drained``
+CHECK_SKIPPED_KEY = "temporal_check"
+CHECK_SKIPPED_VALUE = "skipped_by_operator"
 MAX_EMAIL_ACTIONS_PER_FORM = 5
 SMTP_NAMES = {"server", "port", "username", "password", "sender"}
 
@@ -80,6 +85,14 @@ def target_id(kind: str, form_id: str, action_id: str) -> RecordId:
 
 def _norm(name: Any) -> str:
     return "".join(ch for ch in str(name).lower() if ch.isalnum())
+
+
+class TemporalUnreachable(Exception):
+    """The Temporal server could not be asked for the open workflows."""
+
+    def __init__(self, reason: str = "unreachable"):
+        super().__init__(reason)
+        self.reason = reason
 
 
 @dataclass
@@ -138,6 +151,8 @@ class BuiltinMigration:
         copy_recipient_service,
         crypto,
         clock=utcnow,
+        temporal_open_runs=None,
+        temporal_override: bool = False,
     ):
         self._forms = form_repo
         self._actions = action_repo
@@ -149,7 +164,15 @@ class BuiltinMigration:
         self._copy = copy_recipient_service
         self._crypto = crypto
         self._clock = clock
+        # ``async (form_id | None) -> [workflow ids]``: the open ``run_action_code``
+        # workflows, when the executor's ``run_action`` is on Temporal (None: it is
+        # on the Postgres queue, which is looked at directly). The override (the
+        # operator's ``--temporal-drained``) is only for a Temporal that cannot be
+        # reached: the check is then skipped, loudly
+        self._temporal_open_runs = temporal_open_runs
+        self._temporal_override = temporal_override
         self._actions_by_id: Optional[Dict[str, Any]] = None
+        self.check_skipped = False
 
     # ------------------------------------------------------------ reading
 
@@ -352,6 +375,15 @@ class BuiltinMigration:
 
     async def preflight(self, workspace: Optional[str] = None) -> Report:
         report = Report()
+        if self._temporal_open_runs is not None:
+            try:
+                report.add("open_run_action_workflows", len(await self._ask_temporal(None)))
+            except TemporalUnreachable as unreachable:
+                if self._temporal_override:
+                    report.add("temporal_check_skipped_by_operator")
+                    self._warn_override(unreachable.reason)
+                else:
+                    report.add("blocked.temporal_unreachable")
         for form_id in await self.form_ids(workspace):
             items = await self.plan_form(form_id)
             if items:
@@ -360,6 +392,45 @@ class BuiltinMigration:
         return report
 
     # --------------------------------------------------------------- apply
+
+    async def _open_runs(self, form_id: str) -> int:
+        """Runs of the form's built-in actions still waiting for, or being run
+        by, the executor: on the Postgres queue and, when ``run_action`` is on
+        Temporal, the form's open workflows (asked of Temporal itself)."""
+        count = await self._queued_runs(form_id)
+        self.check_skipped = False
+        if self._temporal_open_runs is not None:
+            try:
+                count += len(await self._ask_temporal(form_id))
+            except TemporalUnreachable as unreachable:
+                # fail closed: a Temporal that cannot be asked is never "no open
+                # workflows"; only the operator's explicit word skips the check
+                if not self._temporal_override:
+                    raise
+                self.check_skipped = True
+                self._warn_override(unreachable.reason)
+        return count
+
+    async def _ask_temporal(self, form_id):
+        """The open workflows (of ``form_id``, or all), or ``TemporalUnreachable``
+        for any failure to ask: a connection error, a refused login, a timeout."""
+        try:
+            return await asyncio.wait_for(
+                self._temporal_open_runs(form_id), TEMPORAL_TIMEOUT_SECONDS
+            )
+        except asyncio.TimeoutError as error:
+            raise TemporalUnreachable("timeout") from error
+        except Exception as error:  # noqa: BLE001
+            raise TemporalUnreachable(type(error).__name__) from error
+
+    @staticmethod
+    def _warn_override(reason: str) -> None:
+        logger.warning(
+            "--temporal-drained: TEMPORAL COULD NOT BE ASKED ({}); the open "
+            "run_action_code workflows are NOT checked, on the operator's word "
+            "that none are open. The skipped check is recorded with each moved action.",
+            reason,
+        )
 
     async def _queued_runs(self, form_id: str) -> int:
         try:
@@ -400,15 +471,23 @@ class BuiltinMigration:
             if not movable:
                 continue
             waited = 0
-            while await self._queued_runs(form_id):
-                if waited >= wait_queue_seconds:
-                    break
-                await poll(2)
-                waited += 2
-            if await self._queued_runs(form_id):
+            try:
+                while await self._open_runs(form_id):
+                    if waited >= wait_queue_seconds:
+                        break
+                    await poll(2)
+                    waited += 2
+                open_runs = await self._open_runs(form_id)
+            except TemporalUnreachable:
+                report.add("blocked.temporal_unreachable")
+                break  # no form can be checked: nothing more is moved
+            if open_runs:
                 report.add("blocked.queued_runs")
                 continue
-            moved = await self._apply_form(form_id, movable)
+            skipped = self.check_skipped
+            if skipped:
+                report.add("temporal_check_skipped_by_operator")
+            moved = await self._apply_form(form_id, movable, skipped)
             if moved is None:
                 report.add("blocked.form_changed")
                 continue
@@ -416,7 +495,9 @@ class BuiltinMigration:
                 report.add(f"moved.{item.name}")
         return report
 
-    async def _apply_form(self, form_id: str, items: List[Item]) -> Optional[int]:
+    async def _apply_form(
+        self, form_id: str, items: List[Item], check_skipped: bool = False
+    ) -> Optional[int]:
         """One transaction: the rows and the marks of the form's movable
         entries. None (nothing written) when the form changed since it was
         planned."""
@@ -441,6 +522,7 @@ class BuiltinMigration:
                         "kind": "sheets",
                         "id": item.action_id,
                         "was_enabled": "true" if item.enabled else "false",
+                        **({CHECK_SKIPPED_KEY: CHECK_SKIPPED_VALUE} if check_skipped else {}),
                     }
                     entry.migrated_at = now
                     continue
@@ -462,7 +544,11 @@ class BuiltinMigration:
                                     webhook_id=str(tid),
                                     event="migrated",
                                     actor_id=None,
-                                    changed=[],
+                                    changed=(
+                                        ["temporal_check_skipped_by_operator"]
+                                        if check_skipped
+                                        else []
+                                    ),
                                     host=document.host,
                                 ).ensure_id()
                             )
@@ -473,6 +559,7 @@ class BuiltinMigration:
                     "kind": item.kind,
                     "id": str(tid),
                     "was_enabled": "true" if item.enabled else "false",
+                    **({CHECK_SKIPPED_KEY: CHECK_SKIPPED_VALUE} if check_skipped else {}),
                 }
                 entry.migrated_at = now
             stored.updated_at = now
