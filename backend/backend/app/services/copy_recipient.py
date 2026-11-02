@@ -28,6 +28,7 @@ from typing import Any, Iterable, List, Optional, Set
 from common.records import RecordId
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.enum.permission import Permission
 from backend.app.services.internal_auth import auth_service_headers
 from backend.config import settings
 
@@ -142,10 +143,18 @@ def not_allowed() -> HTTPException:
 
 
 class CopyRecipientService:
-    def __init__(self, workspace_user_service, workspace_form_repository, http_client):
+    def __init__(
+        self,
+        workspace_user_service,
+        workspace_form_repository,
+        http_client,
+        authorization_service=None,
+    ):
         self._workspace_users = workspace_user_service
         self._workspace_forms = workspace_form_repository
         self._http_client = http_client
+        # form-level access (FORM_ACCESS_ENABLED): who may read the form's answers
+        self._authorization = authorization_service
 
     async def _allowed_addresses(self, workspace_id, form_id) -> Set[str]:
         """The normalised addresses allowed now: those of the workspace's
@@ -164,6 +173,15 @@ class CopyRecipientService:
             )
             if not member.disabled
         }
+        if user_ids and self._authorization is not None:
+            # While form-level access is on, mail is no way around it: a member
+            # who may not read this form's answers is no recipient of them,
+            # whether typed as a team address or as their own ("send me a copy").
+            readers = await self._authorization.member_ids_holding(
+                RecordId(str(workspace_id)), str(form_id), Permission.RESPONSE_READ
+            )
+            if readers is not None:
+                user_ids &= readers
         if not user_ids:
             return set()
         response = await self._http_client.get(

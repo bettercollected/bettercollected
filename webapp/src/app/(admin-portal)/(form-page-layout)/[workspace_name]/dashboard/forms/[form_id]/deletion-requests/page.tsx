@@ -11,7 +11,7 @@ export default function Page() {
     const workspace = useAppSelector(selectWorkspace);
 
     return (
-        <div className="mt-4 px-4 md:px-10 lg:px-28">
+        <div>
             <div className="mb-4">
                 <ResponseSegments />
             </div>

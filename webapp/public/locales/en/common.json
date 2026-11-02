@@ -1472,7 +1472,6 @@
   },
   "FORM_SHELL": {
     "FORMS": "Forms",
-    "BREADCRUMB": "Breadcrumb",
     "UNTITLED": "Untitled form",
     "PREVIEW": "Preview",
     "SHARE": "Share",
@@ -1485,9 +1484,14 @@
     "SHARE_TAB": "Share",
     "FROM_GOOGLE": "Imported from Google Forms",
     "FROM_TYPEFORM": "Imported from Typeform",
-    "NATIVE": "bettercollected form",
     "VERSION": "Version {{n}}",
-    "OPEN_FORM": "Open form ↗"
+    "OPEN_FORM": "Open form"
+  },
+  "FORM_NAV": {
+    "BACK": "Back to forms",
+    "SKIP": "Skip to content",
+    "SECTIONS": "Form sections",
+    "NEW_TAB": "(opens in a new tab)"
   },
   "STAFF_LANGUAGE": {
     "LABEL": "Language",
@@ -1761,6 +1765,9 @@
       "CARD_DELIVERIES_TITLE": "{{name}}: deliveries",
       "CARD_ON_OF": "{{on}} of {{count}} on",
       "CARD_NOT_SET_UP": "Not set up",
+      "ACTION_DESCRIPTIONS": {
+        "integrate_google_sheets": "Adds each response as a row in a Google spreadsheet."
+      },
       "CARD_NOT_SENT_one": "{{count}} not sent",
       "CARD_NOT_SENT_other": "{{count}} not sent",
       "CARD_UNAVAILABLE": "Cannot send",

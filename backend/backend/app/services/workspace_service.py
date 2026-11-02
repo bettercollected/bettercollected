@@ -546,8 +546,17 @@ class WorkspaceService:
         await self._authorization.authorize(
             user, Permission.ANALYTICS_READ, workspace_id
         )
-        form_ids = await self.workspace_form_service.get_form_ids_in_workspace(
+        all_form_ids = await self.workspace_form_service.get_form_ids_in_workspace(
             workspace_id=workspace_id
+        )
+        # Form-level access: every figure counts only the forms the member may
+        # open, narrowed before counting (a total never tells of a closed form).
+        # Off: the same ids, no query.
+        listed_ids = await self._authorization.restrict_to_visible(
+            user, workspace_id, all_form_ids, Permission.FORM_READ
+        )
+        form_ids = await self._authorization.restrict_to_visible(
+            user, workspace_id, all_form_ids, Permission.ANALYTICS_READ
         )
         responses_count = (
             await self.form_response_service.get_responses_count_in_workspace(
@@ -561,7 +570,7 @@ class WorkspaceService:
         )
 
         return {
-            "forms": len(form_ids),
+            "forms": len(listed_ids),
             "responses": responses_count,
             "deletion_requests": deletion_count,
         }

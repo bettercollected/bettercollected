@@ -601,6 +601,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_service=workspace_user_service,
         workspace_form_repository=workspace_form_repo,
         http_client=http_client,
+        authorization_service=authorization_service,
     )
 
     form_import_service: FormImportService = providers.Singleton(
@@ -1278,6 +1279,7 @@ class AppContainer(containers.DeclarativeContainer):
         AnalyticsService,
         authorization_service=authorization_service,
         workspace_repo=workspace_repo,
+        workspace_form_repo=workspace_form_repo,
     )
 
     integration_service: IntegrationService = providers.Singleton(

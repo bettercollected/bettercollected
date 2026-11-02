@@ -1,7 +1,7 @@
 "use client";
 import Link from 'next/link';
 
-import { Copy, Download, Eye, MoreVertical, Pencil, Pin, QrCode, Trash2 } from 'lucide-react';
+import { Copy, Download, ExternalLink, Eye, MoreVertical, Pencil, Pin, Play, QrCode, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { LinkIcon } from '@app/components/icons/link-icon';
@@ -15,7 +15,7 @@ import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@app/shadcn/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@app/shadcn/components/ui/dropdown-menu';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch } from '@app/store/hooks';
@@ -37,13 +37,15 @@ interface IFormOptionsDropdownMenuProps {
     showShare?: boolean;
     /** Shown in the form page's own header: it is already on the form, so "Open" and "Edit" (the header has an Edit button) are left out. */
     inHeader?: boolean;
+    /** In the header: opens the preview. Given on a phone only, where the bar has no room for a Preview button. */
+    onPreview?: () => void;
 }
 
-export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDomain, className = '', redirectToDashboard = false, showShare = false, inHeader = false }: IFormOptionsDropdownMenuProps) {
+export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDomain, className = '', redirectToDashboard = false, showShare = false, inHeader = false, onPreview }: IFormOptionsDropdownMenuProps) {
     const { openModal } = useModal();
     const { toast } = useToast();
 
-    const { can } = useWorkspacePermissions();
+    const { can, formRevisionsUiEnabled } = useWorkspacePermissions();
     const canEdit = can(WorkspacePermission.FORM_EDIT);
     const canCreate = can(WorkspacePermission.FORM_CREATE);
     const canDelete = can(WorkspacePermission.FORM_DELETE);
@@ -112,6 +114,11 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     // Pinning needs a public form; the item then says why it is off.
     const pinOff = !!form?.settings?.private || !!form?.settings?.hidden;
     const canShare = form?.isPublished && !form?.settings?.hidden && isFormOpen;
+    // In the header the menu also carries what the old page footer and meta line said: the form's version and where it came from.
+    const version = (form as any)?.version;
+    const hasVersion = typeof version === 'number';
+    const provenance = form?.settings?.provider === 'google' ? 'FORM_SHELL.FROM_GOOGLE' : form?.settings?.provider === 'typeform' ? 'FORM_SHELL.FROM_TYPEFORM' : null;
+    const canOpenVersions = !!formRevisionsUiEnabled && can(WorkspacePermission.FORM_READ);
 
     return (
         <DropdownMenu>
@@ -131,6 +138,11 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-[256px] bg-white p-0" align="end" onClick={(e) => e.stopPropagation()}>
+                {inHeader && onPreview && (
+                    <Item icon={<Play width={20} height={20} />} onSelect={onPreview}>
+                        {t('FORM_SHELL.PREVIEW')}
+                    </Item>
+                )}
                 {canEdit && form?.isPublished && isFormOpen && (
                     <Item icon={<Pin width={20} height={20} />} disabled={pinOff} hint={pinOff ? t(toolTipConstant.visibility) : undefined} onSelect={() => onPinnedChange(form)}>
                         {form?.settings?.pinned ? t(formConstant.unPinForm) : t(formConstant.menu.pinForm)}
@@ -145,6 +157,18 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     <LinkItem icon={<Pencil width={20} height={20} />} href={getEditFormURL(workspace, form)}>
                         {t(buttonConstant.edit)}
                     </LinkItem>
+                )}
+                {inHeader && form?.isPublished && (
+                    <DropdownMenuItem asChild className={ITEM}>
+                        <a href={getFormShareURL(form, workspace)} target="_blank" rel="noopener noreferrer">
+                            <span className="text-black-600 flex shrink-0 items-center justify-center" aria-hidden="true">
+                                <ExternalLink width={20} height={20} />
+                            </span>
+                            <span>
+                                {t('FORM_SHELL.OPEN_FORM')} <span className="sr-only">{t('FORM_NAV.NEW_TAB')}</span>
+                            </span>
+                        </a>
+                    </DropdownMenuItem>
                 )}
                 {canShare && (
                     <Item
@@ -185,12 +209,28 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                         {t(formConstant.menu.deleteForm)}
                     </Item>
                 )}
+                {inHeader && (hasVersion || provenance) && (
+                    <>
+                        <DropdownMenuSeparator className="bg-black-300 my-0" />
+                        <div className="text-black-600 flex flex-col gap-1 px-[20px] py-3 text-[13px]">
+                            {hasVersion &&
+                                (canOpenVersions ? (
+                                    <DropdownMenuItem asChild className="hover:bg-brand-100 focus:bg-brand-100 -mx-2 w-fit cursor-pointer rounded px-2 py-1 underline decoration-dotted underline-offset-2">
+                                        <Link href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/versions`}>{t('FORM_SHELL.VERSION', { n: version })}</Link>
+                                    </DropdownMenuItem>
+                                ) : (
+                                    <span>{t('FORM_SHELL.VERSION', { n: version })}</span>
+                                ))}
+                            {provenance && <span>{t(provenance)}</span>}
+                        </div>
+                    </>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );
 }
 
-const ITEM = 'hover:bg-brand-100 focus:bg-brand-100 body4 flex min-h-[36px] cursor-pointer items-center gap-2 rounded-none px-[20px] py-[10px]';
+const ITEM = 'hover:bg-brand-100 focus:bg-brand-100 body4 flex min-h-[44px] cursor-pointer items-center gap-2 rounded-none md:min-h-[36px] px-[20px] py-[10px]';
 
 /** A menu item that acts (a real menu item: arrow keys, Enter and Space, closes the menu); `hint` is why it is off. */
 function Item({ icon, children, onSelect, disabled, hint }: { icon: React.ReactNode; children: React.ReactNode; onSelect: () => void; disabled?: boolean; hint?: string }) {

@@ -42,6 +42,7 @@ from backend.app.models.template import StandardFormTemplate, StandardTemplateSe
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.consent import WorkspaceConsentDocument
 from backend.app.services import form_availability
+from backend.app.services.form_access.mode import form_access_enabled
 from backend.app.services.form_concurrency import (
     ensure_not_changed_since,
     form_changed,
@@ -1366,7 +1367,11 @@ class PostgresWorkspaceFormRepository(RecordRepository):
             where.append(self._slug_match(form_id_or_slug))
         if pinned_only:
             where.append(WorkspaceFormRow.pinned.is_(True))
-        if not is_not_admin and user:
+        if not is_not_admin and user and not form_access_enabled():
+            # Private (hidden) forms: only their creator among the members. While
+            # form-level access is on this is the access decision's job (a
+            # Private form is restricted there: its creator, the owners and
+            # admins and anyone granted pass), made by the caller on these ids.
             where.append(or_(self._not_hidden(), WorkspaceFormRow.user_id == user.id))
         if is_not_admin and not user:
             where.extend([self._not_hidden(), WorkspaceFormRow.private.is_(False)])

@@ -1472,7 +1472,6 @@
   },
   "FORM_SHELL": {
     "FORMS": "Formulieren",
-    "BREADCRUMB": "Kruimelpad",
     "UNTITLED": "Formulier zonder titel",
     "PREVIEW": "Voorbeeld",
     "SHARE": "Delen",
@@ -1485,9 +1484,14 @@
     "SHARE_TAB": "Delen",
     "FROM_GOOGLE": "Geïmporteerd uit Google Forms",
     "FROM_TYPEFORM": "Geïmporteerd uit Typeform",
-    "NATIVE": "bettercollected-formulier",
     "VERSION": "Versie {{n}}",
-    "OPEN_FORM": "Formulier openen ↗"
+    "OPEN_FORM": "Formulier openen"
+  },
+  "FORM_NAV": {
+    "BACK": "Terug naar formulieren",
+    "SKIP": "Direct naar de inhoud",
+    "SECTIONS": "Onderdelen van het formulier",
+    "NEW_TAB": "(opent in een nieuw tabblad)"
   },
   "STAFF_LANGUAGE": {
     "LABEL": "Taal",
@@ -1761,6 +1765,9 @@
       "CARD_DELIVERIES_TITLE": "{{name}}: leveringen",
       "CARD_ON_OF": "{{on}} van {{count}} aan",
       "CARD_NOT_SET_UP": "Niet ingesteld",
+      "ACTION_DESCRIPTIONS": {
+        "integrate_google_sheets": "Voegt elke reactie toe als rij in een Google-spreadsheet."
+      },
       "CARD_NOT_SENT_one": "{{count}} niet verstuurd",
       "CARD_NOT_SENT_other": "{{count}} niet verstuurd",
       "CARD_UNAVAILABLE": "Kan niet versturen",

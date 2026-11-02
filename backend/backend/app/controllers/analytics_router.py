@@ -62,7 +62,7 @@ class FormAnalyticsRouter(Routable):
         user: User = Depends(get_full_user),
     ):
         await self.analytics_service.check_user_can_view_analytics(
-            workspace_name=workspace_name, user=user
+            workspace_name=workspace_name, user=user, slug=slug
         )
 
         form_url = f"/{workspace_name}/forms/{slug}"
@@ -119,7 +119,7 @@ class FormAnalyticsRouter(Routable):
         user: User = Depends(get_full_user),
     ):
         await self.analytics_service.check_user_can_view_analytics(
-            workspace_name=workspace_name, user=user
+            workspace_name=workspace_name, user=user, slug=slug
         )
 
         form_url = f"/{workspace_name}/forms/{slug}"
@@ -178,7 +178,7 @@ class FormAnalyticsRouter(Routable):
         user: User = Depends(get_full_user),
     ):
         await self.analytics_service.check_user_can_view_analytics(
-            workspace_name=workspace_name, user=user
+            workspace_name=workspace_name, user=user, slug=slug
         )
         form_url = f"/{workspace_name}/forms/{slug}"
 

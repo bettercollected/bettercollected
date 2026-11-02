@@ -32,10 +32,10 @@ export default function VersionCompare({ from, to }: { from: string; to: string 
     const back = formVersionsUrl(workspace?.workspaceName ?? '', formId);
     const side = (value: string) => (value === 'draft' ? t('FORM_VERSIONS.COMPARE.SIDE_DRAFT') : t('FORM_VERSIONS.COMPARE.SIDE_VERSION', { n: value }));
 
-    if (!ready) return <div className="px-4 md:px-10 lg:px-28" role="status" aria-live="polite" />;
+    if (!ready) return <div role="status" aria-live="polite" />;
     if (!allowed) {
         return (
-            <div className="px-4 md:px-10 lg:px-28">
+            <div>
                 <p role="status" className="text-sm text-black-700">
                     {t('FORM_VERSIONS.DISABLED')}
                 </p>
@@ -45,7 +45,7 @@ export default function VersionCompare({ from, to }: { from: string; to: string 
     const failureCode = (error as any)?.data?.code;
 
     return (
-        <div className="px-4 md:px-10 lg:px-28" data-testid="version-compare">
+        <div data-testid="version-compare">
             <section aria-labelledby="version-compare-title" className="flex max-w-3xl flex-col gap-4">
                 <Link href={back} className="w-fit text-sm text-black-700 underline underline-offset-2 hover:text-black-900">
                     {t('FORM_VERSIONS.VIEW_PAGE.BACK')}

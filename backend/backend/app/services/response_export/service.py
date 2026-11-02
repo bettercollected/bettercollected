@@ -58,6 +58,7 @@ from backend.app.schemas.response_export import (
     ResponseExportDocument,
 )
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_access.mode import form_if_enforced
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.app.services.response_export import limits, links
 from backend.app.services.response_export.table import (
@@ -434,7 +435,12 @@ class ResponseExportService:
         read into an error. The row is closed by the sweep if that never runs."""
         # the permission first (403 for a role that may not export), then the
         # form's own 404, before any audit row is made for it
-        await self._authorization.authorize(user, Permission.RESPONSE_EXPORT, workspace_id)
+        await self._authorization.authorize(
+            user,
+            Permission.RESPONSE_EXPORT,
+            workspace_id,
+            form_id=form_if_enforced(form_id),
+        )
         await self._responses.ensure_form_in_workspace(workspace_id, form_id)
         await self._take_rate_limit(workspace_id, form_id, str(user.id))
         export = ResponseExportDocument(

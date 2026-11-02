@@ -151,6 +151,7 @@ from backend.app.services.repeating_groups import (
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_access.mode import form_if_enforced
 from backend.app.utils import AiohttpClient
 from backend.app.utils.respondent_identity import identity_of
 from backend.app.models.enum.permission import Permission
@@ -1958,15 +1959,18 @@ class WorkspaceFormService:
         response_id: str,
         user: User,
     ):
+        # with the form while form-level access is on (one a restricted form is
+        # closed to is the 404 of a form that is not there)
+        form_ref = form_if_enforced(form_id)
         if not await self.authorization_service.has_permission(
-            user, Permission.RESPONSE_DELETE, workspace_id
+            user, Permission.RESPONSE_DELETE, workspace_id, form_id=form_ref
         ):
             # Completing a respondent's pending deletion request is the
             # privacy programme (privacy.manage): a Privacy officer does it
             # without ever reading the answers. Any other delete needs
             # response.delete.
             await self.authorization_service.authorize(
-                user, Permission.PRIVACY_MANAGE, workspace_id
+                user, Permission.PRIVACY_MANAGE, workspace_id, form_id=form_ref
             )
             if not await self.form_response_service.has_pending_deletion_request(
                 workspace_id, str(form_id), response_id

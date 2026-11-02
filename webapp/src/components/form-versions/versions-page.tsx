@@ -36,10 +36,10 @@ export default function FormVersionsPage() {
     const [restored, setRestored] = useState<number | null>(null);
     const canRestore = can(WorkspacePermission.FORM_EDIT) && (form?.settings?.provider ?? 'self') === 'self';
 
-    if (!ready) return <div className="px-4 md:px-10 lg:px-28" role="status" aria-live="polite" />;
+    if (!ready) return <div role="status" aria-live="polite" />;
     if (!allowed) {
         return (
-            <div className="px-4 md:px-10 lg:px-28">
+            <div>
                 <p role="status" className="max-w-2xl text-sm text-black-700">
                     {t('FORM_VERSIONS.DISABLED')}
                 </p>
@@ -66,7 +66,7 @@ export default function FormVersionsPage() {
     };
 
     return (
-        <div className="px-4 md:px-10 lg:px-28" data-testid="form-versions">
+        <div data-testid="form-versions">
             <section aria-labelledby="form-versions-title" className="flex max-w-3xl flex-col gap-4">
                 <div className="flex flex-col gap-1">
                     <h2 id="form-versions-title" className="text-lg font-semibold">

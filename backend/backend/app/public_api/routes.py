@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.enum.permission import Permission
 from backend.app.public_api.auth import AUDIT_EXTRA, ApiCaller, api_key, form_budget
 from backend.app.public_api.errors import error_payload
 from backend.app.models.dtos.deletion_request_dto import CloseDeletionRequestBody
@@ -321,6 +322,17 @@ async def list_forms(
     associations = (
         await _c().workspace_form_repo().list_in_workspace(caller.workspace_id)
     )
+    # form-level access: only the forms the key's creator may open, narrowed
+    # before the total and the page (off: all of them, no query)
+    visible = await _c().authorization_service().restrict_to_visible(
+        caller.user,
+        caller.workspace_id,
+        [str(a.form_id) for a in associations],
+        Permission.FORM_READ,
+    )
+    if len(visible) != len(associations):
+        keep = set(visible)
+        associations = [a for a in associations if str(a.form_id) in keep]
     total = len(associations)
     window = associations[(page - 1) * size : page * size]
     forms = {

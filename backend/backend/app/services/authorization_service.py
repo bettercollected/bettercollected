@@ -14,7 +14,7 @@ is separate as well.
 """
 
 from http import HTTPStatus
-from typing import Callable, Dict, FrozenSet, Iterable, Optional, Union
+from typing import Callable, Dict, FrozenSet, Iterable, List, Optional, Union
 
 from common.records import RecordId
 from bson import ObjectId
@@ -262,6 +262,40 @@ class AuthorizationService:
             base, permission, form_ids
         )
 
+    async def restrict_to_visible(
+        self,
+        user: Optional[User],
+        workspace_id: Union[RecordId, str, None],
+        form_ids: Iterable[str],
+        permission: Permission,
+    ) -> List[str]:
+        """``form_ids`` (in their order) on which ``user`` holds
+        ``permission``: for a list, a search or a count that must not name,
+        page or total a form its reader may not open. Filter BEFORE counting
+        or paginating. While ``FORM_ACCESS_ENABLED`` is off the ids come back
+        as they are, without a query."""
+        ids = [str(f) for f in form_ids]
+        if not ids or not form_access_enabled():
+            return ids
+        visible = await self.visible_form_ids(user, workspace_id, permission, ids)
+        return ids if visible is None else [f for f in ids if f in visible]
+
+    async def staff_permissions_on(
+        self,
+        user: Optional[User],
+        workspace_id: Union[RecordId, str, None],
+        form_id: Union[RecordId, str, None],
+    ) -> FrozenSet[Permission]:
+        """What ``user`` may do as staff on the form, for the paths that staff
+        and a response's own respondent share: none for a form the user may not
+        open (so the respondent rule applies to them, as to anyone), otherwise
+        what they hold on it. While the switch is off, or without a form, it is
+        ``effective_permissions`` exactly (the same queries)."""
+        if form_id is None or not form_access_enabled():
+            return await self.effective_permissions(user, workspace_id)
+        decided = await self.form_permissions(user, workspace_id, form_id)
+        return NO_PERMISSIONS if decided.hidden else decided.permissions
+
     async def _form_permissions(self, base: BaseAccess, form_id) -> FormPermissions:
         return await self._required_form_access().permissions_on(base, str(form_id))
 
@@ -312,10 +346,20 @@ class AuthorizationService:
             if raise_sso_required:
                 raise mfa_required_error()
             return nobody
+        return self._membership_access(
+            workspace, membership, str(user_oid), str(workspace_oid), is_owner
+        )
+
+    @staticmethod
+    def _membership_access(
+        workspace, membership, user_id: str, workspace_id: str, is_owner: bool
+    ) -> BaseAccess:
+        """What an active membership's roles give (the part of the base access
+        that does not depend on a session)."""
         roles = {canonical_role(role) for role in (membership.roles or [])}
         base = dict(
-            user_id=str(user_oid),
-            workspace_id=str(workspace_oid),
+            user_id=user_id,
+            workspace_id=workspace_id,
             privileged=is_owner
             or has_owner_role(membership.roles)
             or WorkspaceRoles.ADMIN in roles,
@@ -332,6 +376,43 @@ class AuthorizationService:
         return BaseAccess(
             permissions=permissions_for(membership.roles, is_owner=is_owner), **base
         )
+
+    async def member_ids_holding(
+        self,
+        workspace_id: Union[RecordId, str, None],
+        form_id: Union[RecordId, str],
+        permission: Permission,
+    ) -> Optional[FrozenSet[str]]:
+        """The ids of the workspace's active members who hold ``permission`` on
+        the form, by their role, grants and the form's access mode (not by a
+        session: nobody is signed in here). ``None`` while the switch is off:
+        no narrowing. For what is sent to people (a team address must never
+        receive the answers of a form its holder may not read)."""
+        if not form_access_enabled():
+            return None
+        workspace_oid = _object_id(workspace_id)
+        if workspace_oid is None:
+            return frozenset()
+        workspace = await self._workspace_repo.find_by_id(workspace_oid)
+        if workspace is None:
+            return frozenset()
+        holders = set()
+        for membership in await self._workspace_user_repo.get_workspace_users(
+            workspace_oid
+        ):
+            if membership.disabled:
+                continue
+            base = self._membership_access(
+                workspace,
+                membership,
+                str(membership.user_id),
+                str(workspace_oid),
+                is_owner_membership(workspace, membership),
+            )
+            decided = await self._form_permissions(base, form_id)
+            if permission in decided.permissions:
+                holders.add(str(membership.user_id))
+        return frozenset(holders)
 
     async def has_permission(
         self,
@@ -373,9 +454,16 @@ class AuthorizationService:
         decided: Optional[FormPermissions] = None
         if form_id is not None and form_access_enabled():
             decided = await self._form_permissions(base, form_id)
-            if decided.hidden:
+            if decided.hidden and permission in base.permissions:
                 raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in workspace")
-        held = base.permissions if decided is None else decided.permissions
+        # A form closed to the member answers as a form that is not there: 404
+        # for a permission their role holds, 403 (as for any form) for one it
+        # lacks, so the answer never tells the two apart.
+        held = (
+            base.permissions
+            if decided is None or decided.hidden
+            else decided.permissions
+        )
         if permission not in held:
             raise HTTPException(status_code=HTTPStatus.FORBIDDEN, content=message)
         if form_id is not None and not (
