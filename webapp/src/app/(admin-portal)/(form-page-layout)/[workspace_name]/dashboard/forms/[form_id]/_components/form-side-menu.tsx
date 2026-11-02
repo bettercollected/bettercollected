@@ -119,7 +119,7 @@ export function FormRail({ items }: { items: FormNavItem[] }) {
                     {items.map((item) => (
                         <li key={item.key}>
                             <RailLink item={item} mode={mode} collapsed={collapsed} />
-                            {item.children && (
+                            {item.children && (!item.opensInPlace || item.active) && (
                                 <ul className="m-0 mt-0.5 flex list-none flex-col gap-0.5 p-0">
                                     {item.children.map((child) => (
                                         <li key={child.key}>

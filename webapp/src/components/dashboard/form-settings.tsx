@@ -1,6 +1,8 @@
 "use client";
 import { cloneElement, isValidElement, useEffect, useId, useState } from 'react';
 
+import Link from 'next/link';
+
 import { useTranslation } from 'react-i18next';
 
 
@@ -473,9 +475,9 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                                                 // It needs verified identity, which is set under Access: say so, and point there.
                                                 <span data-testid="editing-needs-identity" className="text-black-600 flex flex-wrap items-center gap-x-2 text-xs">
                                                     <Lock className="h-3 w-3" aria-hidden="true" /> {t('STAFF.FORM_SETTINGS.EDITING_NEEDS_IDENTITY')}
-                                                    <a href="#access" className="text-brand-500 underline">
+                                                    <Link href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/settings/access`} className="text-brand-500 underline">
                                                         {t('STAFF.FORM_SETTINGS.EDITING_GO_ACCESS')}
-                                                    </a>
+                                                    </Link>
                                                 </span>
                                             ) : undefined
                                         }

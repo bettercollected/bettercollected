@@ -10,6 +10,7 @@ import { ArrowLeft, BarChart3, Edit2, History, Inbox, LayoutGrid, type LucideIco
 import { useTranslation } from 'react-i18next';
 
 import FormOptionsDropdownMenu from '@app/components/datatable/form-options-dropdown';
+import { SETTINGS_PAGE_ICONS, SETTINGS_PAGE_LABELS, settingsPages } from '@app/components/form/settings-pages';
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -39,8 +40,10 @@ export interface FormNavItem {
     count?: number;
     /** On this section's page (Responses is also active on Deletion requests). */
     active: boolean;
-    /** Sub-pages of a section (Deletion requests under Responses). */
+    /** Sub-pages of a section (Deletion requests under Responses, the Settings pages). */
     children?: FormNavItem[];
+    /** The side menu lists the sub-pages only while the section is open (Settings); the phone sheet always lists them. */
+    opensInPlace?: boolean;
 }
 
 interface NavInput {
@@ -58,7 +61,7 @@ interface NavInput {
  * Responses (response.read) with Deletion requests under it (privacy.manage;
  * privacy.manage alone gets Deletion requests as a section of its own),
  * Analytics and Share while the form is open, Versions (server flag, form.read);
- * Settings for form.edit.
+ * Settings for form.edit, with the pages that form has (`settingsPages`).
  */
 export function buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled, t }: NavInput): FormNavItem[] {
     const on = (...paths: string[]) => paths.some((path) => pathname.includes(`/${path}`));
@@ -91,7 +94,16 @@ export function buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled
         }
     }
     if (can(WorkspacePermission.FORM_EDIT)) {
-        items.push({ key: 'settings', label: t(localesCommon.settings), href: `${base}/settings`, icon: Settings, active: on('settings', 'visibility', 'integrations') });
+        items.push({
+            key: 'settings',
+            label: t(localesCommon.settings),
+            href: `${base}/settings/access`,
+            icon: Settings,
+            active: on('settings', 'visibility', 'integrations'),
+            opensInPlace: true,
+            // only the pages this form has something on
+            children: settingsPages(form, can).map((page) => ({ key: `settings-${page}`, label: t(SETTINGS_PAGE_LABELS[page]), href: `${base}/settings/${page}`, icon: SETTINGS_PAGE_ICONS[page], active: on(`settings/${page}`) }))
+        });
     }
     return items;
 }
