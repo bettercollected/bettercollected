@@ -1682,6 +1682,7 @@
       "SUBMISSIONS_BODY": "A key with this scope sends answers through the same checks a respondent’s answers pass. It never signs in as a respondent, and forms that ask for a verified respondent refuse it. Whoever uses the key asserts the respondent’s consent, and each response records that this key made it. The key can only change responses it made itself.",
       "LIMIT_FORMS": "Only for these forms",
       "NO_PUBLISHED_FORMS": "This workspace has no published forms yet.",
+      "MORE_FORMS": "Show more forms",
       "UNTITLED_FORM": "Untitled form",
       "SUBMITS_TO_FORMS_one": "submits to {{count}} form",
       "SUBMITS_TO_FORMS_other": "submits to {{count}} forms",

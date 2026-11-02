@@ -239,6 +239,14 @@ def _consent_given(
     * an information item has nothing to accept.
     """
     items = _consent_items(form)
+    wanted = set(named or [])
+    # (a form with no items has none to name either)
+    unknown = wanted - {item.consent_id for item in items if item.consent_id}
+    if unknown:
+        raise _invalid(
+            UNKNOWN_CONSENT_ITEM,
+            "consentItems names an item this form does not have.",
+        )
     if not items:
         return None
     required = [item for item in items if item.required]
@@ -247,13 +255,6 @@ def _consent_given(
             CONSENT_REQUIRED,
             "This form requires the respondent's consent. Send "
             '"consent": true to assert that it has been given.',
-        )
-    wanted = set(named or [])
-    unknown = wanted - {item.consent_id for item in items if item.consent_id}
-    if unknown:
-        raise _invalid(
-            UNKNOWN_CONSENT_ITEM,
-            "consentItems names an item this form does not have.",
         )
     stored = []
     for item in items:
