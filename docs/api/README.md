@@ -11,7 +11,8 @@ services.
   docs page; open the document in the OpenAPI viewer of your choice
 - SDKs: [`sdk/typescript`](../../sdk/typescript) and
   [`sdk/python`](../../sdk/python) (with the `bettercollected` command line
-  tool)
+  tool, which can also copy a form between workspaces:
+  [environments](../environments.md))
 
 ## Authentication
 

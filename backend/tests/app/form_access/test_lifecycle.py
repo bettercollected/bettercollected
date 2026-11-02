@@ -202,13 +202,15 @@ async def test_removing_a_member_drops_their_grants_and_teams_and_records_it(
     assert await repo.group_ids_of(workspace.id, person.id) == []
 
 
-async def test_a_removal_with_nothing_held_writes_no_entry_and_needs_no_audit(
-    client: AsyncClient, workspace, auth_lookup, switch_on, monkeypatch
+async def test_a_removal_with_nothing_held_writes_no_access_entry(
+    client: AsyncClient, workspace, auth_lookup, switch_on
 ):
     person = await add_member(workspace, "VIEWER")
-    fail_audit(monkeypatch)
     response = await remove(client, workspace, person)
     assert response.status_code == 200, response.text
+    # only the removal itself is recorded: nothing was held, nothing handed over
+    assert await audit_events(workspace, ACCESS_MEMBER_PURGED, FORM_CREATOR_REASSIGNED) == []
+    assert len(await audit_events(workspace, "member_removed")) == 1
 
 
 async def test_a_removal_that_would_drop_grants_is_not_made_unrecorded(

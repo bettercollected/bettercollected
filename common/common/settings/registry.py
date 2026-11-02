@@ -97,6 +97,8 @@ ENV_ONLY_KEYS = frozenset(
         "DOC_SANDBOX_MAX_DOCUMENT_BYTES",
         # held until every entry point enforces form-level access (then a T2 setting again)
         "FORM_ACCESS_ENABLED",
+        # held until every API entry point enforces key roles and form scope
+        "API_KEY_ROLES_ENABLED",
         "DOTENV_PATH",
         "PROJECT_NAME",
         "DOCS_URL",

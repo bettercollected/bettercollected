@@ -7,12 +7,14 @@ one, so a grant can never be read or changed across workspaces or forms.
 
 from typing import Dict, Iterable, List, Optional
 
-from common.records import derived_id, row_values
+from common.records import RecordId, derived_id, row_values
 from common.records.repository import RecordRepository
 from sqlalchemy import and_, or_, select
 
 from backend.app.schemas.form_access_grant import (
+    MEMBER_SUBJECTS,
     SUBJECT_GROUP,
+    SUBJECT_KEY,
     SUBJECT_USER,
     FormAccessGrantDocument,
 )
@@ -20,6 +22,7 @@ from backend.db.models import (
     FormAccessGrantRow,
     MemberGroupMemberRow,
     MemberGroupRow,
+    WorkspaceApiKeyRow,
     WorkspaceFormRow,
     WorkspaceUserRow,
 )
@@ -116,12 +119,18 @@ class PostgresFormAccessGrantRepository(RecordRepository):
         return held
 
     # -- the grants of a form --------------------------------------------------
+    # What reads, finds or deletes "the grants of a form" for the member-facing
+    # routes sees people and teams only: a key's row (``subject_type='key'``,
+    # an API key's allow-list entry) is never listed, found or deleted here, so
+    # a form's Editor can neither see nor remove it. Keys have their own
+    # methods below.
     async def list_for_form(
         self, workspace_id, form_id
     ) -> List[FormAccessGrantDocument]:
         return await self.many(
             FormAccessGrantRow.workspace_id == _id(workspace_id),
             FormAccessGrantRow.form_id == _id(form_id),
+            FormAccessGrantRow.subject_type.in_(MEMBER_SUBJECTS),
         )
 
     async def find(
@@ -131,6 +140,7 @@ class PostgresFormAccessGrantRepository(RecordRepository):
             FormAccessGrantRow.workspace_id == _id(workspace_id),
             FormAccessGrantRow.form_id == _id(form_id),
             FormAccessGrantRow.id == _id(grant_id),
+            FormAccessGrantRow.subject_type.in_(MEMBER_SUBJECTS),
         )
 
     async def put(self, grant: FormAccessGrantDocument) -> FormAccessGrantDocument:
@@ -191,11 +201,13 @@ class PostgresFormAccessGrantRepository(RecordRepository):
 
     # -- removal ---------------------------------------------------------------
     async def delete(self, workspace_id, form_id, grant_id) -> bool:
+        """Delete a person's or a team's grant by id (never a key's row)."""
         return bool(
             await self.delete_where(
                 FormAccessGrantRow.workspace_id == _id(workspace_id),
                 FormAccessGrantRow.form_id == _id(form_id),
                 FormAccessGrantRow.id == _id(grant_id),
+                FormAccessGrantRow.subject_type.in_(MEMBER_SUBJECTS),
             )
         )
 
@@ -226,6 +238,93 @@ class PostgresFormAccessGrantRepository(RecordRepository):
         if not ids:
             return 0
         return await self.delete_where(FormAccessGrantRow.workspace_id.in_(ids))
+
+    # -- an API key's rows (``subject_type='key'``) ------------------------------
+    async def for_key_on_form(
+        self, workspace_id, key_id, form_id
+    ) -> Optional[FormAccessGrantDocument]:
+        """The key's row for one form, or ``None``: one indexed read, what a
+        key limited to a list of forms is decided by."""
+        return await self.one(
+            FormAccessGrantRow.workspace_id == _id(workspace_id),
+            FormAccessGrantRow.subject_type == SUBJECT_KEY,
+            FormAccessGrantRow.subject_id == _id(key_id),
+            FormAccessGrantRow.form_id == _id(form_id),
+        )
+
+    async def for_key(
+        self, workspace_id, key_id, form_ids: Optional[Iterable[str]] = None
+    ) -> List[FormAccessGrantDocument]:
+        """The key's rows in the workspace (on ``form_ids`` only, when given):
+        what a list filter needs, in one query."""
+        where = [
+            FormAccessGrantRow.workspace_id == _id(workspace_id),
+            FormAccessGrantRow.subject_type == SUBJECT_KEY,
+            FormAccessGrantRow.subject_id == _id(key_id),
+        ]
+        if form_ids is not None:
+            where.append(FormAccessGrantRow.form_id.in_([_id(f) for f in form_ids]))
+        return await self.many(*where)
+
+    async def replace_for_key(
+        self, workspace_id, key_id, rows: Iterable[FormAccessGrantDocument]
+    ) -> List[FormAccessGrantDocument]:
+        """Make ``rows`` the key's rows in the workspace, in one transaction:
+        the rows not named go, the named ones are inserted or replaced (the row
+        id is derived from workspace, form and key, so naming a form twice is
+        one row). Refuses (``AccessTargetNotFound``) a key that is not an
+        unrevoked key of the workspace and a form that is not linked to it,
+        whatever the caller checked: the write keeps a row inside its workspace.
+        A row is always written as a key row, whatever the document says."""
+        workspace_id, key_id = _id(workspace_id), _id(key_id)
+        wanted: Dict[str, FormAccessGrantDocument] = {}
+        for row in rows:
+            row.workspace_id = RecordId(workspace_id)
+            row.subject_type = SUBJECT_KEY
+            row.subject_id = key_id
+            row.form_id = _id(row.form_id)
+            row.id = derived_id(
+                "form_access_grant", workspace_id, row.form_id, SUBJECT_KEY, key_id
+            )
+            wanted[row.form_id] = row
+        async with self._session() as session, session.begin():
+            key = await session.execute(
+                select(WorkspaceApiKeyRow.id)
+                .where(
+                    WorkspaceApiKeyRow.id == key_id,
+                    WorkspaceApiKeyRow.workspace_id == workspace_id,
+                    WorkspaceApiKeyRow.revoked.is_not(True),
+                )
+                .limit(1)
+                .with_for_update(read=True)
+            )
+            if key.first() is None:
+                raise AccessTargetNotFound("key")
+            if wanted:
+                linked = await session.execute(
+                    select(WorkspaceFormRow.form_id)
+                    .where(
+                        WorkspaceFormRow.workspace_id == workspace_id,
+                        WorkspaceFormRow.form_id.in_(list(wanted)),
+                    )
+                    .with_for_update(read=True)
+                )
+                if {str(f) for f in linked.scalars().all()} != set(wanted):
+                    raise AccessTargetNotFound("form")
+            await self._delete_recorded(
+                session,
+                FormAccessGrantRow,
+                FormAccessGrantRow.workspace_id == workspace_id,
+                FormAccessGrantRow.subject_type == SUBJECT_KEY,
+                FormAccessGrantRow.subject_id == key_id,
+                FormAccessGrantRow.form_id.not_in(list(wanted)),
+            )
+            for row in wanted.values():
+                row.touch()
+                await session.execute(
+                    self._upsert_statement(row_values(row), FormAccessGrantRow)
+                )
+        return list(wanted.values())
 
     # -- a person's grants (the Members page, removal) ---------------------------
     async def direct_for_user(self, workspace_id, user_id) -> List[FormAccessGrantDocument]:

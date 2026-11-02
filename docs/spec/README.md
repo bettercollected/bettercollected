@@ -574,6 +574,9 @@ Converting a form to a document and back keeps everything else
 (`common/common/form_spec/roundtrip.py` states this as code, and tests
 check it).
 
+To move a document from one workspace to another, see
+[environments](../environments.md).
+
 ## Example
 
 ```json

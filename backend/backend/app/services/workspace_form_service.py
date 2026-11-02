@@ -109,6 +109,8 @@ from backend.app.services.option_sources.checks import (
 )
 from backend.app.schemas.response_revision import RevisionEditor
 from backend.app.schemas.standard_form_response import DeletionRequestStatus
+from backend.app.schemas.workspace_audit_event import FORM_DELETED, FORM_PUBLISHED
+from backend.app.services.form_access import audit as lifecycle_audit
 from backend.app.services.response_revisions import audit as response_audit
 from backend.app.services.response_revisions.mode import (
     ensure_enabled as ensure_response_revisions_enabled,
@@ -619,6 +621,14 @@ class WorkspaceFormService:
             form_id=form_if_enforced(form_id),
         )
         await self.check_form_exists_in_workspace(workspace_id, form_id)
+        # recorded before anything goes (the form's id only, never its title)
+        await lifecycle_audit.record_or_refuse(
+            self._audit_repo,
+            FORM_DELETED,
+            workspace_id,
+            user,
+            form_id=str(form_id),
+        )
         return await self._delete_form(workspace_id, form_id)
 
     async def delete_draft_form(self, workspace_id: RecordId, form_id: str):
@@ -2002,7 +2012,10 @@ class WorkspaceFormService:
         ):
             raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in workspace")
         return await self.form_response_service.delete_form_response(
-            form_id=form_id, response_id=response_id, workspace_id=workspace_id
+            form_id=form_id,
+            response_id=response_id,
+            workspace_id=workspace_id,
+            actor=user,
         )
 
     async def publish_form(
@@ -2053,6 +2066,15 @@ class WorkspaceFormService:
         # The logo the live form showed until now, if nothing shows it any more.
         if previous is not None and previous.logo != getattr(published, "logo", None):
             await self._release_logo(str(form_id), previous.logo)
+        # the trail of who made it live; the form's own version history is the
+        # record, so a failure here never undoes a publish
+        await lifecycle_audit.record(
+            self._audit_repo,
+            FORM_PUBLISHED,
+            workspace_id,
+            user,
+            form_id=str(form_id),
+        )
         return published
 
     async def _workspace_title(self, workspace_id: RecordId) -> Optional[str]:
