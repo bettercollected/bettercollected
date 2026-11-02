@@ -328,7 +328,12 @@ class WorkspaceDomainService:
         document.verification_lost_at = None
         if document.status == DomainStatus.VERIFIED:
             return await self._domain_repo.save(document)
-        previous_status = document.status
+        previous = (
+            document.status,
+            document.verified_domain,
+            document.verified_at,
+            document.verified_by,
+        )
         document.status = DomainStatus.VERIFIED
         document.verified_domain = document.domain
         document.verified_at = now
@@ -356,11 +361,22 @@ class WorkspaceDomainService:
                     domain_id=str(saved.id),
                 )
             except HTTPException:
-                saved.status = previous_status
-                saved.verified_domain = None
-                saved.verified_at = None
-                saved.verified_by = None
-                await self._domain_repo.save(saved)
+                # put back what the claim held before this check, not a guess
+                (
+                    saved.status,
+                    saved.verified_domain,
+                    saved.verified_at,
+                    saved.verified_by,
+                ) = previous
+                try:
+                    await self._domain_repo.save(saved)
+                except Exception as error:  # noqa: BLE001 - the refusal is what the caller gets
+                    logger.bind(audit=True).error(
+                        "DOMAIN VERIFICATION NOT TAKEN BACK workspace={} domain_id={} ({})",
+                        saved.workspace_id,
+                        saved.id,
+                        type(error).__name__,
+                    )
                 raise
         return saved
 

@@ -848,7 +848,9 @@ class SsoConnectionService:
             connection.updated_at = now
             await self._connections.save(connection)
         # the connections this one replaces: each gets its own entry, as if it
-        # had been disabled by hand (closing a way in: best effort, after)
+        # had been disabled by hand (closing a way in: best effort, after; one
+        # enabled between this read and the disable is not listed, which is
+        # acceptable for a best-effort entry)
         replaced = [
             other
             for other in await self._connections.list_by_workspace(workspace_id)

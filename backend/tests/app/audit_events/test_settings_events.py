@@ -572,3 +572,62 @@ async def test_a_verification_another_workspace_won_is_not_recorded(
     assert reply.status_code == 200, reply.text
     assert reply.json()["status"] != "verified"
     assert await audit_events(workspace, DOMAIN_VERIFIED) == []
+
+
+async def _claim_with_a_stale_value(client, workspace, fake_dns):
+    claim = (await client.post(domains(workspace), json={"domain": "acme.com"}, cookies=OWNER)).json()
+    fake_dns.set_txt(RECORD, "v=spf1 -all", claim["txtRecordValue"])
+    repo = container.workspace_domain_repo()
+    document = await repo.get(claim["id"])
+    # a value the claim held before (not verified): it has to come back
+    document.verified_domain = "previous.example"
+    await repo.save(document)
+    return claim, repo
+
+
+async def test_a_refused_verification_puts_back_the_previous_values(
+    client: AsyncClient, workspace, fake_dns, monkeypatch
+):
+    claim, repo = await _claim_with_a_stale_value(client, workspace, fake_dns)
+
+    with monkeypatch.context() as patched:
+        fail_audit(patched)
+        refused_unrecorded(
+            await client.post(domains(workspace, claim["id"], "verify"), cookies=OWNER)
+        )
+    stored = await repo.get(claim["id"])
+    assert stored.status.value != "verified"
+    assert stored.verified_domain == "previous.example"
+    assert stored.verified_at is None and stored.verified_by is None
+
+
+async def test_a_take_back_that_fails_is_logged_with_ids_only(
+    client: AsyncClient, workspace, fake_dns, monkeypatch
+):
+    from loguru import logger
+
+    claim, repo = await _claim_with_a_stale_value(client, workspace, fake_dns)
+    save = repo.save
+    calls = []
+
+    async def fails_the_second_save(document):
+        calls.append(document.status.value)
+        if len(calls) >= 2:
+            raise RuntimeError("store down acme.com")
+        return await save(document)
+
+    lines = []
+    handler = logger.add(lambda message: lines.append(str(message)), level="ERROR")
+    try:
+        with monkeypatch.context() as patched:
+            fail_audit(patched)
+            patched.setattr(repo, "save", fails_the_second_save)
+            refused_unrecorded(
+                await client.post(domains(workspace, claim["id"], "verify"), cookies=OWNER)
+            )
+    finally:
+        logger.remove(handler)
+    text = " ".join(lines)
+    assert "NOT TAKEN BACK" in text and claim["id"] in text
+    # ids and the error's type only: not its message, not the domain
+    assert "acme.com" not in text and "store down" not in text
