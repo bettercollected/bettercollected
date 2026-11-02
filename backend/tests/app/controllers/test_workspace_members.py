@@ -132,7 +132,7 @@ class TestWorkspaceMember:
             workspace.id, RecordId(testUser.id)
         )
 
-    async def test_delete_member_deletes_form_and_user(
+    async def test_delete_member_removes_the_user_and_keeps_their_forms(
         self,
         client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
@@ -155,8 +155,10 @@ class TestWorkspaceMember:
         expected_user = await container.workspace_user_repo().find_workspace_user(
             workspace.id, RecordId(invited_user.id)
         )
-        actual_user_and_form = None
-        assert actual_user_and_form == expected_user == expected_form
+        # the membership goes; the form they created stays with the workspace
+        assert expected_user is None
+        assert expected_form is not None
+        assert expected_form.user_id == invited_user.id
 
     async def test_unauthorized_client_delete_workspace_members_fails(
         self,

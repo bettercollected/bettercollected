@@ -28,9 +28,13 @@ class WorkspaceUserService:
         self,
         workspace_user_repository: PostgresWorkspaceUserRepository,
         workspace_repo: PostgresWorkspaceRepository,
+        form_access_cleanup=None,
     ):
         self.workspace_user_repository = workspace_user_repository
         self.workspace_repo = workspace_repo
+        # grants and team memberships go with a membership
+        # (services/form_access/cleanup.py)
+        self._form_access_cleanup = form_access_cleanup
 
     async def get_users_in_workspace(self, workspace_id):
         return await self.workspace_user_repository.get_workspace_users(
@@ -173,12 +177,28 @@ class WorkspaceUserService:
     async def delete_user_from_workspace(
         self, workspace_id: RecordId, user_id: RecordId
     ):
-        return await self.workspace_user_repository.delete(workspace_id, user_id)
+        deleted = await self.workspace_user_repository.delete(workspace_id, user_id)
+        if self._form_access_cleanup is not None:
+            # their grants and teams here go (a person invited again starts
+            # with none); the caller already counted and recorded them
+            await self._form_access_cleanup.forget_member(workspace_id, user_id)
+        return deleted
 
     async def delete_user_form_all_workspaces(self, user: User):
-        return await self.workspace_user_repository.delete_user_form_all_workspaces(
+        deleted = await self.workspace_user_repository.delete_user_form_all_workspaces(
             user
         )
+        if self._form_access_cleanup is not None:
+            # the account is gone: so are its grants and teams, in every
+            # workspace it was in
+            await self._form_access_cleanup.forget_account(user.id)
+        return deleted
+
+    async def forget_access_of_workspaces(self, workspace_ids: List[RecordId]):
+        """The workspaces are about to be deleted: their grants, teams and team
+        memberships go first."""
+        if self._form_access_cleanup is not None:
+            await self._form_access_cleanup.forget_workspaces(workspace_ids)
 
     async def delete_user_of_workspaces(self, workspace_ids: List[RecordId]):
         return await self.workspace_user_repository.delete_all_workspaces_users(

@@ -317,6 +317,43 @@ async def test_drops_go_through_the_account_deletion_and_take_everything(
     assert len(deletions) == 4
 
 
+async def test_a_dropped_duplicate_takes_its_grants_and_teams_and_is_not_merged_into_the_keeper(
+    client: AsyncClient, key, world, deletions
+):
+    """Form-level access: the drop is the account deletion, so the dropped
+    account's grants and team memberships go with it (nothing is carried over
+    to the account that stays: it is another account with its own access).
+    What the workspace's other members hold is untouched."""
+    from backend.app.schemas.workspace_audit_event import ACCESS_MEMBER_PURGED
+    from tests.app.form_access.helpers import audit_events, grant, team_with
+
+    workspace = world[B2]
+    await _form(workspace, B2)
+    (link,) = await container.workspace_form_repo().list_in_workspace(workspace.id)
+    dropped, keeper = _user(A2), _user(B2)
+    team = await team_with(workspace, dropped, name="Reviewers")
+    await container.member_group_repo().add_member(workspace.id, team.id, keeper.id)
+    await grant(workspace, link.form_id, dropped.id, "REVIEWER")
+    await grant(workspace, link.form_id, team.id, "VIEWER", subject_type="group")
+    await container.member_group_repo().save(
+        type(team)(workspace_id=workspace.id, name="Unrelated")
+    )
+
+    reply = await client.post(f"{BASE}/{A2}/drop", headers=key)
+    assert reply.json() == {"status": "queued"}
+
+    grants = await container.form_access_grant_repo().list_for_form(
+        workspace.id, link.form_id
+    )
+    assert [(g.subject_type, g.subject_id) for g in grants] == [("group", str(team.id))]
+    repo = container.member_group_repo()
+    assert await repo.member_ids(workspace.id, team.id) == [keeper.id]
+    assert await repo.group_ids_of(workspace.id, A2) == []
+    assert len(await repo.list_in_workspace(workspace.id)) == 2
+    (event,) = await audit_events(workspace, ACCESS_MEMBER_PURGED)
+    assert (event.target_user_id, event.count) == (A2, 2)
+
+
 async def test_a_drop_re_evaluates_and_never_takes_a_kept_or_manual_account(
     client: AsyncClient, key, world, deletions
 ):

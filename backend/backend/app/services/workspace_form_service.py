@@ -444,7 +444,10 @@ class WorkspaceFormService:
         option_source_service=None,
         member_directory=None,
         audit_repo=None,
+        form_access_cleanup=None,
     ):
+        # grants on a form go with the form (services/form_access/cleanup.py)
+        self._form_access_cleanup = form_access_cleanup
         # options from a list or from another form's answers
         self._option_source_service = option_source_service
         # names and roles of staff members (the revision log records the role)
@@ -642,6 +645,9 @@ class WorkspaceFormService:
         workspace_form = await self.workspace_form_repository.delete_form_in_workspace(
             workspace_id=workspace_id, form_id=form_id
         )
+        if self._form_access_cleanup is not None:
+            # the grants on it, whatever the switch says
+            await self._form_access_cleanup.forget_form(workspace_id, form_id)
         if self._registration_service is not None:
             # the form's registration and delivery records, whatever the switch says
             await self._registration_service.delete_for_form(workspace_id, form_id)
@@ -765,6 +771,8 @@ class WorkspaceFormService:
         await self.form_response_service.delete_deletion_requests_of_form_ids(
             form_ids=form_ids
         )
+        if self._form_access_cleanup is not None and form_ids:
+            await self._form_access_cleanup.forget_forms(list(form_ids))
         await self.form_service.delete_forms(form_ids=form_ids)
         if self._registration_service is not None and form_ids:
             await self._registration_service.delete_for_forms(list(form_ids))
@@ -814,6 +822,10 @@ class WorkspaceFormService:
                 await self.workspace_form_repository.delete_form_in_workspace(
                     workspace_id=RecordId(workspace_id), form_id=str(form_id)
                 )
+                if self._form_access_cleanup is not None:
+                    await self._form_access_cleanup.forget_form(
+                        workspace_id, str(form_id)
+                    )
         return entirely
 
     def generate_presigned_file_url(

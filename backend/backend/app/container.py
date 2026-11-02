@@ -180,6 +180,8 @@ from backend.app.services.workspace_selection_service import (
 )
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.authorization_service import AuthorizationService
+from backend.app.services.form_access.admin import FormAccessAdminService
+from backend.app.services.form_access.cleanup import FormAccessCleanup
 from backend.app.services.form_access.service import FormAccessService
 from backend.app.services.registration.service import RegistrationService
 from backend.app.services.form_drafts.service import FormDraftService
@@ -449,6 +451,16 @@ class AppContainer(containers.DeclarativeContainer):
         grant_repo=form_access_grant_repo,
     )
 
+    # What happens to grants and team memberships when a form, a team, a member,
+    # an account or a workspace goes away (runs whatever the switch says).
+    form_access_cleanup: FormAccessCleanup = providers.Singleton(
+        FormAccessCleanup,
+        grant_repo=form_access_grant_repo,
+        group_repo=member_group_repo,
+        audit_repo=workspace_audit_repo,
+        invalidate=providers.Object(lambda: container.form_access_service().invalidate()),
+    )
+
     # Every workspace-scoped access decision (services call authorize()).
     authorization_service: AuthorizationService = providers.Singleton(
         AuthorizationService,
@@ -575,6 +587,7 @@ class AppContainer(containers.DeclarativeContainer):
         WorkspaceUserService,
         workspace_user_repository=workspace_user_repo,
         workspace_repo=workspace_repo,
+        form_access_cleanup=form_access_cleanup,
     )
 
     copy_recipient_service: CopyRecipientService = providers.Singleton(
@@ -657,6 +670,22 @@ class AppContainer(containers.DeclarativeContainer):
         option_source_service=LazyRepository(lambda: container.option_source_service()),
         member_directory=member_directory,
         audit_repo=workspace_audit_repo,
+        form_access_cleanup=form_access_cleanup,
+    )
+
+    # Teams, grants on a form and a form's access mode (FORM_ACCESS_ENABLED).
+    form_access_admin_service: FormAccessAdminService = providers.Singleton(
+        FormAccessAdminService,
+        authorization_service=authorization_service,
+        form_access=form_access_service,
+        group_repo=member_group_repo,
+        grant_repo=form_access_grant_repo,
+        workspace_form_repo=workspace_form_repo,
+        workspace_user_repo=workspace_user_repo,
+        workspace_repo=workspace_repo,
+        audit_repo=workspace_audit_repo,
+        cleanup=form_access_cleanup,
+        member_directory=member_directory,
     )
 
     # The history of a response: who edited it, when, which questions, and (on
@@ -1145,6 +1174,8 @@ class AppContainer(containers.DeclarativeContainer):
         scim_directory_repo=scim_directory_repo,
         email_action_service=email_action_service,
         totp_service=workspace_totp_service,
+        form_access_cleanup=form_access_cleanup,
+        audit_repo=workspace_audit_repo,
     )
 
     stripe_service: StripeService = providers.Singleton(

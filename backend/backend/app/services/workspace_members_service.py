@@ -31,6 +31,8 @@ from backend.app.services.authorization_service import (
     AuthorizationService,
     role_permissions,
 )
+from backend.app.schemas.workspace_audit_event import ACCESS_MEMBER_PURGED
+from backend.app.services.form_access import audit
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import (
     PROVISIONED_BY_SCIM,
@@ -57,7 +59,13 @@ class WorkspaceMembersService:
         scim_directory_repo=None,
         email_action_service=None,
         totp_service=None,
+        form_access_cleanup=None,
+        audit_repo=None,
     ):
+        # a removed member's grants and teams go with them, recorded first
+        # (services/form_access)
+        self._form_access_cleanup = form_access_cleanup
+        self._audit_repo = audit_repo
         # which members have an authenticator app (services/mfa/workspace.py)
         self._totp_service = totp_service
         # a membership the workspace's SCIM directory manages is shown as such
@@ -327,15 +335,22 @@ class WorkspaceMembersService:
         if workspace and is_owner_membership(workspace, membership):
             await self._require_owner_to_change_owner(workspace_id, user)
             await self._refuse_leaving_no_owner(workspace, without=user_id)
-        form_ids_imported_by_user = (
-            await self.workspace_form_service.get_form_ids_imported_by_user(
-                workspace_id, user_id
-            )
-        )
-        for form_id in form_ids_imported_by_user:
-            await self.workspace_form_service.delete_form_from_workspace(
-                workspace_id, form_id, user
-            )
+        # The forms they created or imported stay with the workspace: a
+        # person leaving never takes the workspace's forms and their responses
+        # with them (it used to delete every form with their id on it).
+        if self._form_access_cleanup is not None:
+            held = await self._form_access_cleanup.count_member(workspace_id, user_id)
+            if held:
+                # recorded before the removal, so a removal never goes
+                # unrecorded: the member's grants and teams go with them
+                await audit.record_or_refuse(
+                    self._audit_repo,
+                    ACCESS_MEMBER_PURGED,
+                    workspace_id,
+                    user,
+                    target_user_id=str(user_id),
+                    count=held,
+                )
         await self.workspace_user_service.delete_user_from_workspace(
             workspace_id, user_id
         )
