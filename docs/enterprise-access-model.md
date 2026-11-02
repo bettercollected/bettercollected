@@ -41,6 +41,7 @@ can(user, permission, workspace, form?)  =
 | `response.read` | individual answers (incl. AI insights, flow analytics per response) |
 | `response.annotate` | internal fields, respondent feedback |
 | `response.export` | CSV, API/MCP `responses:read`, integrations and actions that send responses out (sheets, webhooks, email copies) |
+| `response.import` | import submissions from a CSV file and undo an import (docs/response-import.md; behind `CSV_IMPORT_ENABLED`) |
 | `response.delete` | delete a response |
 | `response.edit` | change the answers of a response (needs `response.read` too); behind the server setting `RESPONSE_REVISIONS_ENABLED`; every edit is kept in the response's history ([response-revisions.md](response-revisions.md)) |
 | `privacy.manage` | deletion requests, data subjects (responders), consent catalog, retention and privacy texts |
@@ -59,6 +60,7 @@ can(user, permission, workspace, form?)  =
 | response.read | ✓ | ✓ | ✓ | ✓ | ✓ | **✗** |
 | response.annotate | ✓ | ✓ | ✓ | ✓ | | |
 | response.export | ✓ | ✓ | ✓ | | | |
+| response.import | ✓ | ✓ | | | | |
 | response.delete | ✓ | ✓ | ✓ | | | |
 | response.edit | ✓ | ✓ | ✓ | | | **✗** |
 | privacy.manage | ✓ | ✓ | | | | ✓ |

@@ -36,6 +36,7 @@ def test_the_catalogue_is_the_documented_one():
         "response.read",
         "response.annotate",
         "response.export",
+        "response.import",
         "response.delete",
         "response.edit",
         "privacy.manage",
