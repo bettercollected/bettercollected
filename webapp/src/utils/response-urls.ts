@@ -3,7 +3,7 @@
 
 /** Where staff read one response (the id only: never the receipt number, an email or an answer). */
 export const responsePageUrl = (workspaceName: string, formId: string, responseId: string, origin?: ResponseOrigin) =>
-    `/${workspaceName}/dashboard/forms/${formId}/responses/${encodeURIComponent(responseId)}${origin ? `?from=${origin}` : ''}`;
+    `/${workspaceName}/dashboard/forms/${encodeURIComponent(formId)}/responses/${encodeURIComponent(responseId)}${origin ? `?from=${origin}` : ''}`;
 
 /** The responses list of a form. */
 export const responsesListUrl = (workspaceName: string, formId: string) => `/${workspaceName}/dashboard/forms/${formId}/responses`;

@@ -25,13 +25,8 @@ from loguru import logger
 
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.workspace_audit_event import (
-    ACCESS_EVENTS,
-    API_KEY_EVENTS,
-    AUTOMATION_EVENTS,
+    ALL_KINDS,
     AUTOMATION_PARTS,
-    MEMBER_FORM_EVENTS,
-    SETTINGS_EVENTS,
-    PROMOTION_EVENTS,
     WorkspaceAuditEventDocument,
 )
 
@@ -55,14 +50,7 @@ def _entry(event: str, workspace_id, user, **ids) -> WorkspaceAuditEventDocument
 
 async def record(repo, event: str, workspace_id, user, **ids) -> bool:
     """Store the entry; a failure is logged (ids only) and never raised."""
-    assert event in (
-        ACCESS_EVENTS
-        + API_KEY_EVENTS
-        + MEMBER_FORM_EVENTS
-        + PROMOTION_EVENTS
-        + SETTINGS_EVENTS
-        + AUTOMATION_EVENTS
-    ), event
+    assert event in ALL_KINDS, event
     if repo is None:
         return False
     try:
@@ -92,20 +80,27 @@ async def record_or_refuse(repo, event: str, workspace_id, user, **ids) -> None:
 
 
 
-async def record_many_or_refuse(repo, entries, workspace_id, user) -> None:
+async def record_many_or_refuse(
+    repo, entries, workspace_id, user, session=None
+) -> None:
     """Store every entry in one batch (one transaction: all or none) or refuse
     the request (503 ``audit_unavailable``). ``entries`` is a list of ``(event,
-    ids)``; an empty list stores nothing."""
+    ids)``; an empty list stores nothing. With ``session`` the entries are stored
+    in the caller's transaction instead (the change they describe is stored in it
+    too, so they commit or fail together; the refusal rolls it back)."""
     if not entries:
         return
     documents = []
     for event, ids in entries:
-        assert event in ACCESS_EVENTS + API_KEY_EVENTS + MEMBER_FORM_EVENTS, event
+        assert event in ALL_KINDS, event
         documents.append(_entry(event, workspace_id, user, **ids))
     stored = False
     if repo is not None:
         try:
-            await repo.record_many(documents)
+            if session is None:
+                await repo.record_many(documents)
+            else:
+                await repo.record_many_in(session, documents)
             stored = True
         except Exception as error:  # noqa: BLE001 - a failed batch refuses the request
             logger.bind(audit=True).error(

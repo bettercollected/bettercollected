@@ -140,6 +140,21 @@ describe('the Workspace group', () => {
         expect(navItemForPath('/acme/dashboard/sections', items)?.name).toBe('Reusable sections');
     });
 
+    it('adds Activity before AI for audit.read, only while this server has the page on', () => {
+        const listed = (can: (p: string) => boolean, auditLogUiEnabled: boolean) => visibleNavItems(workspaceNavItems({ workspaceName: 'acme', t, can, ssoEnabled: true, auditLogUiEnabled }), can);
+        const PRIVACY_OFFICER = holding(P.AUDIT_READ, P.FORM_READ, P.PRIVACY_MANAGE);
+        expect(names(listed(OWNER, false))).not.toContain('AUDIT_LOG.NAV');
+        expect(names(listed(OWNER, true))).toEqual(['Members', 'Themes', 'Single sign-on', 'AUDIT_LOG.NAV', 'AI']);
+        // the Privacy officer holds audit.read and nothing that manages the workspace
+        expect(names(listed(PRIVACY_OFFICER, true))).toEqual(['AUDIT_LOG.NAV', 'AI']);
+        expect(names(listed(PRIVACY_OFFICER, false))).toEqual(['AI']);
+        // an Editor holds no audit.read
+        expect(names(listed(MEMBER, true))).toEqual(['AI']);
+        const items = workspaceNavItems({ workspaceName: 'acme', t, can: OWNER, ssoEnabled: true, auditLogUiEnabled: true });
+        expect(items.find((i) => i.key === 'activity')).toMatchObject({ url: '/acme/dashboard/activity', permission: P.AUDIT_READ });
+        expect(navItemForPath('/acme/dashboard/activity', items)?.name).toBe('AUDIT_LOG.NAV');
+    });
+
     it('titles the Case system page and keeps its item active', () => {
         const items = workspaceNavItems({ workspaceName: 'acme', t, can: OWNER, ssoEnabled: true, registrationEnabled: true });
         expect(navItemForPath('/acme/dashboard/case-system', items)?.name).toBe('Case system');

@@ -81,6 +81,8 @@ export function useWorkspacePermissions() {
     const formAccessEnabled = !!userId && !isError && !!data?.formAccessEnabled;
     // ...and roles and form lists on API keys (its API_KEY_ROLES_ENABLED): the key dialog's role and forms controls, the edit dialog and the role chips. Nothing of it is shown or asked for while it is off.
     const apiKeyRolesEnabled = !!userId && !isError && !!data?.apiKeyRolesEnabled;
+    // ...and the Activity pages (its AUDIT_LOG_UI_ENABLED): the workspace's and a form's list of who did what. Nothing of it is asked for or shown while it is off.
+    const auditLogUiEnabled = !!userId && !isError && !!data?.auditLogUiEnabled;
     return {
         can,
         permissions,
@@ -102,6 +104,7 @@ export function useWorkspacePermissions() {
         formEmbedEnabled,
         csvImportEnabled,
         formAccessEnabled,
+        auditLogUiEnabled,
         apiKeyRolesEnabled
     };
 }
