@@ -2712,7 +2712,9 @@
       "NAME": "Naam",
       "NAME_PLACEHOLDER": "Bijvoorbeeld Gegevens aanvrager",
       "DESCRIPTION": "Omschrijving (optioneel)",
-      "SUBMIT": "Bewaren in bibliotheek"
+      "SUBMIT": "Bewaren in bibliotheek",
+      "COPY_TITLE": "Bewaard als nieuwe versie",
+      "COPY_SAVED": "“{{name}}” staat nu op versie {{version}}."
     },
     "WARNING": {
       "CONDITION_DROPPED": "Een toon- of verbergregel van “{{title}}” las een vraag buiten deze sectie en is weggelaten.",
@@ -2732,7 +2734,7 @@
       "TITLE": "Bijwerken vanuit de bibliotheek",
       "INTRO": "Hiermee vervangt u de kopie door de nieuwste versie van de sectie. Vragen die de kopie en de bibliotheek gemeen hebben, behouden hun plek en hun antwoorden.",
       "LOADING": "Vergelijken met de bibliotheek…",
-      "UP_TO_DATE": "Deze kopie is bij met de bibliotheek.",
+      "UP_TO_DATE": "Deze kopie is up-to-date met de bibliotheek.",
       "SUMMARY": "De bibliotheek staat op versie {{version}}: {{added}} toegevoegd, {{changed}} gewijzigd, {{removed}} verwijderd.",
       "BASE_UNKNOWN": "De versie waaruit deze kopie komt, wordt niet meer bewaard. Wijzigingen die u in de kopie maakte, zijn daarom niet te herkennen.",
       "LIST": "Wijzigingen per vraag",
@@ -2742,7 +2744,9 @@
       "STATUS_CHANGED": "Gewijzigd",
       "STATUS_REMOVED": "Verwijderd",
       "STATUS_UNCHANGED": "Gelijk",
-      "MODIFIED_IN_COPY": "U hebt deze vraag ook in het formulier gewijzigd; de versie uit de bibliotheek vervangt uw wijziging."
+      "MODIFIED_IN_COPY": "U hebt deze vraag ook in het formulier gewijzigd; de versie uit de bibliotheek vervangt uw wijziging.",
+      "SHARED_CONTAINER_one": "Een groep in deze kopie bevat ook vragen van uzelf. De groep uit de bibliotheek vervangt haar; uw vragen blijven op de pagina, buiten de groep.",
+      "SHARED_CONTAINER_other": "{{count}} groepen in deze kopie bevatten ook vragen van uzelf. De groepen uit de bibliotheek vervangen ze; uw vragen blijven op de pagina, buiten de groepen."
     },
     "WHAT": {
       "TITLE": "titel",
@@ -2760,7 +2764,9 @@
       "NOT_SAVED": "De sectie kon niet worden bewaard.",
       "NOT_UPDATED": "Deze kopie kon niet met de bibliotheek worden vergeleken.",
       "UPDATED": "De kopie is bijgewerkt vanuit de bibliotheek.",
-      "NEWER_VERSION": "De bibliotheek heeft een nieuwere versie van deze sectie. Werk eerst deze kopie bij."
+      "NEWER_VERSION": "De bibliotheek heeft een nieuwere versie van deze sectie. Werk eerst deze kopie bij.",
+      "COPY_SAVED": "Bewaard als versie {{version}} in de bibliotheek.",
+      "BUMP_FAILED": "Bewaard als versie {{version}}, maar deze kopie kon niet met die versie worden gemarkeerd. Werk de kopie bij vanuit de bibliotheek voordat u opnieuw bewaart."
     },
     "INSERT": {
       "DESCRIPTION_one": "Herbruikbare sectie, {{count}} vraag, versie {{version}}",
@@ -2769,7 +2775,7 @@
     "PAGE": {
       "TITLE": "Herbruikbare secties",
       "LOADING": "Secties laden…",
-      "TURNED_OFF": "Herbruikbare secties staan niet aan op deze server. De beheerder zet ze aan met REUSABLE_SECTIONS_ENABLED (zie docs/reusable-sections.md).",
+      "TURNED_OFF": "Herbruikbare secties zijn niet beschikbaar op deze server.",
       "INTRO": "Een herbruikbare sectie is een groep vragen die u één keer hebt bewaard, zoals de gegevens van een aanvrager. Kopieer haar via het menu Invoegen in elk formulier. Een kopie hoort bij haar formulier: een wijziging in de bibliotheek verandert een formulier nooit vanzelf, en u werkt een kopie bij wanneer u dat wilt.",
       "EMPTY": "Nog geen secties. Selecteer in de formulierbouwer een vraag of een groep en kies “Bewaren als herbruikbare sectie”.",
       "SEARCH": "Secties zoeken",
@@ -2785,9 +2791,11 @@
       "RENAME": "Hernoemen",
       "NAME_TAKEN": "Er bestaat al een sectie met deze naam.",
       "RENAME_FAILED": "Kon de sectie niet hernoemen.",
-      "CONFIRM_DELETE": "“{{name}}” uit de bibliotheek verwijderen? Formulieren die al een kopie bevatten, houden die.",
+      "CONFIRM_DELETE": "Formulieren die al een kopie bevatten, houden die. Dit kan niet ongedaan worden gemaakt.",
       "DELETE_FAILED": "Kon de sectie niet verwijderen.",
-      "DELETED": "“{{name}}” is verwijderd."
+      "DELETED": "“{{name}}” is verwijderd.",
+      "DELETE_TITLE": "“{{name}}” verwijderen?",
+      "DELETE": "Verwijderen"
     }
   }
 }

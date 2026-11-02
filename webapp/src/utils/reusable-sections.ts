@@ -24,6 +24,8 @@ export function instanceContainers(page: Page, ids: Set<string>): LayoutContaine
 export interface ReplaceTarget {
     replaceIds: string[];
     replaceContainerIds: string[];
+    /** Containers that also hold the creator's own questions: replaced all the same, those questions stay on the page. */
+    sharedContainerIds: string[];
     /** Where the new questions go among the page's others once the copy is taken out. */
     index: number;
 }
@@ -35,9 +37,15 @@ export function replaceTarget(page: Page, instance: string): ReplaceTarget | nul
     const ids = new Set(mine.map((field) => field.id));
     const all = pageFieldsOf(page as any);
     const first = all.findIndex((field) => ids.has(field.id));
+    // a container that holds any question of the copy is replaced by the library's container: leaving it would
+    // have two containers claim the same questions (one the creator extended with their own questions, or from
+    // which they took one out)
+    const touched = containersOf(page as any).filter((container) => membersOf(container).some((id) => ids.has(id)));
+    const whole = new Set(instanceContainers(page, ids).map((container) => container.id));
     return {
         replaceIds: mine.map((field) => field.id),
-        replaceContainerIds: instanceContainers(page, ids).map((container) => container.id),
+        replaceContainerIds: touched.map((container) => container.id),
+        sharedContainerIds: touched.filter((container) => !whole.has(container.id)).map((container) => container.id),
         index: all.slice(0, first).filter((field) => !ids.has(field.id)).length
     };
 }
@@ -49,7 +57,7 @@ export const warningKey = (code: string): string => `SECTIONS_LIB.WARNING.${Stri
 export const whatKey = (what: string): string => `SECTIONS_LIB.WHAT.${String(what).toUpperCase()}`;
 
 /** The ops that put a fragment on a page (`splice_fields`; one undo step). */
-export function spliceOps(pageId: string, fragment: { fields: unknown[]; containers: unknown[] }, target: Partial<ReplaceTarget> & { index?: number }) {
+export function spliceOps(pageId: string, fragment: { fields: unknown[]; containers: unknown[] }, target: Partial<Omit<ReplaceTarget, 'sharedContainerIds'>> & { index?: number }) {
     return [
         {
             op: 'splice_fields',

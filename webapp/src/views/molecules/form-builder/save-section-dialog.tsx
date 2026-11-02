@@ -94,3 +94,32 @@ export default function SaveSectionDialog({
         </Dialog>
     );
 }
+
+/**
+ * What the library could not keep when a copy was saved back (a reference the creator added in the form to a
+ * question outside the copy): nothing is dropped without the creator reading it.
+ */
+export function LeftOutDialog({ saved, onClose }: { saved: SectionDetail | null; onClose: () => void }) {
+    const { t } = useTranslation('builder');
+    return (
+        <Dialog open={!!saved} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent title={t('SECTIONS_LIB.SAVE.COPY_TITLE')} className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{t('SECTIONS_LIB.SAVE.COPY_TITLE')}</DialogTitle>
+                    <DialogDescription>{t('SECTIONS_LIB.SAVE.COPY_SAVED', { name: saved?.name ?? '', version: saved?.version ?? 0 })}</DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-3">
+                    <p className="text-sm font-medium text-black-900">{t('SECTIONS_LIB.SAVE.LEFT_OUT')}</p>
+                    <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm text-black-800">
+                        {(saved?.warnings ?? []).map((warning, index) => (
+                            <li key={`${warning.code}-${warning.fieldId}-${index}`}>{t(warningKey(warning.code), { title: warning.title || t('SECTIONS_LIB.UNTITLED') })}</li>
+                        ))}
+                    </ul>
+                    <Button type="button" className="min-h-11 self-end" onClick={onClose}>
+                        {t('SECTIONS_LIB.SAVE.DONE')}
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}

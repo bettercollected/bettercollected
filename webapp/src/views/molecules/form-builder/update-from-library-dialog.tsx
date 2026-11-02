@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -38,7 +38,19 @@ export function ChangeRow({ change }: { change: SectionChange }) {
  * the copy and the library share keep their place and their id (so answers stay readable); a question whose type
  * changed is replaced by a new one. A published form changes only when the creator publishes again.
  */
-export default function UpdateFromLibraryDialog({ open, onOpenChange, plan, apply }: { open: boolean; onOpenChange: (open: boolean) => void; plan: () => Promise<SectionPlan | null>; apply: (plan: SectionPlan) => boolean }) {
+export default function UpdateFromLibraryDialog({
+    open,
+    onOpenChange,
+    plan,
+    apply,
+    sharedContainers = 0
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    plan: () => Promise<SectionPlan | null>;
+    apply: (plan: SectionPlan) => boolean;
+    sharedContainers?: number;
+}) {
     const { t } = useTranslation('builder');
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -48,19 +60,21 @@ export default function UpdateFromLibraryDialog({ open, onOpenChange, plan, appl
                     <DialogDescription>{t('SECTIONS_LIB.UPDATE.INTRO')}</DialogDescription>
                 </DialogHeader>
                 {/* mounted only while open, so every opening compares afresh */}
-                <UpdatePlan loadPlan={plan} onOpenChange={onOpenChange} apply={apply} />
+                <UpdatePlan loadPlan={plan} onOpenChange={onOpenChange} apply={apply} sharedContainers={sharedContainers} />
             </DialogContent>
         </Dialog>
     );
 }
 
-function UpdatePlan({ loadPlan, onOpenChange, apply }: { loadPlan: () => Promise<SectionPlan | null>; onOpenChange: (open: boolean) => void; apply: (plan: SectionPlan) => boolean }) {
+function UpdatePlan({ loadPlan, onOpenChange, apply, sharedContainers }: { loadPlan: () => Promise<SectionPlan | null>; onOpenChange: (open: boolean) => void; apply: (plan: SectionPlan) => boolean; sharedContainers: number }) {
     const { t } = useTranslation('builder');
     const [plan, setPlan] = useState<SectionPlan | null>(null);
 
+    // one comparison per opening, even where React runs an effect twice (StrictMode in development)
+    const started = useRef<Promise<SectionPlan | null> | null>(null);
     useEffect(() => {
         let current = true;
-        loadPlan().then((found) => {
+        (started.current ??= loadPlan()).then((found) => {
             if (!current) return;
             if (found) setPlan(found);
             else onOpenChange(false);
@@ -90,6 +104,7 @@ function UpdatePlan({ loadPlan, onOpenChange, apply }: { loadPlan: () => Promise
                     <ChangeRow key={`${change.key}-${change.status}`} change={change} />
                 ))}
             </ul>
+            {sharedContainers > 0 && <p className="text-xs text-amber-900">{t('SECTIONS_LIB.UPDATE.SHARED_CONTAINER', { count: sharedContainers })}</p>}
             <p className="text-xs text-black-600">{t('SECTIONS_LIB.UPDATE.NOTE')}</p>
             <div className="flex justify-end gap-2">
                 <Button type="button" variant="secondary" className="min-h-11" onClick={() => onOpenChange(false)}>

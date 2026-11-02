@@ -1,12 +1,13 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ChevronDown, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@app/shadcn/components/ui/alert-dialog';
 import { Button } from '@app/shadcn/components/ui/button';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -40,6 +41,11 @@ function Row({ section, workspaceId, canEdit, open, onToggle }: { section: Secti
     const [rename] = useUpdateSectionDetailsMutation();
     const [remove] = useDeleteSectionMutation();
     const [editing, setEditing] = useState(false);
+    const [confirming, setConfirming] = useState(false);
+    const nameRef = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        if (editing) nameRef.current?.focus();
+    }, [editing]);
     const [name, setName] = useState(section.name);
     const [error, setError] = useState('');
 
@@ -53,7 +59,7 @@ function Row({ section, workspaceId, canEdit, open, onToggle }: { section: Secti
         } else setError(result.error?.data?.code === 'name_taken' ? t('SECTIONS_LIB.PAGE.NAME_TAKEN') : refusalText(result.error, t('SECTIONS_LIB.PAGE.RENAME_FAILED')));
     };
     const erase = async () => {
-        if (!window.confirm(t('SECTIONS_LIB.PAGE.CONFIRM_DELETE', { name: section.name }))) return;
+        setConfirming(false);
         const result: any = await remove({ workspaceId, sectionId: section.id });
         if (result.error) toast({ variant: 'destructive', description: refusalText(result.error, t('SECTIONS_LIB.PAGE.DELETE_FAILED')) });
         else toast({ description: t('SECTIONS_LIB.PAGE.DELETED', { name: section.name }) });
@@ -76,13 +82,23 @@ function Row({ section, workspaceId, canEdit, open, onToggle }: { section: Secti
                     <span className="ml-auto flex gap-1 sm:ml-0">
                         <button
                             type="button"
-                            onClick={() => setEditing((value) => !value)}
+                            onClick={() => {
+                                // a fresh copy of the name each time: the list may have changed meanwhile
+                                setName(section.name);
+                                setError('');
+                                setEditing((value) => !value);
+                            }}
                             className="flex min-h-11 min-w-11 items-center justify-center rounded-md hover:bg-black-100"
                             aria-label={t('SECTIONS_LIB.PAGE.RENAME_NAMED', { name: section.name })}
                         >
                             <Pencil className="h-4 w-4" aria-hidden="true" />
                         </button>
-                        <button type="button" onClick={erase} className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-red-700 hover:bg-red-50" aria-label={t('SECTIONS_LIB.PAGE.DELETE_NAMED', { name: section.name })}>
+                        <button
+                            type="button"
+                            onClick={() => setConfirming(true)}
+                            className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-red-700 hover:bg-red-50"
+                            aria-label={t('SECTIONS_LIB.PAGE.DELETE_NAMED', { name: section.name })}
+                        >
                             <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                     </span>
@@ -92,7 +108,7 @@ function Row({ section, workspaceId, canEdit, open, onToggle }: { section: Secti
                 <form className="flex flex-col gap-2 sm:flex-row sm:items-end" onSubmit={save}>
                     <label className="flex flex-1 flex-col gap-1 text-sm text-black-800">
                         {t('SECTIONS_LIB.SAVE.NAME')}
-                        <AppInput className="w-full" value={name} maxLength={100} onChange={(event: any) => setName(event.target.value)} />
+                        <AppInput className="w-full" value={name} maxLength={100} ref={nameRef} onChange={(event: any) => setName(event.target.value)} />
                     </label>
                     <Button type="submit" className="min-h-11" disabled={!name.trim()}>
                         {t('SECTIONS_LIB.PAGE.RENAME')}
@@ -104,6 +120,25 @@ function Row({ section, workspaceId, canEdit, open, onToggle }: { section: Secti
                     {error}
                 </p>
             )}
+            <AlertDialog open={confirming} onOpenChange={setConfirming}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('SECTIONS_LIB.PAGE.DELETE_TITLE', { name: section.name })}</AlertDialogTitle>
+                        <AlertDialogDescription>{t('SECTIONS_LIB.PAGE.CONFIRM_DELETE')}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('SECTIONS_LIB.CANCEL')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(event) => {
+                                event.preventDefault();
+                                void erase();
+                            }}
+                        >
+                            {t('SECTIONS_LIB.PAGE.DELETE')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             {open && (
                 <div className="rounded-lg bg-black-100 p-4">
                     <SectionPreview workspaceId={workspaceId} sectionId={section.id} />
@@ -139,7 +174,7 @@ export default function SectionsClient() {
                 <>
                     <label className="flex max-w-sm flex-col gap-1 text-sm text-black-800">
                         {t('SECTIONS_LIB.PAGE.SEARCH')}
-                        <AppInput className="w-full" value={query} onChange={(event: any) => setQuery(event.target.value)} />
+                        <AppInput className="w-full" type="search" value={query} onChange={(event: any) => setQuery(event.target.value)} />
                     </label>
                     {shown.length === 0 ? (
                         <p className="text-sm text-black-700">{t('SECTIONS_LIB.PAGE.NO_MATCH', { query })}</p>

@@ -88,3 +88,21 @@ describe('Update from library', () => {
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
     });
 });
+
+describe('Update from library, more', () => {
+    it('compares once per opening, even when React runs the effect twice', async () => {
+        const load = vi.fn().mockResolvedValue(plan([change('a', 'unchanged')]));
+        render(
+            <React.StrictMode>
+                <UpdateFromLibraryDialog open onOpenChange={vi.fn()} plan={load} apply={vi.fn()} />
+            </React.StrictMode>
+        );
+        expect(await screen.findByText('This copy is up to date with the library.')).toBeTruthy();
+        expect(load).toHaveBeenCalledTimes(1);
+    });
+
+    it("says a group of the creator's own is replaced and their questions stay", async () => {
+        render(<UpdateFromLibraryDialog open onOpenChange={vi.fn()} plan={() => Promise.resolve(plan([change('a', 'changed', { what: ['title'] })]))} apply={vi.fn()} sharedContainers={1} />);
+        expect(await screen.findByText(/also holds questions of your own/)).toBeTruthy();
+    });
+});

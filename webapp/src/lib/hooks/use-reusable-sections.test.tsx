@@ -183,6 +183,31 @@ describe('saving to the library', () => {
         expect((jotai.get(formDocAtom).fields![0].properties!.fields as any[]).map((f) => f.properties.library.version)).toEqual([2, 2]);
     });
 
+    it('says it was saved, and returns what the library dropped so the creator can read it', async () => {
+        mount([q('x1', mark('i1', 'k1', 1))]);
+        served.saved = { id: 's1', name: 'S', version: 2, warnings: [{ code: 'condition_dropped', title: 'Age' }] };
+        let saved: any;
+        await act(async () => {
+            saved = await actions.saveCopy('p1', 'i1');
+        });
+        expect(served.toasts.at(-1).description).toBe('Saved as version 2 in the library.');
+        expect(saved.warnings).toHaveLength(1);
+    });
+
+    it('says so when the copy could not be marked with the new version', async () => {
+        // the copy holds a question the engine refuses to put back (a used id is not the reason: it is replaced in place)
+        const jotai = mount([q('x1', mark('i1', 'k1', 1))]);
+        served.saved = { id: 's1', name: 'S', version: 2, warnings: [] };
+        const doc = jotai.get(formDocAtom);
+        // a field the engine refuses on replace: a page id
+        (doc.fields![0].properties!.fields as any)[0] = { ...(doc.fields![0].properties!.fields as any)[0], type: 'slide' };
+        jotai.set(formDocAtom, { ...doc });
+        await act(async () => {
+            await actions.saveCopy('p1', 'i1');
+        });
+        expect(served.toasts.at(-1).description).toContain('could not be marked');
+    });
+
     it('tells the creator to update first when the library moved on', async () => {
         mount([q('x1', mark('i1', 'k1', 1))]);
         served.failure = { data: { code: 'section_changed', message: 'x' } };

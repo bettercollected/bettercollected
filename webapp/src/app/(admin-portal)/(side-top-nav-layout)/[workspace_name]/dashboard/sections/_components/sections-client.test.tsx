@@ -106,17 +106,26 @@ describe('the library page', () => {
         expect((await screen.findByRole('alert')).textContent).toContain('already exists');
     });
 
-    it('deletes only after the person confirms', async () => {
-        const confirm = vi.spyOn(window, 'confirm');
-        confirm.mockReturnValueOnce(false);
+    it("deletes only after the person confirms, in a dialog of the page's own kind", async () => {
         mount();
         fireEvent.click(screen.getByRole('button', { name: 'Delete Applicant' }));
         expect(served.deleted).toEqual([]);
-        confirm.mockReturnValueOnce(true);
+        // cancel: nothing happens
+        const dialog = await screen.findByRole('alertdialog');
+        expect(dialog.textContent).toContain('Forms that already contain a copy keep it');
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+        expect(served.deleted).toEqual([]);
         fireEvent.click(screen.getByRole('button', { name: 'Delete Applicant' }));
+        fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
         await waitFor(() => expect(served.deleted).toEqual([{ workspaceId: 'w1', sectionId: 's1' }]));
-        expect(String(confirm.mock.calls[1][0])).toContain('Forms that already contain a copy keep it');
-        confirm.mockRestore();
+    });
+
+    it('uses a search box and puts the cursor in the name when renaming', () => {
+        mount();
+        expect((screen.getByLabelText('Search sections') as HTMLInputElement).type).toBe('search');
+        fireEvent.click(screen.getByRole('button', { name: 'Rename Applicant' }));
+        expect(document.activeElement).toBe(screen.getByLabelText('Name'));
     });
 
     it('offers nothing to change to someone who may only read', () => {

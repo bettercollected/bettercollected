@@ -146,8 +146,15 @@ export function useSectionActions() {
             }
             // the copy now matches this version: its markers say so (the creator's own changes stay)
             const bumped = fields.map((field) => ({ op: 'replace_field', field: { ...field, properties: { ...field.properties, library: { ...libraryOf(field), version: (result.data as SectionDetail).version } } } }));
-            send(bumped, 'Save copy to library');
-            return result.data as SectionDetail;
+            const refusal = send(bumped, 'Save copy to library');
+            const saved = result.data as SectionDetail;
+            if (refusal) {
+                // saved, but the copy still says the old version: the next save would say "newer version" against itself
+                fail(i18n.t('builder:SECTIONS_LIB.TOAST.BUMP_FAILED', { version: saved.version }));
+            } else {
+                toast({ description: i18n.t('builder:SECTIONS_LIB.TOAST.COPY_SAVED', { version: saved.version }) });
+            }
+            return saved;
         }
     };
 }

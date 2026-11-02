@@ -29,8 +29,9 @@ describe('a copy of a library section in a page', () => {
     });
 
     it('is replaced where it was, counting the page without it', () => {
-        expect(replaceTarget(p, 'i1')).toEqual({ replaceIds: ['a', 'b'], replaceContainerIds: ['box'], index: 1 });
-        expect(replaceTarget(p, 'i2')).toEqual({ replaceIds: ['c'], replaceContainerIds: [], index: 4 });
+        // "mixed" holds the copy's b and the creator's own question: it is replaced as well, the own question stays
+        expect(replaceTarget(p, 'i1')).toEqual({ replaceIds: ['a', 'b'], replaceContainerIds: ['box', 'mixed'], sharedContainerIds: ['mixed'], index: 1 });
+        expect(replaceTarget(p, 'i2')).toEqual({ replaceIds: ['c'], replaceContainerIds: [], sharedContainerIds: [], index: 4 });
         expect(replaceTarget(p, 'nope')).toBeNull();
     });
 });

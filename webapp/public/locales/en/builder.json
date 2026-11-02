@@ -2712,7 +2712,9 @@
       "NAME": "Name",
       "NAME_PLACEHOLDER": "For example Applicant details",
       "DESCRIPTION": "Description (optional)",
-      "SUBMIT": "Save to library"
+      "SUBMIT": "Save to library",
+      "COPY_TITLE": "Saved as a new version",
+      "COPY_SAVED": "“{{name}}” is now at version {{version}}."
     },
     "WARNING": {
       "CONDITION_DROPPED": "A show or hide rule of “{{title}}” read a question outside this section and was left out.",
@@ -2742,7 +2744,9 @@
       "STATUS_CHANGED": "Changed",
       "STATUS_REMOVED": "Removed",
       "STATUS_UNCHANGED": "Same",
-      "MODIFIED_IN_COPY": "You also changed this question in the form; the library’s version replaces your change."
+      "MODIFIED_IN_COPY": "You also changed this question in the form; the library’s version replaces your change.",
+      "SHARED_CONTAINER_one": "A group in this copy also holds questions of your own. The library’s group replaces it; your questions stay on the page, outside the group.",
+      "SHARED_CONTAINER_other": "{{count}} groups in this copy also hold questions of your own. The library’s groups replace them; your questions stay on the page, outside the groups."
     },
     "WHAT": {
       "TITLE": "title",
@@ -2760,7 +2764,9 @@
       "NOT_SAVED": "The section could not be saved.",
       "NOT_UPDATED": "This copy could not be compared with the library.",
       "UPDATED": "The copy is updated from the library.",
-      "NEWER_VERSION": "The library has a newer version of this section. Update this copy first."
+      "NEWER_VERSION": "The library has a newer version of this section. Update this copy first.",
+      "COPY_SAVED": "Saved as version {{version}} in the library.",
+      "BUMP_FAILED": "Saved as version {{version}}, but this copy could not be marked with it. Update the copy from the library before saving it again."
     },
     "INSERT": {
       "DESCRIPTION_one": "Reusable section, {{count}} question, version {{version}}",
@@ -2769,7 +2775,7 @@
     "PAGE": {
       "TITLE": "Reusable sections",
       "LOADING": "Loading sections…",
-      "TURNED_OFF": "Reusable sections are not turned on on this server. The operator turns them on with REUSABLE_SECTIONS_ENABLED (see docs/reusable-sections.md).",
+      "TURNED_OFF": "Reusable sections are not available on this server.",
       "INTRO": "A reusable section is a group of questions you saved once, such as applicant details. Copy it into any form from the Insert menu. A copy belongs to its form: changing the library never changes a form by itself, and you can update a copy when you choose.",
       "EMPTY": "No sections yet. In the form builder, select a question or a group and choose “Save as reusable section”.",
       "SEARCH": "Search sections",
@@ -2785,9 +2791,11 @@
       "RENAME": "Rename",
       "NAME_TAKEN": "A section with this name already exists.",
       "RENAME_FAILED": "Could not rename the section.",
-      "CONFIRM_DELETE": "Delete “{{name}}” from the library? Forms that already contain a copy keep it.",
+      "CONFIRM_DELETE": "Forms that already contain a copy keep it. This cannot be undone.",
       "DELETE_FAILED": "Could not delete the section.",
-      "DELETED": "“{{name}}” was deleted."
+      "DELETED": "“{{name}}” was deleted.",
+      "DELETE_TITLE": "Delete “{{name}}”?",
+      "DELETE": "Delete"
     }
   }
 }

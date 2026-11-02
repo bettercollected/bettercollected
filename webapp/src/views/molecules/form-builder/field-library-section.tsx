@@ -11,11 +11,12 @@ import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { useAppSelector } from '@app/store/hooks';
 import { usePageFieldIds, usePageShell } from '@app/store/jotai/entity-hooks';
 import { useGetSectionsQuery } from '@app/store/reusable-sections/api';
+import type { SectionDetail } from '@app/store/reusable-sections/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { containerOfField, membersOf } from '@app/utils/layout-containers';
-import { libraryOf } from '@app/utils/reusable-sections';
+import { libraryOf, replaceTarget } from '@app/utils/reusable-sections';
 import { InspectorSection } from '@app/views/molecules/form-builder/inspector-controls';
-import SaveSectionDialog from '@app/views/molecules/form-builder/save-section-dialog';
+import SaveSectionDialog, { LeftOutDialog } from '@app/views/molecules/form-builder/save-section-dialog';
 import UpdateFromLibraryDialog from '@app/views/molecules/form-builder/update-from-library-dialog';
 
 const button =
@@ -46,6 +47,7 @@ function FieldLibraryBody({ field, pageId }: { field: StandardFormFieldDto; page
     const [saving, setSaving] = useState<'question' | 'container' | null>(null);
     const [updating, setUpdating] = useState(false);
     const [savingCopy, setSavingCopy] = useState(false);
+    const [leftOut, setLeftOut] = useState<SectionDetail | null>(null);
     if (!onPage || field.internal || field.type === FieldTypes.SLIDE) return null;
     const container = containerOfField(page, field.id);
     const kind = container ? t(container.type === 'tabs' ? 'LAYOUT.TABS' : container.type === 'fieldset' ? 'LAYOUT.FIELDSET' : 'LAYOUT.PANEL').toLowerCase() : '';
@@ -68,8 +70,10 @@ function FieldLibraryBody({ field, pageId }: { field: StandardFormFieldDto; page
                             disabled={savingCopy}
                             onClick={async () => {
                                 setSavingCopy(true);
-                                await actions.saveCopy(pageId, origin.instance);
+                                const saved = await actions.saveCopy(pageId, origin.instance);
                                 setSavingCopy(false);
+                                // what the library dropped is read before it is forgotten
+                                if (saved?.warnings.length) setLeftOut(saved);
                             }}
                         >
                             {t('SECTIONS_LIB.SAVE_COPY')}
@@ -92,7 +96,16 @@ function FieldLibraryBody({ field, pageId }: { field: StandardFormFieldDto; page
                 subject={saving === 'container' ? t('SECTIONS_LIB.SUBJECT_CONTAINER', { kind }) : t('SECTIONS_LIB.SUBJECT_QUESTION')}
                 save={saveQuestions}
             />
-            {origin && <UpdateFromLibraryDialog open={updating} onOpenChange={setUpdating} plan={() => actions.planUpdate(pageId, origin.instance)} apply={(plan) => actions.applyUpdate(pageId, plan)} />}
+            <LeftOutDialog saved={leftOut} onClose={() => setLeftOut(null)} />
+            {origin && (
+                <UpdateFromLibraryDialog
+                    open={updating}
+                    onOpenChange={setUpdating}
+                    plan={() => actions.planUpdate(pageId, origin.instance)}
+                    apply={(plan) => actions.applyUpdate(pageId, plan)}
+                    sharedContainers={replaceTarget(page as any, origin.instance)?.sharedContainerIds.length ?? 0}
+                />
+            )}
         </InspectorSection>
     );
 }
