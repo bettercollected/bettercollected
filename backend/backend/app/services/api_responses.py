@@ -11,7 +11,7 @@ identities. Anonymised submissions keep no identity in the first place.
 
 import datetime as dt
 import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 from common.ids import RecordId
 from common.services.crypto_service import UnreadableCiphertext, crypto_service
@@ -102,10 +102,15 @@ async def list_response_summaries(
 
 
 async def response_detail(
-    workspace_id: RecordId, response_id: str
+    workspace_id: RecordId,
+    response_id: str,
+    may_read: Optional[Callable[[str], Awaitable[bool]]] = None,
 ) -> Optional[Dict[str, Any]]:
     """One response of the workspace with its answers, or None when the
-    workspace has no copy of it (or its form is not one of the workspace's)."""
+    workspace has no copy of it (or its form is not one of the workspace's).
+    ``may_read`` (form id -> bool), for a caller that knows the response and not
+    its form: asked once the form is known and before anything is decrypted; a
+    form it refuses reads as no response."""
     response = await find_response_in_workspace(
         _c().form_response_repo(),
         _c().workspace_form_repo(),
@@ -113,6 +118,8 @@ async def response_detail(
         response_id,
     )
     if response is None:
+        return None
+    if may_read is not None and not await may_read(str(response.form_id)):
         return None
     association = (
         await _c()

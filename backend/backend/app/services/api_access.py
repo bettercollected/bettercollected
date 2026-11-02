@@ -5,11 +5,19 @@ A key carries scopes, and is bound to its workspace. On every call the
 key's creator must still hold, right now, the permissions behind the scope:
 a key never does more than the person who made it currently may (a removed,
 disabled or demoted creator makes the key refuse). Every call is audited.
+
+Form-level access (``FORM_ACCESS_ENABLED``): a call that names a form is decided
+on that form too, as the key's creator (an Owner or Admin reaches every form; a
+member only what their role, grants and the form's access mode give). A form
+closed to the creator answers as a form that does not exist. Every such
+decision, for a single form or a list, goes through ``key_permissions_on_form``
+and the helpers below it, so a key of its own (its own role and form list) is
+one change in one place. Switched off, none of it reads anything.
 """
 
 import datetime as dt
 from http import HTTPStatus
-from typing import Dict, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 from common.models.user import User
 
@@ -17,6 +25,8 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.services.ai.api_keys import APIKeyService
+from backend.app.services.form_access.mode import form_access_enabled
+from backend.app.services.form_access.model import FormPermissions
 
 # A bulk read of answers through the API is an export, so responses:read
 # needs response.export as well as response.read (doc §4).
@@ -69,9 +79,13 @@ def require_key_has_scope(key: WorkspaceAPIKeyDocument, scope: str) -> None:
         ) from error
 
 
-async def require_key_scope(key: WorkspaceAPIKeyDocument, scope: str) -> None:
+async def require_key_scope(
+    key: WorkspaceAPIKeyDocument, scope: str, form_id: Optional[str] = None
+) -> None:
     """403 unless the key has ``scope`` and its creator still holds the
-    scope's permissions in the key's workspace."""
+    scope's permissions in the key's workspace; with ``form_id`` (a call on one
+    form) also on that form while form-level access is on: 404 for a form
+    closed to the creator, 403 for a permission they lack on it."""
     require_key_has_scope(key, scope)
     held = (
         await _c()
@@ -89,6 +103,82 @@ async def require_key_scope(key: WorkspaceAPIKeyDocument, scope: str) -> None:
                 f"{', '.join(repr(p) for p in missing)} in this workspace.",
             },
         )
+    if form_id is not None:
+        await require_key_on_form(key, scope, form_id)
+
+
+async def key_permissions_on_form(
+    key: WorkspaceAPIKeyDocument, form_id: str
+) -> FormPermissions:
+    """What the key may do on one form: the one place a key's decision on a
+    form is taken. Today a key acts as its creator, so it is the creator's
+    decision (role, grants, the form's access mode); a key that holds grants of
+    its own is added here and nowhere else. Callers check
+    ``form_access_enabled()`` first: this always reads."""
+    return await _c().authorization_service().form_permissions(
+        acting_user(key), key.workspace_id, form_id
+    )
+
+
+async def require_key_on_form(
+    key: WorkspaceAPIKeyDocument, scope: str, form_id: str
+) -> None:
+    """While form-level access is on: 404 (as for a form that does not exist)
+    when the form is closed to the key, 403 when the key can open it but lacks
+    a permission ``scope`` needs on it. A form that is not one of the
+    workspace's decides nothing here (the creator's workspace-level permissions
+    stand, and the caller's own 404 follows). Switched off: nothing, and no
+    query."""
+    if not form_access_enabled():
+        return
+    decided = await key_permissions_on_form(key, form_id)
+    if decided.hidden:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found")
+    missing = [
+        p.value for p in SCOPE_PERMISSIONS[scope] if p not in decided.permissions
+    ]
+    if missing:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            content={
+                "code": CREATOR_LACKS_PERMISSION_CODE,
+                "message": "Forbidden: the person who created this API key does "
+                f"not have {', '.join(repr(p) for p in missing)} on this form.",
+            },
+        )
+
+
+async def key_may_use_form(
+    key: WorkspaceAPIKeyDocument, scope: str, form_id: str
+) -> bool:
+    """Whether the key may do what ``scope`` stands for on the form (always
+    true while form-level access is off, without a query): for a call that
+    finds its form only after reading something else, a response say."""
+    try:
+        await require_key_on_form(key, scope, form_id)
+    except HTTPException:
+        return False
+    return True
+
+
+async def restrict_to_key_visible(
+    key: WorkspaceAPIKeyDocument,
+    form_ids: Iterable[str],
+    permissions: Iterable[Permission],
+) -> List[str]:
+    """``form_ids`` (in their order) on which the key's creator holds every one
+    of ``permissions``: for a list the key must not learn of a form it cannot
+    open from. Narrow before counting or paginating. Switched off the ids come
+    back as they are, without a query."""
+    ids = [str(f) for f in form_ids]
+    service = _c().authorization_service()
+    for permission in permissions:
+        if not ids:
+            break
+        ids = await service.restrict_to_visible(
+            acting_user(key), key.workspace_id, ids, permission
+        )
+    return ids
 
 
 async def audit_key_call(
