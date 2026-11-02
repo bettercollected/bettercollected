@@ -114,6 +114,11 @@ def strip_internal_fields(form: Any) -> Any:
     are kept as they are."""
     if form is None:
         return form
+    # who published a version (a member's account id) is staff information: it
+    # reaches the versions page as a name, no other reader (the action executor
+    # included) needs it
+    if _get(form, "published_by") is not None:
+        _set(form, "published_by", None)
     # who allowed AI insights is staff information: respondents only need to
     # know that (and to which provider) responses may be analysed
     settings = _get(form, "settings")

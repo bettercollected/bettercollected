@@ -315,6 +315,78 @@ def _sanitise_titles(form) -> None:
         logger.info(f"Dropped {dropped} unusable title style value(s) on save")
 
 
+async def check_form_content_early(form, load_stored) -> None:
+    """The first content checks of a form save, before the draft is looked at:
+    internal fields in logic, date rules, calculations, themes, and the http(s)
+    rule of the ending links (a link the stored form already holds is kept).
+    ``load_stored``: an async callable giving the stored draft (read only when
+    an ending link fails the check). ``update_form`` and the restore of a
+    version run the same checks."""
+    ensure_no_internal_logic(form)
+    ensure_valid_date_rules(form)
+    ensure_valid_calculations(form)
+    ensure_valid_themes(form)
+    try:
+        _check_ending_links(form, drop_unusable=False)
+    except HTTPException:
+        stored = await load_stored()
+        stored_links = {
+            page.buttonLink for page in (getattr(stored, "thankyou_page", None) or [])
+        }
+        _check_ending_links(form, drop_unusable=False, keep_as_is=stored_links)
+
+
+async def check_form_content(
+    form,
+    stored,
+    *,
+    workspace_id,
+    user,
+    own_form_id: str,
+    option_source_service=None,
+    dropped_rules: Optional[List[Dict[str, Any]]] = None,
+    dropped_option_logic: Optional[List[Dict[str, Any]]] = None,
+) -> None:
+    """The content checks of a form save once the draft (``stored``) is known:
+    field rules, layout, the switch gates, choice logic, option sources, the
+    first-party images, answer patterns and title styles. Repairs ``form`` in
+    place (broken rules and choice logic are dropped and reported), or raises.
+    One function for ``update_form`` and the restore of a version: whatever a
+    save refuses, a restore refuses too."""
+    # Field rules (services/field_rules.py): every broken rule is dropped
+    # and reported, never stored and never a refusal (the builder cannot
+    # edit rules, and it re-sends what it holds); then, while
+    # FIELD_RULES_ENABLED is off, new or changed rules are refused.
+    dropped = await run_in_threadpool(ensure_valid_field_rules, form, True)
+    if dropped_rules is not None:
+        dropped_rules.extend(dropped)
+    # Layout containers: repaired or refused here, switch below.
+    ensure_valid_layout(form)
+    ensure_rules_allowed(form, stored)
+    # the newer question types (services/new_question_types.py)
+    ensure_question_types_allowed(form, stored)
+    # Choice logic: a condition or filter a structural edit broke (a
+    # question moved before its source, a removed option) is dropped,
+    # never a refusal that would stop autosave; the size caps refuse.
+    repaired = ensure_valid_option_logic(form, drop=True)
+    if dropped_option_logic is not None:
+        dropped_option_logic.extend(repaired)
+    ensure_choice_logic_allowed(form, stored)
+    # Option sources: the shape on every save; a new or changed source
+    # needs the switch and the saver's access to the source form's answers
+    ensure_valid_option_sources(form)
+    ensure_option_sources_allowed(form, stored)
+    if option_source_service is not None:
+        await option_source_service.ensure_resolved(
+            workspace_id, form, stored, user, own_form_id=own_form_id
+        )
+    # first-party images only; an address the draft already holds is kept
+    # (services/form_images.py).
+    check_form_images(form, stored)
+    check_form_patterns(form, stored)
+    _sanitise_titles(form)
+
+
 def keep_section_titles(form, stored) -> None:
     """Settle each page's section title on a save. A page whose properties
     leave it out (None: an older client, or an API caller that doesn't know
@@ -898,11 +970,10 @@ class WorkspaceFormService:
         await self.authorization_service.authorize(
             user, Permission.FORM_EDIT, workspace_id
         )
-        ensure_no_internal_logic(form)
-        ensure_valid_date_rules(form)
-        ensure_valid_calculations(form)
-        ensure_valid_themes(form)
-        await self._check_ending_links_on_update(form, form_id)
+        await check_form_content_early(
+            form,
+            lambda: self.form_service.get_form_document_by_id(str(form_id)),
+        )
         workspace_form = await self.workspace_form_repository.find_workspace_form(
             workspace_id, str(form_id)
         )
@@ -915,38 +986,16 @@ class WorkspaceFormService:
         ensure_not_changed_since(
             existing_form.updated_at if existing_form else None, expected_updated_at
         )
-        # Field rules (services/field_rules.py): every broken rule is dropped
-        # and reported, never stored and never a refusal (the builder cannot
-        # edit rules, and it re-sends what it holds); then, while
-        # FIELD_RULES_ENABLED is off, new or changed rules are refused.
-        dropped = await run_in_threadpool(ensure_valid_field_rules, form, True)
-        if dropped_rules is not None:
-            dropped_rules.extend(dropped)
-        # Layout containers: repaired or refused here, switch below.
-        ensure_valid_layout(form)
-        ensure_rules_allowed(form, existing_form)
-        # the newer question types (services/new_question_types.py)
-        ensure_question_types_allowed(form, existing_form)
-        # Choice logic: a condition or filter a structural edit broke (a
-        # question moved before its source, a removed option) is dropped,
-        # never a refusal that would stop autosave; the size caps refuse.
-        repaired = ensure_valid_option_logic(form, drop=True)
-        if dropped_option_logic is not None:
-            dropped_option_logic.extend(repaired)
-        ensure_choice_logic_allowed(form, existing_form)
-        # Option sources: the shape on every save; a new or changed source
-        # needs the switch and the saver's access to the source form's answers
-        ensure_valid_option_sources(form)
-        ensure_option_sources_allowed(form, existing_form)
-        if self._option_source_service is not None:
-            await self._option_source_service.ensure_resolved(
-                workspace_id, form, existing_form, user, own_form_id=str(form_id)
-            )
-        # first-party images only; an address the draft already holds is kept
-        # (services/form_images.py).
-        check_form_images(form, existing_form)
-        check_form_patterns(form, existing_form)
-        _sanitise_titles(form)
+        await check_form_content(
+            form,
+            existing_form,
+            workspace_id=workspace_id,
+            user=user,
+            own_form_id=str(form_id),
+            option_source_service=self._option_source_service,
+            dropped_rules=dropped_rules,
+            dropped_option_logic=dropped_option_logic,
+        )
         # Settings are checked and applied here but stored after the form:
         # the form's conditional write is what can still refuse the save.
         # The form's language: one a form can declare (FORM_LANGUAGES), as
@@ -1097,17 +1146,6 @@ class WorkspaceFormService:
         updated = await self._form_repo.set_form_logo(str(form_id), None)
         await self._release_logo(str(form_id), previous)
         return updated
-
-    async def _check_ending_links_on_update(self, form, form_id) -> None:
-        try:
-            _check_ending_links(form, drop_unusable=False)
-        except HTTPException:
-            stored = await self.form_service.get_form_document_by_id(str(form_id))
-            stored_links = {
-                page.buttonLink
-                for page in (getattr(stored, "thankyou_page", None) or [])
-            }
-            _check_ending_links(form, drop_unusable=False, keep_as_is=stored_links)
 
     async def upload_files_to_s3_and_update_url(
         self,
@@ -1530,6 +1568,10 @@ class WorkspaceFormService:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found"
             )
+        # The version this submission is checked against, set by the server:
+        # whatever the page sent is ignored (staff edits and the responses
+        # list read it, so it must be the one the form was validated against).
+        response.form_version = latest_version_of_form.version
         # "Require verified identity" was enforced only by the webapp; a form
         # that asks for it refuses submissions without a signed-in respondent.
         if (
@@ -1799,7 +1841,9 @@ class WorkspaceFormService:
             ),
         )
         await self._upgrade_slug_from_title_on_publish(workspace_id, form_id)
-        published = await self.form_service.publish_form(form_id=form_id)
+        published = await self.form_service.publish_form(
+            form_id=form_id, published_by=str(user.id) if user and user.id else None
+        )
         # The logo the live form showed until now, if nothing shows it any more.
         if previous is not None and previous.logo != getattr(published, "logo", None):
             await self._release_logo(str(form_id), previous.logo)

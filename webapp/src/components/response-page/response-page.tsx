@@ -25,6 +25,7 @@ import { getInternalFields } from '@app/utils/internal-fields';
 import { shortReceiptNumber } from '@app/utils/receipt-number';
 import { rememberedNeighbours } from '@app/utils/response-list-memory';
 import { responseOriginListUrl, responsePageSections, responsePageUrl } from '@app/utils/response-page';
+import { formVersionUrl } from '@app/utils/response-urls';
 import { ResponseOrigin } from '@app/utils/response-urls';
 
 import ReadOnlyForm, { CONTENTS_HEADING_ID, CONTENTS_ID, followInPageLink } from './read-only-form';
@@ -60,7 +61,7 @@ let focusDetailsOf: string | null = null;
 export default function ResponsePage({ formId, responseId, origin }: { formId: string; responseId: string; origin?: ResponseOrigin }) {
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
-    const { can } = useWorkspacePermissions();
+    const { can, formRevisionsUiEnabled } = useWorkspacePermissions();
     const { openModal } = useModal();
     const workspaceId = workspace?.id ?? '';
     // While the response is being deleted the page stops asking for it: the
@@ -181,7 +182,14 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
                 </main>
             ) : (
                 <>
-                    <ResponseSummary ref={detailsRef} response={response} source={currentData?.source} position={neighbours.position && neighbours.total ? { position: neighbours.position, total: neighbours.total } : undefined} />
+                    <ResponseSummary
+                        ref={detailsRef}
+                        response={response}
+                        source={currentData?.source}
+                        position={neighbours.position && neighbours.total ? { position: neighbours.position, total: neighbours.total } : undefined}
+                        // the version it was given in opens read-only (the Versions page: form.read, behind its switch)
+                        versionHref={formRevisionsUiEnabled && can(WorkspacePermission.FORM_READ) && typeof response.formVersion === 'number' ? formVersionUrl(workspace?.workspaceName ?? '', formId, response.formVersion) : undefined}
+                    />
                     {(response.unreadableFields ?? []).length > 0 && (
                         <div className={`${pageGutter} pb-5`}>
                             <UnreadableNotice unreadable={response.unreadableFields ?? []} />
@@ -237,7 +245,7 @@ function NeighbourLink({ targetId, href, label, icon }: { targetId?: string; hre
  * receipt number. Focusable from script only: previous/next move focus here.
  */
 // `source`: set when an API key made the response (staff only: the server never sends it to respondents)
-const ResponseSummary = forwardRef<HTMLElement, { response: any; source?: { channel: string; keyName?: string | null; consentAsserted?: boolean } | null; position?: { position: number; total: number } }>(function ResponseSummary({ response, source, position }, ref) {
+const ResponseSummary = forwardRef<HTMLElement, { response: any; source?: { channel: string; keyName?: string | null; consentAsserted?: boolean } | null; position?: { position: number; total: number }; versionHref?: string }>(function ResponseSummary({ response, source, position, versionHref }, ref) {
     const { t, i18n } = useTranslation();
     // The receipt number is a bearer token (anyone holding it can read the
     // response without signing in): shortened, never in full on screen,
@@ -270,6 +278,20 @@ const ResponseSummary = forwardRef<HTMLElement, { response: any; source?: { chan
                     <div className="flex flex-col gap-1">
                         <dt className="text-xs font-medium text-black-600">{t('RESPONSE_PAGE.RECEIPT')}</dt>
                         <dd className="font-mono text-base text-black-700">{shortReceiptNumber(number)}</dd>
+                    </div>
+                )}
+                {typeof response?.formVersion === 'number' && (
+                    <div className="flex flex-col gap-1">
+                        <dt className="text-xs font-medium text-black-600">{t('RESPONSE_PAGE.FORM_VERSION')}</dt>
+                        <dd className="text-base text-black-900">
+                            {versionHref ? (
+                                <Link href={versionHref} className="underline underline-offset-2" aria-label={t('RESPONSE_PAGE.FORM_VERSION_LINK', { n: response.formVersion })}>
+                                    {t('RESPONSE_PAGE.VERSION_N', { n: response.formVersion })}
+                                </Link>
+                            ) : (
+                                t('RESPONSE_PAGE.VERSION_N', { n: response.formVersion })
+                            )}
+                        </dd>
                     </div>
                 )}
                 {response?.deletionStatus === 'pending' && (

@@ -1104,6 +1104,35 @@ admins (`workspace.manage`) send the mapped questions' answers to an https addre
 - Tests: `tests/app/webhooks/` (SSRF matrix `test_guard.py`, delivery, retries, rebinding and erasure
   `test_delivery.py`, secrets, audit, log, purge, privacy `test_api.py`, roles `test_permissions.py`).
 
+## Form versions page (list, compare, restore)
+
+Behind `FORM_REVISIONS_UI_ENABLED` (default off; `services/form_versions/mode.py`, served as `formRevisionsUiEnabled` by
+`GET /workspaces/{id}/permissions`): off means 422 `form_revisions_disabled` on the three routes below. Reading one
+version (`GET .../versions/{version}`) is not part of it. Docs: `docs/form-versions.md`. Rules to keep:
+
+- Routes in `controllers/form_versions_router.py`, logic in `services/form_versions/`: `GET .../forms/{id}/versions`
+  (`form.read`; number, time, who, current, and the draft's `updatedAt` / `hasUnpublishedChanges`; no answer and no
+  response count), `GET .../version-diff?from=&to=` (`form.read`; a number or `draft`), `POST .../versions/{n}/restore`
+  (`form.edit`). All pass `form_id` to `authorize`, so another workspace's form is 404.
+- A version records who published it (`FormVersionsDocument.published_by`, the user id, in the JSON document: no
+  migration). Only `WorkspaceFormService.publish_form` sets it. The list sends the member's current name and role
+  (`services/member_directory.py`, current enabled members only, names best effort), "a former member" for anyone else;
+  **never an id or an address**.
+- `compare.py` only classifies `form_spec.diff.spec_diff` into coded entries (`kind`, `scope`, `ref`, `title`,
+  `params`); the sentences are the webapp's (`utils/version-changes.ts`, EN and NL), so add a kind in both. Values are
+  form content (titles, option labels, cut at 160 characters), never answers; rule bodies are not spelt out. A form
+  that has no spec form (before page-based forms) is 422 `not_comparable`.
+- Restore first runs the content checks of a save on the version's copy (`check_form_content_early` and
+  `check_form_content`, module functions of `workspace_form_service.py` that `update_form` calls too: images, patterns,
+  ending links, themes, calculations, date rules, field rules, option sources, title styles; add a save check there so
+  both get it), then goes through `form_writes.persist_form(..., parts=FORM_PARTS, expected_updated_at=..., lists_check=...)`: every switch gate of a
+  builder save applies (field rules, choice logic, question types, containers) and a stale `expectedUpdatedAt` is 409
+  `form_changed`. A draft with unpublished work is 409 `draft_has_changes` unless `replaceDraft` is true. It writes no
+  version and deletes none: only a later publish makes version N+1. Not restored: logo and cover files, consent list,
+  button text, the workspace-form settings, webhooks, email actions, actions.
+- Tests: `tests/app/form_versions/` (`test_compare.py` classification, `test_versions_api.py` switch, list, compare,
+  restore), rows `forms.versions.*` in `test_permission_matrix.py`.
+
 ## Drafts (save and continue later)
 
 Behind the server switch `SAVE_DRAFTS_ENABLED` (default off until it is released; `services/form_drafts/mode.py`, served as `saveDraftsEnabled` by `GET /workspaces/{id}/permissions`) and a per-form setting, off by default (`WorkspaceFormSettings.allow_save_draft`, `draft_retention_days` 1 to 90, none =
