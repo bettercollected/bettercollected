@@ -53,7 +53,6 @@ SIMPLE_TYPES = {
     "yes_no",
     "multiple_choice",
     "dropdown",
-    "signature",
 }
 # why a column is left alone (the codes the webapp translates)
 IGNORED_RESPONDER = "responder_ignored"
@@ -62,6 +61,7 @@ IGNORED_CALCULATED = "calculated_ignored"
 IGNORED_GROUP_ROWS = "group_rows_ignored"
 UNSUPPORTED_TYPE = "type_unsupported"
 UNSUPPORTED_OPTION_SOURCE = "option_source_unsupported"
+UNSUPPORTED_SIGNATURE = "signature_unsupported"
 
 
 @dataclass
@@ -96,6 +96,10 @@ def _field_status(field_: Dict[str, Any]) -> tuple:
     kind = field_.get("type")
     if kind == "calculated":
         return STATUS_IGNORED, IGNORED_CALCULATED
+    if kind == "signature":
+        # a signature is evidence of a person signing at a moment: an import
+        # cannot stamp one from a cell of text
+        return STATUS_UNSUPPORTED, UNSUPPORTED_SIGNATURE
     properties = field_.get("properties")
     if isinstance(properties, dict) and properties.get("option_source"):
         # the options come from a list or another question: the submit path

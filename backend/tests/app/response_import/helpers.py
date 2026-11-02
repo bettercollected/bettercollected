@@ -92,7 +92,6 @@ ADA = {
     "member": {"type": "boolean", "boolean": True},
     "colour": {"type": "choice", "choice": {"value": "c2"}},
     "colours": {"type": "choices", "choices": {"values": ["c1", "c2"], "other": "Teal"}},
-    "sign": {"type": "signature", "signature": {"method": "typed", "name": "A. Lovelace"}},
     "jobs": {
         "type": "group",
         "items": [

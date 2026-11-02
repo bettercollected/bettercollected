@@ -94,6 +94,10 @@ class ResponseImportDocument(Record):
     mode: Optional[ImportMode] = None
     # the importer confirmed they may store this data (a run needs it)
     confirmed_at: Optional[dt.datetime] = None
+    # who confirmed it (the id): the one whose permission the job asks for and the
+    # one the staff-only answers are recorded as entered by; may differ from the
+    # uploader
+    confirmed_by: Optional[str] = None
     # outcome
     rows_valid: Optional[int] = None
     rows_invalid: Optional[int] = None

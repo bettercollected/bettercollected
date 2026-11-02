@@ -224,11 +224,15 @@ class PostgresResponseImportRepository(RecordRepository):
         mine = or_(
             ResponseImportRow.actor_id == uid,
             ResponseImportRow.doc["rolled_back_by"].astext == uid,
+            ResponseImportRow.doc["confirmed_by"].astext == uid,
         )
         for found in await self.many(mine):
 
             def change(document: ResponseImportDocument):
                 touched = False
+                if document.confirmed_by == uid:
+                    document.confirmed_by = DELETED_ACTOR
+                    touched = True
                 if document.rolled_back_by == uid:
                     document.rolled_back_by = DELETED_ACTOR
                     touched = True
