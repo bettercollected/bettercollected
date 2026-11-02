@@ -95,6 +95,8 @@ ENV_ONLY_KEYS = frozenset(
         "PDF_IMPORT_SANDBOX_SOCKET",
         "DOC_SANDBOX_PARALLEL",
         "DOC_SANDBOX_MAX_DOCUMENT_BYTES",
+        # held until every entry point enforces form-level access (then a T2 setting again)
+        "FORM_ACCESS_ENABLED",
         "DOTENV_PATH",
         "PROJECT_NAME",
         "DOCS_URL",

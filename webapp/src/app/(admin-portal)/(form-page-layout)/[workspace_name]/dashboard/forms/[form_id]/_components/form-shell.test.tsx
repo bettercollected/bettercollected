@@ -1,8 +1,8 @@
 // The form's focused shell: one bar (back, title, status, actions), the sections
-// of the form as a row of links, a skip link and the page; no workspace navbar.
+// of the form down the side (a sheet on a phone), a skip link and the page; no workspace navbar.
 import React from 'react';
 
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import i18n from 'i18next';
 import { Provider as ReduxProvider } from 'react-redux';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,7 +15,7 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 import { axeViolations } from '@app/test/axe';
 
 import commonNl from '../../../../../../../../../public/locales/nl/common.json';
-import { buildFormNav } from './form-nav';
+import { buildFormNav, currentItem } from './form-nav';
 import FormShell from './form-shell';
 
 const route = vi.hoisted(() => ({ pathname: '/acme/dashboard/forms/f1/responses', push: vi.fn() }));
@@ -63,7 +63,8 @@ const show = (over: Record<string, unknown> = {}, { pathname = `${BASE}/response
     );
 };
 
-const tabs = () => within(screen.getByRole('navigation', { name: 'Form sections' }));
+const rail = () => within(screen.getByRole('navigation', { name: 'Form sections' }));
+const labels = (links: HTMLElement[]) => links.map((link) => link.textContent);
 
 beforeAll(() => {
     i18n.addResourceBundle('nl', 'common', commonNl, true, true);
@@ -71,6 +72,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+    window.localStorage.clear();
     openModal.mockClear();
     openFullScreenModal.mockClear();
     route.push.mockClear();
@@ -181,24 +183,37 @@ describe('the skip link and the page', () => {
     });
 });
 
-describe('the sections', () => {
-    it('are a nav of links, the current one marked', () => {
+describe('the side menu', () => {
+    it('is a nav of links with Deletion requests under Responses, the current page marked', () => {
         show();
-        const links = tabs().getAllByRole('link');
-        expect(links.map((link) => link.textContent)).toEqual(['Pages', 'Responses12', 'Analytics', 'Share', 'Settings']);
-        const current = links.filter((link) => link.getAttribute('aria-current') === 'page');
+        expect(labels(rail().getAllByRole('link'))).toEqual(['Pages', 'Responses12', 'Deletion requests0', 'Analytics', 'Share', 'Settings']);
+        const current = rail()
+            .getAllByRole('link')
+            .filter((link) => link.getAttribute('aria-current') === 'page');
         expect(current).toHaveLength(1);
         expect(current[0]).toHaveAttribute('href', `${BASE}/responses`);
     });
 
-    it('keeps Responses current on Deletion requests', () => {
-        show({}, { pathname: `${BASE}/deletion-requests` });
-        expect(tabs().getByRole('link', { name: /Responses/ })).toHaveAttribute('aria-current', 'page');
+    it('marks only the deepest page current: Deletion requests, not Responses', () => {
+        show({ deletionRequests: 2 }, { pathname: `${BASE}/deletion-requests` });
+        expect(rail().getByRole('link', { name: /Deletion requests/ })).toHaveAttribute('aria-current', 'page');
+        expect(rail().getByRole('link', { name: /^Responses/ })).not.toHaveAttribute('aria-current');
     });
 
     it('shows Versions when the server offers them', () => {
         show({}, { revisions: true, pathname: `${BASE}/versions/2` });
-        expect(tabs().getByRole('link', { name: 'Versions' })).toHaveAttribute('aria-current', 'page');
+        expect(rail().getByRole('link', { name: 'Versions' })).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('leaves Deletion requests out for who may read responses but not handle privacy', () => {
+        show({}, { granted: [WorkspacePermission.RESPONSE_READ, WorkspacePermission.FORM_EDIT] });
+        expect(labels(rail().getAllByRole('link'))).toEqual(['Pages', 'Responses12', 'Analytics', 'Share', 'Settings']);
+    });
+
+    it('has no old tab row and no segment control', () => {
+        show();
+        expect(screen.getAllByRole('navigation')).toHaveLength(1);
+        expect(screen.queryByText('All responses')).toBeNull();
     });
 
     it('is Dutch in Dutch', async () => {
@@ -208,14 +223,170 @@ describe('the sections', () => {
         show();
         expect(screen.getByRole('link', { name: 'Terug naar formulieren' })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Direct naar de inhoud' })).toBeInTheDocument();
-        expect(
-            within(screen.getByRole('navigation', { name: 'Onderdelen van het formulier' }))
-                .getAllByRole('link')
-                .map((link) => link.textContent)
-        ).toEqual(['Pagina’s', 'Reacties12', 'Analyse', 'Delen', 'Instellingen']);
+        expect(labels(within(screen.getByRole('navigation', { name: 'Onderdelen van het formulier' })).getAllByRole('link'))).toEqual(['Pagina’s', 'Reacties12', 'Verwijderverzoeken0', 'Analyse', 'Delen', 'Instellingen']);
+        expect(screen.getByRole('button', { name: 'Onderdelen uitklappen' })).toBeInTheDocument();
+    });
+});
+
+describe('the Settings pages in the side menu', () => {
+    const SETTINGS = ['Access', 'Availability', 'Respondent experience', 'Automations', 'Advanced'];
+
+    it('opens in place while Settings is the section: five pages, the current one marked, Settings itself not', () => {
+        show({}, { pathname: `${BASE}/settings/availability` });
+        const links = rail().getAllByRole('link');
+        expect(labels(links).slice(-6)).toEqual(['Settings', ...SETTINGS]);
+        expect(rail().getByRole('link', { name: 'Availability' })).toHaveAttribute('aria-current', 'page');
+        expect(rail().getByRole('link', { name: 'Availability' })).toHaveAttribute('href', `${BASE}/settings/availability`);
+        expect(rail().getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current');
     });
 
-    it('has no accessibility violations, with the menu closed or open, in either language', async () => {
+    it('stays closed on the other sections, and Settings leads to Access', () => {
+        show();
+        expect(rail().queryByRole('link', { name: 'Availability' })).toBeNull();
+        expect(rail().getByRole('link', { name: 'Settings' })).toHaveAttribute('href', `${BASE}/settings/access`);
+    });
+
+    it('lists only the pages an imported form has', () => {
+        show({ settings: { provider: 'google' }, builderVersion: undefined }, { pathname: `${BASE}/settings/access`, granted: [WorkspacePermission.FORM_EDIT, WorkspacePermission.RESPONSE_READ] });
+        expect(labels(rail().getAllByRole('link')).slice(-3)).toEqual(['Settings', 'Access', 'Respondent experience']);
+    });
+
+    it('is Dutch in Dutch', async () => {
+        await act(async () => {
+            await i18n.changeLanguage('nl');
+        });
+        show({}, { pathname: `${BASE}/settings/experience` });
+        expect(labels(within(screen.getByRole('navigation', { name: 'Onderdelen van het formulier' })).getAllByRole('link')).slice(-6)).toEqual(['Instellingen', 'Toegang', 'Beschikbaarheid', 'Ervaring van respondenten', 'Automatiseringen', 'Geavanceerd']);
+    });
+
+    it('is in the phone sheet whichever section is open, named with its section', async () => {
+        show({}, { pathname: `${BASE}/settings/automations` });
+        expect(screen.getByRole('button', { name: 'Section: Settings · Automations. Choose another section' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /^Section: / }));
+        const sheet = await screen.findByRole('dialog', { name: 'Go to section' });
+        expect(labels(within(sheet).getAllByRole('link')).slice(-6)).toEqual(['Settings', ...SETTINGS]);
+        expect(within(sheet).getByRole('link', { name: 'Automations' })).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('has no accessibility violations on a Settings page, with the sheet open', async () => {
+        show({}, { pathname: `${BASE}/settings/access` });
+        expect(await axeViolations(document.body, { page: true })).toEqual([]);
+        fireEvent.click(screen.getByRole('button', { name: /^Section: / }));
+        await screen.findByRole('dialog');
+        expect(await axeViolations(document.body)).toEqual([]);
+    });
+});
+
+describe('collapsing the side menu', () => {
+    const toggle = () => screen.getByRole('button', { name: /sections$/ });
+
+    it('is collapsed by default on a narrow screen, with a collapse button that says what it controls', () => {
+        show();
+        // jsdom has no wide screen: the default is collapsed
+        expect(toggle()).toHaveAttribute('aria-expanded', 'false');
+        expect(toggle()).toHaveAttribute('aria-controls', 'form-rail');
+        expect(document.getElementById('form-rail')).not.toBeNull();
+        // the icons still have names
+        expect(rail().getByRole('link', { name: 'Responses12' })).toBeInTheDocument();
+    });
+
+    it('expands on a wide screen unless the viewer chose otherwise', () => {
+        const match = vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+        vi.stubGlobal('matchMedia', match);
+        try {
+            show();
+            expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+            expect(toggle()).toHaveAccessibleName('Collapse sections');
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it("remembers the viewer's choice", () => {
+        const first = show();
+        fireEvent.click(toggle());
+        expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+        expect(toggle()).toHaveAccessibleName('Collapse sections');
+        expect(window.localStorage.getItem('form-rail-collapsed')).toBe('0');
+        first.unmount();
+
+        show();
+        expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+        fireEvent.click(toggle());
+        expect(window.localStorage.getItem('form-rail-collapsed')).toBe('1');
+        expect(toggle()).toHaveAccessibleName('Expand sections');
+    });
+
+    it('works with storage blocked', () => {
+        const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+            throw new Error('blocked');
+        });
+        const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+            throw new Error('blocked');
+        });
+        try {
+            show();
+            fireEvent.click(toggle());
+            expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+        } finally {
+            spy.mockRestore();
+            set.mockRestore();
+        }
+    });
+});
+
+describe('the section switcher on a phone', () => {
+    const trigger = () => screen.getByRole('button', { name: /^Section: / });
+
+    it('names the current section and opens a sheet of all of them', async () => {
+        show();
+        expect(trigger()).toHaveAccessibleName('Section: Responses. Choose another section');
+        fireEvent.click(trigger());
+        const sheet = await screen.findByRole('dialog', { name: 'Go to section' });
+        const links = within(sheet).getAllByRole('link');
+        expect(labels(links)).toEqual(['Pages', 'Responses12', 'Deletion requests0', 'Analytics', 'Share', 'Settings', 'Access', 'Availability', 'Respondent experience', 'Automations', 'Advanced']);
+        expect(within(sheet).getByRole('link', { name: /^Responses/ })).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('names a sub-page with its section', () => {
+        show({}, { pathname: `${BASE}/deletion-requests` });
+        expect(trigger()).toHaveAccessibleName('Section: Responses · Deletion requests. Choose another section');
+    });
+
+    it('closes on Escape and gives focus back to the switcher', async () => {
+        show();
+        trigger().focus();
+        fireEvent.click(trigger());
+        const sheet = await screen.findByRole('dialog', { name: 'Go to section' });
+        expect(sheet.contains(document.activeElement)).toBe(true);
+        fireEvent.keyDown(sheet, { key: 'Escape' });
+        await act(async () => {});
+        expect(screen.queryByRole('dialog')).toBeNull();
+        await waitFor(() => expect(document.activeElement).toBe(trigger()));
+    });
+
+    it('closes when a section is chosen', async () => {
+        show();
+        fireEvent.click(trigger());
+        const sheet = await screen.findByRole('dialog', { name: 'Go to section' });
+        fireEvent.click(within(sheet).getByRole('link', { name: 'Analytics' }));
+        await act(async () => {});
+        expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('is Dutch in Dutch', async () => {
+        await act(async () => {
+            await i18n.changeLanguage('nl');
+        });
+        show({}, { pathname: `${BASE}/analytics` });
+        expect(screen.getByRole('button', { name: 'Onderdeel: Analyse. Kies een ander onderdeel' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /^Onderdeel: / }));
+        expect(await screen.findByRole('dialog', { name: 'Ga naar onderdeel' })).toBeInTheDocument();
+    });
+});
+
+describe('accessibility', () => {
+    it('has no violations, with the form menu or the sheet open, in either language', async () => {
         const { unmount } = show();
         expect(await axeViolations(document.body, { page: true })).toEqual([]);
         fireEvent.keyDown(screen.getByRole('button', { name: /More actions/ }), { key: 'Enter' });
@@ -226,15 +397,20 @@ describe('the sections', () => {
         await act(async () => {
             await i18n.changeLanguage('nl');
         });
-        show({ settings: { provider: 'google' } });
+        const second = show({ settings: { provider: 'google' } });
         expect(await axeViolations(document.body, { page: true })).toEqual([]);
+        fireEvent.click(screen.getByRole('button', { name: /^Onderdeel: / }));
+        await screen.findByRole('dialog');
+        expect(await axeViolations(document.body)).toEqual([]);
+        second.unmount();
     });
 });
 
 describe('buildFormNav, who sees which section', () => {
     const t = (key: string) => key;
-    const items = (form: Record<string, unknown>, granted: string[], pathname = `${BASE}/preview`, revisions = false) =>
-        buildFormNav({ form: { ...baseForm, ...form }, base: BASE, pathname, can: (p) => granted.includes(p), formRevisionsUiEnabled: revisions, t }).map((item) => item.key);
+    const nav = (form: Record<string, unknown>, granted: string[], pathname = `${BASE}/preview`, revisions = false) =>
+        buildFormNav({ form: { ...baseForm, ...form }, base: BASE, pathname, can: (p) => granted.includes(p), formRevisionsUiEnabled: revisions, t });
+    const items = (...args: Parameters<typeof nav>) => nav(...args).map((item) => item.key);
 
     it('gives a draft Pages, and Settings to who may edit', () => {
         expect(items({ isPublished: false }, [WorkspacePermission.FORM_EDIT])).toEqual(['preview', 'settings']);
@@ -245,7 +421,14 @@ describe('buildFormNav, who sees which section', () => {
         expect(items({}, ALL, `${BASE}/preview`, true)).toEqual(['preview', 'responses', 'analytics', 'links', 'versions', 'settings']);
     });
 
-    it('gives privacy.manage without response.read only Deletion requests', () => {
+    it('puts Deletion requests under Responses for privacy.manage, and not for who only reads', () => {
+        const withPrivacy = nav({}, ALL).find((item) => item.key === 'responses');
+        expect(withPrivacy?.children?.map((c) => c.key)).toEqual(['deletion-requests']);
+        const readOnly = nav({}, [WorkspacePermission.RESPONSE_READ]).find((item) => item.key === 'responses');
+        expect(readOnly?.children).toBeUndefined();
+    });
+
+    it('gives privacy.manage without response.read only Deletion requests, as a section of its own', () => {
         expect(items({}, [WorkspacePermission.PRIVACY_MANAGE])).toEqual(['preview', 'deletion-requests', 'analytics', 'links']);
     });
 
@@ -259,7 +442,13 @@ describe('buildFormNav, who sees which section', () => {
     });
 
     it('treats the old Visibility and Integrations addresses as Settings', () => {
-        const nav = buildFormNav({ form: baseForm, base: BASE, pathname: `${BASE}/visibility`, can: () => true, formRevisionsUiEnabled: false, t });
-        expect(nav.find((item) => item.active)?.key).toBe('settings');
+        const visibility = buildFormNav({ form: baseForm, base: BASE, pathname: `${BASE}/visibility`, can: () => true, formRevisionsUiEnabled: false, t });
+        expect(visibility.find((item) => item.active)?.key).toBe('settings');
+    });
+
+    it('has the page itself as the current item: the sub-page when one is open', () => {
+        expect(currentItem(nav({}, ALL, `${BASE}/deletion-requests`))?.key).toBe('deletion-requests');
+        expect(currentItem(nav({}, ALL, `${BASE}/responses`))?.key).toBe('responses');
+        expect(currentItem(nav({}, ALL, `${BASE}/elsewhere`))).toBeUndefined();
     });
 });

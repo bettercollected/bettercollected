@@ -14,7 +14,6 @@ from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.enum.permission import Permission
 from backend.app.public_api.auth import AUDIT_EXTRA, ApiCaller, api_key, form_budget
 from backend.app.public_api.errors import error_payload
 from backend.app.models.dtos.deletion_request_dto import CloseDeletionRequestBody
@@ -34,6 +33,11 @@ from backend.app.public_api.models import (
     SubmissionCreated,
     SubmissionUpdated,
     ValidationResult,
+)
+from backend.app.services.api_access import (
+    SCOPE_PERMISSIONS,
+    require_key_on_form,
+    restrict_to_key_visible,
 )
 from backend.app.services.api_responses import (
     MAX_PAGE_SIZE,
@@ -211,6 +215,9 @@ async def _replay(
     kind = summary.get("kind")
     if kind in ("created", "ops"):
         form_id = summary.get("formId") or request.path_params.get("form_id")
+        # a replayed create names no form in its path: the form it made is
+        # decided on all the same (it may be closed to the key's creator since)
+        await require_key_on_form(caller.key, caller.scope or "forms:read", form_id)
         document, etag = (
             await _c().form_spec_writer().read(caller.workspace_id, form_id)
         )
@@ -324,11 +331,10 @@ async def list_forms(
     )
     # form-level access: only the forms the key's creator may open, narrowed
     # before the total and the page (off: all of them, no query)
-    visible = await _c().authorization_service().restrict_to_visible(
-        caller.user,
-        caller.workspace_id,
+    visible = await restrict_to_key_visible(
+        caller.key,
         [str(a.form_id) for a in associations],
-        Permission.FORM_READ,
+        SCOPE_PERMISSIONS["forms:read"],
     )
     if len(visible) != len(associations):
         keep = set(visible)
@@ -830,6 +836,8 @@ async def create_submission_endpoint(
     _object_id(form_id)
     # a key that may not write to this form must not spend the form's budget
     ensure_form_allowed(caller.key, form_id)
+    # and a form closed to the key's creator is a 404, before it spends a budget
+    await require_key_on_form(caller.key, SUBMISSIONS_SCOPE, form_id)
     await form_budget(caller, form_id)
     body = await read_document_bytes(request)
 
@@ -878,6 +886,8 @@ async def update_submission_endpoint(
     _object_id(form_id)
     # a key that may not write to this form must not spend the form's budget
     ensure_form_allowed(caller.key, form_id)
+    # and a form closed to the key's creator is a 404, before it spends a budget
+    await require_key_on_form(caller.key, SUBMISSIONS_SCOPE, form_id)
     await form_budget(caller, form_id)
     body = await read_document_bytes(request)
 

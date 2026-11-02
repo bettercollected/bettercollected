@@ -43,7 +43,10 @@ class WorkspacePermissionsDto(CamelModel):
     responses from a CSV file: the responses screen offers it from it).
     ``form_embed_enabled`` is the same for ``FORM_EMBED_ENABLED`` (embedding
     forms in other sites: the share dialog's Embed tab and the Embedding
-    settings page are shown only while it is on)."""
+    settings page are shown only while it is on).
+    ``form_access_enabled`` is the same for ``FORM_ACCESS_ENABLED`` (teams,
+    grants on a form and restricted forms: the Teams tab and a form's Access
+    settings are shown only while it is on)."""
 
     permissions: List[Permission] = []
     field_rules_enabled: bool = False
@@ -63,3 +66,4 @@ class WorkspacePermissionsDto(CamelModel):
     response_revisions_enabled: bool = False
     submissions_api_enabled: bool = False
     form_embed_enabled: bool = False
+    form_access_enabled: bool = False

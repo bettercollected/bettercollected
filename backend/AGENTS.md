@@ -89,7 +89,12 @@ membership read directly: access goes through `AuthorizationService`.
   query is added. Nothing is cached across requests; a form's facts are remembered on the
   request context only. Pass `form_id` wherever the action is on one form, and never write
   `access_mode` from caller input (the repository keeps the stored value when it writes the
-  settings back).
+  settings back). The routes (`controllers/form_access_router.py`, `FormAccessAdminService`) are
+  the only writers of teams, grants and the mode: each writes its audit row first
+  (`services/form_access/audit.py`, ids only), calls `FormAccessService.invalidate()` after the
+  write, and the repositories refuse a form, person or team outside the workspace themselves.
+  Anything that deletes a form, member, account or workspace calls `FormAccessCleanup`
+  (whatever the switch says). The switch is environment-only until released.
 - **Tests:** a new workspace endpoint gets a row in `tests/app/controllers/test_permission_matrix.py`.
 
 ## Adding a route

@@ -648,7 +648,7 @@
   "READ_MORE": "Lees meer",
   "REMOVE": "Verwijderen",
   "REMOVE_INVITATION_FOR": "Uitnodiging verwijderen voor",
-  "REMOVE_WARNING_MESSAGE": "Het verwijderen van een lid zal ook alle door de gebruiker geïmporteerde formulieren verwijderen",
+  "REMOVE_WARNING_MESSAGE": "Als u een lid verwijdert, heeft die persoon geen toegang meer tot de werkruimte. De formulieren die diegene heeft aangemaakt of geïmporteerd blijven in de werkruimte staan.",
   "RESPONDERS_AND_GROUPS": "Respondenten en groepen",
   "RESPONDER_SECTION": {
     "FEATURES_HEADING": "Zodra je bent ingelogd, kun je het volgende doen:",
@@ -1491,7 +1491,11 @@
     "BACK": "Terug naar formulieren",
     "SKIP": "Direct naar de inhoud",
     "SECTIONS": "Onderdelen van het formulier",
-    "NEW_TAB": "(opent in een nieuw tabblad)"
+    "NEW_TAB": "(opent in een nieuw tabblad)",
+    "COLLAPSE": "Onderdelen inklappen",
+    "EXPAND": "Onderdelen uitklappen",
+    "GO_TO": "Ga naar onderdeel",
+    "SWITCH_OPEN": "Onderdeel: {{name}}. Kies een ander onderdeel"
   },
   "STAFF_LANGUAGE": {
     "LABEL": "Taal",

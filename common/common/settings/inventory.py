@@ -608,9 +608,6 @@ SERVICES: Tuple[SettingSpec, ...] = (
     _bool("TOTP_ENABLED", "security", (BACKEND,), False,
           "Authenticator app (TOTP) second factor for staff: on, or off (nobody is asked for a code, "
           "no policy is enforced; stored factors stay).", tier=T2),
-    _bool("FORM_ACCESS_ENABLED", "security", (BACKEND,), False,
-          "Form-level access: grants on a single form, member teams and restricted forms: on, or off "
-          "(nothing is enforced; saved grants, teams and modes stay).", tier=T2),
 )
 
 PDF = dict(section="pdf_import", readers=(BACKEND,))
@@ -798,6 +795,12 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
          "Parallel documents inside the sandbox service.", tier=T5),
     _int("DOC_SANDBOX_MAX_DOCUMENT_BYTES", "pdf_import", (BACKEND,), 32 * 1024 * 1024, 1024,
          1_000_000_000, "Largest document the sandbox service accepts.", tier=T5),
+    # Held in the environment while the feature is built up (the switch must not be
+    # turned on from the admin portal before every entry point enforces it); it
+    # moves back to the stored settings (T2) when it is released.
+    _bool("FORM_ACCESS_ENABLED", "security", (BACKEND,), False,
+          "Form-level access (teams, grants on a form, restricted forms): on, or off (nothing is "
+          "enforced; saved data stays). Environment only until released.", tier=T5),
     _url("AUTH_BASE_URL", "services", (BACKEND,),
          "Address of the auth service. Code default: http://localhost:8001/api/v1.", tier=T5),
     _url("AUTH_SERVER_URL", "services", (GOOGLE,), "Address of the auth service.",

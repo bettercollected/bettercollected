@@ -14,107 +14,130 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getEditFormURL } from '@app/utils/url-utils';
 
+import { SettingsPageKey } from './settings-pages';
+
 /** A settings section of the page: sentence-case h2, one line of what it covers, then its groups of rows. */
 const Section = ({ id, title, intro, children }: { id: string; title: string; intro?: string; children: React.ReactNode }) => (
     <section id={id} aria-labelledby={`${id}-title`} className="flex scroll-mt-6 flex-col gap-2">
-        <h2 id={`${id}-title`} className="text-black-900 text-xl font-semibold">
+        <h2 id={`${id}-title`} tabIndex={-1} className="text-xl font-semibold text-black-900">
             {title}
         </h2>
-        {intro && <p className="text-black-700 max-w-[62ch] text-sm leading-relaxed">{intro}</p>}
+        {intro && <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{intro}</p>}
         <div className="mt-2 flex flex-col gap-8">{children}</div>
     </section>
 );
 
 /**
- * The Settings tab hosts everything about how the form behaves and who can
- * see it, in sections that follow the creator's questions: Access (who can
- * see it, who must prove who they are), Availability (when it takes answers),
- * Respondent experience, the automations, and Advanced (original form,
- * privacy, delete). Visibility and Integrations were separate top-level tabs
- * before — the tab bar overflowed and hid entire features.
+ * One page of a form's Settings (`/settings/<page>`): Access (who can see it, who must prove who they are),
+ * Availability (when it takes answers), Respondent experience, the automations, or Advanced (original form,
+ * privacy, delete). Which pages exist for a form is `settingsPages`; the page heading is an h2 that takes focus
+ * when the viewer arrives from another page (see the settings layout).
  */
-export default function FormSettings() {
+export default function FormSettingsPage({ page }: { page: SettingsPageKey }) {
+    const { t } = useTranslation();
+    const { can, isLoading } = useWorkspacePermissions();
+
+    // Settings change the form (form.edit); the menu hides them without it.
+    if (!isLoading && !can(WorkspacePermission.FORM_EDIT)) {
+        return <p className="body4 py-6 text-black-700">{t(memberRoles.noAccess)}</p>;
+    }
+
+    return (
+        <div className="flex flex-col gap-12 pb-6 md:max-w-[760px]">
+            {page === 'access' && <AccessPage />}
+            {page === 'availability' && <AvailabilityPage />}
+            {page === 'experience' && <ExperiencePage />}
+            {/* Email, webhooks, a case system and the integration actions: one card each, their settings in side sheets. */}
+            {page === 'automations' && <AutomationsSection />}
+            {page === 'advanced' && <AdvancedPage />}
+        </div>
+    );
+}
+
+function AccessPage() {
+    const { t } = useTranslation();
+    return (
+        <Section id="access" title={t('STAFF.FORM_SETTINGS.ACCESS')} intro={t('STAFF.FORM_SETTINGS.ACCESS_INTRO')}>
+            <div>
+                <GroupHeading>{t('STAFF.FORM_SETTINGS.ACCESS_VISIBILITY')}</GroupHeading>
+                <FormSettingsTab view="VISIBILITY" />
+            </div>
+            <FormSettingsTab view="ACCESS" />
+        </Section>
+    );
+}
+
+function AvailabilityPage() {
+    const { t } = useTranslation();
+    return (
+        <Section id="availability" title={t('STAFF.FORM_SETTINGS.AVAILABILITY')} intro={t('STAFF.FORM_SETTINGS.AVAILABILITY_INTRO')}>
+            <FormSettingsTab view="AVAILABILITY" />
+        </Section>
+    );
+}
+
+function ExperiencePage() {
+    const { t } = useTranslation();
+    return (
+        <Section id="experience" title={t('STAFF.FORM_SETTINGS.EXPERIENCE')} intro={t('STAFF.FORM_SETTINGS.EXPERIENCE_INTRO')}>
+            <FormSettingsTab view="EXPERIENCE" />
+        </Section>
+    );
+}
+
+function AdvancedPage() {
     const { t } = useTranslation();
     const form = useAppSelector(selectForm);
     const { openModal } = useModal();
     const workspace = useAppSelector(selectWorkspace);
-    const { can, isLoading } = useWorkspacePermissions();
-
-    // Settings change the form (form.edit); the tab is hidden without it.
-    if (!isLoading && !can(WorkspacePermission.FORM_EDIT)) {
-        return <p className="body4 text-black-700 py-6">{t(memberRoles.noAccess)}</p>;
-    }
-
-    const isSelf = form?.settings?.provider === 'self';
+    const { can } = useWorkspacePermissions();
     // The builder is where purpose, retention and the privacy link are written (same rule as the header's Edit button).
-    const canOpenBuilder = isSelf && form?.builderVersion === 'v2';
+    const canOpenBuilder = form?.settings?.provider === 'self' && form?.builderVersion === 'v2';
     const canDelete = can(WorkspacePermission.FORM_DELETE);
-    const showAdvanced = !!form?.importedFormId || canOpenBuilder || canDelete;
 
     return (
-        <div className="flex flex-col gap-12 pb-6 md:max-w-[760px]">
-            <Section id="access" title={t('STAFF.FORM_SETTINGS.ACCESS')} intro={t('STAFF.FORM_SETTINGS.ACCESS_INTRO')}>
+        <Section id="advanced" title={t('STAFF.FORM_SETTINGS.ADVANCED')}>
+            {!!form?.importedFormId && <FormSettingsTab view="ORIGINAL" />}
+            {canOpenBuilder && (
                 <div>
-                    <GroupHeading>{t('STAFF.FORM_SETTINGS.ACCESS_VISIBILITY')}</GroupHeading>
-                    <FormSettingsTab view="VISIBILITY" />
+                    <GroupHeading>{t('STAFF.FORM_SETTINGS.ADVANCED_PRIVACY')}</GroupHeading>
+                    <div className="flex flex-col divide-y divide-black-300">
+                        <SettingRow title={t('STAFF.FORM_SETTINGS.PRIVACY_TITLE')} description={t('STAFF.FORM_SETTINGS.PRIVACY_DESC')}>
+                            <Link
+                                data-testid="open-builder-privacy"
+                                href={`${getEditFormURL(workspace, form)}?tab=form`}
+                                // the visible words first, then what they are for (the row would otherwise name the link by its title alone)
+                                aria-label={`${t('STAFF.FORM_SETTINGS.PRIVACY_BUTTON')}: ${t('STAFF.FORM_SETTINGS.PRIVACY_TITLE')}`}
+                                className={buttonClassName({ variant: 'v2Button' })}
+                            >
+                                {t('STAFF.FORM_SETTINGS.PRIVACY_BUTTON')}
+                            </Link>
+                        </SettingRow>
+                    </div>
                 </div>
-                <FormSettingsTab view="ACCESS" />
-            </Section>
-
-            {isSelf && (
-                <Section id="availability" title={t('STAFF.FORM_SETTINGS.AVAILABILITY')} intro={t('STAFF.FORM_SETTINGS.AVAILABILITY_INTRO')}>
-                    <FormSettingsTab view="AVAILABILITY" />
-                </Section>
             )}
-
-            {(isSelf || form?.isPublished) && (
-                <Section id="experience" title={t('STAFF.FORM_SETTINGS.EXPERIENCE')} intro={t('STAFF.FORM_SETTINGS.EXPERIENCE_INTRO')}>
-                    <FormSettingsTab view="EXPERIENCE" />
-                </Section>
-            )}
-
-            {/* Email, webhooks, a case system and the integration actions: one card each, their settings in side sheets. */}
-            <AutomationsSection />
-
-            {showAdvanced && (
-                <Section id="advanced" title={t('STAFF.FORM_SETTINGS.ADVANCED')}>
-                    {!!form?.importedFormId && <FormSettingsTab view="ORIGINAL" />}
-                    {canOpenBuilder && (
-                        <div>
-                            <GroupHeading>{t('STAFF.FORM_SETTINGS.ADVANCED_PRIVACY')}</GroupHeading>
-                            <div className="divide-black-300 flex flex-col divide-y">
-                                <SettingRow title={t('STAFF.FORM_SETTINGS.PRIVACY_TITLE')} description={t('STAFF.FORM_SETTINGS.PRIVACY_DESC')}>
-                                    <Link data-testid="open-builder-privacy" href={`${getEditFormURL(workspace, form)}?tab=form`} className={buttonClassName({ variant: 'v2Button' })}>
-                                        {t('STAFF.FORM_SETTINGS.PRIVACY_BUTTON')}
-                                    </Link>
-                                </SettingRow>
+            {canDelete && (
+                <div>
+                    <GroupHeading>{t('STAFF.FORM_SETTINGS.DANGER')}</GroupHeading>
+                    <div className="flex items-start justify-between gap-6 rounded-lg border border-[#E5B9B9] p-5">
+                        <div className="flex max-w-[520px] flex-col gap-1">
+                            <div className="text-[15px] font-semibold text-black-900">{t('STAFF.FORM_SETTINGS.DELETE_TITLE')}</div>
+                            <div className="text-sm leading-relaxed text-black-700">
+                                {typeof form?.responses === 'number' && form.responses > 0 ? t('STAFF.FORM_SETTINGS.DELETE_DESC', { count: form.responses }) : t('STAFF.FORM_SETTINGS.DELETE_DESC_NONE')}
                             </div>
                         </div>
-                    )}
-                    {canDelete && (
-                        <div>
-                            <GroupHeading>{t('STAFF.FORM_SETTINGS.DANGER')}</GroupHeading>
-                            <div className="flex items-start justify-between gap-6 rounded-lg border border-[#E5B9B9] p-5">
-                                <div className="flex max-w-[520px] flex-col gap-1">
-                                    <div className="text-black-900 text-[15px] font-semibold">{t('STAFF.FORM_SETTINGS.DELETE_TITLE')}</div>
-                                    <div className="text-black-700 text-sm leading-relaxed">
-                                        {typeof form?.responses === 'number' && form.responses > 0 ? t('STAFF.FORM_SETTINGS.DELETE_DESC', { count: form.responses }) : t('STAFF.FORM_SETTINGS.DELETE_DESC_NONE')}
-                                    </div>
-                                </div>
-                                <Button
-                                    data-umami-event="Delete Form From Settings"
-                                    variant="danger"
-                                    onClick={() => {
-                                        openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
-                                    }}
-                                >
-                                    {t('STAFF.FORM_SETTINGS.DELETE_BUTTON')}
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                </Section>
+                        <Button
+                            data-umami-event="Delete Form From Settings"
+                            variant="danger"
+                            onClick={() => {
+                                openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
+                            }}
+                        >
+                            {t('STAFF.FORM_SETTINGS.DELETE_BUTTON')}
+                        </Button>
+                    </div>
+                </div>
             )}
-        </div>
+        </Section>
     );
 }
