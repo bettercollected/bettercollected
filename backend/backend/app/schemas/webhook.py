@@ -20,6 +20,12 @@ def _utc(value: Optional[dt.datetime]) -> Optional[dt.datetime]:
     return value
 
 
+# What a webhook's body looks like (``services/webhooks/formats.py``): the signed
+# envelope, or one of the bodies the built-in actions sent before they moved
+# here (a bare list of questions and answers, a Slack or a Discord message).
+WebhookFormat = Literal["envelope", "legacy_list", "slack", "discord"]
+
+
 class WebhookField(BaseModel):
     """One question that may leave: ``source`` in the form's variables
     namespace, ``key`` the name used in the body."""
@@ -59,6 +65,20 @@ class FormWebhookDocument(Record):
     secret_set_at: Optional[dt.datetime] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
+    # the body's format. ``legacy_list``, ``slack`` and ``discord`` exist for
+    # built-in actions that moved here: a creator cannot choose them, and can
+    # only move a ``legacy_list`` webhook to ``envelope``. Those three send
+    # every question (``fields`` is not used); ``slack`` and ``discord`` have no
+    # signing secret (the address is the secret)
+    format: WebhookFormat = "envelope"
+    # ``envelope`` only: send every question the form has now (new ones
+    # included), named after their own ids, instead of the ``fields`` list. Set
+    # by the move of a built-in action, cleared when the creator picks questions
+    all_questions: bool = False
+    # how the webhook came to be and from what: ``migrated_builtin`` and the id
+    # of the form action it replaced; None for one a person made
+    created_via: Optional[str] = None
+    source_action_id: Optional[str] = None
 
     _tz = field_validator("secret_set_at")(_utc)
 

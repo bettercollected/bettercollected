@@ -673,6 +673,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_service=form_response_service,
         crypto=crypto,
         rate_limiter=rate_limiter,
+        workspace_repo=workspace_repo,
     )
 
     # the export of a form's responses (stream or job); encrypts a job's file
