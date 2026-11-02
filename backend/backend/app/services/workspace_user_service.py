@@ -219,9 +219,13 @@ class WorkspaceUserService:
 
     async def forget_access_of_workspaces(self, workspace_ids: List[RecordId]):
         """The workspaces are about to be deleted: their grants, teams and team
-        memberships go first."""
+        memberships go first, and every API key of them is revoked (the other
+        members' keys too: the rows would otherwise stay live, unused, for
+        good)."""
         if self._form_access_cleanup is not None:
             await self._form_access_cleanup.forget_workspaces(workspace_ids)
+        if self._api_key_lifecycle is not None:
+            await self._api_key_lifecycle.revoke_workspace_keys(workspace_ids)
 
     async def delete_user_of_workspaces(self, workspace_ids: List[RecordId]):
         return await self.workspace_user_repository.delete_all_workspaces_users(

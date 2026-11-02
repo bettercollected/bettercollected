@@ -113,6 +113,7 @@ class PostgresMemberRemovalRepository(RecordRepository):
                 for key_id, _ws in await revoke_live_keys(
                     session,
                     self._upsert_statement,
+                    self._delete_recorded,
                     WorkspaceApiKeyRow.workspace_id == ws,
                     WorkspaceApiKeyRow.created_by == uid,
                 )
