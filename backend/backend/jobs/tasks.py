@@ -209,16 +209,20 @@ async def sso_release_retry(timestamp: int) -> str:
     return f"{result['released']} released, {result['failed']} failed"
 
 
-@app.periodic(cron="53 3 * * *", periodic_id="sso_audit_purge")
+@app.periodic(cron="53 3 * * *", periodic_id="audit_log_purge")
 @app.task(
-    name="sso_audit_purge",
+    name="audit_log_purge",
+    # the former name (it deleted every kind of entry, not only single sign-on
+    # ones): a job queued under it before an upgrade is still found and run
+    aliases=["sso_audit_purge"],
     queue=DEFAULT_QUEUE,
-    queueing_lock="sso_audit_purge",
+    queueing_lock="audit_log_purge",
 )
-async def sso_audit_purge(timestamp: int) -> str:
-    """Daily: delete the workspaces' security audit entries (owner break-glass:
-    ids only) older than a year. Counts only."""
-    deleted = await _container().sso_policy_service().purge_audit()
+async def audit_log_purge(timestamp: int) -> str:
+    """Daily: delete the workspaces' audit entries that are older than the
+    workspace's own retention (6, 12, 24 or 60 months, default 12; never newer
+    than six months). Counts only."""
+    deleted = await _container().audit_retention().purge()
     return f"{deleted} deleted"
 
 

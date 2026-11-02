@@ -59,6 +59,7 @@ export const AUDIT_EVENTS = [
     'ai_consent_changed',
     'custom_domain_changed',
     'custom_domain_removed',
+    'audit_retention_changed',
     'email_action_created',
     'email_action_updated',
     'email_action_enabled',
@@ -348,6 +349,10 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
         case 'scim_group_role_changed':
             key = !present(entry.role) ? 'SCIM_GROUP_ROLE_CHANGED_UNMAPPED' : present(entry.previousRole) ? 'SCIM_GROUP_ROLE_CHANGED' : 'SCIM_GROUP_ROLE_CHANGED_NO_PREVIOUS';
             values = { actor, role: roleName(entry.role), previous: roleName(entry.previousRole) };
+            break;
+        case 'audit_retention_changed':
+            key = typeof entry.retentionMonths === 'number' ? (typeof entry.previousRetentionMonths === 'number' ? 'AUDIT_RETENTION_CHANGED' : 'AUDIT_RETENTION_CHANGED_NO_PREVIOUS') : 'AUDIT_RETENTION_CHANGED_UNKNOWN';
+            values = { actor, months: entry.retentionMonths, previous: entry.previousRetentionMonths };
             break;
         case 'ai_consent_changed':
             key = entry.enabled === true ? 'AI_CONSENT_CHANGED_ON' : entry.enabled === false ? 'AI_CONSENT_CHANGED_OFF' : 'AI_CONSENT_CHANGED';

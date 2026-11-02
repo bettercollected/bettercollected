@@ -752,7 +752,6 @@ async def test_the_sso_page_lists_the_entries_with_member_names(client, required
 async def test_the_audit_is_kept_a_year_and_goes_with_the_workspace(
     client, required, workspace_1
 ):
-    policy = container.sso_policy_service()
     repo = container.workspace_audit_repo()
     now = dt.datetime.now(dt.timezone.utc)
     for age_days, sid in ((400, "old"), (10, "new")):
@@ -765,7 +764,7 @@ async def test_the_audit_is_kept_a_year_and_goes_with_the_workspace(
         )
         document.created_at = now - dt.timedelta(days=age_days)
         await repo.record(document)
-    assert await policy.purge_audit(now) == 1
+    assert await container.audit_retention().purge(now) == 1
     assert [e.session_id for e in await repo.page(required.id, 50, events=SSO_EVENTS)] == ["new"]
     await repo.record(
         WorkspaceAuditEventDocument(

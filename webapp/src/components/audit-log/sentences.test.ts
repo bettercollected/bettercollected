@@ -73,6 +73,7 @@ const SAMPLES: Record<(typeof AUDIT_EVENTS)[number], Partial<AuditEntryDto>> = {
     ai_consent_changed: { actorId: 'u_sanne', enabled: true, provider: 'openai' },
     custom_domain_changed: { actorId: 'u_sanne' },
     custom_domain_removed: { actorId: 'u_sanne' },
+    audit_retention_changed: { actorId: 'u_sanne', retentionMonths: 6, previousRetentionMonths: 24 },
     email_action_created: { actorId: 'u_sanne', formId: 'f_join' },
     email_action_updated: { actorId: 'u_sanne', formId: 'f_join', changed: ['team_recipients', 'respondent_copy'] },
     email_action_enabled: { actorId: 'u_sanne', formId: 'f_join' },
@@ -210,6 +211,13 @@ describe('the sentence table', () => {
         expect(say('en', entry('registration_service_updated', { actorId: 'u_sanne', changed: ['secret'] })).text).toBe('Sanne de Vries changed a case-system service (changed: secret).');
         // the id of the AI provider and of a directory never reach the screen
         expect(say('en', entry('ai_consent_changed', { actorId: 'u_sanne', enabled: true, provider: 'openai' })).text).not.toMatch(/openai/i);
+    });
+
+    it('words a change of the retention with the months before and after, and says less when they are missing', () => {
+        expect(say('en', entry('audit_retention_changed', { actorId: 'u_sanne', retentionMonths: 6, previousRetentionMonths: 24 })).text).toBe('Sanne de Vries changed how long the activity log keeps entries from 24 to 6 months.');
+        expect(say('nl', entry('audit_retention_changed', { actorId: 'u_sanne', retentionMonths: 60, previousRetentionMonths: 12 })).text).toBe('Sanne de Vries wijzigde hoe lang regels in de activiteit worden bewaard van 12 naar 60 maanden.');
+        expect(say('en', entry('audit_retention_changed', { actorId: 'u_sanne', retentionMonths: 12 })).text).toBe('Sanne de Vries set the activity log to keep entries for 12 months.');
+        expect(say('en', entry('audit_retention_changed', { actorId: 'u_sanne' })).text).toBe('Sanne de Vries changed how long the activity log keeps entries.');
     });
 
     it('words a form copied to or from another workspace, naming no workspace', () => {

@@ -123,5 +123,23 @@ class PostgresWorkspaceAuditRepository(RecordRepository):
             WorkspaceAuditEventRow.workspace_id.in_([_id(w) for w in workspace_ids])
         )
 
-    async def purge_before(self, cutoff: dt.datetime) -> int:
-        return await self.delete_where(WorkspaceAuditEventRow.created_at < cutoff)
+    async def purge_before(
+        self, cutoff: dt.datetime, except_workspaces: Sequence = ()
+    ) -> int:
+        """Delete every entry older than ``cutoff``, except those of
+        ``except_workspaces`` (which have a retention of their own)."""
+        where = [WorkspaceAuditEventRow.created_at < cutoff]
+        if except_workspaces:
+            where.append(
+                WorkspaceAuditEventRow.workspace_id.not_in(
+                    [_id(w) for w in except_workspaces]
+                )
+            )
+        return await self.delete_where(*where)
+
+    async def purge_workspace_before(self, workspace_id, cutoff: dt.datetime) -> int:
+        """Delete the entries of one workspace older than ``cutoff``."""
+        return await self.delete_where(
+            WorkspaceAuditEventRow.workspace_id == _id(workspace_id),
+            WorkspaceAuditEventRow.created_at < cutoff,
+        )

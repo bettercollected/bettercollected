@@ -237,6 +237,10 @@ class Workspace(WorkspaceRequestDto):
     # /workspaces/{id}/security/totp (owners only); enforced per request in
     # AuthorizationService, only while TOTP_ENABLED is on.
     require_totp: Optional[bool] = False
+    # How long the workspace's audit entries are kept, in months: 6, 12, 24 or
+    # 60 (None: 12). Set by an owner through /workspaces/{id}/audit-log/retention
+    # (services/audit_log/retention.py); the daily purge applies it.
+    audit_retention_months: Optional[int] = None
     # Sites that may show the workspace's forms in a frame (docs/embed.md,
     # services/form_embed.py): canonical origins, none = no site. Changed
     # through /workspaces/{id}/embed/settings; not part of the public
