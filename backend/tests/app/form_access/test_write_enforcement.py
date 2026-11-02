@@ -329,13 +329,14 @@ async def test_a_duplicate_of_a_private_form_is_restricted_while_the_switch_is_o
 ):
     """A Private (hidden) form with no mode chosen reads as restricted, so its
     copy is restricted too, by an explicit mode (the copy is not itself hidden)."""
-    await container.workspace_form_repo().set_access_mode(
-        closed.workspace.id, closed.matrix["form"], MODE_WORKSPACE
-    )
+    # no mode chosen: written with the switch off (a save keeps the stored mode
+    # while it is on)
+    monkeypatch.setattr(settings.form_access, "ENABLED", False)
     link = await _link(closed, closed.matrix["form"])
     link.settings.access_mode = None
     link.settings.hidden = True
     await container.workspace_form_repo().save(link)
+    monkeypatch.setattr(settings.form_access, "ENABLED", True)
     copy = await container.workspace_form_service().duplicate_form(
         closed.workspace.id, closed.matrix["form"], _user(closed, ADMIN)
     )

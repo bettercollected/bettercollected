@@ -36,12 +36,13 @@ async def create_form(workspace, creator: User):
 async def set_mode(workspace, form_id, mode=None, hidden=None):
     """Write the link's access mode / hidden flag straight to the row."""
     repo = container.workspace_form_repo()
-    link = await repo.find_workspace_form(workspace.id, str(form_id))
     if mode is not None:
-        link.settings.access_mode = mode
+        # the one writer of the mode: a save keeps the stored one
+        await repo.set_access_mode(workspace.id, str(form_id), mode)
     if hidden is not None:
+        link = await repo.find_workspace_form(workspace.id, str(form_id))
         link.settings.hidden = hidden
-    await repo.save(link)
+        await repo.save(link)
 
 
 async def restrict(workspace, form_id):
