@@ -1126,8 +1126,10 @@ are erased with their response. Docs: `docs/response-revisions.md`. Rules to kee
   Validation is the respondent edit's, not a copy: `patch_response` and the staff edit both call `_apply_edit`
   (unknown and internal ids dropped, group answers, calculations, field rules, option logic, required/types/patterns,
   date rules), so a change there is a change for both. Staff differences: no identity/edit-switch/ownership test; the
-  form version the response says it was given in (`form_version`, sent by the page, not attested by the server; the latest
-  when there is none) instead of the latest; a signature or file answer is 422 `question_not_editable`; a pending deletion
+  form version the response was given in (`form_version`, set by `submit_response` from the latest published version,
+  never from the body; the latest for an older response that has none or one beyond the latest) instead of the latest;
+  a signature or file answer, or a question shared as choices, in the latest OR that version is 422
+  `question_not_editable`; a pending deletion
   request 409 `deletion_requested`; a form not made here 409 `not_editable`. No notice to the respondent and no action,
   webhook or email action runs again (the respondent's edit does not either).
 - **The log** `response_revisions` (revision 0032, `schemas/response_revision.py`, repository
@@ -1142,9 +1144,14 @@ are erased with their response. Docs: `docs/response-revisions.md`. Rules to kee
 - **Reading** (`services/response_revisions/service.py`): `GET .../revisions` (who, role, time, question ids and
   titles, no values) and `GET .../revisions/{seq}` (the unsealed previous values, links to files removed), both
   `response.read`. No serializer of a response, the public API, MCP, exports, webhooks or AI reads this table.
-- **Keyset rotation does not cover this table yet.** The `keyset.*` admin tasks and `scripts/rotate_response_keyset.py`
-  walk `form_responses` only. Until a third target covers `response_revisions.previous_values`, do not drop the old
-  response keyset key while entries exist (the values would become unreadable: the entry's list, who and when stay).
+- **Sealing and rotation.** `previous_values` is sealed with `crypto_service` bound to the workspace, the form and
+  `seal_context(response_pk, seq)`: an entry copied elsewhere does not open. It is the third target of the keyset
+  rotation (`admin/tasks/impl/keyset_core.py` `REVISIONS`: context derived from the row; the `keyset.*` tasks and
+  `scripts/rotate_response_keyset.py` count it, so `drop_old` is refused while an entry is sealed with the old key).
+  A new place that seals with the response keyset must be a target there too. The data role reads/rewrites it
+  (`postgres/ensure-admin-roles.sh`). Option-source erasure redacts the label snapshots in the entries too
+  (`redact_history_option_labels`). The limit (`MAX_REVISIONS`, 200) counts staff entries only: a respondent's own
+  edit is never refused for it.
 - Tests: `tests/app/response_revisions/` (`test_staff_edit.py` switch, validation parity, versions, what staff cannot
   change, atomicity and the limit; `test_history.py` who reads what, sealing, erasure through every delete path,
   account deletion), rows `responses.answers.edit` and `responses.revisions.*` in `test_permission_matrix.py`.

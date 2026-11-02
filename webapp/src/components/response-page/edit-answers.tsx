@@ -79,11 +79,11 @@ export default function EditAnswers({ workspaceId, formId, responseId, form, ans
                         <div className="flex flex-col gap-4">
                             {fields.map((field) => (
                                 <div key={field.id} className="flex flex-col gap-1.5">
-                                    <label htmlFor={`internal-${field.id}`} className="text-sm leading-snug font-medium text-black-800">
+                                    <label id={`edit-label-${field.id}`} htmlFor={`internal-${field.id}`} className="text-sm leading-snug font-medium text-black-800">
                                         {questionTitle(field) || t('RESPONSE_EDIT.UNTITLED')}
                                         {field.validations?.required && <span className="ml-1 text-xs font-normal text-black-600">{t('RESPONSE_EDIT.REQUIRED')}</span>}
                                     </label>
-                                    <InternalFieldInput field={field} value={values[field.id]} onChange={(value) => setValues((previous) => ({ ...previous, [field.id]: value }))} />
+                                    <InternalFieldInput field={field} labelledBy={`edit-label-${field.id}`} value={values[field.id]} onChange={(value) => setValues((previous) => ({ ...previous, [field.id]: value }))} />
                                 </div>
                             ))}
                         </div>

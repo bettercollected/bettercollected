@@ -30,6 +30,7 @@ keyset does not hide one.
 |---|---|---|
 | `responses` | `answers`, `hidden_fields`, `internal_answers` and each `respondent_feedback[].message` of every stored response | Postgres `app.form_responses` |
 | `google-credentials` | the Google Forms integration's OAuth credentials | Postgres `google.oauth_credentials` |
+| `response-revisions` | `previous_values` of each entry of the revision log of response edits ([response-revisions.md](response-revisions.md)); bound to its response and number. An empty table is normal (the log is off by default), so `drop_old` does not refuse it as empty | Postgres `app.response_revisions` |
 
 Also covered, though not a row: the **drawn signature images** (the signature question, behind
 `SIGNATURE_QUESTION_ENABLED`). They are encrypted with this keyset too and are objects in the file
@@ -83,7 +84,7 @@ rotate() {
 ```
 
 Each command prints a JSON report with key ids and counts only, and logs record ids and counts.
-By default (`--store postgres`, which `auto` also means) it covers both targets in Postgres, the
+By default (`--store postgres`, which `auto` also means) it covers every target in Postgres, the
 only store since 4.1 (`DATABASE_URL`, or `GOOGLE_DATABASE_URL` for the Google credentials); no
 write mode is read. `--store mongo` and `--store both` are refused (`store_retired`) before anything
 connects, and values left in Mongo are not touched. For `reencrypt`, `--target` narrows the targets.

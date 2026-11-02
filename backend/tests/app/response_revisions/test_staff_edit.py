@@ -234,7 +234,8 @@ class TestValidationLikeTheRespondent:
         response = await submit(workspace, form, {"name": text("Ada"), "city": text("Lovelace")})
         case = (workspace, form, response)
         result = await edit(client, case, {"city": text("Elsewhere")})
-        assert result.status_code in (200, 422)
+        assert result.status_code == 200
+        assert result.json()["changed"] == []
         assert (await stored_answers(workspace, response))["city"]["text"] == "Lovelace"
 
     async def test_an_internal_question_is_not_written_here(self, workspace, client):

@@ -1284,25 +1284,33 @@ class WorkspaceFormService:
                     "message": "This response has a deletion request, so it can't be edited.",
                 },
             )
-        # the version the response was given in (what the page shows staff);
-        # the latest when it has none
-        form = None
-        if existing.form_version:
-            form = await self._form_repo.get_form_by_by_version(
-                form_id, existing.form_version
+        # the version the response was given in (what the page shows staff): the
+        # server's own record of it, since submissions set it; a response stored
+        # before that carries what its page sent, believed only up to the latest
+        latest = await self.form_service.get_latest_version_of_form(form_id)
+        own = None
+        claimed = existing.form_version
+        if claimed and latest is not None and 0 < int(claimed) <= latest.version:
+            own = (
+                latest
+                if int(claimed) == latest.version
+                else await self._form_repo.get_form_by_by_version(form_id, claimed)
             )
         form = (
-            form
-            or await self.form_service.get_latest_version_of_form(form_id)
+            own
+            or latest
             or await self.form_service.get_form_document_by_id(str(form_id))
         )
-        locked = _not_staff_editable(form, answers)
+        # what staff never change is judged over the latest version AND the
+        # response's own: a question that is a signature or a file in either
+        # (or that other forms offer as choices) is refused
+        locked = _not_staff_editable([latest, own], answers)
         if locked:
             raise HTTPException(
                 HTTPStatus.UNPROCESSABLE_ENTITY,
                 content={
                     "code": "question_not_editable",
-                    "message": "A signature or a file can't be changed here.",
+                    "message": "A signature, a file, or a question whose answers are offered as choices elsewhere can't be changed here.",
                     "questionIds": locked,
                 },
             )
@@ -2204,24 +2212,33 @@ class WorkspaceFormService:
 
 
 # the questions staff cannot change: a drawn or typed signature is the
-# respondent's own mark and carries a server stamp, and a file needs an upload
+# respondent's own mark and carries a server stamp, a file needs an upload, and
+# an answer other forms offer as a choice (shareAsChoices) is not text the
+# respondent gave to be shared
 _STAFF_LOCKED_TYPES = {"signature", "file_upload", "input_file_upload"}
 
 
-def _not_staff_editable(form, answers) -> List[str]:
-    """Ids of the questions among ``answers`` whose type staff cannot change."""
-    types: Dict[str, str] = {}
+def _not_staff_editable(forms, answers) -> List[str]:
+    """Ids of the questions among ``answers`` that staff cannot change: those
+    that are a locked type, or shared as choices, in any of ``forms`` (the
+    versions that count; None entries are skipped)."""
+    locked: set = set()
 
     def walk(fields):
         for field in fields or []:
             field_id = getattr(field, "id", None)
             if field_id:
                 kind = getattr(field, "type", None)
-                types[str(field_id)] = str(getattr(kind, "value", kind))
+                if str(getattr(kind, "value", kind)) in _STAFF_LOCKED_TYPES:
+                    locked.add(str(field_id))
             walk(getattr(getattr(field, "properties", None), "fields", None))
 
-    walk(getattr(form, "fields", None))
-    return sorted(k for k in answers if types.get(k) in _STAFF_LOCKED_TYPES)
+    for form in forms:
+        if form is None:
+            continue
+        walk(getattr(form, "fields", None))
+        locked.update(shared_question_ids(form))
+    return sorted(k for k in answers if k in locked)
 
 
 def _question_ids(fields) -> set:

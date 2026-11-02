@@ -202,7 +202,7 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
                         </div>
                     )}
                     <ReadOnlyForm form={form} response={response} />
-                    {responseRevisionsEnabled && can(WorkspacePermission.RESPONSE_READ) && (
+                    {responseRevisionsEnabled && can(WorkspacePermission.RESPONSE_READ) && form?.settings?.provider === 'self' && (
                         <div className={`${pageGutter} pb-8`}>
                             <div className="mx-auto w-full max-w-2xl">
                                 <ResponseHistory key={`history-${response.responseId}`} workspaceId={workspaceId} formId={formId} responseId={response.responseId} form={form} />

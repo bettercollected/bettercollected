@@ -106,6 +106,7 @@ from backend.app.schemas.response_revision import (
     RevisionEditor,
     plain_answer,
     same_answer,
+    seal_context,
 )
 from backend.app.schemas.workspace_responder import (
     WorkspaceResponderDocument,
@@ -544,6 +545,76 @@ class PostgresFormResponseRepository(RecordRepository):
                     data=json.dumps(answers),
                 )
                 await session.execute(self._upsert_statement(row_values(stored)))
+        return changed
+
+    async def redact_history_option_labels(
+        self,
+        response_pks: Iterable[str],
+        workspace_id: RecordId,
+        form_id: str,
+        field_ids: Iterable[str],
+        option_ids: Set[str],
+    ) -> int:
+        """The revision log of those responses: replace the label snapshots of
+        ``option_ids`` in the previous values of ``field_ids`` (the same rule as
+        the answers, ``redact_option_labels``), entry by entry under its row
+        lock, re-sealing what changed. A shared answer an erased respondent
+        gave must not survive in another response's history. Returns the
+        snapshots changed."""
+        from backend.app.services.option_sources import erasure
+
+        pks = [str(pk) for pk in response_pks]
+        if not pks:
+            return 0
+        field_ids = list(field_ids)
+        async with self._session() as session:
+            entry_ids = (
+                (
+                    await session.execute(
+                        select(ResponseRevisionRow.id).where(
+                            ResponseRevisionRow.response_pk.in_(pks)
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+        changed = 0
+        for entry_id in entry_ids:
+            async with self._session() as session, session.begin():
+                entry = await _locked_doc(
+                    session,
+                    ResponseRevisionRow,
+                    ResponseRevisionRow.id == str(entry_id),
+                    document=ResponseRevisionDocument,
+                )
+                if entry is None or not entry.previous_values:
+                    continue
+                context = seal_context(entry.response_pk, entry.seq)
+                try:
+                    previous = json.loads(
+                        crypto_service.decrypt(
+                            workspace_id=workspace_id,
+                            form_id=form_id,
+                            data=bytes(entry.previous_values),
+                            context=context,
+                        )
+                    )
+                except (UnreadableCiphertext, ValueError):
+                    continue
+                found = erasure.redact_answers(previous, field_ids, option_ids)
+                if not found:
+                    continue
+                entry.previous_values = crypto_service.encrypt(
+                    workspace_id=workspace_id,
+                    form_id=form_id,
+                    data=json.dumps(previous),
+                    context=context,
+                )
+                await session.execute(
+                    self._upsert_statement(row_values(entry), ResponseRevisionRow)
+                )
+                changed += found
         return changed
 
     # -- composition over the forms group ---------------------------------
@@ -1583,8 +1654,9 @@ class PostgresFormResponseRepository(RecordRepository):
         """One entry of the revision log, in the edit's own transaction (the
         response row is locked, so the count and the insert cannot race): the
         questions that changed and their previous values, sealed like the
-        answers. 409 ``revision_limit`` once the response has
-        ``MAX_REVISIONS`` entries: the history is never trimmed."""
+        answers. 409 ``revision_limit`` for a staff edit once the response
+        already has ``MAX_REVISIONS`` staff entries: the history is never
+        trimmed, and a respondent's own edit is neither counted nor refused."""
         response_pk = str(response_document.id)
         count = (
             await session.execute(
@@ -1593,15 +1665,29 @@ class PostgresFormResponseRepository(RecordRepository):
                 .where(ResponseRevisionRow.response_pk == response_pk)
             )
         ).scalar_one()
-        if count >= MAX_REVISIONS:
-            raise HTTPException(
-                HTTPStatus.CONFLICT,
-                content={
-                    "code": "revision_limit",
-                    "message": "This response has been edited as often as the history keeps. "
-                    "It can't be edited again.",
-                },
-            )
+        if editor is not None:
+            # the limit is on staff edits: a respondent correcting their own
+            # answers is never refused for it (it is still recorded)
+            staff_entries = (
+                await session.execute(
+                    select(func.count())
+                    .select_from(ResponseRevisionRow)
+                    .where(
+                        ResponseRevisionRow.response_pk == response_pk,
+                        ResponseRevisionRow.doc["actor_kind"].astext
+                        == ActorKind.STAFF.value,
+                    )
+                )
+            ).scalar_one()
+            if staff_entries >= MAX_REVISIONS:
+                raise HTTPException(
+                    HTTPStatus.CONFLICT,
+                    content={
+                        "code": "revision_limit",
+                        "message": "This response has been edited by staff as often as the history keeps. "
+                        "It can't be edited by staff again.",
+                    },
+                )
         entry = ResponseRevisionDocument(
             response_pk=response_pk,
             response_id=response_document.response_id,
@@ -1616,6 +1702,7 @@ class PostgresFormResponseRepository(RecordRepository):
                 workspace_id=workspace_id,
                 form_id=form_id,
                 data=json.dumps(previous),
+                context=seal_context(response_pk, count + 1),
             ),
         )
         await session.execute(

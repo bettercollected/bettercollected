@@ -2329,10 +2329,10 @@
     "NOTHING_CHANGED": "Nothing was different, so nothing was changed.",
     "ERROR": {
       "response_revisions_disabled": "Editing answers is not switched on on this server.",
-      "question_not_editable": "A signature or a file can't be changed here.",
+      "question_not_editable": "A signature, a file, or a question whose answers other forms offer as choices can't be changed here.",
       "deletion_requested": "This response has a deletion request, so it can't be edited.",
       "not_editable": "A response imported from another service can't be edited here.",
-      "revision_limit": "This response has been edited as often as the history keeps. It can't be edited again.",
+      "revision_limit": "This response has been edited by staff as often as the history keeps. Staff can't edit it again.",
       "busy": "Another change to this response is in progress. Try again in a moment.",
       "generic": "The answers could not be saved."
     }

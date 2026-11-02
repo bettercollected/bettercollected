@@ -176,6 +176,14 @@ describe('the response page', () => {
         expect(edit()).toBeNull();
     });
 
+    it('asks for no history for a response of an imported form', () => {
+        access.staffRevisions = true;
+        access.permissions = [WorkspacePermission.RESPONSE_READ];
+        server.result = loaded(RESPONSE, { form: { ...FORM, settings: { provider: 'google' } } });
+        renderPage();
+        expect(screen.queryByRole('heading', { name: 'History' })).toBeNull();
+    });
+
     it('shows no version for a response that has none (an import)', () => {
         renderPage();
         expect(within(screen.getByRole('region', { name: 'Response details' })).queryByText('Form version')).toBeNull();

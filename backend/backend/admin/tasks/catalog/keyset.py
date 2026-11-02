@@ -36,6 +36,7 @@ RESOURCES = ("keyset", "responses.encryption")
 class Targets(str, enum.Enum):
     responses = "responses"
     google_credentials = "google_credentials"
+    response_revisions = "response_revisions"
 
 
 class Refusals(str, enum.Enum):
@@ -119,14 +120,14 @@ class PromoteParams(_RotationParams):
 class ReencryptParams(_RotationParams):
     # the primary the stored keyset must have now (guards against a stale view)
     primary_id: Annotated[int, Field(ge=1, le=4294967295)]
-    targets: Annotated[list[Targets], Field(max_length=2)] = []  # empty: all
+    targets: Annotated[list[Targets], Field(max_length=3)] = []  # empty: all
     stores: StoreChoice = StoreChoice.postgres
     batch_size: Annotated[int, Field(ge=100, le=1000)] = 200
     google_in_use: bool = True
 
 
 class VerifyParams(Params):
-    targets: Annotated[list[Targets], Field(max_length=2)] = []
+    targets: Annotated[list[Targets], Field(max_length=3)] = []
     stores: StoreChoice = StoreChoice.postgres
     batch_size: Annotated[int, Field(ge=100, le=1000)] = 500
 
@@ -201,6 +202,7 @@ class ScanResult(Result):
     primary_id: int = 0
     responses: Optional[StoreCounts] = None
     google_credentials: Optional[StoreCounts] = None
+    response_revisions: Optional[StoreCounts] = None
     values_stale: int = 0
     values_unopenable: int = 0
 
@@ -216,6 +218,7 @@ class DropOldResult(Result):
     revision: int = 0
     responses: Optional[StoreCounts] = None
     google_credentials: Optional[StoreCounts] = None
+    response_revisions: Optional[StoreCounts] = None
 
 
 def _meta(name, params, result, *, mutating, title, resumable=False, idempotent=False):

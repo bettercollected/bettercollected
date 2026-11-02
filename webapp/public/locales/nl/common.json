@@ -2329,10 +2329,10 @@
     "NOTHING_CHANGED": "Er was geen verschil, dus er is niets gewijzigd.",
     "ERROR": {
       "response_revisions_disabled": "Antwoorden bewerken is op deze server niet ingeschakeld.",
-      "question_not_editable": "Een handtekening of een bestand kan hier niet worden gewijzigd.",
+      "question_not_editable": "Een handtekening, een bestand of een vraag waarvan de antwoorden in andere formulieren als keuzes worden aangeboden, kan hier niet worden gewijzigd.",
       "deletion_requested": "Voor deze reactie ligt een verwijderverzoek, dus zij kan niet worden bewerkt.",
       "not_editable": "Een reactie die uit een andere dienst is geïmporteerd, kan hier niet worden bewerkt.",
-      "revision_limit": "Deze reactie is zo vaak bewerkt als de geschiedenis bewaart. Zij kan niet opnieuw worden bewerkt.",
+      "revision_limit": "Deze reactie is door medewerkers zo vaak bewerkt als de geschiedenis bewaart. Medewerkers kunnen haar niet opnieuw bewerken.",
       "busy": "Er wordt al een andere wijziging aan deze reactie doorgevoerd. Probeer het zo meteen opnieuw.",
       "generic": "De antwoorden konden niet worden opgeslagen."
     }

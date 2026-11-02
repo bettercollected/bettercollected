@@ -3,3 +3,5 @@
   edit (not for signatures or files, nor with a deletion request pending). Every edit, by staff or by the respondent,
   is kept in the response's history: who, when, which questions, and the previous values sealed with the response
   keyset. The history is deleted with the response. Adds a database table (revision 0032).
+  The history is part of the response keyset rotation (`response-revisions`), and a respondent's own edit is never
+  refused for the history's limit of 200 staff edits per response.

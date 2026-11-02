@@ -17,8 +17,9 @@ from pydantic import BaseModel
 # what actor_id becomes when the staff member's account is deleted: the entry stays
 DELETED_ACTOR = "deleted-user"
 
-# the most entries one response keeps: the next edit is refused (409
-# ``revision_limit``) rather than the history being trimmed
+# the most staff entries one response keeps: the next staff edit is refused
+# (409 ``revision_limit``) rather than the history being trimmed; a respondent's
+# own edits are recorded without this limit
 MAX_REVISIONS = 200
 
 
@@ -48,6 +49,15 @@ class ResponseRevisionDocument(Record):
 
     class Settings:
         name = "response_revisions"
+
+
+def seal_context(response_pk, seq) -> bytes:
+    """What ``previous_values`` is bound to besides the workspace and form
+    (``crypto_service`` associated data): the response and the entry's number,
+    so an entry copied onto another response, or to another number, does not
+    open. Also how the keyset rotation derives it from the row
+    (``admin/tasks/impl/keyset_core.py``)."""
+    return f"{response_pk}|{seq}".encode()
 
 
 @dataclass(frozen=True)

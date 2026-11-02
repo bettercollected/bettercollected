@@ -26,7 +26,11 @@ from backend.app.models.dtos.response_revisions_dto import (
     RevisionValuesDto,
 )
 from backend.app.models.enum.permission import Permission
-from backend.app.schemas.response_revision import DELETED_ACTOR, ActorKind
+from backend.app.schemas.response_revision import (
+    DELETED_ACTOR,
+    ActorKind,
+    seal_context,
+)
 from backend.app.services.form_versions.compare import plain
 from backend.app.services.response_revisions.mode import ensure_enabled
 
@@ -164,6 +168,7 @@ class ResponseRevisionService:
                         workspace_id=workspace_id,
                         form_id=form_id,
                         data=bytes(entry.previous_values),
+                        context=seal_context(entry.response_pk, entry.seq),
                     )
                 )
             except (UnreadableCiphertext, ValueError):
