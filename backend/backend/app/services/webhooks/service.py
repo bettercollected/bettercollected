@@ -579,6 +579,9 @@ class WebhookService:
                     "Only a legacy list webhook can be moved to the signed format.",
                 )
             document.format = formats.ENVELOPE
+            # a legacy list sent every question: so does the envelope it moves
+            # to, unless the creator picks questions in the same request
+            document.all_questions = request.fields is None
             changed.append("format")
         if request.url is not None:
             url, host = await self._checked_url(

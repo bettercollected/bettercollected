@@ -329,6 +329,8 @@ async def test_a_creator_can_only_move_a_legacy_list_to_the_signed_format(
     assert got.json()["format"] == "envelope"
     row = await container.form_webhook_repo().get(workspace.id, form.form_id, legacy.id)
     assert row.format == "envelope" and row.secret_sealed  # still signed, same secret
+    # it sent every question as a legacy list and still does: no empty data
+    assert row.all_questions is True and row.fields == []
     audit = await container.webhook_service().list_audit(workspace.id, form.form_id, testUser)
     assert any(a.changed == ["format"] for a in audit)
 
@@ -360,6 +362,43 @@ async def test_a_slack_or_discord_row_cannot_be_moved_or_pointed_elsewhere(works
     row = await container.form_webhook_repo().get(workspace.id, form.form_id, slack.id)
     assert unseal_url(container.crypto(), workspace.id, row.id, row.url_sealed).endswith("/T1/B1/other")
     assert row.format == "slack"
+
+
+async def test_after_the_switch_the_receiver_still_gets_every_question(
+    workspace, legacy_server, memory_jobs
+):
+    form = await publish(workspace)
+    legacy = await moved(workspace, form, formats.LEGACY_LIST, LEGACY_URL)
+    await container.webhook_service().update_webhook(
+        workspace.id,
+        form.form_id,
+        legacy.id,
+        WebhookUpdateDto(format="envelope"),
+        testUser,
+    )
+    _response, _log, outcome = await deliver(workspace, form, legacy, memory_jobs)
+    assert outcome.status == "delivered"
+    sent = json.loads(legacy_server.requests[0].body)
+    assert list(sent) == ["event", "delivery_id", "form_id", "response_id", "submitted_at", "data"]
+    assert sent["data"]["name"] == "Ada Example" and sent["data"]["age"] == 36
+    assert len(sent["data"]) == 9
+
+
+async def test_a_switch_that_picks_questions_sends_only_those(workspace, legacy_server, memory_jobs):
+    form = await publish(workspace)
+    legacy = await moved(workspace, form, formats.LEGACY_LIST, LEGACY_URL)
+    await container.webhook_service().update_webhook(
+        workspace.id,
+        form.form_id,
+        legacy.id,
+        WebhookUpdateDto(format="envelope", fields=[FieldDto(source="name")]),
+        testUser,
+    )
+    row = await container.form_webhook_repo().get(workspace.id, form.form_id, legacy.id)
+    assert row.format == "envelope" and row.all_questions is False
+    _response, _log, outcome = await deliver(workspace, form, legacy, memory_jobs)
+    assert outcome.status == "delivered"
+    assert list(json.loads(legacy_server.requests[0].body)["data"]) == ["name"]
 
 
 async def test_picking_questions_ends_all_questions(workspace):

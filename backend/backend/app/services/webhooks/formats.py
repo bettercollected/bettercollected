@@ -12,6 +12,10 @@ Slack" and "send to Discord" actions, kept so receivers do not change:
   field per question.
 - ``discord``: a Discord ``embeds`` message, cut to Discord's limits.
 
+Two differences from the executor's chat messages, both for safety: Slack text
+values are escaped (``&``, ``<``, ``>``: an answer cannot make a link or a
+mention) and a Discord message says it pings nobody (``allowed_mentions``).
+
 The two chat formats carry no signature (the address is the secret). Everything
 here is pure: the form and the decrypted answers go in, bytes come out, built at
 send time in memory and never stored or queued. The bytes are written the way
@@ -66,6 +70,15 @@ def empty_response() -> Dict[str, Any]:
     return response_view("", {})
 
 
+def slack_text(value: Any) -> Any:
+    """``value`` as Slack's message formatting wants a text: ``&``, ``<`` and
+    ``>`` escaped, so an answer cannot make a link, a mention (``<!channel>``,
+    ``<@U123>``) or a broken one. Anything that is not a text is left as it is."""
+    if not isinstance(value, str):
+        return value
+    return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def _dumps(value: Any) -> bytes:
     return json.dumps(value).encode()
 
@@ -83,8 +96,8 @@ def slack_body(
 ) -> bytes:
     fields = [
         {
-            "title": entry["title"],
-            "value": entry["answer"] if entry["answer"] else DASH,
+            "title": slack_text(entry["title"]),
+            "value": slack_text(entry["answer"]) if entry["answer"] else DASH,
             "short": False,
         }
         for entry in qa.get_questions_and_answers(form, response)
@@ -94,7 +107,7 @@ def slack_body(
         {
             "attachments": [
                 {
-                    "title": f"🎉 **Congratulations!** You received a new response on! `{form.get('title')}`\n\n",
+                    "title": f"🎉 **Congratulations!** You received a new response on! `{slack_text(form.get('title'))}`\n\n",
                     "color": "#00FF00",
                     "text": (
                         f"Click <{link}|here> to view the form response.\n\n"
@@ -129,6 +142,8 @@ def discord_body(
     return _dumps(
         {
             "content": f"🎉 **Congratulations!** You received a new response on **{form.get('title')}**",
+            # nothing a respondent or a creator typed pings anyone
+            "allowed_mentions": {"parse": []},
             "embeds": [
                 {
                     "color": 0x00FF00,

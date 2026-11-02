@@ -56,7 +56,7 @@ _LABEL = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 
 # the hosts (and path prefixes) the chat formats may be sent to
 CHAT_DESTINATIONS = {
-    "slack": (("hooks.slack.com",), "/"),
+    "slack": (("hooks.slack.com",), "/services/"),
     "discord": (("discord.com", "discordapp.com"), "/api/webhooks/"),
 }
 

@@ -87,6 +87,8 @@ def test_discord_is_the_executors_message_cut_to_discords_limits():
         "65b0000000000000000000f1/?view=Responses)\n--------------------------"
     )
     assert embed["footer"] == {"text": "Thank You for using Bettercollected"}
+    # nothing typed into the form or its answers pings anyone
+    assert body["allowed_mentions"] == {"parse": []}
     assert embed["fields"] == [
         {"name": "Your name", "value": "Zoë", "inline": False},
         {"name": "Age", "value": "0", "inline": False},  # 0 is an answer here
@@ -132,6 +134,48 @@ def test_the_link_cannot_be_broken_out_of_by_a_workspace_name():
     assert "a%7Cb%3Ec%20d" in text and "a|b" not in text
 
 
+def test_slack_text_cannot_make_a_link_or_a_mention():
+    form = {
+        "form_id": "f",
+        "title": "Q&A <!here>",
+        "fields": [
+            {
+                "id": "s",
+                "type": "slide",
+                "properties": {
+                    "fields": [
+                        {"id": "a", "type": "short_text", "title": "Who <@U123>?"},
+                        {"id": "b", "type": "short_text", "title": "Where"},
+                        {"id": "n", "type": "number", "title": "Count"},
+                    ]
+                },
+            }
+        ],
+    }
+    response = {
+        "response_id": "r",
+        "answers": {
+            "a": {"text": "<!channel> & <https://evil.example|click>"},
+            "b": {"text": "a > b"},
+            "n": {"number": 3},
+        },
+    }
+    sent = json.loads(
+        formats.slack_body(form, response, workspace_name="w", client_url="https://app.example.org")
+    )["attachments"][0]
+    assert sent["title"].endswith("`Q&amp;A &lt;!here&gt;`\n\n")
+    values = {f["title"]: f["value"] for f in sent["fields"]}
+    assert values == {
+        "Who &lt;@U123&gt;?": "&lt;!channel&gt; &amp; &lt;https://evil.example|click&gt;",
+        "Where": "a &gt; b",
+        "Count": 3,  # a number is not text
+    }
+    # the one link is ours, and is not escaped
+    assert "<https://app.example.org/w/dashboard/forms/f/?view=Responses|here>" in sent["text"]
+    for text in values.values():
+        assert "<" not in str(text) and ">" not in str(text)
+
+
 def test_internal_fields_never_reach_any_format():
     for build in (
         lambda: formats.legacy_list_body(FORM, RESPONSE),
@@ -151,6 +195,9 @@ def test_a_test_event_has_every_title_and_no_answer():
     "format_, url, allowed",
     [
         ("slack", "https://hooks.slack.com/services/T0/B0/xyz", True),
+        ("slack", "https://hooks.slack.com/workflows/T0/A0/xyz", False),
+        ("slack", "https://hooks.slack.com/", False),
+        ("slack", "https://hooks.slack.com/servicesX/T0", False),
         ("slack", "https://hooks.slack.com.evil.example/services/T0/B0/xyz", False),
         ("slack", "https://evil.example/hooks.slack.com/services/T0", False),
         ("slack", "https://hooks.slack.com@evil.example/services/T0", False),
