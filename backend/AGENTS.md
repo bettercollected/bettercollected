@@ -1655,9 +1655,13 @@ nothing else is gated (public spec API, SDK, CLI, a stored `promotedFrom`). Rule
   the two stubs of `form_service.py` and not in `SettingsPatchDto`; it is written only by `set_promoted_from` (row lock, advisory:
   a failure is logged and never fails a stored copy). `tests/app/form_promotion/test_promoted_from_private.py` pins what a
   respondent reaches. A new serializer of `WorkspaceFormSettings` has to be added there.
-- An update onto an existing target re-reads the target's mode right before the write (`FormSpecWriter.replace(before_write=...)`,
-  `_still_restricted`): a restricted source never lands in a form opened after the plan read it (no version tag covers the mode).
-  The repository keeps the stored `promoted_from` (and the access mode) on every write of a link's settings and starts a new link
-  without one (`_keeping_access_mode`), so settings arriving in an import cannot forge it. The form file download is recorded
+- An update onto an existing target checks the target's mode in the transaction of the write itself
+  (`FormSpecWriter.replace(in_write=...)` -> `update_form_if_unchanged`, `_still_restricted`): the link is read there under a
+  SHARE row lock (`lock_link_shared`), which `set_access_mode` waits for, so a restricted source never lands in a form opened
+  meanwhile (no version tag covers the mode). While form access is on, `save()` of an existing link runs under the row lock and
+  keeps the stored `promoted_from` and access mode (`_keeping_access_mode`); a new link starts without a mark, so settings
+  arriving in an import cannot forge it. With access off `save()` stays one statement, so a stale read can write over a mark
+  set meanwhile: the mark is advisory (it orders the picker and prompts "changed since the last copy"), so that is accepted. A refusal with a 5xx (the audit log down) or a
+  429 is never stored under the Idempotency-Key (`_kept_for_key`): the same key can be sent again. The form file download is recorded
   with `export_channel` `file` (the Activity page words it as a download; a copy to a workspace has no channel).
 - The report holds counts and question ids only: never a title, an address, a recipient or a secret (`notCarried`, `adjusted`).

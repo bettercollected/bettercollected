@@ -498,7 +498,7 @@ async def test_the_custom_domain_is_recorded_best_effort_without_the_hostname(
 
 
 def test_the_settings_kinds_are_distinct_and_listed():
-    assert len(set(SETTINGS_EVENTS)) == len(SETTINGS_EVENTS) == 16
+    assert len(set(SETTINGS_EVENTS)) == len(SETTINGS_EVENTS) == 17
     assert RecordId  # the ids above are record ids
 
 

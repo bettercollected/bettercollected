@@ -678,3 +678,44 @@ async def test_connected_actions_are_counted_as_sheets_and_do_not_move(client, w
     assert response.json()["notCarried"]["sheets"] == 2
     copy = await container.form_repo().get_form_document_by_id(response.json()["formId"])
     assert not copy.actions
+
+
+# -- a transient failure is not the answer to the key -----------------------------------------
+async def test_a_failed_audit_is_not_kept_for_the_key_so_the_retry_can_succeed(
+    client, world, monkeypatch
+):
+    """503 ``audit_unavailable`` is a server failure, not an outcome of the
+    request: the same Idempotency-Key sent again once the audit log is back makes
+    the copy, instead of replaying the 503."""
+    repo = container.workspace_audit_repo()
+    record = repo.record
+    fail_audit(monkeypatch)
+    first = await apply(client, world, key="retry-after-503")
+    assert first.status_code == 503
+    before = len(await forms_of(world.b))
+
+    monkeypatch.setattr(repo, "record", record)
+    second = await apply(client, world, key="retry-after-503")
+    assert second.status_code == 201, second.text
+    assert len(await forms_of(world.b)) == before + 1
+    # and a business refusal is still kept for its key
+    third = await apply(client, world, key="retry-after-503")
+    assert third.status_code == 201
+    assert third.headers.get("idempotent-replayed") == "true"
+    assert len(await forms_of(world.b)) == before + 1
+
+
+def test_which_refusals_are_kept_for_the_key():
+    from http import HTTPStatus
+
+    from backend.app.services.form_promotion.service import _kept_for_key
+
+    assert _kept_for_key(HTTPStatus.CONFLICT) and _kept_for_key(HTTPStatus.UNPROCESSABLE_ENTITY)
+    assert _kept_for_key(HTTPStatus.FORBIDDEN)
+    for status in (
+        HTTPStatus.SERVICE_UNAVAILABLE,
+        HTTPStatus.INTERNAL_SERVER_ERROR,
+        HTTPStatus.PRECONDITION_FAILED,
+        HTTPStatus.TOO_MANY_REQUESTS,
+    ):
+        assert not _kept_for_key(status)

@@ -167,6 +167,9 @@ AI_CONSENT_CHANGED = "ai_consent_changed"
 # the workspace's own hostname set, replaced or removed (no hostname stored)
 CUSTOM_DOMAIN_CHANGED = "custom_domain_changed"
 CUSTOM_DOMAIN_REMOVED = "custom_domain_removed"
+# how long the workspace's audit entries are kept, set by an owner
+# (``retention_months``, ``previous_retention_months``: whole months, 6 to 60)
+AUDIT_RETENTION_CHANGED = "audit_retention_changed"
 SETTINGS_EVENTS = (
     SSO_CONNECTION_CREATED,
     SSO_CONNECTION_ENABLED,
@@ -184,6 +187,7 @@ SETTINGS_EVENTS = (
     AI_CONSENT_CHANGED,
     CUSTOM_DOMAIN_CHANGED,
     CUSTOM_DOMAIN_REMOVED,
+    AUDIT_RETENTION_CHANGED,
 )
 # a form's integrations (email actions and the case-system registration): the
 # action, service or form, never an address, a URL, a template, a name or a
@@ -344,6 +348,10 @@ class WorkspaceAuditEventDocument(Record):
     directory_group_id: Optional[str] = None
     enabled: Optional[bool] = None
     provider: Optional[str] = None
+    # AUDIT_RETENTION_CHANGED: the retention now and the one it replaced, in
+    # whole months (one of the choices of ``services/audit_log/retention.py``)
+    retention_months: Optional[int] = None
+    previous_retention_months: Optional[int] = None
     # AUTOMATION_EVENTS: the email action or case-system service (ids), and
     # which parts of the configuration changed (``AUTOMATION_PARTS``)
     action_id: Optional[str] = None

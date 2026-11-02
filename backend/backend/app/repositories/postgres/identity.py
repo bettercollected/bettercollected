@@ -228,6 +228,17 @@ class PostgresWorkspaceRepository(RecordRepository):
             rows = (await session.execute(stmt)).all()
         return sorted(((domain, str(ws)) for domain, ws in rows), key=lambda row: row[1])
 
+    async def audit_retention_choices(self) -> Dict[str, Any]:
+        """The workspaces that chose how long their audit entries are kept:
+        id -> the stored value (read as ``months_of`` reads it). Only those
+        that chose; every other workspace has the default."""
+        stmt = select(WorkspaceRow.id, WorkspaceRow.doc["audit_retention_months"].astext).where(
+            WorkspaceRow.doc.has_key("audit_retention_months")
+        )
+        async with self._session() as session:
+            rows = (await session.execute(stmt)).all()
+        return {str(ws): value for ws, value in rows if value is not None}
+
     async def get_or_404(self, workspace_id: RecordId) -> WorkspaceDocument:
         return await self.get_or_raise(workspace_id)
 

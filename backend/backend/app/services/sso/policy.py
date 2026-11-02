@@ -108,9 +108,8 @@ AUDIT_PENDING_MAX = 500
 AUDIT_PAGE_SIZE = 20
 AUDIT_PAGE_MAX = 100
 
-# How long the workspace audit entries are kept: a year, then the daily purge
-# (``sso_audit_purge``) deletes them; they go with the workspace too.
-AUDIT_RETENTION = dt.timedelta(days=365)
+# How long the workspace audit entries are kept is the workspace's own choice
+# (services/audit_log/retention.py); they go with the workspace too.
 
 # The role a first SSO sign-in gets unless the workspace chose another.
 # The accepted design's default (docs/enterprise-access-model.md): Viewer.
@@ -497,13 +496,6 @@ class SsoPolicyService:
         if self._audit is None:
             return 0
         return await self._audit.delete_by_workspace_ids(workspace_ids)
-
-    async def purge_audit(self, now: Optional[dt.datetime] = None) -> int:
-        """The daily purge: entries older than ``AUDIT_RETENTION``."""
-        if self._audit is None:
-            return 0
-        now = now or dt.datetime.now(dt.timezone.utc)
-        return await self._audit.purge_before(now - AUDIT_RETENTION)
 
     async def session_would_be_blocked(
         self,
