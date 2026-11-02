@@ -118,6 +118,16 @@ API_KEY_EVENTS = (
 REVOKED_MEMBER_REMOVED = "member_removed"
 REVOKED_ACCOUNT_DELETED = "account_deleted"
 REVOKED_SCIM_DEPROVISIONED = "scim_deprovisioned"
+# a form's structure left a workspace for another one, or came from another one
+# (FORM_PROMOTION_ENABLED): ids and counts only, never a title, a name or a text of
+# the form. FORM_COPIED_OUT is written in the source workspace (form_id = the
+# source form, target_workspace_id, target_form_id when it updates one; the file
+# download names no target); FORM_PROMOTED in the target workspace (form_id = the
+# target form, source_workspace_id, source_form_id; ``count`` = what was adjusted
+# to fit). Both are stored before the change.
+FORM_COPIED_OUT = "form_copied_out"
+FORM_PROMOTED = "form_promoted"
+PROMOTION_EVENTS = (FORM_COPIED_OUT, FORM_PROMOTED)
 # an admin revoked the key on the API keys page
 REVOKED_BY_ADMIN = "admin"
 # the workspace was deleted (every key of it, whoever made it)
@@ -183,6 +193,11 @@ class WorkspaceAuditEventDocument(Record):
     key_role_before: Optional[str] = None
     form_scope: Optional[str] = None
     widened: Optional[bool] = None
+    # FORM_COPIED_OUT / FORM_PROMOTED: the other side of the copy (ids only)
+    source_workspace_id: Optional[str] = None
+    source_form_id: Optional[str] = None
+    target_workspace_id: Optional[str] = None
+    target_form_id: Optional[str] = None
 
     class Settings:
         name = "workspace_audit_events"

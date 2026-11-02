@@ -26,6 +26,13 @@ TEMPLATE_FROM_RESTRICTED_MESSAGE = (
 )
 
 
+PROMOTION_FROM_RESTRICTED_CODE = "promotion_from_restricted_form"
+PROMOTION_FROM_RESTRICTED_MESSAGE = (
+    "Only an Owner, an Admin or the creator of a restricted form can copy it to "
+    "another workspace or download it as a file."
+)
+
+
 def form_access_enabled() -> bool:
     return bool(settings.form_access.ENABLED)
 

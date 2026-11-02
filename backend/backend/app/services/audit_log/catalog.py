@@ -46,6 +46,9 @@ AREAS: Dict[str, Tuple[str, ...]] = {
         E.FORM_PUBLISHED,
         E.FORM_DELETED,
         E.FORM_CREATOR_REASSIGNED,
+        # a form's structure copied to another workspace, or from one
+        E.FORM_COPIED_OUT,
+        E.FORM_PROMOTED,
     ),
     # answers read, changed, deleted or taken out (never the answers)
     AREA_RESPONSES: (
