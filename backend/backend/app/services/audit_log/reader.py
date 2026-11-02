@@ -273,6 +273,7 @@ class AuditLogReader:
             grant_role=row.grant_role,
             grant_export=row.grant_export,
             access_mode=row.access_mode,
+            linked=row.linked,
             role=row.role,
             previous_role=row.previous_role,
             count=row.count,
