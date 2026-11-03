@@ -31,6 +31,7 @@ from backend.app.services.temporal_service import TemporalService
 from backend.jobs.app import app
 from common.db import load_flags
 from tests.app.controllers.data import testUser
+from tests.app.jobs.helpers import run_worker
 from tests.app.sheets_helpers import (
     ACCESS_TOKEN,
     CLIENT_ID,
@@ -129,10 +130,6 @@ def jobs():
 
 def revoke_jobs(connector):
     return [j for j in connector.jobs.values() if j["task_name"] == grants.REVOKE_JOB]
-
-
-async def run_worker():
-    await app.run_worker_async(wait=False, install_signal_handlers=False)
 
 
 async def _connect(client, cookies, form_id, action_id):
