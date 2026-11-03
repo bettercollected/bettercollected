@@ -29,6 +29,7 @@ Owners (only) can require an authenticator app for all members of a workspace (W
 
 - A member's session that has not presented a second factor gets 403 `mfa_required` and is sent to enter the code or set one up **in the same session**; nobody is signed out.
 - Not covered: API keys and MCP (machine credentials issued inside the workspace), respondent-scoped sessions, and a single sign-on session that signed in through this workspace's own identity provider.
+- **Background jobs are not sessions.** A response export or CSV import re-checks, when its job runs, that the person who started it still holds the permission (membership, role, workspace, form access). That check skips the second-factor (and single sign-on) requirement, which belongs to the request that started the job and was met there; the code passes `for_job=True` to the authorisation service, and a test pins every such call site.
 - A **disabled workspace is covered too**: its owners can still read, export and delete respondents' data there, so they are asked for the second factor like anywhere else.
 - Turning it on needs the owner's own session to have presented a second factor, so an owner cannot lock themselves out. The owners see "N of M members have set one up" before confirming. Turning it off takes effect on the next request.
 - A person cannot turn their own app off while a workspace they belong to requires one.

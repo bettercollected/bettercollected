@@ -1045,8 +1045,12 @@ class ResponseImportService:
         # who uploaded the file); a dry run on the uploader's
         who = (document.confirmed_by if document.mode == ImportMode.IMPORT else None) or document.actor_id
         actor = User(id=who, sub=who)
-        # who asked may no longer be allowed (a role removed since)
-        if not await self._authorization.has_permission(actor, Permission.RESPONSE_IMPORT, workspace_id):
+        # who asked may no longer be allowed (a role removed since); the job has
+        # no session, so the session-only gates (an authenticator app, single
+        # sign-on) were the request's, not its own
+        if not await self._authorization.has_permission(
+            actor, Permission.RESPONSE_IMPORT, workspace_id, for_job=True
+        ):
             return await self._end(document, ImportStatus.CANCELLED, "permission_removed")
         file = await self._imports.get_file(import_id)
         if file is None:

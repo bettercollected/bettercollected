@@ -332,8 +332,10 @@ class WorkspaceMembersService:
         if not invitation.invited_by:
             return
         inviter = User(id=str(invitation.invited_by), sub="invitation-sender")
+        # the sender has no session here: the session-only gates (an
+        # authenticator app, single sign-on) are not theirs to meet now
         held = await self.authorization_service.effective_permissions(
-            inviter, workspace_id
+            inviter, workspace_id, for_job=True
         )
         if Permission.MEMBERS_MANAGE not in held or not (
             role_permissions(invitation.role) <= held

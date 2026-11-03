@@ -203,6 +203,7 @@ class AuthorizationService:
         workspace_id: Union[RecordId, str, None],
         raise_sso_required: bool = False,
         form_id: Optional[str] = None,
+        for_job: bool = False,
     ) -> FrozenSet[Permission]:
         """What ``user`` may do in the workspace. Nothing without an active
         membership (a disabled one counts as none) or in a missing workspace;
@@ -219,8 +220,12 @@ class AuthorizationService:
 
         With ``form_id`` and while ``FORM_ACCESS_ENABLED`` is on: what the
         user may do on that form (grants and the form's access mode applied
-        to the above); otherwise the workspace-level answer, unchanged."""
-        base = await self._base_access(user, workspace_id, raise_sso_required)
+        to the above); otherwise the workspace-level answer, unchanged.
+
+        ``for_job``: see ``_base_access``."""
+        base = await self._base_access(
+            user, workspace_id, raise_sso_required, for_job=for_job
+        )
         if form_id is None or not form_access_enabled():
             return base.permissions
         return (await self._form_permissions(base, form_id)).permissions
@@ -416,9 +421,21 @@ class AuthorizationService:
         user: Optional[User],
         workspace_id: Union[RecordId, str, None],
         raise_sso_required: bool = False,
+        for_job: bool = False,
     ) -> BaseAccess:
         """The workspace-level decision (every rule but the form's), with what
-        the form-level one needs to know about the member."""
+        the form-level one needs to know about the member.
+
+        ``for_job`` is the check a background job makes for the person who
+        started it, with a ``User`` built from their id and no session. The
+        single sign-on and authenticator-app requirements are properties of a
+        signed-in session, which the request that started the job already
+        passed; a job has no session, and a missing claim is never read as
+        met, so those two gates are skipped for it and nothing else: the
+        membership (removed or disabled), the roles, a disabled workspace and
+        (with a ``form_id`` in ``effective_permissions`` / ``has_permission``)
+        the form's access are decided at the moment of the check, as for a
+        request."""
         workspace_oid = _object_id(workspace_id)
         user_oid = _object_id(user.id) if user else None
         nobody = BaseAccess(
@@ -442,11 +459,11 @@ class AuthorizationService:
         if workspace is None:
             return nobody
         is_owner = is_owner_membership(workspace, membership)
-        if await self._sso_blocks(user, workspace, is_owner):
+        if not for_job and await self._sso_blocks(user, workspace, is_owner):
             if raise_sso_required:
                 raise self._sso_required(user)
             return nobody
-        if totp_blocks(workspace, user):
+        if not for_job and totp_blocks(workspace, user):
             # the workspace requires an authenticator app and this session has
             # not presented one (docs/totp.md): the same rule on every request
             if raise_sso_required:
@@ -553,13 +570,17 @@ class AuthorizationService:
         permission: Permission,
         workspace_id: Union[RecordId, str, None],
         form_id: Optional[str] = None,
+        for_job: bool = False,
     ) -> bool:
         """Whether ``user`` holds ``permission`` in the workspace (and, with
         ``form_id``, the form belongs to it; while ``FORM_ACCESS_ENABLED`` is on
         the permission is the one held on that form, and a form closed to the
-        user is no form of theirs)."""
+        user is no form of theirs).
+
+        ``for_job``: the check of a background job that acts for ``user`` (see
+        ``_base_access``); never set it on a path that serves a request."""
         if permission not in await self.effective_permissions(
-            user, workspace_id, form_id=form_id
+            user, workspace_id, form_id=form_id, for_job=for_job
         ):
             return False
         if form_id is not None:

@@ -864,9 +864,15 @@ class ResponseExportService:
         params = self._unseal(export)
         filters = ResponseExportFilters.model_validate(params.get("filters") or {})
         actor = User(id=export.actor_id, sub=export.actor_id)
-        # who asked may no longer be allowed (a role removed since)
+        # who asked may no longer be allowed (a role removed since, the form
+        # restricted); the job has no session, so the session-only gates (an
+        # authenticator app, single sign-on) were the request's, not its own
         if not await self._authorization.has_permission(
-            actor, Permission.RESPONSE_EXPORT, workspace_id, form_id=form_id
+            actor,
+            Permission.RESPONSE_EXPORT,
+            workspace_id,
+            form_id=form_id,
+            for_job=True,
         ):
             return await self._end_owned(export, ExportStatus.CANCELLED, "permission_removed")
         document = await self._forms.get_form_document_by_id(form_id)
