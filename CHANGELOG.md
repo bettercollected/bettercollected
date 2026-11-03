@@ -13,6 +13,500 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-11-03
+
+4.4.0 lets a workspace decide who may open each form, and keeps a readable record of what its members did. It adds restricted forms, form grants and Teams (which a directory group can feed), roles and a form scope for API keys, an Activity log with a retention period each workspace chooses and an export, copying a form to another workspace, an authenticator app (TOTP) for staff, and built-in actions that run on the backend. A form's own pages get new navigation and its settings are regrouped. Every new feature is off until you turn its switch on.
+
+- **Form access.** A form can be restricted to chosen people and Teams, on top of a member's workspace role. Owners and Admins give a role on a form (Editor, Reviewer or Viewer, with an optional right to export) to a person or a Team, and the form's creator decides who may open their own restricted form. Owners link a directory (SCIM) group to a Team, so the directory decides who is in it. The rule applies to the dashboard, the search, the counts, the public API and the MCP server; a form a member may not open answers as a form that does not exist. Switch: `FORM_ACCESS_ENABLED`. See `docs/form-access.md`.
+- **API key roles and form scope.** A workspace API key can carry a role (Editor, Reviewer, Viewer or Privacy officer) and be limited to a list of forms, and an edit route changes them later. A key never does more than the person who made it, and a key limited to forms can no longer create a form. Switch: `API_KEY_ROLES_ENABLED`. See `docs/api-keys.md`.
+- **Activity log.** An Activity page for the workspace and one for each form say who changed what, newest first, in English or Dutch, with filters and paging. Member, form, response, security-setting and integration changes are recorded, owners choose how long entries are kept (6, 12, 24 or 60 months, 12 by default), and the log can be exported as CSV or JSON (the export is recorded first, at most 100,000 entries and five exports per person every ten minutes). Switch for the pages, routes and export: `AUDIT_LOG_UI_ENABLED`; the recording does not depend on it. See `docs/audit-log.md`.
+- **Copy a form to another workspace.** A form's structure goes to another workspace (or instance) as a draft, with a review of what changes and what never moves, from the form's menu, the API or the `bettercollected promote` command. Switch: `FORM_PROMOTION_ENABLED`. See `docs/environments.md`.
+- **Authenticator app for staff.** Accounts can set up a TOTP second factor with recovery codes, owners can require it for a workspace's members and reset a member's app, and the account is told by email when it changes. Switch: `TOTP_ENABLED`. See `docs/totp.md`.
+- **Built-in actions on the backend.** "Send a webhook", Slack, Discord, "send me a copy" and the respondent's copy become webhooks and email actions, and the backend runs the Google Sheets action itself on a new `integrations` queue. `python -m backend.migrate_builtins` moves a form's actions after a preflight and can roll back; nothing moves by itself. See `docs/moving-builtin-actions.md`.
+- **Settings and navigation.** A form's pages lose the workspace navbar for one slim bar and a side menu, a published form opens on its Responses, and Settings becomes five pages (Access, Availability, Respondent experience, Automations, Advanced) with its automations as cards.
+- **The editor no longer reports a false conflict** after a save whose answer was lost on the way.
+- **The workspace switcher shows your real role** in each workspace instead of "Collaborator".
+
+**Upgrading from 4.3.x:** no new required secret. The changes that need your attention:
+
+- **New switches, all off by default.** All five are read by the **backend** only; the dashboard learns about them from the workspace permissions, so the webapp needs no setting.
+  - `FORM_ACCESS_ENABLED`, `API_KEY_ROLES_ENABLED` and `FORM_PROMOTION_ENABLED` are **environment only**: the admin portal's settings do not offer them. Set them on the backend service.
+  - `AUDIT_LOG_UI_ENABLED` and `TOTP_ENABLED` are ordinary settings: set them in the environment or in the admin portal's settings.
+  - A reasonable setup for an instance with several teams: turn on `FORM_ACCESS_ENABLED`, `API_KEY_ROLES_ENABLED`, `AUDIT_LOG_UI_ENABLED` and `FORM_PROMOTION_ENABLED`, and leave `TOTP_ENABLED` off until you have read `docs/totp.md` and run the `authkeys.verify` check described below. Left as shipped, all five stay off.
+  - There is no other new switch. Moving built-in actions onto the backend needs the existing `WEBHOOKS_ENABLED`, `EMAIL_ACTIONS_ENABLED` and `MAIL_*`, but only when you choose to run `migrate_builtins`.
+  - Turn `TOTP_ENABLED` on only after 4.4 runs everywhere and `authkeys.verify` (`docs/auth-key-rotation.md`) reports no value it cannot open. Deploy backend, auth and webapp together: the sign-in step, the tokens and the emails span all three.
+- **Job queues:** the jobs worker now serves `default,webhooks,emails,exports,imports,integrations`. If you set `JOBS_QUEUES` yourself, include all six (the worker logs a warning at start when `integrations` is missing).
+- **Actions executor:** run an executor of version 4.3 or later **before** you upgrade the backend: the key-only route that older executors used to write back a Google credential is removed (see Removed).
+- **Database migrations `0035` to `0039`** run with the backend's usual migrate step (`./deploy.sh`, or `DB_AUTO_MIGRATE=true`). There is no `0036`; the chain goes `0035`, `0037`, `0038`, `0039`, and that is expected.
+  - `0035`: two new tables for authenticator apps and their recovery codes (`user_totp_factors`, `user_recovery_codes`).
+  - `0037`: three new tables for teams, their members and grants on a form (`member_groups`, `member_group_members`, `form_access_grants`).
+  - `0038`: the generated columns `form_id`, `user_id` and `target_user_id` and four indexes on `workspace_audit_events`.
+  - `0039`: a new table for the directory groups that feed a team (`scim_group_team_links`), and a generated column `user_id` with an index on `scim_users`.
+  - The new tables are read only when their switch is on, and 4.3 ignores them.
+  - **`0038` and `0039` each rewrite a table.** Adding a stored generated column makes PostgreSQL rewrite `workspace_audit_events` (`0038`) and `scim_users` (`0039`) under an ACCESS EXCLUSIVE lock: every read and write of that table waits until the migration ends, the index builds that follow block its writes, and the rewrite needs free disk about the size of the table. Both tables are small on most instances. Check first, on the database:
+
+    ```sql
+    SELECT count(*) AS audit_events,
+           pg_size_pretty(pg_total_relation_size('app.workspace_audit_events')) AS audit_size
+    FROM app.workspace_audit_events;
+    SELECT count(*) AS scim_users,
+           pg_size_pretty(pg_total_relation_size('app.scim_users')) AS scim_size
+    FROM app.scim_users;
+    ```
+
+    A few thousand rows take well under a second. With hundreds of thousands of audit events (a long-running instance, or one that records many response reads), run the upgrade in a quiet hour: recording events, and the member and form changes that wait on it, stall while the table is locked.
+  - Afterwards, `alembic -c /api/backend/alembic.ini current` in a 4.4 backend container reports `0039`.
+- **Admin service, on a stack that does not run `./deploy.sh`:** 4.4 adds no admin schema migration (the admin schema stays at `0020`, applied by 4.3), so there is nothing to run before you move the admin service, and it never migrates itself. What does change is `postgres/ensure-admin-roles.sh`: it now grants the key rotation tasks access to the sealed authenticator-app secrets (`deploy.sh` runs it before and after the migrations). Run it **after** the backend's `0035` has been applied, as the database superuser inside the Postgres container: `docker exec -i <postgres container> bash -s < postgres/ensure-admin-roles.sh`. Before that table exists the script skips its grant, so a run before the migration is not enough. Do this before you turn `TOTP_ENABLED` on or rotate `AUTH_AES_HEX_KEY`. If your admin schema is behind for another reason, the admin migration is `alembic -c /api/backend/backend/admin/alembic.ini upgrade head` from a 4.4 backend container, as the admin migration role, with `DATABASE_URL` set to `postgresql+asyncpg://bc_admin_mig:<password>@<host>:5432/<database>` (the password through the environment, not the command line); from 4.3 it finds nothing to do.
+- **Live without any switch.** These apply as soon as 4.4 runs:
+  - Removing a member no longer deletes the forms they created or imported: the forms stay with the workspace, handed to its billing owner, and the member's API keys are revoked. Deleting an account and directory (SCIM) deprovisioning revoke the person's keys too (in every workspace for an account deletion), and a key revoked this way does not come back when the person is invited again.
+  - The workspace's activity log now records member invitations, removals and role changes, forms published or deleted, responses deleted, exports, and changes to security settings and integrations. Inviting, revoking, removing a member, changing a role and deleting a form or a response are written **before** the change and are **refused with 503 `audit_unavailable` while the entry cannot be stored**, so an outage of the audit table now stops those actions instead of letting them go unrecorded. `AUDIT_LOG_UI_ENABLED` only controls reading the log; recording is always on.
+  - The daily clean-up of the log is now the `audit_log_purge` job (it was `sso_audit_purge`; a job still queued under the old name runs as before) and applies each workspace's own period, 12 months where nobody chose.
+  - The MCP server rate limits API keys like the public API: 120 tool calls a minute per key and 600 a minute per workspace (`API_PUBLIC_API_REQUESTS_PER_WINDOW`, `API_PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW`). An agent above that has to slow down, or you raise the limits.
+  - The form editor no longer reports a false "changed elsewhere" after a save whose answer was lost.
+  - The workspace switcher shows the real role per workspace.
+  - Where a form was copied from is removed from every form a respondent or the public receives.
+  - A form's pages have the new navigation and its settings the five new pages; the old addresses redirect.
+- **Startup warning:** if `FORM_ACCESS_ENABLED` is off (turned off again, or never turned on) while restricted forms, grants or teams are stored, those restricted forms are open to every member's workspace role again, and the backend logs one warning at startup with the counts (no names or ids). Read that warning as "forms you restricted are open", and look for it after every change to the switch.
+- **Rolling back to 4.3.x:**
+  - **Activity log:** 4.3 knows no per-workspace period and purges every entry older than 365 days. The first daily purge after a rollback (03:53) deletes the older entries of workspaces that chose 24 or 60 months too, and rolling forward does not bring them back. If a workspace chose more than 12 months, copy the table before you roll back, for example `pg_dump -t app.workspace_audit_events` inside the Postgres container, and find those workspaces with `SELECT id, doc->>'audit_retention_months' FROM app.workspaces WHERE doc->>'audit_retention_months' IS NOT NULL;`.
+  - **API key roles and form scope:** 4.3 does not know them, and the first time a key is used on it the key is saved back without them, so a limited key becomes unlimited for good. Revoke the limited keys before you roll back; the query and the steps are in `docs/api-keys.md` ("Rolling back to a release before 4.4").
+  - The new tables, columns and indexes stay and are ignored by 4.3. On 4.3 restricted forms are open to every member's role (the warning above, from the day you leave 4.4).
+
+### Added
+
+- Creating an API key can now set a role (Editor, Reviewer, Viewer or Privacy officer) and limit the
+  key to a list of forms, and a new edit route changes a key's name, role and forms later (never its
+  scopes, its creator or its secret). Both are behind `API_KEY_ROLES_ENABLED` (off by default):
+  while it is off, setting a role or a list answers 422 `api_key_roles_off` and every key behaves
+  exactly as before. A role must be able to carry the key's scopes, and a key limited to forms never
+  carries `forms:delete` or the deletion-request scopes; a key never gets a role above the person who
+  makes it. Owners and Admins may widen a key in place, and the audit log records it as a widening.
+  The keys list shows each key's role and forms (the form titles only where the reader may open the
+  form), and the workspace permissions say whether key roles are on (`apiKeyRolesEnabled`).
+- Creating, changing and revoking an API key from the API keys page is now recorded in the
+  workspace's audit log (key id, role, form scope and the forms added or removed; never a key's name,
+  prefix or token), before the change is made.
+- The groundwork for limiting a workspace API key to a role (Editor, Reviewer, Viewer or Privacy
+  officer) and to a list of forms, behind `API_KEY_ROLES_ENABLED` (off by default, read from the
+  environment only; while it is off, every key behaves exactly as before and no query is added).
+  A key acts as the person who made it, narrowed: what it may do on a form is what its creator may
+  do there right now, intersected with its role's permissions and, for a key limited to a list of
+  forms, with its entry for that form, so it never does more than its creator and never more
+  after the creator is demoted or removed. A form outside a limited key's list answers exactly as
+  a form that does not exist. Limits that are stored on a key are enforced even with the
+  switch off, so turning it off never widens a key.
+  The people and teams a form is shared with, and who may change that, never include a key's entry.
+- An API key limited to a list of forms can no longer create a form: it could not open what it
+  made, and adding the new form to its own list would be a widening made by a secret instead of
+  by an admin. The public API's `POST /forms` and the MCP tools `create_form`,
+  `create_form_with_ai`, `create_form_outline` and `build_form_from_outline` answer 403
+  `key_form_scope` for such a key (a refused MCP call is recorded in the API audit log). The
+  refusal also applies when `API_KEY_ROLES_ENABLED` has been switched off since the limit was
+  set. The OpenAPI document and the SDK types describe the new answer, and the `bettercollected`
+  command line tool tells the user to ask an admin for another key when `create` or `promote`
+  is refused for this reason.
+- The API keys page (AI, MCP tab) can now give a key a role (Editor, Reviewer, Viewer or Privacy
+  officer, or the same as its creator) and limit it to a list of forms, and an Edit button changes a
+  key's name, role and forms later (never its scopes). A new key starts on the lowest role that allows
+  the scopes ticked. A combination the server would refuse (a role that cannot carry a scope, a list
+  with "Delete forms" or a deletion-request scope) is explained on the page before anything is sent.
+  Editing in a way that gives the key more reach (a higher role, every form in place of a list, more
+  forms, a cleared role) shows a warning first and its button reads "Widen and save"; when somebody
+  else changed the key meanwhile the dialog offers to reload it and try again. Each key in the list
+  shows its role and "All forms" or the number of forms (the titles on demand), and a reminder counts
+  the keys that still follow their creator's role. Every refusal the key routes can give has a message
+  in English and Dutch. All of it shows only while the server has `API_KEY_ROLES_ENABLED` on (told with
+  the workspace permissions as `apiKeyRolesEnabled`): with it off the page is as it was, asks for no
+  extra data, and only a key that already stores a role or a list shows it, read only.
+- The dashboard has an Activity page (`/dashboard/activity`) and, for each form, an Activity item
+  after Versions: who changed what, newest first, one plain sentence per entry in English or
+  Dutch, filtered by type, person, form and date range (kept in the address, so a view can be
+  sent to a colleague), with "Show older entries" paging and the retention period stated. Owners,
+  Admins and Privacy officers (`audit.read`) see it, only while `AUDIT_LOG_UI_ENABLED` is on; a
+  Privacy officer sees no response links and no session ids. See `docs/audit-log.md`.
+- The Activity page has an Export menu: the entries of the filters on screen as a CSV or JSON file,
+  with the same filters and permission as the list (Owner, Admin, Privacy officer), also for a form's
+  own activity (`GET /workspaces/{id}/audit-log/export` and `.../forms/{form_id}/audit-log/export`).
+  A Privacy officer's file has no session or response ids, exactly like their screen. Exporting is
+  itself recorded in the log before the file starts (nothing is sent if that cannot be recorded),
+  at most 100,000 entries and five exports per person every ten minutes. Only requests made with
+  `fetch` are served (a followed link, an image or a frame answers 403 `export_needs_fetch`), and
+  like the list it answers 422 `audit_log_off` while `AUDIT_LOG_UI_ENABLED` is off.
+- The workspace audit log can be read: `GET /workspaces/{id}/audit-log` and
+  `GET /workspaces/{id}/forms/{form_id}/audit-log`, behind `AUDIT_LOG_UI_ENABLED` (off by default,
+  422 `audit_log_off` while off; events are recorded either way). Owners, Admins and Privacy
+  officers (`audit.read`) read entries newest first in pages of 20 (at most 100), filtered by kind,
+  person, form and date range. An entry holds codes and ids only: a Privacy officer sees who did
+  what to which form and when, with no response link and no session id, and a member who has left
+  shows without a name. Adds migration 0038 (indexes behind the filters) and
+  `auditLogUiEnabled` in the workspace permissions. See `docs/audit-log.md`.
+- The workspace audit log now records who invited, removed or changed the role of a member, who
+  revoked an invitation (and when one was accepted), who published or deleted a form, who deleted a
+  response, and each export, bulk read or response PDF (a pointer to the export's own record).
+  Entries hold ids and enum values only: no names, addresses or answers. Inviting, revoking,
+  removing, changing a role and deleting a form or a response are written before the change and
+  refused (503 `audit_unavailable`) when the entry cannot be stored; the others are best effort.
+- Owners choose how long the workspace's activity log keeps its entries: 6, 12, 24 or 60 months
+  (12 by default, never less than 6). The Activity page states the workspace's period and lets an
+  owner change it; the change is itself recorded in the log, and a shorter period applies at the
+  next daily clean-up. The clean-up job is now called `audit_log_purge` (it was `sso_audit_purge`;
+  a job still queued under the old name runs as before) and applies each workspace's own period.
+- The workspace audit log now records changes to workspace security settings and to a form's
+  integrations. Settings: single sign-on connections (created, enabled, disabled, deleted), the
+  require-single-sign-on switch and the default role it gives, verified email domains (claimed,
+  verified, removed), directory sync (the token created, replaced or revoked, and a group mapped to
+  a role), the AI consent and the custom domain. Integrations: an email action (created, changed,
+  switched on or off, deleted) and a case-system service or a form's registration to one (created,
+  changed, switched on or off, deleted). Entries hold ids, enum values and the names of the parts
+  that changed, never an address, a URL, a hostname, a template, a name, a token or a secret.
+  Changes that open access, send answers somewhere new or remove configuration are written before
+  the change and refused (503 `audit_unavailable`, nothing changed) when the entry cannot be
+  stored; closing a way in and the inert ones are best effort.
+- The form builder opens on a chosen tab of its side panel from the address: `/edit?tab=form` shows the
+  Form tab (purpose, retention, privacy link); `page` and `design` work the same. Anything else leaves the
+  panel as it was.
+- `python -m backend.migrate_builtins` (`preflight`, `apply`, `verify`, `rollback`) moves a form's
+  built-in actions onto the backend's own features: "send a webhook", Slack and Discord become webhooks,
+  "send me a copy" and the respondent's copy become email actions, and the Google Sheets action is run
+  by the backend. Nothing is sent and no switch is turned on; what cannot move (an address that is not
+  public https, a recipient who is not a member, a full limit, a switch that is off) is reported and
+  left as it is. The old action is switched off in the same step, and `rollback` gives it back. The
+  moved webhooks and email actions appear in the Webhooks and Email actions panels.
+- The command line tool (`bettercollected`, Python SDK) has two new commands.
+  `create` makes a new draft form from a file. `promote` copies a form from one workspace
+  or instance to another as a draft, for example staging to production: it shows what is
+  adjusted and what never moves (responses, webhooks and other automations, sharing, the
+  form's link, publish state, the logo file) and a diff against the target form, supports
+  `--dry-run`, and never publishes. An existing target form keeps its own retention,
+  purpose and privacy link unless `--copy-privacy` is given. API keys are read from the
+  environment or a private config file, never from the command line, and are never
+  printed. The new page `docs/environments.md` explains it.
+- Email actions can name every question of the form (`allQuestions` in the API response), the way the
+  built-in "send me a copy" mail did: new questions are in the next mail without editing the action,
+  and files are left out. Such an action also says how it came to be (a built-in action that moved
+  into email actions in 4.4). A creator cannot turn it on, and picking questions ends it. Default
+  words (English and Dutch) for these actions: "You have got a new response in {{form_title}}" and the
+  answers with a link to the responses.
+- Teams and grants on a form, as API routes (behind `FORM_ACCESS_ENABLED`, off by default; every
+  route but the read of a form's access answers 422 `form_access_off` while it is off): teams of workspace members (`/workspaces/{id}/member-groups`, owners
+  and admins), the people and teams a form is shared with (`PUT/DELETE .../forms/{id}/grants`)
+  and a form's access mode (`PUT .../forms/{id}/access/mode`). A role given on a form is never
+  above the giver's own, only an owner or admin allows exporting responses, nobody changes their
+  own access, a privacy officer is never given one, and on a restricted form only an owner, an
+  admin or the form's creator decide who may open it. Every such change is written to the
+  workspace's audit log first (ids only) and is refused when it cannot be recorded. Deleting a
+  form, a team, a member or an account removes the grants and team memberships that named it.
+  `GET /workspaces/{id}/permissions` also reports `formAccessEnabled`.
+  Until the feature is released the switch is read from the environment only (the admin portal's settings
+  do not offer it).
+- Groundwork for access on a single form: three new tables (teams of members, their members and
+  grants on a form), the permission decision that combines a member's workspace role with their
+  grants and a form's access mode (restricted to chosen people and teams, or open to every role),
+  and the form's access mode as a stored setting that no create, import, replace or settings
+  patch can set. It is behind `FORM_ACCESS_ENABLED`, which is off by default: while it is off
+  nothing about a form is decided differently and no query is added.
+- Form-level access is now enforced wherever a form or its answers are read, behind
+  `FORM_ACCESS_ENABLED` (off by default; while it is off nothing is decided differently and no
+  query is added). With it on, a member a restricted form is closed to gets the same "not found"
+  as for a form that does not exist, and the form is left out of the dashboard list, the search,
+  the workspace counts, the all-submissions and responders views, the analytics of its page
+  and the form lists of the MCP server and the public API, narrowed before anything is counted or
+  paged. Owners and admins always see every form; a member with a grant sees what the grant gives.
+  A form restricted against a member is still offered in the public list as to any respondent when
+  it is open to respondents, and a member still reads their own submission of it. Email "team
+  recipients" and "send me a copy" never send the answers of a form to a member who may not read
+  them.
+- Form-level access is now enforced wherever a form is changed, behind `FORM_ACCESS_ENABLED` (off by
+  default; while it is off nothing is decided differently and no query is added). With it on, editing,
+  publishing, deleting and duplicating a form, its settings and responder groups, its automations
+  (actions, webhooks, email actions, registration), the AI chat, review and insights, the operations
+  API, version restore, the Open Formulieren export and creating a template from a form all decide on
+  that form: a member a restricted form is closed to gets the same "not found" as for a form that does
+  not exist (a permission their role lacks stays the usual "forbidden"). A grant gives what its role
+  gives and never deletes the form; owners and admins always pass. A copy of a restricted form is
+  restricted too. The delivery logs of a restricted form are for whoever may edit it (the audit log
+  permission alone no longer opens them), and the workspace figure for deletion requests counts the
+  forms a Privacy officer may handle.
+- Form-level access now covers workspace API keys, in the public API and in the MCP server, behind
+  `FORM_ACCESS_ENABLED` (off by default; while it is off nothing is decided differently and no
+  query is added). A key acts as the person who made it: the key of an owner or an admin reaches
+  every form, restricted ones included, and the key of a member a restricted form is closed to
+  (an editor since demoted, say) gets the same "not found" as for a form that does not exist, on
+  every form route (read, replace, publish, delete, operations, responses, deletion requests, and
+  creating or changing a response through the submissions API) and in every MCP tool that names a
+  form or a response. What a grant gives that member, the key gives; a form the key can open
+  but not use for a call is the usual 403. Respondent-side submissions through the submissions API
+  are unchanged: restricting a form is about the team, not the respondent.
+- Directory groups can feed a team (behind `FORM_ACCESS_ENABLED`, off by default; with the switch
+  off the two new routes answer 422 `form_access_off`): the owner links a directory (SCIM) group
+  to a team under Workspace, Members, Teams, "Linked directory groups", or with
+  `PUT/DELETE /workspaces/{id}/scim/groups/{group_id}/team`. One group is in one team, a team may
+  take several groups, and no one below the owner can change a link. The people in a linked group
+  are in the team while the directory says so, read when a request is decided and never copied:
+  deactivating or deleting someone in the directory, or taking them out of the group, ends the
+  access their team gave them on the next request, with no sync step in between. A person in
+  a team through a group is removed in the directory, not on the team page. Linking and
+  unlinking are written to the audit log (ids only), also when the directory deletes a linked
+  group.
+  Adds migration 0039 (a table for the links and an index on directory users' accounts).
+- The screens for form-level access, shown only while the server has `FORM_ACCESS_ENABLED` on (off
+  by default; with it off nothing changes on screen and the webapp asks for nothing extra). A
+  form's Settings, Access page gets a card "Who on your team can open this form", kept apart from
+  the respondent visibility below it: choose everyone in the workspace by their role or only
+  selected people and teams (with a confirmation either way), add people and teams with a role and
+  the export flag, change or remove them, and read the server's refusals as plain sentences. The
+  Members page gets a Teams tab (create, rename and delete teams, add and remove active members,
+  with the limits shown) and a "What can they open?" view in a member's menu. A restricted form
+  shows a "Restricted" chip in the form bar. The screens are in English and Dutch.
+- Form-level access (behind `FORM_ACCESS_ENABLED`, off by default; with it off no payload and no
+  query changes): the dashboard's forms list, search and a form's own read carry an `access`
+  block with the reader's own view (`restricted`, `canManage`, `permissions`), read once for the
+  whole page. `GET /workspaces/{id}/members/{user}/access` names the form (`formId`, `formTitle`)
+  of each grant, only for forms the caller may open. Whoever may change a form's circle but cannot
+  list the members (an Editor who created it) gets a name-only picker, `GET
+  .../forms/{id}/access/candidates` (people and teams with their size; no addresses, nothing
+  audited). A team grant reports the team's `memberCount`, a grant its giver's name (`grantedBy`),
+  and `GET .../forms/{id}/access/impact?mode=restricted` counts, as a dry run, the members who
+  would lose access if the form were restricted.
+- Form-level access screens now use the new server fields (only while `FORM_ACCESS_ENABLED` is on;
+  with it off nothing changes and nothing extra is requested). In a form's Access settings,
+  someone who may share the form but cannot list the members, such as the Editor who created it,
+  can add people and teams from the server's name-only picker; each team grant shows the team's
+  size, says "Team has no members" when it is empty, and shows who added it and when; and the
+  confirmation for restricting a form says, and announces to screen readers, how many people will
+  lose access. "What can they open?" names the form of each grant, or "A form you can't open".
+  English and Dutch.
+- A form's structure can be copied to another workspace as a draft, behind `FORM_PROMOTION_ENABLED` (off by
+  default, environment only; the routes answer 422 `form_promotion_disabled` while off). `POST
+  /workspaces/{id}/forms/{form_id}/promotion/preview` shows the diff, what is adjusted and what is not copied
+  (counts only), and `.../promotion/apply` writes a new draft or the draft of an existing form, with the
+  source's and target's ETags (412 when either changed) and an `Idempotency-Key`. Both sides are checked for the
+  same person (`form.read` on the source, `form.create` or `form.edit` in the target, a target workspace you are
+  not in answers 404); a restricted form is copied only by an Owner, an Admin or its creator and stays
+  restricted (onto an existing form only when that form is restricted too: 409 `target_not_restricted`). An existing target keeps its retention, purpose and privacy link unless you tick to copy them.
+  Option lists are matched by name, answer-fed options are dropped, answers, webhooks, email actions, connected
+  actions and case system hand-overs never move. `GET .../promotion/targets` lists the forms to update and
+  `GET .../spec-file` downloads the form's document. Both sides are recorded in the Activity log
+  (`form_copied_out`, `form_promoted`) before anything is written. Adds `formPromotionEnabled` to the workspace
+  permissions. See `docs/environments.md`.
+- Copy a form to another workspace from the dashboard, while `FORM_PROMOTION_ENABLED` is on (off by default).
+  The form's ⋮ menu has **Copy to another workspace…**, a three-step dialog: pick a workspace where you can
+  create forms and a new or an existing form, review what will change (the same sentences as the Versions
+  compare page), what is not copied, what was adjusted and whether the copy is restricted, then open the
+  draft. For an existing form you can tick to also copy its data protection settings; a shorter retention
+  needs a second confirmation. Every refusal has a clear message in English and Dutch (a restricted copy
+  onto an open form says "Restrict the target form first" and links to that form's Access page). **Settings →
+  Advanced** has a **Form file** card to download the form's file and a "Copied from …" line for editors.
+  Nothing shows while the setting is off.
+- The backend can run the Google Sheets action itself, in its jobs worker on a new `integrations` queue,
+  instead of the actions executor: the same header row, answer row and group tabs, the same permanent
+  and retried failures (a missing sheet or withdrawn access ends the run, a Google error is retried after
+  5 and 25 seconds), visible in the action log, with the access token refreshed and stored by the
+  backend. Nothing runs there until a built-in action is moved (`migrate_builtins`); the worker serves
+  `integrations` by default, so a `JOBS_QUEUES` you set must name it (`default,webhooks,emails,exports,imports,integrations`).
+- Groundwork for an authenticator app (TOTP) as a second factor for staff: two new tables for the
+  factor and its recovery codes, `/auth/mfa/*` routes to set one up, check a code, make new
+  recovery codes and turn it off, and the sealed secret. It is behind `TOTP_ENABLED`, which is
+  off by default: while it is off the routes answer 422, nobody is asked for a second factor and
+  nothing else changes.
+- A workspace can require an authenticator app for its members (owners only, behind `TOTP_ENABLED`,
+  off by default). A member whose session has not presented a second factor gets "second factor
+  required" on the workspace's pages and is sent to set one up or enter the code, in the same
+  session: nobody is signed out. API keys and single sign-on sessions of the workspace are not
+  asked. The rule also applies to a disabled workspace, where owners can still read and export responses. An owner sees how many members have set one up, and can remove a member's authenticator
+  app (for people whose address is on one of the workspace's verified domains, or who belong to no
+  other workspace, and never a platform administrator's); the platform administrator can remove anyone's. Whoever resets first enters their own second-factor code in that session. Both end that person's sessions
+  and tell them by email, in English or Dutch (in the language they last used). The email also tells an account when an app is
+  added or turned off, when a recovery code is used and when the step is locked; each further lock
+  before a correct code lasts longer (15 minutes, 1 hour, 6 hours, 24 hours).
+- Signing in with an authenticator app: an account that has set one up (behind `TOTP_ENABLED`, off by
+  default) is asked for a code, or a recovery code, after its email code or Google sign-in, before a
+  session is created. The session records it and its tokens carry it. Single sign-on sessions and
+  respondent sessions are not asked. While the setting is off, sign-in is exactly as before.
+- Authenticator app in the dashboard (behind `TOTP_ENABLED`, off by default): a Security card in
+  Account settings to set one up (QR code drawn in the browser, or a typed key), keep the ten
+  recovery codes, make new ones and turn it off (each with a fresh code); a code step on the
+  sign-in page after the email code or Google, with a recovery code as the fallback and a clear
+  message when the step is locked or the sign-in has expired; for owners, a Security tab next to Domains
+  to require one for all members (with who has none yet), a column in the
+  member list and a "Reset second factor" action; and a page that asks a signed-in member for
+  the code (or sets one up) when a workspace requires it, without signing anyone out. English
+  and Dutch. While the setting is off none of this appears and sign-in is unchanged.
+- Webhooks have a `format`, shown in the webhooks list. Besides the signed `envelope` there are
+  `legacy_list` (the bare list of questions and answers the built-in "send a webhook" action posted,
+  now also signed), `slack` and `discord` (the messages the built-in Slack and Discord actions
+  posted). They exist for built-in actions that move into webhooks in 4.4 and send every question:
+  a creator cannot choose them, and can only move a `legacy_list` webhook to the `envelope` format.
+  A Slack or Discord webhook only goes to that service's own webhook address.
+- The Webhooks settings of a form show a "Legacy format" badge on a webhook that came from a built-in
+  action, a "Slack message" or "Discord message" badge on the chat ones, and say that they send every
+  question. A legacy format webhook has a "Switch to signed format" button, with a confirmation that
+  explains the receiver must read the new format and verify the signature first. In English and Dutch.
+
+### Changed
+
+- The MCP server now rate limits API keys like the public API does: 120 tool calls a minute per
+  key and 600 a minute for all of a workspace's keys together (`API_PUBLIC_API_REQUESTS_PER_WINDOW`,
+  `API_PUBLIC_API_WORKSPACE_REQUESTS_PER_WINDOW`, `API_PUBLIC_API_WINDOW_SECONDS`; 0 turns a limit off),
+  in budgets of their own so a burst on one surface never uses up the other's. A call over the
+  limit is refused with the number of seconds to wait. Before this, a key could call MCP tools
+  as fast as the database allowed, for example to page through a workspace's answers. An agent
+  that made more than 120 tool calls a minute with one key now has to slow down or have the
+  ceiling raised.
+- A published form now opens on its Responses, for whoever may read them; a draft, or a person who may not
+  read responses, opens on Pages. An imported form has no page previews: its Pages view now says so
+  instead of showing an empty page.
+- A form's pages no longer show the workspace navbar. One slim bar stays at the top with Back to forms (a
+  real link, so it also opens in a new tab), the form's title and status, Preview, Edit and Share (Publish
+  for a draft) and the form's menu. The menu now also holds Open form, the form's version and, for an
+  imported form, where it came from. The breadcrumb, the line under the title and the footer line are gone
+  (a form made here is no longer labelled "bettercollected form"), the first screen of every form page
+  gains about 210 px, and a "Skip to content" link is the first stop on the page. The first section is
+  now called Pages instead of Preview, so it no longer repeats the Preview button. Addresses and who sees
+  which section are unchanged.
+- A form's sections (Pages, Responses with Deletion requests under it, Analytics, Share, Versions and
+  Settings) now sit in a side menu instead of a row of tabs, so there is no sideways scrolling to find one.
+  The menu is 240 px wide and collapses to icons with a button at its foot; the choice is remembered, and
+  it starts collapsed on screens narrower than 1280 px. On a phone a row under the bar names the current
+  section and opens a sheet from the bottom with all of them. The "All responses / Deletion requests"
+  switch on the Responses page is gone (it is in the menu). Addresses and who sees which section are
+  unchanged.
+- A form's Settings is now five pages, each with its own address: `/settings/access`, `/availability`,
+  `/experience`, `/automations` and `/advanced`. They open from the form's side menu (Settings expands to
+  them; on a phone they are in the section sheet), so the settings no longer need a menu or a select of
+  their own. A page with nothing on it for that form is not listed (a form imported from elsewhere has no
+  Availability or Automations), and opening one directly goes to Access. `/settings` goes to Access, the
+  old `/visibility` address to Access and `/integrations` to Automations. When you move between pages,
+  focus goes to the new page's heading. Every setting and who may change it is unchanged.
+- A form's Settings page is regrouped by what you want to do: Access (who can see it and who must verify
+  their identity), Availability (a status line such as "Open · closes 12 December 2026 at 18:00 · 37 of 100
+  responses", then the open date, closing and the response limit), Respondent experience (while filling in,
+  after sending, branding), the automations as before, and Advanced (the original form, a link to the
+  privacy settings in the builder, delete). "Allow response editing" now always shows, switched off with a
+  link to Access while "Require verified identity" is off, and the branding switch shows for every
+  published form, also a closed one. "Pin form" moved out of Settings into a new actions menu at the top
+  of the form page, which also shows a "Pinned" label.
+- A form's Settings page now shows its automations (email, webhooks, case system and each integration such
+  as Google Sheets) as compact cards: a name, one line about what it does, a status in words (On, Off,
+  "2 not sent", Not set up, Reconnect needed) and the buttons Manage and Deliveries. Manage opens the
+  existing settings and Deliveries opens the existing delivery log in a side sheet; the open sheet is kept
+  in the address (`?panel=`), so Back closes it. Who sees which card is unchanged.
+- The `authkeys.*` tasks that rotate `AUTH_AES_HEX_KEY` also cover the secrets of authenticator
+  apps (second-factor setup): `reencrypt` moves them to the new key, `verify` and `drop_old`
+  count them, and the task runner's data role gets read and write access to their `doc` and
+  checksum only. Deploy this before turning `TOTP_ENABLED` on.
+- With `FORM_ACCESS_ENABLED` off, the backend now logs one warning at startup when restricted
+  forms, form grants or teams are stored: those forms are open to every member's workspace role
+  while the switch is off, as before, and the operator is now told how many (counts only, no
+  names or ids). The check is one read bounded by a two-second statement timeout; with the
+  switch on it runs no query, and a failure of the check never stops the start.
+
+### Removed
+
+- The key-only route `PATCH /temporal/forms/{form}/actions/{action}/secrets`, which actions executors
+  older than 4.3 used to write a refreshed Google credential back with their own copy of the encryption
+  key, is removed (it answers 404). **Run an actions executor of version 4.3 or later before upgrading
+  the backend to 4.4**: on the Postgres queue the 4.3 executor writes back on the run-scoped route and
+  holds no key. An executor that cannot write back still works: it refreshes the Google access token at
+  every run (the Temporal entry point never wrote it back, in any version). Nothing changes for an
+  executor that is already 4.3.
+
+### Fixed
+
+- Editing an API key's role or list of forms no longer holds up the requests made with that key.
+  The edit is now worked out before the key's row is locked, and the lock covers only a check
+  that the key is unchanged, its audit entries and the write (an edit that finds the key changed
+  meanwhile is worked out again, and answers 409 `key_changed` if that keeps happening). The
+  last-used update that every request with a key makes now skips a key that is being edited or
+  revoked instead of waiting for it, so under load those requests no longer wait for the
+  database's lock timeout and fail.
+- Removing a member from a workspace no longer deletes the forms they created or imported, with
+  their responses: the forms stay with the workspace and are handed to its billing owner (so
+  deleting that person's account later does not take them either, and inviting them again does
+  not give them back what they created). The confirmation text (English and Dutch) says so.
+- The page cards on a form's Pages view are sized from the space they are in, so with the side menu open the
+  second column no longer spills past the window and makes the page scroll sideways.
+- On a form's Settings page the Google Sheets automation card now describes itself in the dashboard's
+  language (it showed English in Dutch), and the close button of an automation's side sheet no longer
+  overlaps the end of its introduction.
+- The "Open in the builder" link on a form's Advanced settings now has a name that starts with the words on
+  it, so it can be reached by voice control.
+- Copying a form to another workspace: a target form that was opened between the review and the write is
+  refused (409 `target_not_restricted`) instead of receiving a restricted form's questions, and a
+  copied-from mark arriving in imported settings is dropped (only a copy writes it). The Activity page now
+  says "downloaded the file of …" for a form file download instead of "copied … to another workspace".
+- The form menu (the three dots on a form card and at the top of a form) is now a real button and menu: it
+  opens and moves with the keyboard and has a name for screen readers.
+- The "x" that removes a scheduled closing date in a form's settings is a button with a name, so it works
+  with the keyboard.
+- A form's Settings page no longer scrolls sideways on a phone when a Google Sheets address is long.
+- On the API keys page, a key limited to forms whose forms are all gone can be renamed again (the list
+  only has to hold a form when the list itself is changed). A stored role the page does not know shows
+  an "Unknown role" label in the list and a warning in the edit dialog, which asks for a role before
+  anything else is saved. A refused edit says in words when the list holds forms the editor cannot open,
+  and an audit log that is down ("the change could not be recorded") has a message in English and Dutch.
+  Editing a key no longer asks for the single sign-on page's data again.
+- The form editor no longer says a form "changed elsewhere" after your own edit. When the answer to an
+  autosave got lost (a dropped connection or a gateway timeout) the editor sent the edit again, and the
+  server, which had already stored it, took that for a change made in another tab. The editor now sends
+  such a save again first, and the server answers a save that its draft already contains with the stored
+  draft instead of a conflict. A save over a draft that really changed elsewhere is still refused.
+- A form's Access page no longer says that only owners and admins can allow exporting next to an
+  Editor: an Editor grant exports responses by its role. The note now appears only with the
+  tick-box for a Reviewer or Viewer, in English and Dutch.
+- With form-level access on, a form's access mode can no longer be undone by a save that read the
+  form earlier (the AI chat's settings edits, the AI insights switch, the builder's settings), and a
+  copy of a restricted form is stored restricted in one write, so it is never open, not even briefly
+  or when the write fails. While the switch is off nothing changes.
+- Copying a form to another workspace: the target's access mode is now checked inside the transaction of the
+  write itself (under a share lock on its link), so a restricted form can never land in a target that was
+  opened meanwhile; a copy that failed because the audit log was down (503) can be sent again with the same
+  Idempotency-Key instead of replaying the failure; the dialog asks for the other workspaces' permissions a few at a time, however many
+  workspaces there are, and makes its Idempotency-Key only from the browser's secure random source.
+- Copying a form to another workspace: a copy whose write changed nothing (the draft already was that document)
+  no longer marks the form as copied, the workspace picker stops asking once the dialog is closed and says it
+  failed when every request failed instead of "no other workspace", and a check handed to the form write
+  without the conditional write it runs in is refused instead of skipped.
+- The workspace switcher now shows your actual role in each workspace (Owner, Admin, Editor, Reviewer,
+  Viewer or Privacy officer, in English and Dutch). It labelled everyone who is not an owner
+  "Collaborator". When a role is not known, no label is shown. `GET /workspaces/mine` now reports
+  the caller's `role` per workspace.
+
+### Security
+
+- Revoking an API key, and every automatic revocation (a member removed, an account deleted, a
+  directory deprovisioning), now also deletes the key's list of forms, in the same transaction. When a
+  workspace is deleted, every API key of it is revoked, including those of its other members.
+- Where a form was copied from (`promotedFrom`: workspace and form ids, who copied it) is staff information:
+  it is removed from every form a respondent or the public receives, on every read, whatever the switch says.
+- API keys can no longer tell a closed form from a missing one. With form-level access on, the public API
+  answered a form closed to the key's creator with the 404 of an unknown form, but a missing form
+  only after the request's input had been checked, so a bad query or body (`page=0`, an invalid
+  JSON body) gave a different answer for the two, and a bad submission body spent the form's
+  submission budget for a missing form only. A missing form now answers exactly as a closed one,
+  before any input is read and before a budget is spent. A response of the public API is also
+  decided on its form before it is decrypted, so nothing is decrypted for a response outside the
+  key's reach.
+- Saving a restricted form as a template is limited to Owners, Admins and the form's creator. A
+  template has no access mode and is visible to every member of the workspace, so with form-level
+  access on, a workspace Editor or a member with an Editor grant on a restricted form could copy
+  its structure (never its answers) into the shared template library. They now get a 403
+  `template_from_restricted_form`; a Private form with no access mode chosen counts as restricted.
+  Open forms, and instances with form-level access off, behave as before.
+- A workspace API key no longer outlives the person who made it. Removing a member left the keys they
+  had created in place: they answered 403 while the person was away, but invited again (or provisioned
+  again by the directory) the same person got every old key back under whatever role they then held.
+  Removing a member, deleting an account and the directory deprovisioning a user now revoke the keys
+  that person created in that workspace (in every workspace for an account deletion). The revocation
+  is part of the member removal's own transaction, so a removal never leaves a live key, and each
+  revoked key gets an `api_key_revoked` entry in the workspace's audit log first (key id, reason, the
+  person; never a name, prefix or token). The key rows stay, revoked, so the audit and "last used"
+  remain. Other members' keys are untouched, and keys revoked this way are not restored by inviting
+  the person again.
+- Access-token checks now require an access token, in the Google Forms
+  integration service and in the auth service; the form-import routes check
+  the signed-in user first.
+
 ## [4.3.0] - 2026-11-02
 
 4.3.0 adds signature, address and layout to the form builder, options from a workspace list or another form, exports as Excel, JSON and a PDF of one response, embedding forms in other sites, a submissions API, CSV import of responses, form versions with staff edits and a history of every edit, and reusable sections. It also confines the actions executor and closes framing and denial-of-service gaps.
@@ -3248,7 +3742,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.3.0...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.4.0...HEAD
+[4.4.0]: https://github.com/bettercollected/bettercollected/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/bettercollected/bettercollected/compare/v4.2.0...v4.3.0
 [4.2.0]: https://github.com/bettercollected/bettercollected/compare/v4.1.2...v4.2.0
 [4.1.2]: https://github.com/bettercollected/bettercollected/compare/v4.1.1...v4.1.2
