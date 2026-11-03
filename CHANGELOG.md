@@ -19,7 +19,7 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 - **Form access.** A form can be restricted to chosen people and Teams, on top of a member's workspace role. Owners and Admins give a role on a form (Editor, Reviewer or Viewer, with an optional right to export) to a person or a Team, and the form's creator decides who may open their own restricted form. Owners link a directory (SCIM) group to a Team, so the directory decides who is in it. The rule applies to the dashboard, the search, the counts, the public API and the MCP server; a form a member may not open answers as a form that does not exist. Switch: `FORM_ACCESS_ENABLED`. See `docs/form-access.md`.
 - **API key roles and form scope.** A workspace API key can carry a role (Editor, Reviewer, Viewer or Privacy officer) and be limited to a list of forms, and an edit route changes them later. A key never does more than the person who made it, and a key limited to forms can no longer create a form. Switch: `API_KEY_ROLES_ENABLED`. See `docs/api-keys.md`.
-- **Activity log.** An Activity page for the workspace and one for each form say who changed what, newest first, in English or Dutch, with filters and paging. Member, form, response, security-setting and integration changes are recorded, owners choose how long entries are kept (6, 12, 24 or 60 months, 12 by default), and the log can be exported. Switch for the pages and routes: `AUDIT_LOG_UI_ENABLED`; the recording does not depend on it. See `docs/audit-log.md`.
+- **Activity log.** An Activity page for the workspace and one for each form say who changed what, newest first, in English or Dutch, with filters and paging. Member, form, response, security-setting and integration changes are recorded, owners choose how long entries are kept (6, 12, 24 or 60 months, 12 by default), and the log can be exported as CSV or JSON (the export is recorded first, at most 100,000 entries and five exports per person every ten minutes). Switch for the pages, routes and export: `AUDIT_LOG_UI_ENABLED`; the recording does not depend on it. See `docs/audit-log.md`.
 - **Copy a form to another workspace.** A form's structure goes to another workspace (or instance) as a draft, with a review of what changes and what never moves, from the form's menu, the API or the `bettercollected promote` command. Switch: `FORM_PROMOTION_ENABLED`. See `docs/environments.md`.
 - **Authenticator app for staff.** Accounts can set up a TOTP second factor with recovery codes, owners can require it for a workspace's members and reset a member's app, and the account is told by email when it changes. Switch: `TOTP_ENABLED`. See `docs/totp.md`.
 - **Built-in actions on the backend.** "Send a webhook", Slack, Discord, "send me a copy" and the respondent's copy become webhooks and email actions, and the backend runs the Google Sheets action itself on a new `integrations` queue. `python -m backend.migrate_builtins` moves a form's actions after a preflight and can roll back; nothing moves by itself. See `docs/moving-builtin-actions.md`.
@@ -32,6 +32,7 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - **New switches, all off by default.** All five are read by the **backend** only; the dashboard learns about them from the workspace permissions, so the webapp needs no setting.
   - `FORM_ACCESS_ENABLED`, `API_KEY_ROLES_ENABLED` and `FORM_PROMOTION_ENABLED` are **environment only**: the admin portal's settings do not offer them. Set them on the backend service.
   - `AUDIT_LOG_UI_ENABLED` and `TOTP_ENABLED` are ordinary settings: set them in the environment or in the admin portal's settings.
+  - A reasonable setup for an instance with several teams: turn on `FORM_ACCESS_ENABLED`, `API_KEY_ROLES_ENABLED`, `AUDIT_LOG_UI_ENABLED` and `FORM_PROMOTION_ENABLED`, and leave `TOTP_ENABLED` off until you have read `docs/totp.md` and run the `authkeys.verify` check described below. Left as shipped, all five stay off.
   - There is no other new switch. Moving built-in actions onto the backend needs the existing `WEBHOOKS_ENABLED`, `EMAIL_ACTIONS_ENABLED` and `MAIL_*`, but only when you choose to run `migrate_builtins`.
   - Turn `TOTP_ENABLED` on only after 4.4 runs everywhere and `authkeys.verify` (`docs/auth-key-rotation.md`) reports no value it cannot open. Deploy backend, auth and webapp together: the sign-in step, the tokens and the emails span all three.
 - **Job queues:** the jobs worker now serves `default,webhooks,emails,exports,imports,integrations`. If you set `JOBS_QUEUES` yourself, include all six (the worker logs a warning at start when `integrations` is missing).
@@ -123,6 +124,14 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   sent to a colleague), with "Show older entries" paging and the retention period stated. Owners,
   Admins and Privacy officers (`audit.read`) see it, only while `AUDIT_LOG_UI_ENABLED` is on; a
   Privacy officer sees no response links and no session ids. See `docs/audit-log.md`.
+- The Activity page has an Export menu: the entries of the filters on screen as a CSV or JSON file,
+  with the same filters and permission as the list (Owner, Admin, Privacy officer), also for a form's
+  own activity (`GET /workspaces/{id}/audit-log/export` and `.../forms/{form_id}/audit-log/export`).
+  A Privacy officer's file has no session or response ids, exactly like their screen. Exporting is
+  itself recorded in the log before the file starts (nothing is sent if that cannot be recorded),
+  at most 100,000 entries and five exports per person every ten minutes. Only requests made with
+  `fetch` are served (a followed link, an image or a frame answers 403 `export_needs_fetch`), and
+  like the list it answers 422 `audit_log_off` while `AUDIT_LOG_UI_ENABLED` is off.
 - The workspace audit log can be read: `GET /workspaces/{id}/audit-log` and
   `GET /workspaces/{id}/forms/{form_id}/audit-log`, behind `AUDIT_LOG_UI_ENABLED` (off by default,
   422 `audit_log_off` while off; events are recorded either way). Owners, Admins and Privacy
