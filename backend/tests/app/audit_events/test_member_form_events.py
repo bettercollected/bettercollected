@@ -8,7 +8,9 @@ address, no answer). The ones that remove data or give access are written
 cannot be stored; the rest are best effort. A statement count shows each hot
 path pays for exactly one INSERT. Everything here is synthetic."""
 
+import time
 from contextlib import contextmanager
+from contextvars import ContextVar
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -496,20 +498,35 @@ def test_the_new_kinds_are_listed_once_and_distinct_from_the_older_ones():
 
 
 # -- one statement ----------------------------------------------------------------
+_counting = ContextVar("member_form_events_counting", default=None)
+
+
 @contextmanager
 def counted():
-    """Every statement the database receives, in order."""
+    """Every statement the database receives on behalf of the code run inside
+    the block (this task, and the tasks it starts), in order.
+
+    The listener sits on the engine every test shares, and the tests of a
+    worker share one event loop: a task an earlier test left running (a
+    notice, a heartbeat, an import) would add its statements to the count at
+    whatever moment it wakes. A statement counts only when it runs in the
+    context this block opened; a task started earlier has a context that
+    never saw the marker."""
     seen = []
+    marker = object()
+    token = _counting.set(marker)
     engine = container.pg_engine().sync_engine
 
     def before(conn, cursor, statement, parameters, context, executemany):
-        seen.append(statement)
+        if _counting.get() is marker:
+            seen.append(statement)
 
     event.listen(engine, "before_cursor_execute", before)
     try:
         yield seen
     finally:
         event.remove(engine, "before_cursor_execute", before)
+        _counting.reset(token)
 
 
 def inserts_of_audit(statements):
@@ -612,7 +629,11 @@ async def test_starting_an_export_pays_one_insert(workspace, monkeypatch):
         await service._exports.delete_by_form_ids([form.form_id])
         return started
 
-    # the first request of a window opens the rate limit's counter: a warm-up
-    # makes the two measured calls the same shape
+    # the first request of a window opens the rate limit's counter (and clears
+    # the expired ones): a warm-up makes the two measured calls the same shape.
+    # The windows are wall-clock hours: the limiter's clock stands still, so
+    # the hour cannot turn between the warm-up and a measured call
+    now = time.time()
+    monkeypatch.setattr(service._limiter, "_clock", lambda: now)
     await stream()
     await paid_for_audit(monkeypatch, stream, stream)

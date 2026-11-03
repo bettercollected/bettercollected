@@ -32,6 +32,7 @@ from backend.jobs import tasks
 from backend.jobs.app import app
 from common.db import load_flags
 from tests.app.controllers.data import testUser
+from tests.app.jobs.helpers import run_worker
 
 GOOGLE_URL = "http://google-forms.invalid"
 LOGGERS = ("backend.app.services.credential_purge", "backend.app.services.auth_service")
@@ -247,14 +248,14 @@ async def test_a_failed_delete_leaves_a_pending_purge_that_later_succeeds(
         assert unseal(container.crypto(), job["args"]["sealed"]).email == testUser.sub
 
         # still failing: the attempt is retried later (the job stays pending)
-        await app.run_worker_async(wait=False, install_signal_handlers=False)
+        await run_worker()
         assert job["status"] == "todo" and job["attempts"] == 1
         assert job["scheduled_at"] is not None
 
         # the service is back: the next attempt erases them
         google.answer = 200
         job["scheduled_at"] = None
-        await app.run_worker_async(wait=False, install_signal_handlers=False)
+        await run_worker()
         assert job["status"] == "succeeded"
     assert len(google.calls()) == 3  # the deletion, the failed and the good attempt
 
