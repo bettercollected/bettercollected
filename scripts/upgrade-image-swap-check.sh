@@ -3,7 +3,7 @@
 # Such a stack never runs deploy.sh. It changes the image tags in its stack, restarts, and the services
 # migrate themselves (DB_AUTO_MIGRATE=true). This check does the same:
 #
-#   (1) old     a stack of the previous release (V4 default v4.2.0): its own docker-compose.deployment.yml
+#   (1) old     a stack of the previous release (V4 default v4.3.0): its own docker-compose.deployment.yml
 #               (git show <tag>), its published images, installed with ITS deploy.sh (first install only),
 #               then seeded: a workspace and a user, a form with six questions and three responses (through
 #               the API), one waiting and one finished 4.1-style action job that carries its payload
@@ -22,10 +22,10 @@
 # container, network, volume and image it created when it exits. Nothing else is touched.
 #
 # Parameters (environment):
-#   SWAP_CHECK_OLD_TAG=v4.2.0       the release the stack starts on (files from `git show <tag>:...`, images
+#   SWAP_CHECK_OLD_TAG=v4.3.0       the release the stack starts on (files from `git show <tag>:...`, images
 #                                   bettercollected/{backend,auth,webapp}:<tag>)
 #   SWAP_CHECK_CANDIDATE=build      (default) images built from this checkout: bc-swapcheck-{backend,auth,
-#                                   webapp}:local. Or a published tag, e.g. v4.2.0: bettercollected/*:<tag>
+#                                   webapp}:local. Or a published tag, e.g. v4.4.0: bettercollected/*:<tag>
 #   SWAP_CHECK_WEBAPP=build         (default with =build) | an image name for the webapp only
 #   SWAP_CHECK_REUSE_IMAGES=1       use bc-swapcheck-*:local images that already exist instead of building
 #   SWAP_CHECK_KEEP_IMAGES=1        do not remove the images this run built or pulled
@@ -54,7 +54,7 @@ for tool in docker curl openssl script uv git; do
 done
 docker compose version >/dev/null 2>&1 || { echo "docker compose v2 is required" >&2; exit 2; }
 
-old_tag="${SWAP_CHECK_OLD_TAG:-v4.2.0}"
+old_tag="${SWAP_CHECK_OLD_TAG:-v4.3.0}"
 candidate="${SWAP_CHECK_CANDIDATE:-build}"
 min_free_mb="${SWAP_CHECK_MIN_FREE_MB:-2500}"
 git -C "$root" rev-parse -q --verify "refs/tags/$old_tag" >/dev/null || { echo "the tag $old_tag is not in this checkout" >&2; exit 2; }
@@ -399,7 +399,7 @@ swap_images() {
 }
 
 # Settings a stack edit adds (not part of the image swap): written as a second compose file, the way a stack
-# file gets extra `environment:` lines. DB_AUTO_MIGRATE on every service; the six switches on the backend and the
+# file gets extra `environment:` lines. DB_AUTO_MIGRATE on every service; the switches of the release on the backend and the
 # two that matter on the jobs worker; MAIL_* on backend, jobs-worker and auth pointing at the sink.
 write_swap_override() {
   local mail
@@ -434,6 +434,10 @@ services:
       RESPONSE_REVISIONS_ENABLED: "true"
       CSV_IMPORT_ENABLED: "true"
       REUSABLE_SECTIONS_ENABLED: "true"
+      FORM_ACCESS_ENABLED: "true"
+      API_KEY_ROLES_ENABLED: "true"
+      FORM_PROMOTION_ENABLED: "true"
+      TOTP_ENABLED: "true"
 $mail
   jobs-worker:
     environment:
@@ -578,7 +582,7 @@ part_swap() {
 }
 
 checks_a_to_d() {
-  local expect_head="${SWAP_CHECK_EXPECT_ALEMBIC:-0034}"
+  local expect_head="${SWAP_CHECK_EXPECT_ALEMBIC:-0039}"
   section "(3a) migrations"
   local version="" deadline=$((SECONDS + 60))
   while [ "$SECONDS" -lt "$deadline" ]; do
@@ -594,6 +598,11 @@ checks_a_to_d() {
   cat "$work/backend.log" "$work/jobs-worker.log" > "$work/both.log"
   check "the backend log shows the migration (applied by it, or 'at head' after the jobs worker's)" \
     grep -qE "schema 'app' (migrated, applied .*$expect_head|: nothing to apply)|schema 'app' at head \($expect_head\)" "$work/backend.log"
+  # 4.4 (0035 to 0039; there is no 0036): the tables, and the columns that 0038 and 0039 add by a table rewrite
+  expect "the 4.4 tables exist (authenticator apps, teams, grants, directory group links)" "6" \
+    "$(psql_app "select count(*) from information_schema.tables where table_schema='app' and table_name in ('user_totp_factors','user_recovery_codes','member_groups','member_group_members','form_access_grants','scim_group_team_links')")"
+  expect "the generated columns of 0038 and 0039 exist (audit form_id, user_id, target_user_id; scim_users.user_id)" "4" \
+    "$(psql_app "select count(*) from information_schema.columns where table_schema='app' and ((table_name='workspace_audit_events' and column_name in ('form_id','user_id','target_user_id')) or (table_name='scim_users' and column_name='user_id'))")"
   check "a service log shows the revisions applied up to $expect_head" grep -qE "DB_AUTO_MIGRATE: schema 'app' migrated, applied .*$expect_head" "$work/both.log"
   grep -hE "DB_AUTO_MIGRATE: schema 'app'|schema 'app' at head" "$work/backend.log" "$work/jobs-worker.log" | cut -c1-200 | sed 's/^/        /'
 
