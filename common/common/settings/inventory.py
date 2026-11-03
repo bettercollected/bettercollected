@@ -802,7 +802,7 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
     # Held in the environment while the feature is built up (the switch must not be
     # turned on from the admin portal before every entry point enforces it); it
     # moves back to the stored settings (T2) when it is released.
-    _bool("FORM_ACCESS_ENABLED", "security", (BACKEND,), False,
+    _bool("FORM_ACCESS_ENABLED", "security", (BACKEND, JOBS), False,
           "Form-level access (teams, grants on a form, restricted forms): on, or off (nothing is "
           "enforced; saved data stays). Environment only until released.", tier=T5),
     # Held in the environment while the feature is built up, like FORM_ACCESS_ENABLED.
