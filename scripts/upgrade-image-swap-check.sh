@@ -389,13 +389,15 @@ write_root_env() { # operator values only; deploy.sh generates the rest
 }
 
 # --- the swap: what an operator edits in the stack -----------------------------------------------------------------
-# Image tags only, in the compose file itself (every `image:` of a first-party service).
+# Image tags only, in the compose file itself (every `image:` of a first-party service). The tag is written
+# either as is (`backend:v4.2.0`) or, from 4.3 on, as a default (`backend:${BC_IMAGE_TAG:-v4.3.0}`).
 swap_images() {
   local file="$S_DIR/docker-compose.deployment.yml"
+  local tag="(\\\$\\{BC_IMAGE_TAG:-${old_tag//./\\.}\\}|${old_tag//./\\.})"
   sed -i -E \
-    -e "s#image: bettercollected/backend:$old_tag#image: $img_backend#" \
-    -e "s#image: bettercollected/auth:$old_tag#image: $img_auth#" \
-    -e "s#image: bettercollected/webapp:$old_tag#image: $img_webapp#" "$file"
+    -e "s#image: bettercollected/backend:$tag#image: $img_backend#" \
+    -e "s#image: bettercollected/auth:$tag#image: $img_auth#" \
+    -e "s#image: bettercollected/webapp:$tag#image: $img_webapp#" "$file"
 }
 
 # Settings a stack edit adds (not part of the image swap): written as a second compose file, the way a stack
