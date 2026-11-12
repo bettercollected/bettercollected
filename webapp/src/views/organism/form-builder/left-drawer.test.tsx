@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { Provider } from 'jotai';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -330,7 +330,9 @@ describe('builder outline', () => {
         await act(async () => fireEvent.keyDown(item, { key: 'Enter' }));
         await nextFrame();
         const field = screen.getByRole('textbox', { name: /Ending name/ });
-        expect(document.activeElement).toBe(field);
+        // The menu hands focus over a frame after it closes; how long that takes depends on the
+        // jsdom build and the load of the run, so wait for the end state instead of one frame.
+        await waitFor(() => expect(document.activeElement).toBe(field));
         fireEvent.change(field, { target: { value: 'Typed' } });
         await act(async () => fireEvent.keyDown(field, { key: 'Escape' }));
         await tick();
@@ -347,7 +349,9 @@ describe('builder outline', () => {
         await act(async () => fireEvent.click(await screen.findByRole('menuitem', { name: 'Rename' })));
         await nextFrame();
         const field = screen.getByRole('textbox', { name: /Ending name/ });
-        expect(document.activeElement).toBe(field);
+        // The menu hands focus over a frame after it closes; how long that takes depends on the
+        // jsdom build and the load of the run, so wait for the end state instead of one frame.
+        await waitFor(() => expect(document.activeElement).toBe(field));
         fireEvent.change(field, { target: { value: 'Waiting list' } });
         await act(async () => fireEvent.keyDown(field, { key: 'Enter' }));
         expect(seen.endingState.formState.thankyouPage[1].name).toBe('Waiting list');
