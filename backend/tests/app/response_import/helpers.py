@@ -163,7 +163,7 @@ async def stored_answers(workspace, form) -> List[Dict[str, Any]]:
     """The form's stored responses, decrypted, oldest first."""
     service_ = container.form_response_service()
     scope = await service_.scope(workspace.id, [str(form.form_id)])
-    rows = await container.form_response_repo().export_batch(scope, None, after_id=None, limit=1000)
+    rows, _ = await container.form_response_repo().export_batch(scope, None, limit=1000)
     out = []
     for row in rows:
         decrypted = service_.decrypt_form_response(workspace_id=workspace.id, response=row)
