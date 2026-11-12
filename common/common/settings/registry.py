@@ -101,6 +101,8 @@ ENV_ONLY_KEYS = frozenset(
         "API_KEY_ROLES_ENABLED",
         # held until copying a form between workspaces is released
         "FORM_PROMOTION_ENABLED",
+        # held until reports on a form's answers are released
+        "REPORTING_ENABLED",
         "DOTENV_PATH",
         "PROJECT_NAME",
         "DOCS_URL",
