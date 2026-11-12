@@ -25,7 +25,7 @@ nor shown); nothing is recorded.
    respondent's first interaction, then `POST /workspaces/{id}/captcha/challenge`
    with `{"purpose": "submit", "formId": ...}`. The answer is `{challenge, algorithm,
    bits, subpuzzles, expiresAt}`, never cached, no cookie.
-2. A Web Worker finds 8 counters `c_i` such that `SHA-256(challenge ":" i ":" c_i)`
+2. A Web Worker (the static file `webapp/public/captcha/worker-v1.js`, built from `webapp/src/utils/captcha/captcha-worker.ts` by `yarn build:captcha-worker`; a test fails when the file is not what the build makes) finds 8 counters `c_i` such that `SHA-256(challenge ":" i ":" c_i)`
    starts with at least `bits - 3` zero bits (2^bits hashes expected in all; eight small
    puzzles keep the spread of the solve time small). Where no worker can start (an embed
    sandboxed without `allow-same-origin`) the same code runs on the main thread in slices
