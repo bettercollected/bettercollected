@@ -4,7 +4,7 @@
 // (sandboxed embeds, no Worker), within a hard budget.
 import { describe, expect, it, vi } from 'vitest';
 
-import { CaptchaUnavailable, SOLVE_BUDGET_MS, solveChallenge } from './solve';
+import { CaptchaUnavailable, SOLVE_BUDGET_MS, WORKER_PATH, solveChallenge } from './solve';
 import { CAPTCHA_HEADER, SUBPUZZLES, Solver, hasLeadingZeroBits, proofHeaderValue } from './solver-core';
 
 // counters for this challenge at 14 bits, found with hashlib.sha256(f"{challenge}:{i}:{c}") as the server checks them
@@ -72,6 +72,25 @@ describe('solving a challenge', () => {
         });
         expect(proof).toBe(proofHeaderValue(CHALLENGE, SERVER_COUNTERS));
         expect(worker!.terminated).toBe(true);
+    });
+
+    it('starts the static same-origin worker file by default', async () => {
+        const started: string[] = [];
+        class Stub extends FakeWorker {
+            constructor(url: string) {
+                super();
+                started.push(url);
+            }
+        }
+        vi.stubGlobal('Worker', Stub);
+        try {
+            const proof = await solveChallenge(challenge());
+            expect(proof).toBe(proofHeaderValue(CHALLENGE, SERVER_COUNTERS));
+        } finally {
+            vi.unstubAllGlobals();
+        }
+        expect(started).toEqual([WORKER_PATH]);
+        expect(WORKER_PATH).toBe('/captcha/worker-v1.js');
     });
 
     it('falls back to the main thread when no Worker can be started (a sandboxed embed)', async () => {

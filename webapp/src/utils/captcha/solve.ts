@@ -22,8 +22,9 @@ export interface SolveOptions {
     yieldToMain?: () => Promise<void>;
 }
 
-/** A same-origin worker bundled with the page (no third party, no CDN). */
-const defaultWorker = () => new Worker(new URL('./captcha-worker.ts', import.meta.url));
+/** The worker's address: a static file of this site (public/captcha/worker-v1.js, built by `yarn build:captcha-worker`), never a third party. */
+export const WORKER_PATH = '/captcha/worker-v1.js';
+const defaultWorker = () => new Worker(`${process.env.__NEXT_ROUTER_BASEPATH ?? ''}${WORKER_PATH}`);
 
 const defaultYield = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
