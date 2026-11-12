@@ -768,6 +768,10 @@ export interface Trust {
    */
   draftRetentionDays?: number | null;
   /**
+   * The automatic spam check on this form (a small calculation the respondent's browser does in the background; no puzzle). On unless set to false; refused while the server has it switched off.
+   */
+  captchaEnabled?: boolean | null;
+  /**
    * Respondents see their answers on a page of their own, with a link back to each page, before they send them.
    */
   showReviewPage?: boolean | null;
