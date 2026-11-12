@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { firstPageWithError, formRefusal, historyBackTo, isFormClosedError, serverAnswerErrors, serverInvalidations, serverProblemMessage } from './server-answer-errors';
+import { firstPageWithError, formRefusal, historyBackTo, isFormClosedError, isRateLimited, isSubmitRateLimited, serverAnswerErrors, serverInvalidations, serverProblemMessage } from './server-answer-errors';
 
 const q = (id: string, type = FieldTypes.SHORT_TEXT, properties: Record<string, any> = {}) => ({ id, index: 0, type, properties }) as StandardFormFieldDto;
 const page = (id: string, fields: StandardFormFieldDto[]) => ({ id, index: 0, type: FieldTypes.SLIDE, properties: { fields } }) as StandardFormFieldDto;
@@ -113,5 +113,19 @@ describe('why a submission to an unavailable form was refused', () => {
         expect(formRefusal({ status: 422, data: { code: 'form_full' } })).toBeNull();
         expect(formRefusal({ status: 500 })).toBeNull();
         expect(formRefusal(undefined)).toBeNull();
+    });
+});
+
+describe('isRateLimited', () => {
+    it('is the plain 429 of the limits, nothing else', () => {
+        expect(isRateLimited({ status: 429, data: { code: 'rate_limited', message: 'x' } })).toBe(true);
+        expect(isRateLimited({ status: 429, data: {} })).toBe(false);
+        expect(isRateLimited({ status: 409, data: { code: 'rate_limited' } })).toBe(false);
+        expect(isRateLimited(undefined)).toBe(false);
+    });
+
+    it('tells the route limits (retry_after) from the drawn-signature throttle', () => {
+        expect(isSubmitRateLimited({ status: 429, data: { code: 'rate_limited', retry_after: 20 } })).toBe(true);
+        expect(isSubmitRateLimited({ status: 429, data: { code: 'rate_limited', message: 'Too many requests; try again later.' } })).toBe(false);
     });
 });

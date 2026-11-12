@@ -1,13 +1,15 @@
 import React from 'react';
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import '@app/shared/hocs/i18n-provider';
 
 import OtpCodeForm from './otp-code-form';
 
 const verifyMock = vi.fn();
+const sendMock = vi.hoisted(() => vi.fn());
+const toast = vi.hoisted(() => vi.fn());
 const challengeMock = vi.fn();
 const verifyMfaMock = vi.fn();
 vi.mock('@app/store/auth/api', async (importOriginal) => {
@@ -15,14 +17,14 @@ vi.mock('@app/store/auth/api', async (importOriginal) => {
     return {
         ...actual,
         usePostVerifyOtpMutation: () => [verifyMock, { isLoading: false }],
-        usePostSendOtpMutation: () => [vi.fn(), { isLoading: false }],
+        usePostSendOtpMutation: () => [sendMock, { isLoading: false }],
         usePostMfaChallengeMutation: () => [challengeMock, { isLoading: false }],
         useVerifyMfaMutation: () => [verifyMfaMock, { isLoading: false }]
     };
 });
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 vi.mock('@app/components/modal-views/full-screen-modal-context', () => ({ useFullScreenModal: () => ({ closeModal: vi.fn() }) }));
-vi.mock('@app/shadcn/components/ui/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
+vi.mock('@app/shadcn/components/ui/use-toast', () => ({ useToast: () => ({ toast }) }));
 
 const reload = vi.fn();
 vi.mock('@app/utils/browser-navigation', () => ({ reloadPage: () => reload(), navigateTo: vi.fn() }));
@@ -71,5 +73,33 @@ describe('OtpCodeForm with an account that has an authenticator app', () => {
         enterEmailCode();
         await waitFor(() => expect(reload).toHaveBeenCalled());
         expect(screen.queryByLabelText('6-digit code')).toBeNull();
+    });
+});
+
+describe('OtpCodeForm resending a code', () => {
+    beforeEach(() => {
+        sendMock.mockReset();
+        toast.mockReset();
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+    });
+    afterEach(() => vi.useRealTimers());
+
+    const resend = async () => {
+        render(<OtpCodeForm email="maker@example.org" setEmail={vi.fn()} />);
+        for (let second = 0; second < 61; second++) await act(async () => void vi.advanceTimersByTime(1000));
+        fireEvent.click(screen.getByText(/resend/i));
+    };
+
+    it('says so when the server refuses it as too many (429)', async () => {
+        sendMock.mockResolvedValue({ error: { status: 429, data: { code: 'rate_limited', message: 'x', retry_after: 900 } } });
+        await resend();
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ description: expect.stringMatching(/too many codes/i), variant: 'destructive' }));
+    });
+
+    it('says nothing new for a code that was sent', async () => {
+        sendMock.mockResolvedValue({ data: { message: 'sent' } });
+        await resend();
+        await waitFor(() => expect(sendMock).toHaveBeenCalled());
+        expect(toast).not.toHaveBeenCalled();
     });
 });

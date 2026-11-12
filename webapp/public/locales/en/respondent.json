@@ -65,7 +65,8 @@
         "SUBMIT_INVALID": "Some answers need another look. They are marked below.",
         "SUBMIT_CLOSED": "This form closed before your response was sent. Your answers were not sent.",
         "SUBMIT_NOT_OPEN": "This form is not open yet, so your response was not sent. Your answers were not sent.",
-        "SUBMIT_FULL": "This form received all the responses it accepts before yours was sent. Your answers were not sent."
+        "SUBMIT_FULL": "This form received all the responses it accepts before yours was sent. Your answers were not sent.",
+        "SUBMIT_RATE_LIMITED": "Too many responses were sent from here just now. Your answers are kept and were not sent. Please wait a minute and try again."
     },
     "LAYOUT": {
         "TABS": "Sections",

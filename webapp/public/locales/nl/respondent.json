@@ -65,7 +65,8 @@
         "SUBMIT_INVALID": "Een paar antwoorden moeten nog worden aangepast. Ze zijn hieronder gemarkeerd.",
         "SUBMIT_CLOSED": "Dit formulier is gesloten voordat je antwoorden zijn verstuurd. Je antwoorden zijn niet verstuurd.",
         "SUBMIT_NOT_OPEN": "Dit formulier is nog niet open, dus je antwoorden zijn niet verstuurd.",
-        "SUBMIT_FULL": "Dit formulier had al alle antwoorden binnen die het aanneemt voordat de jouwe werden verstuurd. Je antwoorden zijn niet verstuurd."
+        "SUBMIT_FULL": "Dit formulier had al alle antwoorden binnen die het aanneemt voordat de jouwe werden verstuurd. Je antwoorden zijn niet verstuurd.",
+        "SUBMIT_RATE_LIMITED": "Er zijn zojuist te veel antwoorden vanaf hier verstuurd. Je antwoorden zijn bewaard en nog niet verstuurd. Wacht een minuut en probeer het opnieuw."
     },
     "LAYOUT": {
         "TABS": "Onderdelen",

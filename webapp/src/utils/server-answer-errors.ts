@@ -67,6 +67,16 @@ export function formRefusal(error: any): 'closed' | 'not_yet_open' | 'full' | nu
     }
 }
 
+/** The server refused for sending too much from here or to this form or address (429 `rate_limited`, a plain message and `Retry-After`): nothing was stored or sent, so asking again later is right. Reveals nothing about any account. */
+export function isRateLimited(error: any): boolean {
+    return error?.status === 429 && error?.data?.code === 'rate_limited';
+}
+
+/** A 429 of the route's own limits (their body carries `retry_after`), as against the drawn-signature throttle's. */
+export function isSubmitRateLimited(error: any): boolean {
+    return isRateLimited(error) && typeof error?.data?.retry_after === 'number';
+}
+
 /** The answer problems in a failed submission (an RTK Query error), or null when it failed for another reason. */
 export function serverAnswerErrors(error: any): ServerAnswerError[] | null {
     const data = error?.data;

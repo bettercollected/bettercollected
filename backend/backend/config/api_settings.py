@@ -68,6 +68,13 @@ class ApiSettings(StoreBackedSettings):
     # take them offline; receipt numbers (uuid4) can't be guessed anyway.
     RECEIPT_GLOBAL_MISSES_PER_WINDOW: int = 0
     RECEIPT_WINDOW_SECONDS: int = 600
+    # Sign-in code mails (respondent and creator, services/respondent_limits.py):
+    # the one budget they share across every client, an hour at a time. It is
+    # the only brake on the code mail being used to mail random addresses, set
+    # well above normal use; once used up, every code request answers 429 until
+    # the hour ends (logged at ERROR when it trips). A stop-gap until a proof
+    # of work is asked for; 0 turns it off.
+    CODE_MAIL_PER_HOUR: int = 20000
     # GET /images/unsplash/...: requests per client address in each window,
     # and of those, how many may fetch a photo not cached yet.
     IMAGE_PROXY_PER_WINDOW: int = 600

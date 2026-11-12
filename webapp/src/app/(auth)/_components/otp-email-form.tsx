@@ -17,6 +17,7 @@ import { Input } from '@app/shadcn/components/ui/input';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { usePostSendOtpMutation } from '@app/store/auth/api';
+import { isRateLimited } from '@app/utils/server-answer-errors';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { browserMailLocale } from '@app/utils/mail-locale';
 import { capitalize } from '@app/utils/string-utils';
@@ -69,7 +70,8 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
         descriptionInModal: t(signInScreen.descriptionInModal),
         signUpToContinue: t(signUpScreen.signUpToContinue),
         otpSuccessMessage: t(formResponderLogin.otpSuccessMessage),
-        otpFailureMessage: t(formResponderLogin.otpFailureMessage)
+        otpFailureMessage: t(formResponderLogin.otpFailureMessage),
+        otpRateLimitedMessage: t(formResponderLogin.otpRateLimitedMessage)
     };
 
     const handleEmailInputForCreator = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -87,6 +89,9 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
             setSsoNotice({ email, message: (res as any).error.data.message });
         } else if ((res as any)?.error?.data?.code === 'sso_required') {
             toast({ description: (res as any).error.data.message, variant: 'destructive' });
+        } else if (isRateLimited((res as any)?.error)) {
+            // the same message whatever the address: nothing about accounts is told
+            toast({ description: constants.otpRateLimitedMessage, variant: 'destructive' });
         } else {
             toast({ description: constants.otpFailureMessage, variant: 'destructive' });
         }

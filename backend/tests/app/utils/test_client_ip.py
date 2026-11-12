@@ -184,3 +184,51 @@ def test_no_stale_proxy_warning_for_a_listed_proxy_or_a_public_peer(
     assert not [
         r for r in caplog.records if "is not in TRUSTED_PROXIES" in r.getMessage()
     ]
+
+
+# ---- a proxy that is not in TRUSTED_PROXIES makes every user one client
+
+
+def test_resolve_returns_the_untrusted_proxy_itself():
+    """What the docstring of resolve_client_ip now says: behind an unlisted
+    proxy the answer is the proxy's own address."""
+    request = _request(NGINX, ["198.51.100.1"])
+    assert client_ip(request, "") == NGINX
+
+
+@pytest.mark.parametrize("peer", [NGINX, "127.0.0.1", "::1", "10.0.0.5", "192.168.1.2"])
+def test_a_private_peer_with_forwarding_headers_that_is_not_trusted_is_unknown(
+    peer, monkeypatch
+):
+    from backend.app.utils.client_ip import limit_client_ip
+
+    monkeypatch.setattr(settings.api_settings, "TRUSTED_PROXIES", "")
+    assert limit_client_ip(_request(peer, ["198.51.100.1"])) is None
+    assert limit_client_ip(_request(peer, cf="198.51.100.1")) is None
+    # a stale list (another proxy address) is the same case
+    monkeypatch.setattr(settings.api_settings, "TRUSTED_PROXIES", "172.31.0.9")
+    assert limit_client_ip(_request(peer, ["198.51.100.1"])) is None
+
+
+def test_a_trusted_proxy_a_direct_peer_and_a_public_peer_are_clients(monkeypatch):
+    from backend.app.utils.client_ip import limit_client_ip
+
+    monkeypatch.setattr(settings.api_settings, "TRUSTED_PROXIES", "172.18.0.0/16")
+    assert limit_client_ip(_request(NGINX, ["198.51.100.1"])) == "198.51.100.1"
+    monkeypatch.setattr(settings.api_settings, "TRUSTED_PROXIES", "")
+    # no forwarding header: the private peer is itself the client
+    assert limit_client_ip(_request(NGINX)) == NGINX
+    # a public peer's headers are its own words, the peer is the client (documentation ranges count as private)
+    assert limit_client_ip(_request("8.8.8.8", ["203.0.113.5"])) == "8.8.8.8"
+    # nobody to tell
+    assert limit_client_ip(_request(None)) is None
+
+
+def test_the_pure_check_never_raises():
+    from common.utils.client_ip import forwarded_by_untrusted_proxy as check
+
+    assert check(None, ["1.2.3.4"], None, "") is False
+    assert check("garbage", ["1.2.3.4"], None, "") is False
+    assert check("10.0.0.1", [""], "", "") is False
+    assert check("10.0.0.1", ["1.2.3.4"], None, "10.0.0.0/8") is False
+    assert check("10.0.0.1", ["1.2.3.4"], None, "") is True
