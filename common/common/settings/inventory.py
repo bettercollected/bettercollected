@@ -189,8 +189,7 @@ SERVER: Tuple[SettingSpec, ...] = (
           "Lets respondents save a draft and continue later (off: the per-form setting cannot be turned on and drafts are not saved or opened).",
           tier=T2),
     _bool("CAPTCHA_ENABLED", "features", (BACKEND,), False,
-          "Asks respondents' browsers for a small proof of work (no puzzle, no third party) before a response is accepted "
-          "(off: the challenge route answers 404, no header is read, forms are served without the setting and the per-form setting cannot be changed).",
+          "Asks the respondent's browser for a proof of work before a response is accepted (off: route 404, header never read, per-form setting locked).",
           tier=T2),
     _bool("FORM_REVISIONS_UI_ENABLED", "features", (BACKEND,), False,
           "Lets staff list a form's versions, compare two and restore one into the draft (off: those routes answer 422 and the Versions tab is hidden).",
