@@ -34,6 +34,8 @@ from collections import OrderedDict
 from http import HTTPStatus
 from typing import Any, Dict, Optional, Tuple
 
+from loguru import logger
+
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.permission import Permission
 from backend.app.repositories.postgres.report_queries import PostgresReportRepository
@@ -51,6 +53,9 @@ FORM_NOT_FOUND = "Form not found in the workspace."
 TOO_MANY_CODE = "too_many_rows"
 RATE_CODE = "rate_limited"
 BUSY_CODE = "report_busy"
+TIMEOUT_CODE = "report_timeout"
+SLOT_SCOPE = "report-passes"
+SLOT_CLIENT = "all"
 
 
 def too_many_rows(count: int) -> HTTPException:
@@ -231,6 +236,16 @@ class ReportService:
             "notices": notices,
         }
 
+    async def _give_back_slot(self) -> None:
+        """Give the pass's place among the replicas' back. Never fails the
+        report: the window frees it anyway."""
+        try:
+            await self._limiter.release(
+                SLOT_SCOPE, SLOT_CLIENT, limits.PASS_SLOTS_WINDOW_SECONDS
+            )
+        except Exception as error:  # noqa: BLE001 - only the place is lost
+            logger.warning("report: could not give back a pass place ({})", type(error).__name__)
+
     async def _scan(
         self, user, workspace_id, form_id, plan, catalogue, revision, view, token, scope
     ) -> _Entry:
@@ -250,20 +265,38 @@ class ReportService:
         try:
             await asyncio.wait_for(self._passes.acquire(), limits.PASS_WAIT_SECONDS)
         except asyncio.TimeoutError:
-            raise HTTPException(
-                HTTPStatus.TOO_MANY_REQUESTS,
-                content={
-                    "code": BUSY_CODE,
-                    "message": "Other reports are being computed. Try again in a moment.",
-                },
-                headers={"Retry-After": "2"},
-            ) from None
+            raise _busy() from None
         try:
-            result = await self._engine.scan(
-                scope, str(workspace_id), form_id, plan, catalogue
+            # a place among the passes of every replica, not only of this one
+            verdict = await self._limiter.admit(
+                SLOT_SCOPE,
+                SLOT_CLIENT,
+                limits.PASSES_ACROSS_REPLICAS,
+                limits.PASS_SLOTS_WINDOW_SECONDS,
             )
-        except TooManyRows as many:
-            raise too_many_rows(many.count) from None
+            if not verdict.allowed:
+                raise _busy(min(verdict.retry_after, 5))
+            try:
+                # a time budget: a pass that is stuck or starved is cancelled
+                # (its batch in flight finishes, no more are read) and its
+                # places are given back, so it cannot hold a worker
+                result = await asyncio.wait_for(
+                    self._engine.scan(scope, str(workspace_id), form_id, plan, catalogue),
+                    limits.PASS_SECONDS,
+                )
+            except asyncio.TimeoutError:
+                logger.warning("report: a pass ran over its {} s budget", limits.PASS_SECONDS)
+                raise HTTPException(
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                    content={
+                        "code": TIMEOUT_CODE,
+                        "message": "This report took too long to compute. Narrow the dates or the form versions, or try again.",
+                    },
+                ) from None
+            except TooManyRows as many:
+                raise too_many_rows(many.count) from None
+            finally:
+                await self._give_back_slot()
         finally:
             self._passes.release()
         entry = _Entry(
@@ -275,6 +308,17 @@ class ReportService:
             while len(self._cache) > limits.CACHE_SIZE:
                 self._cache.popitem(last=False)
         return _copy(entry)
+
+
+def _busy(retry_after: int = 2) -> HTTPException:
+    return HTTPException(
+        HTTPStatus.TOO_MANY_REQUESTS,
+        content={
+            "code": BUSY_CODE,
+            "message": "Other reports are being computed. Try again in a moment.",
+        },
+        headers={"Retry-After": str(retry_after)},
+    )
 
 
 def _copy(entry: _Entry) -> _Entry:

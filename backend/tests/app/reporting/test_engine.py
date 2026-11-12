@@ -679,3 +679,89 @@ async def test_no_result_holds_a_response_id_an_identity_or_answer_text(
     assert "person-" not in text and "example.org" not in text
     assert "free text answer" not in text and "Hello private text" not in text
     assert str(workspace.id) not in text.replace(form.form_id, "")
+
+
+# --------------------------------------------- numbers, time budget, replicas
+
+
+async def test_a_number_too_large_to_average_is_a_notice_not_a_500(client, workspace, reporting_on):
+    form = await make_form(workspace, survey_fields())
+    await add_response(workspace, form, {"age": answer_number(30)})
+    # 1e30 is accepted as a number, but its average cannot be rounded to two places
+    await add_response(workspace, form, {"age": answer_number(1e30)})
+    # a magnitude no amount has is not a number at all
+    await add_response(workspace, form, {"age": answer_number("1e9999")})
+    response = await query(
+        client, workspace, form,
+        definition(
+            card("a", "tile", measures=[{"agg": "avg", "field": "q:age"}, {"agg": "max", "field": "q:age"}]),
+            card("n", "tile", measures=[{"agg": "min", "field": "q:age"}]),
+        ),
+    )
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert "unreadable_answers" in result["notices"]
+    values = groups_of(result, "a")["all"]["values"]
+    assert values[0] is None and values[1] == 10**30
+    assert groups_of(result, "n")["all"]["values"] == [30]
+
+
+async def in_flight_passes() -> int:
+    """The passes counted among the replicas now (reads the counter, adds none)."""
+    from backend.app.services.reporting import service as service_module
+
+    verdict = await container.rate_limiter().hit(
+        service_module.SLOT_SCOPE,
+        service_module.SLOT_CLIENT,
+        limits.PASSES_ACROSS_REPLICAS,
+        limits.PASS_SLOTS_WINDOW_SECONDS,
+        amount=0,
+    )
+    return verdict.count
+
+
+async def test_a_pass_over_its_time_budget_is_stopped_and_gives_its_places_back(
+    client, workspace, reporting_on, monkeypatch
+):
+    monkeypatch.setattr(limits, "PASS_SECONDS", 0.05)
+    form = await make_form(workspace, survey_fields())
+    await add_response(workspace, form, {"dept": answer_choice("care")})
+    service = container.report_service()
+
+    async def stuck(*args, **kwargs):
+        await asyncio.sleep(5)
+
+    monkeypatch.setattr(service._engine, "scan", stuck)
+    slow = await query(client, workspace, form, definition(card(dimension="q:dept")))
+    assert slow.status_code == 503 and slow.json()["code"] == "report_timeout"
+    # the process slot and the replicas' place are free again
+    assert service._passes._value == limits.PASSES_AT_ONCE
+    assert await in_flight_passes() == 0
+
+
+async def test_passes_in_other_replicas_count_against_this_one(client, workspace, reporting_on):
+    from backend.app.services.reporting import service as service_module
+
+    form = await make_form(workspace, survey_fields())
+    await add_response(workspace, form, {"dept": answer_choice("care")})
+    limiter = container.rate_limiter()
+    # as many passes in flight elsewhere as the replicas together may run
+    for _ in range(limits.PASSES_ACROSS_REPLICAS):
+        verdict = await limiter.admit(
+            service_module.SLOT_SCOPE, service_module.SLOT_CLIENT,
+            limits.PASSES_ACROSS_REPLICAS, limits.PASS_SLOTS_WINDOW_SECONDS,
+        )
+        assert verdict.allowed
+    busy = await query(client, workspace, form, definition(card(dimension="q:dept")))
+    assert busy.status_code == 429 and busy.json()["code"] == "report_busy"
+    assert int(busy.headers["retry-after"]) >= 1
+    # a refused pass took no place of its own, and counts in SQL do not need one
+    assert await in_flight_passes() == limits.PASSES_ACROSS_REPLICAS
+    assert (await query(client, workspace, form, definition(card(dimension="form_version")))).status_code == 200
+    # a place given back lets the next one in, and a finished pass leaves none held
+    await limiter.release(
+        service_module.SLOT_SCOPE, service_module.SLOT_CLIENT, limits.PASS_SLOTS_WINDOW_SECONDS
+    )
+    ok = await query(client, workspace, form, definition(card(dimension="q:dept")))
+    assert ok.status_code == 200
+    assert await in_flight_passes() == limits.PASSES_ACROSS_REPLICAS - 1

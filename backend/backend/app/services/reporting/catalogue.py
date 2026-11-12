@@ -363,7 +363,12 @@ def build_catalogue(
             found = reportable(question)
             if found is None:
                 if _answerable(question):
-                    unreportable.add(QUESTION_PREFIX + str(question["id"]))
+                    key = QUESTION_PREFIX + str(question["id"])
+                    unreportable.add(key)
+                    # a version that makes a question internal (or of a kind a
+                    # report does not use) takes it back: its older entry goes
+                    if merged.pop(key, None) is not None:
+                        order.remove(key)
                 continue
             last_keys.add(found.key)
             previous = merged.get(found.key)
