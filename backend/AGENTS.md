@@ -1644,6 +1644,13 @@ any query. Rules to keep:
   `(created_at, id)` (served by the workspace/form/created index), refused above `limits.REPORT_MAX_ROWS` with the count.
   Use `doc ? 'answers'`, not `jsonb_typeof(doc -> 'answers')`: the latter detoasts every row (345 ms against 8 ms at 20,000).
 - The cache is in-process, aggregates only, keyed by an exact token of the matching rows plus the form's revision.
+- Saved views (`services/reporting/views.py`, `repositories/postgres/report_views.py`, table `form_report_views`, revision 0040):
+  a name, a scope (`private`, the owner's notebook that nobody else reads, admins included; or `form`) and a definition that
+  `ReportService.check_definition` validated as a query would be; never store what a query would refuse. `form`-scope writes
+  need `form.edit`, deleting another person's needs `members.manage`. Changes carry the `revision` they were read at (409
+  `view_changed`). What the form shares is audited before it is done (`REPORT_EVENTS`, ids and enums, never the name); private
+  views are not. While the switch is off no route, form delete or member removal touches the table (the budget tests count
+  statements): keep it so.
 
 ## Copying a form to another workspace (`FORM_PROMOTION_ENABLED`, docs/environments.md)
 

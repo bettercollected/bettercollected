@@ -71,6 +71,9 @@ class AuditEntryDto(CamelModel):
     # integration entries: which parts of the configuration changed (names
     # from a fixed list, never their content)
     changed: Optional[List[str]] = None
+    # saved report view entries: the view's id and its scope (``private`` / ``form``)
+    view_id: Optional[str] = None
+    view_scope: Optional[str] = None
     # request entries (break-glass): the method and the route's template
     method: Optional[str] = None
     path: Optional[str] = None

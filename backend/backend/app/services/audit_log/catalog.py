@@ -50,6 +50,8 @@ AREAS: Dict[str, Tuple[str, ...]] = {
         # a form's structure copied to another workspace, or from one
         E.FORM_COPIED_OUT,
         E.FORM_PROMOTED,
+        # saved views of a form's report that the form shares
+        *E.REPORT_EVENTS,
     ),
     # answers read, changed, deleted or taken out (never the answers)
     AREA_RESPONSES: (

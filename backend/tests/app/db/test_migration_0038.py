@@ -108,11 +108,11 @@ def test_upgrade_adds_the_columns_and_indexes_and_downgrade_removes_them(scratch
     command.upgrade(config, "0038")
     assert _columns(scratch_url) == COLUMNS
     assert _indexes(scratch_url) == INDEXES
-    # exactly what the models declare, but for what 0039 adds
+    # exactly what the models declare, but for what 0039 and 0040 add
     assert [
         d
         for d in asyncio.run(_diff(scratch_url))
-        if "scim_group_team_links" not in repr(d) and "scim_users" not in repr(d)
+        if "scim_group_team_links" not in repr(d) and "scim_users" not in repr(d) and "form_report_views" not in repr(d)
     ] == []
     # the existing row has them filled, the indexes see it
     assert _run(
@@ -139,7 +139,7 @@ def test_upgrade_adds_the_columns_and_indexes_and_downgrade_removes_them(scratch
     assert [
         d
         for d in asyncio.run(_diff(scratch_url))
-        if "scim_group_team_links" not in repr(d) and "scim_users" not in repr(d)
+        if "scim_group_team_links" not in repr(d) and "scim_users" not in repr(d) and "form_report_views" not in repr(d)
     ] == []
 
 

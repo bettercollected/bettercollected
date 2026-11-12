@@ -173,6 +173,22 @@ def _promotion_targets(ctx):
     return {"params": {"targetWorkspaceId": ctx["ws"]}}
 
 
+def _view_write(ctx):
+    return {
+        "json": {
+            "name": "Matrix view",
+            "definition": {
+                "v": 1,
+                "cards": [{"id": "c", "kind": "tile", "measures": [{"agg": "count"}]}],
+            },
+        }
+    }
+
+
+def _view_change(ctx):
+    return {"json": {"revision": 1, "name": "Matrix view"}}
+
+
 def _report_query(ctx):
     return {
         "json": {
@@ -268,6 +284,21 @@ ROUTES: Dict[Tuple[str, str], Route] = {
     ("GET", F + "/report/fields"): route(FORM, P.RESPONSE_READ, P.ANALYTICS_READ),
     ("POST", F + "/report/query"): route(
         FORM, P.RESPONSE_READ, P.ANALYTICS_READ, request=_report_query
+    ),
+    # saved views of the report: the same gate; a view for the whole form needs form.edit on
+    # top, which the matrix's private request never asks for
+    ("GET", F + "/report/views"): route(FORM, P.RESPONSE_READ, P.ANALYTICS_READ),
+    ("POST", F + "/report/views"): route(
+        FORM, P.RESPONSE_READ, P.ANALYTICS_READ, request=_view_write
+    ),
+    ("GET", F + "/report/views/{view_id}"): route(
+        FORM, P.RESPONSE_READ, P.ANALYTICS_READ
+    ),
+    ("PATCH", F + "/report/views/{view_id}"): route(
+        FORM, P.RESPONSE_READ, P.ANALYTICS_READ, request=_view_change
+    ),
+    ("DELETE", F + "/report/views/{view_id}"): route(
+        FORM, P.RESPONSE_READ, P.ANALYTICS_READ
     ),
     # --- actions
     ("POST", F + "/actions"): route(
@@ -505,6 +536,11 @@ OUTCOMES: Dict[Tuple[str, str], Tuple[int, ...]] = {
     ("GET", F + "/all-submissions"): (200,),
     ("GET", F + "/report/fields"): (200,),
     ("POST", F + "/report/query"): (200,),
+    ("GET", F + "/report/views"): (200,),
+    ("POST", F + "/report/views"): (201,),
+    ("GET", F + "/report/views/{view_id}"): (404,),
+    ("PATCH", F + "/report/views/{view_id}"): (404,),
+    ("DELETE", F + "/report/views/{view_id}"): (404,),
     ("POST", F + "/duplicate"): (200,),
     ("GET", F + "/email-actions"): (200,),
     ("POST", F + "/email-actions"): (422,),

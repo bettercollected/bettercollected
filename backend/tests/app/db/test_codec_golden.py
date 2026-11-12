@@ -111,6 +111,8 @@ NO_DOCUMENT_CLASS = {
     "member_group_members",
     "form_access_grants",
     "scim_group_team_links",
+    # and the saved views of a form's report
+    "form_report_views",
 }
 
 # The document classes, all on ``Record`` (every group is served from Postgres

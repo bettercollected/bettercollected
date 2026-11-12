@@ -237,6 +237,9 @@ AUTOMATION_PARTS = (
     "variables",
     "object_type",
     "reference_path",
+    # saved report views
+    "scope",
+    "definition",
 )
 # the audit log itself: a staff member took the log (or part of it) out as a file.
 # Written before the file starts: ``export_format`` (``csv`` / ``json``), ``count``
@@ -254,6 +257,25 @@ AUDIT_EXPORT_FILTERS = (
     "form",
     "from",
     "to",
+)
+# saved report views of a form (``REPORTING_ENABLED``): the changes to a view the whole
+# form shares, a view being shared or unshared, and a form view deleted (by anyone). A
+# private view is its owner's notebook: creating, editing and deleting one is never
+# written (a log entry would say that a person looked at something). Ids and enum values
+# only: the form, the view (``view_id``), its scope (``view_scope``, ``private`` or
+# ``form``) and, for an update, which parts changed (``changed``: ``name``, ``scope``,
+# ``definition``); never the view's name or its definition.
+REPORT_VIEW_CREATED = "report_view_created"
+REPORT_VIEW_UPDATED = "report_view_updated"
+REPORT_VIEW_DELETED = "report_view_deleted"
+REPORT_VIEW_SHARED = "report_view_shared"
+REPORT_VIEW_UNSHARED = "report_view_unshared"
+REPORT_EVENTS = (
+    REPORT_VIEW_CREATED,
+    REPORT_VIEW_UPDATED,
+    REPORT_VIEW_DELETED,
+    REPORT_VIEW_SHARED,
+    REPORT_VIEW_UNSHARED,
 )
 # the reserved workspace id of an event that belongs to no workspace
 NO_WORKSPACE = "000000000000000000000000"
@@ -277,6 +299,7 @@ ALL_KINDS = (
     + SSO_EVENTS
     + RESPONSE_REVISION_EVENTS
     + AUDIT_LOG_EVENTS
+    + REPORT_EVENTS
 )
 
 
@@ -357,6 +380,10 @@ class WorkspaceAuditEventDocument(Record):
     action_id: Optional[str] = None
     service_id: Optional[str] = None
     changed: Optional[List[str]] = None
+    # REPORT_VIEW_*: the saved report view (its id) and its scope (``private`` /
+    # ``form``); which parts of an update changed is ``changed``
+    view_id: Optional[str] = None
+    view_scope: Optional[str] = None
     # FORM_COPIED_OUT / FORM_PROMOTED: the other side of the copy (ids only)
     source_workspace_id: Optional[str] = None
     source_form_id: Optional[str] = None

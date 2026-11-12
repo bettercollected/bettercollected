@@ -139,6 +139,43 @@ biggest hundred and sums the rest in `otherGroups`.
   places, or a magnitude beyond 40 digits) is left out of that value, which is `null`, and the
   result carries the notice `unreadable_answers`; it is never a server error.
 
+### Saved views
+
+A view is a **name**, a **scope** and a report **definition** (the body of `POST /query`),
+stored in `form_report_views` (revision 0040, Postgres only, not imported from Mongo). All
+five routes sit under `.../forms/{form_id}/report/views`, answer `Cache-Control: no-store`, are
+gated like a query (`response.read` and `analytics.read` on the form) and answer `422
+reporting_off` before anything else while the switch is off.
+
+| Route | What |
+|---|---|
+| `GET /views` | the views the caller may open (the form's own and their private ones), each with its definition, `mine`, `ownerName` (null for their own, and for a maker who is no longer a member), `revision`, `canEdit` and `canDelete`; `canShare` and the limits |
+| `POST /views` | `{name, scope?: "private" \| "form", definition}`, 201 |
+| `GET /views/{view_id}` | one view; 404 `view_not_found` for a missing one and for another person's private one |
+| `PATCH /views/{view_id}` | `{revision, name?, scope?, definition?}`; 409 `view_changed` when `revision` is not the current one |
+| `DELETE /views/{view_id}` | 204 |
+
+* **Private** (the default): the owner's notebook. Another member's private view is a 404 to
+  everyone, an owner or admin of the workspace included. At most 20 per person and form.
+* **Form** (`scope: "form"`): visible to everyone who may open the report. Creating one, changing
+  one (any editor of the form: it is the form's) and deleting your own needs `form.edit`; deleting
+  one made by someone else needs `members.manage` (an owner or admin: moderation); only its maker
+  makes it private again. At most 50 per form. There is no public link and no minimum group size.
+* **What is stored** is the definition as a query would accept it for this caller (`422` with the
+  query's codes otherwise, plus `invalid_view` for the request itself): question and option ids,
+  enums, numbers and dates, never an answer, an identity or text a respondent wrote. A view is
+  validated again every time it runs, because the page posts its definition to `/query`: a form
+  change that makes a card invalid shows on the card. The name is text the staff member typed;
+  it is shown, and never logged or audited. A name is used once per scope (and owner, for a
+  private view), `409 view_name_taken`; the limits answer `409 view_limit`.
+* **Audit** (docs/audit-log.md): what the whole form shares is written before it is done, ids and
+  enums only: a form view created, changed or deleted (by anyone), a view shared or made
+  private again. A private view's creation, change and deletion are not.
+* **Clean-up.** While the switch is on, deleting a form deletes its views and removing a member
+  deletes their private views (the views they made for the form stay, as a former member's).
+  While it is off nothing reads or writes the table, so the views of a form or a member deleted
+  in that time stay in it, unreachable.
+
 ## How it runs
 
 Cards on plaintext columns are counted in SQL: nothing is decrypted. All other cards of a
@@ -171,7 +208,13 @@ turned on yet" and asks the server for nothing.
   the response count, responses over time, then one card per reportable question in form order
   (the first twelve, with "Show all"). A malformed address falls back to the Overview.
 * **Cards** can be added, changed (group by, show, per day/week/month/year, as), moved and removed;
-  one request asks the server for all of them. Saved views come later.
+  one request asks the server for all of them.
+* **Views.** A bar above the filters opens a saved view (the Overview, my views, the form's own),
+  saves the report on screen as one (for the member alone, or for everyone who can open the
+  report when they may edit the form), and updates, renames, shares or deletes the open one. The
+  address keeps the working report; `view=<id>` says which saved view it started from, so the
+  page can say "Changed since it was saved" and offer Update. A view the member cannot open
+  (deleted, or someone else's private one) is said so and the Overview shows.
 * **Charts** are hand-written SVG (no chart library): a number tile, a bar chart, a donut (six slices
   at most, otherwise a bar), a line over time (columns for 14 points or fewer) and a table. Every
   chart prints its values, a donut's slices also differ by a pattern and its legend names each with

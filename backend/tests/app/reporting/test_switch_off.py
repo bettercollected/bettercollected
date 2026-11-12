@@ -5,7 +5,7 @@ answer is looked at (no query at all), and nothing else changes."""
 from contextlib import contextmanager
 
 import pytest
-from sqlalchemy import event
+from sqlalchemy import event, text
 
 from backend.app.container import container
 from backend.app.services.reporting.mode import OFF_CODE, refuse_when_off, reporting_enabled
@@ -80,6 +80,51 @@ async def test_every_route_answers_422_with_no_query_at_all(client, workspace):
             # middleware's own read of the allowed origins is not ours)
             ours = [s for s in seen if "allowed_origins" not in s]
             assert ours == [], (method, tail, ours)
+
+
+async def test_the_saved_view_routes_answer_422_and_never_touch_their_table(client, workspace):
+    """Off: no session, no permission and no row, and the table of saved views
+    is not read or written by any of the five routes (a view id is not looked up)."""
+    form = await make_form(workspace, survey_fields())
+    view = {"name": "Mine", "definition": definition(card())}
+    some_id = "a" * 24
+    for method, tail, kwargs in (
+        ("get", "views", {}),
+        ("post", "views", {"json": view}),
+        ("post", "views", {"content": b"not json at all"}),
+        ("get", f"views/{some_id}", {}),
+        ("patch", f"views/{some_id}", {"json": {"revision": 1, "name": "x"}}),
+        ("delete", f"views/{some_id}", {}),
+    ):
+        for signed_in in (True, False):
+            with statements() as seen:
+                response = await getattr(client, method)(
+                    report_url(workspace, form, tail),
+                    cookies=cookies(testUser) if signed_in else None,
+                    **kwargs,
+                )
+            assert response.status_code == 422, (method, tail, response.text)
+            assert response.json()["code"] == OFF_CODE
+            ours = [s for s in seen if "allowed_origins" not in s]
+            assert ours == [], (method, tail, ours)
+    # and nothing was written
+    async with container.pg_engine().connect() as connection:
+        assert (await connection.execute(text("SELECT count(*) FROM app.form_report_views"))).scalar_one() == 0
+
+
+async def test_deleting_a_form_or_removing_a_member_leaves_the_views_table_alone_while_it_is_off(
+    client, workspace
+):
+    from tests.app.form_access.helpers import add_member
+
+    form = await make_form(workspace, survey_fields())
+    leaver = await add_member(workspace, "EDITOR")
+    with statements() as seen:
+        await container.member_removal_repo().remove(workspace.id, leaver.id, testUser.id)
+        await container.workspace_form_service().delete_form_from_workspace(
+            workspace.id, form.form_id, testUser
+        )
+    assert seen and not [s for s in seen if "form_report_views" in s]
 
 
 async def test_nothing_is_decrypted_while_it_is_off(client, workspace, monkeypatch):
