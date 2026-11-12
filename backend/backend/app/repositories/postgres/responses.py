@@ -340,6 +340,24 @@ def _list_filters(filters: ResponseListFilters) -> list:
     return where
 
 
+@dataclass(frozen=True)
+class ExportCursor:
+    """Where an export pass stands: the last response it read (its
+    ``created_at`` column, None for one stored without, and its id)."""
+
+    created_at: Optional[dt.datetime]
+    id: str
+
+
+_NO_TIME = dt.datetime.min.replace(tzinfo=dt.timezone.utc)
+
+
+def _export_order(row) -> tuple:
+    """The export's order of ``(id, created_at, doc)``: oldest first, ties by
+    id, a response without a time last (the order of its SQL ``ORDER BY``)."""
+    return (row[1] is None, row[1] or _NO_TIME, row[0])
+
+
 class PostgresFormResponseRepository(RecordRepository):
     row = FormResponseRow
     document = FormResponseDocument
@@ -1183,20 +1201,29 @@ class PostgresFormResponseRepository(RecordRepository):
 
     # -- export (services/response_export) ------------------------------------
     @staticmethod
-    def _export_where(scope: ResponseScope, filters) -> list:
-        """The responses an export holds: those of ``scope`` that carry
-        answers (deletion-only stubs are not responses), narrowed by the list's
-        filters (``_list_filters``: plaintext columns and deletion-request
-        status only; every value is bound)."""
-        row = FormResponseRow
-        where = [
-            _in_scope(row, scope),
-            # a stub kept for a deletion request has no answers (or a null one)
-            func.coalesce(func.jsonb_typeof(row.doc["answers"]), "null") != "null",
-        ]
+    def _export_filters(filters) -> list:
+        """What an export adds to each part of its scope: the responses that
+        carry answers (a stub kept for a deletion request has none, and is not a
+        response), narrowed by the list's filters (``_list_filters``: plaintext
+        columns and deletion-request status only; every value is bound).
+
+        "Carries answers" is ``doc ? 'answers'``, the predicate of the responses
+        list and of its partial index (counting 20,000 responses: 8 ms, against
+        345 ms for ``jsonb_typeof(doc -> 'answers') <> 'null'``, which detoasts
+        every document). The two differ only for a response whose ``answers`` key
+        holds JSON null. Documents are stored without their null fields
+        (``exclude_none``), so nothing writes one, and the export skips such a
+        row if it ever meets one (``ResponseExportService._source``), so only
+        ``count_for_export`` could then be one too high."""
+        where = [_HAS_ANSWERS]
         if filters is not None:
             where.extend(_list_filters(filters))
         return where
+
+    @classmethod
+    def _export_where(cls, scope: ResponseScope, filters) -> list:
+        """The responses an export holds: those of ``scope`` (``_export_filters``)."""
+        return [_in_scope(FormResponseRow, scope), *cls._export_filters(filters)]
 
     async def count_for_export(self, scope: ResponseScope, filters=None) -> int:
         """How many responses an export would hold, without reading an answer."""
@@ -1206,16 +1233,81 @@ class PostgresFormResponseRepository(RecordRepository):
         self,
         scope: ResponseScope,
         filters=None,
-        after_id: Optional[str] = None,
+        after: Optional["ExportCursor"] = None,
         limit: int = 500,
-    ) -> List[FormResponseDocument]:
-        """The next ``limit`` responses an export holds after ``after_id``, in
-        id order (the order they were stored in): a keyset, so a response
-        deleted meanwhile is simply not met and nothing is read twice."""
-        where = self._export_where(scope, filters)
-        if after_id is not None:
-            where.append(FormResponseRow.id > after_id)
-        return await self.many(*where, order_by=(FormResponseRow.id,), limit=limit)
+    ) -> Tuple[List[FormResponseDocument], Optional["ExportCursor"]]:
+        """The next ``limit`` responses an export holds after the cursor
+        ``after`` (None: from the start), with the cursor to continue from (None
+        when the batch is empty), oldest first: ``(created_at, id)``, the order
+        of the index of ``(workspace_id, form_id, created_at)``. A keyset on that
+        pair seeks to where the last batch ended, so a batch costs its own rows
+        and a pass over N responses reads N, where ``ORDER BY id`` with a filter
+        on the workspace and form read and sorted the whole form for every batch
+        (5,000 responses: 160 ms a batch, and growing with the form). A response
+        deleted meanwhile is simply not met and nothing is read twice.
+
+        Rows stored before responses carried a workspace (``scope.legacy_form_ids``)
+        are read the same way and merged into the stream by the same key, so the
+        order does not depend on which kind a response is. A response without a
+        ``created_at`` (none is stored; the column is nullable) comes last, by id,
+        so it is never dropped.
+
+        Only for a scope of one form (an export is of one)."""
+        if len(scope.form_ids) != 1:
+            raise ValueError("an export holds the responses of one form")
+        form_id = scope.form_ids[0]
+        parts = [FormResponseRow.workspace_id == str(scope.workspace_id)]
+        if form_id in scope.legacy_form_ids:
+            parts.append(FormResponseRow.workspace_id.is_(None))
+        rows: list = []
+        for part in parts:
+            rows.extend(await self._export_part(part, form_id, filters, after, limit))
+        rows.sort(key=_export_order)
+        rows = rows[:limit]
+        if not rows:
+            return [], None
+        last = rows[-1]
+        return (
+            [decode(FormResponseDocument, row[2]) for row in rows],
+            ExportCursor(created_at=last[1], id=last[0]),
+        )
+
+    async def _export_part(
+        self, part, form_id: str, filters, after: Optional["ExportCursor"], limit: int
+    ) -> list:
+        """``(id, created_at, doc)`` of up to ``limit`` responses of one part of
+        the scope after the cursor, in ``(created_at, id)`` order, the ones
+        without a ``created_at`` last."""
+        r = FormResponseRow
+        base = [part, r.form_id == form_id, *self._export_filters(filters)]
+        rows: list = []
+        async with self._session() as session:
+            if after is None or after.created_at is not None:
+                where = [r.created_at.is_not(None)] if after is None else [
+                    r.created_at >= after.created_at,
+                    tuple_(r.created_at, r.id) > tuple_(after.created_at, after.id),
+                ]
+                rows = (
+                    await session.execute(
+                        select(r.id, r.created_at, r.doc)
+                        .where(*base, *where)
+                        .order_by(r.created_at, r.id)
+                        .limit(limit)
+                    )
+                ).all()
+            if len(rows) < limit:
+                where = [r.created_at.is_(None)]
+                if after is not None and after.created_at is None:
+                    where.append(r.id > after.id)
+                rows = [*rows, *(
+                    await session.execute(
+                        select(r.id, r.created_at, r.doc)
+                        .where(*base, *where)
+                        .order_by(r.id)
+                        .limit(limit - len(rows))
+                    )
+                ).all()]
+        return rows
 
     # -- another form's answers as options (services/option_sources) ----------
     @staticmethod
