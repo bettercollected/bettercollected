@@ -35,6 +35,8 @@ class WorkspacePermissionsDto(CamelModel):
     ``save_drafts_enabled`` is the same for ``SAVE_DRAFTS_ENABLED`` ("Let
     respondents save and continue later": the builder shows the setting
     read-only while it is off).
+    ``captcha_enabled`` is the same for ``CAPTCHA_ENABLED`` (the automatic spam
+    check: a form's Settings page offers its switch only while it is on).
     ``form_revisions_ui_enabled`` is the same for ``FORM_REVISIONS_UI_ENABLED``
     (the Versions page of a form: list, compare, restore).
     ``audit_log_ui_enabled`` is the same for ``AUDIT_LOG_UI_ENABLED`` (the
@@ -62,6 +64,7 @@ class WorkspacePermissionsDto(CamelModel):
     # its option logic and filter settings from it.
     choice_logic_enabled: bool = False
     save_drafts_enabled: bool = False
+    captcha_enabled: bool = False
     csv_import_enabled: bool = False
     new_question_types_enabled: bool = False
     address_question_enabled: bool = False

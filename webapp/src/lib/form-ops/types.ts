@@ -145,6 +145,8 @@ export interface FormSettingsPatch {
     allowSaveDraft?: boolean | null;
     /** Days a draft is kept after its last save, 1 to 90; 0 goes back to the default of 30. */
     draftRetentionDays?: number | null;
+    /** The automatic spam check on the form's response submit (on unless false). */
+    captchaEnabled?: boolean | null;
     showReviewPage?: boolean | null;
 }
 
@@ -601,6 +603,8 @@ export interface ApplyOptions {
      * server's engine refuses it; absent: the server decides.
      */
     saveDraftsEnabled?: boolean;
+    /** `false`: an op that sets the automatic spam check is refused, as the server's engine refuses it. */
+    captchaEnabled?: boolean;
     applySettings?: boolean;
     /**
      * Is this address one of our own storage's public images? It depends on

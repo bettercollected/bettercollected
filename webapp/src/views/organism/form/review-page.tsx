@@ -27,6 +27,7 @@ import { mixHex, softInk, styleTokens } from '@app/views/molecules/theme/theme-s
 import { FORM_COLUMN, columnPlacementClass } from '@app/views/organism/layout/form-column';
 
 import ShareIdentityConsent from './share-identity-consent';
+import CaptchaStatus from './captcha-status';
 import { submitErrorKey, useEmitFlow, useFinishForm } from './use-finish-form';
 
 const isHex = (value?: string) => !!value && /^#[0-9a-fA-F]{6}$/.test(value);
@@ -50,7 +51,7 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
     const { responderState, previousSlide, editFromReview } = useResponderState();
     const { formResponse, setInvalidFields } = useFormResponse();
     const { hiddenValues } = useHiddenFieldValues();
-    const { finishForm, isLoading, submitError, setSubmitError, effectiveAnonymize } = useFinishForm(isPreviewMode);
+    const { finishForm, isLoading, submitError, setSubmitError, effectiveAnonymize, captchaWaiting } = useFinishForm(isPreviewMode);
     const emitFlow = useEmitFlow(isPreviewMode);
     const { files } = useFormAtom();
     // Calculations and values the rules set follow the path as it stands now (an edit may have
@@ -137,11 +138,13 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
             {(alsoSent.length > 0 || linkValues.length > 0) && <AlsoSentView rows={alsoSent} linkValues={linkValues} ink={ink} quiet={quiet} edge={edge} serif={serif} contentLang={contentLang} />}
             <div className="mt-10 flex flex-col items-start gap-4">
                 <ShareIdentityConsent effectiveAnonymize={effectiveAnonymize} />
-                <Button flat style={formButtonStyle(theme?.secondary, corner)} isLoading={isLoading} className={cn('form-button min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')} onClick={onSubmit} size="medium">
+                <Button flat style={formButtonStyle(theme?.secondary, corner)} isLoading={isLoading} aria-busy={captchaWaiting || undefined} className={cn('form-button min-h-12 px-8 py-3 text-base font-semibold', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')} onClick={onSubmit} size="medium">
                     {t('NAV.SUBMIT')}
                 </Button>
                 {/* "Save and continue later" works from here too: the draft comes back on the last page, to go on to this review again. */}
                 {!isPreviewMode && <SaveDraftControl ink={ink} />}
+                {/* While the automatic spam check is still being calculated (after 1.5 s), a polite message. */}
+                <CaptchaStatus waiting={captchaWaiting} />
                 {/* Stays until the next attempt; the toast alone is gone in a moment. */}
                 {submitError && (
                     <p role="alert" className="text-[15px] leading-relaxed font-medium text-[#B42318]">

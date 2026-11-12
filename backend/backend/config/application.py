@@ -158,6 +158,13 @@ class Application(StoreBackedSettings):
     # is refused with 422 save_drafts_disabled, and saving or opening a draft is
     # refused.
     SAVE_DRAFTS_ENABLED: bool = False
+    # A privacy-friendly proof of work, solved by the respondent's browser in
+    # the background, is asked before a response is accepted
+    # (services/captcha, docs/captcha.md). Off (the default, until it is
+    # released): the challenge route answers 404, the X-BC-Captcha header is
+    # never read, forms are served without the setting, the per-form setting
+    # cannot be changed (422 captcha_disabled) and nothing is recorded.
+    CAPTCHA_ENABLED: bool = False
     # Importing submissions from a CSV file (services/response_import/). Off
     # (the default, until the release that turns it on): every import route
     # answers 404 and the webapp shows no import control; the hourly sweep

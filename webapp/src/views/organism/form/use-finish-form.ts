@@ -22,7 +22,9 @@ import { getFlowSessionId } from '@app/utils/flow-session';
 import { normalizeGroupAnswersForSubmit } from '@app/utils/repeating-groups';
 import { REVIEW_SLIDE, pathPages } from '@app/utils/review-page';
 import useFocusProblem from './focus-problem';
-import { firstPageWithError, formRefusal, historyBackTo, isSubmitRateLimited, serverAnswerErrors, serverInvalidations } from '@app/utils/server-answer-errors';
+import { CAPTCHA_HEADER } from '@app/utils/captcha/solver-core';
+import { firstPageWithError, formRefusal, historyBackTo, isCaptchaRefused, isSubmitRateLimited, serverAnswerErrors, serverInvalidations } from '@app/utils/server-answer-errors';
+import { useCaptcha } from './use-captcha';
 
 /** The message for a submission the server refused because the form takes no responses. */
 export const SUBMIT_REFUSED = { closed: 'NAV.SUBMIT_CLOSED', not_yet_open: 'NAV.SUBMIT_NOT_OPEN', full: 'NAV.SUBMIT_FULL' } as const;
@@ -34,10 +36,10 @@ export function sendsDrawnSignature(slides: StandardFormFieldDto[] | undefined, 
 }
 
 /** `unmapped`: the server refused some answers (422) that belong to no page the respondent can go to; `signature_unavailable`: it could not process a drawn signature just now (503). */
-export type SubmitError = false | 'failed' | 'unmapped' | 'closed' | 'not_yet_open' | 'full' | 'signature_unavailable' | 'rate_limited';
+export type SubmitError = false | 'failed' | 'unmapped' | 'closed' | 'not_yet_open' | 'full' | 'signature_unavailable' | 'rate_limited' | 'captcha_failed';
 
 /** The message to keep by the button for a failed submission. */
-export const submitErrorKey = (error: Exclude<SubmitError, false>) => (error === 'failed' ? 'NAV.SUBMIT_ERROR' : error === 'unmapped' ? 'NAV.SUBMIT_UNMAPPED' : error === 'signature_unavailable' ? 'SIGNATURE.SUBMIT_UNAVAILABLE' : error === 'rate_limited' ? 'NAV.SUBMIT_RATE_LIMITED' : SUBMIT_REFUSED[error]);
+export const submitErrorKey = (error: Exclude<SubmitError, false>) => (error === 'failed' ? 'NAV.SUBMIT_ERROR' : error === 'unmapped' ? 'NAV.SUBMIT_UNMAPPED' : error === 'signature_unavailable' ? 'SIGNATURE.SUBMIT_UNAVAILABLE' : error === 'rate_limited' ? 'NAV.SUBMIT_RATE_LIMITED' : error === 'captcha_failed' ? 'NAV.CAPTCHA_FAILED' : SUBMIT_REFUSED[error]);
 
 /**
  * Anonymous drop-off breadcrumb: page to page, never answers, never in preview.
@@ -73,6 +75,8 @@ export function useFinishForm(isPreviewMode: boolean) {
     const visited = useVisitedSlides();
     const workspace = useAppSelector(selectWorkspace);
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
+    // The automatic spam check (only while the server asks for it; never in preview).
+    const captcha = useCaptcha(isPreviewMode);
     const { files } = useFormAtom();
     const authState = useAppSelector(selectAuth);
     // The key of the anonymous draft this browser holds, if any: the submit deletes that draft.
@@ -114,11 +118,29 @@ export function useFinishForm(isPreviewMode: boolean) {
             formData.append('file_field_ids', fileObj.fieldId);
             formData.append('file_ids', fileObj.fileId);
         });
-        const response: any = await submitResponse({
-            workspaceId: workspace.id,
-            formId: standardForm?.formId,
-            body: formData
-        });
+        // One single-use proof per request. A refused proof (missing, wrong, expired, spent) stored nothing, so a new one is asked for and the
+        // request is sent once more; a network error or a 5xx is never retried (the response may be stored, and a retry would duplicate it).
+        let response: any;
+        for (let attempt = 0; attempt < 2; attempt++) {
+            let proof: string | undefined;
+            if (captcha.required) {
+                try {
+                    proof = await captcha.take(attempt > 0);
+                } catch {
+                    const failure: Error & { captcha?: boolean } = new Error('The automatic spam check could not be completed.');
+                    failure.captcha = true;
+                    throw failure;
+                }
+            }
+            response = await submitResponse({
+                workspaceId: workspace.id,
+                formId: standardForm?.formId,
+                body: formData,
+                ...(proof ? { headers: { [CAPTCHA_HEADER]: proof } } : {})
+            });
+            if (attempt === 0 && !response?.data && isCaptchaRefused(response?.error)) continue;
+            break;
+        }
         if (!response.data) {
             const failure: Error & { response?: unknown } = new Error('The response was not accepted.');
             failure.response = response?.error;
@@ -184,7 +206,11 @@ export function useFinishForm(isPreviewMode: boolean) {
                     // in (closed, not open, full): say so, and keep the answers
                     // (nothing was stored).
                     const refusal = formRefusal(e?.response);
-                    if (refusal) {
+                    if (e?.captcha) {
+                        // the browser could not do the calculation in time (or at all): nothing was sent, the answers are kept
+                        toast({ description: t('NAV.CAPTCHA_FAILED'), variant: 'destructive' });
+                        setSubmitError('captcha_failed');
+                    } else if (refusal) {
                         toast({ description: t(SUBMIT_REFUSED[refusal]), variant: 'destructive' });
                         setSubmitError(refusal);
                     } else if (isSubmitRateLimited(e?.response)) {
@@ -203,5 +229,5 @@ export function useFinishForm(isPreviewMode: boolean) {
                 });
     };
 
-    return { finishForm, isLoading, submitError, setSubmitError, effectiveAnonymize };
+    return { finishForm, isLoading: isLoading || captcha.preparing, submitError, setSubmitError, effectiveAnonymize, captchaWaiting: captcha.waiting };
 }
