@@ -10,7 +10,8 @@ import '@app/shared/hocs/i18n-provider';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { axeViolations } from '@app/test/axe';
 import { catalogue, figures } from '@app/test/report-fixtures';
-import { ReportView, ReportCardDef, ReportDefinition, ReportResult, ReportViewList, cardsParam, parseCardsParam } from '@app/utils/report';
+import { parseWhereParam, whereParam } from '@app/utils/report-where';
+import { ReportClause, ReportView, ReportCardDef, ReportDefinition, ReportResult, ReportViewList, cardsParam, parseCardsParam } from '@app/utils/report';
 
 import ReportPage from './report-page';
 
@@ -35,6 +36,7 @@ const server: {
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
+    drill: ReturnType<typeof vi.fn>;
 } = {} as never;
 
 const nav = { search: '', listeners: new Set<() => void>(), pushes: [] as string[], replaces: [] as string[] };
@@ -77,7 +79,8 @@ vi.mock('@app/store/workspaces/api', () => ({
     useGetReportViewsQuery: (_args: unknown, options: { skip?: boolean }) => ({ data: options.skip ? undefined : server.views, isLoading: false, isError: false, refetch: server.refetchViews }),
     useCreateReportViewMutation: () => [server.create, { isLoading: false }],
     useUpdateReportViewMutation: () => [server.update, { isLoading: false }],
-    useDeleteReportViewMutation: () => [server.remove, { isLoading: false }]
+    useDeleteReportViewMutation: () => [server.remove, { isLoading: false }],
+    useGetReportResponsesMutation: () => [server.drill]
 }));
 
 const cardsInUrl = (url: string): ReportCardDef[] | undefined => parseCardsParam(new URLSearchParams(url.split('?')[1] ?? '').get('cards'));
@@ -101,6 +104,7 @@ beforeEach(() => {
     server.create = vi.fn();
     server.update = vi.fn();
     server.remove = vi.fn();
+    server.drill = vi.fn();
     nav.search = '';
     nav.pushes = [];
     nav.replaces = [];
@@ -486,5 +490,162 @@ describe('the figures of the definition on screen', () => {
         expect(screen.queryByRole('img')).toBeNull();
         expect(screen.getAllByText('Loading figures').length).toBeGreaterThan(0);
         expect(screen.queryByText('212')).toBeNull();
+    });
+});
+
+
+const whereIn = (url: string) => parseWhereParam(new URLSearchParams(url.split('?')[1] ?? '').get('where'));
+const WHERE: ReportClause[] = [{ field: 'q:team', op: 'is', value: 'north' }];
+
+describe('answer filters on the page', () => {
+    it('asks for the conditions in the address, on top of the list filters, and says how many responses met them', () => {
+        nav.search = `who=known&where=${whereParam(WHERE)}`;
+        server.result = (definition) => figures(definition, 74);
+        renderPage();
+        expect(lastAsked().filters.where).toEqual(WHERE);
+        expect(lastAsked().filters.respondent).toBe('known');
+        expect(screen.getByRole('list', { name: 'Answer filters in force' })).toHaveTextContent('Which team are you in? is North');
+        expect(screen.getByRole('figure', { name: 'Responses' })).toHaveTextContent('n = 74');
+    });
+
+    it('asks for none when the address carries none, or a malformed one', () => {
+        nav.search = 'where=%%%not-conditions';
+        renderPage();
+        expect(lastAsked().filters.where).toBeUndefined();
+        expect(screen.queryByRole('list', { name: 'Answer filters in force' })).toBeNull();
+    });
+
+    it('adds a condition by writing it into the address, with the cards and the view that were there', () => {
+        withViews(saved());
+        nav.search = `view=${VIEW_ONE}&cards=${cardsParam(saved().definition.cards)}`;
+        renderPage();
+        fireEvent.click(screen.getByRole('button', { name: 'Add answer filter' }));
+        const form = screen.getByRole('form', { name: 'Add answer filter' });
+        fireEvent.change(within(form).getByLabelText('Value'), { target: { value: 'south' } });
+        fireEvent.click(within(form).getByRole('button', { name: 'Add' }));
+        const url = nav.pushes.at(-1) as string;
+        expect(whereIn(url)).toEqual([{ field: 'q:team', op: 'is', value: 'south' }]);
+        expect(new URLSearchParams(url.split('?')[1]).get('view')).toBe(VIEW_ONE);
+        expect(cardsInUrl(url)).toHaveLength(2);
+    });
+
+    it('removes one, and the last one takes the parameter away', () => {
+        nav.search = `where=${whereParam(WHERE)}`;
+        renderPage();
+        fireEvent.click(screen.getByRole('button', { name: 'Remove filter: Which team are you in? is North' }));
+        expect(new URLSearchParams((nav.pushes.at(-1) as string).split('?')[1] ?? '').has('where')).toBe(false);
+    });
+
+    it('leaves a condition on a question the form no longer has out of the request, and says so', () => {
+        nav.search = `where=${whereParam([{ field: 'q:gone', op: 'is_empty' }, ...WHERE])}`;
+        renderPage();
+        expect(lastAsked().filters.where).toEqual(WHERE);
+        expect(screen.getByText(/q:gone has no answer \(This question is no longer in the form\.\)/)).toBeInTheDocument();
+    });
+
+    it('says a filter that selects nothing selected nothing, with the conditions as the only filter', () => {
+        nav.search = `where=${whereParam(WHERE)}`;
+        server.result = (definition) => figures(definition, 0);
+        renderPage();
+        expect(screen.getByText('No responses match these filters.')).toBeInTheDocument();
+    });
+
+    it('is part of a saved view: opening one writes its conditions, and changing them makes the view changed', () => {
+        const filtered = saved({ definition: { ...saved().definition, filters: { where: WHERE } } });
+        withViews(filtered);
+        renderPage();
+        fireEvent.change(screen.getByRole('combobox', { name: 'Views' }), { target: { value: VIEW_ONE } });
+        const url = nav.pushes.at(-1) as string;
+        expect(whereIn(url)).toEqual(WHERE);
+        nav.search = `view=${VIEW_ONE}&cards=${cardsParam(filtered.definition.cards)}`;
+        renderPage();
+        expect(screen.getByText('Changed since it was saved')).toBeInTheDocument();
+    });
+
+    it('saves the conditions with the view', async () => {
+        server.create.mockReturnValue({ unwrap: () => Promise.resolve(saved({ id: VIEW_TWO })) });
+        nav.search = `where=${whereParam(WHERE)}`;
+        renderPage();
+        fireEvent.click(screen.getByRole('button', { name: 'Save view' }));
+        const form = screen.getByRole('form', { name: 'Save view' });
+        fireEvent.change(within(form).getByLabelText('Name'), { target: { value: 'North only' } });
+        fireEvent.click(within(form).getByRole('button', { name: 'Save view' }));
+        await waitFor(() => expect(server.create).toHaveBeenCalled());
+        expect(server.create.mock.calls[0][0].definition.filters.where).toEqual(WHERE);
+    });
+
+    it('is in Dutch', async () => {
+        await i18n.changeLanguage('nl');
+        nav.search = `where=${whereParam([{ field: 'q:years', op: '>=', value: 3 }])}`;
+        renderPage();
+        expect(screen.getByRole('list', { name: 'Actieve antwoordfilters' })).toHaveTextContent('is minstens 3');
+        expect(screen.getByRole('button', { name: 'Antwoordfilter toevoegen' })).toBeInTheDocument();
+    });
+});
+
+describe('drill-down on the page', () => {
+    const open = (card = 'Which team are you in?') => {
+        const figure = screen.getByRole('figure', { name: card });
+        // a card that is already a table has no switch left to press
+        const toggle = within(figure).queryByRole('button', { name: 'Show as table' });
+        if (toggle) fireEvent.click(toggle);
+        return figure;
+    };
+    const rowsReply = (n: number) => ({ unwrap: () => Promise.resolve({ responses: Array.from({ length: n }, (_, i) => ({ id: `r${i}`, submittedAt: '2026-10-05T10:00:00Z', formVersion: 2, respondent: 'known' })), cursor: null, scanned: n, exhausted: true }) });
+
+    it('opens the responses of a group under the cards, asked with the definition on screen', async () => {
+        nav.search = `who=known&where=${whereParam(WHERE)}`;
+        server.drill.mockReturnValue(rowsReply(2));
+        renderPage();
+        const figure = open();
+        fireEvent.click(within(figure).getByRole('button', { name: 'Open these responses: South' }));
+        expect(await screen.findByRole('table', { name: 'Responses in South' })).toBeInTheDocument();
+        const asked = server.drill.mock.calls[0][0];
+        expect(asked).toMatchObject({ workspaceId: 'ws-1', formId: 'form-1', card: 'q1', group: 'south' });
+        expect(asked.definition.filters.where).toEqual(WHERE);
+        expect(asked.definition.filters.respondent).toBe('known');
+    });
+
+    it('closes, and goes away with its card', async () => {
+        server.drill.mockReturnValue(rowsReply(1));
+        const { rerender } = renderPage();
+        fireEvent.click(within(open()).getByRole('button', { name: 'Open these responses: North' }));
+        expect(await screen.findByRole('heading', { name: 'Responses in North' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Close the list of responses' }));
+        expect(screen.queryByRole('heading', { name: 'Responses in North' })).toBeNull();
+        fireEvent.click(within(open()).getByRole('button', { name: 'Open these responses: North' }));
+        expect(await screen.findByRole('heading', { name: 'Responses in North' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Remove Which team are you in?' }));
+        rerender(<ReportPage />);
+        expect(screen.queryByRole('heading', { name: 'Responses in North' })).toBeNull();
+    });
+
+    it('links a plaintext group to the responses list with the same filter, and a group of answers to none', async () => {
+        nav.search = `cards=${cardsParam([{ id: 'v', kind: 'table', dimension: { field: 'form_version' }, measures: [{ agg: 'count' }] }])}&who=known`;
+        server.drill.mockReturnValue(rowsReply(1));
+        renderPage();
+        fireEvent.click(screen.getByRole('button', { name: 'Open these responses: Version 2' }));
+        const link = await screen.findByRole('link', { name: 'Open this group in the responses list' });
+        const query = new URLSearchParams((link.getAttribute('href') as string).split('?')[1]);
+        expect(link.getAttribute('href')).toMatch(/^\/acme\/dashboard\/forms\/form-1\/responses\?/);
+        expect(query.get('version')).toBe('2');
+        expect(query.get('who')).toBe('known');
+    });
+
+    it('has no list link while conditions on answers are in force', async () => {
+        nav.search = `cards=${cardsParam([{ id: 'v', kind: 'table', dimension: { field: 'form_version' }, measures: [{ agg: 'count' }] }])}&where=${whereParam(WHERE)}`;
+        server.drill.mockReturnValue(rowsReply(1));
+        renderPage();
+        fireEvent.click(screen.getByRole('button', { name: 'Open these responses: Version 2' }));
+        await screen.findByRole('table', { name: 'Responses in Version 2' });
+        expect(screen.queryByRole('link', { name: 'Open this group in the responses list' })).toBeNull();
+    });
+
+    it('finds no axe violation with the responses open', async () => {
+        server.drill.mockReturnValue(rowsReply(2));
+        const { container } = renderPage();
+        fireEvent.click(within(open()).getByRole('button', { name: 'Open these responses: North' }));
+        await screen.findByRole('table', { name: 'Responses in North' });
+        expect(await axeViolations(container)).toEqual([]);
     });
 });

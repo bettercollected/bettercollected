@@ -4,7 +4,7 @@
  * the working report (filters and cards); a saved view is the definition the server
  * stored, so the two meet here.
  */
-import { ReportCardDef, ReportDefinition, ReportFilters, ReportView } from '@app/utils/report';
+import { ReportCardDef, ReportClause, ReportDefinition, ReportFilters, ReportView } from '@app/utils/report';
 import { ResponseListState } from '@app/utils/response-list-state';
 
 const two = (value: number) => String(value).padStart(2, '0');
@@ -38,6 +38,11 @@ export function filtersOf(definition: ReportDefinition): Pick<ResponseListState,
     return state;
 }
 
+/** The conditions on answers a stored definition holds. */
+export function whereOf(definition: ReportDefinition): ReportClause[] {
+    return (definition.filters?.where ?? []).map(({ field, op, value }) => ({ field, op, ...(value === undefined || value === null ? {} : { value }) }));
+}
+
 function filterKey(filters: ReportFilters | undefined) {
     const value = filters ?? {};
     const instant = (iso?: string) => (iso ? new Date(iso).getTime() : null);
@@ -46,7 +51,9 @@ function filterKey(filters: ReportFilters | undefined) {
         to: instant(value.submittedTo),
         status: [...(value.status ?? [])].sort(),
         respondent: value.respondent ?? null,
-        versions: [...(value.formVersion ?? [])].sort((a, b) => a - b)
+        versions: [...(value.formVersion ?? [])].sort((a, b) => a - b),
+        // the order of the conditions is not part of what they say
+        where: (value.where ?? []).map((clause) => JSON.stringify([clause.field, clause.op, clause.value ?? null])).sort()
     };
 }
 

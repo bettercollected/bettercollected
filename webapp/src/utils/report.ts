@@ -42,6 +42,8 @@ export interface ReportField {
     options?: ReportFieldOption[];
     /** A currency question's one currency (ISO code). */
     currency?: string;
+    /** The operators a condition on this question's answer may use. */
+    filterOps?: string[];
 }
 
 export interface ReportBuiltin {
@@ -75,12 +77,42 @@ export interface ReportCardDef {
     title?: string;
 }
 
+/** A condition on an answer: a question, an operator and a value that is an option id, a number, a yes/no or a date. */
+export interface ReportClause {
+    field: string;
+    op: string;
+    value?: boolean | number | string | Array<number | string>;
+}
+
 export interface ReportFilters {
     submittedFrom?: string;
     submittedTo?: string;
     status?: string[];
     respondent?: string;
     formVersion?: number[];
+    /** Every one of these must be met by a response for it to count. */
+    where?: ReportClause[];
+}
+
+/** The most conditions on answers a definition holds (the server's limit). */
+export const CLAUSES_MAX = 10;
+
+/** A page of the responses behind one group of one card (drill-down). */
+export interface ReportDrillRow {
+    /** What the response's own page is opened by. */
+    id: string;
+    submittedAt: string | null;
+    formVersion: number | null;
+    respondent: 'anonymous' | 'known';
+}
+
+export interface ReportDrillPage {
+    responses: ReportDrillRow[];
+    /** Where to continue; null at the end of the set. */
+    cursor: string | null;
+    scanned: number;
+    /** The set has ended (a short page with a cursor means the scan budget ended, not the set). */
+    exhausted: boolean;
 }
 
 export interface ReportDefinition {
@@ -292,14 +324,14 @@ export function overviewCards(catalogue: ReportCatalogue, all = false): ReportCa
 
 const MAX_CARDS_PARAM = 6000;
 
-function toBase64Url(text: string): string {
+export function toBase64Url(text: string): string {
     const bytes = new TextEncoder().encode(text);
     let binary = '';
     bytes.forEach((byte) => (binary += String.fromCharCode(byte)));
     return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function fromBase64Url(text: string): string {
+export function fromBase64Url(text: string): string {
     const padded = text.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((text.length + 3) % 4);
     const binary = atob(padded);
     return new TextDecoder().decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
@@ -363,8 +395,9 @@ export function viewerZone(): string {
 /* ------------------------------------------------------- the filters */
 
 /** The report's filters as the API's names, from the list's filter state (viewer days to UTC instants). */
-export function reportFilters(state: { from?: string; to?: string; status?: string; who?: string; version?: number }, dayStart: (day: string, add?: number) => string): ReportFilters {
+export function reportFilters(state: { from?: string; to?: string; status?: string; who?: string; version?: number }, dayStart: (day: string, add?: number) => string, where: ReportClause[] = []): ReportFilters {
     const filters: ReportFilters = {};
+    if (where.length) filters.where = where;
     if (state.from) filters.submittedFrom = dayStart(state.from);
     if (state.to) filters.submittedTo = dayStart(state.to, 1);
     if (state.status) filters.status = [state.status];

@@ -303,3 +303,54 @@ describe('negative values and big numbers', () => {
         expect(centre()).toContain('12,340');
     });
 });
+
+
+describe('opening the responses behind a group', () => {
+    const drillable: ReportCardDef = { id: 'team', kind: 'bar', dimension: { field: 'q:team' }, measures: [{ agg: 'count' }] };
+
+    it('puts a button on each row of the table, named after the group, and none while the chart shows', () => {
+        const onDrill = vi.fn();
+        renderCard(drillable, { onDrill });
+        const figure = screen.getByRole('figure', { name: 'Which team are you in?' });
+        // the table behind the chart (for a screen reader) has no buttons: nothing in a chart is a tab stop
+        expect(within(figure).queryByRole('button', { name: /Open these responses/ })).toBeNull();
+        fireEvent.click(within(figure).getByRole('button', { name: 'Show as table' }));
+        fireEvent.click(within(figure).getByRole('button', { name: 'Open these responses: South' }));
+        expect(onDrill).toHaveBeenCalledTimes(1);
+        expect(onDrill.mock.calls[0][0]).toEqual(drillable);
+        expect(onDrill.mock.calls[0][1]).toMatchObject({ key: 'south', label: 'South', n: 52 });
+    });
+
+    it('is reached by keyboard, in order, as buttons of the table', () => {
+        renderCard(drillable, { onDrill: vi.fn() });
+        fireEvent.click(screen.getByRole('button', { name: 'Show as table' }));
+        const names = screen.getAllByRole('button', { name: /^Open these responses/ }).map((b) => b.getAttribute('aria-label'));
+        expect(names).toEqual(['Open these responses: North', 'Open these responses: South', 'Open these responses: East', 'Open these responses: West']);
+    });
+
+    it('is offered on a table card too, and not for a group nobody is in', () => {
+        const table: ReportCardDef = { ...drillable, kind: 'table', dimension: { field: 'q:remote' } };
+        const result = cardFigures(table);
+        renderCard(table, { onDrill: vi.fn(), result: { ...result, groups: [...result.groups, { key: 'maybe', label: 'Maybe', n: 0, values: [0], valueN: [0] }] } });
+        expect(screen.getAllByRole('button', { name: /^Open these responses/ })).toHaveLength(2);
+    });
+
+    it('is not offered for a card without groups, for a status the pass does not read, or without a handler', () => {
+        const tileView = renderCard({ id: 't', kind: 'tile', measures: [{ agg: 'count' }] }, { onDrill: vi.fn() });
+        fireEvent.click(screen.getByRole('button', { name: 'Show as table' }));
+        expect(screen.queryByRole('button', { name: /Open these responses/ })).toBeNull();
+        tileView.unmount();
+        const status: ReportCardDef = { id: 's', kind: 'table', dimension: { field: 'status' }, measures: [{ agg: 'count' }] };
+        const statusView = renderCard(status, { onDrill: vi.fn(), result: { ...cardFigures(status), groups: [{ key: 'none', label: 'None', n: 5, values: [5], valueN: [5] }] } });
+        expect(screen.queryByRole('button', { name: /Open these responses/ })).toBeNull();
+        statusView.unmount();
+        renderCard({ ...drillable, kind: 'table' });
+        expect(screen.queryByRole('button', { name: /Open these responses/ })).toBeNull();
+    });
+
+    it('finds no axe violation in a table with the buttons', async () => {
+        const { container } = renderCard(drillable, { onDrill: vi.fn() });
+        fireEvent.click(screen.getByRole('button', { name: 'Show as table' }));
+        expect(await axeViolations(container)).toEqual([]);
+    });
+});

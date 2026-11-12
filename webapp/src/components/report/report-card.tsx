@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useIntlLocale } from '@app/lib/hooks/use-intl-locale';
 import { cn } from '@app/shadcn/util/lib';
 import { ReportCardDef, ReportCardResult, ReportCatalogue, cardProblem } from '@app/utils/report';
-import { buildCardView, cardTitle, chartSummary } from '@app/utils/report-view';
+import { ReportRow, buildCardView, cardTitle, chartSummary } from '@app/utils/report-view';
 
 import { BarChart, DataTable, DonutChart, LineChart, TileChart } from './charts';
 import ReportCardEditor from './report-card-editor';
@@ -32,9 +32,11 @@ interface Props {
     onChange: (card: ReportCardDef) => void;
     onRemove: () => void;
     onMove: (delta: -1 | 1) => void;
+    /** Open the responses behind a group of this card (offered in the table, for a card with groups the pass can tell). */
+    onDrill?: (card: ReportCardDef, row: ReportRow) => void;
 }
 
-export default function ReportCard({ def, result, catalogue, loading, first, last, onChange, onRemove, onMove }: Props) {
+export default function ReportCard({ def, result, catalogue, loading, first, last, onChange, onRemove, onMove, onDrill }: Props) {
     const { t } = useTranslation();
     const locale = useIntlLocale();
     const id = useId().replace(/:/g, '');
@@ -50,6 +52,8 @@ export default function ReportCard({ def, result, catalogue, loading, first, las
     const wide = isLine || view.kind === 'table';
     const ready = !problem && !!result && !view.empty;
     const showTable = view.kind === 'table' || asTable;
+    // a group's responses are found by the pass: a deletion-request or feedback status is not read by it
+    const drillable = !!onDrill && !!def.dimension && !['status', 'feedback_status'].includes(def.dimension.field);
 
     const chart = !ready ? null : view.kind === 'tile' ? (
         <TileChart view={view} summaryId={summaryId} label={label} locale={locale} />
@@ -111,7 +115,7 @@ export default function ReportCard({ def, result, catalogue, loading, first, las
             ) : (
                 <>
                     {showTable ? (
-                        <DataTable view={view} caption={title} />
+                        <DataTable view={view} caption={title} onOpen={drillable ? (row) => onDrill?.(def, row) : undefined} />
                     ) : (
                         <>
                             <p id={summaryId} className="sr-only">

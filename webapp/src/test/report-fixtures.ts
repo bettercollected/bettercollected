@@ -7,10 +7,13 @@ import type { ReportCardDef, ReportCardResult, ReportCatalogue, ReportDefinition
  */
 export const TOTAL = 212;
 
+const EMPTY = ['is_empty', 'is_not_empty'];
+const NUMBER = ['=', '!=', '>', '>=', '<', '<=', 'between'];
+
 export const catalogue: ReportCatalogue = {
     fields: [
         {
-            key: 'q:team',
+            key: 'q:team', filterOps: ['is', 'is_not', 'any_of', ...EMPTY],
             label: 'Which team are you in?',
             kind: 'choice',
             dimension: true,
@@ -25,7 +28,7 @@ export const catalogue: ReportCatalogue = {
             ]
         },
         {
-            key: 'q:tools',
+            key: 'q:tools', filterOps: ['has_any', 'has_all', ...EMPTY],
             label: 'Which tools do you use?',
             kind: 'choices',
             dimension: true,
@@ -40,9 +43,9 @@ export const catalogue: ReportCatalogue = {
                 { id: 'trk', label: 'Tracker' }
             ]
         },
-        { key: 'q:score', label: 'How satisfied are you?', kind: 'scale', dimension: true, measures: ['count', 'avg', 'min', 'max'], versions: [1, 2], inCurrentVersion: true },
-        { key: 'q:years', label: 'Years at the organisation', kind: 'number', dimension: false, measures: ['count', 'avg', 'sum', 'min', 'max'], versions: [1, 2], inCurrentVersion: true },
-        { key: 'q:remote', label: 'Do you work remotely?', kind: 'yes_no', dimension: true, measures: ['count'], versions: [1, 2], inCurrentVersion: true }
+        { key: 'q:score', filterOps: [...NUMBER, ...EMPTY], label: 'How satisfied are you?', kind: 'scale', dimension: true, measures: ['count', 'avg', 'min', 'max'], versions: [1, 2], inCurrentVersion: true },
+        { key: 'q:years', filterOps: [...NUMBER, ...EMPTY], label: 'Years at the organisation', kind: 'number', dimension: false, measures: ['count', 'avg', 'sum', 'min', 'max'], versions: [1, 2], inCurrentVersion: true },
+        { key: 'q:remote', filterOps: ['is', ...EMPTY], label: 'Do you work remotely?', kind: 'yes_no', dimension: true, measures: ['count'], versions: [1, 2], inCurrentVersion: true }
     ],
     builtins: [
         { key: 'submitted_at', buckets: ['day', 'week', 'month', 'year'] },

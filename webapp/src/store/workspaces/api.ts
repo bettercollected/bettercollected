@@ -14,7 +14,7 @@ import { DeclineReason, DeletionRequestOutcome } from '@app/models/enums/deletio
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 import { SubmissionPath } from '@app/utils/conditional-logic';
-import type { ReportCatalogue, ReportDefinition, ReportResult, ReportView, ReportViewList, ReportViewScope } from '@app/utils/report';
+import type { ReportCatalogue, ReportDefinition, ReportDrillPage, ReportResult, ReportView, ReportViewList, ReportViewScope } from '@app/utils/report';
 import { fileNameFromDisposition } from '@app/utils/content-disposition';
 import { OpenFormulierenExport, openFormulierenExportOf } from '@app/utils/open-formulieren-export';
 
@@ -393,6 +393,11 @@ export const workspacesApi = createApi({
         deleteReportView: builder.mutation<null, { workspaceId: string; formId: string; viewId: string }>({
             query: ({ workspaceId, formId, viewId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/views/${pathSegment(viewId)}`, method: 'DELETE' }),
             invalidatesTags: [REPORT_VIEWS_TAG]
+        }),
+        // The responses behind one group of one card (response.read and analytics.read): a page at a time, from the cursor
+        // the last page gave. A POST read, so it is a mutation the caller runs on demand.
+        getReportResponses: builder.mutation<ReportDrillPage, { workspaceId: string; formId: string; definition: ReportDefinition; card: string; group: string; cursor?: string | null; size?: number }>({
+            query: ({ workspaceId, formId, ...body }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/responses`, method: 'POST', body })
         }),
         queryReport: builder.query<ReportResult, { workspaceId: string; formId: string; definition: ReportDefinition }>({
             query: ({ workspaceId, formId, definition }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/query`, method: 'POST', body: definition }),
@@ -1093,6 +1098,7 @@ export const {
     useGetResponseExportsQuery,
     useGetReportFieldsQuery,
     useQueryReportQuery,
+    useGetReportResponsesMutation,
     useGetReportViewsQuery,
     useCreateReportViewMutation,
     useUpdateReportViewMutation,
