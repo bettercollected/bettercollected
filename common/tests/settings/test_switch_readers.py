@@ -91,6 +91,10 @@ READERS = {
     "REPORTING_ENABLED": {
         _WORKSPACE_ROUTER: "http",
         "backend/app/controllers/report_router.py": "http",
+        # a form's saved views and a removed member's private views go with them, only while
+        # reports are on (the form delete and the member removal are requests)
+        "backend/app/repositories/postgres/member_removal.py": "http",
+        "backend/app/services/workspace_form_service.py": "http",
     },
 }
 
