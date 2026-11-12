@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+
+import { PieChart } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -130,7 +133,7 @@ export default function FormResponsesTable({ props }: any) {
 
     const { data, currentData, isLoading, isFetching, isError, error, refetch } = useGetFormsSubmissionsQuery(query, { skip: !workspace?.id || restoring });
     const errorCode = (error as { data?: { code?: string } } | undefined)?.data?.code;
-    const { can, csvImportEnabled } = useWorkspacePermissions();
+    const { can, csvImportEnabled, reportingEnabled } = useWorkspacePermissions();
     const canExport = can(WorkspacePermission.RESPONSE_EXPORT);
     // import needs the server's switch and response.import (Owner and Admin)
     // ...and only a form collected here (the server answers 409 for one imported from elsewhere)
@@ -315,10 +318,23 @@ export default function FormResponsesTable({ props }: any) {
         </div>
     ) : null;
     const exportControl = isSubmission && canExport ? <ResponseExportControl workspaceId={workspace?.id} formId={form.formId} formTitle={form.title} search={searchText} filters={exportFilters} /> : null;
+    // The Report page of the same answers, carrying the list's filters (not its page, size or sort); the search never travels
+    const canReport = isSubmission && !!reportingEnabled && can(WorkspacePermission.RESPONSE_READ) && can(WorkspacePermission.ANALYTICS_READ);
+    const reportQuery = responseListSearchParams({ ...DEFAULT_STATE, from: urlState.from, to: urlState.to, status: urlState.status, who: urlState.who, version: urlState.version }).toString();
+    const reportControl = canReport ? (
+        <Link
+            href={`${pathname.replace(/\/$/, '')}/report${reportQuery ? `?${reportQuery}` : ''}`}
+            className="border-black-300 text-black-900 hover:bg-black-200 focus-visible:ring-brand-500 inline-flex h-10 shrink-0 items-center gap-2 rounded border bg-white px-4 text-sm font-medium focus:outline-hidden focus-visible:ring-2"
+        >
+            <PieChart className="h-4 w-4" aria-hidden="true" />
+            {t('REPORT.TITLE')}
+        </Link>
+    ) : null;
     const importControl = isSubmission && canImport ? <ResponseImportControl workspaceId={workspace?.id} formId={form.formId} /> : null;
     const exportNode =
-        exportControl || importControl ? (
+        exportControl || importControl || reportControl ? (
             <div className="flex flex-wrap items-start gap-2 sm:justify-end">
+                {reportControl}
                 {importControl}
                 {exportControl}
             </div>

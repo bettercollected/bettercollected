@@ -85,6 +85,8 @@ export function useWorkspacePermissions() {
     const auditLogUiEnabled = !!userId && !isError && !!data?.auditLogUiEnabled;
     // ...and copying a form to another workspace (its FORM_PROMOTION_ENABLED): the form menu's item, the dialog and the Advanced settings' file card. No request is made while it is off.
     const formPromotionEnabled = !!userId && !isError && !!data?.formPromotionEnabled;
+    // ...and reports on a form's answers (its REPORTING_ENABLED): the Report item, the list's Report link and the page. Nothing of it is asked for or shown while it is off.
+    const reportingEnabled = !!userId && !isError && !!data?.reportingEnabled;
     return {
         can,
         permissions,
@@ -108,6 +110,7 @@ export function useWorkspacePermissions() {
         formAccessEnabled,
         auditLogUiEnabled,
         formPromotionEnabled,
-        apiKeyRolesEnabled
+        apiKeyRolesEnabled,
+        reportingEnabled
     };
 }

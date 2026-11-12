@@ -295,3 +295,48 @@ html[data-bc-embed] [data-slide] [data-radix-scroll-area-viewport] > div {
 html[data-bc-embed] [data-slide] [data-radix-scroll-area-viewport] > div > div {
     flex-grow: 0;
 }
+
+/* Report charts (components/report): the categorical series in a fixed order, light and dark steps of the same hues
+   (validated as a set: adjacent pairs clear the colour-vision and normal-vision floors). A mark is never told apart by
+   colour alone: every one carries a text label with its value, and the slices of a donut also differ by a pattern. */
+.report-viz {
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --series-4: #eda100;
+    --series-5: #e87ba4;
+    --series-6: #008300;
+    --viz-surface: #ffffff;
+    --viz-track: #e8e8e6;
+    --viz-grid: #d5d5d2;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme='light'])) .report-viz {
+        --series-1: #3987e5;
+        --series-2: #d95926;
+        --series-3: #199e70;
+        --series-4: #c98500;
+        --series-5: #d55181;
+        --viz-surface: #1a1a19;
+        --viz-track: #333331;
+        --viz-grid: #4a4a47;
+    }
+}
+
+:root[data-theme='dark'] .report-viz {
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --viz-surface: #1a1a19;
+    --viz-track: #333331;
+    --viz-grid: #4a4a47;
+}
+
+@media print {
+    .report-viz {
+        break-inside: avoid;
+    }
+}
