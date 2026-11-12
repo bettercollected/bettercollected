@@ -232,14 +232,13 @@ class ResponseExportService:
         """A fresh pass over the matching responses, decrypted batch by batch."""
 
         async def rows() -> AsyncIterator[ExportResponse]:
-            after: Optional[str] = None
+            after = None
             while True:
-                batch = await self._response_repo.export_batch(
-                    scope, filters, after_id=after, limit=limits.BATCH_SIZE
+                batch, after = await self._response_repo.export_batch(
+                    scope, filters, after=after, limit=limits.BATCH_SIZE
                 )
                 if not batch:
                     return
-                after = str(batch[-1].id)
                 decrypted = await run_in_threadpool(
                     lambda b=batch: [
                         to_export_response(
