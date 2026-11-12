@@ -176,7 +176,7 @@ def test_the_tag_salt_changes_every_utc_day_and_a_challenge_near_midnight_verifi
 
 
 def test_difficulty_outside_the_bounds_is_never_accepted():
-    for bits in (13, 22, 40):
+    for bits in (13, 21, 22, 40):
         text = make(bits=bits)
         # signed by us, but a server never issues it: refused whatever the work
         header = f"{text}.{','.join(['0'] * 8)}"
@@ -238,12 +238,12 @@ def test_pressure_adds_bits_and_the_total_stops_at_the_ceiling(monkeypatch):
     assert seen[6] == 18 and max(seen) == 20  # +1 per doubling, at most +3
     for _ in range(3):
         s.pressure.failed(client)
-    assert s.difficulty(client, F, False) == 21  # +2 for failures, capped at +4
+    assert s.difficulty(client, F, False) == 20  # +2 for failures, capped at +4
     monkeypatch.setattr(settings.api_settings, "CAPTCHA_DIFFICULTY_BOOST", 4)
     for _ in range(300):
         s.pressure.submitted(F)
-    assert s.difficulty(client, F, False) == 21
-    assert ch.MAX_BITS == 21 and ch.MIN_BITS == 14
+    assert s.difficulty(client, F, False) == 20
+    assert ch.MAX_BITS == 20 and ch.MIN_BITS == 14
 
 
 def test_a_busy_form_and_the_operator_boost_raise_it(monkeypatch):

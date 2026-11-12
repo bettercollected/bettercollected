@@ -47,8 +47,8 @@ day, so it changes daily and needs no storage; it is empty when the client is no
 
 ## Difficulty
 
-`bits` is the base for the purpose (`API_CAPTCHA_BASE_BITS_SUBMIT`, 14 to 21, default 17)
-plus pressure, at most +4, and never above 21; a signed-in respondent gets 3 less, never
+`bits` is the base for the purpose (`API_CAPTCHA_BASE_BITS_SUBMIT`, 14 to 20, default 17)
+plus pressure, at most +4, and never above 20; a signed-in respondent gets 3 less, never
 below 14.
 
 | Pressure (kept in this process's memory, never in the database) | Adds |
@@ -57,6 +57,11 @@ below 14.
 | 3 or more failed checks of the client in 10 minutes | +2 |
 | the form's submits in the last minute (this process): over 30, over 120 | +1, +2 |
 | the operator's `API_CAPTCHA_DIFFICULTY_BOOST` (0 to 4), for an attack in progress | up to +4 |
+
+Why the ceiling is 20: the work doubles with every bit, so 20 bits is 8 times the base of 17. Measured with
+the shipped solver under CPU throttling, 17 bits takes about 1.5 s (median) on a mid-range phone and about 2.5 s on
+a low-end one; 20 bits is about 12 s and 20 s, inside the solver's 25 s budget. 21 bits would be about 23 s and 40 s,
+past it.
 
 The challenge route itself is limited to 60 a minute per client (429 `rate_limited` with
 `Retry-After`). A client that is not known is neither counted nor limited there.

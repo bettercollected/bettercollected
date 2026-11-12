@@ -42,7 +42,7 @@ SUBPUZZLES = 8
 # the work is 2^bits hashes in all: 8 sub-puzzles of (bits - 3) zero bits each
 SUBPUZZLE_SHIFT = 3
 MIN_BITS = 14
-MAX_BITS = 21
+MAX_BITS = 20
 TTL = dt.timedelta(minutes=15)
 # a challenge is still accepted this long after it expired (clocks, a slow request)
 EXPIRY_SKEW = dt.timedelta(seconds=60)

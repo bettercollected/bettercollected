@@ -2,7 +2,7 @@
 
 ``CaptchaService.issue`` signs a challenge whose difficulty is the base for the
 purpose plus the pressure this process has seen, less three bits for a
-signed-in respondent (floor 14, never above 21). ``CaptchaService.require``
+signed-in respondent (floor 14, never above 20). ``CaptchaService.require``
 checks a proof: every check that needs only memory comes first
 (``challenge.check``), and the one write, the single-use claim of the nonce
 through ``FixedWindowRateLimiter.claim``, comes last, so a flood of junk

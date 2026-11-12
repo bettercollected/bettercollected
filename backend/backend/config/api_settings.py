@@ -77,9 +77,9 @@ class ApiSettings(StoreBackedSettings):
     CODE_MAIL_PER_HOUR: int = 20000
     # The proof of work asked on a response submit (services/captcha, behind
     # CAPTCHA_ENABLED): the base difficulty in bits (2^bits hashes in all,
-    # 14 to 21) and an operator boost added on top while an attack lasts
+    # 14 to 20) and an operator boost added on top while an attack lasts
     # (0 to 4; base, boost and the pressure from a client's own behaviour
-    # together never go past 21 bits).
+    # together never go past 20 bits).
     CAPTCHA_BASE_BITS_SUBMIT: int = 17
     CAPTCHA_DIFFICULTY_BOOST: int = 0
     # GET /images/unsplash/...: requests per client address in each window,
