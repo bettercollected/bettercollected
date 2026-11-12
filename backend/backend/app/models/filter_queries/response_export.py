@@ -5,7 +5,8 @@ The filters are those of the responses list (:class:`ResponseListFilters`:
 and the responder-email search), validated by the same model and turned into the
 same SQL by the repository (``_list_filters``), so the export of a filtered list
 is that filter. Every one is on a plaintext column of ``form_responses`` or on the
-status of its deletion request: the answers are encrypted at rest and never queried.
+status of its deletion request: the answers are encrypted at rest and never queried
+(a report adds them up in memory instead: docs/reporting.md).
 """
 
 import datetime as dt
