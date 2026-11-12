@@ -113,7 +113,7 @@
         "unsplash-js": "^8.0.1",
         "usehooks-ts": "^3.1.1",
         "uuid": "^14.0.3",
-        "vanilla-cookieconsent": "^2.9.0"
+        "vanilla-cookieconsent": "^3.3.0"
     },
     "devDependencies": {
         "@fontsource-variable/archivo": "5.3.0",
