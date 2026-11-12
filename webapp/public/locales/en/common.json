@@ -656,6 +656,7 @@
     "FEATURE_2": "See all your submitted forms of that particular workspace.",
     "FEATURE_3": "Delete your submitted form responses",
     "OTP_FAILURE_TOAST": "Failed to send OTP",
+    "OTP_RATE_LIMITED": "Too many codes were requested for this email address or from this network. Please wait a while (up to an hour) and try again.",
     "OTP_SUCCESS_TOAST": "OTP sent successfully",
     "OTP_VERIFICATION_SUCCESS_TOAST": "Verified successfully",
     "OTP_VERIFICATION_FAILURE_TOAST": "Verification failed"

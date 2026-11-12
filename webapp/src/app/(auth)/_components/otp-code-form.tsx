@@ -17,6 +17,7 @@ import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { browserMailLocale } from '@app/utils/mail-locale';
 import { reloadPage } from '@app/utils/browser-navigation';
 import { isMfaRequired } from '@app/utils/mfa';
+import { isRateLimited } from '@app/utils/server-answer-errors';
 
 import MfaCodeForm from '@app/components/mfa/mfa-code-form';
 
@@ -99,6 +100,8 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail, 
         const res = await postSendOtp({ receiver_email: email, workspace_id: workspace_id || '', locale: workspace_id ? respondentLanguage : browserMailLocale() });
         if ('data' in res && !!res.data) {
             setCounter(60);
+        } else if (isRateLimited((res as any)?.error)) {
+            toast({ description: t(formResponderLogin.otpRateLimitedMessage), variant: 'destructive' });
         }
     };
 

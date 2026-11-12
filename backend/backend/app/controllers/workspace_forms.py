@@ -693,6 +693,11 @@ class WorkspaceFormsRouter(Routable):
         draft_key: Optional[str] = Form(None, max_length=100),
         user: User = Depends(get_user_if_logged_in),
     ):
+        # a flood of submissions: per client and form, and per form
+        # (services/respondent_limits); the Submissions API does not pass here
+        await container.respondent_limits().submit(
+            request_client_ip(request), str(workspace_id), str(form_id)
+        )
         form_files = None
         if files and file_field_ids and file_ids:
             _check_file_ids(file_ids)

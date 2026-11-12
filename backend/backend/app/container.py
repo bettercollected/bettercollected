@@ -154,6 +154,7 @@ from backend.app.services.address_lookup.service import AddressLookupService
 from backend.app.services.flow_event_service import FlowEventService
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.app.services.receipt_limits import ReceiptLimits
+from backend.app.services.respondent_limits import RespondentLimits
 from backend.app.services.respondent_feedback_service import (
     RespondentFeedbackService,
 )
@@ -436,6 +437,10 @@ class AppContainer(containers.DeclarativeContainer):
     # the public receipt routes (by receipt number, no sign-in)
     receipt_limits: ReceiptLimits = providers.Singleton(
         ReceiptLimits, rate_limiter=rate_limiter
+    )
+    # sign-in code mails and the respondent submit (no sign-in, no key)
+    respondent_limits: RespondentLimits = providers.Singleton(
+        RespondentLimits, rate_limiter=rate_limiter
     )
     flow_event_service: FlowEventService = providers.Singleton(
         FlowEventService,

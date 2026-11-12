@@ -656,6 +656,7 @@
     "FEATURE_2": "Al je ingediende formulieren van die specifieke werkruimte bekijken",
     "FEATURE_3": "Je ingediende formulierreacties verwijderen",
     "OTP_FAILURE_TOAST": "Kan OTP niet verzenden",
+    "OTP_RATE_LIMITED": "Er zijn te veel codes aangevraagd voor dit e-mailadres of vanaf dit netwerk. Wacht even (maximaal een uur) en probeer het daarna opnieuw.",
     "OTP_SUCCESS_TOAST": "OTP succesvol verzonden",
     "OTP_VERIFICATION_SUCCESS_TOAST": "Met succes geverifieerd",
     "OTP_VERIFICATION_FAILURE_TOAST": "Verificatie mislukt"

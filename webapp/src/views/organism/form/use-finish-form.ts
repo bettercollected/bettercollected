@@ -22,7 +22,7 @@ import { getFlowSessionId } from '@app/utils/flow-session';
 import { normalizeGroupAnswersForSubmit } from '@app/utils/repeating-groups';
 import { REVIEW_SLIDE, pathPages } from '@app/utils/review-page';
 import useFocusProblem from './focus-problem';
-import { firstPageWithError, formRefusal, historyBackTo, serverAnswerErrors, serverInvalidations } from '@app/utils/server-answer-errors';
+import { firstPageWithError, formRefusal, historyBackTo, isSubmitRateLimited, serverAnswerErrors, serverInvalidations } from '@app/utils/server-answer-errors';
 
 /** The message for a submission the server refused because the form takes no responses. */
 export const SUBMIT_REFUSED = { closed: 'NAV.SUBMIT_CLOSED', not_yet_open: 'NAV.SUBMIT_NOT_OPEN', full: 'NAV.SUBMIT_FULL' } as const;
@@ -34,10 +34,10 @@ export function sendsDrawnSignature(slides: StandardFormFieldDto[] | undefined, 
 }
 
 /** `unmapped`: the server refused some answers (422) that belong to no page the respondent can go to; `signature_unavailable`: it could not process a drawn signature just now (503). */
-export type SubmitError = false | 'failed' | 'unmapped' | 'closed' | 'not_yet_open' | 'full' | 'signature_unavailable';
+export type SubmitError = false | 'failed' | 'unmapped' | 'closed' | 'not_yet_open' | 'full' | 'signature_unavailable' | 'rate_limited';
 
 /** The message to keep by the button for a failed submission. */
-export const submitErrorKey = (error: Exclude<SubmitError, false>) => (error === 'failed' ? 'NAV.SUBMIT_ERROR' : error === 'unmapped' ? 'NAV.SUBMIT_UNMAPPED' : error === 'signature_unavailable' ? 'SIGNATURE.SUBMIT_UNAVAILABLE' : SUBMIT_REFUSED[error]);
+export const submitErrorKey = (error: Exclude<SubmitError, false>) => (error === 'failed' ? 'NAV.SUBMIT_ERROR' : error === 'unmapped' ? 'NAV.SUBMIT_UNMAPPED' : error === 'signature_unavailable' ? 'SIGNATURE.SUBMIT_UNAVAILABLE' : error === 'rate_limited' ? 'NAV.SUBMIT_RATE_LIMITED' : SUBMIT_REFUSED[error]);
 
 /**
  * Anonymous drop-off breadcrumb: page to page, never answers, never in preview.
@@ -187,6 +187,10 @@ export function useFinishForm(isPreviewMode: boolean) {
                     if (refusal) {
                         toast({ description: t(SUBMIT_REFUSED[refusal]), variant: 'destructive' });
                         setSubmitError(refusal);
+                    } else if (isSubmitRateLimited(e?.response)) {
+                        // too many submissions from here or to this form just now: nothing was stored, the answers are kept
+                        toast({ description: t('NAV.SUBMIT_RATE_LIMITED'), variant: 'destructive' });
+                        setSubmitError('rate_limited');
                     } else if ((e?.response?.status === 503 || e?.response?.status === 429) && sendsDrawnSignature(standardForm?.fields, files)) {
                         // the server could not process the drawn image just now (unavailable, busy, or too many drawn signatures
                         // from here in the last minute): nothing was stored, the drawing is kept, typing works

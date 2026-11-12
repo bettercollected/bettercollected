@@ -6,8 +6,10 @@ from classy_fastapi import Routable, delete, get, patch, post, put
 from common.models.user import User
 from fastapi import Depends, Form, Query, Response, UploadFile
 from pydantic import EmailStr
+from starlette.requests import Request
 
 from backend.app.container import container
+from backend.app.utils.client_ip import request_client_ip
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_permissions_dto import WorkspacePermissionsDto
 from backend.app.services.address_lookup.mode import address_lookup_enabled
@@ -411,9 +413,18 @@ class WorkspaceRouter(Routable):
         self,
         workspace_id: RecordId,
         receiver_email: EmailStr,
+        request: Request,
         # the mail's language (the form's); English unless Dutch
         locale: Optional[str] = Query(None, max_length=35),
     ):
+        # counted before anything is looked up about the address: a refusal
+        # never depends on whether it has an account (services/respondent_limits)
+        await container.respondent_limits().code_mail(
+            request_client_ip(request),
+            receiver_email,
+            workspace_id=str(workspace_id),
+            locale=locale,
+        )
         return await self.workspace_service.send_otp_for_workspace(
             workspace_id, receiver_email, locale=locale
         )
