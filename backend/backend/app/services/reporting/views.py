@@ -249,7 +249,7 @@ class ReportViewService:
 
     # --------------------------------------------------------------------- reads
     async def list(self, user: User, workspace_id: RecordId, form_id: str) -> Dict[str, Any]:
-        await self._reports.authorize(user, workspace_id, form_id)
+        await self._reports.authorize(user, workspace_id, form_id=form_id)
         views = await self._repo.list_visible(workspace_id, form_id, str(user.id))
         may_edit = await self._may(user, Permission.FORM_EDIT, workspace_id, form_id)
         may_moderate = await self._may(user, Permission.MEMBERS_MANAGE, workspace_id, None)
@@ -265,13 +265,13 @@ class ReportViewService:
         }
 
     async def get(self, user: User, workspace_id: RecordId, form_id: str, view_id: str) -> Dict[str, Any]:
-        await self._reports.authorize(user, workspace_id, form_id)
+        await self._reports.authorize(user, workspace_id, form_id=form_id)
         view = await self._visible(user, workspace_id, form_id, view_id)
         return await self._one_dto(view, user, workspace_id, form_id)
 
     # -------------------------------------------------------------------- writes
     async def create(self, user: User, workspace_id: RecordId, form_id: str, body: bytes) -> Dict[str, Any]:
-        await self._reports.authorize(user, workspace_id, form_id)
+        await self._reports.authorize(user, workspace_id, form_id=form_id)
         request = parse_body(ViewCreate, body)
         if request.scope == SCOPE_FORM:
             await self._need_form_edit(
@@ -302,7 +302,7 @@ class ReportViewService:
     async def update(
         self, user: User, workspace_id: RecordId, form_id: str, view_id: str, body: bytes
     ) -> Dict[str, Any]:
-        await self._reports.authorize(user, workspace_id, form_id)
+        await self._reports.authorize(user, workspace_id, form_id=form_id)
         request = parse_body(ViewChange, body)
         view = await self._visible(user, workspace_id, form_id, view_id)
         mine = view.owner_id == str(user.id)
@@ -365,7 +365,7 @@ class ReportViewService:
         return await self._one_dto(stored, user, workspace_id, form_id)
 
     async def delete(self, user: User, workspace_id: RecordId, form_id: str, view_id: str) -> None:
-        await self._reports.authorize(user, workspace_id, form_id)
+        await self._reports.authorize(user, workspace_id, form_id=form_id)
         view = await self._visible(user, workspace_id, form_id, view_id)
         mine = view.owner_id == str(user.id)
         if view.scope == SCOPE_FORM:
