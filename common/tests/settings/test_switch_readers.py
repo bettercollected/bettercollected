@@ -38,6 +38,7 @@ SWITCHES = {
     "API_KEY_ROLES_ENABLED": (("backend.app.services.api_key_roles.mode",), "api_key_roles"),
     "AUDIT_LOG_UI_ENABLED": (("backend.app.services.audit_log.mode",), "AUDIT_LOG_UI_ENABLED"),
     "FORM_PROMOTION_ENABLED": (("backend.app.services.form_promotion.mode",), "form_promotion"),
+    "REPORTING_ENABLED": (("backend.app.services.reporting.mode",), "reporting"),
 }
 
 _WORKSPACE_ROUTER = "backend/app/controllers/workspace_router.py"
@@ -86,6 +87,10 @@ READERS = {
     "FORM_PROMOTION_ENABLED": {
         _WORKSPACE_ROUTER: "http",
         "backend/app/controllers/form_promotion_router.py": "http",
+    },
+    "REPORTING_ENABLED": {
+        _WORKSPACE_ROUTER: "http",
+        "backend/app/controllers/report_router.py": "http",
     },
 }
 

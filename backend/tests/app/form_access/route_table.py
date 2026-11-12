@@ -173,6 +173,15 @@ def _promotion_targets(ctx):
     return {"params": {"targetWorkspaceId": ctx["ws"]}}
 
 
+def _report_query(ctx):
+    return {
+        "json": {
+            "v": 1,
+            "cards": [{"id": "c", "kind": "tile", "measures": [{"agg": "count"}]}],
+        }
+    }
+
+
 # --------------------------------------------------------------------------------
 # Decided on a form (the member's permissions on THAT form, not on the workspace)
 # --------------------------------------------------------------------------------
@@ -252,6 +261,13 @@ ROUTES: Dict[Tuple[str, str], Route] = {
         request=_promotion_apply,
         creator_only=True,
         creator_only_code=PROMOTION_FROM_RESTRICTED_CODE,
+    ),
+    # --- reports on the form's answers (REPORTING_ENABLED, switched on in the matrix's
+    # world): response.read and analytics.read on that form, in that order, so a
+    # Privacy officer (analytics.read, never response.read) is refused first
+    ("GET", F + "/report/fields"): route(FORM, P.RESPONSE_READ, P.ANALYTICS_READ),
+    ("POST", F + "/report/query"): route(
+        FORM, P.RESPONSE_READ, P.ANALYTICS_READ, request=_report_query
     ),
     # --- actions
     ("POST", F + "/actions"): route(
@@ -487,6 +503,8 @@ OUTCOMES: Dict[Tuple[str, str], Tuple[int, ...]] = {
     ("POST", F + "/ai/review"): (403,),
     ("POST", F + "/ai/review/apply"): (200,),
     ("GET", F + "/all-submissions"): (200,),
+    ("GET", F + "/report/fields"): (200,),
+    ("POST", F + "/report/query"): (200,),
     ("POST", F + "/duplicate"): (200,),
     ("GET", F + "/email-actions"): (200,),
     ("POST", F + "/email-actions"): (422,),

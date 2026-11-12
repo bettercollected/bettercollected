@@ -1629,6 +1629,22 @@ any query. **The event writers are never switched.** Docs: `docs/audit-log.md`. 
   `ACCOUNT_LEVEL` (a test enforces it). The reader never returns a kind that is not listed.
 - Retention is read from `services/audit_log/retention.py`, never a literal in the reader.
 
+## Reports on a form's answers (`REPORTING_ENABLED`, docs/reporting.md)
+
+Environment-only switch (tier T5, off by default; `config/reporting_settings.py`, `services/reporting/mode.py`, served as
+`reportingEnabled` by the permissions route). Off means 422 `reporting_off` from a router dependency, before the session or
+any query. Rules to keep:
+
+- Routes in `controllers/report_router.py`, logic in `services/reporting/` (`definition` validates, `catalogue` says what is
+  reportable, `engine` + `accumulate` compute, `service` gates, limits and caches, `policy` is the single field-access seam).
+- Gate: `response.read` then `analytics.read`, both with the form id (the Privacy officer holds only the second).
+- Never a text, address, signature, file or typed "Other" answer, nor an identity, as dimension, filter or value; results are
+  counts and aggregates only. Every query goes through `ReportFieldPolicy.visible_fields`.
+- Cards on plaintext columns run in SQL (`repositories/postgres/report_queries.py`); the rest share one keyset pass over
+  `(created_at, id)` (served by the workspace/form/created index), refused above `limits.REPORT_MAX_ROWS` with the count.
+  Use `doc ? 'answers'`, not `jsonb_typeof(doc -> 'answers')`: the latter detoasts every row (345 ms against 8 ms at 20,000).
+- The cache is in-process, aggregates only, keyed by an exact token of the matching rows plus the form's revision.
+
 ## Copying a form to another workspace (`FORM_PROMOTION_ENABLED`, docs/environments.md)
 
 Environment-only switch (`config/form_promotion_settings.py`, tier T5, off by default, off in dev too until released;

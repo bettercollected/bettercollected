@@ -2,7 +2,9 @@
 
 Every filter is on a plaintext column of ``form_responses`` (or on the
 status of its deletion request): the answers are encrypted at rest and are
-never queried. The values are validated here, so the repository only ever
+never queried. (Reports, ``services/reporting``, are the one reader that
+decrypts answers in bulk, and only to add them up: counts and averages leave,
+never an answer. ``REPORTING_ENABLED``, docs/reporting.md.) The values are validated here, so the repository only ever
 binds them as parameters.
 """
 

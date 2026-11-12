@@ -35,6 +35,7 @@ from backend.config.registration_settings import RegistrationSettings
 from backend.config.api_key_roles_settings import ApiKeyRolesSettings
 from backend.config.form_access_settings import FormAccessSettings
 from backend.config.form_promotion_settings import FormPromotionSettings
+from backend.config.reporting_settings import ReportingSettings
 from backend.config.totp_settings import TotpSettings
 from backend.config.webhooks_settings import WebhooksSettings
 from backend.config.email_actions_settings import EmailActionsSettings
@@ -222,6 +223,7 @@ class Application(StoreBackedSettings):
     form_access: FormAccessSettings = FormAccessSettings()
     api_key_roles: ApiKeyRolesSettings = ApiKeyRolesSettings()
     form_promotion: FormPromotionSettings = FormPromotionSettings()
+    reporting: ReportingSettings = ReportingSettings()
     email_actions: EmailActionsSettings = EmailActionsSettings()
     mail_settings: MailSettings = MailSettings()
     # the From display name of mails the backend sends (never a workspace's)
