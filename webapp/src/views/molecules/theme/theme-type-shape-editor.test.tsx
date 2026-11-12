@@ -129,6 +129,9 @@ describe('the type and shape editor', () => {
         expect(screen.getByRole('combobox', { name: 'Title font' })).toHaveTextContent('Default');
         const body = screen.getByRole('combobox', { name: 'Text font' });
         expect(body).toHaveTextContent('Rubik');
-        expect(Array.from(body.querySelectorAll('span[style]')).map((span) => span.getAttribute('style'))).toContain('font-family: "Rubik", ui-sans-serif, system-ui, sans-serif;');
+        // jsdom 31 serialises a family name without quotes when it needs none, so compare the
+        // family list rather than the attribute text.
+        const stacks = Array.from(body.querySelectorAll<HTMLElement>('span[style]')).map((span) => span.style.fontFamily.replace(/["']/g, ''));
+        expect(stacks).toContain('Rubik, ui-sans-serif, system-ui, sans-serif');
     });
 });
