@@ -441,6 +441,42 @@ describe('buildFormNav, who sees which section', () => {
         expect(items({}, [WorkspacePermission.FORM_READ], `${BASE}/preview`, true)).toEqual(['preview', 'analytics', 'links', 'versions']);
     });
 
+    describe('Report, under Responses', () => {
+        const READ = [WorkspacePermission.RESPONSE_READ, WorkspacePermission.ANALYTICS_READ];
+        const responses = (granted: string[], on: boolean, pathname = `${BASE}/responses`) =>
+            buildFormNav({ form: baseForm, base: BASE, pathname, can: (p) => granted.includes(p), formRevisionsUiEnabled: false, reportingEnabled: on, t }).find((item) => item.key === 'responses');
+
+        it('is a child of Responses for response.read and analytics.read while the server has reports on', () => {
+            const item = responses(READ, true);
+            expect(item?.children?.map((c) => [c.key, c.href, c.label])).toEqual([['report', `${BASE}/responses/report`, 'FORM_SHELL.REPORT_TAB']]);
+        });
+
+        it('comes before Deletion requests', () => {
+            expect(responses([...READ, WorkspacePermission.PRIVACY_MANAGE], true)?.children?.map((c) => c.key)).toEqual(['report', 'deletion-requests']);
+        });
+
+        it('is not there while the server has reports off (the default)', () => {
+            expect(responses(READ, false)?.children).toBeUndefined();
+        });
+
+        it('is not there without analytics.read or without response.read', () => {
+            expect(responses([WorkspacePermission.RESPONSE_READ], true)?.children).toBeUndefined();
+            // a Privacy officer holds analytics.read and privacy.manage but never response.read: no Responses, so no Report
+            const officer = buildFormNav({ form: baseForm, base: BASE, pathname: `${BASE}/preview`, can: (p) => [WorkspacePermission.ANALYTICS_READ, WorkspacePermission.PRIVACY_MANAGE].includes(p as never), formRevisionsUiEnabled: false, reportingEnabled: true, t });
+            expect(officer.map((item) => item.key)).not.toContain('report');
+            expect(officer.find((item) => item.key === 'deletion-requests')?.children).toBeUndefined();
+        });
+
+        it('is the current page on its own address, and Responses is then only its parent', () => {
+            const item = responses(READ, true, `${BASE}/responses/report`);
+            expect(item?.active).toBe(true);
+            expect(item?.children?.find((c) => c.key === 'report')?.active).toBe(true);
+            expect(currentItem([item!])?.key).toBe('report');
+            // the list's own address does not light it up
+            expect(responses(READ, true)?.children?.find((c) => c.key === 'report')?.active).toBe(false);
+        });
+    });
+
     describe('Activity, after Versions', () => {
         const withActivity = (granted: string[], form: Record<string, unknown> = {}, pathname = `${BASE}/preview`, on = true) =>
             buildFormNav({ form: { ...baseForm, ...form }, base: BASE, pathname, can: (p) => granted.includes(p), formRevisionsUiEnabled: true, auditLogUiEnabled: on, t }).map((item) => item.key);

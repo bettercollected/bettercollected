@@ -347,13 +347,16 @@ class ReportEngine:
                 pending.cancel()
             elif pending is not None and not pending.cancelled():
                 pending.exception()  # (consumed: nobody awaits it any more)
+        # a value too large or strange to add up (``CardAccumulator.finish``)
+        results = {
+            accumulator.plan.id: assemble(accumulator.plan, accumulator.finish(), catalogue)
+            for accumulator in accumulators
+        }
+        unreadable += sum(accumulator.unreadable for accumulator in accumulators)
         if unreadable:
             logger.warning("report: {} stored answers could not be read", unreadable)
         return ScanResult(
-            cards={
-                accumulator.plan.id: assemble(accumulator.plan, accumulator.finish(), catalogue)
-                for accumulator in accumulators
-            },
+            cards=results,
             scanned=scanned,
             unreadable=unreadable,
         )

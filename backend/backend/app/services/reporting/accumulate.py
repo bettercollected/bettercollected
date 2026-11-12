@@ -98,22 +98,33 @@ def _dict(value: Any) -> Dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+# A stored number whose magnitude is beyond this many digits (or below this
+# many places) is no amount or count anyone gave: it is read as no number, so
+# nothing it is added to can overflow the decimal context.
+_MAGNITUDE_MAX = 40
+
+
 def _decimal(value: Any) -> Optional[Decimal]:
     """A stored number as an exact decimal; booleans, NaN and infinities are
-    no numbers."""
+    no numbers, nor is one of absurd magnitude (``_MAGNITUDE_MAX``)."""
     if isinstance(value, bool) or value is None:
         return None
     try:
         if isinstance(value, int):
-            return Decimal(value)
-        if isinstance(value, float):
-            return Decimal(repr(value)) if math.isfinite(value) else None
-        if isinstance(value, str):
+            number = Decimal(value)
+        elif isinstance(value, float):
+            if not math.isfinite(value):
+                return None
+            number = Decimal(repr(value))
+        elif isinstance(value, str):
             number = Decimal(value.strip())
-            return number if number.is_finite() else None
-    except (InvalidOperation, ValueError):
+        else:
+            return None
+    except (ArithmeticError, ValueError):
         return None
-    return None
+    if not number.is_finite() or abs(number.adjusted()) > _MAGNITUDE_MAX:
+        return None
+    return number
 
 
 def numeric_value(field_: ReportField, answers: Dict[str, Any]) -> Optional[Decimal]:
@@ -260,10 +271,14 @@ class CardTotals:
 
 
 def _plain(number: Decimal) -> Any:
-    """A decimal as a JSON number: an int when it is whole."""
+    """A decimal as a JSON number: an int when it is whole. A value JSON cannot
+    carry (it is past a float's range) raises ``ValueError``."""
     if number == number.to_integral_value():
         return int(number)
-    return float(number)
+    flat = float(number)
+    if not math.isfinite(flat):
+        raise ValueError("not a finite number")
+    return flat
 
 
 class CardAccumulator:
@@ -280,6 +295,8 @@ class CardAccumulator:
             (i for i, m in enumerate(plan.measures) if m.agg != COUNT), None
         )
         self._overflow_n = 0
+        # values that could not be worked out (``finish``), for the notice
+        self.unreadable = 0
         # the groups cut off (bounded: the count of them is then a floor)
         self._cut: set = set()
         self._truncated = False
@@ -358,17 +375,15 @@ class CardAccumulator:
                 counts.append(group.answered[index])
                 if group.answered[index] == 0:
                     values.append(None)
-                elif measure.agg == AVG:
-                    average = group.total[index] / group.answered[index]
-                    values.append(_plain(average.quantize(TWO_PLACES, ROUND_HALF_UP)))
-                elif measure.agg == SUM:
-                    values.append(_plain(group.total[index]))
-                elif measure.agg == MIN:
-                    values.append(_plain(group.low[index]))
-                elif measure.agg == MAX:
-                    values.append(_plain(group.high[index]))
-                else:
+                    continue
+                try:
+                    values.append(self._value(measure.agg, group, index))
+                except (ArithmeticError, ValueError, OverflowError):
+                    # a stored number too large or too strange to add up
+                    # (``Decimal`` signals ``InvalidOperation``, an
+                    # ArithmeticError): no value, and the pass says so
                     values.append(None)
+                    self.unreadable += 1
             groups[key] = GroupTotals(key, group.n, values, counts)
         return CardTotals(
             n=self._n,
@@ -379,6 +394,19 @@ class CardAccumulator:
             other_count=len(self._cut),
             truncated=self._truncated,
         )
+
+    @staticmethod
+    def _value(agg: str, group: "_Group", index: int) -> Optional[Any]:
+        if agg == AVG:
+            average = group.total[index] / group.answered[index]
+            return _plain(average.quantize(TWO_PLACES, ROUND_HALF_UP))
+        if agg == SUM:
+            return _plain(group.total[index])
+        if agg == MIN:
+            return _plain(group.low[index])
+        if agg == MAX:
+            return _plain(group.high[index])
+        return None
 
 
 def feed_all(accumulators: Sequence[CardAccumulator], view: ResponseView) -> None:

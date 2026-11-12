@@ -1391,3 +1391,45 @@ describe('responses table: import responses from a CSV file', () => {
         expect(screen.queryByRole('button', { name: 'Import responses' })).toBeNull();
     });
 });
+
+
+describe('the Report link in the toolbar', () => {
+    beforeEach(() => {
+        server.items = [];
+        server.answered = new Map();
+        forgetResponseList();
+        nav.search = '';
+        store.dispatch(setAuth({ id: 'user-1' }));
+        store.dispatch(setWorkspace({ id: 'workspace-1', workspaceName: 'acme' } as any));
+        store.dispatch(setForm({ formId: 'form-1', title: 'Colours', responses: 1, deletionRequests: 0, version: 2, builderVersion: 'v1', settings: { provider: 'self' }, fields: [FIELD] } as any));
+    });
+    afterEach(() => {
+        server.permissions = null;
+        nav.search = '';
+        store.dispatch(setAuth({ id: '' }));
+    });
+
+    it('opens the report of the same answers, carrying the filters but not the page, the sort or the search', () => {
+        server.permissions = { permissions: ['response.read', 'analytics.read'], reportingEnabled: true };
+        nav.search = 'from=2026-10-01&status=none&who=known&version=2&page=3&sort=oldest&size=50';
+        render(tree());
+        const link = screen.getByRole('link', { name: 'Report' });
+        expect(link).toHaveAttribute('href', `${LIST_PATH}/report?from=2026-10-01&status=none&who=known&version=2`);
+    });
+
+    it('is a plain link to the report when no filter is set', () => {
+        server.permissions = { permissions: ['response.read', 'analytics.read'], reportingEnabled: true };
+        renderTable();
+        expect(screen.getByRole('link', { name: 'Report' })).toHaveAttribute('href', `${LIST_PATH}/report`);
+    });
+
+    it('is not there while the server has reports off, or without analytics.read', () => {
+        server.permissions = { permissions: ['response.read', 'analytics.read'], reportingEnabled: false };
+        const first = renderTable();
+        expect(screen.queryByRole('link', { name: 'Report' })).toBeNull();
+        first.unmount();
+        server.permissions = { permissions: ['response.read'], reportingEnabled: true };
+        renderTable();
+        expect(screen.queryByRole('link', { name: 'Report' })).toBeNull();
+    });
+});

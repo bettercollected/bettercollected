@@ -28,6 +28,8 @@ interface Props {
     trailing?: React.ReactNode;
     /** The Filters button, for the parent to move focus to once a filter it removes is gone. */
     toggleRef?: React.RefObject<HTMLButtonElement | null>;
+    /** The report page has no order to choose: it leaves the sort out. */
+    hideSort?: boolean;
 }
 
 function Field({ id, label, children, className }: { id: string; label: string; children: React.ReactNode; className?: string }) {
@@ -50,7 +52,7 @@ function Field({ id, label, children, className }: { id: string; label: string; 
  * field (keyboard and screen reader ready); a change is applied at once and
  * lives in the URL (the parent writes it).
  */
-export default function ResponseFilters({ state, currentVersion, onChange, onClear, search, trailing, toggleRef: parentToggleRef }: Props) {
+export default function ResponseFilters({ state, currentVersion, onChange, onClear, search, trailing, toggleRef: parentToggleRef, hideSort = false }: Props) {
     const { t, i18n } = useTranslation();
     const id = useId();
     const panelId = `${id}-panel`;
@@ -104,16 +106,18 @@ export default function ResponseFilters({ state, currentVersion, onChange, onCle
                             </>
                         )}
                     </Button>
-                    <label className="flex items-center gap-2 text-sm text-black-700 sm:shrink-0" htmlFor={`${id}-sort`}>
-                        <span className="whitespace-nowrap">{t(text.sort)}</span>
-                        <select id={`${id}-sort`} className={cn(control, 'min-w-0 sm:w-auto')} value={state.sort} onChange={(event) => onChange({ sort: event.target.value as ResponseSort })}>
-                            {SORTS.map((value) => (
-                                <option key={value} value={value}>
-                                    {t(SORT_LABEL[value])}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                    {!hideSort && (
+                        <label className="flex items-center gap-2 text-sm text-black-700 sm:shrink-0" htmlFor={`${id}-sort`}>
+                            <span className="whitespace-nowrap">{t(text.sort)}</span>
+                            <select id={`${id}-sort`} className={cn(control, 'min-w-0 sm:w-auto')} value={state.sort} onChange={(event) => onChange({ sort: event.target.value as ResponseSort })}>
+                                {SORTS.map((value) => (
+                                    <option key={value} value={value}>
+                                        {t(SORT_LABEL[value])}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    )}
                 </form>
                 {trailing}
             </div>

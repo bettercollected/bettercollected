@@ -39,6 +39,21 @@ WINDOW_SECONDS = 60
 # is told to come back (429 ``report_busy``)
 PASSES_AT_ONCE = 2
 PASS_WAIT_SECONDS = 2.0
+# ...and across every replica: passes in flight in all processes together, kept
+# as a counter of the shared rate limiter (``report-passes``). A pass takes a
+# place for ``PASS_SLOTS_WINDOW_SECONDS`` at most: it gives it back when it ends,
+# and a process that dies in the middle of one loses it with the window, so a
+# crash cannot hold a place for good. A pass that straddles two windows is
+# counted in the first and given back from the second, so the figure is a close
+# bound on the fleet, not an exact one; the per-process limit above stays the
+# exact guard of one process.
+PASSES_ACROSS_REPLICAS = 6
+PASS_SLOTS_WINDOW_SECONDS = 60
+# the longest one pass may run before it is stopped (503 ``report_timeout``): a
+# 20,000-response pass takes about 2.5 s, so this is a stuck or starved one. It
+# is under the slot window, so a stopped pass has always given its place back
+# in the window it took it.
+PASS_SECONDS = 30.0
 
 # the in-process cache of aggregates (never rows, never answers): entries, and
 # a ceiling on how long one lives whatever its token says (bounds memory)
