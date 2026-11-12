@@ -30,7 +30,7 @@ import { useGetReportFieldsQuery, useGetReportViewsQuery, useQueryReportQuery } 
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { OVERVIEW_QUESTIONS, ReportCardDef, ReportCardResult, ReportClause, ReportError, ReportView, cardsParam, isTimeDimension, overviewCards, parseCardsParam, reportDefinition, reportErrorOf, reportFilters, viewerZone, cardProblem } from '@app/utils/report';
 import { listFiltersFor } from '@app/utils/report-drill';
-import { clauseProblem, parseWhereParam, whereParam } from '@app/utils/report-where';
+import { clauseProblem } from '@app/utils/report-where';
 import { VIEW_ID, cardsOf, filtersOf, isModified, whereOf } from '@app/utils/report-views';
 import type { ReportRow } from '@app/utils/report-view';
 import { DEFAULT_STATE, ResponseListState, localDayStart, parseResponseListState, responseListSearchParams } from '@app/utils/response-list-state';
@@ -97,6 +97,12 @@ export default function ReportPage() {
     const workspaceId: string | undefined = workspace?.id;
     const formId: string | undefined = form?.formId;
     const [adding, setAdding] = useState(false);
+    // The conditions on answers live in this page's memory only, never in the address: a number or a date
+    // asked about is an answer value (a birth year, a salary, an appointment), and an address reaches browser
+    // history, access logs and Referer headers. A saved view carries them server-side: `view=<id>` restores them.
+    const [urlWhere, setWhere] = useState<ReportClause[]>([]);
+    // the view whose conditions are in the state (so a later edit of them is not overwritten by the view's)
+    const appliedView = useRef<string | null>(null);
     // the group whose responses are open under the cards
     const [drill, setDrill] = useState<{ cardId: string; key: string; label: string } | null>(null);
     const headingRef = useRef<HTMLHeadingElement>(null);
@@ -106,7 +112,6 @@ export default function ReportPage() {
     const params = searchParams ?? new URLSearchParams();
     const listState = useMemo(() => filterState(parseResponseListState(params)), [params]);
     const urlCards = useMemo(() => parseCardsParam(params.get('cards')), [params]);
-    const urlWhere = useMemo(() => parseWhereParam(params.get('where')) ?? [], [params]);
     const all = params.get('all') === '1';
     const viewParam = params.get('view');
     const viewId = viewParam && VIEW_ID.test(viewParam) ? viewParam : undefined;
@@ -116,6 +121,12 @@ export default function ReportPage() {
     const cards: ReportCardDef[] = useMemo(() => (catalogue ? (urlCards ?? overviewCards(catalogue, all)) : []), [catalogue, urlCards, all]);
     const { data: viewList, isLoading: viewsLoading, isError: viewsFailed, refetch: refetchViews } = useGetReportViewsQuery({ workspaceId: workspaceId as string, formId: formId as string }, { skip: !allowed || !workspaceId || !formId });
     const currentView = viewList?.views.find((view) => view.id === viewId);
+    // an address that names a view (a link, a reload, Back) restores the view's conditions once, from the server
+    useEffect(() => {
+        if (!currentView || appliedView.current === currentView.id) return;
+        appliedView.current = currentView.id;
+        setWhere(whereOf(currentView.definition));
+    }, [currentView]);
     // a card the form can no longer answer is shown with its reason and left out of the request
     const asked = useMemo(() => (catalogue ? cards.filter((card) => !cardProblem(card, catalogue)) : []), [cards, catalogue]);
     // a condition on a question the form no longer has is shown with its reason and left out of the request
@@ -138,14 +149,12 @@ export default function ReportPage() {
     const error = isError ? reportErrorOf(queryError) : undefined;
 
     const write = useCallback(
-        (changes: { state?: ResponseListState; cards?: ReportCardDef[] | null; all?: boolean; view?: string | null; where?: ReportClause[] | null }, replace = false) => {
+        (changes: { state?: ResponseListState; cards?: ReportCardDef[] | null; all?: boolean; view?: string | null }, replace = false) => {
             const state = changes.state ?? listState;
             const next = responseListSearchParams(filterState(state));
             const nextCards = changes.cards === undefined ? urlCards : (changes.cards ?? undefined);
             if (nextCards) next.set('cards', cardsParam(nextCards));
             if (changes.all ?? (all && !nextCards)) next.set('all', '1');
-            const nextWhere = changes.where === undefined ? urlWhere : (changes.where ?? []);
-            if (nextWhere.length) next.set('where', whereParam(nextWhere));
             const nextView = changes.view === undefined ? viewId : (changes.view ?? undefined);
             if (nextView) next.set('view', nextView);
             const query = next.toString();
@@ -153,15 +162,27 @@ export default function ReportPage() {
             if (replace) router.replace(url, { scroll: false });
             else router.push(url, { scroll: false });
         },
-        [all, listState, pathname, router, urlCards, urlWhere, viewId]
+        [all, listState, pathname, router, urlCards, viewId]
     );
     const filterChange = useCallback((changes: Partial<ResponseListState>) => write({ state: { ...listState, ...changes } }), [listState, write]);
     const clearFilters = useCallback(() => write({ state: { ...DEFAULT_STATE } }), [write]);
 
     const setCards = (next: ReportCardDef[]) => write({ cards: next }, true);
     // a saved view: its filters and cards become the report in the address; no view is the Overview (the filters stay)
-    const openView = (view: ReportView | null) => (view ? write({ state: { ...DEFAULT_STATE, ...filtersOf(view.definition) }, cards: cardsOf(view.definition), where: whereOf(view.definition), view: view.id }) : write({ cards: null, view: null }));
-    const markView = (view: ReportView | null) => write({ view: view ? view.id : null }, true);
+    const openView = (view: ReportView | null) => {
+        if (view) {
+            appliedView.current = view.id;
+            setWhere(whereOf(view.definition));
+            write({ state: { ...DEFAULT_STATE, ...filtersOf(view.definition) }, cards: cardsOf(view.definition), view: view.id });
+        } else {
+            write({ cards: null, view: null });
+        }
+    };
+    // the view just saved is the one on screen: its conditions are the ones in the state already
+    const markView = (view: ReportView | null) => {
+        appliedView.current = view ? view.id : null;
+        write({ view: view ? view.id : null }, true);
+    };
     const change = (index: number, card: ReportCardDef) => setCards(cards.map((existing, at) => (at === index ? card : existing)));
     const remove = (index: number) => {
         setCards(cards.filter((_, at) => at !== index));
@@ -250,7 +271,7 @@ export default function ReportPage() {
 
             <ResponseFilters toggleRef={filtersToggleRef} state={listState} currentVersion={form?.version} onChange={filterChange} onClear={clearFilters} hideSort />
 
-            {catalogue && <ReportAnswerFilters catalogue={catalogue} clauses={urlWhere} onChange={(next) => write({ where: next })} />}
+            {catalogue && <ReportAnswerFilters catalogue={catalogue} clauses={urlWhere} onChange={setWhere} />}
 
             <p role="status" aria-live="polite" data-testid="report-live" className="sr-only">
                 {announce}

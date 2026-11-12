@@ -3,48 +3,14 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import '@app/shared/hocs/i18n-provider';
 import { catalogue } from '@app/test/report-fixtures';
-import { CLAUSES_MAX, ReportClause, fieldOf, toBase64Url } from '@app/utils/report';
-import { blankClause, clauseProblem, describeClause, filterableFields, parseWhereParam, whereParam, withOp } from '@app/utils/report-where';
+import { ReportClause, fieldOf } from '@app/utils/report';
+import { blankClause, clauseProblem, describeClause, filterableFields, withOp } from '@app/utils/report-where';
 
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options) as string;
 const clause = (changes: Partial<ReportClause>): ReportClause => ({ field: 'q:team', op: 'is', value: 'north', ...changes });
 
 afterEach(async () => {
     await i18n.changeLanguage('en');
-});
-
-describe('conditions in the address', () => {
-    const clauses: ReportClause[] = [clause({}), { field: 'q:score', op: 'between', value: [2, 4] }, { field: 'q:remote', op: 'is', value: true }, { field: 'q:tools', op: 'is_empty' }];
-
-    it('round-trips, with only keys, operators, option ids, numbers and yes/no in the text', () => {
-        const value = whereParam(clauses);
-        expect(value).toMatch(/^[A-Za-z0-9_-]+$/);
-        expect(parseWhereParam(value)).toEqual(clauses);
-    });
-
-    it('reads nothing malformed: no conditions', () => {
-        const bad = (value: unknown) => parseWhereParam(toBase64Url(JSON.stringify(value)));
-        expect(bad([clause({})])).toEqual([clause({})]);
-        expect(parseWhereParam(null)).toBeUndefined();
-        expect(parseWhereParam('%%%')).toBeUndefined();
-        expect(parseWhereParam('x'.repeat(7000))).toBeUndefined();
-        expect(bad({ not: 'a list' })).toBeUndefined();
-        expect(bad([])).toBeUndefined();
-        expect(bad([clause({ field: '<script>' })])).toBeUndefined();
-        expect(bad([clause({ field: 'form_version' })])).toBeUndefined();
-        expect(bad([clause({ op: 'contains' })])).toBeUndefined();
-        expect(bad([clause({ value: 'x'.repeat(101) })])).toBeUndefined();
-        expect(bad([clause({ value: { nested: 1 } as never })])).toBeUndefined();
-        expect(bad([clause({ value: [true] as never })])).toBeUndefined();
-        expect(bad([clause({ value: Array.from({ length: 21 }, (_, i) => String(i)) })])).toBeUndefined();
-        expect(bad(Array.from({ length: CLAUSES_MAX + 1 }, () => clause({})))).toBeUndefined();
-        expect(bad([{ ...clause({}), extra: 1 }])).toEqual([clause({})]);
-    });
-
-    it('drops anything but the condition when it writes it', () => {
-        const parsed = parseWhereParam(whereParam([{ ...clause({}), answerText: 'Ada' } as ReportClause]));
-        expect(parsed?.[0]).not.toHaveProperty('answerText');
-    });
 });
 
 describe('whether a condition can be asked for', () => {

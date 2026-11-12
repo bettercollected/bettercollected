@@ -3,68 +3,20 @@
  * what they answered. A condition is a question, an operator the question's kind takes and
  * a value that is an option id of the question, a number, a yes/no or a date, never text a
  * respondent wrote. The checks here mirror the server's (`services/reporting/definition.py`),
- * which decides: they keep a malformed address or a stale view from being sent.
+ * which decides: they keep a stale view or a hand-built condition from being sent.
  *
- * They live in the address like the cards (`where`, base64url of compact JSON: question keys,
- * operators, option ids, numbers and dates), so Back, a shared link and a saved view carry
- * them; reading an address never throws.
+ * They are never put in an address: a number or a date asked about is an answer value (a birth year, a
+ * salary, an appointment) and an address reaches browser history, logs and Referer headers. The page
+ * keeps them in memory, and a saved view carries them server-side.
  */
-import { CLAUSES_MAX, ReportCatalogue, ReportClause, ReportField, fieldOf, fromBase64Url, toBase64Url } from '@app/utils/report';
+import { ReportCatalogue, ReportClause, ReportField, fieldOf } from '@app/utils/report';
 import { Translate, numberFormat } from '@app/utils/report-view';
 
 export const NO_VALUE_OPS = ['is_empty', 'is_not_empty'];
 export const LIST_OPS = ['any_of', 'has_any', 'has_all'];
 export const PAIR_OPS = ['between'];
-const ALL_OPS = ['is', 'is_not', 'any_of', 'has_any', 'has_all', '=', '!=', '>', '>=', '<', '<=', 'between', 'before', 'after', ...NO_VALUE_OPS];
-
-const MAX_PARAM = 6000;
-const FIELD_KEY = /^q:[\w.:-]{1,100}$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const NUMBER_LIMIT = 10 ** 15;
-const VALUE_LENGTH = 100;
-const VALUES_MAX = 20;
-
-type Scalar = boolean | number | string;
-
-const isScalar = (value: unknown): value is Scalar => typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value)) || (typeof value === 'string' && value.length <= VALUE_LENGTH);
-
-function cleanClause(raw: unknown): ReportClause | undefined {
-    if (!raw || typeof raw !== 'object') return undefined;
-    const clause = raw as Record<string, unknown>;
-    if (typeof clause.field !== 'string' || !FIELD_KEY.test(clause.field)) return undefined;
-    if (typeof clause.op !== 'string' || !ALL_OPS.includes(clause.op)) return undefined;
-    const result: ReportClause = { field: clause.field, op: clause.op };
-    if (clause.value === undefined) return result;
-    if (Array.isArray(clause.value)) {
-        if (clause.value.length > VALUES_MAX || !clause.value.every((item) => isScalar(item) && typeof item !== 'boolean')) return undefined;
-        result.value = clause.value as Array<number | string>;
-    } else if (isScalar(clause.value)) {
-        result.value = clause.value;
-    } else return undefined;
-    return result;
-}
-
-/** The conditions an address carries, or undefined when it carries none or they are malformed. */
-export function parseWhereParam(value: string | null | undefined): ReportClause[] | undefined {
-    if (!value || value.length > MAX_PARAM) return undefined;
-    try {
-        const raw = JSON.parse(fromBase64Url(value));
-        if (!Array.isArray(raw) || raw.length < 1 || raw.length > CLAUSES_MAX) return undefined;
-        const clauses: ReportClause[] = [];
-        for (const item of raw) {
-            const clause = cleanClause(item);
-            if (!clause) return undefined;
-            clauses.push(clause);
-        }
-        return clauses;
-    } catch {
-        return undefined;
-    }
-}
-
-export function whereParam(clauses: ReportClause[]): string {
-    return toBase64Url(JSON.stringify(clauses.map(({ field, op, value }) => ({ field, op, ...(value === undefined ? {} : { value }) }))));
-}
 
 const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= NUMBER_LIMIT;
 const isDay = (value: unknown): value is string => typeof value === 'string' && DAY.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));

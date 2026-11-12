@@ -132,7 +132,8 @@ response that gave a value (`is_empty` finds the others); a typed "Other" is the
 and its text is never read. With conditions every card is computed in the pass (which responses
 count depends on what they answered), `n` is the number of responses that met them, and the
 20,000-response cap still counts the set the plaintext filters select. A saved view stores
-them with the rest of the definition (`v` stays 1: `where` is an optional key).
+them with the rest of the definition (`v` stays 1: `where` is an optional key); the page never puts them in an
+address.
 
 The answer:
 
@@ -260,10 +261,12 @@ turned on yet" and asks the server for nothing.
   one request asks the server for all of them.
 * **Answer filters.** Under the list filters, "Add answer filter" takes a question, a condition its
   kind allows and a value that suits it (an option, a number, a yes/no, a date; never text); the ones in
-  force are chips that can be removed. They are written into the address as `where` (base64url JSON of
-  question keys, operators, option ids, numbers and dates) so Back, a shared link and a saved view
-  carry them. A condition on a question the form no longer has is shown with its reason and left out
-  of the request.
+  force are chips that can be removed. **They are never written into the address**: a number or a date
+  asked about is an answer value (a birth year, a salary, an appointment), and an address reaches browser
+  history, access logs and Referer headers. The page keeps them in memory, so Back, a reload and a copied
+  link lose them; a saved view carries them server-side, and `view=<id>` restores them. Sharing a
+  filtered report means sharing a view. A condition on a question the form no longer has is shown with its
+  reason and left out of the request.
 * **Open these responses.** In a card's table, each group has a button that lists the responses
   behind it under the cards, a page at a time (submission time, form version, anonymous or
   identified, each linking to the response's own page); a short page that says the search stopped
