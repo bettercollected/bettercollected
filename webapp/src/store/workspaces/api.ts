@@ -14,7 +14,7 @@ import { DeclineReason, DeletionRequestOutcome } from '@app/models/enums/deletio
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 import { SubmissionPath } from '@app/utils/conditional-logic';
-import type { ReportCatalogue, ReportDefinition, ReportResult } from '@app/utils/report';
+import type { ReportCatalogue, ReportDefinition, ReportResult, ReportView, ReportViewList, ReportViewScope } from '@app/utils/report';
 import { fileNameFromDisposition } from '@app/utils/content-disposition';
 import { OpenFormulierenExport, openFormulierenExportOf } from '@app/utils/open-formulieren-export';
 
@@ -208,6 +208,7 @@ export interface WorkspaceAISettings {
 }
 
 export const WORKSPACE_PERMISSIONS_TAG = 'WORKSPACE_PERMISSIONS_TAG';
+export const REPORT_VIEWS_TAG = 'REPORT_VIEWS_TAG';
 
 /** GET/PUT /workspaces/{id}/security/totp. `available` is the server's TOTP_ENABLED switch. */
 export interface WorkspaceTotpPolicy {
@@ -220,7 +221,7 @@ export interface WorkspaceTotpPolicy {
 
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG', 'EMAIL_DOMAINS_TAG', 'SSO_TAG', 'SCIM_TAG', 'TOTP_POLICY_TAG', WORKSPACE_PERMISSIONS_TAG],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG', 'EMAIL_DOMAINS_TAG', 'SSO_TAG', 'SCIM_TAG', 'TOTP_POLICY_TAG', WORKSPACE_PERMISSIONS_TAG, REPORT_VIEWS_TAG],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -374,6 +375,24 @@ export const workspacesApi = createApi({
         getReportFields: builder.query<ReportCatalogue, { workspaceId: string; formId: string }>({
             query: ({ workspaceId, formId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/fields`, method: 'GET' }),
             keepUnusedDataFor: 30
+        }),
+        // Saved views of a report (docs/reporting.md): the ones the member may open, and the writes that change them. A
+        // refusal keeps its JSON body (code: view_name_taken, view_limit, view_changed, view_forbidden, ...).
+        getReportViews: builder.query<ReportViewList, { workspaceId: string; formId: string }>({
+            query: ({ workspaceId, formId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/views`, method: 'GET' }),
+            providesTags: [REPORT_VIEWS_TAG]
+        }),
+        createReportView: builder.mutation<ReportView, { workspaceId: string; formId: string; name: string; scope: ReportViewScope; definition: ReportDefinition }>({
+            query: ({ workspaceId, formId, ...body }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/views`, method: 'POST', body }),
+            invalidatesTags: [REPORT_VIEWS_TAG]
+        }),
+        updateReportView: builder.mutation<ReportView, { workspaceId: string; formId: string; viewId: string; revision: number; name?: string; scope?: ReportViewScope; definition?: ReportDefinition }>({
+            query: ({ workspaceId, formId, viewId, ...body }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/views/${pathSegment(viewId)}`, method: 'PATCH', body }),
+            invalidatesTags: [REPORT_VIEWS_TAG]
+        }),
+        deleteReportView: builder.mutation<null, { workspaceId: string; formId: string; viewId: string }>({
+            query: ({ workspaceId, formId, viewId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/views/${pathSegment(viewId)}`, method: 'DELETE' }),
+            invalidatesTags: [REPORT_VIEWS_TAG]
         }),
         queryReport: builder.query<ReportResult, { workspaceId: string; formId: string; definition: ReportDefinition }>({
             query: ({ workspaceId, formId, definition }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/query`, method: 'POST', body: definition }),
@@ -1074,6 +1093,10 @@ export const {
     useGetResponseExportsQuery,
     useGetReportFieldsQuery,
     useQueryReportQuery,
+    useGetReportViewsQuery,
+    useCreateReportViewMutation,
+    useUpdateReportViewMutation,
+    useDeleteReportViewMutation,
     useGetResponseExportQuery,
     useDownloadResponseExportMutation,
     useDiscardResponseExportMutation,

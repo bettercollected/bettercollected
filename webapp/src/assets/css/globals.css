@@ -318,6 +318,7 @@ html[data-bc-embed] [data-slide] [data-radix-scroll-area-viewport] > div > div {
         --series-3: #199e70;
         --series-4: #c98500;
         --series-5: #d55181;
+        --series-6: #008300;
         --viz-surface: #1a1a19;
         --viz-track: #333331;
         --viz-grid: #4a4a47;
@@ -330,6 +331,7 @@ html[data-bc-embed] [data-slide] [data-radix-scroll-area-viewport] > div > div {
     --series-3: #199e70;
     --series-4: #c98500;
     --series-5: #d55181;
+    --series-6: #008300;
     --viz-surface: #1a1a19;
     --viz-track: #333331;
     --viz-grid: #4a4a47;

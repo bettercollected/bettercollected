@@ -2872,7 +2872,9 @@
       "path": "path",
       "variables": "variables",
       "object_type": "object type",
-      "reference_path": "reference path"
+      "reference_path": "reference path",
+      "scope": "who can open it",
+      "definition": "cards and filters"
     },
     "TODAY": "Today",
     "YESTERDAY": "Yesterday",
@@ -3034,7 +3036,12 @@
       "TOTP_RESET": "{{actor}} reset the authenticator app of {{target}}.",
       "SSO_BREAK_GLASS_SIGN_IN": "{{actor}} signed in with an email code although single sign-on is required.",
       "SSO_BREAK_GLASS_REQUEST": "A session signed in with an email code used the workspace.",
-      "FALLBACK": "An action was recorded."
+      "FALLBACK": "An action was recorded.",
+      "REPORT_VIEW_CREATED": "{{actor}} saved a report view of {{form}} for everyone who can open the report.",
+      "REPORT_VIEW_UPDATED": "{{actor}} changed a report view of {{form}} that is shared with the form.",
+      "REPORT_VIEW_DELETED": "{{actor}} deleted a report view of {{form}} that was shared with the form.",
+      "REPORT_VIEW_SHARED": "{{actor}} shared a report view of {{form}} with everyone who can open the report.",
+      "REPORT_VIEW_UNSHARED": "{{actor}} made a shared report view of {{form}} private."
     }
   },
   "FORM_VERSIONS": {
@@ -3455,7 +3462,7 @@
     "RATE_LIMITED": "Too many report requests in a short time. Try again in a moment.",
     "BUSY": "Other reports are being computed. Try again in a moment.",
     "TIMEOUT": "This report took too long to compute. Narrow the dates or the form version, or try again.",
-    "TOO_MANY": "This selection has {{count}} responses. Narrow the dates to at most {{max}} to see the figures.",
+    "TOO_MANY": "This selection has {{rows}} responses. Narrow the dates to at most {{max}} to see the figures.",
     "TOO_MANY_HELP": "Narrow the selection by date or by form version:",
     "NARROW_30_DAYS": "Only the last 30 days",
     "NARROW_VERSION": "Only the current version (version {{n}})",
@@ -3521,6 +3528,40 @@
       "none_status": "No request",
       "none_feedback": "No feedback",
       "none": "None"
-    }
+    },
+    "VIEWS": "Views",
+    "VIEW_GROUP_MINE": "My views",
+    "VIEW_GROUP_SHARED": "Views of this form",
+    "VIEW_SAVE": "Save view",
+    "VIEW_SAVE_AS": "Save as new view",
+    "VIEW_UPDATE": "Update view",
+    "VIEW_DETAILS": "Rename or share",
+    "VIEW_DELETE": "Delete view",
+    "VIEW_NAME": "Name",
+    "VIEW_WHO": "Who can open it",
+    "VIEW_PRIVATE_CHOICE": "Only me",
+    "VIEW_SHARED_CHOICE": "Everyone who can open this report",
+    "VIEW_SHARED_HELP": "Shared views are visible to everyone with access to this form.",
+    "VIEW_SHARED_NEEDS_EDIT": "Only people who may edit this form can share a view.",
+    "VIEW_PRIVATE": "Only you can open this view.",
+    "VIEW_SHARED": "Everyone who can open this report can use this view.",
+    "VIEW_MADE_BY": "Made by {{name}}",
+    "VIEW_MADE_BY_YOU": "Made by you",
+    "VIEW_FORMER_OWNER": "Made by a former member",
+    "VIEW_MODIFIED": "Changed since it was saved",
+    "VIEW_SAVED": "View saved",
+    "VIEW_UPDATED": "View updated",
+    "VIEW_DELETED": "View deleted",
+    "VIEW_DELETE_CONFIRM": "Delete \"{{name}}\"?",
+    "VIEW_DELETE_SHARED": "It disappears for everyone who can open this report.",
+    "VIEW_NAME_TAKEN": "Another view already has this name.",
+    "VIEW_LIMIT": "You have reached the number of saved views allowed here. Delete one first.",
+    "VIEW_CHANGED": "This view was changed by someone else. Reload to see it.",
+    "VIEW_NOT_FOUND": "This view no longer exists.",
+    "VIEW_FORBIDDEN": "You may not do this with this view.",
+    "VIEW_INVALID": "This view cannot be saved as it is. Check the name.",
+    "VIEW_ERROR": "The view could not be saved. Try again.",
+    "VIEWS_ERROR": "The saved views could not be loaded.",
+    "VIEW_MISSING": "This view no longer exists, or it is not one you can open."
   }
 }

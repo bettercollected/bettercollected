@@ -10,7 +10,7 @@ import '@app/shared/hocs/i18n-provider';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { axeViolations } from '@app/test/axe';
 import { catalogue, figures } from '@app/test/report-fixtures';
-import { ReportCardDef, ReportDefinition, ReportResult, cardsParam, parseCardsParam } from '@app/utils/report';
+import { ReportView, ReportCardDef, ReportDefinition, ReportResult, ReportViewList, cardsParam, parseCardsParam } from '@app/utils/report';
 
 import ReportPage from './report-page';
 
@@ -25,9 +25,16 @@ const server: {
     queryError: unknown;
     result: (definition: ReportDefinition) => ReportResult;
     fetching: boolean;
+    stale: boolean;
     asked: Array<{ definition: ReportDefinition; skip: boolean }>;
     refetch: ReturnType<typeof vi.fn>;
     refetchFields: ReturnType<typeof vi.fn>;
+    views: ReportViewList | undefined;
+    refetchViews: ReturnType<typeof vi.fn>;
+    options: Array<Record<string, unknown>>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
 } = {} as never;
 
 const nav = { search: '', listeners: new Set<() => void>(), pushes: [] as string[], replaces: [] as string[] };
@@ -62,8 +69,15 @@ vi.mock('@app/store/workspaces/api', () => ({
     useGetReportFieldsQuery: (_args: unknown, options: { skip?: boolean }) => ({ data: options.skip ? undefined : server.catalogue, isLoading: false, error: server.catalogueError, refetch: server.refetchFields }),
     useQueryReportQuery: (args: { definition: ReportDefinition }, options: { skip?: boolean }) => {
         server.asked.push({ definition: args.definition, skip: !!options.skip });
-        return { data: options.skip || server.queryError ? undefined : server.result(args.definition), error: server.queryError, isError: !!server.queryError, isFetching: server.fetching, refetch: server.refetch };
-    }
+        server.options.push(options);
+        const figures = options.skip || server.queryError ? undefined : server.result(args.definition);
+        // `currentData` is the answer for this very definition; `data` would be the last one it got
+        return { data: figures, currentData: server.stale ? undefined : figures, error: server.queryError, isError: !!server.queryError, isFetching: server.fetching, refetch: server.refetch };
+    },
+    useGetReportViewsQuery: (_args: unknown, options: { skip?: boolean }) => ({ data: options.skip ? undefined : server.views, isLoading: false, isError: false, refetch: server.refetchViews }),
+    useCreateReportViewMutation: () => [server.create, { isLoading: false }],
+    useUpdateReportViewMutation: () => [server.update, { isLoading: false }],
+    useDeleteReportViewMutation: () => [server.remove, { isLoading: false }]
 }));
 
 const cardsInUrl = (url: string): ReportCardDef[] | undefined => parseCardsParam(new URLSearchParams(url.split('?')[1] ?? '').get('cards'));
@@ -77,9 +91,16 @@ beforeEach(() => {
     server.queryError = undefined;
     server.result = (definition) => figures(definition);
     server.fetching = false;
+    server.stale = false;
     server.asked = [];
     server.refetch = vi.fn();
     server.refetchFields = vi.fn();
+    server.views = { views: [], canShare: true, limits: { nameMax: 80, formViews: 50, privateViews: 20 } };
+    server.refetchViews = vi.fn();
+    server.options = [];
+    server.create = vi.fn();
+    server.update = vi.fn();
+    server.remove = vi.fn();
     nav.search = '';
     nav.pushes = [];
     nav.replaces = [];
@@ -188,16 +209,16 @@ describe('the cards live in the address', () => {
 
 describe('refusals and notices', () => {
     it('too many rows: says how many, and offers to narrow by date or by version', () => {
-        server.queryError = { status: 413, data: { code: 'too_many_rows', count: 25000, max: 20000 } };
+        server.queryError = { status: 413, data: { code: 'too_many_rows', count: 25318, max: 20000 } };
         renderPage();
         const alert = screen.getByRole('alert');
-        expect(alert).toHaveTextContent('This selection has 25000 responses. Narrow the dates to at most 20000 to see the figures.');
+        expect(alert).toHaveTextContent('This selection has 25,318 responses. Narrow the dates to at most 20,000 to see the figures.');
         fireEvent.click(within(alert).getByRole('button', { name: 'Only the last 30 days' }));
         expect(nav.pushes.at(-1)).toMatch(/from=\d{4}-\d{2}-\d{2}/);
     });
 
     it('too many rows: narrows to the current version', () => {
-        server.queryError = { status: 413, data: { code: 'too_many_rows', count: 25000, max: 20000 } };
+        server.queryError = { status: 413, data: { code: 'too_many_rows', count: 25318, max: 20000 } };
         renderPage();
         fireEvent.click(screen.getByRole('button', { name: 'Only the current version (version 3)' }));
         expect(nav.pushes.at(-1)).toContain('version=3');
@@ -256,7 +277,7 @@ describe('refusals and notices', () => {
     it('announces loading and arrival in a polite status region', async () => {
         server.fetching = true;
         const { rerender } = renderPage();
-        const status = () => screen.getAllByRole('status').find((node) => node.getAttribute('aria-live') === 'polite') as HTMLElement;
+        const status = () => screen.getByTestId('report-live');
         await waitFor(() => expect(status()).toHaveTextContent('Updating figures'));
         server.fetching = false;
         rerender(<ReportPage />);
@@ -299,9 +320,9 @@ describe('Dutch', () => {
 
     it('says the refusals in Dutch', async () => {
         await i18n.changeLanguage('nl');
-        server.queryError = { status: 413, data: { code: 'too_many_rows', count: 25000, max: 20000 } };
+        server.queryError = { status: 413, data: { code: 'too_many_rows', count: 25318, max: 20000 } };
         renderPage();
-        expect(screen.getByRole('alert')).toHaveTextContent('Deze selectie heeft 25000 reacties. Beperk de periode tot ten hoogste 20000 om de cijfers te zien.');
+        expect(screen.getByRole('alert')).toHaveTextContent('Deze selectie heeft 25.318 reacties. Beperk de periode tot ten hoogste 20.000 om de cijfers te zien.');
         expect(screen.getByRole('button', { name: 'Alleen de laatste 30 dagen' })).toBeInTheDocument();
     });
 });
@@ -311,7 +332,7 @@ describe('axe', () => {
         const { container, unmount } = renderPage();
         expect(await axeViolations(container)).toEqual([]);
         unmount();
-        server.queryError = { status: 413, data: { code: 'too_many_rows', count: 25000, max: 20000 } };
+        server.queryError = { status: 413, data: { code: 'too_many_rows', count: 25318, max: 20000 } };
         const refused = renderPage();
         expect(await axeViolations(refused.container)).toEqual([]);
         refused.unmount();
@@ -322,3 +343,148 @@ describe('axe', () => {
     });
 });
 
+
+
+const VIEW_ONE = 'a'.repeat(24);
+const VIEW_TWO = 'b'.repeat(24);
+const saved = (changes: Partial<ReportView> = {}): ReportView => ({
+    id: VIEW_ONE,
+    name: 'Teams only',
+    scope: 'private',
+    mine: true,
+    ownerName: null,
+    revision: 3,
+    createdAt: null,
+    updatedAt: null,
+    definition: { v: 1, filters: { respondent: 'known', formVersion: [2] }, tz: 'UTC', cards: [{ id: 'team', kind: 'bar', dimension: { field: 'q:team' }, measures: [{ agg: 'count' }] }, { id: 'total', kind: 'tile', measures: [{ agg: 'count' }] }] },
+    canEdit: true,
+    canDelete: true,
+    ...changes
+});
+const withViews = (...views: ReportView[]) => {
+    server.views = { views, canShare: true, limits: { nameMax: 80, formViews: 50, privateViews: 20 } };
+};
+
+describe('saved views on the page', () => {
+    it('opens a view: its cards and filters are written into the address, with the view that was opened', () => {
+        withViews(saved(), saved({ id: VIEW_TWO, name: 'Shared', scope: 'form', mine: false, ownerName: 'Sanne de Vries' }));
+        renderPage();
+        fireEvent.change(screen.getByRole('combobox', { name: 'Views' }), { target: { value: VIEW_ONE } });
+        const url = nav.pushes.at(-1) as string;
+        const query = new URLSearchParams(url.split('?')[1]);
+        expect(query.get('view')).toBe(VIEW_ONE);
+        expect(query.get('who')).toBe('known');
+        expect(query.get('version')).toBe('2');
+        expect(cardsInUrl(url)?.map((card) => card.id)).toEqual(['team', 'total']);
+    });
+
+    it('asks the server for the report of the opened view and says it is not changed', () => {
+        withViews(saved());
+        nav.search = `view=${VIEW_ONE}&who=known&version=2&cards=${cardsParam(saved().definition.cards)}`;
+        renderPage();
+        expect(screen.getByRole('combobox', { name: 'Views' })).toHaveValue(VIEW_ONE);
+        expect(lastAsked().cards.map((card) => card.id)).toEqual(['team', 'total']);
+        expect(lastAsked().filters.respondent).toBe('known');
+        expect(screen.getByText('Only you can open this view.')).toBeInTheDocument();
+        expect(screen.queryByText('Changed since it was saved')).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Update view' })).toBeNull();
+    });
+
+    it('notices a change to the report and offers to update the view, which keeps its address', () => {
+        withViews(saved());
+        nav.search = `view=${VIEW_ONE}&who=known&version=2&cards=${cardsParam(saved().definition.cards)}`;
+        const { rerender } = renderPage();
+        fireEvent.click(screen.getByRole('button', { name: 'Remove Which team are you in?' }));
+        // a change keeps the view in the address
+        expect(new URLSearchParams((nav.replaces.at(-1) as string).split('?')[1]).get('view')).toBe(VIEW_ONE);
+        rerender(<ReportPage />);
+        expect(screen.getByText('Changed since it was saved')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Update view' })).toBeInTheDocument();
+    });
+
+    it('also notices a changed filter', () => {
+        withViews(saved());
+        nav.search = `view=${VIEW_ONE}&who=known&version=2&cards=${cardsParam(saved().definition.cards)}`;
+        const { rerender } = renderPage();
+        fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
+        fireEvent.change(screen.getByLabelText('Form version'), { target: { value: '1' } });
+        rerender(<ReportPage />);
+        expect(screen.getByText('Changed since it was saved')).toBeInTheDocument();
+    });
+
+    it('goes back to the Overview with the Overview choice, keeping the filters', () => {
+        withViews(saved());
+        nav.search = `view=${VIEW_ONE}&who=known&cards=${cardsParam(saved().definition.cards)}`;
+        renderPage();
+        fireEvent.change(screen.getByRole('combobox', { name: 'Views' }), { target: { value: '' } });
+        const query = new URLSearchParams((nav.pushes.at(-1) as string).split('?')[1]);
+        expect(query.get('who')).toBe('known');
+        expect(query.has('view')).toBe(false);
+        expect(query.has('cards')).toBe(false);
+    });
+
+    it('says so when the address names a view the member cannot open, and shows the Overview', () => {
+        withViews(saved());
+        nav.search = `view=${VIEW_TWO}`;
+        renderPage();
+        expect(screen.getByText('This view no longer exists, or it is not one you can open.')).toBeInTheDocument();
+        expect(lastAsked().cards).toHaveLength(7);
+    });
+
+    it('takes no notice of a view that is not an id', () => {
+        withViews(saved());
+        nav.search = 'view=../../x';
+        renderPage();
+        expect(screen.queryByText('This view no longer exists, or it is not one you can open.')).toBeNull();
+        expect(screen.getByRole('combobox', { name: 'Views' })).toHaveValue('');
+    });
+
+    it('saves the report on screen: the definition asked for, without a card the form cannot answer', async () => {
+        server.create.mockReturnValue({ unwrap: () => Promise.resolve(saved({ id: VIEW_TWO })) });
+        nav.search = `cards=${cardsParam([{ id: 'gone', kind: 'bar', dimension: { field: 'q:gone' }, measures: [{ agg: 'count' }] }, { id: 'total', kind: 'tile', measures: [{ agg: 'count' }] }])}`;
+        renderPage();
+        fireEvent.click(screen.getByRole('button', { name: 'Save view' }));
+        const form = screen.getByRole('form', { name: 'Save view' });
+        fireEvent.change(within(form).getByLabelText('Name'), { target: { value: 'Totals' } });
+        fireEvent.click(within(form).getByRole('button', { name: 'Save view' }));
+        await waitFor(() => expect(server.create).toHaveBeenCalled());
+        const sent = server.create.mock.calls[0][0];
+        expect(sent).toMatchObject({ workspaceId: 'ws-1', formId: 'form-1', name: 'Totals', scope: 'private' });
+        expect(sent.definition.cards.map((card: ReportCardDef) => card.id)).toEqual(['total']);
+        // the new view is marked in the address
+        await waitFor(() => expect(new URLSearchParams((nav.replaces.at(-1) as string).split('?')[1]).get('view')).toBe(VIEW_TWO));
+    });
+
+    it('is Weergaven in Dutch', async () => {
+        await i18n.changeLanguage('nl');
+        withViews(saved());
+        renderPage();
+        expect(screen.getByRole('combobox', { name: 'Weergaven' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Weergave opslaan' })).toBeInTheDocument();
+    });
+
+    it('finds no axe violation with a view open', async () => {
+        withViews(saved(), saved({ id: VIEW_TWO, name: 'Shared', scope: 'form', mine: false, ownerName: null }));
+        nav.search = `view=${VIEW_TWO}`;
+        const { container } = renderPage();
+        expect(await axeViolations(container)).toEqual([]);
+    });
+});
+
+describe('the figures of the definition on screen', () => {
+    it('does not ask again because a tab got the focus or the network came back (a pass can read 20,000 responses)', () => {
+        renderPage();
+        const options = server.options.at(-1) as Record<string, unknown>;
+        expect(options.refetchOnFocus).toBe(false);
+        expect(options.refetchOnReconnect).toBe(false);
+    });
+
+    it('draws no old figures under new labels: the cards of an edited report wait for their own', () => {
+        server.stale = true;
+        server.fetching = true;
+        renderPage();
+        expect(screen.queryByRole('img')).toBeNull();
+        expect(screen.getAllByText('Loading figures').length).toBeGreaterThan(0);
+        expect(screen.queryByText('212')).toBeNull();
+    });
+});

@@ -2872,7 +2872,9 @@
       "path": "pad",
       "variables": "variabelen",
       "object_type": "objecttype",
-      "reference_path": "referentiepad"
+      "reference_path": "referentiepad",
+      "scope": "wie het kan openen",
+      "definition": "kaarten en filters"
     },
     "TODAY": "Vandaag",
     "YESTERDAY": "Gisteren",
@@ -3034,7 +3036,12 @@
       "TOTP_RESET": "{{actor}} heeft de authenticator-app van {{target}} gereset.",
       "SSO_BREAK_GLASS_SIGN_IN": "{{actor}} logde in met een e-mailcode, hoewel single sign-on verplicht is.",
       "SSO_BREAK_GLASS_REQUEST": "Een sessie die met een e-mailcode inlogde, gebruikte de werkruimte.",
-      "FALLBACK": "Er is een handeling vastgelegd."
+      "FALLBACK": "Er is een handeling vastgelegd.",
+      "REPORT_VIEW_CREATED": "{{actor}} sloeg een rapportweergave van {{form}} op voor iedereen die het rapport kan openen.",
+      "REPORT_VIEW_UPDATED": "{{actor}} wijzigde een gedeelde rapportweergave van {{form}}.",
+      "REPORT_VIEW_DELETED": "{{actor}} verwijderde een gedeelde rapportweergave van {{form}}.",
+      "REPORT_VIEW_SHARED": "{{actor}} deelde een rapportweergave van {{form}} met iedereen die het rapport kan openen.",
+      "REPORT_VIEW_UNSHARED": "{{actor}} maakte een gedeelde rapportweergave van {{form}} weer privé."
     }
   },
   "FORM_VERSIONS": {
@@ -3455,7 +3462,7 @@
     "RATE_LIMITED": "Te veel rapportverzoeken in korte tijd. Probeer het zo opnieuw.",
     "BUSY": "Er worden al andere rapporten berekend. Probeer het zo opnieuw.",
     "TIMEOUT": "Het berekenen van dit rapport duurde te lang. Beperk de periode of de formulierversie, of probeer het opnieuw.",
-    "TOO_MANY": "Deze selectie heeft {{count}} reacties. Beperk de periode tot ten hoogste {{max}} om de cijfers te zien.",
+    "TOO_MANY": "Deze selectie heeft {{rows}} reacties. Beperk de periode tot ten hoogste {{max}} om de cijfers te zien.",
     "TOO_MANY_HELP": "Beperk de selectie op datum of op formulierversie:",
     "NARROW_30_DAYS": "Alleen de laatste 30 dagen",
     "NARROW_VERSION": "Alleen de huidige versie (versie {{n}})",
@@ -3521,6 +3528,40 @@
       "none_status": "Geen verzoek",
       "none_feedback": "Geen feedback",
       "none": "Geen"
-    }
+    },
+    "VIEWS": "Weergaven",
+    "VIEW_GROUP_MINE": "Mijn weergaven",
+    "VIEW_GROUP_SHARED": "Weergaven van dit formulier",
+    "VIEW_SAVE": "Weergave opslaan",
+    "VIEW_SAVE_AS": "Opslaan als nieuwe weergave",
+    "VIEW_UPDATE": "Weergave bijwerken",
+    "VIEW_DETAILS": "Hernoemen of delen",
+    "VIEW_DELETE": "Weergave verwijderen",
+    "VIEW_NAME": "Naam",
+    "VIEW_WHO": "Wie kan haar openen",
+    "VIEW_PRIVATE_CHOICE": "Alleen ik",
+    "VIEW_SHARED_CHOICE": "Iedereen die dit rapport kan openen",
+    "VIEW_SHARED_HELP": "Gedeelde weergaven zijn zichtbaar voor iedereen met toegang tot dit formulier.",
+    "VIEW_SHARED_NEEDS_EDIT": "Alleen wie dit formulier mag bewerken, kan een weergave delen.",
+    "VIEW_PRIVATE": "Alleen u kunt deze weergave openen.",
+    "VIEW_SHARED": "Iedereen die dit rapport kan openen, kan deze weergave gebruiken.",
+    "VIEW_MADE_BY": "Gemaakt door {{name}}",
+    "VIEW_MADE_BY_YOU": "Door u gemaakt",
+    "VIEW_FORMER_OWNER": "Gemaakt door een voormalig lid",
+    "VIEW_MODIFIED": "Gewijzigd sinds het opslaan",
+    "VIEW_SAVED": "Weergave opgeslagen",
+    "VIEW_UPDATED": "Weergave bijgewerkt",
+    "VIEW_DELETED": "Weergave verwijderd",
+    "VIEW_DELETE_CONFIRM": "\"{{name}}\" verwijderen?",
+    "VIEW_DELETE_SHARED": "De weergave verdwijnt voor iedereen die dit rapport kan openen.",
+    "VIEW_NAME_TAKEN": "Een andere weergave heeft al deze naam.",
+    "VIEW_LIMIT": "U hebt het toegestane aantal opgeslagen weergaven hier bereikt. Verwijder er eerst een.",
+    "VIEW_CHANGED": "Deze weergave is door iemand anders gewijzigd. Laad opnieuw om die te zien.",
+    "VIEW_NOT_FOUND": "Deze weergave bestaat niet meer.",
+    "VIEW_FORBIDDEN": "U mag dit niet doen met deze weergave.",
+    "VIEW_INVALID": "Deze weergave kan zo niet worden opgeslagen. Controleer de naam.",
+    "VIEW_ERROR": "De weergave kon niet worden opgeslagen. Probeer het opnieuw.",
+    "VIEWS_ERROR": "De opgeslagen weergaven konden niet worden geladen.",
+    "VIEW_MISSING": "Deze weergave bestaat niet meer, of u kunt haar niet openen."
   }
 }

@@ -15,7 +15,8 @@ import { cn } from '@app/shadcn/util/lib';
 import { REPORT_AGGS, ReportAgg, ReportBucket, ReportCardDef, ReportCardKind, ReportCatalogue, bucketsOf, cardProblem, dimensionKeys, isTimeDimension, kindsFor, newCardId, numericFields } from '@app/utils/report';
 import { aggLabel, dimensionLabel } from '@app/utils/report-view';
 
-const control = 'border-black-300 text-black-900 focus-visible:ring-brand-500 h-10 w-full rounded border bg-white px-3 py-0 text-sm focus:outline-hidden focus-visible:ring-2';
+// room on the right for the select's chevron: a long question text is cut with an ellipsis instead of running under it
+const control = 'border-black-300 text-black-900 focus-visible:ring-brand-500 h-10 w-full rounded border bg-white py-0 pr-9 pl-3 text-sm text-ellipsis focus:outline-hidden focus-visible:ring-2';
 
 /** The draft a new card starts from. */
 export function blankCard(): ReportCardDef {

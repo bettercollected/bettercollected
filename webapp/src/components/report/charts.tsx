@@ -97,7 +97,7 @@ export function BarChart(props: ChartProps) {
     return (
         <ul {...imgProps(props)} className="m-0 flex list-none flex-col gap-2.5 p-0">
             {view.rows.map((row) => {
-                const width = row.value && max > 0 ? Math.max(1, (row.value / max) * 100) : 0;
+                const width = row.value !== null && row.value > 0 && max > 0 ? Math.max(1, (row.value / max) * 100) : 0;
                 return (
                     <li aria-hidden="true" key={row.key} className="flex flex-col gap-1 sm:grid sm:grid-cols-[minmax(5rem,11rem)_minmax(0,1fr)_minmax(4.5rem,auto)] sm:items-center sm:gap-x-3">
                         <span className="min-w-0 text-sm leading-snug text-black-800 [overflow-wrap:anywhere]">{row.label}</span>
@@ -158,7 +158,7 @@ function PatternDefs({ id, count }: { id: string; count: number }) {
 }
 
 export function DonutChart(props: ChartProps) {
-    const { view } = props;
+    const { view, locale } = props;
     const id = useId().replace(/:/g, '');
     const slices = view.rows.filter((row) => (row.value ?? 0) > 0);
     const total = slices.reduce((sum, row) => sum + (row.value ?? 0), 0);
@@ -178,7 +178,7 @@ export function DonutChart(props: ChartProps) {
                     })
                 )}
                 <text x={CENTRE} y={CENTRE + 6} textAnchor="middle" className="fill-black-900 text-[20px] font-semibold">
-                    {slices.length ? view.rows.reduce((sum, row) => sum + (row.value ?? 0), 0) : '–'}
+                    {slices.length ? new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(view.rows.reduce((sum, row) => sum + (row.value ?? 0), 0)) : '–'}
                 </text>
             </svg>
             <ul aria-hidden="true" className="m-0 flex min-w-0 flex-1 list-none flex-col gap-2 p-0">
@@ -216,8 +216,11 @@ export function LineChart(props: ChartProps) {
     const plotWidth = width - MARGIN.left - MARGIN.right;
     const plotHeight = HEIGHT - MARGIN.top - MARGIN.bottom;
     const top = niceMax(Math.max(0, ...points.map((row) => row.value ?? 0)));
+    // below zero too: the axis then runs from a round minimum to the round maximum, with the zero line between
+    const lowest = Math.min(0, ...points.map((row) => row.value ?? 0));
+    const bottom = lowest < 0 ? -niceMax(-lowest) : 0;
     const x = (index: number) => MARGIN.left + (columns ? (plotWidth / n) * (index + 0.5) : n === 1 ? plotWidth / 2 : (plotWidth / (n - 1)) * index);
-    const y = (value: number) => MARGIN.top + plotHeight - (value / top) * plotHeight;
+    const y = (value: number) => MARGIN.top + plotHeight - ((value - bottom) / (top - bottom)) * plotHeight;
     const step = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(plotWidth / 72))));
     const numbers = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
     // a line labels its first, last and highest points; columns label each
@@ -236,7 +239,7 @@ export function LineChart(props: ChartProps) {
     return (
         <ScrollBox label={label} boxRef={boxRef}>
             <svg {...imgProps(props)} viewBox={`0 0 ${width} ${HEIGHT}`} width={width} height={HEIGHT} className="block max-w-none">
-                {[0, top].map((tick) => (
+                {[...new Set([bottom, 0, top])].map((tick) => (
                     <g key={tick}>
                         <line x1={MARGIN.left} x2={width - MARGIN.right} y1={y(tick)} y2={y(tick)} style={{ stroke: tick === 0 ? 'var(--viz-grid)' : 'var(--viz-track)' }} strokeWidth="1" />
                         <text x={MARGIN.left - 8} y={y(tick) + 4} textAnchor="end" className="fill-black-700 text-[11px] tabular-nums">
@@ -248,8 +251,11 @@ export function LineChart(props: ChartProps) {
                     ? points.map((row, index) => {
                           if (row.value === null) return null;
                           const barWidth = Math.min(28, (plotWidth / n) * 0.62);
-                          const height = Math.max(row.value > 0 ? 1.5 : 0, plotHeight - (y(row.value) - MARGIN.top));
-                          return <rect key={row.key} x={x(index) - barWidth / 2} y={MARGIN.top + plotHeight - height} width={barWidth} height={height} rx="2" style={{ fill: 'var(--series-1)' }} />;
+                          // from the zero line up, or down for a negative value
+                          const zero = y(0);
+                          const end = y(row.value);
+                          const height = Math.max(row.value !== 0 ? 1.5 : 0, Math.abs(zero - end));
+                          return <rect key={row.key} x={x(index) - barWidth / 2} y={row.value < 0 ? zero : zero - height} width={barWidth} height={height} rx="2" style={{ fill: 'var(--series-1)' }} />;
                       })
                     : segments.map((segment) => <polyline key={segment} points={segment} fill="none" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" style={{ stroke: 'var(--series-1)' }} />)}
                 {!columns &&
@@ -258,7 +264,7 @@ export function LineChart(props: ChartProps) {
                     )}
                 {points.map((row, index) =>
                     row.value !== null && labelled.has(index) ? (
-                        <text key={`v${row.key}`} x={Math.min(width - 16, Math.max(MARGIN.left + 8, x(index)))} y={y(row.value) - 8} textAnchor="middle" className="fill-black-900 text-[11px] font-medium tabular-nums">
+                        <text key={`v${row.key}`} x={Math.min(width - 16, Math.max(MARGIN.left + 8, x(index)))} y={row.value < 0 && columns ? y(row.value) + 16 : y(row.value) - 8} textAnchor="middle" className="fill-black-900 text-[11px] font-medium tabular-nums">
                             {row.valueText}
                         </text>
                     ) : null
