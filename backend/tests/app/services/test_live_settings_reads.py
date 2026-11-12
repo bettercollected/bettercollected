@@ -26,6 +26,7 @@ from backend.app.services.form_spec.editor_ops import EditorOpsService
 from backend.app.services.image_service import ImageService
 from backend.app.services.rate_limiter import Verdict
 from backend.app.services.receipt_limits import READ as RECEIPT_READ, ReceiptLimits
+from backend.app.services.respondent_limits import CODE_ALL_SCOPE, RespondentLimits
 from backend.config import settings
 from common.settings.canonical import SettingRow
 from common.settings.keys import SectionKeys
@@ -352,6 +353,21 @@ async def test_receipt_limits_are_read_per_call(monkeypatch, key, field, call, p
         async with limits.lookup(RECEIPT_READ, "203.0.113.1"):
             pass
         assert limiter.calls[before + call][position] == new, key
+
+
+# ------------------------------------------------------- sign-in code mail
+
+
+async def test_code_mail_breaker_is_read_per_call(monkeypatch):
+    limiter = RecordingLimiter(ALLOW)
+    limits = RespondentLimits(limiter)
+    for new in (9001, 9002):
+        _set(monkeypatch, settings.api_settings, "CODE_MAIL_PER_HOUR", new)
+        before = len(limiter.calls)
+        await limits.code_mail("203.0.113.1", "someone@example.com")
+        scope, _client, limit, _window = limiter.calls[-1]
+        assert len(limiter.calls) == before + 3 and scope == CODE_ALL_SCOPE
+        assert limit == new, "API_CODE_MAIL_PER_HOUR"
 
 
 # ------------------------------------------------------------ editor ops

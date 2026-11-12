@@ -1,19 +1,24 @@
 """Rate limits of the sign-in code mail (workspace and creator routes) and of
-the respondent submit route (services/respondent_limits.py): per address, per
-client, per workspace and for the instance; per client and form, and per form.
-A refusal is 429 ``rate_limited`` with ``Retry-After`` and never depends on
-whether the address has an account."""
+the respondent submit route (services/respondent_limits.py): per address and
+per client, one instance-wide circuit breaker for code mail, and per client and
+form on submit; no budget that many people share (a workspace, a form), since
+that would let a few networks block everyone. A refusal is 429 ``rate_limited``
+with ``Retry-After`` and never depends on whether the address has an account."""
 
 import json
+import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
+from loguru import logger
+from sqlalchemy import select
 
 from backend.app.container import container
 from backend.app.services import respondent_limits as limits
-from backend.app.services.respondent_limits import address_limit_key
+from backend.app.services.respondent_limits import address_limit_key, client_key
 from backend.config import settings
+from backend.db.models import RateLimitCounterRow
 from common.exceptions.http import HTTPException as CommonHTTPException
 
 SENT = {"message": "Email set to be sent"}
@@ -37,9 +42,13 @@ def _mail(n: int, domain="example.com") -> str:
     return f"person{n}@{domain}"
 
 
+def _from(n: int) -> dict:
+    return {"X-Forwarded-For": f"203.0.113.{n}"}
+
+
 async def _workspace_code(client, workspace, address, headers=None, **params):
     return await client.post(
-        f"/api/v1/workspaces/{workspace.id}/auth/otp/send",
+        f"/api/v1/workspaces/{getattr(workspace, 'id', workspace)}/auth/otp/send",
         params={"receiver_email": address, **params},
         headers=headers or ALICE,
     )
@@ -66,7 +75,18 @@ def _assert_rate_limited(response, lang="en"):
     return body
 
 
-class TestAddressKey:
+def _mailing():
+    return patch(
+        "common.services.http_client.HttpClient.get", AsyncMock(return_value=SENT)
+    )
+
+
+async def _counter_count() -> int:
+    async with container.pg_engine().connect() as conn:
+        return len((await conn.execute(select(RateLimitCounterRow))).all())
+
+
+class TestKeys:
     @pytest.mark.parametrize(
         "spelling",
         [
@@ -78,6 +98,22 @@ class TestAddressKey:
     )
     def test_one_mailbox_is_one_key(self, spelling):
         assert address_limit_key(spelling) == "person@example.com"
+
+    @pytest.mark.parametrize(
+        "spelling",
+        [
+            "first.last@gmail.com",
+            "f.i.r.s.t.l.a.s.t@gmail.com",
+            "First.Last+news@GMail.com",
+            "firstlast@googlemail.com",
+            "first.last@googlemail.com",
+        ],
+    )
+    def test_gmail_dots_and_googlemail_are_ignored(self, spelling):
+        assert address_limit_key(spelling) == "firstlast@gmail.com"
+
+    def test_other_providers_keep_their_dots(self):
+        assert address_limit_key("a.b@example.com") != address_limit_key("ab@example.com")
 
     def test_an_internationalised_domain_and_its_punycode_agree(self):
         assert address_limit_key("a@bücher.example") == address_limit_key(
@@ -91,11 +127,22 @@ class TestAddressKey:
     def test_a_bare_plus_local_part_is_kept(self):
         assert address_limit_key("+@example.com") == "+@example.com"
 
+    def test_an_ipv6_client_is_keyed_by_its_48(self):
+        assert client_key("2001:db8:1:2::1") == "2001:db8:1::/48"
+        assert client_key("2001:db8:1:ffff:aaaa::9") == "2001:db8:1::/48"
+        assert client_key("2001:db8:2::1") == "2001:db8:2::/48"
+
+    def test_an_ipv4_client_is_kept_and_no_client_is_unknown(self):
+        assert client_key("203.0.113.7") == "203.0.113.7"
+        assert client_key(None) == "unknown"
+        assert client_key("not an address") == "unknown"
+
 
 class TestCodePerAddress:
     async def test_the_fourth_request_in_the_hour_is_refused(
         self, client: AsyncClient, workspace
     ):
+        assert limits.CODE_PER_ADDRESS[1:] == (3, 3600)
         sent = AsyncMock(return_value=SENT)
         with patch("common.services.http_client.HttpClient.get", sent):
             for _ in range(3):
@@ -106,15 +153,10 @@ class TestCodePerAddress:
         # the refused request reached no mail
         assert sent.await_count == 3
 
-    async def test_the_limit_is_three_an_hour(self):
-        assert limits.CODE_PER_ADDRESS[1:] == (3, 3600)
-
     async def test_the_window_ends_and_the_address_may_ask_again(
         self, client: AsyncClient, workspace, rate_limit_clock
     ):
-        with patch(
-            "common.services.http_client.HttpClient.get", AsyncMock(return_value=SENT)
-        ):
+        with _mailing():
             for _ in range(3):
                 await _workspace_code(client, workspace, "x@example.com")
             refused = await _workspace_code(client, workspace, "x@example.com")
@@ -124,12 +166,8 @@ class TestCodePerAddress:
             again = await _workspace_code(client, workspace, "x@example.com")
         assert again.status_code == 200, again.text
 
-    async def test_another_address_is_not_affected(
-        self, client: AsyncClient, workspace
-    ):
-        with patch(
-            "common.services.http_client.HttpClient.get", AsyncMock(return_value=SENT)
-        ):
+    async def test_another_address_is_not_affected(self, client: AsyncClient, workspace):
+        with _mailing():
             for _ in range(4):
                 await _workspace_code(client, workspace, "x@example.com")
             other = await _workspace_code(client, workspace, "y@example.com")
@@ -138,13 +176,20 @@ class TestCodePerAddress:
     async def test_spelling_variants_are_one_address(
         self, client: AsyncClient, workspace
     ):
-        with patch(
-            "common.services.http_client.HttpClient.get", AsyncMock(return_value=SENT)
-        ):
+        with _mailing():
             for spelling in ("x@example.com", "X@Example.com", "x+1@example.com"):
                 ok = await _workspace_code(client, workspace, spelling)
                 assert ok.status_code == 200, ok.text
             refused = await _workspace_code(client, workspace, "x+2@EXAMPLE.com")
+        _assert_rate_limited(refused)
+
+    async def test_gmail_variants_are_one_address(self, client: AsyncClient, workspace):
+        with _mailing():
+            for spelling in ("first.last@gmail.com", "firstlast@googlemail.com"):
+                ok = await _workspace_code(client, workspace, spelling)
+                assert ok.status_code == 200, ok.text
+            await _workspace_code(client, workspace, "f.i.r.s.t.last@gmail.com")
+            refused = await _workspace_code(client, workspace, "first.last+x@gmail.com")
         _assert_rate_limited(refused)
 
     async def test_the_budget_is_shared_by_the_workspace_and_creator_routes(
@@ -160,6 +205,16 @@ class TestCodePerAddress:
         _assert_rate_limited(refused_creator)
         _assert_rate_limited(refused_workspace)
         assert sent.await_count == 3
+
+    async def test_a_refused_request_keeps_the_address_refused(
+        self, client: AsyncClient, workspace
+    ):
+        with _mailing():
+            for _ in range(3):
+                await _workspace_code(client, workspace, "x@example.com")
+            for _ in range(5):
+                refused = await _workspace_code(client, workspace, "x@example.com")
+                assert refused.status_code == 429
 
 
 class TestCodePerClient:
@@ -183,9 +238,7 @@ class TestCodePerClient:
     async def test_the_creator_route_counts_the_same_client(
         self, client: AsyncClient, workspace
     ):
-        with patch(
-            "common.services.http_client.HttpClient.get", AsyncMock(return_value=SENT)
-        ):
+        with _mailing():
             for n in range(5):
                 await _workspace_code(client, workspace, _mail(n))
             for n in range(5, 10):
@@ -194,14 +247,14 @@ class TestCodePerClient:
             refused = await _creator_code(client, _mail(11))
         _assert_rate_limited(refused)
 
-    async def test_an_ipv6_client_is_counted_by_its_64(
+    async def test_an_ipv6_site_is_one_client_by_its_48(
         self, client: AsyncClient, workspace, monkeypatch
     ):
+        """A /56 or /48 of /64s is one client: rotating through its networks
+        does not multiply the limit."""
         _set(monkeypatch, "CODE_PER_CLIENT", 2)
-        with patch(
-            "common.services.http_client.HttpClient.get", AsyncMock(return_value=SENT)
-        ):
-            for n, host in enumerate(("2001:db8:1:2::1", "2001:db8:1:2::2")):
+        with _mailing():
+            for n, host in enumerate(("2001:db8:1:2::1", "2001:db8:1:ff::2")):
                 ok = await _workspace_code(
                     client, workspace, _mail(n), headers={"X-Forwarded-For": host}
                 )
@@ -210,126 +263,135 @@ class TestCodePerClient:
                 client,
                 workspace,
                 _mail(3),
-                headers={"X-Forwarded-For": "2001:db8:1:2:ffff::9"},
+                headers={"X-Forwarded-For": "2001:db8:1:7777::9"},
+            )
+            other_site = await _workspace_code(
+                client,
+                workspace,
+                _mail(4),
+                headers={"X-Forwarded-For": "2001:db8:2::9"},
             )
         _assert_rate_limited(refused)
+        assert other_site.status_code == 200, other_site.text
 
-    async def test_an_unknown_client_is_not_limited_per_client(
-        self, client: AsyncClient, workspace, monkeypatch
+
+class TestUntrustedProxy:
+    """A proxy on a private address that is not in TRUSTED_PROXIES would make
+    every user one client: such a request is "unknown" and not limited per
+    client, while the limits that name no client still apply."""
+
+    @pytest.fixture(autouse=True)
+    def no_trusted_proxy(self, monkeypatch):
+        monkeypatch.setattr(settings.api_settings, "TRUSTED_PROXIES", "")
+
+    async def test_code_mail_has_no_per_client_limit_but_keeps_the_others(
+        self, client: AsyncClient, workspace
     ):
-        """No address to tell clients apart: one shared bucket would lock
-        everyone out together, so only the address, workspace and instance
-        limits hold."""
-        monkeypatch.setattr(
-            "backend.app.controllers.workspace_router.request_client_ip",
-            lambda request: None,
-        )
         sent = AsyncMock(return_value=SENT)
         with patch("common.services.http_client.HttpClient.get", sent):
             for n in range(15):
-                ok = await _workspace_code(client, workspace, _mail(n))
+                ok = await _workspace_code(client, workspace, _mail(n), headers=_from(n + 1))
                 assert ok.status_code == 200, ok.text
-            # the address limit still holds
             for _ in range(3):
                 await _workspace_code(client, workspace, "x@example.com")
             refused = await _workspace_code(client, workspace, "x@example.com")
         _assert_rate_limited(refused)
 
-    async def test_an_unknown_client_still_meets_the_workspace_budget(
+    async def test_the_instance_breaker_still_holds(
         self, client: AsyncClient, workspace, monkeypatch
     ):
-        monkeypatch.setattr(
-            "backend.app.controllers.workspace_router.request_client_ip",
-            lambda request: None,
-        )
-        _set(monkeypatch, "CODE_PER_WORKSPACE", 4)
-        with patch(
-            "common.services.http_client.HttpClient.get", AsyncMock(return_value=SENT)
-        ):
-            for n in range(4):
-                ok = await _workspace_code(client, workspace, _mail(n))
+        monkeypatch.setattr(settings.api_settings, "CODE_MAIL_PER_HOUR", 12)
+        with _mailing():
+            for n in range(12):
+                ok = await _workspace_code(client, workspace, _mail(n), headers=_from(n + 1))
                 assert ok.status_code == 200, ok.text
-            refused = await _workspace_code(client, workspace, _mail(9))
+            refused = await _workspace_code(client, workspace, _mail(99), headers=_from(99))
         _assert_rate_limited(refused)
 
+    async def test_the_creator_route_too(self, client: AsyncClient):
+        with _mailing():
+            for n in range(12):
+                ok = await _creator_code(client, _mail(n), headers=_from(n + 1))
+                assert ok.status_code == 200, ok.text
 
-class TestCodePerWorkspaceAndInstance:
-    async def test_the_numbers(self):
-        assert limits.CODE_PER_WORKSPACE[1:] == (1000, 3600)
-        assert limits.CODE_ALL[1:] == (5000, 3600)
-        assert limits.CODE_CREATOR[1:] == (1000, 3600)
-
-    async def test_a_workspace_budget_is_its_own(
-        self, client: AsyncClient, workspace, workspace_1, monkeypatch
+    async def test_a_direct_client_without_forwarding_headers_is_still_counted(
+        self, client: AsyncClient, workspace
     ):
-        _set(monkeypatch, "CODE_PER_WORKSPACE", 3)
-        with patch(
-            "common.services.http_client.HttpClient.get", AsyncMock(return_value=SENT)
-        ):
-            for n in range(3):
-                ok = await _workspace_code(
-                    client,
-                    workspace,
-                    _mail(n),
-                    headers={"X-Forwarded-For": f"203.0.113.{n + 1}"},
+        """No forwarding header: the peer is the client (a direct connection)."""
+        with _mailing():
+            for n in range(10):
+                ok = await client.post(
+                    f"/api/v1/workspaces/{workspace.id}/auth/otp/send",
+                    params={"receiver_email": _mail(n)},
                 )
                 assert ok.status_code == 200, ok.text
-            refused = await _workspace_code(
-                client, workspace, _mail(9), headers={"X-Forwarded-For": "203.0.113.50"}
-            )
-            elsewhere = await _workspace_code(
-                client,
-                workspace_1,
-                _mail(10),
-                headers={"X-Forwarded-For": "203.0.113.51"},
+            refused = await client.post(
+                f"/api/v1/workspaces/{workspace.id}/auth/otp/send",
+                params={"receiver_email": _mail(11)},
             )
         _assert_rate_limited(refused)
-        assert elsewhere.status_code == 200, elsewhere.text
 
-    async def test_the_creator_sign_in_has_a_budget_of_its_own(
+    async def test_submit_is_not_limited_per_client(
+        self, client: AsyncClient, workspace, published_form, monkeypatch
+    ):
+        _set(monkeypatch, "SUBMIT_PER_CLIENT_FORM", 1, 60)
+        for n in range(4):
+            sent = await TestSubmit._post(
+                client, workspace, published_form.form_id, _from(n + 1)
+            )
+            assert sent.status_code != 429, sent.text
+
+
+class TestInstanceBreaker:
+    """The only budget everyone shares: far above normal use, loud when it
+    trips, and the only brake on the code mail reaching random addresses."""
+
+    async def test_the_default_is_twenty_thousand_an_hour(self):
+        assert settings.api_settings.CODE_MAIL_PER_HOUR == 20000
+        assert limits.CODE_ALL_SCOPE == "code-mail-all"
+
+    async def test_it_refuses_every_code_request_once_used_up_and_logs_an_error_once(
         self, client: AsyncClient, workspace, monkeypatch
     ):
-        _set(monkeypatch, "CODE_CREATOR", 2)
-        with patch(
-            "common.services.http_client.HttpClient.get", AsyncMock(return_value=SENT)
-        ):
-            for n in range(2):
-                ok = await _creator_code(
-                    client, _mail(n), headers={"X-Forwarded-For": f"203.0.113.{n + 1}"}
-                )
-                assert ok.status_code == 200, ok.text
-            refused = await _creator_code(
-                client, _mail(9), headers={"X-Forwarded-For": "203.0.113.50"}
-            )
-            respondent = await _workspace_code(
-                client, workspace, _mail(10), headers={"X-Forwarded-For": "203.0.113.51"}
-            )
-        _assert_rate_limited(refused)
-        assert respondent.status_code == 200, respondent.text
-
-    async def test_the_instance_budget_covers_every_route(
-        self, client: AsyncClient, workspace, workspace_1, monkeypatch
-    ):
-        _set(monkeypatch, "CODE_ALL", 3)
-        with patch(
-            "common.services.http_client.HttpClient.get", AsyncMock(return_value=SENT)
-        ):
-            for n, route in enumerate(("w", "w1", "c")):
-                headers = {"X-Forwarded-For": f"203.0.113.{n + 1}"}
-                if route == "c":
-                    ok = await _creator_code(client, _mail(n), headers=headers)
-                else:
-                    ok = await _workspace_code(
-                        client,
-                        workspace if route == "w" else workspace_1,
-                        _mail(n),
-                        headers=headers,
+        monkeypatch.setattr(settings.api_settings, "CODE_MAIL_PER_HOUR", 3)
+        records = []
+        handler = logger.add(lambda m: records.append(m.record), level="ERROR")
+        try:
+            with _mailing():
+                for n in range(3):
+                    ok = await _workspace_code(client, workspace, _mail(n), headers=_from(n + 1))
+                    assert ok.status_code == 200, ok.text
+                for n in range(3, 6):
+                    refused = await _workspace_code(
+                        client, workspace, _mail(n), headers=_from(n + 1)
                     )
-                assert ok.status_code == 200, ok.text
-            refused = await _workspace_code(
-                client, workspace, _mail(9), headers={"X-Forwarded-For": "203.0.113.60"}
-            )
-        _assert_rate_limited(refused)
+                    _assert_rate_limited(refused)
+                creator = await _creator_code(client, _mail(7), headers=_from(70))
+        finally:
+            logger.remove(handler)
+        _assert_rate_limited(creator)
+        tripped = [r for r in records if "circuit breaker" in r["message"]]
+        assert len(tripped) == 1
+        assert "example.com" not in tripped[0]["message"]
+
+    async def test_zero_turns_it_off(self, client: AsyncClient, workspace, monkeypatch):
+        monkeypatch.setattr(settings.api_settings, "CODE_MAIL_PER_HOUR", 0)
+        before = await _counter_count()
+        with _mailing():
+            ok = await _workspace_code(client, workspace, "x@example.com")
+        assert ok.status_code == 200, ok.text
+        scopes = await _counter_count()
+        # a client and an address counter, none for the breaker
+        assert scopes - before == 2
+
+    async def test_no_budget_is_shared_by_a_workspace_creators_or_a_form(self):
+        for name in (
+            "CODE_PER_WORKSPACE",
+            "CODE_CREATOR",
+            "SUBMIT_PER_FORM",
+            "CODE_ALL",
+        ):
+            assert not hasattr(limits, name), name
 
 
 class TestRefusalDoesNotTellAccounts:
@@ -358,18 +420,36 @@ class TestRefusalDoesNotTellAccounts:
         assert known.json() == unknown.json()
         assert "example.com" not in known.text
 
-    async def test_refusals_are_counted_on_for_the_same_address(
-        self, client: AsyncClient, workspace
+    async def test_the_breaker_refuses_known_and_unknown_addresses_alike(
+        self, client: AsyncClient, workspace, monkeypatch
     ):
-        """A refused request keeps the address refused (it still counts)."""
-        with patch(
-            "common.services.http_client.HttpClient.get", AsyncMock(return_value=SENT)
-        ):
-            for _ in range(3):
-                await _workspace_code(client, workspace, "x@example.com")
-            for _ in range(5):
-                refused = await _workspace_code(client, workspace, "x@example.com")
-                assert refused.status_code == 429
+        monkeypatch.setattr(settings.api_settings, "CODE_MAIL_PER_HOUR", 1)
+        with _mailing():
+            await _workspace_code(client, workspace, "seed@example.com", headers=_from(1))
+            one = await _workspace_code(client, workspace, "known@example.com", headers=_from(2))
+            two = await _workspace_code(client, workspace, "nobody@example.org", headers=_from(3))
+        assert one.status_code == two.status_code == 429
+        assert one.json()["code"] == two.json()["code"]
+
+
+class TestWorkspaceMustExist:
+    async def test_a_workspace_that_does_not_exist_counts_nothing(
+        self, client: AsyncClient
+    ):
+        before = await _counter_count()
+        with _mailing():
+            for _ in range(15):
+                response = await _workspace_code(
+                    client, str(uuid.uuid4()), "x@example.com"
+                )
+                assert response.status_code != 429
+        assert await _counter_count() == before
+
+    async def test_an_existing_one_counts(self, client: AsyncClient, workspace):
+        before = await _counter_count()
+        with _mailing():
+            await _workspace_code(client, workspace, "x@example.com")
+        assert await _counter_count() > before
 
 
 class TestRefusalWording:
@@ -397,9 +477,7 @@ class TestRefusalWording:
         from backend.app.services.rate_limiter import Verdict
 
         def message(seconds, locale=None):
-            return limits.too_many(
-                Verdict(False, 4, seconds), locale
-            ).content["message"]
+            return limits.too_many(Verdict(False, 4, seconds), locale).content["message"]
 
         assert "a minute" in message(30)
         assert "10 minutes" in message(600)
@@ -412,16 +490,16 @@ class TestSubmit:
     """``POST /workspaces/{w}/forms/{f}/response``."""
 
     @staticmethod
-    async def _post(client, workspace, form_id, headers=None):
+    async def _post(client, workspace, form_id, headers=None, **kwargs):
         return await client.post(
             f"/api/v1/workspaces/{workspace.id}/forms/{form_id}/response",
             data={"response": json.dumps({"answers": {}})},
             headers=headers or ALICE,
+            **kwargs,
         )
 
-    async def test_the_numbers(self):
-        assert limits.SUBMIT_PER_CLIENT_FORM[1:] == (120, 60)
-        assert limits.SUBMIT_PER_FORM[1:] == (1000, 60)
+    async def test_the_number(self):
+        assert limits.SUBMIT_PER_CLIENT_FORM[1:] == (30, 60)
 
     async def test_a_client_is_limited_per_form_with_retry_after(
         self, client: AsyncClient, workspace, published_form, monkeypatch
@@ -453,29 +531,23 @@ class TestSubmit:
         again = await self._post(client, workspace, published_form.form_id)
         assert again.status_code != 429, again.text
 
-    async def test_the_form_budget_covers_all_its_clients(
-        self, client: AsyncClient, workspace, published_form, monkeypatch
+    async def test_there_is_no_budget_the_clients_of_a_form_share(
+        self, client: AsyncClient, workspace, published_form
     ):
-        _set(monkeypatch, "SUBMIT_PER_FORM", 3, 60)
-        for n in range(3):
+        """Many different clients on one form: nobody is refused, however many
+        (a shared form budget would let a few networks lock everyone out)."""
+        for n in range(60):
             sent = await self._post(
                 client,
                 workspace,
                 published_form.form_id,
-                {"X-Forwarded-For": f"203.0.113.{n + 1}"},
+                {"X-Forwarded-For": f"198.51.100.{n + 1}"},
             )
             assert sent.status_code != 429, sent.text
-        refused = await self._post(
-            client, workspace, published_form.form_id, {"X-Forwarded-For": "203.0.113.99"}
-        )
-        _assert_rate_limited(refused)
 
-    async def test_forms_do_not_share_budgets(
+    async def test_one_client_on_one_form_only_uses_that_forms_budget(
         self, client: AsyncClient, workspace, published_form, monkeypatch
     ):
-        """One form's flood leaves another form of the same workspace, and the
-        same client on it, untouched."""
-        _set(monkeypatch, "SUBMIT_PER_FORM", 2, 60)
         _set(monkeypatch, "SUBMIT_PER_CLIENT_FORM", 2, 60)
         other_form = await container.workspace_form_service().create_form(
             workspace.id, _another_form(), _owner()
@@ -491,23 +563,7 @@ class TestSubmit:
         clear = await self._post(client, workspace, other_published.form_id)
         assert clear.status_code != 429, clear.text
 
-    async def test_an_unknown_client_meets_only_the_form_budget(
-        self, client: AsyncClient, workspace, published_form, monkeypatch
-    ):
-        monkeypatch.setattr(
-            "backend.app.controllers.workspace_forms.request_client_ip",
-            lambda request: None,
-        )
-        _set(monkeypatch, "SUBMIT_PER_CLIENT_FORM", 1, 60)
-        _set(monkeypatch, "SUBMIT_PER_FORM", 3, 60)
-        for _ in range(3):
-            sent = await self._post(client, workspace, published_form.form_id)
-            assert sent.status_code != 429, sent.text
-        _assert_rate_limited(
-            await self._post(client, workspace, published_form.form_id)
-        )
-
-    async def test_a_busy_form_with_many_clients_is_not_throttled(
+    async def test_a_busy_form_is_not_throttled(
         self, client: AsyncClient, workspace, published_form
     ):
         """Real traffic: a hundred respondents from a hundred addresses within
@@ -521,21 +577,62 @@ class TestSubmit:
                 {"X-Forwarded-For": f"198.51.100.{n + 1}"},
             )
             assert sent.status_code != 429, sent.text
-        for _ in range(20):
+        for _ in range(10):
             sent = await self._post(
                 client, workspace, published_form.form_id, {"X-Forwarded-For": "192.0.2.5"}
             )
             assert sent.status_code != 429, sent.text
 
-    async def test_a_refused_submit_stores_nothing(
+    async def test_the_limit_runs_before_the_body_is_read(
         self, client: AsyncClient, workspace, published_form, monkeypatch
     ):
+        """An over-budget request is refused without its body being parsed: a
+        multipart body that cannot be parsed (a handler or a dependency would
+        answer 400 or 422 for it) still gets the 429, and nothing is stored."""
         _set(monkeypatch, "SUBMIT_PER_CLIENT_FORM", 0, 60)
         service = container.workspace_form_service()
         with patch.object(service, "submit_response", AsyncMock()) as submit:
-            refused = await self._post(client, workspace, published_form.form_id)
-        _assert_rate_limited(refused)
+            garbage = await client.post(
+                f"/api/v1/workspaces/{workspace.id}/forms/{published_form.form_id}/response",
+                content=b"--nope\r\nnot a part",
+                headers={**ALICE, "Content-Type": "multipart/form-data; boundary=zzz"},
+            )
+            missing = await self._post(client, workspace, published_form.form_id)
+        _assert_rate_limited(garbage)
+        _assert_rate_limited(missing)
         submit.assert_not_awaited()
+
+    async def test_a_form_that_does_not_exist_counts_nothing(
+        self, client: AsyncClient, workspace, monkeypatch
+    ):
+        _set(monkeypatch, "SUBMIT_PER_CLIENT_FORM", 1, 60)
+        before = await _counter_count()
+        for _ in range(4):
+            response = await client.post(
+                f"/api/v1/workspaces/{workspace.id}/forms/{uuid.uuid4()}/response",
+                data={"response": json.dumps({"answers": {}})},
+                headers=ALICE,
+            )
+            assert response.status_code != 429, response.text
+        assert await _counter_count() == before
+
+    async def test_the_refusal_is_readable_from_another_origin(
+        self, client: AsyncClient, workspace, published_form, monkeypatch
+    ):
+        """The middleware sits inside CORS: the 429 carries the CORS headers
+        the answers of the route carry."""
+        _set(monkeypatch, "SUBMIT_PER_CLIENT_FORM", 0, 60)
+        origin = "http://localhost:3000"
+        limited = await self._post(
+            client, workspace, published_form.form_id, {**ALICE, "Origin": origin}
+        )
+        assert limited.status_code == 429
+        routed = await client.get(
+            f"/api/v1/workspaces/{workspace.id}", headers={"Origin": origin}
+        )
+        assert limited.headers.get("access-control-allow-origin") == routed.headers.get(
+            "access-control-allow-origin"
+        )
 
 
 def _owner():
@@ -556,23 +653,23 @@ class TestSubmissionsApiIsUnaffected:
         self, client: AsyncClient, workspace, monkeypatch
     ):
         """The Submissions API calls the submit service directly: with the
-        respondent route's budgets used up, a key still submits, and the
-        respondent counters do not move."""
+        respondent route's budget used up, a key still submits, and the
+        respondent limiter is never asked."""
         from tests.app.controllers.test_submissions_api import (
             _body,
             _form,
             _key,
             _submit,
         )
+
         monkeypatch.setattr(settings, "SUBMISSIONS_API_ENABLED", True)
         form_id = await _form(client, workspace)
         token = await _key(workspace)
         _set(monkeypatch, "SUBMIT_PER_CLIENT_FORM", 0, 60)
-        _set(monkeypatch, "SUBMIT_PER_FORM", 0, 60)
         spy = AsyncMock()
-        with patch.object(
-            type(container.respondent_limits()), "submit", spy
-        ), patch.object(type(container.respondent_limits()), "code_mail", spy):
+        with patch.object(type(container.respondent_limits()), "submit", spy), patch.object(
+            type(container.respondent_limits()), "code_mail", spy
+        ):
             response = await _submit(client, token, form_id, _body({}))
         # the API's own answer (validation or created), never the 429 of the
         # respondent route, and the respondent limiter was not asked
@@ -580,17 +677,11 @@ class TestSubmissionsApiIsUnaffected:
         spy.assert_not_awaited()
 
 
-class TestUnits:
+class TestStorage:
     async def test_no_address_or_client_is_stored_in_a_counter(
         self, client: AsyncClient, workspace
     ):
-        from sqlalchemy import select
-
-        from backend.db.models import RateLimitCounterRow
-
-        with patch(
-            "common.services.http_client.HttpClient.get", AsyncMock(return_value=SENT)
-        ):
+        with _mailing():
             await _workspace_code(client, workspace, "secret.person@example.com")
         async with container.pg_engine().connect() as conn:
             rows = (await conn.execute(select(RateLimitCounterRow))).all()
@@ -615,12 +706,12 @@ class TestUnits:
         _set(monkeypatch, "CODE_PER_ADDRESS", 0)
         with pytest.raises(Exception) as refused:
             await container.respondent_limits().code_mail(
-                "203.0.113.7", "x@example.com", workspace_id="w"
+                "203.0.113.7", "x@example.com"
             )
         assert refused.value.status_code == 429
         assert calls == ["code-mail-client", "code-mail-address"]
 
-    async def test_none_client_skips_the_client_limit(self, monkeypatch):
+    async def test_an_unknown_client_skips_the_client_limit(self, monkeypatch):
         calls = []
         real = container.rate_limiter()
         real_hit = real.hit
@@ -632,9 +723,4 @@ class TestUnits:
         monkeypatch.setattr(real, "hit", hit)
         await container.respondent_limits().code_mail(None, "x@example.com")
         await container.respondent_limits().submit(None, "w", "f")
-        assert calls == [
-            "code-mail-address",
-            "code-mail-creator",
-            "code-mail-all",
-            "submit-form",
-        ]
+        assert calls == ["code-mail-address", "code-mail-all"]

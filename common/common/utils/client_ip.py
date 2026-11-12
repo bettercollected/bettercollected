@@ -130,8 +130,13 @@ def resolve_client_ip(
 
     ``peer``: the TCP peer. ``forwarded_for``: every X-Forwarded-For header
     value, in order. ``trusted_proxies``: the proxies whose headers are
-    believed (empty: none, the peer is the client). ``cloudflare_ips``:
-    Cloudflare's edges (None: CF-Connecting-IP is never read)."""
+    believed (empty: none, the peer is returned). ``cloudflare_ips``:
+    Cloudflare's edges (None: CF-Connecting-IP is never read).
+
+    Note what "the peer is returned" means behind a proxy that is not listed:
+    the answer is then the proxy's own address, shared by every user behind
+    it, not a client. A caller that keys a per-client budget must not take it
+    for one: see ``forwarded_by_untrusted_proxy``."""
     try:
         return _resolve(
             peer, forwarded_for, cf_connecting_ip, trusted_proxies, cloudflare_ips
@@ -139,6 +144,29 @@ def resolve_client_ip(
     except Exception:  # never into the request path; the peer is the safe answer
         address = parse_address(peer)
         return str(address) if address is not None else None
+
+
+def forwarded_by_untrusted_proxy(
+    peer: Optional[str],
+    forwarded_for: Iterable[str] = (),
+    cf_connecting_ip: Optional[str] = None,
+    trusted_proxies: Optional[str] = "",
+) -> bool:
+    """True when the peer is a private or loopback address (a proxy on our own
+    network, not a client on the internet) that sends forwarding headers but is
+    not in ``trusted_proxies``: the address ``resolve_client_ip`` returns for
+    such a request is the proxy's, the same for every user behind it. Pure,
+    never raises."""
+    try:
+        hop = parse_address(peer)
+        if hop is None or not (hop.is_private or hop.is_loopback):
+            return False
+        sent = any((value or "").strip() for value in forwarded_for) or bool(
+            (cf_connecting_ip or "").strip()
+        )
+        return sent and not _within(hop, parse_networks(trusted_proxies))
+    except Exception:
+        return False
 
 
 def _resolve(peer, forwarded_for, cf_connecting_ip, trusted_proxies, cloudflare_ips):

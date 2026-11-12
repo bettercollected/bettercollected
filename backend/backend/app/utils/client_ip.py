@@ -12,6 +12,7 @@ from starlette.requests import Request
 
 from common.utils.client_ip import (  # noqa: F401  (re-exported)
     CLOUDFLARE_IPS,
+    forwarded_by_untrusted_proxy,
     parse_address,
     parse_networks,
     rate_limit_key,
@@ -88,3 +89,22 @@ def request_client_ip(request: Request) -> Optional[str]:
     api = settings.api_settings
     cloudflare = (api.CLOUDFLARE_IPS or CLOUDFLARE_IPS) if api.TRUST_CLOUDFLARE else None
     return client_ip(request, api.TRUSTED_PROXIES, cloudflare)
+
+
+def limit_client_ip(request: Request) -> Optional[str]:
+    """The address a per-client budget is counted under, or None ("unknown")
+    when none can be told: a proxy on a private or loopback address that sends
+    forwarding headers but is not in TRUSTED_PROXIES (unset, or stale) would
+    otherwise make every user behind it one client sharing one budget. The
+    limits that name no client still apply to such a request."""
+    from backend.config import settings
+
+    peer = request.client.host if request.client else None
+    if forwarded_by_untrusted_proxy(
+        peer,
+        request.headers.getlist("x-forwarded-for"),
+        request.headers.get("cf-connecting-ip"),
+        settings.api_settings.TRUSTED_PROXIES,
+    ):
+        return None
+    return request_client_ip(request)
