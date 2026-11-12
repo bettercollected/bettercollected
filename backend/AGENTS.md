@@ -1644,6 +1644,13 @@ any query. Rules to keep:
   `(created_at, id)` (served by the workspace/form/created index), refused above `limits.REPORT_MAX_ROWS` with the count.
   Use `doc ? 'answers'`, not `jsonb_typeof(doc -> 'answers')`: the latter detoasts every row (345 ms against 8 ms at 20,000).
 - The cache is in-process, aggregates only, keyed by an exact token of the matching rows plus the form's revision.
+- Answer filters (`filters.where`, `definition.Clause` / `clause_plan`, matched by `accumulate.clause_matches`): a value is an
+  option id the question has, a number, a boolean or a date, never text; each is checked against the catalogue the caller may
+  use (the same errors as a dimension), with the operators of `catalogue.FILTER_OPS`. With any, every card runs in the pass and
+  `n` is the number of responses that met them. Drill-down (`POST /report/responses`, `services/reporting/drill.py`,
+  `engine.drill`) reuses the pass and the accumulator's own group keys, never reads an answer out, and returns the response id,
+  the time, the version and anonymous or known. It does not join the replicas' pass places yet (only this process's and the
+  rate limit): the slot code is shared with the report CSV work.
 - Saved views (`services/reporting/views.py`, `repositories/postgres/report_views.py`, table `form_report_views`, revision 0040):
   a name, a scope (`private`, the owner's notebook that nobody else reads, admins included; or `form`) and a definition that
   `ReportService.check_definition` validated as a query would be; never store what a query would refuse. `form`-scope writes

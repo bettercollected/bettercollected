@@ -63,7 +63,7 @@ from backend.app.services.reporting.catalogue import (
     Catalogue,
     ReportField,
 )
-from backend.app.services.reporting.definition import CardPlan, DimensionPlan
+from backend.app.services.reporting.definition import CardPlan, ClausePlan, DimensionPlan
 
 TWO_PLACES = Decimal("0.01")
 ALL_KEY = "all"
@@ -184,6 +184,66 @@ def _day_of(value: Any) -> Optional[dt.date]:
         return None
 
 
+def clause_matches(clause: ClausePlan, answers: Optional[Dict[str, Any]]) -> bool:
+    """Whether one response meets a condition on its answers. A comparison only
+    matches a response that gave a value (``is_empty`` finds the others); answers
+    that could not be read match nothing."""
+    if answers is None:
+        return False
+    field_, op, operand = clause.field, clause.op, clause.operand
+    answer = _dict(answers.get(field_.id))
+    kind = field_.kind
+    if kind in (CHOICE, CHOICES):
+        keys = set(_choice_keys(field_, answer)) if answer else set()
+        if op == "is_empty":
+            return not keys
+        if op == "is_not_empty":
+            return bool(keys)
+        if op == "is":
+            return operand in keys
+        if op == "is_not":
+            return bool(keys) and operand not in keys
+        if op in ("any_of", "has_any"):
+            return bool(keys & operand)
+        return bool(keys) and operand <= keys  # has_all
+    if kind == DATE:
+        day = _day_of(answer.get("date")) if answer else None
+        if op == "is_empty":
+            return day is None
+        if day is None:
+            return False
+        if op == "is_not_empty":
+            return True
+        if op == "before":
+            return day < operand
+        if op == "after":
+            return day > operand
+        return operand[0] <= day <= operand[1]  # between
+    flag = answer.get("boolean") if answer else None
+    if op == "is":
+        return isinstance(flag, bool) and flag is operand
+    number = numeric_value(field_, answers) if kind != YES_NO else None
+    if op == "is_empty":
+        return number is None and not isinstance(flag, bool)
+    if op == "is_not_empty":
+        return number is not None or isinstance(flag, bool)
+    if number is None:
+        return False
+    if op == "=":
+        return number == operand
+    if op == "!=":
+        return number != operand
+    if op == ">":
+        return number > operand
+    if op == ">=":
+        return number >= operand
+    if op == "<":
+        return number < operand
+    if op == "<=":
+        return number <= operand
+    return operand[0] <= number <= operand[1]  # between
+
+
 def question_keys(
     field_: ReportField, answers: Dict[str, Any], bucket: Optional[str]
 ) -> List[str]:
@@ -300,6 +360,11 @@ class CardAccumulator:
         # the groups cut off (bounded: the count of them is then a floor)
         self._cut: set = set()
         self._truncated = False
+
+    def group_keys(self, view: ResponseView) -> List[str]:
+        """The groups of this card one response falls in (what a drill-down
+        asks: is it in the group?)."""
+        return self._keys(view)
 
     def _keys(self, view: ResponseView) -> List[str]:
         dimension: Optional[DimensionPlan] = self.plan.dimension

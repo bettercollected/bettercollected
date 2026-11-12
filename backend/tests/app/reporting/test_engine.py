@@ -320,7 +320,7 @@ async def test_entries_hold_aggregates_only(client, workspace, reporting_on):
     for entry in container.report_service()._cache.values():
         assert "Very private text" not in repr(entry.cards)
         assert set(entry.__slots__) == {
-            "token", "revision", "stored", "cards", "scanned", "unreadable", "generated_at",
+            "token", "revision", "stored", "cards", "scanned", "unreadable", "generated_at", "matched",
         }
 
 

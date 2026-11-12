@@ -32,22 +32,21 @@ from backend.app.services.user_service import get_logged_user
 NO_STORE = {"Cache-Control": "no-store"}
 
 
-async def _body(request: Request, cap: int = limits.DEFINITION_MAX_BYTES) -> bytes:
+async def _body(request: Request, cap: int = limits.DEFINITION_MAX_BYTES, code: str = "invalid_definition") -> bytes:
     """The request body, read in pieces and refused past ``cap`` bytes without
     reading the rest."""
     declared = request.headers.get("content-length")
     if declared and declared.isdigit() and int(declared) > cap:
-        raise _too_large(cap)
+        raise _too_large(cap, code)
     data = bytearray()
     async for chunk in request.stream():
         data.extend(chunk)
         if len(data) > cap:
-            raise _too_large(cap)
+            raise _too_large(cap, code)
     return bytes(data)
 
 
-def _too_large(cap: int):
-    code = "invalid_definition" if cap == limits.DEFINITION_MAX_BYTES else VIEW_INVALID
+def _too_large(cap: int, code: str):
     return definition_error(
         HTTPStatus.UNPROCESSABLE_ENTITY,
         code,
@@ -107,6 +106,26 @@ class ReportRouter(Routable):
             headers=NO_STORE,
         )
 
+    @post("/{form_id}/report/responses")
+    async def report_responses(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        request: Request,
+        user: User = Depends(get_logged_user),
+    ) -> JSONResponse:
+        """The responses behind one group of one card (drill-down): ``{definition,
+        card, group, cursor?, size?}``. Answers ``{responses: [{id, submittedAt,
+        formVersion, respondent}], cursor, scanned, exhausted}``: ``exhausted`` is
+        true only when the set has ended; a short page with a cursor means the scan
+        budget ended and asking again from the cursor goes on. Needs
+        ``response.read`` and ``analytics.read`` on the form."""
+        body = await _body(request, limits.DEFINITION_MAX_BYTES + 2048)
+        return JSONResponse(
+            await container.report_service().responses(user, workspace_id, form_id, body),
+            headers=NO_STORE,
+        )
+
     # ------------------------------------------------------------ saved views
     @get("/{form_id}/report/views")
     async def report_views(
@@ -135,7 +154,7 @@ class ReportRouter(Routable):
         definition is validated as a query's would be. A view for the whole form
         (``scope: "form"``) needs ``form.edit``. 409 ``view_name_taken`` or
         ``view_limit``."""
-        body = await _body(request, limits.VIEW_BODY_MAX_BYTES)
+        body = await _body(request, limits.VIEW_BODY_MAX_BYTES, VIEW_INVALID)
         return JSONResponse(
             await container.report_view_service().create(user, workspace_id, form_id, body),
             status_code=HTTPStatus.CREATED,
@@ -168,7 +187,7 @@ class ReportRouter(Routable):
         """Rename a view, move it between private and the form's, or replace its
         definition: ``{revision, name?, scope?, definition?}``. 409
         ``view_changed`` when ``revision`` is not the view's current one."""
-        body = await _body(request, limits.VIEW_BODY_MAX_BYTES)
+        body = await _body(request, limits.VIEW_BODY_MAX_BYTES, VIEW_INVALID)
         return JSONResponse(
             await container.report_view_service().update(user, workspace_id, form_id, view_id, body),
             headers=NO_STORE,

@@ -413,3 +413,23 @@ async def test_a_member_who_leaves_takes_their_private_views_and_the_form_keeps_
     seen = [v for v in await listed(client, workspace, form, people["admin"]) if v["id"] == kept["id"]][0]
     assert seen["ownerName"] is None and seen["mine"] is False
     assert (await call(client, "delete", workspace, form, "/" + kept["id"], user=people["admin"])).status_code == 204
+
+
+async def test_a_view_carries_the_conditions_on_answers_and_a_bad_one_is_refused(client, world):
+    workspace, form, people = world
+    where = [{"field": "q:dept", "op": "any_of", "value": ["care", "it"]}, {"field": "q:score", "op": "between", "value": [2, 5]}]
+    body = definition(card("dept", "bar", dimension="q:dept"), filters={"where": where})
+    made = await save(client, workspace, form, "Filtered", user=people["viewer"], body={"name": "Filtered", "scope": "private", "definition": body})
+    assert made.status_code == 201, made.text
+    stored = made.json()["definition"]["filters"]["where"]
+    assert [(c["field"], c["op"], c["value"]) for c in stored] == [("q:dept", "any_of", ["care", "it"]), ("q:score", "between", [2, 5])]
+    # the stored definition runs as a query: the conditions apply
+    ran = await query(client, workspace, form, made.json()["definition"], user=people["viewer"])
+    assert ran.status_code == 200 and ran.json()["n"] == 0  # the one seeded response answered neither
+    # what a query would refuse is not stored: an unknown option, a text question
+    for bad, code in (
+        ([{"field": "q:dept", "op": "is", "value": "ghost"}], "invalid_definition"),
+        ([{"field": "q:why", "op": "is_empty"}], "field_not_reportable"),
+    ):
+        refused = await save(client, workspace, form, user=people["viewer"], body={"name": "Bad", "scope": "private", "definition": definition(card(), filters={"where": bad})})
+        assert refused.status_code == 422 and refused.json()["code"] == code, refused.text

@@ -29,6 +29,7 @@ from __future__ import annotations
 import asyncio
 import copy
 import hashlib
+import json
 import time
 from collections import OrderedDict
 from http import HTTPStatus
@@ -41,8 +42,8 @@ from backend.app.models.enum.permission import Permission
 from backend.app.repositories.postgres.report_queries import PostgresReportRepository
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.app.services.reporting import definition as defs
-from backend.app.services.reporting import limits
-from backend.app.services.reporting.catalogue import Catalogue, build_catalogue
+from backend.app.services.reporting import drill, limits
+from backend.app.services.reporting.catalogue import SQL_ONLY_BUILTINS, Catalogue, build_catalogue
 from backend.app.services.reporting.engine import ReportEngine, TooManyRows
 from backend.app.services.reporting.policy import ReportFieldPolicy
 from common.clock import utcnow
@@ -76,9 +77,9 @@ def too_many_rows(count: int) -> HTTPException:
 class _Entry:
     """One cached pass: its aggregates and what they were computed against."""
 
-    __slots__ = ("token", "revision", "stored", "cards", "scanned", "unreadable", "generated_at")
+    __slots__ = ("token", "revision", "stored", "cards", "scanned", "unreadable", "generated_at", "matched")
 
-    def __init__(self, token, revision, cards, scanned, unreadable, generated_at):
+    def __init__(self, token, revision, cards, scanned, unreadable, generated_at, matched=0):
         self.token = token
         self.revision = revision
         self.stored = time.monotonic()
@@ -86,6 +87,7 @@ class _Entry:
         self.scanned = scanned
         self.unreadable = unreadable
         self.generated_at = generated_at
+        self.matched = matched
 
 
 class ReportService:
@@ -229,6 +231,7 @@ class ReportService:
         scanned = 0
         notices = []
         generated_at = now
+        responses = count
         if plan.sql_cards:
             cards.update(await self._engine.count_cards(scope, plan, catalogue, count))
         if plan.needs_answers:
@@ -239,6 +242,9 @@ class ReportService:
             cards.update(entry.cards)
             scanned = entry.scanned
             generated_at = entry.generated_at
+            if plan.clauses:
+                # the responses that met the conditions on answers, not the plaintext-filtered set
+                responses = entry.matched
             if entry.unreadable:
                 notices.append("unreadable_answers")
         if any(card["truncated"] for card in cards.values()):
@@ -247,10 +253,69 @@ class ReportService:
             "definitionHash": definition.digest(),
             "token": _token(count, digest, revision),
             "generatedAt": generated_at.isoformat(),
-            "n": count,
+            "n": responses,
             "scanned": scanned,
             "cards": [cards[card.id] for card in plan.cards],
             "notices": notices,
+        }
+
+    # -------------------------------------------------------------- drill-down
+    async def responses(
+        self, user: User, workspace_id: RecordId, form_id: str, body: bytes
+    ) -> Dict[str, Any]:
+        """A page of the responses behind one group of one card (``drill``):
+        what ``query`` would count in it, as ``{id, submittedAt, formVersion,
+        respondent}``. The definition is validated as a query's is, for this
+        caller (the field policy included: a question they may not use is refused
+        as one that does not exist); the card must have groups that come from
+        the response row or its answers (not a deletion-request or feedback
+        status, which the pass does not read). One pass, in this process's places
+        for passes and within the pass time budget; it stops when the page is full
+        or ``DRILL_SCAN_MAX`` responses were read, and says which (``exhausted``)."""
+        await self._authorize(user, workspace_id, form_id)
+        await self._take_rate_limit(workspace_id, form_id, user)
+        request = drill.parse(body)
+        after = drill.decode_cursor(request.cursor)
+        definition = defs.parse(json.dumps(request.definition).encode())
+        catalogue, _, _ = await self._visible(user, workspace_id, form_id)
+        plan = defs.validate(definition, catalogue)
+        card = next((c for c in plan.cards if c.id == request.card), None)
+        if card is None:
+            raise defs.invalid("card: no such card in this definition")
+        if card.dimension is None or card.dimension.builtin in SQL_ONLY_BUILTINS:
+            raise defs.error(
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+                defs.OP_NOT_ALLOWED,
+                "This card has no groups whose responses can be opened.",
+            )
+        scope = await self._responses.scope(workspace_id, [form_id])
+        try:
+            await asyncio.wait_for(self._passes.acquire(), limits.PASS_WAIT_SECONDS)
+        except asyncio.TimeoutError:
+            raise _busy() from None
+        try:
+            page = await asyncio.wait_for(
+                self._engine.drill(
+                    scope, str(workspace_id), form_id, plan, card, request.group,
+                    catalogue, after, request.size,
+                ),
+                limits.PASS_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            raise HTTPException(
+                HTTPStatus.SERVICE_UNAVAILABLE,
+                content={
+                    "code": TIMEOUT_CODE,
+                    "message": "This took too long to compute. Narrow the dates or the form versions, or try again.",
+                },
+            ) from None
+        finally:
+            self._passes.release()
+        return {
+            "responses": [drill.row_dto(row) for row in page.rows],
+            "cursor": drill.encode_cursor(page.cursor) if page.cursor is not None else None,
+            "scanned": page.scanned,
+            "exhausted": page.exhausted,
         }
 
     async def _give_back_slot(self) -> None:
@@ -317,7 +382,8 @@ class ReportService:
         finally:
             self._passes.release()
         entry = _Entry(
-            token, revision, result.cards, result.scanned, result.unreadable, utcnow()
+            token, revision, result.cards, result.scanned, result.unreadable, utcnow(),
+            result.matched,
         )
         if cacheable:
             self._cache[key] = entry
@@ -343,7 +409,7 @@ def _copy(entry: _Entry) -> _Entry:
     result reaches the cache."""
     clone = _Entry(
         entry.token, entry.revision, copy.deepcopy(entry.cards),
-        entry.scanned, entry.unreadable, entry.generated_at,
+        entry.scanned, entry.unreadable, entry.generated_at, entry.matched,
     )
     return clone
 

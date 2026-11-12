@@ -25,11 +25,15 @@ not exist, so the answer never tells the two apart.
 
 from __future__ import annotations
 
+import datetime as dt
 import hashlib
 import json
+import math
+import re
+from decimal import Decimal
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from camel_converter import to_camel
@@ -38,6 +42,10 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    StrictBool,
+    StrictFloat,
+    StrictInt,
+    StrictStr,
     ValidationError,
     model_validator,
 )
@@ -50,9 +58,16 @@ from backend.app.models.filter_queries.response_list import (
 )
 from backend.app.services.reporting import limits
 from backend.app.services.reporting.catalogue import (
+    ALL_OPS,
+    CALCULATED,
     CHOICE,
+    CHOICES,
     COUNT,
+    CURRENCY,
     DATE,
+    FILTER_OPS,
+    NUMBER,
+    SCALE,
     QUESTION_PREFIX,
     RESPONDENT,
     SOURCE,
@@ -95,6 +110,34 @@ class _Model(BaseModel):
     )
 
 
+Scalar = Union[StrictBool, StrictInt, StrictFloat, StrictStr]
+
+
+class Clause(_Model):
+    """One condition on an answer: a question, an operator and a value that is
+    an option id of that question, a number, a yes/no or a date, never text a
+    respondent wrote (``value`` is checked against the question when the
+    definition is validated)."""
+
+    field: str = Field(min_length=1, max_length=100)
+    op: Literal[ALL_OPS]  # type: ignore[valid-type]
+    value: Optional[Union[Scalar, Tuple[Scalar, ...]]] = Field(
+        default=None
+    )
+
+    @model_validator(mode="after")
+    def _short(self):
+        if isinstance(self.value, tuple) and len(self.value) > limits.CLAUSE_VALUES_MAX:
+            raise ValueError("too many values")
+        if isinstance(self.value, str) and len(self.value) > limits.CLAUSE_VALUE_MAX:
+            raise ValueError("value too long")
+        if isinstance(self.value, tuple) and any(
+            isinstance(v, str) and len(v) > limits.CLAUSE_VALUE_MAX for v in self.value
+        ):
+            raise ValueError("value too long")
+        return self
+
+
 class Filters(_Model):
     """The filters of a report: the responses list's plaintext ones. No search
     (it is a respondent's address) and no filter on an answer."""
@@ -106,6 +149,9 @@ class Filters(_Model):
     form_version: Tuple[int, ...] = Field(
         default=(), max_length=limits.FORM_VERSIONS_MAX
     )
+    # conditions on answers, all of which a response meets (at most
+    # ``limits.CLAUSES_MAX``); each is checked against the form's questions
+    where: Tuple[Clause, ...] = Field(default=(), max_length=limits.CLAUSES_MAX)
 
     @model_validator(mode="after")
     def _ordered(self):
@@ -214,6 +260,17 @@ class MeasurePlan:
 
 
 @dataclass(frozen=True)
+class ClausePlan:
+    """A condition on an answer, resolved: the question, the operator and the
+    operand in the form the matcher compares with (an option id or a set of
+    them, a ``Decimal``, a ``date`` or a bool, a pair for ``between``)."""
+
+    field: ReportField
+    op: str
+    operand: Any = None
+
+
+@dataclass(frozen=True)
 class CardPlan:
     id: str
     kind: str
@@ -235,18 +292,25 @@ class Plan:
     cards: Tuple[CardPlan, ...]
     tz: ZoneInfo
     filters: ResponseListFilters
+    # conditions on answers: with any, every card is computed in the pass, because
+    # which responses count depends on what they answered
+    clauses: Tuple[ClausePlan, ...] = ()
 
     @property
     def scan_cards(self) -> Tuple[CardPlan, ...]:
+        if self.clauses:
+            return self.cards
         return tuple(c for c in self.cards if c.needs_answers)
 
     @property
     def sql_cards(self) -> Tuple[CardPlan, ...]:
+        if self.clauses:
+            return ()
         return tuple(c for c in self.cards if not c.needs_answers)
 
     @property
     def needs_answers(self) -> bool:
-        return any(c.needs_answers for c in self.cards)
+        return bool(self.clauses) or any(c.needs_answers for c in self.cards)
 
     def scan_digest(self) -> str:
         """What the cached aggregates are keyed by: the filters, the zone and
@@ -369,6 +433,94 @@ def _check_kind(card: Card, dimension: Optional[DimensionPlan], catalogue: Catal
             raise invalid(f"A donut needs a dimension with at most {DONUT_GROUPS_MAX} groups.")
 
 
+_DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_NUMBER_LIMIT = 10**15
+
+
+def _number(value: Any) -> Decimal:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise invalid("where: a number is needed")
+    if isinstance(value, float) and not math.isfinite(value):
+        raise invalid("where: a number is needed")
+    if abs(value) > _NUMBER_LIMIT:
+        raise invalid("where: a number is out of range")
+    return Decimal(repr(value)) if isinstance(value, float) else Decimal(value)
+
+
+def _day(value: Any) -> dt.date:
+    if not isinstance(value, str) or not _DAY.match(value):
+        raise invalid("where: a date as YYYY-MM-DD is needed")
+    try:
+        return dt.date.fromisoformat(value)
+    except ValueError:
+        raise invalid("where: not a date") from None
+
+
+def _pair(value: Any, convert) -> Tuple[Any, Any]:
+    if not isinstance(value, tuple) or len(value) != 2:
+        raise invalid("where: between needs two values")
+    low, high = convert(value[0]), convert(value[1])
+    if low > high:
+        raise invalid("where: the first value of between is after the second")
+    return low, high
+
+
+def _options(field_: ReportField, value: Any, many: bool) -> Any:
+    known = {option_id for option_id, _ in field_.options}
+    ids = value if isinstance(value, tuple) else (value,)
+    if many and not isinstance(value, tuple):
+        raise invalid("where: a list of options is needed")
+    if not many and isinstance(value, tuple):
+        raise invalid("where: one option is needed")
+    if not ids or any(not isinstance(i, str) or i not in known for i in ids):
+        # the same answer for an option that never existed and one that is gone
+        raise invalid("where: no such option in this question")
+    return frozenset(ids) if many else ids[0]
+
+
+def clause_plan(clause: Clause, catalogue: Catalogue) -> ClausePlan:
+    """A condition resolved against the catalogue the caller may use: a question
+    that does not exist and one the caller may not use are refused alike, as is
+    an operator the question's kind does not take; the value must suit the
+    operator (an option of the question, a number, a yes/no, a date)."""
+    if not clause.field.startswith(QUESTION_PREFIX):
+        raise error(
+            HTTPStatus.UNPROCESSABLE_ENTITY,
+            NOT_REPORTABLE,
+            "Only a question can be filtered on here; the list filters narrow by the rest.",
+        )
+    _, found = _resolve(clause.field, catalogue)
+    assert found is not None
+    if clause.op not in FILTER_OPS.get(found.kind, ()):
+        raise error(
+            HTTPStatus.UNPROCESSABLE_ENTITY,
+            OP_NOT_ALLOWED,
+            f"{clause.op} cannot be used on this question.",
+        )
+    op, value = clause.op, clause.value
+    if op in ("is_empty", "is_not_empty"):
+        if value is not None:
+            raise invalid(f"where: {op} takes no value")
+        return ClausePlan(found, op)
+    if value is None:
+        raise invalid(f"where: {op} needs a value")
+    if found.kind == CHOICE:
+        return ClausePlan(found, op, _options(found, value, many=op == "any_of"))
+    if found.kind == CHOICES:
+        return ClausePlan(found, op, _options(found, value, many=True))
+    if op == "is":
+        if not isinstance(value, bool):
+            raise invalid("where: true or false is needed")
+        return ClausePlan(found, op, value)
+    if found.kind == DATE:
+        if op == "between":
+            return ClausePlan(found, op, _pair(value, _day))
+        return ClausePlan(found, op, _day(value))
+    if op == "between":
+        return ClausePlan(found, op, _pair(value, _number))
+    return ClausePlan(found, op, _number(value))
+
+
 def validate(definition: Definition, catalogue: Catalogue) -> Plan:
     """The definition against the catalogue the caller may use, as a plan the
     engine runs; raises 422 with a code otherwise."""
@@ -391,4 +543,5 @@ def validate(definition: Definition, catalogue: Catalogue) -> Plan:
         cards=tuple(cards),
         tz=zone,
         filters=definition.filters.as_list_filters(),
+        clauses=tuple(clause_plan(c, catalogue) for c in definition.filters.where),
     )

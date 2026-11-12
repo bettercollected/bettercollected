@@ -47,6 +47,7 @@ What the caller may build a report from.
 ```json
 {"fields": [{"key": "q:<question id>", "label": "...", "kind": "choice", "dimension": true,
              "measures": ["count"], "versions": [1, 2], "inCurrentVersion": true,
+             "filterOps": ["is", "is_not", "any_of", "is_empty", "is_not_empty"],
              "options": [{"id": "...", "label": "..."}]}],
  "builtins": [{"key": "submitted_at", "buckets": ["day","week","month","year"]},
               {"key": "form_version"}, {"key": "respondent"}, {"key": "ending"},
@@ -91,7 +92,8 @@ naming an option no version has any more is counted as "Removed option".
             "measures": [{"agg": "count"}, {"agg": "avg", "field": "q:<id>"}]}]}
 ```
 
-* `filters` are the responses list's plaintext filters (no search, and none on an answer).
+* `filters` are the responses list's plaintext filters (no search) and, in `where`, conditions on
+  answers (below).
 * `tz` (an IANA zone, default `UTC`) decides the day, week (starting Monday), month and year
   of a time group.
 * A card has a `kind` (`tile`, `bar`, `donut`, `line`, `table`), at most one `dimension`
@@ -103,6 +105,34 @@ naming an option no version has any more is counted as "Removed option".
   `422` and the code `invalid_definition`, `unknown_field`, `field_not_reportable` or
   `op_not_allowed`. A question the caller may not use is refused exactly as one that does
   not exist.
+
+#### Conditions on answers (`filters.where`)
+
+At most 10 conditions `{"field": "q:<id>", "op": "...", "value": ...}`, every one of which a
+response must meet to count. Each is checked against the form's questions as the caller may use
+them (a question they may not use is refused exactly as one that does not exist, `unknown_field`;
+text, address, signature, file and the like are `field_not_reportable`; a built-in is not a
+question: the list filters narrow by those) and its operator against the question's kind
+(`filterOps` in `GET /fields`; `op_not_allowed`):
+
+| Kind | Operators | Value |
+|---|---|---|
+| `choice` | `is`, `is_not`, `any_of` | an option id of the question (`any_of`: a list of them) |
+| `choices` | `has_any`, `has_all` | a list of option ids of the question |
+| `yes_no` | `is` | `true` or `false` |
+| `scale`, `number`, `currency` | `=`, `!=`, `>`, `>=`, `<`, `<=`, `between` | a number (`between`: two, the lower first) |
+| `calculated` | `is` (yes/no) and the number operators | `true` / `false`, or a number |
+| `date` | `before`, `after`, `between` | `YYYY-MM-DD` (`between`: two, the earlier first) |
+| every kind | `is_empty`, `is_not_empty` | none |
+
+A value is an option id, a number, a boolean or a date, never text: the only string a condition
+takes is an option id the question has, so no answer text can be filtered on or stored in a
+view (`invalid_definition`, naming the path and never the value). A comparison only matches a
+response that gave a value (`is_empty` finds the others); a typed "Other" is the group "Other"
+and its text is never read. With conditions every card is computed in the pass (which responses
+count depends on what they answered), `n` is the number of responses that met them, and the
+20,000-response cap still counts the set the plaintext filters select. A saved view stores
+them with the rest of the definition (`v` stays 1: `where` is an optional key).
 
 The answer:
 
@@ -120,6 +150,25 @@ of them gave a value for the card's dimension (or, without one, for its first ag
 `valueN` is how many answers each value is made from. An average over no answers is `null`,
 averages are exact decimals rounded to two places, and a card with many groups keeps the
 biggest hundred and sums the rest in `otherGroups`.
+
+### `POST /responses`: the responses behind a group
+
+```json
+{"definition": {...}, "card": "dept", "group": "<option id>", "cursor": null, "size": 25}
+```
+
+The definition is validated as a query's is (the same field policy, conditions included); the
+card must have a dimension the pass reads (not the deletion-request or feedback status). The
+answer is a page of `{id, submittedAt, formVersion, respondent}` (`id` is what the response's
+own page is opened by; `respondent` is `anonymous` or `known`, never who) for the responses that
+met the definition's filters and fell in the group, oldest first, with `cursor`, `scanned` and
+`exhausted`. The pass is the report's (keyset on `(created_at, id)`, decrypt, test, drop) and
+stops when the page is full or 20,000 responses were read: `exhausted: true` means the set has
+ended; a short page with a cursor means the budget ended, and asking again from the cursor goes
+on. `size` is at most 100. It counts against the 30 queries a minute and the process's two
+passes (`report_busy`) and has the pass's time budget (`report_timeout`); it is gated like a
+query and answers `422 reporting_off` first while the switch is off. The cursor holds no secret
+and gives no access: every read stays scoped to the workspace and form of the request.
 
 ### Limits
 
@@ -209,6 +258,18 @@ turned on yet" and asks the server for nothing.
   (the first twelve, with "Show all"). A malformed address falls back to the Overview.
 * **Cards** can be added, changed (group by, show, per day/week/month/year, as), moved and removed;
   one request asks the server for all of them.
+* **Answer filters.** Under the list filters, "Add answer filter" takes a question, a condition its
+  kind allows and a value that suits it (an option, a number, a yes/no, a date; never text); the ones in
+  force are chips that can be removed. They are written into the address as `where` (base64url JSON of
+  question keys, operators, option ids, numbers and dates) so Back, a shared link and a saved view
+  carry them. A condition on a question the form no longer has is shown with its reason and left out
+  of the request.
+* **Open these responses.** In a card's table, each group has a button that lists the responses
+  behind it under the cards, a page at a time (submission time, form version, anonymous or
+  identified, each linking to the response's own page); a short page that says the search stopped
+  before the end offers "Show more". A group the responses list can filter on by itself (a form
+  version, anonymous or identified, a day, week, month or year) also links to that list with the same
+  filter; a group of answers does not, because the list has no filter on an answer.
 * **Views.** A bar above the filters opens a saved view (the Overview, my views, the form's own),
   saves the report on screen as one (for the member alone, or for everyone who can open the
   report when they may edit the form), and updates, renames, shares or deletes the open one. The
