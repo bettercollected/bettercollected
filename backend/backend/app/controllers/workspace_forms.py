@@ -28,6 +28,7 @@ from starlette.requests import Request
 from backend.app.utils.client_ip import limit_client_ip, request_client_ip
 from backend.app.services.captcha import challenge as captcha_challenge
 from backend.app.services.captcha.mode import captcha_enabled, required_by
+from backend.app.services.internal_fields import mark_captcha_required
 
 from backend.app.container import container
 from backend.app.services.ai.chat import FormAIChatRequest, FormAIChatResponse
@@ -518,6 +519,9 @@ class WorkspaceFormsRouter(Routable):
                     form["aiNoticeToken"] = token
                 else:
                     form.ai_notice_token = token
+            # A member answering their own published form is asked for the
+            # automatic spam check's proof like anyone (respondents have it set)
+            mark_captcha_required(form)
             # The questions whose answers may be offered as choices in other
             # forms show a notice; the token proves which, on submit.
             share_token = _share_notice_token(workspace_id, form)

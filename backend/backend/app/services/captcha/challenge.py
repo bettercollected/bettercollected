@@ -170,9 +170,10 @@ def _random(size: int) -> bytes:
 def expires_at(claims: Claims) -> dt.datetime:
     """How long a spent nonce must be remembered: until the challenge could no
     longer be accepted."""
-    return dt.datetime.fromtimestamp(
-        claims.expires_ms / 1000, dt.timezone.utc
-    ) + EXPIRY_SKEW
+    return (
+        dt.datetime.fromtimestamp(claims.expires_ms / 1000, dt.timezone.utc)
+        + EXPIRY_SKEW
+    )
 
 
 def leading_zero_bits(digest: bytes) -> int:

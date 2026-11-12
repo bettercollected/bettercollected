@@ -51,7 +51,7 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
     const { responderState, previousSlide, editFromReview } = useResponderState();
     const { formResponse, setInvalidFields } = useFormResponse();
     const { hiddenValues } = useHiddenFieldValues();
-    const { finishForm, isLoading, submitError, setSubmitError, effectiveAnonymize, captchaWaiting } = useFinishForm(isPreviewMode);
+    const { finishForm, isLoading, submitError, setSubmitError, effectiveAnonymize, captchaWaiting, captchaRequired } = useFinishForm(isPreviewMode);
     const emitFlow = useEmitFlow(isPreviewMode);
     const { files } = useFormAtom();
     // Calculations and values the rules set follow the path as it stands now (an edit may have
@@ -144,7 +144,7 @@ export default function ReviewPage({ isPreviewMode }: { isPreviewMode: boolean }
                 {/* "Save and continue later" works from here too: the draft comes back on the last page, to go on to this review again. */}
                 {!isPreviewMode && <SaveDraftControl ink={ink} />}
                 {/* While the automatic spam check is still being calculated (after 1.5 s), a polite message. */}
-                <CaptchaStatus waiting={captchaWaiting} />
+                {captchaRequired && <CaptchaStatus waiting={captchaWaiting} />}
                 {/* Stays until the next attempt; the toast alone is gone in a moment. */}
                 {submitError && (
                     <p role="alert" className="text-[15px] leading-relaxed font-medium text-[#B42318]">

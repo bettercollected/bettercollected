@@ -14,8 +14,8 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
 import { setForm } from '@app/store/forms/slice';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
-import { setWorkspace } from '@app/store/workspaces/slice';
 import { store } from '@app/store/store';
+import { setWorkspace } from '@app/store/workspaces/slice';
 import { axeViolations } from '@app/test/axe';
 import { resetCaptchaPasses } from '@app/utils/captcha/captcha-pass';
 import { CaptchaUnavailable, solveChallenge } from '@app/utils/captcha/solve';
@@ -84,7 +84,9 @@ describe('the automatic spam check on submit', () => {
         issue.mockImplementation(async () => ({ data: { challenge: `c${++counter}`, algorithm: 'sha256-lz', bits: 17, subpuzzles: 8, expiresAt: 0 } }));
         submit.mockResolvedValue({ data: 'submission-1' });
         solving.instant = true;
-        vi.mocked(solveChallenge).mockReset().mockImplementation(solveLike as any);
+        vi.mocked(solveChallenge)
+            .mockReset()
+            .mockImplementation(solveLike as any);
         solving.resolvers = [];
         resetCaptchaPasses();
         window.history.replaceState(null, '', '/acme/forms/f1?lang=en');
@@ -120,6 +122,8 @@ describe('the automatic spam check on submit', () => {
             await send('en');
             expect(submit).toHaveBeenCalledTimes(1);
             expect(submit.mock.calls[0][0].headers).toBeUndefined();
+            // no live region for a spam check the form does not ask for
+            expect(screen.queryByTestId('captcha-status')).toBeNull();
         }
         expect(issue).not.toHaveBeenCalled();
     });

@@ -60,7 +60,10 @@ export class Solver {
             // the message `challenge:i:` is hashed once; each counter only adds its digits
             if (!this.prefix) this.prefix = sha256.create().update(encoder.encode(`${this.challenge}:${this.index}:`));
             for (let n = 0; n < 512; n++) {
-                const digest = this.prefix.clone().update(encoder.encode(String(this.counter))).digest();
+                const digest = this.prefix
+                    .clone()
+                    .update(encoder.encode(String(this.counter)))
+                    .digest();
                 if (hasLeadingZeroBits(digest, this.need)) {
                     this.counters.push(this.counter);
                     this.index++;

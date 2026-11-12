@@ -41,7 +41,10 @@ def test_the_tuning_settings_have_the_documented_defaults_and_bounds():
     from common.settings.inventory import INVENTORY
 
     spec = {s.key: s for s in INVENTORY}
-    assert spec["CAPTCHA_ENABLED"].default is False and spec["CAPTCHA_ENABLED"].tier.name == "T2"
+    assert (
+        spec["CAPTCHA_ENABLED"].default is False
+        and spec["CAPTCHA_ENABLED"].tier.name == "T2"
+    )
     base = spec["API_CAPTCHA_BASE_BITS_SUBMIT"]
     assert (base.min_value, base.max_value) == (ch.MIN_BITS, ch.MAX_BITS)
 
@@ -59,7 +62,9 @@ async def test_the_challenge_route_answers_404_before_anything(client, workspace
     assert not spy_pressure._asked._keys and not spy_pressure._issued._keys
 
 
-async def test_the_header_is_never_read_on_a_submit(client, workspace, claims, monkeypatch):
+async def test_the_header_is_never_read_on_a_submit(
+    client, workspace, claims, monkeypatch
+):
     form = await a_form(workspace)
 
     def boom(*args, **kwargs):  # pragma: no cover - must not run
@@ -89,7 +94,9 @@ async def test_respondents_are_served_the_form_without_the_setting(
     client, workspace, test_user_cookies, monkeypatch
 ):
     form = await a_form(workspace)
-    link = await container.workspace_form_repo().find_workspace_form(workspace.id, form.form_id)
+    link = await container.workspace_form_repo().find_workspace_form(
+        workspace.id, form.form_id
+    )
     link.settings.captcha_enabled = False
     await container.workspace_form_repo().update(link.id, link)
     read = f"/api/v1/workspaces/{workspace.id}/forms/{form.form_id}?published=true"
@@ -97,14 +104,18 @@ async def test_respondents_are_served_the_form_without_the_setting(
     assert "captchaRequired" not in off or off["captchaRequired"] is None
     assert not off.get("captchaEnabled")
     # what is stored stays
-    link = await container.workspace_form_repo().find_workspace_form(workspace.id, form.form_id)
+    link = await container.workspace_form_repo().find_workspace_form(
+        workspace.id, form.form_id
+    )
     assert link.settings.captcha_enabled is False
     monkeypatch.setattr(settings, "CAPTCHA_ENABLED", True)
     on = (await client.get(read)).json()["settings"]
     assert on["captchaRequired"] is False
 
 
-async def test_the_permissions_answer_says_it_is_off(client, workspace, test_user_cookies):
+async def test_the_permissions_answer_says_it_is_off(
+    client, workspace, test_user_cookies
+):
     answer = await client.get(
         f"/api/v1/workspaces/{workspace.id}/permissions", cookies=test_user_cookies
     )
@@ -124,7 +135,9 @@ def refused_422(response) -> dict:
 
 async def stored(workspace, form):
     return (
-        await container.workspace_form_repo().find_workspace_form(workspace.id, form.form_id)
+        await container.workspace_form_repo().find_workspace_form(
+            workspace.id, form.form_id
+        )
     ).settings
 
 
@@ -145,7 +158,9 @@ async def test_the_settings_patch_is_refused_and_changes_nothing(
     # a patch that leaves it alone is fine
     assert (
         await client.patch(
-            settings_url(workspace, form), json={"purpose": "Kept"}, cookies=test_user_cookies
+            settings_url(workspace, form),
+            json={"purpose": "Kept"},
+            cookies=test_user_cookies,
         )
     ).status_code == 200
 
@@ -154,7 +169,9 @@ async def test_a_form_that_has_a_value_keeps_it_when_a_save_leaves_it_as_it_is(
     client, workspace, test_user_cookies
 ):
     form = await a_form(workspace)
-    link = await container.workspace_form_repo().find_workspace_form(workspace.id, form.form_id)
+    link = await container.workspace_form_repo().find_workspace_form(
+        workspace.id, form.form_id
+    )
     link.settings.captcha_enabled = False
     await container.workspace_form_repo().update(link.id, link)
     same = await client.patch(
@@ -162,10 +179,14 @@ async def test_a_form_that_has_a_value_keeps_it_when_a_save_leaves_it_as_it_is(
         json={"captchaEnabled": False, "purpose": "Saved"},
         cookies=test_user_cookies,
     )
-    assert same.status_code == 200 and same.json()["settings"]["captchaEnabled"] is False
+    assert (
+        same.status_code == 200 and same.json()["settings"]["captchaEnabled"] is False
+    )
     refused_422(
         await client.patch(
-            settings_url(workspace, form), json={"captchaEnabled": True}, cookies=test_user_cookies
+            settings_url(workspace, form),
+            json={"captchaEnabled": True},
+            cookies=test_user_cookies,
         )
     )
 
@@ -190,7 +211,9 @@ async def test_the_ai_and_mcp_operations_refuse_it(client, workspace, workspace_
     await _make_v2(doc)
     key = await _make_key(workspace.id, ["forms:write"])
     result = _tool_text(
-        await _call_tool(client, key, "update_form", {"form_id": workspace_form.form_id, "ops": [ON]})
+        await _call_tool(
+            client, key, "update_form", {"form_id": workspace_form.form_id, "ops": [ON]}
+        )
     )
     assert result["results"][0]["ok"] is False
     assert DISABLED_MESSAGE in result["results"][0]["message"]
@@ -217,14 +240,19 @@ async def test_the_spec_api_refuses_a_document_that_sets_it(workspace):
         await writer.replace(workspace.id, form_id, changed, [etag], testUser)
     assert replaced.value.content["code"] == DISABLED_CODE
     preview = await writer.preview_replace(workspace.id, form_id, changed)
-    assert preview["valid"] is False and preview["errors"][-1]["path"] == "/trust/captchaEnabled"
+    assert (
+        preview["valid"] is False
+        and preview["errors"][-1]["path"] == "/trust/captchaEnabled"
+    )
 
 
 async def test_the_spec_api_accepts_it_when_the_switch_is_on(workspace, monkeypatch):
     monkeypatch.setattr(settings, "CAPTCHA_ENABLED", True)
     document = copy.deepcopy(VALID)
     document["trust"] = {"captchaEnabled": False}
-    form_id, spec, _ = await container.form_spec_writer().create(workspace.id, document, testUser)
+    form_id, spec, _ = await container.form_spec_writer().create(
+        workspace.id, document, testUser
+    )
     assert spec["trust"]["captchaEnabled"] is False
 
 
@@ -235,13 +263,16 @@ def test_validation_warns_about_it_while_the_switch_is_off(monkeypatch):
     assert any(w["path"] == "/trust/captchaEnabled" for w in warnings)
     monkeypatch.setattr(settings, "CAPTCHA_ENABLED", True)
     assert not any(
-        w["path"] == "/trust/captchaEnabled" for w in check_spec_document(document)["warnings"]
+        w["path"] == "/trust/captchaEnabled"
+        for w in check_spec_document(document)["warnings"]
     )
 
 
 async def test_copies_do_not_carry_the_setting(workspace, monkeypatch):
     form = await a_form(workspace)
-    link = await container.workspace_form_repo().find_workspace_form(workspace.id, form.form_id)
+    link = await container.workspace_form_repo().find_workspace_form(
+        workspace.id, form.form_id
+    )
     link.settings.captcha_enabled = False
     await container.workspace_form_repo().update(link.id, link)
     for enabled in (False, True):

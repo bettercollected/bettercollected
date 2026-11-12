@@ -33,7 +33,9 @@ export function useCaptcha(isPreviewMode: boolean) {
 
     // the trigger changes identity every render; the pass keeps the latest
     const issueRef = useRef(issue);
-    issueRef.current = issue;
+    useEffect(() => {
+        issueRef.current = issue;
+    });
     const fetcher = useCallback(async (): Promise<CaptchaChallenge> => {
         const answer: any = await issueRef.current({ workspaceId: workspaceId!, formId: formId! });
         if (!answer?.data?.challenge) throw new Error('No challenge');

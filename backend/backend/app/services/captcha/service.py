@@ -32,7 +32,9 @@ from backend.app.services.captcha.challenge import Refused
 from backend.app.services.captcha.pressure import Pressure
 from backend.app.services.rate_limiter import FixedWindowRateLimiter, Verdict
 from backend.app.services.respondent_limits import client_key, too_many
-from backend.config import settings  # noqa: F401  (builds the settings and the live() groups)
+from backend.config import (
+    settings,
+)  # noqa: F401  (builds the settings and the live() groups)
 from common.settings.loader import live
 
 CLAIM_SCOPE = "captcha-nonce"
@@ -105,7 +107,10 @@ class CaptchaService:
             extra += 2
         elif busy > FORM_BUSY:
             extra += 1
-        bits = min(challenge.MAX_BITS, int(api.CAPTCHA_BASE_BITS_SUBMIT) + min(extra, MAX_PRESSURE))
+        bits = min(
+            challenge.MAX_BITS,
+            int(api.CAPTCHA_BASE_BITS_SUBMIT) + min(extra, MAX_PRESSURE),
+        )
         if signed_in:
             bits -= SIGNED_IN_DISCOUNT
         return max(challenge.MIN_BITS, min(challenge.MAX_BITS, bits))

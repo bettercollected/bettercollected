@@ -4,7 +4,7 @@
 // (sandboxed embeds, no Worker), within a hard budget.
 import { describe, expect, it, vi } from 'vitest';
 
-import { SOLVE_BUDGET_MS, CaptchaUnavailable, solveChallenge } from './solve';
+import { CaptchaUnavailable, SOLVE_BUDGET_MS, solveChallenge } from './solve';
 import { CAPTCHA_HEADER, SUBPUZZLES, Solver, hasLeadingZeroBits, proofHeaderValue } from './solver-core';
 
 // counters for this challenge at 14 bits, found with hashlib.sha256(f"{challenge}:{i}:{c}") as the server checks them

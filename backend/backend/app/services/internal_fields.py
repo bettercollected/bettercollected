@@ -148,6 +148,24 @@ def _serve_captcha(settings: Any) -> None:
         settings.captcha_required = required
 
 
+def mark_captcha_required(form: Any) -> Any:
+    """``captcha_required`` on a published form served on the staff path (a
+    member of the workspace answering their own form is asked for the proof like
+    anyone: the submit route does not tell them apart). The respondent path has
+    set it already (``strip_internal_fields``); the creator's own setting stays
+    in what is served here."""
+    settings = _get(form, "settings")
+    if settings is None or not captcha_enabled():
+        return form
+    if _get(settings, "captcha_required") is not None:
+        return form
+    stored = _get(settings, "captcha_enabled")
+    if stored is None and isinstance(settings, dict):
+        stored = settings.get("captchaEnabled")
+    _set(settings, "captcha_required", stored is not False)
+    return form
+
+
 def strip_internal_fields(form: Any) -> Any:
     """Remove internal fields from a form payload in place (and return it).
 

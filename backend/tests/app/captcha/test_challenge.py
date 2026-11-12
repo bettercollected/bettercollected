@@ -17,19 +17,25 @@ W, F = "64a1b2c3d4e5f60718293a4b", "64a1b2c3d4e5f60718293a4c"
 
 
 def make(bits=14, client="203.0.113.7", now=NOW, **over):
-    args = dict(purpose="submit", workspace_id=W, form_id=F, bits=bits, client=client, now=now)
+    args = dict(
+        purpose="submit", workspace_id=W, form_id=F, bits=bits, client=client, now=now
+    )
     args.update(over)
     return ch.issue(**args)
 
 
 def ok(text, **over):
-    args = dict(purpose="submit", workspace_id=W, form_id=F, client="203.0.113.7", now=NOW)
+    args = dict(
+        purpose="submit", workspace_id=W, form_id=F, client="203.0.113.7", now=NOW
+    )
     args.update(over)
     return ch.check(ch.proof(text, ch.solve(text)), **args)
 
 
 def refused(header, **over):
-    args = dict(purpose="submit", workspace_id=W, form_id=F, client="203.0.113.7", now=NOW)
+    args = dict(
+        purpose="submit", workspace_id=W, form_id=F, client="203.0.113.7", now=NOW
+    )
     args.update(over)
     with pytest.raises(ch.Refused) as error:
         ch.check(header, **args)
@@ -46,7 +52,10 @@ def edit(text, **claims):
 def test_a_solved_challenge_passes_and_states_what_it_binds():
     claims = ok(make())
     assert (claims.purpose, claims.workspace_id, claims.form_id, claims.bits) == (
-        "submit", W, F, 14,
+        "submit",
+        W,
+        F,
+        14,
     )
     assert claims.tag and len(claims.tag) == 16
 
@@ -90,11 +99,23 @@ def test_a_changed_signature_or_counter_is_invalid():
     # almost surely not a solution too (one more than a solution has 1/2 chance per bit)
     header = ch.proof(text, bad)
     try:
-        ch.check(header, purpose="submit", workspace_id=W, form_id=F, client="203.0.113.7", now=NOW)
+        ch.check(
+            header,
+            purpose="submit",
+            workspace_id=W,
+            form_id=F,
+            client="203.0.113.7",
+            now=NOW,
+        )
     except ch.Refused as error:
         assert error.code == ch.INVALID
     # counters that are not plain digits, or too many or few, never pass
-    for counters_text in ("1,2,3", ",".join(["-1"] * 8), ",".join(["1e3"] * 8), ",".join(["9" * 20] * 8)):
+    for counters_text in (
+        "1,2,3",
+        ",".join(["-1"] * 8),
+        ",".join(["1e3"] * 8),
+        ",".join(["9" * 20] * 8),
+    ):
         assert refused(f"{text}.{counters_text}") == ch.INVALID
 
 
@@ -106,7 +127,13 @@ def test_another_challenges_counters_do_not_solve_this_one():
 def test_expiry_is_fifteen_minutes_with_a_minute_of_skew():
     text = make()
     ok(text, now=NOW + dt.timedelta(minutes=15, seconds=59))
-    assert refused(ch.proof(text, ch.solve(text)), now=NOW + dt.timedelta(minutes=16, seconds=1)) == ch.EXPIRED
+    assert (
+        refused(
+            ch.proof(text, ch.solve(text)),
+            now=NOW + dt.timedelta(minutes=16, seconds=1),
+        )
+        == ch.EXPIRED
+    )
     assert ch.TTL == dt.timedelta(minutes=15)
 
 
@@ -125,7 +152,17 @@ def test_another_network_is_invalid_and_an_unknown_one_is_not_bound():
     assert refused(header, client="") == ch.INVALID
     # issued to a client the server could not tell: no binding, any network
     unbound = make(client="")
-    assert ch.check(ch.proof(unbound, ch.solve(unbound)), purpose="submit", workspace_id=W, form_id=F, client="198.51.100.23", now=NOW).tag == ""
+    assert (
+        ch.check(
+            ch.proof(unbound, ch.solve(unbound)),
+            purpose="submit",
+            workspace_id=W,
+            form_id=F,
+            client="198.51.100.23",
+            now=NOW,
+        ).tag
+        == ""
+    )
 
 
 def test_the_tag_salt_changes_every_utc_day_and_a_challenge_near_midnight_verifies():
@@ -152,7 +189,14 @@ def test_a_challenge_survives_a_key_rotation(monkeypatch):
     header = ch.proof(text, ch.solve(text))
     new = "n" * 64
     monkeypatch.setattr(settings.auth_settings, "JWT_SECRET", f"{new},{current}")
-    ch.check(header, purpose="submit", workspace_id=W, form_id=F, client="203.0.113.7", now=NOW)
+    ch.check(
+        header,
+        purpose="submit",
+        workspace_id=W,
+        form_id=F,
+        client="203.0.113.7",
+        now=NOW,
+    )
     # a ring that no longer holds the old key rejects it
     monkeypatch.setattr(settings.auth_settings, "JWT_SECRET", new)
     assert refused(header) == ch.INVALID
@@ -190,7 +234,7 @@ def test_pressure_adds_bits_and_the_total_stops_at_the_ceiling(monkeypatch):
     s = service()
     client = "203.0.113.7"
     seen = [s.difficulty(client, F, False) for _ in range(40)]
-    assert seen[:6] == [17] * 6          # a family behind one address is free
+    assert seen[:6] == [17] * 6  # a family behind one address is free
     assert seen[6] == 18 and max(seen) == 20  # +1 per doubling, at most +3
     for _ in range(3):
         s.pressure.failed(client)

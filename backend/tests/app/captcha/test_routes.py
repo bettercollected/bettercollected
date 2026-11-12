@@ -37,10 +37,14 @@ async def test_the_route_issues_a_bound_uncached_challenge(client, workspace):
     assert claims["p"] == "submit" and claims["t"]
     assert body["expiresAt"] == claims["e"]
     expires = dt.datetime.fromtimestamp(claims["e"] / 1000, dt.timezone.utc)
-    assert dt.timedelta(minutes=14) < expires - dt.datetime.now(dt.timezone.utc) <= ch.TTL
+    assert (
+        dt.timedelta(minutes=14) < expires - dt.datetime.now(dt.timezone.utc) <= ch.TTL
+    )
 
 
-async def test_the_route_answers_for_an_unknown_form_and_a_bad_purpose(client, workspace):
+async def test_the_route_answers_for_an_unknown_form_and_a_bad_purpose(
+    client, workspace
+):
     form = await a_form(workspace)
     missing = await client.post(
         f"/api/v1/workspaces/{workspace.id}/captcha/challenge",
@@ -48,23 +52,32 @@ async def test_the_route_answers_for_an_unknown_form_and_a_bad_purpose(client, w
         headers=ALICE,
     )
     assert missing.status_code == 404 and missing.json()["code"] == "form_not_found"
-    for body in ({"purpose": "mail", "formId": str(form.form_id)}, {"purpose": "submit"}):
+    for body in (
+        {"purpose": "mail", "formId": str(form.form_id)},
+        {"purpose": "submit"},
+    ):
         refused = await client.post(
-            f"/api/v1/workspaces/{workspace.id}/captcha/challenge", json=body, headers=ALICE
+            f"/api/v1/workspaces/{workspace.id}/captcha/challenge",
+            json=body,
+            headers=ALICE,
         )
         assert refused.status_code == 422
 
 
 async def test_a_private_form_gets_no_challenge(client, workspace):
     form = await a_form(workspace)
-    link = await container.workspace_form_repo().find_workspace_form(workspace.id, form.form_id)
+    link = await container.workspace_form_repo().find_workspace_form(
+        workspace.id, form.form_id
+    )
     link.settings.private = True
     await container.workspace_form_repo().update(link.id, link)
     refused = await ask(client, workspace, form)
     assert refused.status_code == 404 and refused.json()["code"] == "form_not_found"
 
 
-async def test_a_solved_proof_submits_once_and_a_replay_is_refused(client, workspace, claims):
+async def test_a_solved_proof_submits_once_and_a_replay_is_refused(
+    client, workspace, claims
+):
     form = await a_form(workspace)
     proof = await solved(client, workspace, form)
     first = await submit(client, workspace, form, proof)
@@ -123,7 +136,9 @@ async def test_a_proof_from_another_network_is_refused(client, workspace):
     assert refused.status_code == 422 and refused.json()["code"] == "captcha_invalid"
 
 
-async def test_failures_raise_the_difficulty_of_that_client_only(client, workspace, monkeypatch):
+async def test_failures_raise_the_difficulty_of_that_client_only(
+    client, workspace, monkeypatch
+):
     form = await a_form(workspace)
     for _ in range(3):
         await submit(client, workspace, form, "x.y.z")
@@ -140,18 +155,28 @@ async def test_a_signed_in_respondent_gets_three_bits_less_with_a_floor(
     member = await ask(client, workspace, form, BOB, signed_in())
     assert (anonymous.json()["bits"], member.json()["bits"]) == (18, 15)
     monkeypatch.setattr(settings.api_settings, "CAPTCHA_BASE_BITS_SUBMIT", 14)
-    low = await ask(client, workspace, form, {"X-Forwarded-For": "192.0.2.9"}, signed_in())
+    low = await ask(
+        client, workspace, form, {"X-Forwarded-For": "192.0.2.9"}, signed_in()
+    )
     assert low.json()["bits"] == 14
 
 
-async def test_the_creator_can_turn_it_off_for_a_form(client, workspace, test_user_cookies):
+async def test_the_creator_can_turn_it_off_for_a_form(
+    client, workspace, test_user_cookies
+):
     form = await a_form(workspace)
     url = f"/api/v1/workspaces/{workspace.id}/forms/{form.form_id}/settings"
-    patched = await client.patch(url, json={"captchaEnabled": False}, cookies=test_user_cookies)
+    patched = await client.patch(
+        url, json={"captchaEnabled": False}, cookies=test_user_cookies
+    )
     assert patched.status_code == 200, patched.text
     assert patched.json()["settings"]["captchaEnabled"] is False
-    assert (await submit(client, workspace, form)).status_code == 200  # no header needed
-    back = await client.patch(url, json={"captchaEnabled": True}, cookies=test_user_cookies)
+    assert (
+        await submit(client, workspace, form)
+    ).status_code == 200  # no header needed
+    back = await client.patch(
+        url, json={"captchaEnabled": True}, cookies=test_user_cookies
+    )
     assert back.status_code == 200
     assert (await submit(client, workspace, form)).status_code == 422
 
@@ -177,7 +202,33 @@ async def test_respondents_are_told_whether_it_is_required_never_the_setting(
     assert link.settings.captcha_enabled is False
 
 
-async def test_the_permissions_answer_says_the_switch_is_on(client, workspace, test_user_cookies):
+async def test_a_member_reading_the_published_form_is_told_too(
+    client, workspace, test_user_cookies, monkeypatch
+):
+    """A member of the workspace answering their own form passes the same
+    route as anyone, so the page must know to send the proof."""
+    from backend.app.services.form_service import FormService
+
+    async def nobody(self, user_ids):
+        return []
+
+    monkeypatch.setattr(FormService, "fetch_user_details", nobody)
+    form = await a_form(workspace)
+    read = f"/api/v1/workspaces/{workspace.id}/forms/{form.form_id}?published=true"
+    served = (await client.get(read, cookies=test_user_cookies)).json()["settings"]
+    assert served["captchaRequired"] is True
+    await client.patch(
+        f"/api/v1/workspaces/{workspace.id}/forms/{form.form_id}/settings",
+        json={"captchaEnabled": False},
+        cookies=test_user_cookies,
+    )
+    served = (await client.get(read, cookies=test_user_cookies)).json()["settings"]
+    assert served["captchaRequired"] is False
+
+
+async def test_the_permissions_answer_says_the_switch_is_on(
+    client, workspace, test_user_cookies
+):
     answer = await client.get(
         f"/api/v1/workspaces/{workspace.id}/permissions", cookies=test_user_cookies
     )
@@ -220,7 +271,9 @@ class TestUntrustedProxy:
     def no_trusted_proxy(self, monkeypatch):
         monkeypatch.setattr(settings.api_settings, "TRUSTED_PROXIES", "")
 
-    async def test_the_challenge_is_unbound_and_nothing_is_counted(self, client, workspace):
+    async def test_the_challenge_is_unbound_and_nothing_is_counted(
+        self, client, workspace
+    ):
         form = await a_form(workspace)
         answer = await ask(client, workspace, form, ALICE)
         assert ch.unverified_claims(answer.json()["challenge"])["t"] == ""
@@ -231,7 +284,9 @@ class TestUntrustedProxy:
         # many challenges, still the base difficulty
         assert (await ask(client, workspace, form, ALICE)).json()["bits"] == 14
 
-    async def test_a_proof_works_from_another_forwarded_address(self, client, workspace):
+    async def test_a_proof_works_from_another_forwarded_address(
+        self, client, workspace
+    ):
         form = await a_form(workspace)
         proof = await solved(client, workspace, form, ALICE)
         assert (await submit(client, workspace, form, proof, BOB)).status_code == 200
@@ -248,9 +303,7 @@ async def test_a_spent_nonce_is_stored_hashed(client, workspace):
     form = await a_form(workspace)
     proof = await solved(client, workspace, form)
     nonce = ch.unverified_claims(proof.rsplit(".", 1)[0])["n"]
-    before = {
-        r.id for r in (await _rows())
-    }
+    before = {r.id for r in (await _rows())}
     await submit(client, workspace, form, proof)
     after = await _rows()
     assert len(after) > len(before)

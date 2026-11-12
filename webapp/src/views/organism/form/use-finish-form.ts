@@ -229,5 +229,5 @@ export function useFinishForm(isPreviewMode: boolean) {
                 });
     };
 
-    return { finishForm, isLoading: isLoading || captcha.preparing, submitError, setSubmitError, effectiveAnonymize, captchaWaiting: captcha.waiting };
+    return { finishForm, isLoading: isLoading || captcha.preparing, submitError, setSubmitError, effectiveAnonymize, captchaWaiting: captcha.waiting, captchaRequired: captcha.required };
 }
