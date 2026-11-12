@@ -34,7 +34,9 @@ response id, the submission time (UTC, ISO 8601) and one column per declared hid
 Answers to questions that logic hid or that were skipped stay stored and are exported as before.
 Cells starting with `=`, `+`, `-` or `@` (after any whitespace), or a tab or carriage return, get
 a leading apostrophe, except plain negative numbers; the headers too. Responses without answers
-(deletion-only stubs) are not exported.
+(deletion-only stubs) are not exported. Rows are oldest first by submission time, ties by response id.
+The pass reads the form in batches of 500, each a keyset on `(created_at, id)` in the order of
+`ix_form_responses_workspace_form_created`, so a batch costs its own rows however large the form is.
 
 A form with a repeating group exported as `rows` comes as a ZIP: the main CSV and one CSV per
 group table, written by one pass each, so no table is held in memory and no answer touches disk.

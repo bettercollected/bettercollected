@@ -111,8 +111,8 @@ async def test_the_import_stores_the_rows_through_the_submissions_encryption(cli
     stored = await stored_answers(workspace, form)
     assert sorted(helpers_text(r, "name") for r in stored) == ["Ada", "Bob"]
     # at rest the answers are ciphertext, not JSON
-    raw = await container.form_response_repo().export_batch(
-        await container.form_response_service().scope(workspace.id, [form.form_id]), None, after_id=None, limit=10
+    raw, _ = await container.form_response_repo().export_batch(
+        await container.form_response_service().scope(workspace.id, [form.form_id]), None, limit=10
     )
     assert all(isinstance(r.answers, (bytes, str)) and "Ada" not in str(r.answers) for r in raw)
     assert all(r.csv_import_id == body["id"] and r.provider == "self" for r in raw)
