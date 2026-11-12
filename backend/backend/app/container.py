@@ -227,6 +227,8 @@ from backend.app.repositories.postgres.response_revisions import (
 )
 from backend.app.services.form_spec.writes import FormSpecWriter
 from backend.app.services.form_promotion.service import FormPromotionService
+from backend.app.services.reporting.service import ReportService
+from backend.app.repositories.postgres.report_queries import PostgresReportRepository
 from backend.app.services.idempotency import IdempotencyService
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 from backend.config import settings
@@ -1441,6 +1443,20 @@ class AppContainer(containers.DeclarativeContainer):
         registration_repo=form_registration_repo,
         audit_repo=workspace_audit_repo,
         idempotency_service=idempotency_service,
+        rate_limiter=rate_limiter,
+    )
+
+    # Reports on a form's answers (REPORTING_ENABLED): reads the responses
+    # through its own repository, decrypts at query time, keeps no copy.
+    report_repo: PostgresReportRepository = providers.Singleton(
+        PostgresReportRepository, pg_sessionmaker
+    )
+    report_service: ReportService = providers.Singleton(
+        ReportService,
+        authorization_service=authorization_service,
+        form_response_service=form_response_service,
+        form_repo=form_repo,
+        report_repo=report_repo,
         rate_limiter=rate_limiter,
     )
 

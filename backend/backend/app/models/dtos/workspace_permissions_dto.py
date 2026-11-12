@@ -56,7 +56,9 @@ class WorkspacePermissionsDto(CamelModel):
     the form file are shown only while it is on).
     ``api_key_roles_enabled`` is the same for ``API_KEY_ROLES_ENABLED`` (a role
     and a list of forms on an API key: the key dialog's role and forms controls
-    are shown only while it is on)."""
+    are shown only while it is on).
+    ``reporting_enabled`` is the same for ``REPORTING_ENABLED`` (reports on a
+    form's answers: the Report page is shown only while it is on)."""
 
     permissions: List[Permission] = []
     field_rules_enabled: bool = False
@@ -81,3 +83,4 @@ class WorkspacePermissionsDto(CamelModel):
     form_access_enabled: bool = False
     form_promotion_enabled: bool = False
     api_key_roles_enabled: bool = False
+    reporting_enabled: bool = False

@@ -827,6 +827,10 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
           "Copy a form's structure to another workspace as a draft (promotion between "
           "environments): on, or off (the routes answer 422). Environment only until "
           "released.", tier=T5),
+    # Held in the environment while the feature is built up, like FORM_ACCESS_ENABLED.
+    _bool("REPORTING_ENABLED", "features", (BACKEND,), False,
+          "Reports on a form's answers (counts and averages computed on request): on, or "
+          "off (the routes answer 422). Environment only until released.", tier=T5),
     _url("AUTH_BASE_URL", "services", (BACKEND,),
          "Address of the auth service. Code default: http://localhost:8001/api/v1.", tier=T5),
     _url("AUTH_SERVER_URL", "services", (GOOGLE,), "Address of the auth service.",

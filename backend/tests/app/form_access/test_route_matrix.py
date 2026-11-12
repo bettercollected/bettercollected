@@ -519,6 +519,7 @@ async def world(matrix, workspace, umami, client, memory_jobs, monkeypatch):
         (settings, "AUDIT_LOG_UI_ENABLED", True),
         (settings, "RESPONSE_REVISIONS_ENABLED", True),
         (settings.form_promotion, "ENABLED", True),
+        (settings.reporting, "ENABLED", True),
     ):
         monkeypatch.setattr(target, name, value, raising=False)
     cookies = {name: _cookies(user) for name, user in users.items() if name in PRINCIPALS}

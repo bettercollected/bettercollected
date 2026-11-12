@@ -31,6 +31,7 @@ from backend.app.services.form_embed import form_embed_enabled
 from backend.app.services.api_key_roles.mode import api_key_roles_enabled
 from backend.app.services.form_access.mode import form_access_enabled
 from backend.app.services.form_promotion.mode import form_promotion_enabled
+from backend.app.services.reporting.mode import reporting_enabled
 from backend.app.services.audit_log.mode import audit_log_ui_enabled
 from backend.app.services.form_versions.mode import form_revisions_ui_enabled
 from backend.app.services.response_revisions.mode import response_revisions_enabled
@@ -267,6 +268,7 @@ class WorkspaceRouter(Routable):
             form_access_enabled=form_access_enabled(),
             form_promotion_enabled=form_promotion_enabled(),
             api_key_roles_enabled=api_key_roles_enabled(),
+            reporting_enabled=reporting_enabled(),
         )
 
     @get("/{workspace_id}/ai-profile")
