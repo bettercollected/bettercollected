@@ -690,6 +690,12 @@ class Trust(BaseModel):
         description="How many days after the last save a draft is kept, 1 to 90; left out, 30.",
         title="Draftretentiondays",
     )
+    captcha_enabled: bool | None = Field(
+        None,
+        alias="captchaEnabled",
+        description="The automatic spam check on this form (a small calculation the respondent's browser does in the background; no puzzle). On unless set to false; refused while the server has it switched off.",
+        title="Captchaenabled",
+    )
     show_review_page: bool | None = Field(
         None,
         alias="showReviewPage",

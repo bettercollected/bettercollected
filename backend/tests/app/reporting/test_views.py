@@ -205,6 +205,7 @@ async def test_the_stored_definition_is_what_a_query_accepts_and_holds_no_answer
         (definition(card("c", "tile", measures=[{"agg": "avg", "field": "q:dept"}])), 422, "op_not_allowed"),
         ({"v": 1, "cards": []}, 422, "invalid_definition"),
         ({"v": 2, "cards": [card()]}, 422, "invalid_definition"),
+        ({"v": 1, "cards": [card(), {**card("t", "tile"), "title": "Anything a person typed"}]}, 422, "invalid_definition"),
         ({**definition(card()), "where": [{"field": "q:why", "op": "is", "value": "Ada"}]}, 422, "invalid_definition"),
     ],
 )
@@ -283,6 +284,25 @@ async def test_a_change_made_from_a_stale_copy_is_refused(client, world):
     assert good.status_code == 200 and [c["id"] for c in good.json()["definition"]["cards"]] == ["t"]
     nothing = await call(client, "patch", workspace, form, url, user=people["viewer"], json={"revision": 3})
     assert nothing.status_code == 200 and nothing.json()["revision"] == 3
+
+
+async def test_a_stale_change_or_delete_of_a_form_view_leaves_no_audit_entry(client, world):
+    workspace, form, people = world
+    editor = people["editor"]
+    shared = (await save(client, workspace, form, "Board", scope="form", user=editor)).json()
+    url = "/" + shared["id"]
+    assert (await call(client, "patch", workspace, form, url, user=editor, json={"revision": 1, "name": "Board 2"})).status_code == 200
+    before = await audit_events(workspace, *REPORT_EVENTS)
+    stale_change = await call(client, "patch", workspace, form, url, user=editor, json={"revision": 1, "name": "Board 3"})
+    stale_share = await call(client, "patch", workspace, form, url, user=editor, json={"revision": 1, "scope": "private"})
+    stale_delete = await call(client, "delete", workspace, form, f"{url}?revision=1", user=editor)
+    for refused in (stale_change, stale_share, stale_delete):
+        assert refused.status_code == 409 and refused.json()["code"] == "view_changed", refused.text
+    assert await audit_events(workspace, *REPORT_EVENTS) == before
+    assert (await call(client, "get", workspace, form, url, user=editor)).json()["name"] == "Board 2"
+    # the current revision goes through, and is audited once
+    assert (await call(client, "delete", workspace, form, f"{url}?revision=2", user=editor)).status_code == 204
+    assert len(await audit_events(workspace, *REPORT_EVENTS)) == len(before) + 1
 
 
 async def test_a_view_belongs_to_its_form_and_workspace(client, world, workspace_1):
@@ -397,6 +417,47 @@ async def test_a_form_takes_its_views_with_it(client, world):
     async with container.pg_engine().connect() as connection:
         left = (await connection.execute(text("SELECT form_id FROM app.form_report_views"))).scalars().all()
     assert left == [other.form_id]
+
+
+async def test_an_account_that_is_deleted_takes_its_private_views_in_every_workspace(client, world):
+    workspace, form, people = world
+    leaver = people["editor"]
+    other_form = await make_form(workspace, survey_fields(), title="Other")
+    await save(client, workspace, form, "Private", user=leaver)
+    await save(client, workspace, other_form, "Private too", user=leaver)
+    kept = (await save(client, workspace, form, "Shared", scope="form", user=leaver)).json()
+    await save(client, workspace, form, "Someone else's", user=people["viewer"])
+    await container.workspace_user_service().delete_user_form_all_workspaces(leaver)
+    names = sorted(v["name"] for v in await listed(client, workspace, form, people["viewer"]))
+    assert names == ["Shared", "Someone else's"]
+    assert await listed(client, workspace, other_form, people["viewer"]) == []
+    assert kept["id"] in [v["id"] for v in await listed(client, workspace, form, people["admin"])]
+
+
+async def test_a_workspace_that_is_deleted_takes_all_its_views_whatever_became_of_its_forms(client, world, workspace_1):
+    from tests.app.controllers.data import testUser1
+
+    workspace, form, people = world
+    await save(client, workspace, form, "Private", user=people["viewer"])
+    await save(client, workspace, form, "Shared", scope="form", user=people["editor"])
+    foreign = await make_form(workspace_1, survey_fields(), user=testUser1)
+    await save(client, workspace_1, foreign, "Theirs", user=testUser1)
+    # the form itself stays (it is shared with a workspace that stays, so its own delete does not
+    # run for it): the views of the going workspace still go
+    await container.workspace_user_service().forget_access_of_workspaces([workspace.id])
+    async with container.pg_engine().connect() as connection:
+        left = (await connection.execute(text("SELECT workspace_id FROM app.form_report_views"))).scalars().all()
+    assert [str(w) for w in left] == [str(workspace_1.id)]
+
+
+async def test_a_workspace_deleted_with_its_forms_leaves_no_view_behind(client, world):
+    workspace, form, people = world
+    await save(client, workspace, form, "Private", user=people["viewer"])
+    await save(client, workspace, form, "Shared", scope="form", user=people["editor"])
+    await container.workspace_service().delete_workspaces_of_user_with_forms(testUser)
+    async with container.pg_engine().connect() as connection:
+        left = (await connection.execute(text("SELECT count(*) FROM app.form_report_views"))).scalar_one()
+    assert left == 0
 
 
 async def test_a_member_who_leaves_takes_their_private_views_and_the_form_keeps_theirs(client, world):

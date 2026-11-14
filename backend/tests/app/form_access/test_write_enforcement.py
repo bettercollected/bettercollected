@@ -519,8 +519,9 @@ OFF_WRITE_STATEMENTS = {
     "forms.versions.restore": 9,
     # 33 before the grants cascade; the cascade adds two statements whatever the
     # switch says: the DELETE on the grants table and the tombstone row the
-    # delete records for the grants it removed
-    "forms.delete": 36,
+    # delete records for the grants it removed; and one more, the DELETE on the
+    # saved report views of the form (also whatever the switch says)
+    "forms.delete": 37,
 }
 
 
@@ -560,6 +561,11 @@ async def test_off_the_write_rows_run_no_more_statements_than_before(
                 assert len(touched) == 1 and touched[0].startswith(
                     "DELETE FROM app.form_access_grants"
                 ), (name, who, touched)
+                # and exactly one DELETE on the form's saved report views, nothing else on that table
+                views = [s for s in seen if "form_report_views" in s]
+                assert len(views) == 1 and views[0].startswith(
+                    "DELETE FROM app.form_report_views"
+                ), (name, who, views)
             else:
                 assert not touched, (name, who)
             # the tombstone clean-up that runs once per 200 deletes in the process is

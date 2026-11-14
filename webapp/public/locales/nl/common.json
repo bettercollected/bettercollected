@@ -399,6 +399,10 @@
         "NOTE": "Laat leeg voor geen limiet. Een antwoord bewerken valt hier niet onder.",
         "INVALID": "Voer een geheel getal in van 1 tot {{max}}."
       },
+      "CAPTCHA": {
+        "TITLE": "Spamcontrole (automatisch, zonder puzzel)",
+        "DESCRIPTION": "Respondenten hoeven niets op te lossen; hun browser voert een kleine berekening uit."
+      },
       "SAVE_DRAFT": {
         "TITLE": "Laat respondenten opslaan en later verdergaan",
         "DESCRIPTION": "Respondenten kunnen bewaren wat ze hebben ingevuld en later afronden: wie is ingelogd vanuit het eigen account, anderen met een link naar het e-mailadres dat ze invullen. Concepten zijn versleuteld, staan los van de reacties en zijn voor u pas zichtbaar nadat het formulier is verstuurd. Zet u dit uit, dan worden concepten niet meer opgeslagen of geopend en binnen een dag verwijderd.",
@@ -3535,6 +3539,8 @@
     "VIEW_SAVE": "Weergave opslaan",
     "VIEW_SAVE_AS": "Opslaan als nieuwe weergave",
     "VIEW_UPDATE": "Weergave bijwerken",
+    "VIEW_UPDATE_BLOCKED_one": "{{count}} kaart van deze weergave kan niet aan u worden getoond, dus bijwerken vanaf hier zou haar verwijderen. Sla dit rapport op als nieuwe weergave.",
+    "VIEW_UPDATE_BLOCKED_other": "{{count}} kaarten van deze weergave kunnen niet aan u worden getoond, dus bijwerken vanaf hier zou ze verwijderen. Sla dit rapport op als nieuwe weergave.",
     "VIEW_DETAILS": "Hernoemen of delen",
     "VIEW_DELETE": "Weergave verwijderen",
     "VIEW_NAME": "Naam",

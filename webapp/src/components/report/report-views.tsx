@@ -34,6 +34,9 @@ interface Props {
     definition: ReportDefinition;
     /** There is something to save (at least one card the server can answer). */
     canSave: boolean;
+    /** Cards of the report on screen that this person cannot have answered (a question they may not see): a view they
+     *  update would lose them, so "Update" is not offered, only a save as a new view. */
+    hiddenCards?: number;
     /** Open a view (its cards and filters become the report) or, with null, go back to the Overview. */
     onOpen: (view: ReportView | null) => void;
     /** Mark a view as the one on screen, without changing the report (after a save). */
@@ -52,7 +55,7 @@ export function viewErrorText(code: string | undefined, status: number | undefin
     return t('REPORT.VIEW_ERROR');
 }
 
-export default function ReportViews({ workspaceId, formId, list, loading, failed, current, modified, definition, canSave, onOpen, onMark, onReload }: Props) {
+export default function ReportViews({ workspaceId, formId, list, loading, failed, current, modified, definition, canSave, hiddenCards = 0, onOpen, onMark, onReload }: Props) {
     const { t } = useTranslation();
     const id = useId();
     const [panel, setPanel] = useState<Panel>(null);
@@ -145,7 +148,7 @@ export default function ReportViews({ workspaceId, formId, list, loading, failed
         if (!current) return;
         setProblem(undefined);
         try {
-            await remove({ workspaceId, formId, viewId: current.id }).unwrap();
+            await remove({ workspaceId, formId, viewId: current.id, revision: current.revision }).unwrap();
             setNotice(t('REPORT.VIEW_DELETED'));
             onMark(null);
             close(saveRef);
@@ -203,7 +206,7 @@ export default function ReportViews({ workspaceId, formId, list, loading, failed
                         </Button>
                     )}
                     {current && modified && current.canEdit && (
-                        <Button type="button" variant="primary" className="h-10 px-4" disabled={busy} onClick={submitUpdate}>
+                        <Button type="button" variant="primary" className="h-10 px-4" disabled={busy || hiddenCards > 0} aria-describedby={hiddenCards > 0 ? `${id}-blocked` : undefined} onClick={submitUpdate}>
                             {t('REPORT.VIEW_UPDATE')}
                         </Button>
                     )}
@@ -225,6 +228,11 @@ export default function ReportViews({ workspaceId, formId, list, loading, failed
                     <span>{current.scope === 'form' ? t('REPORT.VIEW_SHARED') : t('REPORT.VIEW_PRIVATE')}</span>
                     {owner && <span>{owner}</span>}
                     {modified && <span className="font-medium text-black-900">{t('REPORT.VIEW_MODIFIED')}</span>}
+                </p>
+            )}
+            {current && modified && current.canEdit && hiddenCards > 0 && (
+                <p id={`${id}-blocked`} className="m-0 max-w-xl text-sm text-black-800">
+                    {t('REPORT.VIEW_UPDATE_BLOCKED', { count: hiddenCards })}
                 </p>
             )}
             {failed && (

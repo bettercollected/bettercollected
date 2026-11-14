@@ -19,7 +19,6 @@ from sqlalchemy import select
 
 from backend.app.repositories.postgres.identity import revoke_live_keys
 from backend.app.schemas.form_access_grant import SUBJECT_USER
-from backend.app.services.reporting.mode import reporting_enabled
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.db.models import (
@@ -110,15 +109,15 @@ class PostgresMemberRemovalRepository(RecordRepository):
                 MemberGroupMemberRow.workspace_id == ws,
                 MemberGroupMemberRow.user_id == uid,
             )
-            if reporting_enabled():
-                # while reports are on: off, nothing touches the views' table
-                removal.report_views = await self._delete_recorded(
-                    session,
-                    FormReportViewRow,
-                    FormReportViewRow.workspace_id == ws,
-                    FormReportViewRow.owner_id == uid,
-                    FormReportViewRow.scope == "private",
-                )
+            # their private views here go with them (the views they made for a form stay,
+            # as a former member's), whatever the switch says
+            removal.report_views = await self._delete_recorded(
+                session,
+                FormReportViewRow,
+                FormReportViewRow.workspace_id == ws,
+                FormReportViewRow.owner_id == uid,
+                FormReportViewRow.scope == "private",
+            )
             # revoked, not deleted: the audit and "last used" stay, and a
             # person invited again does not get their old keys back
             removal.keys = sorted(

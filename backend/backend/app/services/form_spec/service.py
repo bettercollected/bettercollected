@@ -30,6 +30,7 @@ from backend.app.services.ai.ops import (
     apply_settings_ops,
     apply_form_ops,
     parse_ops,
+    stored_captcha_value,
     too_many_ops,
 )
 from backend.app.services.authorization_service import AuthorizationService
@@ -258,7 +259,9 @@ class FormSpecService:
         except ValidationError as error:
             raise _unprocessable("The operations are not valid.", ops_errors(error))
         ops, renamed = library_ops.substitute(ops, library or {})
-        new_form, results = apply_form_ops(form, ops, atomic=atomic)
+        # an op that leaves the spam check setting as it is passes with the switch off
+        with stored_captcha_value(getattr(settings, "captcha_enabled", None)):
+            new_form, results = apply_form_ops(form, ops, atomic=atomic)
         library_ops.restore_names(results, renamed)
         did_apply = applied(results, atomic)
         after = (

@@ -20,6 +20,7 @@ Contract:
 import copy
 import json
 import uuid
+from contextlib import contextmanager
 from contextvars import ContextVar
 from enum import Enum
 from typing import (
@@ -137,6 +138,10 @@ from backend.app.services.field_rules import (
     field_rules_enabled,
     new_or_changed_rules,
     prune_field_rules,
+)
+from backend.app.services.captcha.mode import (
+    DISABLED_MESSAGE as CAPTCHA_DISABLED_MESSAGE,
+    refuses as captcha_refuses,
 )
 from backend.app.services.form_drafts.limits import normalized_draft_retention_days
 from backend.app.services.form_drafts.mode import (
@@ -825,6 +830,10 @@ class FormSettingsPatch(_CamelModel):
     draft_retention_days: Optional[int] = Field(
         None,
         description="Days a draft is kept after its last save, 1 to 90; 0 goes back to the default of 30.",
+    )
+    captcha_enabled: Optional[bool] = Field(
+        None,
+        description="The automatic spam check on the form's response submit (on unless set to false; refused while the server has it switched off).",
     )
     show_review_page: Optional[bool] = None
 
@@ -2031,6 +2040,32 @@ def _apply_update_form_info(form: StandardForm, op: UpdateFormInfoOp) -> str:
     return f"Updated form {', '.join(changed)}"
 
 
+# The stored per-form value of the spam check, which the engine cannot read
+# (settings live on the association): the caller that knows it sets it around
+# ``apply_form_ops`` so that an op leaving the value as it is passes while
+# CAPTCHA_ENABLED is off. Unset: any value is a change.
+_UNKNOWN = object()
+_STORED_CAPTCHA: ContextVar[Any] = ContextVar("stored_captcha", default=_UNKNOWN)
+
+
+@contextmanager
+def stored_captcha_value(value: Optional[bool]):
+    """Tell the engine what the form's spam check setting is now stored as."""
+    token = _STORED_CAPTCHA.set(value)
+    try:
+        yield
+    finally:
+        _STORED_CAPTCHA.reset(token)
+
+
+def sets_captcha(ops) -> bool:
+    """Does any op in ``ops`` set the spam check setting?"""
+    return any(
+        isinstance(op, UpdateFormSettingsOp) and op.patch.captcha_enabled is not None
+        for op in ops
+    )
+
+
 _SETTINGS_LABELS = {
     "purpose": "purpose",
     "retention_text": "internal retention note",
@@ -2040,6 +2075,7 @@ _SETTINGS_LABELS = {
     "show_submission_number": "submission numbers",
     "allow_save_draft": "saving drafts",
     "draft_retention_days": "how long drafts are kept",
+    "captcha_enabled": "automatic spam check",
     "show_review_page": "review page before sending",
 }
 
@@ -2056,11 +2092,16 @@ def _apply_update_form_settings(form: StandardForm, op: UpdateFormSettingsOp) ->
         raise OpError(
             "Nothing to change — provide at least one of: purpose, retentionText, "
             "privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber, showReviewPage, "
-            "allowSaveDraft, draftRetentionDays."
+            "allowSaveDraft, draftRetentionDays, captchaEnabled."
         )
     if op.patch.allow_save_draft is True and not save_drafts_enabled():
         # SAVE_DRAFTS_ENABLED is off: the setting cannot be turned on
         raise OpError(SAVE_DRAFTS_DISABLED_MESSAGE)
+    if captcha_refuses(op.patch.captcha_enabled, _STORED_CAPTCHA.get()):
+        # CAPTCHA_ENABLED is off: the setting cannot be changed (a value equal
+        # to the stored one is no change; where the caller did not say what is
+        # stored, any value counts as a change)
+        raise OpError(CAPTCHA_DISABLED_MESSAGE)
     if op.patch.draft_retention_days is not None:
         try:
             normalized_draft_retention_days(op.patch.draft_retention_days)
@@ -2081,6 +2122,7 @@ _SETTINGS_SWITCH_KEYS = (
     "allow_editing_response",
     "show_submission_number",
     "allow_save_draft",
+    "captcha_enabled",
     "show_review_page",
 )
 

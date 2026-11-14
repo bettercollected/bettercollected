@@ -75,6 +75,13 @@ class ApiSettings(StoreBackedSettings):
     # the hour ends (logged at ERROR when it trips). A stop-gap until a proof
     # of work is asked for; 0 turns it off.
     CODE_MAIL_PER_HOUR: int = 20000
+    # The proof of work asked on a response submit (services/captcha, behind
+    # CAPTCHA_ENABLED): the base difficulty in bits (2^bits hashes in all,
+    # 14 to 20) and an operator boost added on top while an attack lasts
+    # (0 to 4; base, boost and the pressure from a client's own behaviour
+    # together never go past 20 bits).
+    CAPTCHA_BASE_BITS_SUBMIT: int = 17
+    CAPTCHA_DIFFICULTY_BOOST: int = 0
     # GET /images/unsplash/...: requests per client address in each window,
     # and of those, how many may fetch a photo not cached yet.
     IMAGE_PROXY_PER_WINDOW: int = 600

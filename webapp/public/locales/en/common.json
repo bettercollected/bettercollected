@@ -399,6 +399,10 @@
         "NOTE": "Leave empty for no limit. Editing a response is not affected.",
         "INVALID": "Enter a whole number from 1 to {{max}}."
       },
+      "CAPTCHA": {
+        "TITLE": "Spam protection (automatic, no puzzle)",
+        "DESCRIPTION": "Respondents solve nothing; their browser does a small calculation."
+      },
       "SAVE_DRAFT": {
         "TITLE": "Let respondents save and continue later",
         "DESCRIPTION": "Respondents can save what they typed and finish later: signed-in ones from their account, others with a link sent to the address they enter. Drafts are encrypted, kept apart from the responses and not visible to you until the form is submitted. Turning this off stops saving and opening drafts, and they are deleted within a day.",
@@ -3535,6 +3539,8 @@
     "VIEW_SAVE": "Save view",
     "VIEW_SAVE_AS": "Save as new view",
     "VIEW_UPDATE": "Update view",
+    "VIEW_UPDATE_BLOCKED_one": "{{count}} card of this view cannot be shown to you, so updating it from here would remove it. Save this report as a new view instead.",
+    "VIEW_UPDATE_BLOCKED_other": "{{count}} cards of this view cannot be shown to you, so updating it from here would remove them. Save this report as a new view instead.",
     "VIEW_DETAILS": "Rename or share",
     "VIEW_DELETE": "Delete view",
     "VIEW_NAME": "Name",

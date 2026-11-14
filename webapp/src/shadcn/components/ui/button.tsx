@@ -44,6 +44,12 @@ const buttonVariants = cva('rounded gap-2 min-w-fit flex justify-center items-ce
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
     icon?: ReactNode;
     isLoading?: boolean;
+    /**
+     * Waiting, like `isLoading`, but the button stays a focusable control:
+     * `aria-disabled` instead of `disabled` (focus does not drop in the middle
+     * of a long wait), clicks ignored, a spinner shown.
+     */
+    busy?: boolean;
     postFixIcon?: ReactNode;
     /**
      * No key edge. For buttons painted in a respondent form's theme colour:
@@ -66,18 +72,20 @@ export function buttonClassName({ className, variant, size, flat, inactive = fal
     return cn(flat ? classes.replace(/(^|\s)key-edge(?=\s|$)/g, ' ') : classes);
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, icon, children, isLoading, postFixIcon, disabled, flat, ...props }, ref) => {
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, icon, children, isLoading, busy, postFixIcon, disabled, flat, onClick, ...props }, ref) => {
     return (
         <button
             disabled={disabled || isLoading}
-            className={buttonClassName({ className, variant, size, flat, inactive: !!(disabled || isLoading) })}
+            aria-disabled={busy || undefined}
+            onClick={busy ? (event) => event.preventDefault() : onClick}
+            className={buttonClassName({ className, variant, size, flat, inactive: !!(disabled || isLoading || busy) })}
             ref={ref}
             {...props}
         >
-            {!isLoading && icon}
-            {!disabled && isLoading && <Loader2 className="animate-spin" size={14} color="currentColor" />}
+            {!isLoading && !busy && icon}
+            {!disabled && (isLoading || busy) && <Loader2 className="animate-spin" size={14} color="currentColor" />}
             {children}
-            {!isLoading && postFixIcon}
+            {!isLoading && !busy && postFixIcon}
         </button>
     );
 });

@@ -60,6 +60,9 @@ class SubmitLimitMiddleware:
             link = None  # malformed ids, a database error: the route answers
         if link is None:
             return None
+        # the route needs the same form for the proof of work (CAPTCHA_ENABLED):
+        # hand it over rather than read it twice
+        scope.setdefault("state", {})["form_link"] = link
         try:
             await container.respondent_limits().submit(
                 client, workspace_id, str(link.form_id)

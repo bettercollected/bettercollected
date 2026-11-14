@@ -61,6 +61,7 @@ from backend.app.schemas.workspace_audit_event import (
 )
 from backend.app.services.form_access import audit
 from backend.app.services.reporting import limits
+from backend.app.services.reporting.definition import invalid as invalid_definition
 
 NOT_FOUND_CODE = "view_not_found"
 INVALID_CODE = "invalid_view"
@@ -79,6 +80,14 @@ def _error(status: int, code: str, message: str) -> HTTPException:
 
 def _not_found() -> HTTPException:
     return _error(HTTPStatus.NOT_FOUND, NOT_FOUND_CODE, "No such view.")
+
+
+def _changed() -> HTTPException:
+    return _error(
+        HTTPStatus.CONFLICT,
+        CHANGED_CODE,
+        "This view was changed by someone else. Reload to see it.",
+    )
 
 
 def _forbidden(message: str) -> HTTPException:
@@ -241,7 +250,16 @@ class ReportViewService:
             )
 
     async def _definition(self, user, workspace_id, form_id, raw: Dict[str, Any]) -> Dict[str, Any]:
-        """The definition validated as a query would, in the shape it is stored."""
+        """The definition validated as a query would, in the shape it is stored.
+        A card's ``title`` is a request-only caption: a stored view does not hold one
+        (a name chosen by a person would have to be reviewed like the view's own)."""
+        cards = raw.get("cards")
+        if isinstance(cards, list):
+            for index, card in enumerate(cards):
+                if isinstance(card, dict) and card.get("title") is not None:
+                    raise invalid_definition(
+                        f"cards.{index}.title: a saved view does not hold a card title."
+                    )
         checked = await self._reports.check_definition(
             user, workspace_id, form_id, json.dumps(raw).encode()
         )
@@ -341,6 +359,9 @@ class ReportViewService:
             )
         if not changed:
             return await self._one_dto(view, user, workspace_id, form_id)
+        if request.revision != view.revision:
+            # a stale request writes nothing, and leaves no audit entry for a change that did not happen
+            raise _changed()
         involved = SCOPE_FORM in (before_scope, after_scope)
         if involved:
             if before_scope == SCOPE_PRIVATE:
@@ -357,14 +378,17 @@ class ReportViewService:
         try:
             stored = await self._repo.replace(updated, request.revision)
         except ViewChanged:
-            raise _error(
-                HTTPStatus.CONFLICT,
-                CHANGED_CODE,
-                "This view was changed by someone else. Reload to see it.",
-            ) from None
+            raise _changed() from None
         return await self._one_dto(stored, user, workspace_id, form_id)
 
-    async def delete(self, user: User, workspace_id: RecordId, form_id: str, view_id: str) -> None:
+    async def delete(
+        self,
+        user: User,
+        workspace_id: RecordId,
+        form_id: str,
+        view_id: str,
+        revision: Optional[int] = None,
+    ) -> None:
         await self._reports.authorize(user, workspace_id, form_id=form_id)
         view = await self._visible(user, workspace_id, form_id, view_id)
         mine = view.owner_id == str(user.id)
@@ -374,15 +398,16 @@ class ReportViewService:
             )
             if not mine and not await self._may(user, Permission.MEMBERS_MANAGE, workspace_id, None):
                 raise _forbidden("Only the person who made a view of the form, an owner or an admin can delete it.")
+            if revision is not None and revision != view.revision:
+                # the person saw an older view: nothing is deleted, nothing is audited
+                raise _changed()
             await audit.record_or_refuse(
                 self._audit, REPORT_VIEW_DELETED, workspace_id, user,
                 form_id=str(form_id), view_id=str(view.id), view_scope=view.scope,
             )
+        if revision is not None and revision != view.revision:
+            raise _changed()
         try:
             await self._repo.delete_view(workspace_id, form_id, view.id, view.revision)
         except ViewChanged:
-            raise _error(
-                HTTPStatus.CONFLICT,
-                CHANGED_CODE,
-                "This view was changed by someone else. Reload to see it.",
-            ) from None
+            raise _changed() from None

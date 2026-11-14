@@ -3,7 +3,7 @@
 # Such a stack never runs deploy.sh. It changes the image tags in its stack, restarts, and the services
 # migrate themselves (DB_AUTO_MIGRATE=true). This check does the same:
 #
-#   (1) old     a stack of the previous release (V4 default v4.3.0): its own docker-compose.deployment.yml
+#   (1) old     a stack of the previous release (V4 default v4.4.0): its own docker-compose.deployment.yml
 #               (git show <tag>), its published images, installed with ITS deploy.sh (first install only),
 #               then seeded: a workspace and a user, a form with six questions and three responses (through
 #               the API), one waiting and one finished 4.1-style action job that carries its payload
@@ -14,6 +14,7 @@
 #               queues   e webhooks (the SSRF guard)   f drafts   g email action and respondent copy
 #               h the actions executor role's restriction: recorded after the bare swap (INFO), then in force after
 #                 the documented step (ensure-jobs-exec-role.sh as superuser, python -m backend.jobs.schema)
+#               i 5.0: a report query answers (REPORTING_ENABLED); a 4th sign-in code mail to one mailbox in the hour is 429
 #
 #   scripts/upgrade-image-swap-check.sh [--keep]
 #
@@ -22,10 +23,10 @@
 # container, network, volume and image it created when it exits. Nothing else is touched.
 #
 # Parameters (environment):
-#   SWAP_CHECK_OLD_TAG=v4.3.0       the release the stack starts on (files from `git show <tag>:...`, images
+#   SWAP_CHECK_OLD_TAG=v4.4.0       the release the stack starts on (files from `git show <tag>:...`, images
 #                                   bettercollected/{backend,auth,webapp}:<tag>)
 #   SWAP_CHECK_CANDIDATE=build      (default) images built from this checkout: bc-swapcheck-{backend,auth,
-#                                   webapp}:local. Or a published tag, e.g. v4.4.0: bettercollected/*:<tag>
+#                                   webapp}:local. Or a published tag, e.g. v5.0.0: bettercollected/*:<tag>
 #   SWAP_CHECK_WEBAPP=build         (default with =build) | an image name for the webapp only
 #   SWAP_CHECK_REUSE_IMAGES=1       use bc-swapcheck-*:local images that already exist instead of building
 #   SWAP_CHECK_KEEP_IMAGES=1        do not remove the images this run built or pulled
@@ -44,7 +45,7 @@ keep=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --keep) keep=1; shift ;;
-    -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
     *) echo "unknown option: $1 (see --help)" >&2; exit 2 ;;
   esac
 done
@@ -54,7 +55,7 @@ for tool in docker curl openssl script uv git; do
 done
 docker compose version >/dev/null 2>&1 || { echo "docker compose v2 is required" >&2; exit 2; }
 
-old_tag="${SWAP_CHECK_OLD_TAG:-v4.3.0}"
+old_tag="${SWAP_CHECK_OLD_TAG:-v4.4.0}"
 candidate="${SWAP_CHECK_CANDIDATE:-build}"
 min_free_mb="${SWAP_CHECK_MIN_FREE_MB:-2500}"
 git -C "$root" rev-parse -q --verify "refs/tags/$old_tag" >/dev/null || { echo "the tag $old_tag is not in this checkout" >&2; exit 2; }
@@ -390,7 +391,7 @@ write_root_env() { # operator values only; deploy.sh generates the rest
 
 # --- the swap: what an operator edits in the stack -----------------------------------------------------------------
 # Image tags only, in the compose file itself (every `image:` of a first-party service). The tag is written
-# either as is (`backend:v4.2.0`) or, from 4.3 on, as a default (`backend:${BC_IMAGE_TAG:-v4.3.0}`).
+# either as is (`backend:v4.2.0`) or, from 4.3 on, as a default (`backend:${BC_IMAGE_TAG:-v4.4.0}`).
 swap_images() {
   local file="$S_DIR/docker-compose.deployment.yml"
   local tag="(\\\$\\{BC_IMAGE_TAG:-${old_tag//./\\.}\\}|${old_tag//./\\.})"
@@ -440,6 +441,7 @@ services:
       API_KEY_ROLES_ENABLED: "true"
       FORM_PROMOTION_ENABLED: "true"
       TOTP_ENABLED: "true"
+      REPORTING_ENABLED: "true"
 $mail
   jobs-worker:
     environment:
@@ -605,7 +607,14 @@ checks_a_to_d() {
     "$(psql_app "select count(*) from information_schema.tables where table_schema='app' and table_name in ('user_totp_factors','user_recovery_codes','member_groups','member_group_members','form_access_grants','scim_group_team_links')")"
   expect "the generated columns of 0038 and 0039 exist (audit form_id, user_id, target_user_id; scim_users.user_id)" "4" \
     "$(psql_app "select count(*) from information_schema.columns where table_schema='app' and ((table_name='workspace_audit_events' and column_name in ('form_id','user_id','target_user_id')) or (table_name='scim_users' and column_name='user_id'))")"
-  check "a service log shows the revisions applied up to $expect_head" grep -qE "DB_AUTO_MIGRATE: schema 'app' migrated, applied .*$expect_head" "$work/both.log"
+  if [ "$OLD_VERSION" = "$expect_head" ]; then
+    # 5.0 adds no migration: the old release is already at the head, so the swap applies nothing
+    check "a service log shows nothing to apply: the old release was already at $expect_head" \
+      grep -qE "DB_AUTO_MIGRATE: schema 'app': nothing to apply|schema 'app' at head \($expect_head\)" "$work/both.log"
+    check "no service applied a revision on the swap" bash -c '! grep -q "DB_AUTO_MIGRATE: schema .app. migrated, applied" "$1"' _ "$work/both.log"
+  else
+    check "a service log shows the revisions applied up to $expect_head" grep -qE "DB_AUTO_MIGRATE: schema 'app' migrated, applied .*$expect_head" "$work/both.log"
+  fi
   grep -hE "DB_AUTO_MIGRATE: schema 'app'|schema 'app' at head" "$work/backend.log" "$work/jobs-worker.log" | cut -c1-200 | sed 's/^/        /'
 
   section "(3b) the old action jobs are scrubbed"
@@ -699,6 +708,9 @@ S(("0.0.0.0", 443), H).serve_forever()' >/dev/null 2>&1 || { bad "the test recei
 
 check_f_drafts() { section "(3f) drafts"; absorb < <(cl drafts); }
 check_g_email() { section "(3g) email action and the respondent's copy"; absorb < <(cl email); }
+# 5.0: the report query API (REPORTING_ENABLED is in the backend's override) and the per-mailbox limit of
+# sign-in code mails (3 an hour). Last, so the mailbox's budget is spent by this check only.
+check_i_release() { section "(3i) 5.0: a report query, the sign-in code limit"; absorb < <(cl release); }
 
 # --- go --------------------------------------------------------------------------------------------------------------
 OLD_VERSION=""; WAITING_ID=""; DONE_ID=""; SEED_IDS=""; OLD_COMPOSE_NORMAL=""; OLD_RUNNING=""; S_BACKEND=""; S_WEB=""
@@ -710,6 +722,7 @@ if part_old && part_swap; then
   check_e_webhook
   check_f_drafts
   check_g_email
+  check_i_release
 fi
 
 section "result"

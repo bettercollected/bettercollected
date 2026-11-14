@@ -189,7 +189,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
     };
 
     const isProPlan = useAppSelector(selectWorkspace).isPro;
-    const { can, saveDraftsEnabled } = useWorkspacePermissions();
+    const { can, saveDraftsEnabled, captchaEnabled } = useWorkspacePermissions();
     // owners hold workspace.billing, so the Pro upsell is theirs
     const isAdmin = can(WorkspacePermission.WORKSPACE_BILLING);
     const canEditForm = can(WorkspacePermission.FORM_EDIT);
@@ -450,6 +450,18 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                                             onCheckedChange={(checked) => patchSettings({ allowSaveDraft: checked }, form)}
                                         />
                                     </SettingRow>
+                                    {/* The automatic spam check: offered only while the server has it switched on (CAPTCHA_ENABLED); on unless turned off here. */}
+                                    {captchaEnabled && (
+                                        <SettingRow title={t('FORM_PAGE.SETTINGS.CAPTCHA.TITLE')} description={t('FORM_PAGE.SETTINGS.CAPTCHA.DESCRIPTION')}>
+                                            <Switch
+                                                data-umami-event="Spam Check Switch"
+                                                data-testid="captcha-switch"
+                                                checked={form?.settings?.captchaEnabled !== false}
+                                                disabled={!canEditForm}
+                                                onCheckedChange={(checked) => patchSettings({ captchaEnabled: checked }, form)}
+                                            />
+                                        </SettingRow>
+                                    )}
                                 </div>
                             </div>
                         )}
