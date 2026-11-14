@@ -5,8 +5,9 @@ Revises: 0039
 Create Date: 2026-11-12
 
 Expand only (behind ``REPORTING_ENABLED``; nothing reads or writes the table
-while it is off, except the clean-up that deletes a form's or a removed member's
-rows, and a release before this one ignores it):
+while it is off, except the clean-up that deletes the rows of a deleted form,
+workspace, account or removed member whatever the switch says, and a release
+before this one ignores it):
 
 * ``form_report_views``: a saved view of a form's report, one row each: its
   ``name``, its ``scope`` (``private``: its owner's notebook, or ``form``: for

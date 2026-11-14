@@ -112,19 +112,39 @@ async def test_the_saved_view_routes_answer_422_and_never_touch_their_table(clie
         assert (await connection.execute(text("SELECT count(*) FROM app.form_report_views"))).scalar_one() == 0
 
 
-async def test_deleting_a_form_or_removing_a_member_leaves_the_views_table_alone_while_it_is_off(
-    client, workspace
+async def test_what_a_deletion_removes_it_removes_with_the_switch_off_and_nothing_else_touches_the_table(
+    client, workspace, monkeypatch
 ):
+    """Views made while it was on do not outlive their form, their member, their
+    account or their workspace because it was turned off since: those four deletes
+    run whatever the switch says. They are the only statements on the table."""
     from tests.app.form_access.helpers import add_member
 
-    form = await make_form(workspace, survey_fields())
+    monkeypatch.setattr(settings.reporting, "ENABLED", True)
     leaver = await add_member(workspace, "EDITOR")
+    gone_account = await add_member(workspace, "EDITOR")
+    forms = [await make_form(workspace, survey_fields(), title=f"Form {n}") for n in range(3)]
+    body = {"name": "Overview", "scope": "private", "definition": definition(card("n", "tile"))}
+    for form, user in ((forms[0], leaver), (forms[1], gone_account), (forms[2], testUser)):
+        made = await client.post(report_url(workspace, form, "views"), json=body, cookies=cookies(user))
+        assert made.status_code == 201, made.text
+    monkeypatch.setattr(settings.reporting, "ENABLED", False)
+
+    async def left():
+        async with container.pg_engine().connect() as connection:
+            return (await connection.execute(text("SELECT form_id FROM app.form_report_views"))).scalars().all()
+
+    assert len(await left()) == 3
     with statements() as seen:
         await container.member_removal_repo().remove(workspace.id, leaver.id, testUser.id)
+        await container.workspace_user_service().delete_user_form_all_workspaces(gone_account)
         await container.workspace_form_service().delete_form_from_workspace(
-            workspace.id, form.form_id, testUser
+            workspace.id, forms[2].form_id, testUser
         )
-    assert seen and not [s for s in seen if "form_report_views" in s]
+        await container.workspace_user_service().forget_access_of_workspaces([workspace.id])
+    assert await left() == []
+    on_table = [s for s in seen if "form_report_views" in s]
+    assert on_table and all(s.lstrip().startswith("DELETE FROM app.form_report_views") for s in on_table), on_table
 
 
 async def test_nothing_is_decrypted_while_it_is_off(client, workspace, monkeypatch):

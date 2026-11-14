@@ -3535,6 +3535,8 @@
     "VIEW_SAVE": "Save view",
     "VIEW_SAVE_AS": "Save as new view",
     "VIEW_UPDATE": "Update view",
+    "VIEW_UPDATE_BLOCKED_one": "{{count}} card of this view cannot be shown to you, so updating it from here would remove it. Save this report as a new view instead.",
+    "VIEW_UPDATE_BLOCKED_other": "{{count}} cards of this view cannot be shown to you, so updating it from here would remove them. Save this report as a new view instead.",
     "VIEW_DETAILS": "Rename or share",
     "VIEW_DELETE": "Delete view",
     "VIEW_NAME": "Name",

@@ -111,7 +111,6 @@ from backend.app.schemas.response_revision import RevisionEditor
 from backend.app.schemas.standard_form_response import DeletionRequestStatus
 from backend.app.schemas.workspace_audit_event import FORM_DELETED, FORM_PUBLISHED
 from backend.app.services.form_access import audit as lifecycle_audit
-from backend.app.services.reporting.mode import reporting_enabled
 from backend.app.services.response_revisions import audit as response_audit
 from backend.app.services.response_revisions.mode import (
     ensure_enabled as ensure_response_revisions_enabled,
@@ -678,8 +677,8 @@ class WorkspaceFormService:
         if self._form_access_cleanup is not None:
             # the grants on it, whatever the switch says
             await self._form_access_cleanup.forget_form(workspace_id, form_id)
-        if self._report_view_repo is not None and reporting_enabled():
-            # its saved report views (while reports are on: off, nothing touches their table)
+        if self._report_view_repo is not None:
+            # its saved report views, whatever the switch says
             await self._report_view_repo.delete_for_form(workspace_id, form_id)
         if self._registration_service is not None:
             # the form's registration and delivery records, whatever the switch says
@@ -815,7 +814,7 @@ class WorkspaceFormService:
         await self.form_service.delete_forms(form_ids=form_ids)
         if self._registration_service is not None and form_ids:
             await self._registration_service.delete_for_forms(list(form_ids))
-        if self._report_view_repo is not None and form_ids and reporting_enabled():
+        if self._report_view_repo is not None and form_ids:
             await self._report_view_repo.delete_for_forms(list(form_ids))
         if self._webhook_service is not None and form_ids:
             await self._webhook_service.delete_for_forms(list(form_ids))

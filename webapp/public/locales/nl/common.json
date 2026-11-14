@@ -3535,6 +3535,8 @@
     "VIEW_SAVE": "Weergave opslaan",
     "VIEW_SAVE_AS": "Opslaan als nieuwe weergave",
     "VIEW_UPDATE": "Weergave bijwerken",
+    "VIEW_UPDATE_BLOCKED_one": "{{count}} kaart van deze weergave kan niet aan u worden getoond, dus bijwerken vanaf hier zou haar verwijderen. Sla dit rapport op als nieuwe weergave.",
+    "VIEW_UPDATE_BLOCKED_other": "{{count}} kaarten van deze weergave kunnen niet aan u worden getoond, dus bijwerken vanaf hier zou ze verwijderen. Sla dit rapport op als nieuwe weergave.",
     "VIEW_DETAILS": "Hernoemen of delen",
     "VIEW_DELETE": "Weergave verwijderen",
     "VIEW_NAME": "Naam",

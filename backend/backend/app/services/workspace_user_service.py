@@ -30,8 +30,11 @@ class WorkspaceUserService:
         workspace_repo: PostgresWorkspaceRepository,
         form_access_cleanup=None,
         api_key_lifecycle=None,
+        report_view_repo=None,
     ):
         self.workspace_user_repository = workspace_user_repository
+        # saved report views: an account's private ones go with it, a workspace's with it
+        self._report_view_repo = report_view_repo
         self.workspace_repo = workspace_repo
         # grants and team memberships go with a membership
         # (services/form_access/cleanup.py)
@@ -215,6 +218,9 @@ class WorkspaceUserService:
             # the account is gone: so are its grants and teams, in every
             # workspace it was in
             await self._form_access_cleanup.forget_account(user.id)
+        if self._report_view_repo is not None:
+            # their private report views, in every workspace, whatever the switch says
+            await self._report_view_repo.delete_private_of_account(user.id)
         return deleted
 
     async def forget_access_of_workspaces(self, workspace_ids: List[RecordId]):
@@ -224,6 +230,9 @@ class WorkspaceUserService:
         good)."""
         if self._form_access_cleanup is not None:
             await self._form_access_cleanup.forget_workspaces(workspace_ids)
+        if self._report_view_repo is not None:
+            # every saved report view of them, also on a form that stays in another workspace (#768)
+            await self._report_view_repo.delete_for_workspaces(workspace_ids)
         if self._api_key_lifecycle is not None:
             await self._api_key_lifecycle.revoke_workspace_keys(workspace_ids)
 

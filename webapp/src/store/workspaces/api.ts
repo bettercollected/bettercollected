@@ -390,8 +390,9 @@ export const workspacesApi = createApi({
             query: ({ workspaceId, formId, viewId, ...body }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/views/${pathSegment(viewId)}`, method: 'PATCH', body }),
             invalidatesTags: [REPORT_VIEWS_TAG]
         }),
-        deleteReportView: builder.mutation<null, { workspaceId: string; formId: string; viewId: string }>({
-            query: ({ workspaceId, formId, viewId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/views/${pathSegment(viewId)}`, method: 'DELETE' }),
+        deleteReportView: builder.mutation<null, { workspaceId: string; formId: string; viewId: string; revision?: number }>({
+            // the revision the person saw: a view changed since is refused (409) instead of deleted
+            query: ({ workspaceId, formId, viewId, revision }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/views/${pathSegment(viewId)}${revision ? `?revision=${revision}` : ''}`, method: 'DELETE' }),
             invalidatesTags: [REPORT_VIEWS_TAG]
         }),
         queryReport: builder.query<ReportResult, { workspaceId: string; formId: string; definition: ReportDefinition }>({

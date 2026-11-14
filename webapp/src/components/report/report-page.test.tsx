@@ -402,6 +402,25 @@ describe('saved views on the page', () => {
         expect(screen.getByRole('button', { name: 'Update view' })).toBeInTheDocument();
     });
 
+    it('does not offer to update a view that holds a card this person cannot have answered, only to save a new one', () => {
+        const gone = { id: 'gone', kind: 'bar' as const, dimension: { field: 'q:not-visible-to-me' }, measures: [{ agg: 'count' as const }] };
+        const base = saved();
+        const withHidden = saved({ definition: { ...base.definition, cards: [...base.definition.cards, gone] } });
+        withViews(withHidden);
+        nav.search = `view=${VIEW_ONE}&who=known&version=2&cards=${cardsParam(withHidden.definition.cards)}`;
+        const { rerender } = renderPage();
+        // the cards the person can have answered are asked; the one they cannot is not
+        expect(lastAsked().cards.map((card) => card.id)).toEqual(['team', 'total']);
+        expect(screen.queryByRole('button', { name: 'Update view' })).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Remove Which team are you in?' }));
+        rerender(<ReportPage />);
+        const update = screen.getByRole('button', { name: 'Update view' });
+        expect(update).toBeDisabled();
+        expect(update).toHaveAccessibleDescription(/1 card of this view cannot be shown to you/);
+        expect(screen.getByRole('button', { name: 'Save as new view' })).toBeEnabled();
+        expect(server.update).not.toHaveBeenCalled();
+    });
+
     it('also notices a changed filter', () => {
         withViews(saved());
         nav.search = `view=${VIEW_ONE}&who=known&version=2&cards=${cardsParam(saved().definition.cards)}`;

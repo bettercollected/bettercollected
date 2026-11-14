@@ -152,8 +152,8 @@ reporting_off` before anything else while the switch is off.
 | `GET /views` | the views the caller may open (the form's own and their private ones), each with its definition, `mine`, `ownerName` (null for their own, and for a maker who is no longer a member), `revision`, `canEdit` and `canDelete`; `canShare` and the limits |
 | `POST /views` | `{name, scope?: "private" \| "form", definition}`, 201 |
 | `GET /views/{view_id}` | one view; 404 `view_not_found` for a missing one and for another person's private one |
-| `PATCH /views/{view_id}` | `{revision, name?, scope?, definition?}`; 409 `view_changed` when `revision` is not the current one |
-| `DELETE /views/{view_id}` | 204 |
+| `PATCH /views/{view_id}` | `{revision, name?, scope?, definition?}`; 409 `view_changed` when `revision` is not the current one; checked before the audit entry, so a stale request leaves none |
+| `DELETE /views/{view_id}[?revision=n]` | 204; with `revision`, 409 `view_changed` when the view is no longer at it (checked before anything is audited or deleted) |
 
 * **Private** (the default): the owner's notebook. Another member's private view is a 404 to
   everyone, an owner or admin of the workspace included. At most 20 per person and form.
@@ -163,7 +163,9 @@ reporting_off` before anything else while the switch is off.
   makes it private again. At most 50 per form. There is no public link and no minimum group size.
 * **What is stored** is the definition as a query would accept it for this caller (`422` with the
   query's codes otherwise, plus `invalid_view` for the request itself): question and option ids,
-  enums, numbers and dates, never an answer, an identity or text a respondent wrote. A view is
+  enums, numbers and dates, never an answer, an identity or text a respondent wrote. A card's
+  `title` is a caption of one request, not part of a view: a stored definition with one is a
+  `422 invalid_definition`. A view is
   validated again every time it runs, because the page posts its definition to `/query`: a form
   change that makes a card invalid shows on the card. The name is text the staff member typed;
   it is shown, and never logged or audited. A name is used once per scope (and owner, for a
@@ -171,10 +173,12 @@ reporting_off` before anything else while the switch is off.
 * **Audit** (docs/audit-log.md): what the whole form shares is written before it is done, ids and
   enums only: a form view created, changed or deleted (by anyone), a view shared or made
   private again. A private view's creation, change and deletion are not.
-* **Clean-up.** While the switch is on, deleting a form deletes its views and removing a member
-  deletes their private views (the views they made for the form stay, as a former member's).
-  While it is off nothing reads or writes the table, so the views of a form or a member deleted
-  in that time stay in it, unreachable.
+* **Clean-up**, whatever the switch says (views made while it was on do not outlive what they
+  belong to): deleting a form deletes its views; removing a member, or deleting an account,
+  deletes their private views (the views they made for a form stay, as a former member's);
+  deleting a workspace deletes every view of it, also on a form that stays because another
+  workspace holds it. These deletes are the only statements on the table while the switch is
+  off: no route, no read and no write otherwise.
 
 ## How it runs
 

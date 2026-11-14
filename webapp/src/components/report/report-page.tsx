@@ -221,6 +221,7 @@ export default function ReportPage() {
                     modified={modified}
                     definition={definition}
                     canSave={asked.length > 0}
+                    hiddenCards={cards.length - asked.length}
                     onOpen={openView}
                     onMark={markView}
                     onReload={() => refetchViews()}

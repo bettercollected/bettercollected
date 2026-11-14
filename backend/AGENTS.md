@@ -1649,8 +1649,9 @@ any query. Rules to keep:
   `ReportService.check_definition` validated as a query would be; never store what a query would refuse. `form`-scope writes
   need `form.edit`, deleting another person's needs `members.manage`. Changes carry the `revision` they were read at (409
   `view_changed`). What the form shares is audited before it is done (`REPORT_EVENTS`, ids and enums, never the name); private
-  views are not. While the switch is off no route, form delete or member removal touches the table (the budget tests count
-  statements): keep it so.
+  views are not. While the switch is off no route reads or writes the table; the clean-up deletes (form, member, account,
+  workspace) run whatever the switch says and are the only statements on it (the budget tests count them): keep it so.
+  A stale `revision` is refused before the audit entry; a card `title` is never stored in a view.
 
 ## Copying a form to another workspace (`FORM_PROMOTION_ENABLED`, docs/environments.md)
 

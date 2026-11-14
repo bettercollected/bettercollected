@@ -624,6 +624,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
         form_access_cleanup=form_access_cleanup,
         api_key_lifecycle=api_key_lifecycle,
+        report_view_repo=report_view_repo,
     )
 
     copy_recipient_service: CopyRecipientService = providers.Singleton(
