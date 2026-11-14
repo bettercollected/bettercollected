@@ -99,7 +99,7 @@ its pressure.
 
 | Pressure (kept in this process's memory, never in the database) | Adds |
 |---|---|
-| challenges issued to the client in 10 minutes: 6 free, then one per doubling | up to +3 |
+| challenges issued to the client in 10 minutes: 30 free, then one per doubling | up to +2 |
 | 3 or more failed checks of the client in 10 minutes | +2 |
 | the form's submits in the last minute (this process): over 30, over 120 | +1, +2 |
 | the operator's `API_CAPTCHA_DIFFICULTY_BOOST` (0 to 4), for an attack in progress | up to +4 |
@@ -109,8 +109,15 @@ the shipped solver under CPU throttling, 17 bits takes about 1.5 s (median) on a
 a low-end one; 20 bits is about 12 s and 20 s, inside the solver's 25 s budget. 21 bits would be about 23 s and 40 s,
 past it.
 
-The challenge route itself is limited to 60 a minute per client (429 `rate_limited` with
-`Retry-After`). A client that is not known is neither counted nor limited there.
+Many people can share one address (an office, a school), so the free count is generous and the
+pressure from challenges is small; what still holds a flood back is the base difficulty, the
+pressure from failed checks, and the limit below.
+
+The challenge route itself is limited to 300 a minute per client and purpose (429
+`rate_limited` with `Retry-After`). A client that is not known is neither counted nor limited
+there. Up to 512 timestamps are kept per client so that this count can reach the limit, for at most
+10,000 clients per counter in a process; past that the least recently seen client is forgotten,
+which only lowers its pressure back to the base difficulty (a proof is still required).
 
 The page solves one challenge for one submit: nothing is solved ahead after a submit
 and nothing on a timer, so an idle tab does no work. If the check was switched on while the
