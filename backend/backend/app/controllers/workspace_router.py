@@ -10,7 +10,7 @@ from starlette.requests import Request
 
 from backend.app.container import container
 from backend.app.utils.client_ip import limit_client_ip
-from backend.app.services.respondent_limits import fail_open
+from backend.app.services.respondent_limits import fail_closed
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.workspace_permissions_dto import WorkspacePermissionsDto
 from backend.app.services.address_lookup.mode import address_lookup_enabled
@@ -426,10 +426,11 @@ class WorkspaceRouter(Routable):
         # never depends on whether it has an account (services/respondent_limits).
         # A workspace that does not exist mails nothing (404 below): not counted
         if await container.workspace_repo().find_by_id(workspace_id) is not None:
-            await fail_open(
+            await fail_closed(
                 lambda: container.respondent_limits().code_mail(
                     limit_client_ip(request), receiver_email, locale=locale
-                )
+                ),
+                locale=locale,
             )
         return await self.workspace_service.send_otp_for_workspace(
             workspace_id, receiver_email, locale=locale

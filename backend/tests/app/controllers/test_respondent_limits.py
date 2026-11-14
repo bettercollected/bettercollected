@@ -834,14 +834,22 @@ class TestSubmitSetting:
         await limiter.submit("2001:db8:1:3::1", "w", "f")  # another /64
 
 
-class TestFailOpen:
-    """A limiter that errors (lock timeout, database down) lets the request
-    through; only a real 429 refuses. Nothing personal is logged."""
+class TestLimiterFailure:
+    """A limiter that errors (lock timeout, pool timeout, database down): the
+    submit fails open (the request goes on); the sign-in code routes fail
+    closed (503, Retry-After 60, no mail), the instance breaker included. Only
+    a real 429 is a 429. Nothing personal is logged."""
 
     @staticmethod
-    def _broken(monkeypatch):
-        async def boom(*args, **kwargs):
-            raise RuntimeError("lock timeout on rate_limit_counters for secret.person@example.com")
+    def _broken(monkeypatch, only_scope=None):
+        real = container.rate_limiter().hit
+
+        async def boom(scope, *args, **kwargs):
+            if only_scope is None or scope == only_scope:
+                raise RuntimeError(
+                    "lock timeout on rate_limit_counters for secret.person@example.com"
+                )
+            return await real(scope, *args, **kwargs)
 
         monkeypatch.setattr(container.rate_limiter(), "hit", boom)
 
@@ -851,36 +859,88 @@ class TestFailOpen:
         sink = logger.add(lambda m: lines.append(str(m)), level="WARNING")
         return lines, sink
 
-    async def test_a_failing_limiter_lets_the_workspace_code_through(
+    @staticmethod
+    def _assert_unavailable(response, lang="en"):
+        assert response.status_code == 503, response.text
+        assert response.headers["Retry-After"] == "60"
+        body = response.json()
+        assert body["code"] == "rate_limiter_unavailable" and body["retry_after"] == 60
+        if lang == "nl":
+            assert body["message"].startswith("Inlogcodes zijn tijdelijk")
+        else:
+            assert body["message"].startswith("Sign-in codes are temporarily")
+        assert "secret" not in response.text and "example.com" not in response.text
+
+    async def test_a_failing_limiter_refuses_the_workspace_code_with_503(
         self, client: AsyncClient, workspace, monkeypatch
     ):
         self._broken(monkeypatch)
         lines, sink = self._logged()
+        sent = AsyncMock(return_value=SENT)
         try:
-            with _mailing():
-                ok = await _workspace_code(client, workspace, "secret.person@example.com")
+            with patch("common.services.http_client.HttpClient.get", sent):
+                refused = await _workspace_code(
+                    client, workspace, "secret.person@example.com"
+                )
         finally:
             logger.remove(sink)
-        assert ok.status_code == 200, ok.text
+        self._assert_unavailable(refused)
+        assert sent.await_count == 0, "no mail without a counted request"
         text = "".join(lines)
-        assert "Rate limiter failed" in text and "RuntimeError" in text
+        assert "code request refused" in text and "RuntimeError" in text
         assert "secret" not in text and "example.com" not in text
         assert "203.0.113.7" not in text
 
-    async def test_a_failing_limiter_lets_the_creator_code_through(
+    async def test_a_failing_limiter_refuses_the_creator_code_with_503(
         self, client: AsyncClient, monkeypatch
     ):
         self._broken(monkeypatch)
-        with _mailing():
-            ok = await _creator_code(client, "x@example.com")
-        assert ok.status_code == 200, ok.text
+        sent = AsyncMock(return_value=SENT)
+        with patch("common.services.http_client.HttpClient.get", sent):
+            refused = await _creator_code(client, "x@example.com")
+            dutch = await _creator_code(client, "x@example.com", locale="nl")
+        self._assert_unavailable(refused)
+        self._assert_unavailable(dutch, "nl")
+        assert sent.await_count == 0
+
+    async def test_an_error_on_the_breaker_does_not_skip_it(
+        self, client: AsyncClient, workspace, monkeypatch
+    ):
+        """The per-client and per-mailbox counters work, the instance breaker's
+        counter fails (a pool timeout on its one row under a flood): no code."""
+        self._broken(monkeypatch, only_scope=limits.CODE_ALL_SCOPE)
+        sent = AsyncMock(return_value=SENT)
+        with patch("common.services.http_client.HttpClient.get", sent):
+            workspace_refused = await _workspace_code(client, workspace, "x@example.com")
+            creator_refused = await _creator_code(client, "y@example.com")
+        self._assert_unavailable(workspace_refused)
+        self._assert_unavailable(creator_refused)
+        assert sent.await_count == 0
+
+    async def test_a_failing_container_refuses_the_code_with_503(
+        self, client: AsyncClient, workspace, monkeypatch
+    ):
+        def broken():
+            raise RuntimeError("no limiter")
+
+        monkeypatch.setattr(container, "respondent_limits", broken)
+        sent = AsyncMock(return_value=SENT)
+        with patch("common.services.http_client.HttpClient.get", sent):
+            refused = await _creator_code(client, "x@example.com")
+        self._assert_unavailable(refused)
+        assert sent.await_count == 0
 
     async def test_a_failing_limiter_lets_the_submit_through(
         self, client: AsyncClient, workspace, published_form, monkeypatch
     ):
         self._broken(monkeypatch)
-        sent = await TestSubmit._post(client, workspace, published_form.form_id)
+        lines, sink = self._logged()
+        try:
+            sent = await TestSubmit._post(client, workspace, published_form.form_id)
+        finally:
+            logger.remove(sink)
         assert sent.status_code != 429 and sent.status_code < 500, sent.text
+        assert "request let through" in "".join(lines)
 
     async def test_a_failing_container_lets_the_submit_through(
         self, client: AsyncClient, workspace, published_form, monkeypatch
@@ -901,7 +961,7 @@ class TestFailOpen:
             refused = await _workspace_code(client, workspace, "x@example.com")
         _assert_rate_limited(refused)
 
-    async def test_fail_open_passes_a_refusal_and_swallows_the_rest(self):
+    async def test_the_guards_pass_a_refusal_and_handle_the_rest(self):
         from backend.app.services.rate_limiter import Verdict
 
         async def refuse():
@@ -910,7 +970,12 @@ class TestFailOpen:
         async def fail():
             raise ValueError("x")
 
-        with pytest.raises(Exception) as refused:
-            await limits.fail_open(refuse)
-        assert refused.value.status_code == 429
+        for guard in (limits.fail_open, limits.fail_closed):
+            with pytest.raises(Exception) as refused:
+                await guard(refuse)
+            assert refused.value.status_code == 429
         await limits.fail_open(fail)
+        with pytest.raises(Exception) as unavailable:
+            await limits.fail_closed(fail)
+        assert unavailable.value.status_code == 503
+        assert unavailable.value.headers == {"Retry-After": "60"}

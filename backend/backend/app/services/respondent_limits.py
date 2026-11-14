@@ -57,9 +57,18 @@ turns the per-client limits on behind a proxy.
 
 Every limit above is a live setting, read on each request; 0 turns it off.
 
-A limiter that fails (a database error, a lock timeout) never fails the request:
-``fail_open`` logs the error class, nothing else, and lets it through. A real
-429 is still a 429.
+A limiter that fails (a database error, a lock timeout, a pool timeout) is
+handled by what the route needs:
+
+* the response submit fails OPEN (``fail_open``): the request goes on, the error
+  class is logged;
+* the sign-in code routes fail CLOSED (``fail_closed``): 503 with
+  ``Retry-After: 60``, the error class is logged, no mail is sent. They need the
+  database to send a code anyway, and the instance breaker runs in the same
+  check: under a flood, a pool timeout on its one counter row is exactly when
+  it is needed, so an error must not skip it.
+
+A real 429 is still a 429 on both.
 
 Not covered here on purpose: the Submissions API (a key, its own limits in
 ``public_api/auth.py``) calls the submit service directly and never passes
@@ -70,7 +79,6 @@ with ``Retry-After`` (seconds to the end of the window). Nothing here logs an
 address or a client.
 """
 
-import ipaddress
 import unicodedata
 from http import HTTPStatus
 from typing import Awaitable, Callable, Optional
@@ -81,7 +89,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.services.rate_limiter import FixedWindowRateLimiter, Verdict
 from backend.config import settings  # noqa: F401  (builds the settings and the live() groups)
 from common.settings.loader import live
-from common.utils.client_ip import parse_address
+from common.utils.client_ip import rate_limit_key
 
 HOUR = 3600
 MINUTE = 60
@@ -138,13 +146,8 @@ def too_many(verdict: Verdict, locale: Optional[str] = None) -> HTTPException:
 def client_key(client: Optional[str]) -> str:
     """The key a client address is counted under on these routes: an IPv4
     address as is, an IPv6 address by its /64 (one subscriber or device);
-    "unknown" when there is none."""
-    address = parse_address(client)
-    if address is None:
-        return _UNKNOWN
-    if address.version == 6:
-        return str(ipaddress.ip_network(f"{address}/64", strict=False))
-    return str(address)
+    "unknown" when there is none (``common.utils.client_ip.rate_limit_key``)."""
+    return rate_limit_key(client)
 
 
 def address_limit_key(address: str) -> str:
@@ -244,8 +247,8 @@ async def fail_open(check: Callable[[], Awaitable[None]]) -> None:
     """Run a limit check; a refusal (HTTPException, the 429) goes on, but a
     failure of the limiter itself (database error, lock timeout, a broken
     container) lets the request through: a rate limit is a safeguard, not a
-    reason for a sign-in or a submit to fail. Only the error class is logged,
-    never the address or the client."""
+    reason for a submit to fail. Only the error class is logged, never the
+    address or the client."""
     try:
         await check()
     except HTTPException:
@@ -254,3 +257,37 @@ async def fail_open(check: Callable[[], Awaitable[None]]) -> None:
         logger.warning(
             "Rate limiter failed, request let through: {}", type(exc).__name__
         )
+
+
+UNAVAILABLE = "rate_limiter_unavailable"
+UNAVAILABLE_RETRY_AFTER = 60
+UNAVAILABLE_MESSAGES = {
+    "en": "Sign-in codes are temporarily unavailable. Please try again in a minute.",
+    "nl": "Inlogcodes zijn tijdelijk niet beschikbaar. Probeer het over een minuut opnieuw.",
+}
+
+
+async def fail_closed(
+    check: Callable[[], Awaitable[None]], locale: Optional[str] = None
+) -> None:
+    """Run the limit check of a sign-in code request; a refusal (the 429) goes
+    on, and a failure of the limiter itself (which includes the instance
+    breaker) answers 503 with ``Retry-After: 60`` instead of sending a code
+    that no limit counted. Only the error class is logged."""
+    try:
+        await check()
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 — fail closed
+        logger.warning(
+            "Rate limiter failed, code request refused: {}", type(exc).__name__
+        )
+        raise HTTPException(
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+            content={
+                "code": UNAVAILABLE,
+                "message": UNAVAILABLE_MESSAGES[_language(locale)],
+                "retry_after": UNAVAILABLE_RETRY_AFTER,
+            },
+            headers={"Retry-After": str(UNAVAILABLE_RETRY_AFTER)},
+        ) from None

@@ -16,9 +16,21 @@ so no address and no client address is stored.
 All four are read on every request (no restart): change them in the settings store or
 the environment, and the next request uses the new value.
 
-A limiter that fails (a database error, a lock timeout on the counters) never fails the
-request: the error class is logged as a warning ("Rate limiter failed, request let
-through") and the request goes on. Only a real refusal is a 429.
+## When the limiter itself fails
+
+A limiter that fails (a database error, a lock timeout or a pool timeout on the counters)
+is handled by what the route needs, and the error class is logged as a warning:
+
+- **Sign-in code routes fail closed.** The request answers `503` with `Retry-After: 60`
+  and no mail is sent ("Rate limiter failed, code request refused"). These routes need
+  the database to send a code anyway, and the circuit breaker runs in the same check:
+  under a flood, a timeout on its one counter is exactly when it is needed, so an error
+  must not skip it. Sign-in works again on the first request after the database recovers.
+- **The response submit fails open.** The submit goes on ("Rate limiter failed, request
+  let through"): losing a respondent's answer to a counter error is worse than one
+  unlimited request.
+
+A real refusal is still a `429` on both.
 
 A refusal is `429` with `{"code": "rate_limited", "message": ..., "retry_after": s}` and
 a `Retry-After` header, the same for an address that has an account and one that has

@@ -45,10 +45,12 @@ class PostgresRateLimitRepository(RecordRepository):
     row = RateLimitCounterRow
     document = RateLimitCounterDocument
 
-    # Expired counters (there is no TTL index in Postgres) are swept off the
-    # request path: at most once per SWEEP_EVERY_SECONDS in a process, a few
-    # bounded batches of SWEEP_BATCH rows, skipping rows another replica's
-    # sweep or request holds locked. A counter is never needed after its
+    # Expired counters (there is no TTL index in Postgres) are swept in bounded
+    # batches of SWEEP_BATCH rows, at most SWEEP_MAX_BATCHES of them, at most
+    # once per SWEEP_EVERY_SECONDS in a process, after a new counter was
+    # committed, skipping rows another replica's sweep or request holds locked.
+    # The request that crosses the interval awaits it (a few short deletes, not
+    # one per counter as before). A counter is never needed after its
     # expires_at, so nothing waits for the sweep and a failed sweep only logs.
     SWEEP_EVERY_SECONDS = 60
     SWEEP_BATCH = 500

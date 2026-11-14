@@ -11,7 +11,8 @@ class RateLimitCounterDocument(Record):
     window, so the record names no address. Kept until ``expires_at``, a
     window after its own ended."""
 
-    # the repository deletes expired counters whenever it starts a new one
+    # the repository sweeps expired counters in bounded batches, at most once a
+    # minute per process, after a new counter was committed
 
     hits: int = 0
     expires_at: dt.datetime
