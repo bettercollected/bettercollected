@@ -26,6 +26,17 @@ def easy_and_proxied(monkeypatch):
     monkeypatch.setattr(service, "pressure", Pressure())
 
 
+@pytest.fixture(autouse=True)
+def no_counts_waiting():
+    """The stats buffer is a process-wide singleton: counts a test left waiting
+    would show up in the next test of the same worker (an assertion that nothing
+    was counted then depends on the order the tests ran in)."""
+    stats = container.captcha_stats()
+    stats._waiting.clear()
+    yield
+    stats._waiting.clear()
+
+
 @pytest.fixture()
 def on(monkeypatch):
     monkeypatch.setattr(settings, "CAPTCHA_ENABLED", True)
