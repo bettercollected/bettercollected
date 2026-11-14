@@ -172,6 +172,8 @@ environment, whatever the tier.
 | `API_ADDRESS_LOOKUP_WINDOW_SECONDS` | rate_limits | backend | int 1..86400 |  | H | T1 | `60` |
 | `API_CAPTCHA_BASE_BITS_SUBMIT` | rate_limits | backend | int 14..20 |  | H | T1 | `17` |
 | `API_CAPTCHA_DIFFICULTY_BOOST` | rate_limits | backend | int 0..4 |  | H | T1 | `0` |
+| `API_CODE_MAIL_PER_ADDRESS_PER_HOUR` | rate_limits | backend | int 0..1e+06 |  | H | T1 | `3` |
+| `API_CODE_MAIL_PER_CLIENT_PER_HOUR` | rate_limits | backend | int 0..1e+06 |  | H | T1 | `60` |
 | `API_CODE_MAIL_PER_HOUR` | rate_limits | backend | int 0..1e+07 |  | H | T1 | `20000` |
 | `API_EDITOR_OPS_PER_WINDOW` | rate_limits | backend | int 0..1e+06 |  | H | T1 | `300` |
 | `API_EDITOR_OPS_WINDOW_SECONDS` | rate_limits | backend | int 1..86400 |  | H | T1 | `60` |
@@ -190,6 +192,7 @@ environment, whatever the tier.
 | `API_RECEIPT_MISSES_PER_WINDOW` | rate_limits | backend | int 0..1e+06 |  | H | T1 | `10` |
 | `API_RECEIPT_REQUESTS_PER_WINDOW` | rate_limits | backend | int 0..1e+06 |  | H | T1 | `60` |
 | `API_RECEIPT_WINDOW_SECONDS` | rate_limits | backend | int 1..86400 |  | H | T1 | `600` |
+| `API_SUBMIT_PER_CLIENT_FORM_PER_MINUTE` | rate_limits | backend | int 0..1e+06 |  | H | T1 | `30` |
 | `OPEN_FORMULIEREN_REGISTRATION` | registration | backend | enum on/off |  | R | T2 | `off` |
 | `API_FLOW_EVENTS_RETENTION_DAYS` | retention | backend | int 0..3650 |  | R | T2 | `395` |
 | `TOTP_ENABLED` | security | backend | bool |  | R | T2 | `false` |
