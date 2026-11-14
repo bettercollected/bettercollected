@@ -14,7 +14,7 @@ only reports pass/fail, timings and ids from the test workspace.
 |---|---|---|
 | 7 | Public endpoints answer | The web app's home page and `/api/config`, the API's `/providers`, the public API's OpenAPI document and the workspace lookup by name or id. Runs first; nothing else runs when it fails. |
 | 3 | Standing responses export and decrypt | Reads every response of the standing form through the public API (`responses:read`, the export scope) and compares each answer with the values it was given. A response that no longer decrypts reads as empty and fails the check: the canary for the keys and the response codec across releases. |
-| 1 | Sign-in with an emailed code | A new respondent account per run: the browser asks for a code for `<mailbox>+<run tag>@…` on the workspace's sign-in page, the suite reads the newest code mail to exactly that address and enters the code. Asked for once, never again in the same run. |
+| 1 | Sign-in with an emailed code | A new respondent account per run: the browser asks for a code for `<mailbox>+<run tag>@…` on the workspace's sign-in page, the suite reads the newest code mail to exactly that address and enters the code. Asked for once, never again in the same run. From 5.0 a mailbox gets at most 3 code mails an hour and the `+<run tag>` does not make a new one (see [Limits](#limits)). |
 | 2 | Create, publish, submit, read back | Creates a one-question form from a form spec document, publishes it, answers it in the browser as the signed-in respondent (sharing their email), and reads the response back through the API. |
 | 5 | Form on the custom domain | Opens that form at `https://<custom domain>/forms/<slug>` and waits for its title. |
 | 4 | Deletion request | The respondent asks for the response's deletion on the portal's submission page; staff (the API key) see it pending and decline it with a fixed reason; the respondent's deletion requests page and data then say "Not deleted: …", never "Deleted". |
@@ -227,6 +227,14 @@ replace it.
 
 ## Limits
 
+- **Three runs an hour, at most:** from 5.0 the sign-in code mail is limited
+  to 3 an hour per mailbox, and the address is folded before it is counted
+  (case, a `+tag` of the local part, the dots of a Gmail address). The run's
+  `<mailbox>+<run tag>` addresses are therefore all one mailbox, and each run
+  asks for one code, so a 4th run within the hour is refused with a 429 on its
+  sign-in step (`rate_limited`, with `Retry-After`). The schedule, when enabled, is
+  monthly, so this only matters for runs started by hand: after a refusal wait
+  for the `Retry-After` time instead of starting the run again.
 - **Google import while the mode is `on`:** the import runs with the stored
   Google connection of the account that connected it, so it needs a signed-in
   session of that account. The suite signs in only a new respondent per run
