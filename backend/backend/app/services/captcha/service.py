@@ -31,6 +31,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.services.captcha import challenge
 from backend.app.services.captcha.challenge import Refused
 from backend.app.services.captcha.pressure import Pressure
+from backend.app.services.captcha.stats import CaptchaStats
 from backend.app.services.rate_limiter import FixedWindowRateLimiter, Verdict
 from backend.app.services.respondent_limits import client_key, too_many
 from backend.config import (
@@ -82,24 +83,43 @@ class CaptchaService:
         rate_limiter: FixedWindowRateLimiter,
         pressure: Optional[Pressure] = None,
         clock: Callable[[], float] = time.time,
+        stats: Optional[CaptchaStats] = None,
     ):
         self._limiter = rate_limiter
         self.pressure = pressure or Pressure(clock)
+        # daily counts by outcome (stats.py); without it only the log line is written
+        self.stats = stats
 
     # -- difficulty
 
     def difficulty(
-        self, client: str, form_id: str, signed_in: bool, count: bool = True
+        self,
+        client: str,
+        form_id: str,
+        signed_in: bool,
+        count: bool = True,
+        purpose: str = "submit",
     ) -> int:
         """The bits to ask of this client now. ``client`` is "" when unknown
         (no per-client pressure then). ``count`` registers this issue."""
-        return self._difficulty(client, form_id, signed_in, count)[0]
+        return self._difficulty(client, form_id, signed_in, count, purpose)[0]
 
     def _difficulty(
-        self, client: str, form_id: str, signed_in: bool, count: bool = True
+        self,
+        client: str,
+        form_id: str,
+        signed_in: bool,
+        count: bool = True,
+        purpose: str = "submit",
     ) -> Tuple[int, bool]:
-        """``(bits, whether the signed-in discount lowered them)``."""
+        """``(bits, whether the signed-in discount lowered them)``. The base is
+        the purpose's (a mail costs the instance its reputation, so its base is
+        a bit higher); the form's submit rate and the signed-in discount are the
+        submit's alone (a sign-in code is asked for by someone who is not signed
+        in, a draft link only by an anonymous respondent)."""
         api = live().api
+        submit = purpose == "submit"
+        base = int(api.CAPTCHA_BASE_BITS_SUBMIT if submit else api.CAPTCHA_BASE_BITS_MAIL)
         extra = int(api.CAPTCHA_DIFFICULTY_BOOST)
         if client:
             issued = self.pressure.issued(client) if count else 0
@@ -109,17 +129,17 @@ class CaptchaService:
                 )
             if self.pressure.failures(client) >= FAILURES_FOR_PRESSURE:
                 extra += FAILURE_PRESSURE
-        busy = self.pressure.submits_last_minute(form_id)
+        busy = self.pressure.submits_last_minute(form_id) if submit else 0
         if busy > FORM_VERY_BUSY:
             extra += 2
         elif busy > FORM_BUSY:
             extra += 1
         bits = min(
             challenge.MAX_BITS,
-            int(api.CAPTCHA_BASE_BITS_SUBMIT) + min(extra, MAX_PRESSURE),
+            base + min(extra, MAX_PRESSURE),
         )
         full = max(challenge.MIN_BITS, min(challenge.MAX_BITS, bits))
-        if not signed_in:
+        if not signed_in or not submit:
             return full, False
         lowered = max(
             challenge.MIN_BITS, min(challenge.MAX_BITS, bits - SIGNED_IN_DISCOUNT)
@@ -137,6 +157,8 @@ class CaptchaService:
             return
         allowed, wait = self.pressure.ask(tag, purpose, CHALLENGES_PER_MINUTE)
         if not allowed:
+            # counted for no workspace or form: the request is not looked at yet
+            # (a flood must not become a flood of distinct keys)
             self._outcome("rate_limited", purpose)
             raise too_many(Verdict(allowed=False, count=0, retry_after=wait))
 
@@ -152,7 +174,9 @@ class CaptchaService:
         """A challenge for the response body, or None when the server cannot
         sign (no secret)."""
         tag = _tag_client(client)
-        bits, discounted = self._difficulty(tag, str(form_id), signed_in)
+        bits, discounted = self._difficulty(
+            tag, str(form_id), signed_in, purpose=purpose
+        )
         text = challenge.issue(
             purpose=purpose,
             workspace_id=workspace_id,
@@ -163,7 +187,7 @@ class CaptchaService:
         )
         if text is None:
             return None
-        self._outcome("issued", purpose)
+        self._outcome("issued", purpose, workspace_id, form_id)
         claims = challenge.unverified_claims(text)
         return {
             "challenge": text,
@@ -202,12 +226,12 @@ class CaptchaService:
                 client=tag,
             )
         except Refused as refused:
-            self._outcome(refused.code, purpose)
+            self._outcome(refused.code, purpose, workspace_id, form_id)
             if refused.code == challenge.INVALID and tag:
                 self.pressure.failed(tag)
             raise refusal(refused.code)
         if claims.discounted and not signed_in:
-            self._outcome(challenge.INVALID, purpose)
+            self._outcome(challenge.INVALID, purpose, workspace_id, form_id)
             if tag:
                 self.pressure.failed(tag)
             raise refusal(challenge.INVALID)
@@ -216,17 +240,22 @@ class CaptchaService:
         if not await self._limiter.claim(
             CLAIM_SCOPE, spent, challenge.expires_at(claims)
         ):
-            self._outcome(challenge.REPLAYED, purpose)
+            self._outcome(challenge.REPLAYED, purpose, workspace_id, form_id)
             if tag:
                 self.pressure.failed(tag)
             raise refusal(challenge.REPLAYED)
-        self._outcome("verified", purpose)
+        self._outcome("verified", purpose, workspace_id, form_id)
 
     def note_submit(self, form_id) -> None:
         """A response to ``form_id`` was stored: the form's own submit rate,
         which raises the difficulty of the next challenges while it is high."""
         self.pressure.submitted(str(form_id))
 
-    @staticmethod
-    def _outcome(outcome: str, purpose: str) -> None:
+    def _outcome(
+        self, outcome: str, purpose: str, workspace_id="", form_id=""
+    ) -> None:
+        """Log the outcome (code and purpose only) and count it for the day
+        (``stats.py``: in memory, written later)."""
         logger.info("captcha outcome={} purpose={}", outcome, purpose)
+        if self.stats is not None:
+            self.stats.record(outcome, purpose, workspace_id, form_id)

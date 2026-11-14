@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useId, useRef, useState } from 'react';
 
+import MailProofStatus from '@app/components/captcha/mail-proof-status';
+import { useMailProof } from '@app/lib/hooks/use-mail-proof';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
@@ -39,6 +41,8 @@ export default function SaveDraftControl({ ink }: { ink?: string }) {
     const [saveDraft, { isLoading: saving }] = useSaveDraftMutation();
     const [requestLink, { isLoading: sending }] = useRequestDraftLinkMutation();
     const [discardDraft, { isLoading: deleting }] = useDiscardDraftMutation();
+    // The automatic spam check before the link mail, when the server asks for it (utils/captcha/mail-proof)
+    const { send: sendWithProof, waiting: proofWaiting } = useMailProof({ workspaceId: workspace?.id, formId: standardForm?.formId });
     const [asking, setAsking] = useState(false);
     const [email, setEmail] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -88,7 +92,7 @@ export default function SaveDraftControl({ ink }: { ink?: string }) {
         event.preventDefault();
         setError(null);
         const address = email.trim();
-        const result = await requestLink({ ...key, body: { ...content(), email: address, locale, editKey: draft.editKey } });
+        const result: any = await sendWithProof((headers) => requestLink({ ...key, body: { ...content(), email: address, locale, editKey: draft.editKey }, ...(headers ? { headers } : {}) }));
         if ('error' in result) return fail(result.error);
         setAsking(false);
         setDraft({ editKey: result.data.editKey, email: address, expiresAt: result.data.expiresAt, status: 'link_sent' });
@@ -192,6 +196,7 @@ export default function SaveDraftControl({ ink }: { ink?: string }) {
                             {t('DRAFT.CANCEL')}
                         </button>
                     </div>
+                    <MailProofStatus waiting={proofWaiting} text={t('NAV.CAPTCHA_WAITING')} lang={language} />
                 </form>
             )}
             {!asking && !hasDraft && hasFileQuestion(standardForm.fields) && signedIn && <p className="text-[13px] text-black-700">{t('DRAFT.FILES_NOTE')}</p>}

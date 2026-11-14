@@ -438,6 +438,20 @@ def test_captcha_difficulty_settings_are_read_per_call(monkeypatch):
         )
 
 
+def test_captcha_mail_base_bits_is_read_per_call(monkeypatch):
+    from backend.app.services.captcha.pressure import Pressure
+    from backend.app.services.captcha.service import CaptchaService
+
+    service = CaptchaService(rate_limiter=None, pressure=Pressure())
+    for base, boost in ((14, 0), (18, 0), (19, 1)):
+        _set(monkeypatch, settings.api_settings, "CAPTCHA_BASE_BITS_MAIL", base)
+        _set(monkeypatch, settings.api_settings, "CAPTCHA_DIFFICULTY_BOOST", boost)
+        # no client, no form pressure, no signed-in discount on a mail: base plus boost only
+        assert service.difficulty("", "", True, purpose="mail") == base + boost, (
+            "API_CAPTCHA_BASE_BITS_MAIL"
+        )
+
+
 # ------------------------------------------------------------ editor ops
 
 

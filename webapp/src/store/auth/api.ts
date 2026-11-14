@@ -35,11 +35,13 @@ export const authApi = createApi({
             invalidatesTags: [AUTH_REFRESH_TAG]
         }),
         // `locale`: the code mail's language ("en" or "nl"; English when unset)
-        postSendOtp: builder.mutation<any, { workspace_id?: string; receiver_email: string; locale?: string }>({
+        // `headers`: the spam check's proof (utils/captcha/mail-proof), only when the server asks for one
+        postSendOtp: builder.mutation<any, { workspace_id?: string; receiver_email: string; locale?: string; headers?: Record<string, string> }>({
             query: (body) => ({
                 url: body.workspace_id ? `/workspaces/${body.workspace_id}/auth/otp/send` : `/auth/creator/otp/send`,
                 method: 'POST',
-                params: { receiver_email: body.receiver_email, ...(body.locale ? { locale: body.locale } : {}) }
+                params: { receiver_email: body.receiver_email, ...(body.locale ? { locale: body.locale } : {}) },
+                ...(body.headers ? { headers: body.headers } : {})
             }),
             invalidatesTags: [AUTH_OTP_TAGS]
         }),

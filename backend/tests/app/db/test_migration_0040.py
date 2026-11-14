@@ -49,7 +49,8 @@ def test_upgrade_adds_the_table_and_downgrade_removes_only_it(scratch_url):
 
     command.upgrade(config, "0040")
     assert sorted(set(asyncio.run(_tables(scratch_url))) - set(before)) == [TABLE]
-    assert asyncio.run(_diff(scratch_url)) == []  # exactly what the models declare
+    # exactly what the models declare, but for what 0041 adds (the spam check's counts)
+    assert [d for d in asyncio.run(_diff(scratch_url)) if "captcha_daily_counts" not in repr(d)] == []
 
     # the spine columns are read from the document
     _run(scratch_url, _view(V1, scope="form", owner="u9"))

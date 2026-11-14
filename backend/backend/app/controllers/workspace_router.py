@@ -25,6 +25,7 @@ from backend.app.services.layout_containers import layout_containers_enabled
 from backend.app.services.option_logic import choice_logic_enabled
 from backend.app.services.option_sources.mode import option_sources_enabled
 from backend.app.services.reusable_sections.mode import reusable_sections_enabled
+from backend.app.services.captcha.guard import require_mail_proof
 from backend.app.services.captcha.mode import captcha_enabled
 from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.services.response_import.mode import csv_import_enabled
@@ -426,6 +427,12 @@ class WorkspaceRouter(Routable):
         # never depends on whether it has an account (services/respondent_limits).
         # A workspace that does not exist mails nothing (404 below): not counted
         if await container.workspace_repo().find_by_id(workspace_id) is not None:
+            # the proof of work first (CAPTCHA_ENABLED; nothing while off), so a
+            # request without one uses up nobody's budget
+            # (a failure of the claim's store answers 503 like the limiter's: no code is sent)
+            await fail_closed(
+                lambda: require_mail_proof(request, workspace_id), locale=locale
+            )
             await fail_closed(
                 lambda: container.respondent_limits().code_mail(
                     limit_client_ip(request), receiver_email, locale=locale

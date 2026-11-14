@@ -18,6 +18,7 @@ import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { store } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
+import { resetMailProofKnowledge } from '@app/utils/captcha/mail-proof';
 import { axeViolations } from '@app/test/axe';
 import FormSlide from '@app/views/organism/form/form-slide';
 
@@ -35,6 +36,9 @@ vi.mock('@app/store/redux/form-api', async (original) => ({
     ...((await original()) as object),
     useSubmitResponseMutation: () => [submit, { isLoading: false }]
 }));
+// the spam check's proofs (utils/captcha): nothing is solved in these tests
+const take = vi.hoisted(() => vi.fn());
+vi.mock('@app/utils/captcha/captcha-pass', async (original) => ({ ...((await original()) as object), captchaPassFor: () => ({ take }) }));
 vi.mock('next/navigation', () => ({ usePathname: () => '/acme/forms/f1', useRouter: () => ({ push: vi.fn() }) }));
 vi.mock('@app/views/organism/form-builder/fields/render-field', () => ({ RenderImage: () => null, default: () => null }));
 
@@ -141,6 +145,52 @@ describe('save and continue later', () => {
         expect(screen.getByRole('button', { name: c.changes })).toBeTruthy();
         expect(screen.getByRole('button', { name: c.again })).toBeTruthy();
         expect(screen.getByRole('button', { name: c.remove })).toBeTruthy();
+    });
+
+    describe('the automatic spam check before the link mail', () => {
+        const missing = { error: { status: 422, data: { code: 'captcha_missing', message: 'x' } } };
+        const ask = async (lang = 'en' as 'en' | 'nl') => {
+            window.history.replaceState(null, '', `/acme/forms/f1?lang=${lang}`);
+            open();
+            await type('a', 'Ada');
+            await click(COPY[lang].save);
+            fireEvent.change(screen.getByLabelText(COPY[lang].label), { target: { value: 'ada@example.com' } });
+            await click(COPY[lang].send);
+        };
+        beforeEach(() => {
+            take.mockReset();
+            resetMailProofKnowledge();
+        });
+
+        it('sends the link request as it always did while the server does not ask for a proof', async () => {
+            await ask();
+            expect(requestLink).toHaveBeenCalledTimes(1);
+            expect(requestLink.mock.calls[0][0]).not.toHaveProperty('headers');
+            expect(take).not.toHaveBeenCalled();
+        });
+
+        it('solves a proof for this form and sends the request again, once, when the server asks for one', async () => {
+            requestLink.mockReset();
+            requestLink.mockResolvedValueOnce(missing).mockResolvedValueOnce({ data: { savedAt: '2026-11-01T10:00:00Z', expiresAt: '2026-12-01T10:00:00Z', editKey: `${'a'.repeat(24)}.${'K'.repeat(43)}` } });
+            take.mockResolvedValue('PROOF');
+            await ask();
+            expect(requestLink).toHaveBeenCalledTimes(2);
+            expect(requestLink.mock.calls[0][0]).not.toHaveProperty('headers');
+            expect(requestLink.mock.calls[1][0]).toMatchObject({ workspaceId: 'ws-1', headers: { 'X-BC-Captcha': 'PROOF' } });
+            expect(await screen.findByText(/ada@example\.com/)).toBeTruthy();
+        });
+
+        it.each([
+            ['en', 'The automatic spam check did not work in this browser. Try again, or use another browser.'],
+            ['nl', 'De automatische spamcontrole lukte niet in deze browser. Probeer het opnieuw of gebruik een andere browser.']
+        ] as const)('says so when the browser cannot calculate the proof (%s)', async (lang, message) => {
+            requestLink.mockReset();
+            requestLink.mockResolvedValue(missing);
+            take.mockRejectedValue(new Error('no'));
+            await ask(lang);
+            expect((await screen.findByRole('alert')).textContent).toBe(message);
+            expect(requestLink).toHaveBeenCalledTimes(1);
+        });
     });
 
     it('keeps files out and says so', async () => {

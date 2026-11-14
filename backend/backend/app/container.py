@@ -104,6 +104,7 @@ from backend.app.repositories.postgres.registration import (
 )
 from backend.app.repositories.postgres.analytics import (
     PostgresFlowEventRepository,
+    PostgresCaptchaCountRepository,
     PostgresRateLimitRepository,
 )
 from backend.app.repositories.postgres.refdata import (
@@ -156,6 +157,8 @@ from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.app.services.receipt_limits import ReceiptLimits
 from backend.app.services.respondent_limits import RespondentLimits
 from backend.app.services.captcha.service import CaptchaService
+from backend.app.services.captcha.settings import CaptchaSettingsService
+from backend.app.services.captcha.stats import CaptchaStats
 from backend.app.services.respondent_feedback_service import (
     RespondentFeedbackService,
 )
@@ -294,6 +297,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
     rate_limit_repo: PostgresRateLimitRepository = providers.Singleton(
         PostgresRateLimitRepository, pg_sessionmaker
+    )
+    captcha_count_repo: PostgresCaptchaCountRepository = providers.Singleton(
+        PostgresCaptchaCountRepository, pg_sessionmaker
     )
     form_ai_insight_repo: PostgresFormAIInsightRepository = providers.Singleton(
         PostgresFormAIInsightRepository, pg_sessionmaker
@@ -452,8 +458,11 @@ class AppContainer(containers.DeclarativeContainer):
         RespondentLimits, rate_limiter=rate_limiter
     )
     # the proof of work asked before a response (CAPTCHA_ENABLED)
+    captcha_stats: CaptchaStats = providers.Singleton(
+        CaptchaStats, repo=captcha_count_repo
+    )
     captcha_service: CaptchaService = providers.Singleton(
-        CaptchaService, rate_limiter=rate_limiter
+        CaptchaService, rate_limiter=rate_limiter, stats=captcha_stats
     )
     flow_event_service: FlowEventService = providers.Singleton(
         FlowEventService,
@@ -503,6 +512,15 @@ class AppContainer(containers.DeclarativeContainer):
         form_access=form_access_service,
         # late: the policy needs services that need this one
         sso_policy=providers.Object(lambda: container.sso_policy_service()),
+    )
+
+    # the workspace default of the automatic spam check, its counts and its audit entries
+    captcha_settings_service: CaptchaSettingsService = providers.Singleton(
+        CaptchaSettingsService,
+        workspace_repo=workspace_repo,
+        authorization_service=authorization_service,
+        stats=captcha_stats,
+        audit_repo=workspace_audit_repo,
     )
 
     mcp_audit_log_repo: PostgresMcpAuditLogRepository = providers.Singleton(

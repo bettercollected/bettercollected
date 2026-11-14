@@ -15,6 +15,7 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 
 from backend.app.container import container
+from backend.app.services.captcha.guard import require_mail_proof
 from backend.app.utils.client_ip import limit_client_ip
 from backend.app.services.respondent_limits import fail_closed
 from backend.app.exceptions import HTTPException
@@ -100,6 +101,7 @@ class AuthRoutes(Routable):
     @post(
         "/creator/otp/send",
         responses={
+            422: {"description": "The spam check's proof is missing or not valid."},
             429: {"description": "Too many code requests."},
             503: {"description": "Requested Source not available."},
         },
@@ -111,6 +113,10 @@ class AuthRoutes(Routable):
         # the mail's language ("nl" or "en"); English unless Dutch
         locale: Optional[str] = Query(None, max_length=35),
     ):
+        # the proof of work first (CAPTCHA_ENABLED; nothing while off): the
+        # creator's code belongs to no workspace
+        # (a failure of the claim's store answers 503 like the limiter's: no code is sent)
+        await fail_closed(lambda: require_mail_proof(request), locale=locale)
         # counted before anything is looked up about the address: a refusal
         # never depends on whether it has an account (services/respondent_limits)
         await fail_closed(

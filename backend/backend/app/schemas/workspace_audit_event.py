@@ -170,6 +170,9 @@ CUSTOM_DOMAIN_REMOVED = "custom_domain_removed"
 # how long the workspace's audit entries are kept, set by an owner
 # (``retention_months``, ``previous_retention_months``: whole months, 6 to 60)
 AUDIT_RETENTION_CHANGED = "audit_retention_changed"
+# the automatic spam check turned on or off for the workspace (its default, no
+# ``form_id``) or for one form (``form_id``): ``enabled`` is the value it has now
+CAPTCHA_SETTING_CHANGED = "captcha_setting_changed"
 SETTINGS_EVENTS = (
     SSO_CONNECTION_CREATED,
     SSO_CONNECTION_ENABLED,
@@ -188,6 +191,7 @@ SETTINGS_EVENTS = (
     CUSTOM_DOMAIN_CHANGED,
     CUSTOM_DOMAIN_REMOVED,
     AUDIT_RETENTION_CHANGED,
+    CAPTCHA_SETTING_CHANGED,
 )
 # a form's integrations (email actions and the case-system registration): the
 # action, service or form, never an address, a URL, a template, a name or a

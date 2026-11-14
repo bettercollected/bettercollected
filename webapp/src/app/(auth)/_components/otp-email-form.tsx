@@ -17,7 +17,10 @@ import { Input } from '@app/shadcn/components/ui/input';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { usePostSendOtpMutation } from '@app/store/auth/api';
-import { isRateLimited } from '@app/utils/server-answer-errors';
+import { isMailProofFailed } from '@app/utils/captcha/mail-proof';
+import { codeMailUnavailableMessage, isCaptchaRefused, isCodeMailUnavailable, isRateLimited } from '@app/utils/server-answer-errors';
+import MailProofStatus from '@app/components/captcha/mail-proof-status';
+import { useMailProof } from '@app/lib/hooks/use-mail-proof';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { browserMailLocale } from '@app/utils/mail-locale';
 import { capitalize } from '@app/utils/string-utils';
@@ -46,6 +49,8 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
     const type = searchParams?.get('type');
     const isCreator = type !== 'responder';
     const workspace_id = searchParams?.get('workspace_id');
+    // The automatic spam check before the code mail, when the server asks for it (utils/captcha/mail-proof)
+    const { send: sendWithProof, waiting: proofWaiting } = useMailProof({ workspaceId: workspace_id || undefined });
     // Set by the backend when a provider sign-in was refused (#758). Anyone can
     // craft these params, so only known codes and provider names are shown.
     const loginError = searchParams?.get('login_error');
@@ -71,7 +76,9 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
         signUpToContinue: t(signUpScreen.signUpToContinue),
         otpSuccessMessage: t(formResponderLogin.otpSuccessMessage),
         otpFailureMessage: t(formResponderLogin.otpFailureMessage),
-        otpRateLimitedMessage: t(formResponderLogin.otpRateLimitedMessage)
+        otpRateLimitedMessage: t(formResponderLogin.otpRateLimitedMessage),
+        otpCaptchaFailedMessage: t(formResponderLogin.otpCaptchaFailedMessage),
+        otpCaptchaWaitingMessage: t(formResponderLogin.otpCaptchaWaitingMessage)
     };
 
     const handleEmailInputForCreator = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -80,7 +87,8 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
 
         // The code mail's language: a respondent's (the workspace's code) is in
         // their language, as the form and portal are; a creator's follows the browser.
-        const res = await postSendOtp({ receiver_email: email, workspace_id: workspace_id || '', locale: workspace_id ? respondentLanguage : browserMailLocale() });
+        const locale = workspace_id ? respondentLanguage : browserMailLocale();
+        const res: any = await sendWithProof((headers) => postSendOtp({ receiver_email: email, workspace_id: workspace_id || '', locale, ...(headers ? { headers } : {}) }));
 
         if ('data' in res && !!res.data) {
             toast({ description: constants.otpSuccessMessage });
@@ -89,6 +97,12 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
             setSsoNotice({ email, message: (res as any).error.data.message });
         } else if ((res as any)?.error?.data?.code === 'sso_required') {
             toast({ description: (res as any).error.data.message, variant: 'destructive' });
+        } else if (isMailProofFailed((res as any)?.error) || isCaptchaRefused((res as any)?.error)) {
+            // the browser could not calculate the spam check, or the server refused it twice
+            toast({ description: constants.otpCaptchaFailedMessage, variant: 'destructive' });
+        } else if (isCodeMailUnavailable((res as any)?.error)) {
+            // the limiter could not be reached: no code was sent; the server says when to try again
+            toast({ description: codeMailUnavailableMessage((res as any).error, (seconds) => t(formResponderLogin.otpUnavailableMessage, { seconds })), variant: 'destructive' });
         } else if (isRateLimited((res as any)?.error)) {
             // the same message whatever the address: nothing about accounts is told
             toast({ description: constants.otpRateLimitedMessage, variant: 'destructive' });
@@ -132,6 +146,7 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
                 <Button type="submit" variant="primary" isLoading={isLoading} className={`mt-6 w-full ${isModal ? 'mb-10' : ''}`} size="medium">
                     {constants.sendCodeButton}
                 </Button>
+                <MailProofStatus waiting={proofWaiting} text={constants.otpCaptchaWaitingMessage} />
             </form>
             {ssoEnabled && !isModal && (
                 <div className="mt-6 w-full">

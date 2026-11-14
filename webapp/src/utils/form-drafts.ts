@@ -166,6 +166,8 @@ export function forgetResumeToken(): void {
 export function draftErrorKey(error: unknown): string {
     const failure = error as { status?: number; data?: { code?: string } } | undefined;
     const code = failure?.data?.code;
+    // the browser could not calculate the spam check (never a server answer: status 0)
+    if (failure?.status === 0 && code === 'captcha_failed') return 'DRAFT.ERR_CAPTCHA';
     switch (failure?.status) {
         case 429:
             return 'DRAFT.ERR_RATE';
@@ -176,7 +178,9 @@ export function draftErrorKey(error: unknown): string {
         case 503:
             return code === 'link_not_sent' ? 'DRAFT.ERR_LINK_NOT_SENT' : 'DRAFT.ERR_FAILED';
         case 422:
-            return code === 'invalid_email' ? 'DRAFT.ERR_EMAIL' : 'DRAFT.ERR_FAILED';
+            if (code === 'invalid_email') return 'DRAFT.ERR_EMAIL';
+            // the server refused the spam check's proof twice
+            return typeof code === 'string' && code.startsWith('captcha_') ? 'DRAFT.ERR_CAPTCHA' : 'DRAFT.ERR_FAILED';
         case 409:
             if (code === 'draft_limit') return 'DRAFT.ERR_LIMIT';
             return code === 'drafts_off' ? 'DRAFT.ERR_OFF' : 'DRAFT.ERR_CLOSED';

@@ -61,8 +61,12 @@ def test_upgrade_adds_the_table_and_column_and_downgrade_removes_only_them(scrat
 
     command.upgrade(config, "0039")
     assert sorted(set(asyncio.run(_tables(scratch_url))) - set(before)) == [TABLE]
-    # exactly what the models declare, but for what 0040 adds (the saved report views)
-    assert [d for d in asyncio.run(_diff(scratch_url)) if "form_report_views" not in repr(d)] == []
+    # exactly what the models declare, but for what 0040 and 0041 add (the saved report views, the spam check's counts)
+    assert [
+        d
+        for d in asyncio.run(_diff(scratch_url))
+        if "form_report_views" not in repr(d) and "captcha_daily_counts" not in repr(d)
+    ] == []
     assert _run(scratch_url, "SELECT user_id FROM app.scim_users") == [("account-1",)]
 
     # one link per group; several groups may feed one team

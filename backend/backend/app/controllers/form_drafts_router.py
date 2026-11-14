@@ -19,6 +19,7 @@ from starlette.requests import Request
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.router import router
+from backend.app.services.captcha.guard import require_mail_proof
 from backend.app.services.form_drafts import limits
 from backend.app.services.form_drafts.service import (
     DiscardBody,
@@ -106,6 +107,7 @@ def _json(dto: BaseModel) -> dict:
     responses={
         404: {"description": "No such form or draft (or the form keeps no drafts)."},
         409: {"description": "The form takes no responses now."},
+        422: {"description": "The spam check's proof for the link mail is missing or not valid."},
         429: {"description": "Too many requests."},
     },
 )
@@ -136,8 +138,19 @@ class FormDraftsRouter(Routable):
     ):
         """Anonymous respondents: save the draft and mail them a link to it."""
         body = await read_body(request, LinkRequestBody)
+
+        async def require_proof(real_form_id: str) -> None:
+            # the spam check's proof (purpose mail, CAPTCHA_ENABLED; nothing
+            # while off), bound to this form, before any limit counts
+            await require_mail_proof(request, workspace_id, real_form_id)
+
         sent = await container.form_draft_service().request_link(
-            workspace_id, form_id, user, body, request_client_ip(request)
+            workspace_id,
+            form_id,
+            user,
+            body,
+            request_client_ip(request),
+            require_proof=require_proof,
         )
         return _json(sent)
 

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-import { firstPageWithError, formRefusal, historyBackTo, isFormClosedError, isRateLimited, isSubmitRateLimited, serverAnswerErrors, serverInvalidations, serverProblemMessage } from './server-answer-errors';
+import { codeMailRetryAfter, codeMailUnavailableMessage, firstPageWithError, formRefusal, historyBackTo, isCodeMailUnavailable, isFormClosedError, isRateLimited, isSubmitRateLimited, serverAnswerErrors, serverInvalidations, serverProblemMessage } from './server-answer-errors';
 
 const q = (id: string, type = FieldTypes.SHORT_TEXT, properties: Record<string, any> = {}) => ({ id, index: 0, type, properties }) as StandardFormFieldDto;
 const page = (id: string, fields: StandardFormFieldDto[]) => ({ id, index: 0, type: FieldTypes.SLIDE, properties: { fields } }) as StandardFormFieldDto;
@@ -127,5 +127,30 @@ describe('isRateLimited', () => {
     it('tells the route limits (retry_after) from the drawn-signature throttle', () => {
         expect(isSubmitRateLimited({ status: 429, data: { code: 'rate_limited', retry_after: 20 } })).toBe(true);
         expect(isSubmitRateLimited({ status: 429, data: { code: 'rate_limited', message: 'Too many requests; try again later.' } })).toBe(false);
+    });
+});
+
+describe('the sign-in code routes answering 503 when their limiter cannot be reached', () => {
+    const answer = (data: Record<string, unknown>, status = 503) => ({ status, data: { code: 'rate_limiter_unavailable', ...data } });
+
+    it('is recognised by its status and code only', () => {
+        expect(isCodeMailUnavailable(answer({}))).toBe(true);
+        expect(isCodeMailUnavailable(answer({}, 502))).toBe(false);
+        expect(isCodeMailUnavailable({ status: 503, data: { code: 'code_mail_failed' } })).toBe(false);
+        expect(isCodeMailUnavailable({ status: 429, data: { code: 'rate_limited' } })).toBe(false);
+        expect(isCodeMailUnavailable(undefined)).toBe(false);
+    });
+
+    it('takes the wait from retry_after, a minute when it is missing or not a usable number', () => {
+        expect(codeMailRetryAfter(answer({ retry_after: 60 }))).toBe(60);
+        expect(codeMailRetryAfter(answer({ retry_after: 12.2 }))).toBe(13);
+        for (const bad of [undefined, 0, -3, 'soon', NaN, null]) expect(codeMailRetryAfter(answer({ retry_after: bad }))).toBe(60);
+    });
+
+    it("prefers the server's message and otherwise words the wait itself", () => {
+        const fallback = (seconds: number) => `wait ${seconds}`;
+        expect(codeMailUnavailableMessage(answer({ message: 'Try later.', retry_after: 60 }), fallback)).toBe('Try later.');
+        expect(codeMailUnavailableMessage(answer({ message: '  ', retry_after: 20 }), fallback)).toBe('wait 20');
+        expect(codeMailUnavailableMessage(answer({}), fallback)).toBe('wait 60');
     });
 });

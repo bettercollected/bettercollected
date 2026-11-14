@@ -101,6 +101,8 @@ NOT_IMPORTED_TABLES = (
     # new in 5.0: the saved views of a form's report
     "form_report_views",
     "scim_group_team_links",
+    # new in 5.0: the daily counts of the automatic spam check
+    "captcha_daily_counts",
 )
 
 

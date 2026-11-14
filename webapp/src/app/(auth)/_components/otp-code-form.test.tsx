@@ -22,6 +22,7 @@ vi.mock('@app/store/auth/api', async (importOriginal) => {
         useVerifyMfaMutation: () => [verifyMfaMock, { isLoading: false }]
     };
 });
+vi.mock('@app/store/redux/form-api', () => ({ useIssueMailChallengeMutation: () => [vi.fn()] }));
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }));
 vi.mock('@app/components/modal-views/full-screen-modal-context', () => ({ useFullScreenModal: () => ({ closeModal: vi.fn() }) }));
 vi.mock('@app/shadcn/components/ui/use-toast', () => ({ useToast: () => ({ toast }) }));
@@ -94,6 +95,14 @@ describe('OtpCodeForm resending a code', () => {
         sendMock.mockResolvedValue({ error: { status: 429, data: { code: 'rate_limited', message: 'x', retry_after: 900 } } });
         await resend();
         await waitFor(() => expect(toast).toHaveBeenCalledWith({ description: expect.stringMatching(/too many codes/i), variant: 'destructive' }));
+    });
+
+    it('says the code could not be sent (503), with the server wait, and keeps Resend closed for that long', async () => {
+        sendMock.mockResolvedValue({ error: { status: 503, data: { code: 'rate_limiter_unavailable', retry_after: 45 } } });
+        await resend();
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ description: 'Sign-in codes are temporarily unavailable. Please try again in 45 seconds.', variant: 'destructive' }));
+        expect(screen.getByText(/resend \(45s\)/i)).toBeTruthy();
+        expect(sendMock).toHaveBeenCalledTimes(1);
     });
 
     it('says nothing new for a code that was sent', async () => {

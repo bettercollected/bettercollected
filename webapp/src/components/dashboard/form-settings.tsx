@@ -23,6 +23,7 @@ import Globe from "@app/components/icons/flags/globe";
 import { GroupIcon } from '@app/components/icons/group-icon';
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from "@app/components/modal-views/full-screen-modal-context";
+import FormCaptchaCounts from '@app/components/captcha/form-captcha-counts';
 import { FormSettingsCard } from '@app/components/settings/card';
 import FormLinkUpdateView from "@app/components/ui/form-link-update-view";
 import { ProLogo } from "@app/components/ui/logo";
@@ -187,6 +188,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                 toast({ description: e.data, variant: 'destructive' });
             });
     };
+
 
     const isProPlan = useAppSelector(selectWorkspace).isPro;
     const { can, saveDraftsEnabled, captchaEnabled } = useWorkspacePermissions();
@@ -452,7 +454,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                                     </SettingRow>
                                     {/* The automatic spam check: offered only while the server has it switched on (CAPTCHA_ENABLED); on unless turned off here. */}
                                     {captchaEnabled && (
-                                        <SettingRow title={t('FORM_PAGE.SETTINGS.CAPTCHA.TITLE')} description={t('FORM_PAGE.SETTINGS.CAPTCHA.DESCRIPTION')}>
+                                        <SettingRow title={t('FORM_PAGE.SETTINGS.CAPTCHA.TITLE')} description={t('FORM_PAGE.SETTINGS.CAPTCHA.DESCRIPTION')} hint={<FormCaptchaCounts workspaceId={workspace?.id} formId={form?.formId} />}>
                                             <Switch
                                                 data-umami-event="Spam Check Switch"
                                                 data-testid="captcha-switch"

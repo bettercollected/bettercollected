@@ -371,6 +371,8 @@ ROUTES: Dict[Tuple[str, str], Route] = {
     ("GET", F + "/flow-analytics"): route(
         FORM, P.ANALYTICS_READ, case="responses.flow_analytics"
     ),
+    # --- the spam check's counts for the form (CAPTCHA_ENABLED: 404 while it is off)
+    ("GET", F + "/captcha/stats"): route(FORM, P.ANALYTICS_READ),
     # --- exports (the file of every answer: response.export on that form)
     ("GET", F + "/exports"): route(FORM, P.RESPONSE_EXPORT, case="responses.form.export.list"),
     ("POST", F + "/exports"): route(
@@ -557,6 +559,7 @@ OUTCOMES: Dict[Tuple[str, str], Tuple[int, ...]] = {
     ("GET", F + "/exports/{export_id}"): (200, 404),
     ("GET", F + "/exports/{export_id}/download"): (200, 404),
     ("GET", F + "/flow-analytics"): (200,),
+    ("GET", F + "/captcha/stats"): (404,),
     ("PUT", F + "/grants"): (200, 403),
     ("DELETE", F + "/grants/{grant_id}"): (204,),
     ("DELETE", F + "/groups"): (200,),
