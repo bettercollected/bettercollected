@@ -203,3 +203,51 @@ describe('sign-in code mail when the server cannot count requests (503)', () => 
         }
     });
 });
+
+
+describe('a double press on "Send code"', () => {
+    beforeEach(() => {
+        toast.mockReset();
+        sendOtp.mockReset();
+        take.mockReset();
+        resetMailProofKnowledge();
+        searchParams = new URLSearchParams();
+    });
+
+    it('sends one code mail: a second press while the first is under way does nothing', async () => {
+        let finish: (value: unknown) => void = () => {};
+        sendOtp.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+        render(<OtpEmailForm setEmail={vi.fn()} />);
+        const input = document.querySelector('input[type="email"]') as HTMLInputElement;
+        fireEvent.change(input, { target: { value: 'maker@example.com' } });
+        const form = input.closest('form') as HTMLFormElement;
+        fireEvent.submit(form);
+        fireEvent.submit(form);
+        fireEvent.submit(form);
+        await waitFor(() => expect(sendOtp).toHaveBeenCalledTimes(1));
+        finish({ data: { message: 'sent' } });
+        await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+        // the mail was announced once, not once per press
+        expect(sendOtp).toHaveBeenCalledTimes(1);
+    });
+
+    it('sends one code mail, and solves one proof, when the server asks and the button is pressed twice during the solve', async () => {
+        let solved: (proof: string) => void = () => {};
+        take.mockReturnValue(new Promise<string>((resolve) => (solved = resolve)));
+        sendOtp.mockResolvedValueOnce({ error: { status: 422, data: { code: 'captcha_missing', message: 'x' } } }).mockResolvedValue({ data: { message: 'sent' } });
+        render(<OtpEmailForm setEmail={vi.fn()} />);
+        const input = document.querySelector('input[type="email"]') as HTMLInputElement;
+        fireEvent.change(input, { target: { value: 'maker@example.com' } });
+        const form = input.closest('form') as HTMLFormElement;
+        fireEvent.submit(form);
+        await waitFor(() => expect(take).toHaveBeenCalledTimes(1));
+        // pressed again while the proof is still being calculated
+        fireEvent.submit(form);
+        fireEvent.submit(form);
+        solved('PROOF');
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ description: 'OTP sent successfully' }));
+        expect(take).toHaveBeenCalledTimes(1);
+        // one refused request, one with the proof: two requests for one press, never four
+        expect(sendOtp).toHaveBeenCalledTimes(2);
+    });
+});

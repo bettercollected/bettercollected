@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useId, useRef, useState } from 'react';
 
 import MailProofStatus from '@app/components/captcha/mail-proof-status';
 import { useMailProof } from '@app/lib/hooks/use-mail-proof';
+import { isMailProofBusy } from '@app/utils/captcha/mail-proof';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
@@ -42,7 +43,7 @@ export default function SaveDraftControl({ ink }: { ink?: string }) {
     const [requestLink, { isLoading: sending }] = useRequestDraftLinkMutation();
     const [discardDraft, { isLoading: deleting }] = useDiscardDraftMutation();
     // The automatic spam check before the link mail, when the server asks for it (utils/captcha/mail-proof)
-    const { send: sendWithProof, waiting: proofWaiting } = useMailProof({ workspaceId: workspace?.id, formId: standardForm?.formId });
+    const { send: sendWithProof, waiting: proofWaiting, busy: proofBusy } = useMailProof({ workspaceId: workspace?.id, formId: standardForm?.formId });
     const [asking, setAsking] = useState(false);
     const [email, setEmail] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -59,7 +60,7 @@ export default function SaveDraftControl({ ink }: { ink?: string }) {
 
     const key = { workspaceId: workspace.id, formId: standardForm.formId };
     const hasDraft = draft.status !== 'none' && draft.status !== 'deleted';
-    const busy = saving || sending || deleting;
+    const busy = saving || sending || deleting || proofBusy;
     const locale = language === 'nl' ? 'nl' : 'en';
     const content = () => ({
         answers: answersForDraft(standardForm.fields, formResponse.answers),
@@ -93,6 +94,8 @@ export default function SaveDraftControl({ ink }: { ink?: string }) {
         setError(null);
         const address = email.trim();
         const result: any = await sendWithProof((headers) => requestLink({ ...key, body: { ...content(), email: address, locale, editKey: draft.editKey }, ...(headers ? { headers } : {}) }));
+        // a second press while the first is being solved or sent does nothing
+        if (isMailProofBusy(result)) return;
         if ('error' in result) return fail(result.error);
         setAsking(false);
         setDraft({ editKey: result.data.editKey, email: address, expiresAt: result.data.expiresAt, status: 'link_sent' });

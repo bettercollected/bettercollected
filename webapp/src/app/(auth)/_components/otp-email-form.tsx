@@ -17,7 +17,7 @@ import { Input } from '@app/shadcn/components/ui/input';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { usePostSendOtpMutation } from '@app/store/auth/api';
-import { isMailProofFailed } from '@app/utils/captcha/mail-proof';
+import { isMailProofBusy, isMailProofFailed } from '@app/utils/captcha/mail-proof';
 import { codeMailUnavailableMessage, isCaptchaRefused, isCodeMailUnavailable, isRateLimited } from '@app/utils/server-answer-errors';
 import MailProofStatus from '@app/components/captcha/mail-proof-status';
 import { useMailProof } from '@app/lib/hooks/use-mail-proof';
@@ -50,7 +50,7 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
     const isCreator = type !== 'responder';
     const workspace_id = searchParams?.get('workspace_id');
     // The automatic spam check before the code mail, when the server asks for it (utils/captcha/mail-proof)
-    const { send: sendWithProof, waiting: proofWaiting } = useMailProof({ workspaceId: workspace_id || undefined });
+    const { send: sendWithProof, waiting: proofWaiting, busy: proofBusy } = useMailProof({ workspaceId: workspace_id || undefined });
     // Set by the backend when a provider sign-in was refused (#758). Anyone can
     // craft these params, so only known codes and provider names are shown.
     const loginError = searchParams?.get('login_error');
@@ -89,6 +89,8 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
         // their language, as the form and portal are; a creator's follows the browser.
         const locale = workspace_id ? respondentLanguage : browserMailLocale();
         const res: any = await sendWithProof((headers) => postSendOtp({ receiver_email: email, workspace_id: workspace_id || '', locale, ...(headers ? { headers } : {}) }));
+        // a second press while the first is being solved or sent does nothing
+        if (isMailProofBusy(res)) return;
 
         if ('data' in res && !!res.data) {
             toast({ description: constants.otpSuccessMessage });
@@ -143,7 +145,7 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
 
                 <p className="mb-3 mt-[44px] text-base font-semibold text-black-900">{constants.emailInputLabel}</p>
                 <Input autoFocus type="email" required placeholder={constants.enterYourEmail} value={email} onChange={(e) => setEmail(e.target.value)} className="text-base! lg:text-base!" />
-                <Button type="submit" variant="primary" isLoading={isLoading} className={`mt-6 w-full ${isModal ? 'mb-10' : ''}`} size="medium">
+                <Button type="submit" variant="primary" isLoading={isLoading || proofBusy} className={`mt-6 w-full ${isModal ? 'mb-10' : ''}`} size="medium">
                     {constants.sendCodeButton}
                 </Button>
                 <MailProofStatus waiting={proofWaiting} text={constants.otpCaptchaWaitingMessage} />

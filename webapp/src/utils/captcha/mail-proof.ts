@@ -30,6 +30,11 @@ export interface MailScope {
 /** The synthetic answer when the browser cannot calculate the proof (never a server answer). */
 export const MAIL_PROOF_FAILED = { error: { status: 0, data: { code: 'captcha_failed' } } };
 
+/** What `useMailProof().send` answers when a mail is already being sent: nothing was done, so the page does nothing either. */
+export const MAIL_PROOF_BUSY = { busy: true } as const;
+
+export const isMailProofBusy = (answer: unknown): boolean => answer === MAIL_PROOF_BUSY;
+
 export const isMailProofFailed = (error: any): boolean => error?.status === 0 && error?.data?.code === 'captcha_failed';
 
 const asked = new Set<string>();

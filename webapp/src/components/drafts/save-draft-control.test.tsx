@@ -180,6 +180,25 @@ describe('save and continue later', () => {
             expect(await screen.findByText(/ada@example\.com/)).toBeTruthy();
         });
 
+        it('sends one link mail for a double click', async () => {
+            let finish: (value: unknown) => void = () => {};
+            requestLink.mockReset();
+            requestLink.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+            window.history.replaceState(null, '', '/acme/forms/f1?lang=en');
+            open();
+            await type('a', 'Ada');
+            await click(COPY.en.save);
+            fireEvent.change(screen.getByLabelText(COPY.en.label), { target: { value: 'ada@example.com' } });
+            const form = screen.getByLabelText(COPY.en.label).closest('form') as HTMLFormElement;
+            act(() => {
+                fireEvent.submit(form);
+                fireEvent.submit(form);
+            });
+            await waitFor(() => expect(requestLink).toHaveBeenCalledTimes(1));
+            await act(async () => finish({ data: { savedAt: '2026-11-01T10:00:00Z', expiresAt: '2026-12-01T10:00:00Z', editKey: `${'a'.repeat(24)}.${'K'.repeat(43)}` } }));
+            expect(requestLink).toHaveBeenCalledTimes(1);
+        });
+
         it.each([
             ['en', 'The automatic spam check did not work in this browser. Try again, or use another browser.'],
             ['nl', 'De automatische spamcontrole lukte niet in deze browser. Probeer het opnieuw of gebruik een andere browser.']

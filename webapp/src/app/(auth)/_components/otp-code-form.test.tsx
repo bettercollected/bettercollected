@@ -105,6 +105,36 @@ describe('OtpCodeForm resending a code', () => {
         expect(sendMock).toHaveBeenCalledTimes(1);
     });
 
+    it('is a real button, closed (disabled and aria-disabled) during the wait and open after it', async () => {
+        render(<OtpCodeForm email="maker@example.org" setEmail={vi.fn()} />);
+        const closed = screen.getByRole('button', { name: /resend \(60s\)/i }) as HTMLButtonElement;
+        expect(closed.tagName).toBe('BUTTON');
+        expect(closed.type).toBe('button');
+        expect(closed.disabled).toBe(true);
+        expect(closed.getAttribute('aria-disabled')).toBe('true');
+        fireEvent.click(closed);
+        expect(sendMock).not.toHaveBeenCalled();
+        for (let second = 0; second < 61; second++) await act(async () => void vi.advanceTimersByTime(1000));
+        const open = screen.getByRole('button', { name: /^resend$/i }) as HTMLButtonElement;
+        expect(open.disabled).toBe(false);
+        expect(open.getAttribute('aria-disabled')).toBe('false');
+    });
+
+    it('sends one mail for a double click, and keeps Resend closed while it is under way', async () => {
+        let finish: (value: unknown) => void = () => {};
+        sendMock.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+        render(<OtpCodeForm email="maker@example.org" setEmail={vi.fn()} />);
+        for (let second = 0; second < 61; second++) await act(async () => void vi.advanceTimersByTime(1000));
+        const resendButton = screen.getByRole('button', { name: /^resend$/i }) as HTMLButtonElement;
+        fireEvent.click(resendButton);
+        fireEvent.click(resendButton);
+        await waitFor(() => expect(sendMock).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect((screen.getByRole('button', { name: /^resend$/i }) as HTMLButtonElement).disabled).toBe(true));
+        finish({ data: { message: 'sent' } });
+        await waitFor(() => expect(screen.getByRole('button', { name: /resend \(60s\)/i })).toBeTruthy());
+        expect(sendMock).toHaveBeenCalledTimes(1);
+    });
+
     it('says nothing new for a code that was sent', async () => {
         sendMock.mockResolvedValue({ data: { message: 'sent' } });
         await resend();

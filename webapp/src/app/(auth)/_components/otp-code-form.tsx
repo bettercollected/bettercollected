@@ -17,7 +17,7 @@ import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
 import { browserMailLocale } from '@app/utils/mail-locale';
 import { reloadPage } from '@app/utils/browser-navigation';
 import { isMfaRequired } from '@app/utils/mfa';
-import { isMailProofFailed } from '@app/utils/captcha/mail-proof';
+import { isMailProofBusy, isMailProofFailed } from '@app/utils/captcha/mail-proof';
 import { codeMailRetryAfter, codeMailUnavailableMessage, isCaptchaRefused, isCodeMailUnavailable, isRateLimited } from '@app/utils/server-answer-errors';
 import MailProofStatus from '@app/components/captcha/mail-proof-status';
 import { useMailProof } from '@app/lib/hooks/use-mail-proof';
@@ -56,7 +56,7 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail, 
     const fromProPlan = searchParams?.get('fromProPlan');
     const workspace_id = searchParams?.get('workspace_id');
     // The automatic spam check before the next code mail, when the server asks for it (utils/captcha/mail-proof)
-    const { send: sendWithProof, waiting: proofWaiting } = useMailProof({ workspaceId: workspace_id || undefined });
+    const { send: sendWithProof, waiting: proofWaiting, busy: proofBusy } = useMailProof({ workspaceId: workspace_id || undefined });
 
     const constants = {
         otpVerificationSuccess: t(formResponderLogin.verificationSuccessMessage),
@@ -104,6 +104,8 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail, 
         // the same language as the first code (otp-email-form)
         const locale = workspace_id ? respondentLanguage : browserMailLocale();
         const res: any = await sendWithProof((headers) => postSendOtp({ receiver_email: email, workspace_id: workspace_id || '', locale, ...(headers ? { headers } : {}) }));
+        // a second press while the first is being solved or sent does nothing
+        if (isMailProofBusy(res)) return;
         if ('data' in res && !!res.data) {
             setCounter(60);
         } else if (isMailProofFailed((res as any)?.error) || isCaptchaRefused((res as any)?.error)) {
@@ -153,9 +155,15 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail, 
 
             <div className="mt-8 flex items-center justify-between text-base">
                 <p className="text-black-900 font-normal">{constants.didnotReceiveCode}</p>
-                <div onClick={counter === 0 ? resendOtpCode : undefined} className={`font-semibold cursor-pointer ${counter === 0 ? 'text-brand-500 hover:text-brand-600' : 'text-black-600 cursor-not-allowed'}`}>
+                <button
+                    type="button"
+                    onClick={resendOtpCode}
+                    disabled={counter > 0 || proofBusy}
+                    aria-disabled={counter > 0 || proofBusy}
+                    className={`font-semibold ${counter === 0 && !proofBusy ? 'cursor-pointer text-brand-500 hover:text-brand-600' : 'cursor-not-allowed text-black-600'}`}
+                >
                     Resend {counter > 0 ? `(${counter}s)` : ''}
-                </div>
+                </button>
             </div>
             <MailProofStatus waiting={proofWaiting} text={t(formResponderLogin.otpCaptchaWaitingMessage)} />
 
