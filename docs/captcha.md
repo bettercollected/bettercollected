@@ -115,7 +115,9 @@ pressure from failed checks, and the limit below.
 
 The challenge route itself is limited to 300 a minute per client and purpose (429
 `rate_limited` with `Retry-After`). A client that is not known is neither counted nor limited
-there. Up to 512 timestamps are kept per client so that this count can reach the limit.
+there. Up to 512 timestamps are kept per client so that this count can reach the limit, for at most
+10,000 clients per counter in a process; past that the least recently seen client is forgotten,
+which only lowers its pressure back to the base difficulty (a proof is still required).
 
 The page solves one challenge for one submit: nothing is solved ahead after a submit
 and nothing on a timer, so an idle tab does no work. If the check was switched on while the

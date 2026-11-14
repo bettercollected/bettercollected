@@ -306,6 +306,35 @@ def test_the_pressure_memory_is_bounded(monkeypatch):
     assert len(p._issued._keys) == 50
 
 
+def test_a_full_key_table_evicts_the_least_recent_client_down_to_base_difficulty(
+    monkeypatch,
+):
+    from backend.app.services.captcha import pressure
+
+    assert pressure.MAX_KEYS == 10_000
+    monkeypatch.setattr(pressure, "MAX_KEYS", 20)
+    monkeypatch.setattr(settings.api_settings, "CAPTCHA_BASE_BITS_SUBMIT", 17)
+    s = service()
+    busy, recent = "203.0.113.7", "203.0.113.8"
+    # the busy client is under pressure
+    assert max(s.difficulty(busy, F, False) for _ in range(61)) == 19
+    # others arrive until the table is full: the busy client is the least recent
+    for n in range(18):
+        s.difficulty(f"198.51.100.{n}", F, False)
+    s.difficulty(recent, F, False)
+    assert len(s.pressure._issued._keys) == 20 and busy in s.pressure._issued._keys
+    s.difficulty("198.51.100.200", F, False)
+    keys = s.pressure._issued._keys
+    assert len(keys) == 20 and busy not in keys and recent in keys
+    # evicted: its pressure is gone, but a proof of the base difficulty is
+    # still asked (never none)
+    assert s.difficulty(busy, F, False) == 17
+    # however many clients come, the table never grows past the cap
+    for n in range(500):
+        s.difficulty(f"192.0.2.{n}", F, False)
+        assert len(s.pressure._issued._keys) <= 20
+
+
 def test_the_pressure_stamps_stay_bounded_for_one_busy_client():
     from backend.app.services.captcha import pressure
     from backend.app.services.captcha.service import CHALLENGES_PER_MINUTE
