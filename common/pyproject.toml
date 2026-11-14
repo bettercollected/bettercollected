@@ -29,11 +29,13 @@ description = "This project was generated with fastapi-mvc."
 authors = [{ name = "nabin6246", email = "nabin62246@gmail.com" }]
 license = { text = "Apache-2.0" }
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "alembic>=1.20.1",
     "asyncpg>=0.32.0",
     "cryptography>=50.0.2",
+    # reached through pymongo; floor for GHSA-vvf4-9x63-8xvv (zone-file parser)
+    "dnspython>=2.9.2",
     "pydantic>=2.14.1",
     # the import from 4.0 reads Mongo with its own client (common/db/migrate); the
     # doc codec uses bson. Both stay until the 5.0 removal of the import path.
@@ -45,7 +47,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
