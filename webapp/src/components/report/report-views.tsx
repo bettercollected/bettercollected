@@ -49,6 +49,7 @@ export function viewErrorText(code: string | undefined, status: number | undefin
     if (code === 'view_name_taken') return t('REPORT.VIEW_NAME_TAKEN');
     if (code === 'view_limit') return t('REPORT.VIEW_LIMIT');
     if (code === 'view_changed') return t('REPORT.VIEW_CHANGED');
+    if (code === 'op_not_allowed') return t('REPORT.VIEW_NEEDS_NO_CONDITION');
     if (code === 'view_not_found' || status === 404) return t('REPORT.VIEW_NOT_FOUND');
     if (code === 'view_forbidden' || status === 403) return t('REPORT.VIEW_FORBIDDEN');
     if (code === 'invalid_view' || status === 422) return t('REPORT.VIEW_INVALID');

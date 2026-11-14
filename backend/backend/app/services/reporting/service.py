@@ -29,7 +29,6 @@ from __future__ import annotations
 import asyncio
 import copy
 import hashlib
-import json
 import time
 from collections import OrderedDict
 from http import HTTPStatus
@@ -276,7 +275,8 @@ class ReportService:
         await self._take_rate_limit(workspace_id, form_id, user)
         request = drill.parse(body)
         after = drill.decode_cursor(request.cursor)
-        definition = defs.parse(json.dumps(request.definition).encode())
+        # parsed once, with the request: the typed field is the definition's own model
+        definition = request.definition
         catalogue, _, _ = await self._visible(user, workspace_id, form_id)
         plan = defs.validate(definition, catalogue)
         card = next((c for c in plan.cards if c.id == request.card), None)
@@ -289,6 +289,10 @@ class ReportService:
                 "This card has no groups whose responses can be opened.",
             )
         scope = await self._responses.scope(workspace_id, [form_id])
+        # the same cap as a query: the set the pass would read is counted first (plaintext filters only)
+        count, _ = await self._repo.token(scope, plan.filters)
+        if count > limits.REPORT_MAX_ROWS:
+            raise too_many_rows(count)
         try:
             await asyncio.wait_for(self._passes.acquire(), limits.PASS_WAIT_SECONDS)
         except asyncio.TimeoutError:

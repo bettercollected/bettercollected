@@ -540,6 +540,27 @@ describe('answer filters on the page', () => {
         expect(screen.getByRole('figure', { name: 'Responses' })).toHaveTextContent('n = 74');
     });
 
+    it('shows a card grouped by a status with its reason, and does not ask for it, while a condition on an answer is in force', () => {
+        const statusCard: ReportCardDef = { id: 'state', kind: 'bar', dimension: { field: 'status' }, measures: [{ agg: 'count' }] };
+        const view = saved({ definition: { ...saved().definition, filters: { where: WHERE }, cards: [...saved().definition.cards, statusCard] } });
+        withViews(view);
+        nav.search = `view=${VIEW_ONE}&cards=${cardsParam(view.definition.cards)}`;
+        renderPage();
+        expect(lastAsked().filters.where).toEqual(WHERE);
+        expect(lastAsked().cards.map((card) => card.id)).toEqual(['team', 'total']);
+        expect(screen.getAllByText(/cannot be combined with a condition on an answer/).length).toBe(1);
+        // the view is not offered an Update that would drop it, and a save sends it so the server says why
+        expect(screen.queryByRole('button', { name: 'Update view' })).toBeNull();
+    });
+
+    it('asks for the same card as before once the condition is gone', () => {
+        const statusCard: ReportCardDef = { id: 'state', kind: 'bar', dimension: { field: 'status' }, measures: [{ agg: 'count' }] };
+        nav.search = `cards=${cardsParam([statusCard])}`;
+        renderPage();
+        expect(lastAsked().cards.map((card) => card.id)).toEqual(['state']);
+        expect(screen.queryByText(/cannot be combined with a condition on an answer/)).toBeNull();
+    });
+
     it('takes no condition from the address: a `where` parameter means nothing', () => {
         nav.search = 'who=known&where=eyJmaWVsZCI6InE6dGVhbSJ9';
         renderPage();

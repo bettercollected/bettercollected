@@ -10,7 +10,7 @@ import '@app/shared/hocs/i18n-provider';
 import { axeViolations } from '@app/test/axe';
 import { ReportDefinition, ReportView, ReportViewList } from '@app/utils/report';
 
-import ReportViews from './report-views';
+import ReportViews, { viewErrorText } from './report-views';
 
 const api = vi.hoisted(() => ({ create: vi.fn(), update: vi.fn(), remove: vi.fn() }));
 vi.mock('@app/store/workspaces/api', () => ({
@@ -234,6 +234,22 @@ describe('changing a view', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Update view' }));
         expect(await screen.findByRole('alert')).toHaveTextContent('This view was changed by someone else. Reload to see it.');
         expect(handlers.onReload).toHaveBeenCalled();
+    });
+});
+
+describe('a card a condition on an answer cannot be combined with', () => {
+    it('says why a save was refused for it, in English and in Dutch', async () => {
+        api.create.mockReturnValue(refuse(422, 'op_not_allowed'));
+        const { container } = renderBar();
+        fireEvent.click(screen.getByRole('button', { name: 'Save view' }));
+        const form = screen.getByRole('form', { name: 'Save view' });
+        fireEvent.change(within(form).getByLabelText('Name'), { target: { value: 'Mine' } });
+        fireEvent.click(within(form).getByRole('button', { name: 'Save view' }));
+        expect(await within(form).findByRole('alert')).toHaveTextContent('cannot be saved together with a condition on an answer');
+        expect(await axeViolations(container)).toEqual([]);
+        expect(viewErrorText('op_not_allowed', 422, (key) => i18n.t(key))).toContain('condition on an answer');
+        await i18n.changeLanguage('nl');
+        expect(viewErrorText('op_not_allowed', 422, (key) => i18n.t(key))).toContain('voorwaarde op een antwoord');
     });
 });
 

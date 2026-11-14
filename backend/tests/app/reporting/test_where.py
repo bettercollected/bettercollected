@@ -267,6 +267,21 @@ async def test_the_catalogue_says_which_operators_each_question_takes(client, wo
     assert "q:why" not in ops
 
 
+@pytest.mark.parametrize("dimension", ["status", "feedback_status"])
+async def test_a_card_grouped_by_a_status_cannot_be_combined_with_a_condition_on_an_answer(client, workspace, reporting_on, dimension):
+    form = await seeded(workspace)
+    cards = [card("s", "bar", dimension=dimension)]
+    # without a condition it is the card it always was
+    assert (await run(client, workspace, form, cards=cards)).status_code == 200
+    # with one it would be counted in SQL, which never reads an answer: refused instead of ignoring the condition
+    refused = await run(client, workspace, form, {"field": "q:dept", "op": "is", "value": "care"}, cards=cards)
+    assert refused.status_code == 422 and refused.json()["code"] == "op_not_allowed", refused.text
+    assert "care" not in refused.text
+    # also next to a card that is fine
+    mixed = await run(client, workspace, form, {"field": "q:dept", "op": "is", "value": "care"}, cards=[card("t", "tile"), *cards])
+    assert mixed.status_code == 422 and mixed.json()["code"] == "op_not_allowed"
+
+
 async def test_the_cap_still_counts_the_plaintext_set_not_the_matches(client, workspace, reporting_on, monkeypatch):
     form = await seeded(workspace)
     monkeypatch.setattr(limits, "REPORT_MAX_ROWS", 5)

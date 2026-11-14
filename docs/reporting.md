@@ -131,7 +131,10 @@ view (`invalid_definition`, naming the path and never the value). A comparison o
 response that gave a value (`is_empty` finds the others); a typed "Other" is the group "Other"
 and its text is never read. With conditions every card is computed in the pass (which responses
 count depends on what they answered), `n` is the number of responses that met them, and the
-20,000-response cap still counts the set the plaintext filters select. A saved view stores
+20,000-response cap still counts the set the plaintext filters select. A card grouped by
+`status` or `feedback_status` is counted in SQL, which never reads an answer, so with conditions
+it is refused (`422 op_not_allowed`) instead of ignoring them; the page says so on the card and
+when a save is refused for it. A saved view stores
 them with the rest of the definition (`v` stays 1: `where` is an optional key); the page never puts them in an
 address.
 
@@ -158,8 +161,9 @@ biggest hundred and sums the rest in `otherGroups`.
 {"definition": {...}, "card": "dept", "group": "<option id>", "cursor": null, "size": 25}
 ```
 
-The definition is validated as a query's is (the same field policy, conditions included); the
-card must have a dimension the pass reads (not the deletion-request or feedback status). The
+The definition is validated as a query's is (the same field policy, conditions included), and
+the set it reads is held to the same cap (`413 too_many_rows` with `count` and `max`, counted
+from the plaintext filters before any answer is read); the card must have a dimension the pass reads (not the deletion-request or feedback status). The
 answer is a page of `{id, submittedAt, formVersion, respondent}` (`id` is what the response's
 own page is opened by; `respondent` is `anonymous` or `known`, never who) for the responses that
 met the definition's filters and fell in the group, oldest first, with `cursor`, `scanned` and

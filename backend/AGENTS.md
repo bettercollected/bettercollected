@@ -1647,8 +1647,10 @@ any query. Rules to keep:
 - Answer filters (`filters.where`, `definition.Clause` / `clause_plan`, matched by `accumulate.clause_matches`): a value is an
   option id the question has, a number, a boolean or a date, never text; each is checked against the catalogue the caller may
   use (the same errors as a dimension), with the operators of `catalogue.FILTER_OPS`. With any, every card runs in the pass and
-  `n` is the number of responses that met them. Drill-down (`POST /report/responses`, `services/reporting/drill.py`,
-  `engine.drill`) reuses the pass and the accumulator's own group keys, never reads an answer out, and returns the response id,
+  `n` is the number of responses that met them; a card grouped by `status`/`feedback_status` (SQL only) is refused with them
+  (`op_not_allowed`). Drill-down (`POST /report/responses`, `services/reporting/drill.py`,
+  `engine.drill`; the request's `definition` is the typed `Definition`, parsed once, and the set is counted with `token()` and capped
+  like a query's) reuses the pass and the accumulator's own group keys, never reads an answer out, and returns the response id,
   the time, the version and anonymous or known. It does not join the replicas' pass places yet (only this process's and the
   rate limit): the slot code is shared with the report CSV work.
 - Saved views (`services/reporting/views.py`, `repositories/postgres/report_views.py`, table `form_report_views`, revision 0040):
