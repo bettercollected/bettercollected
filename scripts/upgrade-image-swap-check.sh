@@ -14,7 +14,8 @@
 #               queues   e webhooks (the SSRF guard)   f drafts   g email action and respondent copy
 #               h the actions executor role's restriction: recorded after the bare swap (INFO), then in force after
 #                 the documented step (ensure-jobs-exec-role.sh as superuser, python -m backend.jobs.schema)
-#               i 5.0: a report query answers (REPORTING_ENABLED); a 4th sign-in code mail to one mailbox in the hour is 429
+#               i 5.0: a report query answers (REPORTING_ENABLED); a 4th sign-in code mail to one mailbox in the hour is 429;
+#                 the tables of 0040 and 0041 exist (alembic head 0041); CAPTCHA_ENABLED is left off
 #
 #   scripts/upgrade-image-swap-check.sh [--keep]
 #
@@ -442,6 +443,8 @@ services:
       FORM_PROMOTION_ENABLED: "true"
       TOTP_ENABLED: "true"
       REPORTING_ENABLED: "true"
+      # CAPTCHA_ENABLED stays unset on purpose (off, as shipped): the check posts responses and asks for sign-in
+      # codes without a proof of work, which the switch would require; the 0041 table is only created here.
 $mail
   jobs-worker:
     environment:
@@ -586,7 +589,7 @@ part_swap() {
 }
 
 checks_a_to_d() {
-  local expect_head="${SWAP_CHECK_EXPECT_ALEMBIC:-0039}"
+  local expect_head="${SWAP_CHECK_EXPECT_ALEMBIC:-0041}"
   section "(3a) migrations"
   local version="" deadline=$((SECONDS + 60))
   while [ "$SECONDS" -lt "$deadline" ]; do
@@ -605,10 +608,13 @@ checks_a_to_d() {
   # 4.4 (0035 to 0039; there is no 0036): the tables, and the columns that 0038 and 0039 add by a table rewrite
   expect "the 4.4 tables exist (authenticator apps, teams, grants, directory group links)" "6" \
     "$(psql_app "select count(*) from information_schema.tables where table_schema='app' and table_name in ('user_totp_factors','user_recovery_codes','member_groups','member_group_members','form_access_grants','scim_group_team_links')")"
+  # 5.0 (0040, 0041): two new tables, empty (reports and the spam check are behind their switches)
+  expect "the 5.0 tables exist (saved report views 0040, spam check daily counts 0041)" "2" \
+    "$(psql_app "select count(*) from information_schema.tables where table_schema='app' and table_name in ('form_report_views','captcha_daily_counts')")"
   expect "the generated columns of 0038 and 0039 exist (audit form_id, user_id, target_user_id; scim_users.user_id)" "4" \
     "$(psql_app "select count(*) from information_schema.columns where table_schema='app' and ((table_name='workspace_audit_events' and column_name in ('form_id','user_id','target_user_id')) or (table_name='scim_users' and column_name='user_id'))")"
   if [ "$OLD_VERSION" = "$expect_head" ]; then
-    # 5.0 adds no migration: the old release is already at the head, so the swap applies nothing
+    # only when SWAP_CHECK_OLD_TAG is already at the head (a 5.0 build, a rerun): the swap applies nothing
     check "a service log shows nothing to apply: the old release was already at $expect_head" \
       grep -qE "DB_AUTO_MIGRATE: schema 'app': nothing to apply|schema 'app' at head \($expect_head\)" "$work/both.log"
     check "no service applied a revision on the swap" bash -c '! grep -q "DB_AUTO_MIGRATE: schema .app. migrated, applied" "$1"' _ "$work/both.log"
