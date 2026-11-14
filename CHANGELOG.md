@@ -50,7 +50,7 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - **Export row order.** A response export now lists rows oldest first by the time the response was stored (ties by id); it used to follow id order. The two differ only for responses stored in the same second by different processes.
 - **Python 3.11.** The shared Python package (`common`) now requires Python 3.11 and dnspython 2.9.2 or later. Every service image already runs 3.11, so deployments are not affected; it matters if you install `common` yourself on Python 3.10.
 - **Image tag:** set `BC_IMAGE_TAG` to `v5.0.0` (the default in `docker-compose.deployment.yml` is now `v5.0.0`). A stack that sets its image tags itself moves every first-party service (backend, auth, webapp, jobs worker and the others) to `v5.0.0` together.
-- **Rolling back to 4.4.x:** the two new tables stay and are ignored by 4.4. The rate limits go away with the code (4.4 has none), and so do the saved views and the spam check's counts until you roll forward again.
+- **Rolling back to 4.4.x:** the two new tables stay and are ignored by 4.4. The rate limits stop with the code (4.4 has none), and the reports, saved views and spam check are not there; what was stored (views, counts, a form's own spam check setting) stays and is used again when you roll forward.
 
 ### Added
 
