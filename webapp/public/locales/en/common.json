@@ -399,6 +399,10 @@
         "NOTE": "Leave empty for no limit. Editing a response is not affected.",
         "INVALID": "Enter a whole number from 1 to {{max}}."
       },
+      "CAPTCHA": {
+        "TITLE": "Spam protection (automatic, no puzzle)",
+        "DESCRIPTION": "Respondents solve nothing; their browser does a small calculation."
+      },
       "SAVE_DRAFT": {
         "TITLE": "Let respondents save and continue later",
         "DESCRIPTION": "Respondents can save what they typed and finish later: signed-in ones from their account, others with a link sent to the address they enter. Drafts are encrypted, kept apart from the responses and not visible to you until the form is submitted. Turning this off stops saving and opening drafts, and they are deleted within a day.",
@@ -3479,6 +3483,7 @@
     "TRUNCATED": "Only the largest groups are listed; the rest are added up as other groups.",
     "UNAVAILABLE_FIELD": "This question is no longer in the form.",
     "INVALID_CARD": "This card cannot be shown as it is. Change it or remove it.",
+    "CARD_NEEDS_NO_CONDITION": "Cards grouped by deletion request or feedback status cannot be combined with a condition on an answer. Remove the condition to see this card.",
     "EMPTY_FORM_TITLE": "No responses yet",
     "EMPTY_FORM": "This report fills in as soon as the form has responses.",
     "EMPTY_FILTERED": "No responses match these filters.",
@@ -3544,6 +3549,8 @@
     "VIEW_SAVE": "Save view",
     "VIEW_SAVE_AS": "Save as new view",
     "VIEW_UPDATE": "Update view",
+    "VIEW_UPDATE_BLOCKED_one": "{{count}} card of this view cannot be shown to you, so updating it from here would remove it. Save this report as a new view instead.",
+    "VIEW_UPDATE_BLOCKED_other": "{{count}} cards of this view cannot be shown to you, so updating it from here would remove them. Save this report as a new view instead.",
     "VIEW_DETAILS": "Rename or share",
     "VIEW_DELETE": "Delete view",
     "VIEW_NAME": "Name",
@@ -3565,6 +3572,7 @@
     "VIEW_DELETE_SHARED": "It disappears for everyone who can open this report.",
     "VIEW_NAME_TAKEN": "Another view already has this name.",
     "VIEW_LIMIT": "You have reached the number of saved views allowed here. Delete one first.",
+    "VIEW_NEEDS_NO_CONDITION": "A card grouped by deletion request or feedback status cannot be saved together with a condition on an answer. Remove one of them.",
     "VIEW_CHANGED": "This view was changed by someone else. Reload to see it.",
     "VIEW_NOT_FOUND": "This view no longer exists.",
     "VIEW_FORBIDDEN": "You may not do this with this view.",

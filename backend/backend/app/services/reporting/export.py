@@ -68,7 +68,7 @@ class ExportRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True, alias_generator=to_camel)
 
-    definition: Dict[str, Any]
+    definition: Definition
     card: str = Field(min_length=1, max_length=limits.CARD_ID_MAX)
     format: Literal["csv"] = FORMAT
 

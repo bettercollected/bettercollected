@@ -14,11 +14,12 @@ choice a report is about ever sits in a URL, a log or a history.
 """
 
 from http import HTTPStatus
+from typing import Optional
 
 from classy_fastapi import Routable, delete, get, patch, post
 from common.ids import RecordId
 from common.models.user import User
-from fastapi import Depends, Request
+from fastapi import Depends, Query, Request
 from fastapi.responses import JSONResponse, Response
 
 from backend.app.container import container
@@ -224,9 +225,12 @@ class ReportRouter(Routable):
         workspace_id: RecordId,
         form_id: str,
         view_id: str,
+        revision: Optional[int] = Query(None, ge=1, le=1_000_000),
         user: User = Depends(get_logged_user),
     ) -> Response:
         """Delete a view: its owner's private one, or a view of the form (needs
-        ``form.edit``; one made by someone else needs ``members.manage``)."""
-        await container.report_view_service().delete(user, workspace_id, form_id, view_id)
+        ``form.edit``; one made by someone else needs ``members.manage``). With
+        ``?revision=`` the view must still be at it: 409 ``view_changed`` otherwise,
+        before anything is audited or deleted."""
+        await container.report_view_service().delete(user, workspace_id, form_id, view_id, revision)
         return Response(status_code=HTTPStatus.NO_CONTENT, headers=NO_STORE)

@@ -55,6 +55,11 @@ class WorkspaceFormSettingsCamelModal(WorkspaceFormSettings, CamelModel):
     # the form's access mode is not part of the settings a response carries
     # (form-level access tells the webapp through its own ``access`` block)
     access_mode: Optional[str] = Field(None, exclude=True)
+    # Served to respondents only, while CAPTCHA_ENABLED is on: whether the
+    # form asks the browser for a proof of work before it takes a response
+    # (computed from ``captcha_enabled``, which respondents never see; never
+    # stored).
+    captcha_required: Optional[bool] = None
 
 
 class FormSettingsCamelModel(WorkspaceFormSettingsCamelModal):

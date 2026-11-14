@@ -14,6 +14,13 @@ Commands (the shell runs them in this order):
     webhook      new stack: private webhook addresses are refused; nothing is sent
     drafts       new stack: save and continue later (link mail, open, submit deletes)
     email        new stack: email action, team mail, copy only to a signed-in respondent
+    release      new stack, 5.0: a report query answers; a 4th sign-in code mail to one mailbox is refused (429)
+
+The creator's sign-in code is asked for as rarely as possible: from 5.0 a mailbox gets 3 code mails an
+hour (a +tag does not make a new mailbox), and the five commands before ``release`` would need five.
+``owner_session`` signs the creator in once on the old stack (seed) and once after the swap at most; the
+session's cookies are kept in the state file (0600, in the run's own work directory, removed with it) and
+refreshed when the access token has run out.
 """
 
 from __future__ import annotations
@@ -75,6 +82,7 @@ class Sess:
         self.base = base.rstrip("/")
         self.cookies: dict[str, str] = {}
         self.bearer = bearer
+        self.last_headers = None   # the headers of the last answer
 
     def call(self, method: str, path: str, body=None, form: dict | None = None,
              expect: tuple[int, ...] | None = None, timeout: float = 60):
@@ -100,6 +108,7 @@ class Sess:
                 raw, status, got = response.read(), response.status, response.headers
         except urllib.error.HTTPError as error:
             raw, status, got = error.read() or b"", error.code, error.headers
+        self.last_headers = got
         for line in got.get_all("Set-Cookie") or []:
             pair = line.split(";", 1)[0]
             name, _, value = pair.partition("=")
@@ -208,6 +217,30 @@ def save(path: str, state: dict) -> None:
     os.chmod(path, 0o600)
 
 
+def owner_session(args, state: dict, mail: Mailpit) -> Sess:
+    """The creator's signed-in session, from the cookies kept in the state file when they still work (an
+    expired access token is refreshed once), else a new sign-in (one code mail), kept for the next command.
+    The mailbox's budget is 3 code mails an hour: this is why the commands share one session."""
+    sess = Sess(args.api)
+    kept = state.get("owner_cookies")
+    if isinstance(kept, dict) and kept:
+        sess.cookies = dict(kept)
+        status, _ = sess.call("GET", "/workspaces/mine")
+        if status == 401:
+            status, _ = sess.call("POST", "/auth/refresh")
+            if status == 200:
+                status, _ = sess.call("GET", "/workspaces/mine")
+        if status == 200:
+            state["owner_cookies"] = dict(sess.cookies)
+            save(args.state, state)
+            return sess
+        info("  the kept creator session no longer works: signing in again (one code mail)")
+    sess = sign_in(args.api, mail, OWNER)
+    state["owner_cookies"] = dict(sess.cookies)
+    save(args.state, state)
+    return sess
+
+
 def standing_answers(given: dict) -> dict:
     return {
         "name": {"type": "text", "text": given["name"]},
@@ -266,7 +299,7 @@ def create_form(key: Sess, spec: dict) -> tuple[str, str]:
 def cmd_seed(args) -> None:
     state: dict = {"owner": OWNER}
     mail = Mailpit(args.mailpit)
-    owner = sign_in(args.api, mail, OWNER)
+    owner = owner_session(args, state, mail)
     passed("the creator signed in with an emailed code (workspace created on the first sign-in)")
     _, mine = owner.call("GET", "/workspaces/mine", expect=(200,))
     workspace = mine[0]
@@ -311,7 +344,7 @@ def cmd_readback(args) -> None:
     problems = smoke_forms.compare_standing(responses)
     check("they still match the values they were given", not problems, "; ".join(problems))
     # the respondent-facing and staff reads too
-    owner = sign_in(args.api, Mailpit(args.mailpit), OWNER)
+    owner = owner_session(args, state, Mailpit(args.mailpit))
     status, page = owner.call("GET", f"/workspaces/{state['workspace_id']}/forms/{state['form_id']}/submissions?size=20")
     total = len(page.get("items", [])) if isinstance(page, dict) else -1
     check("the workspace's own responses list (the webapp's read) shows them", status == 200 and total == 3,
@@ -326,7 +359,7 @@ def refused(sess: Sess, path: str, url: str, fields: list) -> tuple[int, str]:
 def cmd_webhook(args) -> None:
     state = load(args.state)
     mail = Mailpit(args.mailpit)
-    owner = sign_in(args.api, mail, OWNER)
+    owner = owner_session(args, state, mail)
     ws, form = state["workspace_id"], state["form_id"]
     base = f"/workspaces/{ws}/forms/{form}/webhooks"
     status, variables = owner.call("GET", f"{base}/variables")
@@ -361,7 +394,7 @@ def cmd_webhook(args) -> None:
 def cmd_drafts(args) -> None:
     state = load(args.state)
     mail = Mailpit(args.mailpit)
-    owner = sign_in(args.api, mail, OWNER)
+    owner = owner_session(args, state, mail)
     key = key_session(args.api, state)
     ws = state["workspace_id"]
     status, _ = Sess(args.api).call("GET", "/providers")
@@ -422,7 +455,7 @@ def cmd_drafts(args) -> None:
 def cmd_email(args) -> None:
     state = load(args.state)
     mail = Mailpit(args.mailpit)
-    owner = sign_in(args.api, mail, OWNER)
+    owner = owner_session(args, state, mail)
     key = key_session(args.api, state)
     ws = state["workspace_id"]
     title = "Swap email form " + uuid.uuid4().hex[:6]
@@ -485,9 +518,53 @@ def cmd_email(args) -> None:
     info(f"  the delivery log (channel:status:code): {', '.join(kinds)}")
 
 
+def cmd_release(args) -> None:
+    """What 5.0 adds: a report query answers over the seeded responses (REPORTING_ENABLED is on in the
+    stack's override), and the per-mailbox limit of sign-in code mails holds."""
+    state = load(args.state)
+    mail = Mailpit(args.mailpit)
+    owner = owner_session(args, state, mail)
+    base = f"/workspaces/{state['workspace_id']}/forms/{state['form_id']}/report"
+    status, fields = owner.call("GET", f"{base}/fields")
+    reportable = [f for f in (fields or {}).get("fields", []) if f.get("dimension")] if status == 200 else []
+    check("the report's field list answers (200) and offers a question to group by",
+          status == 200 and bool(reportable), f"status {status} {code_of(fields)}")
+    if status == 200 and reportable:
+        definition = {"v": 1, "filters": {}, "tz": "UTC", "cards": [
+            {"id": "all", "kind": "tile", "measures": [{"agg": "count"}]},
+            {"id": "by", "kind": "bar", "dimension": {"field": reportable[0]["key"]},
+             "measures": [{"agg": "count"}]},
+        ]}
+        status, result = owner.call("POST", f"{base}/query", definition)
+        cards = {c.get("id"): c for c in (result or {}).get("cards", [])} if status == 200 else {}
+        check("a report query answers (200) over the seeded responses: counts only",
+              status == 200 and (result or {}).get("n", 0) >= 3 and set(cards) == {"all", "by"},
+              f"status {status} {code_of(result)}")
+        check("the grouped card read the stored answers (decrypted) of every seeded response",
+              cards.get("by", {}).get("answered", 0) >= 3, f"answered {cards.get('by', {}).get('answered')}")
+        check("the answer is not cacheable (Cache-Control: no-store)",
+              "no-store" in (owner.last_headers.get("Cache-Control", "") if owner.last_headers else ""))
+    # the sign-in code mail: 3 an hour per mailbox, a +tag being the same mailbox; the 4th is refused (429)
+    address, folded = "swap-limit@example.com", "swap-limit+again@example.com"
+    anon = Sess(args.api)
+    sent = []
+    for _ in range(3):
+        status, _ = anon.call("POST", "/auth/creator/otp/send?" + urllib.parse.urlencode({"receiver_email": address}))
+        sent.append(status)
+    check("three sign-in code mails to one mailbox are accepted (200)", sent == [200, 200, 200], f"statuses {sent}")
+    status, body = anon.call("POST", "/auth/creator/otp/send?" + urllib.parse.urlencode({"receiver_email": folded}))
+    retry = anon.last_headers.get("Retry-After", "") if anon.last_headers else ""
+    check("a 4th code mail to the same mailbox (spelled with a +tag) within the hour is refused (429 rate_limited)",
+          status == 429 and code_of(body) == "rate_limited", f"status {status} {code_of(body)}")
+    check("the refusal carries Retry-After (seconds)", retry.isdigit() and int(retry) > 0)
+    time.sleep(2)
+    check("no 4th mail was sent", len(mail.to(address)) == 3 and len(mail.to(folded)) == 0,
+          f"{len(mail.to(address))} mails")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["seed", "readback", "webhook", "drafts", "email"])
+    parser.add_argument("command", choices=["seed", "readback", "webhook", "drafts", "email", "release"])
     parser.add_argument("--api", required=True)
     parser.add_argument("--mailpit", required=True)
     parser.add_argument("--state", required=True)
@@ -495,7 +572,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         {"seed": cmd_seed, "readback": cmd_readback, "webhook": cmd_webhook,
-         "drafts": cmd_drafts, "email": cmd_email}[args.command](args)
+         "drafts": cmd_drafts, "email": cmd_email, "release": cmd_release}[args.command](args)
     except Exception as error:  # a harness or product failure: reported, never a traceback with values
         failed(f"{args.command} stopped", f"{type(error).__name__}: {str(error)[:200]}")
         return 1

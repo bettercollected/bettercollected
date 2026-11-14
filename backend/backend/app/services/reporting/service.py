@@ -34,7 +34,6 @@ from __future__ import annotations
 import asyncio
 import copy
 import hashlib
-import json
 import time
 from collections import OrderedDict
 from contextlib import asynccontextmanager
@@ -298,7 +297,7 @@ class ReportService:
             user, Permission.RESPONSE_EXPORT, workspace_id, form_id=form_id
         )
         request = report_export.parse(body)
-        definition = defs.parse(json.dumps(request.definition).encode())
+        definition = request.definition
         card = next((c for c in definition.cards if c.id == request.card), None)
         if card is None:
             raise defs.invalid("card: no such card in this definition")
@@ -375,7 +374,8 @@ class ReportService:
         await self._take_rate_limit(workspace_id, form_id, user)
         request = drill.parse(body)
         after = drill.decode_cursor(request.cursor)
-        definition = defs.parse(json.dumps(request.definition).encode())
+        # parsed once, with the request: the typed field is the definition's own model
+        definition = request.definition
         catalogue, _, _ = await self._visible(user, workspace_id, form_id)
         plan = defs.validate(definition, catalogue)
         card = next((c for c in plan.cards if c.id == request.card), None)
@@ -388,6 +388,10 @@ class ReportService:
                 "This card has no groups whose responses can be opened.",
             )
         scope = await self._responses.scope(workspace_id, [form_id])
+        # the same cap as a query: the set the pass would read is counted first (plaintext filters only)
+        count, _ = await self._repo.token(scope, plan.filters)
+        if count > limits.REPORT_MAX_ROWS:
+            raise too_many_rows(count)
         # a place in this process and a share of the replicas' places, as a query's pass takes
         async with self._place(workspace_id):
             try:
@@ -423,6 +427,10 @@ class ReportService:
         except Exception as error:  # noqa: BLE001 - only the place is lost
             logger.warning("report: could not give back a pass place ({})", type(error).__name__)
 
+    async def _give_back_all(self, clients) -> None:
+        for client in clients:
+            await self._give_back(client)
+
     @asynccontextmanager
     async def _place(self, workspace_id: RecordId):
         """A place for one pass over the answers: one of this process's
@@ -450,9 +458,14 @@ class ReportService:
                 taken.append(client)
             yield
         finally:
-            for client in reversed(taken):
-                await self._give_back(client)
+            # the process's place first: releasing is synchronous and cannot be
+            # interrupted, so a request cancelled while it gives the shared
+            # places back (a closed tab) never leaves this process short of one
             self._passes.release()
+            if taken:
+                # ...and the shared places are given back by a task that a
+                # cancellation of this request does not stop half way
+                await asyncio.shield(self._give_back_all(list(reversed(taken))))
 
     async def _scan(
         self, user, workspace_id, form_id, plan, catalogue, revision, view, token, scope

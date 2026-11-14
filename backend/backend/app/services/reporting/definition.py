@@ -530,6 +530,15 @@ def validate(definition: Definition, catalogue: Catalogue) -> Plan:
         dimension = _dimension_plan(card, catalogue)
         measures = tuple(_measure_plan(m, catalogue) for m in card.measures)
         if dimension is not None and dimension.builtin in SQL_ONLY_BUILTINS:
+            if definition.filters.where:
+                # counted in SQL, which never reads an answer: the condition would be ignored
+                # for this card and its figures would not match the rest of the report
+                raise error(
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                    OP_NOT_ALLOWED,
+                    "A condition on an answer cannot be combined with a card grouped by "
+                    "deletion request or feedback status.",
+                )
             if any(m.agg != COUNT for m in measures):
                 raise error(
                     HTTPStatus.UNPROCESSABLE_ENTITY,

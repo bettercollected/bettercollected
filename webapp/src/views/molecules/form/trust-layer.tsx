@@ -208,6 +208,8 @@ export default function TrustLayer({ ownerName, ownerUnnamed = false, ownerImage
     if (settings?.allowSaveDraft) {
         rows.push({ key: 'drafts', term: t('PRIVACY.DRAFTS'), detail: t('PRIVACY.DRAFTS_DETAIL', { count: draftDays(settings as StandardFormDto['settings']) }) });
     }
+    // The automatic spam check: a calculation in the browser, no cookie, nothing stored about the respondent (only while the server asks for it).
+    if (settings?.captchaRequired) rows.push({ key: 'captcha', term: t('PRIVACY.CAPTCHA'), detail: t('PRIVACY.CAPTCHA_DETAIL') });
     // A signature names a person: say that it is kept with the response, like the other answers.
     if (hasSignature) rows.push({ key: 'signature', term: t('PRIVACY.SIGNATURE'), detail: t('PRIVACY.SIGNATURE_DETAIL') });
     // Answers that other forms of the organisation may show as choices: said once, here, and next to each question.

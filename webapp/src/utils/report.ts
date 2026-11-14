@@ -239,6 +239,9 @@ export const canDonut = (catalogue: ReportCatalogue, key: string | undefined) =>
     return groups !== undefined && groups <= DONUT_MAX;
 };
 
+/** A card grouped by deletion request or feedback status is counted without reading answers, so it cannot be combined with a condition on an answer. */
+export const needsNoCondition = (card: ReportCardDef): boolean => !!card.dimension && ['status', 'feedback_status'].includes(card.dimension.field);
+
 /** The kinds a card with this dimension may take. */
 export function kindsFor(catalogue: ReportCatalogue, dimension: string | undefined): ReportCardKind[] {
     if (!dimension) return ['tile', 'table'];

@@ -399,6 +399,10 @@
         "NOTE": "Laat leeg voor geen limiet. Een antwoord bewerken valt hier niet onder.",
         "INVALID": "Voer een geheel getal in van 1 tot {{max}}."
       },
+      "CAPTCHA": {
+        "TITLE": "Spamcontrole (automatisch, zonder puzzel)",
+        "DESCRIPTION": "Respondenten hoeven niets op te lossen; hun browser voert een kleine berekening uit."
+      },
       "SAVE_DRAFT": {
         "TITLE": "Laat respondenten opslaan en later verdergaan",
         "DESCRIPTION": "Respondenten kunnen bewaren wat ze hebben ingevuld en later afronden: wie is ingelogd vanuit het eigen account, anderen met een link naar het e-mailadres dat ze invullen. Concepten zijn versleuteld, staan los van de reacties en zijn voor u pas zichtbaar nadat het formulier is verstuurd. Zet u dit uit, dan worden concepten niet meer opgeslagen of geopend en binnen een dag verwijderd.",
@@ -3478,6 +3482,7 @@
     "UNREADABLE": "Sommige antwoorden konden niet worden gelezen en zijn buiten deze cijfers gelaten.",
     "TRUNCATED": "Alleen de grootste groepen staan in de lijst; de rest is opgeteld als overige groepen.",
     "UNAVAILABLE_FIELD": "Deze vraag staat niet meer in het formulier.",
+    "CARD_NEEDS_NO_CONDITION": "Kaarten gegroepeerd op verwijderverzoek of feedbackstatus kunnen niet samen met een voorwaarde op een antwoord worden getoond. Haal de voorwaarde weg om deze kaart te zien.",
     "INVALID_CARD": "Deze kaart kan zo niet worden getoond. Wijzig of verwijder de kaart.",
     "EMPTY_FORM_TITLE": "Nog geen reacties",
     "EMPTY_FORM": "Dit rapport vult zich zodra het formulier reacties heeft.",
@@ -3544,6 +3549,8 @@
     "VIEW_SAVE": "Weergave opslaan",
     "VIEW_SAVE_AS": "Opslaan als nieuwe weergave",
     "VIEW_UPDATE": "Weergave bijwerken",
+    "VIEW_UPDATE_BLOCKED_one": "{{count}} kaart van deze weergave kan niet aan u worden getoond, dus bijwerken vanaf hier zou haar verwijderen. Sla dit rapport op als nieuwe weergave.",
+    "VIEW_UPDATE_BLOCKED_other": "{{count}} kaarten van deze weergave kunnen niet aan u worden getoond, dus bijwerken vanaf hier zou ze verwijderen. Sla dit rapport op als nieuwe weergave.",
     "VIEW_DETAILS": "Hernoemen of delen",
     "VIEW_DELETE": "Weergave verwijderen",
     "VIEW_NAME": "Naam",
@@ -3565,6 +3572,7 @@
     "VIEW_DELETE_SHARED": "De weergave verdwijnt voor iedereen die dit rapport kan openen.",
     "VIEW_NAME_TAKEN": "Een andere weergave heeft al deze naam.",
     "VIEW_LIMIT": "U hebt het toegestane aantal opgeslagen weergaven hier bereikt. Verwijder er eerst een.",
+    "VIEW_NEEDS_NO_CONDITION": "Een kaart gegroepeerd op verwijderverzoek of feedbackstatus kan niet samen met een voorwaarde op een antwoord worden opgeslagen. Haal een van beide weg.",
     "VIEW_CHANGED": "Deze weergave is door iemand anders gewijzigd. Laad opnieuw om die te zien.",
     "VIEW_NOT_FOUND": "Deze weergave bestaat niet meer.",
     "VIEW_FORBIDDEN": "U mag dit niet doen met deze weergave.",

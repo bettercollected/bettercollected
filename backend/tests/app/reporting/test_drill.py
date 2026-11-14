@@ -137,6 +137,23 @@ async def test_the_conditions_on_answers_narrow_the_group(client, workspace, rep
     assert groups_of(counted, "dept")["care"]["n"] == 3
 
 
+async def test_a_drill_down_is_held_to_the_same_cap_as_a_query_and_reads_nothing_over_it(client, workspace, reporting_on, monkeypatch):
+    from backend.app.services.reporting import engine
+
+    form, _ = await seeded(workspace)
+    body = drill_body([card("dept", "bar", dimension="q:dept")], "dept", "care")
+    assert (await page(client, workspace, form, body)).status_code == 200
+    monkeypatch.setattr(limits, "REPORT_MAX_ROWS", 5)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("an answer was decrypted")
+
+    monkeypatch.setattr(engine, "stored_answers", forbidden)
+    refused = await page(client, workspace, form, body)
+    assert refused.status_code == 413 and refused.json()["code"] == "too_many_rows", refused.text
+    assert refused.json()["count"] == 9 and refused.json()["max"] == 5
+
+
 async def test_a_group_of_a_plaintext_dimension(client, workspace, reporting_on):
     form, ids = await seeded(workspace)
     who = [card("who", "donut", dimension="respondent")]

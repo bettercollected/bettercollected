@@ -11,6 +11,9 @@ response``: it counts the request against the client's budget on that form
 It sits inside the CORS middleware, so the 429 carries the CORS headers and a
 form served from another origin can read it.
 
+A limiter that errors lets the request through (a 500 from a lock timeout on
+the counters would turn a submit into a failure); only a real 429 refuses.
+
 Nothing is counted when the client cannot be told (a proxy that is not in
 TRUSTED_PROXIES), and nothing for a form that does not exist in that
 workspace: the request goes on and the route answers as it always did, so
@@ -24,6 +27,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from backend.app.exceptions import HTTPException
+from backend.app.services.respondent_limits import fail_open
 from backend.app.utils.client_ip import limit_client_ip
 
 Scope = MutableMapping[str, Any]
@@ -60,9 +64,15 @@ class SubmitLimitMiddleware:
             link = None  # malformed ids, a database error: the route answers
         if link is None:
             return None
+        # the route needs the same form for the proof of work (CAPTCHA_ENABLED):
+        # hand it over rather than read it twice
+        scope.setdefault("state", {})["form_link"] = link
         try:
-            await container.respondent_limits().submit(
-                client, workspace_id, str(link.form_id)
+            # a limiter that fails lets the submit through (fail_open)
+            await fail_open(
+                lambda: container.respondent_limits().submit(
+                    client, workspace_id, str(link.form_id)
+                )
             )
         except HTTPException as refused:
             return JSONResponse(

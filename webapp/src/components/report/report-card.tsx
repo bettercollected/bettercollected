@@ -27,6 +27,8 @@ interface Props {
     catalogue: ReportCatalogue;
     /** The figures are on their way (first load or a new definition). */
     loading?: boolean;
+    /** The report has a condition on an answer, which a card grouped by deletion request or feedback status cannot honour. */
+    blocked?: boolean;
     first: boolean;
     last: boolean;
     onChange: (card: ReportCardDef) => void;
@@ -41,7 +43,7 @@ interface Props {
     onDownload?: (card: ReportCardDef) => Promise<string | undefined>;
 }
 
-export default function ReportCard({ def, result, catalogue, loading, first, last, onChange, onRemove, onMove, onDrill, onDownload }: Props) {
+export default function ReportCard({ def, result, catalogue, loading, blocked, first, last, onChange, onRemove, onMove, onDrill, onDownload }: Props) {
     const { t } = useTranslation();
     const locale = useIntlLocale();
     const id = useId().replace(/:/g, '');
@@ -130,6 +132,10 @@ export default function ReportCard({ def, result, catalogue, loading, first, las
             {problem ? (
                 <p role="status" className="m-0 text-sm text-black-700">
                     {problem === 'unknown' ? t('REPORT.UNAVAILABLE_FIELD') : t('REPORT.INVALID_CARD')}
+                </p>
+            ) : blocked ? (
+                <p role="status" className="m-0 text-sm text-black-700">
+                    {t('REPORT.CARD_NEEDS_NO_CONDITION')}
                 </p>
             ) : !result ? (
                 <p className="m-0 text-sm text-black-600">{loading ? t('REPORT.LOADING') : ''}</p>

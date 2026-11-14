@@ -71,10 +71,16 @@ const COUNTS: Record<string, Array<[string, string, number]>> = {
     form_version: [['1', '1', 60], ['2', '2', 152]]
 };
 
-function days(count: number): Array<[string, string, number]> {
-    return Array.from({ length: count }, (_, index) => {
+/** `count` days whose responses add up to exactly `total` (a time card counts every response once). */
+function days(count: number, total: number): Array<[string, string, number]> {
+    const raw = Array.from({ length: count }, (_, index) => 4 + ((index * 7) % 9));
+    const sum = raw.reduce((a, b) => a + b, 0);
+    const scaled = raw.map((value) => Math.floor((value * total) / sum));
+    // what the rounding left over goes one by one to the days, so no day stands out
+    for (let left = total - scaled.reduce((a, b) => a + b, 0), at = 0; left > 0; left--, at++) scaled[at % count] += 1;
+    return scaled.map((value, index) => {
         const day = `2026-10-${String(index + 1).padStart(2, '0')}`;
-        return [day, day, 4 + ((index * 7) % 9)] as [string, string, number];
+        return [day, day, value] as [string, string, number];
     });
 }
 
@@ -86,7 +92,7 @@ export function cardFigures(card: ReportCardDef, n = TOTAL): ReportCardResult {
         const value = first.agg === 'count' ? n : first.agg === 'avg' ? 7.4 : first.agg === 'sum' ? 1569 : first.agg === 'min' ? 0 : 31;
         return { id: card.id, n, answered: first.agg === 'count' ? n : 198, skipped: first.agg === 'count' ? 0 : n - 198, multiple: false, groups: [group('all', '', n, card.measures.map(() => value))], otherGroups: { n: 0, count: 0 }, truncated: false };
     }
-    const rows = dimension === 'submitted_at' ? days(card.dimension?.bucket === 'month' ? 6 : 30) : (COUNTS[dimension] ?? [['a', 'A', 1]]);
+    const rows = dimension === 'submitted_at' ? days(card.dimension?.bucket === 'month' ? 6 : 30, n) : (COUNTS[dimension] ?? [['a', 'A', 1]]);
     const groups = rows.map(([key, label, count]) => group(key, label, count, card.measures.map((measure) => (measure.agg === 'count' ? count : measure.agg === 'avg' ? 4.2 : count))));
     const answered = dimension === 'q:tools' ? 198 : groups.reduce((sum, g) => sum + g.n, 0);
     return { id: card.id, n, answered, skipped: n - answered, multiple: dimension === 'q:tools', groups, otherGroups: { n: 0, count: 0 }, truncated: false };

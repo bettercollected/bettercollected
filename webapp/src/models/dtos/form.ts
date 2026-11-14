@@ -310,6 +310,10 @@ export interface StandardFormDto {
         allowSaveDraft?: boolean | null;
         /** Days a draft is kept after its last save, 1 to 90; absent = 30 (utils/form-drafts.ts DEFAULT_DRAFT_DAYS). */
         draftRetentionDays?: number | null;
+        /** The creator's choice about the automatic spam check on this form (on unless false). Staff only: respondents get `captchaRequired`. */
+        captchaEnabled?: boolean | null;
+        /** Served to respondents while the server has the spam check on: does the form ask the browser for a proof of work before it takes a response? Absent: no. */
+        captchaRequired?: boolean | null;
         showOriginalForm?: boolean;
         /** "Respond to submissions": staff post updates respondents see. */
         respondentFeedbackEnabled?: boolean;

@@ -69,6 +69,7 @@ from backend.app.services.form_drafts.mode import (
     ensure_save_drafts_allowed,
     save_drafts_enabled,
 )
+from backend.app.services.captcha.mode import ensure_captcha_allowed
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.internal_fields import (
     has_promotion_mark,
@@ -98,6 +99,8 @@ def _stub_settings(workspace_form, form) -> Optional[FormSettingsCamelModel]:
     if not save_drafts_enabled():
         settings.allow_save_draft = None
         settings.draft_retention_days = None
+    # a stub has no questions to check: respondents never see the setting
+    settings.captcha_enabled = None
     return settings
 
 
@@ -116,7 +119,7 @@ def _unavailable_stub(form: Any, reason: str, settings: Any = None) -> dict:
 
     form_id = get("form_id")
     shown = settings if settings is not None else get("settings")
-    hidden = {"response_limit": None, "promoted_from": None}
+    hidden = {"response_limit": None, "promoted_from": None, "captcha_enabled": None}
     if not save_drafts_enabled():
         hidden.update(allow_save_draft=None, draft_retention_days=None)
     if isinstance(shown, dict):
@@ -725,6 +728,10 @@ class FormService:
         ensure_save_drafts_allowed(
             settings.allow_save_draft, workspace_form.settings.allow_save_draft
         )
+        # The automatic spam check: changing it needs CAPTCHA_ENABLED (422)
+        ensure_captcha_allowed(
+            settings.captcha_enabled, workspace_form.settings.captcha_enabled
+        )
         if settings.hidden is not None:
             workspace_form.settings.hidden = settings.hidden
         if settings.private is not None:
@@ -750,6 +757,8 @@ class FormService:
 
         if settings.allow_save_draft is not None:
             workspace_form.settings.allow_save_draft = settings.allow_save_draft
+        if settings.captcha_enabled is not None:
+            workspace_form.settings.captcha_enabled = settings.captcha_enabled
         if settings.draft_retention_days is not None:
             # 0 goes back to the default
             workspace_form.settings.draft_retention_days = (

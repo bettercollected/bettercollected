@@ -390,8 +390,9 @@ export const workspacesApi = createApi({
             query: ({ workspaceId, formId, viewId, ...body }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/views/${pathSegment(viewId)}`, method: 'PATCH', body }),
             invalidatesTags: [REPORT_VIEWS_TAG]
         }),
-        deleteReportView: builder.mutation<null, { workspaceId: string; formId: string; viewId: string }>({
-            query: ({ workspaceId, formId, viewId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/views/${pathSegment(viewId)}`, method: 'DELETE' }),
+        deleteReportView: builder.mutation<null, { workspaceId: string; formId: string; viewId: string; revision?: number }>({
+            // the revision the person saw: a view changed since is refused (409) instead of deleted
+            query: ({ workspaceId, formId, viewId, revision }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/views/${pathSegment(viewId)}${revision ? `?revision=${revision}` : ''}`, method: 'DELETE' }),
             invalidatesTags: [REPORT_VIEWS_TAG]
         }),
         // The responses behind one group of one card (response.read and analytics.read): a page at a time, from the cursor
@@ -678,7 +679,7 @@ export const workspacesApi = createApi({
         // The caller's effective permissions in a workspace (empty for a
         // non-member). Kept a while: many controls read it. The user id is
         // part of the cache key only, so one user never reads another's.
-        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean; choiceLogicEnabled?: boolean; newQuestionTypesEnabled?: boolean; addressQuestionEnabled?: boolean; addressLookupEnabled?: boolean; signatureQuestionEnabled?: boolean; optionSourcesEnabled?: boolean; reusableSectionsEnabled?: boolean; layoutContainersEnabled?: boolean; saveDraftsEnabled?: boolean; submissionsApiEnabled?: boolean; formRevisionsUiEnabled?: boolean; responseRevisionsEnabled?: boolean; formEmbedEnabled?: boolean; csvImportEnabled?: boolean; formAccessEnabled?: boolean; auditLogUiEnabled?: boolean; formPromotionEnabled?: boolean; apiKeyRolesEnabled?: boolean; reportingEnabled?: boolean }, { workspaceId: string; userId: string }>({
+        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean; choiceLogicEnabled?: boolean; newQuestionTypesEnabled?: boolean; addressQuestionEnabled?: boolean; addressLookupEnabled?: boolean; signatureQuestionEnabled?: boolean; optionSourcesEnabled?: boolean; reusableSectionsEnabled?: boolean; layoutContainersEnabled?: boolean; saveDraftsEnabled?: boolean; captchaEnabled?: boolean; submissionsApiEnabled?: boolean; formRevisionsUiEnabled?: boolean; responseRevisionsEnabled?: boolean; formEmbedEnabled?: boolean; csvImportEnabled?: boolean; formAccessEnabled?: boolean; auditLogUiEnabled?: boolean; formPromotionEnabled?: boolean; apiKeyRolesEnabled?: boolean; reportingEnabled?: boolean }, { workspaceId: string; userId: string }>({
             query: ({ workspaceId }) => ({
                 url: `/workspaces/${workspaceId}/permissions`,
                 method: 'GET'

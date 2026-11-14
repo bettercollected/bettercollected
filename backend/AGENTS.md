@@ -1647,8 +1647,10 @@ any query. Rules to keep:
 - Answer filters (`filters.where`, `definition.Clause` / `clause_plan`, matched by `accumulate.clause_matches`): a value is an
   option id the question has, a number, a boolean or a date, never text; each is checked against the catalogue the caller may
   use (the same errors as a dimension), with the operators of `catalogue.FILTER_OPS`. With any, every card runs in the pass and
-  `n` is the number of responses that met them. Drill-down (`POST /report/responses`, `services/reporting/drill.py`,
-  `engine.drill`) reuses the pass and the accumulator's own group keys, never reads an answer out, and returns the response id,
+  `n` is the number of responses that met them; a card grouped by `status`/`feedback_status` (SQL only) is refused with them
+  (`op_not_allowed`). Drill-down (`POST /report/responses`, `services/reporting/drill.py`,
+  `engine.drill`; the request's `definition` is the typed `Definition`, parsed once, and the set is counted with `token()` and capped
+  like a query's) reuses the pass and the accumulator's own group keys, never reads an answer out, and returns the response id,
   the time, the version and anonymous or known. Every pass (a query's scan and the drill-down) takes its places through
   `ReportService._place`: one of this process's, one of the workspace's `PASSES_PER_WORKSPACE` and one of the replicas'
   `PASSES_ACROSS_REPLICAS` (counters in the shared limiter, scope `report-passes`; constants, not settings); keep new passes
@@ -1663,8 +1665,9 @@ any query. Rules to keep:
   `ReportService.check_definition` validated as a query would be; never store what a query would refuse. `form`-scope writes
   need `form.edit`, deleting another person's needs `members.manage`. Changes carry the `revision` they were read at (409
   `view_changed`). What the form shares is audited before it is done (`REPORT_EVENTS`, ids and enums, never the name); private
-  views are not. While the switch is off no route, form delete or member removal touches the table (the budget tests count
-  statements): keep it so.
+  views are not. While the switch is off no route reads or writes the table; the clean-up deletes (form, member, account,
+  workspace) run whatever the switch says and are the only statements on it (the budget tests count them): keep it so.
+  A stale `revision` is refused before the audit entry; a card `title` is never stored in a view.
 
 ## Copying a form to another workspace (`FORM_PROMOTION_ENABLED`, docs/environments.md)
 

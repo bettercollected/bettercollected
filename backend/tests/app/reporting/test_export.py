@@ -369,3 +369,39 @@ async def test_the_drill_down_takes_the_same_places(client, workspace, reporting
         )
     busy = await client.post(report_url(workspace, form, "responses"), json=body, cookies=cookies(testUser))
     assert busy.status_code == 429 and busy.json()["code"] == "report_busy"
+
+
+async def test_a_request_cancelled_while_it_gives_its_places_back_still_frees_the_process_slot(
+    client, workspace, reporting_on, monkeypatch
+):
+    service = container.report_service()
+
+    async def cancelled(client_name):
+        raise asyncio.CancelledError()
+
+    monkeypatch.setattr(service, "_give_back", cancelled)
+    with pytest.raises(asyncio.CancelledError):
+        async with service._place(workspace.id):
+            pass
+    # the semaphore does not wait on the shared places: two such disconnects must not leave the replica busy
+    assert service._passes._value == limits.PASSES_AT_ONCE
+
+
+async def test_a_request_cancelled_inside_the_pass_gives_every_place_back(client, workspace, reporting_on):
+    service = container.report_service()
+    inside = asyncio.Event()
+
+    async def held():
+        async with service._place(workspace.id):
+            inside.set()
+            await asyncio.sleep(30)
+
+    task = asyncio.ensure_future(held())
+    await inside.wait()
+    assert await places(f"{service_module.SLOT_WORKSPACE_PREFIX}{workspace.id}") == 1
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert service._passes._value == limits.PASSES_AT_ONCE
+    assert await places(f"{service_module.SLOT_WORKSPACE_PREFIX}{workspace.id}") == 0
+    assert await places(service_module.SLOT_CLIENT) == 0

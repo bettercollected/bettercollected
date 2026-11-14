@@ -1,8 +1,8 @@
-"""Which processes read the four 4.4 switches, checked against the settings inventory.
+"""Which processes read the five 4.4 and 5.0 switches, checked against the inventory.
 
 The inventory (``common/settings/inventory.py``) lists, for every setting, the services
 that read it; the settings page and an operator who sets the environment service by
-service rely on it. The four switches below are read by code in many modules, and a
+service rely on it. The five switches below are read by code in many modules, and a
 reader that the inventory does not name is a service that silently keeps the default
 (`FORM_ACCESS_ENABLED` was found read by the jobs worker while the inventory said
 "backend" only).
@@ -18,7 +18,7 @@ A module that is not in the table fails the test: decide which process reaches i
 it here, and make the inventory's reader list agree. The inventory is then compared to
 the table (the jobs worker is a reader exactly when a module is marked ``jobs``).
 
-Covered: these four switches, whole backend package. Not covered: other settings, and
+Covered: these five switches, whole backend package. Not covered: other settings, and
 the paths into a module (a module marked ``http`` is reviewed, not proven unreachable
 from a job).
 """
@@ -91,10 +91,6 @@ READERS = {
     "REPORTING_ENABLED": {
         _WORKSPACE_ROUTER: "http",
         "backend/app/controllers/report_router.py": "http",
-        # a form's saved views and a removed member's private views go with them, only while
-        # reports are on (the form delete and the member removal are requests)
-        "backend/app/repositories/postgres/member_removal.py": "http",
-        "backend/app/services/workspace_form_service.py": "http",
     },
 }
 

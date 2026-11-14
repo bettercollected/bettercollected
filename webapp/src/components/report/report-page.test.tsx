@@ -417,6 +417,25 @@ describe('saved views on the page', () => {
         expect(screen.getByRole('button', { name: 'Update view' })).toBeInTheDocument();
     });
 
+    it('does not offer to update a view that holds a card this person cannot have answered, only to save a new one', () => {
+        const gone = { id: 'gone', kind: 'bar' as const, dimension: { field: 'q:not-visible-to-me' }, measures: [{ agg: 'count' as const }] };
+        const base = saved();
+        const withHidden = saved({ definition: { ...base.definition, cards: [...base.definition.cards, gone] } });
+        withViews(withHidden);
+        nav.search = `view=${VIEW_ONE}&who=known&version=2&cards=${cardsParam(withHidden.definition.cards)}`;
+        const { rerender } = renderPage();
+        // the cards the person can have answered are asked; the one they cannot is not
+        expect(lastAsked().cards.map((card) => card.id)).toEqual(['team', 'total']);
+        expect(screen.queryByRole('button', { name: 'Update view' })).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Remove Which team are you in?' }));
+        rerender(<ReportPage />);
+        const update = screen.getByRole('button', { name: 'Update view' });
+        expect(update).toBeDisabled();
+        expect(update).toHaveAccessibleDescription(/1 card of this view cannot be shown to you/);
+        expect(screen.getByRole('button', { name: 'Save as new view' })).toBeEnabled();
+        expect(server.update).not.toHaveBeenCalled();
+    });
+
     it('also notices a changed filter', () => {
         withViews(saved());
         nav.search = `view=${VIEW_ONE}&who=known&version=2&cards=${cardsParam(saved().definition.cards)}`;
@@ -531,6 +550,27 @@ describe('answer filters on the page', () => {
         expect(lastAsked().filters.where).toEqual(WHERE);
         expect(screen.getByRole('list', { name: 'Answer filters in force' })).toHaveTextContent('Which team are you in? is North');
         expect(screen.getByRole('figure', { name: 'Responses' })).toHaveTextContent('n = 74');
+    });
+
+    it('shows a card grouped by a status with its reason, and does not ask for it, while a condition on an answer is in force', () => {
+        const statusCard: ReportCardDef = { id: 'state', kind: 'bar', dimension: { field: 'status' }, measures: [{ agg: 'count' }] };
+        const view = saved({ definition: { ...saved().definition, filters: { where: WHERE }, cards: [...saved().definition.cards, statusCard] } });
+        withViews(view);
+        nav.search = `view=${VIEW_ONE}&cards=${cardsParam(view.definition.cards)}`;
+        renderPage();
+        expect(lastAsked().filters.where).toEqual(WHERE);
+        expect(lastAsked().cards.map((card) => card.id)).toEqual(['team', 'total']);
+        expect(screen.getAllByText(/cannot be combined with a condition on an answer/).length).toBe(1);
+        // the view is not offered an Update that would drop it, and a save sends it so the server says why
+        expect(screen.queryByRole('button', { name: 'Update view' })).toBeNull();
+    });
+
+    it('asks for the same card as before once the condition is gone', () => {
+        const statusCard: ReportCardDef = { id: 'state', kind: 'bar', dimension: { field: 'status' }, measures: [{ agg: 'count' }] };
+        nav.search = `cards=${cardsParam([statusCard])}`;
+        renderPage();
+        expect(lastAsked().cards.map((card) => card.id)).toEqual(['state']);
+        expect(screen.queryByText(/cannot be combined with a condition on an answer/)).toBeNull();
     });
 
     it('takes no condition from the address: a `where` parameter means nothing', () => {

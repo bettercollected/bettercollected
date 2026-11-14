@@ -148,6 +148,20 @@ class PostgresReportViewRepository(RecordRepository):
         ids = [str(f) for f in form_ids]
         return await self.delete_where(FormReportViewRow.form_id.in_(ids)) if ids else 0
 
+    async def delete_for_workspaces(self, workspace_ids: Iterable) -> int:
+        """Every view of workspaces that are being deleted (the forms they shared
+        with workspaces that stay keep their rows otherwise)."""
+        ids = [_ws(w) for w in workspace_ids]
+        return await self.delete_where(FormReportViewRow.workspace_id.in_(ids)) if ids else 0
+
+    async def delete_private_of_account(self, user_id) -> int:
+        """The private views of an account that is being deleted, in every
+        workspace (the form views it made stay, as a former member's)."""
+        return await self.delete_where(
+            FormReportViewRow.owner_id == str(user_id),
+            FormReportViewRow.scope == SCOPE_PRIVATE,
+        )
+
     async def delete_private_of_member(self, workspace_id, user_id) -> int:
         """The private views of a member who leaves the workspace (a form's own
         views they made stay, named "a former member")."""

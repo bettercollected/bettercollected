@@ -28,7 +28,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectForm } from '@app/store/forms/slice';
 import { useExportReportCardMutation, useGetReportFieldsQuery, useGetReportViewsQuery, useQueryReportQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { OVERVIEW_QUESTIONS, ReportCardDef, ReportCardResult, ReportClause, ReportError, ReportView, cardsParam, isTimeDimension, overviewCards, parseCardsParam, reportDefinition, reportErrorOf, reportFilters, viewerZone, cardProblem } from '@app/utils/report';
+import { OVERVIEW_QUESTIONS, ReportCardDef, ReportCardResult, ReportClause, ReportError, ReportView, cardsParam, isTimeDimension, overviewCards, parseCardsParam, reportDefinition, reportErrorOf, reportFilters, viewerZone, cardProblem, needsNoCondition } from '@app/utils/report';
 import { listFiltersFor } from '@app/utils/report-drill';
 import { clauseProblem } from '@app/utils/report-where';
 import { VIEW_ID, cardsOf, filtersOf, isModified, whereOf } from '@app/utils/report-views';
@@ -129,10 +129,17 @@ export default function ReportPage() {
         setWhere(whereOf(currentView.definition));
     }, [currentView]);
     // a card the form can no longer answer is shown with its reason and left out of the request
-    const asked = useMemo(() => (catalogue ? cards.filter((card) => !cardProblem(card, catalogue)) : []), [cards, catalogue]);
+    const answerable = useMemo(() => (catalogue ? cards.filter((card) => !cardProblem(card, catalogue)) : []), [cards, catalogue]);
     // a condition on a question the form no longer has is shown with its reason and left out of the request
     const askedWhere = useMemo(() => (catalogue ? urlWhere.filter((clause) => !clauseProblem(clause, catalogue)) : []), [urlWhere, catalogue]);
-    const definition = useMemo(() => reportDefinition(asked, reportFilters(listState, localDayStart, askedWhere), tz), [asked, listState, askedWhere, tz]);
+    // a card grouped by deletion request or feedback status is counted without reading answers: with a condition on an answer
+    // the server refuses it, so it is shown with its reason and left out of the request
+    const asked = useMemo(() => (askedWhere.length > 0 ? answerable.filter((card) => !needsNoCondition(card)) : answerable), [answerable, askedWhere]);
+    const filters = useMemo(() => reportFilters(listState, localDayStart, askedWhere), [listState, askedWhere]);
+    const definition = useMemo(() => reportDefinition(asked, filters, tz), [asked, filters, tz]);
+    // what a save stores: every card the person can have answered, so a card the conditions keep from showing is refused
+    // by the server with its reason instead of being dropped from the view
+    const saveDefinition = useMemo(() => reportDefinition(answerable, filters, tz), [answerable, filters, tz]);
     const {
         // the figures of THIS definition only: an edited card never shows its old figures under its new labels
         currentData: result,
@@ -280,8 +287,9 @@ export default function ReportPage() {
                     failed={viewsFailed}
                     current={currentView}
                     modified={modified}
-                    definition={definition}
+                    definition={saveDefinition}
                     canSave={asked.length > 0}
+                    hiddenCards={cards.length - answerable.length}
                     onOpen={openView}
                     onMark={markView}
                     onReload={() => refetchViews()}
@@ -328,6 +336,7 @@ export default function ReportPage() {
                                     result={resultById.get(card.id)}
                                     catalogue={catalogue}
                                     loading={isFetching}
+                                    blocked={askedWhere.length > 0 && needsNoCondition(card)}
                                     first={index === 0}
                                     last={index === cards.length - 1}
                                     onChange={(next) => change(index, next)}

@@ -59,6 +59,11 @@ from backend.app.services.form_drafts.mode import (
     DISABLED_MESSAGE,
     ensure_save_drafts_allowed,
 )
+from backend.app.services.captcha.mode import (
+    DISABLED_CODE as CAPTCHA_DISABLED_CODE,
+    DISABLED_MESSAGE as CAPTCHA_DISABLED_MESSAGE,
+    ensure_captcha_allowed,
+)
 from backend.app.services.workspace_form_service import keep_section_titles
 
 PRECONDITION_FAILED_CODE = "precondition_failed"
@@ -78,6 +83,7 @@ _PATCH_KEYS = (
     "show_review_page",
     "allow_save_draft",
     "draft_retention_days",
+    "captcha_enabled",
 )
 
 
@@ -192,6 +198,36 @@ def _ensure_drafts_allowed(spec: FormSpec, settings: Any) -> None:
             content={
                 "code": DISABLED_CODE,
                 "message": DISABLED_MESSAGE,
+                "errors": [problem],
+            },
+        )
+
+
+_CAPTCHA_PATH = "/trust/captchaEnabled"
+
+
+def _captcha_problem(spec: FormSpec, settings: Any) -> Optional[Dict[str, str]]:
+    """The problem of a document that sets the automatic spam check while
+    ``CAPTCHA_ENABLED`` is off (a form that already has that value keeps it)."""
+    try:
+        ensure_captcha_allowed(
+            spec.trust.captcha_enabled if spec.trust else None,
+            getattr(settings, "captcha_enabled", None),
+        )
+    except HTTPException:
+        return {"path": _CAPTCHA_PATH, "message": CAPTCHA_DISABLED_MESSAGE}
+    return None
+
+
+def _ensure_captcha_allowed(spec: FormSpec, settings: Any) -> None:
+    """422 ``captcha_disabled`` for such a document, before anything is stored."""
+    problem = _captcha_problem(spec, settings)
+    if problem is not None:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content={
+                "code": CAPTCHA_DISABLED_CODE,
+                "message": CAPTCHA_DISABLED_MESSAGE,
                 "errors": [problem],
             },
         )
@@ -314,6 +350,7 @@ class FormSpecWriter:
         *,
         form_id: Optional[str] = None,
         access_mode: Optional[str] = None,
+        carried: bool = False,
     ) -> Tuple[str, Dict[str, Any], str]:
         """Create a draft from a whole document: (form id, spec, ETag).
         All or nothing: the document is checked in full before anything is
@@ -321,9 +358,16 @@ class FormSpecWriter:
 
         The keyword arguments are for copying a form from another workspace
         (``services/form_promotion``): the id the form takes and the access mode its
-        link is created with. The public API passes none."""
+        link is created with. The public API passes none.
+
+        ``carried``: the document is a copy of a form that already holds its
+        setting values (a copy to another workspace): the spam check setting
+        it carries is kept as it is, also while CAPTCHA_ENABLED is off (nothing
+        is turned on by it: off, the setting is neither enforced nor shown)."""
         spec = await _checked_spec(raw)
         _ensure_drafts_allowed(spec, None)
+        if not carried:
+            _ensure_captcha_allowed(spec, None)
         try:
             form = spec_to_form(spec)
         except SpecConversionError as error:
@@ -350,6 +394,7 @@ class FormSpecWriter:
         if_match: Optional[List[str]],
         user: User,
         in_write: Optional[Callable[[Any], Awaitable[None]]] = None,
+        carried: bool = False,
     ) -> Tuple[Dict[str, Any], str]:
         """Replace a form from a whole document, only while it is still the
         version ``if_match`` names: 428 without it, 412 when stale (also
@@ -367,6 +412,8 @@ class FormSpecWriter:
         self._check_if_match(if_match, current)
         spec = await _checked_spec(raw)
         _ensure_drafts_allowed(spec, settings)
+        if not carried:
+            _ensure_captcha_allowed(spec, settings)
         form = _replacement(existing, settings, spec)
         try:
             await self._workspace_forms.update_form(
@@ -404,10 +451,15 @@ class FormSpecWriter:
         return {"formId": form_id, "published": True, "slug": slug}
 
     async def preview_replace(
-        self, workspace_id: RecordId, form_id: str, raw: Any
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        raw: Any,
+        carried: bool = False,
     ) -> Dict[str, Any]:
         """What a replace with ``raw`` would store, and the diff from now:
-        ``{valid, errors, warnings, form, diff}``. Stores nothing."""
+        ``{valid, errors, warnings, form, diff}``. Stores nothing.
+        ``carried``: as for ``replace``."""
         _, existing, settings = await self._load(workspace_id, form_id)
         before = self._spec.spec_of(existing, settings)
         result = await run_in_threadpool(check_spec_document, raw)
@@ -420,7 +472,10 @@ class FormSpecWriter:
         }
         if not result["valid"]:
             return out
-        problem = _drafts_problem(FormSpec.model_validate(raw), settings)
+        checked = FormSpec.model_validate(raw)
+        problem = _drafts_problem(checked, settings) or (
+            None if carried else _captcha_problem(checked, settings)
+        )
         if problem is not None:
             out["valid"] = False
             out["errors"] = [*result["errors"], problem]

@@ -10,7 +10,7 @@ import '@app/shared/hocs/i18n-provider';
 import { axeViolations } from '@app/test/axe';
 import { ReportDefinition, ReportView, ReportViewList } from '@app/utils/report';
 
-import ReportViews from './report-views';
+import ReportViews, { viewErrorText } from './report-views';
 
 const api = vi.hoisted(() => ({ create: vi.fn(), update: vi.fn(), remove: vi.fn() }));
 vi.mock('@app/store/workspaces/api', () => ({
@@ -180,6 +180,28 @@ describe('changing a view', () => {
         expect(await screen.findByText('View updated')).toBeInTheDocument();
     });
 
+    it('does not offer Update while cards of the view are hidden from this person, only a save as a new view', async () => {
+        const { container } = renderBar({ current: made({ revision: 4 }), modified: true, hiddenCards: 2 });
+        const update = screen.getByRole('button', { name: 'Update view' });
+        expect(update).toBeDisabled();
+        expect(update).toHaveAccessibleDescription(/2 cards of this view cannot be shown to you/);
+        fireEvent.click(update);
+        expect(api.update).not.toHaveBeenCalled();
+        // a rename or a change of who sees it does not touch the cards
+        expect(screen.getByRole('button', { name: 'Rename or share' })).toBeEnabled();
+        expect(await axeViolations(container)).toEqual([]);
+        // saving as a new view stays possible
+        fireEvent.click(screen.getByRole('button', { name: 'Save as new view' }));
+        expect(screen.getByRole('form', { name: 'Save view' })).toBeInTheDocument();
+    });
+
+    it('says so in Dutch, and in the singular for one card', async () => {
+        await i18n.changeLanguage('nl');
+        renderBar({ current: made({ revision: 4 }), modified: true, hiddenCards: 1 });
+        expect(screen.getByText(/1 kaart van deze weergave kan niet aan u worden getoond/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Weergave bijwerken' })).toBeDisabled();
+    });
+
     it('offers no update, rename or delete of a view of the form to a member who may not', () => {
         renderBar({ current: { ...shared, canEdit: false, canDelete: false } });
         for (const name of ['Update view', 'Rename or share', 'Delete view']) expect(screen.queryByRole('button', { name })).toBeNull();
@@ -215,6 +237,22 @@ describe('changing a view', () => {
     });
 });
 
+describe('a card a condition on an answer cannot be combined with', () => {
+    it('says why a save was refused for it, in English and in Dutch', async () => {
+        api.create.mockReturnValue(refuse(422, 'op_not_allowed'));
+        const { container } = renderBar();
+        fireEvent.click(screen.getByRole('button', { name: 'Save view' }));
+        const form = screen.getByRole('form', { name: 'Save view' });
+        fireEvent.change(within(form).getByLabelText('Name'), { target: { value: 'Mine' } });
+        fireEvent.click(within(form).getByRole('button', { name: 'Save view' }));
+        expect(await within(form).findByRole('alert')).toHaveTextContent('cannot be saved together with a condition on an answer');
+        expect(await axeViolations(container)).toEqual([]);
+        expect(viewErrorText('op_not_allowed', 422, (key) => i18n.t(key))).toContain('condition on an answer');
+        await i18n.changeLanguage('nl');
+        expect(viewErrorText('op_not_allowed', 422, (key) => i18n.t(key))).toContain('voorwaarde op een antwoord');
+    });
+});
+
 describe('deleting a view', () => {
     it('asks first, names the view, and then deletes it and unmarks it', async () => {
         api.remove.mockReturnValue(reply(null));
@@ -224,7 +262,7 @@ describe('deleting a view', () => {
         expect(group).toHaveTextContent('Delete "Weekly"?');
         expect(api.remove).not.toHaveBeenCalled();
         fireEvent.click(within(group).getByRole('button', { name: 'Delete view' }));
-        await waitFor(() => expect(api.remove).toHaveBeenCalledWith({ workspaceId: 'ws', formId: 'f', viewId: mine.id }));
+        await waitFor(() => expect(api.remove).toHaveBeenCalledWith({ workspaceId: 'ws', formId: 'f', viewId: mine.id, revision: 1 }));
         await waitFor(() => expect(handlers.onMark).toHaveBeenCalledWith(null));
         expect(await screen.findByText('View deleted')).toBeInTheDocument();
     });

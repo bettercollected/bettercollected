@@ -77,6 +77,14 @@ export function isSubmitRateLimited(error: any): boolean {
     return isRateLimited(error) && typeof error?.data?.retry_after === 'number';
 }
 
+/** The codes of a submission the server refused for its automatic spam check (nothing was stored, so asking for a new proof and sending again is safe). */
+export const CAPTCHA_REFUSAL_CODES: ReadonlyArray<string> = ['captcha_missing', 'captcha_invalid', 'captcha_expired', 'captcha_replayed'];
+
+/** A 422 of the automatic spam check: the proof was missing, wrong, too old or already used. Never a network error or a 5xx: those can happen after the response was stored. */
+export function isCaptchaRefused(error: any): boolean {
+    return error?.status === 422 && CAPTCHA_REFUSAL_CODES.includes(error?.data?.code);
+}
+
 /** The answer problems in a failed submission (an RTK Query error), or null when it failed for another reason. */
 export function serverAnswerErrors(error: any): ServerAnswerError[] | null {
     const data = error?.data;
