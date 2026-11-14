@@ -66,6 +66,10 @@ class CaptchaSettingsService:
             user, Permission.WORKSPACE_MANAGE, workspace_id
         )
         workspace = await self._workspaces.get_or_404(workspace_id)
+        if value is (workspace.captcha_default is not False):
+            # what the workspace has now (not chosen counts as on): nothing to
+            # change, so nothing to refuse while the switch is off, store or record
+            return CaptchaSettingsDto(captcha_default=value)
         mode.ensure_captcha_allowed(value, workspace.captcha_default)
         if workspace.captcha_default is not value:
             # recorded first, or refused: a change is never made unrecorded

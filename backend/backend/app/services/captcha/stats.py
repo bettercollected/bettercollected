@@ -60,6 +60,11 @@ class CaptchaStats:
         self._last_sweep: Optional[float] = None
         self._lock: Optional[asyncio.Lock] = None
         self._tasks: Set["asyncio.Task[None]"] = set()
+        # a flush started by ``record`` that has not finished: no second one is started
+        self._scheduled = False
+        # after a failed write nothing starts a flush before this time (a slow or
+        # down database must not see one write attempt per request)
+        self._retry_at = 0.0
 
     # -- writing
 
@@ -85,21 +90,27 @@ class CaptchaStats:
             return
 
     def _flush_if_due(self) -> None:
-        due = (
-            len(self._waiting) >= FLUSH_KEYS
-            or self._clock() - self._last_flush >= FLUSH_SECONDS
-        )
+        now = self._clock()
+        if self._scheduled or now < self._retry_at:
+            return
+        due = len(self._waiting) >= FLUSH_KEYS or now - self._last_flush >= FLUSH_SECONDS
         if not due:
             return
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             return
-        # claimed now, so that a burst of requests starts one flush, not many
-        self._last_flush = self._clock()
+        # one at a time: claimed now, so that a burst of requests starts one flush
+        # (and, while it runs or after it failed, none)
+        self._scheduled = True
+        self._last_flush = now
         task = loop.create_task(self.flush())
         self._tasks.add(task)
-        task.add_done_callback(self._tasks.discard)
+        task.add_done_callback(self._flush_done)
+
+    def _flush_done(self, task: "asyncio.Task[None]") -> None:
+        self._scheduled = False
+        self._tasks.discard(task)
 
     async def flush(self) -> None:
         """Add the waiting counts to the table. A failure keeps them for the
@@ -119,6 +130,8 @@ class CaptchaStats:
                         type(error).__name__,
                     )
                     self._keep(counts)
+                    # back off: no flush is started by a request for a while
+                    self._retry_at = self._clock() + FLUSH_SECONDS
                     return
             await self._sweep()
 

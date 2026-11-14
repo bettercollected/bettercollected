@@ -148,3 +148,75 @@ async def test_the_summary_has_both_purposes(purpose):
         "passed": 0,
         "blocked": 0,
     }
+
+
+class BlockingRepo(Repo):
+    """A repository whose write waits (a slow database), and counts the attempts."""
+
+    def __init__(self):
+        super().__init__()
+        self.attempts = 0
+        self.gate = asyncio.Event()
+
+    async def add_counts(self, counts):
+        self.attempts += 1
+        await self.gate.wait()
+        await super().add_counts(counts)
+
+
+async def test_one_flush_at_a_time_however_many_requests_arrive_meanwhile():
+    clock, repo = Clock(), BlockingRepo()
+    stats = st.CaptchaStats(repo, clock, lambda: 395)
+    for index in range(st.FLUSH_KEYS):
+        stats.record("missing", "submit", "w1", f"form{index}")
+    await asyncio.sleep(0.01)
+    assert repo.attempts == 1
+    # the write is slow: more refused requests, new keys and old, start nothing
+    for index in range(st.FLUSH_KEYS, st.FLUSH_KEYS + 300):
+        stats.record("missing", "submit", "w1", f"form{index}")
+    clock.now += st.FLUSH_SECONDS * 5
+    for _ in range(50):
+        stats.record("missing", "submit", "w1", "form0")
+    await asyncio.sleep(0.01)
+    assert repo.attempts == 1
+    repo.gate.set()
+    await asyncio.sleep(0.02)
+    assert len(repo.written) == 1
+    # done: the next due flush may start again
+    stats.record("missing", "submit", "w1", "form0")
+    await asyncio.sleep(0.02)
+    assert repo.attempts == 2
+
+
+async def test_a_failed_write_backs_off_for_flush_seconds_whatever_is_waiting():
+    clock, repo = Clock(), Repo()
+    stats = st.CaptchaStats(repo, clock, lambda: 395)
+    repo.fail = True
+    attempts = []
+    real = repo.add_counts
+
+    async def counting(counts):
+        attempts.append(len(counts))
+        await real(counts)
+
+    repo.add_counts = counting  # type: ignore[method-assign]
+    for index in range(st.FLUSH_KEYS):
+        stats.record("missing", "submit", "w1", f"form{index}")
+    await asyncio.sleep(0.01)
+    assert len(attempts) == 1
+    # 500 or more keys are waiting again after the failure, and every request counts
+    # another one: no attempt before the back-off has passed
+    for index in range(st.FLUSH_KEYS, st.FLUSH_KEYS + 100):
+        stats.record("missing", "submit", "w1", f"form{index}")
+        await asyncio.sleep(0)
+    clock.now += st.FLUSH_SECONDS - 1
+    stats.record("missing", "submit", "w1", "form0")
+    await asyncio.sleep(0.01)
+    assert len(attempts) == 1
+    # after the back-off the next request tries again (and succeeds)
+    repo.fail = False
+    clock.now += 2
+    stats.record("missing", "submit", "w1", "form0")
+    await asyncio.sleep(0.02)
+    assert len(attempts) == 2 and sum(sum(b.values()) for b in repo.written) >= st.FLUSH_KEYS + 100
+    assert stats._waiting == {}

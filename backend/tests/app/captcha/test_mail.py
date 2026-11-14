@@ -401,3 +401,60 @@ async def test_a_failing_claim_store_answers_503_and_sends_no_code(
     assert refused.json()["code"] == "rate_limiter_unavailable"
     assert refused.headers["Retry-After"] == "60"
     mailed.assert_not_called()
+
+
+async def test_no_form_or_workspace_setting_opts_a_mail_out(
+    client, workspace, drafts_mail
+):
+    """A form that turned the check off, in a workspace whose default is off, is
+    asked for no proof on a submit, but still needs one for every mail."""
+    from tests.app.form_drafts.helpers import settings_of
+
+    form = await drafting_form(workspace)
+    await settings_of(workspace, form, captcha_enabled=False)
+    stored = await container.workspace_repo().find_by_id(workspace.id)
+    await container.workspace_repo().set_fields(stored, {"captcha_default": False})
+    # the submit really is exempt ...
+    assert (await submit(client, workspace, form)).status_code == 200
+    # ... the draft link, a workspace's code and the creator's are not
+    link = await client.post(
+        url(workspace, form, "/link"), json=body(email=ADDRESS), headers=ALICE
+    )
+    assert link.status_code == 422 and link.json()["code"] == "captcha_missing"
+    with _mailing() as mailed:
+        code = await workspace_code(client, workspace)
+        assert code.status_code == 422 and code.json()["code"] == "captcha_missing"
+        creator = await creator_code(client)
+        assert creator.status_code == 422 and creator.json()["code"] == "captcha_missing"
+        mailed.assert_not_called()
+    assert drafts_mail == []
+    # and with a proof they go through
+    proof = await workspace_proof(client, workspace, form)
+    sent = await client.post(
+        url(workspace, form, "/link"),
+        json=body(email=ADDRESS),
+        headers={**ALICE, ch.HEADER: proof},
+    )
+    assert sent.status_code == 200, sent.text
+
+
+async def test_a_failing_claim_store_on_the_draft_link_answers_503_and_sends_nothing(
+    client, workspace, drafts_mail, monkeypatch
+):
+    form = await drafting_form(workspace)
+    proof = await workspace_proof(client, workspace, form)
+
+    async def broken(*args, **kwargs):
+        raise RuntimeError("down")
+
+    monkeypatch.setattr(container.rate_limiter(), "claim", broken)
+    refused = await client.post(
+        url(workspace, form, "/link"),
+        json=body(email=ADDRESS, locale="nl"),
+        headers={**ALICE, ch.HEADER: proof},
+    )
+    assert refused.status_code == 503, refused.text
+    assert refused.json()["code"] == "rate_limiter_unavailable"
+    assert refused.json()["message"].startswith("Inlogcodes zijn tijdelijk")
+    assert refused.headers["Retry-After"] == "60"
+    assert drafts_mail == []

@@ -20,6 +20,7 @@ from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.router import router
 from backend.app.services.captcha.guard import require_mail_proof
+from backend.app.services.respondent_limits import fail_closed
 from backend.app.services.form_drafts import limits
 from backend.app.services.form_drafts.service import (
     DiscardBody,
@@ -108,6 +109,7 @@ def _json(dto: BaseModel) -> dict:
         404: {"description": "No such form or draft (or the form keeps no drafts)."},
         409: {"description": "The form takes no responses now."},
         422: {"description": "The spam check's proof for the link mail is missing or not valid."},
+        503: {"description": "The spam check's store could not be reached: no mail was sent, try again after Retry-After."},
         429: {"description": "Too many requests."},
     },
 )
@@ -142,7 +144,12 @@ class FormDraftsRouter(Routable):
         async def require_proof(real_form_id: str) -> None:
             # the spam check's proof (purpose mail, CAPTCHA_ENABLED; nothing
             # while off), bound to this form, before any limit counts
-            await require_mail_proof(request, workspace_id, real_form_id)
+            # (a failure of the claim's store answers 503 with Retry-After, as on the
+            # sign-in code routes: no mail is sent)
+            await fail_closed(
+                lambda: require_mail_proof(request, workspace_id, real_form_id),
+                locale=body.locale,
+            )
 
         sent = await container.form_draft_service().request_link(
             workspace_id,

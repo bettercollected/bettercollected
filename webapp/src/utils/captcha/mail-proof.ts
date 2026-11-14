@@ -33,6 +33,18 @@ export const MAIL_PROOF_FAILED = { error: { status: 0, data: { code: 'captcha_fa
 /** What `useMailProof().send` answers when a mail is already being sent: nothing was done, so the page does nothing either. */
 export const MAIL_PROOF_BUSY = { busy: true } as const;
 
+/**
+ * The challenge route answered 404 `captcha_off`: the server's switch was turned off while this page
+ * was open. The fetcher of a page throws it; `sendWithMailProof` then forgets that the scope asked and
+ * sends once without a proof (the server ignores the header while it is off).
+ */
+export class CaptchaTurnedOff extends Error {
+    constructor() {
+        super('The automatic spam check is switched off on this server.');
+        this.name = 'CaptchaTurnedOff';
+    }
+}
+
 export const isMailProofBusy = (answer: unknown): boolean => answer === MAIL_PROOF_BUSY;
 
 export const isMailProofFailed = (error: any): boolean => error?.status === 0 && error?.data?.code === 'captcha_failed';
@@ -66,13 +78,27 @@ export async function sendWithMailProof<R extends MailAnswer>(scope: MailScope, 
     const pass = options.pass ?? captchaPassFor(`mail:${scope.workspaceId || 'creator'}`, scope.formId || '-');
     let needsProof = asked.has(key);
     let answer: R | undefined;
+    let turnedOff = false;
+    const watched: ChallengeFetcher = async () => {
+        try {
+            return await fetcher();
+        } catch (error) {
+            if (error instanceof CaptchaTurnedOff) turnedOff = true;
+            throw error;
+        }
+    };
     for (let attempt = 0; attempt < 2; attempt++) {
         let headers: Record<string, string> | undefined;
         if (needsProof) {
             try {
                 // a proof is single use: always a new one
-                headers = { [CAPTCHA_HEADER]: await pass.take(fetcher, { fresh: true, onSlow: options.onSlow, onDone: options.onDone }) };
+                headers = { [CAPTCHA_HEADER]: await pass.take(watched, { fresh: true, onSlow: options.onSlow, onDone: options.onDone }) };
             } catch {
+                if (turnedOff) {
+                    // the check was switched off since the page learned that it asks: not stuck, send as before
+                    asked.delete(key);
+                    return await send(undefined);
+                }
                 return MAIL_PROOF_FAILED;
             }
         }

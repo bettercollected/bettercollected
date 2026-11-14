@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CaptchaPass } from './captcha-pass';
-import { MAIL_PROOF_FAILED, isMailProofFailed, mailScopeKey, resetMailProofKnowledge, sendWithMailProof } from './mail-proof';
+import { CaptchaTurnedOff, MAIL_PROOF_FAILED, isMailProofFailed, mailScopeKey, resetMailProofKnowledge, sendWithMailProof } from './mail-proof';
 import { CaptchaChallenge } from './solver-core';
 
 const challenge: CaptchaChallenge = { challenge: 'c', algorithm: 'sha256-lz', bits: 14, subpuzzles: 8, expiresAt: Date.now() + 900_000 };
@@ -75,6 +75,37 @@ describe('sendWithMailProof', () => {
         expect(answer).toBe(MAIL_PROOF_FAILED);
         expect(isMailProofFailed((answer as any).error)).toBe(true);
         expect(isMailProofFailed({ status: 422, data: { code: 'captcha_failed' } })).toBe(false);
+    });
+
+    it('is not stuck when the server was switched off after the page learned that it asks: it forgets, and sends once without a proof', async () => {
+        const { pass } = makePass();
+        const send = vi.fn().mockResolvedValueOnce(refused()).mockResolvedValue({ data: { ok: true } });
+        // the page learns the server asks, solves, sends
+        await sendWithMailProof({ workspaceId: 'w1' }, fetcher, send, { pass });
+        send.mockClear();
+        // now the challenge route answers 404 captcha_off
+        const gone = vi.fn(async (): Promise<CaptchaChallenge> => {
+            throw new CaptchaTurnedOff();
+        });
+        const answer = await sendWithMailProof({ workspaceId: 'w1' }, gone, send, { pass });
+        expect(answer).toEqual({ data: { ok: true } });
+        expect(send).toHaveBeenCalledTimes(1);
+        expect(send).toHaveBeenCalledWith(undefined);
+        // and the scope no longer asks first: the next request goes out plain
+        send.mockClear();
+        await sendWithMailProof({ workspaceId: 'w1' }, gone, send, { pass });
+        expect(gone).toHaveBeenCalledTimes(1);
+        expect(send).toHaveBeenCalledWith(undefined);
+    });
+
+    it('does not take another failure of the challenge request for the switch being off', async () => {
+        const { pass } = makePass();
+        const send = vi.fn().mockResolvedValue(refused());
+        const broken = vi.fn(async (): Promise<CaptchaChallenge> => {
+            throw new Error('network');
+        });
+        expect(await sendWithMailProof({ workspaceId: 'w1' }, broken, send, { pass })).toBe(MAIL_PROOF_FAILED);
+        expect(send).toHaveBeenCalledTimes(1);
     });
 
     it('tells the scopes apart: the creator, a workspace and a form', () => {

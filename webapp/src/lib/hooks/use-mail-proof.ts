@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useIssueMailChallengeMutation } from '@app/store/redux/form-api';
-import { MAIL_PROOF_BUSY, MailAnswer, MailScope, sendWithMailProof } from '@app/utils/captcha/mail-proof';
+import { CaptchaTurnedOff, MAIL_PROOF_BUSY, MailAnswer, MailScope, sendWithMailProof } from '@app/utils/captcha/mail-proof';
 import { CaptchaChallenge } from '@app/utils/captcha/solver-core';
 
 /**
@@ -37,6 +37,7 @@ export function useMailProof(scope: MailScope) {
             try {
                 const fetcher = async (): Promise<CaptchaChallenge> => {
                     const answer: any = await issueRef.current({ workspaceId, formId });
+                    if (answer?.error?.status === 404 && answer.error.data?.code === 'captcha_off') throw new CaptchaTurnedOff();
                     if (!answer?.data?.challenge) throw new Error('No challenge');
                     return answer.data;
                 };

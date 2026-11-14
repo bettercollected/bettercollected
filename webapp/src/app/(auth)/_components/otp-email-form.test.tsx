@@ -3,7 +3,7 @@ import React from 'react';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetMailProofKnowledge } from '@app/utils/captcha/mail-proof';
@@ -150,6 +150,18 @@ describe('the automatic spam check before the code mail', () => {
         expect(sendOtp).toHaveBeenCalledTimes(1);
     });
 
+    it('is not stuck when the server switched the check off while the page was open: the challenge answers 404 captcha_off and the code is requested once more without a proof', async () => {
+        sendOtp.mockResolvedValueOnce(missing).mockResolvedValueOnce({ data: { message: 'sent' } });
+        issueChallenge.mockResolvedValue({ error: { status: 404, data: { code: 'captcha_off', message: 'Not found.' } } });
+        // the pass asks the page's fetcher for a challenge, as the real one does
+        take.mockImplementation((fetcher: () => Promise<unknown>) => fetcher());
+        submit('maker@example.com');
+        await waitFor(() => expect(sendOtp).toHaveBeenCalledTimes(2));
+        expect(sendOtp.mock.calls[1][0]).not.toHaveProperty('headers');
+        expect(toast).toHaveBeenCalledWith({ description: 'OTP sent successfully' });
+        expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
+    });
+
     it('has the messages in English and Dutch', () => {
         for (const lang of ['en', 'nl']) {
             const common = JSON.parse(readFileSync(resolve(__dirname, `../../../../public/locales/${lang}/common.json`), 'utf8'));
@@ -188,6 +200,27 @@ describe('sign-in code mail when the server cannot count requests (503)', () => 
         await waitFor(() => expect(toast).toHaveBeenCalledWith({ description: 'Sign-in codes are temporarily unavailable. Please try again in 60 seconds.', variant: 'destructive' }));
         const text = toast.mock.calls.map(([arg]) => arg.description).join(' ');
         expect(text).not.toMatch(/Too many codes|Failed to send OTP/);
+    });
+
+    it('holds Send closed for the wait the server names, and opens it again after', async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        try {
+            sendOtp.mockResolvedValue(unavailable({ retry_after: 3 }));
+            submit('known@example.com');
+            await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+            const button = () => document.querySelector('button[type="submit"]') as HTMLButtonElement;
+            await waitFor(() => expect(button().disabled).toBe(true));
+            expect(button().getAttribute('aria-disabled')).toBe('true');
+            expect(button().textContent).toMatch(/\(3s\)/);
+            // a press while it is closed sends nothing
+            fireEvent.submit(button().closest('form') as HTMLFormElement);
+            expect(sendOtp).toHaveBeenCalledTimes(1);
+            for (let second = 0; second < 3; second++) await act(async () => void vi.advanceTimersByTime(1000));
+            await waitFor(() => expect(button().disabled).toBe(false));
+            expect(button().textContent).not.toMatch(/\(/);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('still takes any other 503 for a failure to send', async () => {

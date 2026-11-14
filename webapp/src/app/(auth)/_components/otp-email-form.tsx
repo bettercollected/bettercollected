@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Dispatch, SetStateAction, useState } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 import { useSearchParams } from 'next/navigation';
 
@@ -18,7 +18,7 @@ import { Separator } from '@app/shadcn/components/ui/separator';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { usePostSendOtpMutation } from '@app/store/auth/api';
 import { isMailProofBusy, isMailProofFailed } from '@app/utils/captcha/mail-proof';
-import { codeMailUnavailableMessage, isCaptchaRefused, isCodeMailUnavailable, isRateLimited } from '@app/utils/server-answer-errors';
+import { codeMailRetryAfter, codeMailUnavailableMessage, isCaptchaRefused, isCodeMailUnavailable, isRateLimited } from '@app/utils/server-answer-errors';
 import MailProofStatus from '@app/components/captcha/mail-proof-status';
 import { useMailProof } from '@app/lib/hooks/use-mail-proof';
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
@@ -44,6 +44,13 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
     const [postSendOtp, { isLoading }] = usePostSendOtpMutation();
     const { language: respondentLanguage } = useRespondentLanguage();
     const [email, setEmail] = useState('');
+    // seconds Send stays closed after the server said no code could be sent now (503 rate_limiter_unavailable)
+    const [holdSeconds, setHoldSeconds] = useState(0);
+    useEffect(() => {
+        if (holdSeconds <= 0) return;
+        const timer = setTimeout(() => setHoldSeconds((seconds) => seconds - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [holdSeconds]);
     const searchParams = useSearchParams();
     const fromProPlan = searchParams?.get('fromProPlan');
     const type = searchParams?.get('type');
@@ -83,7 +90,7 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
 
     const handleEmailInputForCreator = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!email) return;
+        if (!email || holdSeconds > 0) return;
 
         // The code mail's language: a respondent's (the workspace's code) is in
         // their language, as the form and portal are; a creator's follows the browser.
@@ -105,6 +112,7 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
         } else if (isCodeMailUnavailable((res as any)?.error)) {
             // the limiter could not be reached: no code was sent; the server says when to try again
             toast({ description: codeMailUnavailableMessage((res as any).error, (seconds) => t(formResponderLogin.otpUnavailableMessage, { seconds })), variant: 'destructive' });
+            setHoldSeconds(codeMailRetryAfter((res as any).error));
         } else if (isRateLimited((res as any)?.error)) {
             // the same message whatever the address: nothing about accounts is told
             toast({ description: constants.otpRateLimitedMessage, variant: 'destructive' });
@@ -145,8 +153,9 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
 
                 <p className="mb-3 mt-[44px] text-base font-semibold text-black-900">{constants.emailInputLabel}</p>
                 <Input autoFocus type="email" required placeholder={constants.enterYourEmail} value={email} onChange={(e) => setEmail(e.target.value)} className="text-base! lg:text-base!" />
-                <Button type="submit" variant="primary" isLoading={isLoading || proofBusy} className={`mt-6 w-full ${isModal ? 'mb-10' : ''}`} size="medium">
+                <Button type="submit" variant="primary" isLoading={isLoading || proofBusy} disabled={holdSeconds > 0} aria-disabled={holdSeconds > 0} className={`mt-6 w-full ${isModal ? 'mb-10' : ''}`} size="medium">
                     {constants.sendCodeButton}
+                    {holdSeconds > 0 ? ` (${holdSeconds}s)` : ''}
                 </Button>
                 <MailProofStatus waiting={proofWaiting} text={constants.otpCaptchaWaitingMessage} />
             </form>

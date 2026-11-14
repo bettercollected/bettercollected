@@ -160,6 +160,7 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail, 
                     onClick={resendOtpCode}
                     disabled={counter > 0 || proofBusy}
                     aria-disabled={counter > 0 || proofBusy}
+                    aria-busy={proofBusy || undefined}
                     className={`font-semibold ${counter === 0 && !proofBusy ? 'cursor-pointer text-brand-500 hover:text-brand-600' : 'cursor-not-allowed text-black-600'}`}
                 >
                     Resend {counter > 0 ? `(${counter}s)` : ''}

@@ -130,6 +130,7 @@ describe('OtpCodeForm resending a code', () => {
         fireEvent.click(resendButton);
         await waitFor(() => expect(sendMock).toHaveBeenCalledTimes(1));
         await waitFor(() => expect((screen.getByRole('button', { name: /^resend$/i }) as HTMLButtonElement).disabled).toBe(true));
+        expect(screen.getByRole('button', { name: /^resend$/i }).getAttribute('aria-busy')).toBe('true');
         finish({ data: { message: 'sent' } });
         await waitFor(() => expect(screen.getByRole('button', { name: /resend \(60s\)/i })).toBeTruthy());
         expect(sendMock).toHaveBeenCalledTimes(1);

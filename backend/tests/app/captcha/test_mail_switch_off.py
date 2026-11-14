@@ -165,3 +165,52 @@ async def test_nothing_is_counted_while_off(client, workspace):
             headers=ALICE,
         )
     assert stats._waiting == before
+
+
+async def test_a_page_that_still_sends_a_proof_after_the_switch_went_off_is_not_stuck(
+    client, workspace, claims, monkeypatch
+):
+    """The check was on when the page loaded (it holds a proof), then the switch
+    went off: the server ignores the header, the mail goes out, nothing is claimed."""
+    monkeypatch.setattr(settings, "CAPTCHA_ENABLED", True)
+    monkeypatch.setattr(settings.api_settings, "CAPTCHA_BASE_BITS_MAIL", 14)
+    answer = await client.post(
+        f"/api/v1/workspaces/{workspace.id}/captcha/challenge",
+        json={"purpose": "mail"},
+        headers=ALICE,
+    )
+    text = answer.json()["challenge"]
+    held = ch.proof(text, ch.solve(text))
+    monkeypatch.setattr(settings, "CAPTCHA_ENABLED", False)
+    with _mailing() as mailed:
+        sent = await client.post(
+            f"/api/v1/workspaces/{workspace.id}/auth/otp/send",
+            params={"receiver_email": "person@example.org"},
+            headers={**ALICE, ch.HEADER: held},
+        )
+        assert sent.status_code == 200, sent.text
+        assert mailed.await_count == 1
+    assert claims == []
+    # and asking for a challenge now is the 404 the page reacts to
+    gone = await client.post(
+        f"/api/v1/workspaces/{workspace.id}/captcha/challenge",
+        json={"purpose": "mail"},
+        headers=ALICE,
+    )
+    assert gone.status_code == 404 and gone.json()["code"] == "captcha_off"
+
+
+async def test_the_default_it_already_has_passes_while_off_and_a_change_does_not(
+    client, workspace, test_user_cookies
+):
+    base = f"/api/v1/workspaces/{workspace.id}/captcha/settings"
+    # not chosen counts as on: asking for on is no change, so nothing is refused, stored or recorded
+    same = await client.put(base, json={"captchaDefault": True}, cookies=test_user_cookies)
+    assert same.status_code == 200 and same.json()["captchaDefault"] is True
+    assert (await container.workspace_repo().find_by_id(workspace.id)).captcha_default is None
+    refused = await client.put(base, json={"captchaDefault": False}, cookies=test_user_cookies)
+    assert refused.status_code == 422 and refused.json()["code"] == DISABLED_CODE
+    assert not any(
+        e.event == "captcha_setting_changed"
+        for e in await container.workspace_audit_repo().many()
+    )
