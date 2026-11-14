@@ -45,7 +45,7 @@ dependencies = [
     "pdfplumber>=0.11",
     "pypdfium2>=5.14.0",
     "pillow>=13.0.0",
-    "dnspython>=2.9.0",
+    "dnspython>=2.9.2",
     "idna>=3.20",
     "publicsuffixlist>=1.1.2.20261023",
     "google-re2==1.1.20251105",

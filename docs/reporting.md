@@ -1,7 +1,8 @@
 # Reports on a form's answers
 
 Counts, averages, distributions and over-time series computed on request from a form's
-stored answers. This page describes the server part (the query API). It is behind the
+stored answers. This page describes the server part (the query API) and, at the end, the
+page that shows it. It is behind the
 server setting `REPORTING_ENABLED` (`true` / `false`, default `false`, set in the
 environment and not in the admin portal until it is released; see the
 [settings inventory](settings-inventory.md)). While it is off, every route below answers
@@ -73,7 +74,9 @@ the response row holds in the clear: the submission time, the form version, anon
 identified (never who), the ending reached, the deletion-request status, the newest feedback
 status and the source (form, API, CSV import).
 
-A question is one entry across the form's versions, by its id. The newest version that has
+A question is one entry across the form's versions, by its id, for as long as the newest version
+that has it still makes it reportable: a version that makes it internal, or of a kind a report
+does not use, takes it back. The newest version that has
 an option names it, an option only an older version has keeps its old label, and an answer
 naming an option no version has any more is counted as "Removed option".
 
@@ -125,7 +128,16 @@ biggest hundred and sums the rest in `otherGroups`.
   dates or versions. A report is never partly computed. Cards that read no answer (counts by
   day, version, ending, respondent kind, source and statuses) have no such limit.
 * 30 queries per user and form per minute (`429` `rate_limited`, with `Retry-After`), and a
-  server computes two passes over answers at once (`429` `report_busy`).
+  server computes two passes over answers at once (`429` `report_busy`). Passes in flight in all
+  replicas together are counted too (six, in a counter of the shared rate limiter that a pass
+  gives back when it ends and that a crashed process loses with its 60 s window), so the
+  limit holds across replicas, closely rather than exactly.
+* A pass has a time budget of 30 s (a 20,000-response one takes about 2.5 s): past it the
+  pass is cancelled, its places are given back and the query answers `503` with the code
+  `report_timeout`.
+* A stored number too large or strange to add up (an average that cannot be rounded to two
+  places, or a magnitude beyond 40 digits) is left out of that value, which is `null`, and the
+  result carries the notice `unreadable_answers`; it is never a server error.
 
 ## How it runs
 
@@ -142,3 +154,30 @@ The set of questions a caller may use as a group, a value or a filter comes from
 `ReportFieldPolicy.visible_fields` (`backend/backend/app/services/reporting/policy.py`).
 Today it allows every question a member who may read the responses can already read;
 field-level access will replace its body.
+
+## The Report page
+
+Under **Responses > Report** in the form's side menu (**Rapport** in Dutch), and as a
+**Report** button in the responses toolbar that carries the list's filters (date range,
+deletion-request status, anonymous or identified, form version; never the page, the sort or the
+search). It is there only while `reportingEnabled` is true in the permissions answer and the
+member holds `response.read` and `analytics.read`; otherwise the address shows "Reports are not
+turned on yet" and asks the server for nothing.
+
+* **The report lives in the address.** The filters use the list's own parameters (`from`, `to`,
+  `status`, `who`, `version`); once the cards are changed they are written as `cards`
+  (base64url JSON of question keys, built-in names and enums, never an answer or a name). Without
+  `cards` the page shows the **Overview**, computed from the form's questions and never stored:
+  the response count, responses over time, then one card per reportable question in form order
+  (the first twelve, with "Show all"). A malformed address falls back to the Overview.
+* **Cards** can be added, changed (group by, show, per day/week/month/year, as), moved and removed;
+  one request asks the server for all of them. Saved views come later.
+* **Charts** are hand-written SVG (no chart library): a number tile, a bar chart, a donut (six slices
+  at most, otherwise a bar), a line over time (columns for 14 points or fewer) and a table. Every
+  chart prints its values, a donut's slices also differ by a pattern and its legend names each with
+  its value, and every card has a "Show as table" switch. A chart is one image with a sentence that
+  describes it, the figures are in a table that follows it, and no mark is a tab stop.
+* **Refusals** are explained on the page: `too_many_rows` (offers the last 30 days or the current
+  version), `rate_limited` and `report_busy` (retry), `report_timeout`, the notice
+  `unreadable_answers`, a card whose question the form no longer has (offers removing it), and a
+  form without responses.

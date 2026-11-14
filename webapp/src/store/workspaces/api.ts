@@ -14,6 +14,7 @@ import { DeclineReason, DeletionRequestOutcome } from '@app/models/enums/deletio
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 import { SubmissionPath } from '@app/utils/conditional-logic';
+import type { ReportCatalogue, ReportDefinition, ReportResult } from '@app/utils/report';
 import { fileNameFromDisposition } from '@app/utils/content-disposition';
 import { OpenFormulierenExport, openFormulierenExportOf } from '@app/utils/open-formulieren-export';
 
@@ -367,6 +368,17 @@ export const workspacesApi = createApi({
                 method: 'GET'
             })
         }),
+        // Reports on a form's answers (response.read and analytics.read, docs/reporting.md): the questions a report
+        // may use, and a definition's figures. The query is a POST so no choice sits in a URL; it is a read, so it is
+        // a query (cached by its definition, refetched to retry). A refusal keeps its JSON body (code, count, max).
+        getReportFields: builder.query<ReportCatalogue, { workspaceId: string; formId: string }>({
+            query: ({ workspaceId, formId }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/fields`, method: 'GET' }),
+            keepUnusedDataFor: 30
+        }),
+        queryReport: builder.query<ReportResult, { workspaceId: string; formId: string; definition: ReportDefinition }>({
+            query: ({ workspaceId, formId, definition }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/query`, method: 'POST', body: definition }),
+            keepUnusedDataFor: 30
+        }),
         // The export of a form's responses (response.export, docs/response-export.md):
         // up to a few thousand responses come back as the file itself; more start a
         // background job and answer 202 with the export to follow. A refusal keeps
@@ -631,7 +643,7 @@ export const workspacesApi = createApi({
         // The caller's effective permissions in a workspace (empty for a
         // non-member). Kept a while: many controls read it. The user id is
         // part of the cache key only, so one user never reads another's.
-        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean; choiceLogicEnabled?: boolean; newQuestionTypesEnabled?: boolean; addressQuestionEnabled?: boolean; addressLookupEnabled?: boolean; signatureQuestionEnabled?: boolean; optionSourcesEnabled?: boolean; reusableSectionsEnabled?: boolean; layoutContainersEnabled?: boolean; saveDraftsEnabled?: boolean; captchaEnabled?: boolean; submissionsApiEnabled?: boolean; formRevisionsUiEnabled?: boolean; responseRevisionsEnabled?: boolean; formEmbedEnabled?: boolean; csvImportEnabled?: boolean; formAccessEnabled?: boolean; auditLogUiEnabled?: boolean; formPromotionEnabled?: boolean; apiKeyRolesEnabled?: boolean }, { workspaceId: string; userId: string }>({
+        getWorkspacePermissions: builder.query<{ permissions: Array<WorkspacePermission>; fieldRulesEnabled?: boolean; choiceLogicEnabled?: boolean; newQuestionTypesEnabled?: boolean; addressQuestionEnabled?: boolean; addressLookupEnabled?: boolean; signatureQuestionEnabled?: boolean; optionSourcesEnabled?: boolean; reusableSectionsEnabled?: boolean; layoutContainersEnabled?: boolean; saveDraftsEnabled?: boolean; captchaEnabled?: boolean; submissionsApiEnabled?: boolean; formRevisionsUiEnabled?: boolean; responseRevisionsEnabled?: boolean; formEmbedEnabled?: boolean; csvImportEnabled?: boolean; formAccessEnabled?: boolean; auditLogUiEnabled?: boolean; formPromotionEnabled?: boolean; apiKeyRolesEnabled?: boolean; reportingEnabled?: boolean }, { workspaceId: string; userId: string }>({
             query: ({ workspaceId }) => ({
                 url: `/workspaces/${workspaceId}/permissions`,
                 method: 'GET'
@@ -1060,6 +1072,8 @@ export const {
     useGetFormSubmissionPathsQuery,
     useStartResponseExportMutation,
     useGetResponseExportsQuery,
+    useGetReportFieldsQuery,
+    useQueryReportQuery,
     useGetResponseExportQuery,
     useDownloadResponseExportMutation,
     useDiscardResponseExportMutation,

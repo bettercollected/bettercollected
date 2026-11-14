@@ -153,3 +153,18 @@ async def test_a_question_dropped_in_a_later_version_still_reports_its_answers(
     fields = (await query(client, workspace, form, None, tail="fields", method="get")).json()
     old = next(f for f in fields["fields"] if f["key"] == "q:old")
     assert old["versions"] == [1] and old["inCurrentVersion"] is False
+
+
+def test_a_question_a_later_version_makes_internal_is_no_longer_reportable():
+    v1 = form_dict(simple_question("kept", "number", "Kept"), simple_question("staff", "rating", "Staff"))
+    internal = {**simple_question("staff", "rating", "Staff"), "internal": True}
+    v2 = form_dict(simple_question("kept", "number", "Kept"), internal)
+    catalogue = build_catalogue([(1, v1), (2, v2)], None)
+    assert [f.key for f in catalogue.fields] == ["q:kept"]
+    # made reportable again by a version after that: back, with its versions
+    v3 = form_dict(simple_question("kept", "number", "Kept"), simple_question("staff", "rating", "Staff"))
+    again = build_catalogue([(1, v1), (2, v2), (3, v3)], None)
+    by_key = {f.key: f for f in again.fields}
+    assert by_key["q:staff"].versions == (1, 3)
+    # an internal question in the draft only is not offered either
+    assert [f.key for f in build_catalogue([(1, v1)], v2).fields] == ["q:kept"]

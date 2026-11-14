@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import PrivateFormButtonWrapper from '@Components/common/private-form-button-wrapper';
-import { ArrowLeft, BarChart3, Edit2, History, Inbox, LayoutGrid, type LucideIcon, Play, ScrollText, Settings, Share2, Trash2 } from 'lucide-react';
+import { ArrowLeft, BarChart3, Edit2, History, Inbox, LayoutGrid, type LucideIcon, PieChart, Play, ScrollText, Settings, Share2, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import FormOptionsDropdownMenu from '@app/components/datatable/form-options-dropdown';
@@ -54,6 +54,8 @@ interface NavInput {
     formRevisionsUiEnabled: boolean;
     /** The Activity pages are on for this server (its AUDIT_LOG_UI_ENABLED). */
     auditLogUiEnabled?: boolean;
+    /** Reports on the answers are on for this server (its REPORTING_ENABLED). */
+    reportingEnabled?: boolean;
     t: (key: string) => string;
 }
 
@@ -65,7 +67,7 @@ interface NavInput {
  * Analytics and Share while the form is open, Versions (server flag, form.read);
  * Settings for form.edit, with the pages that form has (`settingsPages`).
  */
-export function buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled, auditLogUiEnabled = false, t }: NavInput): FormNavItem[] {
+export function buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled, auditLogUiEnabled = false, reportingEnabled = false, t }: NavInput): FormNavItem[] {
     const on = (...paths: string[]) => paths.some((path) => pathname.includes(`/${path}`));
     const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
     const deletion = (icon: LucideIcon): FormNavItem => ({ key: 'deletion-requests', label: t(formConstant.deletionRequests), href: `${base}/deletion-requests`, icon, count: form?.deletionRequests ?? 0, active: on('deletion-requests') });
@@ -73,6 +75,11 @@ export function buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled
 
     if (form?.isPublished) {
         if (can(WorkspacePermission.RESPONSE_READ)) {
+            // Report: counts and averages of the answers (the server's REPORTING_ENABLED), for who may read the
+            // responses and analytics; a Privacy officer holds analytics.read only and never sees it
+            const report: FormNavItem[] =
+                reportingEnabled && can(WorkspacePermission.ANALYTICS_READ) ? [{ key: 'report', label: t('FORM_SHELL.REPORT_TAB'), href: `${base}/responses/report`, icon: PieChart, active: on('responses/report') }] : [];
+            const children = [...report, ...(can(WorkspacePermission.PRIVACY_MANAGE) ? [deletion(Trash2)] : [])];
             items.push({
                 key: 'responses',
                 label: t('FORM_SHELL.RESPONSES_TAB'),
@@ -80,7 +87,7 @@ export function buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled
                 icon: Inbox,
                 count: form.responses ?? 0,
                 active: on('responses', 'deletion-requests'),
-                children: can(WorkspacePermission.PRIVACY_MANAGE) ? [deletion(Trash2)] : undefined
+                children: children.length ? children : undefined
             });
         } else if (can(WorkspacePermission.PRIVACY_MANAGE)) {
             // a privacy officer handles deletion requests, never answers
@@ -128,8 +135,8 @@ export function currentItem(items: FormNavItem[]): FormNavItem | undefined {
 export function useFormNav(form: StandardFormDto, base: string): FormNavItem[] {
     const { t } = useTranslation();
     const pathname = usePathname() ?? '';
-    const { can, formRevisionsUiEnabled, auditLogUiEnabled } = useWorkspacePermissions();
-    return useMemo(() => buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled: !!formRevisionsUiEnabled, auditLogUiEnabled: !!auditLogUiEnabled, t: (key) => t(key) }), [form, base, pathname, can, formRevisionsUiEnabled, auditLogUiEnabled, t]);
+    const { can, formRevisionsUiEnabled, auditLogUiEnabled, reportingEnabled } = useWorkspacePermissions();
+    return useMemo(() => buildFormNav({ form, base, pathname, can, formRevisionsUiEnabled: !!formRevisionsUiEnabled, auditLogUiEnabled: !!auditLogUiEnabled, reportingEnabled: !!reportingEnabled, t: (key) => t(key) }), [form, base, pathname, can, formRevisionsUiEnabled, auditLogUiEnabled, reportingEnabled, t]);
 }
 
 /* --------------------------------------------------------------- the bar */
