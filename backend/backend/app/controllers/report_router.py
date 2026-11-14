@@ -28,6 +28,8 @@ from backend.app.services.reporting import limits
 from backend.app.services.reporting.definition import error as definition_error
 from backend.app.services.reporting.mode import refuse_when_off
 from backend.app.services.reporting.views import INVALID_CODE as VIEW_INVALID
+from backend.app.services.response_export.http import NO_STORE as FILE_HEADERS
+from backend.app.services.response_export.http import attachment
 from backend.app.services.user_service import get_logged_user
 
 NO_STORE = {"Cache-Control": "no-store"}
@@ -62,7 +64,7 @@ def _too_large(cap: int, code: str):
     dependencies=[Depends(refuse_when_off)],
     responses={
         401: {"description": "Authorization token is missing."},
-        403: {"description": "response.read or analytics.read is missing."},
+        403: {"description": "response.read or analytics.read is missing (and response.export for a download)."},
         404: {"description": "No such form, or no such form for the caller."},
         413: {"description": "More responses than a report reads (too_many_rows)."},
         422: {"description": "Switched off, or the definition is not valid."},
@@ -125,6 +127,29 @@ class ReportRouter(Routable):
         return JSONResponse(
             await container.report_service().responses(user, workspace_id, form_id, body),
             headers=NO_STORE,
+        )
+
+    @post("/{form_id}/report/export")
+    async def report_export(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        request: Request,
+        user: User = Depends(get_logged_user),
+    ) -> Response:
+        """One card's table as a CSV file: ``{definition, card, format: "csv"}``.
+        Needs ``response.export`` as well as ``response.read`` and
+        ``analytics.read`` on the form: the file is what leaves the screen. The
+        figures are a query's (the same pass and limits, 413 ``too_many_rows``
+        above the number of responses a report reads); the entry in the
+        workspace's audit log (ids and counts only) is stored before the file is
+        handed out, and the file is built in memory and never stored."""
+        body = await _body(request, limits.DEFINITION_MAX_BYTES + 2048)
+        file = await container.report_service().export_csv(user, workspace_id, form_id, body)
+        return Response(
+            content=file.content,
+            media_type=file.content_type,
+            headers={**FILE_HEADERS, "Content-Disposition": attachment(file.file_name)},
         )
 
     # ------------------------------------------------------------ saved views

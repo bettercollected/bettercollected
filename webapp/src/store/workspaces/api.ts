@@ -400,6 +400,17 @@ export const workspacesApi = createApi({
         getReportResponses: builder.mutation<ReportDrillPage, { workspaceId: string; formId: string; definition: ReportDefinition; card: string; group: string; cursor?: string | null; size?: number }>({
             query: ({ workspaceId, formId, ...body }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/responses`, method: 'POST', body })
         }),
+        // One card's table as a CSV file (response.export on top of the report's checks, docs/reporting.md): the bytes and the
+        // name the server offered, or the refusal's JSON (code, message, retryAfter). A POST that the page runs on demand, so a
+        // mutation; the file is built for this request and stored nowhere.
+        exportReportCard: builder.mutation<ResponsePdf, { workspaceId: string; formId: string; definition: ReportDefinition; card: string }>({
+            query: ({ workspaceId, formId, definition, card }) => ({
+                url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/export`,
+                method: 'POST',
+                body: { definition, card, format: 'csv' },
+                responseHandler: responsePdfHandler
+            })
+        }),
         queryReport: builder.query<ReportResult, { workspaceId: string; formId: string; definition: ReportDefinition }>({
             query: ({ workspaceId, formId, definition }) => ({ url: `/workspaces/${pathSegment(workspaceId)}/forms/${pathSegment(formId)}/report/query`, method: 'POST', body: definition }),
             keepUnusedDataFor: 30
@@ -1100,6 +1111,7 @@ export const {
     useGetReportFieldsQuery,
     useQueryReportQuery,
     useGetReportResponsesMutation,
+    useExportReportCardMutation,
     useGetReportViewsQuery,
     useCreateReportViewMutation,
     useUpdateReportViewMutation,

@@ -18,8 +18,13 @@
   expired response, or a changed form, makes the next query read again. A cache
   entry holds aggregates only.
 * **Limits.** ``REQUESTS_PER_WINDOW`` queries per user and form per window
-  (429 ``rate_limited``), ``PASSES_AT_ONCE`` passes at once in this process
-  (429 ``report_busy``).
+  (429 ``rate_limited``), ``PASSES_AT_ONCE`` passes at once in this process,
+  ``PASSES_PER_WORKSPACE`` of them for one workspace and ``PASSES_ACROSS_REPLICAS``
+  for all replicas together (429 ``report_busy``); the drill-down takes the same
+  places.
+* **Download.** One card's table as a CSV (``export``): needs ``response.export``
+  too, ``EXPORTS_PER_WINDOW`` per user and form per hour, audited before the file
+  is handed out (``REPORT_EXPORTED``: ids and counts), never stored.
 * Running a report is not audited (reading the list is not either), and writes
   nothing.
 """
@@ -31,6 +36,7 @@ import copy
 import hashlib
 import time
 from collections import OrderedDict
+from contextlib import asynccontextmanager
 from http import HTTPStatus
 from typing import Any, Dict, Optional, Tuple
 
@@ -41,7 +47,10 @@ from backend.app.models.enum.permission import Permission
 from backend.app.repositories.postgres.report_queries import PostgresReportRepository
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.app.services.reporting import definition as defs
+from backend.app.schemas.workspace_audit_event import REPORT_EXPORTED
+from backend.app.services.form_access import audit
 from backend.app.services.reporting import drill, limits
+from backend.app.services.reporting import export as report_export
 from backend.app.services.reporting.catalogue import SQL_ONLY_BUILTINS, Catalogue, build_catalogue
 from backend.app.services.reporting.engine import ReportEngine, TooManyRows
 from backend.app.services.reporting.policy import ReportFieldPolicy
@@ -56,6 +65,8 @@ BUSY_CODE = "report_busy"
 TIMEOUT_CODE = "report_timeout"
 SLOT_SCOPE = "report-passes"
 SLOT_CLIENT = "all"
+# one workspace's share of those places is a counter of its own in the same scope
+SLOT_WORKSPACE_PREFIX = "workspace:"
 
 
 def too_many_rows(count: int) -> HTTPException:
@@ -99,7 +110,9 @@ class ReportService:
         rate_limiter: FixedWindowRateLimiter,
         field_policy: Optional[ReportFieldPolicy] = None,
         engine: Optional[ReportEngine] = None,
+        audit_repo=None,
     ):
+        self._audit_repo = audit_repo
         self._authorization = authorization_service
         self._responses = form_response_service
         self._forms = form_repo
@@ -214,6 +227,16 @@ class ReportService:
         await self._authorize(user, workspace_id, form_id)
         await self._take_rate_limit(workspace_id, form_id, user)
         definition = defs.parse(body)
+        result, _, _ = await self._compute(user, workspace_id, form_id, definition)
+        return result
+
+    async def _compute(
+        self, user: User, workspace_id: RecordId, form_id: str, definition: defs.Definition
+    ) -> Tuple[Dict[str, Any], defs.Plan, Catalogue]:
+        """The result of a definition for this caller (the gate and the request
+        limit are the caller's), with the plan and the catalogue it was run
+        against. What a query and a report export share, so a file can never
+        differ from the screen."""
         catalogue, revision, view = await self._visible(user, workspace_id, form_id)
         plan = defs.validate(definition, catalogue)
         scope = await self._responses.scope(workspace_id, [form_id])
@@ -248,7 +271,7 @@ class ReportService:
                 notices.append("unreadable_answers")
         if any(card["truncated"] for card in cards.values()):
             notices.append("groups_truncated")
-        return {
+        result = {
             "definitionHash": definition.digest(),
             "token": _token(count, digest, revision),
             "generatedAt": generated_at.isoformat(),
@@ -257,6 +280,82 @@ class ReportService:
             "cards": [cards[card.id] for card in plan.cards],
             "notices": notices,
         }
+        return result, plan, catalogue
+
+    # ------------------------------------------------------------------ export
+    async def export_csv(
+        self, user: User, workspace_id: RecordId, form_id: str, body: bytes
+    ) -> report_export.ReportFile:
+        """The result table of one card as a CSV file (``export``): the report's
+        gate and ``response.export`` on the form (the file is what leaves the
+        screen), the report's request limit and an export limit of its own, the
+        card's figures from the same pass and cache a query uses, an audit entry
+        stored before the file is handed out (503 ``audit_unavailable`` and no
+        file when it cannot be), and nothing stored."""
+        await self._authorize(user, workspace_id, form_id)
+        await self._authorization.authorize(
+            user, Permission.RESPONSE_EXPORT, workspace_id, form_id=form_id
+        )
+        request = report_export.parse(body)
+        definition = request.definition
+        card = next((c for c in definition.cards if c.id == request.card), None)
+        if card is None:
+            raise defs.invalid("card: no such card in this definition")
+        await self._take_rate_limit(workspace_id, form_id, user)
+        await self._take_export_limit(workspace_id, form_id, user)
+        # only this card is asked for: one pass for one table
+        single = definition.model_copy(update={"cards": (card,)})
+        try:
+            result, plan, catalogue = await self._compute(user, workspace_id, form_id, single)
+        except HTTPException:
+            # a refused or failed query produced no file: it does not use up a download
+            try:
+                await self._limiter.release(
+                    f"report-export:{workspace_id}:{form_id}",
+                    str(user.id),
+                    limits.EXPORT_WINDOW_SECONDS,
+                )
+            except Exception as error:  # noqa: BLE001 - only the download is lost; the window frees it
+                logger.warning("report: could not give back a download ({})", type(error).__name__)
+            raise
+        document = await self._forms.get_form_document_by_id(form_id)
+        if document is None:
+            raise HTTPException(HTTPStatus.NOT_FOUND, FORM_NOT_FOUND)
+        file = report_export.build_csv(
+            form_title=document.title or "",
+            catalogue=catalogue,
+            definition=single,
+            result=result,
+        )
+        # the entry first: no audit row, no file
+        await audit.record_or_refuse(
+            self._audit_repo,
+            REPORT_EXPORTED,
+            workspace_id,
+            user,
+            form_id=form_id,
+            export_channel=report_export.CHANNEL,
+            export_format=request.format,
+            count=file.groups,
+        )
+        return file
+
+    async def _take_export_limit(self, workspace_id: RecordId, form_id: str, user: User) -> None:
+        verdict = await self._limiter.admit(
+            f"report-export:{workspace_id}:{form_id}",
+            str(user.id),
+            limits.EXPORTS_PER_WINDOW,
+            limits.EXPORT_WINDOW_SECONDS,
+        )
+        if not verdict.allowed:
+            raise HTTPException(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                content={
+                    "code": RATE_CODE,
+                    "message": f"Too many report downloads. Try again in {verdict.retry_after} seconds.",
+                },
+                headers={"Retry-After": str(verdict.retry_after)},
+            )
 
     # -------------------------------------------------------------- drill-down
     async def responses(
@@ -293,28 +392,24 @@ class ReportService:
         count, _ = await self._repo.token(scope, plan.filters)
         if count > limits.REPORT_MAX_ROWS:
             raise too_many_rows(count)
-        try:
-            await asyncio.wait_for(self._passes.acquire(), limits.PASS_WAIT_SECONDS)
-        except asyncio.TimeoutError:
-            raise _busy() from None
-        try:
-            page = await asyncio.wait_for(
-                self._engine.drill(
-                    scope, str(workspace_id), form_id, plan, card, request.group,
-                    catalogue, after, request.size,
-                ),
-                limits.PASS_SECONDS,
-            )
-        except asyncio.TimeoutError:
-            raise HTTPException(
-                HTTPStatus.SERVICE_UNAVAILABLE,
-                content={
-                    "code": TIMEOUT_CODE,
-                    "message": "This took too long to compute. Narrow the dates or the form versions, or try again.",
-                },
-            ) from None
-        finally:
-            self._passes.release()
+        # a place in this process and a share of the replicas' places, as a query's pass takes
+        async with self._place(workspace_id):
+            try:
+                page = await asyncio.wait_for(
+                    self._engine.drill(
+                        scope, str(workspace_id), form_id, plan, card, request.group,
+                        catalogue, after, request.size,
+                    ),
+                    limits.PASS_SECONDS,
+                )
+            except asyncio.TimeoutError:
+                raise HTTPException(
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                    content={
+                        "code": TIMEOUT_CODE,
+                        "message": "This took too long to compute. Narrow the dates or the form versions, or try again.",
+                    },
+                ) from None
         return {
             "responses": [drill.row_dto(row) for row in page.rows],
             "cursor": drill.encode_cursor(page.cursor) if page.cursor is not None else None,
@@ -322,15 +417,55 @@ class ReportService:
             "exhausted": page.exhausted,
         }
 
-    async def _give_back_slot(self) -> None:
-        """Give the pass's place among the replicas' back. Never fails the
-        report: the window frees it anyway."""
+    async def _give_back(self, client: str) -> None:
+        """Give back one place counted for ``client``. Never fails the report:
+        the window frees it anyway."""
         try:
             await self._limiter.release(
-                SLOT_SCOPE, SLOT_CLIENT, limits.PASS_SLOTS_WINDOW_SECONDS
+                SLOT_SCOPE, client, limits.PASS_SLOTS_WINDOW_SECONDS
             )
         except Exception as error:  # noqa: BLE001 - only the place is lost
             logger.warning("report: could not give back a pass place ({})", type(error).__name__)
+
+    async def _give_back_all(self, clients) -> None:
+        for client in clients:
+            await self._give_back(client)
+
+    @asynccontextmanager
+    async def _place(self, workspace_id: RecordId):
+        """A place for one pass over the answers: one of this process's
+        ``PASSES_AT_ONCE``, then one of the workspace's ``PASSES_PER_WORKSPACE``
+        and one of the ``PASSES_ACROSS_REPLICAS`` of every replica together
+        (the workspace's first, so a workspace that already holds its share is
+        refused without taking a place from the others). 429 ``report_busy``
+        when one is not to be had; every place taken is given back when the
+        block ends, however it ends."""
+        try:
+            await asyncio.wait_for(self._passes.acquire(), limits.PASS_WAIT_SECONDS)
+        except asyncio.TimeoutError:
+            raise _busy() from None
+        taken = []
+        try:
+            for client, limit in (
+                (f"{SLOT_WORKSPACE_PREFIX}{workspace_id}", limits.PASSES_PER_WORKSPACE),
+                (SLOT_CLIENT, limits.PASSES_ACROSS_REPLICAS),
+            ):
+                verdict = await self._limiter.admit(
+                    SLOT_SCOPE, client, limit, limits.PASS_SLOTS_WINDOW_SECONDS
+                )
+                if not verdict.allowed:
+                    raise _busy(min(verdict.retry_after, 5))
+                taken.append(client)
+            yield
+        finally:
+            # the process's place first: releasing is synchronous and cannot be
+            # interrupted, so a request cancelled while it gives the shared
+            # places back (a closed tab) never leaves this process short of one
+            self._passes.release()
+            if taken:
+                # ...and the shared places are given back by a task that a
+                # cancellation of this request does not stop half way
+                await asyncio.shield(self._give_back_all(list(reversed(taken))))
 
     async def _scan(
         self, user, workspace_id, form_id, plan, catalogue, revision, view, token, scope
@@ -348,20 +483,7 @@ class ReportService:
         ):
             self._cache.move_to_end(key)
             return _copy(entry)
-        try:
-            await asyncio.wait_for(self._passes.acquire(), limits.PASS_WAIT_SECONDS)
-        except asyncio.TimeoutError:
-            raise _busy() from None
-        try:
-            # a place among the passes of every replica, not only of this one
-            verdict = await self._limiter.admit(
-                SLOT_SCOPE,
-                SLOT_CLIENT,
-                limits.PASSES_ACROSS_REPLICAS,
-                limits.PASS_SLOTS_WINDOW_SECONDS,
-            )
-            if not verdict.allowed:
-                raise _busy(min(verdict.retry_after, 5))
+        async with self._place(workspace_id):
             try:
                 # a time budget: a pass that is stuck or starved is cancelled
                 # (its batch in flight finishes, no more are read) and its
@@ -381,10 +503,6 @@ class ReportService:
                 ) from None
             except TooManyRows as many:
                 raise too_many_rows(many.count) from None
-            finally:
-                await self._give_back_slot()
-        finally:
-            self._passes.release()
         entry = _Entry(
             token, revision, result.cards, result.scanned, result.unreadable, utcnow(),
             result.matched,

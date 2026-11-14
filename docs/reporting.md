@@ -175,6 +175,42 @@ passes (`report_busy`) and has the pass's time budget (`report_timeout`); it is 
 query and answers `422 reporting_off` first while the switch is off. The cursor holds no secret
 and gives no access: every read stays scoped to the workspace and form of the request.
 
+### `POST /export`: one card as a CSV
+
+```json
+{"definition": {...}, "card": "dept", "format": "csv"}
+```
+
+The table of one card, as the Report page shows it: one row per group (its label, `Responses`,
+`Share of answered (%)` and one column for each measure that is not a plain count, such as
+`Average of Score`), after a few `key,value` lines that say what the file is: the form's title,
+the card, what it is grouped by, how many responses it covers and how many answered, the
+filters in words (a condition on an answer is counted, never stated: a value asked about is an
+answer), the time zone the days follow and when the figures were made. It is UTF-8 with a byte
+order mark, like the responses export, and every cell goes through that export's CSV writer: text
+a spreadsheet would run as a formula (a leading `=`, `+`, `-`, `@`, tab or carriage return) gets
+an apostrophe in front. The words in the file are English; the groups' labels are the form's.
+
+* **Who may.** `response.export` on the form as well as `response.read` and `analytics.read`
+  (Owners, Admins and Editors; a Reviewer or Viewer only with an export grant; never a Privacy
+  officer): the file is what leaves the screen, and a small group can single a person out.
+  A restricted form is a `404` to a member it is closed to, as for a query.
+* **Same figures as the screen.** Only the asked card is computed, by the same pass, cache and
+  limits as a query (`413 too_many_rows`, `429 report_busy`, `503 report_timeout`), and it counts
+  against the 30 queries a minute. Downloads have a limit of their own, 10 per user and form per
+  hour (`429 rate_limited`); one that produced no file (a refused or failed query) gives its
+  place back.
+* **Audited, then handed out.** The entry (`report_exported`, in the Activity page's Responses
+  area: the form, `csv`, the channel `report` and the number of groups written) is stored before
+  the file is returned; when it cannot be stored the answer is `503 audit_unavailable` and there is
+  no file. It never holds the card, its title, its filters or a figure (docs/audit-log.md). The
+  responses export's own entry (`response_export`) stays for exports of responses, so the two stay
+  countable apart.
+* **Never stored.** The file is built in memory and returned with `Cache-Control: no-store`,
+  `Pragma: no-cache` and `X-Content-Type-Options: nosniff`; nothing is kept on the server.
+  While the switch is off the route answers `422 reporting_off` first, before a permission is
+  looked at or a row is read.
+
 ### Limits
 
 * A query that reads answers is refused with `413` and the code `too_many_rows`
@@ -185,7 +221,10 @@ and gives no access: every read stays scoped to the workspace and form of the re
   server computes two passes over answers at once (`429` `report_busy`). Passes in flight in all
   replicas together are counted too (six, in a counter of the shared rate limiter that a pass
   gives back when it ends and that a crashed process loses with its 60 s window), so the
-  limit holds across replicas, closely rather than exactly.
+  limit holds across replicas, closely rather than exactly. One workspace may hold at most two
+  of those six at a time (a counter of its own in the same scope), so a workspace that runs many
+  reports cannot take every place from the others; the drill-down takes the same places. The
+  figures are constants in `services/reporting/limits.py`, not settings.
 * A pass has a time budget of 30 s (a 20,000-response one takes about 2.5 s): past it the
   pass is cancelled, its places are given back and the query answers `503` with the code
   `report_timeout`.

@@ -68,6 +68,8 @@ async def test_every_route_answers_422_with_no_query_at_all(client, workspace):
         ("post", "query", {"content": b"not json at all"}),
         ("post", "responses", {"json": {"definition": definition(card()), "card": "c1", "group": "x"}}),
         ("post", "responses", {"content": b"not json at all"}),
+        ("post", "export", {"json": {"definition": definition(card()), "card": "c1", "format": "csv"}}),
+        ("post", "export", {"content": b"not json at all"}),
     ):
         for signed_in in (True, False):
             with statements() as seen:
@@ -82,6 +84,22 @@ async def test_every_route_answers_422_with_no_query_at_all(client, workspace):
             # middleware's own read of the allowed origins is not ours)
             ours = [s for s in seen if "allowed_origins" not in s]
             assert ours == [], (method, tail, ours)
+
+
+async def test_a_download_while_off_writes_no_audit_entry_and_reads_nothing(client, workspace):
+    from backend.app.schemas.workspace_audit_event import REPORT_EXPORTED
+    from tests.app.form_access.helpers import audit_events
+
+    form = await make_form(workspace, survey_fields())
+    await add_response(workspace, form, {"dept": answer_choice("care")})
+    body = {"definition": definition(card(dimension="q:dept")), "card": "c1", "format": "csv"}
+    with statements() as seen:
+        response = await client.post(
+            report_url(workspace, form, "export"), json=body, cookies=cookies(testUser)
+        )
+    assert response.status_code == 422 and response.json()["code"] == OFF_CODE
+    assert [s for s in seen if "allowed_origins" not in s] == []
+    assert await audit_events(workspace, REPORT_EXPORTED) == []
 
 
 async def test_the_saved_view_routes_answer_422_and_never_touch_their_table(client, workspace):

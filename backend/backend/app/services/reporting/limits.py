@@ -48,12 +48,22 @@ PASS_WAIT_SECONDS = 2.0
 # bound on the fleet, not an exact one; the per-process limit above stays the
 # exact guard of one process.
 PASSES_ACROSS_REPLICAS = 6
+# ...of which one workspace holds at most this many at a time (a counter of its
+# own, in the same scope and window), so one workspace's reports cannot take all
+# the replicas' places from the others. A constant, not a setting, like the
+# figure above.
+PASSES_PER_WORKSPACE = 2
 PASS_SLOTS_WINDOW_SECONDS = 60
 # the longest one pass may run before it is stopped (503 ``report_timeout``): a
 # 20,000-response pass takes about 2.5 s, so this is a stuck or starved one. It
 # is under the slot window, so a stopped pass has always given its place back
 # in the window it took it.
 PASS_SECONDS = 30.0
+
+# downloads of a card's table (``POST /report/export``) per user and form in a
+# window (the shared limiter), on top of the query limit above
+EXPORTS_PER_WINDOW = 10
+EXPORT_WINDOW_SECONDS = 3600
 
 # the in-process cache of aggregates (never rows, never answers): entries, and
 # a ceiling on how long one lives whatever its token says (bounds memory)

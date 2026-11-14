@@ -1466,6 +1466,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_repo=form_repo,
         report_repo=report_repo,
         rate_limiter=rate_limiter,
+        audit_repo=workspace_audit_repo,
     )
     # Saved views of a report (a name, a scope and a validated definition).
     report_view_service: ReportViewService = providers.Singleton(
