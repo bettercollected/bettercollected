@@ -10,6 +10,7 @@ form, never two.
 """
 
 import datetime as dt
+from contextlib import nullcontext
 from http import HTTPStatus
 from typing import Callable, List, Literal, Optional
 
@@ -40,7 +41,10 @@ from backend.app.services.ai.ops import (
     apply_form_ops,
     apply_settings_ops,
     parse_ops,
+    sets_captcha,
+    stored_captcha_value,
 )
+from backend.app.services.captcha.mode import captcha_enabled
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.ai.proposals import (
     STATUS_ACCEPTED,
@@ -175,6 +179,21 @@ async def _persist_settings_ops(
     )
 
 
+async def _stored_captcha(workspace_id: RecordId, form_id: str, ops):
+    """What the engine needs to let an op that leaves the spam check setting
+    as it is pass while CAPTCHA_ENABLED is off: the value stored on this
+    workspace's association (nothing is read unless an op sets it, and the
+    switch is off)."""
+    if captcha_enabled() or not sets_captcha(ops):
+        return nullcontext()
+    link = await _c().workspace_form_repo().find_workspace_form(
+        RecordId(workspace_id), str(form_id)
+    )
+    if link is None or link.settings is None:
+        return nullcontext()
+    return stored_captcha_value(link.settings.captcha_enabled)
+
+
 async def persist_ops_to_form(
     form_document: FormDocument,
     form: StandardForm,
@@ -208,9 +227,10 @@ async def persist_ops_to_form(
         )
         ops, renamed = library_ops.substitute(ops, fragments)
     # CPU-bound on a large form: off the event loop
-    new_form, results = await run_in_threadpool(
-        apply_form_ops, form, ops, atomic=atomic
-    )
+    with await _stored_captcha(workspace_id, form_document.form_id, ops):
+        new_form, results = await run_in_threadpool(
+            apply_form_ops, form, ops, atomic=atomic
+        )
     library_ops.restore_names(results, renamed)
     if atomic and not all(r.ok for r in results):
         return new_form, results, None
