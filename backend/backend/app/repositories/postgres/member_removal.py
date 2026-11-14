@@ -23,6 +23,7 @@ from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.db.models import (
     FormAccessGrantRow,
+    FormReportViewRow,
     MemberGroupMemberRow,
     WorkspaceApiKeyRow,
     WorkspaceFormRow,
@@ -40,6 +41,8 @@ class Removal:
     forms: List[str] = field(default_factory=list)
     grants: int = 0
     teams: int = 0
+    # their private report views (the form's own they made stay, as a former member's)
+    report_views: int = 0
     # the ids of the API keys they created in this workspace, now revoked
     keys: List[str] = field(default_factory=list)
 
@@ -105,6 +108,15 @@ class PostgresMemberRemovalRepository(RecordRepository):
                 MemberGroupMemberRow,
                 MemberGroupMemberRow.workspace_id == ws,
                 MemberGroupMemberRow.user_id == uid,
+            )
+            # their private views here go with them (the views they made for a form stay,
+            # as a former member's), whatever the switch says
+            removal.report_views = await self._delete_recorded(
+                session,
+                FormReportViewRow,
+                FormReportViewRow.workspace_id == ws,
+                FormReportViewRow.owner_id == uid,
+                FormReportViewRow.scope == "private",
             )
             # revoked, not deleted: the audit and "last used" stay, and a
             # person invited again does not get their old keys back

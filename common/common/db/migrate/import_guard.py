@@ -98,6 +98,8 @@ NOT_IMPORTED_TABLES = (
     "member_groups",
     "member_group_members",
     "form_access_grants",
+    # new in 5.0: the saved views of a form's report
+    "form_report_views",
     "scim_group_team_links",
 )
 

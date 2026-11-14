@@ -236,3 +236,70 @@ describe('axe', () => {
         expect(await axeViolations(container)).toEqual([]);
     });
 });
+
+
+describe('negative values and big numbers', () => {
+    const scored = (values: number[], card: ReportCardDef) => ({
+        ...cardFigures(card),
+        answered: 100,
+        groups: values.map((value, index) => ({ key: String(index + 1), label: String(index + 1), n: 10, values: [value], valueN: [10] }))
+    });
+    const average: ReportCardDef = { id: 'a', kind: 'bar', dimension: { field: 'q:score' }, measures: [{ agg: 'avg', field: 'q:score' }] };
+
+    it('draws no bar for a value of zero or below, and still prints it', () => {
+        const { container } = renderCard(average, { result: scored([4, -3, 0, 2], average) });
+        const bars = Array.from(container.querySelectorAll('rect[style*="series-1"]'));
+        // a bar for 4 and for 2 only, none of them of a negative or empty width
+        expect(bars).toHaveLength(2);
+        expect(bars.every((bar) => Number(bar.getAttribute('width')) > 0)).toBe(true);
+        expect(container.querySelector('[role="img"]')).toHaveTextContent('-3');
+    });
+
+    const series = (): ReportCardDef => ({ id: 'l', kind: 'line', dimension: { field: 'submitted_at', bucket: 'month' }, measures: [{ agg: 'count' }] });
+    const run = (values: number[], card: ReportCardDef) =>
+        renderCard(card, {
+            result: {
+                ...cardFigures(card),
+                groups: values.map((value, index) => ({ key: `2026-${String(index + 1).padStart(2, '0')}`, label: `m${index}`, n: 1, values: [value], valueN: [1] }))
+            }
+        });
+
+    it('runs the axis of columns below zero for a negative value, with the column on the other side of the zero line', () => {
+        const { container } = run([6, -4, 2], series());
+        const ticks = Array.from(container.querySelectorAll('svg line')).map((line) => Number(line.getAttribute('y1')));
+        // the three grid lines run from the lowest tick, through zero, to the highest
+        const zeroLine = ticks[1];
+        const columns = Array.from(container.querySelectorAll('rect[style*="series-1"]'));
+        expect(columns).toHaveLength(3);
+        const [up, down] = columns;
+        // the positive column ends on the zero line, the negative one starts there
+        expect(Number(up.getAttribute('y')) + Number(up.getAttribute('height'))).toBeCloseTo(zeroLine, 0);
+        expect(Number(down.getAttribute('y'))).toBeCloseTo(zeroLine, 0);
+        // and the axis names its lowest tick
+        const labels = Array.from(container.querySelectorAll('svg text')).map((node) => node.textContent);
+        expect(labels).toContain('-5');
+        expect(labels).toContain('0');
+        expect(labels).toContain('10');
+    });
+
+    it('keeps a line with a negative value inside its plot', () => {
+        const values = Array.from({ length: 20 }, (_, index) => (index % 2 ? -7 : 5));
+        const card: ReportCardDef = { id: 'l', kind: 'line', dimension: { field: 'submitted_at', bucket: 'day' }, measures: [{ agg: 'count' }] };
+        const { container } = renderCard(card, {
+            result: { ...cardFigures(card), groups: values.map((value, index) => ({ key: `2026-10-${String(index + 1).padStart(2, '0')}`, label: `d${index}`, n: 1, values: [value], valueN: [1] })) }
+        });
+        const line = container.querySelector('polyline') as SVGPolylineElement;
+        const ys = (line.getAttribute('points') as string).split(' ').map((pair) => Number(pair.split(',')[1]));
+        // the plot is 224 high with margins of 22 above and 36 below
+        expect(Math.min(...ys)).toBeGreaterThanOrEqual(22);
+        expect(Math.max(...ys)).toBeLessThanOrEqual(224 - 36);
+    });
+
+    it('writes the total in the middle of a donut in the viewer locale', () => {
+        const big: ReportCardDef = { id: 'big', kind: 'donut', dimension: { field: 'q:remote' }, measures: [{ agg: 'count' }] };
+        const result = { ...cardFigures(big), answered: 12340, groups: [{ key: 'yes', label: 'Yes', n: 9000, values: [9000], valueN: [9000] }, { key: 'no', label: 'No', n: 3340, values: [3340], valueN: [3340] }] };
+        const { container } = renderCard(big, { result });
+        const centre = () => Array.from(container.querySelectorAll('svg text')).map((node) => node.textContent);
+        expect(centre()).toContain('12,340');
+    });
+});

@@ -460,7 +460,10 @@ class WorkspaceFormService:
         member_directory=None,
         audit_repo=None,
         form_access_cleanup=None,
+        report_view_repo=None,
     ):
+        # saved views of the form's report go with the form
+        self._report_view_repo = report_view_repo
         # grants on a form go with the form (services/form_access/cleanup.py)
         self._form_access_cleanup = form_access_cleanup
         # options from a list or from another form's answers
@@ -674,6 +677,9 @@ class WorkspaceFormService:
         if self._form_access_cleanup is not None:
             # the grants on it, whatever the switch says
             await self._form_access_cleanup.forget_form(workspace_id, form_id)
+        if self._report_view_repo is not None:
+            # its saved report views, whatever the switch says
+            await self._report_view_repo.delete_for_form(workspace_id, form_id)
         if self._registration_service is not None:
             # the form's registration and delivery records, whatever the switch says
             await self._registration_service.delete_for_form(workspace_id, form_id)
@@ -808,6 +814,8 @@ class WorkspaceFormService:
         await self.form_service.delete_forms(form_ids=form_ids)
         if self._registration_service is not None and form_ids:
             await self._registration_service.delete_for_forms(list(form_ids))
+        if self._report_view_repo is not None and form_ids:
+            await self._report_view_repo.delete_for_forms(list(form_ids))
         if self._webhook_service is not None and form_ids:
             await self._webhook_service.delete_for_forms(list(form_ids))
         if self._draft_service is not None and form_ids:

@@ -50,6 +50,14 @@ here from another workspace), behind `FORM_PROMOTION_ENABLED`; each holds the
 form's id and, in the workspace's own records, the other side's ids and a count
 of what was adjusted, never a title (docs/environments.md).
 
+Also under `forms`: the changes to the saved report views a form shares
+(`report_view_created`, `report_view_updated`, `report_view_deleted`, `report_view_shared`,
+`report_view_unshared`, behind `REPORTING_ENABLED`; docs/reporting.md). Each holds the
+form's id, the view's id (`viewId`), its scope after the change (`viewScope`, `private` or
+`form`) and, for an update, which parts changed (`changed`: `name`, `scope`, `definition`),
+never the view's name or definition. A person's private views are not written: an entry would
+say that someone looked at something.
+
 Settings and integration entries carry ids and enum values only: the kind of
 connection or directory (`connectionType`, `directoryType`), an on/off setting's
 new value (`required`, `enabled`), the AI provider's id (`provider`), the roles
