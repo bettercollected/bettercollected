@@ -391,6 +391,7 @@
         "ERR_LIMIT": "Your draft could not be kept: there are too many drafts right now. Delete one you no longer need, or try again later.",
         "ERR_NOT_FOUND": "We could not find your draft. Send yourself a new link.",
         "ERR_FAILED": "Your draft could not be saved. Try again.",
+        "ERR_CAPTCHA": "The automatic spam check did not work in this browser. Try again, or use another browser.",
         "NOTICE": {
             "LABEL": "About your draft",
             "RESTORED": "We restored your draft from {{date}}. Check your answers, then continue.",

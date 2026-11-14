@@ -6,7 +6,9 @@ under a key derived from the JWT key ring with a purpose label of its own (the
 way ``services/ai/notice_token.py`` does it: the first member signs, every
 member verifies, so a key rotation drops nothing; the label makes a challenge
 never a valid JWT signature and the other way round). It states, and the
-signature binds: the purpose, the workspace, the form, an expiry, a random
+signature binds: the purpose (``submit`` or ``mail``), the workspace and the
+form (empty where there is none: the creator's sign-in code has no workspace,
+a workspace's has no form), an expiry, a random
 nonce, the difficulty, whether the signed-in discount was given (``s``) and a
 day-salted tag of the client's network (empty when the client is not known).
 
@@ -53,7 +55,10 @@ CLAIM_MARGIN = dt.timedelta(minutes=5)
 MAX_HEADER_LENGTH = 1024
 MAX_COUNTER_DIGITS = 12
 TAG_BYTES = 8
-PURPOSES = ("submit",)
+# "submit": a response to a form; "mail": a sign-in code or a draft link mail.
+# The purpose is signed into the challenge and checked against the request, so a
+# proof for one is never good for the other.
+PURPOSES = ("submit", "mail")
 _PURPOSE_LABEL = b"bettercollected/captcha-challenge/v1"
 _COUNTER = re.compile(r"[0-9]{1,%d}" % MAX_COUNTER_DIGITS)
 

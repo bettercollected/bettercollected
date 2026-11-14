@@ -28,7 +28,7 @@ import asyncio
 import datetime as dt
 import json
 from http import HTTPStatus
-from typing import Any, Dict, List, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 from urllib.parse import quote
 
 from common.clock import utcnow
@@ -530,10 +530,17 @@ class FormDraftService:
         body: LinkRequestBody,
         client: Optional[str],
         received_at: Optional[dt.datetime] = None,
+        require_proof: Optional[Callable[[str], Awaitable[None]]] = None,
     ) -> LinkSentDto:
         """Create (or, with the browser's edit key, update) an anonymous draft
         and mail its link to the address the respondent entered. The mail is
-        fixed wording and the link; never an answer."""
+        fixed wording and the link; never an answer.
+
+        ``require_proof``: the route's check of the spam check's proof of work
+        (purpose ``mail``, CAPTCHA_ENABLED), called with the form's id once the
+        form is known and before any limit counts: a request without a valid
+        proof is refused and uses up no budget. None (or the switch off): no
+        check."""
         link, version = await self._form(workspace_id, form_id, user)
         real_form_id = str(link.form_id)
         if link.settings.require_verified_identity:
@@ -550,6 +557,8 @@ class FormDraftService:
                 "Signed-in respondents save to their account.",
             )
         address = _address(body.email)
+        if require_proof is not None:
+            await require_proof(real_form_id)
         email_key = self._keys.address_key(real_form_id, address)
         # every request counts, wherever it is refused later: per client, per
         # address on this form, per form (one form cannot mail the world) and

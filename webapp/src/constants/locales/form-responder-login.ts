@@ -5,6 +5,9 @@ export const formResponderLogin = {
     feature3: 'RESPONDER_SECTION.FEATURE_3',
     otpFailureMessage: 'RESPONDER_SECTION.OTP_FAILURE_TOAST',
     otpRateLimitedMessage: 'RESPONDER_SECTION.OTP_RATE_LIMITED',
+    otpUnavailableMessage: 'RESPONDER_SECTION.OTP_UNAVAILABLE',
+    otpCaptchaFailedMessage: 'RESPONDER_SECTION.OTP_CAPTCHA_FAILED',
+    otpCaptchaWaitingMessage: 'RESPONDER_SECTION.OTP_CAPTCHA_WAITING',
     otpSuccessMessage: 'RESPONDER_SECTION.OTP_SUCCESS_TOAST',
     verificationSuccessMessage: 'RESPONDER_SECTION.OTP_VERIFICATION_SUCCESS_TOAST',
     verificationFailureMessage: 'RESPONDER_SECTION.OTP_VERIFICATION_FAILURE_TOAST'

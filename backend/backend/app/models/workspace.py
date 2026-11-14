@@ -246,6 +246,11 @@ class Workspace(WorkspaceRequestDto):
     # through /workspaces/{id}/embed/settings; not part of the public
     # workspace response.
     embed_allowed_origins: Optional[List[str]] = None
+    # The automatic spam check (services/captcha, CAPTCHA_ENABLED): whether the
+    # workspace's forms ask for it unless a form says otherwise (None: yes).
+    # Changed through /workspaces/{id}/captcha/settings; not part of the public
+    # workspace response.
+    captcha_default: Optional[bool] = None
 
 
 class PromotedFrom(BaseModel):

@@ -40,7 +40,9 @@ Areas: `access` (grants, a form's access mode, teams), `members`, `forms`,
 `api_keys`, `security` (single sign-on break-glass use, the authenticator-app
 rule, and changes to the workspace's security settings: single sign-on
 connections and the require-single-sign-on switch and default role, verified
-email domains, directory sync tokens and group roles, the AI consent, the custom
+email domains, directory sync tokens and group roles, the AI consent, the spam
+check (`captcha_setting_changed`: the workspace default, or one form, with the new
+value), the custom
 domain) and `integrations` (email actions and case-system services and
 registrations: created, changed, switched on or off, deleted).
 

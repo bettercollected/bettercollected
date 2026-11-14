@@ -391,6 +391,7 @@
         "ERR_LIMIT": "Je concept kon niet worden bewaard: er zijn op dit moment te veel concepten. Verwijder een concept dat je niet meer nodig hebt, of probeer het later opnieuw.",
         "ERR_NOT_FOUND": "We konden je concept niet vinden. Stuur jezelf een nieuwe link.",
         "ERR_FAILED": "Je concept kon niet worden opgeslagen. Probeer het opnieuw.",
+        "ERR_CAPTCHA": "De automatische spamcontrole lukte niet in deze browser. Probeer het opnieuw of gebruik een andere browser.",
         "NOTICE": {
             "LABEL": "Over je concept",
             "RESTORED": "We hebben je concept van {{date}} teruggezet. Controleer je antwoorden en ga daarna verder.",

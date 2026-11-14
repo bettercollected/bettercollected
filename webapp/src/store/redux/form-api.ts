@@ -94,6 +94,15 @@ export const formsApi = createApi({
                 body: { purpose: 'submit', formId }
             })
         }),
+        // A challenge for the spam check before a mail is sent (utils/captcha/mail-proof): a workspace's sign-in code (no form),
+        // a form's draft link (its form), or the creator's sign-in code (no workspace). Stateless, nothing stored, no cookie.
+        issueMailChallenge: builder.mutation<CaptchaChallenge, { workspaceId?: string; formId?: string }>({
+            query: ({ workspaceId, formId }) => ({
+                url: workspaceId ? `/workspaces/${workspaceId}/captcha/challenge` : `/auth/captcha/challenge`,
+                method: 'POST',
+                body: { purpose: 'mail', ...(workspaceId && formId ? { formId } : {}) }
+            })
+        }),
         // One anonymous navigation step for drop-off analytics (no answers, no identity).
         sendFlowEvent: builder.mutation<any, { workspaceId: string; formId: string; sessionId: string; fromPage: string; toPage: string }>({
             query: ({ workspaceId, formId, sessionId, fromPage, toPage }) => ({
@@ -205,6 +214,7 @@ export const {
     useSubmitResponseMutation,
     useSendFlowEventMutation,
     useIssueCaptchaChallengeMutation,
+    useIssueMailChallengeMutation,
     useGetFlowAnalyticsQuery,
     useLazyLogOutQuery,
     useCreateFormWithAIMutation,

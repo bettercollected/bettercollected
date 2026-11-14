@@ -36,6 +36,13 @@ A refusal is `429` with `{"code": "rate_limited", "message": ..., "retry_after":
 a `Retry-After` header, the same for an address that has an account and one that has
 not. The submit limit is checked before the request body is read.
 
+## With the spam check on
+
+With `CAPTCHA_ENABLED` on, both code routes also ask for a proof of work (purpose `mail`,
+`docs/captcha.md`) and check it **before** these limits count: a request without a valid
+proof is refused with 422 and uses up no budget, so the limits below can no longer be used
+up by someone who only knows an address. The limits stay as they are.
+
 ## Why there is exactly one shared budget
 
 A budget many people share (a workspace, a form, all creators) can be used up by a

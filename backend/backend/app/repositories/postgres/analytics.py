@@ -2,16 +2,22 @@
 are read only by the import from 4.0)."""
 
 import datetime as dt
+import hashlib
 import time
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from loguru import logger
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, literal_column, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
+from backend.app.schemas.captcha_count import CaptchaDailyCountDocument
 from backend.app.schemas.flow_event import FlowEventDocument
 from backend.app.schemas.rate_limit_counter import RateLimitCounterDocument
-from backend.db.models import FormFlowEventRow, RateLimitCounterRow
+from backend.db.models import (
+    CaptchaDailyCountRow,
+    FormFlowEventRow,
+    RateLimitCounterRow,
+)
 from common.clock import utcnow
 from common.records import RecordId, decode, row_values
 from common.records.repository import RecordRepository
@@ -189,3 +195,94 @@ class PostgresRateLimitRepository(RecordRepository):
             if deleted < self.SWEEP_BATCH:
                 break
         return total
+
+CountKey = Tuple[str, str, str, str, str]  # day, workspace, form, purpose, outcome
+
+
+def captcha_count_id(key: CountKey) -> str:
+    """The id of the row that counts ``key``: 24 hex characters of a hash of its
+    five fields (they name no person, so the hash needs no secret)."""
+    return hashlib.sha256("\n".join(key).encode("utf-8")).hexdigest()[:24]
+
+
+class PostgresCaptchaCountRepository(RecordRepository):
+    """The daily counts of the automatic spam check (``services/captcha/stats.py``):
+    counts only, one row per day, workspace, form, purpose and outcome."""
+
+    row = CaptchaDailyCountRow
+    document = CaptchaDailyCountDocument
+
+    async def add_counts(self, counts: Dict[CountKey, int]) -> None:
+        """Add every amount to its row, creating rows that are not there, in one
+        transaction. Rows are locked in id order so that two replicas flushing
+        at the same time cannot deadlock."""
+        if not counts:
+            return
+        names = self._column_names()
+        by_id = {captcha_count_id(key): (key, n) for key, n in counts.items() if n > 0}
+        async with self._session() as session, session.begin():
+            for row_id in sorted(by_id):
+                key, amount = by_id[row_id]
+                locked = (
+                    select(CaptchaDailyCountRow.doc)
+                    .where(CaptchaDailyCountRow.id == row_id)
+                    .with_for_update()
+                )
+                doc = (await session.execute(locked)).scalar_one_or_none()
+                if doc is None:
+                    first = CaptchaDailyCountDocument(
+                        id=RecordId(row_id),
+                        day=key[0],
+                        workspace_id=key[1],
+                        form_id=key[2],
+                        purpose=key[3],
+                        outcome=key[4],
+                        count=amount,
+                    )
+                    inserted = await session.execute(
+                        pg_insert(CaptchaDailyCountRow)
+                        .values({names[k]: v for k, v in row_values(first).items()})
+                        .on_conflict_do_nothing(index_elements=[names["id"]])
+                        .returning(CaptchaDailyCountRow.id)
+                    )
+                    if inserted.scalar_one_or_none() is not None:
+                        continue
+                    # another replica created it first: add to that one
+                    doc = (await session.execute(locked)).scalar_one()
+                counted = decode(CaptchaDailyCountDocument, doc)
+                counted.count += amount
+                counted.updated_at = utcnow()
+                await session.execute(self._upsert_statement(row_values(counted)))
+
+    async def totals(
+        self,
+        *,
+        since_day: str,
+        workspace_id: Optional[str] = None,
+        form_id: Optional[str] = None,
+    ) -> Dict[Tuple[str, str], int]:
+        """``{(purpose, outcome): count}`` from ``since_day`` (``YYYY-MM-DD``,
+        inclusive) on, for one workspace or one form."""
+        where = [CaptchaDailyCountRow.day >= since_day]
+        if workspace_id is not None:
+            where.append(CaptchaDailyCountRow.workspace_id == workspace_id)
+        if form_id is not None:
+            where.append(CaptchaDailyCountRow.form_id == form_id)
+        # literal columns: the same expression in the select and the group by
+        purpose = literal_column("captcha_daily_counts.doc ->> 'purpose'")
+        outcome = literal_column("captcha_daily_counts.doc ->> 'outcome'")
+        counted = func.sum(
+            literal_column("(captcha_daily_counts.doc ->> 'count')::bigint")
+        )
+        stmt = (
+            select(purpose, outcome, counted)
+            .where(*where)
+            .group_by(purpose, outcome)
+        )
+        async with self._session() as session:
+            rows = (await session.execute(stmt)).all()
+        return {(purpose, outcome): int(n or 0) for purpose, outcome, n in rows}
+
+    async def delete_before(self, day: str) -> int:
+        """Counts of days before ``day`` (``YYYY-MM-DD``): the retention sweep."""
+        return await self.delete_where(CaptchaDailyCountRow.day < day)

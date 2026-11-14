@@ -54,7 +54,7 @@ async def test_the_route_answers_for_an_unknown_form_and_a_bad_purpose(
     )
     assert missing.status_code == 404 and missing.json()["code"] == "form_not_found"
     for body in (
-        {"purpose": "mail", "formId": str(form.form_id)},
+        {"purpose": "other", "formId": str(form.form_id)},
         {"purpose": "submit"},
     ):
         refused = await client.post(

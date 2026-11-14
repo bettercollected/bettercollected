@@ -113,6 +113,8 @@ NO_DOCUMENT_CLASS = {
     "scim_group_team_links",
     # and the saved views of a form's report
     "form_report_views",
+    # and the daily counts of the automatic spam check
+    "captcha_daily_counts",
 }
 
 # The document classes, all on ``Record`` (every group is served from Postgres

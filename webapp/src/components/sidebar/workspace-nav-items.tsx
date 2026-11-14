@@ -1,7 +1,7 @@
 import React from 'react';
 
 import MembersIcon from '@Components/icons/members';
-import { Blocks, Code2, ListChecks, LockKeyhole, Palette, ScrollText, SendToBack, ShieldCheck, Sparkles } from 'lucide-react';
+import { Blocks, Code2, ListChecks, LockKeyhole, Palette, ScrollText, SendToBack, ShieldCheck, ShieldHalf, Sparkles } from 'lucide-react';
 
 import { members } from '@app/constants/locales/members';
 import { Can, dashboardUrl, defaultAiTabUrl, workspaceSectionLabels, workspaceSectionUrls } from '@app/lib/workspace-sections';
@@ -21,6 +21,8 @@ interface WorkspaceNavOptions {
     reusableSectionsEnabled?: boolean;
     /** Embedding forms in other sites is on for this server. */
     embedEnabled?: boolean;
+    /** The automatic spam check is on for this server (its CAPTCHA_ENABLED): the Spam protection page. */
+    captchaEnabled?: boolean;
     /** The Activity page is on for this server (its AUDIT_LOG_UI_ENABLED); who sees it is audit.read. */
     auditLogUiEnabled?: boolean;
 }
@@ -28,11 +30,11 @@ interface WorkspaceNavOptions {
 /**
  * The sidebar's Workspace group: Members, Themes, Single sign-on, Case system
  * (only while this server sends to case systems), Embedding (only while this
- * server has embedding on), AI. The
+ * server has embedding on), Spam protection (only while it has the spam check on), AI. The
  * drawer hides an item from members without its permission (the API refuses
  * them anyway); AI has no permission, every member has Memory and Settings.
  */
-export function workspaceNavItems({ workspaceName, t, can, ssoEnabled, registrationEnabled = false, optionSourcesEnabled = false, reusableSectionsEnabled = false, embedEnabled = false, auditLogUiEnabled = false }: WorkspaceNavOptions): Array<INavbarItem> {
+export function workspaceNavItems({ workspaceName, t, can, ssoEnabled, registrationEnabled = false, optionSourcesEnabled = false, reusableSectionsEnabled = false, embedEnabled = false, captchaEnabled = false, auditLogUiEnabled = false }: WorkspaceNavOptions): Array<INavbarItem> {
     const base = dashboardUrl(workspaceName);
     const urls = workspaceSectionUrls(workspaceName);
     const iconClass = 'h-5 w-5 stroke-2';
@@ -115,6 +117,18 @@ export function workspaceNavItems({ workspaceName, t, can, ssoEnabled, registrat
                       url: urls.embedding,
                       permission: WorkspacePermission.WORKSPACE_MANAGE,
                       icon: <Code2 className={iconClass} />
+                  }
+              ]
+            : []),
+        // Spam protection (the workspace default of the automatic spam check): only while this server has it on.
+        ...(captchaEnabled
+            ? [
+                  {
+                      key: 'spam-protection',
+                      name: t(workspaceSectionLabels.spamCheck),
+                      url: urls.spamCheck,
+                      permission: WorkspacePermission.WORKSPACE_MANAGE,
+                      icon: <ShieldHalf className={iconClass} />
                   }
               ]
             : []),

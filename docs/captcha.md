@@ -1,7 +1,8 @@
 # Automatic spam check (proof of work)
 
-A response submit can ask the respondent's browser for a small calculation (a proof of
-work) before it is accepted. There is nothing for the respondent to solve or see: no
+A response submit, and the mails the public can trigger (the sign-in code of a
+respondent and of a creator, the link of a saved draft), can ask the browser for a small
+calculation (a proof of work) before they are accepted. There is nothing for the respondent to solve or see: no
 puzzle, no image, no cookie, no request to a third party, and nothing about the
 respondent is stored for it. It keeps out scripts that do not run JavaScript and makes
 every request cost some CPU, so the per-client limits (`docs/sign-in-code-limits.md`)
@@ -19,6 +20,11 @@ the per-form setting (422 `captcha_disabled` on the settings PATCH, the form spe
 and the operations the AI and MCP use; a value already stored is kept, neither enforced
 nor shown, and a write that leaves it as it is passes on every path); copying a form
 to another workspace carries the stored value as it is; nothing is recorded.
+The mail routes (sign-in codes, draft link) behave exactly as before: the header is not
+read, nothing is claimed or counted, and a request without it is not refused. The
+workspace default and the counts answer 404 `captcha_off` (a change of the default 422
+`captcha_disabled`); a stored default is kept, neither served nor enforced; no count is
+written.
 
 ## Protocol
 
@@ -54,11 +60,42 @@ tag is the first 8 bytes of an HMAC of the client key under a salt derived from 
 day, so it changes daily and needs no storage; it is empty when the client is not known
 (a proxy that is not in `TRUSTED_PROXIES`), as for the per-client limits.
 
+## Purposes: submit and mail
+
+The challenge carries its purpose, and a proof is good only for the purpose, workspace
+and form it was issued for: a proof for a submit is refused on a mail route and the other
+way round (`captcha_invalid`, before anything is claimed).
+
+| Purpose | Route | Bound to |
+|---|---|---|
+| `submit` | `POST /workspaces/{id}/forms/{id}/response` | workspace and form |
+| `mail` | `POST /workspaces/{id}/auth/otp/send` (a respondent's sign-in code) | workspace, no form |
+| `mail` | `POST /auth/creator/otp/send` (a creator's sign-in code) | no workspace, no form |
+| `mail` | `POST /workspaces/{id}/forms/{id}/drafts/link` (the link of a saved draft) | workspace and form |
+
+A mail challenge is `POST /workspaces/{id}/captcha/challenge` with `{"purpose": "mail"}`
+(and `"formId"` for the draft link), or `POST /auth/captcha/challenge` for the creator.
+The check on these routes has no creator opt-out: a mail sent costs the instance its
+reputation, not just one form's. It comes first, before the per-address and per-client
+limits of `docs/sign-in-code-limits.md` count, so a request without a proof is refused
+(422 with the codes above) and uses up nobody's budget: someone who knows an address cannot
+lock its owner out of the code mail without solving a proof for every request.
+
+The pages do not know whether the server asks. They send the request as before; a
+refusal for the spam check (`captcha_missing`) makes them solve a proof and send once
+more, and later requests of that page solve first. A server with the switch off is
+therefore never asked for a challenge and no worker is started. The draft link also
+needs `SAVE_DRAFTS_ENABLED` and an anonymous respondent, as before; saving, opening and
+discarding a draft need no proof.
+
 ## Difficulty
 
-`bits` is the base for the purpose (`API_CAPTCHA_BASE_BITS_SUBMIT`, 14 to 20, default 17)
-plus pressure, at most +4, and never above 20; a signed-in respondent gets 3 less, never
-below 14 (the challenge says so, and the proof is good only for a signed-in submit).
+`bits` is the base for the purpose (`API_CAPTCHA_BASE_BITS_SUBMIT`, 14 to 20, default 17,
+and `API_CAPTCHA_BASE_BITS_MAIL`, 14 to 20, default 18) plus pressure, at most +4, and never
+above 20; a signed-in respondent gets 3 less on a submit, never below 14 (the challenge says
+so, and the proof is good only for a signed-in submit). A mail has no discount (a sign-in
+code is asked for by someone who is not signed in) and the form's submit rate is not part of
+its pressure.
 
 | Pressure (kept in this process's memory, never in the database) | Adds |
 |---|---|
@@ -86,10 +123,43 @@ own, 500), never a pass.
 
 ## Where it applies
 
-The respondent route `POST /workspaces/{id}/forms/{id}/response` only, when the form
-asks for it: on unless the creator turned it off (Settings, Respondent experience).
-The Submissions API with a key never passes through that route and is exempt by
-construction. The builder's preview sends nothing.
+The respondent route `POST /workspaces/{id}/forms/{id}/response`, when the form asks for it,
+and the three mail routes above, always. Whether a form asks is, in this order: its own
+setting (Settings, Respondent experience), else the workspace's default (Workspace, Spam
+protection; `captcha_default`), else on. The Submissions API with a key never passes through
+the submit route and is exempt by construction. The builder's preview sends nothing.
+
+## Workspace default
+
+`GET|PUT /workspaces/{id}/captcha/settings` (`workspace.manage`) reads and sets
+`captcha_default`; the form page's `captchaRequired` and the submit's check follow the same
+rule. A change is written to the workspace's activity log first (`captcha_setting_changed`:
+who and the new value, no form), or refused (503 `audit_unavailable`). A form's own setting
+changed from the form's settings is recorded the same way, with the form. (Changes made
+through the form spec API and the operations the AI and MCP use are not recorded yet.)
+
+## Counts
+
+Outcomes are counted by UTC day, workspace (none for the creator's sign-in code), form (none
+for a workspace's sign-in code), purpose and outcome (`issued`, `verified`, `missing`,
+`invalid`, `expired`, `replayed`, `rate_limited`) in `captcha_daily_counts` (migration 0041).
+Counts only: no address, no network, no challenge, no person.
+
+The counting is a dictionary in the process's memory, never a write per request: the counts
+are added to the table in one transaction every 60 seconds or when 500 different keys are
+waiting, and when a page asks for them, so a flood of refused requests costs a dictionary
+entry, not a database write. A restart or a database that cannot be reached loses what has
+not been written (statistics, not a ledger; at most 5,000 keys wait). Rows older than
+`API_FLOW_EVENTS_RETENTION_DAYS` (395 by default; 0 keeps them) are deleted, at most once a
+day per process.
+
+`GET /workspaces/{id}/forms/{id}/captcha/stats` (`analytics.read` on that form) and
+`GET /workspaces/{id}/captcha/stats` (`workspace.manage`) answer the last 30 days as
+`{days, submit: {passed, blocked}, mail: {passed, blocked}}`: `passed` is verified,
+`blocked` is missing, invalid, expired or replayed. They are shown in the form's settings
+and on the Spam protection page. Totals for the whole platform on the admin portal's
+metrics page are not part of this change (they need a change to the portal's read-only
+function in `postgres/ensure-admin-roles.sh`).
 
 ## Logs
 

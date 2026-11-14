@@ -90,6 +90,9 @@ class ApiSettings(StoreBackedSettings):
     # (0 to 4; base, boost and the pressure from a client's own behaviour
     # together never go past 20 bits).
     CAPTCHA_BASE_BITS_SUBMIT: int = 17
+    # ...and before a sign-in code or draft link mail (purpose "mail"), where
+    # a mail sent costs the instance its reputation: a bit more.
+    CAPTCHA_BASE_BITS_MAIL: int = 18
     CAPTCHA_DIFFICULTY_BOOST: int = 0
     # GET /images/unsplash/...: requests per client address in each window,
     # and of those, how many may fetch a photo not cached yet.

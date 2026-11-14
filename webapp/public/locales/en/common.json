@@ -660,6 +660,9 @@
     "FEATURE_2": "See all your submitted forms of that particular workspace.",
     "FEATURE_3": "Delete your submitted form responses",
     "OTP_FAILURE_TOAST": "Failed to send OTP",
+    "OTP_UNAVAILABLE": "Sign-in codes are temporarily unavailable. Please try again in {{seconds}} seconds.",
+    "OTP_CAPTCHA_WAITING": "Almost ready to send...",
+    "OTP_CAPTCHA_FAILED": "The automatic spam check did not work in this browser. Try again, or use another browser.",
     "OTP_RATE_LIMITED": "Too many codes were requested for this email address or from this network. Please wait a while (up to an hour) and try again.",
     "OTP_SUCCESS_TOAST": "OTP sent successfully",
     "OTP_VERIFICATION_SUCCESS_TOAST": "Verified successfully",
@@ -1065,6 +1068,7 @@
     "AI_SECTIONS": "AI sections",
     "VERIFY_DOMAIN": "Verify a domain",
     "EMBEDDING": "Embedding",
+    "SPAM_CHECK": "Spam protection",
     "SECURITY": "Security"
   },
   "SSO": {
@@ -2206,6 +2210,22 @@
       "NEXT_PAGE": "Go to next page",
       "MORE": "More pages"
     },
+    "SPAM_CHECK": {
+      "LOADING": "Loading...",
+      "ONLY_ADMINS": "Only workspace owners and admins can change the spam protection.",
+      "TURNED_OFF": "Spam protection is not switched on on this server.",
+      "PAGE_INTRO": "Spam protection makes a visitor's browser do a small calculation in the background before a form is submitted. There is nothing to solve, no cookie, and nothing about the visitor is stored. Here you choose whether your forms ask for it by default; each form can still decide for itself in its settings.",
+      "DEFAULT_TITLE": "Spam protection on forms by default",
+      "DEFAULT_DESCRIPTION": "Applies to every form that has not been set by hand. The check before a sign-in code or a draft link mail is always on and is not part of this setting.",
+      "SAVED_ON": "Spam protection is on by default.",
+      "SAVED_OFF": "Spam protection is off by default.",
+      "SAVE_FAILED": "The setting could not be saved. Try again.",
+      "LOAD_FAILED": "This could not be loaded. Try again.",
+      "COUNTS_TITLE": "Last 30 days",
+      "COUNTS_SUBMIT": "Form submits, last {{days}} days: {{passed}} passed, {{blocked}} blocked",
+      "COUNTS_MAIL": "Sign-in code and draft link mails, last {{days}} days: {{passed}} passed, {{blocked}} blocked",
+      "COUNTS_NOTE": "Numbers only. Nothing about a visitor, an address or a network is kept. Blocked means the check was missing, wrong, too old or already used."
+    },
     "EMBED": {
       "TAB_LINK": "Link",
       "TAB_EMBED": "Embed",
@@ -3021,6 +3041,12 @@
       "AI_CONSENT_CHANGED": "{{actor}} changed the AI settings of the workspace.",
       "AI_CONSENT_CHANGED_ON": "{{actor}} turned on AI features for the workspace.",
       "AI_CONSENT_CHANGED_OFF": "{{actor}} turned off AI features for the workspace.",
+      "CAPTCHA_SETTING_CHANGED": "{{actor}} changed the spam protection setting of the workspace.",
+      "CAPTCHA_SETTING_CHANGED_ON": "{{actor}} turned on spam protection by default for the forms of the workspace.",
+      "CAPTCHA_SETTING_CHANGED_OFF": "{{actor}} turned off spam protection by default for the forms of the workspace.",
+      "CAPTCHA_SETTING_CHANGED_FORM": "{{actor}} changed the spam protection of {{form}}.",
+      "CAPTCHA_SETTING_CHANGED_FORM_ON": "{{actor}} turned on spam protection for {{form}}.",
+      "CAPTCHA_SETTING_CHANGED_FORM_OFF": "{{actor}} turned off spam protection for {{form}}.",
       "CUSTOM_DOMAIN_CHANGED": "{{actor}} set or changed the web address of the workspace.",
       "CUSTOM_DOMAIN_REMOVED": "{{actor}} removed the web address of the workspace.",
       "AUDIT_RETENTION_CHANGED": "{{actor}} changed how long the activity log keeps entries from {{previous}} to {{months}} months.",

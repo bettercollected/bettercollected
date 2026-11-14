@@ -71,6 +71,7 @@ const SAMPLES: Record<(typeof AUDIT_EVENTS)[number], Partial<AuditEntryDto>> = {
     scim_token_revoked: { actorId: 'u_sanne' },
     scim_group_role_changed: { actorId: 'u_sanne', role: 'REVIEWER', previousRole: 'VIEWER' },
     ai_consent_changed: { actorId: 'u_sanne', enabled: true, provider: 'openai' },
+    captcha_setting_changed: { actorId: 'u_sanne', enabled: true },
     custom_domain_changed: { actorId: 'u_sanne' },
     custom_domain_removed: { actorId: 'u_sanne' },
     audit_retention_changed: { actorId: 'u_sanne', retentionMonths: 6, previousRetentionMonths: 24 },
@@ -222,6 +223,9 @@ describe('the sentence table', () => {
         expect(say('en', entry('sso_default_role_changed', { actorId: 'u_sanne', role: 'VIEWER', previousRole: 'EDITOR' })).text).toBe('Sanne de Vries changed the role people get when they sign in with single sign-on from Editor to Viewer.');
         expect(say('en', entry('scim_group_role_changed', { actorId: 'u_sanne', previousRole: 'VIEWER' })).text).toBe('Sanne de Vries stopped mapping a directory group to a role.');
         expect(say('en', entry('ai_consent_changed', { actorId: 'u_sanne', enabled: false, provider: 'openai' })).text).toBe('Sanne de Vries turned off AI features for the workspace.');
+        expect(say('en', entry('captcha_setting_changed', { actorId: 'u_sanne', enabled: false })).text).toBe('Sanne de Vries turned off spam protection by default for the forms of the workspace.');
+        expect(say('nl', entry('captcha_setting_changed', { actorId: 'u_sanne', enabled: true, formId: 'f_join' })).text).toBe('Sanne de Vries zette spambescherming aan voor Join the volunteers.');
+        expect(say('en', entry('captcha_setting_changed', { actorId: 'u_sanne', formId: 'f_join' })).text).toBe('Sanne de Vries changed the spam protection of Join the volunteers.');
         expect(say('en', entry('email_action_updated', { actorId: 'u_sanne', formId: 'f_join', changed: ['team_recipients', 'respondent_copy', 'not_a_part'] })).text).toBe(
             'Sanne de Vries changed an email action of Join the volunteers (changed: team recipients, copy to the respondent).'
         );

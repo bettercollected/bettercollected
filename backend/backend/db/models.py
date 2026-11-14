@@ -636,6 +636,23 @@ class FormFlowEventRow(Base, BaseRow):
     )
 
 
+class CaptchaDailyCountRow(Base, BaseRow):
+    """One outcome of the automatic spam check on one UTC day for one form and
+    purpose, counted (revision 0041). Counts only, never a person."""
+
+    __tablename__ = "captcha_daily_counts"
+    day = S.text("day")
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    __table_args__ = (
+        # a workspace's or a form's counts over a range of days
+        Index(None, "workspace_id", "day"),
+        Index(None, "form_id", "day"),
+        # the retention sweep
+        Index(None, "day"),
+    )
+
+
 class RateLimitCounterRow(Base, BaseRow):
     __tablename__ = "rate_limit_counters"
     expires_at = S.ts("expires_at")

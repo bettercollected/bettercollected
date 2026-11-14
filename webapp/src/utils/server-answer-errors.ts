@@ -85,6 +85,23 @@ export function isCaptchaRefused(error: any): boolean {
     return error?.status === 422 && CAPTCHA_REFUSAL_CODES.includes(error?.data?.code);
 }
 
+/** The sign-in code routes' answer when their rate limiter cannot be reached: 503 `rate_limiter_unavailable`, with the wait in `retry_after` (and the `Retry-After` header). No mail was sent. */
+export function isCodeMailUnavailable(error: any): boolean {
+    return error?.status === 503 && error?.data?.code === 'rate_limiter_unavailable';
+}
+
+/** The seconds to wait that a `rate_limiter_unavailable` answer names (a whole number of at least 1), else 60. */
+export function codeMailRetryAfter(error: any): number {
+    const wait = error?.data?.retry_after;
+    return typeof wait === 'number' && Number.isFinite(wait) && wait >= 1 ? Math.ceil(wait) : 60;
+}
+
+/** What to say for it: the server's own message (it speaks the language of the request) when it sends one, else `fallback(seconds)` in the page's language. */
+export function codeMailUnavailableMessage(error: any, fallback: (seconds: number) => string): string {
+    const message = error?.data?.message;
+    return typeof message === 'string' && message.trim() ? message : fallback(codeMailRetryAfter(error));
+}
+
 /** The answer problems in a failed submission (an RTK Query error), or null when it failed for another reason. */
 export function serverAnswerErrors(error: any): ServerAnswerError[] | null {
     const data = error?.data;

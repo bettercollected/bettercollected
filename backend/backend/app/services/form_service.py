@@ -69,7 +69,10 @@ from backend.app.services.form_drafts.mode import (
     ensure_save_drafts_allowed,
     save_drafts_enabled,
 )
-from backend.app.services.captcha.mode import ensure_captcha_allowed
+from backend.app.services.captcha.mode import (
+    apply_workspace_default,
+    ensure_captcha_allowed,
+)
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.internal_fields import (
     has_promotion_mark,
@@ -503,6 +506,9 @@ class FormService:
             )
             if reason:
                 return _unavailable_stub(form, reason)
+        # The automatic spam check: a form with no setting of its own takes the
+        # workspace's default (nothing while CAPTCHA_ENABLED is off)
+        await apply_workspace_default(form, workspace_id)
         # Respondents and the public never receive internal fields.
         return respondent_view(form)
 
@@ -732,6 +738,24 @@ class FormService:
         ensure_captcha_allowed(
             settings.captcha_enabled, workspace_form.settings.captcha_enabled
         )
+        if (
+            settings.captcha_enabled is not None
+            and settings.captcha_enabled != workspace_form.settings.captcha_enabled
+        ):
+            # a staff change of the setting is recorded first, or refused
+            # (the workspace's audit log: who, the form, the new value)
+            from backend.app.container import container
+            from backend.app.services.captcha.settings import (
+                record_form_setting_change,
+            )
+
+            await record_form_setting_change(
+                container.workspace_audit_repo(),
+                workspace_id,
+                user,
+                workspace_form.form_id,
+                settings.captcha_enabled,
+            )
         if settings.hidden is not None:
             workspace_form.settings.hidden = settings.hidden
         if settings.private is not None:

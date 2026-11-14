@@ -57,6 +57,7 @@ export const AUDIT_EVENTS = [
     'scim_token_revoked',
     'scim_group_role_changed',
     'ai_consent_changed',
+    'captcha_setting_changed',
     'custom_domain_changed',
     'custom_domain_removed',
     'audit_retention_changed',
@@ -394,6 +395,11 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
             break;
         case 'ai_consent_changed':
             key = entry.enabled === true ? 'AI_CONSENT_CHANGED_ON' : entry.enabled === false ? 'AI_CONSENT_CHANGED_OFF' : 'AI_CONSENT_CHANGED';
+            break;
+        case 'captcha_setting_changed':
+            // the workspace's default (no form) or one form's own setting
+            key = entry.formId ? (entry.enabled === true ? 'CAPTCHA_SETTING_CHANGED_FORM_ON' : entry.enabled === false ? 'CAPTCHA_SETTING_CHANGED_FORM_OFF' : 'CAPTCHA_SETTING_CHANGED_FORM') : entry.enabled === true ? 'CAPTCHA_SETTING_CHANGED_ON' : entry.enabled === false ? 'CAPTCHA_SETTING_CHANGED_OFF' : 'CAPTCHA_SETTING_CHANGED';
+            values = { actor, form: form(entry.formId) };
             break;
         case 'email_action_created':
         case 'email_action_updated':

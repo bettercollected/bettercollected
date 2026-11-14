@@ -59,8 +59,9 @@ export const draftsApi = formsApi.injectEndpoints({
         saveDraft: builder.mutation<DraftSaved, FormKey & { body: SaveDraftBody }>({
             query: ({ body, ...key }) => ({ url: url(key), method: 'PUT', body })
         }),
-        requestDraftLink: builder.mutation<DraftLinkSent, FormKey & { body: LinkDraftBody }>({
-            query: ({ body, ...key }) => ({ url: url(key, '/link'), method: 'POST', body })
+        // `headers`: the spam check's proof (utils/captcha/mail-proof), only when the server asks for one
+        requestDraftLink: builder.mutation<DraftLinkSent, FormKey & { body: LinkDraftBody; headers?: Record<string, string> }>({
+            query: ({ body, headers, ...key }) => ({ url: url(key, '/link'), method: 'POST', body, ...(headers ? { headers } : {}) })
         }),
         // POST, not GET: the token travels in the body.
         openDraft: builder.mutation<OpenedDraft | UnavailableDraft, FormKey & { token: string }>({

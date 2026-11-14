@@ -24,6 +24,7 @@ const LABELS: Record<string, string> = {
     'WORKSPACE_SECTIONS.LISTS': 'Lists',
     'WORKSPACE_SECTIONS.SECTIONS': 'Reusable sections',
     'WORKSPACE_SECTIONS.EMBEDDING': 'Embedding',
+    'WORKSPACE_SECTIONS.SPAM_CHECK': 'Spam protection',
     'WORKSPACE_SECTIONS.AI': 'AI'
 };
 const t = (key: string) => LABELS[key] ?? key;
@@ -54,6 +55,14 @@ describe('the Workspace group', () => {
         expect(names(withEmbedding(MEMBER))).toEqual(['AI']);
         expect(names(visible(OWNER))).not.toContain('Embedding');
         expect(withEmbedding(OWNER).find((item) => item.name === 'Embedding')?.url).toBe('/acme/dashboard/embedding');
+    });
+
+    it('shows Spam protection to admins only while this server has the spam check on, before AI', () => {
+        const withSpamCheck = (can: (p: string) => boolean) => visibleNavItems(workspaceNavItems({ workspaceName: 'acme', t, can, ssoEnabled: true, captchaEnabled: true }), can);
+        expect(names(withSpamCheck(OWNER))).toEqual(['Members', 'Themes', 'Single sign-on', 'Spam protection', 'AI']);
+        expect(names(withSpamCheck(MEMBER))).toEqual(['AI']);
+        expect(names(visible(OWNER))).not.toContain('Spam protection');
+        expect(withSpamCheck(OWNER).find((item) => item.name === 'Spam protection')?.url).toBe('/acme/dashboard/spam-protection');
     });
 
     it('shows a member without manage permissions only AI, opening on Memory', () => {

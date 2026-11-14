@@ -91,6 +91,7 @@ describe('workspaceSectionUrls', () => {
             security: '/acme/dashboard/sso/security',
             caseSystem: '/acme/dashboard/case-system',
             embedding: '/acme/dashboard/embedding',
+            spamCheck: '/acme/dashboard/spam-protection',
             lists: '/acme/dashboard/lists',
             sections: '/acme/dashboard/sections',
             ai: '/acme/dashboard/ai',

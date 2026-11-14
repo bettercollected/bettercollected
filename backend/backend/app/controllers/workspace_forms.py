@@ -27,7 +27,11 @@ from starlette.requests import Request
 
 from backend.app.utils.client_ip import limit_client_ip, request_client_ip
 from backend.app.services.captcha import challenge as captcha_challenge
-from backend.app.services.captcha.mode import captcha_enabled, required_by
+from backend.app.services.captcha.mode import (
+    captcha_enabled,
+    mark_required_for_staff,
+    required_for,
+)
 from backend.app.services.internal_fields import mark_captcha_required
 
 from backend.app.container import container
@@ -216,7 +220,7 @@ async def _require_captcha(
         # no such form here: the submit answers as it always did
         return None
     canonical = str(link.form_id)
-    if required_by(link.settings):
+    if await required_for(link.settings, workspace_id):
         await container.captcha_service().require(
             request.headers.get(captcha_challenge.HEADER),
             purpose="submit",
@@ -525,6 +529,7 @@ class WorkspaceFormsRouter(Routable):
                     form.ai_notice_token = token
             # A member answering their own published form is asked for the
             # automatic spam check's proof like anyone (respondents have it set)
+            await mark_required_for_staff(form, workspace_id)
             mark_captcha_required(form)
             # The questions whose answers may be offered as choices in other
             # forms show a notice; the token proves which, on submit.
