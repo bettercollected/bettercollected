@@ -281,3 +281,61 @@ async def test_copies_do_not_carry_the_setting(workspace, monkeypatch):
             workspace.id, form.form_id, testUser
         )
         assert (await stored(workspace, copy_)).captcha_enabled is None
+
+
+def test_the_engine_lets_an_op_that_leaves_the_stored_value_as_it_is_pass():
+    from backend.app.services.ai.ops import stored_captcha_value
+
+    with stored_captcha_value(False):
+        (same,) = apply_form_ops(StandardForm(fields=[]), parse_ops([ON]))[1]
+        (other,) = apply_form_ops(
+            StandardForm(fields=[]),
+            parse_ops(
+                [{"op": "update_form_settings", "patch": {"captchaEnabled": True}}]
+            ),
+        )[1]
+    assert same.ok
+    assert not other.ok and other.message == DISABLED_MESSAGE
+    # nothing stored (None): any value is a change
+    with stored_captcha_value(None):
+        (set_,) = apply_form_ops(StandardForm(fields=[]), parse_ops([ON]))[1]
+    assert not set_.ok
+
+
+async def test_ai_and_mcp_operations_that_leave_the_value_as_it_is_pass(
+    client, workspace, workspace_form
+):
+    doc = await container.form_repo().get_form_document_by_id(workspace_form.form_id)
+    await _make_v2(doc)
+    key = await _make_key(workspace.id, ["forms:write"])
+    link = await container.workspace_form_repo().find_workspace_form(
+        workspace.id, workspace_form.form_id
+    )
+    link.settings.captcha_enabled = False
+    await container.workspace_form_repo().update(link.id, link)
+
+    async def run(patch):
+        return _tool_text(
+            await _call_tool(
+                client,
+                key,
+                "update_form",
+                {
+                    "form_id": workspace_form.form_id,
+                    "ops": [{"op": "update_form_settings", "patch": patch}],
+                },
+            )
+        )
+
+    # the value alone, as it is stored: nothing to refuse
+    assert (await run({"captchaEnabled": False}))["results"][0]["ok"] is True
+    # a full settings patch resent with the unchanged value next to a real change
+    full = await run({"captchaEnabled": False, "purpose": "Saved"})
+    assert full["results"][0]["ok"] is True
+    after = await stored(workspace, workspace_form)
+    assert after.captcha_enabled is False and after.purpose == "Saved"
+    # a different value is still refused, and changes nothing
+    changed = await run({"captchaEnabled": True})
+    assert changed["results"][0]["ok"] is False
+    assert DISABLED_MESSAGE in changed["results"][0]["message"]
+    assert (await stored(workspace, workspace_form)).captcha_enabled is False

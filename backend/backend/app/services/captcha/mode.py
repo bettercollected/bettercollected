@@ -44,17 +44,31 @@ def off_error() -> HTTPException:
     )
 
 
+def refuses(new_value: Optional[bool], current: Optional[bool] = None) -> bool:
+    """Would a write of ``new_value`` over ``current`` be refused? Only while
+    the switch is off, and only a write that sets the per-form setting to
+    anything but what it already is: a form that has a value keeps it, and a
+    save that leaves it as it is passes. The one rule every write path uses."""
+    return new_value is not None and new_value != current and not captcha_enabled()
+
+
 def ensure_captcha_allowed(
     new_value: Optional[bool], current: Optional[bool] = None
 ) -> None:
-    """While the switch is off, refuse (422 ``captcha_disabled``) a write that
-    sets the per-form setting to anything but what it already is. A form that
-    has a value keeps it: a save that leaves it as it is passes."""
-    if new_value is not None and new_value != current and not captcha_enabled():
+    """422 ``captcha_disabled`` when ``refuses(new_value, current)``."""
+    if refuses(new_value, current):
         raise disabled_error()
 
 
 def required_by(settings) -> bool:
     """Whether a form's settings ask for the check (switch on): the form's own
-    choice, else on. Pure: the caller has checked the switch."""
-    return getattr(settings, "captcha_enabled", None) is not False
+    choice, else on. Pure: the caller has checked the switch. ``settings`` is
+    a model or a dict (snake_case or camelCase keys): the one rule the form
+    page's ``captchaRequired`` and the submit's enforcement both use."""
+    if isinstance(settings, dict):
+        stored = settings.get("captcha_enabled")
+        if stored is None:
+            stored = settings.get("captchaEnabled")
+    else:
+        stored = getattr(settings, "captcha_enabled", None)
+    return stored is not False

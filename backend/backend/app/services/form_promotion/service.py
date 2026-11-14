@@ -494,7 +494,7 @@ class FormPromotionService:
         target = plan.target
         if target is not None:
             result = await self._writer.preview_replace(
-                target.workspace_id, target.form_id, plan.document
+                target.workspace_id, target.form_id, plan.document, carried=True
             )
             diff = None
             if result["valid"] and result.get("form") is not None:
@@ -879,6 +879,7 @@ class FormPromotionService:
                 user,
                 form_id=new_form_id,
                 access_mode=MODE_RESTRICTED if plan.restricted else None,
+                carried=True,
             )
         else:
             written = []
@@ -894,6 +895,7 @@ class FormPromotionService:
                 [plan.target.etag],
                 user,
                 in_write=in_write,
+                carried=True,
             )
             form_id = plan.target.form_id
         # The write's own check ran only when something was written: a replay
