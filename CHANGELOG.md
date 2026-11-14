@@ -13,6 +13,186 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-11-14
+
+5.0.0 lets a form's creators read their answers as reports and protects a form from automated abuse. It adds a Report page for each form (counts, averages, distributions and trends over time, answer filters with a drill-down to the responses behind a figure, saved views and a CSV download for each card), an automatic spam check for response submits and for the mails the public can trigger, and rate limits on sign-in code mails and on response submits that are always on. A response export reads a large form faster, and an authenticator app (TOTP) no longer cancels a member's exports and imports. The two new features are off until you turn their switch on; the rate limits are not a switch.
+
+- **Reports on a form's answers.** A Report page under Responses (Rapport in Dutch) shows the number of responses, responses over time and a card for each reportable question, as number tiles, charts and tables that can also be read as a table. Cards can be narrowed by what responses answered, kept as saved views (private, or shared with everyone who can open the report) and downloaded as a CSV; a figure opens the responses behind it. Free text, identities and a typed "Other" answer are never reported, and answers stay encrypted at rest. Switch: `REPORTING_ENABLED`. See `docs/reporting.md`.
+- **Automatic spam check.** The respondent's browser does a small calculation in the background before a response is submitted, and before a sign-in code or a draft link is mailed: no puzzle, no cookie, no third party, nothing stored about the respondent. Creators can turn it off per form, workspace owners and admins set a default for their forms and see how many checks passed and were blocked. Switch: `CAPTCHA_ENABLED`. See `docs/captcha.md`.
+- **Rate limits on the public mail and submit routes.** Sign-in code mails are limited per mailbox (3 an hour) and per client (60 an hour), with one breaker for the whole instance, and a response submit to 30 a minute per client and form. A refusal is a plain 429 in English or Dutch. These work as soon as 5.0 runs, and need `TRUSTED_PROXIES` to be set behind a reverse proxy (see below).
+- **Faster response exports.** An export reads a form in batches that each continue where the last one ended, so a batch costs its own rows however large the form is. Rows come out oldest first.
+- **An authenticator app no longer cancels exports and imports.** With `TOTP_ENABLED` on, a response export or CSV import started in a workspace that requires an authenticator app is no longer cancelled when it runs.
+
+**Upgrading from 4.4.x:** no new required secret and no new service. The changes that need your attention:
+
+- **New switches, both off by default.** The dashboard learns about them from the server, so the **webapp needs no setting**, and the auth service, the Google Forms service, the admin service, the jobs worker and the actions executor do not read them: set them for the **backend** only.
+  - `REPORTING_ENABLED` is **environment only** (the admin portal's settings do not offer it). With it off, every report route answers 422 `reporting_off` and the Report page, its menu item and its toolbar button are hidden.
+  - `CAPTCHA_ENABLED` is an ordinary setting: set it in the environment or in the admin portal's settings. With it off, the challenge route answers 404, no `X-BC-Captcha` header is read, forms are served without the setting and creators cannot change it (422 `captcha_disabled`).
+  - Left as shipped, both stay off, and a stack that only swaps the image tags behaves as 4.4 apart from the items below.
+- **Database migrations `0040` and `0041`** run with the backend's usual migrate step (`./deploy.sh`, or `DB_AUTO_MIGRATE=true`). Both only add a table, which starts empty and is read or written only when its switch is on, and 4.4 ignores it:
+  - `0040`: `form_report_views`, the saved views of a form's report.
+  - `0041`: `captcha_daily_counts`, counts of the spam check by day (no address, network or person); rows older than `API_FLOW_EVENTS_RETENTION_DAYS` (395 days by default) are deleted.
+  - Afterwards, `alembic -c /api/backend/alembic.ini current` in a 5.0 backend container reports `0041`. No admin schema migration and no change to `postgres/ensure-admin-roles.sh`.
+- **Rate limits, always on.** There is no switch; the defaults below apply as soon as 5.0 runs. Each is a live setting (in the environment or the admin portal's settings; a change needs no restart, and `0` turns that limit off):
+  - `API_CODE_MAIL_PER_CLIENT_PER_HOUR`, default `60`: sign-in code mails per client (the respondent's and the creator's sign-in together). A client is an address; an IPv6 client is counted by its /64, so the phones of one mobile carrier do not share a budget.
+  - `API_CODE_MAIL_PER_ADDRESS_PER_HOUR`, default `3`: sign-in code mails per mailbox, whichever route or workspace asks (spelling variants count as one: case, a `+tag`, and the dots of a Gmail address). A person who asks for a fourth code within the hour is refused until the hour ends (a resend is locked after the third mail).
+  - `API_SUBMIT_PER_CLIENT_FORM_PER_MINUTE`, default `30`: response submits per client and form, checked before the request body is read. The Submissions API keeps its own limits.
+  - **Organisations behind one address** share that client's 60 code mails an hour. Raise `API_CODE_MAIL_PER_CLIENT_PER_HOUR` if a whole group signs in at once (a school, an office, an event).
+  - **The breaker:** `API_CODE_MAIL_PER_HOUR` (default `20000`, `0` turns it off) caps the code mails of the whole instance. When it trips, the backend logs one ERROR line ("Sign-in code mail circuit breaker tripped ...") and every code request answers 429 until the hour ends. If sign-in then stops for everyone, set `API_CODE_MAIL_PER_HOUR=0` to restore sign-in while you block the source at the proxy, and put the number back afterwards.
+  - **When the limiter is unavailable** (a database error or a lock timeout on its counters), the sign-in code routes answer 503 with `Retry-After: 60` and send no mail, so the breaker is never skipped. A response submit **fails open**: it goes through and the error class is logged.
+  - A refusal is a plain 429 with `Retry-After`, the same whether or not the address has an account.
+- **`TRUSTED_PROXIES` must list the reverse proxy the API sees.** Put the proxy's address, or better the CIDR of the network between the proxy and the backend, comma-separated, in the root `.env` as `TRUSTED_PROXIES` (the setting `API_TRUSTED_PROXIES`; host names are not accepted). **Without it the per-client limits do not apply**: a request through a proxy that is not listed has no client, so the mailbox and instance limits still hold but nothing is counted per client. The backend tells you, once per process, with one of two warnings:
+  - `Requests arrive from a private address with X-Forwarded-For set but TRUSTED_PROXIES is empty; every client behind your proxy shares one rate-limit bucket. Set TRUSTED_PROXIES to your proxy's address.`
+  - `A proxy at a private address is not in TRUSTED_PROXIES (it sends X-Forwarded-For); all clients may share one address for rate limits. Add the proxy's address, or better the CIDR of the network ...` (a stale entry, for example a proxy container recreated with a new address).
+
+  Look for either after the upgrade and fix the setting; the same address is what the spam check's network tag is built from.
+- **Authenticator app and the jobs worker.** With 4.4, `TOTP_ENABLED` was to be kept off the jobs worker, or off altogether while members of a workspace that requires an authenticator app used exports or CSV imports, because the worker cancelled those jobs as "permission removed". 5.0 fixes that: a job skips the two checks that only a signed-in session can pass (the authenticator app and single sign-on) and still cancels when its requester was removed or disabled, lost the role or lost access to the form. The 4.4 advice no longer applies; the shipped compose file, whose env file reaches the worker too, is safe with `TOTP_ENABLED` on.
+- **Export row order.** A response export now lists rows oldest first by the time the response was stored (ties by id); it used to follow id order. The two differ only for responses stored in the same second by different processes.
+- **Python 3.11.** The shared Python package (`common`) now requires Python 3.11 and dnspython 2.9.2 or later. Every service image already runs 3.11, so deployments are not affected; it matters if you install `common` yourself on Python 3.10.
+- **Image tag:** set `BC_IMAGE_TAG` to `v5.0.0` (the default in `docker-compose.deployment.yml` is now `v5.0.0`). A stack that sets its image tags itself moves every first-party service (backend, auth, webapp, jobs worker and the others) to `v5.0.0` together.
+- **Rolling back to 4.4.x:** the two new tables stay and are ignored by 4.4. The rate limits stop with the code (4.4 has none), and the reports, saved views and spam check are not there; what was stored (views, counts, a form's own spam check setting) stays and is used again when you roll forward.
+
+### Added
+
+- Automatic spam check on a form's response submit, behind `CAPTCHA_ENABLED` (off by
+  default): the respondent's browser does a small proof-of-work calculation in the
+  background, in a Web Worker after the first interaction (no puzzle, no cookie, no
+  third party, nothing stored about the respondent). A stateless signed challenge
+  (`POST /workspaces/{id}/captcha/challenge`, valid 15 minutes, bound to the form
+  and a day-salted tag of the network) is solved in the `X-BC-Captcha` header and
+  spent once. Difficulty starts at 17 bits (`API_CAPTCHA_BASE_BITS_SUBMIT`), rises for
+  a client that asks or fails a lot, for a busy form and with the operator's
+  `API_CAPTCHA_DIFFICULTY_BOOST`, never past 20, and is 3 bits lower for a signed-in
+  respondent (and good only for a signed-in submit). Creators can turn it off per
+  form in Settings, Respondent experience. The Submissions API with a key is not
+  affected. While `CAPTCHA_ENABLED` is off, creators cannot change that per-form
+  setting (422 `captcha_disabled`, also through the form spec API, the AI and MCP
+  operations); a value already stored is kept, and a form copied to another workspace
+  carries it as it is. See `docs/captcha.md`.
+- Automatic spam check (`CAPTCHA_ENABLED`, off by default) now also guards the mails the
+  public can trigger: the sign-in code of a respondent and of a creator, and the link of a
+  saved draft. The browser solves the same small calculation (purpose `mail`, a bit harder:
+  18 bits, `API_CAPTCHA_BASE_BITS_MAIL`) before the code or link is requested; the proof is
+  bound to its purpose, workspace and form, so a proof for a submit is no good for a mail and
+  the other way round. It is checked before the per-address and per-client limits count, so a
+  request without a proof uses up nobody's budget. The page asks for it only when the server
+  does: with the switch off nothing changes.
+- Workspace owners and admins can set the spam check on or off by default for the forms of a
+  workspace (Workspace, Spam protection; a form's own setting still wins). Each form's settings
+  and that page show how many proofs passed and were blocked in the last 30 days (counts by day
+  in the new `captcha_daily_counts` table, migration 0041; no address, network or person is
+  stored), and changes to the setting are recorded in the activity log. See `docs/captcha.md`.
+- Answer filters and drill-down for a form's report (behind `REPORTING_ENABLED`). A report can be
+  narrowed by what responses answered: a condition on a choice, a number, a yes/no or a date, built
+  from the question's own options (never free text), added on the Report page, kept in the page (never
+  in the address) and saved with a view. Every card then counts the responses that met them. "Open these responses"
+  in a card's table lists the responses behind a group, a page at a time, each linking to its own
+  page, and, for a group the responses list can filter on, to the list with the same filter. New
+  route `POST /workspaces/{id}/forms/{form_id}/report/responses` and a `filterOps` entry per
+  question in `GET .../report/fields`, in English and Dutch. A card grouped by deletion request or
+  feedback status cannot be combined with a condition on an answer (refused with `op_not_allowed`
+  and said on the card), and the drill-down is held to the same 20,000-response cap as a query.
+- Download a card of a form's report as a CSV (behind `REPORTING_ENABLED`). The Report page offers
+  "Download as CSV" (in Dutch "Downloaden als CSV") on each card to people who may export responses
+  (`response.export`). The file is the card's table (group, responses, share of answered, one column
+  per measure) under a few lines saying what it is: the form, the card, the filters in words, the time
+  zone and when it was made. It is built on request and never stored, text a spreadsheet would run
+  as a formula is neutralised, and each download is written to the workspace's activity log
+  (`report_exported`: form, format, number of groups; never the card or a figure) before the file is
+  handed out. New route `POST /workspaces/{id}/forms/{form_id}/report/export`, limited to 10 downloads
+  per user and form per hour.
+- Reports on a form's answers, server side: counts, averages, distributions and over-time
+  series computed on request (`POST .../forms/{form_id}/report/query`, and the catalogue of
+  what can be reported at `GET .../report/fields`). For people who may read a form's
+  responses and its analytics; never text, identities or a typed "Other" answer. Answers
+  stay encrypted at rest and are added up in memory. Off until `REPORTING_ENABLED` is set
+  (environment only, default off); see `docs/reporting.md`.
+- Reports are held to limits so one workspace cannot take them all: a workspace may hold at most
+  two of the six places the replicas together have for passes over a form's answers (the drill-down
+  "Open these responses" takes the same places a query does), a pass over answers is stopped after 30
+  seconds (`503` `report_timeout`) and gives its place back, and passes in flight are counted across all
+  replicas (the shared rate limiter). A stored number too large or strange to add up leaves that value
+  empty with the `unreadable_answers` notice instead of failing the query, and a question a later form
+  version makes internal is not offered in reports.
+- A Report page for a form's answers, under Responses in the form's side menu (Rapport in Dutch) and
+  as a button in the responses toolbar that carries the list's filters. It shows the number of
+  responses, responses over time and one card per reportable question as number tiles, bar charts,
+  donuts, lines and tables, drawn as SVG without a chart library. Every chart can be read as a table,
+  prints its values (colour is never the only signal) and has a text summary for screen readers.
+  Cards can be added, changed, moved and removed, and the report, with its filters, lives in the
+  address. A selection above the 20,000-response limit offers to narrow by date or version; rate
+  limits, a busy server and unreadable answers are explained on the page. The page, the menu item and
+  the toolbar button only appear while the server has reports switched on (`REPORTING_ENABLED`) and
+  to members who may read responses and analytics.
+- Saved views of a form's report (behind `REPORTING_ENABLED`). The Report page has a views bar:
+  open a saved view, save the report on screen as one, update it, rename it, share it and
+  delete it. A view is private to its maker by default; someone who may edit the form can
+  save a view for everyone who can open the report. A view stores only a name and a validated
+  definition (question ids, dates, enums: never an answer or a respondent). New routes
+  `GET` and `POST /workspaces/{id}/forms/{form_id}/report/views` and `GET`, `PATCH` and `DELETE
+  .../report/views/{view_id}`, a new table (revision 0040), and audit entries for what the
+  whole form shares (`report_view_created`, `_updated`, `_deleted`, `_shared`, `_unshared`),
+  in English and Dutch.
+- Saved report views are deleted with what they belong to: an account's private views and every view of
+  a deleted workspace go with them (also on a form that stays because another workspace holds it), and
+  the deletes with a form, a member, an account or a workspace run whatever `REPORTING_ENABLED` says. A
+  stale change or delete of a view leaves no audit entry, "Update view" is not offered when the report
+  holds cards the person cannot see (it would drop them; only "save as a new view" is), and a card title is
+  not stored in a view.
+
+### Changed
+
+- A response export reads a form in batches that each seek to where the last one ended
+  (a keyset on the response time and id, in the order of the index of workspace, form and
+  time), where each batch used to read and sort the whole form again. Some batches took
+  150 to 250 ms against 20 ms; a pass no longer has them, and a batch costs its own rows
+  however large the form is. Counting the responses an export holds no longer reads every
+  document. Rows come out oldest first by response time, ties by id; this was id order,
+  which differs only for two responses stored in the same second by different processes.
+
+### Fixed
+
+- With `TOTP_ENABLED` on, a response export or a CSV import started in a workspace that
+  requires an authenticator app was cancelled as "permission removed" when its background
+  job ran. The job re-checks that its requester still holds the permission, but it has no
+  session, so it was read as a session without a second factor (and, the same way, without
+  single sign-on). The job now skips those two session checks, which the request that started
+  it already passed, and still cancels when the requester was removed or disabled, lost the
+  role, or lost access to the form, or when the workspace was disabled. Accepting an invitation
+  re-checks the sender the same way.
+- A failing rate limiter (a database error or a lock timeout on its counters) no longer
+  turns a form submit into a 500: the submit is let through and the error class is
+  logged. The sign-in code routes fail closed instead: on a limiter error they answer 503
+  with `Retry-After: 60` and send no mail, so the instance breaker is never skipped. A real
+  429 is still a 429. Expired rate-limit counters are now deleted in bounded batches, at
+  most once a minute per process, instead of on every new counter (almost every submit).
+
+### Security
+
+- The shared Python package now requires dnspython 2.9.2 or later, which fixes a memory and CPU exhaustion in the zone-file text parser (GHSA-vvf4-9x63-8xvv). bettercollected only reads DNS answers in wire format for TXT checks, so earlier releases were not exposed. The shared package now needs Python 3.11, like every service that uses it.
+- Hardening: sign-in code mails (respondent and creator) are now rate limited per mailbox
+  (3 an hour, Gmail dots and `+tags` folded) and per client (60 an hour), with one
+  instance-wide circuit breaker, `API_CODE_MAIL_PER_HOUR` (default 20000 an hour, 0 turns it
+  off, logged at ERROR when it trips). A response submit is limited to 30 a minute per client
+  and form, checked before the request body is read. An IPv6 client is counted by its /64
+  (one subscriber or device), so the phones of one mobile carrier do not share a budget.
+  A refusal is a plain 429 in English or Dutch with `Retry-After`, the same whether or
+  not the address has an account. The sign-in and form screens show it in the
+  respondent's language. The Submissions API keeps its own limits.
+- The three per-client and per-mailbox limits are live settings, changed without a restart
+  and off at 0: `API_CODE_MAIL_PER_CLIENT_PER_HOUR` (60), `API_CODE_MAIL_PER_ADDRESS_PER_HOUR`
+  (3) and `API_SUBMIT_PER_CLIENT_FORM_PER_MINUTE` (30). An organisation whose people reach the
+  internet through one address shares that client's 60 code mails an hour: raise
+  `API_CODE_MAIL_PER_CLIENT_PER_HOUR` if a whole group signs in at once. A person who asks for a
+  fourth sign-in code within an hour for the same mailbox (spelling variants count as one) is
+  refused until the hour ends. Breaker runbook: if the instance-wide breaker trips and sign-in
+  stops for everyone, set `API_CODE_MAIL_PER_HOUR=0` to restore sign-in while blocking the
+  source at the proxy.
+- The client limits only work when `TRUSTED_PROXIES` (the setting `API_TRUSTED_PROXIES`) lists the
+  reverse proxy the API sees: a request through a proxy that is not listed has no client, so only
+  the mailbox and instance limits apply to it, and the backend logs a warning once per process
+  (see "Upgrading from 4.4.x").
+
 ## [4.4.0] - 2026-11-03
 
 4.4.0 lets a workspace decide who may open each form, and keeps a readable record of what its members did. It adds restricted forms, form grants and Teams (which a directory group can feed), roles and a form scope for API keys, an Activity log with a retention period each workspace chooses and an export, copying a form to another workspace, an authenticator app (TOTP) for staff, and built-in actions that run on the backend. A form's own pages get new navigation and its settings are regrouped. Every new feature is off until you turn its switch on.
@@ -3745,7 +3925,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v4.4.0...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v5.0.0...HEAD
+[5.0.0]: https://github.com/bettercollected/bettercollected/compare/v4.4.0...v5.0.0
 [4.4.0]: https://github.com/bettercollected/bettercollected/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/bettercollected/bettercollected/compare/v4.2.0...v4.3.0
 [4.2.0]: https://github.com/bettercollected/bettercollected/compare/v4.1.2...v4.2.0
