@@ -319,6 +319,12 @@ class WorkspaceFormSettings(BaseModel):
     # default of 30), encrypted, apart from the responses.
     allow_save_draft: Optional[bool] = None
     draft_retention_days: Optional[int] = None
+    # The automatic spam check (a proof of work solved by the respondent's
+    # browser, services/captcha) before a response is accepted: on unless the
+    # creator turned it off for this form (none = the default, on). Only
+    # while the server switch CAPTCHA_ENABLED is on; respondents are served
+    # ``captcha_required`` instead (response_dtos.py), never this.
+    captcha_enabled: Optional[bool] = None
     show_original_form: Optional[bool] = None
     # "Allow AI insights on responses" (#716): off by default, admins only.
     # While on, respondents see a notice naming the provider, and only

@@ -32,12 +32,15 @@ const SETTINGS_LABELS: Record<keyof FormSettingsPatch, string> = {
     showSubmissionNumber: 'submission numbers',
     showReviewPage: 'review page before sending',
     allowSaveDraft: 'saving drafts',
-    draftRetentionDays: 'how long drafts are kept'
+    draftRetentionDays: 'how long drafts are kept',
+    captchaEnabled: 'automatic spam check'
 };
 const SETTINGS_TEXT_KEYS = ['purpose', 'retentionText', 'privacyPolicyUrl'] as const;
-const SETTINGS_SWITCH_KEYS = ['requireVerifiedIdentity', 'allowEditingResponse', 'showSubmissionNumber', 'showReviewPage', 'allowSaveDraft'] as const;
+const SETTINGS_SWITCH_KEYS = ['requireVerifiedIdentity', 'allowEditingResponse', 'showSubmissionNumber', 'showReviewPage', 'allowSaveDraft', 'captchaEnabled'] as const;
 
 /** The refusal of turning drafts on while the server has the feature off (backend `DISABLED_MESSAGE`). */
+/** The refusal of changing the automatic spam check while the server has it off (backend `DISABLED_MESSAGE`). */
+export const CAPTCHA_OFF = 'The automatic spam check is not switched on on this server yet (CAPTCHA_ENABLED is off).';
 export const SAVE_DRAFTS_OFF = 'Saving drafts is not switched on on this server yet (SAVE_DRAFTS_ENABLED is off).';
 const MAX_DRAFT_DAYS = 90;
 const DEFAULT_DRAFT_DAYS = 30;
@@ -94,12 +97,14 @@ export const updateFormSettings: Handler<UpdateFormSettingsOp> = (ctx, op) => {
     const patch = op.patch ?? {};
     const changed = (Object.keys(SETTINGS_LABELS) as Array<keyof FormSettingsPatch>).filter((key) => patch[key] != null).map((key) => SETTINGS_LABELS[key]);
     if (!changed.length) {
-        throw new OpError('Nothing to change — provide at least one of: purpose, retentionText, privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber, showReviewPage, allowSaveDraft, draftRetentionDays.');
+        throw new OpError('Nothing to change — provide at least one of: purpose, retentionText, privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber, showReviewPage, allowSaveDraft, draftRetentionDays, captchaEnabled.');
     }
     if (patch.privacyPolicyUrl != null) checkedPolicyUrl(patch.privacyPolicyUrl);
     if (patch.draftRetentionDays != null) checkedDraftRetentionDays(patch.draftRetentionDays);
     // SAVE_DRAFTS_ENABLED is off: the setting cannot be turned on (backend `_apply_update_form_settings`)
     if (patch.allowSaveDraft === true && ctx.options.saveDraftsEnabled === false) throw new OpError(SAVE_DRAFTS_OFF);
+    // CAPTCHA_ENABLED is off: the setting cannot be changed (backend `_apply_update_form_settings`)
+    if (patch.captchaEnabled != null && ctx.options.captchaEnabled === false) throw new OpError(CAPTCHA_OFF);
     if (ctx.options.applySettings !== false) {
         if (ctx.draft.settings == null) ctx.draft.settings = {} as any;
         applySettingsPatch(ctx.draft.settings as Record<string, any>, patch);

@@ -545,6 +545,38 @@ describe('Privacy panel: saved drafts', () => {
     });
 });
 
+describe('Privacy panel: the automatic spam check', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+        window.history.replaceState(null, '', '/');
+    });
+
+    it('says nothing unless the server asks the browser for it', () => {
+        setBrowserLanguages(['en']);
+        const { unmount } = renderPanel({ ownerName: 'Acme' });
+        openPanel();
+        expect(screen.queryByTestId('privacy-captcha')).not.toBeInTheDocument();
+        unmount();
+        renderPanel({ ownerName: 'Acme', settings: { captchaRequired: false } as any });
+        openPanel();
+        expect(screen.queryByTestId('privacy-captcha')).not.toBeInTheDocument();
+    });
+
+    it('says what the browser does and that nothing about the respondent is stored (English)', () => {
+        setBrowserLanguages(['en']);
+        renderPanel({ ownerName: 'Acme', settings: { captchaRequired: true } as any });
+        openPanel();
+        expect(row('captcha')).toHaveTextContent('To keep out automated spam, your browser does a small calculation in the background. It uses no cookies, and nothing about you is stored or shared for it.');
+    });
+
+    it('says it in Dutch, in the "je" register', () => {
+        setBrowserLanguages(['nl-NL']);
+        renderPanel({ ownerName: 'Acme', settings: { captchaRequired: true } as any });
+        fireEvent.click(screen.getByRole('button', { name: /je privacy/i }));
+        expect(row('captcha')).toHaveTextContent('Om geautomatiseerde spam te weren, voert je browser op de achtergrond een kleine berekening uit. Daarvoor zijn geen cookies nodig en wordt er niets over jou bewaard of gedeeld.');
+    });
+});
+
 describe('Privacy panel when the form looks up addresses', () => {
     afterEach(() => {
         vi.restoreAllMocks();

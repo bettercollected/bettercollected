@@ -421,6 +421,23 @@ async def test_zero_turns_a_respondent_limit_off(monkeypatch, field):
     assert wanted not in [c[0] for c in limiter.calls], field
 
 
+# ------------------------------------------------------------ proof of work
+
+
+def test_captcha_difficulty_settings_are_read_per_call(monkeypatch):
+    from backend.app.services.captcha.pressure import Pressure
+    from backend.app.services.captcha.service import CaptchaService
+
+    service = CaptchaService(rate_limiter=None, pressure=Pressure())
+    for base, boost in ((15, 0), (18, 0), (18, 2)):
+        _set(monkeypatch, settings.api_settings, "CAPTCHA_BASE_BITS_SUBMIT", base)
+        _set(monkeypatch, settings.api_settings, "CAPTCHA_DIFFICULTY_BOOST", boost)
+        # no client, no form pressure: base plus boost only
+        assert service.difficulty("", "form", False) == base + boost, (
+            "API_CAPTCHA_BASE_BITS_SUBMIT / API_CAPTCHA_DIFFICULTY_BOOST"
+        )
+
+
 # ------------------------------------------------------------ editor ops
 
 

@@ -261,6 +261,15 @@ describe('form-level ops', () => {
         expect(applyOps(smallForm(), [on]).results[0].ok).toBe(true);
     });
 
+    it('refuses changing the automatic spam check while the server has it switched off, like the server', () => {
+        const off = { op: 'update_form_settings', patch: { captchaEnabled: false } } as const;
+        const refused = applyOps(smallForm(), [off], { captchaEnabled: false });
+        expect(refused.results[0].ok).toBe(false);
+        expect(refused.results[0].message).toBe('The automatic spam check is not switched on on this server yet (CAPTCHA_ENABLED is off).');
+        expect(applyOps(smallForm(), [off], { captchaEnabled: true }).results[0].ok).toBe(true);
+        expect(applyOps(smallForm(), [off]).results[0].ok).toBe(true);
+    });
+
     it('sets the review page switch as given and counts it as a change', () => {
         const on = one({ op: 'update_form_settings', patch: { showReviewPage: true } });
         expect(on.result.message).toBe('Updated form settings: review page before sending');

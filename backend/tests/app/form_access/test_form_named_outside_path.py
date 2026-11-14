@@ -48,6 +48,14 @@ REFERENCES: Dict[Tuple[str, str], Tuple[str, str]] = {
         "(IntegrationService._check_user_can_configure_form, form_if_enforced)",
         "test_write_enforcement.py (R56)",
     ),
+    ("POST", "/workspaces/{workspace_id}/captcha/challenge"): (
+        "body.formId",
+        "a public route like the respondent page: the form is looked up as a respondent "
+        "would (a private form, or one of another workspace, answers 404 like an unknown "
+        "one) and the challenge returned names nothing about it but the id the caller sent",
+        "test_the_route_answers_for_an_unknown_form_and_a_bad_purpose, "
+        "test_a_private_form_gets_no_challenge",
+    ),
     ("POST", "/workspaces/{workspace_id}/api-keys"): (
         "body.submissionFormIds, body.formIds",
         "security.manage (Owner/Admin) and every id must be a form of this "

@@ -36,6 +36,7 @@ from loguru import logger
 
 from backend.app.exceptions import HTTPException
 from backend.app.services.address_lookup.mode import address_lookup_enabled
+from backend.app.services.captcha.mode import captcha_enabled
 from backend.app.services.form_drafts.mode import save_drafts_enabled
 
 SLIDE_TYPE = "slide"
@@ -128,6 +129,43 @@ def strip_promotion_mark(form: Any) -> Any:
     return form
 
 
+def _serve_captcha(settings: Any) -> None:
+    """``captcha_required`` for a respondent (switch on: the form's own
+    setting, else on; off: none), and no ``captcha_enabled``."""
+    stored = _get(settings, "captcha_enabled")
+    if stored is None and isinstance(settings, dict):
+        stored = settings.get("captchaEnabled")
+    required = (stored is not False) if captcha_enabled() else None
+    if isinstance(settings, dict):
+        for key in ("captcha_enabled", "captchaEnabled", "captchaRequired"):
+            settings.pop(key, None)
+        if required is not None:
+            settings["captcha_required"] = required
+        return
+    if hasattr(settings, "captcha_enabled"):
+        settings.captcha_enabled = None
+    if hasattr(settings, "captcha_required"):
+        settings.captcha_required = required
+
+
+def mark_captcha_required(form: Any) -> Any:
+    """``captcha_required`` on a published form served on the staff path (a
+    member of the workspace answering their own form is asked for the proof like
+    anyone: the submit route does not tell them apart). The respondent path has
+    set it already (``strip_internal_fields``); the creator's own setting stays
+    in what is served here."""
+    settings = _get(form, "settings")
+    if settings is None or not captcha_enabled():
+        return form
+    if _get(settings, "captcha_required") is not None:
+        return form
+    stored = _get(settings, "captcha_enabled")
+    if stored is None and isinstance(settings, dict):
+        stored = settings.get("captchaEnabled")
+    _set(settings, "captcha_required", stored is not False)
+    return form
+
+
 def strip_internal_fields(form: Any) -> Any:
     """Remove internal fields from a form payload in place (and return it).
 
@@ -169,6 +207,11 @@ def strip_internal_fields(form: Any) -> Any:
         for key in ("allow_save_draft", "draft_retention_days"):
             if _get(settings, key) is not None:
                 _set(settings, key, None)
+    # the automatic spam check (services/captcha): respondents are told only
+    # whether the form asks for it, and only while the server has it switched
+    # on; the creator's own setting is never served to them
+    if settings is not None:
+        _serve_captcha(settings)
     # the street and city lookup of an address question is offered only while
     # the server has it switched on (services/address_lookup/mode.py): a form
     # never advertises a lookup the server would refuse
