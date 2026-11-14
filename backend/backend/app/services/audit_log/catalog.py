@@ -59,6 +59,8 @@ AREAS: Dict[str, Tuple[str, ...]] = {
         E.RESPONSE_REVISION_READ,
         E.RESPONSES_DELETED,
         E.RESPONSE_EXPORT,
+        # a card of a form's report taken out as a file
+        *E.REPORT_EXPORT_EVENTS,
     ),
     AREA_API_KEYS: E.API_KEY_EVENTS,
     # single sign-on, break-glass use, the workspace's authenticator rule and the

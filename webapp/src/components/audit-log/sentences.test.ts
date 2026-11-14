@@ -87,6 +87,7 @@ const SAMPLES: Record<(typeof AUDIT_EVENTS)[number], Partial<AuditEntryDto>> = {
     form_registration_disabled: { actorId: 'u_sanne', formId: 'f_join' },
     form_copied_out: { actorId: 'u_sanne', formId: 'f_join' },
     form_promoted: { actorId: 'u_sanne', formId: 'f_join', count: 3 },
+    report_exported: { actorId: 'u_sanne', formId: 'f_join', exportChannel: 'report', exportFormat: 'csv', count: 4 },
     report_view_created: { actorId: 'u_pim', formId: 'f_join', viewId: 'v_1', viewScope: 'form' },
     report_view_updated: { actorId: 'u_pim', formId: 'f_join', viewId: 'v_1', viewScope: 'form', changed: ['name', 'definition'] },
     report_view_deleted: { actorId: 'u_sanne', formId: 'f_join', viewId: 'v_1', viewScope: 'form' },
@@ -272,6 +273,14 @@ describe('the sentence table', () => {
         const sentence = describeEntry(entry('form_published', { actorId: 'u_evil', formId: 'f_join' }), { labels: { ...labels, forms: LABELS.forms }, t: i18n.getFixedT('en') as any });
         expect(sentence.text).toBe('Eve Mallory published Join the volunteers.');
         expect(sentence.segments.filter((s) => s.strong).map((s) => s.text)).toEqual(['Eve Mallory', 'Join the volunteers']);
+    });
+});
+
+describe('report downloads', () => {
+    it('words a downloaded report table with the person, the form, the format and the number of groups', () => {
+        expect(say('en', entry('report_exported', SAMPLES.report_exported)).text).toBe('Sanne de Vries downloaded a table of the report of Join the volunteers as a file (CSV, 4 groups).');
+        expect(say('nl', entry('report_exported', SAMPLES.report_exported)).text).toBe('Sanne de Vries downloadde een tabel uit het rapport van Join the volunteers als bestand (CSV, 4 groepen).');
+        expect(say('en', entry('report_exported', { actorId: 'u_sanne', formId: 'f_join', count: 1 })).text).toBe('Sanne de Vries downloaded a table of the report of Join the volunteers as a file (1 group).');
     });
 });
 

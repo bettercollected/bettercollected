@@ -78,7 +78,8 @@ export const AUDIT_EVENTS = [
     'report_view_updated',
     'report_view_deleted',
     'report_view_shared',
-    'report_view_unshared'
+    'report_view_unshared',
+    'report_exported'
 ] as const;
 
 /** The parts of an integration's configuration an entry may name as changed (backend `AUTOMATION_PARTS`); any other is not shown. */
@@ -302,6 +303,12 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
             if (hasCount) details.push(t(`${SENTENCE}.DETAIL_ROWS`, { count: entry.count }));
             break;
         }
+        case 'report_exported':
+            key = 'REPORT_EXPORTED';
+            values = { actor, form: form(entry.formId) };
+            if (present(entry.exportFormat)) details.push(clean(entry.exportFormat).toUpperCase().slice(0, 12));
+            if (hasCount) details.push(t(`${SENTENCE}.DETAIL_GROUPS`, { count: entry.count }));
+            break;
         case 'audit_log_exported':
             key = entry.formId ? 'AUDIT_LOG_EXPORTED_FORM' : 'AUDIT_LOG_EXPORTED';
             values = { actor, form: form(entry.formId) };

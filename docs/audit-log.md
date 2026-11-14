@@ -58,6 +58,12 @@ form's id, the view's id (`viewId`), its scope after the change (`viewScope`, `p
 never the view's name or definition. A person's private views are not written: an entry would
 say that someone looked at something.
 
+Under `responses` too: `report_exported` (a card's table of a form's report was downloaded as a CSV,
+behind `REPORTING_ENABLED`; docs/reporting.md). It holds the form's id, `exportFormat` (`csv`),
+`exportChannel` (`report`) and `count` (the groups written), never the card, its title, its filters
+or a figure. It is stored before the file is handed out: when it cannot be stored the download is
+refused (503 `audit_unavailable`). `response_export` stays for exports of the responses themselves.
+
 Settings and integration entries carry ids and enum values only: the kind of
 connection or directory (`connectionType`, `directoryType`), an on/off setting's
 new value (`required`, `enabled`), the AI provider's id (`provider`), the roles

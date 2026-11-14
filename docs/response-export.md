@@ -236,3 +236,12 @@ read. A respondent's own copy is not served by this route.
 ## Rate limit
 
 10 requests per user and form per hour (exports and `all-submissions` reads together), one live export per user and form, three jobs in flight per workspace. A request refused because a slot was busy (429 `export_busy` / `workspace_busy`) or because the person's export of the form is still open (409 `export_in_progress` / `export_ready`) is given back and does not count; one refused by the rate limit itself (429 `rate_limited`) changes nothing.
+
+## The report CSV
+
+A card of a form's report (docs/reporting.md) can be downloaded as a CSV of its **result table**,
+not of responses: `POST .../forms/{form_id}/report/export`. It needs `response.export` like the
+exports above, goes through this export's CSV writer (the same formula guard and byte order mark),
+is built in memory and never stored, and has its own audit kind (`report_exported`, not
+`response_export`) and its own limit of 10 downloads per user and form per hour, separate from the
+10 above.

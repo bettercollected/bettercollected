@@ -1649,8 +1649,15 @@ any query. Rules to keep:
   use (the same errors as a dimension), with the operators of `catalogue.FILTER_OPS`. With any, every card runs in the pass and
   `n` is the number of responses that met them. Drill-down (`POST /report/responses`, `services/reporting/drill.py`,
   `engine.drill`) reuses the pass and the accumulator's own group keys, never reads an answer out, and returns the response id,
-  the time, the version and anonymous or known. It does not join the replicas' pass places yet (only this process's and the
-  rate limit): the slot code is shared with the report CSV work.
+  the time, the version and anonymous or known. Every pass (a query's scan and the drill-down) takes its places through
+  `ReportService._place`: one of this process's, one of the workspace's `PASSES_PER_WORKSPACE` and one of the replicas'
+  `PASSES_ACROSS_REPLICAS` (counters in the shared limiter, scope `report-passes`; constants, not settings); keep new passes
+  inside it.
+- Report CSV (`POST /report/export`, `services/reporting/export.py`, `ReportService.export_csv`): `response.export` on top of the
+  gate; computes only the asked card through `_compute` (the same pass, cache and limits as a query), writes the audit entry
+  `REPORT_EXPORTED` with `record_or_refuse` BEFORE returning the file (ids and the group count only), builds the file in memory
+  (cells through `response_export.table.csv_line`, the formula guard) and stores nothing. A `key,value` preamble states the
+  form, card, filters in words (answer conditions only counted), time zone and time.
 - Saved views (`services/reporting/views.py`, `repositories/postgres/report_views.py`, table `form_report_views`, revision 0040):
   a name, a scope (`private`, the owner's notebook that nobody else reads, admins included; or `form`) and a definition that
   `ReportService.check_definition` validated as a query would be; never store what a query would refuse. `form`-scope writes

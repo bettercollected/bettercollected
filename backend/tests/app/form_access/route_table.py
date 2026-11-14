@@ -186,6 +186,19 @@ def _drill_request(ctx):
     }
 
 
+def _report_export(ctx):
+    return {
+        "json": {
+            "definition": {
+                "v": 1,
+                "cards": [{"id": "c", "kind": "tile", "measures": [{"agg": "count"}]}],
+            },
+            "card": "c",
+            "format": "csv",
+        }
+    }
+
+
 def _view_write(ctx):
     return {
         "json": {
@@ -301,6 +314,11 @@ ROUTES: Dict[Tuple[str, str], Route] = {
     # the responses behind a group of a card (drill-down): the same gate
     ("POST", F + "/report/responses"): route(
         FORM, P.RESPONSE_READ, P.ANALYTICS_READ, request=_drill_request
+    ),
+    # one card's table as a CSV: the same gate and response.export on top (the file is
+    # what leaves the screen; a Reviewer or Viewer needs an export grant)
+    ("POST", F + "/report/export"): route(
+        FORM, P.RESPONSE_READ, P.ANALYTICS_READ, P.RESPONSE_EXPORT, request=_report_export
     ),
     # saved views of the report: the same gate; a view for the whole form needs form.edit on
     # top, which the matrix's private request never asks for
@@ -554,6 +572,7 @@ OUTCOMES: Dict[Tuple[str, str], Tuple[int, ...]] = {
     ("GET", F + "/report/fields"): (200,),
     ("POST", F + "/report/query"): (200,),
     ("POST", F + "/report/responses"): (200,),
+    ("POST", F + "/report/export"): (200,),
     ("GET", F + "/report/views"): (200,),
     ("POST", F + "/report/views"): (201,),
     ("GET", F + "/report/views/{view_id}"): (404,),

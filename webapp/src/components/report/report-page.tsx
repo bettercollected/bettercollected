@@ -26,13 +26,14 @@ import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useAppSelector } from '@app/store/hooks';
 import { selectForm } from '@app/store/forms/slice';
-import { useGetReportFieldsQuery, useGetReportViewsQuery, useQueryReportQuery } from '@app/store/workspaces/api';
+import { useExportReportCardMutation, useGetReportFieldsQuery, useGetReportViewsQuery, useQueryReportQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { OVERVIEW_QUESTIONS, ReportCardDef, ReportCardResult, ReportClause, ReportError, ReportView, cardsParam, isTimeDimension, overviewCards, parseCardsParam, reportDefinition, reportErrorOf, reportFilters, viewerZone, cardProblem } from '@app/utils/report';
 import { listFiltersFor } from '@app/utils/report-drill';
 import { clauseProblem } from '@app/utils/report-where';
 import { VIEW_ID, cardsOf, filtersOf, isModified, whereOf } from '@app/utils/report-views';
 import type { ReportRow } from '@app/utils/report-view';
+import { downloadBlob, exportFileName } from '@app/utils/response-export';
 import { DEFAULT_STATE, ResponseListState, localDayStart, parseResponseListState, responseListSearchParams } from '@app/utils/response-list-state';
 
 import ReportAnswerFilters from './report-answer-filters';
@@ -147,6 +148,29 @@ export default function ReportPage() {
         }
     );
     const error = isError ? reportErrorOf(queryError) : undefined;
+
+    // One card's table as a CSV: offered to a member who may export responses (the server asks for it again). The request
+    // carries this card only, with the filters and conditions on screen; the file is made for it and stored nowhere.
+    const [exportCard] = useExportReportCardMutation();
+    const canDownload = can(WorkspacePermission.RESPONSE_EXPORT);
+    const formTitle = form?.title ?? '';
+    const download = useCallback(
+        async (card: ReportCardDef): Promise<string | undefined> => {
+            try {
+                const file = await exportCard({ workspaceId: workspaceId as string, formId: formId as string, definition: { ...definition, cards: definition.cards.filter((one) => one.id === card.id) }, card: card.id }).unwrap();
+                downloadBlob(file.blob, file.fileName || exportFileName(formTitle, 'csv'));
+                return undefined;
+            } catch (failure) {
+                const found = reportErrorOf(failure);
+                if (found.status === 403) return 'REPORT.EXPORT_DENIED';
+                if (found.code === 'report_busy') return 'REPORT.BUSY';
+                if (found.code === 'report_timeout') return 'REPORT.TIMEOUT';
+                if (found.status === 429) return 'REPORT.EXPORT_LIMIT';
+                return 'REPORT.EXPORT_ERROR';
+            }
+        },
+        [definition, exportCard, formId, formTitle, workspaceId]
+    );
 
     const write = useCallback(
         (changes: { state?: ResponseListState; cards?: ReportCardDef[] | null; all?: boolean; view?: string | null }, replace = false) => {
@@ -310,6 +334,7 @@ export default function ReportPage() {
                                     onRemove={() => remove(index)}
                                     onMove={(delta) => move(index, delta)}
                                     onDrill={(def: ReportCardDef, row: ReportRow) => setDrill({ cardId: def.id, key: row.key, label: row.label })}
+                                    onDownload={canDownload ? download : undefined}
                                 />
                             ))}
                         </div>

@@ -277,6 +277,12 @@ REPORT_EVENTS = (
     REPORT_VIEW_SHARED,
     REPORT_VIEW_UNSHARED,
 )
+# a card's table of a form's report taken out as a file (``POST /report/export``): the
+# form, the file format and channel (enum values) and the number of groups written
+# (``count``); never the card, its title, its filters or a figure. Written before the
+# file is handed out (no entry, no file).
+REPORT_EXPORTED = "report_exported"
+REPORT_EXPORT_EVENTS = (REPORT_EXPORTED,)
 # the reserved workspace id of an event that belongs to no workspace
 NO_WORKSPACE = "000000000000000000000000"
 
@@ -300,6 +306,7 @@ ALL_KINDS = (
     + RESPONSE_REVISION_EVENTS
     + AUDIT_LOG_EVENTS
     + REPORT_EVENTS
+    + REPORT_EXPORT_EVENTS
 )
 
 

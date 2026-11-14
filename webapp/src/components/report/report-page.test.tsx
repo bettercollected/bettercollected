@@ -36,6 +36,7 @@ const server: {
     update: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
     drill: ReturnType<typeof vi.fn>;
+    exportCard: ReturnType<typeof vi.fn>;
 } = {} as never;
 
 const nav = { search: '', listeners: new Set<() => void>(), pushes: [] as string[], replaces: [] as string[] };
@@ -79,7 +80,16 @@ vi.mock('@app/store/workspaces/api', () => ({
     useCreateReportViewMutation: () => [server.create, { isLoading: false }],
     useUpdateReportViewMutation: () => [server.update, { isLoading: false }],
     useDeleteReportViewMutation: () => [server.remove, { isLoading: false }],
-    useGetReportResponsesMutation: () => [server.drill]
+    useGetReportResponsesMutation: () => [server.drill],
+    useExportReportCardMutation: () => [server.exportCard]
+}));
+// the browser's download is handed the file instead
+const handed: Array<{ blob: Blob; fileName: string }> = [];
+vi.mock('@app/utils/response-export', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@app/utils/response-export')>()),
+    downloadBlob: (blob: Blob, fileName: string) => {
+        handed.push({ blob, fileName });
+    }
 }));
 
 const cardsInUrl = (url: string): ReportCardDef[] | undefined => parseCardsParam(new URLSearchParams(url.split('?')[1] ?? '').get('cards'));
@@ -104,6 +114,8 @@ beforeEach(() => {
     server.update = vi.fn();
     server.remove = vi.fn();
     server.drill = vi.fn();
+    server.exportCard = vi.fn();
+    handed.length = 0;
     nav.search = '';
     nav.pushes = [];
     nav.replaces = [];
@@ -731,6 +743,80 @@ describe('drill-down on the page', () => {
         const { container } = renderPage();
         fireEvent.click(within(open()).getByRole('button', { name: 'Open these responses: North' }));
         await screen.findByRole('table', { name: 'Responses in North' });
+        expect(await axeViolations(container)).toEqual([]);
+    });
+});
+
+describe('downloading a card as a CSV', () => {
+    const file = (name?: string) => ({ unwrap: () => Promise.resolve({ blob: new Blob(['x']), fileName: name }) });
+    const refusal = (status: number, code?: string) => ({ unwrap: () => Promise.reject({ status, data: code ? { code } : {} }) });
+    const teamCard = () => screen.getByRole('figure', { name: 'Which team are you in?' });
+    const mayExport = () => server.permissions.add(WorkspacePermission.RESPONSE_EXPORT);
+
+    it('is offered on every card to a member who may export responses', () => {
+        mayExport();
+        renderPage();
+        expect(screen.getAllByRole('button', { name: /^Download as CSV/ })).toHaveLength(7);
+    });
+
+    it('is not offered to a member who may read the report but not export', () => {
+        renderPage();
+        expect(screen.queryByRole('button', { name: /Download as CSV/ })).toBeNull();
+    });
+
+    it("asks for this card only, with the filters and the zone on screen, and hands the file over under the server's name", async () => {
+        mayExport();
+        server.exportCard.mockReturnValue(file('Staff survey - report.csv'));
+        nav.search = 'who=known&version=2';
+        renderPage();
+        fireEvent.click(within(teamCard()).getByRole('button', { name: 'Download as CSV: Which team are you in?' }));
+        await waitFor(() => expect(handed).toHaveLength(1));
+        expect(handed[0].fileName).toBe('Staff survey - report.csv');
+        const asked = server.exportCard.mock.calls.at(-1)?.[0];
+        expect(asked).toMatchObject({ workspaceId: 'ws-1', formId: 'form-1' });
+        expect(asked.card).toBe(asked.definition.cards[0].id);
+        expect(asked.definition.cards).toHaveLength(1);
+        expect(asked.definition.cards[0].dimension).toEqual({ field: 'q:team' });
+        expect(asked.definition.filters).toMatchObject({ respondent: 'known', formVersion: [2] });
+        expect(asked.definition.tz).toBeTruthy();
+        expect(await within(teamCard()).findByRole('status')).toHaveTextContent('The file was downloaded.');
+    });
+
+    it('names the file after the form when the server offers no name', async () => {
+        mayExport();
+        server.exportCard.mockReturnValue(file(undefined));
+        renderPage();
+        fireEvent.click(within(teamCard()).getByRole('button', { name: /^Download as CSV/ }));
+        await waitFor(() => expect(handed).toHaveLength(1));
+        expect(handed[0].fileName).toBe('Staff survey.csv');
+    });
+
+    it.each([
+        [403, undefined, 'You may not download this report.'],
+        [429, 'rate_limited', 'You have downloaded this report as often as is allowed for now. Try again later.'],
+        [429, 'report_busy', 'Other reports are being computed. Try again in a moment.'],
+        [503, 'report_timeout', 'This report took too long to compute. Narrow the dates or the form version, or try again.'],
+        [503, 'audit_unavailable', 'The file could not be made. Nothing was saved. Try again.'],
+        [500, undefined, 'The file could not be made. Nothing was saved. Try again.']
+    ])('says what went wrong after a %s %s, and saves nothing', async (status, code, text) => {
+        mayExport();
+        server.exportCard.mockReturnValue(refusal(status, code));
+        renderPage();
+        fireEvent.click(within(teamCard()).getByRole('button', { name: /^Download as CSV/ }));
+        expect(await within(teamCard()).findByRole('status')).toHaveTextContent(text);
+        expect(handed).toHaveLength(0);
+    });
+
+    it('is Dutch in Dutch', async () => {
+        mayExport();
+        await i18n.changeLanguage('nl');
+        renderPage();
+        expect(within(screen.getAllByRole('figure')[0]).getByRole('button', { name: /^Downloaden als CSV/ })).toBeInTheDocument();
+    });
+
+    it('finds no axe violation with the download offered', async () => {
+        mayExport();
+        const { container } = renderPage();
         expect(await axeViolations(container)).toEqual([]);
     });
 });

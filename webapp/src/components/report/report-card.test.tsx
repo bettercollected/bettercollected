@@ -354,3 +354,26 @@ describe('opening the responses behind a group', () => {
         expect(await axeViolations(container)).toEqual([]);
     });
 });
+
+describe('the CSV download of a card', () => {
+    it('is not there unless the page offers it', () => {
+        renderCard(bar);
+        expect(screen.queryByRole('button', { name: /Download as CSV/ })).toBeNull();
+    });
+
+    it('says the file is on its way, disables itself meanwhile and then reports the outcome, naming the card after the visible words', async () => {
+        let finish: (key?: string) => void = () => undefined;
+        const onDownload = vi.fn(() => new Promise<string | undefined>((resolve) => (finish = resolve)));
+        renderCard(bar, { onDownload });
+        const button = screen.getByRole('button', { name: 'Download as CSV: Which team are you in?' });
+        fireEvent.click(button);
+        fireEvent.click(button);
+        expect(onDownload).toHaveBeenCalledTimes(1);
+        expect(onDownload).toHaveBeenCalledWith(bar);
+        expect(button).toBeDisabled();
+        expect(screen.getByRole('status')).toHaveTextContent('Preparing the file…');
+        finish(undefined);
+        expect(await screen.findByText('The file was downloaded.')).toBeInTheDocument();
+        expect(button).toBeEnabled();
+    });
+});
