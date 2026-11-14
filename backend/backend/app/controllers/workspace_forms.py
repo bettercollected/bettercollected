@@ -25,7 +25,10 @@ from pydantic import ValidationError
 from pydantic.alias_generators import to_snake
 from starlette.requests import Request
 
-from backend.app.utils.client_ip import request_client_ip
+from backend.app.utils.client_ip import limit_client_ip, request_client_ip
+from backend.app.services.captcha import challenge as captcha_challenge
+from backend.app.services.captcha.mode import captcha_enabled, required_by
+from backend.app.services.internal_fields import mark_captcha_required
 
 from backend.app.container import container
 from backend.app.services.ai.chat import FormAIChatRequest, FormAIChatResponse
@@ -187,6 +190,42 @@ def _parse_form_body(form_body: str) -> StandardForm:
             content=reasons or "The form is not valid.",
         )
 
+
+
+async def _require_captcha(
+    request: Request,
+    workspace_id: RecordId,
+    form_id: RecordId,
+    signed_in: bool = False,
+) -> Optional[str]:
+    """Check the ``X-BC-Captcha`` proof of a respondent's submit, when the
+    server switch is on and the form asks for it (the form's own setting, on
+    unless the creator turned it off). Returns the form's id while the switch
+    is on, else None. Off: the header is not even read."""
+    if not captcha_enabled():
+        return None
+    link = getattr(request.state, "form_link", None)
+    if link is None:
+        # a lookup that fails is not "no such form": it must not skip the
+        # check, so an error here is the submit's error (503 or the
+        # repository's own), never a pass
+        link = await container.workspace_form_repo().get_workspace_form_in_workspace(
+            workspace_id=workspace_id, query=str(form_id)
+        )
+    if link is None:
+        # no such form here: the submit answers as it always did
+        return None
+    canonical = str(link.form_id)
+    if required_by(link.settings):
+        await container.captcha_service().require(
+            request.headers.get(captcha_challenge.HEADER),
+            purpose="submit",
+            workspace_id=workspace_id,
+            form_id=canonical,
+            client=limit_client_ip(request),
+            signed_in=signed_in,
+        )
+    return canonical
 
 @router(
     prefix="/workspaces/{workspace_id}/forms",
@@ -484,6 +523,9 @@ class WorkspaceFormsRouter(Routable):
                     form["aiNoticeToken"] = token
                 else:
                     form.ai_notice_token = token
+            # A member answering their own published form is asked for the
+            # automatic spam check's proof like anyone (respondents have it set)
+            mark_captcha_required(form)
             # The questions whose answers may be offered as choices in other
             # forms show a notice; the token proves which, on submit.
             share_token = _share_notice_token(workspace_id, form)
@@ -693,6 +735,11 @@ class WorkspaceFormsRouter(Routable):
         draft_key: Optional[str] = Form(None, max_length=100),
         user: User = Depends(get_user_if_logged_in),
     ):
+        # the proof of work (CAPTCHA_ENABLED), before anything is read or
+        # stored: this route only, never the submissions API
+        captcha_form = await _require_captcha(
+            request, workspace_id, form_id, signed_in=user is not None
+        )
         form_files = None
         if files and file_field_ids and file_ids:
             _check_file_ids(file_ids)
@@ -722,6 +769,9 @@ class WorkspaceFormsRouter(Routable):
             # who a drawn signature is counted against (services/signatures.py)
             client_ip=request_client_ip(request),
         )
+        if captcha_form is not None:
+            # a stored response raises the difficulty asked of the next ones
+            container.captcha_service().note_submit(captcha_form)
         if user is not None or draft_key:
             # the submission is stored: its draft goes (never fails the submit)
             await container.form_draft_service().delete_after_submit(

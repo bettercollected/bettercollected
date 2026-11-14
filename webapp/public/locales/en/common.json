@@ -399,6 +399,10 @@
         "NOTE": "Leave empty for no limit. Editing a response is not affected.",
         "INVALID": "Enter a whole number from 1 to {{max}}."
       },
+      "CAPTCHA": {
+        "TITLE": "Spam protection (automatic, no puzzle)",
+        "DESCRIPTION": "Respondents solve nothing; their browser does a small calculation."
+      },
       "SAVE_DRAFT": {
         "TITLE": "Let respondents save and continue later",
         "DESCRIPTION": "Respondents can save what they typed and finish later: signed-in ones from their account, others with a link sent to the address they enter. Drafts are encrypted, kept apart from the responses and not visible to you until the form is submitted. Turning this off stops saving and opening drafts, and they are deleted within a day.",

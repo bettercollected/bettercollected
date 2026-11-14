@@ -41,6 +41,10 @@ class SettingsPatchDto(CamelModel):
     # days (services/form_drafts/limits.py).
     allow_save_draft: Optional[bool] = None
     draft_retention_days: Optional[int] = None
+    # The automatic spam check on this form's response submit: None leaves it,
+    # false turns it off, true puts it back on (422 captcha_disabled while
+    # CAPTCHA_ENABLED is off).
+    captcha_enabled: Optional[bool] = None
     show_original_form: Optional[bool] = None
     privacy_policy_url: Optional[str] = None
     purpose: Optional[str] = None

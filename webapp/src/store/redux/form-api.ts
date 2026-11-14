@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
 import { FormOutline } from '@app/utils/ai-outline';
+import { CaptchaChallenge } from '@app/utils/captcha/solver-core';
 
 export interface BuildFromOutlineResponse {
     formId: string;
@@ -80,7 +81,17 @@ export const formsApi = createApi({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/${request.formId}/response`,
                 method: 'POST',
-                body: request.body
+                body: request.body,
+                // the automatic spam check's proof (utils/captcha), when the form asks for one
+                headers: request.headers
+            })
+        }),
+        // A challenge for the automatic spam check on a response: stateless, nothing stored, no cookie.
+        issueCaptchaChallenge: builder.mutation<CaptchaChallenge, { workspaceId: string; formId: string }>({
+            query: ({ workspaceId, formId }) => ({
+                url: `/workspaces/${workspaceId}/captcha/challenge`,
+                method: 'POST',
+                body: { purpose: 'submit', formId }
             })
         }),
         // One anonymous navigation step for drop-off analytics (no answers, no identity).
@@ -193,6 +204,7 @@ export const {
     useLazyGetPublishedFormQuery,
     useSubmitResponseMutation,
     useSendFlowEventMutation,
+    useIssueCaptchaChallengeMutation,
     useGetFlowAnalyticsQuery,
     useLazyLogOutQuery,
     useCreateFormWithAIMutation,

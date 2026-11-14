@@ -1,0 +1,1 @@
+- The shared Python package now requires dnspython 2.9.2 or later, which fixes a memory and CPU exhaustion in the zone-file text parser (GHSA-vvf4-9x63-8xvv). bettercollected only reads DNS answers in wire format for TXT checks, so earlier releases were not exposed. The shared package now needs Python 3.11, like every service that uses it.

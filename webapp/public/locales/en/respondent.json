@@ -23,6 +23,8 @@
         "ADDRESS": "Address lookup",
         "ADDRESS_DETAIL": "To fill in your street and city, we send your postcode and house number to the PDOK Locatieserver address service. Your browser and IP address are not shared with it, and nothing else is sent.",
         "ADDRESS_DETAIL_PREVIEW": "In the published form, if the address lookup is switched on, your postcode and house number are sent to the PDOK Locatieserver address service to fill in your street and city. This preview looks nothing up and sends nothing.",
+        "CAPTCHA": "Spam check",
+        "CAPTCHA_DETAIL": "To keep out automated spam, your browser does a small calculation in the background. It uses no cookies, and nothing about you is stored or shared for it.",
         "DRAFTS": "Saved drafts",
         "DRAFTS_DETAIL_one": "If you save and continue later, your draft is kept encrypted for {{count}} day after your last save, and deleted within a day after that. The form owner cannot see it until you submit. If you ask for a link, your email address is not stored with the draft: it is used to send the message, which the mail service that delivers it handles.",
         "DRAFTS_DETAIL_other": "If you save and continue later, your draft is kept encrypted for {{count}} days after your last save, and deleted within a day after that. The form owner cannot see it until you submit. If you ask for a link, your email address is not stored with the draft: it is used to send the message, which the mail service that delivers it handles.",
@@ -66,6 +68,8 @@
         "SUBMIT_CLOSED": "This form closed before your response was sent. Your answers were not sent.",
         "SUBMIT_NOT_OPEN": "This form is not open yet, so your response was not sent. Your answers were not sent.",
         "SUBMIT_FULL": "This form received all the responses it accepts before yours was sent. Your answers were not sent.",
+        "CAPTCHA_WAITING": "Almost ready to send...",
+        "CAPTCHA_FAILED": "The automatic spam check did not work in this browser. Try again, sign in, or use another browser.",
         "SUBMIT_RATE_LIMITED": "Too many responses were sent from here just now. Your answers are kept and were not sent. Please wait a minute and try again."
     },
     "LAYOUT": {
