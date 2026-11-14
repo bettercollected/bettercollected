@@ -41,9 +41,10 @@ from common.settings.loader import live
 
 CLAIM_SCOPE = "captcha-nonce"
 UNKNOWN = "unknown"
-# a family behind one address: this many challenges in ten minutes are free
-FREE_ISSUES = 6
-MAX_ISSUE_PRESSURE = 3
+# many people behind one address (an office, a school): this many challenges in
+# ten minutes are free
+FREE_ISSUES = 30
+MAX_ISSUE_PRESSURE = 2
 FAILURES_FOR_PRESSURE = 3
 FAILURE_PRESSURE = 2
 # submits per minute on one form (this process) that add a bit, and two
@@ -52,7 +53,7 @@ FORM_VERY_BUSY = 120
 MAX_PRESSURE = 4
 SIGNED_IN_DISCOUNT = 3
 # challenge requests per minute per client and purpose
-CHALLENGES_PER_MINUTE = 60
+CHALLENGES_PER_MINUTE = 300
 
 _MESSAGES = {
     challenge.MISSING: "The automatic spam check is missing from this request.",

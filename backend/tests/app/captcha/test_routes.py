@@ -262,9 +262,10 @@ async def test_the_permissions_answer_says_the_switch_is_on(
 
 async def test_the_challenge_route_is_limited_per_client(client, workspace):
     form = await a_form(workspace)
+    assert CHALLENGES_PER_MINUTE == 300
     for _ in range(CHALLENGES_PER_MINUTE):
         assert (await ask(client, workspace, form)).status_code == 200
-    limited = await ask(client, workspace, form)
+    limited = await ask(client, workspace, form)  # the 301st
     assert limited.status_code == 429 and limited.json()["code"] == "rate_limited"
     assert int(limited.headers["Retry-After"]) >= 1
     assert (await ask(client, workspace, form, BOB)).status_code == 200

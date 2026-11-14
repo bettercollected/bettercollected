@@ -19,7 +19,9 @@ from typing import Callable, Deque, Tuple
 
 WINDOW = 600  # seconds the per-client counters look back
 MAX_KEYS = 20_000
-MAX_STAMPS = 256
+# above the challenge route's 300 a minute: with fewer kept stamps that count
+# could never be reached and the limit would not hold
+MAX_STAMPS = 512
 
 
 class _Stamps:

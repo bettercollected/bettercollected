@@ -233,17 +233,46 @@ def test_pressure_adds_bits_and_the_total_stops_at_the_ceiling(monkeypatch):
     monkeypatch.setattr(settings.api_settings, "CAPTCHA_BASE_BITS_SUBMIT", 17)
     s = service()
     client = "203.0.113.7"
-    seen = [s.difficulty(client, F, False) for _ in range(40)]
-    assert seen[:6] == [17] * 6  # a family behind one address is free
-    assert seen[6] == 18 and max(seen) == 20  # +1 per doubling, at most +3
+    seen = [s.difficulty(client, F, False) for _ in range(300)]
+    assert seen[:30] == [17] * 30  # an office or a school behind one address is free
+    assert seen[30] == 18 and max(seen) == 19  # +1 per doubling, at most +2
     for _ in range(3):
         s.pressure.failed(client)
-    assert s.difficulty(client, F, False) == 20  # +2 for failures, capped at +4
+    assert s.difficulty(client, F, False) == 20  # 2 for issues and 2 for failures
     monkeypatch.setattr(settings.api_settings, "CAPTCHA_DIFFICULTY_BOOST", 4)
     for _ in range(300):
         s.pressure.submitted(F)
     assert s.difficulty(client, F, False) == 20
     assert ch.MAX_BITS == 20 and ch.MIN_BITS == 14
+
+
+def test_issue_pressure_starts_after_thirty_and_doubles_from_there(monkeypatch):
+    from backend.app.services.captcha import service as svc
+
+    assert (svc.FREE_ISSUES, svc.MAX_ISSUE_PRESSURE) == (30, 2)
+    monkeypatch.setattr(settings.api_settings, "CAPTCHA_BASE_BITS_SUBMIT", 17)
+    s = service()
+    client = "203.0.113.7"
+    seen = [s.difficulty(client, F, False) for _ in range(61)]
+    assert seen[:30] == [17] * 30  # the 30th challenge is still free
+    assert seen[30] == 18  # the 31st is the first with pressure
+    assert seen[59] == 18  # up to 60 (one doubling) it stays at +1
+    assert seen[60] == 19  # the 61st is past the second doubling
+
+
+def test_issue_pressure_never_adds_more_than_two_bits(monkeypatch):
+    monkeypatch.setattr(settings.api_settings, "CAPTCHA_BASE_BITS_SUBMIT", 14)
+    s = service()
+    client = "203.0.113.7"
+    # far past every doubling the kept stamps can count: 500 challenges
+    seen = [s.difficulty(client, F, False) for _ in range(500)]
+    assert max(seen) == 16 and seen[-1] == 16
+    # failures and the form's rate are separate and unchanged; all together stop at +4
+    for _ in range(3):
+        s.pressure.failed(client)
+    for _ in range(300):
+        s.pressure.submitted(F)
+    assert s.difficulty(client, F, False) == 18
 
 
 def test_a_busy_form_and_the_operator_boost_raise_it(monkeypatch):
@@ -279,19 +308,43 @@ def test_the_pressure_memory_is_bounded(monkeypatch):
 
 def test_the_pressure_stamps_stay_bounded_for_one_busy_client():
     from backend.app.services.captcha import pressure
+    from backend.app.services.captcha.service import CHALLENGES_PER_MINUTE
 
     now = [1_000.0]
     p = Pressure(clock=lambda: now[0])
-    assert pressure.MAX_STAMPS == 256
-    # a client at the route's limit (60 a minute) for two hours
+    assert pressure.MAX_STAMPS == 512
+    # a client at the route's limit (300 a minute) for two hours
     for _ in range(2 * 60):
-        for _ in range(60):
+        for _ in range(CHALLENGES_PER_MINUTE):
             p.issued("203.0.113.7")
         now[0] += 60
     stamps = p._issued._keys["203.0.113.7"]
     assert len(stamps) <= pressure.MAX_STAMPS
     # nothing older than the longest window survives the next add
     assert min(stamps) > now[0] - pressure.WINDOW - 60
+
+
+def test_the_challenge_limit_can_be_reached_and_refuses_the_next_one():
+    from backend.app.services.captcha import pressure
+    from backend.app.services.captcha.service import CHALLENGES_PER_MINUTE
+
+    # the kept stamps must hold a whole minute at the limit, or the count
+    # would stop short of it and nothing would ever be refused
+    assert CHALLENGES_PER_MINUTE == 300
+    assert pressure.MAX_STAMPS > CHALLENGES_PER_MINUTE
+    now = [1_000.0]
+    p = Pressure(clock=lambda: now[0])
+    for n in range(CHALLENGES_PER_MINUTE):
+        assert p.ask("203.0.113.7", "submit", CHALLENGES_PER_MINUTE) == (True, 0), n
+        now[0] += 0.1  # 300 within 30 seconds
+    allowed, wait = p.ask("203.0.113.7", "submit", CHALLENGES_PER_MINUTE)  # the 301st
+    assert allowed is False and wait >= 1
+    # per client and per purpose
+    assert p.ask("198.51.100.23", "submit", CHALLENGES_PER_MINUTE) == (True, 0)
+    assert p.ask("203.0.113.7", "mail", CHALLENGES_PER_MINUTE) == (True, 0)
+    # a refused request is not counted, and the minute lets the client in again
+    now[0] += 61
+    assert p.ask("203.0.113.7", "submit", CHALLENGES_PER_MINUTE) == (True, 0)
 
 
 def test_stamps_older_than_the_window_are_dropped_when_the_key_is_added_to():
