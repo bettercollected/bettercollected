@@ -4,8 +4,10 @@ fails a lot, the submit rate of a form, and the coarse limit on the challenge
 route itself.
 
 Bounded: at most ``MAX_KEYS`` keys (least recently used dropped first) and
-``MAX_STAMPS`` timestamps per key, so a flood of distinct clients cannot
-exhaust memory. Per process by design (a restart or another replica starts
+``MAX_STAMPS`` timestamps per key, and a stamp older than the longest window
+anything looks back over (``WINDOW``) is dropped whenever its key is added to
+(and a key with none left, once it is the least recently used),
+so a flood of distinct clients cannot exhaust memory. Per process by design (a restart or another replica starts
 from zero): this tunes difficulty, it is not a limit anyone relies on.
 Nothing here stores a readable address beyond the limiter's client key (an
 IPv4 address or an IPv6 /48), and that lives in memory only.
@@ -17,7 +19,7 @@ from typing import Callable, Deque, Tuple
 
 WINDOW = 600  # seconds the per-client counters look back
 MAX_KEYS = 20_000
-MAX_STAMPS = 1_000
+MAX_STAMPS = 256
 
 
 class _Stamps:
@@ -30,9 +32,17 @@ class _Stamps:
         stamps = self._keys.pop(key, None)
         if stamps is None:
             stamps = deque(maxlen=MAX_STAMPS)
+        # nothing looks further back than WINDOW: an older stamp only costs memory
+        while stamps and stamps[0] <= now - WINDOW:
+            stamps.popleft()
         stamps.append(now)
         self._keys[key] = stamps
-        while len(self._keys) > MAX_KEYS:
+        # least recently touched first: drop the keys with nothing left inside
+        # the window, then any beyond the cap
+        while self._keys:
+            oldest = next(iter(self._keys.values()))
+            if len(self._keys) <= MAX_KEYS and oldest[-1] > now - WINDOW:
+                break
             self._keys.popitem(last=False)
 
     def inside(self, key: str, window: float) -> list:

@@ -1,9 +1,9 @@
 // The proofs of one form in memory: solved after the first interaction, single
-// use, the next one right after each, a stale one replaced, and a refused one
-// replaced by a fresh challenge.
+// use, nothing solved ahead after a take or on a timer, a stale one replaced, a
+// refused one replaced by a fresh challenge, and a hanging challenge request cut off.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CaptchaPass, REFRESH_AFTER_MS, SLOW_AFTER_MS } from './captcha-pass';
+import { CaptchaPass, FETCH_TIMEOUT_MS, REFRESH_AFTER_MS, SLOW_AFTER_MS } from './captcha-pass';
 import { CaptchaUnavailable } from './solve';
 
 const challenge = (n: number) => ({ challenge: `c${n}`, algorithm: 'sha256-lz', bits: 14, subpuzzles: 8, expiresAt: 0 });
@@ -31,15 +31,17 @@ describe('the proofs of a form', () => {
         expect(pass.busy).toBe(true);
     });
 
-    it('hands out a finished proof once and starts the next straight after', async () => {
+    it('hands out a finished proof once and solves nothing ahead after it', async () => {
         const { pass, fetcher } = setup();
         pass.warm(fetcher);
         await settle();
         expect(await pass.take(fetcher)).toBe('proof-of-c1');
         await settle();
-        expect(fetcher).toHaveBeenCalledTimes(2);
-        // a second take gets the next one, never the spent one
+        expect(fetcher).toHaveBeenCalledTimes(1);
+        expect(pass.busy).toBe(false);
+        // a second take solves a new one, never the spent one
         expect(await pass.take(fetcher)).toBe('proof-of-c2');
+        expect(fetcher).toHaveBeenCalledTimes(2);
     });
 
     it('solves on the spot when nothing was started, and waits for one on its way', async () => {
@@ -60,14 +62,27 @@ describe('the proofs of a form', () => {
         expect(fetcher.mock.calls.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('re-solves in the background when an unused proof reaches that age', async () => {
+    it('does no work on a timer: an idle tab asks for nothing more', async () => {
         vi.useFakeTimers();
         const { pass, fetcher } = setup();
         pass.warm(fetcher);
         await vi.advanceTimersByTimeAsync(10);
         expect(fetcher).toHaveBeenCalledTimes(1);
-        await vi.advanceTimersByTimeAsync(REFRESH_AFTER_MS + 10);
-        expect(fetcher).toHaveBeenCalledTimes(2);
+        await vi.advanceTimersByTimeAsync(3 * REFRESH_AFTER_MS);
+        expect(fetcher).toHaveBeenCalledTimes(1);
+    });
+
+    it('cuts off a challenge request that hangs, and the next ask is not stuck behind it', async () => {
+        vi.useFakeTimers();
+        const { pass, solve } = setup();
+        const hanging = vi.fn(() => new Promise<never>(() => {}));
+        const first = pass.take(hanging);
+        const settled = expect(first).rejects.toBeInstanceOf(CaptchaUnavailable);
+        await vi.advanceTimersByTimeAsync(FETCH_TIMEOUT_MS + 10);
+        await settled;
+        const working = vi.fn(async () => challenge(1));
+        expect(await pass.take(working)).toBe('proof-of-c1');
+        expect(solve).toHaveBeenCalledTimes(1);
     });
 
     it('drops what is held for a fresh challenge when asked (a refused proof, a network that changed)', async () => {

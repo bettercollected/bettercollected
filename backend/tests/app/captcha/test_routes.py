@@ -10,6 +10,7 @@ from backend.app.services.captcha import challenge as ch
 from backend.app.services.captcha.service import CHALLENGES_PER_MINUTE
 from backend.config import settings
 from backend.db.models import RateLimitCounterRow
+from tests.app.controllers.data import testUser1
 from tests.app.captcha.conftest import (
     ALICE,
     BOB,
@@ -64,15 +65,39 @@ async def test_the_route_answers_for_an_unknown_form_and_a_bad_purpose(
         assert refused.status_code == 422
 
 
-async def test_a_private_form_gets_no_challenge(client, workspace):
-    form = await a_form(workspace)
+async def _make_private(workspace, form):
     link = await container.workspace_form_repo().find_workspace_form(
         workspace.id, form.form_id
     )
     link.settings.private = True
     await container.workspace_form_repo().update(link.id, link)
-    refused = await ask(client, workspace, form)
-    assert refused.status_code == 404 and refused.json()["code"] == "form_not_found"
+
+
+async def test_a_private_form_gets_a_challenge_only_for_those_who_may_answer_it(
+    client, workspace
+):
+    form = await a_form(workspace)
+    await _make_private(workspace, form)
+    # anonymous, or signed in without a responder group of this workspace: as
+    # unknown as the submit makes it
+    for cookies in (None, signed_in()):
+        refused = await ask(client, workspace, form, cookies=cookies)
+        assert refused.status_code == 404 and refused.json()["code"] == "form_not_found"
+    # admitted by a responder group, the respondent is asked for a proof like
+    # for any form, and the submit that carries it is stored
+    groups = container.responder_groups_repository()
+    group = await groups.create_group(workspace.id, "Members")
+    await groups.add_emails_to_group(group.id, [testUser1.sub])
+    await groups.add_group_to_form(str(form.form_id), group.id)
+    answer = await ask(client, workspace, form, cookies=signed_in())
+    assert answer.status_code == 200, answer.text
+    text = answer.json()["challenge"]
+    sent = await submit(
+        client, workspace, form, ch.proof(text, ch.solve(text)), cookies=signed_in()
+    )
+    assert sent.status_code == 200, sent.text
+    # still nothing for an anonymous respondent
+    assert (await ask(client, workspace, form)).status_code == 404
 
 
 async def test_a_solved_proof_submits_once_and_a_replay_is_refused(
@@ -313,3 +338,86 @@ async def test_a_spent_nonce_is_stored_hashed(client, workspace):
 async def _rows():
     async with container.pg_engine().connect() as conn:
         return (await conn.execute(select(RateLimitCounterRow))).all()
+
+
+async def test_the_signed_in_discount_is_good_only_for_a_signed_in_submit(
+    client, workspace, claims, monkeypatch
+):
+    form = await a_form(workspace)
+    monkeypatch.setattr(settings.api_settings, "CAPTCHA_BASE_BITS_SUBMIT", 18)
+    answer = await ask(client, workspace, form, BOB, signed_in())
+    assert answer.json()["bits"] == 15
+    text = answer.json()["challenge"]
+    assert ch.unverified_claims(text)["s"] == 1
+    proof = ch.proof(text, ch.solve(text))
+    # fetched while signed in, sent anonymously: refused, and not spent
+    anonymous = await submit(client, workspace, form, proof, headers=BOB)
+    assert anonymous.status_code == 422
+    assert anonymous.json()["code"] == "captcha_invalid"
+    assert claims == []
+    # the same proof from the signed-in respondent is good, once
+    member = await submit(client, workspace, form, proof, BOB, signed_in())
+    assert member.status_code == 200, member.text
+    assert claims == ["captcha-nonce"]
+
+
+async def test_a_full_price_proof_needs_no_session(client, workspace, monkeypatch):
+    form = await a_form(workspace)
+    answer = await ask(client, workspace, form)
+    text = answer.json()["challenge"]
+    assert "s" not in ch.unverified_claims(text)
+    proof = ch.proof(text, ch.solve(text))
+    # a signed-in submit with a full-price proof is fine
+    assert (
+        await submit(client, workspace, form, proof, cookies=signed_in())
+    ).status_code == 200
+    # and a floor-priced challenge (no discount given) never claims one
+    monkeypatch.setattr(settings.api_settings, "CAPTCHA_BASE_BITS_SUBMIT", 14)
+    floor = await ask(client, workspace, form, BOB, signed_in())
+    assert floor.json()["bits"] == 14
+    assert "s" not in ch.unverified_claims(floor.json()["challenge"])
+
+
+async def test_a_spent_nonce_is_remembered_past_the_accept_window(
+    client, workspace, monkeypatch
+):
+    form = await a_form(workspace)
+    proof = await solved(client, workspace, form)
+    expires = ch.unverified_claims(proof.rsplit(".", 1)[0])["e"]
+    limiter = container.rate_limiter()
+    real = limiter.claim
+    kept = []
+
+    async def spy(scope, key, expires_at):
+        kept.append(expires_at)
+        return await real(scope, key, expires_at)
+
+    monkeypatch.setattr(limiter, "claim", spy)
+    assert (await submit(client, workspace, form, proof)).status_code == 200
+    accepted_until = dt.datetime.fromtimestamp(
+        expires / 1000, dt.timezone.utc
+    ) + dt.timedelta(seconds=60)
+    assert kept and kept[0] >= accepted_until + dt.timedelta(minutes=5)
+
+
+async def test_a_failed_form_lookup_does_not_skip_the_check(
+    client, workspace, monkeypatch
+):
+    from backend.app.exceptions import HTTPException
+
+    form = await a_form(workspace)
+    repo = container.workspace_form_repo()
+
+    async def broken(*args, **kwargs):
+        raise HTTPException(status_code=500, content="database")
+
+    monkeypatch.setattr(repo, "get_workspace_form_in_workspace", broken)
+    # no proof, and no usable proof either: neither gets through a lookup error
+    sent = await submit(client, workspace, form)
+    assert sent.status_code == 500
+    assert (
+        await container.form_response_service().get_responses_count_in_workspace(
+            workspace.id, [str(form.form_id)]
+        )
+        == 0
+    )

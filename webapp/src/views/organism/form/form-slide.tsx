@@ -184,7 +184,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const workspace = useAppSelector(selectWorkspace);
     const authState = useAppSelector(selectAuth);
     // Sending the form (here on the last page, or from the review page), and what shows when it fails.
-    const { finishForm, isLoading, submitError, setSubmitError, effectiveAnonymize, captchaWaiting, captchaRequired } = useFinishForm(isPreviewMode);
+    const { finishForm, isLoading, submitError, setSubmitError, effectiveAnonymize, captchaPreparing, captchaWaiting, captchaShown } = useFinishForm(isPreviewMode);
     const emitFlow = useEmitFlow(isPreviewMode);
     const focusProblem = useFocusProblem();
     // With a review page the form is not sent from here: the last page goes on to the review.
@@ -438,6 +438,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                 }
                                 variant={backToReviewOffered ? 'ghost' : undefined}
                                 isLoading={isLoading}
+                                busy={captchaPreparing}
                                 aria-busy={captchaWaiting || undefined}
                                 className={cn('form-button min-h-12 px-8 py-3 text-base font-semibold', backToReviewOffered && 'border-2 bg-transparent', leaflet ? 'rounded-[4px]' : 'rounded-[8px]')}
                                 onClick={onNext}
@@ -449,7 +450,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         {/* "Save and continue later", when the form lets respondents (not in the builder's preview). */}
                         {!isPreviewMode && <SaveDraftControl ink={leaflet ? leafletHeaderInk : standardForm?.theme?.primary} />}
                         {/* While the automatic spam check is still being calculated (after 1.5 s), a polite message. */}
-                        {captchaRequired && <CaptchaStatus waiting={captchaWaiting} />}
+                        {captchaShown && <CaptchaStatus waiting={captchaWaiting} />}
                         {/* Stays until the next attempt; the toast alone is gone in a moment. */}
                         {submitError && (
                             <p role="alert" className="text-[15px] leading-relaxed font-medium text-[#B42318]" lang={language}>

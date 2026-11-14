@@ -7,8 +7,8 @@ way ``services/ai/notice_token.py`` does it: the first member signs, every
 member verifies, so a key rotation drops nothing; the label makes a challenge
 never a valid JWT signature and the other way round). It states, and the
 signature binds: the purpose, the workspace, the form, an expiry, a random
-nonce, the difficulty, and a day-salted tag of the client's network (empty when
-the client is not known).
+nonce, the difficulty, whether the signed-in discount was given (``s``) and a
+day-salted tag of the client's network (empty when the client is not known).
 
 The work: find ``SUBPUZZLES`` counters ``c_i`` such that
 ``SHA256(challenge ":" i ":" c_i)`` starts with at least ``bits - 3`` zero bits.
@@ -46,6 +46,10 @@ MAX_BITS = 20
 TTL = dt.timedelta(minutes=15)
 # a challenge is still accepted this long after it expired (clocks, a slow request)
 EXPIRY_SKEW = dt.timedelta(seconds=60)
+# a spent nonce is remembered this long past the accept window: replicas'
+# clocks differ, and one that runs behind still accepts a proof the others
+# no longer do
+CLAIM_MARGIN = dt.timedelta(minutes=5)
 MAX_HEADER_LENGTH = 1024
 MAX_COUNTER_DIGITS = 12
 TAG_BYTES = 8
@@ -77,6 +81,8 @@ class Claims:
     expires_ms: int
     day: int
     tag: str
+    # issued at the signed-in difficulty: good only for a signed-in submit
+    discounted: bool = False
 
 
 def _keys() -> List[bytes]:
@@ -136,11 +142,14 @@ def issue(
     form_id,
     bits: int,
     client: str,
+    discounted: bool = False,
     nonce: Optional[bytes] = None,
     now: Optional[dt.datetime] = None,
 ) -> Optional[str]:
     """A signed challenge, or None when the server has no secret to sign it
-    with. ``client`` is the limiter's client key, or "" when it is not known."""
+    with. ``client`` is the limiter's client key, or "" when it is not known.
+    ``discounted``: the difficulty was lowered for a signed-in respondent; the
+    proof is then good only for a submit made while signed in."""
     keys = _keys()
     if not keys:
         return None
@@ -159,6 +168,8 @@ def issue(
         "t": ip_tag(keys[0], day, client),
         "e": _ms(issued + TTL),
     }
+    if discounted:
+        claims["s"] = 1
     payload = _b64(json.dumps(claims, separators=(",", ":")).encode("utf-8"))
     return f"{payload}.{_sign(keys[0], payload)}"
 
@@ -169,10 +180,12 @@ def _random(size: int) -> bytes:
 
 def expires_at(claims: Claims) -> dt.datetime:
     """How long a spent nonce must be remembered: until the challenge could no
-    longer be accepted."""
+    longer be accepted by any replica, whatever its clock (the accept window
+    plus ``CLAIM_MARGIN``)."""
     return (
         dt.datetime.fromtimestamp(claims.expires_ms / 1000, dt.timezone.utc)
         + EXPIRY_SKEW
+        + CLAIM_MARGIN
     )
 
 
@@ -285,6 +298,9 @@ def _parse(payload: str) -> Claims:
         for text in ("p", "w", "f", "n", "t"):
             if not isinstance(raw[text], str):
                 raise ValueError
+        discounted = raw.get("s", 0)
+        if discounted not in (0, 1) or isinstance(discounted, bool):
+            raise ValueError
         # the signature makes these ours; a value outside the range is a bug
         # or an old server's, never a cheaper proof
         if not MIN_BITS <= bits <= MAX_BITS:
@@ -298,6 +314,7 @@ def _parse(payload: str) -> Claims:
             expires_ms=expires,
             day=day,
             tag=raw["t"],
+            discounted=discounted == 1,
         )
     except (ValueError, TypeError, KeyError, UnicodeError):
         raise Refused(INVALID)

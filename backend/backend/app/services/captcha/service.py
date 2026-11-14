@@ -2,7 +2,8 @@
 
 ``CaptchaService.issue`` signs a challenge whose difficulty is the base for the
 purpose plus the pressure this process has seen, less three bits for a
-signed-in respondent (floor 14, never above 20). ``CaptchaService.require``
+signed-in respondent (floor 14, never above 20; the signed challenge says so
+and a proof issued at that difficulty is accepted only on a signed-in submit). ``CaptchaService.require``
 checks a proof: every check that needs only memory comes first
 (``challenge.check``), and the one write, the single-use claim of the nonce
 through ``FixedWindowRateLimiter.claim``, comes last, so a flood of junk
@@ -22,7 +23,7 @@ import hashlib
 import math
 import time
 from http import HTTPStatus
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 
 from loguru import logger
 
@@ -92,6 +93,12 @@ class CaptchaService:
     ) -> int:
         """The bits to ask of this client now. ``client`` is "" when unknown
         (no per-client pressure then). ``count`` registers this issue."""
+        return self._difficulty(client, form_id, signed_in, count)[0]
+
+    def _difficulty(
+        self, client: str, form_id: str, signed_in: bool, count: bool = True
+    ) -> Tuple[int, bool]:
+        """``(bits, whether the signed-in discount lowered them)``."""
         api = live().api
         extra = int(api.CAPTCHA_DIFFICULTY_BOOST)
         if client:
@@ -111,9 +118,13 @@ class CaptchaService:
             challenge.MAX_BITS,
             int(api.CAPTCHA_BASE_BITS_SUBMIT) + min(extra, MAX_PRESSURE),
         )
-        if signed_in:
-            bits -= SIGNED_IN_DISCOUNT
-        return max(challenge.MIN_BITS, min(challenge.MAX_BITS, bits))
+        full = max(challenge.MIN_BITS, min(challenge.MAX_BITS, bits))
+        if not signed_in:
+            return full, False
+        lowered = max(
+            challenge.MIN_BITS, min(challenge.MAX_BITS, bits - SIGNED_IN_DISCOUNT)
+        )
+        return lowered, lowered < full
 
     # -- the challenge route
 
@@ -141,13 +152,14 @@ class CaptchaService:
         """A challenge for the response body, or None when the server cannot
         sign (no secret)."""
         tag = _tag_client(client)
-        bits = self.difficulty(tag, str(form_id), signed_in)
+        bits, discounted = self._difficulty(tag, str(form_id), signed_in)
         text = challenge.issue(
             purpose=purpose,
             workspace_id=workspace_id,
             form_id=form_id,
             bits=bits,
             client=tag,
+            discounted=discounted,
         )
         if text is None:
             return None
@@ -171,11 +183,15 @@ class CaptchaService:
         workspace_id,
         form_id,
         client: Optional[str],
+        signed_in: bool = False,
     ) -> None:
         """Pass when ``header`` is a valid, unspent proof for this request;
         else raise 422 with ``captcha_missing`` / ``captcha_invalid`` /
         ``captcha_expired`` / ``captcha_replayed``. Nothing was stored for a
-        request refused here."""
+        request refused here. A proof issued at the signed-in difficulty
+        (claim ``s``) is refused as ``captcha_invalid``, before its nonce is
+        claimed, unless ``signed_in``: the discount is for the submit it was
+        given for, not for an anonymous one."""
         tag = _tag_client(client)
         try:
             claims = challenge.check(
@@ -190,6 +206,11 @@ class CaptchaService:
             if refused.code == challenge.INVALID and tag:
                 self.pressure.failed(tag)
             raise refusal(refused.code)
+        if claims.discounted and not signed_in:
+            self._outcome(challenge.INVALID, purpose)
+            if tag:
+                self.pressure.failed(tag)
+            raise refusal(challenge.INVALID)
         spent = hashlib.sha256(claims.nonce.encode("ascii", "ignore")).hexdigest()
         # the one write, last: the first caller of a nonce wins, on any replica
         if not await self._limiter.claim(

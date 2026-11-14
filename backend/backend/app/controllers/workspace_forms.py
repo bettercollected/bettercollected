@@ -193,7 +193,10 @@ def _parse_form_body(form_body: str) -> StandardForm:
 
 
 async def _require_captcha(
-    request: Request, workspace_id: RecordId, form_id: RecordId
+    request: Request,
+    workspace_id: RecordId,
+    form_id: RecordId,
+    signed_in: bool = False,
 ) -> Optional[str]:
     """Check the ``X-BC-Captcha`` proof of a respondent's submit, when the
     server switch is on and the form asks for it (the form's own setting, on
@@ -203,12 +206,12 @@ async def _require_captcha(
         return None
     link = getattr(request.state, "form_link", None)
     if link is None:
-        try:
-            link = await container.workspace_form_repo().get_workspace_form_in_workspace(
-                workspace_id=workspace_id, query=str(form_id)
-            )
-        except HTTPException:
-            link = None
+        # a lookup that fails is not "no such form": it must not skip the
+        # check, so an error here is the submit's error (503 or the
+        # repository's own), never a pass
+        link = await container.workspace_form_repo().get_workspace_form_in_workspace(
+            workspace_id=workspace_id, query=str(form_id)
+        )
     if link is None:
         # no such form here: the submit answers as it always did
         return None
@@ -220,6 +223,7 @@ async def _require_captcha(
             workspace_id=workspace_id,
             form_id=canonical,
             client=limit_client_ip(request),
+            signed_in=signed_in,
         )
     return canonical
 
@@ -733,7 +737,9 @@ class WorkspaceFormsRouter(Routable):
     ):
         # the proof of work (CAPTCHA_ENABLED), before anything is read or
         # stored: this route only, never the submissions API
-        captcha_form = await _require_captcha(request, workspace_id, form_id)
+        captcha_form = await _require_captcha(
+            request, workspace_id, form_id, signed_in=user is not None
+        )
         form_files = None
         if files and file_field_ids and file_ids:
             _check_file_ids(file_ids)

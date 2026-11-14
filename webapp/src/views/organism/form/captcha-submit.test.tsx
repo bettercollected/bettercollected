@@ -1,8 +1,10 @@
 // The automatic spam check on the respondent's submit: the calculation starts
 // after the first interaction (never on load, never in preview), the proof goes
 // in the X-BC-Captcha header, a refused proof is replaced once and a network
-// error never retried, the wait is announced politely after 1.5 s, and the
-// failure says what to do. English and Dutch.
+// error never retried, a retry takes a proof even when the page loaded without
+// the requirement, nothing is solved ahead after a submit, the wait is announced
+// politely after 1.5 s with the button staying focusable, and the failure says
+// what to do. English and Dutch.
 import React from 'react';
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
@@ -109,9 +111,35 @@ describe('the automatic spam check on submit', () => {
         await send('en');
         expect(submit).toHaveBeenCalledTimes(1);
         expect(header(0)).toMatch(/^proof-c\d$/);
-        // the next proof is solved in the background straight after
+        // nothing is solved ahead after it: one challenge for one submit
         await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
-        expect(issue.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(issue).toHaveBeenCalledTimes(1);
+    });
+
+    it('takes a proof on the retry even when the page loaded without the requirement', async () => {
+        // the check was turned on while the form was open: the first send has no proof and is refused
+        submit.mockResolvedValueOnce({ error: { status: 422, data: { code: 'captcha_missing', message: 'x' } } }).mockResolvedValueOnce({ data: 'submission-3' });
+        open({ captchaRequired: false });
+        await type('Ada');
+        await send('en');
+        expect(submit).toHaveBeenCalledTimes(2);
+        expect(header(0)).toBeUndefined();
+        expect(header(1)).toMatch(/^proof-c\d$/);
+        expect(issue).toHaveBeenCalledTimes(1);
+        // and it stops there: a second refusal is the end of it
+        submit.mockClear();
+        submit.mockResolvedValue({ error: { status: 422, data: { code: 'captcha_missing', message: 'x' } } });
+        open({});
+        await type('Ada');
+        await send('en');
+        expect(submit).toHaveBeenCalledTimes(2);
+    });
+
+    it('never fetches a proof for a retry in the builder preview', async () => {
+        open({ captchaRequired: false }, true);
+        await type('Ada');
+        await send('en');
+        expect(issue).not.toHaveBeenCalled();
     });
 
     it('asks for nothing and sends no header when the form does not require it', async () => {
@@ -171,6 +199,11 @@ describe('the automatic spam check on submit', () => {
         const status = () => screen.getByTestId('captcha-status');
         await send('en');
         const button = screen.getByRole('button', { name: SEND.en });
+        // preparing the proof: aria-disabled, not disabled, so focus is not lost during the wait
+        button.focus();
+        expect(button.getAttribute('aria-disabled')).toBe('true');
+        expect(button.hasAttribute('disabled')).toBe(false);
+        expect(document.activeElement).toBe(button);
         expect(status().getAttribute('role')).toBe('status');
         expect(status().getAttribute('aria-live')).toBe('polite');
         expect(status().textContent).toBe('');
@@ -188,6 +221,19 @@ describe('the automatic spam check on submit', () => {
         expect(submit).toHaveBeenCalledTimes(1);
         expect(header(0)).toBe('proof-late');
         expect(status().textContent).toBe('');
+        expect(button.hasAttribute('aria-disabled')).toBe(false);
+    });
+
+    it('ignores a second press while the proof is being prepared', async () => {
+        solving.instant = false;
+        open({ captchaRequired: true });
+        await type('Ada');
+        await send('en');
+        await send('en');
+        await act(async () => solving.resolvers.forEach((resolve) => resolve('proof-once')));
+        await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+        expect(submit).toHaveBeenCalledTimes(1);
+        expect(issue).toHaveBeenCalledTimes(1);
     });
 
     it.each(['en', 'nl'] as const)('says what to do when the browser cannot do it (%s)', async (lang) => {
@@ -197,8 +243,8 @@ describe('the automatic spam check on submit', () => {
         await type('Ada');
         await send(lang);
         const message = {
-            en: 'The automatic spam check did not work in this browser. Sign in with an email code, or try another browser.',
-            nl: 'De automatische spamcontrole lukte niet in deze browser. Log in met een e-mailcode of probeer een andere browser.'
+            en: 'The automatic spam check did not work in this browser. Try again, sign in, or use another browser.',
+            nl: 'De automatische spamcontrole lukte niet in deze browser. Probeer het opnieuw, log in of gebruik een andere browser.'
         }[lang];
         expect((await screen.findByRole('alert')).textContent).toBe(message);
         expect(submit).not.toHaveBeenCalled();

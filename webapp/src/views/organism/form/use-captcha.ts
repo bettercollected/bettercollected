@@ -17,7 +17,9 @@ const FIRST_INTERACTION = ['pointerdown', 'keydown', 'touchstart', 'focusin'] as
  * while the server asks for it (`settings.captchaRequired`, never in the builder's
  * preview) the browser solves a proof of work in the background after the
  * respondent's first interaction, and `take` hands out one single-use proof for
- * the submit. `waiting` turns on when that takes more than 1.5 seconds, so the
+ * the submit. `available` is true whenever a proof can be had (not in preview), also
+ * when the page loaded without the requirement: the server may have started asking
+ * since, and the retry after a refusal takes a proof whatever the page knew. `waiting` turns on when that takes more than 1.5 seconds, so the
  * page can say so politely. Nothing is stored on the device.
  */
 export function useCaptcha(isPreviewMode: boolean) {
@@ -29,7 +31,9 @@ export function useCaptcha(isPreviewMode: boolean) {
     const [preparing, setPreparing] = useState(false);
     const workspaceId = workspace?.id;
     const formId = standardForm?.formId;
-    const required = !isPreviewMode && standardForm?.settings?.captchaRequired === true && !!workspaceId && !!formId;
+    // a proof can be had for a form in a workspace, never in the builder's preview
+    const available = !isPreviewMode && !!workspaceId && !!formId;
+    const required = available && standardForm?.settings?.captchaRequired === true;
 
     // the trigger changes identity every render; the pass keeps the latest
     const issueRef = useRef(issue);
@@ -68,5 +72,5 @@ export function useCaptcha(isPreviewMode: boolean) {
         [workspaceId, formId, fetcher]
     );
 
-    return { required, take, waiting, preparing };
+    return { required, available, take, waiting, preparing };
 }

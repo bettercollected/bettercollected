@@ -24,7 +24,10 @@ nor shown); nothing is recorded.
 1. The form page (when the form is served with `captchaRequired`) waits for the
    respondent's first interaction, then `POST /workspaces/{id}/captcha/challenge`
    with `{"purpose": "submit", "formId": ...}`. The answer is `{challenge, algorithm,
-   bits, subpuzzles, expiresAt}`, never cached, no cookie.
+   bits, subpuzzles, expiresAt}`, never cached, no cookie. The form is looked up the
+   way the submit looks it up: a private form the respondent may answer (a responder
+   group admits them) gets a challenge like any other; one they may not answers 404
+   like a form that does not exist.
 2. A Web Worker (the static file `webapp/public/captcha/worker-v1.js`, built from `webapp/src/utils/captcha/captcha-worker.ts` by `yarn build:captcha-worker`; a test fails when the file is not what the build makes) finds 8 counters `c_i` such that `SHA-256(challenge ":" i ":" c_i)`
    starts with at least `bits - 3` zero bits (2^bits hashes expected in all; eight small
    puzzles keep the spread of the solve time small). Where no worker can start (an embed
@@ -34,7 +37,12 @@ nor shown); nothing is recorded.
 4. The server checks, cheapest first and touching the database last: length, HMAC,
    expiry (60 s of skew), purpose, workspace and form, the network tag, the difficulty
    floor, the eight hashes, and then the single-use claim of the nonce
-   (`FixedWindowRateLimiter.claim`, which stores only a hash of the nonce).
+   (`FixedWindowRateLimiter.claim`, which stores only a hash of the nonce, until
+   5 minutes past the moment the proof stops being accepted, so that a replica whose
+   clock runs behind cannot accept a proof the others already spent).
+   A proof issued at the signed-in difficulty carries a signed flag `s`; the submit
+   refuses it (`captcha_invalid`, before the nonce is claimed) unless the respondent is
+   signed in on the submit as well.
    A refusal is 422 with `captcha_missing`, `captcha_invalid`, `captcha_expired` or
    `captcha_replayed`, and stored nothing; the page asks for a new challenge and sends
    once more. A network error or a 5xx is never retried.
@@ -49,7 +57,7 @@ day, so it changes daily and needs no storage; it is empty when the client is no
 
 `bits` is the base for the purpose (`API_CAPTCHA_BASE_BITS_SUBMIT`, 14 to 20, default 17)
 plus pressure, at most +4, and never above 20; a signed-in respondent gets 3 less, never
-below 14.
+below 14 (the challenge says so, and the proof is good only for a signed-in submit).
 
 | Pressure (kept in this process's memory, never in the database) | Adds |
 |---|---|
@@ -65,6 +73,15 @@ past it.
 
 The challenge route itself is limited to 60 a minute per client (429 `rate_limited` with
 `Retry-After`). A client that is not known is neither counted nor limited there.
+
+The page solves one challenge for one submit: nothing is solved ahead after a submit
+and nothing on a timer, so an idle tab does no work. If the check was switched on while the
+form was open, the first send goes without a proof, is refused (`captcha_missing`), and the
+retry takes one whatever the page loaded with. A challenge request that takes more than
+10 seconds is cut off and counts as a spam check that could not be completed.
+
+While the switch is on a failed form lookup on the submit is an error (the repository's
+own, 500), never a pass.
 
 ## Where it applies
 

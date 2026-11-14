@@ -1,8 +1,10 @@
 import { CaptchaUnavailable, SolveOptions, solveChallenge } from './solve';
 import { CaptchaChallenge } from './solver-core';
 
-/** A proof expires 15 minutes after it was issued; one this old is solved again in the background. */
+/** A proof expires 15 minutes after it was issued; one held for this long is not handed out, a new one is solved instead. */
 export const REFRESH_AFTER_MS = 12 * 60 * 1000;
+/** Asking for a challenge may take this long (a hanging request must not leave the submit waiting for ever). */
+export const FETCH_TIMEOUT_MS = 10 * 1000;
 /** The wait is silent for this long; after it the page says "Almost ready to send...". */
 export const SLOW_AFTER_MS = 1500;
 
@@ -24,16 +26,16 @@ interface Deps {
  * The proofs of one form, kept in memory only: nothing is written to the device.
  * `warm` starts a solve (after the respondent's first interaction); `take` hands
  * out one finished proof (a proof is single use) or waits for the one being
- * solved, and starts the next in the background straight after, so a retry is
- * normally ready at once. A proof 12 minutes old is replaced by a fresh one.
+ * solved. Nothing is solved ahead after a take (every proof costs battery and
+ * raises the difficulty for everyone behind the same address) and nothing is
+ * re-solved on a timer: an idle tab does no work. A proof held for 12 minutes
+ * is replaced by a fresh one when it is asked for.
  */
 export class CaptchaPass {
     private ready: Ready | null = null;
     private pending: Promise<Ready> | null = null;
     private generation = 0;
     private queue: Promise<void> = Promise.resolve();
-    private fetcher: ChallengeFetcher | null = null;
-    private refresh: unknown = null;
     private readonly solve: (challenge: CaptchaChallenge) => Promise<string>;
     private readonly now: () => number;
     private readonly setTimer: (run: () => void, ms: number) => unknown;
@@ -53,7 +55,6 @@ export class CaptchaPass {
 
     /** Start solving in the background unless a fresh proof is there or on its way. Never throws. */
     warm(fetcher: ChallengeFetcher): void {
-        this.fetcher = fetcher;
         if (this.ready && this.now() - this.ready.at < REFRESH_AFTER_MS) return;
         if (this.pending) return;
         this.start(fetcher).catch(() => {});
@@ -62,7 +63,7 @@ export class CaptchaPass {
     private start(fetcher: ChallengeFetcher): Promise<Ready> {
         const generation = this.generation;
         const run = (async () => {
-            const challenge = await fetcher();
+            const challenge = await this.withinTimeout(fetcher());
             const proof = await this.solve(challenge);
             return { proof, at: this.now() };
         })();
@@ -72,7 +73,6 @@ export class CaptchaPass {
                 if (generation !== this.generation) return;
                 if (this.pending === run) this.pending = null;
                 this.ready = ready;
-                this.scheduleRefresh();
             },
             () => {
                 if (this.pending === run) this.pending = null;
@@ -81,13 +81,21 @@ export class CaptchaPass {
         return run;
     }
 
-    private scheduleRefresh() {
-        if (this.refresh !== null) this.clearTimer(this.refresh);
-        this.refresh = this.setTimer(() => {
-            this.refresh = null;
-            this.ready = null;
-            if (this.fetcher) this.warm(this.fetcher);
-        }, REFRESH_AFTER_MS);
+    /** The challenge request, or `CaptchaUnavailable` when it takes longer than `FETCH_TIMEOUT_MS`. */
+    private withinTimeout<T>(request: Promise<T>): Promise<T> {
+        return new Promise<T>((resolve, reject) => {
+            const timer = this.setTimer(() => reject(new CaptchaUnavailable()), FETCH_TIMEOUT_MS);
+            request.then(
+                (value) => {
+                    this.clearTimer(timer);
+                    resolve(value);
+                },
+                (error) => {
+                    this.clearTimer(timer);
+                    reject(error);
+                }
+            );
+        });
     }
 
     /**
@@ -113,7 +121,6 @@ export class CaptchaPass {
     }
 
     private async takeNow(fetcher: ChallengeFetcher, fresh: boolean): Promise<string> {
-        this.fetcher = fetcher;
         if (fresh) this.discard();
         let ready = this.ready && this.now() - this.ready.at < REFRESH_AFTER_MS ? this.ready : null;
         if (!ready) {
@@ -124,11 +131,8 @@ export class CaptchaPass {
                 throw error instanceof CaptchaUnavailable ? error : new CaptchaUnavailable();
             }
         }
+        // this one is spent
         if (this.ready === ready) this.ready = null;
-        // this one is spent; the next, in the background, right after it is handed out
-        if (this.refresh !== null) this.clearTimer(this.refresh);
-        this.refresh = null;
-        this.warm(fetcher);
         return ready.proof;
     }
 
@@ -137,8 +141,6 @@ export class CaptchaPass {
         this.generation++;
         this.ready = null;
         this.pending = null;
-        if (this.refresh !== null) this.clearTimer(this.refresh);
-        this.refresh = null;
     }
 }
 

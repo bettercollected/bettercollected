@@ -275,3 +275,67 @@ def test_the_pressure_memory_is_bounded(monkeypatch):
     for n in range(500):
         p.issued(f"client-{n}")
     assert len(p._issued._keys) == 50
+
+
+def test_the_pressure_stamps_stay_bounded_for_one_busy_client():
+    from backend.app.services.captcha import pressure
+
+    now = [1_000.0]
+    p = Pressure(clock=lambda: now[0])
+    assert pressure.MAX_STAMPS == 256
+    # a client at the route's limit (60 a minute) for two hours
+    for _ in range(2 * 60):
+        for _ in range(60):
+            p.issued("203.0.113.7")
+        now[0] += 60
+    stamps = p._issued._keys["203.0.113.7"]
+    assert len(stamps) <= pressure.MAX_STAMPS
+    # nothing older than the longest window survives the next add
+    assert min(stamps) > now[0] - pressure.WINDOW - 60
+
+
+def test_stamps_older_than_the_window_are_dropped_when_the_key_is_added_to():
+    from backend.app.services.captcha import pressure
+
+    now = [0.0]
+    p = Pressure(clock=lambda: now[0])
+    for _ in range(100):
+        p.issued("c")
+    now[0] += pressure.WINDOW + 1
+    p.issued("c")
+    assert len(p._issued._keys["c"]) == 1
+
+
+def test_idle_keys_do_not_pile_up_when_others_are_added():
+    from backend.app.services.captcha import pressure
+
+    now = [0.0]
+    p = Pressure(clock=lambda: now[0])
+    for n in range(1000):
+        p.issued(f"client-{n}")
+    now[0] += pressure.WINDOW + 1
+    p.issued("fresh")
+    assert list(p._issued._keys) == ["fresh"]
+
+
+def test_a_discounted_challenge_says_so_and_a_full_price_one_does_not():
+    plain = make()
+    assert "s" not in ch.unverified_claims(plain) and not ok(plain).discounted
+    discounted = make(discounted=True)
+    assert ch.unverified_claims(discounted)["s"] == 1 and ok(discounted).discounted
+
+
+def test_the_discount_flag_cannot_be_dropped_or_added_without_the_key():
+    discounted = make(discounted=True)
+    assert refused(ch.proof(edit(discounted, s=0), [0] * 8)) == ch.INVALID
+    assert refused(ch.proof(edit(make(), s=1), [0] * 8)) == ch.INVALID
+
+
+def test_the_discount_is_only_for_a_signed_in_difficulty(monkeypatch):
+    monkeypatch.setattr(settings.api_settings, "CAPTCHA_BASE_BITS_SUBMIT", 17)
+    s = service()
+    assert s._difficulty("203.0.113.7", F, True) == (14, True)
+    assert s._difficulty("203.0.113.8", F, False) == (17, False)
+    # at the floor nothing was taken off, so nothing is flagged
+    monkeypatch.setattr(settings.api_settings, "CAPTCHA_BASE_BITS_SUBMIT", 14)
+    assert s._difficulty("203.0.113.9", F, True) == (14, False)

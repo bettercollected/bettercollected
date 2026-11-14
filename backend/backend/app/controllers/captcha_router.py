@@ -63,10 +63,23 @@ class CaptchaRouter(Routable):
         service = container.captcha_service()
         client = limit_client_ip(request)
         service.allow_request(client, body.purpose)
-        # looked up as a respondent would: a private form, or one of another
+        # looked up the way the submit does it (submit_response): the forms this
+        # respondent may answer, so a private form they may answer gets a
+        # challenge like any other, and one they may not, or one of another
         # workspace, answers like one that does not exist
-        link = await container.workspace_form_repo().get_workspace_form_in_workspace(
-            workspace_id=workspace_id, query=body.form_id, is_admin=False
+        repo = container.workspace_form_repo()
+        visible = await repo.get_form_ids_in_workspace(
+            workspace_id=workspace_id,
+            is_not_admin=True,
+            user=user,
+            form_id_or_slug=body.form_id,
+        )
+        link = (
+            await repo.get_workspace_form_in_workspace(
+                workspace_id=workspace_id, query=body.form_id
+            )
+            if visible
+            else None
         )
         if link is None:
             raise HTTPException(

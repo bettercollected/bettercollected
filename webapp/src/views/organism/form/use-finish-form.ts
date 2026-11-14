@@ -120,10 +120,12 @@ export function useFinishForm(isPreviewMode: boolean) {
         });
         // One single-use proof per request. A refused proof (missing, wrong, expired, spent) stored nothing, so a new one is asked for and the
         // request is sent once more; a network error or a 5xx is never retried (the response may be stored, and a retry would duplicate it).
+        // The retry takes a proof even when the page loaded without the requirement (the operator or the creator turned the check on while
+        // the form was open): what the server answers decides, not what the page knew.
         let response: any;
         for (let attempt = 0; attempt < 2; attempt++) {
             let proof: string | undefined;
-            if (captcha.required) {
+            if (captcha.required || (attempt > 0 && captcha.available)) {
                 try {
                     proof = await captcha.take(attempt > 0);
                 } catch {
@@ -229,5 +231,7 @@ export function useFinishForm(isPreviewMode: boolean) {
                 });
     };
 
-    return { finishForm, isLoading: isLoading || captcha.preparing, submitError, setSubmitError, effectiveAnonymize, captchaWaiting: captcha.waiting, captchaRequired: captcha.required };
+    // `isLoading`: the request is on its way. `captchaPreparing`: the proof is being calculated (the button stays focusable meanwhile).
+    // `captchaShown`: the page has the live region for the wait, from the moment the check is known to be on.
+    return { finishForm, isLoading, captchaPreparing: captcha.preparing, submitError, setSubmitError, effectiveAnonymize, captchaWaiting: captcha.waiting, captchaShown: captcha.required || captcha.waiting };
 }

@@ -69,7 +69,7 @@
         "SUBMIT_NOT_OPEN": "This form is not open yet, so your response was not sent. Your answers were not sent.",
         "SUBMIT_FULL": "This form received all the responses it accepts before yours was sent. Your answers were not sent.",
         "CAPTCHA_WAITING": "Almost ready to send...",
-        "CAPTCHA_FAILED": "The automatic spam check did not work in this browser. Sign in with an email code, or try another browser.",
+        "CAPTCHA_FAILED": "The automatic spam check did not work in this browser. Try again, sign in, or use another browser.",
         "SUBMIT_RATE_LIMITED": "Too many responses were sent from here just now. Your answers are kept and were not sent. Please wait a minute and try again."
     },
     "LAYOUT": {
