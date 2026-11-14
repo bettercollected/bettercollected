@@ -136,6 +136,23 @@ class ReportService:
                 headers={"Retry-After": str(verdict.retry_after)},
             )
 
+    async def authorize(self, user: User, workspace_id: RecordId, form_id: str) -> None:
+        """The gate of every report route (``response.read``, then
+        ``analytics.read``, both on the form)."""
+        await self._authorize(user, workspace_id, form_id)
+
+    async def check_definition(
+        self, user: User, workspace_id: RecordId, form_id: str, body: bytes
+    ) -> defs.Definition:
+        """The definition in ``body``, parsed and validated against the form's
+        catalogue as this caller may use it (the same checks as a query, 422 with
+        the same codes), for a saved view: a view never stores what a query would
+        refuse. Authorisation is the caller's (``authorize``)."""
+        definition = defs.parse(body)
+        catalogue, _, _ = await self._visible(user, workspace_id, form_id)
+        defs.validate(definition, catalogue)
+        return definition
+
     # -------------------------------------------------------------- catalogue
     async def _catalogue(self, form_id: str) -> Tuple[Catalogue, Any]:
         """The form's catalogue and the form's revision it was built at."""

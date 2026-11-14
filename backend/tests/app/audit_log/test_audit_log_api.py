@@ -349,6 +349,7 @@ def test_every_field_of_a_stored_entry_is_returned_or_withheld_on_purpose():
         "export_format", "key_id", "reason", "key_role", "key_role_before", "form_scope",
         "widened", "method", "path", "connection_type", "directory_type", "enabled",
         "provider", "changed", "retention_months", "previous_retention_months",
+        "view_id", "view_scope",
     }
     # actor_id is user_id; at is created_at
     withheld = {

@@ -962,6 +962,21 @@ class FormAccessGrantRow(Base, BaseRow):
     )
 
 
+class FormReportViewRow(Base, BaseRow):
+    """A saved view of a form's report (revision 0040): ``scope`` is ``private``
+    (its owner's alone) or ``form`` (everyone who may open the form's report)."""
+
+    __tablename__ = "form_report_views"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    owner_id = S.text("owner_id")
+    scope = S.text("scope")
+    __table_args__ = (
+        Index(None, "workspace_id", "form_id"),
+        Index(None, "owner_id"),
+    )
+
+
 class UserRecoveryCodeRow(Base, BaseRow):
     """One recovery code of a factor (revision 0035): only its hash is stored."""
 

@@ -324,6 +324,8 @@ class AuditLogReader:
             retention_months=row.retention_months,
             previous_retention_months=row.previous_retention_months,
             changed=row.changed,
+            view_id=row.view_id,
+            view_scope=row.view_scope,
             method=row.method,
             path=row.path,
         )

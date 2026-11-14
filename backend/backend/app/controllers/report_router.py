@@ -14,42 +14,45 @@ choice a report is about ever sits in a URL, a log or a history.
 """
 
 from http import HTTPStatus
+from typing import Optional
 
-from classy_fastapi import Routable, get, post
+from classy_fastapi import Routable, delete, get, patch, post
 from common.ids import RecordId
 from common.models.user import User
-from fastapi import Depends, Request
-from fastapi.responses import JSONResponse
+from fastapi import Depends, Query, Request
+from fastapi.responses import JSONResponse, Response
 
 from backend.app.container import container
 from backend.app.router import router
 from backend.app.services.reporting import limits
 from backend.app.services.reporting.definition import error as definition_error
 from backend.app.services.reporting.mode import refuse_when_off
+from backend.app.services.reporting.views import INVALID_CODE as VIEW_INVALID
 from backend.app.services.user_service import get_logged_user
 
 NO_STORE = {"Cache-Control": "no-store"}
 
 
-async def _body(request: Request) -> bytes:
-    """The request body, read in pieces and refused past the definition's size
-    cap without reading the rest."""
+async def _body(request: Request, cap: int = limits.DEFINITION_MAX_BYTES) -> bytes:
+    """The request body, read in pieces and refused past ``cap`` bytes without
+    reading the rest."""
     declared = request.headers.get("content-length")
-    if declared and declared.isdigit() and int(declared) > limits.DEFINITION_MAX_BYTES:
-        raise _too_large()
+    if declared and declared.isdigit() and int(declared) > cap:
+        raise _too_large(cap)
     data = bytearray()
     async for chunk in request.stream():
         data.extend(chunk)
-        if len(data) > limits.DEFINITION_MAX_BYTES:
-            raise _too_large()
+        if len(data) > cap:
+            raise _too_large(cap)
     return bytes(data)
 
 
-def _too_large():
+def _too_large(cap: int):
+    code = "invalid_definition" if cap == limits.DEFINITION_MAX_BYTES else VIEW_INVALID
     return definition_error(
         HTTPStatus.UNPROCESSABLE_ENTITY,
-        "invalid_definition",
-        f"A definition is at most {limits.DEFINITION_MAX_BYTES} bytes.",
+        code,
+        f"A request here is at most {cap} bytes.",
     )
 
 
@@ -104,3 +107,86 @@ class ReportRouter(Routable):
             await container.report_service().query(user, workspace_id, form_id, body),
             headers=NO_STORE,
         )
+
+    # ------------------------------------------------------------ saved views
+    @get("/{form_id}/report/views")
+    async def report_views(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        user: User = Depends(get_logged_user),
+    ) -> JSONResponse:
+        """The saved views the caller may open: the form's own and their own
+        private ones, each with its definition. Needs ``response.read`` and
+        ``analytics.read`` on the form."""
+        return JSONResponse(
+            await container.report_view_service().list(user, workspace_id, form_id),
+            headers=NO_STORE,
+        )
+
+    @post("/{form_id}/report/views", status_code=HTTPStatus.CREATED)
+    async def report_view_create(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        request: Request,
+        user: User = Depends(get_logged_user),
+    ) -> JSONResponse:
+        """Save a view: ``{name, scope?: "private" | "form", definition}``. The
+        definition is validated as a query's would be. A view for the whole form
+        (``scope: "form"``) needs ``form.edit``. 409 ``view_name_taken`` or
+        ``view_limit``."""
+        body = await _body(request, limits.VIEW_BODY_MAX_BYTES)
+        return JSONResponse(
+            await container.report_view_service().create(user, workspace_id, form_id, body),
+            status_code=HTTPStatus.CREATED,
+            headers=NO_STORE,
+        )
+
+    @get("/{form_id}/report/views/{view_id}")
+    async def report_view(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        view_id: str,
+        user: User = Depends(get_logged_user),
+    ) -> JSONResponse:
+        """One view; 404 for a missing one and for another person's private one."""
+        return JSONResponse(
+            await container.report_view_service().get(user, workspace_id, form_id, view_id),
+            headers=NO_STORE,
+        )
+
+    @patch("/{form_id}/report/views/{view_id}")
+    async def report_view_update(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        view_id: str,
+        request: Request,
+        user: User = Depends(get_logged_user),
+    ) -> JSONResponse:
+        """Rename a view, move it between private and the form's, or replace its
+        definition: ``{revision, name?, scope?, definition?}``. 409
+        ``view_changed`` when ``revision`` is not the view's current one."""
+        body = await _body(request, limits.VIEW_BODY_MAX_BYTES)
+        return JSONResponse(
+            await container.report_view_service().update(user, workspace_id, form_id, view_id, body),
+            headers=NO_STORE,
+        )
+
+    @delete("/{form_id}/report/views/{view_id}", status_code=HTTPStatus.NO_CONTENT)
+    async def report_view_delete(
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        view_id: str,
+        revision: Optional[int] = Query(None, ge=1, le=1_000_000),
+        user: User = Depends(get_logged_user),
+    ) -> Response:
+        """Delete a view: its owner's private one, or a view of the form (needs
+        ``form.edit``; one made by someone else needs ``members.manage``). With
+        ``?revision=`` the view must still be at it: 409 ``view_changed`` otherwise,
+        before anything is audited or deleted."""
+        await container.report_view_service().delete(user, workspace_id, form_id, view_id, revision)
+        return Response(status_code=HTTPStatus.NO_CONTENT, headers=NO_STORE)

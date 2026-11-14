@@ -228,6 +228,8 @@ from backend.app.repositories.postgres.response_revisions import (
 from backend.app.services.form_spec.writes import FormSpecWriter
 from backend.app.services.form_promotion.service import FormPromotionService
 from backend.app.services.reporting.service import ReportService
+from backend.app.services.reporting.views import ReportViewService
+from backend.app.repositories.postgres.report_views import PostgresReportViewRepository
 from backend.app.repositories.postgres.report_queries import PostgresReportRepository
 from backend.app.services.idempotency import IdempotencyService
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
@@ -382,6 +384,10 @@ class AppContainer(containers.DeclarativeContainer):
     )
     form_access_grant_repo: PostgresFormAccessGrantRepository = providers.Singleton(
         PostgresFormAccessGrantRepository, pg_sessionmaker
+    )
+    # saved views of a form's report: deleted with the form (data hygiene, whatever the switch says)
+    report_view_repo: PostgresReportViewRepository = providers.Singleton(
+        PostgresReportViewRepository, pg_sessionmaker
     )
     member_group_repo: PostgresMemberGroupRepository = providers.Singleton(
         PostgresMemberGroupRepository, pg_sessionmaker
@@ -623,6 +629,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
         form_access_cleanup=form_access_cleanup,
         api_key_lifecycle=api_key_lifecycle,
+        report_view_repo=report_view_repo,
     )
 
     copy_recipient_service: CopyRecipientService = providers.Singleton(
@@ -707,6 +714,7 @@ class AppContainer(containers.DeclarativeContainer):
         member_directory=member_directory,
         audit_repo=workspace_audit_repo,
         form_access_cleanup=form_access_cleanup,
+        report_view_repo=report_view_repo,
     )
 
     # Teams, grants on a form and a form's access mode (FORM_ACCESS_ENABLED).
@@ -1458,6 +1466,15 @@ class AppContainer(containers.DeclarativeContainer):
         form_repo=form_repo,
         report_repo=report_repo,
         rate_limiter=rate_limiter,
+    )
+    # Saved views of a report (a name, a scope and a validated definition).
+    report_view_service: ReportViewService = providers.Singleton(
+        ReportViewService,
+        authorization_service=authorization_service,
+        report_service=report_service,
+        view_repo=report_view_repo,
+        member_directory=member_directory,
+        audit_repo=workspace_audit_repo,
     )
 
 

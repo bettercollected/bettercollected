@@ -438,6 +438,7 @@ def _ids(ctx: dict, form=None, slug=None, response=None, response_key="response"
         "webhook_id": ctx["random"],
         "delivery_id": ctx["random"],
         "grant_id": ctx["random"],
+        "view_id": "0" * 24,
         "version": "1",
         "seq": "1",
         "proposal_id": "0" * 24 + "-" + "0" * 16,

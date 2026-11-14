@@ -62,3 +62,11 @@ CACHE_SECONDS = 600.0
 # the form's catalogue (built from the draft and every published version), keyed
 # by the form's revision
 CATALOGUE_CACHE_SIZE = 64
+
+# saved views of a form's report: the length of a name, how many a form shares and how
+# many one person keeps privately per form, and the size of a view request (a
+# definition and a name)
+VIEW_NAME_MAX = 80
+VIEWS_FORM_MAX = 50
+VIEWS_PRIVATE_MAX = 20
+VIEW_BODY_MAX_BYTES = DEFINITION_MAX_BYTES + 2048

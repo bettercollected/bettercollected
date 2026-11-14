@@ -20,18 +20,21 @@ import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import ResponseFilters from '@app/components/datatable/response-filters';
+import { useIntlLocale } from '@app/lib/hooks/use-intl-locale';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useAppSelector } from '@app/store/hooks';
 import { selectForm } from '@app/store/forms/slice';
-import { useGetReportFieldsQuery, useQueryReportQuery } from '@app/store/workspaces/api';
+import { useGetReportFieldsQuery, useGetReportViewsQuery, useQueryReportQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { OVERVIEW_QUESTIONS, ReportCardDef, ReportCardResult, ReportError, cardsParam, isTimeDimension, overviewCards, parseCardsParam, reportDefinition, reportErrorOf, reportFilters, viewerZone, cardProblem } from '@app/utils/report';
+import { OVERVIEW_QUESTIONS, ReportCardDef, ReportCardResult, ReportError, ReportView, cardsParam, isTimeDimension, overviewCards, parseCardsParam, reportDefinition, reportErrorOf, reportFilters, viewerZone, cardProblem } from '@app/utils/report';
+import { VIEW_ID, cardsOf, filtersOf, isModified } from '@app/utils/report-views';
 import { DEFAULT_STATE, ResponseListState, localDayStart, parseResponseListState, responseListSearchParams } from '@app/utils/response-list-state';
 
 import ReportCard from './report-card';
 import ReportCardEditor, { blankCard } from './report-card-editor';
+import ReportViews from './report-views';
 
 /** The viewer's calendar day `days` days before today, as `YYYY-MM-DD`. */
 export function daysAgo(days: number, now = new Date()): string {
@@ -46,10 +49,12 @@ export function filterState(state: ResponseListState): ResponseListState {
 
 function ErrorPanel({ error, onRetry, onNarrow, currentVersion }: { error: ReportError; onRetry: () => void; onNarrow: (changes: Partial<ResponseListState>) => void; currentVersion?: number }) {
     const { t } = useTranslation();
+    const locale = useIntlLocale();
     if (error.code === 'too_many_rows') {
+        const format = (value: number) => new Intl.NumberFormat(locale).format(value);
         return (
             <div role="alert" className="flex flex-col gap-3 rounded border border-black-300 bg-white p-4">
-                <p className="m-0 text-sm text-black-900">{t('REPORT.TOO_MANY', { count: error.count ?? 0, max: error.max ?? 20000 })}</p>
+                <p className="m-0 text-sm text-black-900">{t('REPORT.TOO_MANY', { rows: format(error.count ?? 0), max: format(error.max ?? 20000) })}</p>
                 <p className="m-0 text-sm text-black-700">{t('REPORT.TOO_MANY_HELP')}</p>
                 <div className="flex flex-wrap gap-2">
                     <Button type="button" variant="v2Button" className="h-10 px-4" onClick={() => onNarrow({ from: daysAgo(30), to: undefined })}>
@@ -95,40 +100,56 @@ export default function ReportPage() {
     const listState = useMemo(() => filterState(parseResponseListState(params)), [params]);
     const urlCards = useMemo(() => parseCardsParam(params.get('cards')), [params]);
     const all = params.get('all') === '1';
+    const viewParam = params.get('view');
+    const viewId = viewParam && VIEW_ID.test(viewParam) ? viewParam : undefined;
     const tz = useMemo(() => viewerZone(), []);
 
     const { data: catalogue, isLoading: catalogueLoading, error: catalogueError, refetch: refetchCatalogue } = useGetReportFieldsQuery({ workspaceId: workspaceId as string, formId: formId as string }, { skip: !allowed || !workspaceId || !formId });
     const cards: ReportCardDef[] = useMemo(() => (catalogue ? (urlCards ?? overviewCards(catalogue, all)) : []), [catalogue, urlCards, all]);
+    const { data: viewList, isLoading: viewsLoading, isError: viewsFailed, refetch: refetchViews } = useGetReportViewsQuery({ workspaceId: workspaceId as string, formId: formId as string }, { skip: !allowed || !workspaceId || !formId });
+    const currentView = viewList?.views.find((view) => view.id === viewId);
     // a card the form can no longer answer is shown with its reason and left out of the request
     const asked = useMemo(() => (catalogue ? cards.filter((card) => !cardProblem(card, catalogue)) : []), [cards, catalogue]);
     const definition = useMemo(() => reportDefinition(asked, reportFilters(listState, localDayStart), tz), [asked, listState, tz]);
     const {
-        data: result,
+        // the figures of THIS definition only: an edited card never shows its old figures under its new labels
+        currentData: result,
         error: queryError,
         isFetching,
         isError,
         refetch
-    } = useQueryReportQuery({ workspaceId: workspaceId as string, formId: formId as string, definition }, { skip: !allowed || !workspaceId || !formId || !catalogue || asked.length === 0 });
+    } = useQueryReportQuery({ workspaceId: workspaceId as string, formId: formId as string, definition }, {
+            skip: !allowed || !workspaceId || !formId || !catalogue || asked.length === 0,
+            // a pass reads up to 20,000 responses and counts against the rate limit and the replicas' places: no pass because a tab got focus
+            refetchOnFocus: false,
+            refetchOnReconnect: false
+        }
+    );
     const error = isError ? reportErrorOf(queryError) : undefined;
 
     const write = useCallback(
-        (changes: { state?: ResponseListState; cards?: ReportCardDef[] | null; all?: boolean }, replace = false) => {
+        (changes: { state?: ResponseListState; cards?: ReportCardDef[] | null; all?: boolean; view?: string | null }, replace = false) => {
             const state = changes.state ?? listState;
             const next = responseListSearchParams(filterState(state));
             const nextCards = changes.cards === undefined ? urlCards : (changes.cards ?? undefined);
             if (nextCards) next.set('cards', cardsParam(nextCards));
             if (changes.all ?? (all && !nextCards)) next.set('all', '1');
+            const nextView = changes.view === undefined ? viewId : (changes.view ?? undefined);
+            if (nextView) next.set('view', nextView);
             const query = next.toString();
             const url = query ? `${pathname}?${query}` : pathname;
             if (replace) router.replace(url, { scroll: false });
             else router.push(url, { scroll: false });
         },
-        [all, listState, pathname, router, urlCards]
+        [all, listState, pathname, router, urlCards, viewId]
     );
     const filterChange = useCallback((changes: Partial<ResponseListState>) => write({ state: { ...listState, ...changes } }), [listState, write]);
     const clearFilters = useCallback(() => write({ state: { ...DEFAULT_STATE } }), [write]);
 
     const setCards = (next: ReportCardDef[]) => write({ cards: next }, true);
+    // a saved view: its filters and cards become the report in the address; no view is the Overview (the filters stay)
+    const openView = (view: ReportView | null) => (view ? write({ state: { ...DEFAULT_STATE, ...filtersOf(view.definition) }, cards: cardsOf(view.definition), view: view.id }) : write({ cards: null, view: null }));
+    const markView = (view: ReportView | null) => write({ view: view ? view.id : null }, true);
     const change = (index: number, card: ReportCardDef) => setCards(cards.map((existing, at) => (at === index ? card : existing)));
     const remove = (index: number) => {
         setCards(cards.filter((_, at) => at !== index));
@@ -157,6 +178,9 @@ export default function ReportPage() {
     }
 
     const listHref = `${pathname.replace(/\/report\/?$/, '')}${responseListSearchParams(listState).toString() ? `?${responseListSearchParams(listState).toString()}` : ''}`;
+    const modified = !!currentView && !!catalogue && isModified(currentView, cards, reportFilters(listState, localDayStart));
+    // an address that names a view the member cannot open (deleted, or someone else's private one)
+    const viewMissing = !!viewId && !!viewList && !currentView;
     const filtersActive = !!(listState.from || listState.to || listState.status || listState.who || listState.version);
     const empty = !!result && !isError && result.n === 0;
     const hasTime = !!catalogue && cards.some((card) => card.dimension && isTimeDimension(catalogue, card.dimension.field));
@@ -186,9 +210,32 @@ export default function ReportPage() {
                 </div>
             </div>
 
+            {catalogue && (
+                <ReportViews
+                    workspaceId={workspaceId as string}
+                    formId={formId as string}
+                    list={viewList}
+                    loading={viewsLoading}
+                    failed={viewsFailed}
+                    current={currentView}
+                    modified={modified}
+                    definition={definition}
+                    canSave={asked.length > 0}
+                    hiddenCards={cards.length - asked.length}
+                    onOpen={openView}
+                    onMark={markView}
+                    onReload={() => refetchViews()}
+                />
+            )}
+            {viewMissing && (
+                <p role="status" className="m-0 text-sm text-black-700">
+                    {t('REPORT.VIEW_MISSING')}
+                </p>
+            )}
+
             <ResponseFilters toggleRef={filtersToggleRef} state={listState} currentVersion={form?.version} onChange={filterChange} onClear={clearFilters} hideSort />
 
-            <p role="status" aria-live="polite" className="sr-only">
+            <p role="status" aria-live="polite" data-testid="report-live" className="sr-only">
                 {announce}
             </p>
 

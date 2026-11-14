@@ -119,8 +119,36 @@ export interface ReportResult {
     notices: string[];
 }
 
+/* ------------------------------------------------------- saved views */
+
+export type ReportViewScope = 'private' | 'form';
+
+/** A saved view as the API lists it: a name, a scope and the definition it was saved with. */
+export interface ReportView {
+    id: string;
+    name: string;
+    scope: ReportViewScope;
+    /** Made by the signed-in member. */
+    mine: boolean;
+    /** The maker's name; null when it is mine, or when they are no longer a member. */
+    ownerName: string | null;
+    revision: number;
+    createdAt: string | null;
+    updatedAt: string | null;
+    definition: ReportDefinition;
+    canEdit: boolean;
+    canDelete: boolean;
+}
+
+export interface ReportViewList {
+    views: ReportView[];
+    /** The member may save a view for everyone who can open the report (form.edit). */
+    canShare: boolean;
+    limits: { nameMax: number; formViews: number; privateViews: number };
+}
+
 /** The codes of a refusal the page tells apart (the API's `code`). */
-export type ReportErrorCode = 'too_many_rows' | 'rate_limited' | 'report_busy' | 'report_timeout' | 'reporting_off' | 'invalid_definition' | 'unknown_field' | 'field_not_reportable' | 'op_not_allowed';
+export type ReportErrorCode = 'view_not_found' | 'view_changed' | 'view_name_taken' | 'view_limit' | 'view_forbidden' | 'invalid_view' | 'too_many_rows' | 'rate_limited' | 'report_busy' | 'report_timeout' | 'reporting_off' | 'invalid_definition' | 'unknown_field' | 'field_not_reportable' | 'op_not_allowed';
 
 export interface ReportError {
     status?: number;

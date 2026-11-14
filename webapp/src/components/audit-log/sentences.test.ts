@@ -20,7 +20,7 @@ const LABELS: AuditLabels = {
     teams: { g_intake: { status: 'available', name: 'Intake' }, g_gone: { status: 'gone' } }
 };
 
-const ids = ['u_sanne', 'u_pim', 'u_left', 'u_blank', 'f_join', 'f_gone', 'g_intake', 'g_gone', 'r_1', 'k_9'];
+const ids = ['u_sanne', 'u_pim', 'u_left', 'u_blank', 'f_join', 'f_gone', 'g_intake', 'g_gone', 'r_1', 'k_9', 'v_1'];
 
 // one entry per kind, with the fields that kind carries
 const SAMPLES: Record<(typeof AUDIT_EVENTS)[number], Partial<AuditEntryDto>> = {
@@ -87,6 +87,11 @@ const SAMPLES: Record<(typeof AUDIT_EVENTS)[number], Partial<AuditEntryDto>> = {
     form_registration_disabled: { actorId: 'u_sanne', formId: 'f_join' },
     form_copied_out: { actorId: 'u_sanne', formId: 'f_join' },
     form_promoted: { actorId: 'u_sanne', formId: 'f_join', count: 3 },
+    report_view_created: { actorId: 'u_pim', formId: 'f_join', viewId: 'v_1', viewScope: 'form' },
+    report_view_updated: { actorId: 'u_pim', formId: 'f_join', viewId: 'v_1', viewScope: 'form', changed: ['name', 'definition'] },
+    report_view_deleted: { actorId: 'u_sanne', formId: 'f_join', viewId: 'v_1', viewScope: 'form' },
+    report_view_shared: { actorId: 'u_pim', formId: 'f_join', viewId: 'v_1', viewScope: 'form', changed: ['scope'] },
+    report_view_unshared: { actorId: 'u_pim', formId: 'f_join', viewId: 'v_1', viewScope: 'private', changed: ['scope'] },
     audit_log_exported: { actorId: 'u_sanne', exportFormat: 'csv', count: 120 }
 };
 
@@ -267,5 +272,20 @@ describe('the sentence table', () => {
         const sentence = describeEntry(entry('form_published', { actorId: 'u_evil', formId: 'f_join' }), { labels: { ...labels, forms: LABELS.forms }, t: i18n.getFixedT('en') as any });
         expect(sentence.text).toBe('Eve Mallory published Join the volunteers.');
         expect(sentence.segments.filter((s) => s.strong).map((s) => s.text)).toEqual(['Eve Mallory', 'Join the volunteers']);
+    });
+});
+
+describe('saved report views', () => {
+    it('words what a shared view went through, naming the person and the form and never the view', () => {
+        expect(say('en', entry('report_view_created', SAMPLES.report_view_created)).text).toBe('Pim Jansen saved a report view of Join the volunteers for everyone who can open the report.');
+        expect(say('en', entry('report_view_shared', SAMPLES.report_view_shared)).text).toBe('Pim Jansen shared a report view of Join the volunteers with everyone who can open the report.');
+        expect(say('en', entry('report_view_unshared', SAMPLES.report_view_unshared)).text).toBe('Pim Jansen made a shared report view of Join the volunteers private.');
+        expect(say('en', entry('report_view_deleted', SAMPLES.report_view_deleted)).text).toBe('Sanne de Vries deleted a report view of Join the volunteers that was shared with the form.');
+        expect(say('nl', entry('report_view_created', SAMPLES.report_view_created)).text).toBe('Pim Jansen sloeg een rapportweergave van Join the volunteers op voor iedereen die het rapport kan openen.');
+    });
+
+    it('lists which parts of a changed view changed, from the fixed vocabulary', () => {
+        expect(say('en', entry('report_view_updated', SAMPLES.report_view_updated)).text).toContain('(changed: name, cards and filters)');
+        expect(say('en', entry('report_view_updated', { ...SAMPLES.report_view_updated, changed: ['name', 'password'] })).text).not.toContain('password');
     });
 });

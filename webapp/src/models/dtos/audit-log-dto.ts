@@ -48,6 +48,9 @@ export interface AuditEntryDto {
     previousRetentionMonths?: number | null;
     /** Integration entries: which parts of the configuration changed, by a fixed vocabulary (never their content). */
     changed?: string[] | null;
+    /** `report_view_*`: the saved report view (its id) and its scope, `private` or `form`; never its name or definition. */
+    viewId?: string | null;
+    viewScope?: string | null;
     method?: string | null;
     path?: string | null;
 }
