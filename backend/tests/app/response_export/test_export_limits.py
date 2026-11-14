@@ -536,7 +536,9 @@ async def test_a_slow_but_progressing_stream_keeps_its_slot(workspace, monkeypat
     keeps its slot through the stream's own heartbeat, and gives it back at the end."""
     monkeypatch.setattr(limits, "STREAM_MAX_ROWS", 50)
     monkeypatch.setattr(limits, "STREAMS_PER_USER", 1)
-    monkeypatch.setattr(limits, "STREAM_SLOT_TTL", dt.timedelta(seconds=1))
+    # The gap between two pieces (0.7 s) stays well under the slot time (2 s), so a slow
+    # runner cannot age the slot out between beats; the whole stream still outlasts it.
+    monkeypatch.setattr(limits, "STREAM_SLOT_TTL", dt.timedelta(seconds=2))
     monkeypatch.setattr(limits, "STREAM_BEAT_EVERY", dt.timedelta(seconds=0.1))
     monkeypatch.setattr(writer, "PIECE_BYTES", 40)
     form = await publish(workspace)
@@ -546,7 +548,8 @@ async def test_a_slow_but_progressing_stream_keeps_its_slot(workspace, monkeypat
     began = asyncio.get_running_loop().time()
     async for _ in started.body:
         pieces += 1
-        await asyncio.sleep(0.4)
+        if pieces <= 5:
+            await asyncio.sleep(0.7)
         if pieces == 5:
             assert asyncio.get_running_loop().time() - began > limits.STREAM_SLOT_TTL.total_seconds() * 1.5
             with pytest.raises(Exception) as busy:
