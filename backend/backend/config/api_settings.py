@@ -75,6 +75,15 @@ class ApiSettings(StoreBackedSettings):
     # the hour ends (logged at ERROR when it trips). A stop-gap until a proof
     # of work is asked for; 0 turns it off.
     CODE_MAIL_PER_HOUR: int = 20000
+    # ...and the per-person budgets in front of it (same module). Code mails per
+    # client address (IPv6 by its /64) and per mailbox, an hour at a time, and
+    # response submits per client and form, a minute at a time. A request over a
+    # budget answers 429 with Retry-After; 0 turns a budget off. All three are
+    # read on every request. The client budgets need TRUSTED_PROXIES to be right
+    # behind a proxy; without a client they are skipped.
+    CODE_MAIL_PER_CLIENT_PER_HOUR: int = 60
+    CODE_MAIL_PER_ADDRESS_PER_HOUR: int = 3
+    SUBMIT_PER_CLIENT_FORM_PER_MINUTE: int = 30
     # GET /images/unsplash/...: requests per client address in each window,
     # and of those, how many may fetch a photo not cached yet.
     IMAGE_PROXY_PER_WINDOW: int = 600

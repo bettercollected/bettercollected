@@ -272,6 +272,15 @@ RATE_LIMITS: Tuple[SettingSpec, ...] = (
     _int("API_CODE_MAIL_PER_HOUR", default=20000, lo=0, hi=10_000_000,
          description="Emergency cap: sign-in code mails for all clients together per hour (0 = off).",
          **RATE),
+    _int("API_CODE_MAIL_PER_CLIENT_PER_HOUR", default=60, lo=0, hi=1_000_000,
+         description="Sign-in code mails per client address per hour, IPv6 by its /64 (0 = off).",
+         **RATE),
+    _int("API_CODE_MAIL_PER_ADDRESS_PER_HOUR", default=3, lo=0, hi=1_000_000,
+         description="Sign-in code mails per mailbox per hour, both routes together (0 = off).",
+         **RATE),
+    _int("API_SUBMIT_PER_CLIENT_FORM_PER_MINUTE", default=30, lo=0, hi=1_000_000,
+         description="Response submits per client address and form per minute, IPv6 by its /64 (0 = off).",
+         **RATE),
     _int("API_IMAGE_PROXY_PER_WINDOW", default=600, lo=0, hi=1_000_000,
          description="Image proxy requests per client per window.", **RATE),
     _int("API_IMAGE_PROXY_FETCHES_PER_WINDOW", default=30, lo=0, hi=1_000_000,
@@ -308,7 +317,8 @@ RATE_LIMITS: Tuple[SettingSpec, ...] = (
 
 NETWORK: Tuple[SettingSpec, ...] = (
     _text("API_TRUSTED_PROXIES", "network", (BACKEND,),
-          "Comma separated proxy addresses whose forwarding headers are trusted.",
+          "Comma separated trusted proxy addresses. Unset, or missing the reverse proxy "
+          "the API sees: the per-client limits (sign-in code mail, submit) are off.",
           tier=T3, format="cidr_list"),
     _bool("API_TRUST_CLOUDFLARE", "network", (BACKEND,), True,
           "Trusts Cloudflare's client address header from Cloudflare ranges.", tier=T3),

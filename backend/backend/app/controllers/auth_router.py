@@ -16,6 +16,7 @@ from starlette.responses import RedirectResponse, Response
 
 from backend.app.container import container
 from backend.app.utils.client_ip import limit_client_ip
+from backend.app.services.respondent_limits import fail_open
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.user_feedback import UserFeedbackDto
 from backend.app.models.dtos.user_status_dto import UserStatusDto
@@ -112,8 +113,10 @@ class AuthRoutes(Routable):
     ):
         # counted before anything is looked up about the address: a refusal
         # never depends on whether it has an account (services/respondent_limits)
-        await container.respondent_limits().code_mail(
-            limit_client_ip(request), receiver_email, locale=locale
+        await fail_open(
+            lambda: container.respondent_limits().code_mail(
+                limit_client_ip(request), receiver_email, locale=locale
+            )
         )
         return await self.auth_service.send_otp_for_creator(
             receiver_email, locale=locale
