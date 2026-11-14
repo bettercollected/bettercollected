@@ -22,7 +22,7 @@ export default function FormShell({ form, base, children }: { form: StandardForm
     const title = form?.title?.trim() || t('FORM_SHELL.UNTITLED');
 
     return (
-        <div className="min-h-screen w-full bg-white">
+        <div className="min-h-screen w-full bg-canvas">
             <SkipLink />
             <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-black-400 bg-white px-3 md:px-6">
                 <BackToForms />

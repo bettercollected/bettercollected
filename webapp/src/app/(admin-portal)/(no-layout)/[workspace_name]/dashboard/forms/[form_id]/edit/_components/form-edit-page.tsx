@@ -202,7 +202,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                     feeds back into the Fit scale and shrinks the card. */}
                 <div
                     ref={canvasMatRef}
-                    className=" relative flex max-h-full max-w-full flex-1 self-stretch overflow-auto bg-[#F2F4F7] px-8 py-10"
+                    className=" relative flex max-h-full max-w-full flex-1 self-stretch overflow-auto bg-canvas px-8 py-10"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}

@@ -56,7 +56,7 @@ export default function WorkspaceSelectView({ notice }: WorkspaceSelectViewProps
     const markedLastUsed = ordered.length > 1 && ordered[0]?.id === lastUsedId ? lastUsedId : null;
 
     return (
-        <div className="min-h-screen w-full bg-black-100">
+        <div className="min-h-screen w-full bg-canvas">
             <div className="mx-auto flex min-h-screen w-full max-w-[600px] flex-col px-4 py-8 sm:px-6 sm:py-12">
                 <div className="mb-8">
                     <BetterCollectedLogo className="h-[19px] w-auto" />

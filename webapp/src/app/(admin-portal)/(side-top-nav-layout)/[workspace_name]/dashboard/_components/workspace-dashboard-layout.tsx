@@ -189,7 +189,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
             <DashboardDrawer drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} navGroups={navGroups} />
             <main
                 className={cn(
-                    "bg-black-100 float-none mt-[68px] flex min-h-[calc(100vh-68px)]",
+                    "bg-canvas float-none mt-[68px] flex min-h-[calc(100vh-68px)]",
                     "lg:float-right lg:mt-0 lg:min-h-screen lg:w-[calc(100%-289px)]"
                 )}
             >
@@ -215,7 +215,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     </div>
 
                     <div
-                        className={cn('bg-black-100 h-full w-full px-5 lg:px-10 pt-10')}
+                        className={cn("bg-canvas h-full w-full px-5 lg:px-10 pt-10")}
                     >
                         {children}
                     </div>
