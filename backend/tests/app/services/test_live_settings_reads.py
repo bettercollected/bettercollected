@@ -370,6 +370,57 @@ async def test_code_mail_breaker_is_read_per_call(monkeypatch):
         assert limit == new, "API_CODE_MAIL_PER_HOUR"
 
 
+@pytest.mark.parametrize(
+    "key, field, scope",
+    [
+        ("API_CODE_MAIL_PER_CLIENT_PER_HOUR", "CODE_MAIL_PER_CLIENT_PER_HOUR", "code-mail-client"),
+        ("API_CODE_MAIL_PER_ADDRESS_PER_HOUR", "CODE_MAIL_PER_ADDRESS_PER_HOUR", "code-mail-address"),
+    ],
+)
+async def test_code_mail_person_limits_are_read_per_call(monkeypatch, key, field, scope):
+    limiter = RecordingLimiter(ALLOW)
+    limits = RespondentLimits(limiter)
+    for new in (9001, 9002):
+        _set(monkeypatch, settings.api_settings, field, new)
+        before = len(limiter.calls)
+        await limits.code_mail("203.0.113.1", "someone@example.com")
+        recorded = [c for c in limiter.calls[before:] if c[0] == scope]
+        assert len(recorded) == 1 and recorded[0][2] == new, key
+
+
+async def test_submit_limit_is_read_per_call(monkeypatch):
+    limiter = RecordingLimiter(ALLOW)
+    limits = RespondentLimits(limiter)
+    for new in (9001, 9002):
+        _set(monkeypatch, settings.api_settings, "SUBMIT_PER_CLIENT_FORM_PER_MINUTE", new)
+        await limits.submit("203.0.113.1", "w", "f")
+        assert limiter.calls[-1][2] == new, "API_SUBMIT_PER_CLIENT_FORM_PER_MINUTE"
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "CODE_MAIL_PER_CLIENT_PER_HOUR",
+        "CODE_MAIL_PER_ADDRESS_PER_HOUR",
+        "CODE_MAIL_PER_HOUR",
+        "SUBMIT_PER_CLIENT_FORM_PER_MINUTE",
+    ],
+)
+async def test_zero_turns_a_respondent_limit_off(monkeypatch, field):
+    limiter = RecordingLimiter(ALLOW)
+    limits = RespondentLimits(limiter)
+    _set(monkeypatch, settings.api_settings, field, 0)
+    await limits.code_mail("203.0.113.1", "someone@example.com")
+    await limits.submit("203.0.113.1", "w", "f")
+    wanted = {
+        "CODE_MAIL_PER_CLIENT_PER_HOUR": "code-mail-client",
+        "CODE_MAIL_PER_ADDRESS_PER_HOUR": "code-mail-address",
+        "CODE_MAIL_PER_HOUR": CODE_ALL_SCOPE,
+        "SUBMIT_PER_CLIENT_FORM_PER_MINUTE": "submit-client-form",
+    }[field]
+    assert wanted not in [c[0] for c in limiter.calls], field
+
+
 # ------------------------------------------------------------ proof of work
 
 

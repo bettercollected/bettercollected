@@ -2,9 +2,11 @@
 are read only by the import from 4.0)."""
 
 import datetime as dt
-from typing import List, Optional, Tuple
+import time
+from typing import Callable, List, Optional, Tuple
 
-from sqlalchemy import select
+from loguru import logger
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from backend.app.schemas.flow_event import FlowEventDocument
@@ -42,6 +44,23 @@ class PostgresFlowEventRepository(RecordRepository):
 class PostgresRateLimitRepository(RecordRepository):
     row = RateLimitCounterRow
     document = RateLimitCounterDocument
+
+    # Expired counters (there is no TTL index in Postgres) are swept in bounded
+    # batches of SWEEP_BATCH rows, at most SWEEP_MAX_BATCHES of them, at most
+    # once per SWEEP_EVERY_SECONDS in a process, after a new counter was
+    # committed, skipping rows another replica's sweep or request holds locked.
+    # The request that crosses the interval awaits it (a few short deletes, not
+    # one per counter as before). A counter is never needed after its
+    # expires_at, so nothing waits for the sweep and a failed sweep only logs.
+    SWEEP_EVERY_SECONDS = 60
+    SWEEP_BATCH = 500
+    SWEEP_MAX_BATCHES = 10
+
+    def __init__(self, session_factory, sweep_clock: Callable[[], float] = time.monotonic):
+        super().__init__(session_factory)
+        self._sweep_clock = sweep_clock
+        self._next_sweep = 0.0
+        self._sweeping = False
 
     async def hit(
         self, counter_id: str, expires_at: dt.datetime, amount: int = 1
@@ -128,6 +147,45 @@ class PostgresRateLimitRepository(RecordRepository):
                 counter.updated_at = now
                 await session.execute(self._upsert_statement(row_values(counter)))
                 return True, counter.hits
-        # no TTL index here: expired counters go whenever a new one starts
-        await self.delete_where(RateLimitCounterRow.expires_at <= now)
+        if created:
+            await self._sweep_if_due()
         return True, amount
+
+    async def _sweep_if_due(self) -> None:
+        """Housekeeping after a counter was created, never failing the request."""
+        now = self._sweep_clock()
+        if self._sweeping or now < self._next_sweep:
+            return
+        self._sweeping = True
+        self._next_sweep = now + self.SWEEP_EVERY_SECONDS
+        try:
+            await self.purge_expired()
+        except Exception as exc:  # noqa: BLE001 — a sweep must not fail a request
+            logger.warning("rate-limit counter sweep failed: {}", type(exc).__name__)
+        finally:
+            self._sweeping = False
+
+    async def purge_expired(self, now: Optional[dt.datetime] = None) -> int:
+        """Delete expired counters in bounded batches that skip locked rows;
+        returns how many went. No tombstones: a counter is ephemeral, and one
+        that came back from an import would be expired too."""
+        now = now or utcnow()
+        total = 0
+        for _ in range(self.SWEEP_MAX_BATCHES):
+            batch = (
+                select(RateLimitCounterRow.id)
+                .where(RateLimitCounterRow.expires_at <= now)
+                .limit(self.SWEEP_BATCH)
+                .with_for_update(skip_locked=True)
+            )
+            async with self._session() as session, session.begin():
+                result = await session.execute(
+                    delete(RateLimitCounterRow).where(
+                        RateLimitCounterRow.id.in_(batch.scalar_subquery())
+                    )
+                )
+            deleted = result.rowcount or 0
+            total += deleted
+            if deleted < self.SWEEP_BATCH:
+                break
+        return total

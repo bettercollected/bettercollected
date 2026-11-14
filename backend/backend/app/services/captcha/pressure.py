@@ -10,7 +10,7 @@ anything looks back over (``WINDOW``) is dropped whenever its key is added to
 so a flood of distinct clients cannot exhaust memory. Per process by design (a restart or another replica starts
 from zero): this tunes difficulty, it is not a limit anyone relies on.
 Nothing here stores a readable address beyond the limiter's client key (an
-IPv4 address or an IPv6 /48), and that lives in memory only.
+IPv4 address or an IPv6 /64), and that lives in memory only.
 """
 
 import time

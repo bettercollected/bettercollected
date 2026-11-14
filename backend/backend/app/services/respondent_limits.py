@@ -16,10 +16,13 @@ code-mail circuit breaker below.
 Sign-in code mail (a mail bomb of any address, or the code mail used as a
 relay to random addresses, is the abuse):
 
-* per client: 10 an hour. The client is its trusted-proxy address (see
-  ``utils/client_ip.limit_client_ip``), an IPv6 client by its /48 (one site's
-  allocation, so a /64 per device does not multiply the limit);
-* per address: 3 an hour, whichever route or workspace asked. The address is
+* per client: ``API_CODE_MAIL_PER_CLIENT_PER_HOUR`` (default 60 an hour). The
+  client is its trusted-proxy address (see ``utils/client_ip.limit_client_ip``),
+  an IPv6 client by its /64 (what one subscriber or device gets; a wider key
+  would put the phones of a mobile carrier's pool in one budget). It is
+  generous on purpose: a school or an office behind one address shares it;
+* per address: ``API_CODE_MAIL_PER_ADDRESS_PER_HOUR`` (default 3 an hour),
+  whichever route or workspace asked. The address is
   folded first (Unicode NFC, case, an internationalised domain, a ``+tag`` of
   the local part, and for Gmail the dots, ``googlemail.com`` being
   ``gmail.com``), so spellings of one mailbox share the budget;
@@ -41,7 +44,8 @@ address can keep it at its 3 an hour and so delay that person's sign-in code
 for the hour. The code that was already mailed stays valid for its own
 lifetime.
 
-Submit (a flood of responses is the abuse): 30 a minute per client and form.
+Submit (a flood of responses is the abuse): ``API_SUBMIT_PER_CLIENT_FORM_PER_MINUTE``
+(default 30) a minute per client and form.
 There is no per-form budget: a budget the form's visitors share would let a
 few clients block everyone from a public form.
 
@@ -50,6 +54,21 @@ private address that is not in TRUSTED_PROXIES and would make every user one
 client) is not limited per client; the instance budget (code mail) still holds
 and the submit has nothing left to count. Setting TRUSTED_PROXIES is what
 turns the per-client limits on behind a proxy.
+
+Every limit above is a live setting, read on each request; 0 turns it off.
+
+A limiter that fails (a database error, a lock timeout, a pool timeout) is
+handled by what the route needs:
+
+* the response submit fails OPEN (``fail_open``): the request goes on, the error
+  class is logged;
+* the sign-in code routes fail CLOSED (``fail_closed``): 503 with
+  ``Retry-After: 60``, the error class is logged, no mail is sent. They need the
+  database to send a code anyway, and the instance breaker runs in the same
+  check: under a flood, a pool timeout on its one counter row is exactly when
+  it is needed, so an error must not skip it.
+
+A real 429 is still a 429 on both.
 
 Not covered here on purpose: the Submissions API (a key, its own limits in
 ``public_api/auth.py``) calls the submit service directly and never passes
@@ -60,10 +79,9 @@ with ``Retry-After`` (seconds to the end of the window). Nothing here logs an
 address or a client.
 """
 
-import ipaddress
 import unicodedata
 from http import HTTPStatus
-from typing import Optional
+from typing import Awaitable, Callable, Optional
 
 from loguru import logger
 
@@ -71,17 +89,17 @@ from backend.app.exceptions import HTTPException
 from backend.app.services.rate_limiter import FixedWindowRateLimiter, Verdict
 from backend.config import settings  # noqa: F401  (builds the settings and the live() groups)
 from common.settings.loader import live
-from common.utils.client_ip import parse_address
+from common.utils.client_ip import rate_limit_key
 
 HOUR = 3600
 MINUTE = 60
 
-# as (scope, limit, window seconds)
-CODE_PER_CLIENT = ("code-mail-client", 10, HOUR)
-CODE_PER_ADDRESS = ("code-mail-address", 3, HOUR)
-# the circuit breaker's own counter; its limit is the live setting
+# as (scope, window seconds); the limit of each is a live setting (0 = off)
+CODE_PER_CLIENT = ("code-mail-client", HOUR)  # API_CODE_MAIL_PER_CLIENT_PER_HOUR
+CODE_PER_ADDRESS = ("code-mail-address", HOUR)  # API_CODE_MAIL_PER_ADDRESS_PER_HOUR
+# the circuit breaker's own counter; its limit is API_CODE_MAIL_PER_HOUR
 CODE_ALL_SCOPE = "code-mail-all"
-SUBMIT_PER_CLIENT_FORM = ("submit-client-form", 30, MINUTE)
+SUBMIT_PER_CLIENT_FORM = ("submit-client-form", MINUTE)  # ..._SUBMIT_PER_CLIENT_FORM_PER_MINUTE
 
 _ALL = "*"
 _UNKNOWN = "unknown"
@@ -127,13 +145,9 @@ def too_many(verdict: Verdict, locale: Optional[str] = None) -> HTTPException:
 
 def client_key(client: Optional[str]) -> str:
     """The key a client address is counted under on these routes: an IPv4
-    address as is, an IPv6 address by its /48; "unknown" when there is none."""
-    address = parse_address(client)
-    if address is None:
-        return _UNKNOWN
-    if address.version == 6:
-        return str(ipaddress.ip_network(f"{address}/48", strict=False))
-    return str(address)
+    address as is, an IPv6 address by its /64 (one subscriber or device);
+    "unknown" when there is none (``common.utils.client_ip.rate_limit_key``)."""
+    return rate_limit_key(client)
 
 
 def address_limit_key(address: str) -> str:
@@ -163,8 +177,12 @@ class RespondentLimits:
     def __init__(self, rate_limiter: FixedWindowRateLimiter):
         self._limiter = rate_limiter
 
-    async def _hit(self, spec, key: str, locale: Optional[str] = None) -> None:
-        scope, limit, window = spec
+    async def _hit(
+        self, spec, limit: int, key: str, locale: Optional[str] = None
+    ) -> None:
+        if limit <= 0:
+            return  # off
+        scope, window = spec
         verdict = await self._limiter.hit(scope, key, limit, window)
         if not verdict.allowed:
             logger.info("Request refused: too many requests ({})", scope)
@@ -196,12 +214,18 @@ class RespondentLimits:
         """Count one request for a sign-in code mail to ``address`` (raises 429
         when a limit is used up). Call it before anything is looked up about
         the address."""
+        api = live().api
         key = client_key(client)
         # the cheapest refusal first; a request refused by one limit does not
         # use up the budgets after it
         if key != _UNKNOWN:
-            await self._hit(CODE_PER_CLIENT, key, locale)
-        await self._hit(CODE_PER_ADDRESS, address_limit_key(address), locale)
+            await self._hit(CODE_PER_CLIENT, api.CODE_MAIL_PER_CLIENT_PER_HOUR, key, locale)
+        await self._hit(
+            CODE_PER_ADDRESS,
+            api.CODE_MAIL_PER_ADDRESS_PER_HOUR,
+            address_limit_key(address),
+            locale,
+        )
         await self._breaker(locale)
 
     async def submit(
@@ -212,4 +236,58 @@ class RespondentLimits:
         key = client_key(client)
         if key == _UNKNOWN:
             return
-        await self._hit(SUBMIT_PER_CLIENT_FORM, f"{key}\n{workspace_id}:{form_id}")
+        await self._hit(
+            SUBMIT_PER_CLIENT_FORM,
+            live().api.SUBMIT_PER_CLIENT_FORM_PER_MINUTE,
+            f"{key}\n{workspace_id}:{form_id}",
+        )
+
+
+async def fail_open(check: Callable[[], Awaitable[None]]) -> None:
+    """Run a limit check; a refusal (HTTPException, the 429) goes on, but a
+    failure of the limiter itself (database error, lock timeout, a broken
+    container) lets the request through: a rate limit is a safeguard, not a
+    reason for a submit to fail. Only the error class is logged, never the
+    address or the client."""
+    try:
+        await check()
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 — fail open
+        logger.warning(
+            "Rate limiter failed, request let through: {}", type(exc).__name__
+        )
+
+
+UNAVAILABLE = "rate_limiter_unavailable"
+UNAVAILABLE_RETRY_AFTER = 60
+UNAVAILABLE_MESSAGES = {
+    "en": "Sign-in codes are temporarily unavailable. Please try again in a minute.",
+    "nl": "Inlogcodes zijn tijdelijk niet beschikbaar. Probeer het over een minuut opnieuw.",
+}
+
+
+async def fail_closed(
+    check: Callable[[], Awaitable[None]], locale: Optional[str] = None
+) -> None:
+    """Run the limit check of a sign-in code request; a refusal (the 429) goes
+    on, and a failure of the limiter itself (which includes the instance
+    breaker) answers 503 with ``Retry-After: 60`` instead of sending a code
+    that no limit counted. Only the error class is logged."""
+    try:
+        await check()
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 — fail closed
+        logger.warning(
+            "Rate limiter failed, code request refused: {}", type(exc).__name__
+        )
+        raise HTTPException(
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+            content={
+                "code": UNAVAILABLE,
+                "message": UNAVAILABLE_MESSAGES[_language(locale)],
+                "retry_after": UNAVAILABLE_RETRY_AFTER,
+            },
+            headers={"Retry-After": str(UNAVAILABLE_RETRY_AFTER)},
+        ) from None
