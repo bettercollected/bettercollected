@@ -103,7 +103,8 @@ backend, auth, webapp, jobs worker and the other first-party services to the can
 `docker compose up -d`. It never runs `deploy.sh` for the upgrade, as an orchestrated stack does not. It then
 checks migrations, the scrub of old action jobs, that old responses still read, the jobs worker's
 queues, the webhook SSRF guard, drafts and email actions with the respondent copy, and (5.0) that a report
-query answers and that a 4th sign-in code mail to one mailbox within the hour is refused with 429. It also records, as
+query answers, that a 4th sign-in code mail to one mailbox within the hour is refused with 429, and that the
+tables of migrations 0040 and 0041 exist (alembic head `0041`; `CAPTCHA_ENABLED` is left off, as shipped). It also records, as
 an INFO line, that a bare image swap leaves the actions executor's database restrictions off (the
 backend's startup does not apply them to a queue that already exists; expected, see the release's upgrade
 notes), then runs the documented step (`postgres/ensure-jobs-exec-role.sh` as the database superuser, then
