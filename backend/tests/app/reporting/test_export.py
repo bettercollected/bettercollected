@@ -139,8 +139,10 @@ async def test_the_file_is_audited_with_ids_and_counts_only(client, workspace, r
     # groups written: Care, IT, and the others' row is not there (no more groups)
     assert row.count == len([g for g in (await groups_of_screen(client, workspace, form))])
     dumped = json.dumps(row.model_dump(mode="json"))
-    for secret in ("Care", "Department", "dept", "Volunteers", "score", "c1"):
+    for secret in ("Care", "Department", "dept", "Volunteers", "score"):
         assert secret not in dumped
+    # the card id as a value: a bare "c1" also occurs inside the row's own hex ids by chance
+    assert '"c1"' not in dumped
     # the row exports of the responses are counted apart
     assert await audit_events(workspace, RESPONSE_EXPORT) == []
 
