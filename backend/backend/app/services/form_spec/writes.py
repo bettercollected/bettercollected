@@ -59,6 +59,11 @@ from backend.app.services.form_drafts.mode import (
     DISABLED_MESSAGE,
     ensure_save_drafts_allowed,
 )
+from backend.app.services.captcha.mode import (
+    DISABLED_CODE as CAPTCHA_DISABLED_CODE,
+    DISABLED_MESSAGE as CAPTCHA_DISABLED_MESSAGE,
+    ensure_captcha_allowed,
+)
 from backend.app.services.workspace_form_service import keep_section_titles
 
 PRECONDITION_FAILED_CODE = "precondition_failed"
@@ -78,6 +83,7 @@ _PATCH_KEYS = (
     "show_review_page",
     "allow_save_draft",
     "draft_retention_days",
+    "captcha_enabled",
 )
 
 
@@ -192,6 +198,36 @@ def _ensure_drafts_allowed(spec: FormSpec, settings: Any) -> None:
             content={
                 "code": DISABLED_CODE,
                 "message": DISABLED_MESSAGE,
+                "errors": [problem],
+            },
+        )
+
+
+_CAPTCHA_PATH = "/trust/captchaEnabled"
+
+
+def _captcha_problem(spec: FormSpec, settings: Any) -> Optional[Dict[str, str]]:
+    """The problem of a document that sets the automatic spam check while
+    ``CAPTCHA_ENABLED`` is off (a form that already has that value keeps it)."""
+    try:
+        ensure_captcha_allowed(
+            spec.trust.captcha_enabled if spec.trust else None,
+            getattr(settings, "captcha_enabled", None),
+        )
+    except HTTPException:
+        return {"path": _CAPTCHA_PATH, "message": CAPTCHA_DISABLED_MESSAGE}
+    return None
+
+
+def _ensure_captcha_allowed(spec: FormSpec, settings: Any) -> None:
+    """422 ``captcha_disabled`` for such a document, before anything is stored."""
+    problem = _captcha_problem(spec, settings)
+    if problem is not None:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content={
+                "code": CAPTCHA_DISABLED_CODE,
+                "message": CAPTCHA_DISABLED_MESSAGE,
                 "errors": [problem],
             },
         )
@@ -324,6 +360,7 @@ class FormSpecWriter:
         link is created with. The public API passes none."""
         spec = await _checked_spec(raw)
         _ensure_drafts_allowed(spec, None)
+        _ensure_captcha_allowed(spec, None)
         try:
             form = spec_to_form(spec)
         except SpecConversionError as error:
@@ -367,6 +404,7 @@ class FormSpecWriter:
         self._check_if_match(if_match, current)
         spec = await _checked_spec(raw)
         _ensure_drafts_allowed(spec, settings)
+        _ensure_captcha_allowed(spec, settings)
         form = _replacement(existing, settings, spec)
         try:
             await self._workspace_forms.update_form(
@@ -420,7 +458,10 @@ class FormSpecWriter:
         }
         if not result["valid"]:
             return out
-        problem = _drafts_problem(FormSpec.model_validate(raw), settings)
+        checked = FormSpec.model_validate(raw)
+        problem = _drafts_problem(checked, settings) or _captcha_problem(
+            checked, settings
+        )
         if problem is not None:
             out["valid"] = False
             out["errors"] = [*result["errors"], problem]

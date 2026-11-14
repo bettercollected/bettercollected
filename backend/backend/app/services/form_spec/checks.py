@@ -24,6 +24,7 @@ from backend.app.services.field_rules import (
     field_rule_problems,
     field_rules_enabled,
 )
+from backend.app.services.captcha.mode import captcha_enabled
 from backend.app.services.form_drafts.mode import save_drafts_enabled
 from backend.app.services.image_urls import checked_image_url
 from backend.app.services.layout_containers import layout_containers_enabled
@@ -386,6 +387,14 @@ def _warnings(spec: FormSpec, form: Any, index: _Index) -> List[Dict[str, str]]:
                 "/trust/allowSaveDraft",
                 "Saving drafts is switched off on this server: turning it on "
                 "is refused (SAVE_DRAFTS_ENABLED).",
+            )
+        )
+    if not captcha_enabled() and spec.trust and spec.trust.captcha_enabled is not None:
+        warnings.append(
+            _problem(
+                "/trust/captchaEnabled",
+                "The automatic spam check is switched off on this server: "
+                "changing it is refused (CAPTCHA_ENABLED).",
             )
         )
     if not new_question_types_enabled():

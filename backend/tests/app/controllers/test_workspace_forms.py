@@ -493,6 +493,8 @@ class TestWorkspaceForm:
                 "showReviewPage": None,
                 "allowSaveDraft": None,
                 "draftRetentionDays": None,
+                "captchaEnabled": None,
+                "captchaRequired": None,
             }
         }
         actual_response = patch_settings.json()

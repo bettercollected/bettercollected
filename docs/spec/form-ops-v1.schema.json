@@ -2074,6 +2074,19 @@
           "description": "Days a draft is kept after its last save, 1 to 90; 0 goes back to the default of 30.",
           "title": "Draftretentiondays"
         },
+        "captchaEnabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The automatic spam check on the form's response submit (on unless set to false; refused while the server has it switched off).",
+          "title": "Captchaenabled"
+        },
         "showReviewPage": {
           "anyOf": [
             {
