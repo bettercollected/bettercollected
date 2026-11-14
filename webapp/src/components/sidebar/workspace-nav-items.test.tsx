@@ -185,7 +185,7 @@ describe('the Workspace group', () => {
         render(<NavigationList navigationList={visible(OWNER)} />);
         const rows = screen.getAllByRole('listitem');
         expect(rows.map((row) => row.textContent)).toEqual(['Members', 'Themes', 'Single sign-on', 'AI']);
-        expect(rows[3]).toHaveClass('bg-brand-100', 'font-medium');
-        expect(rows.slice(0, 3).some((row) => row.classList.contains('bg-brand-100'))).toBe(false);
+        expect(rows[3]).toHaveClass('bg-brand-tint', 'font-medium');
+        expect(rows.slice(0, 3).some((row) => row.classList.contains('bg-brand-tint'))).toBe(false);
     });
 });

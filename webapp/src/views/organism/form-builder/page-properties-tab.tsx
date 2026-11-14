@@ -9,7 +9,7 @@ import SlideLayoutNoImage from '@Components/icons/slide-layout-no-image';
 import { SlideLayoutNoImageLeftAlign } from '@Components/icons/slide-layout-no-image-left-align';
 import SlideLayoutRightImage from '@Components/icons/slide-layout-right-image';
 import { SwitchIcon } from '@Components/icons/switch-icon';
-import { PlusIcon } from 'lucide-react';
+import { Check, PlusIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import useRespondentLanguage from '@app/lib/hooks/use-respondent-language';
@@ -198,11 +198,12 @@ export default function PagePropertiesTab({}: {}) {
                                 <span
                                     aria-hidden="true"
                                     className={cn(
-                                        'flex h-[50px] w-20 items-center justify-center rounded-lg border p-2 transition-colors group-hover:border-brand-500 group-hover:bg-[#F4F7FD]',
-                                        selected ? 'border-brand-500 bg-[#F4F7FD] ring-1 ring-brand-500' : 'border-black-300 bg-white'
+                                        'relative flex h-[50px] w-20 items-center justify-center rounded-lg border p-2 transition-colors group-hover:border-brand-500 group-hover:bg-brand-tint',
+                                        selected ? 'option-selected' : 'border-black-300 bg-white'
                                     )}
                                 >
                                     {item.Icon && <item.Icon />}
+                                    {selected && <Check className="absolute top-1 right-1 h-3 w-3 text-link" strokeWidth={3} />}
                                 </span>
                                 <span className={cn('text-[10px]', selected ? 'font-medium text-black-800' : 'text-black-600')}>{item.label}</span>
                             </button>
