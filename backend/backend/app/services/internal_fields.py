@@ -36,7 +36,7 @@ from loguru import logger
 
 from backend.app.exceptions import HTTPException
 from backend.app.services.address_lookup.mode import address_lookup_enabled
-from backend.app.services.captcha.mode import captcha_enabled
+from backend.app.services.captcha.mode import captcha_enabled, required_by
 from backend.app.services.form_drafts.mode import save_drafts_enabled
 
 SLIDE_TYPE = "slide"
@@ -132,10 +132,7 @@ def strip_promotion_mark(form: Any) -> Any:
 def _serve_captcha(settings: Any) -> None:
     """``captcha_required`` for a respondent (switch on: the form's own
     setting, else on; off: none), and no ``captcha_enabled``."""
-    stored = _get(settings, "captcha_enabled")
-    if stored is None and isinstance(settings, dict):
-        stored = settings.get("captchaEnabled")
-    required = (stored is not False) if captcha_enabled() else None
+    required = required_by(settings) if captcha_enabled() else None
     if isinstance(settings, dict):
         for key in ("captcha_enabled", "captchaEnabled", "captchaRequired"):
             settings.pop(key, None)
@@ -159,10 +156,7 @@ def mark_captcha_required(form: Any) -> Any:
         return form
     if _get(settings, "captcha_required") is not None:
         return form
-    stored = _get(settings, "captcha_enabled")
-    if stored is None and isinstance(settings, dict):
-        stored = settings.get("captchaEnabled")
-    _set(settings, "captcha_required", stored is not False)
+    _set(settings, "captcha_required", required_by(settings))
     return form
 
 

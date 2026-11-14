@@ -350,6 +350,7 @@ class FormSpecWriter:
         *,
         form_id: Optional[str] = None,
         access_mode: Optional[str] = None,
+        carried: bool = False,
     ) -> Tuple[str, Dict[str, Any], str]:
         """Create a draft from a whole document: (form id, spec, ETag).
         All or nothing: the document is checked in full before anything is
@@ -357,10 +358,16 @@ class FormSpecWriter:
 
         The keyword arguments are for copying a form from another workspace
         (``services/form_promotion``): the id the form takes and the access mode its
-        link is created with. The public API passes none."""
+        link is created with. The public API passes none.
+
+        ``carried``: the document is a copy of a form that already holds its
+        setting values (a copy to another workspace): the spam check setting
+        it carries is kept as it is, also while CAPTCHA_ENABLED is off (nothing
+        is turned on by it: off, the setting is neither enforced nor shown)."""
         spec = await _checked_spec(raw)
         _ensure_drafts_allowed(spec, None)
-        _ensure_captcha_allowed(spec, None)
+        if not carried:
+            _ensure_captcha_allowed(spec, None)
         try:
             form = spec_to_form(spec)
         except SpecConversionError as error:
@@ -387,6 +394,7 @@ class FormSpecWriter:
         if_match: Optional[List[str]],
         user: User,
         in_write: Optional[Callable[[Any], Awaitable[None]]] = None,
+        carried: bool = False,
     ) -> Tuple[Dict[str, Any], str]:
         """Replace a form from a whole document, only while it is still the
         version ``if_match`` names: 428 without it, 412 when stale (also
@@ -404,7 +412,8 @@ class FormSpecWriter:
         self._check_if_match(if_match, current)
         spec = await _checked_spec(raw)
         _ensure_drafts_allowed(spec, settings)
-        _ensure_captcha_allowed(spec, settings)
+        if not carried:
+            _ensure_captcha_allowed(spec, settings)
         form = _replacement(existing, settings, spec)
         try:
             await self._workspace_forms.update_form(
@@ -442,10 +451,15 @@ class FormSpecWriter:
         return {"formId": form_id, "published": True, "slug": slug}
 
     async def preview_replace(
-        self, workspace_id: RecordId, form_id: str, raw: Any
+        self,
+        workspace_id: RecordId,
+        form_id: str,
+        raw: Any,
+        carried: bool = False,
     ) -> Dict[str, Any]:
         """What a replace with ``raw`` would store, and the diff from now:
-        ``{valid, errors, warnings, form, diff}``. Stores nothing."""
+        ``{valid, errors, warnings, form, diff}``. Stores nothing.
+        ``carried``: as for ``replace``."""
         _, existing, settings = await self._load(workspace_id, form_id)
         before = self._spec.spec_of(existing, settings)
         result = await run_in_threadpool(check_spec_document, raw)
@@ -459,8 +473,8 @@ class FormSpecWriter:
         if not result["valid"]:
             return out
         checked = FormSpec.model_validate(raw)
-        problem = _drafts_problem(checked, settings) or _captcha_problem(
-            checked, settings
+        problem = _drafts_problem(checked, settings) or (
+            None if carried else _captcha_problem(checked, settings)
         )
         if problem is not None:
             out["valid"] = False

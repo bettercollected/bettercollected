@@ -17,7 +17,8 @@ With the switch off: the challenge route answers 404 `captcha_off`; the
 missing or garbage header); forms are served without the setting; creators cannot change
 the per-form setting (422 `captcha_disabled` on the settings PATCH, the form spec API
 and the operations the AI and MCP use; a value already stored is kept, neither enforced
-nor shown); nothing is recorded.
+nor shown, and a write that leaves it as it is passes on every path); copying a form
+to another workspace carries the stored value as it is; nothing is recorded.
 
 ## Protocol
 
