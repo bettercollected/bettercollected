@@ -28,12 +28,17 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectForm } from '@app/store/forms/slice';
 import { useGetReportFieldsQuery, useGetReportViewsQuery, useQueryReportQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { OVERVIEW_QUESTIONS, ReportCardDef, ReportCardResult, ReportError, ReportView, cardsParam, isTimeDimension, overviewCards, parseCardsParam, reportDefinition, reportErrorOf, reportFilters, viewerZone, cardProblem } from '@app/utils/report';
-import { VIEW_ID, cardsOf, filtersOf, isModified } from '@app/utils/report-views';
+import { OVERVIEW_QUESTIONS, ReportCardDef, ReportCardResult, ReportClause, ReportError, ReportView, cardsParam, isTimeDimension, overviewCards, parseCardsParam, reportDefinition, reportErrorOf, reportFilters, viewerZone, cardProblem, needsNoCondition } from '@app/utils/report';
+import { listFiltersFor } from '@app/utils/report-drill';
+import { clauseProblem } from '@app/utils/report-where';
+import { VIEW_ID, cardsOf, filtersOf, isModified, whereOf } from '@app/utils/report-views';
+import type { ReportRow } from '@app/utils/report-view';
 import { DEFAULT_STATE, ResponseListState, localDayStart, parseResponseListState, responseListSearchParams } from '@app/utils/response-list-state';
 
+import ReportAnswerFilters from './report-answer-filters';
 import ReportCard from './report-card';
 import ReportCardEditor, { blankCard } from './report-card-editor';
+import ReportDrill from './report-drill';
 import ReportViews from './report-views';
 
 /** The viewer's calendar day `days` days before today, as `YYYY-MM-DD`. */
@@ -92,6 +97,14 @@ export default function ReportPage() {
     const workspaceId: string | undefined = workspace?.id;
     const formId: string | undefined = form?.formId;
     const [adding, setAdding] = useState(false);
+    // The conditions on answers live in this page's memory only, never in the address: a number or a date
+    // asked about is an answer value (a birth year, a salary, an appointment), and an address reaches browser
+    // history, access logs and Referer headers. A saved view carries them server-side: `view=<id>` restores them.
+    const [urlWhere, setWhere] = useState<ReportClause[]>([]);
+    // the view whose conditions are in the state (so a later edit of them is not overwritten by the view's)
+    const appliedView = useRef<string | null>(null);
+    // the group whose responses are open under the cards
+    const [drill, setDrill] = useState<{ cardId: string; key: string; label: string } | null>(null);
     const headingRef = useRef<HTMLHeadingElement>(null);
     const addRef = useRef<HTMLButtonElement>(null);
     const filtersToggleRef = useRef<HTMLButtonElement>(null);
@@ -108,9 +121,24 @@ export default function ReportPage() {
     const cards: ReportCardDef[] = useMemo(() => (catalogue ? (urlCards ?? overviewCards(catalogue, all)) : []), [catalogue, urlCards, all]);
     const { data: viewList, isLoading: viewsLoading, isError: viewsFailed, refetch: refetchViews } = useGetReportViewsQuery({ workspaceId: workspaceId as string, formId: formId as string }, { skip: !allowed || !workspaceId || !formId });
     const currentView = viewList?.views.find((view) => view.id === viewId);
+    // an address that names a view (a link, a reload, Back) restores the view's conditions once, from the server
+    useEffect(() => {
+        if (!currentView || appliedView.current === currentView.id) return;
+        appliedView.current = currentView.id;
+        setWhere(whereOf(currentView.definition));
+    }, [currentView]);
     // a card the form can no longer answer is shown with its reason and left out of the request
-    const asked = useMemo(() => (catalogue ? cards.filter((card) => !cardProblem(card, catalogue)) : []), [cards, catalogue]);
-    const definition = useMemo(() => reportDefinition(asked, reportFilters(listState, localDayStart), tz), [asked, listState, tz]);
+    const answerable = useMemo(() => (catalogue ? cards.filter((card) => !cardProblem(card, catalogue)) : []), [cards, catalogue]);
+    // a condition on a question the form no longer has is shown with its reason and left out of the request
+    const askedWhere = useMemo(() => (catalogue ? urlWhere.filter((clause) => !clauseProblem(clause, catalogue)) : []), [urlWhere, catalogue]);
+    // a card grouped by deletion request or feedback status is counted without reading answers: with a condition on an answer
+    // the server refuses it, so it is shown with its reason and left out of the request
+    const asked = useMemo(() => (askedWhere.length > 0 ? answerable.filter((card) => !needsNoCondition(card)) : answerable), [answerable, askedWhere]);
+    const filters = useMemo(() => reportFilters(listState, localDayStart, askedWhere), [listState, askedWhere]);
+    const definition = useMemo(() => reportDefinition(asked, filters, tz), [asked, filters, tz]);
+    // what a save stores: every card the person can have answered, so a card the conditions keep from showing is refused
+    // by the server with its reason instead of being dropped from the view
+    const saveDefinition = useMemo(() => reportDefinition(answerable, filters, tz), [answerable, filters, tz]);
     const {
         // the figures of THIS definition only: an edited card never shows its old figures under its new labels
         currentData: result,
@@ -148,8 +176,20 @@ export default function ReportPage() {
 
     const setCards = (next: ReportCardDef[]) => write({ cards: next }, true);
     // a saved view: its filters and cards become the report in the address; no view is the Overview (the filters stay)
-    const openView = (view: ReportView | null) => (view ? write({ state: { ...DEFAULT_STATE, ...filtersOf(view.definition) }, cards: cardsOf(view.definition), view: view.id }) : write({ cards: null, view: null }));
-    const markView = (view: ReportView | null) => write({ view: view ? view.id : null }, true);
+    const openView = (view: ReportView | null) => {
+        if (view) {
+            appliedView.current = view.id;
+            setWhere(whereOf(view.definition));
+            write({ state: { ...DEFAULT_STATE, ...filtersOf(view.definition) }, cards: cardsOf(view.definition), view: view.id });
+        } else {
+            write({ cards: null, view: null });
+        }
+    };
+    // the view just saved is the one on screen: its conditions are the ones in the state already
+    const markView = (view: ReportView | null) => {
+        appliedView.current = view ? view.id : null;
+        write({ view: view ? view.id : null }, true);
+    };
     const change = (index: number, card: ReportCardDef) => setCards(cards.map((existing, at) => (at === index ? card : existing)));
     const remove = (index: number) => {
         setCards(cards.filter((_, at) => at !== index));
@@ -178,13 +218,17 @@ export default function ReportPage() {
     }
 
     const listHref = `${pathname.replace(/\/report\/?$/, '')}${responseListSearchParams(listState).toString() ? `?${responseListSearchParams(listState).toString()}` : ''}`;
-    const modified = !!currentView && !!catalogue && isModified(currentView, cards, reportFilters(listState, localDayStart));
+    const modified = !!currentView && !!catalogue && isModified(currentView, cards, reportFilters(listState, localDayStart, urlWhere));
     // an address that names a view the member cannot open (deleted, or someone else's private one)
     const viewMissing = !!viewId && !!viewList && !currentView;
-    const filtersActive = !!(listState.from || listState.to || listState.status || listState.who || listState.version);
+    const filtersActive = !!(listState.from || listState.to || listState.status || listState.who || listState.version) || urlWhere.length > 0;
     const empty = !!result && !isError && result.n === 0;
     const hasTime = !!catalogue && cards.some((card) => card.dimension && isTimeDimension(catalogue, card.dimension.field));
     const catalogueFailure = catalogueError ? reportErrorOf(catalogueError) : undefined;
+    // the open group's card, while it is still one the server answers; the list address of the same group when the list can say it
+    const openDrill = drill ? asked.find((card) => card.id === drill.cardId) : undefined;
+    const drillList = openDrill ? listFiltersFor(openDrill.dimension, drill?.key ?? '', listState, urlWhere.length > 0) : undefined;
+    const drillListHref = drillList ? `${pathname.replace(/\/report\/?$/, '')}?${responseListSearchParams({ ...DEFAULT_STATE, ...drillList }).toString()}` : undefined;
     const resultById = new Map<string, ReportCardResult>((result?.cards ?? []).map((card) => [card.id, card]));
     const questionCount = catalogue?.fields.length ?? 0;
 
@@ -219,9 +263,9 @@ export default function ReportPage() {
                     failed={viewsFailed}
                     current={currentView}
                     modified={modified}
-                    definition={definition}
+                    definition={saveDefinition}
                     canSave={asked.length > 0}
-                    hiddenCards={cards.length - asked.length}
+                    hiddenCards={cards.length - answerable.length}
                     onOpen={openView}
                     onMark={markView}
                     onReload={() => refetchViews()}
@@ -234,6 +278,8 @@ export default function ReportPage() {
             )}
 
             <ResponseFilters toggleRef={filtersToggleRef} state={listState} currentVersion={form?.version} onChange={filterChange} onClear={clearFilters} hideSort />
+
+            {catalogue && <ReportAnswerFilters catalogue={catalogue} clauses={urlWhere} onChange={setWhere} />}
 
             <p role="status" aria-live="polite" data-testid="report-live" className="sr-only">
                 {announce}
@@ -266,14 +312,28 @@ export default function ReportPage() {
                                     result={resultById.get(card.id)}
                                     catalogue={catalogue}
                                     loading={isFetching}
+                                    blocked={askedWhere.length > 0 && needsNoCondition(card)}
                                     first={index === 0}
                                     last={index === cards.length - 1}
                                     onChange={(next) => change(index, next)}
                                     onRemove={() => remove(index)}
                                     onMove={(delta) => move(index, delta)}
+                                    onDrill={(def: ReportCardDef, row: ReportRow) => setDrill({ cardId: def.id, key: row.key, label: row.label })}
                                 />
                             ))}
                         </div>
+                    )}
+                    {drill && openDrill && (
+                        <ReportDrill
+                            workspaceId={workspaceId as string}
+                            workspaceName={workspace?.workspaceName as string}
+                            formId={formId as string}
+                            definition={definition}
+                            cardId={openDrill.id}
+                            group={{ key: drill.key, label: drill.label }}
+                            listHref={drillListHref}
+                            onClose={() => setDrill(null)}
+                        />
                     )}
                     {catalogue.fields.length === 0 && !empty && <p className="m-0 text-sm text-black-700">{t('REPORT.NOT_REPORTABLE_ANY')}</p>}
                     {hasTime && <p className="m-0 text-xs text-black-600">{t('REPORT.TZ_NOTE', { zone: tz })}</p>}

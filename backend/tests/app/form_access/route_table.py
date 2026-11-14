@@ -173,6 +173,19 @@ def _promotion_targets(ctx):
     return {"params": {"targetWorkspaceId": ctx["ws"]}}
 
 
+def _drill_request(ctx):
+    return {
+        "json": {
+            "definition": {
+                "v": 1,
+                "cards": [{"id": "c", "kind": "bar", "dimension": {"field": "form_version"}, "measures": [{"agg": "count"}]}],
+            },
+            "card": "c",
+            "group": "1",
+        }
+    }
+
+
 def _view_write(ctx):
     return {
         "json": {
@@ -284,6 +297,10 @@ ROUTES: Dict[Tuple[str, str], Route] = {
     ("GET", F + "/report/fields"): route(FORM, P.RESPONSE_READ, P.ANALYTICS_READ),
     ("POST", F + "/report/query"): route(
         FORM, P.RESPONSE_READ, P.ANALYTICS_READ, request=_report_query
+    ),
+    # the responses behind a group of a card (drill-down): the same gate
+    ("POST", F + "/report/responses"): route(
+        FORM, P.RESPONSE_READ, P.ANALYTICS_READ, request=_drill_request
     ),
     # saved views of the report: the same gate; a view for the whole form needs form.edit on
     # top, which the matrix's private request never asks for
@@ -536,6 +553,7 @@ OUTCOMES: Dict[Tuple[str, str], Tuple[int, ...]] = {
     ("GET", F + "/all-submissions"): (200,),
     ("GET", F + "/report/fields"): (200,),
     ("POST", F + "/report/query"): (200,),
+    ("POST", F + "/report/responses"): (200,),
     ("GET", F + "/report/views"): (200,),
     ("POST", F + "/report/views"): (201,),
     ("GET", F + "/report/views/{view_id}"): (404,),

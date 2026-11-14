@@ -70,3 +70,15 @@ VIEW_NAME_MAX = 80
 VIEWS_FORM_MAX = 50
 VIEWS_PRIVATE_MAX = 20
 VIEW_BODY_MAX_BYTES = DEFINITION_MAX_BYTES + 2048
+
+# conditions on answers in one definition, the values one condition may list, and the
+# length of an option id in one
+CLAUSES_MAX = 10
+CLAUSE_VALUES_MAX = 20
+CLAUSE_VALUE_MAX = 100
+# responses one drill-down request reads (a page of the responses in a group is filled
+# from the pass, which stops when the page is full or this many were read), and the
+# most one page holds
+DRILL_SCAN_MAX = REPORT_MAX_ROWS
+DRILL_PAGE_MAX = 100
+DRILL_PAGE_DEFAULT = 25

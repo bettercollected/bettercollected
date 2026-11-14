@@ -102,6 +102,25 @@ OTHER_LABEL = "Other"
 REMOVED_LABEL = "Removed option"
 YES_NO_GROUPS = (("yes", "Yes"), ("no", "No"))
 
+# The operators a filter on an answer may use, by kind of question. Every kind may ask whether
+# the question was answered. A comparison only ever matches a response that gave a value (to
+# find the others, ask ``is_empty``); a question's typed "Other" is the group "Other", whose text
+# is never read.
+OPS_EMPTY = ("is_empty", "is_not_empty")
+OPS_NUMBER = ("=", "!=", ">", ">=", "<", "<=", "between")
+FILTER_OPS = {
+    "choice": ("is", "is_not", "any_of") + OPS_EMPTY,
+    "choices": ("has_any", "has_all") + OPS_EMPTY,
+    "yes_no": ("is",) + OPS_EMPTY,
+    "scale": OPS_NUMBER + OPS_EMPTY,
+    "number": OPS_NUMBER + OPS_EMPTY,
+    "currency": OPS_NUMBER + OPS_EMPTY,
+    # a calculated field is a number or a yes/no
+    "calculated": ("is",) + OPS_NUMBER + OPS_EMPTY,
+    "date": ("before", "after", "between") + OPS_EMPTY,
+}
+ALL_OPS = tuple(dict.fromkeys(op for ops in FILTER_OPS.values() for op in ops))
+
 _CHOICE_TYPES = ("multiple_choice", "dropdown")
 _SCALE_TYPES = ("rating", "linear_rating", "opinion_scale")
 _DATE_TYPES = ("date", "day")
@@ -139,6 +158,7 @@ class ReportField:
             "measures": list(self.measures),
             "versions": list(self.versions),
             "inCurrentVersion": self.in_current,
+            "filterOps": list(FILTER_OPS.get(self.kind, ())),
         }
         if self.kind in (CHOICE, CHOICES):
             entry["options"] = [{"id": i, "label": l} for i, l in self.options]

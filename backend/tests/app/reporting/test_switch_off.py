@@ -66,6 +66,8 @@ async def test_every_route_answers_422_with_no_query_at_all(client, workspace):
         ("get", "fields", {}),
         ("post", "query", {"json": body}),
         ("post", "query", {"content": b"not json at all"}),
+        ("post", "responses", {"json": {"definition": definition(card()), "card": "c1", "group": "x"}}),
+        ("post", "responses", {"content": b"not json at all"}),
     ):
         for signed_in in (True, False):
             with statements() as seen:

@@ -76,6 +76,8 @@ class ReportRow:
     answers: Any
     # which part of the scope it came from (see ``batch``)
     phase: int = 0
+    # the id the response's own page is opened by (never read except to link to it)
+    response_id: Optional[str] = None
 
     @property
     def cursor(self) -> "Cursor":
@@ -103,6 +105,7 @@ def _report_row(row, phase: int) -> ReportRow:
         source=source,
         answers=doc.get("answers"),
         phase=phase,
+        response_id=doc.get("response_id") if isinstance(doc.get("response_id"), str) else None,
     )
 
 

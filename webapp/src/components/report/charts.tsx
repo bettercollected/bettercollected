@@ -283,7 +283,7 @@ export function LineChart(props: ChartProps) {
 
 /* ------------------------------------------------------------- table */
 
-export function DataTable({ view, caption, srOnly = false }: { view: CardView; caption: string; srOnly?: boolean }) {
+export function DataTable({ view, caption, srOnly = false, onOpen }: { view: CardView; caption: string; srOnly?: boolean; onOpen?: (row: ReportRow) => void }) {
     const { t } = useTranslation();
     const hasShare = view.rows.some((row) => row.shareText);
     const showN = view.columns.length > 0 && view.columns[0].label !== t('REPORT.COL_N');
@@ -292,7 +292,7 @@ export function DataTable({ view, caption, srOnly = false }: { view: CardView; c
             <caption className="sr-only">{caption}</caption>
             <thead>
                 <tr className="border-b border-black-300">
-                    <th scope="col" className="py-2 pr-4 font-semibold text-black-800">
+                    <th scope="col" className="min-w-24 py-2 pr-4 font-semibold text-black-800">
                         {view.groupHeader}
                     </th>
                     {view.columns.map((column) => (
@@ -310,12 +310,17 @@ export function DataTable({ view, caption, srOnly = false }: { view: CardView; c
                             {t('REPORT.COL_SHARE')}
                         </th>
                     )}
+                    {onOpen && (
+                        <th scope="col" className="py-2 pl-3 text-right">
+                            <span className="sr-only">{t('REPORT.COL_OPEN')}</span>
+                        </th>
+                    )}
                 </tr>
             </thead>
             <tbody>
                 {view.rows.map((row: ReportRow) => (
                     <tr key={row.key} className="border-b border-black-200 last:border-0">
-                        <th scope="row" className="py-2 pr-4 font-normal text-black-900 [overflow-wrap:anywhere]">
+                        <th scope="row" className="min-w-24 py-2 pr-4 font-normal text-black-900 [overflow-wrap:anywhere]">
                             {row.label}
                         </th>
                         {row.valuesText.map((text, index) => (
@@ -325,6 +330,20 @@ export function DataTable({ view, caption, srOnly = false }: { view: CardView; c
                         ))}
                         {showN && <td className="px-2 py-2 text-right text-black-900 tabular-nums">{row.n}</td>}
                         {hasShare && <td className="py-2 pl-2 text-right text-black-900 tabular-nums">{row.shareText ?? ''}</td>}
+                        {onOpen && (
+                            <td className="py-1 pl-3 text-right">
+                                {row.n > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onOpen(row)}
+                                        aria-label={t('REPORT.OPEN_RESPONSES_OF', { group: row.label })}
+                                        className="min-h-9 rounded px-1 text-right text-sm font-medium text-brand-600 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden"
+                                    >
+                                        {t('REPORT.OPEN_RESPONSES')}
+                                    </button>
+                                )}
+                            </td>
+                        )}
                     </tr>
                 ))}
                 {view.otherGroups && (
@@ -339,6 +358,7 @@ export function DataTable({ view, caption, srOnly = false }: { view: CardView; c
                         ))}
                         {showN && <td className="px-2 py-2 text-right text-black-900 tabular-nums">{view.otherGroups.n}</td>}
                         {hasShare && <td />}
+                        {onOpen && <td />}
                     </tr>
                 )}
             </tbody>
