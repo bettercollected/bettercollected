@@ -89,6 +89,9 @@ export function useWorkspacePermissions() {
     const formPromotionEnabled = !!userId && !isError && !!data?.formPromotionEnabled;
     // ...and reports on a form's answers (its REPORTING_ENABLED): the Report item, the list's Report link and the page. Nothing of it is asked for or shown while it is off.
     const reportingEnabled = !!userId && !isError && !!data?.reportingEnabled;
+    // ...and the gated theme presets whose switch is on (Daybreak: its DAYBREAK_PRESET_ENABLED): the picker lists only those. Memoised so effects that read it do not run on every render.
+    const offeredGatedPresetsData = data?.offeredGatedPresets;
+    const offeredGatedPresets = useMemo<ReadonlyArray<string>>(() => (!!userId && !isError && Array.isArray(offeredGatedPresetsData) ? offeredGatedPresetsData : []), [userId, isError, offeredGatedPresetsData]);
     return {
         can,
         permissions,
@@ -114,6 +117,7 @@ export function useWorkspacePermissions() {
         auditLogUiEnabled,
         formPromotionEnabled,
         apiKeyRolesEnabled,
-        reportingEnabled
+        reportingEnabled,
+        offeredGatedPresets
     };
 }

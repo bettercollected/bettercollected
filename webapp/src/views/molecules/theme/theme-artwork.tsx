@@ -7,10 +7,11 @@ import marblePanel1440Webp from '@app/assets/themes/marble/marble-panel-1440x180
 import marbleStripAvif from '@app/assets/themes/marble/marble-strip-1560x240.avif';
 import marbleStripWebp from '@app/assets/themes/marble/marble-strip-1560x240.webp';
 import marblePlaceholders from '@app/assets/themes/marble/placeholders.json';
-import { FormTheme, THEME_ARTWORKS, ThemeArtwork, isHexColour } from '@app/constants/theme';
+import { FormTheme, PICTURE_ARTWORKS, THEME_ARTWORKS, ThemeArtwork, isHexColour } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { cn } from '@app/shadcn/util/lib';
 import { contrast } from '@app/utils/color-contrast';
+import { DaybreakSunrise } from '@app/views/molecules/theme/daybreak-art';
 
 /**
  * Built-in theme artwork (`background.artwork`): first-party images bundled
@@ -35,6 +36,12 @@ const MARBLE = {
 export function themeArtwork(theme?: Partial<FormTheme> | null): ThemeArtwork | null {
     const artwork = theme?.background?.artwork;
     return artwork && (THEME_ARTWORKS as readonly string[]).includes(artwork) ? artwork : null;
+}
+
+/** The theme's artwork when it fills a picture half (marble); the Daybreak scene is drawn on the page and does not. */
+export function themePictureArtwork(theme?: Partial<FormTheme> | null): ThemeArtwork | null {
+    const artwork = themeArtwork(theme);
+    return artwork && PICTURE_ARTWORKS.includes(artwork) ? artwork : null;
 }
 
 /** The layouts with a picture half beside the text. */
@@ -88,6 +95,8 @@ export function ThemeArtworkPanel({ theme, layout, desktop = false }: { theme?: 
  * has no picture half): the strip, with the headband under it.
  */
 export function ThemeArtworkBand({ theme }: { theme?: Partial<FormTheme> | null }) {
+    // The Daybreak ending: the sun rises behind two hills (daybreak-art.tsx).
+    if (themeArtwork(theme) === 'daybreak') return <DaybreakSunrise theme={theme} />;
     if (themeArtwork(theme) !== 'marble') return null;
     return (
         <div className="relative h-20 w-full shrink-0 overflow-hidden sm:h-[120px]" style={{ backgroundImage: `url(${marblePlaceholders.strip})`, backgroundSize: 'cover', backgroundPosition: 'center' }} data-testid="theme-artwork-band" aria-hidden="true">
@@ -116,7 +125,7 @@ export interface GreetingCover {
  * own colours); null otherwise, and the page renders as before.
  */
 export function greetingCover(theme: FormTheme | null | undefined, layout?: FormSlideLayout | null, imageUrl?: string | null, { privateForm = false }: { privateForm?: boolean } = {}): GreetingCover | null {
-    if (!theme || !themeArtwork(theme) || !isBesideLayout(layout) || imageUrl?.trim() || privateForm || theme.style === 'leaflet') return null;
+    if (!theme || !themePictureArtwork(theme) || !isBesideLayout(layout) || imageUrl?.trim() || privateForm || theme.style === 'leaflet') return null;
     if (!isHexColour(theme.secondary) || !isHexColour(theme.accent) || contrast(theme.accent, theme.secondary) < 4.5) return null;
     const cloth = theme.secondary;
     const paper = theme.accent;

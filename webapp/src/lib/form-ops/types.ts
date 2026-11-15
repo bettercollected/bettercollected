@@ -640,6 +640,13 @@ export interface ApplyOptions {
      */
     layoutContainers?: boolean;
     /**
+     * The gated theme presets the server offers (its switches, e.g.
+     * DAYBREAK_PRESET_ENABLED; the permissions answer lists them): default
+     * every preset; a list makes `set_theme_preset` refuse a gated preset that
+     * is not on it, as an unknown name.
+     */
+    offeredGatedPresets?: ReadonlyArray<string>;
+    /**
      * The batch comes from the form editor (default). False applies the
      * rules for everyone else (AI, API): editor ops are refused and titles
      * must be plain text. The backend refuses those when it parses a batch,

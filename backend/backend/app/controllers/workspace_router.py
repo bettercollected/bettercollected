@@ -8,6 +8,7 @@ from fastapi import Depends, Form, Query, Response, UploadFile
 from pydantic import EmailStr
 from starlette.requests import Request
 
+from backend.app.constants.themes import GATED_PRESETS, preset_offered
 from backend.app.container import container
 from backend.app.utils.client_ip import limit_client_ip
 from backend.app.services.respondent_limits import fail_closed
@@ -254,6 +255,9 @@ class WorkspaceRouter(Routable):
             new_question_types_enabled=new_question_types_enabled(),
             signature_question_enabled=signature_question_enabled(),
             layout_containers_enabled=layout_containers_enabled(),
+            offered_gated_presets=[
+                name for name in GATED_PRESETS if preset_offered(name)
+            ],
             address_question_enabled=address_question_enabled(),
             address_lookup_enabled=address_lookup_enabled(),
             choice_logic_enabled=choice_logic_enabled(),
