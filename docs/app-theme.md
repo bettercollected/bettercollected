@@ -7,9 +7,13 @@ gives them.
 
 ## The server setting
 
-`APP_THEME_PIGMENT_ENABLED` (`true` / `false`, default `false`, set in the environment and not
-in the admin portal until it is released; see the [settings inventory](settings-inventory.md)).
-It is read by the backend only.
+`APP_THEME_PIGMENT_ENABLED` (`true` / `false`, default `false`). It is an ordinary stored setting
+(tier T2, reload class R, like `CAPTCHA_ENABLED` and `DAYBREAK_PRESET_ENABLED`; see the
+[settings inventory](settings-inventory.md)): an instance admin turns it on or off in the admin
+portal's settings, or the environment sets it. The order is the usual one: a non-empty
+environment value wins, then the stored value, then the default (off). It is read by the backend
+only, when the backend starts, so a change in the portal is picked up by the next restart of the
+backend (the portal reports it as pending until then).
 
 While it is **off**:
 
@@ -25,6 +29,22 @@ While it is **off**:
 * the permissions answer (`GET /workspaces/{id}/permissions`) says `appThemeEnabled: false`.
 
 While it is **on**, the owners and admins of a workspace can choose between the two themes.
+
+### What changes when it is on, and how to go back
+
+Turning it on changes nothing by itself: every workspace stays on `daybreak` until an owner or
+admin chooses `pigment` (Themes page, Appearance), and no form changes. It adds, for everyone who
+can use the feature:
+
+* the **Appearance** card and the `pigment` choice (`PUT /workspaces/{id}/app-theme`);
+* the **Pigment form preset**, its artwork and the lettered answer keys (`choiceKeys`) in the
+  builder's picker, the edit operations, the AI and the MCP server (see
+  [the Pigment preset](pigment-preset.md); one switch covers both).
+
+Turning it **off again is safe and deletes nothing**: a workspace with `pigment` stored is served
+`daybreak` (the stored choice is kept, and comes back if the setting is turned on again), the
+Appearance card is hidden, and only *choosing* Pigment anew is refused. A form that already wears
+the preset, its artwork or the keys keeps rendering, publishing and saving as before.
 
 ## Choosing a theme
 

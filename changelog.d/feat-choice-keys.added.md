@@ -3,8 +3,8 @@
   letter on a flat pigment, with the chosen option filled in the action colour and
   ending in a check. The letters work as the keys of the other themes with corners
   do (press a letter on an option to choose it); the key is decorative and the option
-  is still named by its label. Optional and absent everywhere today: no preset sets it
-  yet and every existing form looks as before. Accepted by the edit operations, the
+  is still named by its label. Optional: the Pigment preset sets it and no other preset
+  does, and every existing form looks as before. Accepted by the edit operations, the
   form spec, whole-form saves and saved themes, while the Pigment switch
   (`APP_THEME_PIGMENT_ENABLED`) is on: while it is off a new theme that sets the key is
   refused (422 `theme_not_allowed`, or the operation's error) wherever it comes from,

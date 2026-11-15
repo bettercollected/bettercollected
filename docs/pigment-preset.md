@@ -10,8 +10,9 @@ with; that is `NEW_FORM_THEME` in `backend/backend/app/constants/themes.py` (and
 workspace that chose the Pigment app theme.
 
 It is behind the switch of the second app theme, `APP_THEME_PIGMENT_ENABLED` (see
-`docs/app-theme.md` and `docs/settings-inventory.md`). There is no switch of its own: one
-switch covers the workspace appearance choice and this preset.
+`docs/app-theme.md` and `docs/settings-inventory.md`), an ordinary setting an instance admin
+turns on in the admin portal's settings (or the environment sets it; off by default). There is no
+switch of its own: one switch covers the workspace appearance choice and this preset.
 
 ## What it is
 
