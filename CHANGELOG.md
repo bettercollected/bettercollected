@@ -13,6 +13,63 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [5.0.1] - 2026-11-15
+
+5.0.1 gives the creator app a new look, Daybreak. The dashboard, the form builder, settings, the Report page and sign-in sit on a soft periwinkle page with white cards; the forms page opens with a short welcome, every form has its own coloured tile, empty pages show a picture with one next step, and publishing a form ends with a "Your form is live" dialog. Report charts have colours that are easier to tell apart, and no longer turn dark on a device in dark mode. A new Daybreak form preset is offered behind a switch, and the groundwork for a second dashboard theme is in, switched off and without its colours. Respondent forms are unchanged unless a creator picks the new preset, and there is no database migration.
+
+- **The Daybreak look of the dashboard.** A periwinkle page with white cards, a blue that stays the only button colour, statuses that pair a dot with a word, and a clearer edge on cards. The forms page opens with a welcome band (your first name, the time of day and one next step), each form has a coloured tile in the list and in the builder and report headers, empty pages show a picture, one sentence and one button, and a count in the menu shows the deletion requests waiting for you. Sign-in is one calm card, publishing ends in a "Your form is live" dialog with a Copy link button, and a new workspace's first screen uses the same card. There is no setting to turn the new look off.
+- **Report charts for colour-blind readers.** The six chart colours differ in lightness as well as hue, stay apart with red-green colour blindness and none looks like an error red; charts no longer pick dark-mode colours on a white card.
+- **A Daybreak preset for forms.** The blue you know on a soft periwinkle page, with a small sun in the corner and a sunrise when the form is sent. Creators pick it in the Design tab; it is not the default. Switch: `DAYBREAK_PRESET_ENABLED`.
+- **An app theme for each workspace, not yet visible.** Owners and admins can store `daybreak` or `pigment` as the dashboard's theme, with an Appearance card on the Themes page. The `pigment` code is present but switched off, and its colours are not in this release, so choosing it changes nothing you can see. Switch: `APP_THEME_PIGMENT_ENABLED`.
+
+**Upgrading from 5.0.0:** no new required secret, no new service, no database migration, and no change to the stack beyond the image tag. The changes that need your attention:
+
+- **No database migration.** The alembic head stays `0041`; `alembic -c /api/backend/alembic.ini current` in a 5.0.1 backend container reports it, and a backend start applies nothing.
+- **The creator app looks different.** After the upgrade every member sees the Daybreak look (the page colours, the welcome band on the forms page, form tiles, the new empty pages, the sign-in card and the "Your form is live" dialog). There is no setting to turn it off, so expect to be asked. Nothing needs to be done for existing forms, and published forms and the respondent pages look exactly as before.
+- **Two new switches, both off by default,** read by the **backend** only (the dashboard learns about them from the server, so the **webapp needs no setting**, and no other service reads them):
+  - `DAYBREAK_PRESET_ENABLED` is an ordinary setting: set it in the environment or in the admin portal's settings. With it off, the Daybreak preset is not offered (the picker, the edit operations, the AI and the MCP server do not know it) and a new theme that names its artwork is refused on every write path (a whole-form save, a new form, a saved workspace theme, an edit operation, and artwork set inline), with 422 `theme_not_allowed` or an operation error. A form that already stores the preset keeps rendering and saving as before.
+  - `APP_THEME_PIGMENT_ENABLED` is **environment only** (the admin portal's settings do not offer it). With it off there is no Appearance card, choosing `pigment` answers 422 `app_theme_disabled`, and a stored value is served as `daybreak`. With it on, the card appears and choosing Pigment is recorded in the activity log, but it changes nothing visible, because the Pigment colours are not in 5.0.1. Leave it off.
+  - Left as shipped, both stay off.
+- **Image tag:** set `BC_IMAGE_TAG` to `v5.0.1` (the default in `docker-compose.deployment.yml` is now `v5.0.1`). A stack that sets its image tags itself moves every first-party service (backend, auth, webapp, jobs worker and the others) to `v5.0.1` together.
+- **Rolling back to 5.0.0:** nothing stored needs undoing, but **a form that uses the Daybreak preset cannot be saved on 5.0.0**. The preset stores `background.artwork: "daybreak"` in the form's theme, and 5.0.0 only knows the artwork `marble`. On 5.0.0 such a form still opens and its published page still works, and it draws the preset's colours without the sun and the sunrise, but any whole-form save from the editor (and restoring one of its versions) is refused with 422 `theme_not_allowed` ("theme.background.artwork must be one of: marble"), and so is saving a workspace's saved themes while one of them names the Daybreak artwork. Before you roll back, with `DAYBREAK_PRESET_ENABLED` on, move those forms to another theme in the Design tab and delete any saved theme that uses the preset; the forms that picked it are the ones whose theme names `daybreak` as its artwork. The app theme needs nothing: 5.0.0 does not read a stored `appTheme` (a later workspace save on 5.0.0 may drop it, which matters only once Pigment colours exist), and the dashboard goes back to its 5.0.0 look.
+
+### Added
+
+- A workspace's owners and admins can choose the look of the staff dashboard, `daybreak` (the
+  default) or `pigment`, through `PUT /workspaces/{id}/app-theme`. The change is recorded in the
+  activity log and the choice is served to members only, never to respondents. Switch:
+  `APP_THEME_PIGMENT_ENABLED` (off by default, environment only): while it is off, choosing
+  `pigment` answers 422 and every workspace is served `daybreak`, whatever it has stored. The second
+  theme's code is present but its colours are not part of this release: even with the switch on,
+  choosing `pigment` changes nothing you can see yet. See `docs/app-theme.md`.
+- Workspace settings: while the server has the app theme switch on (`APP_THEME_PIGMENT_ENABLED`, off by
+  default), owners and admins find an **Appearance** card on the Themes page to choose between the Daybreak
+  and Pigment looks of the dashboard, in English and Dutch. The choice is part of the workspace and is shown
+  to its members only, never to respondents, and the activity log records the change. The Pigment colours
+  are not in this release, so choosing Pigment changes nothing visible yet. With the switch off the card is
+  not shown and nothing is asked for.
+- **Daybreak theme preset** (off until `DAYBREAK_PRESET_ENABLED` is turned on):
+  the blue you know on a soft periwinkle page, with a small sun in the corner of
+  every page and, when the form is sent, a sun that rises behind two hills (one
+  second, once, CSS only; with reduced motion the finished picture is shown). It
+  sets colours only: fonts, corners and buttons stay the form's own. The
+  submission number stays in a calm white card. Creators pick it in the Design tab;
+  it is not the default for new forms. With the switch off the picker, the edit
+  operations, the AI and the MCP server do not know it, a new theme cannot name
+  its artwork either (form saves, saved themes and operations refuse it), and
+  forms that already wear it render and save as before.
+
+### Changed
+
+- **Daybreak: the first and last impressions.** The sign-in page is now one calm card with the sun-and-hills picture, a clear heading ("Welcome back", "Check your email") and the form, on the app's background; the dark side panel with its sales lines is gone. The code field has a proper label and asks your phone for the one-time code. The sign-in for people filling in a form (the responder portal) is exactly as it was. When you publish a form, the dialog shows a check mark and the picture, puts the link in the middle with a Copy link button, says "Link copied to clipboard" where a screen reader hears it (and says so when the browser would not copy), and offers two next steps: open the form and more ways to share. A new workspace's first screen and its workspace form use the same card as the empty pages. Dutch and English. Published forms look exactly the same as before.
+- **Daybreak: a friendlier dashboard.** The forms page opens with a short welcome (your first name, the time of day, and one next step when there is one: review the deletion requests waiting for you, or finish a draft). Every form has its own coloured tile in the list and in the builder and report headers, so forms are easy to tell apart. Empty pages (no forms, no responses, no deletion requests, nothing to report) now show the same sun-and-hills picture with one sentence and one button, and a search or filter with no match offers "Clear search" or "Clear filters". Deletion requests that need you show a count in the menu. Cards on the page background have a clearer edge. Dutch and English. Published forms look exactly the same as before.
+- **A new colour look for the creator app: Daybreak.** The dashboard, the form builder, settings, the Report page and sign-in now sit on a soft periwinkle ground with white cards. The blue you know stays the only button colour. The active menu item is blue on a blue tint, a chosen option or row has a 2 px blue edge plus a check, and statuses (Published, Draft, Verified, Failed) pair a dot with a word. Report charts use one blue for single-question bars and a six-colour set for donuts and multi-answer charts, each clearly visible on the white card. The colours are named by role in one place, so a later look can change them without touching the pages. Published forms and the respondent pages look exactly the same as before.
+
+### Fixed
+
+- Report charts no longer switch to dark colours on a device set to dark mode while the rest of the app stays light. The cards are always white, so the pale dark-mode marks were hard to see on them.
+- **Report chart colours are easier to tell apart for colour-blind readers.** The six colours of the report's charts (donuts and multi-answer charts) were revised so neighbouring colours differ in lightness as well as hue, stay apart when seen with red-green colour blindness, and none looks like an error red any more. The single-question bars stay one blue, and the donut patterns and value labels are unchanged.
+
 ## [5.0.0] - 2026-11-14
 
 5.0.0 lets a form's creators read their answers as reports and protects a form from automated abuse. It adds a Report page for each form (counts, averages, distributions and trends over time, answer filters with a drill-down to the responses behind a figure, saved views and a CSV download for each card), an automatic spam check for response submits and for the mails the public can trigger, and rate limits on sign-in code mails and on response submits that are always on. A response export reads a large form faster, and an authenticator app (TOTP) no longer cancels a member's exports and imports. The two new features are off until you turn their switch on; the rate limits are not a switch.
@@ -3925,7 +3982,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v5.0.0...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v5.0.1...HEAD
+[5.0.1]: https://github.com/bettercollected/bettercollected/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/bettercollected/bettercollected/compare/v4.4.0...v5.0.0
 [4.4.0]: https://github.com/bettercollected/bettercollected/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/bettercollected/bettercollected/compare/v4.2.0...v4.3.0
