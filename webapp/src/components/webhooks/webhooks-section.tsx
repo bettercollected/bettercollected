@@ -155,7 +155,7 @@ export function WebhooksSettings({ workspaceId, formId, headless = false }: { wo
                             {list.map((hook) => {
                                 const confirming = pending?.id === hook.id ? pending.kind : null;
                                 return (
-                                    <li key={hook.id} className="flex flex-col gap-3 rounded-lg border border-black-300 bg-white p-4" data-testid={`webhook-${hook.id}`}>
+                                    <li key={hook.id} className="flex flex-col gap-3 rounded-lg border border-hairline-strong bg-white p-4" data-testid={`webhook-${hook.id}`}>
                                         {editing?.kind === 'edit' && editing.id === hook.id && editingHook ? (
                                             <EditWebhook
                                                 workspaceId={workspaceId}

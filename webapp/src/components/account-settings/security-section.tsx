@@ -50,7 +50,7 @@ export default function SecuritySection() {
     };
 
     return (
-        <section aria-labelledby="security-title" className="flex max-w-[640px] flex-col gap-4 rounded border border-black-300 bg-white p-6">
+        <section aria-labelledby="security-title" className="flex max-w-[640px] flex-col gap-4 rounded border border-hairline-strong bg-white p-6">
             <div className="flex flex-col gap-1">
                 <h2 id="security-title" ref={title} tabIndex={-1} className="text-sm font-semibold text-black-900 outline-hidden">
                     {t('STAFF.MFA.CARD.TITLE')}

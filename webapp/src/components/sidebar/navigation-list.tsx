@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 
+import { CountBadge } from '@app/components/ui/count-badge';
 import { isNavItemActive } from '@app/lib/nav-items';
 import { INavbarItem } from '@app/models/props/navbar';
 import { cn } from '@app/shadcn/util/lib';
@@ -49,7 +50,8 @@ export default function NavigationList({ navigationList, className = '', sx = {}
                                     {element?.icon}
                                 </span>
                             )}
-                            <span className="truncate">{element.name}</span>
+                            <span className="min-w-0 flex-1 truncate">{element.name}</span>
+                            {element.badge && element.badge.count > 0 && <CountBadge count={element.badge.count} label={element.badge.label} className="ml-2" />}
                         </div>
                     </li>
                 );

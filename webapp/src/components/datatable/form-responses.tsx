@@ -10,9 +10,10 @@ import { useTranslation } from 'react-i18next';
 import SearchInput from '@Components/common/search-input';
 import TabularResponses from '@Components/form/tabular-responses';
 
+import EmptyState from '@app/components/ui/empty-state';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
-import { Button } from '@app/shadcn/components/ui/button';
+import { Button, buttonClassName } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
@@ -23,6 +24,7 @@ import ResponseExportControl, { ExportFilters } from './response-export-control'
 import ResponsesTable from './responses-table';
 //@ts-ignore
 import { StandardFormResponseDto } from '@app/models/dtos/form';
+import { isFormShareable } from '@app/utils/vvalidation-utils';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { rememberResponseListPage, rememberResponseListView, rememberedListView } from '@app/utils/response-list-memory';
@@ -271,7 +273,7 @@ export default function FormResponsesTable({ props }: any) {
     } else if (searchText) {
         results = <NoMatchComponent searchText={searchText} requestForDeletion={requestForDeletion} />;
     } else {
-        results = <EmptyTabularResponseComponent requestForDeletion={requestForDeletion} />;
+        results = <EmptyTabularResponseComponent requestForDeletion={requestForDeletion} formId={form.formId} workspaceName={workspace?.workspaceName} shareable={isFormShareable(form)} />;
     }
 
     // The pager, the count and where focus goes after paging (responses list only).
@@ -424,24 +426,37 @@ const NoMatchComponent = ({ searchText, requestForDeletion }: { searchText: stri
     );
 };
 
-const EmptyTabularResponseComponent = ({ requestForDeletion }: { requestForDeletion?: boolean }) => {
+const EmptyTabularResponseComponent = ({ requestForDeletion, formId, workspaceName, shareable }: { requestForDeletion?: boolean; formId?: string; workspaceName?: string; shareable?: boolean }) => {
     const { t } = useTranslation();
+    const dashboard = `/${workspaceName}/dashboard`;
     // Deletion requests are a GDPR feature — the empty state should teach that,
     // not borrow the responses copy (which can be factually wrong here).
     if (requestForDeletion) {
         return (
-            <div className={'flex flex-col items-center gap-2 py-10'}>
-                <EmptyResponseIcon />
-                <span className={'p3-new text-black'}>{t('RESPONSES_STAFF.EMPTY_DELETION_TITLE')}</span>
-                <span className={'p4-new text-black-600 max-w-[420px] text-center'}>{t('RESPONSES_STAFF.EMPTY_DELETION_BODY')}</span>
-            </div>
+            <EmptyState
+                title={t('RESPONSES_STAFF.EMPTY_DELETION_TITLE')}
+                description={t('RESPONSES_STAFF.EMPTY_DELETION_BODY')}
+                action={
+                    <Link href={`${dashboard}/forms`} className={buttonClassName({ size: 'medium' })}>
+                        {t('STAFF.EMPTY_STATE.REQUESTS_ACTION')}
+                    </Link>
+                }
+            />
         );
     }
     return (
-        <div className={'flex flex-col items-center gap-2 py-10'}>
-            <EmptyResponseIcon />
-            <span className={'p3-new text-black'}>{t('RESPONSES_STAFF.EMPTY_TITLE')}</span>
-            <span className={'p4-new text-black-600 max-w-[420px] text-center'}>{t('RESPONSES_STAFF.EMPTY_BODY')}</span>
-        </div>
+        <EmptyState
+            title={t('RESPONSES_STAFF.EMPTY_TITLE')}
+            description={t('RESPONSES_STAFF.EMPTY_BODY')}
+            // sharing is offered only for a form people can be sent to: published, open and not hidden
+            action={
+                formId &&
+                shareable && (
+                    <Link href={`${dashboard}/forms/${formId}/links`} className={buttonClassName({ size: 'medium' })}>
+                        {t('STAFF.EMPTY_STATE.RESPONSES_ACTION')}
+                    </Link>
+                )
+            }
+        />
     );
 };
