@@ -11,12 +11,15 @@ import ThemesPage from './page';
 
 const patch = vi.fn();
 vi.mock('@app/store/workspaces/api', async (original) => ({ ...(await original<object>()), usePatchWorkspaceThemesMutation: () => [patch, { isLoading: false }] }));
-vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ can: () => true }) }));
+const permissions: { can: () => boolean; appThemeEnabled?: boolean } = { can: () => true };
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => permissions }));
 vi.mock('@app/components/modal-views/context', () => ({ useModal: () => ({ openModal: vi.fn() }) }));
 
 const PASTEL = { title: 'Pastel', primary: '#9CA3AF', secondary: '#1649E2', tertiary: '#818CA0', accent: '#FFFFFF' };
 
 beforeEach(() => {
+    delete permissions.appThemeEnabled;
+    permissions.can = () => true;
     patch.mockReset();
     patch.mockResolvedValue({ data: { id: 'w1', customThemes: [] } });
     store.dispatch(setWorkspace({ id: 'w1', workspaceName: 'acme', customThemes: [PASTEL] } as any));
@@ -30,6 +33,22 @@ const renderPage = () =>
     );
 
 describe('the Themes page', () => {
+    it('offers the dashboard\'s own appearance only while the server has Pigment on, and only to a manager', () => {
+        // switch off (the permissions say nothing of it): the page is what it was
+        const off = renderPage();
+        expect(screen.queryByTestId('appearance-card')).toBeNull();
+        expect(screen.queryByRole('radiogroup')).toBeNull();
+        off.unmount();
+        permissions.appThemeEnabled = true;
+        const on = renderPage();
+        expect(screen.getByRole('radiogroup', { name: 'Appearance' })).toBeInTheDocument();
+        on.unmount();
+        // a member who may not manage the workspace never sees it
+        permissions.can = () => false;
+        renderPage();
+        expect(screen.queryByTestId('appearance-card')).toBeNull();
+    });
+
     it('flags a saved theme that is hard to read', () => {
         renderPage();
         expect(screen.getByText('Hard to read')).toBeInTheDocument();
