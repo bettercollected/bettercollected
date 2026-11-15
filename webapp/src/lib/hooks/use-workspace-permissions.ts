@@ -89,6 +89,8 @@ export function useWorkspacePermissions() {
     const formPromotionEnabled = !!userId && !isError && !!data?.formPromotionEnabled;
     // ...and reports on a form's answers (its REPORTING_ENABLED): the Report item, the list's Report link and the page. Nothing of it is asked for or shown while it is off.
     const reportingEnabled = !!userId && !isError && !!data?.reportingEnabled;
+    // ...and the second app theme (its APP_THEME_PIGMENT_ENABLED): the Appearance card is offered only while it is on. Nothing of it is asked for or shown while it is off.
+    const appThemeEnabled = !!userId && !isError && !!data?.appThemeEnabled;
     return {
         can,
         permissions,
@@ -114,6 +116,7 @@ export function useWorkspacePermissions() {
         auditLogUiEnabled,
         formPromotionEnabled,
         apiKeyRolesEnabled,
-        reportingEnabled
+        reportingEnabled,
+        appThemeEnabled
     };
 }

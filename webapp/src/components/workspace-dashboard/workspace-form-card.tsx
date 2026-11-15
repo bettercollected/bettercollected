@@ -109,7 +109,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                 <span className="h4-new mr-1 inline">{form?.title || t(localesCommon.untitled)}</span>
                             </Tooltip>
                             {!isResponderPortal && !form?.isPublished && (
-                                <StatusPill tone="warn" className="mx-1 align-middle">
+                                <StatusPill tone="neutral" className="mx-1 align-middle">
                                     {t('FORM.DRAFT')}
                                 </StatusPill>
                             )}

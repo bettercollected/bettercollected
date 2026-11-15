@@ -58,6 +58,7 @@ export const AUDIT_EVENTS = [
     'scim_group_role_changed',
     'ai_consent_changed',
     'captcha_setting_changed',
+    'app_theme_changed',
     'custom_domain_changed',
     'custom_domain_removed',
     'audit_retention_changed',
@@ -401,6 +402,16 @@ export function describeEntry(entry: AuditEntryDto, { labels, t, formId: fixedFo
             key = entry.formId ? (entry.enabled === true ? 'CAPTCHA_SETTING_CHANGED_FORM_ON' : entry.enabled === false ? 'CAPTCHA_SETTING_CHANGED_FORM_OFF' : 'CAPTCHA_SETTING_CHANGED_FORM') : entry.enabled === true ? 'CAPTCHA_SETTING_CHANGED_ON' : entry.enabled === false ? 'CAPTCHA_SETTING_CHANGED_OFF' : 'CAPTCHA_SETTING_CHANGED';
             values = { actor, form: form(entry.formId) };
             break;
+        case 'app_theme_changed': {
+            // the two theme names are proper nouns and are the same in every language; anything else the server might
+            // send is not shown
+            const themeName = (value: string | null | undefined) => (value === 'daybreak' ? 'Daybreak' : value === 'pigment' ? 'Pigment' : '');
+            const now = themeName(entry.appTheme);
+            const before = themeName(entry.previousAppTheme);
+            key = now ? (before ? 'APP_THEME_CHANGED' : 'APP_THEME_CHANGED_NO_PREVIOUS') : 'APP_THEME_CHANGED_UNKNOWN';
+            values = { actor, theme: now, previous: before };
+            break;
+        }
         case 'email_action_created':
         case 'email_action_updated':
         case 'email_action_enabled':

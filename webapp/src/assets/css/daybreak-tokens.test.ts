@@ -12,7 +12,9 @@ const globals = readFileSync(resolve(__dirname, 'globals.css'), 'utf8');
 const SRC = resolve(__dirname, '../..');
 
 /** The Daybreak scope (the default app theme): its `--app-*` and `--series-*` variables. */
-const scope = css.match(/\[data-app-theme='daybreak'\],\s*html:has\(\[data-app-theme='daybreak'\]\) \{([^}]*)\}/)?.[1] ?? '';
+const scope = css.match(/^\[data-app-theme='daybreak'\] \{([^}]*)\}/m)?.[1] ?? '';
+/** The same variables on `<html>`, in a rule of their own (a browser without `:has` drops only that rule). */
+const mirror = css.match(/^html:has\(\[data-app-theme='daybreak'\]\) \{([^}]*)\}/m)?.[1] ?? '';
 /** The `@theme inline` block: the utilities' colour names mapped to those variables. */
 const inline = css.match(/@theme inline \{([^}]*)\}/)?.[1] ?? '';
 const variableOf = (name: string) => (name.startsWith('series-') ? `--series-${name.slice(7)}` : name.startsWith('form-hue-') ? `--${name}` : `--app-${name}`);
@@ -75,6 +77,42 @@ describe('Daybreak tokens', () => {
         expect(css).not.toMatch(/--color-(canvas|surface|sunken|ink|copy|sun|coral|ok|warn|bad|info|series-1):\s*#/);
     });
 
+    it('declares the theme variables only inside a [data-app-theme=...] rule, never globally', () => {
+        // Every `--app-*`, `--series-*` and `--form-hue-*` declaration in the stylesheets sits in a rule whose selector names the
+        // theme attribute: a declaration at `:root` or in `@theme` would reach respondent routes.
+        for (const [file, source] of [
+            ['tailwind.css', css],
+            ['globals.css', globals]
+        ]) {
+            const text = source.replace(/\/\*[\s\S]*?\*\//g, '');
+            if (file === 'tailwind.css') expect([...text.matchAll(/(--(?:app|series|form-hue)-[\w-]+)\s*:/g)].length).toBeGreaterThan(60);
+            for (const declared of text.matchAll(/(--(?:app|series|form-hue)-[\w-]+)\s*:/g)) {
+                // the selector of the innermost rule around this declaration
+                let depth = 0;
+                let open = -1;
+                for (let i = declared.index! - 1; i >= 0; i--) {
+                    if (text[i] === '}') depth++;
+                    else if (text[i] === '{') {
+                        if (depth === 0) {
+                            open = i;
+                            break;
+                        }
+                        depth--;
+                    }
+                }
+                const start = Math.max(text.lastIndexOf('}', open), text.lastIndexOf(';', open), text.lastIndexOf('{', open - 1)) + 1;
+                const selector = text.slice(start, open).trim();
+                expect(selector, `${file}: ${declared[1]}`).toContain('[data-app-theme=');
+            }
+        }
+    });
+
+    it('puts the html mirror in its own rule, identical to the scoped one, so a browser without :has loses only the mirror', () => {
+        expect(css).not.toMatch(/\[data-app-theme='daybreak'\],\s*html:has/);
+        expect(scope).not.toBe('');
+        expect(mirror).toBe(scope);
+    });
+
     it('lets no theme block redeclare the frozen brand and black ramps', () => {
         // Respondent routes, the trust strip and the "Powered by" badge read `--color-brand-*` and `--color-black-*`
         // from `@theme`; an app theme only sets `--app-*` and `--series-*`. (Referring to a ramp, as the
@@ -126,8 +164,9 @@ const PAIRS: Array<[string, string, number, string]> = [
     ['link', 'surface', 4.5, 'Links, count on the active nav item'],
     ['link', 'brand-tint', 4.5, 'Active nav item: blue text on the blue tint'],
     ['ink', 'brand-tint', 4.5, 'Selected option label'],
-    ['action', 'surface', 3, 'Selected option edge, focus ring on a card'],
-    ['action', 'canvas', 3, 'Focus ring on the canvas'],
+    ['action', 'surface', 3, 'Selected option edge on a card'],
+    ['brand-500', 'surface', 3, 'Focus ring (Sireto blue, the real ring colour) on a card'],
+    ['brand-500', 'canvas', 3, 'Focus ring on the canvas'],
     ['action', 'brand-tint', 3, 'Selected option edge on its tint'],
     ['link', 'brand-tint', 3, 'Check mark on a selected option'],
     ['control-edge', 'surface', 3, 'Control edge on a card'],
@@ -202,12 +241,29 @@ describe('where colour goes', () => {
     it('sets the theme attribute on the creator app layouts only, never on a respondent route', () => {
         const read = (path: string) => readFileSync(resolve(SRC, path), 'utf8');
         expect(read('app/(admin-portal)/layout.tsx')).toMatch(/data-app-theme="daybreak"/);
-        expect(read('app/(auth)/layout.tsx')).toMatch(/data-app-theme="daybreak"/);
+        // sign-in: the creator's only (the respondent's, `?type=responder`, is a respondent route)
+        expect(read('app/(auth)/_components/login-view.tsx')).toMatch(/data-app-theme=\{isResponder \? undefined : 'daybreak'\}/);
         const carriers = files(SRC)
             .filter((path) => /data-app-theme/.test(readFileSync(path, 'utf8')))
             .map((path) => path.slice(SRC.length + 1))
             .sort();
-        expect(carriers).toEqual(['app/(admin-portal)/layout.tsx', 'app/(auth)/layout.tsx']);
+        // the workspace's own theme (Daybreak or Pigment, from its setting) is placed by one component, used by the
+        // workspace layout of the admin portal and nowhere else
+        expect(carriers).toEqual(['app/(admin-portal)/layout.tsx', 'app/(auth)/_components/login-view.tsx', 'components/app-theme/app-theme-scope.tsx']);
+        const users = files(SRC)
+            .filter((path) => /app-theme-scope/.test(readFileSync(path, 'utf8')))
+            .map((path) => path.slice(SRC.length + 1))
+            .sort();
+        expect(users).toEqual(['app/(admin-portal)/(no-layout)/[workspace_name]/layout.tsx']);
+    });
+
+    it('writes the value as daybreak on the creator layouts, and as the workspace\'s own daybreak or pigment in the one scope component', () => {
+        // a literal value anywhere is `daybreak` (the creator layouts); the workspace's is a variable, one of two
+        const values = new Set(files(SRC).flatMap((path) => [...readFileSync(path, 'utf8').matchAll(/data-app-theme=["']([a-z]+)["']/g)].map((match) => match[1])));
+        expect([...values].sort()).toEqual(['daybreak']);
+        const scopeSource = readFileSync(resolve(SRC, 'components/app-theme/app-theme-scope.tsx'), 'utf8');
+        expect(scopeSource).toMatch(/data-app-theme=\{theme\}/);
+        expect(readFileSync(resolve(SRC, 'lib/app-theme.ts'), 'utf8')).toMatch(/APP_THEMES = \['daybreak', 'pigment'\] as const/);
     });
 
     it('never gives sun or coral to a button; the primary stays blue', () => {

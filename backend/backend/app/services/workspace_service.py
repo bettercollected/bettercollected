@@ -44,6 +44,7 @@ from backend.app.schemas.workspace_audit_event import (
     CUSTOM_DOMAIN_REMOVED,
 )
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
+from backend.app.services.app_theme.mode import effective_theme
 from backend.app.services.authorization_service import AuthorizationService
 from backend.app.services.form_access import audit
 from backend.app.services.aws_service import AWSS3Service
@@ -189,8 +190,15 @@ class WorkspaceService:
         if user and await self._authorization.has_permission(
             user, Permission.FORM_READ, workspace.id
         ):
+            # the dashboard's theme is for members only (never the public
+            # lookup, which a respondent and a custom domain's visitor use): the
+            # effective one, so a stored choice is not shown while the switch is off
             return WorkspaceResponseDto(
-                **workspace.model_dump(mode="json"), dashboard_access=True
+                **{
+                    **workspace.model_dump(mode="json"),
+                    "app_theme": effective_theme(workspace.app_theme),
+                },
+                dashboard_access=True,
             )
         return WorkspaceResponseDto(**workspace.model_dump(mode="json"))
 

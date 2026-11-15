@@ -1,6 +1,6 @@
 import datetime as dt
 import re
-from typing import Any, Optional, Dict, List
+from typing import Any, Literal, Optional, Dict, List
 
 from common.ids import RecordId
 from common.models.consent import ResponseRetentionType
@@ -12,12 +12,17 @@ from pydantic import (
     Field,
     field_validator,
     model_serializer,
+    model_validator,
 )
 from pydantic.alias_generators import to_camel
 
 from backend.app.constants.themes import THEME_STYLES
 
 HEX_COLOUR = re.compile(r"#[0-9a-fA-F]{6}")
+
+# The look of the staff dashboard (services/app_theme, APP_THEME_PIGMENT_ENABLED):
+# a strict choice of two. Never part of a respondent's page.
+AppTheme = Literal["daybreak", "pigment"]
 
 # Respondent feedback: the statuses staff can give a submission ("Selected").
 DEFAULT_FEEDBACK_STATUSES = ["Under review", "Selected", "Rejected"]
@@ -251,6 +256,12 @@ class Workspace(WorkspaceRequestDto):
     # Changed through /workspaces/{id}/captcha/settings; not part of the public
     # workspace response.
     captcha_default: Optional[bool] = None
+    # The look of the staff dashboard (services/app_theme, APP_THEME_PIGMENT_ENABLED):
+    # what the owners chose (None: not chosen, which is ``daybreak``). Changed
+    # through /workspaces/{id}/app-theme; served to members only, as the
+    # effective theme (``daybreak`` while the switch is off), never in a public
+    # workspace response.
+    app_theme: Optional[AppTheme] = None
 
 
 class PromotedFrom(BaseModel):
@@ -374,6 +385,12 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     # every owner, else the membership's highest role); None when unknown
     role: Optional[str] = None
     dashboard_access: Optional[bool] = None
+    # The theme of the staff dashboard, for a member with dashboard access only
+    # (the effective theme, see services/app_theme/mode.py); absent from every
+    # other answer, so a respondent or a visitor learns nothing of it. It is
+    # only ever taken from the input together with ``dashboard_access``, and
+    # is left out of a serialised answer while it is not set.
+    app_theme: Optional[AppTheme] = None
     disabled: Optional[bool] = None
     default: Optional[bool] = None
     is_pro: Optional[bool] = False
@@ -389,3 +406,30 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     custom_domain_dns_records: Optional[List[Dict[str, Any]]] = None
     custom_domain_checks: Optional[List[Dict[str, Any]]] = None
     custom_domain_updated_at: Optional[dt.datetime] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _theme_only_with_dashboard_access(cls, data):
+        """A workspace's stored theme never rides along with the rest of its
+        document: every constructor passes ``**workspace.model_dump()``, so the
+        field is dropped unless the same input says the caller has dashboard
+        access (the one place that sets it, with the effective theme)."""
+        if isinstance(data, dict) and not (
+            data.get("dashboard_access") or data.get("dashboardAccess")
+        ):
+            return {
+                key: value
+                for key, value in data.items()
+                if key not in ("app_theme", "appTheme")
+            }
+        return data
+
+    @model_serializer(mode="wrap")
+    def _omit_theme_when_not_set(self, handler):
+        """No ``appTheme`` key at all (not even null) in an answer that has none:
+        a public workspace response gains no field."""
+        data = handler(self)
+        if self.app_theme is None and isinstance(data, dict):
+            data.pop("appTheme", None)
+            data.pop("app_theme", None)
+        return data
