@@ -16,7 +16,8 @@ import { cn } from '@app/shadcn/util/lib';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { ResolvedFormLogo } from '@app/utils/form-logo';
 import FormLogoStrip from '@app/views/molecules/form/form-logo-strip';
-import { ThemeArtworkBand, ThemeArtworkPanel, themeArtwork } from '@app/views/molecules/theme/theme-artwork';
+import { hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
+import { ThemeArtworkBand, ThemeArtworkPanel, themeArtwork, themePictureArtwork } from '@app/views/molecules/theme/theme-artwork';
 import { themeRootProps } from '@app/views/molecules/theme/theme-root';
 import { themeBackgroundStyle } from '@app/views/molecules/theme/theme-shared';
 import { FORM_GUTTER, isLeftAligned } from '@app/views/organism/layout/form-column';
@@ -70,8 +71,10 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
     // A picture half without an image of its own shows the theme's built-in
     // artwork, if it has one (theme-artwork.tsx), instead of an empty half.
     const art = artworkTheme ?? theme;
-    const artwork = !imageUrl && layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && !!themeArtwork(art);
+    const artwork = !imageUrl && layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && !!themePictureArtwork(art);
     const band = artworkBand && !!themeArtwork(art);
+    // The Daybreak ending is one composition: the sunrise, then the message directly under it, not centred in the room left.
+    const sceneEnding = band && hasDaybreakScene(art);
 
     const handleGridClick = () => {
         setShowControls(!showControls);
@@ -125,7 +128,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
             style={
                 // On the image-background layout the slide's own image is
                 // the ground, so the theme background stays out of the way.
-                layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? { background: 'transparent' } : themeBackgroundStyle(theme, { leftAligned: isLeftAligned(layout) })
+                layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? { background: 'transparent' } : themeBackgroundStyle(theme, { leftAligned: isLeftAligned(layout), corner: !band })
             }
             className={cn(
                 // Under a logo strip the column holding both sets the height.
@@ -149,7 +152,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
             room it actually has (the builder canvas is narrower
             than the window). */}
             {band && <ThemeArtworkBand theme={art} />}
-            <div className={cn(FORM_GUTTER, '@container/page flex w-full grow flex-col', topAligned ? 'pb-8 lg:pb-12' : "py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12")}>{children}</div>
+            <div className={cn(FORM_GUTTER, '@container/page flex w-full grow flex-col', sceneEnding ? 'pt-4 pb-8 lg:pt-6 lg:pb-12' : topAligned ? 'pb-8 lg:pb-12' : "py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12")}>{children}</div>
         </ScrollArea>
     );
 

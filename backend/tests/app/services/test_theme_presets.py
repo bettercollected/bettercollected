@@ -233,6 +233,7 @@ def test_the_spec_lists_the_same_values():
 
 
 COMPLETE_LOOKS = ("Kantlijn", "Raster")
+SCENE_PRESETS = ("Daybreak",)
 
 
 def test_colour_presets_leave_type_and_shape_to_the_form():
@@ -243,6 +244,10 @@ def test_colour_presets_leave_type_and_shape_to_the_form():
             continue
         assert all(getattr(preset, key) is None for key in THEME_TYPE_SHAPE_KEYS)
         assert preset.highlight is None and preset.selection is None
+        # A scene preset (Daybreak) carries its artwork and nothing else.
+        if name in SCENE_PRESETS:
+            assert preset.background.artwork in THEME_ARTWORKS
+            continue
         assert preset.background is None
 
 
@@ -317,7 +322,7 @@ def test_saved_themes_take_the_new_patterns_and_artwork():
         "customThemes.0",
     ) == [
         "customThemes.0.selection must be a 6-digit hex colour, e.g. #1E4D3B.",
-        "customThemes.0.background.artwork must be one of: marble.",
+        "customThemes.0.background.artwork must be one of: marble, daybreak.",
     ]
 
 
@@ -329,7 +334,7 @@ def test_theme_problems_names_the_selection_and_artwork():
         {**LEAFLET, "selection": "cloth", "background": {"artwork": "paisley"}}
     ) == [
         "theme.selection must be a 6-digit hex colour, e.g. #1E4D3B.",
-        "theme.background.artwork must be one of: marble.",
+        "theme.background.artwork must be one of: marble, daybreak.",
     ]
     # Stored patterns are not held to the list (older forms may carry others).
     assert theme_problems({**LEAFLET, "background": {"pattern": "waves"}}) == []

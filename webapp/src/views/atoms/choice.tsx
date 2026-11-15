@@ -5,6 +5,7 @@ import { Check } from 'lucide-react';
 import { FormTheme, THEME_RADII } from '@app/constants/theme';
 import { FieldChoice } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
+import { hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
 import { themed } from '@app/views/molecules/theme/theme-root';
 import { leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
@@ -187,7 +188,7 @@ export function ChoiceContent({ kind, selected, theme, solid, lang, keyHint, chi
             <span className="min-w-0 flex-1 [overflow-wrap:anywhere]" lang={lang}>
                 {children}
             </span>
-            {keyHint && selected && (
+            {selected && (keyHint || hasDaybreakScene(theme)) && (
                 <Check
                     aria-hidden="true"
                     data-choice-check

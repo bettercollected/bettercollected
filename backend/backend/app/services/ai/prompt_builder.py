@@ -14,8 +14,8 @@ from backend.app.constants.themes import (
     LEGACY_PRESET_NAMES,
     NEW_FORM_THEME,
     THEME_STYLES,
+    offered_presets,
     theme_descriptions,
-    theme_dict,
 )
 from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 from backend.app.services.ai.profile import render_prompt_block
@@ -102,7 +102,7 @@ def _looks_guide() -> str:
     lists the op checks against (constants/themes.py)."""
     presets = "\n".join(
         f'- "{name}": {theme_descriptions.get(name, "").split(". ")[0].rstrip(".")}.'
-        for name in theme_dict
+        for name in offered_presets()
     )
     legacy = ", ".join(f"{old} = {new}" for old, new in LEGACY_PRESET_NAMES.items())
     styles = "\n".join(f'- "{s}": {STYLE_DESCRIPTIONS.get(s, s)}.' for s in THEME_STYLES)
@@ -346,6 +346,9 @@ def ops_guide() -> str:
 
     if layout_containers_enabled() and _JUMPS_END in guide:
         guide = guide.replace(_JUMPS_END, _JUMPS_END + _CONTAINERS_OP, 1)
+    # The looks are the last section; the presets it lists follow the switches of the
+    # gated presets as they are now (OPS_GUIDE itself holds them as at import).
+    guide = guide[: guide.index("## Looks")] + _looks_guide()
     return guide
 
 

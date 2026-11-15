@@ -108,7 +108,7 @@ export default function ServicesSection() {
                         {data.map((service) => {
                             const result = results[service.id];
                             return (
-                                <li key={service.id} className="flex flex-col gap-3 rounded border border-black-300 bg-white p-4" data-testid={`registration-service-${service.id}`}>
+                                <li key={service.id} className="flex flex-col gap-3 rounded border border-hairline-strong bg-white p-4" data-testid={`registration-service-${service.id}`}>
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div className="flex min-w-0 flex-col gap-1">
                                             <div className="flex items-center gap-2">

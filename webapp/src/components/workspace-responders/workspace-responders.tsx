@@ -12,7 +12,7 @@ import DataTable from 'react-data-table-component';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import EmptyResponse from '@app/components/ui/empty-response';
+import EmptyState from '@app/components/ui/empty-state';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -203,7 +203,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                     )}
                 </>
             );
-        return <EmptyResponse title={t(formConstant.empty.response.title)} description={t(formConstant.empty.response.description)} />;
+        return <EmptyState title={t(formConstant.empty.response.title)} description={t(formConstant.empty.response.description)} />;
     };
 
     if (isLoading && responderGroupsQuery.isLoading) {

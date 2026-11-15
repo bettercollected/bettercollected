@@ -11,6 +11,7 @@ from httpx import AsyncClient
 from common.models.standard_form import StandardForm, Theme, ThemeBackground
 
 from backend.app.constants.themes import (
+    GATED_PRESETS,
     LEGACY_PRESET_NAMES,
     NEW_FORM_THEME,
     THEME_STYLES,
@@ -22,7 +23,8 @@ from backend.app.container import container
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.services.ai.ops import apply_form_ops, parse_ops
-from backend.app.services.ai.prompt_builder import OPS_GUIDE, project_form
+from backend.app.services.ai.prompt_builder import OPS_GUIDE, ops_guide, project_form
+from backend.config import settings
 from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
 from tests.app.controllers.test_form_ai_chat import _make_v2
 
@@ -106,19 +108,40 @@ class TestTheOp:
 
 
 class TestTheGuide:
-    def test_it_lists_the_op_every_preset_and_style(self):
-        assert '"op":"set_theme_preset"' in OPS_GUIDE
-        assert '"op":"update_theme"' in OPS_GUIDE
-        looks = OPS_GUIDE[OPS_GUIDE.index("## Looks"):]
+    @pytest.mark.parametrize("daybreak", [False, True], ids=["switch off", "switch on"])
+    def test_it_lists_the_op_every_offered_preset_and_style(self, monkeypatch, daybreak):
+        # a gated preset is listed only while its switch is on (the default is off)
+        monkeypatch.setattr(settings, "DAYBREAK_PRESET_ENABLED", daybreak)
+        guide = ops_guide()
+        assert '"op":"set_theme_preset"' in guide
+        assert '"op":"update_theme"' in guide
+        looks = guide[guide.index("## Looks"):]
         for name in theme_dict:
-            assert f'- "{name}": ' in looks, name
+            listed = f'- "{name}": ' in looks
+            assert listed is (name not in GATED_PRESETS or daybreak), name
+        assert ('- "Daybreak": ' in looks) is daybreak
         for style in THEME_STYLES:
             assert f'- "{style}": ' in looks, style
+        assert guide.count("## Looks") == 1
         assert f"New forms use the {NEW_FORM_THEME} preset" in looks
         assert "plainer" in looks
         for legacy, preset in LEGACY_PRESET_NAMES.items():
             assert f"{legacy} = {preset}" in looks
             assert f'- "{legacy}": ' not in looks
+
+    def test_the_constant_holds_the_looks_as_the_switch_stood_at_import(self):
+        # OPS_GUIDE is built once; ops_guide() is what a call sends
+        assert OPS_GUIDE.index("## Looks") == OPS_GUIDE.rindex("## Looks")
+
+    @pytest.mark.parametrize("daybreak", [False, True], ids=["switch off", "switch on"])
+    def test_the_outline_prompt_lists_the_offered_presets(self, monkeypatch, daybreak):
+        from backend.app.services.ai.outline_service import outline_system_prompt
+
+        monkeypatch.setattr(settings, "DAYBREAK_PRESET_ENABLED", daybreak)
+        prompt = outline_system_prompt()
+        assert "{{PRESETS}}" not in prompt
+        assert ("Daybreak" in prompt) is daybreak
+        assert "Leaflet" in prompt and "Kantlijn" in prompt
 
     def test_the_mcp_tool_names_every_preset(self):
         from backend.app.mcp import server
@@ -127,8 +150,13 @@ class TestTheGuide:
         if not doc and hasattr(server.update_form, "fn"):
             doc = server.update_form.fn.__doc__
         assert '"op":"set_theme_preset"' in doc
+        # the tool's text is fixed, so it names the presets that always exist;
+        # a gated preset (Daybreak) is named in the refusal message while it is on
         for name in theme_dict:
-            assert name in doc, name
+            if name not in GATED_PRESETS:
+                assert name in doc, name
+            else:
+                assert name not in doc, name
 
 
 @pytest.fixture()

@@ -59,7 +59,7 @@ export default function AutomationCard({ id, title, summary, icon, chip, manage,
     const { t } = useTranslation();
     const titleId = `automation-${id}-title`;
     return (
-        <li data-testid={`automation-card-${id}`} className="flex flex-col gap-4 rounded-lg border border-black-300 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+        <li data-testid={`automation-card-${id}`} className="flex flex-col gap-4 rounded-lg border border-hairline-strong bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-4">
                 <div aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-black-300 bg-black-100 text-black-800">
                     {icon}

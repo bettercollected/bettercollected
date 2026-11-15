@@ -17,6 +17,8 @@ export interface INavbarItem {
     permission?: WorkspacePermission;
     /** Only rendered for users holding at least one of these. */
     anyPermission?: Array<WorkspacePermission>;
+    /** Something waiting for the person: a number in a coral badge, with the whole phrase as its accessible name. */
+    badge?: { count: number; label: string };
     /** Overrides URL-based matching — for items whose active state isn't a
      *  route (e.g. Site settings, which is a view on the dashboard root). */
     isActive?: boolean;

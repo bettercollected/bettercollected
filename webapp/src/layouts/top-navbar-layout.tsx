@@ -51,7 +51,7 @@ export default function TopNavLayout({
             )}
             <main
                 className={cn(
-                    "bg-canvas float-none flex w-full px-5 lg:float-right lg:px-10",
+                    "bg-black-100 in-data-[app-theme]:bg-canvas float-none flex w-full px-5 lg:float-right lg:px-10",
                     showNavbar ? "min-h-screen lg:min-h-[calc(100vh-68px)] mt-[68px]!" : "min-h-screen",
                     className
                 )}

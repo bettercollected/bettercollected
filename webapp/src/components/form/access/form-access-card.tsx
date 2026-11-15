@@ -83,7 +83,7 @@ function AccessCard({ workspaceId, formId, hidden }: { workspaceId: string; form
                 <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('STAFF.FORM_ACCESS.INTRO')}</p>
             </div>
 
-            <div className="flex flex-col gap-4 rounded-lg border border-black-300 bg-white p-5">
+            <div className="flex flex-col gap-4 rounded-lg border border-hairline-strong bg-white p-5">
                 {isLoading ? (
                     <p role="status" className="text-sm text-black-600">
                         {t('STAFF.FORM_ACCESS.LOADING')}

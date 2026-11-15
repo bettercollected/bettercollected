@@ -1528,7 +1528,9 @@
       "SITE": "Site",
       "SITE_SETTINGS": "Site settings",
       "CUSTOM_DOMAIN": "Custom domain",
-      "WORKSPACE": "Workspace"
+      "WORKSPACE": "Workspace",
+      "WAITING_one": "{{count}} waiting for you",
+      "WAITING_other": "{{count}} waiting for you"
     },
     "SITE": {
       "COPY_ARIA": "Copy your site’s link",
@@ -2436,6 +2438,38 @@
         "NOTE": "Change this in a form's settings, under Access.",
         "LOAD_FAILED": "This could not be loaded. Close this window and try again."
       }
+    },
+    "WELCOME": {
+      "GREETING_MORNING": "Good morning",
+      "GREETING_AFTERNOON": "Good afternoon",
+      "GREETING_EVENING": "Good evening",
+      "GREETING_NEUTRAL": "Welcome",
+      "WITH_NAME": "{{greeting}}, {{name}}",
+      "REQUESTS_TEXT_one": "{{count}} deletion request is waiting for you.",
+      "REQUESTS_TEXT_other": "{{count}} deletion requests are waiting for you.",
+      "REQUESTS_ACTION": "Review requests",
+      "DRAFT_TEXT": "“{{title}}” is still a draft. Finish it and publish when you are ready.",
+      "DRAFTS_TEXT_one": "{{count}} form is still a draft. Pick up where you left off.",
+      "DRAFTS_TEXT_other": "{{count}} forms are still drafts. Pick up where you left off.",
+      "DRAFT_ACTION": "Open the draft",
+      "READY_TEXT": "Everything is in order. Start a new form when you need one.",
+      "READY_VIEW_TEXT": "Your forms are listed below."
+    },
+    "EMPTY_STATE": {
+      "FORMS_TITLE": "No forms yet",
+      "FORMS_TEXT": "Create your first form and share the link when it is ready.",
+      "RESPONSES_TITLE": "No responses yet",
+      "RESPONSES_TEXT": "Responses appear here as soon as people fill in the form. Share the link to get the first one.",
+      "RESPONSES_ACTION": "Share the form",
+      "REQUESTS_TITLE": "No deletion requests",
+      "REQUESTS_TEXT": "Requests show up here when someone asks you to delete their answers. Nothing is waiting for you.",
+      "REQUESTS_ACTION": "Go to forms",
+      "REPORT_NONE_TITLE": "Nothing to report yet",
+      "REPORT_NONE_ACTION": "Edit the form",
+      "SEARCH_TITLE": "No forms match your search",
+      "SEARCH_TEXT": "Try another word, or clear the search to see every form.",
+      "SEARCH_CLEAR": "Clear search",
+      "FILTERS_CLEAR": "Clear filters"
     }
   },
   "ANALYTICS": {

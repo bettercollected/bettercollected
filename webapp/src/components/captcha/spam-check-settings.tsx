@@ -66,7 +66,7 @@ function Default() {
                         {t('STAFF.SPAM_CHECK.LOAD_FAILED')}
                     </p>
                 ) : (
-                    <div className="border-black-300 flex items-start justify-between gap-6 rounded border bg-white p-4">
+                    <div className="border-hairline-strong flex items-start justify-between gap-6 rounded border bg-white p-4">
                         <div className="flex max-w-[520px] flex-col gap-1">
                             <h2 id="spam-default" className="text-black-900 text-[15px] font-semibold">
                                 {t('STAFF.SPAM_CHECK.DEFAULT_TITLE')}

@@ -113,7 +113,7 @@ export default function AISettingsPage() {
                     ) : (
                         <div className="flex flex-wrap items-center gap-2">
                             {configured.length > 1 && (
-                                <select aria-label={t('STAFF.AI_SETTINGS.PROVIDER')} value={provider} onChange={(e) => setProvider(e.target.value)} className="h-8 rounded-md border border-black-300 bg-white px-2 text-sm">
+                                <select aria-label={t('STAFF.AI_SETTINGS.PROVIDER')} value={provider} onChange={(e) => setProvider(e.target.value)} className="h-8 rounded-md border border-hairline-strong bg-white px-2 text-sm">
                                     {configured.map((p) => (
                                         <option key={p.id} value={p.id}>
                                             {p.name}
