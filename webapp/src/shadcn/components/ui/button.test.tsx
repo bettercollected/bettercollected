@@ -7,9 +7,9 @@ describe('Button', () => {
     it('gives the primary button the Sireto face and the key edge', () => {
         render(<Button>Save</Button>);
         const button = screen.getByRole('button', { name: 'Save' });
-        expect(button.className).toContain('bg-action');
+        expect(button.className).toContain('bg-app-action');
         expect(button.className).toContain('key-edge');
-        expect(button.className).toContain('[--key-edge:var(--color-action-pressed)]');
+        expect(button.className).toContain('[--key-edge:var(--app-action-pressed,var(--color-action-pressed))]');
         expect(button.className).toMatch(/(^|\s)rounded(\s|$)/);
     });
 

@@ -35,7 +35,7 @@ export default function EditPageError({ error, reset }: { error: Error & { diges
                         {t('EDITOR_ERROR.RETRY')}
                     </button>
                 )}
-                <button onClick={() => window.location.reload()} className="bg-action hover:bg-action-hover active:bg-action-pressed key-edge [--key-edge:var(--color-action-pressed)] rounded px-4 py-2 text-sm font-medium text-white transition-colors">
+                <button onClick={() => window.location.reload()} className="bg-app-action hover:bg-app-action-hover active:bg-app-action-pressed key-edge [--key-edge:var(--app-action-pressed,var(--color-action-pressed))] rounded px-4 py-2 text-sm font-medium text-white transition-colors">
                     {t('EDITOR_ERROR.RELOAD')}
                 </button>
             </div>
