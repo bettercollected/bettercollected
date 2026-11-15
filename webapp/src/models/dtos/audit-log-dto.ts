@@ -46,6 +46,9 @@ export interface AuditEntryDto {
     /** `audit_retention_changed`: how many months entries are kept now and before (whole numbers, never a name). */
     retentionMonths?: number | null;
     previousRetentionMonths?: number | null;
+    /** `app_theme_changed`: the app theme now and the one it replaced (`daybreak` or `pigment`; anything else is not shown). */
+    appTheme?: string | null;
+    previousAppTheme?: string | null;
     /** Integration entries: which parts of the configuration changed, by a fixed vocabulary (never their content). */
     changed?: string[] | null;
     /** `report_view_*`: the saved report view (its id) and its scope, `private` or `form`; never its name or definition. */

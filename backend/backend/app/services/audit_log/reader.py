@@ -323,6 +323,8 @@ class AuditLogReader:
             provider=row.provider,
             retention_months=row.retention_months,
             previous_retention_months=row.previous_retention_months,
+            app_theme=row.app_theme,
+            previous_app_theme=row.previous_app_theme,
             changed=row.changed,
             view_id=row.view_id,
             view_scope=row.view_scope,

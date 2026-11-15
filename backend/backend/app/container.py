@@ -156,6 +156,7 @@ from backend.app.services.flow_event_service import FlowEventService
 from backend.app.services.rate_limiter import FixedWindowRateLimiter
 from backend.app.services.receipt_limits import ReceiptLimits
 from backend.app.services.respondent_limits import RespondentLimits
+from backend.app.services.app_theme.service import AppThemeService
 from backend.app.services.captcha.service import CaptchaService
 from backend.app.services.captcha.settings import CaptchaSettingsService
 from backend.app.services.captcha.stats import CaptchaStats
@@ -520,6 +521,14 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
         authorization_service=authorization_service,
         stats=captcha_stats,
+        audit_repo=workspace_audit_repo,
+    )
+
+    # the workspace's app theme and its audit entries (APP_THEME_PIGMENT_ENABLED)
+    app_theme_service: AppThemeService = providers.Singleton(
+        AppThemeService,
+        workspace_repo=workspace_repo,
+        authorization_service=authorization_service,
         audit_repo=workspace_audit_repo,
     )
 
