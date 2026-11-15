@@ -393,6 +393,36 @@ export function unofferedArtworkProblem(theme: unknown, stored: unknown, path: s
     return `${path}.background.artwork must be one of: ${offeredArtworks(offeredGated).join(', ')}.`;
 }
 
+// Theme keys offered only while a switch is on (backend constants/themes.py
+// GATED_THEME_KEYS, a test keeps the two together): the choice keys belong to
+// the Pigment theme and follow its one switch (APP_THEME_PIGMENT_ENABLED, the
+// permissions answer's `appThemeEnabled`). A new theme that sets one while its
+// switch is off is refused as a gated artwork is, unless the stored theme at the
+// same place already has it.
+export const GATED_THEME_KEYS: Readonly<Record<string, string>> = { choiceKeys: 'app_theme.ENABLED' };
+
+/** The gated theme keys a new theme may set, for the permissions answer's `appThemeEnabled`. */
+export function offeredThemeKeys(appThemeEnabled: boolean): string[] {
+    return Object.keys(GATED_THEME_KEYS).filter((key) => GATED_THEME_KEYS[key] !== 'app_theme.ENABLED' || appThemeEnabled);
+}
+
+/**
+ * The refusal a theme earns for setting a gated key the server does not offer,
+ * word for word as the backend's `_check_theme_offered`, or null. Not asked
+ * (null) while the server's list is not known (`offeredKeys` undefined).
+ */
+export function unofferedThemeKeyProblem(theme: unknown, stored: unknown, path: string, offeredKeys: ReadonlyArray<string> | undefined): string | null {
+    if (offeredKeys === undefined) return null;
+    const read = (value: unknown, key: string) => (value as Record<string, unknown> | null | undefined)?.[key];
+    for (const key of Object.keys(GATED_THEME_KEYS)) {
+        const value = read(theme, key);
+        if (value == null || offeredKeys.includes(key)) continue;
+        if (read(stored, key) === value) continue;
+        return `${path}.${key} is not available yet.`;
+    }
+    return null;
+}
+
 /** Is the preset offered: it has no switch, or the server says its switch is on. */
 export function isPresetOffered(title: string, offeredGated: ReadonlyArray<string> | null | undefined): boolean {
     return !GATED_PRESETS.includes(title) || !!offeredGated?.includes(title);

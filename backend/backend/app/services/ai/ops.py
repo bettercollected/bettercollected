@@ -124,6 +124,7 @@ from pydantic import (
 from pydantic_core import PydanticCustomError
 
 from backend.app.constants.themes import (
+    GATED_THEME_KEYS,
     PICTURE_ARTWORKS,
     PRESET_WELCOME_LAYOUTS,
     THEME_STYLES,
@@ -131,6 +132,7 @@ from backend.app.constants.themes import (
     offered_artworks,
     offered_presets,
     preset_name,
+    theme_key_offered,
     themes as THEME_PRESETS,
 )
 from backend.app.models.dtos.response_dtos import StandardFormFieldCamelModel
@@ -2666,19 +2668,31 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
     return f"Duplicated page '{op.page_id}' ({field_count} fields) as '{clone.id}'"
 
 
-def _check_artwork_offered(
+def _check_theme_offered(
     theme: Optional[Theme], stored: Optional[Theme], path: str
 ) -> None:
-    """While the switch of a gated artwork (Daybreak) is off, a theme may
-    name it only as the stored theme at that place already does."""
+    """While the switch of a gated artwork (Daybreak, Pigment) or of a gated
+    theme key (the choice keys) is off, a theme may set it only as the stored
+    theme at that place already does."""
     artwork = _artwork_value(theme)
-    if artwork is None or artwork_offered(artwork):
+    if (
+        artwork is not None
+        and not artwork_offered(artwork)
+        and _artwork_value(stored) != artwork
+    ):
+        raise OpError(
+            f"{path}.background.artwork must be one of: {', '.join(offered_artworks())}."
+        )
+    if theme is None:
         return
-    if _artwork_value(stored) == artwork:
-        return
-    raise OpError(
-        f"{path}.background.artwork must be one of: {', '.join(offered_artworks())}."
-    )
+    for key in GATED_THEME_KEYS:
+        value = getattr(theme, key, None)
+        if (
+            value is not None
+            and not theme_key_offered(key)
+            and getattr(stored, key, None) != value
+        ):
+            raise OpError(f"{path}.{key} is not available yet.")
 
 
 def _artwork_value(theme: Optional[Theme]) -> Optional[str]:
@@ -2696,7 +2710,7 @@ def _check_theme(theme: Optional[Theme], path: str) -> None:
 
 def _apply_update_theme(form: StandardForm, op: UpdateThemeOp) -> str:
     _check_theme(op.theme, "theme")
-    _check_artwork_offered(op.theme, form.theme, "theme")
+    _check_theme_offered(op.theme, form.theme, "theme")
     theme = op.theme.model_copy(deep=True)
     background = theme.background
     if background is not None and background.imageUrl is not None:
@@ -3417,7 +3431,7 @@ def _editor_theme(
     stored: Optional[Theme] = None,
 ) -> None:
     _check_theme(theme, path)
-    _check_artwork_offered(theme, stored, path)
+    _check_theme_offered(theme, stored, path)
     if theme is not None and theme.background is not None:
         theme.background.imageUrl = _editor_image(theme.background.imageUrl, keep)
 
