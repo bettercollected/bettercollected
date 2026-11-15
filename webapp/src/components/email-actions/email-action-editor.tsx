@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+import { Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import ActionConditionEditor, { conditionIncomplete } from '@app/components/email-actions/action-condition-editor';
@@ -275,7 +276,8 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
                 </p>
                 <div role="radiogroup" aria-label={t('EMAIL_ACTIONS.EDITOR.LANGUAGE')} className="flex gap-2">
                     {LANGUAGES.map((lang) => (
-                        <label key={lang} className={'cursor-pointer rounded-md border px-3 py-1.5 text-sm ' + (language === lang ? 'border-brand-500 bg-brand-100 text-black-900' : 'border-black-300 text-black-800')}>
+                        <label key={lang} className={'flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm ' + (language === lang ? 'option-selected font-medium text-ink' : 'border-black-300 text-black-800')}>
+                            {language === lang && <Check aria-hidden="true" className="h-3.5 w-3.5 text-link" strokeWidth={3} />}
                             <input type="radio" name="email-language" className="sr-only" checked={language === lang} onChange={() => (setLanguage(lang), setShown(null))} />
                             {t(`EMAIL_ACTIONS.EDITOR.LANGUAGE_${lang.toUpperCase()}`)}
                         </label>

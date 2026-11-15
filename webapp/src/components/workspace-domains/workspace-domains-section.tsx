@@ -5,6 +5,7 @@ import { FormEvent, useState } from 'react';
 import { AlertTriangle, Check, Copy, Globe2, ShieldCheck } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 
+import { StatusPill, StatusTone } from '@app/components/ui/status-pill';
 import { useIntlLocale } from '@app/lib/hooks/use-intl-locale';
 
 import { WorkspaceDomainDto, WorkspaceDomainStatus } from '@app/models/dtos/workspace-domain-dto';
@@ -17,11 +18,11 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 const RECORD_HOST = '_bettercollected-verification';
 
-const STATUS: Record<WorkspaceDomainStatus, { label: string; className: string }> = {
-    pending: { label: 'DOMAINS_UI.STATUS_PENDING', className: 'bg-black-100 text-black-600' },
-    verified: { label: 'DOMAINS_UI.STATUS_VERIFIED', className: 'bg-[#E7F6EE] text-success-700' },
-    failed: { label: 'DOMAINS_UI.STATUS_FAILED', className: 'bg-[#FBEFEF] text-[#C43D3D]' },
-    conflict: { label: 'DOMAINS_UI.STATUS_CONFLICT', className: 'bg-[#FDF3E3] text-[#9A5B00]' }
+const STATUS: Record<WorkspaceDomainStatus, { label: string; tone: StatusTone }> = {
+    pending: { label: 'DOMAINS_UI.STATUS_PENDING', tone: 'neutral' },
+    verified: { label: 'DOMAINS_UI.STATUS_VERIFIED', tone: 'ok' },
+    failed: { label: 'DOMAINS_UI.STATUS_FAILED', tone: 'bad' },
+    conflict: { label: 'DOMAINS_UI.STATUS_CONFLICT', tone: 'warn' }
 };
 
 const KNOWN_CHECK_ERRORS = ['no_record', 'token_mismatch', 'dns_timeout', 'dns_error', 'verified_by_another_workspace'];
@@ -124,7 +125,7 @@ function DomainCard({ domain, workspaceId }: { domain: WorkspaceDomainDto; works
                     <div className="flex flex-wrap items-center gap-2">
                         {verified ? <ShieldCheck className="h-4 w-4 shrink-0 text-success" /> : <Globe2 className="h-4 w-4 shrink-0 text-black-600" />}
                         <span className="break-all text-sm font-semibold text-black-900">{domain.displayDomain}</span>
-                        <span className={cn('rounded px-1.5 py-0.5 text-[11px] font-medium', status.className)}>{t(status.label)}</span>
+                        <StatusPill tone={status.tone}>{t(status.label)}</StatusPill>
                     </div>
                     {domain.displayDomain !== domain.domain && <span className="break-all text-xs text-black-600">{domain.domain}</span>}
                     <span className="text-xs text-black-600">
