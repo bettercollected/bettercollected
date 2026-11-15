@@ -13,6 +13,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetEmbedSettingsQuery, useUpdateEmbedSettingsMutation } from '@app/store/workspaces/embed-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { embedErrorKey } from '@app/utils/form-embed';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 /**
  * Workspace settings, "Embedding": the sites that may show the workspace's forms in a frame (docs/embed.md).
@@ -23,9 +24,21 @@ export default function EmbeddingSettings() {
     const { t } = useTranslation();
     const { can, ready, formEmbedEnabled } = useWorkspacePermissions();
 
-    if (!ready) return <div className="px-5 py-6 text-sm text-black-600 lg:px-10">{t('STAFF.EMBED.LOADING')}</div>;
-    if (!can(WorkspacePermission.WORKSPACE_MANAGE)) return <p className="px-5 py-6 text-sm text-black-700 lg:px-10">{t('STAFF.EMBED.ONLY_ADMINS')}</p>;
-    if (!formEmbedEnabled) return <p className="px-5 py-6 text-sm text-black-700 lg:px-10">{t('STAFF.EMBED.TURNED_OFF')}</p>;
+    if (!ready) return (
+            <PageSurface narrow>
+                <p className="text-sm text-black-600">{t('STAFF.EMBED.LOADING')}</p>
+            </PageSurface>
+        );
+    if (!can(WorkspacePermission.WORKSPACE_MANAGE)) return (
+            <PageSurface narrow>
+                <p className="text-sm text-black-700">{t('STAFF.EMBED.ONLY_ADMINS')}</p>
+            </PageSurface>
+        );
+    if (!formEmbedEnabled) return (
+            <PageSurface narrow>
+                <p className="text-sm text-black-700">{t('STAFF.EMBED.TURNED_OFF')}</p>
+            </PageSurface>
+        );
     return <AllowedSites />;
 }
 
@@ -63,7 +76,7 @@ function AllowedSites() {
     const remove = (origin: string) => save(origins.filter((item) => item !== origin));
 
     return (
-        <div className="flex w-full max-w-[720px] flex-col gap-8 px-5 py-6 lg:px-10">
+        <PageSurface narrow className="gap-8">
             <p className="max-w-[62ch] text-sm leading-relaxed text-black-600">{t('STAFF.EMBED.PAGE_INTRO')}</p>
 
             <section aria-labelledby="embed-list" className="flex flex-col gap-3">
@@ -152,6 +165,6 @@ function AllowedSites() {
                 <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('STAFF.EMBED.LEARNS_TEXT')}</p>
                 <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('STAFF.EMBED.SIGN_IN_NOTE')}</p>
             </section>
-        </div>
+        </PageSurface>
     );
 }

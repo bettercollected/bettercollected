@@ -80,10 +80,10 @@ export default function InvitationPage() {
 
     if (!invitation || !workspaceForInvitation) {
         return (
-            <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100">
+            <div className="flex min-h-screen flex-col items-center justify-center bg-canvas">
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
 
-                <div className="mx-2 mt-10 flex h-[520px] w-full max-w-[420px] flex-col items-center justify-center rounded border border-black-300 bg-white p-10">
+                <div className="mx-4 mt-10 flex h-[520px] w-[calc(100%-2rem)] max-w-[420px] flex-col items-center justify-center rounded-lg border border-hairline-strong bg-surface p-6 sm:p-10">
                     <img src="/errorr.png" alt="Invitation Not Found" className="h-34 w-34 mb-4 object-cover" />
                     <div className="text-black-800 mb-4 text-center text-2xl font-semibold">{t(workspaceConstant.invitationNotFound)}</div>
 

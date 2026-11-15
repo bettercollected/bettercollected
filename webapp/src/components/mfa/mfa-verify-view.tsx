@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import TotpEnrolDialog from '@app/components/account-settings/totp-enrol-dialog';
 import MfaCodeForm from '@app/components/mfa/mfa-code-form';
+import { PAGE_CARD } from '@app/components/ui/page-surface';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useGetMfaStatusQuery, useLogoutMutation } from '@app/store/auth/api';
 import { navigateTo } from '@app/utils/browser-navigation';
@@ -38,7 +39,8 @@ export default function MfaVerifyView({ workspaceName, next }: { workspaceName: 
     };
 
     return (
-        <main className="mx-auto flex w-full max-w-[460px] flex-col gap-5 px-5 py-12">
+        <main className="mx-auto w-full max-w-[460px] px-4 py-12 sm:py-16">
+            <div className={`${PAGE_CARD} flex flex-col gap-5`}>
             {isLoading && <p className="text-sm text-black-700">{t('STAFF.MFA.VERIFY.LOADING')}</p>}
             {isError && (
                 <p role="alert" className="text-sm text-black-800">
@@ -70,6 +72,7 @@ export default function MfaVerifyView({ workspaceName, next }: { workspaceName: 
                     {enrolling && <TotpEnrolDialog onClose={() => setEnrolling(false)} onSignInAgain={signInAgain} onEnrolled={go} />}
                 </>
             )}
+            </div>
         </main>
     );
 }

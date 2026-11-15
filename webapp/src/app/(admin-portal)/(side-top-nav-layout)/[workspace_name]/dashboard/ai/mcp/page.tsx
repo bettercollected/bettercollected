@@ -181,14 +181,14 @@ export default function APIKeysPage() {
 
     if (!canManageKeys) {
         return (
-            <div className="pb-10">
+            <div>
                 <p className="text-black-600 text-sm">{t('STAFF.API_KEYS.ONLY_ADMINS')}</p>
             </div>
         );
     }
 
     return (
-        <div className="flex w-full max-w-[760px] flex-col gap-8 pb-10">
+        <div className="flex w-full flex-col gap-8">
             <div className="flex flex-col gap-1.5">
                 <p className="text-black-600 max-w-[62ch] text-sm leading-relaxed">
                     {t('STAFF.API_KEYS.INTRO')}

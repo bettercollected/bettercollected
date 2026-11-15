@@ -24,6 +24,7 @@ import { GroupIcon } from '@app/components/icons/group-icon';
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from "@app/components/modal-views/full-screen-modal-context";
 import FormCaptchaCounts from '@app/components/captcha/form-captcha-counts';
+import { FORM_ROWS } from '@app/components/form/form-page';
 import { FormSettingsCard } from '@app/components/settings/card';
 import FormLinkUpdateView from "@app/components/ui/form-link-update-view";
 import { ProLogo } from "@app/components/ui/logo";
@@ -214,8 +215,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
         switch (view) {
             case 'VISIBILITY':
                 return (
-                    <FormSettingsCard className={'mb-4'}>
-                        <Divider />
+                    <FormSettingsCard>
                         <RadioGroup className="flex flex-col gap-6" value={currentVisibility} onValueChange={(val) => {
                             if (val === 'Public') onVisibilityChanged({ f: form });
                             if (val === 'Private') onVisibilityChanged({ isHidden: true, f: form });
@@ -260,7 +260,6 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                                 <span className="body4 text-black-700! ml-6 mt-1">{!(form?.groups?.length === 0) ? t(formPage.visibilityGroups1) : t(formPage.visibilityGroups0)}</span>
                                 {currentVisibility === 'Group' && <FormGroups groups={form?.groups || []} />}
                             </div>
-                            <Divider />
                         </RadioGroup>
                     </FormSettingsCard>
                 );
@@ -270,15 +269,15 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                 let lastPart = parts.pop();
                 let firstPart = parts.join('/');
                 return (
-                    <FormSettingsCard className={'mt-0! space-y-0!'}>
+                    <FormSettingsCard>
                         <p className="body4 text-black-700! w-full lg:max-w-[564px]">{t(formPage.linksDescription)}</p>
-                        <div className={'mt-1 flex flex-col items-start  gap-2 py-1 '}>
+                        <div className={'flex min-w-0 flex-col items-stretch gap-4'}>
                             <Tooltip label={t('CLICK_TO_COPY')}>
-                                <p className="body4 text-black-700! max-w-full cursor-pointer truncate" onClick={handleOnCopy}>
+                                <p className="body4 text-black-700! w-full max-w-full cursor-pointer truncate text-left" onClick={handleOnCopy}>
                                     {firstPart}/ <span className="text-black-900 font-medium">{lastPart}</span>
                                 </p>
                             </Tooltip>
-                            <div className={'flex gap-8'}>
+                            <div className={'-ml-2 flex flex-wrap gap-x-4 sm:-ml-4'}>
                                 <Button
                                     data-umami-event="Customize Form Link Button"
                                     className={'py-0!'}
@@ -310,7 +309,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                                 )}
                             </div>
                         </div>
-                        <div className="flex flex-col gap-16 pt-10">
+                        <div className="flex flex-col gap-4">
                             <FormLinkUpdateView isCustomDomain={false} link={getFormShareURL(form, workspace, true)} isDisable={(!isProPlan && !isAdmin) || !canEditForm} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />
                             {isCustomDomain && <FormLinkUpdateView isDisable={!canEditForm} isCustomDomain={isCustomDomain} link={getFormShareURL(form, workspace)} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />}
                         </div>
@@ -318,7 +317,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                 );
             case 'ORIGINAL':
                 return form?.importedFormId ? (
-                    <div className="divide-black-300 flex flex-col divide-y">
+                    <div className={FORM_ROWS}>
                         <SettingRow title={t('STAFF.FORM_SETTINGS.ORIGINAL_TITLE')} description={t('STAFF.FORM_SETTINGS.ORIGINAL_DESC')}>
                             <Switch
                                 data-umami-event="Show Original Google Form Switch"
@@ -335,7 +334,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                 return isSelf ? (
                     <div>
                         <GroupHeading>{t('STAFF.FORM_SETTINGS.ACCESS_IDENTITY')}</GroupHeading>
-                        <div className="divide-black-300 flex flex-col divide-y">
+                        <div className={FORM_ROWS}>
                             <SettingRow title={t('STAFF.FORM_SETTINGS.VERIFIED_TITLE')} description={t('STAFF.FORM_SETTINGS.VERIFIED_DESC')}>
                                 <Switch
                                     data-umami-event="Require Verified Identity Switch"
@@ -352,9 +351,9 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
             case 'AVAILABILITY':
                 if (!isSelf) return null;
                 return (
-                    <div className="flex flex-col">
+                    <div className="flex flex-col gap-4">
                         <FormAvailabilityStatus form={form} />
-                        <div className="divide-black-300 flex flex-col divide-y">
+                        <div className={FORM_ROWS}>
                             <SettingRow stacked title={t('FORM_PAGE.SETTINGS.OPEN_DATE.TITLE')} description={t('FORM_PAGE.SETTINGS.OPEN_DATE.DESCRIPTION')}>
                                 <OpenDateControl
                                     key={`open-${form.formId}`}
@@ -382,7 +381,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                                     {!closeFormChecked && !moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
                                         <Button
                                             data-umami-event="Select Form Close Date Button"
-                                            className="mb-4 w-fit"
+                                            className="-ml-2 mb-4 w-fit sm:-ml-4"
                                             variant="ghost"
                                             onClick={() => {
                                                 openBottomSheetModal('SELECT_FORM_CLOSE_DATE', {
@@ -418,7 +417,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                         {isSelf && (
                             <div>
                                 <GroupHeading>{t('STAFF.FORM_SETTINGS.GROUP_FILLING')}</GroupHeading>
-                                <div className="divide-black-300 flex flex-col divide-y">
+                                <div className={FORM_ROWS}>
                                     <SettingRow title={t(formPage.reviewPageTitle)} description={t(formPage.reviewPageDescription)}>
                                         <Switch
                                             data-umami-event="Show Review Page Switch"
@@ -470,7 +469,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                         {isSelf && (
                             <div>
                                 <GroupHeading>{t('STAFF.FORM_SETTINGS.GROUP_AFTER')}</GroupHeading>
-                                <div className="divide-black-300 flex flex-col divide-y">
+                                <div className={FORM_ROWS}>
                                     <SettingRow title={t('STAFF.FORM_SETTINGS.NUMBER_TITLE')} description={t('STAFF.FORM_SETTINGS.NUMBER_DESC')}>
                                         <Switch
                                             data-umami-event="Show Submission Number Switch"
@@ -528,7 +527,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                         {form?.isPublished && (
                             <div>
                                 <GroupHeading>{t('STAFF.FORM_SETTINGS.GROUP_BRANDING')}</GroupHeading>
-                                <div className="divide-black-300 flex flex-col divide-y">
+                                <div className={FORM_ROWS}>
                                     <SettingRow
                                         title={t(formPage.brandingTitle)}
                                         titleExtra={<ProLogo />}
@@ -563,7 +562,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
 }
 
 /** The small caps label above a group of rows inside a settings section (an h3, under the section's h2). */
-export const GroupHeading = ({ children }: { children: React.ReactNode }) => <h3 className="text-black-600 mb-1 text-xs font-semibold uppercase tracking-wide">{children}</h3>;
+export const GroupHeading = ({ children }: { children: React.ReactNode }) => <h3 className="text-black-600 mb-2 text-xs font-semibold uppercase tracking-wide">{children}</h3>;
 
 /**
  * One settings row: label + description on the left, control on the right.
