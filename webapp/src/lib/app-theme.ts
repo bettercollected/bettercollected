@@ -20,7 +20,7 @@ export function asAppTheme(value: unknown): AppTheme {
  * preview page, the preview dialog of a Pigment workspace) would otherwise read the theme's colours where the real
  * respondent page, which has no scope, reads the frozen blue. Each is a role whose utility or rule falls back to the
  * frozen value, `var(--app-x, <frozen>)`: the form root sets it to `initial`, so the fallback applies again
- * (`formRootProps` in views/molecules/theme/theme-root.ts). One entry per line; `app-theme.test.ts` fails when a role
+ * (`formRootProps` in views/molecules/theme/theme-root.ts). One entry per line; `views/molecules/theme/form-root-roles.test.tsx` fails when a role
  * that is read with a fallback is missing here, or an entry names a role no theme block declares.
  */
 // prettier-ignore
