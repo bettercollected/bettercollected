@@ -5,6 +5,8 @@ import React, { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
 import { atom, useAtom } from 'jotai';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import ShareView from '@app/components/ui/share-view';
 import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
@@ -105,10 +107,12 @@ const getClassName = (view?: DIALOG_MODALS) => {
 
 // The dialog's accessible name, for views that set one (others keep the
 // shared default).
-const getTitle = (view?: DIALOG_MODALS): string | undefined => {
+const getTitle = (view: DIALOG_MODALS | undefined, t: TFunction): string | undefined => {
     switch (view) {
         case 'START_WITH_AI':
             return 'Start with AI';
+        case 'FORM_PUBLISHED':
+            return t('PUBLISHED_MODAL.TITLE', { ns: 'builder' });
         default:
             return undefined;
     }
@@ -116,6 +120,7 @@ const getTitle = (view?: DIALOG_MODALS): string | undefined => {
 
 export function DialogModalContainer() {
     const { isOpen, view, closeDialogModal, props } = useDialogModal();
+    const { t } = useTranslation();
 
     const pathname = usePathname();
     useEffect(() => {
@@ -131,7 +136,7 @@ export function DialogModalContainer() {
                 closeDialogModal();
             }}
         >
-            <DialogContent onClickCloseIcon={closeDialogModal} title={getTitle(view)} className={cn('bg-white! p-0!', getClassName(view))}>
+            <DialogContent onClickCloseIcon={closeDialogModal} title={getTitle(view, t)} className={cn('bg-white! p-0!', getClassName(view))}>
                 {GetModalToRender(view, props)}
             </DialogContent>
         </Dialog>

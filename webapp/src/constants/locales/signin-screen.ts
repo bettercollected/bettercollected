@@ -10,6 +10,7 @@ export const signInScreen = {
     signinAgreementDescription: 'SIGNIN_SCREEN.SIGNIN_AGREEMENT_DESCRIPTION',
     signUp: 'GET_STARTED.USER_IS_FIT.BUTTON_TEXT',
     welcomeBack: 'SIGNIN_SCREEN.WELCOME_BACK',
+    checkEmail: 'SIGNIN_SCREEN.CHECK_EMAIL',
     signInToContinue: 'SIGNIN_SCREEN.SIGNIN_TO_CONTINUE',
     features: {
         title: 'SIGNIN_SCREEN.FEATURES.TITLE',

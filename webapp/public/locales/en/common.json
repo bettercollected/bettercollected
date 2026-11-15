@@ -690,6 +690,7 @@
     "EMAIL_INPUT_LABEL": "Email",
     "COLLECT_FORMS": "Collect your forms",
     "WELCOME_BACK": "Welcome back",
+    "CHECK_EMAIL": "Check your email",
     "SIGNIN_TO_CONTINUE": "Sign in with Google or your email — no password needed.",
     "CONTINUE_WITH": "Don't have an account?",
     "DELETE_RESPONSES": "Delete responses",

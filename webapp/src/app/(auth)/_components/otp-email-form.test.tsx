@@ -284,3 +284,21 @@ describe('a double press on "Send code"', () => {
         expect(sendOtp).toHaveBeenCalledTimes(2);
     });
 });
+
+describe('in the creator sign-in card', () => {
+    it('leaves the heading to the card and names the email field by a real label', () => {
+        searchParams = new URLSearchParams();
+        render(<OtpEmailForm setEmail={vi.fn()} card />);
+        expect(document.body.textContent).not.toContain('Welcome back');
+        expect(document.querySelector('label[for="signin-email"]')?.textContent).toBe('Email');
+        expect(document.querySelector('input[type="email"]')?.getAttribute('id')).toBe('signin-email');
+    });
+
+    it('keeps the heading and the plain label everywhere else (the respondent sign-in, the modal)', () => {
+        searchParams = new URLSearchParams();
+        render(<OtpEmailForm setEmail={vi.fn()} />);
+        expect(document.body.textContent).toContain('Welcome back');
+        expect(document.querySelector('label[for="signin-email"]')).toBeNull();
+        expect(document.querySelector('input[type="email"]')?.hasAttribute('id')).toBe(false);
+    });
+});
