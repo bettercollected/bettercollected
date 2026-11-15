@@ -664,7 +664,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             aria-label={tr('AI_CHAT.SEND')}
                             onClick={() => send()}
                             disabled={isLoading || !input.trim()}
-                            className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded bg-action text-white transition hover:bg-action-hover active:bg-action-pressed disabled:bg-black-300"
+                            className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded bg-app-action text-white transition hover:bg-app-action-hover active:bg-app-action-pressed disabled:bg-black-300"
                         >
                             <Send className="h-3.5 w-3.5" />
                         </button>

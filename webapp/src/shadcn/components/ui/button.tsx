@@ -14,7 +14,7 @@ import { cn } from '@app/shadcn/util/lib';
 const buttonVariants = cva('rounded gap-2 min-w-fit flex justify-center items-center px-2 sm:px-4 transition-colors', {
     variants: {
         variant: {
-            primary: 'bg-action text-white hover:bg-action-hover active:bg-action-pressed key-edge [--key-edge:var(--color-action-pressed)] ' + 'disabled:bg-black-300 disabled:text-black-600',
+            primary: 'bg-app-action text-app-on-action hover:bg-app-action-hover active:bg-app-action-pressed key-edge [--key-edge:var(--app-action-pressed,var(--color-action-pressed))] ' + 'disabled:bg-black-300 disabled:text-black-600',
             danger: 'bg-[#C43D3D] text-white hover:bg-[#A83434] active:bg-[#8F2C2C] key-edge [--key-edge:#7A2525] disabled:bg-black-300 disabled:text-black-600',
             tertiary:
                 'text-brand-500 bg-white border border-brand-500 hover:bg-brand-100 active:bg-brand-200 key-edge [--key-edge:var(--color-brand-700)] ' +

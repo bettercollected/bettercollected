@@ -32,11 +32,12 @@ const inline = css.match(/@theme inline \{([^}]*)\}/)?.[1] ?? '';
 const variableOf = (name: string) => (name.startsWith('series-') ? `--series-${name.slice(7)}` : name.startsWith('form-hue-') ? `--${name}` : `--app-${name}`);
 
 /** The value of a role: a variable of the Daybreak scope (or a ramp token in `@theme`), with `var()` aliases followed. */
-function colour(name: string): string {
-    const raw = (scope.match(new RegExp(`${variableOf(name)}:\\s*([^;]+);`)) ?? css.match(new RegExp(`--color-${name}:\\s*([^;]+);`)))?.[1].replace(/\/\*.*$/, '').trim();
+function colour(name: string, fromTheme = false): string {
+    // `fromTheme`: the name is a ramp or `action` token of `@theme` (a scope variable can share its name, as `--app-action` does)
+    const raw = ((fromTheme ? null : scope.match(new RegExp(`${variableOf(name)}:\\s*([^;]+);`))) ?? css.match(new RegExp(`--color-${name}:\\s*([^;]+);`)))?.[1].replace(/\/\*.*$/, '').trim();
     if (!raw) throw new Error(`no token ${name}`);
-    const alias = raw.match(/^var\(--(?:color|app)-([\w-]+)\)$/);
-    return (alias ? colour(alias[1]) : raw).toUpperCase();
+    const alias = raw.match(/^var\(--(color|app)-([\w-]+)\)$/);
+    return (alias ? colour(alias[2], alias[1] === 'color') : raw).toUpperCase();
 }
 
 const DAYBREAK: Record<string, string> = {
@@ -324,8 +325,9 @@ describe('where colour goes', () => {
     const files = (dir: string, out: string[] = []): string[] => {
         for (const entry of readdirSync(dir)) {
             const path = join(dir, entry);
-            if (statSync(path).isDirectory()) files(path, out);
-            else if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry)) out.push(path);
+            if (statSync(path).isDirectory()) {
+                if (entry !== 'test') files(path, out); // src/test: helpers of the tests, not source
+            } else if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry)) out.push(path);
         }
         return out;
     };
@@ -372,7 +374,7 @@ describe('where colour goes', () => {
     it('never gives sun or coral to a button; the primary stays blue', () => {
         const button = readFileSync(resolve(SRC, 'shadcn/components/ui/button.tsx'), 'utf8');
         expect(button).not.toMatch(/\b(sun|coral)\b/);
-        expect(button).toMatch(/bg-action/);
+        expect(button).toMatch(/bg-app-action/);
         const offenders = files(SRC).filter((path) => {
             const text = readFileSync(path, 'utf8');
             // a `<button>` or `<Button>` whose own class list takes a sun or coral fill

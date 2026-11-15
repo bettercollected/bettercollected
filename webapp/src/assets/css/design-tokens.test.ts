@@ -144,7 +144,7 @@ describe('shape and depth', () => {
     });
 
     it('gives every interactive element a 2px Sireto-blue focus outline', () => {
-        expect(css).toMatch(/:focus-visible \{\s*outline: 2px solid var\(--focus-ring, var\(--color-brand-500\)\) !important;\s*outline-offset: 3px !important;/);
+        expect(css).toMatch(/:focus-visible \{\s*outline: 2px solid var\(--focus-ring, var\(--app-focus-ring, var\(--color-brand-500\)\)\) !important;\s*outline-offset: 3px !important;/);
     });
 
     it('defines the key edge as a 3px inset bottom edge that a press removes', () => {

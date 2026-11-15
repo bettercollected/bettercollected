@@ -3,6 +3,7 @@
 import React from 'react';
 
 import { asAppTheme } from '@app/lib/app-theme';
+import { AppThemeContext } from '@app/lib/app-theme-context';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
@@ -23,7 +24,7 @@ export default function AppThemeScope({ workspaceId, initial, children }: { work
     const theme = asAppTheme(fromStore ? workspace.appTheme : initial);
     return (
         <div data-app-theme={theme} style={{ display: 'contents' }}>
-            {children}
+            <AppThemeContext.Provider value={theme}>{children}</AppThemeContext.Provider>
         </div>
     );
 }

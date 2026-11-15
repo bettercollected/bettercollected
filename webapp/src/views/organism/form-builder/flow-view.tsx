@@ -770,7 +770,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                     <div className="text-black-900 wrap-break-word text-sm font-semibold leading-snug">{pageTitleOnly(selectedSlide, selectedIndex)}</div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => openPageEditor(selectedSlide.id)} className="bg-action hover:bg-action-hover active:bg-action-pressed key-edge [--key-edge:var(--color-action-pressed)] flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-medium text-white">
+                                    <button onClick={() => openPageEditor(selectedSlide.id)} className="bg-app-action hover:bg-app-action-hover active:bg-app-action-pressed key-edge [--key-edge:var(--app-action-pressed,var(--color-action-pressed))] flex items-center gap-1 rounded px-2.5 py-1.5 text-xs font-medium text-white">
                                         <PencilLine className="h-3.5 w-3.5" /> {tBuilder('FLOW.EDIT_CONTENT')}
                                     </button>
                                     <button

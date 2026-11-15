@@ -19,7 +19,7 @@ import { useTargetWorkspaces } from './use-target-workspaces';
 import WhereStep, { Mode } from './where-step';
 
 const BUTTON = 'flex min-h-[44px] items-center justify-center rounded px-4 text-sm font-medium disabled:cursor-not-allowed sm:min-h-[36px]';
-const PRIMARY = `${BUTTON} bg-action text-white hover:bg-action-hover disabled:bg-black-300 disabled:text-black-600`;
+const PRIMARY = `${BUTTON} bg-app-action text-white hover:bg-app-action-hover disabled:bg-black-300 disabled:text-black-600`;
 const SECONDARY = `${BUTTON} border border-black-400 bg-white text-black-700 hover:bg-black-200 disabled:bg-black-300 disabled:text-black-600`;
 
 const TOTAL_STEPS = 3;

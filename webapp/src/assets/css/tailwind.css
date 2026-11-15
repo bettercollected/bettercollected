@@ -698,6 +698,17 @@
     --color-copy: var(--app-copy);
     --color-ink-muted: var(--app-ink-muted);
     --color-brand-tint: var(--app-brand-tint);
+    --color-app-action: var(--app-action, var(--color-action));
+    --color-app-action-hover: var(--app-action-hover, var(--color-action-hover));
+    --color-app-action-pressed: var(--app-action-pressed, var(--color-action-pressed));
+    --color-app-on-action: var(--app-on-action, #FFFFFF);
+    --color-app-focus-ring: var(--app-focus-ring, var(--color-brand-500));
+    --color-app-accent: var(--app-accent);
+    --color-app-accent-tint: var(--app-accent-tint);
+    --color-app-accent-ink: var(--app-accent-ink);
+    --color-app-attention: var(--app-attention);
+    --color-app-attention-tint: var(--app-attention-tint);
+    --color-app-attention-ink: var(--app-attention-ink);
     --color-link: var(--app-link);
     --color-sun: var(--app-sun);
     --color-sun-tint: var(--app-sun-tint);
@@ -757,12 +768,26 @@
     --app-ink-muted: #56628C; /* labels, captions */
     --app-brand-tint: var(--color-brand-100); /* selected row, active nav */
     --app-link: var(--color-brand-600); /* link, and blue text on a tint */
-    --app-sun: #FFB400; /* fill only; a moment, a highlight */
-    --app-sun-tint: #FFF1C7;
-    --app-sun-ink: #6B4700; /* text on the tint, 7.4:1 */
-    --app-coral: #FF6A48; /* fill only; something is waiting for you */
-    --app-coral-tint: #FFE4DC;
-    --app-coral-ink: #A22F14; /* text on the tint, 5.9:1 */
+    /* The app's own action roles: the primary button, the selected-option edge and the keyboard focus ring of the creator
+       app read these. Respondent routes have no scope and read the frozen `action` and `brand-500` (the utilities fall back). */
+    --app-action: var(--color-action); /* primary button face, selected edge */
+    --app-action-hover: var(--color-action-hover);
+    --app-action-pressed: var(--color-action-pressed); /* pressed, and the key edge */
+    --app-on-action: #FFFFFF; /* text on the action face, 6.8:1 */
+    --app-focus-ring: var(--color-brand-500); /* the 2px keyboard focus outline */
+    --app-accent: #FFB400; /* fill only; a moment, a highlight (Daybreak: the sun) */
+    --app-accent-tint: #FFF1C7;
+    --app-accent-ink: #6B4700; /* text on the tint, 7.4:1 */
+    --app-attention: #FF6A48; /* fill only; something is waiting for you (Daybreak: coral) */
+    --app-attention-tint: #FFE4DC;
+    --app-attention-ink: #A22F14; /* text on the tint, 5.9:1 */
+    /* the names the first components read (`bg-sun`, `text-coral-ink`): the same roles, so a theme sets each once */
+    --app-sun: var(--app-accent);
+    --app-sun-tint: var(--app-accent-tint);
+    --app-sun-ink: var(--app-accent-ink);
+    --app-coral: var(--app-attention);
+    --app-coral-tint: var(--app-attention-tint);
+    --app-coral-ink: var(--app-attention-ink);
     --app-ok: #0A6F45;
     --app-ok-fill: #12A06A;
     --app-ok-tint: #DDF5EA;
@@ -809,12 +834,26 @@ html:has([data-app-theme='daybreak']) {
     --app-ink-muted: #56628C; /* labels, captions */
     --app-brand-tint: var(--color-brand-100); /* selected row, active nav */
     --app-link: var(--color-brand-600); /* link, and blue text on a tint */
-    --app-sun: #FFB400; /* fill only; a moment, a highlight */
-    --app-sun-tint: #FFF1C7;
-    --app-sun-ink: #6B4700; /* text on the tint, 7.4:1 */
-    --app-coral: #FF6A48; /* fill only; something is waiting for you */
-    --app-coral-tint: #FFE4DC;
-    --app-coral-ink: #A22F14; /* text on the tint, 5.9:1 */
+    /* The app's own action roles: the primary button, the selected-option edge and the keyboard focus ring of the creator
+       app read these. Respondent routes have no scope and read the frozen `action` and `brand-500` (the utilities fall back). */
+    --app-action: var(--color-action); /* primary button face, selected edge */
+    --app-action-hover: var(--color-action-hover);
+    --app-action-pressed: var(--color-action-pressed); /* pressed, and the key edge */
+    --app-on-action: #FFFFFF; /* text on the action face, 6.8:1 */
+    --app-focus-ring: var(--color-brand-500); /* the 2px keyboard focus outline */
+    --app-accent: #FFB400; /* fill only; a moment, a highlight (Daybreak: the sun) */
+    --app-accent-tint: #FFF1C7;
+    --app-accent-ink: #6B4700; /* text on the tint, 7.4:1 */
+    --app-attention: #FF6A48; /* fill only; something is waiting for you (Daybreak: coral) */
+    --app-attention-tint: #FFE4DC;
+    --app-attention-ink: #A22F14; /* text on the tint, 5.9:1 */
+    /* the names the first components read (`bg-sun`, `text-coral-ink`): the same roles, so a theme sets each once */
+    --app-sun: var(--app-accent);
+    --app-sun-tint: var(--app-accent-tint);
+    --app-sun-ink: var(--app-accent-ink);
+    --app-coral: var(--app-attention);
+    --app-coral-tint: var(--app-attention-tint);
+    --app-coral-ink: var(--app-attention-ink);
     --app-ok: #0A6F45;
     --app-ok-fill: #12A06A;
     --app-ok-tint: #DDF5EA;
@@ -845,6 +884,157 @@ html:has([data-app-theme='daybreak']) {
     --form-hue-3-ink: var(--app-link);
     --form-hue-4-bg: #EEE8FC; /* orchid: violet tint and ink, 7.7:1 */
     --form-hue-4-ink: #52309F;
+}
+
+/*
+ * Pigment (DESIGN.md, "Pigment theme"): the second app theme, a workspace's choice (docs/app-theme.md). The same
+ * variables as Daybreak, with iris for the action colour on warm paper, and the five pigments. It is a rule of its own
+ * after Daybreak's, with its own `<html>` mirror rule after Daybreak's, so when both scopes are in the tree (the admin
+ * portal's Daybreak scope outside, the workspace's Pigment scope inside) Pigment wins on `<html>` as well. The frozen
+ * `brand-*` and `black-*` ramps are not touched: what still reads them (see DESIGN.md) stays as it is.
+ * Light only.
+ */
+[data-app-theme='pigment'] {
+    --app-canvas: #FBF7F1; /* app ground: warm cream paper */
+    --app-surface: #FFFFFF; /* cards, panels, dialogs */
+    --app-sunken: #F2EBDF; /* wells, table heads, chart tracks, quiet pills */
+    --app-hairline: #E9E1D4; /* separators on a surface */
+    --app-hairline-strong: #CFC4B1; /* separators and card edges on the canvas (decorative) */
+    --app-control-edge: #7C7396; /* edge of a control: 4.4:1 on white */
+    --app-ink: #1A1238; /* headings, answers */
+    --app-copy: #443C66; /* running text */
+    --app-ink-muted: #5F577F; /* labels, captions */
+    --app-brand-tint: #E8E4FF; /* selected row, active nav: an iris tint */
+    --app-link: #3E29C4; /* link, and iris text on a tint */
+    --app-action: #4B35DB; /* iris: the primary button face, the selected edge */
+    --app-action-hover: #3E29C4;
+    --app-action-pressed: #2F1DA2; /* pressed, and the key edge */
+    --app-on-action: #FFFFFF; /* text on iris, 7.4:1 */
+    --app-focus-ring: #4B35DB; /* the 2px keyboard focus outline: iris */
+    --app-accent: #FFC62E; /* fill only; a moment, a highlight (Pigment: sun) */
+    --app-accent-tint: #FFF0C2;
+    --app-accent-ink: #664600; /* text on the tint */
+    --app-attention: #FF7A61; /* fill only; something is waiting for you (Pigment: coral) */
+    --app-attention-tint: #FFE2DC;
+    --app-attention-ink: #A3301A; /* text on the tint */
+    --app-sun: var(--app-accent);
+    --app-sun-tint: var(--app-accent-tint);
+    --app-sun-ink: var(--app-accent-ink);
+    --app-coral: var(--app-attention);
+    --app-coral-tint: var(--app-attention-tint);
+    --app-coral-ink: var(--app-attention-ink);
+    --app-ok: #0B6B4A;
+    --app-ok-fill: #0F9468;
+    --app-ok-tint: #D9F5EA;
+    --app-warn: #7A4B00;
+    --app-warn-fill: #F5A300;
+    --app-warn-tint: #FFEFCC;
+    --app-bad: #B0302A; /* danger is a deeper red, never tomato */
+    --app-bad-fill: #D8493F;
+    --app-bad-tint: #FCE5E2;
+    --app-info: #1B5FA8;
+    --app-info-fill: #3FA6F2;
+    --app-info-tint: #DFEFFC;
+    /* The series, in the order they are used (a donut in turn, and one per answer of a choice question). Iris, deep green,
+       ochre, orchid, a warm dark neutral, then teal: the pigment family, with no red (danger is `bad`, never a series),
+       neighbours that differ in lightness and not only in hue, and each at least 3:1 on a white card and on a track. */
+    --series-1: #4B35DB;
+    --series-2: #074A38;
+    --series-3: #AD6E00;
+    --series-4: #973BB0;
+    --series-5: #51493D;
+    --series-6: #0B7C8C;
+    /* The five pigments: flat fills that always carry `--app-pig-ink` and are never a text colour, an icon or a focus
+       ring on their own (none reaches 3:1 on white). There is deliberately no `text-pig-*` utility. */
+    --app-pig-tomato: #FF8A73;
+    --app-pig-sun: #FFC62E;
+    --app-pig-mint: #5FD9B0;
+    --app-pig-sky: #6BBEF7;
+    --app-pig-orchid: #D9A0FF;
+    --app-pig-ink: #1A1238; /* the ink on every pigment: 7.7 to 11.3:1 */
+    /* Form avatar pairs by a form's hue index (lib/form-hue.ts: tomato, sun, mint, sky, orchid): the pigment and its ink */
+    --form-hue-0-bg: var(--app-pig-tomato);
+    --form-hue-0-ink: var(--app-pig-ink);
+    --form-hue-1-bg: var(--app-pig-sun);
+    --form-hue-1-ink: var(--app-pig-ink);
+    --form-hue-2-bg: var(--app-pig-mint);
+    --form-hue-2-ink: var(--app-pig-ink);
+    --form-hue-3-bg: var(--app-pig-sky);
+    --form-hue-3-ink: var(--app-pig-ink);
+    --form-hue-4-bg: var(--app-pig-orchid);
+    --form-hue-4-ink: var(--app-pig-ink);
+}
+
+/* The same variables on <html>, in a rule of its own, kept identical to the rule above (app-theme.test.ts checks it). */
+html:has([data-app-theme='pigment']) {
+    --app-canvas: #FBF7F1; /* app ground: warm cream paper */
+    --app-surface: #FFFFFF; /* cards, panels, dialogs */
+    --app-sunken: #F2EBDF; /* wells, table heads, chart tracks, quiet pills */
+    --app-hairline: #E9E1D4; /* separators on a surface */
+    --app-hairline-strong: #CFC4B1; /* separators and card edges on the canvas (decorative) */
+    --app-control-edge: #7C7396; /* edge of a control: 4.4:1 on white */
+    --app-ink: #1A1238; /* headings, answers */
+    --app-copy: #443C66; /* running text */
+    --app-ink-muted: #5F577F; /* labels, captions */
+    --app-brand-tint: #E8E4FF; /* selected row, active nav: an iris tint */
+    --app-link: #3E29C4; /* link, and iris text on a tint */
+    --app-action: #4B35DB; /* iris: the primary button face, the selected edge */
+    --app-action-hover: #3E29C4;
+    --app-action-pressed: #2F1DA2; /* pressed, and the key edge */
+    --app-on-action: #FFFFFF; /* text on iris, 7.4:1 */
+    --app-focus-ring: #4B35DB; /* the 2px keyboard focus outline: iris */
+    --app-accent: #FFC62E; /* fill only; a moment, a highlight (Pigment: sun) */
+    --app-accent-tint: #FFF0C2;
+    --app-accent-ink: #664600; /* text on the tint */
+    --app-attention: #FF7A61; /* fill only; something is waiting for you (Pigment: coral) */
+    --app-attention-tint: #FFE2DC;
+    --app-attention-ink: #A3301A; /* text on the tint */
+    --app-sun: var(--app-accent);
+    --app-sun-tint: var(--app-accent-tint);
+    --app-sun-ink: var(--app-accent-ink);
+    --app-coral: var(--app-attention);
+    --app-coral-tint: var(--app-attention-tint);
+    --app-coral-ink: var(--app-attention-ink);
+    --app-ok: #0B6B4A;
+    --app-ok-fill: #0F9468;
+    --app-ok-tint: #D9F5EA;
+    --app-warn: #7A4B00;
+    --app-warn-fill: #F5A300;
+    --app-warn-tint: #FFEFCC;
+    --app-bad: #B0302A; /* danger is a deeper red, never tomato */
+    --app-bad-fill: #D8493F;
+    --app-bad-tint: #FCE5E2;
+    --app-info: #1B5FA8;
+    --app-info-fill: #3FA6F2;
+    --app-info-tint: #DFEFFC;
+    /* The series, in the order they are used (a donut in turn, and one per answer of a choice question). Iris, deep green,
+       ochre, orchid, a warm dark neutral, then teal: the pigment family, with no red (danger is `bad`, never a series),
+       neighbours that differ in lightness and not only in hue, and each at least 3:1 on a white card and on a track. */
+    --series-1: #4B35DB;
+    --series-2: #074A38;
+    --series-3: #AD6E00;
+    --series-4: #973BB0;
+    --series-5: #51493D;
+    --series-6: #0B7C8C;
+    /* The five pigments: flat fills that always carry `--app-pig-ink` and are never a text colour, an icon or a focus
+       ring on their own (none reaches 3:1 on white). There is deliberately no `text-pig-*` utility. */
+    --app-pig-tomato: #FF8A73;
+    --app-pig-sun: #FFC62E;
+    --app-pig-mint: #5FD9B0;
+    --app-pig-sky: #6BBEF7;
+    --app-pig-orchid: #D9A0FF;
+    --app-pig-ink: #1A1238; /* the ink on every pigment: 7.7 to 11.3:1 */
+    /* Form avatar pairs by a form's hue index (lib/form-hue.ts: tomato, sun, mint, sky, orchid): the pigment and its ink */
+    --form-hue-0-bg: var(--app-pig-tomato);
+    --form-hue-0-ink: var(--app-pig-ink);
+    --form-hue-1-bg: var(--app-pig-sun);
+    --form-hue-1-ink: var(--app-pig-ink);
+    --form-hue-2-bg: var(--app-pig-mint);
+    --form-hue-2-ink: var(--app-pig-ink);
+    --form-hue-3-bg: var(--app-pig-sky);
+    --form-hue-3-ink: var(--app-pig-ink);
+    --form-hue-4-bg: var(--app-pig-orchid);
+    --form-hue-4-ink: var(--app-pig-ink);
 }
 
 /* Tailwind 3 preflight defaults that Tailwind 4's reset changed. */
@@ -968,8 +1158,8 @@ html:has([data-app-theme='daybreak']) {
  */
 @utility option-selected {
     background-color: var(--app-brand-tint);
-    border-color: var(--color-action);
-    box-shadow: inset 0 0 0 1px var(--color-action);
+    border-color: var(--app-action, var(--color-action));
+    box-shadow: inset 0 0 0 1px var(--app-action, var(--color-action));
 }
 
 @utility text-case-inherit {
@@ -1081,10 +1271,11 @@ input[type='number']::-webkit-outer-spin-button {
  * `outline-hidden` / `focus:outline-none` from before; a focus indicator must
  * not be something a utility class can switch off. Menu items and listbox
  * options are left out: they show focus as the highlighted row. Respondent forms set
- * `--focus-ring` to the form theme's action colour.
+ * `--focus-ring` to the form theme's action colour; inside an app theme scope the ring is the theme's
+ * `--app-focus-ring` (Sireto blue in Daybreak, iris in Pigment); with neither it is Sireto blue.
  */
 :where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex='-1']), [role='button'], [role='checkbox'], [role='radio'], [role='switch'], [role='tab'], [role='combobox'], [role='slider']):focus-visible {
-    outline: 2px solid var(--focus-ring, var(--color-brand-500)) !important;
+    outline: 2px solid var(--focus-ring, var(--app-focus-ring, var(--color-brand-500))) !important;
     outline-offset: 3px !important;
 }
 
