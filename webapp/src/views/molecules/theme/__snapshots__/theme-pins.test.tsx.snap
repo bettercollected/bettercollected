@@ -1,0 +1,34 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`a form with Default > draws the same page ground 1`] = `
+{
+  "backgroundColor": "#F5F7FB",
+}
+`;
+
+exports[`a form with Default > wraps the page in the same markup 1`] = `"<div style="background-color: rgb(245, 247, 251); --focus-ring: #1649E2;" class="grid relative w-full grow bg-transparent! font-form flex-col justify-end grid-cols-1 h-full overflow-hidden"><div dir="ltr" class="relative grow lg:min-h-[100%] [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex! [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:min-h-full [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex-col overflow-hidden" style="position: relative; --radix-scroll-area-corner-width: 0px; --radix-scroll-area-corner-height: 0px; background-color: rgb(245, 247, 251);"><style>[data-radix-scroll-area-viewport]{scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;}[data-radix-scroll-area-viewport]::-webkit-scrollbar{display:none}</style><div data-radix-scroll-area-viewport="" style="overflow: hidden scroll;" class="block! h-full w-full rounded-[inherit]"><div style="min-width: 100%; display: table;"><div class="px-5 sm:px-8 @container/page flex w-full grow flex-col py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12"><h1>Title</h1></div></div></div></div></div>"`;
+
+exports[`a form with no theme > draws the same page ground 1`] = `
+{
+  "backgroundColor": undefined,
+}
+`;
+
+exports[`a form with no theme > wraps the page in the same markup 1`] = `"<div class="grid relative w-full grow bg-transparent! font-form flex-col justify-end grid-cols-1 h-full overflow-hidden"><div dir="ltr" class="relative grow lg:min-h-[100%] [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex! [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:min-h-full [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex-col overflow-hidden" style="position: relative; --radix-scroll-area-corner-width: 0px; --radix-scroll-area-corner-height: 0px;"><style>[data-radix-scroll-area-viewport]{scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;}[data-radix-scroll-area-viewport]::-webkit-scrollbar{display:none}</style><div data-radix-scroll-area-viewport="" style="overflow: hidden scroll;" class="block! h-full w-full rounded-[inherit]"><div style="min-width: 100%; display: table;"><div class="px-5 sm:px-8 @container/page flex w-full grow flex-col py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12"><h1>Title</h1></div></div></div></div></div>"`;
+
+exports[`a form with stored Ocean > draws the same page ground 1`] = `
+{
+  "backgroundColor": "#DBEAFE",
+}
+`;
+
+exports[`a form with stored Ocean > wraps the page in the same markup 1`] = `"<div style="background-color: rgb(219, 234, 254); --focus-ring: #1D4ED8;" class="grid relative w-full grow bg-transparent! font-form flex-col justify-end grid-cols-1 h-full overflow-hidden"><div dir="ltr" class="relative grow lg:min-h-[100%] [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex! [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:min-h-full [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex-col overflow-hidden" style="position: relative; --radix-scroll-area-corner-width: 0px; --radix-scroll-area-corner-height: 0px; background-color: rgb(219, 234, 254);"><style>[data-radix-scroll-area-viewport]{scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;}[data-radix-scroll-area-viewport]::-webkit-scrollbar{display:none}</style><div data-radix-scroll-area-viewport="" style="overflow: hidden scroll;" class="block! h-full w-full rounded-[inherit]"><div style="min-width: 100%; display: table;"><div class="px-5 sm:px-8 @container/page flex w-full grow flex-col py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12"><h1>Title</h1></div></div></div></div></div>"`;
+
+exports[`a form with stored gradient > draws the same page ground 1`] = `
+{
+  "backgroundColor": "#F5F7FB",
+  "backgroundImage": "linear-gradient(135deg, #F5F7FB, #DBEAFE)",
+}
+`;
+
+exports[`a form with stored gradient > wraps the page in the same markup 1`] = `"<div style="background-color: rgb(245, 247, 251); --focus-ring: #1649E2;" class="grid relative w-full grow bg-transparent! font-form flex-col justify-end grid-cols-1 h-full overflow-hidden"><div dir="ltr" class="relative grow lg:min-h-[100%] [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex! [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:min-h-full [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex-col overflow-hidden" style="position: relative; --radix-scroll-area-corner-width: 0px; --radix-scroll-area-corner-height: 0px; background-color: rgb(245, 247, 251); background-image: linear-gradient(135deg, rgb(245, 247, 251), rgb(219, 234, 254));"><style>[data-radix-scroll-area-viewport]{scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;}[data-radix-scroll-area-viewport]::-webkit-scrollbar{display:none}</style><div data-radix-scroll-area-viewport="" style="overflow: hidden scroll;" class="block! h-full w-full rounded-[inherit]"><div style="min-width: 100%; display: table;"><div class="px-5 sm:px-8 @container/page flex w-full grow flex-col py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12"><h1>Title</h1></div></div></div></div></div>"`;
