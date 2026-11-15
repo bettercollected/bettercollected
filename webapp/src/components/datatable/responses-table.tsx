@@ -9,7 +9,7 @@ import DataTable from 'react-data-table-component';
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import StatusBadge from '@app/components/badge/status-badge';
 import { ChevronForward } from '@app/components/icons/chevron-forward';
-import EmptyResponse from '@app/components/ui/empty-response';
+import EmptyState from '@app/components/ui/empty-state';
 import AnchorLink from '@app/components/ui/links/anchor-link';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
@@ -359,10 +359,28 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                     {pager}
                 </>
             );
-        return (
-            <EmptyResponse
-                title={t(requestForDeletion ? formConstant.empty.deletionRequest.title : formConstant.empty.response.title)}
-                description={t(requestForDeletion ? formConstant.empty.deletionRequest.description : formConstant.empty.response.description)}
+        const formsUrl = `/${workspace?.workspaceName}/dashboard/forms`;
+        return requestForDeletion ? (
+            <EmptyState
+                title={t('STAFF.EMPTY_STATE.REQUESTS_TITLE')}
+                description={t('STAFF.EMPTY_STATE.REQUESTS_TEXT')}
+                action={
+                    <Button size="medium" onClick={() => router.push(formsUrl)}>
+                        {t('STAFF.EMPTY_STATE.REQUESTS_ACTION')}
+                    </Button>
+                }
+            />
+        ) : (
+            <EmptyState
+                title={t('STAFF.EMPTY_STATE.RESPONSES_TITLE')}
+                description={t('STAFF.EMPTY_STATE.RESPONSES_TEXT')}
+                action={
+                    formId && (
+                        <Button size="medium" onClick={() => router.push(`${formsUrl}/${formId}/links`)}>
+                            {t('STAFF.EMPTY_STATE.RESPONSES_ACTION')}
+                        </Button>
+                    )
+                }
             />
         );
     };

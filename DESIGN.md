@@ -135,6 +135,34 @@ components.
   the first, so colour is never the only code. The tracks behind bars are
   `sunken`.
 
+- **Moments.** One tinted band tops the forms dashboard: the person's first name
+  and the time of day, one sentence about where things stand and one next step
+  (the first form, the requests waiting, a draft to finish), with the sun and
+  hills motif (`DaybreakArt`, inline SVG, the action blue and the sun accent).
+  The same motif sits, still, in a tinted panel on the empty states. No other
+  surface carries it: never inside the builder canvas, a table or a respondent form.
+- **Empty states** are one component (`EmptyState`): a white card on the canvas
+  with the motif in a tinted panel, a title, one plain sentence and at most one
+  primary action (blue). A search or a filter with no match leaves the picture
+  out and offers a way back ("Clear search", "Clear filters"). Copy is calm: it
+  says nothing is wrong and what to do, with no exclamation marks.
+- **Forms tell apart.** Each form has a tile in lists and headers: its initial
+  in a tint with its ink, from a pair picked by the form's id (`formHueIndex`,
+  FNV-1a over the trimmed, lower-cased id, modulo five; `FormAvatar`). The pairs
+  are scope variables `--form-hue-0-bg/-ink` to `--form-hue-4-bg/-ink` (coral,
+  sun, success, blue and violet tints, each pair at least 4.5:1), so a later
+  theme supplies its own five. The tile is decoration beside the title; the
+  responder portal does not show it.
+- **Something is waiting for you.** A coral count badge (`CountBadge`: the
+  number on coral tint in coral ink, with the whole phrase as its accessible
+  name) marks a navigation item that needs the person, today deletion requests
+  with a pending count. It is a number, never a bare dot, and it never pulses or
+  turns red: it informs and does not press.
+- **Card edges on the canvas.** A card that sits directly on the canvas (the form
+  rows, the report cards, the settings cards) takes the strong hairline
+  (`border-hairline-strong`) on a `surface` ground; inside a white panel the
+  plain hairline is enough.
+
 **Where colour does not go.** The primary button is always `action` blue: sun
 and coral never colour a button, a link or a form control. Colour never carries
 urgency or pressure (§5). Neither accent is used for body text, and neither

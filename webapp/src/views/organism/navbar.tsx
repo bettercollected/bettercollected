@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { intlLocaleFor } from '@app/lib/hooks/use-intl-locale';
 
 import { FieldTypes } from '@app/models/dtos/form';
+import FormAvatar from '@app/components/ui/form-avatar';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
@@ -183,6 +184,8 @@ const Navbar = () => {
                         <span className="bg-brand-100 text-brand-600 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold">{(workspaceDisplayName(workspace)?.[0] || 'W').toUpperCase()}</span>
                     )}
                 </button>
+                {/* The form's own tile (the same one as in the forms list), so the form being edited is recognisable. */}
+                <FormAvatar formId={standardForm?.formId} title={formState.title} className="mr-1 h-8 w-8 text-xs" />
                 <AppInput
                     placeholder={t('TOPBAR.FORM_TITLE')}
                     value={formState.title}

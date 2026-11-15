@@ -723,6 +723,16 @@
     --color-series-4: var(--series-4);
     --color-series-5: var(--series-5);
     --color-series-6: var(--series-6);
+    --color-form-hue-0-bg: var(--form-hue-0-bg);
+    --color-form-hue-0-ink: var(--form-hue-0-ink);
+    --color-form-hue-1-bg: var(--form-hue-1-bg);
+    --color-form-hue-1-ink: var(--form-hue-1-ink);
+    --color-form-hue-2-bg: var(--form-hue-2-bg);
+    --color-form-hue-2-ink: var(--form-hue-2-ink);
+    --color-form-hue-3-bg: var(--form-hue-3-bg);
+    --color-form-hue-3-ink: var(--form-hue-3-ink);
+    --color-form-hue-4-bg: var(--form-hue-4-bg);
+    --color-form-hue-4-ink: var(--form-hue-4-ink);
 }
 
 /*
@@ -772,6 +782,17 @@ html:has([data-app-theme='daybreak']) {
     --series-4: #C93A21;
     --series-5: #7447CF;
     --series-6: #5C6788;
+    /* Form avatar pairs: a tint and its ink, picked by a form's hue index (lib/form-hue.ts); each pair is at least 4.5:1 */
+    --form-hue-0-bg: var(--app-coral-tint); /* tomato: the coral pair */
+    --form-hue-0-ink: var(--app-coral-ink);
+    --form-hue-1-bg: var(--app-sun-tint); /* sun: the sun pair */
+    --form-hue-1-ink: var(--app-sun-ink);
+    --form-hue-2-bg: var(--app-ok-tint); /* mint: the success pair */
+    --form-hue-2-ink: var(--app-ok);
+    --form-hue-3-bg: var(--app-brand-tint); /* sky: the blue pair */
+    --form-hue-3-ink: var(--app-link);
+    --form-hue-4-bg: #EEE8FC; /* orchid: violet tint and ink, 7.7:1 */
+    --form-hue-4-ink: #52309F;
 }
 
 /* Tailwind 3 preflight defaults that Tailwind 4's reset changed. */

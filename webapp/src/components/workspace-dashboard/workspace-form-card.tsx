@@ -18,6 +18,7 @@ import { NeedsReviewBadge } from '@app/components/open-formulieren-import/needs-
 import { useModal } from '@app/components/modal-views/context';
 import { CardRestrictedChip } from '@app/components/form/access/restricted-chip';
 import DeleteDropDown from '@app/components/ui/delete-dropdown';
+import FormAvatar from '@app/components/ui/form-avatar';
 import { StatusPill } from '@app/components/ui/status-pill';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -91,16 +92,15 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
     const showProviderChip = !!providerForIcon && providerForIcon !== 'self';
 
     return (
-        <div className={`hover:border-brand-500 flex h-full cursor-pointer flex-col items-start justify-between rounded border border-black-300 bg-white transition ${className}`}>
+        // On the app canvas a card's edge is the strong hairline (the responder portal has no app theme and keeps its own)
+        <div className={`hover:border-brand-500 flex h-full cursor-pointer flex-col items-start justify-between rounded border transition ${isResponderPortal ? 'border-black-300 bg-white' : 'border-hairline-strong bg-surface'} ${className}`}>
             <div className="group flex w-full items-center justify-between rounded px-5 py-4">
                 {!isResponderPortal &&
                     (form?.coverImage || form?.logo ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={firstPartyImageUrl(form.coverImage || form.logo)} alt="" className="border-black-300 mr-4 hidden h-11 w-11 shrink-0 rounded-md border object-cover sm:block" />
                     ) : (
-                        <div className="bg-brand-100 text-brand-600 mr-4 hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-sm font-semibold sm:flex" aria-hidden="true">
-                            {(form?.title?.trim()?.[0] || 'F').toUpperCase()}
-                        </div>
+                        <FormAvatar formId={form?.formId} title={form?.title} className="mr-3 h-9 w-9 sm:mr-4 sm:h-11 sm:w-11" />
                     ))}
                 <div className=" flex w-full min-w-0 flex-col gap-2">
                     <div className="flex flex-1 items-center justify-between gap-4">

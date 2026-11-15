@@ -4,6 +4,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 
+import EmptyState from '@app/components/ui/empty-state';
+import { Button } from '@app/shadcn/components/ui/button';
 import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
@@ -16,27 +18,34 @@ interface IWorkspaceDashboardFormsCardProps {
     hasCustomDomain: boolean;
     showPinned?: boolean;
     showEmpty?: boolean;
+    /** Empties the search that found nothing. */
+    onClearSearch?: () => void;
 }
 
-export default function WorkspaceDashboardFormsCard({ workspaceForms, workspace, hasCustomDomain, showPinned = false, showEmpty = false }: IWorkspaceDashboardFormsCardProps) {
+export default function WorkspaceDashboardFormsCard({ workspaceForms, workspace, hasCustomDomain, showPinned = false, showEmpty = false, onClearSearch }: IWorkspaceDashboardFormsCardProps) {
     const { t } = useTranslation();
     const forms = workspaceForms;
-    const ref = React.useRef<HTMLDivElement>(null);
     const router = useRouter()
 
     return (
         <div className="w-full mb-4 flex flex-col gap-5 h-fit">
             {forms?.length === 0 ? (
                 showEmpty ? (
-                    <div className=" h4-new flex h-full justify-center text-black-800 items-center w-full min-h-[150px]">{t('STAFF.FORM_CARD.NO_FORMS')}</div>
+                    // a search with no match: a clear line and the way back, no picture
+                    <EmptyState
+                        illustration={false}
+                        title={t('STAFF.EMPTY_STATE.SEARCH_TITLE')}
+                        description={t('STAFF.EMPTY_STATE.SEARCH_TEXT')}
+                        action={
+                            onClearSearch && (
+                                <Button size="medium" onClick={onClearSearch}>
+                                    {t('STAFF.EMPTY_STATE.SEARCH_CLEAR')}
+                                </Button>
+                            )
+                        }
+                    />
                 ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center rounded-lg py-[84px]">
-                        <p className="h3-new text-black-800 font-semibold">{t('STAFF.FORM_CARD.EMPTY_TITLE')}</p>
-                        <p className="p1-new text-black-700 mb-6 mt-2">{t('STAFF.FORM_CARD.EMPTY_HINT')}</p>
-                        <div ref={ref} className="relative">
-                            <NewFormButton />
-                        </div>
-                    </div>
+                    <EmptyState title={t('STAFF.EMPTY_STATE.FORMS_TITLE')} description={t('STAFF.EMPTY_STATE.FORMS_TEXT')} action={<NewFormButton />} />
                 )
             ) : (
                 <div className="flex flex-col gap-6">

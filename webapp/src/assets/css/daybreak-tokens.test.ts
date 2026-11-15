@@ -3,6 +3,7 @@ import { join, resolve } from 'path';
 
 import { describe, expect, it } from 'vitest';
 
+import { PIGMENTS } from '@app/lib/form-hue';
 import { contrast } from '@app/utils/color-contrast';
 
 // The Daybreak roles in DESIGN.md §1, held to the stylesheet that implements them.
@@ -14,13 +15,13 @@ const SRC = resolve(__dirname, '../..');
 const scope = css.match(/\[data-app-theme='daybreak'\],\s*html:has\(\[data-app-theme='daybreak'\]\) \{([^}]*)\}/)?.[1] ?? '';
 /** The `@theme inline` block: the utilities' colour names mapped to those variables. */
 const inline = css.match(/@theme inline \{([^}]*)\}/)?.[1] ?? '';
-const variableOf = (name: string) => (name.startsWith('series-') ? `--series-${name.slice(7)}` : `--app-${name}`);
+const variableOf = (name: string) => (name.startsWith('series-') ? `--series-${name.slice(7)}` : name.startsWith('form-hue-') ? `--${name}` : `--app-${name}`);
 
 /** The value of a role: a variable of the Daybreak scope (or a ramp token in `@theme`), with `var()` aliases followed. */
 function colour(name: string): string {
     const raw = (scope.match(new RegExp(`${variableOf(name)}:\\s*([^;]+);`)) ?? css.match(new RegExp(`--color-${name}:\\s*([^;]+);`)))?.[1].replace(/\/\*.*$/, '').trim();
     if (!raw) throw new Error(`no token ${name}`);
-    const alias = raw.match(/^var\(--color-([\w-]+)\)$/);
+    const alias = raw.match(/^var\(--(?:color|app)-([\w-]+)\)$/);
     return (alias ? colour(alias[1]) : raw).toUpperCase();
 }
 
@@ -82,7 +83,7 @@ describe('Daybreak tokens', () => {
         expect(blocks.length).toBeGreaterThan(0);
         for (const block of blocks) {
             expect(block).not.toMatch(/--color-(brand|black)[\w-]*\s*:/);
-            for (const declared of block.matchAll(/(--[\w-]+)\s*:/g)) expect(declared[1]).toMatch(/^--(app|series)-/);
+            for (const declared of block.matchAll(/(--[\w-]+)\s*:/g)) expect(declared[1]).toMatch(/^--(app|series|form-hue)-/);
         }
     });
 
@@ -151,8 +152,31 @@ const PAIRS: Array<[string, string, number, string]> = [
     ['series-4', 'surface', 3, 'Chart series 4 (red-orange)'],
     ['series-5', 'surface', 3, 'Chart series 5 (violet)'],
     ['series-6', 'surface', 3, 'Chart series 6 (slate)'],
-    ['series-1', 'sunken', 3, 'Bar on its track']
+    ['series-1', 'sunken', 3, 'Bar on its track'],
+    ['copy', 'brand-tint', 4.5, 'Welcome band and empty-state panel text'],
+    ['ink', 'brand-tint', 4.5, 'Welcome band greeting'],
+    ['copy', 'surface', 4.5, 'Empty-state sentence on its white card'],
+    ['ink', 'surface', 4.5, 'Empty-state title on its white card'],
+    ['coral-ink', 'coral-tint', 4.5, 'Count badge: the number on coral tint'],
+    ['form-hue-0-ink', 'form-hue-0-bg', 4.5, 'Form tile 0 (coral pair)'],
+    ['form-hue-1-ink', 'form-hue-1-bg', 4.5, 'Form tile 1 (sun pair)'],
+    ['form-hue-2-ink', 'form-hue-2-bg', 4.5, 'Form tile 2 (success pair)'],
+    ['form-hue-3-ink', 'form-hue-3-bg', 4.5, 'Form tile 3 (blue pair)'],
+    ['form-hue-4-ink', 'form-hue-4-bg', 4.5, 'Form tile 4 (violet pair)']
 ];
+
+describe('form tile pairs', () => {
+    it.each([0, 1, 2, 3, 4])('hue %i has a tint and an ink in the scope and a utility for each', (n) => {
+        expect(scope).toMatch(new RegExp(`--form-hue-${n}-bg:`));
+        expect(scope).toMatch(new RegExp(`--form-hue-${n}-ink:`));
+        expect(inline).toContain(`--color-form-hue-${n}-bg: var(--form-hue-${n}-bg);`);
+        expect(inline).toContain(`--color-form-hue-${n}-ink: var(--form-hue-${n}-ink);`);
+    });
+
+    it('has exactly as many pairs as the hash has indexes', () => {
+        expect([...scope.matchAll(/--form-hue-(\d+)-bg:/g)].length).toBe(PIGMENTS.length);
+    });
+});
 
 describe('Daybreak contrast', () => {
     it.each(PAIRS)('%s on %s is at least %s:1 (%s)', (fg, bg, needs) => {

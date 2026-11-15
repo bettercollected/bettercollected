@@ -8,9 +8,9 @@ import { escapeRegExp } from 'lodash';
 
 import StyledPagination from '@Components/common/pagination';
 import SearchInput from '@Components/common/search-input';
-import EmptyFormIcon from '@Components/icons/empty-form';
 
 import GoogleFormsImportNotice from '@app/components/form-integrations/google-forms-import-notice';
+import EmptyState from '@app/components/ui/empty-state';
 import Loader from '@app/components/ui/loader';
 import WorkspaceDashboardFormsCard from '@app/components/workspace-dashboard/workspace-dashboard-form-cards';
 import globalConstants from '@app/constants/global';
@@ -28,22 +28,7 @@ export const isGoogleForm = (form: StandardFormDto) => form?.settings?.provider 
 
 function EmptyFormsView() {
     const { t } = useTranslation();
-    return (
-        <div className="flex flex-col items-center gap-[72px]">
-            <div className="mt-8 flex w-full flex-col items-center gap-2">
-                <EmptyFormIcon />
-                <div className="h4-new text-black-800 mt-4 leading-normal!">{t('HAVE_NOT_IMPORTED_OR_CREATED')}</div>
-                <div className="p2-new text-black-700 leading-normal!">{t('CREATE_OR_IMPORT')}</div>
-                <div className="mt-4 flex gap-4">
-                    <NewFormButton />
-                    {/* <div className={'flex flex-row gap-4'}>
-                        <ImportFormsButton />
-                        <CreateFormButton />
-                    </div> */}
-                </div>
-            </div>
-        </div>
-    );
+    return <EmptyState title={t('STAFF.EMPTY_STATE.FORMS_TITLE')} description={t('STAFF.EMPTY_STATE.FORMS_TEXT')} action={<NewFormButton />} />;
 }
 
 interface IWorkspaceDashboardFormsProps {
@@ -59,6 +44,8 @@ export default function WorkspaceDashboardForms({ showButtons, hasCustomDomain, 
     const workspace = useAppSelector(selectWorkspace);
 
     const [showSearchedResults, setShowSearchedResults] = useState(false);
+    // bumped to empty the (uncontrolled) search box when the search is cleared from the empty state
+    const [searchBoxKey, setSearchBoxKey] = useState(0);
 
     const [workspaceQuery, setWorkspaceQuery] = useState({
         workspace_id: workspace.id,
@@ -82,6 +69,11 @@ export default function WorkspaceDashboardForms({ showButtons, hasCustomDomain, 
     // read-only or turns them off; say why they no longer sync.
     const { mode: googleImportMode } = useGoogleFormsImportMode();
     const listsGoogleForms = (workspaceForms?.data?.items ?? []).some(isGoogleForm);
+    const clearSearch = () => {
+        setShowSearchedResults(false);
+        setSearchedForms([]);
+        setSearchBoxKey((key) => key + 1);
+    };
     const handleSearch = async (event: any) => {
         if (!event.target.value) {
             setShowSearchedResults(false);
@@ -122,7 +114,7 @@ export default function WorkspaceDashboardForms({ showButtons, hasCustomDomain, 
                     <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div className="flex w-full min-w-0 flex-1 items-center gap-3">
                             <div className="w-full max-w-[420px]">
-                                <SearchInput placeholder={t(formConstant.toolbar.searchPlaceholder)} handleSearch={handleSearch} />
+                                <SearchInput key={searchBoxKey} placeholder={t(formConstant.toolbar.searchPlaceholder)} handleSearch={handleSearch} />
                             </div>
                             {showPagination && (
                                 <span className="text-black-600 shrink-0 whitespace-nowrap text-sm tabular-nums">
@@ -132,7 +124,7 @@ export default function WorkspaceDashboardForms({ showButtons, hasCustomDomain, 
                         </div>
                         {showButtons && <NewFormButton />}
                     </div>
-                    <WorkspaceDashboardFormsCard showPinned={true} showEmpty={showSearchedResults} workspaceForms={showSearchedResults ? searchedForms : [...workspaceForms?.data?.items]} workspace={workspace} hasCustomDomain={hasCustomDomain} />
+                    <WorkspaceDashboardFormsCard showPinned={true} showEmpty={showSearchedResults} onClearSearch={clearSearch} workspaceForms={showSearchedResults ? searchedForms : [...workspaceForms?.data?.items]} workspace={workspace} hasCustomDomain={hasCustomDomain} />
                     {showPagination && !showSearchedResults && Array.isArray(workspaceForms?.data?.items) && workspaceForms?.data?.total > globalConstants.pageSize && (
                         <div className="my-8 flex justify-center">
                             <StyledPagination shape="rounded" count={workspaceForms?.data?.pages || 0} page={workspaceQuery.page || 1} onChange={handlePageChange} />
