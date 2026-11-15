@@ -325,8 +325,9 @@ describe('where colour goes', () => {
     const files = (dir: string, out: string[] = []): string[] => {
         for (const entry of readdirSync(dir)) {
             const path = join(dir, entry);
-            if (statSync(path).isDirectory()) files(path, out);
-            else if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry)) out.push(path);
+            if (statSync(path).isDirectory()) {
+                if (entry !== 'test') files(path, out); // src/test: helpers of the tests, not source
+            } else if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry)) out.push(path);
         }
         return out;
     };

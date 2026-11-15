@@ -14,3 +14,13 @@ export const DEFAULT_APP_THEME: AppTheme = 'daybreak';
 export function asAppTheme(value: unknown): AppTheme {
     return value === 'pigment' ? 'pigment' : DEFAULT_APP_THEME;
 }
+
+/**
+ * The app roles a respondent's form must not inherit. A form drawn inside an app theme scope (the builder canvas, the
+ * preview page, the preview dialog of a Pigment workspace) would otherwise read the theme's colours where the real
+ * respondent page, which has no scope, reads the frozen blue. Each is a role whose utility or rule falls back to the
+ * frozen value, `var(--app-x, <frozen>)`: the form root sets it to `initial`, so the fallback applies again
+ * (`formRootProps` in views/molecules/theme/theme-root.ts). One entry per line; `app-theme.test.ts` fails when a role
+ * that is read with a fallback is missing here, or an entry names a role no theme block declares.
+ */
+export const APP_ROLES_RESET_ON_FORMS = ['--app-action', '--app-action-hover', '--app-action-pressed', '--app-on-action', '--app-focus-ring'] as const;
