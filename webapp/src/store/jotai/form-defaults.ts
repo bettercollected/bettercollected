@@ -64,6 +64,7 @@ export interface IThemeState {
     buttonStyle?: FormTheme['buttonStyle'];
     highlight?: FormTheme['highlight'];
     inputText?: FormTheme['inputText'];
+    choiceKeys?: FormTheme['choiceKeys'];
 }
 
 
