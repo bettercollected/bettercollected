@@ -178,6 +178,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
         // route) would claim, are titled for themselves.
         if (pathname.includes('/dashboard/account-settings')) return t('PROFILE_MENU.ACCOUNT_SETTINGS');
         if (pathname.includes('/dashboard/templates')) return t('TEMPLATE.TEMPLATES');
+        if (pathname.includes('/dashboard/submissions/')) return t('SUBMISSIONS');
         // Longest matching path wins (lib/nav-items.ts): the Site item's URL
         // (the dashboard root) is a prefix of every other route, and a
         // section such as AI titles every one of its tabs.

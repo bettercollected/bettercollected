@@ -79,6 +79,8 @@ describe('the workspace pages', () => {
         expect(body.indexOf("'/dashboard/account-settings'")).toBeGreaterThan(-1);
         expect(body.indexOf("'/dashboard/account-settings'")).toBeLessThan(body.indexOf('navItemForPath('));
         expect(body.indexOf("'/dashboard/templates'")).toBeLessThan(body.indexOf('navItemForPath('));
+        expect(body.indexOf("'/dashboard/submissions/'")).toBeGreaterThan(-1);
+        expect(body.indexOf("'/dashboard/submissions/'")).toBeLessThan(body.indexOf('navItemForPath('));
         const account = readFileSync(resolve(dashboard, 'account-settings/_components/account-settings-client.tsx'), 'utf8');
         expect(account).toContain("t('DELETE_ACCOUNT.TITLE')");
         expect(account).toContain("t('DELETE_ACCOUNT.DESCRIPTION')");
