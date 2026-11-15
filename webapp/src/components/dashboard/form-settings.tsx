@@ -277,7 +277,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                                     {firstPart}/ <span className="text-black-900 font-medium">{lastPart}</span>
                                 </p>
                             </Tooltip>
-                            <div className={'-ml-4 flex flex-wrap gap-x-4'}>
+                            <div className={'-ml-2 flex flex-wrap gap-x-4 sm:-ml-4'}>
                                 <Button
                                     data-umami-event="Customize Form Link Button"
                                     className={'py-0!'}
@@ -381,7 +381,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                                     {!closeFormChecked && !moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
                                         <Button
                                             data-umami-event="Select Form Close Date Button"
-                                            className="-ml-4 mb-4 w-fit"
+                                            className="-ml-2 mb-4 w-fit sm:-ml-4"
                                             variant="ghost"
                                             onClick={() => {
                                                 openBottomSheetModal('SELECT_FORM_CLOSE_DATE', {
