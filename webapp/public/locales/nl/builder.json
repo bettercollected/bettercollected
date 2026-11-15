@@ -1782,12 +1782,12 @@
     "COPIED_TOAST": "Link naar het klembord gekopieerd",
     "TITLE": "Uw formulier staat online",
     "BODY": "Iedereen met deze link kan uw formulier openen en invullen.",
-    "OPEN_NEW_TAB": "Formulier in een nieuw tabblad openen",
     "COPIED": "Gekopieerd",
     "COPY": "Link kopiëren",
-    "NEXT_STEPS": "Volgende stappen",
-    "SETTINGS": "Formulierinstellingen: eigen domein, privacy, integraties",
-    "DASHBOARD": "Terug naar het dashboard"
+    "OPEN_FORM": "Formulier openen",
+    "NEW_TAB": "opent in een nieuw tabblad",
+    "MORE_SHARE": "Meer manieren om te delen",
+    "COPY_FAILED": "Kopiëren is niet gelukt. Selecteer de link en kopieer hem zelf."
   },
   "NEW_FORM_MODAL": {
     "HEADING": "Nieuw formulier maken",

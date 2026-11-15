@@ -6,6 +6,7 @@ import { Trans, useTranslation } from 'react-i18next';
 
 import { AlertTriangle, Pencil, Plus, Trash2 } from 'lucide-react';
 
+import AppearanceCard from '@app/components/app-theme/appearance-card';
 import { FormTheme, ThemeColors, offeredPresets } from '@app/constants/theme';
 import { useModal } from '@app/components/modal-views/context';
 import { AppInput } from '@app/shadcn/components/ui/input';
@@ -267,6 +268,9 @@ export default function ThemesPage() {
                     ))}
                 </div>
             </section>
+
+            {/* the dashboard's own look, not a form's: owners and admins, and only while the server has Pigment on */}
+            <AppearanceCard />
         </div>
     );
 }

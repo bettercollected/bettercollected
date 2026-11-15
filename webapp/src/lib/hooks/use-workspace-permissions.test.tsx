@@ -65,6 +65,17 @@ describe('useWorkspacePermissions', () => {
         expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.saveDraftsEnabled).toBe(false);
     });
 
+    it('tells whether the server offers the second app theme, from the same answer', () => {
+        query.result = { data: { permissions: [], appThemeEnabled: true } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.appThemeEnabled).toBe(true);
+        query.result = { data: { permissions: [], appThemeEnabled: false } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.appThemeEnabled).toBe(false);
+        query.result = { data: { permissions: [] } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.appThemeEnabled).toBe(false);
+        query.result = { isError: true, data: { permissions: [], appThemeEnabled: true } };
+        expect(renderHook(() => useWorkspacePermissions(), { wrapper }).result.current.appThemeEnabled).toBe(false);
+    });
+
     it('grants nothing until the permissions have loaded', () => {
         const { result } = renderHook(() => useWorkspacePermissions(), { wrapper });
         expect(result.current.can(WorkspacePermission.FORM_READ)).toBe(false);

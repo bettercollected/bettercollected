@@ -621,7 +621,10 @@ def test_pending_blob_is_bound_to_session_action_key_version_and_time(clock):
     assert sp.is_missing(sp.open_pending(b"j" * 32, clock, "sess", "set", T1, 3, blob))
     exp, nonce, sealed = blob.split(".")
     assert sp.is_missing(sp.open_pending(key, clock, "sess", "set", T1, 3, f"{int(exp) + 999}.{nonce}.{sealed}"))
-    assert sp.is_missing(sp.open_pending(key, clock, "sess", "set", T1, 3, f"{exp}.{nonce}.{sealed[:-2]}AA"))
+    # Change a character that carries whole bytes: the last characters of unpadded base64 hold
+    # spare bits, so rewriting them can decode to the very same bytes (about one run in 256).
+    tampered = ("B" if sealed[0] == "A" else "A") + sealed[1:]
+    assert sp.is_missing(sp.open_pending(key, clock, "sess", "set", T1, 3, f"{exp}.{nonce}.{tampered}"))
     for junk in (None, "", "a.b", "x.y.z", "1.2.3.4", "9" * 12000):
         assert sp.is_missing(sp.open_pending(key, clock, "sess", "set", T1, 3, junk))
     clock.advance(sp.PENDING_SECONDS)

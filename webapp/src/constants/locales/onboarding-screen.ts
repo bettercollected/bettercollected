@@ -1,5 +1,6 @@
 export const onBoarding = {
     welcomeMessage: 'ONBOARDING.WELCOME_MESSAGE',
+    welcomeName: 'ONBOARDING.WELCOME_NAME',
     description: 'ONBOARDING.DESCRIPTION',
     timeMessage: 'ONBOARDING.TIME_MESSAGE',
     addWorkspace: 'ONBOARDING.ADD_WORKSPACE',

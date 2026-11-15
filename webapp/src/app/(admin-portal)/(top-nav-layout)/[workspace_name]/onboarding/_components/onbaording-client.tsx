@@ -2,16 +2,15 @@
 
 import { useState } from 'react';
 
-import { Button } from '@app/shadcn/components/ui/button';
 import { useTranslation } from 'react-i18next';
 
-import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import EmptyState from '@app/components/ui/empty-state';
 import Logo from '@app/components/ui/logo';
-import { localesCommon } from '@app/constants/locales/common';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import OnboardingContainer from '@app/containers/onboarding';
 import { UserStatus } from '@app/models/dtos/user-status';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import { Button } from '@app/shadcn/components/ui/button';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -30,21 +29,25 @@ export default function OnboardingClient({ workspace, createWorkspace }: onBoard
         setStepCount(stepCount + 1);
     };
 
+    // The first thing a new creator sees after the code: the empty states' card (the motif, one sentence, one next step)
     const StepZeroContent = (
         <>
             <div className="mt-[60px] flex flex-col items-center justify-center gap-2">
                 <Logo isLink={false} />
-                <p className="text-black-800 text-xs">{t(onBoarding.privacyFriendly)}</p>
+                <p className="text-xs text-copy">{t(onBoarding.privacyFriendly)}</p>
             </div>
-            <div className="mt-[136px] flex h-full w-full flex-col items-center">
-                <AuthAccountProfileImage image={user?.profileImage} name={user?.firstName || user?.lastName || user?.email} size={100} typography="text-6xl!" />
-                <p className="text-black-900 pt-10 text-center text-2xl font-semibold">
-                    {t(localesCommon.hey)} {user?.firstName || user?.email}!
-                </p>
-                <p className="text-black-800 pt-2 text-base">{t(onBoarding.welcomeMessage)}</p>
-                <Button className="mt-12 py-3! px-8" size="medium" onClick={increaseStep}>
-                    {t(onBoarding.addYourOrganization)}
-                </Button>
+            <div className="mt-12 flex w-full justify-center px-4 sm:mt-16">
+                <EmptyState
+                    headingLevel={1}
+                    className="max-w-[480px]"
+                    title={t(onBoarding.welcomeName, { name: user?.firstName || user?.email })}
+                    description={t(onBoarding.welcomeMessage)}
+                    action={
+                        <Button size="medium" onClick={increaseStep}>
+                            {t(onBoarding.addYourOrganization)}
+                        </Button>
+                    }
+                />
             </div>
         </>
     );
@@ -52,7 +55,7 @@ export default function OnboardingClient({ workspace, createWorkspace }: onBoard
     const StepOneContent = <OnboardingContainer workspace={workspace} createWorkspace={createWorkspace} />;
 
     return (
-        <div className="flex h-screen w-full flex-col items-center overflow-auto bg-white pb-20">
+        <div className="flex h-screen w-full flex-col items-center overflow-auto bg-canvas pb-20">
             {stepCount === 0 && StepZeroContent}
             {stepCount === 1 && StepOneContent}
         </div>
