@@ -62,7 +62,7 @@ export default function FormPublishedModal(props: any) {
                 </span>
             </div>
 
-            <div className="flex flex-col gap-4 p-6 pt-10 pb-1 sm:p-8 sm:pt-11 sm:pb-1">
+            <div className="flex flex-col gap-4 p-6 pt-10 pb-2 sm:p-8 sm:pt-11 sm:pb-2">
                 <div className="flex flex-col gap-1.5">
                     <h2 id={PUBLISHED_TITLE_ID} className="m-0 text-xl leading-snug font-semibold tracking-title-sm text-ink">{t('PUBLISHED_MODAL.TITLE')}</h2>
                     {/* Honest about what publishing means: the same line the Share modal uses. */}
