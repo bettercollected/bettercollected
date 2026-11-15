@@ -92,9 +92,12 @@ export default function WelcomeBand() {
 
     return (
         <section aria-labelledby="welcome-band-title" data-testid="welcome-band" data-state={state.kind} className="relative mb-6 overflow-hidden rounded border border-hairline-strong bg-brand-tint">
-            <div className="absolute inset-y-0 right-0 hidden w-[58%] sm:block" aria-hidden="true">
-                <DaybreakArt />
-            </div>
+            {/* the picture lives in the empty state below when there are no forms yet: once is enough */}
+            {state.kind !== 'no-forms' && (
+                <div className="absolute inset-0 hidden sm:block" aria-hidden="true">
+                    <DaybreakArt />
+                </div>
+            )}
             <div className="relative flex max-w-[52ch] flex-col items-start gap-2 p-4 sm:gap-3 sm:p-7">
                 <h2 id="welcome-band-title" className="m-0 text-xl leading-tight font-semibold tracking-title text-ink sm:text-2xl">
                     {name ? t('STAFF.WELCOME.WITH_NAME', { greeting, name }) : greeting}
