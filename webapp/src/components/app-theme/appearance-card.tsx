@@ -29,6 +29,12 @@ export function appThemeErrorKey(error: unknown): string {
     return 'STAFF.APP_THEME.FAILED';
 }
 
+/** The server refused this choice (403: not allowed, 422: Pigment is switched off or the value is not a theme), as opposed to a failure on the way. */
+export function isRefusal(error: unknown): boolean {
+    const status = (error as { status?: unknown } | undefined)?.status;
+    return status === 403 || status === 422;
+}
+
 /**
  * "Appearance", on the workspace's Themes page: which of the two app themes the dashboard wears for everyone in the
  * workspace. Offered only to a member who may manage the workspace (`workspace.manage`) and only while the server has
@@ -71,7 +77,12 @@ function Appearance() {
         const response = await save({ workspaceId: workspace.id as string, appTheme: choice });
         setSaving(false);
         if ('error' in response && response.error) {
-            setErrorKey(appThemeErrorKey(response.error));
+            const key = appThemeErrorKey(response.error);
+            setErrorKey(key);
+            // a refusal (not allowed, or Pigment is switched off) is the server's answer about this choice: the
+            // card goes back to the theme the workspace has, so it does not show a choice that cannot be kept; any
+            // other failure (a network error) leaves the choice for another try
+            if (isRefusal(response.error)) setChoice(current);
             return;
         }
         setMessage(t('STAFF.APP_THEME.SAVED', { name: name(choice) }));
