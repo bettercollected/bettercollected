@@ -76,7 +76,7 @@ field is there; hairlines are for separating surfaces, not for controls.
 | `success-700` | `#027A48` | Success text (`success` is 3.7:1 on white, too light for text) |
 | `#C43D3D` | — | Danger text and destructive buttons |
 
-No pink, no gradients, and no orange except the single coral accent below (and the red-orange report series).
+No pink, no gradients, and no orange except the single coral accent below.
 The old bright blue (`#0764EB`), the old trust blue (`#2456CC`) and the
 duplicate `new-*` ramps are gone.
 
@@ -106,7 +106,7 @@ read those variables through an `@theme inline` block. The default theme is
 | `sun`, `sun-tint`, `sun-ink` | `#FFB400`, `#FFF1C7`, `#6B4700` | The sun accent: a moment, a highlight, a "why we ask" rule. Fill only; text uses `sun-ink` on the tint |
 | `coral`, `coral-tint`, `coral-ink` | `#FF6A48`, `#FFE4DC`, `#A22F14` | The one coral accent: something is waiting for you. Fill only; text uses `coral-ink` on the tint |
 | `ok`, `warn`, `bad`, `info` | `#0A6F45`, `#7A4B00`, `#B42B2B`, `#1035A8` | Status text. Each has a `-fill` for icons and a `-tint` for backgrounds |
-| `series-1` … `series-6` | `#2A55E0`, `#A86400`, `#0E7F86`, `#C93A21`, `#7447CF`, `#5C6788` | Report series: blue, ochre, teal, red-orange, violet, slate |
+| `series-1` … `series-6` | `#2A55E0`, `#158591`, `#12471D`, `#6C2FBC`, `#BB7A0A`, `#5B6888` | Report series: blue, teal, deep green, violet, ochre, slate. Light and dark steps alternate, no red, and none is near `bad` |
 
 The names `muted` and `accent` are left alone on purpose: shadcn components
 already use those utility names, and defining them would paint those
@@ -132,7 +132,10 @@ components.
 - **Charts.** One blue (`series-1`) for single-question bars and lines; the six
   series for donuts and multi-series, each at least 3:1 on the white card, with
   a value written beside every mark and a pattern on every donut slice after
-  the first, so colour is never the only code. The tracks behind bars are
+  the first, so colour is never the only code. The series also hold when seen
+  with deuteranopia or protanopia: neighbouring series (and the next but one)
+  differ in lightness and in simulated colour, and none is near the danger red
+  (`daybreak-tokens.test.ts` states the thresholds and measures them). The tracks behind bars are
   `sunken`.
 
 - **Moments.** One tinted band tops the forms dashboard: the person's first name
@@ -798,4 +801,4 @@ control boundaries and meaningful icons.
 | Control edge `#6E7CA8` on white / canvas | 4.1:1 / 3.8:1 |
 | `sun-ink` on `sun-tint`; `coral-ink` on `coral-tint` | 7.4:1; 5.9:1 |
 | `ok`, `warn`, `bad`, `info` text on their tints | 5.4:1, 6.6:1, 5.3:1, 8.2:1 |
-| Series 1 to 6 as marks on white | 6.0, 4.7, 4.8, 5.1, 5.9, 5.6 (all at least 3:1) |
+| Series 1 to 6 as marks on white | 6.0, 4.4, 10.8, 7.6, 3.6, 5.6 (all at least 3:1; series 1 to 5 also at least 3:1 on the `sunken` bar track) |
