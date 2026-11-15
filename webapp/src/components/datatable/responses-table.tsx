@@ -6,7 +6,7 @@ import StyledPagination from '@Components/common/pagination';
 import { cn } from '@app/shadcn/util/lib';
 import ScrollTable from '@app/components/datatable/scroll-table';
 
-import { TABLE_EDGE, TABLE_WASH, TEXT_INK, TEXT_STRONG, dataTableCustomStyles, deletionRequestTableStyles } from '@Components/datatable/datatable-styles';
+import { dataTableCustomStyles, deletionRequestTableStyles } from '@Components/datatable/datatable-styles';
 import StatusBadge from '@app/components/badge/status-badge';
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import EmptyState from '@app/components/ui/empty-state';
@@ -35,10 +35,10 @@ const responseTableStyles = {
     rows: {
         style: {
             ...dataTableCustomStyles.rows.style,
-            borderColor: `${TABLE_EDGE} !important`,
+            borderColor: '#EAECF0 !important',
             '&:hover': {
                 cursor: 'pointer',
-                background: TABLE_WASH
+                background: '#F5F7FB'
             }
         }
     }
@@ -250,7 +250,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                         response: row
                     }),
                 style: {
-                    color: TEXT_STRONG,
+                    color: '#344054',
                     paddingLeft: '8px',
                     paddingRight: '8px'
                 }
@@ -262,7 +262,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                         response: row
                     }),
                 style: {
-                    color: TEXT_STRONG,
+                    color: '#344054',
                     paddingLeft: '8px',
                     paddingRight: '8px'
                 }
@@ -275,7 +275,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                         response: row
                     }),
                 style: {
-                    color: TEXT_STRONG,
+                    color: '#344054',
                     paddingLeft: '8px',
                     paddingRight: '8px'
                 }
@@ -289,7 +289,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 name: t(formConstant.default),
                 selector: (response: StandardFormResponseDto) => responseFormTitle(response),
                 style: {
-                    color: TEXT_INK,
+                    color: '#101828',
                     fontSize: '14px',
                     fontWeight: 500,
                     paddingLeft: '8px',
