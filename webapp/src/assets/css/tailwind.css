@@ -935,12 +935,15 @@ html:has([data-app-theme='daybreak']) {
     --app-info: #1B5FA8;
     --app-info-fill: #3FA6F2;
     --app-info-tint: #DFEFFC;
+    /* The series, in the order they are used (a donut in turn, and one per answer of a choice question). Iris, deep green,
+       ochre, orchid, a warm dark neutral, then teal: the pigment family, with no red (danger is `bad`, never a series),
+       neighbours that differ in lightness and not only in hue, and each at least 3:1 on a white card and on a track. */
     --series-1: #4B35DB;
-    --series-2: #D44A33;
-    --series-3: #A66A00;
-    --series-4: #0E8C6A;
-    --series-5: #1D7FC4;
-    --series-6: #A23FBD;
+    --series-2: #074A38;
+    --series-3: #AD6E00;
+    --series-4: #973BB0;
+    --series-5: #51493D;
+    --series-6: #0B7C8C;
     /* The five pigments: flat fills that always carry `--app-pig-ink` and are never a text colour, an icon or a focus
        ring on their own (none reaches 3:1 on white). There is deliberately no `text-pig-*` utility. */
     --app-pig-tomato: #FF8A73;
@@ -1004,12 +1007,15 @@ html:has([data-app-theme='pigment']) {
     --app-info: #1B5FA8;
     --app-info-fill: #3FA6F2;
     --app-info-tint: #DFEFFC;
+    /* The series, in the order they are used (a donut in turn, and one per answer of a choice question). Iris, deep green,
+       ochre, orchid, a warm dark neutral, then teal: the pigment family, with no red (danger is `bad`, never a series),
+       neighbours that differ in lightness and not only in hue, and each at least 3:1 on a white card and on a track. */
     --series-1: #4B35DB;
-    --series-2: #D44A33;
-    --series-3: #A66A00;
-    --series-4: #0E8C6A;
-    --series-5: #1D7FC4;
-    --series-6: #A23FBD;
+    --series-2: #074A38;
+    --series-3: #AD6E00;
+    --series-4: #973BB0;
+    --series-5: #51493D;
+    --series-6: #0B7C8C;
     /* The five pigments: flat fills that always carry `--app-pig-ink` and are never a text colour, an icon or a focus
        ring on their own (none reaches 3:1 on white). There is deliberately no `text-pig-*` utility. */
     --app-pig-tomato: #FF8A73;
