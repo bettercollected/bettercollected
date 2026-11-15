@@ -33,6 +33,8 @@ describe('the published dialog', () => {
         const { container, unmount } = renderModal('pigment');
         expect(screen.getByTestId('pigment-app-art')).toHaveAttribute('data-variant', 'panel');
         expect(container.querySelector('circle.fill-sun')).toBeNull();
+        // no ring beside the close button, as no coral dot in Daybreak
+        expect([...screen.getByTestId('pigment-app-art').querySelectorAll('circle')].some((c) => c.getAttribute('fill') === 'none')).toBe(false);
         expect(screen.getByTestId('published-mark').parentElement?.className).toContain('bg-sunken');
         unmount();
         {

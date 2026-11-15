@@ -16,8 +16,16 @@ import { useAppTheme } from '@app/lib/app-theme-context';
  * The publish dialog is portalled out of the workspace layout and cannot read the scope: it passes the workspace
  * theme it already holds in the store as `theme`.
  */
-export default function AppArt({ variant = 'panel', spark, theme }: { variant?: PigmentAppArtVariant; /** Daybreak only: the coral spark beside the sun (see DaybreakArt). */ spark?: boolean; theme?: AppTheme | null }) {
+export default function AppArt({
+    variant = 'panel',
+    spark,
+    theme
+}: {
+    variant?: PigmentAppArtVariant;
+    /** Off where a control sits at the corner of the panel: Daybreak leaves the coral spark out, Pigment the ring. */ spark?: boolean;
+    theme?: AppTheme | null;
+}) {
     const inScope = useAppTheme();
     const resolved = theme ?? inScope;
-    return resolved === 'pigment' ? <PigmentAppArt variant={variant} /> : <DaybreakArt spark={spark} />;
+    return resolved === 'pigment' ? <PigmentAppArt variant={variant} corner={spark !== false} /> : <DaybreakArt spark={spark} />;
 }

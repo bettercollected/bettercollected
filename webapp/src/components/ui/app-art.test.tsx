@@ -78,6 +78,18 @@ describe("Pigment's picture", () => {
         expect(shapes(container).some((e) => e.tagName === 'circle' && e.getAttribute('fill') === 'none')).toBe(true);
     });
 
+    it("leaves the ring out where a control sits at the corner of the panel (spark off, as for Daybreak's coral spark)", () => {
+        const withCorner = render(<AppArt theme="pigment" />).container;
+        expect([...withCorner.querySelectorAll('circle')].some((c) => c.getAttribute('fill') === 'none')).toBe(true);
+        cleanup();
+        const without = render(<AppArt theme="pigment" spark={false} />).container;
+        expect([...without.querySelectorAll('circle')].some((c) => c.getAttribute('fill') === 'none')).toBe(false);
+        // the other shapes stay: the iris disc, the triangle, the half-circle and the squares
+        expect(without.querySelectorAll('.fill-app-action')).toHaveLength(1);
+        expect(without.querySelectorAll('path')).toHaveLength(2);
+        expect(without.querySelectorAll('rect')).toHaveLength(2);
+    });
+
     it('keeps every shape inside the safe zone: the panel survives the phone crop, the band stays off its edges', () => {
         const box = (e: SVGElement) => {
             const n = (a: string) => Number(e.getAttribute(a));
