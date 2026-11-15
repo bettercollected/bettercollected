@@ -6,8 +6,9 @@ recorded in the workspace's audit log (``app_theme_changed``: who, the theme now
 and the one it replaced, written first or the change is refused) and, for
 ``pigment``, needs the server switch ``APP_THEME_PIGMENT_ENABLED``: while it is
 off the change answers 422 ``app_theme_disabled`` (a stored value is kept,
-neither enforced nor shown). Choosing the theme the workspace effectively has is
-no change: nothing is refused, stored or recorded.
+neither enforced nor shown). Choosing the theme the workspace has stored (nothing
+stored counts as ``daybreak``) is no change: nothing is refused, stored or recorded; ``daybreak`` is
+never refused, even with the switch off.
 
 The theme is served to members in the workspace answer for the dashboard
 (``WorkspaceService.get_workspace_by_query``), never to a respondent.
@@ -29,9 +30,8 @@ from backend.app.services.form_access import audit
 class SetAppThemeDto(BaseModel):
     """``{"appTheme": "daybreak" | "pigment"}``, nothing else, nothing but those."""
 
-    model_config = ConfigDict(
-        alias_generator=to_camel, populate_by_name=True, extra="forbid"
-    )
+    # the camelCase name only (what the docs say): `app_theme` in the body is a 422
+    model_config = ConfigDict(alias_generator=to_camel, extra="forbid")
 
     app_theme: AppTheme
 
@@ -57,10 +57,12 @@ class AppThemeService:
         # workspace is served daybreak): refused before the workspace is read
         mode.ensure_choice_allowed(value)
         workspace = await self._workspaces.get_or_404(workspace_id)
-        before = mode.effective_theme(workspace.app_theme)
-        if value == before:
-            # what the workspace has now (not chosen counts as daybreak): nothing
-            # to change, record or refuse
+        # what the workspace has *stored* (not chosen counts as daybreak), not what it
+        # is served: with the switch off a stored pigment is served as daybreak, and an
+        # admin who then chooses daybreak changes what comes back when it is turned on
+        stored = workspace.app_theme or mode.DEFAULT_THEME
+        if value == stored:
+            # nothing to change, record or refuse
             return AppThemeDto(app_theme=value)
         # recorded first, or refused: a change is never made unrecorded
         await audit.record_or_refuse(
@@ -69,7 +71,7 @@ class AppThemeService:
             workspace_id,
             user,
             app_theme=value,
-            previous_app_theme=before,
+            previous_app_theme=stored,
         )
         await self._workspaces.set_fields(workspace, {"app_theme": value})
         return AppThemeDto(app_theme=value)

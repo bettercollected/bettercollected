@@ -7,7 +7,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { AlertTriangle, Pencil, Plus, Trash2 } from 'lucide-react';
 
 import AppearanceCard from '@app/components/app-theme/appearance-card';
-import { FormTheme, ThemeColors } from '@app/constants/theme';
+import { FormTheme, ThemeColors, offeredPresets } from '@app/constants/theme';
 import { useModal } from '@app/components/modal-views/context';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -33,7 +33,7 @@ const NEW_THEME_SEED: Omit<FormTheme, 'title'> = {
 
 export default function ThemesPage() {
     const workspace = useAppSelector(selectWorkspace);
-    const { can } = useWorkspacePermissions();
+    const { can, offeredGatedPresets } = useWorkspacePermissions();
     const canManageWorkspace = can(WorkspacePermission.WORKSPACE_MANAGE);
     const dispatch = useAppDispatch();
     const { toast } = useToast();
@@ -258,7 +258,7 @@ export default function ThemesPage() {
                     <p className="text-black-600 text-sm">{tc('STAFF.THEMES.PRESETS_HINT')}</p>
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {ThemeColors.map((theme) => (
+                    {offeredPresets(offeredGatedPresets).map((theme) => (
                         <div key={theme.title} className="border-app-edge flex flex-col overflow-hidden rounded border bg-white">
                             <ThemePreview color={theme} />
                             <div className="border-t-black-300 border-t px-3 py-2">

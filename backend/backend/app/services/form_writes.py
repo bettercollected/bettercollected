@@ -14,6 +14,7 @@ from typing import Awaitable, Callable, Optional, Sequence
 from common.models.standard_form import StandardForm, StandardFormSettings
 
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.services.form_themes import ensure_artwork_offered
 from backend.app.services.field_rules import ensure_rules_allowed
 from backend.app.services.layout_containers import ensure_valid_layout
 from backend.app.services.new_question_types import ensure_question_types_allowed
@@ -90,6 +91,10 @@ async def persist_form(
     unknown = set(parts) - set(FORM_PARTS)
     if unknown:
         raise ValueError(f"not a form content part: {sorted(unknown)}")
+    if "theme" in parts or "fields" in parts:
+        # A gated artwork (Daybreak) in the form's theme or in a page's or
+        # question's own: only while its switch is on, or as the stored form has it.
+        ensure_artwork_offered(new_form, form_document)
     if "fields" in parts:
         # Field rules (services/field_rules.py) are written only while
         # FIELD_RULES_ENABLED is on, except as the stored form has them:

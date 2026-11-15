@@ -143,3 +143,31 @@ describe('OtpCodeForm resending a code', () => {
         expect(toast).not.toHaveBeenCalled();
     });
 });
+
+describe('OtpCodeForm in the creator sign-in card', () => {
+    it('labels the code field, and asks the browser for a one-time numeric code', () => {
+        render(<OtpCodeForm email="maker@example.org" setEmail={vi.fn()} card />);
+        const input = screen.getByLabelText('Enter the 6-digit code');
+        expect(input).toHaveAttribute('autocomplete', 'one-time-code');
+        expect(input).toHaveAttribute('inputmode', 'numeric');
+        expect(screen.getByText('maker@example.org')).toBeInTheDocument();
+    });
+
+    it('describes the code field by the line that says where the code went', () => {
+        render(<OtpCodeForm email="maker@example.org" setEmail={vi.fn()} card />);
+        const input = screen.getByLabelText('Enter the 6-digit code');
+        expect(input).toHaveAttribute('aria-describedby', 'signin-code-sent');
+        expect(document.getElementById('signin-code-sent')?.textContent).toContain('We emailed a 6-digit code to maker@example.org');
+        // the sentence is read once as the description, not inside the field's name
+        expect(input).toHaveAccessibleDescription(/We emailed a 6-digit code to maker@example\.org/);
+    });
+
+    it('is unchanged for the respondent sign-in and the modal', () => {
+        render(<OtpCodeForm email="maker@example.org" setEmail={vi.fn()} />);
+        const input = screen.getByPlaceholderText('eg: 000000');
+        expect(input).not.toHaveAttribute('id');
+        expect(input).not.toHaveAttribute('autocomplete');
+        expect(input).not.toHaveAttribute('aria-describedby');
+        expect(screen.queryByLabelText('Enter the 6-digit code')).toBeNull();
+    });
+});

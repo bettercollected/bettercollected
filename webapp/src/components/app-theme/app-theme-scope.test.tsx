@@ -67,11 +67,16 @@ describe('the app theme scope', () => {
             store.dispatch(setWorkspace({ id: 'ws-2', appTheme: 'pigment' }));
         });
         expect(attribute(container)).toBe('daybreak');
+        // the store now holds ws-2 on daybreak; a theme change that comes back for ws-1 is not about it
+        act(() => {
+            store.dispatch(setWorkspace({ id: 'ws-2', appTheme: 'daybreak' }));
+        });
         act(() => {
             store.dispatch(setAppTheme({ workspaceId: 'ws-1', appTheme: 'pigment' }));
         });
-        // a change for a workspace that is not the one in the store changes nothing
-        expect(store.getState().workspace.appTheme).toBe('pigment');
+        // ws-2 in the store keeps its theme (the change was for ws-1), and the scope of ws-1 still shows what the server read for it
+        expect(store.getState().workspace.id).toBe('ws-2');
+        expect(store.getState().workspace.appTheme).toBe('daybreak');
         expect(attribute(container)).toBe('daybreak');
     });
 

@@ -552,6 +552,8 @@
     "GALLERY_ONE_OFF": "One-off",
     "GALLERY_CUSTOM": "Custom colours",
     "GALLERY_LOW_CONTRAST": "Hard to read",
+    "PRESET_DAYBREAK_NAME": "Daybreak",
+    "PRESET_DAYBREAK_HINT": "A soft periwinkle page with a small sun in the corner, and a sun that rises over two hills when the form is sent. Your fonts, corners and buttons stay as they are.",
     "GALLERY_HINT": "Every preset meets WCAG AA contrast. Pick one to see it on the form.",
     "CONTRAST_PASSES": "Readable: text reaches 4.5:1 and controls 3:1 (WCAG AA).",
     "CONTRAST_FAILS_one": "One colour pair is hard to read. Fix it before you save or publish this theme.",
@@ -1778,12 +1780,12 @@
     "COPIED_TOAST": "Link copied to clipboard",
     "TITLE": "Your form is live",
     "BODY": "Anyone with this link can open and respond to your form.",
-    "OPEN_NEW_TAB": "Open form in a new tab",
     "COPIED": "Copied",
     "COPY": "Copy link",
-    "NEXT_STEPS": "Next steps",
-    "SETTINGS": "Form settings — custom domain, privacy, integrations",
-    "DASHBOARD": "Back to dashboard"
+    "OPEN_FORM": "Open the form",
+    "NEW_TAB": "opens in a new tab",
+    "MORE_SHARE": "More ways to share",
+    "COPY_FAILED": "Could not copy. Select the link and copy it yourself."
   },
   "NEW_FORM_MODAL": {
     "HEADING": "Create New Form",

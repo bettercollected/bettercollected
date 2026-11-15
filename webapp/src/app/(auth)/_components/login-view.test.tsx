@@ -12,15 +12,20 @@ const replace = vi.fn();
 vi.mock('next/navigation', () => ({ useSearchParams: () => searchParams, useRouter: () => ({ replace }) }));
 vi.mock('@app/layouts/top-navbar-layout', () => ({ default: ({ children }: any) => <div>{children}</div> }));
 vi.mock('@app/components/ui/logo', () => ({ default: () => null }));
-vi.mock('./otp-email-form', () => ({ default: () => <p>email form</p> }));
-vi.mock('./otp-code-form', () => ({ default: () => <p>otp form</p> }));
+vi.mock('./otp-email-form', () => ({
+    default: ({ card, setEmail }: any) => (
+        <button type="button" data-card={String(!!card)} onClick={() => setEmail('ada@example.test')}>
+            email form
+        </button>
+    )
+}));
+vi.mock('./otp-code-form', () => ({ default: ({ card }: any) => <p data-card={String(!!card)}>otp form</p> }));
 
 const challengeMock = vi.fn();
 const verifyMfaMock = vi.fn();
 vi.mock('@app/store/auth/api', async (importOriginal) => {
     const actual: any = await importOriginal();
-    return { ...actual, usePostMfaChallengeMutation: () => [challengeMock, { isLoading: false }],
-        useVerifyMfaMutation: () => [verifyMfaMock, { isLoading: false }] };
+    return { ...actual, usePostMfaChallengeMutation: () => [challengeMock, { isLoading: false }], useVerifyMfaMutation: () => [verifyMfaMock, { isLoading: false }] };
 });
 
 const assign = vi.fn();
@@ -38,6 +43,61 @@ describe('which sign-in wears the app theme', () => {
         const { container } = render(<LoginView />);
         expect(screen.getByRole('heading', { name: 'See your submissions' })).toBeInTheDocument();
         expect(container.querySelector('[data-app-theme]')).toBeNull();
+    });
+});
+
+describe("the creator's sign-in: one card on the canvas", () => {
+    it('has one page heading, the welcome, in a card with the motif once and the form inside', () => {
+        searchParams = new URLSearchParams();
+        const { container } = render(<LoginView />);
+        const headings = screen.getAllByRole('heading');
+        expect(headings).toHaveLength(1);
+        expect(headings[0]).toHaveTextContent('Welcome back');
+        const card = screen.getByRole('region', { name: 'Welcome back' });
+        expect(card).toContainElement(screen.getByText('email form'));
+        expect(screen.getByText('email form')).toHaveAttribute('data-card', 'true');
+        expect(container.querySelectorAll('svg[aria-hidden="true"][viewBox="-360 0 1000 148"]')).toHaveLength(1);
+        expect(card).toHaveClass('bg-surface', 'border-hairline-strong');
+    });
+
+    it('says nothing about the product: no pitch, no bullets, no claims, no hand-picked colour', () => {
+        searchParams = new URLSearchParams();
+        const { container } = render(<LoginView />);
+        const text = container.textContent ?? '';
+        expect(text).not.toMatch(/custom domain|trust footer|on a site you own|privacy-first|Pro\b/i);
+        expect(container.querySelector('ul')).toBeNull();
+        expect(container.innerHTML).not.toMatch(/#[0-9a-fA-F]{6}/);
+    });
+
+    it('names the code step "Check your email", and the sign-up "Sign Up"', () => {
+        searchParams = new URLSearchParams();
+        const { unmount } = render(<LoginView />);
+        fireEvent.click(screen.getByText('email form'));
+        expect(screen.getByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
+        expect(screen.getByText('otp form')).toHaveAttribute('data-card', 'true');
+        unmount();
+        searchParams = new URLSearchParams({ isSignup: 'true' });
+        render(<LoginView />);
+        expect(screen.getByRole('heading', { name: 'Sign Up' })).toBeInTheDocument();
+    });
+
+    it("keeps one h1 at the second factor, with the code form's own h2 under it", () => {
+        searchParams = new URLSearchParams({ mfa: '1' });
+        render(<LoginView />);
+        expect(screen.getByRole('heading', { level: 1, name: 'One more step' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { level: 2, name: 'Enter the code from your authenticator app' })).toBeInTheDocument();
+    });
+});
+
+describe("the respondent's sign-in stays as it was", () => {
+    it('keeps its pitch panel, no card and the plain forms', () => {
+        searchParams = new URLSearchParams({ type: 'responder' });
+        const { container } = render(<LoginView />);
+        expect(screen.getByRole('heading', { name: 'See your submissions' })).toBeInTheDocument();
+        expect(screen.getByText("Verify your email to see every response you've submitted to this workspace — and request deletion of any of them.")).toBeInTheDocument();
+        expect(screen.getByText('email form')).toHaveAttribute('data-card', 'false');
+        expect(screen.queryByRole('region')).toBeNull();
+        expect(container.querySelector('svg[viewBox="-360 0 1000 148"]')).toBeNull();
     });
 });
 

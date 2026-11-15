@@ -7,7 +7,7 @@ import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { describe, expect, it, vi } from 'vitest';
 
-import { ThemeColors, findPreset } from '@app/constants/theme';
+import { GATED_PRESETS, ThemeColors, findPreset } from '@app/constants/theme';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import '@app/shared/hocs/i18n-provider';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
@@ -19,6 +19,9 @@ import PageDesignTab from './page-design-tab';
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/acme/dashboard/forms/f1/edit', useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), useSearchParams: () => new URLSearchParams() }));
 vi.mock('@app/views/molecules/form-builder/form-logo-settings', () => ({ default: () => null }));
+// The server's say on the gated presets (the permissions answer's offeredGatedPresets).
+const served = vi.hoisted(() => ({ offeredGatedPresets: [] as string[] }));
+vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({ useWorkspacePermissions: () => ({ offeredGatedPresets: served.offeredGatedPresets }) }));
 
 const pages: StandardFormFieldDto[] = [
     { id: 'p1', index: 0, type: FieldTypes.SLIDE, properties: { fields: [{ id: 'a', index: 0, type: FieldTypes.MULTIPLE_CHOICE, title: 'Which day suits you?', properties: { choices: [{ id: 'c1', value: 'Monday' }] } } as StandardFormFieldDto] } }
@@ -47,11 +50,33 @@ const renderTab = () =>
     );
 
 describe('the Design tab', () => {
+    it('offers Daybreak while the server\'s switch is on, and picking it dresses the form', () => {
+        served.offeredGatedPresets = ['Daybreak'];
+        try {
+            renderTab();
+            const gallery = screen.getByRole('radiogroup', { name: 'Theme' });
+            expect(within(gallery).getAllByRole('radio')).toHaveLength(ThemeColors.length + 1);
+            // the name and a sentence about it, in the page's language
+            const radio = within(gallery).getByRole('radio', { name: 'Daybreak' });
+            expect(radio).toHaveAccessibleDescription(/periwinkle/);
+            fireEvent.click(radio);
+            expect(form?.theme?.title).toBe('Daybreak');
+            expect(form?.theme?.background?.artwork).toBe('daybreak');
+            expect(form?.theme?.accent).toBe('#F3F6FF');
+        } finally {
+            served.offeredGatedPresets = [];
+        }
+    });
+
     it('shows every preset as a thumbnail of this form, and applies the one picked', () => {
         renderTab();
         const gallery = screen.getByRole('radiogroup', { name: 'Theme' });
-        expect(within(gallery).getAllByRole('radio')).toHaveLength(ThemeColors.length + 1);
-        expect(within(gallery).getAllByText('Which day suits you?').length).toBe(ThemeColors.length + 1);
+        // the presets with a switch (Daybreak) are not offered while it is off
+        const offered = ThemeColors.length - GATED_PRESETS.length;
+        expect(within(gallery).getAllByRole('radio')).toHaveLength(offered + 1);
+        expect(within(gallery).getAllByText('Which day suits you?').length).toBe(offered + 1);
+        expect(within(gallery).queryByRole('radio', { name: 'Dageraad' })).toBeNull();
+        expect(within(gallery).queryByRole('radio', { name: 'Daybreak' })).toBeNull();
         fireEvent.click(within(gallery).getByRole('radio', { name: 'Raster' }));
         expect(form?.theme?.title).toBe('Raster');
         expect(form?.theme?.secondary).toBe(findPreset('Raster')!.secondary);

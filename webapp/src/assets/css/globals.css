@@ -296,7 +296,7 @@ html[data-bc-embed] [data-slide] [data-radix-scroll-area-viewport] > div > div {
     flex-grow: 0;
 }
 
-/* Report charts (components/report): the categorical series (`--series-1..6`, blue, ochre, teal, red-orange, violet, slate)
+/* Report charts (components/report): the categorical series (`--series-1..6`, blue, teal, deep green, violet, ochre, slate)
    come from the app theme scope in tailwind.css, each at least 3:1 on the white card; a later theme only overrides
    them. A mark is never told apart by colour alone: every one carries a text label with its value, and the slices of a
    donut also differ by a pattern. Light only: the app has no dark theme and the cards are always white. */

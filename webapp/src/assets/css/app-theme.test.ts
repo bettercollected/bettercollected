@@ -5,6 +5,18 @@ import { describe, expect, it } from 'vitest';
 
 import { THEME_PICTURES } from '@app/components/app-theme/app-theme-previews';
 import { PIGMENTS } from '@app/lib/form-hue';
+import {
+    DANGER_DELTA_E,
+    DANGER_HUE,
+    DEUTERANOPIA,
+    NEIGHBOUR_LUMINANCE,
+    PROTANOPIA,
+    SECOND_NEIGHBOUR_LUMINANCE,
+    SIMULATED_DELTA_E,
+    deltaE,
+    hueAndSaturation,
+    hueDistance
+} from '@app/test/colour-vision';
 import { contrast } from '@app/utils/color-contrast';
 
 // The two app themes, Daybreak and Pigment (DESIGN.md §1 and "Pigment theme"), held to the stylesheet that implements
@@ -342,62 +354,7 @@ describe('the pigments', () => {
 
 // ------------------------------------------------------------------------------------------ colour-blind reading
 
-// Colour-vision simulation: the Machado et al. (2009) matrices at full severity, applied to linear sRGB, then CIE76 ΔE in Lab.
-const PROTANOPIA = [
-    [0.152286, 1.052583, -0.204868],
-    [0.114503, 0.786281, 0.099216],
-    [-0.003882, -0.048116, 1.051998]
-];
-const DEUTERANOPIA = [
-    [0.367322, 0.860646, -0.227968],
-    [0.280085, 0.672501, 0.047413],
-    [-0.01182, 0.04294, 0.968881]
-];
-const toRgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-const fromLinear = (c: number) => {
-    const v = Math.max(0, Math.min(1, c));
-    return v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055;
-};
-function toLab(linear: number[]): number[] {
-    const [r, g, b] = linear;
-    const f = (t: number) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
-    const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047);
-    const y = f(0.2126 * r + 0.7152 * g + 0.0722 * b);
-    const z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883);
-    return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
-}
-/** CIE76 ΔE between two hex colours, as seen by a viewer with the given colour-vision matrix (none: normal vision). */
-function deltaE(a: string, b: string, matrix?: number[][]): number {
-    const lab = (hex: string) => {
-        const linear = toRgb(hex).map(toLinear);
-        return toLab(matrix ? matrix.map((row) => row.reduce((sum, m, j) => sum + m * linear[j], 0)).map((c) => toLinear(fromLinear(c))) : linear);
-    };
-    const [x, y] = [lab(a), lab(b)];
-    return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]);
-}
-function hueAndSaturation(hex: string): { hue: number; saturation: number } {
-    const [r, g, b] = toRgb(hex);
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    const d = max - min;
-    const l = (max + min) / 2;
-    const saturation = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
-    let hue = 0;
-    if (d !== 0) hue = (max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4) * 60;
-    return { hue: (hue + 360) % 360, saturation };
-}
-const hueDistance = (a: string, b: string) => {
-    const d = Math.abs(hueAndSaturation(a).hue - hueAndSaturation(b).hue) % 360;
-    return Math.min(d, 360 - d);
-};
-
-/** The thresholds the Pigment series are held to (DESIGN.md, "Pigment theme", "The series"). */
-const NEIGHBOUR_LUMINANCE = 1.3; // the relative-luminance ratio of series i and i+1
-const SECOND_NEIGHBOUR_LUMINANCE = 1.5; // ... of series i and i+2
-const SIMULATED_DELTA_E = 40; // CIE76 ΔE of series i and i+1, and i and i+2, for deuteranopia and protanopia
-const DANGER_DELTA_E = 40; // CIE76 ΔE of every series from `bad`, for normal vision
-const DANGER_HUE = 30; // ... and its hue distance from `bad` in degrees, unless it is a neutral (saturation under 0.2)
+// The simulation, the thresholds and their method are shared with Daybreak's test (test/colour-vision.ts).
 
 describe('the Pigment series can be told apart without colour, and none reads as a warning', () => {
     const series = (theme: Theme, count: number) => Array.from({ length: count }, (_, i) => role(theme, `series-${i + 1}`));
@@ -461,21 +418,18 @@ describe('the Pigment series can be told apart without colour, and none reads as
     });
 });
 
-describe('Daybreak\'s six series, held to the same simulation (known gaps, left as they are)', () => {
+describe('Daybreak\'s six series, held to the same simulation', () => {
     const daybreak = Array.from({ length: 6 }, (_, i) => role('daybreak', `series-${i + 1}`));
 
     it('are each at least 3:1 on a white card', () => {
         daybreak.forEach((colour) => expect(contrast(colour, role('daybreak', 'surface'))).toBeGreaterThanOrEqual(3));
     });
 
-    // The two checks below FAIL for Daybreak and are expected to: series 4 is a red-orange 14 ΔE from the danger colour, and
-    // series 2 and 4 are 6 ΔE apart for deuteranopia. `it.fails` turns green again when Daybreak's series are revised,
-    // which is the signal to turn them into plain assertions.
-    it.fails('keep series 2 and 4 apart for deuteranopia (ΔE 6 today)', () => {
+    it('keep series 2 and 4 apart for deuteranopia', () => {
         expect(deltaE(daybreak[1], daybreak[3], DEUTERANOPIA)).toBeGreaterThanOrEqual(SIMULATED_DELTA_E);
     });
 
-    it.fails('keep every series a clear distance from the danger colour (series 4 is a red-orange, ΔE 14 today)', () => {
+    it('keep every series a clear distance from the danger colour', () => {
         const bad = role('daybreak', 'bad');
         daybreak.forEach((colour) => expect(deltaE(colour, bad)).toBeGreaterThanOrEqual(DANGER_DELTA_E));
     });
