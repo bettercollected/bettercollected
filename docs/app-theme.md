@@ -51,3 +51,24 @@ The workspace answer the dashboard already fetches (`GET /workspaces?workspace_n
 for them. The answer to a visitor, a respondent or a signed-in person who is not a member has
 no `appTheme` key, and neither has any other workspace answer (the caller's own list, the
 workspace's patch answer): the theme is not part of the public workspace.
+
+## In the dashboard
+
+* **The attribute.** The admin portal's layout and the creator's sign-in screen wrap their pages in
+  `data-app-theme="daybreak"` (the theme variables of `tailwind.css`); the respondent sign-in does not. Inside a workspace, the
+  workspace layout adds one more element, `AppThemeScope`
+  (`webapp/src/components/app-theme/app-theme-scope.tsx`), whose value is the workspace's
+  `appTheme`: `pigment` when the member answer says so, `daybreak` for anything else. Custom
+  properties are inherited, so a workspace on `pigment` has Daybreak's values wherever no Pigment
+  block exists yet, and the app never renders without colours.
+* **No flash.** The workspace layout reads the workspace on the server, so the first HTML already
+  carries the right value. Nothing is read from a cookie, local storage or a script. After a
+  change in the Appearance card the store's workspace changes and the attribute follows at once,
+  without a reload. A later answer that replaces the workspace without the theme (a rename, a
+  logo) keeps the one the workspace has.
+* **Respondents.** Only the admin portal layout, the creator's sign-in and `AppThemeScope` write the attribute, and only
+  the workspace layout uses the scope; a test fails if any other file does. Form pages on the
+  form domain and a custom domain, and the responder portal, never carry it.
+* **The Appearance card.** On the workspace Themes page, for a member with `workspace.manage`,
+  and only while the permissions answer says `appThemeEnabled: true`. With the switch off the
+  card is not rendered and nothing is requested.

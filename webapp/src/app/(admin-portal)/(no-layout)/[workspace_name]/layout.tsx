@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { WorkspaceDispatcher } from '@app/app/_dispatcher/workspace-dispatcher';
+import AppThemeScope from '@app/components/app-theme/app-theme-scope';
 import { getWorkspaceByName } from '@app/lib/server/api';
 import { requireWorkspaceAccess } from '@app/lib/server/workspace-gate';
 
@@ -19,5 +20,10 @@ export default async function WorkspaceDispatcherByNameLayout({ children, params
         notFound();
     }
 
-    return <WorkspaceDispatcher workspace={workspace}>{children}</WorkspaceDispatcher>;
+    // The workspace's app theme is part of the answer a member gets; the first HTML already carries it.
+    return (
+        <AppThemeScope workspaceId={workspace.id} initial={workspace.appTheme}>
+            <WorkspaceDispatcher workspace={workspace}>{children}</WorkspaceDispatcher>
+        </AppThemeScope>
+    );
 }

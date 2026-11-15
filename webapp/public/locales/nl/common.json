@@ -2081,6 +2081,21 @@
       "PRESETS": "Voorinstellingen",
       "PRESETS_HINT": "Kant-en-klare paletten. Elke voorinstelling haalt WCAG AA-contrast voor vragen, knoppen en invoervelden."
     },
+    "APP_THEME": {
+      "TITLE": "Weergave",
+      "HINT": "Hoe het dashboard eruitziet voor iedereen in deze werkruimte. Uw formulieren, en wat respondenten zien, veranderen niet.",
+      "DAYBREAK_NAME": "Daybreak",
+      "DAYBREAK_DESCRIPTION": "Rustig blauw en wit. De standaard.",
+      "PIGMENT_NAME": "Pigment",
+      "PIGMENT_DESCRIPTION": "Warmer papier, met een kleur voor elk formulier.",
+      "IN_USE": "In gebruik",
+      "SAVE": "Weergave opslaan",
+      "SAVED": "Opgeslagen. Deze werkruimte gebruikt nu {{name}}.",
+      "NO_CHANGE": "{{name}} is al in gebruik.",
+      "FORBIDDEN": "U kunt de weergave niet wijzigen. Vraag het aan een eigenaar of beheerder van deze werkruimte.",
+      "DISABLED": "Pigment is op deze server nog niet beschikbaar. Vraag degene die de server beheert om het aan te zetten.",
+      "FAILED": "De weergave kon niet worden opgeslagen. Controleer uw verbinding en probeer het opnieuw."
+    },
     "WORKSPACE": {
       "DOMAIN_ACTIONS": "Acties voor het domein",
       "DELETE": "Verwijderen",

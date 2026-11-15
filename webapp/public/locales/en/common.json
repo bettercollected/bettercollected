@@ -2081,6 +2081,21 @@
       "PRESETS": "Presets",
       "PRESETS_HINT": "Ready-made palettes. Every preset meets WCAG AA contrast for questions, buttons and inputs."
     },
+    "APP_THEME": {
+      "TITLE": "Appearance",
+      "HINT": "How the dashboard looks for everyone in this workspace. Your forms, and what respondents see, do not change.",
+      "DAYBREAK_NAME": "Daybreak",
+      "DAYBREAK_DESCRIPTION": "Calm blue and white. The default.",
+      "PIGMENT_NAME": "Pigment",
+      "PIGMENT_DESCRIPTION": "Warmer paper, with a colour for each form.",
+      "IN_USE": "In use",
+      "SAVE": "Save appearance",
+      "SAVED": "Saved. This workspace now uses {{name}}.",
+      "NO_CHANGE": "{{name}} is already in use.",
+      "FORBIDDEN": "You can't change the appearance. Ask an owner or admin of this workspace.",
+      "DISABLED": "Pigment is not available on this server yet. Ask whoever runs it to turn it on.",
+      "FAILED": "Could not save the appearance. Check your connection and try again."
+    },
     "WORKSPACE": {
       "DOMAIN_ACTIONS": "Domain actions",
       "DELETE": "Delete",

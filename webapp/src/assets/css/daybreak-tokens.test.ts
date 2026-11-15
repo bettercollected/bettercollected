@@ -258,7 +258,23 @@ describe('where colour goes', () => {
             .filter((path) => /data-app-theme/.test(readFileSync(path, 'utf8')))
             .map((path) => path.slice(SRC.length + 1))
             .sort();
-        expect(carriers).toEqual(['app/(admin-portal)/layout.tsx', 'app/(auth)/_components/login-view.tsx']);
+        // the workspace's own theme (Daybreak or Pigment, from its setting) is placed by one component, used by the
+        // workspace layout of the admin portal and nowhere else
+        expect(carriers).toEqual(['app/(admin-portal)/layout.tsx', 'app/(auth)/_components/login-view.tsx', 'components/app-theme/app-theme-scope.tsx']);
+        const users = files(SRC)
+            .filter((path) => /app-theme-scope/.test(readFileSync(path, 'utf8')))
+            .map((path) => path.slice(SRC.length + 1))
+            .sort();
+        expect(users).toEqual(['app/(admin-portal)/(no-layout)/[workspace_name]/layout.tsx']);
+    });
+
+    it('writes the value as daybreak on the creator layouts, and as the workspace\'s own daybreak or pigment in the one scope component', () => {
+        // a literal value anywhere is `daybreak` (the creator layouts); the workspace's is a variable, one of two
+        const values = new Set(files(SRC).flatMap((path) => [...readFileSync(path, 'utf8').matchAll(/data-app-theme=["']([a-z]+)["']/g)].map((match) => match[1])));
+        expect([...values].sort()).toEqual(['daybreak']);
+        const scopeSource = readFileSync(resolve(SRC, 'components/app-theme/app-theme-scope.tsx'), 'utf8');
+        expect(scopeSource).toMatch(/data-app-theme=\{theme\}/);
+        expect(readFileSync(resolve(SRC, 'lib/app-theme.ts'), 'utf8')).toMatch(/APP_THEMES = \['daybreak', 'pigment'\] as const/);
     });
 
     it('lets the shared sign-in layout take the canvas only inside the scope, so the respondent sign-in keeps paper mist', () => {
