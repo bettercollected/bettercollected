@@ -729,13 +729,52 @@
  * App theme scope (DESIGN.md §1, "Daybreak"). `data-app-theme` is set by the creator app's layouts only: the admin
  * portal (dashboard, builder, settings, the Report page, workspace picker) and the sign-in routes. Respondent routes
  * (form domain and custom domain forms, the responder portal) never carry it. The variables are also defined on
- * `<html>` while the document holds a scoped element, so layers that portal out of the app (menus, dialogs, toasts) and
+ * `<html>` (a second rule, so a browser without `:has` loses only that one) while the document holds a scoped element, so layers that portal out of the app (menus, dialogs, toasts) and
  * the page ground read them too; a page without the attribute has none of them and keeps paper mist (`black-100`).
  * The `brand-*` and `black-*` ramps are not part of any theme: respondent forms, the trust strip and the "Powered by"
  * badge read them directly. A second theme is another block of this shape that overrides these variables.
  * Light only; the app has no dark theme.
  */
-[data-app-theme='daybreak'],
+[data-app-theme='daybreak'] {
+    --app-canvas: #F3F6FF; /* app ground: periwinkle air */
+    --app-surface: #FFFFFF; /* cards, panels, dialogs */
+    --app-sunken: #E8EDFF; /* wells, table heads, chart tracks, quiet pills */
+    --app-hairline: #DCE2F5; /* separators on a surface */
+    --app-hairline-strong: #BDC8E8; /* separators and card edges on the canvas (decorative) */
+    --app-control-edge: #6E7CA8; /* edge of a control: 4.1:1 on white (`control`, older, is 3.4:1) */
+    --app-ink: #0E1737; /* headings, answers */
+    --app-copy: #3C4872; /* running text */
+    --app-ink-muted: #56628C; /* labels, captions */
+    --app-brand-tint: var(--color-brand-100); /* selected row, active nav */
+    --app-link: var(--color-brand-600); /* link, and blue text on a tint */
+    --app-sun: #FFB400; /* fill only; a moment, a highlight */
+    --app-sun-tint: #FFF1C7;
+    --app-sun-ink: #6B4700; /* text on the tint, 7.4:1 */
+    --app-coral: #FF6A48; /* fill only; something is waiting for you */
+    --app-coral-tint: #FFE4DC;
+    --app-coral-ink: #A22F14; /* text on the tint, 5.9:1 */
+    --app-ok: #0A6F45;
+    --app-ok-fill: #12A06A;
+    --app-ok-tint: #DDF5EA;
+    --app-warn: #7A4B00;
+    --app-warn-fill: #F5A300;
+    --app-warn-tint: #FFF1D1;
+    --app-bad: #B42B2B;
+    --app-bad-fill: #D64545;
+    --app-bad-tint: #FDE6E6;
+    --app-info: #1035A8;
+    --app-info-fill: #3B6BFF;
+    --app-info-tint: #E0E8FF;
+    --series-1: #2A55E0;
+    --series-2: #A86400;
+    --series-3: #0E7F86;
+    --series-4: #C93A21;
+    --series-5: #7447CF;
+    --series-6: #5C6788;
+}
+
+/* The same variables on <html>, in a rule of its own: a browser without `:has` drops this rule alone and the
+   scoped element above still works. Kept identical to the rule above (daybreak-tokens.test.ts checks it). */
 html:has([data-app-theme='daybreak']) {
     --app-canvas: #F3F6FF; /* app ground: periwinkle air */
     --app-surface: #FFFFFF; /* cards, panels, dialogs */

@@ -27,9 +27,12 @@ import { formButtonStyle, highlightColours, themeRootProps } from './theme-root'
 
 const css = readFileSync(resolve(__dirname, '../../../assets/css/tailwind.css'), 'utf8');
 
+/** `text` as a literal inside a regular expression: backslashes and every metacharacter escaped. */
+const escapeRegExp = (text: string) => text.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
+
 /** The `@theme` colour tokens, with `var(--color-x)` aliases followed to their hex. */
 function themeColour(name: string): string | undefined {
-    const raw = css.match(new RegExp(`--color-${name.replace(/\./g, '\\.')}:\\s*([^;]+);`))?.[1].trim();
+    const raw = css.match(new RegExp(`--color-${escapeRegExp(name)}:\\s*([^;]+);`))?.[1].trim();
     if (!raw) return undefined;
     const alias = raw.match(/^var\(--color-([\w.-]+)\)/);
     return (alias ? themeColour(alias[1]) : raw.replace(/\s*\/\*.*$/, '')).toUpperCase();
