@@ -9,6 +9,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { CaptchaCounts, useGetCaptchaSettingsQuery, useGetWorkspaceCaptchaCountsQuery, useSetCaptchaDefaultMutation } from '@app/store/workspaces/captcha-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 /** The counts of a form or workspace, in one sentence per purpose (numbers only). */
 export function CaptchaCountsLines({ counts, testId }: { counts?: CaptchaCounts; testId?: string }) {
@@ -32,9 +33,21 @@ export default function SpamCheckSettings() {
     const { t } = useTranslation();
     const { can, ready, captchaEnabled } = useWorkspacePermissions();
 
-    if (!ready) return <div className="text-black-600 px-5 py-6 text-sm lg:px-10">{t('STAFF.SPAM_CHECK.LOADING')}</div>;
-    if (!can(WorkspacePermission.WORKSPACE_MANAGE)) return <p className="text-black-700 px-5 py-6 text-sm lg:px-10">{t('STAFF.SPAM_CHECK.ONLY_ADMINS')}</p>;
-    if (!captchaEnabled) return <p className="text-black-700 px-5 py-6 text-sm lg:px-10">{t('STAFF.SPAM_CHECK.TURNED_OFF')}</p>;
+    if (!ready) return (
+            <PageSurface narrow>
+                <p className="text-black-600 text-sm">{t('STAFF.SPAM_CHECK.LOADING')}</p>
+            </PageSurface>
+        );
+    if (!can(WorkspacePermission.WORKSPACE_MANAGE)) return (
+            <PageSurface narrow>
+                <p className="text-black-700 text-sm">{t('STAFF.SPAM_CHECK.ONLY_ADMINS')}</p>
+            </PageSurface>
+        );
+    if (!captchaEnabled) return (
+            <PageSurface narrow>
+                <p className="text-black-700 text-sm">{t('STAFF.SPAM_CHECK.TURNED_OFF')}</p>
+            </PageSurface>
+        );
     return <Default />;
 }
 
@@ -53,7 +66,7 @@ function Default() {
     };
 
     return (
-        <div className="flex w-full max-w-[720px] flex-col gap-8 px-5 py-6 lg:px-10">
+        <PageSurface narrow className="gap-8">
             <p className="text-black-600 max-w-[62ch] text-sm leading-relaxed">{t('STAFF.SPAM_CHECK.PAGE_INTRO')}</p>
 
             <section aria-labelledby="spam-default" className="flex flex-col gap-3">
@@ -93,6 +106,6 @@ function Default() {
                 )}
                 <p className="text-black-600 text-xs leading-relaxed">{t('STAFF.SPAM_CHECK.COUNTS_NOTE')}</p>
             </section>
-        </div>
+        </PageSurface>
     );
 }

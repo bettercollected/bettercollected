@@ -12,6 +12,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceAllSubmissionsQuery, useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 export default function DeletionRequests() {
     const { t } = useTranslation();
@@ -63,7 +64,7 @@ export default function DeletionRequests() {
     if (!workspaceId) return null;
 
     return (
-        <div className="flex flex-col">
+        <PageSurface className="gap-0">
             {isLoading && (
                 <div className=" w-full py-10 flex justify-center">
                     <Loader />
@@ -74,7 +75,7 @@ export default function DeletionRequests() {
                     {/* No h1 here — the sticky top bar already titles the page.
                         "5/5 deletion remaining" read like a quota; say what the
                         number is — how many requests still need handling. */}
-                    <p className="body1 text-black-900 mb-10 mt-2">
+                    <p className="body1 text-black-900 mb-6">
                         {(workspaceStats?.data?.deletionRequests.pending || 0) === 0
                             ? (workspaceStats?.data?.deletionRequests.total || 0) === 0
                                 ? t('STAFF.DELETIONS.NONE')
@@ -84,9 +85,12 @@ export default function DeletionRequests() {
                     <div className="w-full md:w-[282px] mb-8">
                         <SearchInput placeholder={t('STAFF.DELETIONS.SEARCH')} handleSearch={handleSearch} />
                     </div>
-                    <ResponsesTable requestForDeletion={true} page={page} setPage={setPage} submissions={data} />
+                    {/* the table runs to the edges of the card from md up (its action column is wide) and scrolls inside it if it must */}
+                    <div className="md:-mx-6">
+                        <ResponsesTable requestForDeletion={true} page={page} setPage={setPage} submissions={data} />
+                    </div>
                 </>
             )}
-        </div>
+        </PageSurface>
     );
 }

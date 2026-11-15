@@ -13,11 +13,11 @@ import AIMemorySection from '@app/components/account-settings/ai-memory-section'
 export default function AIMemoryPage() {
     const { t } = useTranslation();
     return (
-        <div className="flex w-full max-w-[760px] flex-col gap-6 pb-10">
+        <div className="flex w-full flex-col gap-6">
             <p className="text-black-600 max-w-[62ch] text-sm leading-relaxed">
                 {t('STAFF.AI_MEMORY.PAGE_INTRO')}
             </p>
-            <AIMemorySection />
+            <AIMemorySection bare />
         </div>
     );
 }

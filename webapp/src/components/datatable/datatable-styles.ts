@@ -1,3 +1,5 @@
+import { DELETION_TABLE_PADDING } from './deletion-request-columns';
+
 // Shared admin-table treatment on the trust ramp: hairline borders (#EAECF0),
 // surface header (#F5F7FB), ink text — the old pure greys (#DBDBDB/#2E2E2E)
 // sat outside the blue-biased neutral system every other surface uses.
@@ -55,6 +57,19 @@ export const dataTableCustomStyles = {
     pagination: {
         style: {
             border: 'none'
+        }
+    }
+};
+
+// The deletion requests table: the same, with the header's left padding the cells' (DELETION_TABLE_PADDING), so a
+// column's text starts under its title.
+export const deletionRequestTableStyles = {
+    ...dataTableCustomStyles,
+    headCells: {
+        style: {
+            ...dataTableCustomStyles.headCells.style,
+            paddingLeft: DELETION_TABLE_PADDING,
+            paddingRight: '8px'
         }
     }
 };

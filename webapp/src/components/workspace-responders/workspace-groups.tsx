@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import DataTable from 'react-data-table-component';
+import ScrollTable from '@app/components/datatable/scroll-table';
 
 import EmptyGroup from '@app/components/dashboard/empty-group';
 import { Plus } from '@app/components/icons/plus';
@@ -150,7 +150,7 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
 
             <div className=" w-full">
                 {data && (
-                    <DataTable
+                    <ScrollTable label={t(groupConstant.groups)}
                         onRowClicked={(group: ResponderGroupDto) => {
                             onGroupClicked(group);
                         }}
