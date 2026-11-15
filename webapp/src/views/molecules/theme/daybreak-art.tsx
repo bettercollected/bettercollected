@@ -60,36 +60,40 @@ function mix(a: string, b: string, weight: number): string {
 }
 
 // The ending's one authored moment. Ease-out-expo; transform and stroke only.
+// The sun starts 90px low, behind the hills and under the band's edge.
 const SUNRISE_CSS = `
 .bc-daybreak-rise{animation:bc-daybreak-rise 1000ms cubic-bezier(.16,1,.3,1) both}
 .bc-daybreak-check{stroke-dasharray:60;animation:bc-daybreak-draw 520ms cubic-bezier(.16,1,.3,1) 520ms both}
-@keyframes bc-daybreak-rise{from{transform:translateY(74px)}to{transform:none}}
+@keyframes bc-daybreak-rise{from{transform:translateY(90px)}to{transform:none}}
 @keyframes bc-daybreak-draw{from{stroke-dashoffset:60}to{stroke-dashoffset:0}}
 @media (prefers-reduced-motion:reduce){.bc-daybreak-rise,.bc-daybreak-check{animation:none}.bc-daybreak-check{stroke-dasharray:none}}
 `;
 
 /**
  * The band along the top of the ending: the sky (the action colour at a tenth
- * over the page), two hills in the action colour, the sun rising behind them
- * and the check inside it in the questions' ink, and one small coral spark.
- * Ink on the sun reads at 9.9:1.
+ * over the page), the sun with its halo and the check inside it in the
+ * questions' ink, and two hills in the action colour in front of it. The sun
+ * is its own square, placed by the band's edges (never cropped: the halo has
+ * 16 to 20px of sky above it in the finished picture, and the band is 150px
+ * tall on a phone, 200px from `sm`), so the picture reads the same at any
+ * width; the hills are stretched along the band. Ink on the sun reads at 9.9:1.
+ * Nothing in it is text, and nothing sits near the band's edges but the hills.
  */
 export function DaybreakSunrise({ theme }: { theme?: Partial<FormTheme> | null }) {
     const action = isHexColour(theme?.secondary) ? theme!.secondary! : '#1649E2';
     const page = isHexColour(theme?.accent) ? theme!.accent! : '#F3F6FF';
     const ink = isHexColour(theme?.primary) ? theme!.primary! : '#0E1737';
     return (
-        <div className="relative h-[130px] w-full shrink-0 overflow-hidden sm:h-[184px]" style={{ background: mix(action, page, 0.1) }} data-testid="daybreak-sunrise" aria-hidden="true">
+        <div className="relative h-[150px] w-full shrink-0 overflow-hidden sm:h-[200px]" style={{ background: mix(action, page, 0.1) }} data-testid="daybreak-sunrise" aria-hidden="true">
             <style>{SUNRISE_CSS}</style>
-            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 1200 184" preserveAspectRatio="xMaxYMax slice" focusable="false">
-                <g className="bc-daybreak-rise">
-                    <circle cx="864" cy="103" r="74" fill={DAYBREAK_SUN} opacity=".34" />
-                    <circle cx="864" cy="103" r="55" fill={DAYBREAK_SUN} />
-                    <path className="bc-daybreak-check" d="M849 105l9 10 22 -24" stroke={ink} strokeWidth="7" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </g>
+            <svg className="bc-daybreak-rise absolute top-4 right-[22%] h-[118px] w-[118px] sm:top-5 sm:right-[16%] sm:h-[148px] sm:w-[148px]" viewBox="0 0 148 148" focusable="false" data-testid="daybreak-sun">
+                <circle cx="74" cy="74" r="74" fill={DAYBREAK_SUN} opacity=".34" />
+                <circle cx="74" cy="74" r="55" fill={DAYBREAK_SUN} />
+                <path className="bc-daybreak-check" d="M59 76l9 10 22 -24" stroke={ink} strokeWidth="7" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 1200 184" preserveAspectRatio="none" focusable="false" data-testid="daybreak-hills">
                 <path d="M0 184 V143 C144 92 312 95 480 136 S744 174 936 128 S1104 114 1224 110 V184 Z" fill={action} opacity=".17" />
                 <path d="M0 184 V165 C240 132 552 154 792 176 S1080 187 1200 154 V184 Z" fill={action} opacity=".30" />
-                <circle cx="156" cy="40" r="6" fill="#FF6A48" />
             </svg>
         </div>
     );

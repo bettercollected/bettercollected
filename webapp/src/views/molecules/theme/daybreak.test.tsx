@@ -127,11 +127,15 @@ describe('the sunrise on the ending', () => {
         const band = container.querySelector('[data-testid="daybreak-sunrise"]')!;
         expect(band).not.toBeNull();
         expect(band.getAttribute('aria-hidden')).toBe('true');
-        const svg = band.querySelector('svg')!;
-        const order = Array.from(svg.children).map((el) => el.tagName + (el.getAttribute('class') ? `.${el.getAttribute('class')}` : ''));
-        // the sun (with its check) is drawn first, so the two hills cover its foot
-        expect(order.slice(0, 3)).toEqual(['g.bc-daybreak-rise', 'path', 'path']);
-        expect(svg.querySelectorAll('path.bc-daybreak-check')).toHaveLength(1);
+        const sun = band.querySelector('[data-testid="daybreak-sun"]')!;
+        const hills = band.querySelector('[data-testid="daybreak-hills"]')!;
+        // the sun (with its check) comes first in the document, so the two hills are drawn over its foot
+        expect(sun.compareDocumentPosition(hills) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(sun.getAttribute('class')).toContain('bc-daybreak-rise');
+        expect(sun.querySelectorAll('path.bc-daybreak-check')).toHaveLength(1);
+        expect(hills.querySelectorAll('path')).toHaveLength(2);
+        // no coral spark or any other mark near the band's edges: the sun, the check and the hills only
+        expect(band.querySelectorAll('circle')).toHaveLength(2);
         expect(band.innerHTML).not.toMatch(/<(image|img|script|foreignObject)|href=/i);
     });
 
@@ -146,9 +150,31 @@ describe('the sunrise on the ending', () => {
         expect(css).toMatch(/@media \(prefers-reduced-motion:reduce\)\{\.bc-daybreak-rise,\.bc-daybreak-check\{animation:none\}\.bc-daybreak-check\{stroke-dasharray:none\}\}/);
     });
 
+    it('keeps the whole sun, halo included, inside the band with air above it', () => {
+        const { container } = wrap(<DaybreakSunrise theme={DAYBREAK} />);
+        const sun = container.querySelector('[data-testid="daybreak-sun"]')!;
+        const cls = sun.getAttribute('class')!;
+        // placed by the band's top and right edges (never cropped by a scaled picture): 16px (phone) and 20px (from sm) of sky above it
+        expect(cls).toMatch(/\btop-4\b/);
+        expect(cls).toMatch(/\bsm:top-5\b/);
+        // the halo (r 74 of a 148 box) and the sun (r 55) fill their square exactly, so nothing is cut by the square either
+        const circles = Array.from(sun.querySelectorAll('circle')).map((c) => [c.getAttribute('cx'), c.getAttribute('cy'), c.getAttribute('r')]);
+        expect(circles).toEqual([
+            ['74', '74', '74'],
+            ['74', '74', '55']
+        ]);
+        expect(sun.getAttribute('viewBox')).toBe('0 0 148 148');
+        // the band is taller than the sun and its air: 150 > 16 + 118 on a phone, 200 > 20 + 148 from sm
+        const band = container.querySelector('[data-testid="daybreak-sunrise"]')!.getAttribute('class')!;
+        expect(band).toContain('h-[150px]');
+        expect(band).toContain('sm:h-[200px]');
+        expect(cls).toContain('h-[118px]');
+        expect(cls).toContain('sm:h-[148px]');
+    });
+
     it('takes the page colours: the hills wear the action colour', () => {
         const { container } = wrap(<DaybreakSunrise theme={{ ...DAYBREAK, secondary: '#15803D' }} />);
-        const hills = Array.from(container.querySelectorAll('svg > path')).map((p) => p.getAttribute('fill'));
+        const hills = Array.from(container.querySelectorAll('[data-testid="daybreak-hills"] path')).map((p) => p.getAttribute('fill'));
         expect(hills).toEqual(['#15803D', '#15803D']);
     });
 
@@ -163,6 +189,17 @@ describe('the sunrise on the ending', () => {
         // the corner sun stays out from under the band (a wedge of it would peek out below)
         expect(ending(FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND).innerHTML).not.toContain('data:image/svg+xml');
         expect(themeBackgroundStyle(DAYBREAK, { corner: false }).backgroundImage).toBeUndefined();
+        // one composition: the message sits right under the picture, not centred in the room left
+        const sceneCls = ending(FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND).querySelector('.\\@container\\/page')!.getAttribute('class')!;
+        expect(sceneCls).toContain('pt-4');
+        expect(sceneCls).not.toContain('before:flex-[2]');
+        // a Daybreak page without the band (a question page) keeps its optical centring
+        const questionPage = wrap(
+            <LayoutWrapper theme={DAYBREAK} disabled showDesktopLayout>
+                <h1>Question</h1>
+            </LayoutWrapper>
+        ).container.querySelector('.\\@container\\/page')!.getAttribute('class')!;
+        expect(questionPage).toContain('before:flex-[2]');
         // a page set beside a picture gets no artwork panel from the scene (only marble fills one)
         expect(ending(FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT).querySelector('[data-testid="theme-artwork"]')).toBeNull();
     });
