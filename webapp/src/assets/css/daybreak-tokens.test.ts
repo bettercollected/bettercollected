@@ -126,17 +126,42 @@ describe('Daybreak tokens', () => {
         expect(mirror).toBe(scope);
     });
 
+    // The custom properties a theme-scoped rule may declare besides `--app-*`, `--series-*` and `--form-hue-*`. Each is allowed
+    // for exactly one selector and value, never by name alone:
+    // - `--tw-ring-color`, on the native checkbox and radio rule (it hands the forms plugin's ring the focus-ring role);
+    // - `--focus-ring`, which a FORM THEME sets on its own root, on the builder canvas controls only (`[data-chrome-focus]`:
+    //   chrome drawn inside a form root, whose ring is the chrome role in Pigment). A bare `[data-app-theme] { --focus-ring }`
+    //   would override what forms own and must still fail.
+    const ALLOWED_OTHERS: Array<{ property: string; selector: string; value: string }> = [
+        { property: '--tw-ring-color', selector: ":where(input[type='checkbox'], input[type='radio'])", value: 'var(--app-focus-ring, #2563eb)' },
+        { property: '--focus-ring', selector: "[data-app-theme='pigment'] [data-chrome-focus]:focus-visible", value: 'var(--app-chrome)' }
+    ];
+    const strangers = (selector: string, body: string) =>
+        [...body.matchAll(/(--[\w-]+)\s*:\s*([^;]*);?/g)]
+            .filter(([, property, value]) => {
+                if (/^--(app|series|form-hue)-/.test(property)) return false;
+                return !ALLOWED_OTHERS.some((rule) => rule.property === property && selector.includes(rule.selector) && value.trim() === rule.value);
+            })
+            .map(([, property]) => property);
+
     it('lets no theme block redeclare the frozen brand and black ramps', () => {
         // Respondent routes, the trust strip and the "Powered by" badge read `--color-brand-*` and `--color-black-*`
         // from `@theme`; an app theme only sets `--app-*` and `--series-*`. (Referring to a ramp, as the
         // `brand-tint` alias does, is fine; declaring one is not.)
-        const blocks = [...css.matchAll(/\[data-app-theme=[^{]*\{([^}]*)\}/g)].map((match) => match[1]);
+        const blocks = [...css.matchAll(/(\[data-app-theme=[^{]*)\{([^}]*)\}/g)].map((match) => ({ selector: match[1].trim(), body: match[2] }));
         expect(blocks.length).toBeGreaterThan(0);
-        for (const block of blocks) {
-            expect(block).not.toMatch(/--color-(brand|black)[\w-]*\s*:/);
-            // (the one exception is the native checkbox rule, which hands the forms plugin's ring variable the focus-ring role)
-            for (const declared of block.matchAll(/(--[\w-]+)\s*:/g)) expect(declared[1]).toMatch(/^(--(app|series|form-hue)-|--tw-ring-color$)/);
+        for (const { selector, body } of blocks) {
+            expect(body).not.toMatch(/--color-(brand|black)[\w-]*\s*:/);
+            expect(strangers(selector, body), selector).toEqual([]);
         }
+    });
+
+    it('allows the two exceptions only for their own selector and value', () => {
+        expect(strangers("[data-app-theme='pigment']", '--focus-ring: var(--app-chrome);')).toEqual(['--focus-ring']);
+        expect(strangers("[data-app-theme='pigment'] [data-chrome-focus]:focus-visible", '--focus-ring: red;')).toEqual(['--focus-ring']);
+        expect(strangers("[data-app-theme='pigment'] [data-chrome-focus]:focus-visible", '--focus-ring: var(--app-chrome);')).toEqual([]);
+        expect(strangers("[data-app-theme='pigment']", '--tw-ring-color: red;')).toEqual(['--tw-ring-color']);
+        expect(strangers("[data-app-theme='pigment']", '--color-brand-500: red; --app-x: 1;')).toEqual(['--color-brand-500']);
     });
 
     it('names the brand roles that already exist, without copying them', () => {
