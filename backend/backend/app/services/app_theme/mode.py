@@ -2,9 +2,10 @@
 until it is released).
 
 Off means all of these: choosing ``pigment`` answers 422 ``app_theme_disabled``
-(choosing what the workspace effectively has, ``daybreak``, is no change and is
-never refused); a stored ``pigment`` is kept, but the workspace is served
-``daybreak`` (``effective_theme``); the permissions answer says
+(``daybreak`` is never refused: it is a change, stored and recorded, when the
+workspace has ``pigment`` stored, and no change when it has nothing or
+``daybreak`` stored); a stored ``pigment`` is kept until then, but the workspace
+is served ``daybreak`` (``effective_theme``); the permissions answer says
 ``appThemeEnabled: false``. Nothing else is gated.
 """
 

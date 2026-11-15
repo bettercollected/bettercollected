@@ -14,10 +14,14 @@ It is read by the backend only.
 While it is **off**:
 
 * choosing `pigment` answers `422` with the code `app_theme_disabled`;
-* choosing the theme the workspace is served (`daybreak`) is no change: it passes and
-  nothing is stored or recorded;
+* `daybreak` is never refused. It is compared with what the workspace has **stored**, not with
+  what it is served: when the workspace has `pigment` stored (the setting was on, then turned
+  off) choosing `daybreak` is a change, stored and recorded, so `pigment` does not come back
+  when the setting is turned on again; when it has nothing or `daybreak` stored it is no change
+  and nothing is stored or recorded;
 * every workspace is served `daybreak`, whatever it has stored. A stored `pigment` is kept,
-  neither enforced nor shown, and is served again when the setting is turned on;
+  neither enforced nor shown, and is served again when the setting is turned on (unless an
+  admin chose `daybreak` in the meantime);
 * the permissions answer (`GET /workspaces/{id}/permissions`) says `appThemeEnabled: false`.
 
 While it is **on**, the owners and admins of a workspace can choose between the two themes.
