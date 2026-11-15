@@ -72,6 +72,7 @@ const SAMPLES: Record<(typeof AUDIT_EVENTS)[number], Partial<AuditEntryDto>> = {
     scim_group_role_changed: { actorId: 'u_sanne', role: 'REVIEWER', previousRole: 'VIEWER' },
     ai_consent_changed: { actorId: 'u_sanne', enabled: true, provider: 'openai' },
     captcha_setting_changed: { actorId: 'u_sanne', enabled: true },
+    app_theme_changed: { actorId: 'u_sanne', appTheme: 'pigment', previousAppTheme: 'daybreak' },
     custom_domain_changed: { actorId: 'u_sanne' },
     custom_domain_removed: { actorId: 'u_sanne' },
     audit_retention_changed: { actorId: 'u_sanne', retentionMonths: 6, previousRetentionMonths: 24 },
@@ -226,6 +227,12 @@ describe('the sentence table', () => {
         expect(say('en', entry('captcha_setting_changed', { actorId: 'u_sanne', enabled: false })).text).toBe('Sanne de Vries turned off spam protection by default for the forms of the workspace.');
         expect(say('nl', entry('captcha_setting_changed', { actorId: 'u_sanne', enabled: true, formId: 'f_join' })).text).toBe('Sanne de Vries zette spambescherming aan voor Join the volunteers.');
         expect(say('en', entry('captcha_setting_changed', { actorId: 'u_sanne', formId: 'f_join' })).text).toBe('Sanne de Vries changed the spam protection of Join the volunteers.');
+        expect(say('en', entry('app_theme_changed', { actorId: 'u_sanne', appTheme: 'pigment', previousAppTheme: 'daybreak' })).text).toBe('Sanne de Vries changed the app theme of the workspace from Daybreak to Pigment.');
+        expect(say('nl', entry('app_theme_changed', { actorId: 'u_sanne', appTheme: 'daybreak', previousAppTheme: 'pigment' })).text).toBe('Sanne de Vries wijzigde het app-thema van de werkruimte van Pigment naar Daybreak.');
+        expect(say('en', entry('app_theme_changed', { actorId: 'u_sanne', appTheme: 'pigment' })).text).toBe('Sanne de Vries set the app theme of the workspace to Pigment.');
+        // a value that is not one of the two names is never shown
+        expect(say('en', entry('app_theme_changed', { actorId: 'u_sanne', appTheme: '<b>x</b>', previousAppTheme: 'daybreak' })).text).toBe('Sanne de Vries changed the app theme of the workspace.');
+        expect(say('nl', entry('app_theme_changed', { actorId: 'u_sanne' })).text).toBe('Sanne de Vries wijzigde het app-thema van de werkruimte.');
         expect(say('en', entry('email_action_updated', { actorId: 'u_sanne', formId: 'f_join', changed: ['team_recipients', 'respondent_copy', 'not_a_part'] })).text).toBe(
             'Sanne de Vries changed an email action of Join the volunteers (changed: team recipients, copy to the respondent).'
         );
