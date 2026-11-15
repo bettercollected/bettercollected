@@ -15,9 +15,9 @@ const ExpiredInvitation: React.FC = () => {
     };
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100">
+        <div className="flex min-h-screen flex-col items-center justify-center bg-canvas">
             <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-            <div className="mx-6 flex w-full flex-col items-center rounded border border-black-300 bg-white p-10 md:max-w-[520px]">
+            <div className="mx-4 flex w-[calc(100%-2rem)] flex-col items-center rounded-lg border border-hairline-strong bg-surface p-6 sm:p-10 md:max-w-[520px]">
                 <div className="text-center text-xl font-semibold text-red-600">{t('Invitation Expired')}</div>
                 <p className="mt-4 text-center text-gray-800">{t('The invitation you are trying to access has expired.')}</p>
                 <button onClick={handleReturn} className="mt-6 rounded-lg bg-blue-500 px-6 py-2 text-white hover:bg-blue-700">
