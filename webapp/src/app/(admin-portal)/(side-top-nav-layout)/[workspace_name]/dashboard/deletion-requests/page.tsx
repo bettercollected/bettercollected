@@ -86,7 +86,7 @@ export default function DeletionRequests() {
                         <SearchInput placeholder={t('STAFF.DELETIONS.SEARCH')} handleSearch={handleSearch} />
                     </div>
                     {/* the table runs to the edges of the card from md up (its action column is wide) and scrolls inside it if it must */}
-                    <div className="min-w-0 overflow-x-auto md:-mx-6">
+                    <div className="md:-mx-6">
                         <ResponsesTable requestForDeletion={true} page={page} setPage={setPage} submissions={data} />
                     </div>
                 </>
