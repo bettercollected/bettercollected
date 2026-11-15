@@ -62,7 +62,7 @@ export default function FormPublishedModal(props: any) {
                 </span>
             </div>
 
-            <div className="flex flex-col gap-4 p-6 pt-10 sm:p-8 sm:pt-11">
+            <div className="flex flex-col gap-4 p-6 pt-10 pb-1 sm:p-8 sm:pt-11 sm:pb-1">
                 <div className="flex flex-col gap-1.5">
                     <h2 id={PUBLISHED_TITLE_ID} className="m-0 text-xl leading-snug font-semibold tracking-title-sm text-ink">{t('PUBLISHED_MODAL.TITLE')}</h2>
                     {/* Honest about what publishing means: the same line the Share modal uses. */}
@@ -87,10 +87,6 @@ export default function FormPublishedModal(props: any) {
                             {copyState === 'copied' ? t('PUBLISHED_MODAL.COPIED') : t('PUBLISHED_MODAL.COPY')}
                         </Button>
                     </div>
-                    {/* Always in the page, so the announcement reaches a screen reader when the text arrives. */}
-                    <p role="status" className="m-0 text-sm leading-5 text-copy empty:sr-only">
-                        {copyState === 'copied' ? t('PUBLISHED_MODAL.COPIED_TOAST') : copyState === 'failed' ? t('PUBLISHED_MODAL.COPY_FAILED') : ''}
-                    </p>
                 </div>
 
                 <div className="flex flex-col gap-3 sm:flex-row">
@@ -103,6 +99,12 @@ export default function FormPublishedModal(props: any) {
                         {t('PUBLISHED_MODAL.MORE_SHARE')}
                     </a>
                 </div>
+
+                {/* The copy status: under the two buttons, its line reserved there, so nothing moves when it has text (the buttons were
+                    under the pointer a moment ago). Always in the page, so the announcement reaches a screen reader when the text arrives. */}
+                <p role="status" data-testid="published-copy-status" className="m-0 -mt-2 min-h-5 text-sm leading-5 text-copy">
+                    {copyState === 'copied' ? t('PUBLISHED_MODAL.COPIED_TOAST') : copyState === 'failed' ? t('PUBLISHED_MODAL.COPY_FAILED') : ''}
+                </p>
             </div>
         </div>
     );
