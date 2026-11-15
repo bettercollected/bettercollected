@@ -2445,16 +2445,15 @@
       "GREETING_EVENING": "Goedenavond",
       "GREETING_NEUTRAL": "Welkom",
       "WITH_NAME": "{{greeting}}, {{name}}",
-      "NO_FORMS_TEXT": "Uw werkruimte heeft nog geen formulieren. Maak het eerste en deel de link.",
-      "NO_FORMS_ACTION": "Maak uw eerste formulier",
       "REQUESTS_TEXT_one": "{{count}} verwijderingsverzoek wacht op u.",
       "REQUESTS_TEXT_other": "{{count}} verwijderingsverzoeken wachten op u.",
       "REQUESTS_ACTION": "Verzoeken bekijken",
       "DRAFT_TEXT": "“{{title}}” is nog een concept. Rond het af en publiceer wanneer u er klaar voor bent.",
       "DRAFTS_TEXT_one": "{{count}} formulier is nog een concept. Ga verder waar u gebleven was.",
-      "DRAFTS_TEXT_other": "{{count}} formulieren zijn nog een concept. Ga verder waar u gebleven was.",
+      "DRAFTS_TEXT_other": "{{count}} formulieren zijn nog concepten. Ga verder waar u gebleven was.",
       "DRAFT_ACTION": "Concept openen",
-      "READY_TEXT": "Alles is op orde. Begin een nieuw formulier wanneer u er een nodig hebt."
+      "READY_TEXT": "Alles is op orde. Begin een nieuw formulier wanneer u er een nodig hebt.",
+      "READY_VIEW_TEXT": "Uw formulieren staan hieronder."
     },
     "EMPTY_STATE": {
       "FORMS_TITLE": "Nog geen formulieren",
@@ -2463,7 +2462,7 @@
       "RESPONSES_TEXT": "Reacties verschijnen hier zodra mensen het formulier invullen. Deel de link voor de eerste.",
       "RESPONSES_ACTION": "Formulier delen",
       "REQUESTS_TITLE": "Geen verwijderingsverzoeken",
-      "REQUESTS_TEXT": "Verzoeken verschijnen hier zodra iemand u vraagt zijn of haar antwoorden te verwijderen. Er wacht niets op u.",
+      "REQUESTS_TEXT": "Verzoeken verschijnen hier zodra iemand vraagt om verwijdering van de eigen antwoorden. Er wacht niets op u.",
       "REQUESTS_ACTION": "Naar formulieren",
       "REPORT_NONE_TITLE": "Nog niets te rapporteren",
       "REPORT_NONE_ACTION": "Formulier bewerken",

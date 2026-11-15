@@ -29,6 +29,8 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectForm } from '@app/store/forms/slice';
 import { useExportReportCardMutation, useGetReportFieldsQuery, useGetReportViewsQuery, useQueryReportQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { getEditFormURL } from '@app/utils/url-utils';
+import { isFormShareable } from '@app/utils/vvalidation-utils';
 import { OVERVIEW_QUESTIONS, ReportCardDef, ReportCardResult, ReportClause, ReportError, ReportView, cardsParam, isTimeDimension, overviewCards, parseCardsParam, reportDefinition, reportErrorOf, reportFilters, viewerZone, cardProblem, needsNoCondition } from '@app/utils/report';
 import { listFiltersFor } from '@app/utils/report-drill';
 import { clauseProblem } from '@app/utils/report-where';
@@ -341,10 +343,13 @@ export default function ReportPage() {
                                 headingLevel={3}
                                 title={t('REPORT.EMPTY_FORM_TITLE')}
                                 description={t('REPORT.EMPTY_FORM')}
+                                // sharing is offered only for a form people can be sent to: published, open and not hidden
                                 action={
-                                    <Button type="button" size="medium" onClick={() => router.push(`/${workspace?.workspaceName}/dashboard/forms/${formId}/links`)}>
-                                        {t('STAFF.EMPTY_STATE.RESPONSES_ACTION')}
-                                    </Button>
+                                    isFormShareable(form) ? (
+                                        <Button type="button" size="medium" onClick={() => router.push(`/${workspace?.workspaceName}/dashboard/forms/${formId}/links`)}>
+                                            {t('STAFF.EMPTY_STATE.RESPONSES_ACTION')}
+                                        </Button>
+                                    ) : undefined
                                 }
                             />
                         )
@@ -386,10 +391,13 @@ export default function ReportPage() {
                             headingLevel={3}
                             title={t('STAFF.EMPTY_STATE.REPORT_NONE_TITLE')}
                             description={t('REPORT.NOT_REPORTABLE_ANY')}
+                            // editing is for members who may edit forms
                             action={
-                                <Button type="button" size="medium" onClick={() => router.push(`/${workspace?.workspaceName}/dashboard/forms/${formId}/edit`)}>
-                                    {t('STAFF.EMPTY_STATE.REPORT_NONE_ACTION')}
-                                </Button>
+                                can(WorkspacePermission.FORM_EDIT) ? (
+                                    <Button type="button" size="medium" onClick={() => router.push(getEditFormURL(workspace, form))}>
+                                        {t('STAFF.EMPTY_STATE.REPORT_NONE_ACTION')}
+                                    </Button>
+                                ) : undefined
                             }
                         />
                     )}

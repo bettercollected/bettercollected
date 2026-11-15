@@ -24,6 +24,7 @@ import ResponseExportControl, { ExportFilters } from './response-export-control'
 import ResponsesTable from './responses-table';
 //@ts-ignore
 import { StandardFormResponseDto } from '@app/models/dtos/form';
+import { isFormShareable } from '@app/utils/vvalidation-utils';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { rememberResponseListPage, rememberResponseListView, rememberedListView } from '@app/utils/response-list-memory';
@@ -272,7 +273,7 @@ export default function FormResponsesTable({ props }: any) {
     } else if (searchText) {
         results = <NoMatchComponent searchText={searchText} requestForDeletion={requestForDeletion} />;
     } else {
-        results = <EmptyTabularResponseComponent requestForDeletion={requestForDeletion} formId={form.formId} workspaceName={workspace?.workspaceName} />;
+        results = <EmptyTabularResponseComponent requestForDeletion={requestForDeletion} formId={form.formId} workspaceName={workspace?.workspaceName} shareable={isFormShareable(form)} />;
     }
 
     // The pager, the count and where focus goes after paging (responses list only).
@@ -425,7 +426,7 @@ const NoMatchComponent = ({ searchText, requestForDeletion }: { searchText: stri
     );
 };
 
-const EmptyTabularResponseComponent = ({ requestForDeletion, formId, workspaceName }: { requestForDeletion?: boolean; formId?: string; workspaceName?: string }) => {
+const EmptyTabularResponseComponent = ({ requestForDeletion, formId, workspaceName, shareable }: { requestForDeletion?: boolean; formId?: string; workspaceName?: string; shareable?: boolean }) => {
     const { t } = useTranslation();
     const dashboard = `/${workspaceName}/dashboard`;
     // Deletion requests are a GDPR feature — the empty state should teach that,
@@ -447,8 +448,10 @@ const EmptyTabularResponseComponent = ({ requestForDeletion, formId, workspaceNa
         <EmptyState
             title={t('RESPONSES_STAFF.EMPTY_TITLE')}
             description={t('RESPONSES_STAFF.EMPTY_BODY')}
+            // sharing is offered only for a form people can be sent to: published, open and not hidden
             action={
-                formId && (
+                formId &&
+                shareable && (
                     <Link href={`${dashboard}/forms/${formId}/links`} className={buttonClassName({ size: 'medium' })}>
                         {t('STAFF.EMPTY_STATE.RESPONSES_ACTION')}
                     </Link>

@@ -137,6 +137,9 @@ export const validateFormOpen = (date?: string) => {
     return !date || moment.utc(date).isAfter(moment.utc());
 };
 
+/** A form people can be sent to: published, open and not hidden (the rule of the form bar's Share button and the forms list). */
+export const isFormShareable = (form?: { isPublished?: boolean; settings?: { hidden?: boolean; formCloseDate?: string } | null } | null) => !!form?.isPublished && !form?.settings?.hidden && validateFormOpen(form?.settings?.formCloseDate);
+
 export const validateFieldConditions = (answers: Record<string, any>, field: StandardFormFieldDto): boolean => {
     let validity = field?.properties?.logicalOperator === LogicalOperator.AND;
     field?.properties?.conditions.forEach((condition: Condition) => {

@@ -19,7 +19,9 @@ import { Page } from '@app/models/dtos/page';
 import { Button, buttonClassName } from '@app/shadcn/components/ui/button';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { selectForm } from '@app/store/forms/slice';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { isFormShareable } from '@app/utils/vvalidation-utils';
 import { useIsPhone } from '@app/lib/hooks/use-breakpoint';
 import { utcToLocalDateTimeIn } from '@app/utils/date-utils';
 import { shortReceiptNumber } from '@app/utils/receipt-number';
@@ -62,6 +64,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
 
     const user = useAppSelector(selectAuth);
     const workspace = useAppSelector(selectWorkspace);
+    const currentForm = useAppSelector(selectForm);
     const { can } = useWorkspacePermissions();
     const canReadResponses = can(WorkspacePermission.RESPONSE_READ);
     // Completing a pending deletion request is also privacy.manage (a
@@ -374,8 +377,11 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
             <EmptyState
                 title={t('STAFF.EMPTY_STATE.RESPONSES_TITLE')}
                 description={t('STAFF.EMPTY_STATE.RESPONSES_TEXT')}
+                // sharing is offered only for a form people can be sent to: published, open and not hidden
                 action={
-                    formId && (
+                    formId &&
+                    currentForm?.formId === formId &&
+                    isFormShareable(currentForm) && (
                         <Button size="medium" onClick={() => router.push(`${formsUrl}/${formId}/links`)}>
                             {t('STAFF.EMPTY_STATE.RESPONSES_ACTION')}
                         </Button>
