@@ -284,6 +284,18 @@ the iris through `accent-color`), tabs, edges, washes and the pills. What stays
 as it is: the neutral text steps (`text-black-*`), anything a form theme paints
 (so a form inside the builder keeps its own colours), and the respondent routes.
 
+**Charts in a Pigment workspace.** On the report's bar and donut cards of a
+choice question, each answer keeps its own colour on every card: the series
+(`series-1` to `series-5`, never a raw pigment) of the answer's position among
+the question's options, so "North" is the same colour in a bar card, a donut card
+and a filtered report. The sixth option and later, "Other", a removed option and
+"no answer" share the neutral (`--app-viz-neutral`, 4.4:1 on white). Yes/no and
+rating questions, lines, tiles and tables keep one colour. Colour is never the
+only way to tell answers apart: every value is printed beside its mark, a donut
+keeps its patterns by position, and the table and the CSV are unchanged. In
+Daybreak a single-question bar stays one blue and a donut takes the series in
+turn.
+
 **The nav chips.** In a Pigment scope each group of the dashboard menu has a small
 pigment chip before its label (tomato, sky, mint). It is a `::before` of the
 label, drawn only inside a Pigment scope: Daybreak gets no element and no pixel.
