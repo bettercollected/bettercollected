@@ -2,10 +2,11 @@ import { CSSProperties, useEffect } from 'react';
 
 import { themeFaces } from '@app/assets/fonts/theme-faces';
 import { FormTheme, THEME_BUTTON_STYLES, THEME_FONTS, THEME_RADII, ThemeFontId, ThemeRadius, isHexColour } from '@app/constants/theme';
+import { APP_ROLES_RESET_ON_FORMS } from '@app/lib/app-theme';
 import { contrast } from '@app/utils/color-contrast';
+import { outlinedButtonInk } from '@app/utils/theme-contrast';
 import { daybreakRule, hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
 import { hasPigmentScene, pigmentRule } from '@app/views/molecules/theme/pigment-art';
-import { outlinedButtonInk } from '@app/utils/theme-contrast';
 
 /**
  * A theme's type, shape and highlight as CSS custom properties and data
@@ -210,6 +211,21 @@ export function themeRootProps(theme?: Partial<FormTheme> | null, { typeOnly = f
         if (highlight.focus) style['--focus-ring'] = highlight.focus;
     }
     return { style: style as CSSProperties, attributes };
+}
+
+/**
+ * What the root of a respondent's form sets: the theme's own properties (`themeRootProps`) and, inside an app theme
+ * scope (`inAppScope`: the builder canvas, the preview page and dialog of a workspace), the app roles it must not
+ * inherit (`APP_ROLES_RESET_ON_FORMS`). Without them a Pigment workspace's preview would draw the app's iris where the
+ * real page draws the frozen blue; with them every `var(--app-x, <frozen>)` falls back, so the form looks the same in
+ * every scope. Outside a scope (the real respondent page) nothing is added: its markup is what it always was.
+ */
+export function formRootProps(theme: Partial<FormTheme> | null | undefined, inAppScope: boolean): ThemeRootProps {
+    const own = themeRootProps(theme);
+    if (!inAppScope) return own;
+    const reset: Record<string, string> = {};
+    for (const role of APP_ROLES_RESET_ON_FORMS) reset[role] = 'initial';
+    return { attributes: own.attributes, style: { ...reset, ...own.style } as CSSProperties };
 }
 
 /**

@@ -149,7 +149,7 @@ export default function AIProposalCard({ proposal, groups, status, selected, err
                         type="button"
                         disabled={busy}
                         onClick={() => onAccept()}
-                        className="rounded-md bg-action px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-action-hover disabled:cursor-wait disabled:bg-black-300"
+                        className="rounded-md bg-app-action px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-app-action-hover disabled:cursor-wait disabled:bg-black-300"
                     >
                         {busy ? t('AI_PROPOSAL.APPLYING') : t('AI_PROPOSAL.ACCEPT_ALL')}
                     </button>
