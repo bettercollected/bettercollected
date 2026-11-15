@@ -103,6 +103,8 @@ ENV_ONLY_KEYS = frozenset(
         "FORM_PROMOTION_ENABLED",
         # held until reports on a form's answers are released
         "REPORTING_ENABLED",
+        # held until the second app theme (Pigment) is released
+        "APP_THEME_PIGMENT_ENABLED",
         "DOTENV_PATH",
         "PROJECT_NAME",
         "DOCS_URL",

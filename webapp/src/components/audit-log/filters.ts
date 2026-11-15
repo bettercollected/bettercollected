@@ -87,6 +87,7 @@ export const SECURITY_KINDS_SHOWN_BY_DEFAULT = [
     'scim_group_role_changed',
     'ai_consent_changed',
     'captcha_setting_changed',
+    'app_theme_changed',
     'custom_domain_changed',
     'custom_domain_removed',
     'audit_retention_changed'
