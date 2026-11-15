@@ -560,16 +560,38 @@ describe('the previews on the Appearance card', () => {
 });
 
 describe('what a Pigment workspace still drew in the frozen blue, and the one place a text pair fell under 4.5', () => {
-    it('gives a checked native checkbox or radio the action role, with the forms plugin blue as the fallback', () => {
+    it('gives a native checkbox or radio the action role in a Pigment scope, as a base-layer default that utilities and form roots do not lose to', () => {
         // the forms plugin fills a checked one with `currentColor` (#2563eb) after `appearance: none`, so `accent-color` never reached it
-        for (const selector of ["[data-app-theme='pigment'] :where(input[type='checkbox'], input[type='radio'])", "html:has([data-app-theme='pigment']) :where(input[type='checkbox'], input[type='radio'])"]) {
-            expect(css, selector).toContain(selector);
-        }
-        const rule = css.match(/html:has\(\[data-app-theme='pigment'\]\) :where\(input\[type='checkbox'\], input\[type='radio'\]\) \{([^}]*)\}/)?.[1] ?? '';
-        expect(rule).toContain('color: var(--app-action, #2563eb);');
-        expect(rule).toContain('--tw-ring-color: var(--app-focus-ring, #2563eb);');
+        const block = css.match(/@layer base \{\s*\[data-app-theme='pigment'\] :where\(input\[type='checkbox'\], input\[type='radio'\]\):not\(\[data-form-root\] \*\),[\s\S]*?\n\}/)?.[0] ?? '';
+        expect(block, 'the rule is inside @layer base').not.toBe('');
+        expect(block).toContain("html:has([data-app-theme='pigment']) :where(input[type='checkbox'], input[type='radio']):not([data-form-root] *) {");
+        expect(block).toContain('color: var(--app-action, #2563eb);');
+        expect(block).toContain('--tw-ring-color: var(--app-focus-ring, #2563eb);');
+        expect(block).toContain(':not([data-form-root] *):focus');
+        // no unlayered rule of the kind: a layered utility could not beat it
+        const unlayered = css.replace(block, '');
+        expect(unlayered).not.toMatch(/:where\(input\[type='checkbox'\], input\[type='radio'\]\)/);
         // Daybreak has no such rule: its controls are drawn by the plugin as they always were
         expect(css).not.toMatch(/\[data-app-theme='daybreak'\][^{]*input\[type='checkbox'\]/);
+    });
+
+    it('keeps the rule off a control inside a form root and lets a control keep its own colour utility', () => {
+        const selector = "[data-app-theme='pigment'] :where(input[type='checkbox'], input[type='radio']):not([data-form-root] *)";
+        document.body.innerHTML = `
+            <div data-app-theme="pigment">
+                <input id="plain" type="checkbox" />
+                <input id="own" type="checkbox" class="text-red-600" />
+                <input id="radio" type="radio" />
+                <div data-form-root=""><input id="inform" type="checkbox" /><label><input id="inform-radio" type="radio" /></label></div>
+            </div>
+            <input id="outside" type="checkbox" />`;
+        const matched = [...document.querySelectorAll(selector)].map((el) => el.id).sort();
+        // in the form root, and outside a Pigment scope, nothing is matched
+        expect(matched).toEqual(['own', 'plain', 'radio']);
+        document.body.innerHTML = '';
+        // the control with its own utility is matched by the base rule, and the utility wins because the layer order puts
+        // `utilities` after `base`
+        expect(css).toMatch(/@layer theme, base, components, utilities;/);
     });
 
     it('keeps the builder chrome inside a form root on a role that the form root does not reset', () => {

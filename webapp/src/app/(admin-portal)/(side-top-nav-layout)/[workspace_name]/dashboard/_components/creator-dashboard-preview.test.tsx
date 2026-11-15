@@ -48,6 +48,20 @@ describe('the "Your site" preview', () => {
         expect(colourAt(document.body.querySelector('[data-app-theme]')!, '--color-app-primary')).toBe('#4B35DB');
     });
 
+    it('keeps the frame cream: `bg-canvas` is not a reset role, so the preview ground follows the theme', () => {
+        show('pigment');
+        expect(previewRoot().className).toContain('bg-canvas');
+        expect(colourAt(previewRoot(), '--color-canvas')).toBe('#FBF7F1');
+    });
+
+    it('holds only the public-page preview: no creator control sits inside the reset root', () => {
+        show('pigment');
+        const root = previewRoot();
+        // the copy-link button and the settings toggle are in the header above it
+        expect(root.querySelector('[aria-pressed]')).toBeNull();
+        expect(root.querySelector('a[href^="http"]')).toBeNull();
+    });
+
     it('adds nothing when there is no scope', () => {
         show(null);
         expect(previewRoot().getAttribute('style') ?? '').not.toContain('--app-');

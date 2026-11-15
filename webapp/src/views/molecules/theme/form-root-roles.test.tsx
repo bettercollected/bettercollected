@@ -171,7 +171,8 @@ describe('formRootProps', () => {
         const props = formRootProps(themed, true);
         for (const role of APP_ROLES_RESET_ON_FORMS) expect((props.style as Record<string, string>)[role], role).toBe('initial');
         expect((props.style as Record<string, string>)['--focus-ring']).toBe('#A3305A');
-        expect(props.attributes).toEqual(themeRootProps(themed).attributes);
+        // the marker a rule uses to stay out of a form (the native checkbox colour in tailwind.css) is there only inside a scope
+        expect(props.attributes).toEqual({ ...themeRootProps(themed).attributes, 'data-form-root': '' });
         expect(formRootProps(themed, false)).toEqual(themeRootProps(themed));
         expect(Object.keys(formRootProps(undefined, true).style).sort()).toEqual([...APP_ROLES_RESET_ON_FORMS].sort());
         for (const role of APP_ROLES_RESET_ON_FORMS) expect(themeRootProps(themed).style).not.toHaveProperty(role);

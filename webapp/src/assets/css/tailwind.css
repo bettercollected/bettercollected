@@ -1121,20 +1121,36 @@ html:has([data-app-theme='pigment']) {
  * A checked native checkbox or radio is not drawn by `accent-color`: the forms plugin turns the browser's own look off
  * (`appearance: none`) and fills a checked one with `currentColor`, which it sets to Tailwind blue-600 (#2563eb), and
  * rings a focused one with the same blue. In a Pigment scope they take the action role instead (the portalled dialogs
- * through the `html:has(...)` mirror). The fallback is the plugin's own blue, so a control inside a form root, where
- * `--app-action` is reset, and any page with no scope draw exactly what they always drew.
+ * through the `html:has(...)` mirror). This rule only REPLACES THE PLUGIN'S DEFAULT, so it is in `@layer base` (the
+ * plugin's own rules are there too, written with `:where`, so these outrank them by specificity wherever the compiler
+ * places them): a control that sets its own colour or ring with a utility (`text-red-600`, an arbitrary colour, a ring
+ * utility) keeps it, because utilities are a later layer than base whatever the specificity. A control inside a form
+ * root (`data-form-root`, set by `formRootProps` inside an app scope: the builder canvas, the previews) is excluded
+ * explicitly and keeps the plugin's blue, the colour a respondent's native control has.
+ *
+ * The three rules below this one are the opposite on purpose: they are unlayered, so they WIN over the utility on the
+ * same element (`border-gray-900`, `text-black-600`, `focus-within:border-app-primary`). Only this checkbox rule is
+ * meant to replace a default.
  */
-[data-app-theme='pigment'] :where(input[type='checkbox'], input[type='radio']),
-html:has([data-app-theme='pigment']) :where(input[type='checkbox'], input[type='radio']) {
-    color: var(--app-action, #2563eb);
-    --tw-ring-color: var(--app-focus-ring, #2563eb);
+@layer base {
+    [data-app-theme='pigment'] :where(input[type='checkbox'], input[type='radio']):not([data-form-root] *),
+    html:has([data-app-theme='pigment']) :where(input[type='checkbox'], input[type='radio']):not([data-form-root] *) {
+        color: var(--app-action, #2563eb);
+        --tw-ring-color: var(--app-focus-ring, #2563eb);
+    }
+
+    [data-app-theme='pigment'] :where(input[type='checkbox'], input[type='radio']):not([data-form-root] *):focus,
+    html:has([data-app-theme='pigment']) :where(input[type='checkbox'], input[type='radio']):not([data-form-root] *):focus {
+        --tw-ring-color: var(--app-focus-ring, #2563eb);
+    }
 }
 
 /*
  * The builder's Insert search field is a bordered box around a borderless input, so its focus shows the box's own
  * border and the global focus outline offset a few pixels out: two outlines. In a Pigment scope (the popover is
  * portalled, so also through the `html:has(...)` mirror) the box keeps its resting edge and the outline alone marks
- * the focus. Daybreak draws what it always drew.
+ * the focus. Daybreak draws what it always drew. Unlayered on purpose: it is meant to win over the box's
+ * `focus-within:border-app-primary` utility.
  */
 [data-app-theme='pigment'] [data-insert-search]:focus-within,
 html:has([data-app-theme='pigment']) [data-insert-search]:focus-within {
@@ -1144,6 +1160,7 @@ html:has([data-app-theme='pigment']) [data-insert-search]:focus-within {
 /*
  * The active sub-tab of a group's pages is near-black in Daybreak (`border-gray-900`); in Pigment its underline is the
  * action colour like every other tab bar of the creator app. The attribute is the hook: Daybreak has no rule on it.
+ * Unlayered on purpose: it is meant to win over the tab's `border-gray-900` utility.
  */
 [data-app-theme='pigment'] [data-tab-active] {
     border-color: var(--app-primary);
@@ -1155,6 +1172,7 @@ html:has([data-app-theme='pigment']) [data-insert-search]:focus-within {
  * 4.02 on the selected tint). A pill, badge or label that carries both classes on one element takes the theme's muted ink
  * there (5.1:1 or more on each of them). Only an element that is on such a fill is touched, only in a Pigment scope
  * (portalled dialogs through the `html:has(...)` mirror); Daybreak, where the pair is 4.5:1 or more, is not.
+ * Unlayered on purpose: it is meant to win over the element's `text-black-600` utility (not while hovered).
  */
 [data-app-theme='pigment'] :is(.bg-app-wash, .bg-app-wash-strong, .bg-sunken, .bg-app-edge, .bg-app-primary-tint).text-black-600:not(:hover),
 html:has([data-app-theme='pigment']) :is(.bg-app-wash, .bg-app-wash-strong, .bg-sunken, .bg-app-edge, .bg-app-primary-tint).text-black-600:not(:hover) {

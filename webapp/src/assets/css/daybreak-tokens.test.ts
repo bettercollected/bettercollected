@@ -134,7 +134,8 @@ describe('Daybreak tokens', () => {
         expect(blocks.length).toBeGreaterThan(0);
         for (const block of blocks) {
             expect(block).not.toMatch(/--color-(brand|black)[\w-]*\s*:/);
-            for (const declared of block.matchAll(/(--[\w-]+)\s*:/g)) expect(declared[1]).toMatch(/^--(app|series|form-hue)-/);
+            // (the one exception is the native checkbox rule, which hands the forms plugin's ring variable the focus-ring role)
+            for (const declared of block.matchAll(/(--[\w-]+)\s*:/g)) expect(declared[1]).toMatch(/^(--(app|series|form-hue)-|--tw-ring-color$)/);
         }
     });
 
