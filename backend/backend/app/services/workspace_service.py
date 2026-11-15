@@ -51,7 +51,7 @@ from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_images import first_party_or_kept
 from backend.app.services.form_themes import (
     ensure_readable_saved_themes,
-    ensure_saved_artwork_offered,
+    ensure_saved_theme_offered,
     ensure_valid_saved_themes,
 )
 from backend.app.services.custom_domain_service import (
@@ -414,7 +414,7 @@ class WorkspaceService:
         # colours that pass the publish check's contrast rules, as the Themes
         # page asks; ones this workspace already stores are kept as they are
         # a gated artwork (Daybreak) only while its switch is on, or as a stored theme of that name has it
-        ensure_saved_artwork_offered(custom_themes, workspace_document.custom_themes)
+        ensure_saved_theme_offered(custom_themes, workspace_document.custom_themes)
         ensure_readable_saved_themes(custom_themes, workspace_document.custom_themes)
         # first-party background images only, as on a form; a saved theme's
         # address that is already stored is kept (services/form_images.py)

@@ -82,7 +82,7 @@ export default function MultipleChoiceWithMultipleSelection({ field, slideIndex 
                         <div role="group" {...group} className={tokens.ruledChoices ? '' : 'space-y-2'}>
                             {offered.map(({ choice, index }, position) => {
                                 const isSelected = selectedValues.includes(choice.id);
-                                return <Choice key={choice.id} kind="checkbox" isSelected={isSelected} theme={theme} choice={choice} onClick={handleClick} index={index} lang={contentLang} keyHint={keys[position]} onKeyDown={onKeyDown} />;
+                                return <Choice key={choice.id} kind="checkbox" isSelected={isSelected} theme={theme} choice={choice} onClick={handleClick} index={index} keyIndex={position} lang={contentLang} keyHint={keys[position]} onKeyDown={onKeyDown} />;
                             })}
                         </div>
                     )}

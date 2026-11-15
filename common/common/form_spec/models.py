@@ -288,6 +288,10 @@ class Theme(_Spec):
     button_style: Optional[Literal["filled", "outlined", "pill"]] = Field(
         None, description="Absent: filled."
     )
+    choice_keys: Optional[Literal["letters"]] = Field(
+        None,
+        description="letters: each option of a choice question carries a small square with its letter (A, B, C...) in ink on a flat pigment; the chosen option fills with the action colour and ends in a check. Absent: the options as before.",
+    )
     highlight: Optional[str] = Field(
         None,
         pattern=r"^#[0-9a-fA-F]{6}$",

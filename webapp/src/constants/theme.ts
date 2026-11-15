@@ -81,6 +81,14 @@ export type ThemeTitleWidth = 'normal' | 'expanded';
 export type ThemeRadius = 'sharp' | 'soft' | 'round';
 export type ThemeButtonStyle = 'filled' | 'outlined' | 'pill';
 
+// Lettered choice keys: each answer option of a choice question carries a small
+// square with its letter (A, B, C...) in ink on a flat pigment, and the chosen
+// option fills with the action colour and ends in a check. Absent: the options as
+// before (a theme that sets a radius already shows plain outlined keys). The
+// backend keeps the same list (common models/standard_form.py THEME_CHOICE_KEYS).
+export type ThemeChoiceKeys = 'letters';
+export const THEME_CHOICE_KEYS: ReadonlyArray<ThemeChoiceKeys> = ['letters'];
+
 export const THEME_FONTS: ReadonlyArray<ThemeFontId> = ['public-sans', 'atkinson-next', 'archivo', 'besley', 'rubik', 'atkinson-mono'];
 // `expanded` sets display titles at 125% width on a face with a width axis (Archivo).
 export const THEME_TITLE_WIDTHS: ReadonlyArray<ThemeTitleWidth> = ['normal', 'expanded'];
@@ -91,13 +99,14 @@ export const THEME_BUTTON_STYLES: ReadonlyArray<ThemeButtonStyle> = ['filled', '
 /** The theme keys that dress type and shape: a colour preset without them keeps the form's own. */
 export const THEME_TYPE_SHAPE_KEYS = ['titleFont', 'bodyFont', 'dataFont', 'titleWidth', 'radius', 'buttonStyle'] as const;
 
-const THEME_CHOICES: Array<[(typeof THEME_TYPE_SHAPE_KEYS)[number], ReadonlyArray<string>]> = [
+const THEME_CHOICES: Array<[string, ReadonlyArray<string>]> = [
     ['titleFont', THEME_FONTS],
     ['bodyFont', THEME_FONTS],
     ['dataFont', THEME_FONTS],
     ['titleWidth', THEME_TITLE_WIDTHS],
     ['radius', THEME_RADII],
-    ['buttonStyle', THEME_BUTTON_STYLES]
+    ['buttonStyle', THEME_BUTTON_STYLES],
+    ['choiceKeys', THEME_CHOICE_KEYS]
 ];
 
 /** A #rrggbb colour. */
@@ -132,7 +141,7 @@ export function themeProblems(theme: unknown, path = 'theme'): string[] {
  */
 export function themeTypeShape(theme?: Partial<FormTheme> | null): Partial<FormTheme> {
     const kept: Record<string, unknown> = {};
-    for (const key of [...THEME_TYPE_SHAPE_KEYS, 'highlight', 'selection', 'inputText'] as const) if (theme?.[key] != null) kept[key] = theme[key];
+    for (const key of [...THEME_TYPE_SHAPE_KEYS, 'choiceKeys', 'highlight', 'selection', 'inputText'] as const) if (theme?.[key] != null) kept[key] = theme[key];
     return kept as Partial<FormTheme>;
 }
 
@@ -153,6 +162,8 @@ export interface FormTheme {
     titleWidth?: ThemeTitleWidth | null;
     radius?: ThemeRadius | null;
     buttonStyle?: ThemeButtonStyle | null;
+    /** `letters`: lettered keys on the answer options (see THEME_CHOICE_KEYS). Absent: the options as before. */
+    choiceKeys?: ThemeChoiceKeys | null;
     /** #rrggbb: the chosen answer, the "why we ask" and "optional" notes, the focus ring where it reads. Absent: secondary. */
     highlight?: string | null;
     /** #rrggbb: the chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary. */
@@ -380,6 +391,36 @@ export function unofferedArtworkProblem(theme: unknown, stored: unknown, path: s
     if (typeof artwork !== 'string' || !GATED_ARTWORKS[artwork] || offeredGated.includes(GATED_ARTWORKS[artwork])) return null;
     if ((stored as { background?: { artwork?: unknown } } | null | undefined)?.background?.artwork === artwork) return null;
     return `${path}.background.artwork must be one of: ${offeredArtworks(offeredGated).join(', ')}.`;
+}
+
+// Theme keys offered only while a switch is on (backend constants/themes.py
+// GATED_THEME_KEYS, a test keeps the two together): the choice keys belong to
+// the Pigment theme and follow its one switch (APP_THEME_PIGMENT_ENABLED, the
+// permissions answer's `appThemeEnabled`). A new theme that sets one while its
+// switch is off is refused as a gated artwork is, unless the stored theme at the
+// same place already has it.
+export const GATED_THEME_KEYS: Readonly<Record<string, string>> = { choiceKeys: 'app_theme.ENABLED' };
+
+/** The gated theme keys a new theme may set, for the permissions answer's `appThemeEnabled`. */
+export function offeredThemeKeys(appThemeEnabled: boolean): string[] {
+    return Object.keys(GATED_THEME_KEYS).filter((key) => GATED_THEME_KEYS[key] !== 'app_theme.ENABLED' || appThemeEnabled);
+}
+
+/**
+ * The refusal a theme earns for setting a gated key the server does not offer,
+ * word for word as the backend's `_check_theme_offered`, or null. Not asked
+ * (null) while the server's list is not known (`offeredKeys` undefined).
+ */
+export function unofferedThemeKeyProblem(theme: unknown, stored: unknown, path: string, offeredKeys: ReadonlyArray<string> | undefined): string | null {
+    if (offeredKeys === undefined) return null;
+    const read = (value: unknown, key: string) => (value as Record<string, unknown> | null | undefined)?.[key];
+    for (const key of Object.keys(GATED_THEME_KEYS)) {
+        const value = read(theme, key);
+        if (value == null || offeredKeys.includes(key)) continue;
+        if (read(stored, key) === value) continue;
+        return `${path}.${key} is not available yet.`;
+    }
+    return null;
 }
 
 /** Is the preset offered: it has no switch, or the server says its switch is on. */

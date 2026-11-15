@@ -1183,6 +1183,11 @@ export interface components {
              */
             buttonStyle?: ("filled" | "outlined" | "pill") | null;
             /**
+             * Choicekeys
+             * @description letters: each option of a choice question carries a small square with its letter (A, B, C...) in ink on a flat pigment; the chosen option fills with the action colour and ends in a check. Absent: the options as before.
+             */
+            choiceKeys?: "letters" | null;
+            /**
              * Highlight
              * @description The chosen answer, the 'why we ask' and 'optional' notes and, where it reads, the focus ring. Absent: secondary.
              */
