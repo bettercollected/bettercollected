@@ -425,6 +425,22 @@
       "imageGround": false
     },
     {
+      "name": "preset Pigment Leaflet",
+      "theme": {
+        "primary": "#1A1238",
+        "secondary": "#4B35DB",
+        "tertiary": "#7C7396",
+        "accent": "#FBF7F1",
+        "background": {
+          "type": "color",
+          "artwork": "pigment"
+        }
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
       "name": "pale on white",
       "theme": {
         "primary": "#9CA3AF",

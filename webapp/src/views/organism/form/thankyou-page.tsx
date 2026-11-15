@@ -24,6 +24,7 @@ import { describeRetention } from '@app/utils/retention';
 import { actionText, actionTextOn } from '@app/utils/theme-contrast';
 import { LeafletIntroBand, LeafletSectionBar, LeafletTopRule } from '@app/views/molecules/form/leaflet-section';
 import { formButtonStyle, themeFontStack } from '@app/views/molecules/theme/theme-root';
+import { hasSunBar } from '@app/views/molecules/theme/pigment-art';
 import { contrast, leafletColours, mixHex, softInk, styleTokens } from '@app/views/molecules/theme/theme-shared';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 import { FORM_COLUMN, columnPlacementClass, greetingAlignClass } from '@app/views/organism/layout/form-column';
@@ -88,7 +89,8 @@ export default function ThankyouPage({ isPreviewMode, accountInStrip = false }: 
         return (
             <>
                 {!accountInStrip && <UserAvatarDropDown disabled />}
-                {!accountInStrip && <LeafletTopRule theme={theme} />}
+                {/* In the Pigment look the shapes band above is the sun yellow and the bar continues it: no hairline row between them. */}
+                {!accountInStrip && !hasSunBar(theme) && <LeafletTopRule theme={theme} />}
                 <LeafletSectionBar theme={theme} title={<span lang={titleLang}>{getThankYouTitle()}</span>} layout={thankyouPage?.layout} headingLevel={1} />
                 <LeafletIntroBand theme={theme} layout={thankyouPage?.layout}>
                     <p className="max-w-[62ch] text-pretty" lang={messageLang}>

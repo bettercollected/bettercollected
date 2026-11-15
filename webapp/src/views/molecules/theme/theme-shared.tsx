@@ -2,8 +2,8 @@ import { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { daybreakCornerStyle, hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
-import { hasPigmentScene, pigmentThumbnailStyle } from '@app/views/molecules/theme/pigment-art';
-import { FormTheme, ThemeArtwork, ThemeBackground, ThemePattern, ThemeStyle, isHexColour } from '@app/constants/theme';
+import { hasPigmentScene, hasSunBar, pigmentBandInk, pigmentThumbnailStyle } from '@app/views/molecules/theme/pigment-art';
+import { FormTheme, PIGMENT_BAND, PIGMENT_BAND_FALLBACK_INK, PIGMENT_BAND_TINT, ThemeArtwork, ThemeBackground, ThemePattern, ThemeStyle, isHexColour } from '@app/constants/theme';
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { cn } from '@app/shadcn/util/lib';
 import { contrast } from '@app/utils/color-contrast';
@@ -126,7 +126,7 @@ export const ThemePreview = ({ color, sample }: { color: FormTheme; /** Words fr
         // The Leaflet miniature: section bar with its serif numeral, a
         // numbered question over a ruled option, and the button.
         const serif = { fontFamily: leafletSerif.style.fontFamily, fontWeight: 600 };
-        const { rule } = leafletColours(color);
+        const { rule, bar, barInk } = leafletColours(color);
         // The theme's faces, corners, buttons and highlight, as the Leaflet
         // form wears them (theme-root.ts); nothing for a theme without them.
         const leafletRoot = themeRootProps(color);
@@ -137,7 +137,7 @@ export const ThemePreview = ({ color, sample }: { color: FormTheme; /** Words fr
                 className="flex flex-col items-stretch pb-3"
                 data-testid="theme-preview-leaflet"
             >
-                <span className="flex items-baseline gap-2 px-4 py-1.5 text-white" style={{ background: secondary }}>
+                <span className="flex items-baseline gap-2 px-4 py-1.5" style={{ background: bar ?? secondary, color: barInk }}>
                     <span className="text-[14px] leading-none" style={serif}>
                         1
                     </span>
@@ -342,8 +342,16 @@ export function leafletColours(theme?: Partial<FormTheme>) {
             break;
         }
     }
+    // The Leaflet style in the Pigment look has one band: the section bar is the sun yellow with the ink that reads on it
+    // (pigmentBandInk), and the intro band under it a pale sun tint with an ink that reads at 7:1. Every other theme: the bar is
+    // the secondary with white text and the intro band the tint above, as it always was.
+    const sun = hasSunBar(theme);
+    const introInk = sun ? (contrast(primary, PIGMENT_BAND_TINT) >= 7 ? primary : PIGMENT_BAND_FALLBACK_INK) : theme?.primary;
     return {
-        band,
+        band: sun ? PIGMENT_BAND_TINT : band,
+        bar: sun ? PIGMENT_BAND : theme?.secondary,
+        barInk: sun ? pigmentBandInk(theme) : '#ffffff',
+        introInk,
         rule: mixHex(tertiary, accent, 0.4),
         required: contrast(LEAFLET_SIGNAL_RED, accent) >= 4.5 ? LEAFLET_SIGNAL_RED : primary
     };

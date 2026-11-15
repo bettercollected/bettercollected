@@ -66,6 +66,33 @@ no image file, no request to anyone, static. It adds no theme key of its own.
   stays in its white card and the trust strip stays neutral. A page set beside a picture keeps
   its picture and has no band.
 
+## Pigment Leaflet: the blend
+
+A third, opt-in preset, **Pigment Leaflet**, puts Leaflet's structure in Pigment's colours:
+the numbered section bar, numbered questions in a margin column, reasons as margin notes
+and ruled answer rows on warm paper in aubergine ink, with the lettered keys and the
+Pigment ending. It is `style: 'leaflet'`, the Pigment colours, `choiceKeys: 'letters'` and
+`background.artwork: 'pigment'`; nothing else is new in the data, so every writer, the AI,
+the MCP server and the contrast checks know it as they know the two it blends.
+
+- **One band.** With the Leaflet style and the Pigment artwork together the Leaflet section
+  bar itself is the sun band (`#FFC62E`) with the ink that reads on it (`pigmentBandInk`, 4.5:1
+  for any creator-edited primary, the same `band` check as the Pigment band), the intro band
+  under it is a pale sun tint (`#FFF0C2`, ink at 7:1 or more), and the separate Pigment band
+  is not drawn. The header row stays the plain Leaflet row. `leafletColours` in the webapp
+  returns the bar, its ink and the intro ink; `hasSunBar` is the one condition. The ending is
+  the shapes band with the bar continuing it (no hairline row between them).
+- **Iris stays for what a person acts on:** the button, links, the question numerals, the
+  margin note's rule, the selected state and focus.
+- **Existing forms never change.** The condition is exactly the Leaflet style AND the Pigment
+  artwork; a Leaflet form, a Pigment-preset form and every other preset draw what they did.
+- **The switch.** It names the Pigment artwork and the keys, so it is gated with the Pigment
+  preset (`GATED_PRESETS`, `APP_THEME_PIGMENT_ENABLED`); there is no switch of its own. Off:
+  it is not offered and is refused as the Pigment preset is; a form that wears it still
+  renders, publishes and saves. The name is one constant per side (`PIGMENT_LEAFLET_PRESET`).
+- Tests: `backend/tests/app/services/test_pigment_leaflet_preset.py`,
+  `webapp/src/views/organism/form/pigment-leaflet.test.tsx`.
+
 ## Colour is never the only signal
 
 The five pigments sit behind ink letters, so **the letter carries the identity of an option,

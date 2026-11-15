@@ -40,13 +40,13 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                 <div className="w-full">
                     {/* As on the live page: with a logo strip the top row goes. */}
                     {!logo && <LeafletTopRule theme={theme} />}
-                    <div className="-mx-5 px-5 py-6 sm:-mx-8 sm:px-8 sm:py-8" style={{ background: theme?.secondary }}>
+                    <div className="-mx-5 px-5 py-6 sm:-mx-8 sm:px-8 sm:py-8" style={{ background: leafletColours(theme).bar, color: leafletColours(theme).barInk }}>
                         <div className={cn(FORM_COLUMN, columnPlacementClass(layout))}>
                             <AutosizeTextarea
                                 style={{ resize: 'none', fontFamily: leafletSerif.style.fontFamily, fontWeight: 600 }}
                                 placeholder={t('PAGE_PROPS.FORM_TITLE_PLACEHOLDER')}
                                 aria-label={t('PAGE_PROPS.FORM_TITLE_LABEL')}
-                                className="w-full border-0 bg-transparent px-0 py-0 text-[30px] leading-[1.15] text-white placeholder:text-white/80 sm:text-[38px]"
+                                className="w-full border-0 bg-transparent px-0 py-0 text-[30px] leading-[1.15] text-inherit placeholder:text-current/80 sm:text-[38px]"
                                 value={formState.title}
                                 onChange={(event) => {
                                     setFormTitle(event.target.value);
@@ -55,7 +55,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         </div>
                     </div>
                     {formState?.welcomePage?.description !== undefined && formState?.welcomePage?.description !== null && (
-                        <div className="-mx-5 px-5 py-4 sm:-mx-8 sm:px-8" style={{ background: leafletColours(theme).band }}>
+                        <div className="-mx-5 px-5 py-4 sm:-mx-8 sm:px-8" style={{ background: leafletColours(theme).band, color: leafletColours(theme).introInk }}>
                             <div className={cn(FORM_COLUMN, columnPlacementClass(layout))}>
                                 <AutosizeTextarea
                                     placeholder={t('PAGE_PROPS.ADD_DESCRIPTION')}

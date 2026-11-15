@@ -56,6 +56,9 @@ WHITE = "#FFFFFF"
 BLACK = "#000000"
 # The sun-yellow band of the Pigment scene (webapp constants/theme.ts PIGMENT_BAND).
 PIGMENT_BAND = "#FFC62E"
+# The pale sun tint of the intro band under the Leaflet section bar when the Leaflet style wears the Pigment artwork
+# (webapp constants/theme.ts PIGMENT_BAND_TINT): the ink reads on it at 7:1 or more.
+PIGMENT_BAND_TINT = "#FFF0C2"
 _HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
 
 # Issue keys, in the order they are reported.

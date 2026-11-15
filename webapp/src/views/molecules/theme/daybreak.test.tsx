@@ -53,7 +53,7 @@ describe('the Daybreak preset', () => {
     });
 
     it('is offered only when the server says so, and a form that wears it keeps it either way', () => {
-        expect(GATED_PRESETS).toEqual(['Daybreak', 'Pigment']);
+        expect(GATED_PRESETS).toEqual(['Daybreak', 'Pigment', 'Pigment Leaflet']);
         expect(isPresetOffered('Daybreak', [])).toBe(false);
         expect(isPresetOffered('Daybreak', undefined)).toBe(false);
         expect(isPresetOffered('Daybreak', ['Daybreak'])).toBe(true);

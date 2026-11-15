@@ -14,6 +14,10 @@ THEME_STYLES = ("classic", "sheet", "studio", "leaflet")
 # picks shows as that preset in the builder. Each service ships on its own
 # (separate images), so the list lives on both sides and
 # tests/app/services/test_theme_presets.py fails when they drift.
+# The name of the blend of the Leaflet style and the Pigment look (the webapp's
+# PIGMENT_LEAFLET_PRESET in constants/theme.ts is the same).
+PIGMENT_LEAFLET_PRESET = "Pigment Leaflet"
+
 theme_dict = {
     "Default": {
         "title": "Default",
@@ -208,6 +212,27 @@ theme_dict = {
             "artwork": "pigment",
         },
     },
+    # The Leaflet's structure in Pigment's colours: the numbered section bar,
+    # numbered questions in a margin column, margin notes and ruled answer rows,
+    # on warm cream paper in aubergine ink, with lettered answer keys and the
+    # Pigment ending. One band: the section bar itself is the sun-yellow band
+    # (the webapp draws it; a form whose style is "leaflet" and whose artwork is
+    # "pigment" is the one case), the intro band under it a pale sun tint. The
+    # same colours as Pigment. Offered while APP_THEME_PIGMENT_ENABLED is on
+    # (GATED_PRESETS below).
+    "Pigment Leaflet": {
+        "title": "Pigment Leaflet",
+        "primary": "#1A1238",
+        "secondary": "#4B35DB",
+        "tertiary": "#7C7396",
+        "accent": "#FBF7F1",
+        "style": "leaflet",
+        "choiceKeys": "letters",
+        "background": {
+            "type": "color",
+            "artwork": "pigment",
+        },
+    },
 }
 
 # Presets that are offered only while their switch (a backend setting) is on.
@@ -221,6 +246,7 @@ theme_dict = {
 GATED_PRESETS = {
     "Daybreak": "DAYBREAK_PRESET_ENABLED",
     "Pigment": "app_theme.ENABLED",
+    "Pigment Leaflet": "app_theme.ENABLED",
 }
 
 # Artwork that fills the picture half of a welcome or ending page (a page set
@@ -350,6 +376,13 @@ theme_descriptions = {
         "answer keys in five flat colours with their letters, and five flat "
         "shapes that pop around the check when the form is sent. Lively and "
         "friendly; suits associations, schools, events and community forms."
+    ),
+    "Pigment Leaflet": (
+        "The plain-language leaflet on warm paper: a numbered section bar in "
+        "sun yellow, numbered questions with their reasons in the margin, ruled "
+        "answer rows with lettered colour keys, and the shapes that pop around "
+        "the check at the end. Calm and clear; suits associations, schools and "
+        "community services that want a friendly but orderly page."
     ),
 }
 

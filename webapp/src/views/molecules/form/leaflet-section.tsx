@@ -28,7 +28,9 @@ const BLEED = '-mx-5 px-5 sm:-mx-8 sm:px-8';
  * The Leaflet style's section bar: a full-width band in the theme's
  * secondary, carrying the serif section numeral (in the margin column) and
  * the section title in white. Without a numeral it is the cover of the
- * welcome and ending pages, with a larger title.
+ * welcome and ending pages, with a larger title. In the Pigment look (the
+ * Pigment Leaflet preset) the bar is the sun-yellow band with the ink that
+ * reads on it (`leafletColours`).
  */
 export function LeafletSectionBar({
     theme,
@@ -57,8 +59,9 @@ export function LeafletSectionBar({
     const hang = leafletNumbersHang(layout);
     const Heading = headingLevel === 1 ? 'h1' : 'h2';
     const serif = { fontFamily: leafletSerif.style.fontFamily, fontWeight: 600 };
+    const { bar, barInk } = leafletColours(theme);
     return (
-        <div className={cn(BLEED, numeral === undefined ? 'py-6 sm:py-8' : 'py-3.5', className)} style={{ background: theme?.secondary, color: '#ffffff' }} data-testid="leaflet-section-bar">
+        <div className={cn(BLEED, numeral === undefined ? 'py-6 sm:py-8' : 'py-3.5', className)} style={{ background: bar, color: barInk }} data-testid="leaflet-section-bar">
             <div className={cn(FORM_COLUMN, columnPlacementClass(layout), 'relative')}>
                 {numeral === undefined ? (
                     <Heading className="max-w-[24ch] text-[30px] leading-[1.15] tracking-[-0.01em] text-balance [overflow-wrap:anywhere] sm:text-[38px]" style={serif}>
@@ -95,10 +98,10 @@ function ShortLabel({ short, full }: { short: ReactNode; full?: string }) {
     );
 }
 
-/** The pale intro band under a section bar (a tint of the secondary, 7:1 for the ink). */
+/** The pale intro band under a section bar (a tint of the secondary, 7:1 for the ink; a pale sun tint in the Pigment look). */
 export function LeafletIntroBand({ theme, layout, children, className }: { theme?: Partial<FormTheme>; layout?: FormSlideLayout | null; children: ReactNode; className?: string }) {
     return (
-        <div className={cn(BLEED, 'py-4 text-base leading-[1.6]', className)} style={{ background: leafletColours(theme).band, color: theme?.primary }} data-testid="leaflet-intro-band">
+        <div className={cn(BLEED, 'py-4 text-base leading-[1.6]', className)} style={{ background: leafletColours(theme).band, color: leafletColours(theme).introInk }} data-testid="leaflet-intro-band">
             <div className={cn(FORM_COLUMN, columnPlacementClass(layout), '[&_p]:leading-[1.6]')}>{children}</div>
         </div>
     );

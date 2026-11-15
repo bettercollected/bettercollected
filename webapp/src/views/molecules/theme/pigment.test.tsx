@@ -224,7 +224,7 @@ describe('the ending', () => {
 
 describe('no other preset moved', () => {
     it('Default and the others do not wear the scene or the keys', () => {
-        for (const preset of ThemeColors.filter((theme) => theme.title !== 'Pigment')) {
+        for (const preset of ThemeColors.filter((theme) => theme.title !== 'Pigment' && theme.title !== 'Pigment Leaflet')) {
             expect(hasPigmentScene(preset)).toBe(false);
             expect(preset.choiceKeys == null).toBe(true);
         }
