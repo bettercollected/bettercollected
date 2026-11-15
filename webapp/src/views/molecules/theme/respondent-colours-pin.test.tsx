@@ -180,4 +180,24 @@ describe('respondent routes', () => {
             expect(read(layout)).toMatch(/<RespondentTypeface>/);
         }
     });
+
+    it('a form with no stored theme paints no colour of its own and sits on paper mist', () => {
+        const { container } = render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <LayoutWrapper disabled showDesktopLayout>
+                        <h1>Title</h1>
+                    </LayoutWrapper>
+                </Provider>
+            </ReduxProvider>
+        );
+        const root = container.firstElementChild as HTMLElement;
+        // nothing inline: the page ground behind it is the document's, which on a respondent route is paper mist
+        expect(root.style.backgroundColor).toBe('');
+        expect(root.getAttribute('style') ?? '').not.toContain('--focus-ring');
+        const ground = (source: string) => source.match(/html,\s*body \{([^}]*)\}/)?.[1] ?? '';
+        // Whatever the app's own ground is, outside an app scope it resolves to `black-100` (#F5F7FB).
+        expect(ground(css)).toMatch(/@apply[^;]*\bbg-black-100\b|var\(--app-canvas, var\(--color-black-100\)\)/);
+        expect(themeColour('black-100')).toBe('#F5F7FB');
+    });
 });
