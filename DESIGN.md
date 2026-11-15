@@ -243,7 +243,7 @@ switched it on. Respondent forms never wear it: they carry no theme attribute, a
 | Accent (`app-accent`, tint, ink) | sun `#FFB400`, `#FFF1C7`, `#6B4700` | sun `#FFC62E`, `#FFF0C2`, `#664600` |
 | Attention (`app-attention`, tint, ink) | coral `#FF6A48`, `#FFE4DC`, `#A22F14` | coral `#FF7A61`, `#FFE2DC`, `#A3301A` |
 | Status (`ok`, `warn`, `bad`, `info`) | as in the table above | `#0B6B4A`, `#7A4B00`, `#B0302A`, `#1B5FA8` (each with fill and tint) |
-| Chart series 1 to 6 | blue, ochre, teal, red-orange, violet, slate | iris, deep green, ochre, orchid, warm dark neutral, teal (no red; see below) |
+| Chart series 1 to 6 | blue, teal, deep green, violet, ochre, slate | iris, deep green, ochre, orchid, warm dark neutral, teal (no red; see below) |
 
 **The series.** Pigment's six chart series are chosen to be told apart without
 colour: neighbours differ in lightness and not only in hue (the relative
