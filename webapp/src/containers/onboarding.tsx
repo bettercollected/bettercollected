@@ -11,6 +11,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import WorkspaceNameInputHandler from '@Components/onboarding/workspace-name-input-handler';
 import AuthNavbar from '@app/components/auth/auth-navbar';
+import DaybreakArt from '@app/components/ui/daybreak-art';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { UserStatus } from '@app/models/dtos/user-status';
@@ -176,55 +177,61 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
     };
 
     return (
-        <div className="flex w-full flex-col items-center bg-white px-4 h-screen md:px-0">
+        <div className="flex w-full flex-col items-center bg-canvas px-4 min-h-screen md:px-0">
             <AuthNavbar showPlans={false} showHamburgerIcon />
-            <div className="mt-32 flex flex-col">
-                <div className="h3-new">{t(onBoarding.addYourOrganization)}</div>
-                <UploadLogo logoImageUrl={workspace?.profileImage ?? ''} className="mt-12" onUpload={handleUploadLogo} onRemove={handleRemoveLogo} />
-                <form className="mt-12 w-full space-y-8 md:w-[541px] " onSubmit={onSubmitForm}>
-                    {/* Workspace name input section */}
-                    <div className="flex flex-col gap-1.5 w-full relative">
-                        <Label htmlFor="title" className="text-sm font-medium ml-1 mb-1 text-gray-700">
-                            {t('STAFF.ONBOARDING.NAME')}
-                        </Label>
-                        <AppInput
-                            onBlur={onWorkspaceTitleBlur}
-                            required
-                            id="title"
-                            placeholder={t('STAFF.ONBOARDING.NAME_PLACEHOLDER')}
-                            value={formData.title}
-                            onChange={handleOnchange}
-                            className={!!errors?.title ? 'border-red-500 focus-visible:ring-red-500 w-full' : 'w-full'}
-                        />
-                        {/* Error message for workspace name */}
-                        {!!errors?.title && (
-                            <span className="flex items-center gap-1 text-xs text-red-600 absolute -bottom-6 left-1">
-                                <InfoIcon className="h-3 w-3" /> {errors.title}
-                            </span>
-                        )}
-                    </div>
+            {/* The form sits in the empty states' card on the canvas: the motif once, then the work */}
+            <section aria-labelledby="onboarding-title" className="mt-32 mb-16 flex w-full shrink-0 flex-col overflow-hidden rounded border border-hairline-strong bg-surface md:w-[605px]">
+                <div className="h-[96px] bg-brand-tint sm:h-[120px]">
+                    <DaybreakArt />
+                </div>
+                <div className="flex flex-col p-6 sm:p-8">
+                    <h1 id="onboarding-title" className="h3-new">{t(onBoarding.addYourOrganization)}</h1>
+                    <UploadLogo logoImageUrl={workspace?.profileImage ?? ''} className="mt-8" onUpload={handleUploadLogo} onRemove={handleRemoveLogo} />
+                    <form className="mt-8 w-full space-y-8" onSubmit={onSubmitForm}>
+                        {/* Workspace name input section */}
+                        <div className="flex flex-col gap-1.5 w-full relative">
+                            <Label htmlFor="title" className="text-sm font-medium ml-1 mb-1 text-gray-700">
+                                {t('STAFF.ONBOARDING.NAME')}
+                            </Label>
+                            <AppInput
+                                onBlur={onWorkspaceTitleBlur}
+                                required
+                                id="title"
+                                placeholder={t('STAFF.ONBOARDING.NAME_PLACEHOLDER')}
+                                value={formData.title}
+                                onChange={handleOnchange}
+                                className={!!errors?.title ? 'border-red-500 focus-visible:ring-red-500 w-full' : 'w-full'}
+                            />
+                            {/* Error message for workspace name */}
+                            {!!errors?.title && (
+                                <span className="flex items-center gap-1 text-xs text-red-600 absolute -bottom-6 left-1">
+                                    <InfoIcon className="h-3 w-3" /> {errors.title}
+                                </span>
+                            )}
+                        </div>
 
-                    {/* Workspace/Handle Name Input Section */}
-                    <WorkspaceNameInputHandler formData={formData} setFormData={setFormData} handleOnChange={handleOnchange} createWorkspace={createWorkspace} />
+                        {/* Workspace/Handle Name Input Section */}
+                        <WorkspaceNameInputHandler formData={formData} setFormData={setFormData} handleOnChange={handleOnchange} createWorkspace={createWorkspace} />
 
-                    {/* Description Textarea Section */}
-                    <div className="flex flex-col gap-1.5 w-full">
-                        <Label htmlFor="description" className="text-sm font-medium ml-1 mb-1 text-gray-700">
-                            {t('STAFF.ONBOARDING.DESCRIPTION')}
-                        </Label>
-                        <Textarea
-                            id="description"
-                            placeholder={t('STAFF.ONBOARDING.DESCRIPTION_PLACEHOLDER')}
-                            value={formData.description}
-                            onChange={handleOnchange}
-                        />
-                    </div>
+                        {/* Description Textarea Section */}
+                        <div className="flex flex-col gap-1.5 w-full">
+                            <Label htmlFor="description" className="text-sm font-medium ml-1 mb-1 text-gray-700">
+                                {t('STAFF.ONBOARDING.DESCRIPTION')}
+                            </Label>
+                            <Textarea
+                                id="description"
+                                placeholder={t('STAFF.ONBOARDING.DESCRIPTION_PLACEHOLDER')}
+                                value={formData.description}
+                                onChange={handleOnchange}
+                            />
+                        </div>
 
-                    <Button size="medium" className="w-full " type="submit" disabled={!formData.title || !formData.workspaceName}>
-                        {t(onBoarding.addNowButton)}
-                    </Button>
-                </form>
-            </div>
+                        <Button size="medium" className="w-full " type="submit" disabled={!formData.title || !formData.workspaceName}>
+                            {t(onBoarding.addNowButton)}
+                        </Button>
+                    </form>
+                </div>
+            </section>
         </div>
     );
 };

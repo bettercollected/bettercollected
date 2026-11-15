@@ -1780,12 +1780,12 @@
     "COPIED_TOAST": "Link copied to clipboard",
     "TITLE": "Your form is live",
     "BODY": "Anyone with this link can open and respond to your form.",
-    "OPEN_NEW_TAB": "Open form in a new tab",
     "COPIED": "Copied",
     "COPY": "Copy link",
-    "NEXT_STEPS": "Next steps",
-    "SETTINGS": "Form settings — custom domain, privacy, integrations",
-    "DASHBOARD": "Back to dashboard"
+    "OPEN_FORM": "Open the form",
+    "NEW_TAB": "opens in a new tab",
+    "MORE_SHARE": "More ways to share",
+    "COPY_FAILED": "Could not copy. Select the link and copy it yourself."
   },
   "NEW_FORM_MODAL": {
     "HEADING": "Create New Form",
