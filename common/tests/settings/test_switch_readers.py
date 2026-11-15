@@ -39,6 +39,7 @@ SWITCHES = {
     "AUDIT_LOG_UI_ENABLED": (("backend.app.services.audit_log.mode",), "AUDIT_LOG_UI_ENABLED"),
     "FORM_PROMOTION_ENABLED": (("backend.app.services.form_promotion.mode",), "form_promotion"),
     "REPORTING_ENABLED": (("backend.app.services.reporting.mode",), "reporting"),
+    "APP_THEME_PIGMENT_ENABLED": (("backend.app.services.app_theme.mode",), "app_theme"),
 }
 
 _WORKSPACE_ROUTER = "backend/app/controllers/workspace_router.py"
@@ -91,6 +92,14 @@ READERS = {
     "REPORTING_ENABLED": {
         _WORKSPACE_ROUTER: "http",
         "backend/app/controllers/report_router.py": "http",
+    },
+    "APP_THEME_PIGMENT_ENABLED": {
+        # the permissions answer's ``appThemeEnabled``
+        _WORKSPACE_ROUTER: "http",
+        # the setter refuses a choice of pigment while it is off
+        "backend/app/services/app_theme/service.py": "http",
+        # the dashboard's workspace answer carries the effective theme
+        "backend/app/services/workspace_service.py": "http",
     },
 }
 

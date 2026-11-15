@@ -68,6 +68,10 @@ class AuditEntryDto(CamelModel):
     # AUDIT_RETENTION_CHANGED: the retention now and the one it replaced, in months
     retention_months: Optional[int] = None
     previous_retention_months: Optional[int] = None
+    # APP_THEME_CHANGED: the theme now and the one it replaced (``daybreak`` /
+    # ``pigment``)
+    app_theme: Optional[str] = None
+    previous_app_theme: Optional[str] = None
     # integration entries: which parts of the configuration changed (names
     # from a fixed list, never their content)
     changed: Optional[List[str]] = None
