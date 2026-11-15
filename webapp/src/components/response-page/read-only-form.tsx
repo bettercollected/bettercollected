@@ -24,7 +24,8 @@ import { leafletSection, questionNumbers } from '@app/utils/leaflet-sections';
 import { hasSeveralPages, plainQuestionNumbers } from '@app/utils/question-numbering';
 import { fieldHasAnswer, formFormatLanguage, responsePageSections, themeWithDefaults } from '@app/utils/response-page';
 import FormLogoStrip from '@app/views/molecules/form/form-logo-strip';
-import { themeRootProps } from '@app/views/molecules/theme/theme-root';
+import { useInAppThemeScope } from '@app/lib/app-theme-context';
+import { formRootProps } from '@app/views/molecules/theme/theme-root';
 import { leafletColours, softInk, styleTokens, themeBackgroundStyle } from '@app/views/molecules/theme/theme-shared';
 import { FORM_COLUMN, FORM_GUTTER, clampSpan, fieldSpacingClass } from '@app/views/organism/layout/form-column';
 
@@ -159,7 +160,7 @@ export default function ReadOnlyForm({ form, response }: { form: StandardFormDto
     const tokens = styleTokens(theme.style);
     const answers = response.answers ?? {};
     const unreadable = (response.unreadableFields ?? []).includes('answers');
-    const root = themeRootProps(theme);
+    const root = formRootProps(theme, useInAppThemeScope());
     const logo = resolveFormLogo(form, workspace);
     const slides = form.fields ?? [];
     const hiddenFields = response.hiddenFields ?? {};
