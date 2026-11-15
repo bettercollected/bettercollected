@@ -74,6 +74,18 @@ describe('Daybreak tokens', () => {
         expect(css).not.toMatch(/--color-(canvas|surface|sunken|ink|copy|sun|coral|ok|warn|bad|info|series-1):\s*#/);
     });
 
+    it('lets no theme block redeclare the frozen brand and black ramps', () => {
+        // Respondent routes, the trust strip and the "Powered by" badge read `--color-brand-*` and `--color-black-*`
+        // from `@theme`; an app theme only sets `--app-*` and `--series-*`. (Referring to a ramp, as the
+        // `brand-tint` alias does, is fine; declaring one is not.)
+        const blocks = [...css.matchAll(/\[data-app-theme=[^{]*\{([^}]*)\}/g)].map((match) => match[1]);
+        expect(blocks.length).toBeGreaterThan(0);
+        for (const block of blocks) {
+            expect(block).not.toMatch(/--color-(brand|black)[\w-]*\s*:/);
+            for (const declared of block.matchAll(/(--[\w-]+)\s*:/g)) expect(declared[1]).toMatch(/^--(app|series)-/);
+        }
+    });
+
     it('names the brand roles that already exist, without copying them', () => {
         expect(scope).toMatch(/--app-brand-tint:\s*var\(--color-brand-100\)/);
         expect(scope).toMatch(/--app-link:\s*var\(--color-brand-600\)/);
