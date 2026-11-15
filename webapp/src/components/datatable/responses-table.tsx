@@ -86,7 +86,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     };
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="max-w-full min-w-0 w-fit">
-            <div title={response?.dataOwnerIdentifier ?? undefined} className={cn('text-black-900! body3', requestForDeletion ? '[overflow-wrap:anywhere]' : 'truncate', !requestForDeletion && 'hover:text-brand-500! cursor-pointer hover:underline')}>
+            <div title={response?.dataOwnerIdentifier ?? undefined} className={cn('text-black-900! body3', requestForDeletion ? '[overflow-wrap:anywhere]' : 'truncate', !requestForDeletion && 'hover:text-app-primary! cursor-pointer hover:underline')}>
                 {!requestForDeletion && <span onClick={() => onRowClicked(response)}>{response?.dataOwnerIdentifier ?? t('RESPONSES_STAFF.ANONYMOUS')}</span>}
                 {requestForDeletion && (response?.dataOwnerIdentifier ?? t('RESPONSES_STAFF.ANONYMOUS'))}
             </div>
@@ -204,7 +204,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'} href={getResponseUrl(response)}>
                     <Button variant="ghost" className="p-0!">
                         {t(localesCommon.goToResponse)}
-                        <ChevronForward className={'text-brand-500 h-6 w-6 ml-2'} />
+                        <ChevronForward className={'text-app-primary h-6 w-6 ml-2'} />
                     </Button>
                 </AnchorLink>
             </div>
@@ -303,12 +303,12 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     const Cards = () => (
         <ul aria-label={t(requestForDeletion ? 'RESPONSES_STAFF.REQUEST_LIST' : 'RESPONSES_STAFF.RESPONSE_LIST')} className="flex flex-col gap-2">
             {submissions.items.map((response) => (
-                <li key={response.responseId} className="border-black-300 relative flex flex-col gap-2 rounded border bg-white p-3">
+                <li key={response.responseId} className="border-app-edge relative flex flex-col gap-2 rounded border bg-white p-3">
                     <div className="flex min-w-0 flex-col gap-0.5">
                         {requestForDeletion ? (
                             <span className="text-black-900 truncate text-sm font-medium">{response?.dataOwnerIdentifier ?? t('RESPONSES_STAFF.ANONYMOUS')}</span>
                         ) : (
-                            <Link href={responsePageUrl(workspace?.workspaceName ?? '', response.formId ?? formId ?? '', response.responseId)} className="text-black-900 focus-visible:ring-brand-500 w-fit max-w-full truncate rounded text-sm font-medium after:absolute after:inset-0 after:content-[''] focus:outline-hidden focus-visible:ring-2">
+                            <Link href={responsePageUrl(workspace?.workspaceName ?? '', response.formId ?? formId ?? '', response.responseId)} className="text-black-900 focus-visible:ring-app-primary w-fit max-w-full truncate rounded text-sm font-medium after:absolute after:inset-0 after:content-[''] focus:outline-hidden focus-visible:ring-2">
                                 {response?.dataOwnerIdentifier ?? t('RESPONSES_STAFF.ANONYMOUS')}
                             </Link>
                         )}
