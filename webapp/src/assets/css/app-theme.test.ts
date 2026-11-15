@@ -28,14 +28,29 @@ const SRC = resolve(__dirname, '../..');
 type Theme = 'daybreak' | 'pigment';
 const THEMES: Theme[] = ['daybreak', 'pigment'];
 
+/** `text` without its block comments (plain string search: linear, whatever the text holds). */
+function stripComments(text: string): string {
+    let out = '';
+    let from = 0;
+    for (;;) {
+        const open = text.indexOf('/*', from);
+        if (open < 0) return out + text.slice(from);
+        out += text.slice(from, open);
+        const close = text.indexOf('*/', open + 2);
+        if (close < 0) return out;
+        from = close + 2;
+    }
+}
+
 /** The rule of a theme (its attribute scope, or its `<html>` mirror): variable to raw value. */
 function rule(theme: Theme, kind: 'scope' | 'mirror'): Record<string, string> {
     const selector = kind === 'scope' ? `\\[data-app-theme='${theme}'\\]` : `html:has\\(\\[data-app-theme='${theme}'\\]\\)`;
     const body = css.match(new RegExp(`^${selector} \\{([^}]*)\\}`, 'm'))?.[1] ?? '';
     const out: Record<string, string> = {};
-    for (const line of body.replace(/\/\*[\s\S]*?\*\//g, '').split(';')) {
-        const match = line.match(/^\s*(--[\w-]+)\s*:\s*([\s\S]+?)\s*$/);
-        if (match) out[match[1]] = match[2];
+    for (const declaration of stripComments(body).split(';')) {
+        const colon = declaration.indexOf(':');
+        const name = declaration.slice(0, Math.max(colon, 0)).trim();
+        if (colon > 0 && /^--[\w-]+$/.test(name)) out[name] = declaration.slice(colon + 1).trim();
     }
     return out;
 }
@@ -165,6 +180,25 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
     });
 });
 
+/**
+ * The ramp reference on a line, in any form a class can be written in, or null. The blue steps and the edges, washes and
+ * rings of the neutrals are found; the neutral text steps, dark fills and placeholders stay on the ramp on purpose.
+ * Linear in the length of the line: it is cut into class tokens, and each token is tested after its variants
+ * (`hover:`, `focus:`, `md:`, `[&:hover]:`, `aria-disabled:`) are cut off at the last colon, with short anchored patterns.
+ */
+const RAMP_CLASS = /^(?:(?:text|bg|border|ring|outline|placeholder)-brand-\d{2,3}|(?:border|divide)(?:-[tblrxyse])?-black-[1-4]00|ring-black-[1-4]00|bg-black-[1-4]00)(?:\/\d+)?$/;
+const RAMP_VARIABLE = /var\(--color-brand-\d{3}\)/;
+const TOKEN_BREAKS = /[\s"'`{}(),;<>=]+/;
+function rampOn(line: string): string | null {
+    const variable = RAMP_VARIABLE.exec(line);
+    if (variable) return variable[0];
+    for (const token of line.split(TOKEN_BREAKS)) {
+        const bare = token.slice(token.lastIndexOf(':') + 1).replace(/^!|!$/g, '');
+        if (RAMP_CLASS.test(bare)) return token;
+    }
+    return null;
+}
+
 describe('the shared controls read the chrome roles, and the frozen files do not', () => {
     const read = (path: string) => readFileSync(resolve(SRC, path), 'utf8');
 
@@ -185,11 +219,39 @@ describe('the shared controls read the chrome roles, and the frozen files do not
         for (const file of files) expect(readFileSync(file, 'utf8'), file.slice(SRC.length + 1)).not.toMatch(ROLE_UTILITY);
     });
 
+    it('finds a ramp class in every form it can be written in, and only those', () => {
+        for (const line of [
+            '<div className="border-brand-500 p-2">',
+            '<a className="hover:text-brand-600">',
+            'className="focus:border-brand-500"',
+            'className="md:bg-brand-100 flex"',
+            'className="[&:hover]:bg-brand-500"',
+            'className="[&>*]:border-black-300"',
+            'className="[&_svg:not(.x)]:text-brand-500"',
+            'className="aria-disabled:hover:ring-black-400"',
+            'className="group-hover:border-b-black-300"',
+            'className="placeholder-brand-500/20"',
+            'className="!border-brand-500"',
+            'className="[--key-edge:var(--color-brand-700)]"',
+            'background: var(--color-brand-500);'
+        ]) {
+            expect(rampOn(line), line).not.toBeNull();
+        }
+        for (const line of ['className="text-black-600 bg-black-900"', 'className="hover:text-app-primary border-app-edge"', 'className="border-brand-500x"', 'className="bg-brand-tint"', 'const x = "&:&:&:&:&:&:&:&:&:&:&:&:&:&:&:&:&:&:&:&:&:&:&:&:!"', ' ']) {
+            expect(rampOn(line), line).toBeNull();
+        }
+    });
+
+    it('stays fast on a long line made of the characters a class variant is built from', () => {
+        const long = `className="${'&:'.repeat(5000)}x" ${'[&:]:'.repeat(2000)}`;
+        const started = Date.now();
+        expect(rampOn(long)).toBeNull();
+        expect(Date.now() - started).toBeLessThan(500);
+    });
+
     it('leaves no ramp step of the creator app on a ramp in any of the forms it can be written in', () => {
         // the files the codemod leaves alone: what draws a respondent's form or page, and the theme gallery
         const FROZEN = ['views/molecules/responder-form-fields/', 'views/molecules/form/', 'views/organism/form/', 'views/organism/layout/', 'views/organism/form-builder/fields/', 'views/atoms/', 'components/responder-portal/', 'views/molecules/theme/', 'app/(user-portal)/', 'app/(custom-domain)/', 'components/form/form-renderer', 'components/form/individual-form-response', 'components/form/respondent', 'components/form/feedback-status-chip', 'components/drafts/', 'components/ui/powered-by', 'components/captcha/', 'components/response-page/signature-image', 'layouts/top-navbar-layout.tsx', 'app/(auth)/_components/login-view.tsx', 'app/error.tsx', 'app/not-found.tsx', 'app/global-error.tsx', 'utils/theme-contrast'];
-        // the blue steps and the edges, washes and rings of the neutrals; the neutral text steps, dark fills and placeholders stay
-        const ON_A_RAMP = /(?<![\w-])(?:[\w[\]:.&>*()=-]+:)*(?:(?:text|bg|border|ring|outline|placeholder)-brand-\d{2,3}|(?:border|divide)(?:-[tblrxyse])?-black-[1-4]00|ring-black-[1-4]00|bg-black-[1-4]00)(?![\w-])|var\(--color-brand-\d{3}\)/;
         const walk = (dir: string): string[] => readdirSync(dir).flatMap((entry) => (statSync(join(dir, entry)).isDirectory() ? walk(join(dir, entry)) : [join(dir, entry)]));
         const left: string[] = [];
         for (const file of walk(SRC).filter((path) => /\.tsx?$/.test(path) && !/\.test\./.test(path) && !path.includes(`${SRC}/test/`))) {
@@ -199,8 +261,8 @@ describe('the shared controls read the chrome roles, and the frozen files do not
                 .split('\n')
                 .forEach((line, index) => {
                     // a role's own fallback (`var(--app-primary,var(--color-brand-500))`) is the way a ramp is named on purpose
-                    const match = line.replace(/var\(--app-[\w-]+,\s*var\(--color-[\w-]+\)\)/g, '').match(ON_A_RAMP);
-                    if (match) left.push(`${rel}:${index + 1}: ${match[0]}`);
+                    const found = rampOn(line.replace(/var\(--app-[\w-]+,\s*var\(--color-[\w-]+\)\)/g, ''));
+                    if (found) left.push(`${rel}:${index + 1}: ${found}`);
                 });
         }
         expect(left).toEqual([]);
@@ -211,7 +273,10 @@ describe('the nav group chips', () => {
     it('are drawn by a pseudo-element that only exists inside a Pigment scope, so Daybreak gets no element and no pixel', () => {
         // every rule is a pair: the Pigment scope and the `<html>` mirror (the mobile menu is a sheet portalled to <body>,
         // outside the scope); nothing else draws a chip, so Daybreak, which has neither, gets none
-        const rules = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]*data-nav-chip[^{}]*)\{/g)].map((match) => match[1].trim());
+        const rules = stripComments(css)
+            .split('}')
+            .map((block) => block.slice(0, Math.max(block.indexOf('{'), 0)).trim())
+            .filter((selector) => selector.includes('data-nav-chip'));
         expect(rules.length).toBe(4);
         for (const selector of rules) {
             const [scope, mirror] = selector.split(/,\s*/);
@@ -360,6 +425,12 @@ describe('the pigments', () => {
         for (const name of NAMES) expect(contrast(colour('pigment', name), '#FFFFFF'), name).toBeLessThan(3);
     });
 
+    // a pigment as a text colour: a `text-pig*` class, a `text-[var(--app-pig…)]` class, or a `color:` declaration naming one
+    const paintsPigmentAsText = (source: string) => {
+        const text = stripComments(source);
+        return /\btext-pig/.test(text) || text.includes('text-[var(--app-pig') || text.split(/[;{}]/).some((declaration) => declaration.trimStart().startsWith('color:') && declaration.includes('--app-pig'));
+    };
+
     it('are never a text colour: there is no pigment text utility and none is used', () => {
         expect(css).not.toMatch(/--color-(app-)?pig/);
         const offenders: string[] = [];
@@ -367,7 +438,7 @@ describe('the pigments', () => {
             for (const entry of readdirSync(dir)) {
                 const path = join(dir, entry);
                 if (statSync(path).isDirectory()) walk(path);
-                else if (/\.(tsx?|css)$/.test(entry) && !/\.test\./.test(entry) && /(\btext-pig|text-\[var\(--app-pig|(^|[\s;{])color:\s*[^;}]*--app-pig)/.test(readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''))) offenders.push(path.slice(SRC.length + 1));
+                else if (/\.(tsx?|css)$/.test(entry) && !/\.test\./.test(entry) && paintsPigmentAsText(readFileSync(path, 'utf8'))) offenders.push(path.slice(SRC.length + 1));
             }
         };
         walk(SRC);
