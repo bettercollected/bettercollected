@@ -825,6 +825,7 @@
     --series-4: #C93A21;
     --series-5: #7447CF;
     --series-6: #5C6788;
+    --app-viz-neutral: var(--series-6); /* the mark of an answer that has no series of its own: slate, 5.6:1 on white */
     /* Form avatar pairs: a tint and its ink, picked by a form's hue index (lib/form-hue.ts); each pair is at least 4.5:1.
        None is a signal colour: coral means "waiting for you" and green, amber and red are status, so tiles use teal, sun, sand, blue and violet. */
     --form-hue-0-bg: #D4EFF0; /* teal tint and ink, 6.5:1 */
@@ -901,6 +902,7 @@ html:has([data-app-theme='daybreak']) {
     --series-4: #C93A21;
     --series-5: #7447CF;
     --series-6: #5C6788;
+    --app-viz-neutral: var(--series-6); /* the mark of an answer that has no series of its own: slate, 5.6:1 on white */
     /* Form avatar pairs: a tint and its ink, picked by a form's hue index (lib/form-hue.ts); each pair is at least 4.5:1.
        None is a signal colour: coral means "waiting for you" and green, amber and red are status, so tiles use teal, sun, sand, blue and violet. */
     --form-hue-0-bg: #D4EFF0; /* teal tint and ink, 6.5:1 */
@@ -979,6 +981,7 @@ html:has([data-app-theme='daybreak']) {
     --series-4: #0E8C6A;
     --series-5: #1D7FC4;
     --series-6: #A23FBD;
+    --app-viz-neutral: #7C7396; /* the mark of an answer that has no series of its own: 4.4:1 on white */
     /* The five pigments: flat fills that always carry `--app-pig-ink` and are never a text colour, an icon or a focus
        ring on their own (none reaches 3:1 on white). There is deliberately no `text-pig-*` utility. */
     --app-pig-tomato: #FF8A73;
@@ -1057,6 +1060,7 @@ html:has([data-app-theme='pigment']) {
     --series-4: #0E8C6A;
     --series-5: #1D7FC4;
     --series-6: #A23FBD;
+    --app-viz-neutral: #7C7396; /* the mark of an answer that has no series of its own: 4.4:1 on white */
     /* The five pigments: flat fills that always carry `--app-pig-ink` and are never a text colour, an icon or a focus
        ring on their own (none reaches 3:1 on white). There is deliberately no `text-pig-*` utility. */
     --app-pig-tomato: #FF8A73;

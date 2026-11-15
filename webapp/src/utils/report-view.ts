@@ -37,6 +37,12 @@ export interface ReportRow {
     /** Share of the answered responses, 0 to 1, for a count. */
     share?: number;
     shareText?: string;
+    /**
+     * With `CardView.perAnswer`: the series (0 to 4) of the answer's position among the question's options, so an
+     * answer keeps its colour on every card. Absent for the answers that take the neutral: a sixth option or later,
+     * "Other", a removed option and "no answer".
+     */
+    colour?: number;
 }
 
 export interface ReportColumn {
@@ -66,7 +72,12 @@ export interface CardView {
     headline?: string;
     /** `n = 130` (or, with a dimension, "130 of 212 answered"). */
     basis: string;
+    /** Each answer of a choice question keeps its own series colour across cards (the Pigment theme's bar and donut cards). */
+    perAnswer: boolean;
 }
+
+/** The options of a question that get a colour of their own: the first five (series 1 to 5); the rest share the neutral. */
+export const ANSWER_COLOURS = 5;
 
 const AGG_KEY: Record<ReportAgg, string> = { count: 'REPORT.COUNT', avg: 'REPORT.AVERAGE', sum: 'REPORT.SUM', min: 'REPORT.MIN', max: 'REPORT.MAX' };
 
@@ -132,7 +143,7 @@ function formatValue(value: number | null | undefined, agg: ReportAgg, field: Re
 }
 
 /** The view of one card. `result` may be missing while figures load or when the card was not asked for. */
-export function buildCardView(def: ReportCardDef, result: ReportCardResult | undefined, catalogue: ReportCatalogue, t: Translate, locale: string): CardView {
+export function buildCardView(def: ReportCardDef, result: ReportCardResult | undefined, catalogue: ReportCatalogue, t: Translate, locale: string, options: { perAnswer?: boolean } = {}): CardView {
     const dimensionKey = def.dimension?.field;
     const bucket = def.dimension?.bucket ?? (dimensionKey && isTimeDimension(catalogue, dimensionKey) ? 'day' : undefined);
     const percent = numberFormat(locale, { style: 'percent', maximumFractionDigits: 0 });
@@ -143,6 +154,8 @@ export function buildCardView(def: ReportCardDef, result: ReportCardResult | und
     const groups = result?.groups ?? [];
     // the options nobody chose and the "Other" and "Removed option" groups nobody is in are not listed
     const shown = groups.filter((group) => !((group.key === 'other' || group.key === 'removed') && group.n === 0 && fieldOf(catalogue, dimensionKey)?.kind !== undefined && ['choice', 'choices'].includes(fieldOf(catalogue, dimensionKey)?.kind ?? '')));
+    const dimensionField = fieldOf(catalogue, dimensionKey);
+    const chooses = !!dimensionField && (dimensionField.kind === 'choice' || dimensionField.kind === 'choices');
     const rows: ReportRow[] = shown.map((group) => {
         const values = def.measures.map((measure, index) => formatValue(group.values[index], measure.agg, fieldOf(catalogue, measure.field), locale));
         const row: ReportRow = {
@@ -163,6 +176,17 @@ export function buildCardView(def: ReportCardDef, result: ReportCardResult | und
     // a donut is parts of a whole: a count with few groups, all of them positive; otherwise a bar
     let kind = def.kind;
     if (kind === 'donut' && (first.agg !== 'count' || rows.length > DONUT_MAX || rows.length < 1 || rows.some((row) => (row.value ?? 0) < 0))) kind = 'bar';
+    // each answer of a choice question keeps its colour on a bar or a donut: by the answer's position among the
+    // question's options, the same on every card and whatever a filter leaves out; the sixth option and later,
+    // "Other", a removed option and "no answer" have none and are drawn in the neutral
+    const perAnswer = !!options.perAnswer && chooses && (kind === 'bar' || kind === 'donut');
+    if (perAnswer) {
+        shown.forEach((group, index) => {
+            if (['other', 'removed', 'none'].includes(group.key)) return;
+            const position = (dimensionField?.options ?? []).findIndex((option) => option.id === group.key);
+            if (position >= 0 && position < ANSWER_COLOURS) rows[index].colour = position;
+        });
+    }
     const columns: ReportColumn[] = def.measures.map((measure, index) => ({
         key: `m${index}`,
         label: measure.agg === 'count' ? t('REPORT.COL_N') : `${aggLabel(measure.agg, t)} · ${fieldOf(catalogue, measure.field)?.label ?? measure.field ?? ''}`
@@ -186,6 +210,7 @@ export function buildCardView(def: ReportCardDef, result: ReportCardResult | und
         time: !!dimensionKey && isTimeDimension(catalogue, dimensionKey),
         bucket,
         headline: !dimensionKey ? (rows[0]?.valueText ?? '–') : undefined,
+        perAnswer,
         basis: dimensionKey || first.agg !== 'count' ? t('REPORT.ANSWERED_OF', { answered: numberFormat(locale).format(answered), total: numberFormat(locale).format(total) }) : t('REPORT.N', { count: total })
     };
 }

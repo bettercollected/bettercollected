@@ -75,6 +75,16 @@ interface ChartProps {
     locale: string;
 }
 
+/**
+ * The colour of a row's mark. One blue for a bar and the series in turn for a donut, as always; in a card that gives
+ * each answer its own colour (`view.perAnswer`) the series of the answer's position, and the neutral for an answer
+ * with none. The series tokens, never a raw pigment: each is at least 3:1 on the white card.
+ */
+export function rowColour(view: CardView, row: ReportRow, index: number, donut: boolean): string {
+    if (view.perAnswer) return row.colour === undefined ? 'var(--viz-neutral)' : `var(--series-${row.colour + 1})`;
+    return donut ? `var(--series-${index + 1})` : 'var(--series-1)';
+}
+
 const imgProps = (props: ChartProps) => ({ role: 'img' as const, 'aria-label': props.label, 'aria-describedby': props.summaryId });
 
 /* -------------------------------------------------------------- tile */
@@ -104,7 +114,7 @@ export function BarChart(props: ChartProps) {
                         <div className="flex items-center gap-3 sm:contents">
                             <svg viewBox="0 0 100 14" preserveAspectRatio="none" focusable="false" className="h-3.5 w-full min-w-0 flex-1 overflow-hidden rounded-sm">
                                 <rect x="0" y="0" width="100" height="14" style={{ fill: 'var(--viz-track)' }} />
-                                {width > 0 && <rect x="0" y="0" width={width} height="14" style={{ fill: 'var(--series-1)' }} />}
+                                {width > 0 && <rect x="0" y="0" width={width} height="14" data-answer-colour={rowColour(view, row, 0, false)} style={{ fill: rowColour(view, row, 0, false) }} />}
                             </svg>
                             <span className="shrink-0 text-right text-sm font-medium text-black-900 tabular-nums">{valueWithShare(row)}</span>
                         </div>
@@ -134,8 +144,9 @@ function arc(from: number, to: number): string {
 }
 
 /** The fill of series `index`: its colour, and a pattern over it for every one after the first. */
-function PatternDefs({ id, count }: { id: string; count: number }) {
-    const base = (index: number) => ({ fill: `var(--series-${index + 1})` });
+function PatternDefs({ id, colours }: { id: string; colours: string[] }) {
+    const count = colours.length;
+    const base = (index: number) => ({ fill: colours[index] });
     const line = { stroke: 'var(--viz-surface)', strokeWidth: 2 } as const;
     return (
         <defs>
@@ -166,7 +177,7 @@ export function DonutChart(props: ChartProps) {
     return (
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
             <svg {...imgProps(props)} viewBox={`0 0 ${SIZE} ${SIZE}`} className="h-40 w-40 shrink-0">
-                <PatternDefs id={id} count={view.rows.length} />
+                <PatternDefs id={id} colours={view.rows.map((row, index) => rowColour(view, row, index, true))} />
                 {slices.length === 1 ? (
                     <path d={`${arc(0, 0.5)} ${arc(0.5, 1)}`} style={{ fill: `url(#${id}-${view.rows.indexOf(slices[0])})` }} />
                 ) : (

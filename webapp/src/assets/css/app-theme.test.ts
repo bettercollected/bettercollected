@@ -279,7 +279,9 @@ const PAIRS: Array<[string, string, number, string]> = [
     ['series-4', 'surface', 3, 'Chart series 4'],
     ['series-5', 'surface', 3, 'Chart series 5'],
     ['series-6', 'surface', 3, 'Chart series 6'],
-    ['series-1', 'sunken', 3, 'Bar on its track']
+    ['series-1', 'sunken', 3, 'Bar on its track'],
+    ['viz-neutral', 'surface', 3, 'The mark of an answer that has no series of its own'],
+    ['viz-neutral', 'sunken', 3, 'That mark on its track']
 ];
 
 describe.each(THEMES)('%s contrast', (theme) => {
