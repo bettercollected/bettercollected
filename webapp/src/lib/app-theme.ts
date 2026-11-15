@@ -23,4 +23,20 @@ export function asAppTheme(value: unknown): AppTheme {
  * (`formRootProps` in views/molecules/theme/theme-root.ts). One entry per line; `app-theme.test.ts` fails when a role
  * that is read with a fallback is missing here, or an entry names a role no theme block declares.
  */
-export const APP_ROLES_RESET_ON_FORMS = ['--app-action', '--app-action-hover', '--app-action-pressed', '--app-on-action', '--app-focus-ring'] as const;
+// prettier-ignore
+export const APP_ROLES_RESET_ON_FORMS = [
+    '--app-action',
+    '--app-action-hover',
+    '--app-action-pressed',
+    '--app-on-action',
+    '--app-focus-ring',
+    '--app-primary',
+    '--app-primary-deep',
+    '--app-primary-soft',
+    '--app-primary-tint',
+    '--app-edge',
+    '--app-edge-strong',
+    '--app-wash',
+    '--app-wash-strong',
+    '--app-control'
+] as const;

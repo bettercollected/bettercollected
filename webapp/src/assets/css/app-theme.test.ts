@@ -133,6 +133,13 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
         expect(role('daybreak', name)).toBe(colour('daybreak', ramp));
     });
 
+    it('--app-primary-tint is --app-brand-tint in both themes (a variable of its own, so a form root can reset it)', () => {
+        for (const theme of THEMES) {
+            expect(rule(theme, 'scope')['--app-primary-tint'], theme).toBe('var(--app-brand-tint)');
+            expect(role(theme, 'primary-tint')).toBe(role(theme, 'brand-tint'));
+        }
+    });
+
     it('are different values in Pigment (iris and warm paper), never a ramp reference', () => {
         for (const name of ['primary', 'primary-deep', 'primary-soft', 'edge', 'edge-strong', 'wash', 'wash-strong', 'control']) {
             expect(rule('pigment', 'scope')[`--app-${name}`], name).toMatch(/^#[0-9A-F]{6}$/i);
@@ -146,7 +153,7 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
             ['app-primary', 'app-primary', 'color-brand-500'],
             ['app-primary-deep', 'app-primary-deep', 'color-brand-600'],
             ['app-primary-soft', 'app-primary-soft', 'color-brand-200'],
-            ['app-primary-tint', 'app-brand-tint', 'color-brand-100'],
+            ['app-primary-tint', 'app-primary-tint', 'color-brand-100'],
             ['app-edge', 'app-edge', 'color-black-300'],
             ['app-edge-strong', 'app-edge-strong', 'color-black-400'],
             ['app-wash', 'app-wash', 'color-black-100'],
