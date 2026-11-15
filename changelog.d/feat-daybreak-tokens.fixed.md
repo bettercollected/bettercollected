@@ -1,0 +1,1 @@
+- Report charts no longer switch to dark colours on a device set to dark mode while the rest of the app stays light. The cards are always white, so the pale dark-mode marks were hard to see on them.

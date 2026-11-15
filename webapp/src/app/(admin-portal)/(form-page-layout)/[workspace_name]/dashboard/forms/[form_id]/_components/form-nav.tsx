@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import FormOptionsDropdownMenu from '@app/components/datatable/form-options-dropdown';
 import { SETTINGS_PAGE_ICONS, SETTINGS_PAGE_LABELS, settingsPages } from '@app/components/form/settings-pages';
 import { useModal } from '@app/components/modal-views/context';
+import { StatusPill } from '@app/components/ui/status-pill';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -21,7 +22,6 @@ import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permission
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { Button } from '@app/shadcn/components/ui/button';
-import { cn } from '@app/shadcn/util/lib';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import getFormShareURL from '@app/utils/form-utils';
@@ -174,9 +174,13 @@ export function BackToForms() {
 export function StatusChip({ form, className }: { form: StandardFormDto; className?: string }) {
     const { t } = useTranslation();
     return form?.isPublished ? (
-        <span className={cn('shrink-0 rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-semibold text-success-700', className)}>{t('FORM_SHELL.PUBLISHED')}</span>
+        <StatusPill tone="ok" className={className}>
+            {t('FORM_SHELL.PUBLISHED')}
+        </StatusPill>
     ) : (
-        <span className={cn('shrink-0 rounded-full bg-black-200 px-2 py-0.5 text-xs font-semibold text-black-700', className)}>{t('FORM_SHELL.DRAFT')}</span>
+        <StatusPill tone="neutral" className={className}>
+            {t('FORM_SHELL.DRAFT')}
+        </StatusPill>
     );
 }
 

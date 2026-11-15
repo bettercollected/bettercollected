@@ -1,5 +1,6 @@
 'use client';
 
+import WelcomeBand from '@app/components/workspace-dashboard/welcome-band';
 import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
 import WorkspaceDashboardPinnedForms from '@app/components/workspace-dashboard/workspace-dashboard-pinned-forms';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
@@ -23,6 +24,7 @@ export default function FormsClient({ workspace, hasCustomDomain }: { workspace:
 
     return (
         <>
+            <WelcomeBand />
             {pinnedForms?.length > 0 && (
                 <WorkspaceDashboardPinnedForms
                     workspacePinnedForms={pinnedFormsResponse}

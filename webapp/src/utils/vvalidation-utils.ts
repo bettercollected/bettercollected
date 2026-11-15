@@ -62,18 +62,15 @@ export function isNetherUndefinedNorNull(data: unknown): boolean {
 export const statusProps = (status: string, t: any) => {
     const normalized = status.toLowerCase();
     let currentStatus = status;
-    let cName = 'bg-black-200 text-black-800!';
-    let dotCName = 'bg-black-600';
+    let tone: 'ok' | 'warn' | 'neutral' = 'neutral';
     if (normalized === 'pending') {
         currentStatus = t(formConstant.status.pending);
-        cName = 'bg-brand-accent-100 text-brand-olive!';
-        dotCName = 'bg-brand-accent';
+        tone = 'warn';
     } else if (normalized === 'success' || normalized === 'deleted') {
         // The backend marks a fulfilled deletion request "success"; to the
         // person reading the table the fact is that the response is deleted.
         currentStatus = t('FORM.STATUS_DELETED');
-        cName = 'bg-[#E7F4EE] text-success-700!';
-        dotCName = 'bg-success';
+        tone = 'ok';
     } else if (normalized === 'declined') {
         // Closed without deleting (a fixed reason, shown next to it): never
         // styled or worded like a deletion.
@@ -83,8 +80,7 @@ export const statusProps = (status: string, t: any) => {
     }
     return {
         currentStatus,
-        cName,
-        dotCName
+        tone
     };
 };
 const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
@@ -140,6 +136,9 @@ export const validateFormFieldAnswer = (field: StandardFormFieldDto, answer: Ans
 export const validateFormOpen = (date?: string) => {
     return !date || moment.utc(date).isAfter(moment.utc());
 };
+
+/** A form people can be sent to: published, open and not hidden (the rule of the form bar's Share button and the forms list). */
+export const isFormShareable = (form?: { isPublished?: boolean; settings?: { hidden?: boolean; formCloseDate?: string } | null } | null) => !!form?.isPublished && !form?.settings?.hidden && validateFormOpen(form?.settings?.formCloseDate);
 
 export const validateFieldConditions = (answers: Record<string, any>, field: StandardFormFieldDto): boolean => {
     let validity = field?.properties?.logicalOperator === LogicalOperator.AND;

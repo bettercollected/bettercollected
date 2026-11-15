@@ -17,6 +17,7 @@ from typing import Any, Dict, FrozenSet, Iterable, Iterator, List, Optional, Tup
 
 from common.models.standard_form import theme_problems
 
+from backend.app.constants.themes import GATED_ARTWORKS, artwork_offered, offered_artworks
 from backend.app.exceptions import HTTPException
 from backend.app.services.publish_checks import (
     THEME_CONTRAST,
@@ -57,6 +58,75 @@ def form_theme_problems(form: Any) -> List[str]:
     for path, theme in _themes(form):
         problems += theme_problems(theme, path)
     return problems
+
+
+def _artwork(theme: Any) -> Optional[str]:
+    artwork = _get(_get(theme, "background"), "artwork")
+    return artwork if isinstance(artwork, str) else None
+
+
+def _unoffered(artwork: Optional[str]) -> bool:
+    return artwork is not None and artwork in GATED_ARTWORKS and not artwork_offered(artwork)
+
+
+def _artwork_message(path: str) -> str:
+    # word for word what an unlisted artwork earns (common theme_problems)
+    return f"{path}.background.artwork must be one of: {', '.join(offered_artworks())}."
+
+
+def unoffered_artwork_problems(form: Any, stored: Any = None) -> List[str]:
+    """While the switch of a gated artwork (``GATED_ARTWORKS``) is off, one
+    problem for each theme of the form, and of its pages and questions, that
+    names it, unless the stored form has the same artwork at the same path:
+    a form that already wears it stays saveable. ``stored`` None: nothing is
+    stored (a new form)."""
+    if not any(_unoffered(a) for a in GATED_ARTWORKS):
+        return []
+    problems: List[str] = []
+    kept: Optional[Dict[str, Optional[str]]] = None
+    for path, theme in _themes(form):
+        artwork = _artwork(theme)
+        if not _unoffered(artwork):
+            continue
+        if stored is not None:
+            if kept is None:
+                kept = {p: _artwork(t) for p, t in _themes(stored)}
+            if kept.get(path) == artwork:
+                continue
+        problems.append(_artwork_message(path))
+    return problems
+
+
+def ensure_artwork_offered(form: Any, stored: Any = None) -> None:
+    """422 ``theme_not_allowed`` for a theme that brings a gated artwork the
+    server does not offer (see ``unoffered_artwork_problems``)."""
+    refuse_theme_problems(unoffered_artwork_problems(form, stored))
+
+
+async def ensure_artwork_offered_for_save(form: Any, load_stored: Any) -> None:
+    """The same for a save of an existing form: the stored draft (``load_stored``,
+    an async callable) is read only when a theme names an artwork that is off."""
+    problems = unoffered_artwork_problems(form)
+    if problems:
+        problems = unoffered_artwork_problems(form, await load_stored())
+    refuse_theme_problems(problems)
+
+
+def ensure_saved_artwork_offered(themes: List[Any], stored: Optional[Iterable[Any]] = None) -> None:
+    """The same for a workspace's saved themes (``customThemes.<i>``): one a
+    stored theme of the same title already has is kept."""
+    if not any(_unoffered(a) for a in GATED_ARTWORKS):
+        return
+    kept = {
+        str(_get(theme, "title")).casefold(): _artwork(theme) for theme in (stored or [])
+    }
+    problems = [
+        _artwork_message(f"customThemes.{i}")
+        for i, theme in enumerate(themes or [])
+        if _unoffered(_artwork(theme))
+        and kept.get(str(_get(theme, "title")).casefold()) != _artwork(theme)
+    ]
+    refuse_theme_problems(problems)
 
 
 def ensure_valid_themes(form: Any) -> None:

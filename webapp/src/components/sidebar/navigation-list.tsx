@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 
+import { CountBadge } from '@app/components/ui/count-badge';
 import { isNavItemActive } from '@app/lib/nav-items';
 import { INavbarItem } from '@app/models/props/navbar';
 import { cn } from '@app/shadcn/util/lib';
@@ -33,7 +34,7 @@ export default function NavigationList({ navigationList, className = '', sx = {}
                     <li key={element.key}
                         className={cn(
                             "cursor-pointer rounded-lg text-sm transition-colors",
-                            active ? "bg-brand-100 text-brand-500 font-medium" : "text-black-700 hover:bg-black-100 hover:text-black-900"
+                            active ? "bg-brand-tint text-link font-medium" : "text-copy hover:bg-sunken hover:text-ink"
                         )}
                         onClick={() => {
                             if (element.onClick) {
@@ -45,11 +46,12 @@ export default function NavigationList({ navigationList, className = '', sx = {}
                     >
                         <div className="flex items-center px-4 py-2 w-full">
                             {element.icon && (
-                                <span className={cn("mr-3 flex h-5 w-5 items-center justify-center", active ? "text-brand-500" : "text-black-600")}>
+                                <span className={cn("mr-3 flex h-5 w-5 items-center justify-center", active ? "text-link" : "text-ink-muted")}>
                                     {element?.icon}
                                 </span>
                             )}
-                            <span className="truncate">{element.name}</span>
+                            <span className="min-w-0 flex-1 truncate">{element.name}</span>
+                            {element.badge && element.badge.count > 0 && <CountBadge count={element.badge.count} label={element.badge.label} className="ml-2" />}
                         </div>
                     </li>
                 );

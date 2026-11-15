@@ -21,9 +21,12 @@ form's theme, which is the creator's choice (§9).
 
 ## 1. Colour
 
-One blue ramp (`brand-*`) and one neutral ramp (`black-*`). Nothing else carries
+One blue ramp (`brand-*`) and one neutral ramp (`black-*`), and on top of them
+a small set of role tokens (Daybreak, below) for the app's own ground, text,
+accents, status and charts. Blue is the only action colour. Nothing else carries
 product meaning; status colours (success, warning, danger) appear only where
-they say something.
+they say something, and every colour that means something also has a word, an
+icon, a dot, a heavier weight or a shape beside it.
 
 ### Blue
 
@@ -45,7 +48,7 @@ illustrations and charts that use them.
 
 | Token | Value | Role |
 |---|---|---|
-| `black-100` | `#F5F7FB` | Paper mist: the app background |
+| `black-100` | `#F5F7FB` | Paper mist: the ground respondent routes keep (the app itself sits on `canvas`, below) |
 | `black-200` | `#F2F4F7` | Paper band: hover fills, table heads |
 | `black-300` | `#EAECF0` | Hairline: edges and separators on white |
 | `black-400` | `#D0D5DD` | Strong hairline: separators and dividers on paper mist, outlined-button edges |
@@ -73,8 +76,141 @@ field is there; hairlines are for separating surfaces, not for controls.
 | `success-700` | `#027A48` | Success text (`success` is 3.7:1 on white, too light for text) |
 | `#C43D3D` | — | Danger text and destructive buttons |
 
-No pink, no orange, no gradients. The old bright blue (`#0764EB`), the old
-trust blue (`#2456CC`) and the duplicate `new-*` ramps are gone.
+No pink, no gradients, and no orange except the single coral accent below (and the red-orange report series).
+The old bright blue (`#0764EB`), the old trust blue (`#2456CC`) and the
+duplicate `new-*` ramps are gone.
+
+### Daybreak: the app's role tokens
+
+The ramps above keep their values, because respondent forms, the trust strip
+and the "Powered by" badge read them directly. The app's own surfaces take the
+roles below. They are not plain `@theme` values: each is a variable of an **app
+theme scope** (`--app-canvas`, `--app-ink`, …, and `--series-1…6` for charts),
+and the Tailwind utilities (`bg-canvas`, `text-ink`, `bg-ok-tint`, `fill-series-1`)
+read those variables through an `@theme inline` block. The default theme is
+`[data-app-theme='daybreak']`. Light only: the app has no dark theme.
+
+| Token | Value | Role |
+|---|---|---|
+| `canvas` | `#F3F6FF` | App ground: the `body`, the builder's mat, the Report page |
+| `surface` | `#FFFFFF` | Cards, panels, dialogs. Cards stay white |
+| `sunken` | `#E8EDFF` | Wells, table heads, chart tracks, quiet pills, hover |
+| `hairline` | `#DCE2F5` | Separator on a surface |
+| `hairline-strong` | `#BDC8E8` | Separator or card edge on the canvas (decorative, not a control edge) |
+| `control-edge` | `#6E7CA8` | Edge of a control (4.1:1 on white). The older `control` stays at `#818CA0` |
+| `ink` | `#0E1737` | Headings and answers |
+| `copy` | `#3C4872` | Running text |
+| `ink-muted` | `#56628C` | Labels and captions |
+| `brand-tint` | alias of `brand-100` | Selected row, active navigation |
+| `link` | alias of `brand-600` | Links, and blue text on a tint |
+| `sun`, `sun-tint`, `sun-ink` | `#FFB400`, `#FFF1C7`, `#6B4700` | The sun accent: a moment, a highlight, a "why we ask" rule. Fill only; text uses `sun-ink` on the tint |
+| `coral`, `coral-tint`, `coral-ink` | `#FF6A48`, `#FFE4DC`, `#A22F14` | The one coral accent: something is waiting for you. Fill only; text uses `coral-ink` on the tint |
+| `ok`, `warn`, `bad`, `info` | `#0A6F45`, `#7A4B00`, `#B42B2B`, `#1035A8` | Status text. Each has a `-fill` for icons and a `-tint` for backgrounds |
+| `series-1` … `series-6` | `#2A55E0`, `#A86400`, `#0E7F86`, `#C93A21`, `#7447CF`, `#5C6788` | Report series: blue, ochre, teal, red-orange, violet, slate |
+
+The names `muted` and `accent` are left alone on purpose: shadcn components
+already use those utility names, and defining them would paint those
+components.
+
+**Where colour goes.**
+
+- **Wayfinding.** The active navigation item is the blue tint with blue
+  (`link`) text; inactive items are `copy` on the ground, their icons
+  `ink-muted`. No colour per navigation group.
+- **Surfaces.** The canvas is `canvas`, cards are white. No tinted table rows,
+  coloured card headers or gradients.
+- **Selection.** A chosen option or row is the blue tint with a 2px blue edge
+  (the `option-selected` utility: the 1px border plus a 1px inset line, so
+  nothing shifts) and always a check, a dot or a heavier label with it.
+- **Status.** A status is a dot and a word in a tinted pill (`StatusPill`):
+  ok, warn, bad, info or neutral. The dot takes the text colour. A pill never
+  stands for a state by colour alone, and red appears only where something is
+  wrong.
+- **"Why we ask this"** in the creator's own settings carries a 2px sun rule.
+  It is the second cue; the words carry the meaning. Inside a form the rule
+  stays the form theme's (§9).
+- **Charts.** One blue (`series-1`) for single-question bars and lines; the six
+  series for donuts and multi-series, each at least 3:1 on the white card, with
+  a value written beside every mark and a pattern on every donut slice after
+  the first, so colour is never the only code. The tracks behind bars are
+  `sunken`.
+
+- **Moments.** One tinted band tops the forms dashboard: the person's first name
+  and the time of day, one sentence about where things stand and one next step
+  (the requests waiting, a draft to finish), with the sun and hills motif (`DaybreakArt`, inline SVG, the action blue and the sun accent).
+  A step a member's role cannot take (reviewing requests, finishing a draft, creating a form) is
+  not offered, and a Viewer gets a neutral line and no button. With no forms the
+  band only greets: the empty state below carries the one sentence and the one
+  action, so the screen never has two buttons doing the same thing. The same motif sits, still, in a tinted panel on the empty states. No other
+  surface carries it: never inside the builder canvas, a table or a respondent form.
+- **Empty states** are one component (`EmptyState`): a white card on the canvas
+  with the motif in a tinted panel, a title, one plain sentence and at most one
+  primary action (blue), offered only when the member may take it and, for
+  "Share the form", only for a form that is published, open and not hidden. A
+  search or a filter with no match leaves the picture out and offers a way back
+  ("Clear search", which puts focus back in the search box, and "Clear filters"). Copy is calm: it
+  says nothing is wrong and what to do, with no exclamation marks.
+- **Forms tell apart.** Each form has a tile in lists and headers: its initial
+  in a tint with its ink, from a pair picked by the form's id (`formHueIndex`,
+  FNV-1a over the trimmed, lower-cased id, modulo five; `FormAvatar`). The pairs
+  are scope variables `--form-hue-0-bg/-ink` to `--form-hue-4-bg/-ink` (teal,
+  sun, sand, blue and violet tints, each pair at least 4.5:1), so a later
+  theme supplies its own five. No tile is a signal colour: coral means "waiting
+  for you" and green, amber and red are status, so none of them is a form's colour. The tile is decoration beside the title; the
+  responder portal does not show it.
+- **Something is waiting for you.** A coral count badge (`CountBadge`: the
+  number on coral tint in coral ink, with the whole phrase as its accessible
+  name) marks a navigation item that needs the person, today deletion requests
+  with a pending count. It is a number, never a bare dot, and it never pulses or
+  turns red: it informs and does not press.
+- **Card edges on the canvas.** A card that sits directly on the canvas (the form
+  rows, the report cards, the settings cards) takes the strong hairline
+  (`border-hairline-strong`) on a `surface` ground; inside a white panel the
+  plain hairline is enough.
+
+**Where colour does not go.** The primary button is always `action` blue: sun
+and coral never colour a button, a link or a form control. Colour never carries
+urgency or pressure (§5). Neither accent is used for body text, and neither
+appears inside a respondent form, whose colours are the form's own theme (§9).
+Coral is the single exception to "no orange", and it is kept to one role.
+
+**What reads the semantic roles, and what still reads the ramps.** The roles are
+adopted surface by surface, not by renaming the ramps (`brand-*` and `black-*`
+utilities appear in some three hundred files and stay as they are). Today these
+read roles: the app ground and the builder mat, active navigation, the selected
+option or row, status pills, the creator's "why we ask" note, and the report
+series, tracks and grid. Everything else in the creator app still reads the
+ramps: card edges and dividers (`border-black-300/400`), text steps
+(`text-black-600/700/900`), wells and hover fills (`bg-black-100/200`), control
+edges (`border-control`), the blue selection and link steps (`bg-brand-100`,
+`text-brand-500/600`), the shadcn inputs, menus and dialogs, tables, the flow
+view's nodes, and the status and AI chips that still carry a literal hex. A
+later app theme can only restyle what reads roles, so those are the next
+surfaces to move; the ramps themselves stay frozen for respondent routes.
+
+**Respondent routes keep paper mist.** `data-app-theme` is set by the creator
+app's layouts only: the admin portal (dashboard, builder, settings, the Report
+page, the workspace picker) and the creator's sign-in. The respondent's
+sign-in (`/login?type=responder`, also served on custom domains) is a respondent
+route and does not carry it. The variables are also defined on `<html>`, in a
+rule of its own (`html:has([data-app-theme='daybreak'])`; a browser without
+`:has` drops only that rule), while the document holds a scoped element, so
+menus, dialogs and toasts that portal out of the app read them too. A page
+without the attribute (the form on the form domain and on a custom domain, the
+responder portal, the respondent's sign-in) has none of the
+variables: its `<html>` and `<body>` ground falls back to `black-100`, paper mist,
+from the server-rendered markup. `views/molecules/theme/respondent-colours-pin.test.tsx`
+pins the Default preset's resolved colours and the hex values the trust strip
+and the "Powered by" badge resolve to, and `assets/css/daybreak-tokens.test.ts`
+checks the token values, the scope, which layouts carry the attribute, and every
+contrast pair listed here.
+
+**How a second app theme plugs in.** Add another block of the same shape,
+`[data-app-theme='<name>']` plus its `html:has(...)` mirror in a second rule, that sets the
+same `--app-*` and `--series-*` variables, and set the attribute on the app
+layouts (it can follow a workspace setting). Components do not change: they use
+the semantic utilities, never a hex or a ramp step, for app chrome. The ramps and
+the respondent routes do not change either.
 
 ## 2. Type
 
@@ -127,10 +263,10 @@ trust blue (`#2456CC`) and the duplicate `new-*` ramps are gone.
 
 ## 3. Layout and surfaces
 
-- The app sits on paper mist (`black-100`). Cards and panels are white with a
+- The app sits on the canvas (`canvas`; respondent routes keep paper mist, §1). Cards and panels are white with a
   1px hairline (`black-300`); sections inside a white panel are divided by
   `black-300` hairlines, not by shadows or tinted bands.
-- A line that sits on paper mist itself — a divider, a tab bar's baseline, the
+- A line that sits on the canvas or paper mist itself — a divider, a tab bar's baseline, the
   sidebar or header edge, a table's outer edge, the trust strip's top edge —
   takes the strong hairline (`black-400`): `#EAECF0` on `#F5F7FB` is 1.1:1 and
   disappears. `black-200` is a fill, never a line.
@@ -143,7 +279,7 @@ trust blue (`#2456CC`) and the duplicate `new-*` ramps are gone.
   sections with a ▶ mono eyebrow and pages with a periwinkle wash
   (`#BFD0FF → #E6EEFF → #F5F8FF`). The webapp has no marketing pages, so
   neither appears here. Small uppercase group labels in navigation are labels,
-  not eyebrows: grey, sans, no ▶.
+  not eyebrows: grey, sans, no ▶. The canvas (§1) is a flat ground, not that wash.
 
 ## 4. Trust surfaces
 
@@ -653,3 +789,13 @@ control boundaries and meaningful icons.
 | Leaflet control edge `#6B7A99` on white | 4.3:1 |
 | Signal red `#C8102E` on white / paper mist | 5.9:1 / 5.5:1 |
 | Leaflet rule `#C4CAD6` on white (separator only, not a control edge) | 1.6:1 |
+| Ink `#0E1737` / copy `#3C4872` / ink-muted `#56628C` on the canvas `#F3F6FF` | 16.3:1 / 8.2:1 / 5.5:1 |
+| Ink / copy / ink-muted on white | 17.5:1 / 8.9:1 / 6.0:1 |
+| Ink-muted on `sunken` `#E8EDFF` (neutral pill) | 5.1:1 |
+| Link `#1035A8` on white / on `brand-tint` `#E0E8FF` (active navigation) | 10.0:1 / 8.2:1 |
+| Action `#1649E2` on white / canvas / `brand-tint` (selection edge) | 6.8:1 / 6.3:1 / 5.6:1 |
+| Sireto blue `#123FC9` on white / canvas (the focus ring) | 8.1:1 / 7.5:1 |
+| Control edge `#6E7CA8` on white / canvas | 4.1:1 / 3.8:1 |
+| `sun-ink` on `sun-tint`; `coral-ink` on `coral-tint` | 7.4:1; 5.9:1 |
+| `ok`, `warn`, `bad`, `info` text on their tints | 5.4:1, 6.6:1, 5.3:1, 8.2:1 |
+| Series 1 to 6 as marks on white | 6.0, 4.7, 4.8, 5.1, 5.9, 5.6 (all at least 3:1) |

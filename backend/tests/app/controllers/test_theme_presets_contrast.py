@@ -16,6 +16,7 @@ from httpx import AsyncClient
 from backend.app.container import container
 from backend.app.models.workspace import WorkspaceThemeDto
 from backend.app.schemas.workspace import WorkspaceDocument
+from backend.config import settings
 
 API = "/api/v1"
 CASES = json.loads(
@@ -81,7 +82,11 @@ async def test_shared_cases_through_the_endpoint(
     workspace: Coroutine[Any, Any, WorkspaceDocument],
     test_user_cookies: dict[str, str],
     case: dict,
+    monkeypatch,
 ):
+    # The cases are about colours; the preset with a gated artwork (Daybreak) is
+    # offered here. With its switch off it is refused: test_gated_preset_off below.
+    monkeypatch.setattr(settings, "DAYBREAK_PRESET_ENABLED", True)
     response = await save_themes(
         client, workspace, test_user_cookies, [case_theme(case)]
     )
@@ -103,6 +108,24 @@ async def test_shared_cases_through_the_endpoint(
     assert detail["fix"] == case["fix"]
     assert body["errors"][0].startswith("customThemes.0: ")
     assert await stored_titles(workspace) == []
+
+
+async def test_a_preset_with_a_gated_artwork_is_refused_while_its_switch_is_off(
+    client: AsyncClient,
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    test_user_cookies: dict[str, str],
+    monkeypatch,
+):
+    case = next(c for c in CASES["themes"] if c["name"] == "preset Daybreak")
+    monkeypatch.setattr(settings, "DAYBREAK_PRESET_ENABLED", False)
+    response = await save_themes(client, workspace, test_user_cookies, [case_theme(case)])
+    assert response.status_code == 422, response.text
+    assert response.json()["code"] == "theme_not_allowed"
+    assert response.json()["message"] == "customThemes.0.background.artwork must be one of: marble."
+    assert await stored_titles(workspace) == []
+    monkeypatch.setattr(settings, "DAYBREAK_PRESET_ENABLED", True)
+    response = await save_themes(client, workspace, test_user_cookies, [case_theme(case)])
+    assert response.status_code == 200, response.text
 
 
 async def test_a_failing_theme_is_refused_with_the_fix(

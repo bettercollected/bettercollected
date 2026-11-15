@@ -20,6 +20,7 @@ import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import ResponseFilters from '@app/components/datatable/response-filters';
+import EmptyState from '@app/components/ui/empty-state';
 import { useIntlLocale } from '@app/lib/hooks/use-intl-locale';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
@@ -28,6 +29,8 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectForm } from '@app/store/forms/slice';
 import { useExportReportCardMutation, useGetReportFieldsQuery, useGetReportViewsQuery, useQueryReportQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { getEditFormURL } from '@app/utils/url-utils';
+import { isFormShareable } from '@app/utils/vvalidation-utils';
 import { OVERVIEW_QUESTIONS, ReportCardDef, ReportCardResult, ReportClause, ReportError, ReportView, cardsParam, isTimeDimension, overviewCards, parseCardsParam, reportDefinition, reportErrorOf, reportFilters, viewerZone, cardProblem, needsNoCondition } from '@app/utils/report';
 import { listFiltersFor } from '@app/utils/report-drill';
 import { clauseProblem } from '@app/utils/report-where';
@@ -59,7 +62,7 @@ function ErrorPanel({ error, onRetry, onNarrow, currentVersion }: { error: Repor
     if (error.code === 'too_many_rows') {
         const format = (value: number) => new Intl.NumberFormat(locale).format(value);
         return (
-            <div role="alert" className="flex flex-col gap-3 rounded border border-black-300 bg-white p-4">
+            <div role="alert" className="flex flex-col gap-3 rounded border border-hairline-strong bg-white p-4">
                 <p className="m-0 text-sm text-black-900">{t('REPORT.TOO_MANY', { rows: format(error.count ?? 0), max: format(error.max ?? 20000) })}</p>
                 <p className="m-0 text-sm text-black-700">{t('REPORT.TOO_MANY_HELP')}</p>
                 <div className="flex flex-wrap gap-2">
@@ -77,7 +80,7 @@ function ErrorPanel({ error, onRetry, onNarrow, currentVersion }: { error: Repor
     }
     const message = error.code === 'rate_limited' || error.status === 429 ? (error.code === 'report_busy' ? t('REPORT.BUSY') : t('REPORT.RATE_LIMITED')) : error.code === 'report_busy' ? t('REPORT.BUSY') : error.code === 'report_timeout' ? t('REPORT.TIMEOUT') : t('REPORT.ERROR');
     return (
-        <div role="alert" className="flex flex-col items-start gap-3 rounded border border-black-300 bg-white p-4">
+        <div role="alert" className="flex flex-col items-start gap-3 rounded border border-hairline-strong bg-white p-4">
             <p className="m-0 text-sm text-black-900">{message}</p>
             <Button type="button" variant="v2Button" className="h-10 px-4" onClick={onRetry}>
                 {t('REPORT.RETRY')}
@@ -318,15 +321,38 @@ export default function ReportPage() {
             ) : catalogue ? (
                 <>
                     {result?.notices.includes('unreadable_answers') && (
-                        <p role="status" className="m-0 rounded border border-black-300 bg-white p-3 text-sm text-black-800">
+                        <p role="status" className="m-0 rounded border border-hairline-strong bg-white p-3 text-sm text-black-800">
                             {t('REPORT.UNREADABLE')}
                         </p>
                     )}
                     {empty ? (
-                        <div role="status" className="flex flex-col gap-1 rounded border border-black-300 bg-white p-6">
-                            <p className="m-0 text-base font-semibold text-black-900">{filtersActive ? t('REPORT.EMPTY_FILTERED') : t('REPORT.EMPTY_FORM_TITLE')}</p>
-                            {!filtersActive && <p className="m-0 text-sm text-black-700">{t('REPORT.EMPTY_FORM')}</p>}
-                        </div>
+                        filtersActive ? (
+                            // the filters match nothing: a clear line and the way back, no picture
+                            <EmptyState
+                                illustration={false}
+                                headingLevel={3}
+                                title={t('REPORT.EMPTY_FILTERED')}
+                                action={
+                                    <Button type="button" size="medium" onClick={clearFilters}>
+                                        {t('STAFF.EMPTY_STATE.FILTERS_CLEAR')}
+                                    </Button>
+                                }
+                            />
+                        ) : (
+                            <EmptyState
+                                headingLevel={3}
+                                title={t('REPORT.EMPTY_FORM_TITLE')}
+                                description={t('REPORT.EMPTY_FORM')}
+                                // sharing is offered only for a form people can be sent to: published, open and not hidden
+                                action={
+                                    isFormShareable(form) ? (
+                                        <Button type="button" size="medium" onClick={() => router.push(`/${workspace?.workspaceName}/dashboard/forms/${formId}/links`)}>
+                                            {t('STAFF.EMPTY_STATE.RESPONSES_ACTION')}
+                                        </Button>
+                                    ) : undefined
+                                }
+                            />
+                        )
                     ) : (
                         <div role="group" aria-label={t('REPORT.CARD_REGION')} aria-busy={isFetching} className="grid grid-cols-1 gap-4 md:grid-cols-6">
                             {cards.map((card, index) => (
@@ -360,7 +386,21 @@ export default function ReportPage() {
                             onClose={() => setDrill(null)}
                         />
                     )}
-                    {catalogue.fields.length === 0 && !empty && <p className="m-0 text-sm text-black-700">{t('REPORT.NOT_REPORTABLE_ANY')}</p>}
+                    {catalogue.fields.length === 0 && !empty && (
+                        <EmptyState
+                            headingLevel={3}
+                            title={t('STAFF.EMPTY_STATE.REPORT_NONE_TITLE')}
+                            description={t('REPORT.NOT_REPORTABLE_ANY')}
+                            // editing is for members who may edit forms
+                            action={
+                                can(WorkspacePermission.FORM_EDIT) ? (
+                                    <Button type="button" size="medium" onClick={() => router.push(getEditFormURL(workspace, form))}>
+                                        {t('STAFF.EMPTY_STATE.REPORT_NONE_ACTION')}
+                                    </Button>
+                                ) : undefined
+                            }
+                        />
+                    )}
                     {hasTime && <p className="m-0 text-xs text-black-600">{t('REPORT.TZ_NOTE', { zone: tz })}</p>}
 
                     <div className="flex flex-wrap items-center gap-3">

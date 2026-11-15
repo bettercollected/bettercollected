@@ -84,7 +84,7 @@ function AllowedSites() {
                 ) : origins.length === 0 ? (
                     <p className="text-sm text-black-700">{t('STAFF.EMBED.NONE')}</p>
                 ) : (
-                    <ul className="flex flex-col divide-y divide-black-300 rounded border border-black-300 bg-white">
+                    <ul className="flex flex-col divide-y divide-black-300 rounded border border-hairline-strong bg-white">
                         {origins.map((origin) => (
                             <li key={origin} className="flex items-center justify-between gap-3 px-3 py-2">
                                 <span className="min-w-0 truncate font-mono text-[13px] text-black-800">{origin}</span>

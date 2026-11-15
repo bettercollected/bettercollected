@@ -26,7 +26,7 @@ from pydantic.alias_generators import to_camel
 # with an exercise-book margin rule. Stored patterns are not held to the list
 # (older forms may carry others); saved workspace themes are.
 THEME_PATTERNS = ("dots", "grid", "stripes", "columns", "margin")
-THEME_ARTWORKS = ("marble",)
+THEME_ARTWORKS = ("marble", "daybreak")
 
 
 class ThemeBackground(BaseModel):
@@ -42,9 +42,10 @@ class ThemeBackground(BaseModel):
     gradientAngle: Optional[int] = None
     pattern: Optional[str] = None
     imageUrl: Optional[str] = None
-    # Built-in artwork the webapp serves itself (THEME_ARTWORKS): it fills
-    # the picture half of a welcome or ending page whose layout has one and
-    # no image of its own. Absent: none.
+    # Built-in artwork the webapp serves itself (THEME_ARTWORKS): marble
+    # fills the picture half of a welcome or ending page whose layout has one
+    # and no image of its own; daybreak is a scene drawn on the page. Absent:
+    # none.
     artwork: Optional[
         Annotated[
             str, WithJsonSchema({"enum": list(THEME_ARTWORKS), "type": "string"})
@@ -52,8 +53,9 @@ class ThemeBackground(BaseModel):
     ] = Field(
         None,
         description=(
-            "Built-in artwork beside the welcome page (marble: a marbled "
-            "endpaper), served by the app. Absent: none."
+            "Built-in artwork served by the app (marble: a marbled endpaper "
+            "beside the welcome page; daybreak: a sun in the corner of the page "
+            "and a sunrise on the ending). Absent: none."
         ),
     )
 

@@ -27,6 +27,7 @@ import { INavGroup, INavbarItem } from '@app/models/props/navbar';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import DashboardDrawer from '@Components/sidebar/dashboard-drawer';
 import { workspaceNavItems } from '@Components/sidebar/workspace-nav-items';
@@ -60,6 +61,9 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
     }, [workspace?.id]);
     const { t } = useTranslation();
     const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
+    // Only members who may act on deletion requests ask for the count (the page and the stats are theirs).
+    const workspaceStats = useGetWorkspaceStatsQuery(workspace?.id ?? '', { pollingInterval: 30000, skip: !workspace?.id || !can(WorkspacePermission.PRIVACY_MANAGE) });
+    const pendingDeletionRequests = workspaceStats.data?.deletionRequests?.pending ?? 0;
 
     // Nav grouped by meaning: the daily work first (Linear-style), then the
     // public face, then administration.
@@ -83,7 +87,9 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
             name: t(formConstant.deletionRequests),
             url: `${commonWorkspaceUrl}/deletion-requests`,
             permission: WorkspacePermission.PRIVACY_MANAGE,
-            icon: <Trash2 className="stroke-2" />
+            icon: <Trash2 className="stroke-2" />,
+            // waiting for the person: the pending count the dashboard already reads (the deletion requests page)
+            badge: { count: pendingDeletionRequests, label: t('STAFF.NAV.WAITING', { count: pendingDeletionRequests }) }
         }
     ];
 
@@ -189,7 +195,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
             <DashboardDrawer drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} navGroups={navGroups} />
             <main
                 className={cn(
-                    "bg-black-100 float-none mt-[68px] flex min-h-[calc(100vh-68px)]",
+                    "bg-canvas float-none mt-[68px] flex min-h-[calc(100vh-68px)]",
                     "lg:float-right lg:mt-0 lg:min-h-screen lg:w-[calc(100%-289px)]"
                 )}
             >
@@ -215,7 +221,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     </div>
 
                     <div
-                        className={cn('bg-black-100 h-full w-full px-5 lg:px-10 pt-10')}
+                        className={cn("bg-canvas h-full w-full px-5 lg:px-10 pt-10")}
                     >
                         {children}
                     </div>

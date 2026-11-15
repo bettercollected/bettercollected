@@ -829,7 +829,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                             </div>
                             {/* Same mat + floating-sheet treatment as the main canvas, so
                                 "edit a page" looks identical wherever it happens. */}
-                            <div ref={overlayMatRef} className="flex min-h-0 flex-1 overflow-auto bg-[#F2F4F7] px-8 py-8" onClick={() => setActiveFieldComponent(null)}>
+                            <div ref={overlayMatRef} className="flex min-h-0 flex-1 overflow-auto bg-canvas px-8 py-8" onClick={() => setActiveFieldComponent(null)}>
                                 <div className="m-auto shrink-0" style={{ width: SLIDE_W * overlayScale, height: SLIDE_H * overlayScale }}>
                                     <div
                                         className="border-black-400 overflow-hidden rounded border bg-white"

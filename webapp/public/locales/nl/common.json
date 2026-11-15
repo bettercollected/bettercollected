@@ -1528,7 +1528,9 @@
       "SITE": "Site",
       "SITE_SETTINGS": "Site-instellingen",
       "CUSTOM_DOMAIN": "Aangepast domein",
-      "WORKSPACE": "Werkruimte"
+      "WORKSPACE": "Werkruimte",
+      "WAITING_one": "{{count}} wacht op u",
+      "WAITING_other": "{{count}} wachten op u"
     },
     "SITE": {
       "COPY_ARIA": "Kopieer de link van uw site",
@@ -2421,6 +2423,38 @@
         "NOTE": "Wijzig dit in de instellingen van een formulier, onder Toegang.",
         "LOAD_FAILED": "Dit kon niet worden geladen. Sluit dit venster en probeer het opnieuw."
       }
+    },
+    "WELCOME": {
+      "GREETING_MORNING": "Goedemorgen",
+      "GREETING_AFTERNOON": "Goedemiddag",
+      "GREETING_EVENING": "Goedenavond",
+      "GREETING_NEUTRAL": "Welkom",
+      "WITH_NAME": "{{greeting}}, {{name}}",
+      "REQUESTS_TEXT_one": "{{count}} verwijderingsverzoek wacht op u.",
+      "REQUESTS_TEXT_other": "{{count}} verwijderingsverzoeken wachten op u.",
+      "REQUESTS_ACTION": "Verzoeken bekijken",
+      "DRAFT_TEXT": "“{{title}}” is nog een concept. Rond het af en publiceer wanneer u er klaar voor bent.",
+      "DRAFTS_TEXT_one": "{{count}} formulier is nog een concept. Ga verder waar u gebleven was.",
+      "DRAFTS_TEXT_other": "{{count}} formulieren zijn nog concepten. Ga verder waar u gebleven was.",
+      "DRAFT_ACTION": "Concept openen",
+      "READY_TEXT": "Alles is op orde. Begin een nieuw formulier wanneer u er een nodig hebt.",
+      "READY_VIEW_TEXT": "Uw formulieren staan hieronder."
+    },
+    "EMPTY_STATE": {
+      "FORMS_TITLE": "Nog geen formulieren",
+      "FORMS_TEXT": "Maak uw eerste formulier en deel de link zodra het klaar is.",
+      "RESPONSES_TITLE": "Nog geen reacties",
+      "RESPONSES_TEXT": "Reacties verschijnen hier zodra mensen het formulier invullen. Deel de link voor de eerste.",
+      "RESPONSES_ACTION": "Formulier delen",
+      "REQUESTS_TITLE": "Geen verwijderingsverzoeken",
+      "REQUESTS_TEXT": "Verzoeken verschijnen hier zodra iemand vraagt om verwijdering van de eigen antwoorden. Er wacht niets op u.",
+      "REQUESTS_ACTION": "Naar formulieren",
+      "REPORT_NONE_TITLE": "Nog niets te rapporteren",
+      "REPORT_NONE_ACTION": "Formulier bewerken",
+      "SEARCH_TITLE": "Geen formulieren gevonden voor uw zoekopdracht",
+      "SEARCH_TEXT": "Probeer een ander woord, of wis de zoekopdracht om alle formulieren te zien.",
+      "SEARCH_CLEAR": "Zoekopdracht wissen",
+      "FILTERS_CLEAR": "Filters wissen"
     }
   },
   "ANALYTICS": {

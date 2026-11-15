@@ -20,7 +20,7 @@ import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permission
 import { usePageIds } from '@app/store/jotai/entity-hooks';
 import { initialFieldsState } from '@app/store/jotai/field-selectors';
 import { initialFormState, useFormState } from '@app/store/jotai/form';
-import { resetFromServerAtom, setLayoutContainersSwitch } from '@app/store/jotai/form-document';
+import { resetFromServerAtom, setLayoutContainersSwitch, setOfferedGatedPresets } from '@app/store/jotai/form-document';
 import { useFormLanguageSync } from '@app/store/jotai/form-language';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { withEndingIds } from '@app/utils/endings';
@@ -47,11 +47,16 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     const { formState } = useFormState();
     const resetFromServer = useSetAtom(resetFromServerAtom);
     // The server's say on layout containers reaches the ops engine: while it is off, an edit that would add or change one is refused here too.
-    const { layoutContainersEnabled, answered: permissionsAnswered } = useWorkspacePermissions();
+    const { layoutContainersEnabled, offeredGatedPresets, answered: permissionsAnswered } = useWorkspacePermissions();
     useEffect(() => {
         setLayoutContainersSwitch(permissionsAnswered ? layoutContainersEnabled : undefined);
         return () => setLayoutContainersSwitch(undefined);
     }, [permissionsAnswered, layoutContainersEnabled]);
+    // ...and its gated theme presets (Daybreak while its switch is on): the engine refuses the others by name.
+    useEffect(() => {
+        setOfferedGatedPresets(permissionsAnswered ? offeredGatedPresets : undefined);
+        return () => setOfferedGatedPresets(undefined);
+    }, [permissionsAnswered, offeredGatedPresets]);
     const { setHydratedFormId } = useBuilderHydration();
     // The respondent views and the plain-language tips read the form's language from Redux.
     useFormLanguageSync();
@@ -202,7 +207,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                     feeds back into the Fit scale and shrinks the card. */}
                 <div
                     ref={canvasMatRef}
-                    className=" relative flex max-h-full max-w-full flex-1 self-stretch overflow-auto bg-[#F2F4F7] px-8 py-10"
+                    className=" relative flex max-h-full max-w-full flex-1 self-stretch overflow-auto bg-canvas px-8 py-10"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}

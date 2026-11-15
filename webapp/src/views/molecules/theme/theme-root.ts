@@ -3,6 +3,7 @@ import { CSSProperties, useEffect } from 'react';
 import { themeFaces } from '@app/assets/fonts/theme-faces';
 import { FormTheme, THEME_BUTTON_STYLES, THEME_FONTS, THEME_RADII, ThemeFontId, ThemeRadius, isHexColour } from '@app/constants/theme';
 import { contrast } from '@app/utils/color-contrast';
+import { daybreakRule, hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
 import { outlinedButtonInk } from '@app/utils/theme-contrast';
 
 /**
@@ -184,6 +185,11 @@ export function themeRootProps(theme?: Partial<FormTheme> | null, { typeOnly = f
         attributes['data-form-ground'] = 'columns';
         style['--form-ground-fill'] = pageOf(theme);
     }
+
+    // The Daybreak scene: the "why we ask" rule is the sun, deepened to read
+    // on the page. The highlight, if the form has one, wins; the focus ring
+    // and the chosen answer stay in the action colour.
+    if (hasDaybreakScene(theme) && !isHexColour(theme.highlight)) style['--form-highlight-rule'] = daybreakRule(theme);
 
     const highlight = highlightColours(theme);
     if (highlight) {

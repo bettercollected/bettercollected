@@ -208,7 +208,7 @@ export default function APIKeysPage() {
                 <div className="flex flex-col gap-2 rounded-md border border-[#B7E0CD] bg-[#F0FAF5] p-4">
                     <p className="text-black-900 text-sm font-semibold">{t('STAFF.API_KEYS.COPY_NOW', { name: freshToken.name })}</p>
                     <p className="text-black-600 text-xs leading-relaxed">{t('STAFF.API_KEYS.ONLY_ONCE')}</p>
-                    <div className="border-black-300 flex items-center justify-between gap-3 rounded-md border bg-white px-3.5 py-2.5">
+                    <div className="border-hairline-strong flex items-center justify-between gap-3 rounded-md border bg-white px-3.5 py-2.5">
                         <code className="text-black-800 truncate text-[13px]">{freshToken.token}</code>
                         <CopyButton value={freshToken.token} label={t('STAFF.API_KEYS.COPY_KEY')} />
                     </div>

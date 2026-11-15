@@ -5,6 +5,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { FormBarRestrictedChip } from '@app/components/form/access/restricted-chip';
+import FormAvatar from '@app/components/ui/form-avatar';
 import { StandardFormDto } from '@app/models/dtos/form';
 
 import { BackToForms, FormBarActions, SkipLink, StatusChip, useFormNav } from './form-nav';
@@ -22,10 +23,11 @@ export default function FormShell({ form, base, children }: { form: StandardForm
     const title = form?.title?.trim() || t('FORM_SHELL.UNTITLED');
 
     return (
-        <div className="min-h-screen w-full bg-white">
+        <div className="min-h-screen w-full bg-canvas">
             <SkipLink />
             <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-black-400 bg-white px-3 md:px-6">
                 <BackToForms />
+                <FormAvatar formId={form?.formId} title={form?.title} className="h-8 w-8 text-xs" />
                 <div className="flex min-w-0 flex-col items-start gap-0.5 md:flex-row md:items-center md:gap-2">
                     <h1 className="max-w-full min-w-0 truncate text-base leading-6 font-semibold tracking-title-sm text-black-900" title={title}>
                         {title}
