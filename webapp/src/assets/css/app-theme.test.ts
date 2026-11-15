@@ -123,6 +123,8 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
         ['primary', '--color-brand-500'],
         ['primary-deep', '--color-brand-600'],
         ['primary-soft', '--color-brand-200'],
+        ['primary-edge', '--color-brand-300'],
+        ['primary-edge-strong', '--color-brand-400'],
         ['edge', '--color-black-300'],
         ['edge-strong', '--color-black-400'],
         ['wash', '--color-black-100'],
@@ -141,7 +143,7 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
     });
 
     it('are different values in Pigment (iris and warm paper), never a ramp reference', () => {
-        for (const name of ['primary', 'primary-deep', 'primary-soft', 'edge', 'edge-strong', 'wash', 'wash-strong', 'control']) {
+        for (const name of ['primary', 'primary-deep', 'primary-soft', 'primary-edge', 'primary-edge-strong', 'edge', 'edge-strong', 'wash', 'wash-strong', 'control']) {
             expect(rule('pigment', 'scope')[`--app-${name}`], name).toMatch(/^#[0-9A-F]{6}$/i);
             expect(role('pigment', name), name).not.toBe(role('daybreak', name));
         }
@@ -154,6 +156,8 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
             ['app-primary-deep', 'app-primary-deep', 'color-brand-600'],
             ['app-primary-soft', 'app-primary-soft', 'color-brand-200'],
             ['app-primary-tint', 'app-primary-tint', 'color-brand-100'],
+            ['app-primary-edge', 'app-primary-edge', 'color-brand-300'],
+            ['app-primary-edge-strong', 'app-primary-edge-strong', 'color-brand-400'],
             ['app-edge', 'app-edge', 'color-black-300'],
             ['app-edge-strong', 'app-edge-strong', 'color-black-400'],
             ['app-wash', 'app-wash', 'color-black-100'],

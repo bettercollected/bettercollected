@@ -293,8 +293,16 @@ the roles above, so a Pigment workspace is iris and warm paper throughout the
 dashboard, the builder, the responses, the report and the settings: links and
 text actions, avatars, switches, checkboxes and radios (native controls take
 the iris through `accent-color`), tabs, edges, washes and the pills. What stays
-as it is: the neutral text steps (`text-black-*`), anything a form theme paints
-(so a form inside the builder keeps its own colours), and the respondent routes.
+as it is: the neutral text steps (`text-black-*`, and the same greys as
+`placeholder-black-*` and the `fill-black-*` of chart labels), anything a form theme
+paints (so a form inside the builder keeps its own colours), and the respondent
+routes. Every other `brand-*` and `black-*` step on a border, ring, wash or blue text
+in the creator app reads a role, in every form it is written in (variants such as
+`hover:` and `focus:`, side-specific borders such as `border-b-`, `placeholder-`,
+and the variables `var(--color-brand-500)` and `--key-edge`); the hover edges of
+cards are the roles `app-primary-edge` and `app-primary-edge-strong`.
+`webapp/src/assets/css/app-theme.test.ts` fails when one of those forms is left on
+a ramp.
 
 **The nav chips.** In a Pigment scope each group of the dashboard menu has a small
 pigment chip before its label (tomato, sky, mint). It is a `::before` of the

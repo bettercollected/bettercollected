@@ -16,7 +16,7 @@ const NavBar = ({ isModal = false }: { isModal?: boolean }) => {
     const router = useRouter();
     const workspaceTitle = workspaceDisplayName(workspace);
     return (
-        <div className="border-b-black-300 flex h-16 w-full items-center justify-start border-b bg-white! p-4">
+        <div className="border-b-app-edge flex h-16 w-full items-center justify-start border-b bg-white! p-4">
             {/* Workspace identity, not the product logo (de-brand decision —
                 same rule as the top navbar). Still the "back to forms" target. */}
             <button

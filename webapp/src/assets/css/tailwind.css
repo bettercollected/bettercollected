@@ -707,6 +707,8 @@
     --color-app-primary-deep: var(--app-primary-deep, var(--color-brand-600));
     --color-app-primary-soft: var(--app-primary-soft, var(--color-brand-200));
     --color-app-primary-tint: var(--app-primary-tint, var(--color-brand-100));
+    --color-app-primary-edge: var(--app-primary-edge, var(--color-brand-300));
+    --color-app-primary-edge-strong: var(--app-primary-edge-strong, var(--color-brand-400));
     --color-app-edge: var(--app-edge, var(--color-black-300));
     --color-app-edge-strong: var(--app-edge-strong, var(--color-black-400));
     --color-app-wash: var(--app-wash, var(--color-black-100));
@@ -790,6 +792,8 @@
     --app-primary-deep: var(--color-brand-600); /* text links and their hover */
     --app-primary-soft: var(--color-brand-200); /* soft fills and borders */
     --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
+    --app-primary-edge: var(--color-brand-300); /* hover edge of a card (the old brand-300) */
+    --app-primary-edge-strong: var(--color-brand-400); /* hover edge of a workspace or theme card (the old brand-400) */
     --app-edge: var(--color-black-300); /* card, table and row edges, quiet fills */
     --app-edge-strong: var(--color-black-400); /* heavier edges */
     --app-wash: var(--color-black-100); /* hover and quiet fills */
@@ -867,6 +871,8 @@ html:has([data-app-theme='daybreak']) {
     --app-primary-deep: var(--color-brand-600); /* text links and their hover */
     --app-primary-soft: var(--color-brand-200); /* soft fills and borders */
     --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
+    --app-primary-edge: var(--color-brand-300); /* hover edge of a card (the old brand-300) */
+    --app-primary-edge-strong: var(--color-brand-400); /* hover edge of a workspace or theme card (the old brand-400) */
     --app-edge: var(--color-black-300); /* card, table and row edges, quiet fills */
     --app-edge-strong: var(--color-black-400); /* heavier edges */
     --app-wash: var(--color-black-100); /* hover and quiet fills */
@@ -947,6 +953,8 @@ html:has([data-app-theme='daybreak']) {
     --app-primary-deep: #3E29C4; /* text links and their hover */
     --app-primary-soft: #C8BFF7; /* soft fills and borders */
     --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
+    --app-primary-edge: #B0A4F0; /* iris, light: hover edge of a card */
+    --app-primary-edge-strong: #8575E8; /* iris, mid: hover edge of a workspace or theme card */
     --app-edge: #E9E1D4; /* card, table and row edges, quiet fills */
     --app-edge-strong: #CFC4B1; /* heavier edges */
     --app-wash: #F7F1E7; /* hover and quiet fills */
@@ -1029,6 +1037,8 @@ html:has([data-app-theme='pigment']) {
     --app-primary-deep: #3E29C4; /* text links and their hover */
     --app-primary-soft: #C8BFF7; /* soft fills and borders */
     --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
+    --app-primary-edge: #B0A4F0; /* iris, light: hover edge of a card */
+    --app-primary-edge-strong: #8575E8; /* iris, mid: hover edge of a workspace or theme card */
     --app-edge: #E9E1D4; /* card, table and row edges, quiet fills */
     --app-edge-strong: #CFC4B1; /* heavier edges */
     --app-wash: #F7F1E7; /* hover and quiet fills */

@@ -34,6 +34,8 @@ export const APP_ROLES_RESET_ON_FORMS = [
     '--app-primary-deep',
     '--app-primary-soft',
     '--app-primary-tint',
+    '--app-primary-edge',
+    '--app-primary-edge-strong',
     '--app-edge',
     '--app-edge-strong',
     '--app-wash',

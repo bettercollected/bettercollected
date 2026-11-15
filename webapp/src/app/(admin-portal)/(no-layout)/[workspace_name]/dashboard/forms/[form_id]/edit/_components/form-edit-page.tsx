@@ -278,7 +278,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                         </button>
                     </div>
                 </div>
-                <div id="slide-element-properties" className="border-l-black-300 h-full w-[300px] self-stretch overflow-auto bg-white">
+                <div id="slide-element-properties" className="border-l-app-edge h-full w-[300px] self-stretch overflow-auto bg-white">
                     <PropertiesDrawer />
                 </div>
                 <FloatingPopOverButton content={<HelpMenuComponent />}>

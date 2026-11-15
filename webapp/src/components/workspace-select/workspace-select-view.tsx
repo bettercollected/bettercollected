@@ -23,7 +23,7 @@ import { useGetWorkspaceSelectionQuery } from '@app/store/workspaces/api';
 
 const KNOWN_ROLES = new Set(['OWNER', 'ADMIN', 'EDITOR', 'REVIEWER', 'VIEWER', 'PRIVACY_OFFICER']);
 
-const rowClassName = 'group flex w-full items-center gap-3 rounded-xl border border-app-edge bg-white px-4 py-3 text-left transition-colors hover:border-brand-400 hover:bg-app-primary-tint/40 focus-visible:border-app-primary';
+const rowClassName = 'group flex w-full items-center gap-3 rounded-xl border border-app-edge bg-white px-4 py-3 text-left transition-colors hover:border-app-primary-edge-strong hover:bg-app-primary-tint/40 focus-visible:border-app-primary';
 
 interface WorkspaceSelectViewProps {
     /** a fixed notice code from the URL (only `no_access` and `sso_required` are shown) */

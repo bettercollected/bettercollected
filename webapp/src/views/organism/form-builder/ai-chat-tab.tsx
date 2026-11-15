@@ -516,7 +516,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     key={prompt}
                                     type="button"
                                     onClick={() => send(prompt)}
-                                    className="rounded-md border border-app-edge bg-white px-2.5 py-1.5 text-left transition-colors hover:border-brand-300 hover:bg-[#F6F9FF] hover:text-black-800"
+                                    className="rounded-md border border-app-edge bg-white px-2.5 py-1.5 text-left transition-colors hover:border-app-primary-edge hover:bg-[#F6F9FF] hover:text-black-800"
                                 >
                                     “{prompt}”
                                 </button>
