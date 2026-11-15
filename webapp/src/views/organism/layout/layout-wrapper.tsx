@@ -125,7 +125,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
             style={
                 // On the image-background layout the slide's own image is
                 // the ground, so the theme background stays out of the way.
-                layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? { background: 'transparent' } : themeBackgroundStyle(theme, { leftAligned: isLeftAligned(layout) })
+                layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? { background: 'transparent' } : themeBackgroundStyle(theme, { leftAligned: isLeftAligned(layout), corner: !band })
             }
             className={cn(
                 // Under a logo strip the column holding both sets the height.

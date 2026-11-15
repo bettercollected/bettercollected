@@ -46,11 +46,11 @@ const MARGIN_RULE_AT = 'calc(50% - 392px)';
  * what patterns draw on, what shows while an image loads, and the fallback for
  * incomplete gradient data).
  */
-export function themeBackgroundStyle(theme?: Partial<FormTheme>, options: { compact?: boolean; leftAligned?: boolean } = {}): CSSProperties {
+export function themeBackgroundStyle(theme?: Partial<FormTheme>, options: { compact?: boolean; leftAligned?: boolean; /** Draw the Daybreak corner sun (default). Off under the ending's sunrise band. */ corner?: boolean } = {}): CSSProperties {
     const ground = plainBackgroundStyle(theme, options);
     // The Daybreak scene's corner sun is an image under everything else; it
     // only joins a ground that draws no image of its own (a colour).
-    return hasDaybreakScene(theme) && !ground.backgroundImage ? { ...ground, ...daybreakCornerStyle(options.compact) } : ground;
+    return options.corner !== false && hasDaybreakScene(theme) && !ground.backgroundImage ? { ...ground, ...daybreakCornerStyle(options.compact) } : ground;
 }
 
 function plainBackgroundStyle(theme?: Partial<FormTheme>, { compact = false, leftAligned = false }: { /** A small preview or swatch. */ compact?: boolean; /** A page whose column keeps to the left edge. */ leftAligned?: boolean } = {}): CSSProperties {

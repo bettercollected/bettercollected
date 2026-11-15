@@ -160,6 +160,9 @@ describe('the sunrise on the ending', () => {
                 </LayoutWrapper>
             ).container;
         expect(ending(FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND).querySelector('[data-testid="daybreak-sunrise"]')).not.toBeNull();
+        // the corner sun stays out from under the band (a wedge of it would peek out below)
+        expect(ending(FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND).innerHTML).not.toContain('data:image/svg+xml');
+        expect(themeBackgroundStyle(DAYBREAK, { corner: false }).backgroundImage).toBeUndefined();
         // a page set beside a picture gets no artwork panel from the scene (only marble fills one)
         expect(ending(FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT).querySelector('[data-testid="theme-artwork"]')).toBeNull();
     });
