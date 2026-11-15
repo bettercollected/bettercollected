@@ -1,7 +1,7 @@
 # Theme colors dictionary
 from typing import Optional
 
-from common.models.standard_form import Theme
+from common.models.standard_form import THEME_ARTWORKS, Theme
 
 # How a form can be dressed, independent of its colours. Same list as the
 # webapp's THEME_STYLES (webapp/src/constants/theme.ts); a parity test keeps
@@ -359,6 +359,27 @@ def preset_offered(name: str) -> bool:
     from backend.config import settings
 
     return bool(getattr(settings, switch, False))
+
+
+# Artwork that belongs to a gated preset: it is offered while that preset is.
+# Anything that takes an inline theme (a form save, the edit operations, a saved
+# workspace theme) refuses a new theme that names an artwork that is not offered,
+# as it refuses an unlisted one, unless the stored value already has it.
+GATED_ARTWORKS = {
+    "daybreak": "Daybreak",
+}
+
+
+def artwork_offered(artwork: Optional[str]) -> bool:
+    """Is the artwork (a ``background.artwork`` value) offered now: it is on no
+    gated preset's list, or its preset is offered (``preset_offered``)?"""
+    preset = GATED_ARTWORKS.get(artwork) if isinstance(artwork, str) else None
+    return preset is None or preset_offered(preset)
+
+
+def offered_artworks() -> list[str]:
+    """The ``background.artwork`` values a new theme may name now."""
+    return [artwork for artwork in THEME_ARTWORKS if artwork_offered(artwork)]
 
 
 def offered_presets() -> list[str]:

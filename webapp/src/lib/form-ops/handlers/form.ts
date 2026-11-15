@@ -1,5 +1,5 @@
 /** Form-level ops: title, settings, theme. */
-import { type FormTheme, THEME_STYLES, THEME_TYPE_SHAPE_KEYS, ThemeColors, isPresetOffered, offeredPresets, themeProblems, welcomeLayoutAfterPreset } from '@app/constants/theme';
+import { type FormTheme, THEME_STYLES, THEME_TYPE_SHAPE_KEYS, ThemeColors, isPresetOffered, offeredPresets, themeProblems, unofferedArtworkProblem, welcomeLayoutAfterPreset } from '@app/constants/theme';
 
 import { IMAGE_URL_ERROR, firstPartyImageUrl } from '../images';
 import { checkedFormLanguage, formLanguageName } from '../languages';
@@ -135,6 +135,9 @@ export const updateTheme: Handler<UpdateThemeOp> = (ctx, op) => {
     // type, shape and highlight on their lists (backend _check_theme)
     const problems = themeProblems(theme, 'theme');
     if (problems.length) throw new OpError(problems.join(' '));
+    // a gated artwork (Daybreak) only while its switch is on, or as the form's theme already has it (backend _check_artwork_offered)
+    const unoffered = unofferedArtworkProblem(theme, ctx.state.theme, 'theme', ctx.options.offeredGatedPresets);
+    if (unoffered) throw new OpError(unoffered);
     const background = theme.background;
     if (background != null && background.imageUrl != null) {
         // Respondent pages load it directly: our storage or Unsplash only

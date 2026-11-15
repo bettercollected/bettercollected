@@ -358,6 +358,30 @@ export const ThemeColors: Array<FormTheme> = [
 // rendering whatever the switch says; only picking it anew is gated.
 export const GATED_PRESETS: ReadonlyArray<string> = ['Daybreak'];
 
+// Artwork that belongs to a gated preset (backend constants/themes.py
+// GATED_ARTWORKS, a test keeps the two together): offered while the preset is.
+// A new theme that names an unoffered artwork is refused as an unlisted one is,
+// unless the stored theme at the same place already has it.
+export const GATED_ARTWORKS: Readonly<Record<string, string>> = { daybreak: 'Daybreak' };
+
+/** The `background.artwork` values a new theme may name, for the server's list of switched-on gated presets. */
+export function offeredArtworks(offeredGated: ReadonlyArray<string> | null | undefined): ThemeArtwork[] {
+    return THEME_ARTWORKS.filter((artwork) => !GATED_ARTWORKS[artwork] || !!offeredGated?.includes(GATED_ARTWORKS[artwork]));
+}
+
+/**
+ * The refusal a theme earns for naming an artwork the server does not offer,
+ * word for word as the backend's `_check_artwork_offered`, or null. Not asked
+ * (null) while the server's list is not known (`offeredGated` undefined).
+ */
+export function unofferedArtworkProblem(theme: unknown, stored: unknown, path: string, offeredGated: ReadonlyArray<string> | undefined): string | null {
+    if (offeredGated === undefined) return null;
+    const artwork = (theme as { background?: { artwork?: unknown } } | null | undefined)?.background?.artwork;
+    if (typeof artwork !== 'string' || !GATED_ARTWORKS[artwork] || offeredGated.includes(GATED_ARTWORKS[artwork])) return null;
+    if ((stored as { background?: { artwork?: unknown } } | null | undefined)?.background?.artwork === artwork) return null;
+    return `${path}.background.artwork must be one of: ${offeredArtworks(offeredGated).join(', ')}.`;
+}
+
 /** Is the preset offered: it has no switch, or the server says its switch is on. */
 export function isPresetOffered(title: string, offeredGated: ReadonlyArray<string> | null | undefined): boolean {
     return !GATED_PRESETS.includes(title) || !!offeredGated?.includes(title);

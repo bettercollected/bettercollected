@@ -5,7 +5,7 @@ import { Provider } from 'jotai';
 import { Provider as ReduxProvider } from 'react-redux';
 import { describe, expect, it } from 'vitest';
 
-import { FormTheme, GATED_PRESETS, ThemeColors, findPreset, isPresetOffered, offeredPresets, welcomeLayoutAfterPreset } from '@app/constants/theme';
+import { FormTheme, GATED_ARTWORKS, GATED_PRESETS, ThemeColors, findPreset, isPresetOffered, offeredArtworks, offeredPresets, unofferedArtworkProblem, welcomeLayoutAfterPreset } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { store } from '@app/store/store';
 import { contrast } from '@app/utils/color-contrast';
@@ -76,6 +76,45 @@ describe('the Daybreak preset', () => {
         expect((on.doc as any).theme.background.artwork).toBe('daybreak');
         // no list given: everything is offered (the corpus, the server's own run)
         expect(applyOps(doc, [{ op: 'set_theme_preset', name: 'Daybreak' }] as any).results[0].ok).toBe(true);
+    });
+});
+
+describe('the artwork is gated like the preset (backend _check_artwork_offered)', () => {
+    const THEME = { title: 'Mine', primary: '#0E1737', secondary: '#1649E2', tertiary: '#6E7CA8', accent: '#F3F6FF', background: { type: 'color', artwork: 'daybreak' } };
+    const REFUSED = 'background.artwork must be one of: marble.';
+    const doc = (extra: Record<string, unknown> = {}) => ({ title: 'F', builderVersion: 'v2', fields: [{ id: 'p1', index: 0, type: 'slide', properties: { fields: [] } }], ...extra }) as any;
+
+    it('lists the artworks a new theme may name', () => {
+        expect(GATED_ARTWORKS).toEqual({ daybreak: 'Daybreak' });
+        expect(offeredArtworks([])).toEqual(['marble']);
+        expect(offeredArtworks(['Daybreak'])).toEqual(['marble', 'daybreak']);
+        expect(unofferedArtworkProblem(THEME, null, 'theme', [])).toBe(`theme.${REFUSED}`);
+        expect(unofferedArtworkProblem(THEME, null, 'theme', ['Daybreak'])).toBeNull();
+        // not asked while the server's list is not known
+        expect(unofferedArtworkProblem(THEME, null, 'theme', undefined)).toBeNull();
+        // what the stored theme already has stays
+        expect(unofferedArtworkProblem(THEME, { background: { artwork: 'daybreak' } }, 'theme', [])).toBeNull();
+        expect(unofferedArtworkProblem({ ...THEME, background: { type: 'color', artwork: 'marble' } }, null, 'theme', [])).toBeNull();
+    });
+
+    it('update_theme: refused while off with a new artwork, kept as the form has it, applied while on', () => {
+        const off = applyOps(doc(), [{ op: 'update_theme', theme: THEME }] as any, { offeredGatedPresets: [] });
+        expect(off.results[0].ok).toBe(false);
+        expect(off.results[0].message).toBe(`theme.${REFUSED}`);
+        const worn = doc({ theme: THEME });
+        const kept = applyOps(worn, [{ op: 'update_theme', theme: { ...THEME, title: 'Renamed' } }] as any, { offeredGatedPresets: [] });
+        expect(kept.results[0].ok).toBe(true);
+        expect((kept.doc as any).theme.background.artwork).toBe('daybreak');
+        expect(applyOps(doc(), [{ op: 'update_theme', theme: THEME }] as any, { offeredGatedPresets: ['Daybreak'] }).results[0].ok).toBe(true);
+    });
+
+    it('update_page: refused while off with a new page theme, kept as the page has it', () => {
+        const patch = [{ op: 'update_page', pageId: 'p1', patch: { theme: THEME } }] as any;
+        const off = applyOps(doc(), patch, { offeredGatedPresets: [] });
+        expect(off.results[0].ok).toBe(false);
+        expect(off.results[0].message).toBe(`theme.${REFUSED}`);
+        const worn = doc({ fields: [{ id: 'p1', index: 0, type: 'slide', properties: { fields: [], theme: THEME } }] });
+        expect(applyOps(worn, patch, { offeredGatedPresets: [] }).results[0].ok).toBe(true);
     });
 });
 

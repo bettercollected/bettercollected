@@ -73,10 +73,21 @@ contrast guard, `services/theme_contrast.py`, `docs/spec/theme-contrast.cases.js
   operations (`set_theme_preset`), the outline the AI writes, the AI's list of looks and
   the MCP server treat `Daybreak` as an unknown preset: the same refusal, and the
   list in the message leaves it out. Nothing else changes.
-- **Stored values never depend on it.** A form that stores the theme renders it,
-  publishes and saves as before, and the builder keeps it in the picker as the
-  form's current look. A theme sent inline with `artwork: "daybreak"` is valid
-  whatever the switch says: the artwork is a stored-value vocabulary like `marble`.
+- **The artwork is gated too, not only the name.** A new theme that names
+  `background.artwork: "daybreak"` is refused as an unlisted artwork is
+  (422 `theme_not_allowed`, or an operation error, "`theme.background.artwork`
+  must be one of: marble.") on every path that takes an inline theme: a whole-form
+  save (including the spec API and the public API), a new form, the edit operations
+  (`update_theme`, `update_page`), the one write path of the AI and MCP writers
+  (`persist_form`) and a workspace's saved themes. `GATED_ARTWORKS` (backend
+  `constants/themes.py`, mirrored in `webapp/src/constants/theme.ts`) names the preset
+  an artwork belongs to. A copy of a form or template keeps what its source has.
+- **Stored values never depend on it.** The refusal does not apply to what is
+  stored: a theme that has the artwork at the same place of the stored form (the form's
+  own theme, or the page or question at the same path), or, for saved themes, a stored
+  theme of the same title, still saves. So a form that wears Daybreak renders,
+  publishes and saves as before, and the builder keeps it in the picker as the form's
+  current look.
 - **On.** All of the above know the name.
 
 `GATED_PRESETS` (`backend/backend/app/constants/themes.py`, mirrored in
