@@ -70,7 +70,7 @@ const MainValidUser: React.FC<Props> = ({ workspace, user, invitation }: Props) 
         <div className="min-h-screen w-full">
             <AuthNavbar showHamburgerIcon={false} showPlans={false} />
 
-            <div className="mx-auto flex w-full max-w-[620px] flex-col px-4 pb-10 pt-12 sm:pt-20">
+            <div className="mx-auto flex w-full max-w-[620px] flex-col px-4 pb-10 pt-24 sm:pt-28">
                 <div className={cn(PAGE_CARD, 'flex flex-col sm:p-10')}>
                     <div className="flex flex-col items-center justify-center">
                         <div className="sh3 text-black-700! mb-4 mt-6 text-center text-2xl font-normal!">
