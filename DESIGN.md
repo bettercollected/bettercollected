@@ -185,11 +185,14 @@ surfaces to move; the ramps themselves stay frozen for respondent routes.
 
 **Respondent routes keep paper mist.** `data-app-theme` is set by the creator
 app's layouts only: the admin portal (dashboard, builder, settings, the Report
-page, the workspace picker) and the sign-in routes. The variables are also
-defined on `<html>` while the document holds a scoped element
-(`html:has([data-app-theme='daybreak'])`), so menus, dialogs and toasts that
-portal out of the app read them too. A page without the attribute (the form on
-the form domain and on a custom domain, the responder portal) has none of the
+page, the workspace picker) and the creator's sign-in. The respondent's
+sign-in (`/login?type=responder`, also served on custom domains) is a respondent
+route and does not carry it. The variables are also defined on `<html>`, in a
+rule of its own (`html:has([data-app-theme='daybreak'])`; a browser without
+`:has` drops only that rule), while the document holds a scoped element, so
+menus, dialogs and toasts that portal out of the app read them too. A page
+without the attribute (the form on the form domain and on a custom domain, the
+responder portal, the respondent's sign-in) has none of the
 variables: its `<html>` and `<body>` ground falls back to `black-100`, paper mist,
 from the server-rendered markup. `views/molecules/theme/respondent-colours-pin.test.tsx`
 pins the Default preset's resolved colours and the hex values the trust strip
@@ -198,7 +201,7 @@ checks the token values, the scope, which layouts carry the attribute, and every
 contrast pair listed here.
 
 **How a second app theme plugs in.** Add another block of the same shape,
-`[data-app-theme='<name>'], html:has([data-app-theme='<name>'])`, that sets the
+`[data-app-theme='<name>']` plus its `html:has(...)` mirror in a second rule, that sets the
 same `--app-*` and `--series-*` variables, and set the attribute on the app
 layouts (it can follow a workspace setting). Components do not change: they use
 the semantic utilities, never a hex or a ramp step, for app chrome. The ramps and
@@ -785,7 +788,8 @@ control boundaries and meaningful icons.
 | Ink / copy / ink-muted on white | 17.5:1 / 8.9:1 / 6.0:1 |
 | Ink-muted on `sunken` `#E8EDFF` (neutral pill) | 5.1:1 |
 | Link `#1035A8` on white / on `brand-tint` `#E0E8FF` (active navigation) | 10.0:1 / 8.2:1 |
-| Action `#1649E2` on white / canvas / `brand-tint` (selection edge, focus ring) | 6.8:1 / 6.3:1 / 5.6:1 |
+| Action `#1649E2` on white / canvas / `brand-tint` (selection edge) | 6.8:1 / 6.3:1 / 5.6:1 |
+| Sireto blue `#123FC9` on white / canvas (the focus ring) | 8.1:1 / 7.5:1 |
 | Control edge `#6E7CA8` on white / canvas | 4.1:1 / 3.8:1 |
 | `sun-ink` on `sun-tint`; `coral-ink` on `coral-tint` | 7.4:1; 5.9:1 |
 | `ok`, `warn`, `bad`, `info` text on their tints | 5.4:1, 6.6:1, 5.3:1, 8.2:1 |

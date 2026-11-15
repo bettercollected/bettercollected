@@ -178,7 +178,7 @@ export function StatusChip({ form, className }: { form: StandardFormDto; classNa
             {t('FORM_SHELL.PUBLISHED')}
         </StatusPill>
     ) : (
-        <StatusPill tone="warn" className={className}>
+        <StatusPill tone="neutral" className={className}>
             {t('FORM_SHELL.DRAFT')}
         </StatusPill>
     );
