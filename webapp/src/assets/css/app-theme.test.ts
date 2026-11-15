@@ -191,9 +191,15 @@ describe('the shared controls read the chrome roles, and the frozen files do not
 
 describe('the nav group chips', () => {
     it('are drawn by a pseudo-element that only exists inside a Pigment scope, so Daybreak gets no element and no pixel', () => {
-        const rules = [...css.matchAll(/^([^\n{}]*data-nav-chip[^\n{]*)\{/gm)].map((match) => match[1].trim());
-        expect(rules.length).toBeGreaterThanOrEqual(4);
-        for (const selector of rules) expect(selector).toMatch(/^\[data-app-theme='pigment'\] \[data-nav-chip/);
+        // every rule is a pair: the Pigment scope and the `<html>` mirror (the mobile menu is a sheet portalled to <body>,
+        // outside the scope); nothing else draws a chip, so Daybreak, which has neither, gets none
+        const rules = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]*data-nav-chip[^{}]*)\{/g)].map((match) => match[1].trim());
+        expect(rules.length).toBe(4);
+        for (const selector of rules) {
+            const [scope, mirror] = selector.split(/,\s*/);
+            expect(scope, selector).toMatch(/^\[data-app-theme='pigment'\] \[data-nav-chip/);
+            expect(mirror, selector).toBe(scope.replace("[data-app-theme='pigment'] ", "html:has([data-app-theme='pigment']) "));
+        }
         // the Daybreak scope never sets the chip variable: the chip would be unpainted there even if it matched
         expect(rule('daybreak', 'scope')['--app-nav-chip']).toBeUndefined();
         const drawer = readFileSync(resolve(SRC, 'components/sidebar/dashboard-drawer.tsx'), 'utf8');

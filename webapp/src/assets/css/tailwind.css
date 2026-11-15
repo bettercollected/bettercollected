@@ -1112,9 +1112,11 @@ html:has([data-app-theme='pigment']) {
  * Nav group chips (Pigment only): a small pigment square before each group label of the dashboard menu (Collection,
  * Your site, Workspace: tomato, sky, mint). Decorative, so it is a pseudo-element, which has no accessibility
  * name and adds no element: Daybreak's markup and pixels are unchanged because the rule only matches inside a Pigment
- * scope. The pigment is a fill that carries no text.
+ * scope. The pigment is a fill that carries no text. The mobile menu is a sheet that is portalled to <body>, outside the
+ * scope, so each rule has a twin under the `html:has(...)` mirror, which is there whenever a page has a Pigment scope.
  */
-[data-app-theme='pigment'] [data-nav-chip]::before {
+[data-app-theme='pigment'] [data-nav-chip]::before,
+html:has([data-app-theme='pigment']) [data-nav-chip]::before {
     content: '';
     display: inline-block;
     width: 8px;
@@ -1124,15 +1126,18 @@ html:has([data-app-theme='pigment']) {
     background: var(--app-nav-chip);
 }
 
-[data-app-theme='pigment'] [data-nav-chip='0'] {
+[data-app-theme='pigment'] [data-nav-chip='0'],
+html:has([data-app-theme='pigment']) [data-nav-chip='0'] {
     --app-nav-chip: var(--app-pig-tomato);
 }
 
-[data-app-theme='pigment'] [data-nav-chip='1'] {
+[data-app-theme='pigment'] [data-nav-chip='1'],
+html:has([data-app-theme='pigment']) [data-nav-chip='1'] {
     --app-nav-chip: var(--app-pig-sky);
 }
 
-[data-app-theme='pigment'] [data-nav-chip='2'] {
+[data-app-theme='pigment'] [data-nav-chip='2'],
+html:has([data-app-theme='pigment']) [data-nav-chip='2'] {
     --app-nav-chip: var(--app-pig-mint);
 }
 
