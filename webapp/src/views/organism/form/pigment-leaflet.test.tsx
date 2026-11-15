@@ -20,6 +20,7 @@ import { contrast } from '@app/utils/color-contrast';
 import { hasSunBar } from '@app/views/molecules/theme/pigment-art';
 import { leafletColours } from '@app/views/molecules/theme/theme-shared';
 
+import LayoutWrapper from '../layout/layout-wrapper';
 import FormSlide from './form-slide';
 import ThankyouPage from './thankyou-page';
 import WelcomePage from './welcome-page';
@@ -183,6 +184,20 @@ describe('the pages', () => {
         expect(screen.getByText('So we can plan the car park.').closest('p')?.className).toContain('border-l-[3px]');
     });
 
+    it('the page count is ink, not iris (it is not an action); Back keeps the iris', async () => {
+        open(BLEND);
+        wrap(<FormSlide index={1} isPreviewMode />);
+        const back = await screen.findByRole('button', { name: 'Back' });
+        expect(back.style.color).toBe(rgb(BLEND.secondary));
+        expect(document.querySelector<HTMLElement>('[data-page-start]')!.parentElement!.style.color).toBe(rgb(BLEND.primary));
+        cleanup();
+        // Leaflet keeps both in the iris-like secondary, as it always did
+        open(LEAFLET);
+        wrap(<FormSlide index={1} isPreviewMode />);
+        await screen.findByRole('button', { name: 'Back' });
+        expect(document.querySelector<HTMLElement>('[data-page-start]')!.parentElement!.style.color).toBe(rgb(LEAFLET.secondary));
+    });
+
     it('Leaflet keeps its navy bar with white text, and Pigment its band with no section bar', async () => {
         open(LEAFLET);
         wrap(<FormSlide index={1} isPreviewMode />);
@@ -219,5 +234,29 @@ describe('the pages', () => {
         wrap(<ThankyouPage isPreviewMode />);
         const navy = await screen.findByTestId('leaflet-section-bar');
         expect(navy.previousElementSibling?.getAttribute('aria-hidden')).toBe('true');
+    });
+});
+
+describe('the ending layout', () => {
+    afterEach(cleanup);
+    const wrapLayout = (theme: Record<string, unknown>) =>
+        render(
+            <ReduxProvider store={store}>
+                <Provider>
+                    <LayoutWrapper theme={theme as any} artworkBand disabled showDesktopLayout topAligned>
+                        <div data-testid="ending-content" />
+                    </LayoutWrapper>
+                </Provider>
+            </ReduxProvider>
+        );
+
+    it('has no strip of page between the shapes band and the sun bar in the blend, and keeps its padding for Pigment', () => {
+        const blend = wrapLayout(BLEND).getByTestId('ending-content').parentElement!;
+        expect(blend.className).toContain('pb-8');
+        expect(blend.className).not.toMatch(/\bpt-4\b|lg:pt-6/);
+        cleanup();
+        const pigment = wrapLayout(PIGMENT).getByTestId('ending-content').parentElement!;
+        expect(pigment.className).toContain('pt-4');
+        expect(pigment.className).toContain('lg:pt-6');
     });
 });

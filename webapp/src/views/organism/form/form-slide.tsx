@@ -371,7 +371,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                             />
                             {/* Provenance + progress where the eye starts (DESIGN.md §3):
                                 who is asking, and how much is left — no surprises. */}
-                            <div className="flex items-center gap-3 text-[13px]" style={{ color: bandInk ?? (leaflet ? leafletHeaderInk : standardForm?.theme?.primary) }}>
+                            <div className="flex items-center gap-3 text-[13px]" style={{ color: bandInk ?? (hasSunBar(sceneTheme) ? theme?.primary : leaflet ? leafletHeaderInk : standardForm?.theme?.primary) }}>
                                 {workspaceDisplayName(workspace) && (
                                     <span className="hidden items-center gap-1.5 rounded-full border border-black-400 bg-white/85 px-2.5 py-0.5 font-medium text-black-800 sm:inline-flex">
                                         <Shield className="h-3.5 w-3.5 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
