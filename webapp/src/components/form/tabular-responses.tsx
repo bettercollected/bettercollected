@@ -88,7 +88,7 @@ export default function TabularResponses({ form, data }: TabularResponsesProps) 
                         event.stopPropagation();
                         downloadFormFile(ans);
                     }}
-                    className={cn('text-black-600! p2-new w-[180px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 cursor-pointer!' : '')}
+                    className={cn('text-black-600! p2-new w-[180px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-app-edge active:bg-app-edge-strong cursor-pointer!' : '')}
                 >
                     {getAnswerForField(response, field, DISPLAY_LIST_SEPARATOR)}
                 </div>
@@ -163,7 +163,7 @@ export default function TabularResponses({ form, data }: TabularResponsesProps) 
                 <Link
                     href={responseUrl(response)}
                     aria-label={t('RESPONSES_STAFF.OPEN_RESPONSE')}
-                    className="hover:bg-black-200 focus-visible:ring-brand-500 flex h-8 w-8 items-center justify-center rounded focus:outline-hidden focus-visible:ring-2"
+                    className="hover:bg-app-wash-strong focus-visible:ring-app-primary flex h-8 w-8 items-center justify-center rounded focus:outline-hidden focus-visible:ring-2"
                     onClick={(event) => event.stopPropagation()}
                 >
                     <ExpandIcon aria-hidden="true" />
@@ -216,7 +216,7 @@ export default function TabularResponses({ form, data }: TabularResponsesProps) 
     return (
         <>
             {Array.isArray(data?.items) && (
-                <div className="responders-frozen-table border-black-300 overflow-hidden rounded-lg border">
+                <div className="responders-frozen-table border-app-edge overflow-hidden rounded-lg border">
                     {/* No inner scroll height: the page scrolls, the table only scrolls sideways */}
                     <DataTable onRowClicked={openResponse} pointerOnHover columns={columns} customStyles={customTableStyles} data={data?.items || []} />
                 </div>

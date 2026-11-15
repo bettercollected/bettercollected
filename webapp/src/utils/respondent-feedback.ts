@@ -49,7 +49,7 @@ export function statusTone(status: string | null | undefined): StatusTone {
 export const statusToneClass: Record<StatusTone, string> = {
     positive: 'bg-[#E7F4EE] text-success-700',
     negative: 'bg-[#FBEFEF] text-[#C43D3D]',
-    neutral: 'bg-[#EAF0FD] text-brand-500'
+    neutral: 'bg-[#EAF0FD] text-app-primary'
 };
 
 /** Who the respondent sees as the author: the organisation, never staff. */

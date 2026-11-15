@@ -22,7 +22,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { exportFlagApplies, formAccessErrorKey, grantableRoles } from '@app/utils/form-access';
 import { getFullNameFromUser } from '@app/utils/user-utils';
 
-const selectClass = 'h-11 w-full min-w-0 rounded border border-black-400 bg-white px-3 py-0 text-sm text-black-900 disabled:cursor-not-allowed disabled:bg-black-200 disabled:text-black-600 md:h-10';
+const selectClass = 'h-11 w-full min-w-0 rounded border border-app-edge-strong bg-white px-3 py-0 text-sm text-black-900 disabled:cursor-not-allowed disabled:bg-app-wash-strong disabled:text-black-600 md:h-10';
 
 /**
  * Settings, Access: "Who on your team can open this form". The staff question (which members of the workspace open
@@ -100,7 +100,7 @@ function AccessCard({ workspaceId, formId, hidden }: { workspaceId: string; form
                         </RadioGroup>
                         <p className="text-sm text-black-700">{t('STAFF.FORM_ACCESS.ALWAYS')}</p>
                         {!canManage && (
-                            <p role="note" className="rounded border border-black-300 bg-black-100 px-3 py-2 text-sm text-black-800">
+                            <p role="note" className="rounded border border-app-edge bg-app-wash px-3 py-2 text-sm text-black-800">
                                 {t('STAFF.FORM_ACCESS.READ_ONLY')}
                             </p>
                         )}
@@ -265,14 +265,14 @@ function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { w
     const nameOf = (grant: FormGrantDto) => grant.name || t(grant.subjectType === 'group' ? 'STAFF.FORM_ACCESS.UNKNOWN_TEAM' : 'STAFF.FORM_ACCESS.UNKNOWN_PERSON');
 
     return (
-        <div className="flex flex-col gap-4 border-t border-black-300 pt-5">
+        <div className="flex flex-col gap-4 border-t border-app-edge pt-5">
             <h4 id={`${id}-list`} className="text-sm font-semibold text-black-900">
                 {t('STAFF.FORM_ACCESS.LIST_TITLE')} ({grants.length})
             </h4>
             {grants.length === 0 ? (
                 <p className="text-sm text-black-700">{access.restricted ? t('STAFF.FORM_ACCESS.LIST_EMPTY_RESTRICTED') : t('STAFF.FORM_ACCESS.LIST_EMPTY_OPEN')}</p>
             ) : (
-                <ul aria-labelledby={`${id}-list`} className="flex flex-col divide-y divide-black-300 rounded border border-black-300">
+                <ul aria-labelledby={`${id}-list`} className="flex flex-col divide-y divide-app-edge rounded border border-app-edge">
                     {grants.map((grant: FormGrantDto) => {
                         const name = nameOf(grant);
                         // owners and admins alone change a grant that allows exporting
@@ -350,7 +350,7 @@ function GrantsSection({ workspaceId, formId, access, setError, setNotice }: { w
                         {t('STAFF.FORM_ACCESS.NO_ROLE_TO_GIVE')}
                     </p>
                 ) : (
-                    <form onSubmit={add} noValidate aria-labelledby={`${id}-add`} className="flex flex-col gap-3 rounded border border-black-300 bg-black-100 p-4">
+                    <form onSubmit={add} noValidate aria-labelledby={`${id}-add`} className="flex flex-col gap-3 rounded border border-app-edge bg-app-wash p-4">
                         <h4 id={`${id}-add`} className="text-sm font-semibold text-black-900">
                             {t('STAFF.FORM_ACCESS.ADD')}
                         </h4>

@@ -16,7 +16,7 @@ import { REPORT_AGGS, ReportAgg, ReportBucket, ReportCardDef, ReportCardKind, Re
 import { aggLabel, dimensionLabel } from '@app/utils/report-view';
 
 // room on the right for the select's chevron: a long question text is cut with an ellipsis instead of running under it
-const control = 'border-black-300 text-black-900 focus-visible:ring-brand-500 h-10 w-full rounded border bg-white py-0 pr-9 pl-3 text-sm text-ellipsis focus:outline-hidden focus-visible:ring-2';
+const control = 'border-app-edge text-black-900 focus-visible:ring-app-primary h-10 w-full rounded border bg-white py-0 pr-9 pl-3 text-sm text-ellipsis focus:outline-hidden focus-visible:ring-2';
 
 /** The draft a new card starts from. */
 export function blankCard(): ReportCardDef {
@@ -61,7 +61,7 @@ export default function ReportCardEditor({ initial, catalogue, applyLabel, onApp
     return (
         <form
             aria-label={t('REPORT.ADD_CARD_TITLE')}
-            className="grid grid-cols-1 gap-3 rounded border border-black-300 bg-white p-4 min-[560px]:grid-cols-2 lg:grid-cols-3"
+            className="grid grid-cols-1 gap-3 rounded border border-app-edge bg-white p-4 min-[560px]:grid-cols-2 lg:grid-cols-3"
             onSubmit={(event) => {
                 event.preventDefault();
                 if (!problem) onApply(draft);

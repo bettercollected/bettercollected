@@ -703,6 +703,17 @@
     --color-app-action-pressed: var(--app-action-pressed, var(--color-action-pressed));
     --color-app-on-action: var(--app-on-action, #FFFFFF);
     --color-app-focus-ring: var(--app-focus-ring, var(--color-brand-500));
+    --color-app-primary: var(--app-primary, var(--color-brand-500));
+    --color-app-primary-deep: var(--app-primary-deep, var(--color-brand-600));
+    --color-app-primary-soft: var(--app-primary-soft, var(--color-brand-200));
+    --color-app-primary-tint: var(--app-primary-tint, var(--color-brand-100));
+    --color-app-primary-edge: var(--app-primary-edge, var(--color-brand-300));
+    --color-app-primary-edge-strong: var(--app-primary-edge-strong, var(--color-brand-400));
+    --color-app-edge: var(--app-edge, var(--color-black-300));
+    --color-app-edge-strong: var(--app-edge-strong, var(--color-black-400));
+    --color-app-wash: var(--app-wash, var(--color-black-100));
+    --color-app-wash-strong: var(--app-wash-strong, var(--color-black-200));
+    --color-app-control: var(--app-control, var(--color-control));
     --color-app-accent: var(--app-accent);
     --color-app-accent-tint: var(--app-accent-tint);
     --color-app-accent-ink: var(--app-accent-ink);
@@ -775,6 +786,19 @@
     --app-action-pressed: var(--color-action-pressed); /* pressed, and the key edge */
     --app-on-action: #FFFFFF; /* text on the action face, 6.8:1 */
     --app-focus-ring: var(--color-brand-500); /* the 2px keyboard focus outline */
+    /* Chrome roles: what the creator app's links, edges, washes and controls read (each falls back to the frozen ramp
+       where no theme scope is around). In Daybreak each is the ramp step it replaces. */
+    --app-primary: var(--color-brand-500); /* blue icons, borders, text actions and rings */
+    --app-primary-deep: var(--color-brand-600); /* text links and their hover */
+    --app-primary-soft: var(--color-brand-200); /* soft fills and borders */
+    --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
+    --app-primary-edge: var(--color-brand-300); /* hover edge of a card (the old brand-300) */
+    --app-primary-edge-strong: var(--color-brand-400); /* hover edge of a workspace or theme card (the old brand-400) */
+    --app-edge: var(--color-black-300); /* card, table and row edges, quiet fills */
+    --app-edge-strong: var(--color-black-400); /* heavier edges */
+    --app-wash: var(--color-black-100); /* hover and quiet fills */
+    --app-wash-strong: var(--color-black-200); /* tracks, tabs and stronger hover fills */
+    --app-control: var(--color-control); /* the edge of a control */
     --app-accent: #FFB400; /* fill only; a moment, a highlight (Daybreak: the sun) */
     --app-accent-tint: #FFF1C7;
     --app-accent-ink: #6B4700; /* text on the tint, 7.4:1 */
@@ -841,6 +865,19 @@ html:has([data-app-theme='daybreak']) {
     --app-action-pressed: var(--color-action-pressed); /* pressed, and the key edge */
     --app-on-action: #FFFFFF; /* text on the action face, 6.8:1 */
     --app-focus-ring: var(--color-brand-500); /* the 2px keyboard focus outline */
+    /* Chrome roles: what the creator app's links, edges, washes and controls read (each falls back to the frozen ramp
+       where no theme scope is around). In Daybreak each is the ramp step it replaces. */
+    --app-primary: var(--color-brand-500); /* blue icons, borders, text actions and rings */
+    --app-primary-deep: var(--color-brand-600); /* text links and their hover */
+    --app-primary-soft: var(--color-brand-200); /* soft fills and borders */
+    --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
+    --app-primary-edge: var(--color-brand-300); /* hover edge of a card (the old brand-300) */
+    --app-primary-edge-strong: var(--color-brand-400); /* hover edge of a workspace or theme card (the old brand-400) */
+    --app-edge: var(--color-black-300); /* card, table and row edges, quiet fills */
+    --app-edge-strong: var(--color-black-400); /* heavier edges */
+    --app-wash: var(--color-black-100); /* hover and quiet fills */
+    --app-wash-strong: var(--color-black-200); /* tracks, tabs and stronger hover fills */
+    --app-control: var(--color-control); /* the edge of a control */
     --app-accent: #FFB400; /* fill only; a moment, a highlight (Daybreak: the sun) */
     --app-accent-tint: #FFF1C7;
     --app-accent-ink: #6B4700; /* text on the tint, 7.4:1 */
@@ -911,6 +948,18 @@ html:has([data-app-theme='daybreak']) {
     --app-action-pressed: #2F1DA2; /* pressed, and the key edge */
     --app-on-action: #FFFFFF; /* text on iris, 7.4:1 */
     --app-focus-ring: #4B35DB; /* the 2px keyboard focus outline: iris */
+    /* Chrome roles: see Daybreak's block. Iris for the blue steps, the warm neutrals for the edges and washes. */
+    --app-primary: #4B35DB; /* iris: icons, borders, text actions and rings */
+    --app-primary-deep: #3E29C4; /* text links and their hover */
+    --app-primary-soft: #C8BFF7; /* soft fills and borders */
+    --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
+    --app-primary-edge: #B0A4F0; /* iris, light: hover edge of a card */
+    --app-primary-edge-strong: #8575E8; /* iris, mid: hover edge of a workspace or theme card */
+    --app-edge: #E9E1D4; /* card, table and row edges, quiet fills */
+    --app-edge-strong: #CFC4B1; /* heavier edges */
+    --app-wash: #F7F1E7; /* hover and quiet fills */
+    --app-wash-strong: #F2EBDF; /* tracks, tabs and stronger hover fills */
+    --app-control: #7C7396; /* the edge of a control: 4.4:1 on white */
     --app-accent: #FFC62E; /* fill only; a moment, a highlight (Pigment: sun) */
     --app-accent-tint: #FFF0C2;
     --app-accent-ink: #664600; /* text on the tint */
@@ -983,6 +1032,18 @@ html:has([data-app-theme='pigment']) {
     --app-action-pressed: #2F1DA2; /* pressed, and the key edge */
     --app-on-action: #FFFFFF; /* text on iris, 7.4:1 */
     --app-focus-ring: #4B35DB; /* the 2px keyboard focus outline: iris */
+    /* Chrome roles: see Daybreak's block. Iris for the blue steps, the warm neutrals for the edges and washes. */
+    --app-primary: #4B35DB; /* iris: icons, borders, text actions and rings */
+    --app-primary-deep: #3E29C4; /* text links and their hover */
+    --app-primary-soft: #C8BFF7; /* soft fills and borders */
+    --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
+    --app-primary-edge: #B0A4F0; /* iris, light: hover edge of a card */
+    --app-primary-edge-strong: #8575E8; /* iris, mid: hover edge of a workspace or theme card */
+    --app-edge: #E9E1D4; /* card, table and row edges, quiet fills */
+    --app-edge-strong: #CFC4B1; /* heavier edges */
+    --app-wash: #F7F1E7; /* hover and quiet fills */
+    --app-wash-strong: #F2EBDF; /* tracks, tabs and stronger hover fills */
+    --app-control: #7C7396; /* the edge of a control: 4.4:1 on white */
     --app-accent: #FFC62E; /* fill only; a moment, a highlight (Pigment: sun) */
     --app-accent-tint: #FFF0C2;
     --app-accent-ink: #664600; /* text on the tint */
@@ -1035,6 +1096,49 @@ html:has([data-app-theme='pigment']) {
     --form-hue-3-ink: var(--app-pig-ink);
     --form-hue-4-bg: var(--app-pig-orchid);
     --form-hue-4-ink: var(--app-pig-ink);
+}
+
+/*
+ * Native controls (a plain radio button or checkbox, a range) take the theme's iris in a Pigment scope. Daybreak keeps
+ * the browser's own accent, as it always had, so its pixels are unchanged. The rule names the controls and not the scope
+ * root: `accent-color` is inherited as a computed value, so a value on the root could not be undone below it, while
+ * `--app-primary` is reset on a form root, so a control inside a form falls back to the browser's own accent.
+ */
+[data-app-theme='pigment'] :where(input[type='checkbox'], input[type='radio'], input[type='range']) {
+    accent-color: var(--app-primary);
+}
+
+/*
+ * Nav group chips (Pigment only): a small pigment square before each group label of the dashboard menu (Collection,
+ * Your site, Workspace: tomato, sky, mint). Decorative, so it is a pseudo-element, which has no accessibility
+ * name and adds no element: Daybreak's markup and pixels are unchanged because the rule only matches inside a Pigment
+ * scope. The pigment is a fill that carries no text. The mobile menu is a sheet that is portalled to <body>, outside the
+ * scope, so each rule has a twin under the `html:has(...)` mirror, which is there whenever a page has a Pigment scope.
+ */
+[data-app-theme='pigment'] [data-nav-chip]::before,
+html:has([data-app-theme='pigment']) [data-nav-chip]::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 8px;
+    border-radius: 2px;
+    background: var(--app-nav-chip);
+}
+
+[data-app-theme='pigment'] [data-nav-chip='0'],
+html:has([data-app-theme='pigment']) [data-nav-chip='0'] {
+    --app-nav-chip: var(--app-pig-tomato);
+}
+
+[data-app-theme='pigment'] [data-nav-chip='1'],
+html:has([data-app-theme='pigment']) [data-nav-chip='1'] {
+    --app-nav-chip: var(--app-pig-sky);
+}
+
+[data-app-theme='pigment'] [data-nav-chip='2'],
+html:has([data-app-theme='pigment']) [data-nav-chip='2'] {
+    --app-nav-chip: var(--app-pig-mint);
 }
 
 /* Tailwind 3 preflight defaults that Tailwind 4's reset changed. */

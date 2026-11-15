@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@app/shadcn/components/ui/button';
 import { MAX_RESPONSE_LIMIT, fromLocalInputValue, opensBeforeCloses, parseResponseLimit, toLocalInputValue, viewerTimeZone } from '@app/utils/form-availability';
 
-const FIELD = 'border-black-300 text-black-900 focus-visible:ring-brand-500 rounded border bg-white px-3 py-2 text-sm focus:outline-hidden focus-visible:ring-2';
+const FIELD = 'border-app-edge text-black-900 focus-visible:ring-app-primary rounded border bg-white px-3 py-2 text-sm focus:outline-hidden focus-visible:ring-2';
 
 type Labelling = { 'aria-labelledby'?: string; 'aria-describedby'?: string };
 

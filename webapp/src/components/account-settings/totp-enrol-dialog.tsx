@@ -165,7 +165,7 @@ export default function TotpEnrolDialog({ onClose, onSignInAgain, onEnrolled }: 
                             </h2>
                             <p className="text-sm leading-relaxed text-black-800">{t('STAFF.MFA.SETUP.SCAN_INTRO')}</p>
                             <div className="flex justify-center">
-                                <div role="img" aria-label={t('STAFF.MFA.SETUP.QR_LABEL')} data-testid="totp-qr" className="h-[208px] w-[208px] overflow-hidden rounded border border-black-300 bg-white [&_svg]:block [&_svg]:h-full [&_svg]:w-full">
+                                <div role="img" aria-label={t('STAFF.MFA.SETUP.QR_LABEL')} data-testid="totp-qr" className="h-[208px] w-[208px] overflow-hidden rounded border border-app-edge bg-white [&_svg]:block [&_svg]:h-full [&_svg]:w-full">
                                     <SVG text={enrolment.uri} options={{ type: 'svg', margin: 2, width: 208, errorCorrectionLevel: 'M', color: { dark: '#000000', light: '#FFFFFF' } }} />
                                 </div>
                             </div>
@@ -182,7 +182,7 @@ export default function TotpEnrolDialog({ onClose, onSignInAgain, onEnrolled }: 
                                         spellCheck={false}
                                         autoComplete="off"
                                         onFocus={(event) => event.currentTarget.select()}
-                                        className="h-10 w-full rounded-md border border-control bg-white px-3.5 font-mono text-sm tracking-wider text-black-900 sm:flex-1"
+                                        className="h-10 w-full rounded-md border border-app-control bg-white px-3.5 font-mono text-sm tracking-wider text-black-900 sm:flex-1"
                                     />
                                     <Button type="button" variant="v2Button" size="sm" onClick={copyKey}>
                                         {t('STAFF.MFA.SETUP.COPY_KEY')}

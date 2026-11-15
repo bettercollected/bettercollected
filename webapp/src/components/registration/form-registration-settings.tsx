@@ -336,7 +336,7 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId, h
                     <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('REGISTRATION.FORM.INTRO')}</p>
                 </>
             )}
-            <p className="max-w-[62ch] rounded-md border border-black-300 bg-black-100 px-3 py-2 text-xs leading-relaxed text-black-700">{t('REGISTRATION.NOTICE')}</p>
+            <p className="max-w-[62ch] rounded-md border border-app-edge bg-app-wash px-3 py-2 text-xs leading-relaxed text-black-700">{t('REGISTRATION.NOTICE')}</p>
 
             {loading && <p className="text-sm text-black-600">{t('REGISTRATION.LOADING')}</p>}
             {loadFailed && (
@@ -372,7 +372,7 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId, h
                                     services.length === 0 ? (
                                         <>
                                             {t('REGISTRATION.FORM.NO_SERVICES')}{' '}
-                                            <Link href={`/${workspaceName}/dashboard/case-system`} className="font-medium text-brand-600 underline">
+                                            <Link href={`/${workspaceName}/dashboard/case-system`} className="font-medium text-app-primary-deep underline">
                                                 {t('REGISTRATION.FORM.ADD_SERVICE')}
                                             </Link>
                                         </>
@@ -489,7 +489,7 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId, h
                                     </p>
                                 )}
                                 {variables.length === 0 && <p className="text-sm text-black-700">{t('REGISTRATION.FORM.NO_VARIABLES')}</p>}
-                                <ul className="flex flex-col divide-y divide-black-200 rounded-md border border-black-300">
+                                <ul className="flex flex-col divide-y divide-app-wash-strong rounded-md border border-app-edge">
                                     {variables.map((variable, index) => {
                                         const row = blockedFor(variable, objects) ? undefined : chosen[variable.source];
                                         // by position: a source can hold characters an id cannot
@@ -505,7 +505,7 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId, h
                                                         <input
                                                             id={checkboxId}
                                                             type="checkbox"
-                                                            className="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
+                                                            className="mt-0.5 h-4 w-4 shrink-0 accent-app-primary"
                                                             checked={!!row}
                                                             disabled={!choosable}
                                                             aria-describedby={!choosable ? `${checkboxId}-reason` : undefined}
@@ -556,7 +556,7 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId, h
                                                             <label className="flex items-center gap-2 pt-1 text-sm text-black-800 sm:mt-6">
                                                                 <input
                                                                     type="checkbox"
-                                                                    className="h-4 w-4 accent-brand-500"
+                                                                    className="h-4 w-4 accent-app-primary"
                                                                     checked={row.asList}
                                                                     onChange={(e) => {
                                                                         touch();
@@ -590,7 +590,7 @@ export function FormRegistrationSettings({ workspaceId, workspaceName, formId, h
                         </p>
                     )}
                     {on && objects && (
-                        <div className="flex flex-col gap-2 rounded-md border border-black-300 p-3" data-testid="registration-check">
+                        <div className="flex flex-col gap-2 rounded-md border border-app-edge p-3" data-testid="registration-check">
                             <div className="flex flex-wrap items-center gap-3">
                                 <Button type="button" variant="v2Button" isLoading={check === 'checking'} disabled={check === 'checking' || dirty || !(savedRegistration ?? registration).serviceId} onClick={runConnectionCheck}>
                                     {check === 'checking' ? t('REGISTRATION.FORM.CHECKING') : t('REGISTRATION.FORM.CHECK')}

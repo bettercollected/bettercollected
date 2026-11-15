@@ -20,7 +20,7 @@ export default function BackButton({
         handleClick && (await handleClick());
     };
     return (
-        <button type="button" aria-label={label} className={cn('hover:bg-black-200! text-black-600 hover:text-black-800! flex cursor-pointer items-center gap-[2px] rounded-[4px] p-1 py-[6px]', className)} onClick={handleBackClick} style={style}>
+        <button type="button" aria-label={label} className={cn('hover:bg-app-wash-strong! text-black-600 hover:text-black-800! flex cursor-pointer items-center gap-[2px] rounded-[4px] p-1 py-[6px]', className)} onClick={handleBackClick} style={style}>
             <BackChevron className="h-5 w-5" />
             <span className={`p3-new font-normal ${hideForSmallScreen ? 'hidden lg:flex' : ''}`}>{label}</span>
         </button>

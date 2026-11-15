@@ -18,9 +18,9 @@ import FormulaInput from '@app/views/molecules/form-builder/formula-input';
 import { SettingSwitch } from '@app/views/molecules/form-builder/inspector-controls';
 
 const FORMULA_HELP = 'FIELD_RULES.FORMULA_HELP';
-const inputClass = 'text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-control bg-white px-2 py-1.5 text-xs outline-hidden';
+const inputClass = 'text-black-800 focus:border-app-primary w-full min-w-0 rounded-md border border-app-control bg-white px-2 py-1.5 text-xs outline-hidden';
 const buttonClass =
-    'text-black-600 hover:text-black-800 hover:bg-black-100 focus-visible:ring-brand-500 inline-flex h-7 w-7 items-center justify-center rounded focus-visible:ring-2 focus-visible:outline-hidden disabled:opacity-40 disabled:hover:bg-transparent';
+    'text-black-600 hover:text-black-800 hover:bg-app-wash focus-visible:ring-app-primary inline-flex h-7 w-7 items-center justify-center rounded focus-visible:ring-2 focus-visible:outline-hidden disabled:opacity-40 disabled:hover:bg-transparent';
 
 /** A question's rules as a section of the inspector: what the creator can change here, and nothing else. */
 export interface FieldRulesSettingsProps {
@@ -230,7 +230,7 @@ export default function FieldRulesSettings({ field, slides, hiddenNames, onChang
                 <p className="text-[11px] leading-relaxed text-black-600">{t('FIELD_RULES.DISABLED_NOTE')}</p>
                 <ol className="flex flex-col gap-1.5">
                     {rules.map((rule, index) => (
-                        <li key={rule.id} className="rounded-md border border-black-300 bg-black-100 px-2 py-1.5 text-xs text-black-800">
+                        <li key={rule.id} className="rounded-md border border-app-edge bg-app-wash px-2 py-1.5 text-xs text-black-800">
                             {t('FIELD_RULES.RULE_N', { n: index + 1 })}: {ruleSummary(rule, slides, field, t)}
                         </li>
                     ))}
@@ -246,7 +246,7 @@ export default function FieldRulesSettings({ field, slides, hiddenNames, onChang
                 {announcement}
             </div>
 
-            {rules.length === 0 && <p className="rounded-md border border-dashed border-black-300 px-3 py-3 text-xs leading-relaxed text-black-600">{t('FIELD_RULES.EMPTY')}</p>}
+            {rules.length === 0 && <p className="rounded-md border border-dashed border-app-edge px-3 py-3 text-xs leading-relaxed text-black-600">{t('FIELD_RULES.EMPTY')}</p>}
 
             {rules.map((rule, index) => (
                 <RuleCard
@@ -289,7 +289,7 @@ export default function FieldRulesSettings({ field, slides, hiddenNames, onChang
                 disabled={atFieldCap || atFormCap}
                 aria-describedby={atFieldCap || atFormCap ? `${id}-cap` : undefined}
                 onClick={addRule}
-                className="inline-flex w-fit items-center gap-1 rounded text-xs font-medium text-brand-500 hover:text-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden disabled:opacity-50"
+                className="inline-flex w-fit items-center gap-1 rounded text-xs font-medium text-app-primary hover:text-app-primary-deep focus-visible:ring-2 focus-visible:ring-app-primary focus-visible:outline-hidden disabled:opacity-50"
             >
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 {t('FIELD_RULES.ADD')}
@@ -383,7 +383,7 @@ function RuleCard({ rule, index, count, field, sources, variables, lockable, inG
     const valueField = field;
 
     return (
-        <fieldset aria-describedby={describedBy} className="flex min-w-0 flex-col gap-3 rounded-lg border border-black-300 bg-white p-3" data-testid={`field-rule-${n}`}>
+        <fieldset aria-describedby={describedBy} className="flex min-w-0 flex-col gap-3 rounded-lg border border-app-edge bg-white p-3" data-testid={`field-rule-${n}`}>
             <legend tabIndex={-1} data-rule-legend={rule.id} className="sr-only">
                 {t('FIELD_RULES.RULE_N', { n })}
             </legend>
@@ -451,7 +451,7 @@ function RuleCard({ rule, index, count, field, sources, variables, lockable, inG
                             ))}
                             <button
                                 type="button"
-                                className="w-fit rounded text-xs font-medium text-brand-500 hover:text-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden"
+                                className="w-fit rounded text-xs font-medium text-app-primary hover:text-app-primary-deep focus-visible:ring-2 focus-visible:ring-app-primary focus-visible:outline-hidden"
                                 onClick={() => setWhen({ ...rule.when, conditions: [...conditions, newConditionFor(sources) as unknown as FieldRuleCondition] as FieldRuleCondition[] })}
                             >
                                 + {t('FIELD_RULES.ADD_CONDITION')}

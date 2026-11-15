@@ -41,14 +41,14 @@ export default function AddFormTitleModal() {
                 closeDialogModal();
             }}
         >
-            <div className="p2-new border-b-black-300 border-b p-4 ">{t('NEW_FORM_MODAL.HEADING')}</div>
+            <div className="p2-new border-b-app-edge border-b p-4 ">{t('NEW_FORM_MODAL.HEADING')}</div>
             <div className="px-10 py-6">
                 <div className="text-black-800 text-normal font-semibold">{t('NEW_FORM_MODAL.NAME_IT')}</div>
                 <div className="text-black-700 mb-2 text-xs">{t('NEW_FORM_MODAL.CHANGE_LATER')}</div>
                 <Input
                     type="text"
                     value={title}
-                    className="text-brand-500 placeholder-brand-500/20"
+                    className="text-app-primary placeholder-app-primary/20"
                     placeholder={t('NEW_FORM_MODAL.PLACEHOLDER')}
                     onChange={(event) => {
                         setTitle(event.target.value);

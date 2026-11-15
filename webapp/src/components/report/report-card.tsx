@@ -19,7 +19,7 @@ import { ReportRow, buildCardView, cardTitle, chartSummary } from '@app/utils/re
 import { BarChart, DataTable, DonutChart, LineChart, TileChart } from './charts';
 import ReportCardEditor from './report-card-editor';
 
-const iconButton = 'inline-flex h-9 w-9 items-center justify-center rounded text-black-700 hover:bg-black-200 hover:text-black-900 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden disabled:opacity-40 disabled:hover:bg-transparent';
+const iconButton = 'inline-flex h-9 w-9 items-center justify-center rounded text-black-700 hover:bg-app-wash-strong hover:text-black-900 focus-visible:ring-2 focus-visible:ring-app-primary focus-visible:outline-hidden disabled:opacity-40 disabled:hover:bg-transparent';
 
 interface Props {
     def: ReportCardDef;
@@ -166,7 +166,7 @@ export default function ReportCard({ def, result, catalogue, loading, blocked, f
                                 <button
                                     type="button"
                                     onClick={() => setAsTable((value) => !value)}
-                                    className="inline-flex min-h-9 items-center gap-1.5 rounded px-1 text-sm font-medium text-brand-600 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden"
+                                    className="inline-flex min-h-9 items-center gap-1.5 rounded px-1 text-sm font-medium text-app-primary-deep underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-app-primary focus-visible:outline-hidden"
                                 >
                                     {asTable ? <BarChart3 aria-hidden="true" className="h-4 w-4" /> : <Table2 aria-hidden="true" className="h-4 w-4" />}
                                     {asTable ? t('REPORT.SHOW_CHART') : t('REPORT.SHOW_TABLE')}
@@ -177,7 +177,7 @@ export default function ReportCard({ def, result, catalogue, loading, blocked, f
                                     type="button"
                                     onClick={runDownload}
                                     disabled={download.phase === 'busy'}
-                                    className="inline-flex min-h-9 items-center gap-1.5 rounded px-1 text-sm font-medium text-brand-600 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden disabled:opacity-60 disabled:hover:no-underline"
+                                    className="inline-flex min-h-9 items-center gap-1.5 rounded px-1 text-sm font-medium text-app-primary-deep underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-app-primary focus-visible:outline-hidden disabled:opacity-60 disabled:hover:no-underline"
                                 >
                                     <Download aria-hidden="true" className="h-4 w-4" />
                                     {t('REPORT.EXPORT')}

@@ -110,7 +110,7 @@ export function FormRail({ items }: { items: FormNavItem[] }) {
         <div
             id="form-rail"
             className={cn(
-                'sticky top-14 hidden h-[calc(100dvh-3.5rem)] shrink-0 flex-col self-start border-r border-black-400 bg-white transition-[width] duration-150 motion-reduce:transition-none md:flex',
+                'sticky top-14 hidden h-[calc(100dvh-3.5rem)] shrink-0 flex-col self-start border-r border-app-edge-strong bg-white transition-[width] duration-150 motion-reduce:transition-none md:flex',
                 byMode(mode, { collapsed: 'w-14', expanded: 'w-60', auto: 'w-14 xl:w-60' })
             )}
         >
@@ -132,7 +132,7 @@ export function FormRail({ items }: { items: FormNavItem[] }) {
                     ))}
                 </ul>
             </nav>
-            <div className="border-t border-black-300 p-2">
+            <div className="border-t border-app-edge p-2">
                 <button
                     type="button"
                     aria-expanded={!collapsed}
@@ -141,7 +141,7 @@ export function FormRail({ items }: { items: FormNavItem[] }) {
                     title={collapsed ? label : undefined}
                     onClick={toggle}
                     className={cn(
-                        'flex h-10 w-full items-center gap-2.5 rounded px-2.5 text-sm text-black-600 hover:bg-black-200 hover:text-black-900',
+                        'flex h-10 w-full items-center gap-2.5 rounded px-2.5 text-sm text-black-600 hover:bg-app-wash-strong hover:text-black-900',
                         byMode(mode, { collapsed: 'justify-center px-0', expanded: '', auto: 'justify-center px-0 xl:justify-start xl:px-2.5' })
                     )}
                 >
@@ -170,7 +170,7 @@ function SheetLink({ item, child, onNavigate }: { item: FormNavItem; child?: boo
             {!child && <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />}
             <span className="min-w-0 flex-1 truncate">{item.label}</span>
             {typeof item.count === 'number' && <span className="rounded-full bg-sunken px-2 py-0.5 text-xs font-medium text-ink-muted tabular-nums">{item.count}</span>}
-            {isCurrent && <Check aria-hidden="true" className="h-4 w-4 shrink-0 text-brand-600" />}
+            {isCurrent && <Check aria-hidden="true" className="h-4 w-4 shrink-0 text-app-primary-deep" />}
         </Link>
     );
 }
@@ -186,7 +186,7 @@ export function SectionSwitcher({ items }: { items: FormNavItem[] }) {
     const parent = items.find((item) => item.children?.some((c) => c.active));
     const name = parent && current ? `${parent.label} · ${current.label}` : (current?.label ?? '');
     return (
-        <div className="flex min-h-11 items-center border-b border-black-300 bg-white px-3 md:hidden">
+        <div className="flex min-h-11 items-center border-b border-app-edge bg-white px-3 md:hidden">
             <Sheet open={open} onOpenChange={setOpen}>
                 <SheetTrigger asChild>
                     <button type="button" aria-label={t('FORM_NAV.SWITCH_OPEN', { name })} className="flex h-11 min-w-0 flex-1 items-center gap-2 text-left text-sm font-semibold text-black-900">
@@ -195,7 +195,7 @@ export function SectionSwitcher({ items }: { items: FormNavItem[] }) {
                     </button>
                 </SheetTrigger>
                 <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-lg p-0 pb-4">
-                    <SheetHeader className="h-[4.25rem] justify-center border-b border-black-300 px-4 pr-16">
+                    <SheetHeader className="h-[4.25rem] justify-center border-b border-app-edge px-4 pr-16">
                         <SheetTitle>{t('FORM_NAV.GO_TO')}</SheetTitle>
                     </SheetHeader>
                     <nav aria-label={t('FORM_NAV.GO_TO')} className="px-2 pt-2">

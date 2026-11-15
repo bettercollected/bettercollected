@@ -97,7 +97,7 @@ function Outline({ form }: { form: StandardFormDto }) {
                 {pages.map((page, index) => {
                     const questions = (page.properties?.fields ?? []) as StandardFormFieldDto[];
                     return (
-                        <li key={page.id ?? index} className="rounded border border-black-300 bg-white p-4">
+                        <li key={page.id ?? index} className="rounded border border-app-edge bg-white p-4">
                             <h4 className="font-medium">
                                 {t('FORM_VERSIONS.VIEW_PAGE.PAGE', { n: index + 1 })}
                                 {page.properties?.sectionTitle ? ` · ${page.properties.sectionTitle}` : ''}

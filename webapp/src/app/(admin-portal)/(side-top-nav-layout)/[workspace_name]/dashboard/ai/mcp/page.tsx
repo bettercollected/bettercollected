@@ -198,7 +198,7 @@ export default function APIKeysPage() {
             <div className="flex flex-col gap-2">
                 <h2 className="text-black-900 text-sm font-semibold">{t('STAFF.API_KEYS.ENDPOINT')}</h2>
                 <p className="text-black-600 text-xs leading-relaxed">{t('STAFF.API_KEYS.ENDPOINT_HELP')}</p>
-                <div className="border-black-400 bg-black-50 flex items-center justify-between gap-3 rounded-md border px-3.5 py-2.5">
+                <div className="border-app-edge-strong bg-black-50 flex items-center justify-between gap-3 rounded-md border px-3.5 py-2.5">
                     <code className="text-black-800 truncate text-[13px]">{mcpUrl}</code>
                     <CopyButton value={mcpUrl} label={t('STAFF.API_KEYS.COPY_ENDPOINT')} />
                 </div>
@@ -227,7 +227,7 @@ export default function APIKeysPage() {
                     maxLength={60}
                     placeholder={t('STAFF.API_KEYS.NAME_PLACEHOLDER')}
                     onChange={(e) => setName(e.target.value)}
-                    className="border-control text-black-900 placeholder:text-black-600 focus:border-brand-500 h-10 w-full rounded-md border bg-white px-3.5 text-sm outline-hidden transition duration-150"
+                    className="border-app-control text-black-900 placeholder:text-black-600 focus:border-app-primary h-10 w-full rounded-md border bg-white px-3.5 text-sm outline-hidden transition duration-150"
                 />
                 <div className="flex flex-col gap-1.5">
                     {scopeChoices.map((scope) => {
@@ -263,7 +263,7 @@ export default function APIKeysPage() {
                 )}
                 {submits && listed && <p className="text-black-700 max-w-[62ch] text-xs leading-relaxed">{t('STAFF.API_KEYS.SUBMITS_TO_LIST')}</p>}
                 {submits && !listed && (
-                    <fieldset className="border-black-300 flex flex-col gap-2 rounded-md border p-3">
+                    <fieldset className="border-app-edge flex flex-col gap-2 rounded-md border p-3">
                         <legend className="text-black-900 px-1 text-[13px] font-semibold">{t('STAFF.API_KEYS.SUBMISSIONS_TITLE')}</legend>
                         <p className="text-black-700 text-xs leading-relaxed">{t('STAFF.API_KEYS.SUBMISSIONS_BODY')}</p>
                         <label className="text-black-800 flex cursor-pointer items-start gap-2 text-xs">
@@ -316,7 +316,7 @@ export default function APIKeysPage() {
             <div className="flex flex-col gap-3">
                 <h2 className="text-black-900 text-sm font-semibold">{t('STAFF.API_KEYS.YOUR_KEYS')}</h2>
                 {rolesOn && followingCount > 0 && (
-                    <div className="border-black-300 bg-black-50 flex flex-wrap items-center justify-between gap-2 rounded-md border px-3.5 py-2.5">
+                    <div className="border-app-edge bg-black-50 flex flex-wrap items-center justify-between gap-2 rounded-md border px-3.5 py-2.5">
                         <p className="text-black-800 text-xs leading-relaxed">{t('STAFF.API_KEYS.REVIEW_BANNER', { count: followingCount })}</p>
                         <Button type="button" size="sm" variant="v2Button" className="min-h-11 sm:min-h-0" aria-pressed={onlyFollowing} onClick={() => setOnlyFollowing((current) => !current)}>
                             {onlyFollowing ? t('STAFF.API_KEYS.REVIEW_SHOW_ALL') : t('STAFF.API_KEYS.REVIEW_SHOW')}
@@ -326,11 +326,11 @@ export default function APIKeysPage() {
                 {isLoading ? (
                     <p className="text-black-600 text-xs">{t('STAFF.COMMON.LOADING')}</p>
                 ) : keys.length === 0 ? (
-                    <p className="text-black-600 border-black-400 rounded-md border border-dashed px-3 py-4 text-center text-xs">{t('STAFF.API_KEYS.NONE')}</p>
+                    <p className="text-black-600 border-app-edge-strong rounded-md border border-dashed px-3 py-4 text-center text-xs">{t('STAFF.API_KEYS.NONE')}</p>
                 ) : (
                     <ul className="flex flex-col gap-2">
                         {visibleKeys.map((key) => (
-                            <li key={key.id} className={`border-black-300 flex items-start justify-between gap-3 rounded-md border px-3.5 py-3 ${key.revoked ? 'opacity-60' : ''}`}>
+                            <li key={key.id} className={`border-app-edge flex items-start justify-between gap-3 rounded-md border px-3.5 py-3 ${key.revoked ? 'opacity-60' : ''}`}>
                                 <div className="flex min-w-0 flex-col gap-1">
                                     <div className="flex items-center gap-2">
                                         <KeyRound className="text-black-600 h-3.5 w-3.5 shrink-0" />
@@ -340,19 +340,19 @@ export default function APIKeysPage() {
                                     </div>
                                     {(rolesOn || key.role != null || keyFormScopeOf(key) === 'listed') && (
                                         <div className="flex flex-wrap items-center gap-1.5">
-                                            <span className="bg-black-100 text-black-800 rounded px-1.5 py-0.5 text-[11px] font-medium">{keyRoleOf(key) ? t('STAFF.API_KEYS.ROLE_CHIP', { role: t(roleNameKey(keyRoleOf(key) as KeyRole)) }) : key.role ? t('STAFF.API_KEYS.ROLE_CHIP_UNKNOWN', { role: key.role }) : t('STAFF.API_KEYS.ROLE_CHIP_CREATOR')}</span>
+                                            <span className="bg-app-wash text-black-800 rounded px-1.5 py-0.5 text-[11px] font-medium">{keyRoleOf(key) ? t('STAFF.API_KEYS.ROLE_CHIP', { role: t(roleNameKey(keyRoleOf(key) as KeyRole)) }) : key.role ? t('STAFF.API_KEYS.ROLE_CHIP_UNKNOWN', { role: key.role }) : t('STAFF.API_KEYS.ROLE_CHIP_CREATOR')}</span>
                                             {keyFormScopeOf(key) === 'listed' ? (
                                                 <button
                                                     type="button"
                                                     aria-expanded={shownFormsOf.includes(key.id)}
                                                     aria-controls={`key-forms-${key.id}`}
                                                     onClick={() => setShownFormsOf((current) => (current.includes(key.id) ? current.filter((id) => id !== key.id) : [...current, key.id]))}
-                                                    className="bg-black-100 text-black-800 hover:bg-black-200 flex min-h-11 items-center rounded px-1.5 py-0.5 text-[11px] font-medium sm:min-h-0"
+                                                    className="bg-app-wash text-black-800 hover:bg-app-wash-strong flex min-h-11 items-center rounded px-1.5 py-0.5 text-[11px] font-medium sm:min-h-0"
                                                 >
                                                     {t('STAFF.API_KEYS.FORMS_CHIP_COUNT', { count: key.forms?.length ?? 0 })}
                                                 </button>
                                             ) : (
-                                                <span className="bg-black-100 text-black-800 rounded px-1.5 py-0.5 text-[11px] font-medium">{t('STAFF.API_KEYS.FORMS_CHIP_ALL')}</span>
+                                                <span className="bg-app-wash text-black-800 rounded px-1.5 py-0.5 text-[11px] font-medium">{t('STAFF.API_KEYS.FORMS_CHIP_ALL')}</span>
                                             )}
                                         </div>
                                     )}
@@ -365,7 +365,7 @@ export default function APIKeysPage() {
                                     )}
                                     <div className="flex flex-wrap items-center gap-1.5">
                                         {key.scopes.map((scope) => (
-                                            <span key={scope} className="bg-black-100 text-black-600 rounded px-1.5 py-0.5 text-[10.5px]">
+                                            <span key={scope} className="bg-app-wash text-black-600 rounded px-1.5 py-0.5 text-[10.5px]">
                                                 {scope}
                                             </span>
                                         ))}
@@ -377,7 +377,7 @@ export default function APIKeysPage() {
                                 {!key.revoked && (
                                     <div className="flex shrink-0 flex-col items-end sm:flex-row">
                                         {rolesOn && (
-                                            <button type="button" aria-label={t('STAFF.API_KEYS.EDIT_KEY', { name: key.name })} onClick={() => setEditing(key)} className="text-black-600 hover:bg-black-200 hover:text-black-900 min-h-11 min-w-11 rounded px-2 py-1 text-xs transition-colors sm:min-h-0 sm:min-w-0">
+                                            <button type="button" aria-label={t('STAFF.API_KEYS.EDIT_KEY', { name: key.name })} onClick={() => setEditing(key)} className="text-black-600 hover:bg-app-wash-strong hover:text-black-900 min-h-11 min-w-11 rounded px-2 py-1 text-xs transition-colors sm:min-h-0 sm:min-w-0">
                                                 {t('STAFF.API_KEYS.EDIT')}
                                             </button>
                                         )}

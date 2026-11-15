@@ -11,7 +11,7 @@ import { useClearScimGroupTeamMutation, useSetScimGroupTeamMutation } from '@app
 import type { TeamDto } from '@app/store/workspaces/form-access-api';
 import { formAccessErrorKey } from '@app/utils/form-access';
 
-const selectClass = 'h-11 w-full min-w-0 rounded border border-black-400 bg-white px-3 py-0 text-sm text-black-900 disabled:cursor-not-allowed disabled:bg-black-200 md:h-10 sm:w-64';
+const selectClass = 'h-11 w-full min-w-0 rounded border border-app-edge-strong bg-white px-3 py-0 text-sm text-black-900 disabled:cursor-not-allowed disabled:bg-app-wash-strong md:h-10 sm:w-64';
 
 /**
  * Workspace, Members, Teams: which team each group of the workspace's directory (SCIM) feeds. Only the owner changes it,
@@ -48,7 +48,7 @@ export default function TeamDirectoryGroups({ workspaceId, teams }: { workspaceI
     };
 
     return (
-        <section aria-labelledby={`${id}-title`} className="flex flex-col gap-3 border-t border-black-300 pt-6">
+        <section aria-labelledby={`${id}-title`} className="flex flex-col gap-3 border-t border-app-edge pt-6">
             <div className="flex flex-col gap-1">
                 <h2 id={`${id}-title`} className="body1">
                     {t('STAFF.TEAMS.DIRECTORY_TITLE')}
@@ -60,7 +60,7 @@ export default function TeamDirectoryGroups({ workspaceId, teams }: { workspaceI
             {groups.length === 0 ? (
                 <p className="text-sm text-black-700">{t('STAFF.TEAMS.DIRECTORY_EMPTY')}</p>
             ) : (
-                <ul aria-label={t('STAFF.TEAMS.DIRECTORY_TITLE')} className="flex flex-col divide-y divide-black-300 rounded border border-black-300 bg-white">
+                <ul aria-label={t('STAFF.TEAMS.DIRECTORY_TITLE')} className="flex flex-col divide-y divide-app-edge rounded border border-app-edge bg-white">
                     {groups.map((group) => {
                         // a link to a team that is not in the list (deleted meanwhile) shows as not linked
                         const linked = teams.some((team) => team.id === group.teamId) ? (group.teamId as string) : '';

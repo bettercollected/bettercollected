@@ -149,7 +149,7 @@ function WorkspaceMark() {
         // eslint-disable-next-line @next/next/no-img-element
         <img src={workspace.profileImage} alt="" className="h-7 w-7 shrink-0 rounded-md object-cover" />
     ) : (
-        <span data-initial={initial} aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-100 text-xs font-bold text-brand-600 before:content-[attr(data-initial)]" />
+        <span data-initial={initial} aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-app-primary-tint text-xs font-bold text-app-primary-deep before:content-[attr(data-initial)]" />
     );
 }
 
@@ -162,7 +162,7 @@ export function BackToForms() {
             href={`/${workspace?.workspaceName}/dashboard/forms`}
             aria-label={t('FORM_NAV.BACK')}
             title={t('FORM_NAV.BACK')}
-            className="-ml-1 flex h-11 shrink-0 items-center gap-1.5 rounded px-2 text-sm font-medium text-black-700 hover:bg-black-200 hover:text-black-900"
+            className="-ml-1 flex h-11 shrink-0 items-center gap-1.5 rounded px-2 text-sm font-medium text-black-700 hover:bg-app-wash-strong hover:text-black-900"
         >
             <ArrowLeft className="h-[18px] w-[18px]" aria-hidden="true" />
             <WorkspaceMark />
@@ -188,7 +188,7 @@ export function StatusChip({ form, className }: { form: StandardFormDto; classNa
 export function SkipLink() {
     const { t } = useTranslation();
     return (
-        <a href="#form-main" className="sr-only z-[5000] rounded bg-brand-500 px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
+        <a href="#form-main" className="sr-only z-[5000] rounded bg-app-primary px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
             {t('FORM_NAV.SKIP')}
         </a>
     );

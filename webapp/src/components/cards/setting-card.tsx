@@ -20,7 +20,7 @@ export default function SettingCard({ title, description, link }: ISettingCard) 
             <p className="sh3">{title}</p>
             <p className="mt-4 mb-6 body4 text-black-700!">{description}</p>
             <div className="flex gap-[22px] items-center">
-                <p className="text-brand-600 truncate font-mono text-[13px]">
+                <p className="text-app-primary-deep truncate font-mono text-[13px]">
                     <AnchorLink href={link} target="_blank">
                         {link}
                     </AnchorLink>

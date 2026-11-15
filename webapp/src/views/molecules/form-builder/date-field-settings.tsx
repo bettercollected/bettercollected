@@ -86,7 +86,7 @@ export default function DateFieldSettings({
                 {rules.map((rule, index) => {
                     const known = rule.target !== 'field' || sources.some((s) => s.id === rule.fieldId);
                     return (
-                        <div key={index} className="flex flex-col gap-1.5 rounded-md border border-black-300 bg-white p-2" data-testid="date-rule">
+                        <div key={index} className="flex flex-col gap-1.5 rounded-md border border-app-edge bg-white p-2" data-testid="date-rule">
                             <div className="flex items-center gap-1.5">
                                 <span className="shrink-0 text-xs text-black-600">{t('DATE_RULES.MUST_BE')}</span>
                                 <select aria-label={t('DATE_RULES.RULE_COMPARISON', { n: index + 1 })} className={selectClass} value={rule.comparison} onChange={(e) => patchRule(index, { ...rule, comparison: e.target.value as DateRuleComparison })}>
@@ -122,7 +122,7 @@ export default function DateFieldSettings({
                     );
                 })}
                 {rules.length < DATE_RULES_MAX && (
-                    <button type="button" className="w-fit text-xs font-medium text-brand-500 hover:text-brand-600" onClick={addRule}>
+                    <button type="button" className="w-fit text-xs font-medium text-app-primary hover:text-app-primary-deep" onClick={addRule}>
                         {t('DATE_RULES.ADD')}
                     </button>
                 )}

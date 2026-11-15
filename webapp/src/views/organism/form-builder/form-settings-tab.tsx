@@ -18,13 +18,13 @@ export default function FormSettingsTab() {
         <>
             <FormLanguageSetting />
             <HiddenFieldsEditor />
-            <div className="border-t border-black-300">
+            <div className="border-t border-app-edge">
                 <QuestionNumberingSetting />
             </div>
-            <div className="border-t border-black-300">
+            <div className="border-t border-app-edge">
                 <ReviewPageSetting />
             </div>
-            <div className="border-t border-black-300">
+            <div className="border-t border-app-edge">
                 <TrustSettingsEditor />
             </div>
         </>

@@ -15,14 +15,14 @@ const STATUS_STYLE: Record<ChangeStatus, string> = {
     added: 'bg-green-100 text-green-900',
     changed: 'bg-amber-100 text-amber-900',
     removed: 'bg-red-100 text-red-900',
-    unchanged: 'bg-black-200 text-black-800'
+    unchanged: 'bg-app-wash-strong text-black-800'
 };
 
 /** Per question: what an update does to it, in the builder's words. Exported for its test. */
 export function ChangeRow({ change }: { change: SectionChange }) {
     const { t } = useTranslation('builder');
     return (
-        <li className="flex flex-col gap-0.5 border-t border-black-300 py-2 first:border-t-0">
+        <li className="flex flex-col gap-0.5 border-t border-app-edge py-2 first:border-t-0">
             <div className="flex items-center gap-2">
                 <span className={cn('shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium', STATUS_STYLE[change.status])}>{t(`SECTIONS_LIB.UPDATE.STATUS_${change.status.toUpperCase()}`)}</span>
                 <span className="min-w-0 truncate text-sm text-black-900">{change.title || t('SECTIONS_LIB.UNTITLED')}</span>

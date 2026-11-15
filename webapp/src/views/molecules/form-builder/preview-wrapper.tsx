@@ -52,12 +52,12 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
             <nav className="flex h-14 flex-row justify-between px-4 py-2" style={{ background: isMobile ? standardForm.theme?.accent : 'inherit' }}>
                 <div></div>
                 <div className=" hidden items-center gap-4 text-xs font-semibold lg:flex">
-                    <div onClick={() => setIsDesktopView(true)} className={cn('flex cursor-pointer items-center gap-1 p-2 text-xs', isDesktopView ? 'bg-black-200 text-black-800  rounded-lg' : 'text-black-600')}>
+                    <div onClick={() => setIsDesktopView(true)} className={cn('flex cursor-pointer items-center gap-1 p-2 text-xs', isDesktopView ? 'bg-app-wash-strong text-black-800  rounded-lg' : 'text-black-600')}>
                         <DesktopIcon />
                         {tb('PREVIEW_BAR.DESKTOP')}
                     </div>
                     <button data-umami-event={'Preview in Mobile View Button'}>
-                        <div onClick={() => setIsDesktopView(false)} className={cn('flex cursor-pointer items-center gap-1 p-2 text-xs', isDesktopView ? 'text-black-600' : 'bg-black-200 text-black-800 rounded-lg p-2')}>
+                        <div onClick={() => setIsDesktopView(false)} className={cn('flex cursor-pointer items-center gap-1 p-2 text-xs', isDesktopView ? 'text-black-600' : 'bg-app-wash-strong text-black-800 rounded-lg p-2')}>
                             <MobileIcon />
                             {tb('PREVIEW_BAR.MOBILE')}
                         </div>
@@ -108,7 +108,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                         </div>
                     </div>
                 ) : (
-                    <div className="relative mx-auto aspect-9/16 h-full rounded-lg border border-black-300">
+                    <div className="relative mx-auto aspect-9/16 h-full rounded-lg border border-app-edge">
                         <iframe
                             onLoad={() => {
                                 setIFrameLoaded(true);

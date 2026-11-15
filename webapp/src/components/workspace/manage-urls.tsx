@@ -33,9 +33,9 @@ export default function ManageURLs() {
                 <div className="h4-new mb-1">{t('WORKSPACE.SETTINGS.URLS.TITLE')}</div>
                 <p className="p2-new text-black-700">{t('WORKSPACE.SETTINGS.URLS.DESCRIPTION')}</p>
                 <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <span className="bg-black-100 text-black-800 rounded-lg px-3 py-2 font-mono text-sm">
+                    <span className="bg-app-wash text-black-800 rounded-lg px-3 py-2 font-mono text-sm">
                         {window.PUBLIC_CONFIG?.HTTP_SCHEME}
-                        {window.PUBLIC_CONFIG?.FORM_DOMAIN}/<span className="font-semibold text-brand-500">{workspace.workspaceName}</span>
+                        {window.PUBLIC_CONFIG?.FORM_DOMAIN}/<span className="font-semibold text-app-primary">{workspace.workspaceName}</span>
                     </span>
                     <Button
                         data-umami-event="Copy Default Workspace Link From Workspace Setting"

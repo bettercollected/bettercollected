@@ -85,7 +85,7 @@ export default function SessionsSection() {
             ) : (
                 <ul className="flex flex-col gap-1.5">
                     {(sessions as AuthSession[]).map((session) => (
-                        <li key={session.id} className="border-black-300 flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+                        <li key={session.id} className="border-app-edge flex items-center justify-between gap-3 rounded-md border px-3 py-2">
                             <div className="min-w-0">
                                 <p className="text-black-800 text-[13px] leading-relaxed">
                                     {describeUserAgent(session.userAgent, t)}

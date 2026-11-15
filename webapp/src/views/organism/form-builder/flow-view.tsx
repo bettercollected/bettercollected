@@ -78,7 +78,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
     return (
         <div
             aria-label={t('FLOW.PAGE_ARIA', { n: data.pageNumber, label: data.label, count: data.questionCount })}
-            className={'flex w-[300px] flex-col gap-1 rounded border bg-white px-4 py-3 transition-colors ' + (selected ? 'border-brand-500 ring-1 ring-brand-500' : 'border-black-400 hover:border-brand-300')}
+            className={'flex w-[300px] flex-col gap-1 rounded border bg-white px-4 py-3 transition-colors ' + (selected ? 'border-app-primary ring-1 ring-app-primary' : 'border-app-edge-strong hover:border-app-primary-edge')}
         >
             <Handle id="next-in" type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />
             <Handle
@@ -113,14 +113,14 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
             )}
             <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
                 <span className="text-black-600">{t('OUTLINE.QUESTIONS_COUNT', { count: data.questionCount })}</span>
-                {data.showHideCount > 0 && <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium">{t('FLOW.SHOW_HIDE', { count: data.showHideCount })}</span>}
+                {data.showHideCount > 0 && <span className="text-app-primary-deep bg-app-primary-tint rounded px-1.5 py-[1px] font-medium">{t('FLOW.SHOW_HIDE', { count: data.showHideCount })}</span>}
                 {data.containersCount > 0 && (
-                    <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium" data-testid="flow-containers-badge">
+                    <span className="text-app-primary-deep bg-app-primary-tint rounded px-1.5 py-[1px] font-medium" data-testid="flow-containers-badge">
                         {t('LAYOUT.FLOW_BADGE', { count: data.containersCount })}
                     </span>
                 )}
                 {data.rulesCount > 0 && (
-                    <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium" data-testid="flow-rules-badge">
+                    <span className="text-app-primary-deep bg-app-primary-tint rounded px-1.5 py-[1px] font-medium" data-testid="flow-rules-badge">
                         {t('FIELD_RULES.FLOW_BADGE', { count: data.rulesCount })}
                     </span>
                 )}
@@ -135,7 +135,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                     </span>
                 )}
                 {data.visits !== undefined && (
-                    <span className="text-black-700 bg-black-100 rounded px-1.5 py-[1px] font-semibold" title={t('FLOW.VISITED_TITLE')}>
+                    <span className="text-black-700 bg-app-wash rounded px-1.5 py-[1px] font-semibold" title={t('FLOW.VISITED_TITLE')}>
                         {t('FLOW.VISITED', { visits: data.visits, total: data.totalResponses })}
                     </span>
                 )}
@@ -173,7 +173,7 @@ function TerminalNode({ id, data }: NodeProps<Node<any>>) {
     const { t } = useTranslation('builder');
     const isEnd = data.kind === 'end';
     return (
-        <div className="bg-black-100 border-black-300 text-black-600 flex w-[300px] flex-col gap-0.5 rounded border px-4 py-3">
+        <div className="bg-app-wash border-app-edge text-black-600 flex w-[300px] flex-col gap-0.5 rounded border px-4 py-3">
             {isEnd && <Handle id="next-in" type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />}
             {isEnd && (
                 <Handle
@@ -196,7 +196,7 @@ function TerminalNode({ id, data }: NodeProps<Node<any>>) {
             <span className="text-black-700 text-sm font-semibold">{data.label}</span>
             {isEnd && data.unreached && <span className="w-fit rounded bg-brand-accent-100 px-1.5 py-[1px] text-[11px] font-medium text-brand-olive">{t('FLOW.NOT_REACHED')}</span>}
             {data.totalResponses !== undefined && (
-                <span className="text-black-700 bg-black-100 w-fit rounded px-1.5 py-[1px] text-[11px] font-semibold">
+                <span className="text-black-700 bg-app-wash w-fit rounded px-1.5 py-[1px] text-[11px] font-semibold">
                     {t('FLOW.RESPONSES', { count: data.totalResponses })}
                 </span>
             )}
@@ -640,13 +640,13 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     return (
         <div className="relative flex h-full w-full flex-col bg-white">
             {/* header */}
-            <div className="border-b-black-300 flex items-center justify-between border-b px-6 py-3">
+            <div className="border-b-app-edge flex items-center justify-between border-b px-6 py-3">
                 <div>
                     <div className="text-black-900 text-base font-semibold">{tBuilder('FLOW.TITLE')}</div>
                     {/* aria-live: screen readers announce entering/leaving connect mode */}
                     <div aria-live="polite">
                         {armed ? (
-                            <div className="text-brand-600 text-xs font-medium">
+                            <div className="text-app-primary-deep text-xs font-medium">
                                 {armed.mode === 'from' ? tBuilder('FLOW.CREATING_FROM', { name: armedName }) : tBuilder('FLOW.CREATING_INTO', { name: armedName })} · {tBuilder('FLOW.ESC_CANCEL')}
                             </div>
                         ) : (
@@ -683,15 +683,15 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         title={tBuilder('FLOW.INSIGHTS_TITLE')}
                         className={
                             'flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium ' +
-                            (showInsights ? 'border-brand-500 bg-brand-100 text-brand-600' : 'border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600')
+                            (showInsights ? 'border-app-primary bg-app-primary-tint text-app-primary-deep' : 'border-app-edge text-black-700 hover:border-app-primary hover:text-app-primary-deep')
                         }
                     >
                         <BarChart3 className="h-3.5 w-3.5" /> {insightsLoading ? tBuilder('FLOW.LOADING') : tBuilder('FLOW.INSIGHTS')}
                     </button>
-                    <button onClick={addPage} className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
+                    <button onClick={addPage} className="border-app-edge text-black-700 hover:border-app-primary hover:text-app-primary-deep flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
                         <Plus className="h-3.5 w-3.5" /> {tBuilder('FLOW.ADD_PAGE')}
                     </button>
-                    <button onClick={() => clearSlidePositions()} title={tBuilder('FLOW.RESET_LAYOUT')} className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
+                    <button onClick={() => clearSlidePositions()} title={tBuilder('FLOW.RESET_LAYOUT')} className="border-app-edge text-black-700 hover:border-app-primary hover:text-app-primary-deep flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
                         <LayoutGrid className="h-3.5 w-3.5" /> {tBuilder('FLOW.AUTO_ARRANGE')}
                     </button>
                     <button aria-label={tBuilder('FLOW.CLOSE')} onClick={onClose} className="text-black-600 hover:text-black-900 ml-2 rounded-md p-1">
@@ -759,10 +759,10 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 </div>
 
                 {/* side panel */}
-                <div className="border-l-black-300 flex h-full w-[340px] shrink-0 flex-col overflow-y-auto border-l bg-white">
+                <div className="border-l-app-edge flex h-full w-[340px] shrink-0 flex-col overflow-y-auto border-l bg-white">
                     {selectedSlide ? (
                         <>
-                            <div className="border-b-black-300 flex flex-col gap-2 border-b px-4 py-4">
+                            <div className="border-b-app-edge flex flex-col gap-2 border-b px-4 py-4">
                                 <div>
                                     <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">{tBuilder('FLOW.PAGE_N', { n: selectedIndex + 1 })}</div>
                                     {/* The canvas card may truncate the question; the panel is
@@ -780,7 +780,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                             const newId = duplicateSlide(selectedIndex);
                                             if (newId) setSelectedId(newId);
                                         }}
-                                        className="border-black-300 text-black-700 hover:border-brand-500 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-black-300"
+                                        className="border-app-edge text-black-700 hover:border-app-primary flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-app-edge"
                                     >
                                         <Copy className="h-3.5 w-3.5" /> {tBuilder('FLOW.DUPLICATE')}
                                     </button>
@@ -812,7 +812,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 <div role="dialog" aria-modal="true" aria-label={tBuilder('FLOW.EDIT_PAGE', { n: overlayIndex + 1 })} className="absolute inset-0 z-30 flex flex-col bg-black/40 p-5" onClick={() => setOverlayId(null)}>
                     <div className="flex min-h-0 flex-1 overflow-hidden rounded bg-white shadow-large" onClick={(e) => e.stopPropagation()}>
                         <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-                            <div className="border-b-black-300 flex items-center justify-between gap-4 border-b bg-white px-4 py-2.5">
+                            <div className="border-b-app-edge flex items-center justify-between gap-4 border-b bg-white px-4 py-2.5">
                                 <div className="min-w-0">
                                     <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">{tBuilder('FLOW.PAGE_N', { n: overlayIndex + 1 })}</div>
                                     <div className="text-black-900 truncate text-sm font-semibold">{pageTitleOnly(overlaySlide, overlayIndex)}</div>
@@ -822,7 +822,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                     <span aria-live="polite" className={'whitespace-nowrap text-xs ' + (isAutosaveProblem(autosaveStatus.state) ? 'font-medium text-brand-olive' : 'text-black-600')}>
                                         {autosaveStatusLabel(autosaveStatus.state, tBuilder) ?? tBuilder('AUTOSAVE.AUTOMATIC')}
                                     </span>
-                                    <button onClick={() => setOverlayId(null)} className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
+                                    <button onClick={() => setOverlayId(null)} className="border-app-edge text-black-700 hover:border-app-primary hover:text-app-primary-deep flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
                                         <X className="h-3.5 w-3.5" /> {tBuilder('FLOW.BACK_TO_FLOW')}
                                     </button>
                                 </div>
@@ -832,7 +832,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                             <div ref={overlayMatRef} className="flex min-h-0 flex-1 overflow-auto bg-canvas px-8 py-8" onClick={() => setActiveFieldComponent(null)}>
                                 <div className="m-auto shrink-0" style={{ width: SLIDE_W * overlayScale, height: SLIDE_H * overlayScale }}>
                                     <div
-                                        className="border-black-400 overflow-hidden rounded border bg-white"
+                                        className="border-app-edge-strong overflow-hidden rounded border bg-white"
                                         style={{
                                             width: SLIDE_W,
                                             height: SLIDE_H,
@@ -847,7 +847,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                 </div>
                             </div>
                         </div>
-                        <div className="border-l-black-300 w-[300px] shrink-0 overflow-y-auto border-l bg-white">
+                        <div className="border-l-app-edge w-[300px] shrink-0 overflow-y-auto border-l bg-white">
                             <PropertiesDrawer />
                         </div>
                     </div>

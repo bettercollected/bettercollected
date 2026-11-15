@@ -9,7 +9,7 @@ import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useGetAuditRetentionQuery, useSetAuditRetentionMutation } from '@app/store/workspaces/audit-retention-api';
 
-const radioRow = 'flex min-h-11 cursor-pointer items-center gap-3 rounded border border-black-300 px-3 text-sm text-black-900 md:min-h-10';
+const radioRow = 'flex min-h-11 cursor-pointer items-center gap-3 rounded border border-app-edge px-3 text-sm text-black-900 md:min-h-10';
 
 /** The refusal's code from an RTK Query error (`data.code`), if the server sent one. */
 function refusalCode(error: unknown): string {
@@ -81,7 +81,7 @@ export function AuditRetentionSetting({ workspaceId }: { workspaceId: string }) 
                                 ))}
                             </fieldset>
                             {shortening && (
-                                <p role="status" className="rounded border border-black-300 bg-black-100 p-3 text-sm leading-relaxed text-black-900">
+                                <p role="status" className="rounded border border-app-edge bg-app-wash p-3 text-sm leading-relaxed text-black-900">
                                     {t('AUDIT_LOG.SETTING.SHORTENING', { count: chosen })}
                                 </p>
                             )}

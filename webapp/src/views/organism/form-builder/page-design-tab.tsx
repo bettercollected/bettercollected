@@ -156,7 +156,7 @@ export default function PageDesignTab() {
                                             aria-label={t(field.labelKey)}
                                             value={custom[field.key]}
                                             onChange={(e) => applyCustom({ ...custom, title: CUSTOM_TITLE, [field.key]: e.target.value })}
-                                            className="border-black-300 h-7 w-9 cursor-pointer rounded border bg-white p-0.5"
+                                            className="border-app-edge h-7 w-9 cursor-pointer rounded border bg-white p-0.5"
                                         />
                                     </span>
                                 </div>
@@ -167,15 +167,15 @@ export default function PageDesignTab() {
                     )}
 
                     {/* Where themes are made: the workspace Themes page. */}
-                    <p className="text-black-600 border-t-black-300 border-t pt-3 text-[11px] leading-relaxed">
+                    <p className="text-black-600 border-t-app-edge border-t pt-3 text-[11px] leading-relaxed">
                         {t('PAGE_PROPS.SAVE_THEME_PRE')}{' '}
-                        <Link href={`/${workspace?.workspaceName}/dashboard/themes`} className="text-brand-500 hover:text-brand-600 font-medium underline underline-offset-2">
+                        <Link href={`/${workspace?.workspaceName}/dashboard/themes`} className="text-app-primary hover:text-app-primary-deep font-medium underline underline-offset-2">
                             {t('PAGE_PROPS.THEMES_PAGE')}
                         </Link>
                         .
                     </p>
 
-                    <div className="border-t-black-300 border-t pt-4">
+                    <div className="border-t-app-edge border-t pt-4">
                         <FormLogoSettings />
                     </div>
                 </div>

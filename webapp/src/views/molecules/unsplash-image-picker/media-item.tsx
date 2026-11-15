@@ -76,7 +76,7 @@ const SpinLoaderOnSkeleton = () => {
                 </svg>
                 <span className="p4-new">{t('MEDIA.UPLOADING')}</span>
             </div>
-            <Skeleton className="bg-black-300 inset-0 h-[200px] w-full pb-10" />
+            <Skeleton className="bg-app-edge inset-0 h-[200px] w-full pb-10" />
         </div>
     );
 };

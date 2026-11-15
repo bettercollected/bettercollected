@@ -84,7 +84,7 @@ function CreateDirectoryForm({ overview, workspaceId, workspaceName, onCreated }
             {!overview.hasVerifiedDomain && (
                 <p className="text-xs text-black-600">
                     {t(scim.VERIFY_DOMAIN_FIRST)}{' '}
-                    <Link className="text-brand-500 underline" href={workspaceSectionUrls(workspaceName).domains}>
+                    <Link className="text-app-primary underline" href={workspaceSectionUrls(workspaceName).domains}>
                         {t(workspaceSectionLabels.verifyDomain)}
                     </Link>
                 </p>
@@ -113,7 +113,7 @@ function GroupRow({ group, overview, workspaceId }: { group: ScimGroupDto; overv
         else toast({ description: t(scim.MAPPING_SAVED, { group: group.name, role: roleLabel(t, role || null) }) });
     };
     return (
-        <tr className="border-t border-black-100">
+        <tr className="border-t border-app-wash">
             <td className="break-all py-2 pr-3 text-sm text-black-900">
                 {group.name}
                 {group.needsReview && (
@@ -174,7 +174,7 @@ export default function WorkspaceScimSection() {
     if (!overview.available) {
         return (
             <Section title={title} description={description}>
-                <p className="rounded-md border border-dashed border-black-300 px-3 py-4 text-xs text-black-600" data-testid="scim-unavailable">
+                <p className="rounded-md border border-dashed border-app-edge px-3 py-4 text-xs text-black-600" data-testid="scim-unavailable">
                     {t(overview.reason === 'not_configured' ? scim.NOT_CONFIGURED : scim.NOT_ENABLED)}
                     {overview.reason === 'not_configured' && <SsoSelfHostingGuide />}
                 </p>
@@ -231,7 +231,7 @@ export default function WorkspaceScimSection() {
         <Section title={title} description={description}>
             {!overview.canManage && (
                 <div role="note" className="flex items-start gap-2 rounded-md border border-[#D6E2F5] bg-[#F3F7FD] p-3 text-xs leading-relaxed text-black-700">
-                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-app-primary" />
                     <span>{t(scim.OWNER_ONLY)}</span>
                 </div>
             )}
@@ -241,7 +241,7 @@ export default function WorkspaceScimSection() {
                 overview.canManage ? (
                     <CreateDirectoryForm overview={overview} workspaceId={workspaceId} workspaceName={workspace?.workspaceName} onCreated={setCredentials} />
                 ) : (
-                    <p className="rounded-md border border-dashed border-black-300 px-3 py-3 text-xs text-black-600">{t(scim.NO_DIRECTORY)}</p>
+                    <p className="rounded-md border border-dashed border-app-edge px-3 py-3 text-xs text-black-600">{t(scim.NO_DIRECTORY)}</p>
                 )
             ) : (
                 <>
@@ -331,7 +331,7 @@ export default function WorkspaceScimSection() {
                                 </tbody>
                             </table>
                         ) : (
-                            <p className="rounded-md border border-dashed border-black-300 px-3 py-3 text-xs text-black-600">{t(scim.NO_GROUPS)}</p>
+                            <p className="rounded-md border border-dashed border-app-edge px-3 py-3 text-xs text-black-600">{t(scim.NO_GROUPS)}</p>
                         )}
                     </div>
                 </>

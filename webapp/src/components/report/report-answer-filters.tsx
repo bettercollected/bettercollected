@@ -17,8 +17,8 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { CLAUSES_MAX, ReportCatalogue, ReportClause, ReportField, fieldOf } from '@app/utils/report';
 import { LIST_OPS, NO_VALUE_OPS, PAIR_OPS, clauseProblem, describeClause, filterableFields } from '@app/utils/report-where';
 
-const control = 'border-black-300 text-black-900 focus-visible:ring-brand-500 h-10 w-full rounded border bg-white py-0 pr-9 pl-3 text-sm text-ellipsis focus:outline-hidden focus-visible:ring-2';
-const input = 'border-black-300 text-black-900 focus-visible:ring-brand-500 h-10 w-full rounded border bg-white px-3 py-0 text-sm focus:outline-hidden focus-visible:ring-2';
+const control = 'border-app-edge text-black-900 focus-visible:ring-app-primary h-10 w-full rounded border bg-white py-0 pr-9 pl-3 text-sm text-ellipsis focus:outline-hidden focus-visible:ring-2';
+const input = 'border-app-edge text-black-900 focus-visible:ring-app-primary h-10 w-full rounded border bg-white px-3 py-0 text-sm focus:outline-hidden focus-visible:ring-2';
 
 interface Draft {
     field: string;
@@ -92,12 +92,12 @@ export default function ReportAnswerFilters({ catalogue, clauses, onChange }: Pr
             {chips.length > 0 && (
                 <ul aria-label={t('REPORT.ACTIVE_ANSWER_FILTERS')} className="m-0 flex list-none flex-wrap items-center gap-2 p-0">
                     {chips.map(({ item, text, gone }, index) => (
-                        <li key={`${item.field}-${index}`} className="flex items-center gap-1 rounded-full bg-brand-100 py-0.5 pr-1 pl-3 text-sm text-black-900">
+                        <li key={`${item.field}-${index}`} className="flex items-center gap-1 rounded-full bg-app-primary-tint py-0.5 pr-1 pl-3 text-sm text-black-900">
                             <span>{gone ? `${text} (${t('REPORT.UNAVAILABLE_FIELD')})` : text}</span>
                             <button
                                 type="button"
                                 aria-label={t('REPORT.REMOVE_ANSWER_FILTER', { filter: text })}
-                                className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-brand-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                                className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-app-primary-soft focus:outline-hidden focus-visible:ring-2 focus-visible:ring-app-primary"
                                 onClick={() => onChange(clauses.filter((_, at) => at !== index))}
                             >
                                 <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -105,7 +105,7 @@ export default function ReportAnswerFilters({ catalogue, clauses, onChange }: Pr
                         </li>
                     ))}
                     <li>
-                        <button type="button" onClick={() => onChange([])} className="rounded text-sm font-medium text-brand-500 underline-offset-2 hover:underline focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500">
+                        <button type="button" onClick={() => onChange([])} className="rounded text-sm font-medium text-app-primary underline-offset-2 hover:underline focus:outline-hidden focus-visible:ring-2 focus-visible:ring-app-primary">
                             {t('REPORT.CLEAR_ANSWER_FILTERS')}
                         </button>
                     </li>
@@ -115,7 +115,7 @@ export default function ReportAnswerFilters({ catalogue, clauses, onChange }: Pr
             {open && draft && field && (
                 <form
                     aria-label={t('REPORT.ADD_ANSWER_FILTER')}
-                    className="grid grid-cols-1 gap-3 rounded border border-black-300 bg-white p-4 min-[560px]:grid-cols-2 lg:grid-cols-3"
+                    className="grid grid-cols-1 gap-3 rounded border border-app-edge bg-white p-4 min-[560px]:grid-cols-2 lg:grid-cols-3"
                     onSubmit={(event) => {
                         event.preventDefault();
                         if (clause && !problem) {

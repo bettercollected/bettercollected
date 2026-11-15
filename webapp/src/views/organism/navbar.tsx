@@ -165,7 +165,7 @@ const Navbar = () => {
     };
 
     return (
-        <div id="navbar" className="border-b-black-300 flex h-16 w-full justify-between border-b p-4">
+        <div id="navbar" className="border-b-app-edge flex h-16 w-full justify-between border-b p-4">
             <div className={'flex flex-1 items-center gap-[2px]'}>
                 {/* Workspace identity, not the product logo (de-brand decision —
                     same rule as the top navbar). Still the "back to forms" target. */}
@@ -179,9 +179,9 @@ const Navbar = () => {
                 >
                     {workspace?.profileImage ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={workspace.profileImage} alt="" className="h-8 w-8 shrink-0 rounded-md border border-black-300 object-cover" />
+                        <img src={workspace.profileImage} alt="" className="h-8 w-8 shrink-0 rounded-md border border-app-edge object-cover" />
                     ) : (
-                        <span className="bg-brand-100 text-brand-600 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold">{(workspaceDisplayName(workspace)?.[0] || 'W').toUpperCase()}</span>
+                        <span className="bg-app-primary-tint text-app-primary-deep flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold">{(workspaceDisplayName(workspace)?.[0] || 'W').toUpperCase()}</span>
                     )}
                 </button>
                 {/* The form's own tile (the same one as in the forms list), so the form being edited is recognisable. */}
@@ -192,7 +192,7 @@ const Navbar = () => {
                     onChange={(event) => {
                         setFormTitle(event.target.value);
                     }}
-                    className="hover:border-black-300 focus:border-black-400 w-full resize-none overflow-clip text-ellipsis border border-transparent text-sm! font-medium"
+                    className="hover:border-app-edge focus:border-app-edge-strong w-full resize-none overflow-clip text-ellipsis border border-transparent text-sm! font-medium"
                 />
             </div>
             <div className={'flex min-w-fit flex-1 items-center justify-center gap-1'}>
@@ -208,7 +208,7 @@ const Navbar = () => {
                                 // Stays focusable while disabled, so the reason is discoverable.
                                 if (!isContentPage) event.preventDefault();
                             }}
-                            className={cn('text-black-700 flex flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium', isContentPage ? 'hover:bg-black-100 hover:text-black-900 cursor-pointer' : 'cursor-not-allowed opacity-40')}
+                            className={cn('text-black-700 flex flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium', isContentPage ? 'hover:bg-app-wash hover:text-black-900 cursor-pointer' : 'cursor-not-allowed opacity-40')}
                         >
                             <PlusOutlined aria-hidden="true" />
                             <span>{t('TOPBAR.INSERT')}</span>
@@ -229,7 +229,7 @@ const Navbar = () => {
                     aria-disabled={!isContentPage}
                     onClick={handleAddText}
                     title={isContentPage ? t('TOPBAR.TEXT_BLOCK_TITLE') : t('TOPBAR.TEXT_BLOCK_DISABLED')}
-                    className={cn('text-black-700 flex flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium', isContentPage ? 'hover:bg-black-100 hover:text-black-900 cursor-pointer' : 'cursor-not-allowed opacity-40')}
+                    className={cn('text-black-700 flex flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium', isContentPage ? 'hover:bg-app-wash hover:text-black-900 cursor-pointer' : 'cursor-not-allowed opacity-40')}
                 >
                     <TextOutlinedIcon aria-hidden="true" />
                     <span>{t('TOPBAR.TEXT_BLOCK')}</span>
@@ -238,7 +238,7 @@ const Navbar = () => {
                     data-umami-event={'Open Flow View'}
                     onClick={() => setFlowViewOpen(true)}
                     title={t('TOPBAR.FLOW_TITLE')}
-                    className="text-black-700 hover:bg-black-100 hover:text-black-900 flex cursor-pointer flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium"
+                    className="text-black-700 hover:bg-app-wash hover:text-black-900 flex cursor-pointer flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium"
                 >
                     <LogicOutlinedIcon />
                     {t('TOPBAR.LOGIC')}
@@ -256,10 +256,10 @@ const Navbar = () => {
                     </span>
                 )}
                 <div className="mr-1 flex items-center gap-1">
-                    <button aria-label={t('TOPBAR.UNDO')} title={t('TOPBAR.UNDO_TITLE')} disabled={!canUndo} onClick={undo} className="text-black-600 hover:text-black-900 rounded-md p-1.5 hover:bg-black-100 disabled:opacity-30 disabled:hover:bg-transparent">
+                    <button aria-label={t('TOPBAR.UNDO')} title={t('TOPBAR.UNDO_TITLE')} disabled={!canUndo} onClick={undo} className="text-black-600 hover:text-black-900 rounded-md p-1.5 hover:bg-app-wash disabled:opacity-30 disabled:hover:bg-transparent">
                         <Undo2 className="h-4 w-4" />
                     </button>
-                    <button aria-label={t('TOPBAR.REDO')} title={t('TOPBAR.REDO_TITLE')} disabled={!canRedo} onClick={redo} className="text-black-600 hover:text-black-900 rounded-md p-1.5 hover:bg-black-100 disabled:opacity-30 disabled:hover:bg-transparent">
+                    <button aria-label={t('TOPBAR.REDO')} title={t('TOPBAR.REDO_TITLE')} disabled={!canRedo} onClick={redo} className="text-black-600 hover:text-black-900 rounded-md p-1.5 hover:bg-app-wash disabled:opacity-30 disabled:hover:bg-transparent">
                         <Redo2 className="h-4 w-4" />
                     </button>
                     <KeyboardShortcuts />

@@ -32,7 +32,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
         // The grid column sets the width (281px, the preview's); the title uses all of it.
         <div data-testid="template-card" className="flex w-full min-w-0 flex-col gap-2">
             <div
-                className={`border-black-300 hover:border-black-400 relative  cursor-pointer overflow-hidden rounded border md:h-[192px] ${!template.previewImage && template?.builderVersion === 'v2' ? 'h-[157px]! w-full max-w-[281px]' : 'flex h-[170px] items-center justify-center bg-linear-to-b/srgb from-blue-400 to-blue-800 '
+                className={`border-app-edge hover:border-app-edge-strong relative  cursor-pointer overflow-hidden rounded border md:h-[192px] ${!template.previewImage && template?.builderVersion === 'v2' ? 'h-[157px]! w-full max-w-[281px]' : 'flex h-[170px] items-center justify-center bg-linear-to-b/srgb from-blue-400 to-blue-800 '
                     }`}
             // onClick={handleClickCard}
             >
@@ -83,7 +83,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                             onClick={() => setOpen(false)}
                             onInteractOutside={() => setOpen(false)}
                         >
-                            <ul className="list-none m-0 p-0 bg-white rounded border border-black-300 shadow-large">
+                            <ul className="list-none m-0 p-0 bg-white rounded border border-app-edge shadow-large">
                                 {template?.builderVersion !== 'v2' && (
                                     <li
                                         onClick={(e) => {
@@ -91,7 +91,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                                             // handleClickEditCard();
                                             setOpen(false);
                                         }}
-                                        className="flex items-center gap-2 px-4 py-2 hover:bg-black-100 cursor-pointer body4"
+                                        className="flex items-center gap-2 px-4 py-2 hover:bg-app-wash cursor-pointer body4"
                                     >
                                         <div className="text-black-600 flex items-center justify-center">
                                             <Pencil width={20} height={20} strokeWidth={2} />
@@ -105,7 +105,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                                         openBottomSheetModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', { template, showTitle: true });
                                         setOpen(false);
                                     }}
-                                    className="flex items-center gap-2 px-4 py-2 hover:bg-black-100 cursor-pointer body4"
+                                    className="flex items-center gap-2 px-4 py-2 hover:bg-app-wash cursor-pointer body4"
                                 >
                                     <div className="text-black-600 flex items-center justify-center">
                                         <Settings width={20} height={20} />

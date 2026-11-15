@@ -43,11 +43,11 @@ export const PreviewFullModalView = () => {
 
     return (
         <div className="flex h-screen w-full flex-col bg-canvas">
-            <header className="border-black-300 z-10 flex h-14 w-full shrink-0 items-center justify-between gap-2 border-b bg-white px-4">
+            <header className="border-app-edge z-10 flex h-14 w-full shrink-0 items-center justify-between gap-2 border-b bg-white px-4">
                 <BackButton label={t('BUTTON.BACK')} handleClick={handleClickClose} />
                 <div className="flex min-w-0 items-center gap-2 text-sm">
                     <span className="text-black-800 max-w-[200px] truncate font-medium sm:max-w-[320px]">{standardForm?.title || t('STAFF.COMMON.UNTITLED')}</span>
-                    <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand-500">{t('STAFF.PREVIEW.TITLE')}</span>
+                    <span className="rounded-full bg-app-primary-tint px-2 py-0.5 text-xs font-semibold text-app-primary">{t('STAFF.PREVIEW.TITLE')}</span>
                     <span className="text-black-600 hidden text-xs md:inline">{t('STAFF.PREVIEW.NOT_SAVED')}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -76,7 +76,7 @@ export const PreviewFullModalView = () => {
                 derived height also fits: min(full width, available-height ×
                 16/9). 104px = 56px header + 48px stage padding. */}
             <div className="flex min-h-0 w-full flex-1 items-center justify-center lg:p-6">
-                <div className="border-black-300 relative h-full w-full overflow-hidden bg-white lg:aspect-video lg:h-auto lg:w-[min(100%,calc((100vh-104px)*16/9))] lg:rounded-lg lg:border lg:border-black-300">
+                <div className="border-app-edge relative h-full w-full overflow-hidden bg-white lg:aspect-video lg:h-auto lg:w-[min(100%,calc((100vh-104px)*16/9))] lg:rounded-lg lg:border lg:border-app-edge">
                     <Form isPreviewMode showDesktopLayout={!isMobile} />
                 </div>
             </div>

@@ -29,7 +29,7 @@ const GradiantBorderDiv = styled.div`
         z-index: -1;
         inset: 0;
         position: absolute;
-        background: var(--color-brand-500);
+        background: var(--app-primary,var(--color-brand-500));
         transition: opacity 0.25s linear;
     }
 
@@ -135,7 +135,7 @@ export default function StartWithAi() {
             // Header and footer stay put; only the outline list scrolls, so
             // the dialog fits the screen (its max height: use-dialog-modal).
             <div className="flex min-h-0 flex-1 flex-col" data-testid="start-with-ai-review">
-                <div className="p2-new shrink-0 border-b border-b-black-300 p-4">{t('START_AI.TITLE')}</div>
+                <div className="p2-new shrink-0 border-b border-b-app-edge p-4">{t('START_AI.TITLE')}</div>
                 <div className="flex shrink-0 flex-col gap-3 px-4 pt-4 sm:px-10">
                     <div>
                         <div className="text-black-800 text-normal font-medium">{t('START_AI.REVIEW')}</div>
@@ -148,13 +148,13 @@ export default function StartWithAi() {
                         <label htmlFor="outline-title" className="text-xs text-black-700">
                             {t('START_AI.FORM_TITLE')}
                         </label>
-                        <input id="outline-title" className="w-full rounded-md border border-black-300 px-2 py-1.5 text-sm" value={outline.title} maxLength={200} onChange={(event) => setOutline({ ...outline, title: event.target.value })} />
+                        <input id="outline-title" className="w-full rounded-md border border-app-edge px-2 py-1.5 text-sm" value={outline.title} maxLength={200} onChange={(event) => setOutline({ ...outline, title: event.target.value })} />
                     </div>
                 </div>
                 <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-4 sm:px-10" data-testid="outline-scroll">
                     <OutlineReview outline={outline} onChange={setOutline} onDeleted={setDeletion} onEdited={() => setDeletion(null)} aiFillsGaps={fillGaps && aiEnabled} />
                 </div>
-                <div className="shrink-0 border-t border-t-black-300 px-4 py-4 sm:px-10">
+                <div className="shrink-0 border-t border-t-app-edge px-4 py-4 sm:px-10">
                     {/* outside the spaced column: no gap while it is empty */}
                     <UndoNotice
                         deletion={deletion}
@@ -172,7 +172,7 @@ export default function StartWithAi() {
                             </ul>
                         )}
                         {gapPages > 0 && aiEnabled && (
-                            <div className="flex flex-col gap-1 rounded-md bg-black-100 px-3 py-2 text-xs text-black-700">
+                            <div className="flex flex-col gap-1 rounded-md bg-app-wash px-3 py-2 text-xs text-black-700">
                                 <label htmlFor="outline-fill-gaps" className="flex items-center gap-2 font-medium text-black-800">
                                     <input id="outline-fill-gaps" type="checkbox" aria-describedby="outline-fill-gaps-notice" checked={fillGaps} onChange={(event) => setFillGaps(event.target.checked)} />
                                     {t('START_AI.FILL_GAPS')}
@@ -210,12 +210,12 @@ export default function StartWithAi() {
 
     return (
         <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto">
-            <div className="p2-new border-b border-b-black-300 p-4">{t('START_AI.TITLE')}</div>
+            <div className="p2-new border-b border-b-app-edge p-4">{t('START_AI.TITLE')}</div>
             <div className="flex flex-col gap-4 px-4 py-6 sm:px-10">
                 <div className="text-black-800 text-normal font-medium">{t('START_AI.CREATE')}</div>
                 <ErrorNotice message={shownError} />
                 {aiSettings && !aiEnabled && <AIOptIn feature={t('START_AI.OPT_IN_FEATURE')} sends={t('START_AI.OPT_IN_SENDS')} onEnabled={() => setError(null)} />}
-                <div className="prompt-input-wrapper rounded-lg bg-black-200 p-[1px]">
+                <div className="prompt-input-wrapper rounded-lg bg-app-wash-strong p-[1px]">
                     <div className="rounded-lg bg-white">
                         <label htmlFor="start-with-ai-prompt" className="sr-only">
                             {t('START_AI.PROMPT_LABEL')}
@@ -253,7 +253,7 @@ export default function StartWithAi() {
                                                 setIsOpen(false);
                                             }}
                                         >
-                                            <div className="cursor-pointer rounded-lg bg-black-200 p-4 text-sm text-black-600 hover:text-black-800">{example}</div>
+                                            <div className="cursor-pointer rounded-lg bg-app-wash-strong p-4 text-sm text-black-600 hover:text-black-800">{example}</div>
                                         </GradiantBorderDiv>
                                     );
                                 })}

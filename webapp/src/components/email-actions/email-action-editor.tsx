@@ -173,7 +173,7 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
     };
 
     return (
-        <form onSubmit={submit} noValidate className="flex flex-col gap-6 rounded-lg border border-black-300 bg-white p-4 md:p-5" aria-labelledby="email-editor-title" data-testid="email-editor">
+        <form onSubmit={submit} noValidate className="flex flex-col gap-6 rounded-lg border border-app-edge bg-white p-4 md:p-5" aria-labelledby="email-editor-title" data-testid="email-editor">
             <h3 id="email-editor-title" ref={heading} tabIndex={-1} className="text-sm font-semibold text-black-900 outline-hidden">
                 {t(action ? 'EMAIL_ACTIONS.EDITOR.TITLE_EDIT' : 'EMAIL_ACTIONS.EDITOR.TITLE_ADD')}
             </h3>
@@ -212,7 +212,7 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
                     {t('EMAIL_ACTIONS.EDITOR.FIELDS_HINT', { name: '{{name}}' })}
                 </p>
                 {choosable.length === 0 && <p className="text-sm text-black-700">{t('EMAIL_ACTIONS.EDITOR.NO_FIELDS')}</p>}
-                <ul className="flex flex-col divide-y divide-black-200 rounded-md border border-black-300">
+                <ul className="flex flex-col divide-y divide-app-wash-strong rounded-md border border-app-edge">
                     {variables.map((variable, index) => {
                         const key = chosen[variable.source];
                         const id = `email-var-${index}`;
@@ -224,7 +224,7 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
                                         <input
                                             id={id}
                                             type="checkbox"
-                                            className="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
+                                            className="mt-0.5 h-4 w-4 shrink-0 accent-app-primary"
                                             checked={key !== undefined}
                                             disabled={!can}
                                             aria-describedby={!can ? `${id}-reason` : undefined}
@@ -276,7 +276,7 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
                 </p>
                 <div role="radiogroup" aria-label={t('EMAIL_ACTIONS.EDITOR.LANGUAGE')} className="flex gap-2">
                     {LANGUAGES.map((lang) => (
-                        <label key={lang} className={'flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm ' + (language === lang ? 'option-selected font-medium text-ink' : 'border-black-300 text-black-800')}>
+                        <label key={lang} className={'flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm ' + (language === lang ? 'option-selected font-medium text-ink' : 'border-app-edge text-black-800')}>
                             {language === lang && <Check aria-hidden="true" className="h-3.5 w-3.5 text-link" strokeWidth={3} />}
                             <input type="radio" name="email-language" className="sr-only" checked={language === lang} onChange={() => (setLanguage(lang), setShown(null))} />
                             {t(`EMAIL_ACTIONS.EDITOR.LANGUAGE_${lang.toUpperCase()}`)}
@@ -302,7 +302,7 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
                             <button
                                 key={placeholder}
                                 type="button"
-                                className="rounded-md border border-black-300 bg-black-100 px-2 py-1 font-mono text-xs text-black-800 hover:border-brand-500"
+                                className="rounded-md border border-app-edge bg-app-wash px-2 py-1 font-mono text-xs text-black-800 hover:border-app-primary"
                                 onClick={() => insert(placeholder)}
                                 aria-label={t('EMAIL_ACTIONS.EDITOR.INSERT', { name: placeholder })}
                             >
@@ -320,7 +320,7 @@ export default function EmailActionEditor({ workspaceId, formId, variables, acti
                     </div>
                     <div aria-live="polite" data-testid="email-preview">
                         {shown && (
-                            <div className="flex flex-col gap-2 rounded-md border border-black-300 bg-black-100 p-3">
+                            <div className="flex flex-col gap-2 rounded-md border border-app-edge bg-app-wash p-3">
                                 <p className="text-xs font-medium text-black-600">{t('EMAIL_ACTIONS.EDITOR.PREVIEW_NOTE')}</p>
                                 <p className="text-sm font-semibold break-words text-black-900">{shown.subject}</p>
                                 <pre className="font-sans text-sm leading-relaxed break-words whitespace-pre-wrap text-black-800">{shown.body}</pre>

@@ -72,7 +72,7 @@ export default function OptionListsClient() {
             {isLoading ? (
                 <p className="text-sm text-black-600">{t('LISTS.LOADING')}</p>
             ) : !lists?.length ? (
-                <p className="rounded-lg border border-dashed border-black-400 p-6 text-sm text-black-700">{t('LISTS.EMPTY')}</p>
+                <p className="rounded-lg border border-dashed border-app-edge-strong p-6 text-sm text-black-700">{t('LISTS.EMPTY')}</p>
             ) : (
                 <table className="w-full text-left text-sm">
                     <caption className="sr-only">{t('LISTS.TITLE')}</caption>
@@ -94,7 +94,7 @@ export default function OptionListsClient() {
                     </thead>
                     <tbody>
                         {lists.map((list) => (
-                            <tr key={list.id} className="border-t border-black-300">
+                            <tr key={list.id} className="border-t border-app-edge">
                                 <th scope="row" className="py-3 pr-3 font-medium text-black-900">
                                     {list.name}
                                 </th>

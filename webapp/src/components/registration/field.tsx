@@ -3,7 +3,7 @@ import React from 'react';
 import { cn } from '@app/shadcn/util/lib';
 
 export const inputClass =
-    'h-10 w-full rounded-md border border-control bg-white px-3.5 py-0 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-600 focus:border-brand-500 aria-[invalid=true]:border-[#C43D3D] disabled:bg-black-200';
+    'h-10 w-full rounded-md border border-app-control bg-white px-3.5 py-0 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-600 focus:border-app-primary aria-[invalid=true]:border-[#C43D3D] disabled:bg-app-wash-strong';
 
 interface FieldProps {
     id: string;

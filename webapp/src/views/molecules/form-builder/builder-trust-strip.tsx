@@ -52,11 +52,11 @@ export function TrustStripNudge() {
                 setActiveFieldComponent(null);
                 setPropertiesTab('form');
             }}
-            className="border-black-400 hover:border-brand-500 flex max-w-[90%] items-center gap-2 rounded-full border bg-white px-4 py-2 text-xs transition-colors"
+            className="border-app-edge-strong hover:border-app-primary flex max-w-[90%] items-center gap-2 rounded-full border bg-white px-4 py-2 text-xs transition-colors"
         >
-            <Shield className="h-3.5 w-3.5 shrink-0 text-brand-500" strokeWidth={1.8} aria-hidden="true" />
+            <Shield className="h-3.5 w-3.5 shrink-0 text-app-primary" strokeWidth={1.8} aria-hidden="true" />
             <span className="text-black-700 truncate">{t('TRUST.NUDGE')}</span>
-            <span className="shrink-0 font-semibold text-brand-500">{t('TRUST.NUDGE_ADD')}</span>
+            <span className="shrink-0 font-semibold text-app-primary">{t('TRUST.NUDGE_ADD')}</span>
         </button>
     );
 }

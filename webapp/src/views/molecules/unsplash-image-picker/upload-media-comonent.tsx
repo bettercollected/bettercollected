@@ -111,7 +111,7 @@ export const SkeletonLoadingComponent = ({ quantity = 4 }: { quantity?: number }
     return (
         <div className="mt-4 grid h-fit w-full grid-cols-2 items-center justify-center gap-2 overflow-hidden">
             {[...Array(quantity)].map((_, index: number) => {
-                return <Skeleton key={index} className="bg-black-300 h-[140px] pb-10" />;
+                return <Skeleton key={index} className="bg-app-edge h-[140px] pb-10" />;
             })}
         </div>
     );

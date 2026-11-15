@@ -101,9 +101,9 @@ export function AIOptIn({ feature, sends, onEnabled, compact }: OptInProps) {
     };
 
     return (
-        <div className={`flex flex-col gap-2 rounded border border-black-300 bg-white ${compact ? 'p-3' : 'p-4'}`} role="region" aria-label={t('RESPONSES_STAFF.AI_OPTIN_TITLE')}>
+        <div className={`flex flex-col gap-2 rounded border border-app-edge bg-white ${compact ? 'p-3' : 'p-4'}`} role="region" aria-label={t('RESPONSES_STAFF.AI_OPTIN_TITLE')}>
             <div className="flex items-center gap-1.5 text-[13px] font-semibold text-black-900">
-                <Sparkles className="h-3.5 w-3.5 text-brand-500" />
+                <Sparkles className="h-3.5 w-3.5 text-app-primary" />
                 {t('RESPONSES_STAFF.AI_OPTIN_TITLE')}
             </div>
             <p className="text-xs leading-relaxed text-black-600">

@@ -148,9 +148,9 @@ export default function OtpEmailForm({ isModal, card, isSignup, setEmail: setPar
                             </div>
                         </div>
                         <div className={`flex w-full items-center gap-4 ${card ? 'my-6' : 'my-10 pt-8'}`}>
-                            <Separator className={`flex-1 shrink-0 ${card ? 'bg-hairline-strong' : 'bg-black-400'}`} />
+                            <Separator className={`flex-1 shrink-0 ${card ? 'bg-hairline-strong' : 'bg-app-edge-strong'}`} />
                             <span className={`body4 whitespace-nowrap ${card ? 'text-copy!' : 'text-black-700!'}`}>{constants.orSignInUsing}</span>
-                            <Separator className={`flex-1 shrink-0 ${card ? 'bg-hairline-strong' : 'bg-black-400'}`} />
+                            <Separator className={`flex-1 shrink-0 ${card ? 'bg-hairline-strong' : 'bg-app-edge-strong'}`} />
                         </div>
                     </>
                 )}

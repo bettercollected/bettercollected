@@ -28,7 +28,7 @@ export default function SecretOnce({ secret, host, rotated, onDone }: { secret: 
     };
 
     return (
-        <section className="flex flex-col gap-3 rounded-lg border border-brand-500 bg-brand-100 p-4" aria-labelledby="webhook-secret-title" data-testid="webhook-secret-once">
+        <section className="flex flex-col gap-3 rounded-lg border border-app-primary bg-app-primary-tint p-4" aria-labelledby="webhook-secret-title" data-testid="webhook-secret-once">
             <h3 id="webhook-secret-title" className="text-sm font-semibold text-black-900">
                 {t(rotated ? 'WEBHOOKS.SECRET.TITLE_ROTATED' : 'WEBHOOKS.SECRET.TITLE', { host })}
             </h3>
@@ -45,7 +45,7 @@ export default function SecretOnce({ secret, host, rotated, onDone }: { secret: 
                     spellCheck={false}
                     autoComplete="off"
                     onFocus={(e) => e.currentTarget.select()}
-                    className="h-10 w-full rounded-md border border-control bg-white px-3.5 font-mono text-sm text-black-900 sm:flex-1"
+                    className="h-10 w-full rounded-md border border-app-control bg-white px-3.5 font-mono text-sm text-black-900 sm:flex-1"
                 />
                 <Button type="button" variant="v2Button" size="sm" onClick={copy}>
                     {t('WEBHOOKS.SECRET.COPY')}

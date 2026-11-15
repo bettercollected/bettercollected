@@ -50,7 +50,7 @@ const ImageWithLoader = ({ photo }: { photo: any }) => {
                 width={0}
                 height={0}
             />
-            {nextImageLoading && <Skeleton className=" bg-black-300 z-[10] h-[200px] w-full" />}
+            {nextImageLoading && <Skeleton className=" bg-app-edge z-[10] h-[200px] w-full" />}
         </div>
     );
 };

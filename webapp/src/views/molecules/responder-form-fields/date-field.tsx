@@ -132,7 +132,7 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                     </button>
                 </PopoverTrigger>
                 {/* The calendar dialog is named by the question, like its button. */}
-                <PopoverContent className="w-auto p-0" align="start" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : t('DATE.PICK')}>
+                <PopoverContent className="w-auto border-black-300 p-0" align="start" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : t('DATE.PICK')}>
                     <ThemedCalendar mode="single" locale={locale} selected={date} onSelect={handleSelect} disabled={disabled} defaultMonth={defaultMonth} autoFocus />
                 </PopoverContent>
             </Popover>

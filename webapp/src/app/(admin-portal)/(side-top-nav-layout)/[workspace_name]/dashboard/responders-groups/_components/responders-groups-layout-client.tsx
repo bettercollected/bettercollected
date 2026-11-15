@@ -51,7 +51,7 @@ export default function RespondersGroupsLayoutClient({ children, workspaceName }
 
     return (
         <div className="flex flex-col">
-            <div className="border-black-300 mb-8 flex items-center space-x-8 border-b">
+            <div className="border-app-edge mb-8 flex items-center space-x-8 border-b">
                 {tabs.map((tab) => {
                     const isActive = pathname.endsWith(tab.path);
                     return (
@@ -61,7 +61,7 @@ export default function RespondersGroupsLayoutClient({ children, workspaceName }
                             className={cn(
                                 'flex items-center px-1 py-4 text-sm font-medium border-b-2 transition-colors duration-200 mb-[-1px]',
                                 isActive
-                                    ? 'border-brand-500 text-brand-500'
+                                    ? 'border-app-primary text-app-primary'
                                     : 'border-transparent text-black-600 hover:text-black-800'
                             )}
                         >

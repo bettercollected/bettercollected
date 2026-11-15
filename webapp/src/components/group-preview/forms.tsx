@@ -56,7 +56,7 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
                 </div>
                 <Button disabled={workspaceForms.length === 0} onClick={() => openModal('ADD_FORM_GROUP', { forms: workspaceForms, group })} variant="ghost">
                     <Plus className="h-4 w-4" />
-                    <span className="text-brand-500! min-w-[65px]  body6"> {t(buttonConstant.addForm)}</span>
+                    <span className="text-app-primary! min-w-[65px]  body6"> {t(buttonConstant.addForm)}</span>
                 </Button>
             </div>
             {group.forms.length > 0 && (

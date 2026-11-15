@@ -19,7 +19,7 @@ export interface InspectorCrumb {
 export default function InspectorBreadcrumb({ crumbs, current, onSelect }: { crumbs: InspectorCrumb[]; current: InspectorLevel; onSelect: (level: InspectorLevel) => void }) {
     const { t } = useTranslation('builder');
     return (
-        <nav aria-label={t('BREADCRUMB.LABEL')} className="shrink-0 border-b border-black-300 px-4 py-2.5">
+        <nav aria-label={t('BREADCRUMB.LABEL')} className="shrink-0 border-b border-app-edge px-4 py-2.5">
             <ol className="flex min-w-0 items-center gap-1 text-xs">
                 {crumbs.map((crumb, index) => {
                     const isCurrent = crumb.level === current;
@@ -36,7 +36,7 @@ export default function InspectorBreadcrumb({ crumbs, current, onSelect }: { cru
                                         {crumb.label}
                                     </span>
                                 ) : (
-                                    <button type="button" onClick={() => onSelect(crumb.level)} className="block max-w-full truncate rounded-[2px] px-1 py-0.5 font-medium text-black-600 hover:bg-black-200 hover:text-black-900" title={crumb.label}>
+                                    <button type="button" onClick={() => onSelect(crumb.level)} className="block max-w-full truncate rounded-[2px] px-1 py-0.5 font-medium text-black-600 hover:bg-app-wash-strong hover:text-black-900" title={crumb.label}>
                                         {crumb.label}
                                     </button>
                                 )}

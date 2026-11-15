@@ -141,7 +141,7 @@ export default function DeleteAccountModal() {
                         )}
                     </div>
                     <Textarea
-                        className="w-full rounded border border-control focus:border-brand-500"
+                        className="w-full rounded border border-app-control focus:border-app-primary"
                         value={feedback}
                         onChange={(event) => {
                             setFeedBack(event.target.value);

@@ -10,7 +10,7 @@ import { cn } from '@app/shadcn/util/lib';
 export function InspectorSection({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
     const id = useId();
     return (
-        <section aria-labelledby={id} className={cn('flex flex-col gap-4 border-b border-black-300 px-4 py-4 last:border-b-0', className)}>
+        <section aria-labelledby={id} className={cn('flex flex-col gap-4 border-b border-app-edge px-4 py-4 last:border-b-0', className)}>
             <h3 id={id} className="text-xs font-semibold tracking-wide text-black-600 uppercase">
                 {title}
             </h3>
@@ -99,7 +99,7 @@ export function NumberSetting({
                     if (!Number.isFinite(parsed)) return;
                     onChange(integer ? Math.trunc(parsed) : parsed);
                 }}
-                className={cn('h-8 w-full rounded border bg-white px-2 text-xs tabular-nums', invalid ? 'border-amber-500' : 'border-control focus:border-brand-500')}
+                className={cn('h-8 w-full rounded border bg-white px-2 text-xs tabular-nums', invalid ? 'border-amber-500' : 'border-app-control focus:border-app-primary')}
             />
         </div>
     );

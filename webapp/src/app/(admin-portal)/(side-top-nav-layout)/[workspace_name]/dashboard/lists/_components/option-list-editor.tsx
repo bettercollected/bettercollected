@@ -136,7 +136,7 @@ export default function OptionListEditor({ listId, canEdit, onClose }: Props) {
                 </label>
                 <label className="flex flex-col gap-1 text-sm text-black-800">
                     {t('LISTS.ORDER')}
-                    <select value={order} disabled={!canEdit} onChange={(event) => touch(setOrder)(event.target.value as 'manual' | 'alphabetical')} className="min-h-11 rounded-md border border-control bg-white px-2 text-sm">
+                    <select value={order} disabled={!canEdit} onChange={(event) => touch(setOrder)(event.target.value as 'manual' | 'alphabetical')} className="min-h-11 rounded-md border border-app-control bg-white px-2 text-sm">
                         <option value="manual">{t('LISTS.ORDER_MANUAL')}</option>
                         <option value="alphabetical">{t('LISTS.ORDER_ALPHABETICAL')}</option>
                     </select>
@@ -182,7 +182,7 @@ export default function OptionListEditor({ listId, canEdit, onClose }: Props) {
                 </thead>
                 <tbody>
                     {items.map((item, index) => (
-                        <tr key={item.id ?? `new-${index}`} className="border-t border-black-300">
+                        <tr key={item.id ?? `new-${index}`} className="border-t border-app-edge">
                             <td className="py-1.5 pr-2">
                                 <AppInput className="w-full min-w-0" value={item.label} maxLength={200} disabled={!canEdit} aria-label={t('LISTS.LABEL_OF', { n: index + 1 })} onChange={(event: any) => setItem(index, { label: event.target.value })} />
                             </td>
@@ -223,7 +223,7 @@ export default function OptionListEditor({ listId, canEdit, onClose }: Props) {
                 </div>
             )}
             {canEdit && (
-                <div className="flex flex-wrap items-center gap-3 border-t border-black-300 pt-4">
+                <div className="flex flex-wrap items-center gap-3 border-t border-app-edge pt-4">
                     <Button type="button" onClick={save} disabled={!dirty || saving} className="min-h-11">
                         {t('LISTS.SAVE')}
                     </Button>

@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DEFAULT_DRAFT_DAYS, parseDraftDays } from '@app/utils/form-drafts';
 
-const FIELD = 'border-black-300 text-black-900 focus-visible:ring-brand-500 rounded border bg-white px-3 py-2 text-sm focus:outline-hidden focus-visible:ring-2';
+const FIELD = 'border-app-edge text-black-900 focus-visible:ring-app-primary rounded border bg-white px-3 py-2 text-sm focus:outline-hidden focus-visible:ring-2';
 
 /**
  * How many days after the last save a draft is kept (the setting "Let

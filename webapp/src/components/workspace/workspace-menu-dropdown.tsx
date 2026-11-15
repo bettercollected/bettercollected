@@ -124,7 +124,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                 {/* px-4 py-2 matches the nav items below, so the avatar's left
                     edge lines up with the nav icons — one consistent gutter. */}
                 <div
-                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex cursor-pointer items-center justify-between gap-2 overflow-hidden rounded-lg px-4 py-2 hover:bg-black-100 ${open ? 'bg-black-100' : ''
+                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex cursor-pointer items-center justify-between gap-2 overflow-hidden rounded-lg px-4 py-2 hover:bg-app-wash ${open ? 'bg-app-wash' : ''
                         }`}
                 >
                     <div className="flex min-w-0 items-center gap-3">
@@ -158,7 +158,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                             return (
                                 <div
                                     key={space.id}
-                                    className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 ${canOpenWorkspace(space) ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                                    className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-app-wash ${canOpenWorkspace(space) ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         handleChangeWorkspace(space);
@@ -194,7 +194,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                         })
                     ) : (
                         <div
-                            className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 cursor-pointer"
+                            className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-app-wash cursor-pointer"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleChangeWorkspace(workspace);
@@ -219,7 +219,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                         {/* the full selection screen: every workspace, searchable */}
                         <Link
                             href={SELECT_WORKSPACE_PATH}
-                            className="text-black-800! flex items-center gap-3 px-5 py-3 hover:bg-black-100"
+                            className="text-black-800! flex items-center gap-3 px-5 py-3 hover:bg-app-wash"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setOpen(false);
@@ -229,7 +229,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                             <span className="body3 not-italic!">{t(workspaceSelect.choose)}</span>
                         </Link>
                         <div
-                            className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 cursor-pointer ${!enableCreateWorkspaceButton() && isProPlan ? 'text-black-600! cursor-not-allowed' : 'text-black-800!'
+                            className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-app-wash cursor-pointer ${!enableCreateWorkspaceButton() && isProPlan ? 'text-black-600! cursor-not-allowed' : 'text-black-800!'
                                 }`}
                             onClick={(e) => {
                                 e.stopPropagation();

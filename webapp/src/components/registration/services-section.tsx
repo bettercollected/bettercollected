@@ -75,7 +75,7 @@ export default function ServicesSection() {
         <div className="flex w-full flex-col gap-6">
             <div className="flex flex-col gap-3">
                 <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('REGISTRATION.SERVICES.INTRO')}</p>
-                <p className="max-w-[62ch] rounded-md border border-black-300 bg-black-100 px-3 py-2 text-xs leading-relaxed text-black-700">{t('REGISTRATION.NOTICE')}</p>
+                <p className="max-w-[62ch] rounded-md border border-app-edge bg-app-wash px-3 py-2 text-xs leading-relaxed text-black-700">{t('REGISTRATION.NOTICE')}</p>
             </div>
 
             <section className="flex flex-col gap-3" aria-labelledby="registration-services-title">
@@ -98,7 +98,7 @@ export default function ServicesSection() {
                     </p>
                 )}
                 {!isLoading && !isError && data && data.length === 0 && (
-                    <div className="flex flex-col items-start gap-1 rounded-lg border border-dashed border-black-300 p-6">
+                    <div className="flex flex-col items-start gap-1 rounded-lg border border-dashed border-app-edge p-6">
                         <p className="text-sm font-semibold text-black-900">{t('REGISTRATION.SERVICES.EMPTY_TITLE')}</p>
                         <p className="text-sm text-black-700">{t('REGISTRATION.SERVICES.EMPTY_TEXT')}</p>
                     </div>

@@ -103,7 +103,7 @@ function AIInsightsBody() {
     const importedForm = !!form?.settings?.provider && form.settings.provider !== 'self';
     if (importedForm) {
         return (
-            <div className="flex flex-col gap-2 rounded border border-black-300 bg-white p-5">
+            <div className="flex flex-col gap-2 rounded border border-app-edge bg-white p-5">
                 <h2 className="sr-only">{t('RESPONSES_STAFF.AI_SUMMARY')}</h2>
                 <p className="max-w-[68ch] text-[13px] text-black-600">{t('RESPONSES_STAFF.AI_IMPORTED')}</p>
             </div>
@@ -112,7 +112,7 @@ function AIInsightsBody() {
 
     if (!canReadResponses) {
         return (
-            <div className="flex flex-col gap-2 rounded border border-black-300 bg-white p-5">
+            <div className="flex flex-col gap-2 rounded border border-app-edge bg-white p-5">
                 <h2 className="sr-only">{t('RESPONSES_STAFF.AI_SUMMARY')}</h2>
                 <p className="text-[13px] text-black-600">{t('RESPONSES_STAFF.AI_NO_READ')}</p>
             </div>
@@ -120,7 +120,7 @@ function AIInsightsBody() {
     }
 
     return (
-        <div className="flex flex-col gap-3 rounded border border-black-300 bg-white p-5">
+        <div className="flex flex-col gap-3 rounded border border-app-edge bg-white p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="sr-only">{t('RESPONSES_STAFF.AI_SUMMARY')}</h2>
                 {insight && aiEnabled && formAllows && (
@@ -175,7 +175,7 @@ function AIInsightsBody() {
                             {insight.themes.map((theme) => (
                                 <li key={theme.title} className="flex items-baseline gap-2 text-[13px]">
                                     <span className="shrink-0 font-medium text-black-900">{theme.title}</span>
-                                    {typeof theme.approxCount === 'number' && <span className="shrink-0 rounded bg-black-100 px-1.5 py-0.5 text-[10.5px] tabular-nums text-black-600">~{theme.approxCount}</span>}
+                                    {typeof theme.approxCount === 'number' && <span className="shrink-0 rounded bg-app-wash px-1.5 py-0.5 text-[10.5px] tabular-nums text-black-600">~{theme.approxCount}</span>}
                                     <span className="text-black-600">{theme.description}</span>
                                 </li>
                             ))}
@@ -222,9 +222,9 @@ export default function AIInsightsCard({ defaultOpen = false }: { defaultOpen?: 
                 aria-expanded={open}
                 aria-controls={panelId}
                 onClick={() => setOpen((value) => !value)}
-                className="border-black-300 text-black-700 hover:bg-black-200 hover:text-black-900 focus-visible:ring-brand-500 ml-auto flex h-9 items-center gap-2 rounded border bg-white px-3 text-sm font-medium focus:outline-hidden focus-visible:ring-2"
+                className="border-app-edge text-black-700 hover:bg-app-wash-strong hover:text-black-900 focus-visible:ring-app-primary ml-auto flex h-9 items-center gap-2 rounded border bg-white px-3 text-sm font-medium focus:outline-hidden focus-visible:ring-2"
             >
-                <Sparkles className="text-brand-500 h-4 w-4" aria-hidden="true" />
+                <Sparkles className="text-app-primary h-4 w-4" aria-hidden="true" />
                 {t('RESPONSES_STAFF.AI_SUMMARY')}
                 <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
             </button>

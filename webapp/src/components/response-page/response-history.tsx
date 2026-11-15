@@ -46,7 +46,7 @@ export default function ResponseHistory({ workspaceId, formId, responseId, form 
     };
 
     return (
-        <section aria-labelledby="response-history-heading" className="flex flex-col gap-3 rounded-lg border border-black-300 bg-white p-4 print:hidden" data-testid="response-history">
+        <section aria-labelledby="response-history-heading" className="flex flex-col gap-3 rounded-lg border border-app-edge bg-white p-4 print:hidden" data-testid="response-history">
             <h2 id="response-history-heading" className="text-sm font-semibold text-black-800">
                 {t('RESPONSE_HISTORY.TITLE')}
             </h2>
@@ -66,7 +66,7 @@ export default function ResponseHistory({ workspaceId, formId, responseId, form 
             )}
             {!isLoading && !isError && entries.length === 0 && <p className="text-sm">{t('RESPONSE_HISTORY.EMPTY')}</p>}
             {entries.length > 0 && (
-                <ol className="flex flex-col divide-y divide-black-300">
+                <ol className="flex flex-col divide-y divide-app-edge">
                     {entries.map((entry) => {
                         const opened = openSeq === entry.seq;
                         const shown: RevisionValues | undefined = opened && values.data?.seq === entry.seq ? values.data : undefined;
@@ -90,7 +90,7 @@ export default function ResponseHistory({ workspaceId, formId, responseId, form 
                                         </p>
                                     )}
                                     {shown && (
-                                        <dl className="mt-1 flex flex-col gap-2 rounded bg-black-100 p-3 text-sm" data-testid={`revision-values-${entry.seq}`}>
+                                        <dl className="mt-1 flex flex-col gap-2 rounded bg-app-wash p-3 text-sm" data-testid={`revision-values-${entry.seq}`}>
                                             {entry.changed.map((item) => {
                                                 const field = questions.get(item.id);
                                                 const answer = shown.values[item.id];

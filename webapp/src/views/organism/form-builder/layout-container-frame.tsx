@@ -51,7 +51,7 @@ function TitleInput({ value, label, onCommit, disabled }: { value: string; label
                 }}
                 onBlur={() => blank && setDraft(value)}
                 onClick={(event) => event.stopPropagation()}
-                className="w-full min-w-0 rounded border border-black-300 bg-white px-2 py-1 text-sm font-semibold outline-hidden focus:border-brand-500"
+                className="w-full min-w-0 rounded border border-app-edge bg-white px-2 py-1 text-sm font-semibold outline-hidden focus:border-app-primary"
             />
             {blank && (
                 <span id={needed} className="text-[11px] text-[#B42318]">
@@ -62,8 +62,8 @@ function TitleInput({ value, label, onCommit, disabled }: { value: string; label
     );
 }
 
-const iconButton = 'text-black-700 hover:bg-black-100 focus-visible:ring-brand-500 inline-flex h-8 w-8 items-center justify-center rounded focus-visible:ring-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-40';
-const textButton = 'text-brand-500 hover:text-brand-600 focus-visible:ring-brand-500 inline-flex items-center gap-1 rounded px-1 py-1 text-xs font-medium focus-visible:ring-2 focus-visible:outline-hidden';
+const iconButton = 'text-black-700 hover:bg-app-wash focus-visible:ring-app-primary inline-flex h-8 w-8 items-center justify-center rounded focus-visible:ring-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-40';
+const textButton = 'text-app-primary hover:text-app-primary-deep focus-visible:ring-app-primary inline-flex items-center gap-1 rounded px-1 py-1 text-xs font-medium focus-visible:ring-2 focus-visible:outline-hidden';
 
 /**
  * A layout container on the builder's canvas: a frame around the run of
@@ -102,18 +102,18 @@ export default function LayoutContainerFrame({
     const label = `${kind}: ${container.title ?? ''}`.trim();
 
     return (
-        <section aria-label={container.type === 'tabs' ? kind : label} data-canvas-container={container.id} className="w-full min-w-0 rounded-lg border border-dashed border-black-400 bg-white/40">
+        <section aria-label={container.type === 'tabs' ? kind : label} data-canvas-container={container.id} className="w-full min-w-0 rounded-lg border border-dashed border-app-edge-strong bg-white/40">
             {editable ? (
-                <div className="flex flex-wrap items-center gap-2 border-b border-dashed border-black-300 px-3 py-2">
+                <div className="flex flex-wrap items-center gap-2 border-b border-dashed border-app-edge px-3 py-2">
                     <button
                         type="button"
                         onClick={select}
-                        className="flex shrink-0 items-center gap-1 rounded text-[11px] font-semibold tracking-wide text-black-700 uppercase hover:text-black-900 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden"
+                        className="flex shrink-0 items-center gap-1 rounded text-[11px] font-semibold tracking-wide text-black-700 uppercase hover:text-black-900 focus-visible:ring-2 focus-visible:ring-app-primary focus-visible:outline-hidden"
                         aria-label={t('LAYOUT.VISIBILITY') + ': ' + kind}
                     >
                         {container.type === 'panel' && <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />}
                         {kind}
-                        {container.logic && <span className="rounded bg-brand-100 px-1 py-px text-brand-500 normal-case">{t('LAYOUT.VISIBILITY')}</span>}
+                        {container.logic && <span className="rounded bg-app-primary-tint px-1 py-px text-app-primary normal-case">{t('LAYOUT.VISIBILITY')}</span>}
                     </button>
                     {container.type !== 'tabs' && <TitleInput value={container.title ?? ''} label={t('LAYOUT.TITLE_LABEL') + ' ' + kind} onCommit={rename} disabled={!canChange} />}
                     {container.type === 'tabs' && <span className="flex-1" />}
@@ -198,7 +198,7 @@ function TabGroup({
     return (
         <div role="group" aria-label={tab.title} data-canvas-tab={tab.id} className="flex flex-col gap-4">
             {editable ? (
-                <div className="flex items-center gap-1 border-b border-black-300 pb-1.5">
+                <div className="flex items-center gap-1 border-b border-app-edge pb-1.5">
                     <TitleInput value={tab.title} label={t('LAYOUT.TAB_TITLE') + ' ' + (index + 1)} onCommit={rename} disabled={!canChange} />
                     <button type="button" className={iconButton} disabled={!canChange || index === 0} aria-label={t('LAYOUT.MOVE_TAB_LEFT')} title={t('LAYOUT.MOVE_TAB_LEFT')} onClick={() => actions.moveTab(page.id, container.id, tab.id, -1)}>
                         <ArrowLeft className="h-4 w-4" aria-hidden="true" />

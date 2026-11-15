@@ -72,7 +72,7 @@ export default function ActionConditionEditor({ value, onChange, error, idPrefix
                         />
                     ))}
                     {value.conditions.length < 10 && (
-                        <button type="button" className="w-fit text-xs font-medium text-brand-500 hover:text-brand-600" onClick={() => onChange({ ...value, conditions: [...value.conditions, newConditionFor(sources)] })}>
+                        <button type="button" className="w-fit text-xs font-medium text-app-primary hover:text-app-primary-deep" onClick={() => onChange({ ...value, conditions: [...value.conditions, newConditionFor(sources)] })}>
                             {t('ACTION_CONDITION.ADD')}
                         </button>
                     )}

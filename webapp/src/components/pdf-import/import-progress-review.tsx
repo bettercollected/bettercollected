@@ -18,7 +18,7 @@ function StageList({ states }: { states: Record<string, string> }) {
         <ol className="flex flex-col gap-2">
             {STAGES.map((s) => (
                 <li key={s.key} className="flex items-center gap-3 text-sm">
-                    <span aria-hidden className={`h-2.5 w-2.5 rounded-full ${states[s.key] === 'done' ? 'bg-green-600' : states[s.key] === 'current' ? 'animate-pulse bg-blue-500' : states[s.key] === 'failed' ? 'bg-red-600' : 'bg-black-300'}`} />
+                    <span aria-hidden className={`h-2.5 w-2.5 rounded-full ${states[s.key] === 'done' ? 'bg-green-600' : states[s.key] === 'current' ? 'animate-pulse bg-blue-500' : states[s.key] === 'failed' ? 'bg-red-600' : 'bg-app-edge'}`} />
                     <span className={states[s.key] === 'waiting' ? 'text-black-600' : 'text-black-800'}>{t(`PDF_REVIEW.STAGE_${s.key}`, { defaultValue: s.label })}</span>
                 </li>
             ))}
@@ -40,7 +40,7 @@ function PageWithBoxes({ workspaceId, importId, page, selected, onSelect }: any)
     }, []);
     const height = page.width ? (width * page.height) / page.width : 0;
     return (
-        <div ref={holder} className="relative w-full overflow-hidden rounded-md border border-black-300 bg-white" style={{ height: height || undefined }}>
+        <div ref={holder} className="relative w-full overflow-hidden rounded-md border border-app-edge bg-white" style={{ height: height || undefined }}>
             {page.has_image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={pageImageUrl(workspaceId, importId, page.number)} alt={t('PDF_REVIEW.PAGE_ALT', { n: page.number })} className="block w-full" />
@@ -94,7 +94,7 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
                     <p className="mt-1 text-sm text-black-600">{data.status === 'failed' ? t('PDF_IMPORT.FAILED_TITLE') : t('PDF_REVIEW.TAKES')}</p>
                 </div>
                 {data.status !== 'failed' && (
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-black-200">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-app-wash-strong">
                         <div className="h-full bg-blue-500 transition-all" style={{ width: `${progressPercent(states)}%` }} />
                     </div>
                 )}
@@ -136,7 +136,7 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
                 </Link>
                 <p className="text-xs text-black-600">{aiStructuringNote(data.aiConsent)}</p>
                 {selectedBox && (
-                    <div className="rounded-md border border-black-300 p-3 text-sm">
+                    <div className="rounded-md border border-app-edge p-3 text-sm">
                         <div className="font-medium text-black-800">{selectedBox.label || t('PDF_REVIEW.UNTITLED')}</div>
                         <div className="text-xs text-black-600">{selectedBox.type === 'staff_only' ? t('PDF_REVIEW.STAFF_PART_TYPE') : selectedBox.kind?.replace(/_/g, ' ')}</div>
                         {isAiWording(selectedBox) && <div className="mt-1 text-xs text-orange-700">{t('PDF_REVIEW.AI_WORDING')}</div>}

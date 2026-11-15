@@ -38,7 +38,7 @@ export default function FormLanguageSetting() {
                     value={language ?? ''}
                     aria-describedby={`${id}-hint`}
                     onChange={(event) => dispatch({ ops: [{ op: 'set_form_language', language: event.target.value || null }], label: t('FORM_LANGUAGE.LABEL') })}
-                    className="h-8 w-full rounded border border-control bg-white px-2 py-0 text-xs focus:border-brand-500"
+                    className="h-8 w-full rounded border border-app-control bg-white px-2 py-0 text-xs focus:border-app-primary"
                 >
                     <option value="">{t('FORM_LANGUAGE.NOT_SET')}</option>
                     {other && (

@@ -124,6 +124,31 @@ describe('the app roles on a form root', () => {
         expect(states(screen.getByRole('button', { name: 'Daybreak preview' }))).toEqual(BLUE);
     });
 
+    it('draws every chrome utility that has a frozen fallback as the real page does: links, edges, washes, controls, soft fills', () => {
+        const inline = CSS_FILE.match(/@theme inline \{([^}]*)\}/)?.[1] ?? '';
+        const entries = [...inline.matchAll(/(--color-[\w-]+):\s*var\(--app-[\w-]+,/g)].map((m) => m[1]);
+        expect(entries.length).toBeGreaterThan(10);
+        // what the real page draws: a document with no scope at all
+        const frozen = wrap(<div data-testid="outside" />);
+        const real = Object.fromEntries(entries.map((entry) => [entry, colourAt(screen.getByTestId('outside'), entry)]));
+        frozen.unmount();
+        wrap(
+            <AppThemeScope workspaceId="ws-1" initial="pigment">
+                <div data-testid="in-scope" />
+                <LayoutWrapper theme={undefined} disabled showDesktopLayout>
+                    <div data-testid="in-form" />
+                </LayoutWrapper>
+            </AppThemeScope>
+        );
+        const inForm = screen.getByTestId('in-form');
+        const inScope = screen.getByTestId('in-scope');
+        for (const entry of entries) {
+            expect(colourAt(inForm, entry), `${entry} on a form root`).toBe(real[entry]);
+            // the harness sees the leak: in the scope but outside a form, the roles that differ in Pigment are Pigment's
+            if (entry !== '--color-app-on-action') expect(colourAt(inScope, entry), `${entry} in the scope`).not.toBe(real[entry]);
+        }
+    });
+
     it('adds nothing to the root of a real respondent page (no scope): its markup is what it always was', () => {
         const { container } = wrap(
             <LayoutWrapper theme={noSecondary} disabled showDesktopLayout>
@@ -160,5 +185,27 @@ describe('the list of roles a form root resets', () => {
 
     it('names only roles both themes declare', () => {
         for (const theme of ['daybreak', 'pigment']) for (const role of APP_ROLES_RESET_ON_FORMS) expect(scopeRule(theme), `${theme} ${role}`).toHaveProperty([role]);
+    });
+});
+
+describe('native controls in a Pigment scope', () => {
+    it('take the iris on the control itself, not on the scope root, so a form root can undo it', () => {
+        // the rule names the controls; the scope's own block never carries `accent-color`
+        expect(CSS_FILE).toMatch(/\[data-app-theme='pigment'\] :where\(input\[type='checkbox'\], input\[type='radio'\], input\[type='range'\]\) \{\s*accent-color: var\(--app-primary\);/);
+        expect(CSS_FILE).not.toMatch(/^\[data-app-theme='pigment'\] \{[^}]*accent-color/m);
+    });
+
+    it('draw a checkbox inside a form root with the browser accent, and one in the app with iris', () => {
+        wrap(
+            <AppThemeScope workspaceId="ws-1" initial="pigment">
+                <input type="checkbox" aria-label="App checkbox" />
+                <LayoutWrapper theme={undefined} disabled showDesktopLayout>
+                    <input type="checkbox" aria-label="Form checkbox" />
+                </LayoutWrapper>
+            </AppThemeScope>
+        );
+        // the control's accent-color is `var(--app-primary)`: iris where the variable is set, invalid (so the browser's own accent) where the form root reset it
+        expect(resolveValue('var(--app-primary)', screen.getByLabelText('App checkbox')).toUpperCase()).toBe(IRIS);
+        expect(resolveValue('var(--app-primary)', screen.getByLabelText('Form checkbox'))).toBe('');
     });
 });

@@ -79,7 +79,7 @@ export default function HiddenFieldsEditor() {
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') addName();
                     }}
-                    className="border-black-300 focus:border-black-300 min-w-0 flex-1 rounded-lg border p-2 text-xs"
+                    className="border-app-edge focus:border-app-edge min-w-0 flex-1 rounded-lg border p-2 text-xs"
                 />
                 <Button size="sm" variant="v2Button" onClick={addName} disabled={!draft.trim()}>
                     {t('HIDDEN.ADD')}

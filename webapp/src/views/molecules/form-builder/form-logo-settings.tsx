@@ -82,7 +82,7 @@ export default function FormLogoSettings() {
 
             {/* What respondents will see, on the form's own page colour. */}
             <div
-                className="flex h-20 items-center rounded-md border border-black-300 px-3"
+                className="flex h-20 items-center rounded-md border border-app-edge px-3"
                 style={{ background: formState.theme?.style === 'leaflet' ? '#FFFFFF' : formState.theme?.accent || '#FFFFFF', justifyContent: shown?.position === 'center' ? 'center' : 'flex-start' }}
                 data-testid="form-logo-preview"
             >
@@ -117,14 +117,14 @@ export default function FormLogoSettings() {
                 <span className="text-xs text-black-700" id={`${ids.status}-position`}>
                     {t('LOGO.POSITION')}
                 </span>
-                <div className="flex overflow-hidden rounded-md border border-black-300" role="group" aria-labelledby={`${ids.status}-position`}>
+                <div className="flex overflow-hidden rounded-md border border-app-edge" role="group" aria-labelledby={`${ids.status}-position`}>
                     {POSITIONS.map((option) => (
                         <button
                             key={option.key}
                             type="button"
                             aria-pressed={position === option.key}
                             onClick={() => setLogoSettings({ ...settings, logoPosition: option.key })}
-                            className={cn('flex-1 px-2 py-1.5 text-[11px] font-medium transition-colors', position === option.key ? 'bg-brand-100 text-brand-600' : 'bg-white text-black-600 hover:bg-black-100')}
+                            className={cn('flex-1 px-2 py-1.5 text-[11px] font-medium transition-colors', position === option.key ? 'bg-app-primary-tint text-app-primary-deep' : 'bg-white text-black-600 hover:bg-app-wash')}
                         >
                             {t(option.label)}
                         </button>
@@ -151,7 +151,7 @@ export default function FormLogoSettings() {
                     placeholder={organisation}
                     aria-describedby={ids.altHint}
                     onChange={(event) => setLogoSettings({ ...settings, logoAlt: event.target.value })}
-                    className="h-9 w-full rounded-md border border-control bg-white px-2.5 text-xs text-black-900 placeholder:text-black-600"
+                    className="h-9 w-full rounded-md border border-app-control bg-white px-2.5 text-xs text-black-900 placeholder:text-black-600"
                 />
                 <p id={ids.altHint} className="text-[11px] leading-relaxed text-black-600">
                     {t('LOGO.ALT_HINT')}

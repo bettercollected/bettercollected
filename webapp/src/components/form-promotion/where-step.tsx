@@ -9,7 +9,7 @@ import { useGetPromotionTargetsQuery } from '@app/store/workspaces/form-promotio
 
 import type { TargetWorkspace } from './use-target-workspaces';
 
-const CHOICE = 'flex min-h-[44px] cursor-pointer items-start gap-3 rounded border border-black-300 bg-white p-3 text-sm hover:bg-black-100 sm:min-h-[40px]';
+const CHOICE = 'flex min-h-[44px] cursor-pointer items-start gap-3 rounded border border-app-edge bg-white p-3 text-sm hover:bg-app-wash sm:min-h-[40px]';
 
 export type Mode = 'new' | 'existing';
 
@@ -112,7 +112,7 @@ export default function WhereStep(props: WhereStepProps) {
                         autoComplete="off"
                         placeholder={t('FORM_PROMOTION.WHERE.SEARCH_PLACEHOLDER')}
                         onChange={(event) => setSearch(event.target.value)}
-                        className="min-h-[44px] rounded border border-control bg-white px-3 text-sm sm:min-h-[40px]"
+                        className="min-h-[44px] rounded border border-app-control bg-white px-3 text-sm sm:min-h-[40px]"
                     />
                     {targets.isFetching && (
                         <p role="status" className="text-sm text-black-700">

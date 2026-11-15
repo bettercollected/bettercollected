@@ -38,7 +38,7 @@ export default function ResponseCards({ responses, hrefFor, previews }: Props) {
                 const owner = response.dataOwnerIdentifier;
                 const submitted = utcToLocalDateTimeIn(response.createdAt, i18n.language);
                 return (
-                    <li key={response.responseId} className="relative flex flex-col gap-2 rounded border border-black-300 bg-white p-3 focus-within:bg-black-100 hover:bg-black-100 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500">
+                    <li key={response.responseId} className="relative flex flex-col gap-2 rounded border border-app-edge bg-white p-3 focus-within:bg-app-wash hover:bg-app-wash has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-app-primary">
                         <Link
                             href={hrefFor(response)}
                             aria-label={owner ? t('RESPONSES_STAFF.OPEN_NAMED', { name: owner, time: submitted }) : t('RESPONSES_STAFF.OPEN_ANONYMOUS', { time: submitted })}

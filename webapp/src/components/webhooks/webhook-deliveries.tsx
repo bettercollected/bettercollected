@@ -48,7 +48,7 @@ export default function WebhookDeliveries({ workspaceId, formId, headless = fals
     if (!settled || forbidden) return null;
 
     return (
-        <section className="flex flex-col gap-4 rounded-lg border border-black-300 bg-white p-4 md:p-5" aria-labelledby={headless ? undefined : 'webhook-deliveries-title'} data-testid="webhook-deliveries">
+        <section className="flex flex-col gap-4 rounded-lg border border-app-edge bg-white p-4 md:p-5" aria-labelledby={headless ? undefined : 'webhook-deliveries-title'} data-testid="webhook-deliveries">
             {!headless && (
                 <div className="flex flex-col gap-1">
                     <h2 id="webhook-deliveries-title" className="text-sm font-semibold text-black-900">
@@ -96,7 +96,7 @@ export default function WebhookDeliveries({ workspaceId, formId, headless = fals
             )}
 
             {items.length > 0 && (
-                <ul className="flex flex-col divide-y divide-black-200 rounded-md border border-black-300" aria-label={t('WEBHOOKS.DELIVERIES.LIST')}>
+                <ul className="flex flex-col divide-y divide-app-wash-strong rounded-md border border-app-edge" aria-label={t('WEBHOOKS.DELIVERIES.LIST')}>
                     {items.map((delivery) => (
                         <Row key={delivery.id} delivery={delivery} language={i18n.language} />
                     ))}
@@ -130,7 +130,7 @@ export default function WebhookDeliveries({ workspaceId, formId, headless = fals
                     )}
                     {showChanges && audit.data && audit.data.length === 0 && <p className="text-sm text-black-700">{t('WEBHOOKS.CHANGES.NONE')}</p>}
                     {showChanges && (audit.data?.length ?? 0) > 0 && (
-                        <ul className="flex flex-col divide-y divide-black-200 rounded-md border border-black-300" aria-label={t('WEBHOOKS.CHANGES.LIST')}>
+                        <ul className="flex flex-col divide-y divide-app-wash-strong rounded-md border border-app-edge" aria-label={t('WEBHOOKS.CHANGES.LIST')}>
                             {audit.data!.map((entry) => (
                                 <li key={entry.id} className="flex flex-col gap-0.5 px-3 py-2.5 text-sm text-black-900">
                                     <span>

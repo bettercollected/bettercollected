@@ -66,7 +66,7 @@ export default function Collaborators() {
 
             <p className="body4 mb-6 md:max-w-[301px] text-black-700">{t(members.collaborators.description)}</p>
             {ssoOn && (
-                <div role="note" className="body4 -mt-2 mb-6 max-w-[640px] rounded-lg border border-black-300 bg-black-100 px-4 py-3 text-black-800">
+                <div role="note" className="body4 -mt-2 mb-6 max-w-[640px] rounded-lg border border-app-edge bg-app-wash px-4 py-3 text-black-800">
                     <p className="font-medium">{t(members.ssoRemoval.title)}</p>
                     <p className="mt-1 text-black-700">{t(scim?.directory ? members.ssoRemoval.withDirectory : members.ssoRemoval.withoutDirectory)}</p>
                 </div>

@@ -120,9 +120,9 @@ const PreviewCard = ({ label, empty, width, onClick, children }: { label: string
     >
         <span className="text-black-700 flex items-center gap-2 text-[13px] font-medium">
             {label}
-            {empty && <span className="bg-black-200 text-black-600 rounded-full px-2 py-0.5 text-xs">{t('STAFF.FORM_PAGES.EMPTY')}</span>}
+            {empty && <span className="bg-app-wash-strong text-black-600 rounded-full px-2 py-0.5 text-xs">{t('STAFF.FORM_PAGES.EMPTY')}</span>}
         </span>
-        <span className="border-black-300 group-hover:border-black-500 relative block aspect-video overflow-hidden rounded-md border transition-colors" style={{ width }}>
+        <span className="border-app-edge group-hover:border-black-500 relative block aspect-video overflow-hidden rounded-md border transition-colors" style={{ width }}>
             {children}
         </span>
     </div>

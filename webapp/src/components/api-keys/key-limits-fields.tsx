@@ -32,7 +32,7 @@ export const scopeLabelKey = (scope: string) => SCOPE_LABELS[scope] ?? scope;
 export const roleNameKey = (role: KeyRole) => `WORKSPACE_ROLES.${role}.NAME`;
 
 const rowClass = 'flex min-h-11 cursor-pointer items-center gap-2.5 rounded px-1 text-[13px] text-black-800 sm:min-h-8';
-const fieldClass = 'border-control text-black-900 placeholder:text-black-600 focus:border-brand-500 h-11 w-full rounded-md border bg-white px-3.5 text-sm outline-hidden transition duration-150 sm:h-10';
+const fieldClass = 'border-app-control text-black-900 placeholder:text-black-600 focus:border-app-primary h-11 w-full rounded-md border bg-white px-3.5 text-sm outline-hidden transition duration-150 sm:h-10';
 
 /**
  * Why the scopes ticked cannot go with the role or the list chosen, one line each, in plain words. An alert region
@@ -118,7 +118,7 @@ function FormPicker({ formIds, onChange, knownForms }: { formIds: string[]; onCh
             ) : shown.length === 0 ? (
                 <p className="text-xs text-black-600">{t('STAFF.API_KEYS.PICKER_NONE_MATCH')}</p>
             ) : (
-                <ul className="flex max-h-64 flex-col overflow-y-auto rounded-md border border-black-300 p-1" aria-label={t('STAFF.API_KEYS.FORMS_TITLE')}>
+                <ul className="flex max-h-64 flex-col overflow-y-auto rounded-md border border-app-edge p-1" aria-label={t('STAFF.API_KEYS.FORMS_TITLE')}>
                     {shown.map((form) => {
                         const checked = formIds.includes(form.formId);
                         return (
@@ -126,7 +126,7 @@ function FormPicker({ formIds, onChange, knownForms }: { formIds: string[]; onCh
                                 <label className={rowClass}>
                                     <input type="checkbox" checked={checked} disabled={!checked && full} onChange={() => toggle(form.formId)} className="h-4 w-4 shrink-0 cursor-pointer" />
                                     <span className="min-w-0 truncate">{form.title?.trim() || (form.form ? t('STAFF.API_KEYS.UNTITLED_FORM') : t('STAFF.API_KEYS.UNKNOWN_FORM'))}</span>
-                                    {form.form && !form.form.isPublished && <span className="shrink-0 rounded bg-black-100 px-1.5 py-0.5 text-[10.5px] font-semibold text-black-600">{t('FORM.DRAFT')}</span>}
+                                    {form.form && !form.form.isPublished && <span className="shrink-0 rounded bg-app-wash px-1.5 py-0.5 text-[10.5px] font-semibold text-black-600">{t('FORM.DRAFT')}</span>}
                                     {form.form && <CardRestrictedChip form={form.form} />}
                                 </label>
                             </li>

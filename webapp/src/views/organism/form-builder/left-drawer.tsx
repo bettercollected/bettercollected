@@ -45,17 +45,17 @@ import SlideOptions from './slide-options';
 // The outline only reorders: drags stay on the vertical axis.
 const verticalOnly: Modifier = ({ transform }) => ({ ...transform, x: 0 });
 
-const rowClass = (selected: boolean) => cn('group/row relative flex items-start gap-0.5 rounded px-1 py-1', selected ? 'bg-brand-100' : 'hover:bg-black-200');
+const rowClass = (selected: boolean) => cn('group/row relative flex items-start gap-0.5 rounded px-1 py-1', selected ? 'bg-app-primary-tint' : 'hover:bg-app-wash-strong');
 const selectButtonClass = 'flex min-w-0 flex-1 flex-col items-start gap-0.5 rounded-sm px-1 py-0.5 text-left';
 const handleClass = 'text-black-600 hover:text-black-900 flex h-6 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded-sm opacity-0 transition-opacity focus-visible:opacity-100 group-hover/row:opacity-100 pointer-coarse:opacity-100';
 
 function Chip({ tone, title, children }: { tone: 'logic' | 'danger' | 'warning' | 'neutral' | 'ai'; title?: string; children: ReactNode }) {
     const tones = {
         ai: 'bg-[#FDF3E7] text-[#8A4A08]',
-        logic: 'bg-brand-100 text-brand-600',
+        logic: 'bg-app-primary-tint text-app-primary-deep',
         danger: 'bg-[#FBEFEF] text-[#C43D3D]',
         warning: 'bg-brand-accent-100 text-brand-olive',
-        neutral: 'bg-black-200 text-black-700'
+        neutral: 'bg-app-wash-strong text-black-700'
     };
     return (
         <span title={title} className={cn('inline-flex items-center gap-0.5 rounded px-1 py-[1px] text-[11px] font-medium leading-4', tones[tone])}>
@@ -188,7 +188,7 @@ function EndingNameInput({ initial, placeholder, onDone }: { initial: string; pl
                     finish(null);
                 }
             }}
-            className="border-brand-500 text-black-900 min-w-0 flex-1 rounded-sm border bg-white px-1 py-0.5 text-sm"
+            className="border-app-primary text-black-900 min-w-0 flex-1 rounded-sm border bg-white px-1 py-0.5 text-sm"
         />
     );
 }
@@ -290,7 +290,7 @@ const OutlineQuestionRow = memo(function OutlineQuestionRow({
     const title = fieldText(field);
     const missingWhy = !field.internal && asksForIdentity(field) && !field.properties?.whyWeAsk?.trim();
     return (
-        <li className={cn(grouped && 'border-black-300 ml-2 border-l pl-1')}>
+        <li className={cn(grouped && 'border-app-edge ml-2 border-l pl-1')}>
             {groupStart && (
                 <p className="text-black-600 truncate px-1 pt-1 text-[11px] font-semibold">
                     {t(groupStart[0] === 'fieldset' ? 'LAYOUT.FIELDSET' : groupStart[0] === 'tabs' ? 'LAYOUT.TABS' : 'LAYOUT.PANEL')} · {groupStart[1]}
@@ -315,13 +315,13 @@ const OutlineQuestionRow = memo(function OutlineQuestionRow({
                                 </span>
                             )}
                             {rulesCount > 0 && (
-                                <span title={t('FIELD_RULES.BADGE_TITLE', { count: rulesCount })} data-testid="rules-badge" className="bg-brand-100 text-brand-600 shrink-0 rounded px-1 text-[10px] leading-4 font-semibold">
+                                <span title={t('FIELD_RULES.BADGE_TITLE', { count: rulesCount })} data-testid="rules-badge" className="bg-app-primary-tint text-app-primary-deep shrink-0 rounded px-1 text-[10px] leading-4 font-semibold">
                                     <span className="sr-only">, </span>
                                     {t('FIELD_RULES.BADGE', { count: rulesCount })}
                                 </span>
                             )}
                             {fieldHasLogic(field) && (
-                                <span title={t('OUTLINE.LOGIC_ROW_TITLE')} className="text-brand-500 shrink-0">
+                                <span title={t('OUTLINE.LOGIC_ROW_TITLE')} className="text-app-primary shrink-0">
                                     <LogicOutlinedIcon className="h-3 w-3" aria-hidden="true" />
                                     <span className="sr-only">{t('OUTLINE.HAS_LOGIC_SR')}</span>
                                 </span>
@@ -614,7 +614,7 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
     const pageCount = entries.length;
 
     return (
-        <aside id="slides-preview" aria-label={t('OUTLINE.LABEL')} className="h-body-content border-r-black-300 flex w-[256px] shrink-0 flex-col overflow-hidden border-r bg-white">
+        <aside id="slides-preview" aria-label={t('OUTLINE.LABEL')} className="h-body-content border-r-app-edge flex w-[256px] shrink-0 flex-col overflow-hidden border-r bg-white">
             <div className="flex w-full items-center justify-between px-4 pb-2 pt-4">
                 <h2 className="text-black-900 text-sm font-semibold">{t('OUTLINE.TITLE')}</h2>
                 <AddSlidePopover />
@@ -627,14 +627,14 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
                     onChange={(event) => setQuery(event.target.value)}
                     aria-label={t('OUTLINE.FILTER_LABEL')}
                     placeholder={t('OUTLINE.FILTER')}
-                    className="border-control text-black-900 placeholder:text-black-600 focus:border-brand-500 w-full rounded border bg-white py-1.5 pl-8 pr-2 text-sm"
+                    className="border-app-control text-black-900 placeholder:text-black-600 focus:border-app-primary w-full rounded border bg-white py-1.5 pl-8 pr-2 text-sm"
                 />
             </div>
             <div id="outline-announcer" className="sr-only" aria-live="polite" role="status">
                 {filtering ? t('OUTLINE.MATCH', { count: matchCount }) : message}
             </div>
 
-            <div className="border-t-black-300 flex-1 overflow-y-auto overflow-x-hidden border-t px-2 py-2">
+            <div className="border-t-app-edge flex-1 overflow-y-auto overflow-x-hidden border-t px-2 py-2">
                 {!filtering && (
                     <StaticRow
                         label={t('OUTLINE.WELCOME')}
@@ -685,12 +685,12 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
                         </ul>
                     </SortableContext>
                     <DragOverlay modifiers={[verticalOnly]} dropAnimation={null}>
-                        {dragging ? <div className="border-brand-500 text-black-900 shadow-large truncate rounded border bg-white px-3 py-1.5 text-sm font-medium">{capitalise(nameOf(dragging))}</div> : null}
+                        {dragging ? <div className="border-app-primary text-black-900 shadow-large truncate rounded border bg-white px-3 py-1.5 text-sm font-medium">{capitalise(nameOf(dragging))}</div> : null}
                     </DragOverlay>
                 </DndContext>
 
                 {!filtering && (
-                    <div className="border-t-black-300 mt-1 border-t pt-2">
+                    <div className="border-t-app-edge mt-1 border-t pt-2">
                         <div className="flex items-center justify-between px-2 pb-1">
                             <h3 className="text-black-600 text-xs font-medium">{endings.length > 1 ? t('OUTLINE.ENDINGS') : t('OUTLINE.ENDING')}</h3>
                             <button
@@ -702,7 +702,7 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
                                     setActiveFieldComponent(null);
                                     setMessage(t('OUTLINE.ENDING_ADDED', { n: index + 1 }));
                                 }}
-                                className="text-brand-500 hover:text-brand-600 hover:bg-black-200 flex h-6 items-center gap-0.5 rounded-sm px-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                                className="text-app-primary hover:text-app-primary-deep hover:bg-app-wash-strong flex h-6 items-center gap-0.5 rounded-sm px-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                                 {t('OUTLINE.ADD_ENDING')}

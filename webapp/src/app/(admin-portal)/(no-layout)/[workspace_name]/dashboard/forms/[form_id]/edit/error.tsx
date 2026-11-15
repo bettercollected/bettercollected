@@ -28,10 +28,10 @@ export default function EditPageError({ error, reset }: { error: Error & { diges
                     ? t('EDITOR_ERROR.STALE')
                     : t('EDITOR_ERROR.GENERIC')}
             </p>
-            {!isStaleChunk && error?.message && <code className="text-black-600 max-w-lg truncate rounded bg-black-100 px-2 py-1 text-xs">{error.message}</code>}
+            {!isStaleChunk && error?.message && <code className="text-black-600 max-w-lg truncate rounded bg-app-wash px-2 py-1 text-xs">{error.message}</code>}
             <div className="mt-2 flex items-center gap-3">
                 {!isStaleChunk && (
-                    <button onClick={reset} className="border-black-300 text-black-700 hover:border-brand-500 rounded-md border px-4 py-2 text-sm font-medium">
+                    <button onClick={reset} className="border-app-edge text-black-700 hover:border-app-primary rounded-md border px-4 py-2 text-sm font-medium">
                         {t('EDITOR_ERROR.RETRY')}
                     </button>
                 )}

@@ -133,7 +133,7 @@ export default function FieldSettings() {
                 <div className="truncate text-sm font-semibold text-black-800" title={title}>
                     {title || t('INSPECTOR.UNTITLED')}
                 </div>
-                {field.type && <span className="w-fit rounded bg-black-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-black-600 uppercase">{typeName}</span>}
+                {field.type && <span className="w-fit rounded bg-app-wash px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-black-600 uppercase">{typeName}</span>}
             </div>
 
             <InspectorSection title={t('INSPECTOR.BASICS')}>
@@ -163,7 +163,7 @@ export default function FieldSettings() {
                                 onChange={(e) => handleStepsChange(e)}
                                 aria-invalid={!!errorMsg || undefined}
                                 aria-describedby={errorMsg ? `${stepsId}-error` : undefined}
-                                className="h-8 w-14 rounded border border-control p-0 px-2 text-center text-sm focus:border-brand-500"
+                                className="h-8 w-14 rounded border border-app-control p-0 px-2 text-center text-sm focus:border-app-primary"
                             />
                         </div>
                         {errorMsg && (
@@ -272,7 +272,7 @@ export default function FieldSettings() {
                     <div id={widthId} className="text-xs text-black-700">
                         {t('INSPECTOR.WIDTH')}
                     </div>
-                    <div className="flex overflow-hidden rounded-md border border-control" role="group" aria-labelledby={widthId}>
+                    <div className="flex overflow-hidden rounded-md border border-app-control" role="group" aria-labelledby={widthId}>
                         {WIDTH_OPTIONS.map((option) => {
                             const selected = colSpan === option.span;
                             return (
@@ -282,7 +282,7 @@ export default function FieldSettings() {
                                     aria-pressed={selected}
                                     aria-label={t(`INSPECTOR.WIDTH_${option.key}`)}
                                     onClick={() => updateFieldColSpan(field.id, option.span)}
-                                    className={`flex-1 px-1 py-1.5 text-[11px] font-medium transition-colors ${selected ? 'bg-brand-100 text-brand-600' : 'bg-white text-black-600 hover:bg-black-100'}`}
+                                    className={`flex-1 px-1 py-1.5 text-[11px] font-medium transition-colors ${selected ? 'bg-app-primary-tint text-app-primary-deep' : 'bg-white text-black-600 hover:bg-app-wash'}`}
                                 >
                                     {option.label}
                                 </button>
@@ -336,7 +336,7 @@ export function WhyWeAskSetting({ value, required, onChange }: { value: string; 
                 aria-invalid={missing}
                 aria-describedby="why-we-ask-help"
                 onChange={(e) => onChange(e.target.value)}
-                className={`w-full rounded-lg border p-2 text-xs ${missing ? 'border-amber-500' : 'border-control focus:border-brand-500'}`}
+                className={`w-full rounded-lg border p-2 text-xs ${missing ? 'border-amber-500' : 'border-app-control focus:border-app-primary'}`}
             />
             {/* The creator's own "why we ask this" note keeps its sun rule (DESIGN.md §1); the words say the same thing, the rule is only the second cue. */}
             <span id="why-we-ask-help" className={`border-l-2 pl-2 text-[11px] leading-relaxed ${missing ? 'border-warn-fill text-warn' : 'border-sun text-ink-muted'}`}>

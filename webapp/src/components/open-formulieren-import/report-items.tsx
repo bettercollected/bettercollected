@@ -33,7 +33,7 @@ function Marker({ severity }: { severity?: string | null }) {
     const warning = severity === 'warning';
     return (
         <>
-            <span aria-hidden className={`mt-[7px] h-2 w-2 shrink-0 rounded-full ${warning ? 'bg-amber-500' : 'bg-black-400'}`} />
+            <span aria-hidden className={`mt-[7px] h-2 w-2 shrink-0 rounded-full ${warning ? 'bg-amber-500' : 'bg-app-edge-strong'}`} />
             <span className="sr-only">{warning ? text('REPORT.WARNING') : text('REPORT.INFO')}: </span>
         </>
     );

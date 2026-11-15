@@ -37,7 +37,7 @@ export function FormFileCard({ workspaceId, formId }: { workspaceId: string; for
 
     return (
         <div>
-            <div className="flex flex-col divide-y divide-black-300">
+            <div className="flex flex-col divide-y divide-app-edge">
                 <SettingRow title={t('FORM_PROMOTION.FILE.TITLE')} description={t('FORM_PROMOTION.FILE.TEXT')}>
                     <button
                         type="button"

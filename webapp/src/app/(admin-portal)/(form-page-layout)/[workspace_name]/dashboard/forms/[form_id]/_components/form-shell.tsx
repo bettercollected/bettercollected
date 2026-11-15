@@ -25,7 +25,7 @@ export default function FormShell({ form, base, children }: { form: StandardForm
     return (
         <div className="min-h-screen w-full bg-canvas">
             <SkipLink />
-            <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-black-400 bg-white px-3 md:px-6">
+            <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-app-edge-strong bg-white px-3 md:px-6">
                 <BackToForms />
                 <FormAvatar formId={form?.formId} title={form?.title} className="h-8 w-8 text-xs" />
                 <div className="flex min-w-0 flex-col items-start gap-0.5 md:flex-row md:items-center md:gap-2">
@@ -35,7 +35,7 @@ export default function FormShell({ form, base, children }: { form: StandardForm
                     <div className="flex items-center gap-1.5">
                         <StatusChip form={form} />
                         <FormBarRestrictedChip form={form} />
-                        {form?.settings?.pinned && <span className="hidden shrink-0 rounded-full bg-black-200 px-2 py-0.5 text-xs font-semibold text-black-700 md:inline-block">{t('FORM.PINNED')}</span>}
+                        {form?.settings?.pinned && <span className="hidden shrink-0 rounded-full bg-app-wash-strong px-2 py-0.5 text-xs font-semibold text-black-700 md:inline-block">{t('FORM.PINNED')}</span>}
                     </div>
                 </div>
                 <div className="ml-auto shrink-0">

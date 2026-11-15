@@ -69,7 +69,7 @@ export default function FormIntegrations({ onlyActionId, headless = false }: { o
                     {added.map((integration) => (
                         <div
                             key={integration.id}
-                            className="bg-black-50 mb-10 flex w-full flex-col flex-wrap items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center"
+                            className="bg-black-50 mb-10 flex w-full flex-col flex-wrap items-start justify-between rounded border border-app-edge px-5 py-4 sm:flex-row sm:items-center"
                         >
                             <div className="flex min-w-0 max-w-full items-start sm:flex-1 sm:items-center">
                                 {/*logo */}
@@ -155,7 +155,7 @@ export default function FormIntegrations({ onlyActionId, headless = false }: { o
             {notAdded.length > 0 && (
                 <div className="flex w-full flex-col gap-2">
                     {notAdded.map((integration) => (
-                        <div key={integration.id} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded border border-black-300 px-5 py-4 sm:flex-row sm:items-center">
+                        <div key={integration.id} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded border border-app-edge px-5 py-4 sm:flex-row sm:items-center">
                             <div className="flex min-w-0 items-start sm:items-center">
                                 {/* logo */}
                                 <Image src={integration?.url || '/integration/default.svg'} alt="" width={50} height={50} className="mr-4 shrink-0" />

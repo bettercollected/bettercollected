@@ -34,7 +34,7 @@ export default function GroupMember({ group, emails, handleSearch, handleAddMemb
                     <SearchInput handleSearch={handleSearch} />
                 </div>
             )}
-            <div className="flex flex-col gap-[1px] rounded-md bg-black-200">
+            <div className="flex flex-col gap-[1px] rounded-md bg-app-wash-strong">
                 {emails.map((email) => (
                     <MemberCard bg={handleSearch ? 'white' : 'black-100'} key={email} email={email} onDeleteClick={() => handleRemoveMember(email)} />
                 ))}
@@ -49,7 +49,7 @@ export default function GroupMember({ group, emails, handleSearch, handleAddMemb
             <p className="mt-10 mb-2 h4-new font-medium!">
                 {t(groupConstant.memberAdded)} ({group?.emails?.length || emails.length || 0})
             </p>
-            <div className="border-y border-y-black-300 py-4">
+            <div className="border-y border-y-app-edge py-4">
                 <div className="flex flex-col md:flex-row items-center  justify-between">
                     <div className="flex flex-col">
                         <p className="text-black-700 leading-none body4">{t(groupConstant.members.description)} </p>

@@ -64,8 +64,8 @@ export default function AIProposalCard({ proposal, groups, status, selected, err
     const allSelected = selected.length === all.length;
 
     return (
-        <section aria-labelledby={headingId} className="mt-2 border-t border-black-100 pt-2" data-testid="ai-proposal">
-            <h3 id={headingId} ref={headingRef} tabIndex={-1} className="text-xs font-semibold text-black-800 outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500">
+        <section aria-labelledby={headingId} className="mt-2 border-t border-app-wash pt-2" data-testid="ai-proposal">
+            <h3 id={headingId} ref={headingRef} tabIndex={-1} className="text-xs font-semibold text-black-800 outline-hidden focus-visible:ring-2 focus-visible:ring-app-primary">
                 {open ? t('AI_PROPOSAL.PROPOSED') : status === 'accepted' ? t('AI_PROPOSAL.APPLIED') : t('AI_PROPOSAL.NOT_APPLIED')}
             </h3>
             {status === 'accepted' && (
@@ -78,7 +78,7 @@ export default function AIProposalCard({ proposal, groups, status, selected, err
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                     <p className="text-xs text-black-600">{t(CLOSED_TEXT[status]!)}</p>
                     {(status === 'stale' || status === 'expired') && onAskAgain && (
-                        <button type="button" onClick={onAskAgain} className="rounded-md border border-black-300 bg-white px-2 py-0.5 text-[11px] font-medium text-black-800 transition-colors hover:bg-black-100">
+                        <button type="button" onClick={onAskAgain} className="rounded-md border border-app-edge bg-white px-2 py-0.5 text-[11px] font-medium text-black-800 transition-colors hover:bg-app-wash">
                             {t('AI_PROPOSAL.ASK_AGAIN')}
                         </button>
                     )}
@@ -93,7 +93,7 @@ export default function AIProposalCard({ proposal, groups, status, selected, err
                                 {group.label}
                             </h4>
                             {open && group.pageId && onShowPage && (
-                                <button type="button" onClick={() => onShowPage(group.pageId!)} className="text-[11px] font-medium text-brand-600 underline decoration-dotted underline-offset-2 hover:text-brand-500">
+                                <button type="button" onClick={() => onShowPage(group.pageId!)} className="text-[11px] font-medium text-app-primary-deep underline decoration-dotted underline-offset-2 hover:text-app-primary">
                                     {t('AI_PROPOSAL.PREVIEW_PAGE')}
                                 </button>
                             )}
@@ -149,7 +149,7 @@ export default function AIProposalCard({ proposal, groups, status, selected, err
                         type="button"
                         disabled={busy}
                         onClick={() => onAccept()}
-                        className="rounded-md bg-app-action px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-app-action-hover disabled:cursor-wait disabled:bg-black-300"
+                        className="rounded-md bg-app-action px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-app-action-hover disabled:cursor-wait disabled:bg-app-edge"
                     >
                         {busy ? t('AI_PROPOSAL.APPLYING') : t('AI_PROPOSAL.ACCEPT_ALL')}
                     </button>
@@ -157,18 +157,18 @@ export default function AIProposalCard({ proposal, groups, status, selected, err
                         type="button"
                         disabled={busy || selected.length === 0}
                         onClick={() => onAccept(allSelected ? undefined : selected)}
-                        className="rounded-md border border-black-300 bg-white px-2.5 py-1 text-[11px] font-medium text-black-800 transition-colors disabled:text-black-400 hover:bg-black-100"
+                        className="rounded-md border border-app-edge bg-white px-2.5 py-1 text-[11px] font-medium text-black-800 transition-colors disabled:text-black-400 hover:bg-app-wash"
                     >
                         {t('AI_PROPOSAL.ACCEPT_SELECTED', { count: selected.length })}
                     </button>
-                    <button type="button" disabled={busy} onClick={onDiscard} className="rounded-md border border-black-300 bg-white px-2.5 py-1 text-[11px] font-medium text-black-800 transition-colors disabled:text-black-400 hover:bg-black-100">
+                    <button type="button" disabled={busy} onClick={onDiscard} className="rounded-md border border-app-edge bg-white px-2.5 py-1 text-[11px] font-medium text-black-800 transition-colors disabled:text-black-400 hover:bg-app-wash">
                         {t('AI_PROPOSAL.DISCARD')}
                     </button>
                     <button
                         type="button"
                         aria-pressed={previewing}
                         onClick={onTogglePreview}
-                        className={`ml-auto flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${previewing ? 'border-brand-200 bg-brand-100 text-brand-600' : 'border-black-300 bg-white text-black-600 hover:bg-black-100'}`}
+                        className={`ml-auto flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${previewing ? 'border-app-primary-soft bg-app-primary-tint text-app-primary-deep' : 'border-app-edge bg-white text-black-600 hover:bg-app-wash'}`}
                     >
                         {previewing ? <EyeOff className="h-3 w-3" aria-hidden="true" /> : <Eye className="h-3 w-3" aria-hidden="true" />}
                         {t('AI_PROPOSAL.PREVIEW')}

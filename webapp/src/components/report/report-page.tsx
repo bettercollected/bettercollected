@@ -264,7 +264,7 @@ export default function ReportPage() {
             <nav aria-label={t('REPORT.BREADCRUMB')}>
                 <ol className="m-0 flex list-none items-center gap-1.5 p-0 text-sm text-black-700">
                     <li>
-                        <Link href={listHref} className="rounded text-brand-600 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden">
+                        <Link href={listHref} className="rounded text-app-primary-deep underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-app-primary focus-visible:outline-hidden">
                             {t('FORM_SHELL.RESPONSES_TAB')}
                         </Link>
                     </li>

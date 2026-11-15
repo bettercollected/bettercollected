@@ -72,7 +72,7 @@ export default function WorkspaceTotpSection() {
                 </h2>
                 <p className="max-w-[62ch] text-xs leading-relaxed text-black-600">{t('STAFF.MFA.POLICY.INTRO')}</p>
             </div>
-            <div className="flex flex-col gap-3 rounded-md border border-black-300 bg-white px-4 py-4">
+            <div className="flex flex-col gap-3 rounded-md border border-app-edge bg-white px-4 py-4">
                 <p data-testid="totp-policy-state" className="text-[13px] font-medium text-black-800">
                     {t(policy.required ? 'STAFF.MFA.POLICY.STATE_ON' : 'STAFF.MFA.POLICY.STATE_OFF')}
                 </p>

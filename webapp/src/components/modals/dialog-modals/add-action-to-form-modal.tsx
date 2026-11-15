@@ -120,7 +120,7 @@ export default function AddActionToFormModal({ action, form, reconnect = false, 
                     </div>
                     <p className="text-center text-sm text-gray-600 ">{t('STAFF.INTEGRATIONS.SHEETS_SEND')}</p>
                     {sheetsOff ? (
-                        <p role="note" className="mt-4 max-w-[400px] rounded-lg border border-black-300 bg-black-100 px-4 py-3 text-sm text-black-800">
+                        <p role="note" className="mt-4 max-w-[400px] rounded-lg border border-app-edge bg-app-wash px-4 py-3 text-sm text-black-800">
                             {t(googleFormsImport.off.sheets)}
                         </p>
                     ) : (

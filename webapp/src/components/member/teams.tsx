@@ -30,7 +30,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { formAccessErrorKey } from '@app/utils/form-access';
 import { getFullNameFromUser } from '@app/utils/user-utils';
 
-const selectClass = 'h-11 w-full min-w-0 rounded border border-black-400 bg-white px-3 py-0 text-sm text-black-900 disabled:cursor-not-allowed disabled:bg-black-200 md:h-10';
+const selectClass = 'h-11 w-full min-w-0 rounded border border-app-edge-strong bg-white px-3 py-0 text-sm text-black-900 disabled:cursor-not-allowed disabled:bg-app-wash-strong md:h-10';
 
 /**
  * Workspace, Members, Teams: named groups of members that a form's access can name in one step. Owners and admins
@@ -143,7 +143,7 @@ function TeamsList() {
             ) : list.length === 0 ? (
                 <p className="text-sm text-black-700">{t('STAFF.TEAMS.EMPTY')}</p>
             ) : (
-                <ul aria-label={t('STAFF.TEAMS.LIST_LABEL')} className="flex flex-col divide-y divide-black-300 rounded border border-black-300 bg-white">
+                <ul aria-label={t('STAFF.TEAMS.LIST_LABEL')} className="flex flex-col divide-y divide-app-edge rounded border border-app-edge bg-white">
                     {list.map((team) => (
                         <li key={team.id} className="flex items-center justify-between gap-3 px-4 py-3">
                             <div className="flex min-w-0 items-center gap-3">
@@ -274,7 +274,7 @@ function TeamDialog({ workspaceId, team, onClose }: { workspaceId: string; team:
                             ) : (current?.members.length ?? 0) === 0 ? (
                                 <p className="text-sm text-black-700">{t('STAFF.TEAMS.NO_MEMBERS')}</p>
                             ) : (
-                                <ul aria-labelledby={`${id}-members`} className="flex max-h-56 flex-col divide-y divide-black-300 overflow-y-auto rounded border border-black-300">
+                                <ul aria-labelledby={`${id}-members`} className="flex max-h-56 flex-col divide-y divide-app-edge overflow-y-auto rounded border border-app-edge">
                                     {current!.members.map((member) => {
                                         const label = member.name || unknownPerson;
                                         return (
@@ -330,7 +330,7 @@ function TeamDialog({ workspaceId, team, onClose }: { workspaceId: string; team:
                             {notice}
                         </p>
 
-                        <div className="flex justify-between gap-3 border-t border-black-300 pt-4">
+                        <div className="flex justify-between gap-3 border-t border-app-edge pt-4">
                             <Button type="button" variant="dangerGhost" className="min-h-11 md:min-h-10" disabled={busy || !current} onClick={() => setConfirmDelete(true)}>
                                 {t('STAFF.TEAMS.DELETE')}
                             </Button>

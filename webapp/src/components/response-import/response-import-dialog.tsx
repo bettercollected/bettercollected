@@ -240,7 +240,7 @@ export default function ResponseImportDialog({ open, onOpenChange, workspaceId, 
                             }}
                             disabled={uploading}
                             aria-describedby="ri-limits"
-                            className={`flex h-32 w-full flex-col items-center justify-center rounded-lg border-2 border-dashed px-3 text-center text-sm transition ${dragging ? 'border-brand-500 bg-brand-100' : 'border-black-300 hover:border-brand-500'}`}
+                            className={`flex h-32 w-full flex-col items-center justify-center rounded-lg border-2 border-dashed px-3 text-center text-sm transition ${dragging ? 'border-app-primary bg-app-primary-tint' : 'border-app-edge hover:border-app-primary'}`}
                         >
                             <span className="font-medium text-black-800">{uploading ? text('UPLOADING') : text('CHOOSE_FILE')}</span>
                             {!uploading && <span className="mt-1 text-xs text-black-600">{text('DROP_HINT')}</span>}
@@ -292,7 +292,7 @@ export default function ResponseImportDialog({ open, onOpenChange, workspaceId, 
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead>
-                                    <tr className="border-b border-black-300 text-xs text-black-600">
+                                    <tr className="border-b border-app-edge text-xs text-black-600">
                                         <th scope="col" className="py-1 pr-3 font-medium">
                                             {text('COLUMN_HEADER')}
                                         </th>
@@ -307,7 +307,7 @@ export default function ResponseImportDialog({ open, onOpenChange, workspaceId, 
                                         const heading = header || text('COLUMN_FALLBACK', { n: index + 1 });
                                         const note = imp.notes.find((n) => n.column === index);
                                         return (
-                                            <tr key={index} className="border-b border-black-200 align-top">
+                                            <tr key={index} className="border-b border-app-wash-strong align-top">
                                                 <th scope="row" className="max-w-[16rem] py-2 pr-3 font-normal break-words text-black-900">
                                                     {heading}
                                                     {note && text(`NOTE_${note.code}`) !== `RESPONSE_IMPORT.NOTE_${note.code}` && <span className="mt-0.5 block text-xs text-black-600">{text(`NOTE_${note.code}`)}</span>}
@@ -317,7 +317,7 @@ export default function ResponseImportDialog({ open, onOpenChange, workspaceId, 
                                                         aria-label={`${text('TARGET_HEADER')}: ${heading}`}
                                                         value={mapping[String(index)] ?? ''}
                                                         onChange={(e) => setMapping({ ...mapping, [String(index)]: e.target.value })}
-                                                        className="w-full max-w-sm rounded border border-black-300 bg-white px-2 py-1.5 text-sm"
+                                                        className="w-full max-w-sm rounded border border-app-edge bg-white px-2 py-1.5 text-sm"
                                                     >
                                                         <option value="">{text('NOT_IMPORTED')}</option>
                                                         {usable.map((target) => (
@@ -346,7 +346,7 @@ export default function ResponseImportDialog({ open, onOpenChange, workspaceId, 
                 {step === 'checking' && imp && (
                     <div role="status" aria-live="polite" className="flex flex-col gap-2">
                         <p className="text-sm font-medium text-black-900">{text('CHECKING')}</p>
-                        <Progress value={percent} className="bg-black-200" aria-label={text('CHECKING')} />
+                        <Progress value={percent} className="bg-app-wash-strong" aria-label={text('CHECKING')} />
                         <p className="text-xs text-black-600">{text('CHECKING_PROGRESS', { done, total: imp.rowCount })}</p>
                     </div>
                 )}
@@ -373,7 +373,7 @@ export default function ResponseImportDialog({ open, onOpenChange, workspaceId, 
                 {step === 'running' && imp && (
                     <div role="status" aria-live="polite" className="flex flex-col gap-2">
                         <p className="text-sm font-medium text-black-900">{text('IMPORTING')}</p>
-                        <Progress value={percent} className="bg-black-200" aria-label={text('IMPORTING')} />
+                        <Progress value={percent} className="bg-app-wash-strong" aria-label={text('IMPORTING')} />
                         <p className="text-xs text-black-600">{text('CHECKING_PROGRESS', { done, total: imp.rowCount })}</p>
                         <p className="text-xs text-black-600">{text('IMPORTING_HELP')}</p>
                     </div>
@@ -400,7 +400,7 @@ export default function ResponseImportDialog({ open, onOpenChange, workspaceId, 
                             </>
                         )}
                         {undoAsk && (
-                            <div className="flex flex-col gap-2 rounded border border-black-300 p-3">
+                            <div className="flex flex-col gap-2 rounded border border-app-edge p-3">
                                 <p className="text-sm text-black-900">{text('UNDO_CONFIRM', { count: imp.rowsImported ?? 0 })}</p>
                                 <div className="flex gap-2">
                                     <Button variant="v2Button" onClick={() => setUndoAsk(false)}>
@@ -484,10 +484,10 @@ function ProblemList({ imp, problems, text }: { imp: ResponseImportDto; problems
             <h4 id="ri-problems" className="text-sm font-medium text-black-900">
                 {text('PROBLEMS')}
             </h4>
-            <div className="max-h-64 overflow-auto rounded border border-black-300">
+            <div className="max-h-64 overflow-auto rounded border border-app-edge">
                 <table className="w-full text-left text-sm">
                     <thead>
-                        <tr className="border-b border-black-300 text-xs text-black-600">
+                        <tr className="border-b border-app-edge text-xs text-black-600">
                             <th scope="col" className="px-2 py-1 font-medium">
                                 {text('PROBLEM_TABLE_ROW')}
                             </th>
@@ -505,7 +505,7 @@ function ProblemList({ imp, problems, text }: { imp: ResponseImportDto; problems
                             const where = [...new Set([place.question, place.column ?? (place.columnNumber ? text('PROBLEM_COLUMN', { column: place.columnNumber }) : undefined)].filter(Boolean))].join(' · ') || text('PROBLEM_WHOLE_ROW');
                             const known = `PROBLEM_${problem.code}`;
                             return (
-                                <tr key={index} className="border-b border-black-200 align-top">
+                                <tr key={index} className="border-b border-app-wash-strong align-top">
                                     <td className="px-2 py-1 whitespace-nowrap">{problem.row}</td>
                                     <td className="px-2 py-1 break-words">
                                         {where}

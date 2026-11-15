@@ -82,7 +82,7 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
                 {isError && isInvalid && <p className="text-sm text-[#C43D3D]">{t(validationMessage.slug)}</p>}
             </div>
 
-            <div className="border-black-300 bg-black-100 flex flex-col gap-1 rounded-lg border px-4 py-3">
+            <div className="border-app-edge bg-app-wash flex flex-col gap-1 rounded-lg border px-4 py-3">
                 <span className="text-black-600 text-xs font-medium uppercase tracking-wide">{t(localesCommon.newLink)}</span>
                 <p className="break-all font-mono text-[13px]">
                     <span className="text-black-600">{url}</span>/<span className="text-black-900 font-medium">{slug}</span>

@@ -23,7 +23,7 @@ import { useGetWorkspaceSelectionQuery } from '@app/store/workspaces/api';
 
 const KNOWN_ROLES = new Set(['OWNER', 'ADMIN', 'EDITOR', 'REVIEWER', 'VIEWER', 'PRIVACY_OFFICER']);
 
-const rowClassName = 'group flex w-full items-center gap-3 rounded-xl border border-black-300 bg-white px-4 py-3 text-left transition-colors hover:border-brand-400 hover:bg-brand-100/40 focus-visible:border-brand-500';
+const rowClassName = 'group flex w-full items-center gap-3 rounded-xl border border-app-edge bg-white px-4 py-3 text-left transition-colors hover:border-app-primary-edge-strong hover:bg-app-primary-tint/40 focus-visible:border-app-primary';
 
 interface WorkspaceSelectViewProps {
     /** a fixed notice code from the URL (only `no_access` and `sso_required` are shown) */
@@ -83,7 +83,7 @@ export default function WorkspaceSelectView({ notice }: WorkspaceSelectViewProps
                         {isLoading ? (
                             <SkeletonRows />
                         ) : isError || !data ? (
-                            <div role="alert" className="flex flex-col items-start gap-3 rounded-xl border border-black-300 bg-white px-4 py-4">
+                            <div role="alert" className="flex flex-col items-start gap-3 rounded-xl border border-app-edge bg-white px-4 py-4">
                                 <p className="text-sm text-black-800">{t(workspaceSelect.loadFailed)}</p>
                                 <button type="button" className={buttonClassName({ variant: 'tertiary', size: 'sm' })} onClick={() => refetch()}>
                                     {t(workspaceSelect.retry)}
@@ -105,7 +105,7 @@ export default function WorkspaceSelectView({ notice }: WorkspaceSelectViewProps
                                     {t(workspaceSelect.count, { count: ordered.length })}
                                 </p>
                                 {visible.length === 0 ? (
-                                    <p role="status" className="rounded-xl border border-dashed border-black-400 px-4 py-6 text-center text-sm text-black-700">
+                                    <p role="status" className="rounded-xl border border-dashed border-app-edge-strong px-4 py-6 text-center text-sm text-black-700">
                                         {t(workspaceSelect.noMatch, { query: query.trim() })}
                                     </p>
                                 ) : (
@@ -126,7 +126,7 @@ export default function WorkspaceSelectView({ notice }: WorkspaceSelectViewProps
                     <footer className="mt-10 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-black-600">
                         <span className="min-w-0 break-all">{t(workspaceSelect.signedInAs, { email: auth.email })}</span>
                         <span aria-hidden="true">·</span>
-                        <button type="button" className="text-brand-600 underline underline-offset-2 hover:text-brand-700" onClick={() => openModal('LOGOUT_VIEW', {})}>
+                        <button type="button" className="text-app-primary-deep underline underline-offset-2 hover:text-app-action-pressed" onClick={() => openModal('LOGOUT_VIEW', {})}>
                             {t(workspaceSelect.signOut)}
                         </button>
                     </footer>
@@ -153,8 +153,8 @@ function WorkspaceRow({ choice, lastUsed, email }: { choice: WorkspaceChoice; la
                 </span>
                 {(lastUsed || choice.disabled || choice.ssoRequired) && (
                     <span className="mt-1 flex flex-wrap gap-1.5">
-                        {lastUsed && <Badge className="bg-brand-100 text-brand-600">{t(workspaceSelect.lastUsed)}</Badge>}
-                        {choice.disabled && <Badge className="bg-black-200 text-black-800">{t(workspaceSelect.readOnly)}</Badge>}
+                        {lastUsed && <Badge className="bg-app-primary-tint text-app-primary-deep">{t(workspaceSelect.lastUsed)}</Badge>}
+                        {choice.disabled && <Badge className="bg-app-wash-strong text-black-800">{t(workspaceSelect.readOnly)}</Badge>}
                         {choice.ssoRequired && (
                             <Badge className="bg-[#FDF3E3] text-[#7A4B0B]">
                                 <KeyRound className="h-3 w-3" aria-hidden="true" />
@@ -165,9 +165,9 @@ function WorkspaceRow({ choice, lastUsed, email }: { choice: WorkspaceChoice; la
                 )}
             </span>
             {/* on a phone the badge says it; the action text would crowd the row */}
-            {choice.ssoRequired && <span className="hidden shrink-0 text-sm font-medium text-brand-600 sm:inline">{t(workspaceSelect.ssoAction)}</span>}
+            {choice.ssoRequired && <span className="hidden shrink-0 text-sm font-medium text-app-primary-deep sm:inline">{t(workspaceSelect.ssoAction)}</span>}
             {choice.ssoRequired && <span className="sr-only sm:hidden">{t(workspaceSelect.ssoAction)}</span>}
-            <ChevronRight className={cn('h-5 w-5 shrink-0 text-black-500 group-hover:text-brand-500', choice.ssoRequired && 'sm:hidden')} aria-hidden="true" />
+            <ChevronRight className={cn('h-5 w-5 shrink-0 text-black-500 group-hover:text-app-primary', choice.ssoRequired && 'sm:hidden')} aria-hidden="true" />
         </>
     );
 
@@ -203,7 +203,7 @@ function EmptyState({ selection }: { selection: WorkspaceSelection }) {
     const { t } = useTranslation();
     const message = !selection.isCreator ? workspaceSelect.emptyRespondent : selection.canCreateWorkspace ? workspaceSelect.emptyCreate : workspaceSelect.emptyAsk;
     return (
-        <section aria-labelledby="workspace-select-empty" className="rounded-xl border border-black-300 bg-white px-5 py-6">
+        <section aria-labelledby="workspace-select-empty" className="rounded-xl border border-app-edge bg-white px-5 py-6">
             <h2 id="workspace-select-empty" className="text-lg font-semibold text-black-900">
                 {t(workspaceSelect.emptyTitle)}
             </h2>
@@ -222,11 +222,11 @@ function SkeletonRows() {
     return (
         <div className="flex flex-col gap-2" aria-hidden="true">
             {[0, 1, 2].map((i) => (
-                <div key={i} className="flex items-center gap-3 rounded-xl border border-black-300 bg-white px-4 py-3">
-                    <div className="h-10 w-10 animate-pulse rounded-md bg-black-200" />
+                <div key={i} className="flex items-center gap-3 rounded-xl border border-app-edge bg-white px-4 py-3">
+                    <div className="h-10 w-10 animate-pulse rounded-md bg-app-wash-strong" />
                     <div className="flex flex-1 flex-col gap-2">
-                        <div className="h-3.5 w-1/3 animate-pulse rounded bg-black-200" />
-                        <div className="h-3 w-1/5 animate-pulse rounded bg-black-200" />
+                        <div className="h-3.5 w-1/3 animate-pulse rounded bg-app-wash-strong" />
+                        <div className="h-3 w-1/5 animate-pulse rounded bg-app-wash-strong" />
                     </div>
                 </div>
             ))}

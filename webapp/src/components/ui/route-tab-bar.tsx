@@ -55,7 +55,7 @@ export default function RouteTabBar({ ariaLabel, tabs, className }: RouteTabBarP
 
     return (
         <nav aria-label={ariaLabel} className={cn('mb-[38px] max-w-full min-w-0', className)}>
-            <ul ref={listRef} className="scrollbar-hide m-0 flex list-none gap-1 overflow-x-auto overscroll-x-contain border-b border-black-400 p-0">
+            <ul ref={listRef} className="scrollbar-hide m-0 flex list-none gap-1 overflow-x-auto overscroll-x-contain border-b border-app-edge-strong p-0">
                 {tabs.map((tab) => {
                     const active = tab.href === activeHref;
                     return (
@@ -67,7 +67,7 @@ export default function RouteTabBar({ ariaLabel, tabs, className }: RouteTabBarP
                                     'mb-[-1px] flex min-h-[44px] items-center gap-2 rounded-t-md border-b-2 px-4 text-sm whitespace-nowrap transition-colors',
                                     // The app-wide focus outline (tailwind.css), drawn inside: the scroll region would clip it outside.
                                     'focus-visible:outline-offset-[-2px]!',
-                                    active ? 'border-brand-500 font-semibold text-brand-500' : 'border-transparent font-medium text-black-600 hover:border-black-400 hover:text-black-800'
+                                    active ? 'border-app-primary font-semibold text-app-primary' : 'border-transparent font-medium text-black-600 hover:border-app-edge-strong hover:text-black-800'
                                 )}
                             >
                                 {tab.icon}

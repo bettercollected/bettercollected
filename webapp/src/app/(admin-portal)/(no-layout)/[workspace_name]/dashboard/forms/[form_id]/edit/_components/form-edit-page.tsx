@@ -226,7 +226,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                             surface is near the mat's tone, so the edge comes from a
                             hairline + a soft elevation shadow, not from contrast. */}
                         <div
-                            className="border-black-400 overflow-hidden rounded border bg-white"
+                            className="border-app-edge-strong overflow-hidden rounded border bg-white"
                             style={{
                                 width: CANVAS_WIDTH,
                                 height: CANVAS_HEIGHT,
@@ -269,16 +269,16 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                     <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2" onClick={(e) => e.stopPropagation()}>
                         <TrustStripNudge />
                     </div>
-                    <div className="border-black-400 absolute bottom-4 right-4 z-10 flex overflow-hidden rounded border border-black-400 bg-white text-xs font-medium" onClick={(e) => e.stopPropagation()}>
-                        <button className={canvasZoom === 'fit' ? 'bg-black-100 text-black-900 px-3 py-1.5 font-semibold' : 'text-black-600 hover:text-black-900 px-3 py-1.5'} onClick={() => setCanvasZoom('fit')}>
+                    <div className="border-app-edge-strong absolute bottom-4 right-4 z-10 flex overflow-hidden rounded border border-app-edge-strong bg-white text-xs font-medium" onClick={(e) => e.stopPropagation()}>
+                        <button className={canvasZoom === 'fit' ? 'bg-app-wash text-black-900 px-3 py-1.5 font-semibold' : 'text-black-600 hover:text-black-900 px-3 py-1.5'} onClick={() => setCanvasZoom('fit')}>
                             Fit
                         </button>
-                        <button className={canvasZoom === 'full' ? 'bg-black-100 text-black-900 px-3 py-1.5 font-semibold' : 'text-black-600 hover:text-black-900 px-3 py-1.5'} onClick={() => setCanvasZoom('full')}>
+                        <button className={canvasZoom === 'full' ? 'bg-app-wash text-black-900 px-3 py-1.5 font-semibold' : 'text-black-600 hover:text-black-900 px-3 py-1.5'} onClick={() => setCanvasZoom('full')}>
                             100%
                         </button>
                     </div>
                 </div>
-                <div id="slide-element-properties" className="border-l-black-300 h-full w-[300px] self-stretch overflow-auto bg-white">
+                <div id="slide-element-properties" className="border-l-app-edge h-full w-[300px] self-stretch overflow-auto bg-white">
                     <PropertiesDrawer />
                 </div>
                 <FloatingPopOverButton content={<HelpMenuComponent />}>

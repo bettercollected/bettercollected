@@ -132,14 +132,14 @@ export default function EditKeyDialog({
                             value={draft.name}
                             maxLength={60}
                             onChange={(event) => patch('name', event.target.value)}
-                            className="border-control h-11 w-full rounded-md border bg-white px-3.5 text-sm text-black-900 outline-hidden transition duration-150 focus:border-brand-500 sm:h-10"
+                            className="border-app-control h-11 w-full rounded-md border bg-white px-3.5 text-sm text-black-900 outline-hidden transition duration-150 focus:border-app-primary sm:h-10"
                         />
                     </div>
                     <div className="flex flex-col gap-1.5">
                         <p className="text-[13px] font-semibold text-black-900">{t('STAFF.API_KEYS.SCOPES_LABEL')}</p>
                         <ul className="flex flex-wrap gap-1.5">
                             {original.scopes.map((scope) => (
-                                <li key={scope} className="rounded bg-black-100 px-1.5 py-0.5 text-[10.5px] text-black-600">
+                                <li key={scope} className="rounded bg-app-wash px-1.5 py-0.5 text-[10.5px] text-black-600">
                                     {t(scopeLabelKey(scope))}
                                 </li>
                             ))}

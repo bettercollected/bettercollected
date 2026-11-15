@@ -42,7 +42,7 @@ function TimeWindowSettings({ field, onPropertyChange }: { field: StandardFormFi
                 aria-invalid={backToFront || undefined}
                 aria-describedby={`${id}-hint`}
                 onChange={(event) => onPropertyChange({ [key]: event.target.value || undefined })}
-                className={`h-8 w-full rounded border bg-white px-2 text-xs ${backToFront ? 'border-amber-500' : 'border-control focus:border-brand-500'}`}
+                className={`h-8 w-full rounded border bg-white px-2 text-xs ${backToFront ? 'border-amber-500' : 'border-app-control focus:border-app-primary'}`}
             />
         </div>
     );
@@ -94,10 +94,10 @@ function CurrencySettings({ field, onChange, onPropertyChange }: { field: Standa
                 </div>
                 <ul aria-labelledby={`${id}-title`} className="flex flex-col gap-1">
                     {currencies.map((code, index) => (
-                        <li key={code} className="flex items-center gap-1.5 rounded border border-black-300 bg-white px-2 py-1 text-xs">
+                        <li key={code} className="flex items-center gap-1.5 rounded border border-app-edge bg-white px-2 py-1 text-xs">
                             <span className="font-medium text-black-800">{code}</span>
                             {index === 0 ? (
-                                <span className="rounded bg-black-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-black-600 uppercase">{t('TYPED_SETTINGS.DEFAULT')}</span>
+                                <span className="rounded bg-app-wash px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-black-600 uppercase">{t('TYPED_SETTINGS.DEFAULT')}</span>
                             ) : (
                                 <button type="button" className="ml-1 inline-flex min-h-6 min-w-6 items-center justify-center rounded p-1 text-black-600 hover:text-black-800" aria-label={t('TYPED_SETTINGS.MAKE_DEFAULT', { code })} title={t('TYPED_SETTINGS.MAKE_DEFAULT', { code })} onClick={() => save([code, ...currencies.filter((c) => c !== code)])}>
                                     <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
@@ -166,7 +166,7 @@ function AddressSettings({ field, onPropertyChange }: { field: StandardFormField
                 </div>
                 <ul aria-labelledby={`${id}-title`} className="flex flex-col gap-1">
                     {countries.map((code) => (
-                        <li key={code} className="flex items-center gap-1.5 rounded border border-black-300 bg-white px-2 py-1 text-xs">
+                        <li key={code} className="flex items-center gap-1.5 rounded border border-app-edge bg-white px-2 py-1 text-xs">
                             <span className="font-medium text-black-800">{name(code)}</span>
                             {countries.length > 1 && (
                                 <button type="button" className="ml-auto inline-flex min-h-6 min-w-6 items-center justify-center rounded p-1 text-black-600 hover:text-black-800" aria-label={t('ADDRESS_SETTINGS.REMOVE_COUNTRY', { country: name(code) })} title={t('ADDRESS_SETTINGS.REMOVE_COUNTRY', { country: name(code) })} onClick={() => save(countries.filter((c) => c !== code))}>

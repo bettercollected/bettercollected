@@ -65,7 +65,7 @@ export default function AnswerRulesSettings({ field, onChange, onPropertyChange 
                     ))}
                 </ul>
             )}
-            <div id={summaryId} aria-live="polite" className="rounded border border-black-300 bg-black-100 px-3 py-2 text-[11px] leading-relaxed">
+            <div id={summaryId} aria-live="polite" className="rounded border border-app-edge bg-app-wash px-3 py-2 text-[11px] leading-relaxed">
                 {summary.length ? (
                     <ul className="flex flex-col gap-0.5 text-black-700" aria-label={t('RULES_UI.ACTIVE')}>
                         {summary.map((line) => (
@@ -158,7 +158,7 @@ function TextRules({ rules, onChange }: { rules: IFormFieldValidation; onChange:
                         setChecking(false);
                         onChange({ regex: FORMAT_PRESETS.find((p) => p.id === value)?.pattern });
                     }}
-                    className="h-8 w-full rounded border border-control bg-white px-2 py-0 text-xs focus:border-brand-500"
+                    className="h-8 w-full rounded border border-app-control bg-white px-2 py-0 text-xs focus:border-app-primary"
                 >
                     <option value="">{t('RULES_UI.ANY_TEXT')}</option>
                     {FORMAT_PRESETS.map((p) => (
@@ -185,7 +185,7 @@ function TextRules({ rules, onChange }: { rules: IFormFieldValidation; onChange:
                         aria-describedby={problem !== null ? `${patternId}-problem ${patternId}-hint` : `${patternId}-hint`}
                         aria-invalid={problem !== null ? true : undefined}
                         onChange={(event) => typed(event.target.value)}
-                        className={`h-8 w-full rounded border bg-white px-2 font-mono text-xs focus:border-brand-500 ${problem !== null ? 'border-red-600' : 'border-control'}`}
+                        className={`h-8 w-full rounded border bg-white px-2 font-mono text-xs focus:border-app-primary ${problem !== null ? 'border-red-600' : 'border-app-control'}`}
                     />
                     {problem !== null && (
                         <p id={`${patternId}-problem`} role="alert" className="text-[11px] leading-relaxed text-red-700">

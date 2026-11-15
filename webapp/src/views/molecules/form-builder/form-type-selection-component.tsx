@@ -51,9 +51,9 @@ export default FormTypeSelectionComponent;
 const FormTypeCard = ({ item, handleClick }: { item: IFormTypes; handleClick: (type: string) => void }) => {
     const { t } = useTranslation('builder');
     return (
-        <div onClick={() => handleClick(item.type)} className="border-black-400 hover:border-brand-500 flex w-[375px] cursor-pointer flex-col overflow-hidden rounded border transition-colors">
-            <div className="bg-brand-100 p-4">
-                <div className="text-brand-600 w-fit rounded bg-white px-2 py-1 text-xs font-medium">
+        <div onClick={() => handleClick(item.type)} className="border-app-edge-strong hover:border-app-primary flex w-[375px] cursor-pointer flex-col overflow-hidden rounded border transition-colors">
+            <div className="bg-app-primary-tint p-4">
+                <div className="text-app-primary-deep w-fit rounded bg-white px-2 py-1 text-xs font-medium">
                     {item.type}
                 </div>
                 <div className="flex justify-center">{item.icon}</div>

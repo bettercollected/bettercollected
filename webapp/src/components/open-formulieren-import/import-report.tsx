@@ -63,7 +63,7 @@ function Summary({ data }: { data: OpenFormulierenImport }) {
         <section aria-label={text('REPORT.SUMMARY_LABEL')}>
             <ul className="flex flex-wrap gap-2">
                 {cells.map((cell) => (
-                    <li key={cell.key} className={`rounded border px-3 py-1.5 text-sm ${cell.warn ? 'border-amber-400 bg-amber-50 text-amber-900' : 'border-black-300 bg-white text-black-800'}`}>
+                    <li key={cell.key} className={`rounded border px-3 py-1.5 text-sm ${cell.warn ? 'border-amber-400 bg-amber-50 text-amber-900' : 'border-app-edge bg-white text-black-800'}`}>
                         {cell.label}
                     </li>
                 ))}

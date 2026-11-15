@@ -39,8 +39,8 @@ interface OutlineReviewProps {
     aiFillsGaps?: boolean;
 }
 
-const inputClass = 'w-full rounded-md border border-black-300 bg-white px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500';
-const iconButtonClass = 'rounded p-1 text-black-600 hover:bg-black-200 hover:text-black-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-40';
+const inputClass = 'w-full rounded-md border border-app-edge bg-white px-2 py-1.5 text-sm focus:border-app-primary focus:outline-none focus:ring-1 focus:ring-app-primary';
+const iconButtonClass = 'rounded p-1 text-black-600 hover:bg-app-wash-strong hover:text-black-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-app-primary disabled:cursor-not-allowed disabled:opacity-40';
 
 /** Question text that wraps and grows with its content (one paragraph:
  * Enter does not add a line). */
@@ -137,7 +137,7 @@ export default function OutlineReview({ outline, onChange, onDeleted, onEdited, 
             {outline.pages.map((page, pageIndex) => {
                 const sectionId = `section-${page.key}`;
                 return (
-                    <section key={page.key} aria-labelledby={`${sectionId}-heading`} className="rounded-lg border border-black-300 p-2 sm:p-3">
+                    <section key={page.key} aria-labelledby={`${sectionId}-heading`} className="rounded-lg border border-app-edge p-2 sm:p-3">
                         <h3 id={`${sectionId}-heading`} className="mb-2 text-xs font-semibold tracking-wide text-black-600 uppercase">
                             {t('AI_OUTLINE.PAGE', { n: pageIndex + 1 })}
                         </h3>
@@ -153,7 +153,7 @@ export default function OutlineReview({ outline, onChange, onDeleted, onEdited, 
                                 const requiredId = `required-${question.key}`;
                                 const name = question.label.trim() || t('AI_OUTLINE.QUESTION_FALLBACK', { n: number });
                                 return (
-                                    <li key={question.key} className="rounded-md bg-black-100 p-1.5 sm:p-2">
+                                    <li key={question.key} className="rounded-md bg-app-wash p-1.5 sm:p-2">
                                         <div className="flex items-start gap-2.5 sm:gap-3">
                                             <span className="mt-1.5 w-4 shrink-0 text-right text-xs text-black-600 sm:w-5" aria-hidden="true">
                                                 {number}.
@@ -176,7 +176,7 @@ export default function OutlineReview({ outline, onChange, onDeleted, onEdited, 
                                                     </label>
                                                     <select
                                                         id={typeId}
-                                                        className="max-w-full truncate rounded-md border border-black-300 bg-white py-1 pr-8 pl-2 text-xs"
+                                                        className="max-w-full truncate rounded-md border border-app-edge bg-white py-1 pr-8 pl-2 text-xs"
                                                         value={question.type}
                                                         onChange={(event) => change(changeType(outline, question.key, event.target.value as OutlineQuestionType))}
                                                     >
@@ -222,7 +222,7 @@ export default function OutlineReview({ outline, onChange, onDeleted, onEdited, 
                         </ol>
                         <button
                             type="button"
-                            className="mt-2 flex items-center gap-1 rounded px-1 py-1 text-xs font-medium text-brand-600 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                            className="mt-2 flex items-center gap-1 rounded px-1 py-1 text-xs font-medium text-app-primary-deep hover:text-app-action-pressed focus:outline-none focus-visible:ring-2 focus-visible:ring-app-primary"
                             onClick={() => {
                                 const added = addQuestion(outline, page.key);
                                 change(added.outline);

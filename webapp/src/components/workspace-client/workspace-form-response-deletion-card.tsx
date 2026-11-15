@@ -69,7 +69,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
     return (
         <Component
             href={pathname}
-            className={`relative flex flex-col items-start justify-between h-full bg-white border border-black-300 ${disabled ? 'opacity-60 text-black-600!' : 'hover:border-brand-500'
+            className={`relative flex flex-col items-start justify-between h-full bg-white border border-app-edge ${disabled ? 'opacity-60 text-black-600!' : 'hover:border-app-primary'
                 } rounded ${className}`}
         >
             <div className="rounded w-full px-5 py-4 flex flex-col gap-3 items-start justify-between">
@@ -84,7 +84,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
                     )}
                     {response?.submissionUuid && (
                         // Mono per the design language: precise, sensitive identifiers.
-                        <span className="bg-black-100 text-black-700 rounded px-2 py-0.5 font-mono text-xs" title={t('SUBMISSIONS.NUMBER_TITLE')}>
+                        <span className="bg-app-wash text-black-700 rounded px-2 py-0.5 font-mono text-xs" title={t('SUBMISSIONS.NUMBER_TITLE')}>
                             #{response.submissionUuid}
                         </span>
                     )}
@@ -103,7 +103,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
                         </span>
                     )}
                     {!!response?.status && (
-                        <span className={`rounded px-2 py-0.5 text-xs font-medium ${response?.status === 'pending' ? 'bg-brand-accent-100 text-brand-olive' : 'bg-black-100 text-black-600'}`}>
+                        <span className={`rounded px-2 py-0.5 text-xs font-medium ${response?.status === 'pending' ? 'bg-brand-accent-100 text-brand-olive' : 'bg-app-wash text-black-600'}`}>
                             {deletionStatusLabel(response.status, response.declineReason, deletedAt, t)}
                         </span>
                     )}

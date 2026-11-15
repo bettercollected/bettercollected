@@ -85,7 +85,7 @@ export default function ImportOpenFormulierenDialog({ open, onOpenChange, worksp
                         choose(e.dataTransfer.files?.[0]);
                     }}
                     aria-describedby="oof-drop-hint"
-                    className={`flex h-36 w-full flex-col items-center justify-center rounded-lg border-2 border-dashed px-3 text-center text-sm transition ${dragging ? 'border-brand-500 bg-brand-100' : 'border-black-300 hover:border-brand-500'}`}
+                    className={`flex h-36 w-full flex-col items-center justify-center rounded-lg border-2 border-dashed px-3 text-center text-sm transition ${dragging ? 'border-app-primary bg-app-primary-tint' : 'border-app-edge hover:border-app-primary'}`}
                 >
                     {file ? (
                         <>
@@ -111,7 +111,7 @@ export default function ImportOpenFormulierenDialog({ open, onOpenChange, worksp
                             {problem.items.length > 0 && (
                                 <div className="flex flex-col gap-2">
                                     <p className="text-sm font-medium text-black-800">{text('DIALOG.NO_ITEMS_TITLE')}</p>
-                                    <div className="max-h-56 overflow-y-auto rounded-md border border-black-300 p-3">
+                                    <div className="max-h-56 overflow-y-auto rounded-md border border-app-edge p-3">
                                         <ReportItemGroups items={problem.items} headingLevel={3} />
                                     </div>
                                 </div>

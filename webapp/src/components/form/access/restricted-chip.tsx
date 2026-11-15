@@ -17,7 +17,7 @@ import { cn } from '@app/shadcn/util/lib';
 export function RestrictedChip({ className }: { className?: string }) {
     const { t } = useTranslation();
     return (
-        <span data-testid="restricted-chip" title={t('STAFF.FORM_ACCESS.CHIP_TITLE')} className={cn('inline-flex shrink-0 items-center gap-1 rounded-full bg-black-200 px-2 py-0.5 text-xs font-semibold text-black-700', className)}>
+        <span data-testid="restricted-chip" title={t('STAFF.FORM_ACCESS.CHIP_TITLE')} className={cn('inline-flex shrink-0 items-center gap-1 rounded-full bg-app-wash-strong px-2 py-0.5 text-xs font-semibold text-black-700', className)}>
             <Lock className="h-3 w-3" aria-hidden="true" />
             {t('STAFF.FORM_ACCESS.CHIP_RESTRICTED')}
         </span>

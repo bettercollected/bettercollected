@@ -110,7 +110,7 @@ function DateRangeFieldSection({ field, isBuilder, ruleContext }: IDateRangeFiel
                             )}
                         </button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start" aria-labelledby={labelId}>
+                    <PopoverContent className="w-auto border-black-300 p-0" align="start" aria-labelledby={labelId}>
                         <ThemedCalendar
                             mode="single"
                             locale={locale}

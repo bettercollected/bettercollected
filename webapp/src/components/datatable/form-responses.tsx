@@ -326,7 +326,7 @@ export default function FormResponsesTable({ props }: any) {
     const reportControl = canReport ? (
         <Link
             href={`${pathname.replace(/\/$/, '')}/report${reportQuery ? `?${reportQuery}` : ''}`}
-            className="border-black-300 text-black-900 hover:bg-black-200 focus-visible:ring-brand-500 inline-flex h-10 shrink-0 items-center gap-2 rounded border bg-white px-4 text-sm font-medium focus:outline-hidden focus-visible:ring-2"
+            className="border-app-edge text-black-900 hover:bg-app-wash-strong focus-visible:ring-app-primary inline-flex h-10 shrink-0 items-center gap-2 rounded border bg-white px-4 text-sm font-medium focus:outline-hidden focus-visible:ring-2"
         >
             <PieChart className="h-4 w-4" aria-hidden="true" />
             {t('REPORT.TITLE')}

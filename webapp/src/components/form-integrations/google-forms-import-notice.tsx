@@ -15,7 +15,7 @@ export default function GoogleFormsImportNotice({ mode, className }: GoogleForms
     const { t } = useTranslation();
     const strings = mode === 'readonly' ? googleFormsImport.readonly : googleFormsImport.off;
     return (
-        <div role="note" className={cn('rounded-lg border border-black-300 bg-black-100 px-4 py-3 text-sm', className)}>
+        <div role="note" className={cn('rounded-lg border border-app-edge bg-app-wash px-4 py-3 text-sm', className)}>
             <p className="font-medium text-black-900">{t(strings.title)}</p>
             <p className="mt-1 text-black-700">{t(strings.description)}</p>
         </div>

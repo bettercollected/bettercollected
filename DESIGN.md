@@ -181,19 +181,27 @@ urgency or pressure (§5). Neither accent is used for body text, and neither
 appears inside a respondent form, whose colours are the form's own theme (§9).
 Coral is the single exception to "no orange", and it is kept to one role.
 
-**What reads the semantic roles, and what still reads the ramps.** The roles are
-adopted surface by surface, not by renaming the ramps (`brand-*` and `black-*`
-utilities appear in some three hundred files and stay as they are). Today these
-read roles: the app ground and the builder mat, active navigation, the selected
-option or row, status pills, the creator's "why we ask" note, and the report
-series, tracks and grid. Everything else in the creator app still reads the
-ramps: card edges and dividers (`border-black-300/400`), text steps
-(`text-black-600/700/900`), wells and hover fills (`bg-black-100/200`), control
-edges (`border-control`), the blue selection and link steps (`bg-brand-100`,
-`text-brand-500/600`), the shadcn inputs, menus and dialogs, tables, the flow
-view's nodes, and the status and AI chips that still carry a literal hex. A
-later app theme can only restyle what reads roles, so those are the next
-surfaces to move; the ramps themselves stay frozen for respondent routes.
+**What reads the semantic roles, and what still reads the ramps.** The ramps
+(`brand-*` and `black-*`) are not renamed and stay frozen. The creator app's
+chrome reads roles instead of the ramp steps it used to: the app ground and the
+builder mat, active navigation, the selected option or row, status pills, the
+"why we ask" note and the report series, tracks and grid, and also the **chrome
+roles**: `app-primary` (blue icons, borders, text actions and rings),
+`app-primary-deep` (text links), `app-primary-soft`, `app-primary-tint`,
+`app-edge` and `app-edge-strong` (card, table and row edges), `app-wash` and
+`app-wash-strong` (hover and quiet fills, tabs, tracks) and `app-control` (the
+edge of a control). In Daybreak each is the ramp step it replaced, so the app
+did not change; in another theme each is that theme's value. Every utility
+falls back to the ramp step where no theme scope is around.
+
+What still reads the ramps: text steps (`text-black-600/700/800/900`, the
+neutral greys of body text), `bg-white` surfaces, the flow view's node
+illustrations, the older status and AI chips that carry a literal hex, anything
+a form theme paints, and every file that draws a respondent's form or page
+(the form renderers and their field components, the theme gallery and its
+previews, the trust strip and the "Powered by" badge, the respondent sign-in
+and the responder portal): they keep the frozen values, which is also why a
+form previewed inside the builder looks the same in every app theme.
 
 **Respondent routes keep paper mist.** `data-app-theme` is set by the creator
 app's layouts only: the admin portal (dashboard, builder, settings, the Report
@@ -280,11 +288,26 @@ Their dosage rules:
 - **Always with the form's name beside it.** A tile is the second cue, never the
   only one.
 
-**What still reads the ramps.** Pigment, like Daybreak, restyles what reads the
-roles; the surfaces that still read `brand-*` and `black-*` (see above: card
-edges, many text steps, shadcn inputs and menus, tables) keep their blue-grey in
-a Pigment workspace until they move onto roles. The ramps stay frozen for the
-respondent routes either way.
+**What still reads the ramps.** The creator app's blue and neutral chrome reads
+the roles above, so a Pigment workspace is iris and warm paper throughout the
+dashboard, the builder, the responses, the report and the settings: links and
+text actions, avatars, switches, checkboxes and radios (native controls take
+the iris through `accent-color`), tabs, edges, washes and the pills. What stays
+as it is: the neutral text steps (`text-black-*`, and the same greys as
+`placeholder-black-*` and the `fill-black-*` of chart labels), anything a form theme
+paints (so a form inside the builder keeps its own colours), and the respondent
+routes. Every other `brand-*` and `black-*` step on a border, ring, wash or blue text
+in the creator app reads a role, in every form it is written in (variants such as
+`hover:` and `focus:`, side-specific borders such as `border-b-`, `placeholder-`,
+and the variables `var(--color-brand-500)` and `--key-edge`); the hover edges of
+cards are the roles `app-primary-edge` and `app-primary-edge-strong`.
+`webapp/src/assets/css/app-theme.test.ts` fails when one of those forms is left on
+a ramp.
+
+**The nav chips.** In a Pigment scope each group of the dashboard menu has a small
+pigment chip before its label (tomato, sky, mint). It is a `::before` of the
+label, drawn only inside a Pigment scope: Daybreak gets no element and no pixel.
+It is decorative and carries no text.
 
 **A form is never in the app's colours.** The builder canvas, the preview page and
 the preview dialog sit inside the scope of a workspace, but they show the form as a

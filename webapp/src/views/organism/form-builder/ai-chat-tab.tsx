@@ -86,7 +86,7 @@ const EXAMPLE_PROMPT_KEYS = ['AI_CHAT.EXAMPLE_1', 'AI_CHAT.EXAMPLE_2', 'AI_CHAT.
 const SEVERITY_STYLES: Record<ReviewFinding['severity'], { chip: string }> = {
     high: { chip: 'bg-[#FBEFEF] text-[#C43D3D]' },
     medium: { chip: 'bg-[#FDF3E7] text-[#B25E09]' },
-    info: { chip: 'bg-black-100 text-black-600' }
+    info: { chip: 'bg-app-wash text-black-600' }
 };
 
 interface MemoryEntry {
@@ -426,7 +426,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             disabled={isReviewing || (!!aiSettings && !aiEnabled)}
                             onClick={runReview}
                             title={tr('AI_CHAT.REVIEW_TITLE')}
-                            className="flex items-center gap-1.5 rounded-md border border-black-300 bg-white px-2 py-1 text-[11px] font-medium text-black-600 transition-colors disabled:text-black-400 hover:bg-black-100"
+                            className="flex items-center gap-1.5 rounded-md border border-app-edge bg-white px-2 py-1 text-[11px] font-medium text-black-600 transition-colors disabled:text-black-400 hover:bg-app-wash"
                         >
                             <ShieldCheck className="h-3 w-3" />
                             {isReviewing ? tr('AI_CHAT.REVIEWING') : tr('AI_CHAT.REVIEW')}
@@ -435,7 +435,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             type="button"
                             aria-expanded={showMemory}
                             onClick={() => setShowMemory((open) => !open)}
-                            className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${showMemory ? 'border-brand-200 bg-brand-100 text-brand-600' : 'border-black-300 bg-white text-black-600 hover:bg-black-100'}`}
+                            className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${showMemory ? 'border-app-primary-soft bg-app-primary-tint text-app-primary-deep' : 'border-app-edge bg-white text-black-600 hover:bg-app-wash'}`}
                         >
                             <BookOpen className="h-3 w-3" />
                             {tr('AI_CHAT.MEMORY')}
@@ -447,7 +447,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             </div>
 
             {showMemory && (
-                <div className="mx-3 mb-3 flex max-h-56 flex-col gap-2 overflow-y-auto rounded border border-black-300 bg-white p-3">
+                <div className="mx-3 mb-3 flex max-h-56 flex-col gap-2 overflow-y-auto rounded border border-app-edge bg-white p-3">
                     <p className="text-[11px] leading-relaxed text-black-600">
                         {tr('AI_CHAT.MEMORY_INTRO')}
                     </p>
@@ -456,11 +456,11 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                         <span>{tr('AI_CHAT.LEARN')}</span>
                     </label>
                     {(memoryEntries as MemoryEntry[]).length === 0 ? (
-                        <p className="rounded-md border border-dashed border-black-300 px-2 py-2.5 text-center text-[11px] text-black-600">{tr('AI_CHAT.NOTHING_REMEMBERED')}</p>
+                        <p className="rounded-md border border-dashed border-app-edge px-2 py-2.5 text-center text-[11px] text-black-600">{tr('AI_CHAT.NOTHING_REMEMBERED')}</p>
                     ) : (
                         <ul className="flex flex-col gap-1">
                             {(memoryEntries as MemoryEntry[]).map((entry) => (
-                                <li key={entry.id} className="flex items-start justify-between gap-2 rounded-md border border-black-100 px-2 py-1.5">
+                                <li key={entry.id} className="flex items-start justify-between gap-2 rounded-md border border-app-wash px-2 py-1.5">
                                     <div className="min-w-0">
                                         <p className="text-xs leading-relaxed text-black-800">{entry.text}</p>
                                         <p className="text-[10px] text-black-600">{entry.source === 'manual' ? tr('AI_CHAT.ADDED_BY_YOU') : tr('AI_CHAT.LEARNED')}</p>
@@ -486,14 +486,14 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleAddMemory();
                             }}
-                            className="h-7 w-full rounded-md border border-black-300 bg-white px-2 text-[11px] text-black-900 outline-hidden transition placeholder:text-black-600 focus:border-brand-500"
+                            className="h-7 w-full rounded-md border border-app-edge bg-white px-2 text-[11px] text-black-900 outline-hidden transition placeholder:text-black-600 focus:border-app-primary"
                         />
                         <button
                             type="button"
                             aria-label={tr('AI_CHAT.ADD_PREFERENCE')}
                             disabled={!memoryDraft.trim() || isAddingMemory}
                             onClick={handleAddMemory}
-                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-black-300 text-black-600 transition disabled:text-black-300 hover:bg-black-100"
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-app-edge text-black-600 transition disabled:text-black-300 hover:bg-app-wash"
                         >
                             <Plus className="h-3.5 w-3.5" />
                         </button>
@@ -516,7 +516,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     key={prompt}
                                     type="button"
                                     onClick={() => send(prompt)}
-                                    className="rounded-md border border-black-300 bg-white px-2.5 py-1.5 text-left transition-colors hover:border-brand-300 hover:bg-[#F6F9FF] hover:text-black-800"
+                                    className="rounded-md border border-app-edge bg-white px-2.5 py-1.5 text-left transition-colors hover:border-app-primary-edge hover:bg-[#F6F9FF] hover:text-black-800"
                                 >
                                     “{prompt}”
                                 </button>
@@ -526,11 +526,11 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                     <div className="flex flex-col gap-3">
                         {turns.map((turn, i) =>
                             turn.role === 'user' ? (
-                                <div key={i} className="ml-6 self-end rounded-lg rounded-br-sm bg-brand-100 px-3 py-2 text-[13px] leading-relaxed text-black-900">
+                                <div key={i} className="ml-6 self-end rounded-lg rounded-br-sm bg-app-primary-tint px-3 py-2 text-[13px] leading-relaxed text-black-900">
                                     {turn.content}
                                 </div>
                             ) : turn.role === 'review' ? (
-                                <div key={i} className="self-stretch rounded border border-black-300 bg-white px-3 py-2.5 text-[13px] leading-relaxed">
+                                <div key={i} className="self-stretch rounded border border-app-edge bg-white px-3 py-2.5 text-[13px] leading-relaxed">
                                     <div className="flex items-start gap-1.5 font-medium text-black-800">
                                         <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
                                         <span>{tr('AI_CHAT.COMPLIANCE')}</span>
@@ -538,7 +538,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     <p className="mt-1 text-black-700">{turn.content}</p>
                                     {turn.findings?.length === 0 && <p className="mt-1.5 text-xs text-success-700">{tr('AI_CHAT.NO_ISSUES')}</p>}
                                     {!!turn.findings?.length && (
-                                        <ul className="mt-2 flex flex-col gap-2 border-t border-black-100 pt-2">
+                                        <ul className="mt-2 flex flex-col gap-2 border-t border-app-wash pt-2">
                                             {turn.findings.map((finding, j) => (
                                                 <li key={j} className="flex flex-col gap-1">
                                                     <div className="flex items-start gap-1.5">
@@ -556,7 +556,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                                                     type="button"
                                                                     disabled={finding.applying}
                                                                     onClick={() => applyFix(i, j)}
-                                                                    className="rounded-md border border-black-300 bg-white px-2 py-0.5 text-[11px] font-medium text-black-800 transition-colors disabled:cursor-wait disabled:text-black-400 hover:bg-black-100"
+                                                                    className="rounded-md border border-app-edge bg-white px-2 py-0.5 text-[11px] font-medium text-black-800 transition-colors disabled:cursor-wait disabled:text-black-400 hover:bg-app-wash"
                                                                 >
                                                                     {finding.applying ? tr('AI_PROPOSAL.APPLYING') : tr('AI_CHAT.FIX', { description: finding.fix.description })}
                                                                 </button>
@@ -569,7 +569,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     )}
                                 </div>
                             ) : turn.role === 'memory' ? (
-                                <div key={i} className="bg-black-50 self-stretch rounded-md border border-dashed border-black-300 px-3 py-2 text-xs leading-relaxed">
+                                <div key={i} className="bg-black-50 self-stretch rounded-md border border-dashed border-app-edge px-3 py-2 text-xs leading-relaxed">
                                     {turn.forgotten ? (
                                         <span className="text-black-600">{tr('AI_CHAT.FORGOTTEN')}</span>
                                     ) : (
@@ -586,7 +586,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                     )}
                                 </div>
                             ) : (
-                                <div key={i} className={`mr-6 self-start rounded rounded-bl-sm border px-3 py-2 text-[13px] leading-relaxed ${turn.error ? 'border-[#E9CFCF] bg-[#FBEFEF] text-[#7A2E2E]' : 'border-black-300 bg-white text-black-800'}`}>
+                                <div key={i} className={`mr-6 self-start rounded rounded-bl-sm border px-3 py-2 text-[13px] leading-relaxed ${turn.error ? 'border-[#E9CFCF] bg-[#FBEFEF] text-[#7A2E2E]' : 'border-app-edge bg-white text-black-800'}`}>
                                     <div>{turn.content}</div>
                                     {turn.error && turn.retryMessage && (
                                         <button type="button" onClick={() => send(turn.retryMessage)} className="mt-1.5 rounded-md border border-[#E9CFCF] bg-white px-2 py-0.5 text-[11px] font-medium text-[#7A2E2E] transition-colors hover:bg-[#FBEFEF]">
@@ -613,7 +613,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                         />
                                     )}
                                     {!turn.proposal && !!turn.results?.length && (
-                                        <ul className="mt-2 flex flex-col gap-1 border-t border-black-100 pt-2">
+                                        <ul className="mt-2 flex flex-col gap-1 border-t border-app-wash pt-2">
                                             {turn.results.map((result, j) => (
                                                 <li key={j} className="flex items-start gap-1.5 text-xs">
                                                     {result.ok ? <Check className="mt-0.5 h-3 w-3 shrink-0 text-success" strokeWidth={3} /> : <X className="mt-0.5 h-3 w-3 shrink-0 text-[#C43D3D]" strokeWidth={3} />}
@@ -627,7 +627,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                         )}
                         {isLoading && <div className="mr-6 animate-pulse self-start px-1 text-xs text-black-600">{tr('AI_CHAT.THINKING')}</div>}
                         {isReviewing && (
-                            <div className="animate-pulse self-stretch rounded border border-black-300 bg-white px-3 py-2.5 text-xs leading-relaxed text-black-600">
+                            <div className="animate-pulse self-stretch rounded border border-app-edge bg-white px-3 py-2.5 text-xs leading-relaxed text-black-600">
                                 <ShieldCheck className="mr-1.5 inline h-3.5 w-3.5 align-[-2px] text-success" />
                                 {tr('AI_CHAT.REVIEWING_LONG')}
                             </div>
@@ -639,7 +639,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             {(!aiSettings || aiEnabled) && (
                 <div className="border-t p-3">
                     {pendingPrompt && <p className="mb-1.5 px-1 text-xs leading-relaxed text-black-600">{tr('AI_CHAT.PROMPT_BELOW')}</p>}
-                    <div className="flex items-end gap-2 rounded border border-control bg-white px-2.5 py-2 transition duration-150 focus-within:border-brand-500">
+                    <div className="flex items-end gap-2 rounded border border-app-control bg-white px-2.5 py-2 transition duration-150 focus-within:border-app-primary">
                         <textarea
                             rows={2}
                             value={input}
@@ -664,7 +664,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             aria-label={tr('AI_CHAT.SEND')}
                             onClick={() => send()}
                             disabled={isLoading || !input.trim()}
-                            className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded bg-app-action text-white transition hover:bg-app-action-hover active:bg-app-action-pressed disabled:bg-black-300"
+                            className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded bg-app-action text-white transition hover:bg-app-action-hover active:bg-app-action-pressed disabled:bg-app-edge"
                         >
                             <Send className="h-3.5 w-3.5" />
                         </button>

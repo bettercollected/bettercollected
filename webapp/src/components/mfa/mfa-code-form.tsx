@@ -113,7 +113,7 @@ export default function MfaCodeForm({
                     <button
                         type="button"
                         disabled={locked}
-                        className="w-fit text-sm font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 disabled:opacity-50"
+                        className="w-fit text-sm font-medium text-app-primary-deep underline underline-offset-2 hover:text-app-action-pressed disabled:opacity-50"
                         onClick={() => {
                             setRecovery(!recovery);
                             setCode('');

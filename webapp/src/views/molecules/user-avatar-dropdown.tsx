@@ -30,13 +30,13 @@ export default function UserAvatarDropDown({ responderSignInUrl = '', disabled =
             {/* Pinned to the form's side gutter (form-column.ts); the welcome
                 and ending pages leave room for it above their titles. */}
             <PopoverTrigger className={inline ? 'relative z-10 shrink-0' : 'absolute top-4 right-5 z-10 sm:right-8'} aria-label={t('ACCOUNT.LABEL')} data-testid="account-control">
-                <div className={cn('flex cursor-pointer items-center rounded-full p-1 transition', popOverOpen ? 'bg-black-400' : 'bg-white/50')}>
+                <div className={cn('flex cursor-pointer items-center rounded-full p-1 transition', popOverOpen ? 'bg-app-edge-strong' : 'bg-white/50')}>
                     <UserAvatar authState={authState} />
                     <ChevronDown className={cn('pt-1 text-black-600 transition', !disabled && popOverOpen && 'rotate-180')} />
                 </div>
             </PopoverTrigger>
             {!disabled && (
-                <PopoverContent className="p2-new z-[10] mt-2 max-w-[270px] cursor-pointer rounded border border-black-300 bg-white p-4 text-black-700 shadow-large">
+                <PopoverContent className="p2-new z-[10] mt-2 max-w-[270px] cursor-pointer rounded border border-app-edge bg-white p-4 text-black-700 shadow-large">
                     {authState?.id ? (
                         <SwitchUserComponent authState={authState} responderSignInUrl={responderSignInUrl}></SwitchUserComponent>
                     ) : (

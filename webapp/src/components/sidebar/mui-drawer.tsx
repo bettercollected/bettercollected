@@ -33,7 +33,7 @@ export default function MuiDrawer({ drawerWidth = 289, mobileOpen, children, han
         <>
             <div className="lg:hidden">
                 <Sheet open={mobileOpen} onOpenChange={(open) => !open && handleDrawerToggle()} >
-                    <SheetContent hideCloseIcon side={anchor === 'right' ? 'right' : 'left'} className="p-0 bg-white border-r border-r-black-300" style={{ width: drawerWidth, maxWidth: '100vw' }}>
+                    <SheetContent hideCloseIcon side={anchor === 'right' ? 'right' : 'left'} className="p-0 bg-white border-r border-r-app-edge" style={{ width: drawerWidth, maxWidth: '100vw' }}>
                         <SheetTitle className="sr-only">{t('STAFF.SHELL.MENU')}</SheetTitle>
                         {children}
                     </SheetContent>
@@ -45,7 +45,7 @@ export default function MuiDrawer({ drawerWidth = 289, mobileOpen, children, han
                     // No py here — the drawer content owns its own top band
                     // (aligned to the navbar) and bottom padding.
                     "hidden lg:block fixed top-0 h-full bg-white shrink-0 scrollbar-hide",
-                    anchor === 'right' ? 'right-0 border-l border-l-black-400' : 'left-0 border-r border-r-black-400'
+                    anchor === 'right' ? 'right-0 border-l border-l-app-edge-strong' : 'left-0 border-r border-r-app-edge-strong'
                 )}
                 style={{ width: drawerWidth }}
             >
