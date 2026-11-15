@@ -23,7 +23,9 @@ form's theme, which is the creator's choice (§9).
 
 One blue ramp (`brand-*`) and one neutral ramp (`black-*`), and on top of them
 a small set of role tokens (Daybreak, below) for the app's own ground, text,
-accents, status and charts. Blue is the only action colour. Nothing else carries
+accents, status and charts. Blue is the only action colour in Daybreak and in
+every respondent form (a workspace that chooses the Pigment theme gets iris
+instead, inside the app only; see "Pigment theme"). Nothing else carries
 product meaning; status colours (success, warning, danger) appear only where
 they say something, and every colour that means something also has a word, an
 icon, a dot, a heavier weight or a shape beside it.
@@ -77,6 +79,8 @@ field is there; hairlines are for separating surfaces, not for controls.
 | `#C43D3D` | — | Danger text and destructive buttons |
 
 No pink, no gradients, and no orange except the single coral accent below (and the red-orange report series).
+Both rules hold for Daybreak and for respondent forms; the Pigment theme (below) is
+the one place they are set aside, for the creator app of a workspace that chose it.
 The old bright blue (`#0764EB`), the old trust blue (`#2456CC`) and the
 duplicate `new-*` ramps are gone.
 
@@ -207,6 +211,69 @@ layouts (it can follow a workspace setting). Components do not change: they use
 the semantic utilities, never a hex or a ramp step, for app chrome. The ramps and
 the respondent routes do not change either.
 
+### Pigment theme
+
+Pigment is the second app theme, **a workspace's own choice** (owners and admins,
+Themes page, "Appearance"; `docs/app-theme.md`). It is a block of the shape above,
+`[data-app-theme='pigment']` with its own `html:has(...)` rule after Daybreak's, so
+inside a Pigment workspace the same utilities resolve to other values. It exists
+only in the creator app, only in light, and only on an instance whose operator has
+switched it on. Respondent forms never wear it: they carry no theme attribute, and
+`respondent-colours-pin.test.tsx` holds their colours.
+
+| Role | Daybreak | Pigment |
+|---|---|---|
+| Ground (`canvas`) | `#F3F6FF` periwinkle air | `#FBF7F1` cream paper |
+| Card (`surface`) | `#FFFFFF` | `#FFFFFF` |
+| Wells, table heads (`sunken`) | `#E8EDFF` | `#F2EBDF` |
+| Separators (`hairline`, `hairline-strong`) | `#DCE2F5`, `#BDC8E8` | `#E9E1D4`, `#CFC4B1` |
+| Control edge (`control-edge`) | `#6E7CA8` | `#7C7396` |
+| Text (`ink`, `copy`, `ink-muted`) | `#0E1737`, `#3C4872`, `#56628C` | `#1A1238`, `#443C66`, `#5F577F` |
+| Action (`app-action`, hover, pressed) | `#1649E2`, `#123FC9`, `#0E2D8F` | iris `#4B35DB`, `#3E29C4`, `#2F1DA2` |
+| Focus ring (`app-focus-ring`) | `#123FC9` | iris `#4B35DB` |
+| Selected, active nav (`brand-tint`), link | `#E0E8FF`, `#1035A8` | `#E8E4FF`, `#3E29C4` |
+| Accent (`app-accent`, tint, ink) | sun `#FFB400`, `#FFF1C7`, `#6B4700` | sun `#FFC62E`, `#FFF0C2`, `#664600` |
+| Attention (`app-attention`, tint, ink) | coral `#FF6A48`, `#FFE4DC`, `#A22F14` | coral `#FF7A61`, `#FFE2DC`, `#A3301A` |
+| Status (`ok`, `warn`, `bad`, `info`) | as in the table above | `#0B6B4A`, `#7A4B00`, `#B0302A`, `#1B5FA8` (each with fill and tint) |
+| Chart series 1 to 6 | blue, ochre, teal, red-orange, violet, slate | iris, coral, ochre, green, blue, orchid |
+
+**The chrome roles.** The primary button, the edge of a chosen option and the
+keyboard focus ring of the creator app read `app-action`, `app-on-action` and
+`app-focus-ring` (utilities `bg-app-action`, `hover:bg-app-action-hover`,
+`text-app-on-action`), and what used to be called sun and coral is also available
+as `app-accent*` and `app-attention*` (`sun` and `coral` stay as aliases, so
+nothing was renamed). In Daybreak each role is the value it always had. Where no
+theme scope is around, as on a respondent route, the action utilities fall back to
+the frozen `action` and `brand-500`, so a respondent page looks exactly as before.
+
+**The pigments.** Tomato `#FF8A73`, sun `#FFC62E`, mint `#5FD9B0`, sky `#6BBEF7`
+and orchid `#D9A0FF` are flat fills, set in the Pigment scope as `--app-pig-*`.
+They give each form its identity colour: the form's tile takes the pigment of its
+hue index (`lib/form-hue.ts`) with the one ink `#1A1238` on it (7.7 to 11.3:1).
+Their dosage rules:
+
+- **Never text.** There is no pigment text utility. A pigment is a fill that
+  carries ink, never the colour of a word, an icon or a focus ring: none of the
+  five reaches 3:1 on white (1.6 to 2.3:1), and a test states it.
+- **At most five pigments plus iris on one screen**, and at most one row of loud
+  tiles.
+- **Never a primary button.** Iris is the action colour; a pigment never is.
+- **Tomato never means error.** Danger is `bad`, a deeper red (`#B0302A`), always
+  with an icon and words. Tomato is identity only.
+- **Always with the form's name beside it.** A tile is the second cue, never the
+  only one.
+
+**What still reads the ramps.** Pigment, like Daybreak, restyles what reads the
+roles; the surfaces that still read `brand-*` and `black-*` (see above: card
+edges, many text steps, shadcn inputs and menus, tables) keep their blue-grey in
+a Pigment workspace until they move onto roles. The ramps stay frozen for the
+respondent routes either way.
+
+`assets/css/app-theme.test.ts` holds the two blocks: Pigment sets every variable
+Daybreak sets (and the pigments); every text and control pair of both themes passes
+WCAG from the values in the CSS; no theme block declares a ramp; and the previews
+on the Appearance card are the colours of the blocks.
+
 ## 2. Type
 
 - **Faces.** [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans)
@@ -322,13 +389,16 @@ focused, as browsers match `:focus-visible` there). One rule in `tailwind.css`
 draws it, with `!important` so a leftover `outline-hidden` cannot switch it
 off. Menu items and listbox options are the exception: their focus is the
 highlighted row. Inside a respondent form, the outline takes the theme's
-action colour (`--focus-ring`, set by the layout wrapper). The old blue glow
+action colour (`--focus-ring`, set by the layout wrapper); inside an app theme
+scope it is the theme's `--app-focus-ring` (Sireto blue in Daybreak, iris in
+Pigment). The old blue glow
 around inputs is gone; a focused input also turns its border blue.
 
 ## 8. Buttons
 
 - **Primary**: `action` face, white text; hover `action-hover`, pressed
-  `action-pressed`.
+  `action-pressed`. In the creator app the face is the theme's `app-action`
+  (the same blue in Daybreak, iris in Pigment).
 - **Secondary**: `black-800` face, white text. **Tertiary**: white face, Sireto
   blue border and text. **v2Button**: white face, `black-400` border, ink text.
   **Danger**: `#C43D3D`. **Ghost** variants have no face.
