@@ -10,6 +10,7 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { store } from '@app/store/store';
 import { contrast } from '@app/utils/color-contrast';
 import { applyOps } from '@app/lib/form-ops';
+import { ChoiceContent } from '@app/views/atoms/choice';
 import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
 
 import { DAYBREAK_RULE, DAYBREAK_SUN, DaybreakSunrise, daybreakCornerStyle, daybreakRule } from './daybreak-art';
@@ -108,6 +109,15 @@ describe('the corner sun', () => {
         expect(daybreakRule({ ...DAYBREAK, accent: '#B07400' })).toBe(DAYBREAK.primary);
         // a form's own highlight wins
         expect(themeRootProps({ ...DAYBREAK, highlight: '#1035A8' }).style['--form-highlight-rule' as keyof React.CSSProperties]).not.toBe(DAYBREAK_RULE);
+    });
+});
+
+describe('the chosen answer', () => {
+    const chosen = (theme: FormTheme) => wrap(<ChoiceContent kind="radio" selected theme={theme}>Every month</ChoiceContent>).container;
+    it('ends in a check on a Daybreak form (shape as well as colour), and only there', () => {
+        expect(chosen(DAYBREAK).querySelector('[data-choice-check]')).not.toBeNull();
+        expect(chosen(DEFAULT).querySelector('[data-choice-check]')).toBeNull();
+        expect(chosen(KANTLIJN).querySelector('[data-choice-check]')).toBeNull();
     });
 });
 
