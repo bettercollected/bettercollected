@@ -776,11 +776,11 @@
     --app-info-fill: #3B6BFF;
     --app-info-tint: #E0E8FF;
     --series-1: #2A55E0;
-    --series-2: #A86400;
-    --series-3: #0E7F86;
-    --series-4: #C93A21;
-    --series-5: #7447CF;
-    --series-6: #5C6788;
+    --series-2: #158591;
+    --series-3: #12471D;
+    --series-4: #6C2FBC;
+    --series-5: #BB7A0A;
+    --series-6: #5B6888;
     /* Form avatar pairs: a tint and its ink, picked by a form's hue index (lib/form-hue.ts); each pair is at least 4.5:1.
        None is a signal colour: coral means "waiting for you" and green, amber and red are status, so tiles use teal, sun, sand, blue and violet. */
     --form-hue-0-bg: #D4EFF0; /* teal tint and ink, 6.5:1 */
@@ -828,11 +828,11 @@ html:has([data-app-theme='daybreak']) {
     --app-info-fill: #3B6BFF;
     --app-info-tint: #E0E8FF;
     --series-1: #2A55E0;
-    --series-2: #A86400;
-    --series-3: #0E7F86;
-    --series-4: #C93A21;
-    --series-5: #7447CF;
-    --series-6: #5C6788;
+    --series-2: #158591;
+    --series-3: #12471D;
+    --series-4: #6C2FBC;
+    --series-5: #BB7A0A;
+    --series-6: #5B6888;
     /* Form avatar pairs: a tint and its ink, picked by a form's hue index (lib/form-hue.ts); each pair is at least 4.5:1.
        None is a signal colour: coral means "waiting for you" and green, amber and red are status, so tiles use teal, sun, sand, blue and violet. */
     --form-hue-0-bg: #D4EFF0; /* teal tint and ink, 6.5:1 */
