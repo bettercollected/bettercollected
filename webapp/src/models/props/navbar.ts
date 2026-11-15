@@ -6,6 +6,9 @@ export interface INavbarItem {
     url: string;
     icon?: React.ReactNode;
     onClick?: () => void;
+    /** The item opens a view or a dialog on the current page rather than a page of its own (its `url` then only
+     *  serves prefetching and matching): it renders as a button, not a link, so it is never opened in a new tab. */
+    opensInPlace?: boolean;
     /** Highlight only on an exact pathname match — for items whose URL is a
      *  prefix of every other route (e.g. the dashboard root). */
     exactMatch?: boolean;

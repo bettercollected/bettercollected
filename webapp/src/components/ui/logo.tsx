@@ -53,8 +53,10 @@ export default Logo;
 // text on #FFA004 (~2.1:1 contrast) in a display face used nowhere else.
 export const ProLogo = () => {
     return (
-        <div className="flex h-fit flex-row items-center rounded-full bg-brand-accent-100 px-2 py-[2px] text-[11px] font-semibold leading-[14px] text-brand-olive">
+        // A span (it sits inside links and buttons in the menu, where only phrasing content is valid); `flex` makes
+        // it block-level exactly as the div was, so it lays out the same in every parent.
+        <span className="flex h-fit flex-row items-center rounded-full bg-brand-accent-100 px-2 py-[2px] text-[11px] font-semibold leading-[14px] text-brand-olive">
             <span>Pro</span>
-        </div>
+        </span>
     );
 };

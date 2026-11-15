@@ -183,9 +183,12 @@ describe('the Workspace group', () => {
     it('renders the items in order and highlights AI on its Memory tab', () => {
         pathname = '/acme/dashboard/ai/memory';
         render(<NavigationList navigationList={visible(OWNER)} />);
-        const rows = screen.getAllByRole('listitem');
+        // the rows are links now (the old test read the classes off the list item)
+        const rows = screen.getAllByRole('link');
         expect(rows.map((row) => row.textContent)).toEqual(['Members', 'Themes', 'Single sign-on', 'AI']);
         expect(rows[3]).toHaveClass('bg-brand-tint', 'font-medium');
+        expect(rows[3]).toHaveAttribute('aria-current', 'page');
         expect(rows.slice(0, 3).some((row) => row.classList.contains('bg-brand-tint'))).toBe(false);
+        expect(rows.slice(0, 3).some((row) => row.hasAttribute('aria-current'))).toBe(false);
     });
 });
