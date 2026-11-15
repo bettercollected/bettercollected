@@ -136,6 +136,7 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
         ['primary-soft', '--color-brand-200'],
         ['primary-edge', '--color-brand-300'],
         ['primary-edge-strong', '--color-brand-400'],
+        ['chrome', '--color-brand-500'],
         ['edge', '--color-black-300'],
         ['edge-strong', '--color-black-400'],
         ['wash', '--color-black-100'],
@@ -154,7 +155,7 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
     });
 
     it('are different values in Pigment (iris and warm paper), never a ramp reference', () => {
-        for (const name of ['primary', 'primary-deep', 'primary-soft', 'primary-edge', 'primary-edge-strong', 'edge', 'edge-strong', 'wash', 'wash-strong', 'control']) {
+        for (const name of ['primary', 'primary-deep', 'primary-soft', 'primary-edge', 'primary-edge-strong', 'chrome', 'edge', 'edge-strong', 'wash', 'wash-strong', 'control']) {
             expect(rule('pigment', 'scope')[`--app-${name}`], name).toMatch(/^#[0-9A-F]{6}$/i);
             expect(role('pigment', name), name).not.toBe(role('daybreak', name));
         }
@@ -169,6 +170,7 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
             ['app-primary-tint', 'app-primary-tint', 'color-brand-100'],
             ['app-primary-edge', 'app-primary-edge', 'color-brand-300'],
             ['app-primary-edge-strong', 'app-primary-edge-strong', 'color-brand-400'],
+            ['app-chrome', 'app-chrome', 'color-brand-500'],
             ['app-edge', 'app-edge', 'color-black-300'],
             ['app-edge-strong', 'app-edge-strong', 'color-black-400'],
             ['app-wash', 'app-wash', 'color-black-100'],
@@ -346,6 +348,9 @@ const PAIRS: Array<[string, string, number, string]> = [
     ['ink-muted', 'canvas', 4.5, 'Labels and captions on the canvas'],
     ['ink-muted', 'surface', 4.5, 'Labels and captions on a card'],
     ['ink-muted', 'sunken', 4.5, 'Neutral status pill'],
+    ['ink-muted', 'wash', 4.5, 'A pill or label on the wash (text-black-600 bg-app-wash, in a Pigment scope)'],
+    ['ink-muted', 'edge', 4.5, 'Token check: muted ink on the edge colour used as a fill (no rule moves text there: no element pairs them)'],
+    ['ink-muted', 'brand-tint', 4.5, 'Token check: muted ink on the selected tint (no rule moves text there: no element pairs them)'],
     ['on-action', 'action', 4.5, 'Primary button text on its face'],
     ['on-action', 'action-hover', 4.5, 'Primary button text on hover'],
     ['on-action', 'action-pressed', 4.5, 'Primary button text pressed'],
@@ -553,3 +558,125 @@ describe('the previews on the Appearance card', () => {
         expect(p.tiles).toEqual([0, 1, 2, 3, 4].map((index) => role(theme, `form-hue-${index}-bg`)));
     });
 });
+
+describe('what a Pigment workspace still drew in the frozen blue, and the one place a text pair fell under 4.5', () => {
+    it('gives a native checkbox or radio the action role in a Pigment scope, as a base-layer default that utilities and form roots do not lose to', () => {
+        // the forms plugin fills a checked one with `currentColor` (#2563eb) after `appearance: none`, so `accent-color` never reached it
+        const block = css.match(/@layer base \{\s*\[data-app-theme='pigment'\] :where\(input\[type='checkbox'\], input\[type='radio'\]\):not\(\[data-form-root\] \*\),[\s\S]*?\n\}/)?.[0] ?? '';
+        expect(block, 'the rule is inside @layer base').not.toBe('');
+        expect(block).toContain("html:has([data-app-theme='pigment']) :where(input[type='checkbox'], input[type='radio']):not([data-form-root] *) {");
+        expect(block).toContain('color: var(--app-action, #2563eb);');
+        expect(block).toContain('--tw-ring-color: var(--app-focus-ring, #2563eb);');
+        expect(block).toContain(':not([data-form-root] *):focus');
+        // no unlayered rule of the kind: a layered utility could not beat it
+        const unlayered = css.replace(block, '');
+        expect(unlayered).not.toMatch(/:where\(input\[type='checkbox'\], input\[type='radio'\]\)/);
+        // Daybreak has no such rule: its controls are drawn by the plugin as they always were
+        expect(css).not.toMatch(/\[data-app-theme='daybreak'\][^{]*input\[type='checkbox'\]/);
+    });
+
+    it('keeps the rule off a control inside a form root and lets a control keep its own colour utility', () => {
+        const selector = "[data-app-theme='pigment'] :where(input[type='checkbox'], input[type='radio']):not([data-form-root] *)";
+        document.body.innerHTML = `
+            <div data-app-theme="pigment">
+                <input id="plain" type="checkbox" />
+                <input id="own" type="checkbox" class="text-red-600" />
+                <input id="radio" type="radio" />
+                <div data-form-root=""><input id="inform" type="checkbox" /><label><input id="inform-radio" type="radio" /></label></div>
+            </div>
+            <input id="outside" type="checkbox" />`;
+        const matched = [...document.querySelectorAll(selector)].map((el) => el.id).sort();
+        // in the form root, and outside a Pigment scope, nothing is matched
+        expect(matched).toEqual(['own', 'plain', 'radio']);
+        document.body.innerHTML = '';
+        // the control with its own utility is matched by the base rule, and the utility wins because the layer order puts
+        // `utilities` after `base`
+        expect(css).toMatch(/@layer theme, base, components, utilities;/);
+    });
+
+    it('keeps the builder chrome inside a form root on a role that the form root does not reset', () => {
+        expect(rule('daybreak', 'scope')['--app-chrome']).toBe('var(--color-brand-500)');
+        expect(role('pigment', 'chrome')).toBe(role('pigment', 'primary'));
+        const reset = readFileSync(resolve(SRC, 'lib/app-theme.ts'), 'utf8');
+        expect(reset).not.toContain("'--app-chrome'");
+        // and the canvas chrome no longer carries the literal blue
+        for (const file of ['views/organism/form-builder/slide-builder.tsx', 'views/molecules/form-builder/move-up-down.tsx']) {
+            expect(readFileSync(resolve(SRC, file), 'utf8'), file).not.toMatch(/#123FC9/i);
+        }
+    });
+
+    it('gives the frozen leading header cells of the responses table the wash in a Pigment scope only', () => {
+        expect(css.length).toBeGreaterThan(0);
+        const globals = readFileSync(resolve(__dirname, 'globals.css'), 'utf8');
+        expect(globals).toMatch(/\.responders-frozen-table \.rdt_TableCol:nth-child\(-n \+ 2\) \{\s*background-color: var\(--color-black-200\);/);
+        expect(globals).toMatch(/\[data-app-theme='pigment'\] \.responders-frozen-table \.rdt_TableCol:nth-child\(-n \+ 2\) \{\s*background-color: var\(--app-wash\);/);
+    });
+
+    it("draws a group page's active tab underline in the action colour in a Pigment scope only, and keeps Daybreak's own", () => {
+        expect(css).toMatch(/\[data-app-theme='pigment'\] \[data-tab-active\] \{\s*border-color: var\(--app-primary\);/);
+        const tabs = readFileSync(resolve(SRC, 'app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/responders-groups/[group_id]/_components/group-preview-layout-client.tsx'), 'utf8');
+        expect(tabs).toContain("'border-gray-900 text-gray-900'");
+        expect(tabs).toContain("data-tab-active={isActive ? '' : undefined}");
+    });
+
+    it('stops the Insert search field showing two outlines in a Pigment scope only', () => {
+        expect(css).toMatch(/\[data-app-theme='pigment'\] \[data-insert-search\]:focus-within,\s*html:has\(\[data-app-theme='pigment'\]\) \[data-insert-search\]:focus-within \{\s*border-color: var\(--app-edge\);/);
+        expect(readFileSync(resolve(SRC, 'views/molecules/dialogs/insert-field-modal.tsx'), 'utf8')).toContain('data-insert-search');
+    });
+
+    it('gives the builder canvas controls the chrome role as their focus ring in a Pigment scope only', () => {
+        // the global ring reads `--focus-ring` first, with `!important`, so the role is handed over through that variable
+        expect(css).toMatch(/\[data-app-theme='pigment'\] \[data-chrome-focus\]:focus-visible \{\s*--focus-ring: var\(--app-chrome\);\s*\}/);
+        expect(css).not.toMatch(/\[data-app-theme='daybreak'\][^{]*data-chrome-focus/);
+        for (const file of ['views/organism/form-builder/slide-builder.tsx', 'views/molecules/form-builder/move-up-down.tsx']) {
+            const source = readFileSync(resolve(SRC, file), 'utf8');
+            // the controls that name the chrome outline or ring also carry the hook
+            expect([...source.matchAll(/focus-visible:(outline|ring)-app-chrome/g)].length, file).toBeGreaterThan(0);
+            expect([...source.matchAll(/data-chrome-focus=""/g)].length, file).toBeGreaterThan(0);
+        }
+    });
+
+    it('moves the frozen neutral text (#667085) to the theme muted ink on the wash, for the same element and for a direct p or span child', () => {
+        // the pair that fails: black-600 on the wash of Pigment, against the muted ink that replaces it there
+        const frozen = themeToken('black-600')!.toUpperCase();
+        expect(contrast(frozen, role('pigment', 'wash')), 'black-600 on wash').toBeLessThan(4.5);
+        expect(contrast(role('pigment', 'ink-muted'), role('pigment', 'wash')), 'ink-muted on wash').toBeGreaterThanOrEqual(4.5);
+        // on the canvas and a card the frozen colour passes, so it is left alone
+        expect(contrast(frozen, role('pigment', 'canvas'))).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(frozen, role('pigment', 'surface'))).toBeGreaterThanOrEqual(4.5);
+        const rule = css.match(/(\[data-app-theme='pigment'\] \.bg-app-wash\.text-black-600:not\(:hover\)[^{]*)\{([^}]*)\}/);
+        const OUT = ':not([data-form-root] *)';
+        expect(rule?.[1].split(',\n').map((selector) => selector.trim())).toEqual([
+            `[data-app-theme='pigment'] .bg-app-wash.text-black-600:not(:hover)${OUT}`,
+            `[data-app-theme='pigment'] .bg-app-wash > :is(p, span).text-black-600:not(:hover)${OUT}`,
+            `html:has([data-app-theme='pigment']) .bg-app-wash.text-black-600:not(:hover)${OUT}`,
+            `html:has([data-app-theme='pigment']) .bg-app-wash > :is(p, span).text-black-600:not(:hover)${OUT}`
+        ]);
+        expect(rule?.[2]).toContain('color: var(--app-ink-muted);');
+        // the selectors match the same element and a direct p or span child, and nothing else
+        const selectors = rule![1].split(',\n').map((selector) => selector.trim()).filter((selector) => selector.startsWith("[data-app-theme='pigment']"));
+        document.body.innerHTML = `
+            <div data-app-theme="pigment">
+                <span id="pill" class="bg-app-wash text-black-600">pill</span>
+                <form class="bg-app-wash">
+                    <p id="note" class="text-xs text-black-600">note</p>
+                    <label><span id="nested" class="text-black-600">nested</span></label>
+                    <a id="icon" class="text-black-600">icon</a>
+                    <p id="plain" class="text-black-800">plain</p>
+                </form>
+                <p id="cream" class="text-black-600">cream</p>
+                <div data-form-root=""><span id="form-pill" class="bg-app-wash text-black-600">form pill</span><div class="bg-app-wash"><p id="form-note" class="text-black-600">form note</p></div></div>
+                <div class="bg-app-wash" data-form-root=""><p id="root-child" class="text-black-600">on the root</p></div>
+                <div class="bg-sunken"><span id="sunken" class="text-black-600">sunken</span></div>
+            </div>
+            <span id="outside" class="bg-app-wash text-black-600">outside</span>`;
+        const matched = [...document.querySelectorAll(selectors.join(','))].map((el) => el.id).sort();
+        // a wash pair inside a form root (a form, the "Your site" preview) is not matched: it keeps the frozen text a respondent sees
+        expect(matched).toEqual(['note', 'pill']);
+        document.body.innerHTML = '';
+        // no quiet-fill rule in Daybreak, and the fills that no element pairs with this text are not named
+        expect(css).not.toMatch(/\[data-app-theme='daybreak'\][^{]*text-black-600/);
+        expect(css).not.toMatch(/\.bg-sunken\.text-black-600|\.bg-app-edge\.text-black-600|\.bg-app-primary-tint\.text-black-600/);
+    });
+});
+

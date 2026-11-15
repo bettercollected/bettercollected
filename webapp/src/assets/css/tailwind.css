@@ -709,6 +709,7 @@
     --color-app-primary-tint: var(--app-primary-tint, var(--color-brand-100));
     --color-app-primary-edge: var(--app-primary-edge, var(--color-brand-300));
     --color-app-primary-edge-strong: var(--app-primary-edge-strong, var(--color-brand-400));
+    --color-app-chrome: var(--app-chrome, var(--color-brand-500));
     --color-app-edge: var(--app-edge, var(--color-black-300));
     --color-app-edge-strong: var(--app-edge-strong, var(--color-black-400));
     --color-app-wash: var(--app-wash, var(--color-black-100));
@@ -794,6 +795,7 @@
     --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
     --app-primary-edge: var(--color-brand-300); /* hover edge of a card (the old brand-300) */
     --app-primary-edge-strong: var(--color-brand-400); /* hover edge of a workspace or theme card (the old brand-400) */
+    --app-chrome: var(--color-brand-500); /* builder chrome drawn inside a form root: the selection frame, add and move controls (not reset there) */
     --app-edge: var(--color-black-300); /* card, table and row edges, quiet fills */
     --app-edge-strong: var(--color-black-400); /* heavier edges */
     --app-wash: var(--color-black-100); /* hover and quiet fills */
@@ -874,6 +876,7 @@ html:has([data-app-theme='daybreak']) {
     --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
     --app-primary-edge: var(--color-brand-300); /* hover edge of a card (the old brand-300) */
     --app-primary-edge-strong: var(--color-brand-400); /* hover edge of a workspace or theme card (the old brand-400) */
+    --app-chrome: var(--color-brand-500); /* builder chrome drawn inside a form root: the selection frame, add and move controls (not reset there) */
     --app-edge: var(--color-black-300); /* card, table and row edges, quiet fills */
     --app-edge-strong: var(--color-black-400); /* heavier edges */
     --app-wash: var(--color-black-100); /* hover and quiet fills */
@@ -957,6 +960,7 @@ html:has([data-app-theme='daybreak']) {
     --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
     --app-primary-edge: #B0A4F0; /* iris, light: hover edge of a card */
     --app-primary-edge-strong: #8575E8; /* iris, mid: hover edge of a workspace or theme card */
+    --app-chrome: #4B35DB; /* iris, as --app-primary */
     --app-edge: #E9E1D4; /* card, table and row edges, quiet fills */
     --app-edge-strong: #CFC4B1; /* heavier edges */
     --app-wash: #F7F1E7; /* hover and quiet fills */
@@ -1042,6 +1046,7 @@ html:has([data-app-theme='pigment']) {
     --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
     --app-primary-edge: #B0A4F0; /* iris, light: hover edge of a card */
     --app-primary-edge-strong: #8575E8; /* iris, mid: hover edge of a workspace or theme card */
+    --app-chrome: #4B35DB; /* iris, as --app-primary */
     --app-edge: #E9E1D4; /* card, table and row edges, quiet fills */
     --app-edge-strong: #CFC4B1; /* heavier edges */
     --app-wash: #F7F1E7; /* hover and quiet fills */
@@ -1110,6 +1115,77 @@ html:has([data-app-theme='pigment']) {
  */
 [data-app-theme='pigment'] :where(input[type='checkbox'], input[type='radio'], input[type='range']) {
     accent-color: var(--app-primary);
+}
+
+/*
+ * A checked native checkbox or radio is not drawn by `accent-color`: the forms plugin turns the browser's own look off
+ * (`appearance: none`) and fills a checked one with `currentColor`, which it sets to Tailwind blue-600 (#2563eb), and
+ * rings a focused one with the same blue. In a Pigment scope they take the action role instead (the portalled dialogs
+ * through the `html:has(...)` mirror). This rule only REPLACES THE PLUGIN'S DEFAULT, so it is in `@layer base` (the
+ * plugin's own rules are there too, written with `:where`, so these outrank them by specificity wherever the compiler
+ * places them): a control that sets its own colour or ring with a utility (`text-red-600`, an arbitrary colour, a ring
+ * utility) keeps it, because utilities are a later layer than base whatever the specificity. A control inside a form
+ * root (`data-form-root`, set by `formRootProps` inside an app scope: the builder canvas, the previews) is excluded
+ * explicitly and keeps the plugin's blue, the colour a respondent's native control has.
+ *
+ * The three rules below this one are the opposite on purpose: they are unlayered, so they WIN over the utility on the
+ * same element (`border-gray-900`, `text-black-600`, `focus-within:border-app-primary`). Only this checkbox rule is
+ * meant to replace a default.
+ */
+@layer base {
+    [data-app-theme='pigment'] :where(input[type='checkbox'], input[type='radio']):not([data-form-root] *),
+    html:has([data-app-theme='pigment']) :where(input[type='checkbox'], input[type='radio']):not([data-form-root] *) {
+        color: var(--app-action, #2563eb);
+        --tw-ring-color: var(--app-focus-ring, #2563eb);
+    }
+
+    [data-app-theme='pigment'] :where(input[type='checkbox'], input[type='radio']):not([data-form-root] *):focus,
+    html:has([data-app-theme='pigment']) :where(input[type='checkbox'], input[type='radio']):not([data-form-root] *):focus {
+        --tw-ring-color: var(--app-focus-ring, #2563eb);
+    }
+}
+
+/*
+ * The builder's Insert search field is a bordered box around a borderless input, so its focus shows the box's own
+ * border and the global focus outline offset a few pixels out: two outlines. In a Pigment scope (the popover is
+ * portalled, so also through the `html:has(...)` mirror) the box keeps its resting edge and the outline alone marks
+ * the focus. Daybreak draws what it always drew. Unlayered on purpose: it is meant to win over the box's
+ * `focus-within:border-app-primary` utility.
+ */
+[data-app-theme='pigment'] [data-insert-search]:focus-within,
+html:has([data-app-theme='pigment']) [data-insert-search]:focus-within {
+    border-color: var(--app-edge);
+}
+
+/*
+ * The active sub-tab of a group's pages is near-black in Daybreak (`border-gray-900`); in Pigment its underline is the
+ * action colour like every other tab bar of the creator app. The attribute is the hook: Daybreak has no rule on it.
+ * Unlayered on purpose: it is meant to win over the tab's `border-gray-900` utility.
+ */
+[data-app-theme='pigment'] [data-tab-active] {
+    border-color: var(--app-primary);
+}
+
+/*
+ * Text on the wash: the frozen neutral text colour (`text-black-600`, #667085) is 4.66:1 on the Pigment canvas but 4.43:1
+ * on the wash (`bg-app-wash`, #F7F1E7), under 4.5. Two shapes of the pair exist in the app, and these rules take both to
+ * the theme's muted ink (5.92:1 on the wash): (1) one element that carries both classes (a pill, a badge, a chip), and
+ * (2) a `p` or `span` that is a DIRECT child of a wash element (a note, a label or a caption inside a wash box, such as
+ * "Only owners and admins ..." in the add-access form). Child combinator and element names are deliberate: a descendant
+ * rule would recolour unrelated text, and an icon link (`a`, an svg) keeps its own colour. Only the wash is named
+ * because it is the only fill the pair occurs on in the app (the sunken fill, the edge colour and the selected tint have
+ * the same under-4.5 pair as tokens but no element carries it). Only in a Pigment scope (portalled dialogs through the
+ * `html:has(...)` mirror); Daybreak, where the pair is 4.5:1 or more, is not touched. Not while hovered, and not
+ * inside a form root (`data-form-root`: a form, the "Your site" preview of the public page), which draws the colours a
+ * respondent sees, so a wash pill there keeps the frozen text. Disabled
+ * controls (the disabled button label on the edge colour) are exempt from the contrast rule and are left as they are.
+ * Unlayered on purpose: it is meant to win over the element's `text-black-600` utility.
+ */
+[data-app-theme='pigment'] .bg-app-wash.text-black-600:not(:hover):not([data-form-root] *),
+[data-app-theme='pigment'] .bg-app-wash > :is(p, span).text-black-600:not(:hover):not([data-form-root] *),
+html:has([data-app-theme='pigment']) .bg-app-wash.text-black-600:not(:hover):not([data-form-root] *),
+html:has([data-app-theme='pigment']) .bg-app-wash > :is(p, span).text-black-600:not(:hover):not([data-form-root] *) {
+    color: var(--app-ink-muted);
 }
 
 /*
@@ -1385,6 +1461,18 @@ input[type='number']::-webkit-outer-spin-button {
 :where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex='-1']), [role='button'], [role='checkbox'], [role='radio'], [role='switch'], [role='tab'], [role='combobox'], [role='slider']):focus-visible {
     outline: 2px solid var(--focus-ring, var(--app-focus-ring, var(--color-brand-500))) !important;
     outline-offset: 3px !important;
+}
+
+/*
+ * The builder canvas controls (the add button between questions, the move, copy and delete buttons, the selected
+ * question's frame) are chrome drawn inside the form root, where `--app-focus-ring` is reset, so the global ring above
+ * falls back to Sireto blue and `focus-visible:outline-app-chrome` on them is overridden by its `!important`. In a
+ * Pigment scope the ring on those controls is the chrome role (iris, like the selection frame); `data-chrome-focus`
+ * is the hook and Daybreak has no rule on it, so its ring is whatever it always was (the form theme's `--focus-ring`
+ * when it sets one, else #123FC9).
+ */
+[data-app-theme='pigment'] [data-chrome-focus]:focus-visible {
+    --focus-ring: var(--app-chrome);
 }
 
 /*

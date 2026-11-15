@@ -79,13 +79,14 @@ function InsertSlot({ slide, index, edge }: { slide: StandardFormFieldDto; index
     const id = edge === 'after' ? `canvas-end-${slide.id}` : `insert-slot-${slide.id}-${index}`;
     return (
         <div className={cn('group/slot absolute inset-x-0 z-[5] flex h-6 items-center justify-center', edge === 'before' ? '-top-9' : '-bottom-9')}>
-            <span aria-hidden="true" className="absolute inset-x-0 top-1/2 h-px bg-[#123FC9] opacity-0 transition-opacity group-hover/slot:opacity-40" />
+            <span aria-hidden="true" className="absolute inset-x-0 top-1/2 h-px bg-app-chrome opacity-0 transition-opacity group-hover/slot:opacity-40" />
             <button
                 type="button"
                 id={id}
                 aria-label={edge === 'after' ? t('CANVAS.ADD_END') : t('CANVAS.ADD_BEFORE', { n: index + 1 })}
                 title={t('CANVAS.ADD_HERE')}
-                className="relative flex h-6 w-6 items-center justify-center rounded-full border border-[#123FC9] bg-white text-[#123FC9] opacity-0 transition-opacity group-hover/slot:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#123FC9]"
+                data-chrome-focus=""
+                className="relative flex h-6 w-6 items-center justify-center rounded-full border border-app-chrome bg-white text-app-chrome opacity-0 transition-opacity group-hover/slot:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-chrome"
                 onClick={(event) => {
                     event.stopPropagation();
                     setInsertTarget({ slideId: slide.id, slideIndex: slide.index, fieldIndex: index, anchorId: id, returnFocusId: id });
@@ -172,7 +173,7 @@ const OpeningBlock = memo(function OpeningBlock({
             tabIndex={-1}
             onClick={selectOpening}
             onFocus={selectOpening}
-            className={cn(FORM_COLUMN, columnPlacementClass(slide.properties?.layout), 'relative cursor-text', active && 'outline-2 outline-offset-2 outline-[#123FC9]', headingOnBar && HEADING_ON_BAR_CLASSES)}
+            className={cn(FORM_COLUMN, columnPlacementClass(slide.properties?.layout), 'relative cursor-text', active && 'outline-2 outline-offset-2 outline-app-chrome', headingOnBar && HEADING_ON_BAR_CLASSES)}
             style={
                 {
                     '--leaflet-bar': bar,
@@ -263,7 +264,8 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                 // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
                 tabIndex={editable ? 0 : -1}
                 data-canvas-field={editable ? field.id : undefined}
-                className={cn('w-full cursor-pointer rounded-lg p-1 outline-hidden focus-visible:ring-2 focus-visible:ring-[#123FC9] focus-visible:ring-offset-2', active && 'ring-2 ring-[#123FC9]', mark && mark.ring)}
+                data-chrome-focus=""
+                className={cn('w-full cursor-pointer rounded-lg p-1 outline-hidden focus-visible:ring-2 focus-visible:ring-app-chrome focus-visible:ring-offset-2', active && 'ring-2 ring-app-chrome', mark && mark.ring)}
                 onFocus={select}
                 onClick={select}
             >
@@ -298,7 +300,8 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                                 aria-keyshortcuts="Control+D Meta+D"
                                 title={copyBlockedByLayout ? i18n.t('builder:LAYOUT.CANNOT_COPY_QUESTION') : cannotCopy ? i18n.t('builder:NEW_TYPES.CANNOT_COPY') : t('CANVAS.DUPLICATE_TITLE')}
                                 disabled={cannotCopy}
-                                className="p-2 text-black-700 hover:bg-app-wash focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                                data-chrome-focus=""
+                                className="p-2 text-black-700 hover:bg-app-wash focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-app-chrome disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                                 onClick={(event) => {
                                     event.stopPropagation();
                                     const at = locate();
@@ -312,7 +315,8 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                                 aria-label={t('CANVAS.DELETE')}
                                 aria-keyshortcuts="Delete"
                                 title={t('CANVAS.DELETE_TITLE')}
-                                className="p-2 text-[#C43D3D] hover:bg-[#FBEFEF] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9]"
+                                data-chrome-focus=""
+                                className="p-2 text-[#C43D3D] hover:bg-[#FBEFEF] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-app-chrome"
                                 onClick={(event) => {
                                     event.stopPropagation();
                                     const at = locate();

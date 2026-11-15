@@ -124,7 +124,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
                 <label htmlFor={`${baseId}-search`} className="sr-only">
                     {t('INSERT_UI.SEARCH')}
                 </label>
-                <div className="flex items-center gap-2 rounded border border-app-edge px-2.5 focus-within:border-app-primary">
+                <div data-insert-search className="flex items-center gap-2 rounded border border-app-edge px-2.5 focus-within:border-app-primary">
                     <Search className="h-4 w-4 shrink-0 text-black-600" aria-hidden="true" />
                     <input
                         id={`${baseId}-search`}

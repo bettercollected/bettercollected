@@ -88,6 +88,8 @@ export default function GroupPreviewLayoutClient({ children, workspaceName, grou
                         <Link
                             key={tab.path}
                             href={`/${workspaceName}/dashboard/responders-groups/${groupId}/${tab.path}`}
+                            // the hook of the Pigment rule (tailwind.css): the active underline is the action colour there
+                            data-tab-active={isActive ? '' : undefined}
                             className={cn(
                                 'flex items-center px-1 py-4 text-sm font-medium border-b-2 transition-colors duration-200 mb-[-1px]',
                                 isActive

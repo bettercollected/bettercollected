@@ -223,9 +223,11 @@ export function themeRootProps(theme?: Partial<FormTheme> | null, { typeOnly = f
 export function formRootProps(theme: Partial<FormTheme> | null | undefined, inAppScope: boolean): ThemeRootProps {
     const own = themeRootProps(theme);
     if (!inAppScope) return own;
+    // the marker of a form root inside an app scope: a rule that must not reach into a form (the native checkbox colour)
+    // excludes it explicitly (tailwind.css); the real respondent page, with no scope, has no marker
     const reset: Record<string, string> = {};
     for (const role of APP_ROLES_RESET_ON_FORMS) reset[role] = 'initial';
-    return { attributes: own.attributes, style: { ...reset, ...own.style } as CSSProperties };
+    return { attributes: { ...own.attributes, 'data-form-root': '' }, style: { ...reset, ...own.style } as CSSProperties };
 }
 
 /**
