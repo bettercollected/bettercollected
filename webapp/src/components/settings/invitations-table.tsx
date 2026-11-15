@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Info } from 'lucide-react';
-import DataTable from 'react-data-table-component';
+import ScrollTable from '@app/components/datatable/scroll-table';
 
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import MemberOptions from '@Components/datatable/member-options';
@@ -143,7 +143,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
     if (invitations && invitations.length > 0)
         return (
             <>
-                <DataTable className="mt-2 overflow-auto! p-0" columns={dataTableResponseColumns} data={invitations || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+                <ScrollTable label={t(members.pendingRequests.default)} className="mt-2 p-0" columns={dataTableResponseColumns} data={invitations || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
             </>
         );
     return EmptyPendingRequest();

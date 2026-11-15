@@ -1,6 +1,7 @@
 'use client';
 
 import { ActivityGate } from '@app/components/audit-log/activity-list';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 /**
  * The workspace's activity: who changed what, in plain sentences (docs/audit-log.md). Whoever holds audit.read sees it
@@ -8,5 +9,10 @@ import { ActivityGate } from '@app/components/audit-log/activity-list';
  * the forms list.
  */
 export default function ActivityPage() {
-    return <ActivityGate />;
+    // the workspace's page is wide and sits on the page surface; the list's own 860 px column and bottom room are for a form's page
+    return (
+        <PageSurface className="[&_[data-testid=activity-list]]:max-w-none [&_[data-testid=activity-list]]:pb-0">
+            <ActivityGate />
+        </PageSurface>
+    );
 }

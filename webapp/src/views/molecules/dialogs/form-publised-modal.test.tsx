@@ -76,6 +76,29 @@ describe('the published dialog', () => {
         expect(screen.getByRole('button', { name: 'Copy link' })).toBeInTheDocument();
     });
 
+    it('keeps the two buttons where they are whatever the status says: the status line is reserved under them, not in the rows above', async () => {
+        renderModal();
+        const status = screen.getByTestId('published-copy-status');
+        const open = screen.getByRole('link', { name: /Open the form/ });
+        const buttons = open.parentElement as HTMLElement;
+        const linkRow = screen.getByTestId('published-link').closest('.sm\\:flex-row') as HTMLElement;
+        // nothing above the buttons holds the status, so its text cannot push them down
+        expect(linkRow).not.toContainElement(status);
+        expect(buttons).not.toContainElement(status);
+        // it comes after the buttons in the same column, with its own line reserved whether or not it has text, and is always in the page
+        expect(buttons.compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(status.parentElement).toBe(buttons.parentElement);
+        expect(status.className).toContain('min-h-5');
+        expect(status.className).not.toMatch(/sr-only|hidden/);
+        // the status line sits inside the dialog's own padding: the bottom matches the sides (24 px, 32 px from sm)
+        expect(status.parentElement!.className).toMatch(/\bp-6\b.*\bpb-6\b.*\bsm:p-8\b.*\bsm:pb-8\b/);
+        const before = Array.from(buttons.parentElement!.children).indexOf(buttons);
+        fireEvent.click(screen.getByRole('button', { name: /Copy link/ }));
+        await waitFor(() => expect(status).toHaveTextContent('Link copied to clipboard'));
+        expect(Array.from(buttons.parentElement!.children).indexOf(buttons)).toBe(before);
+        expect(status.className).toContain('min-h-5');
+    });
+
     it('clears the status line again', async () => {
         vi.useFakeTimers({ shouldAdvanceTime: true });
         renderModal();

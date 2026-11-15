@@ -164,7 +164,7 @@ export default function SectionsClient() {
     }, [sections, query]);
 
     return (
-        <div className="flex w-full max-w-[860px] flex-col gap-6 pb-10">
+        <div className="flex w-full flex-col gap-6">
             <p className="max-w-[62ch] text-sm leading-relaxed text-black-600">{t('SECTIONS_LIB.PAGE.INTRO')}</p>
             {isLoading ? (
                 <p className="text-sm text-black-600">{t('SECTIONS_LIB.PAGE.LOADING')}</p>

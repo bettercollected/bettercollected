@@ -21,6 +21,7 @@ import { selectWorkspace, setWorkspace } from '@app/store/workspaces/slice';
 import ThemeContrastGuard, { themePassesContrast } from '@app/views/molecules/theme/theme-contrast-guard';
 import { THEME_ROLE_FIELDS, ThemeBackgroundEditor, ThemePreview, ThemeStyleEditor } from '@app/views/molecules/theme/theme-shared';
 import ThemeTypeShapeEditor from '@app/views/molecules/theme/theme-type-shape-editor';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 type Editing = { index: number | 'new'; draft: FormTheme } | null;
 
@@ -116,7 +117,7 @@ export default function ThemesPage() {
     };
 
     return (
-        <div className="flex w-full max-w-[1200px] flex-col gap-10 px-5 py-6 lg:px-10">
+        <PageSurface className="gap-10">
             <p className="text-black-600 max-w-[62ch] text-sm leading-relaxed">
                 <Trans t={tc} i18nKey="STAFF.THEMES.INTRO" components={{ 1: <span className="text-black-800 font-medium" /> }} />
             </p>
@@ -271,6 +272,6 @@ export default function ThemesPage() {
 
             {/* the dashboard's own look, not a form's: owners and admins, and only while the server has Pigment on */}
             <AppearanceCard />
-        </div>
+        </PageSurface>
     );
 }

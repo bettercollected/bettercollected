@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 
 import AnchorLink from '@app/components/ui/links/anchor-link';
+import { PAGE_CARD } from '@app/components/ui/page-surface';
 
 
 interface ISettingCard {
@@ -15,7 +16,7 @@ export default function SettingCard({ title, description, link }: ISettingCard) 
     const { t } = useTranslation();
 
     return (
-        <div className="p-6 bg-white md:w-[740px]">
+        <div className={PAGE_CARD}>
             <p className="sh3">{title}</p>
             <p className="mt-4 mb-6 body4 text-black-700!">{description}</p>
             <div className="flex gap-[22px] items-center">

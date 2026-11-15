@@ -26,7 +26,7 @@ from pydantic.alias_generators import to_camel
 # with an exercise-book margin rule. Stored patterns are not held to the list
 # (older forms may carry others); saved workspace themes are.
 THEME_PATTERNS = ("dots", "grid", "stripes", "columns", "margin")
-THEME_ARTWORKS = ("marble", "daybreak")
+THEME_ARTWORKS = ("marble", "daybreak", "pigment")
 
 
 class ThemeBackground(BaseModel):
@@ -55,7 +55,9 @@ class ThemeBackground(BaseModel):
         description=(
             "Built-in artwork served by the app (marble: a marbled endpaper "
             "beside the welcome page; daybreak: a sun in the corner of the page "
-            "and a sunrise on the ending). Absent: none."
+            "and a sunrise on the ending; pigment: a sun-yellow band over the "
+            "questions and five flat shapes around the check on the ending). "
+            "Absent: none."
         ),
     )
 

@@ -5,6 +5,7 @@ import WorkspaceDomainStatus from '@Components/custom-domain/workspace-domain-st
 import { ProLogo } from '@app/components/ui/logo';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 export const CustomDomainCard = () => {
     const workspace = useAppSelector(selectWorkspace);
@@ -23,8 +24,8 @@ export const CustomDomainCard = () => {
 
 export default function CustomDomainClient() {
     return (
-        <div className=" rounded bg-white p-8">
+        <PageSurface narrow>
             <CustomDomainCard />
-        </div>
+        </PageSurface>
     );
 }

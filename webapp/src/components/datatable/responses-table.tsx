@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 
 import StyledPagination from '@Components/common/pagination';
 import { cn } from '@app/shadcn/util/lib';
-import DataTable from 'react-data-table-component';
+import ScrollTable from '@app/components/datatable/scroll-table';
 
-import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
+import { dataTableCustomStyles, deletionRequestTableStyles } from '@Components/datatable/datatable-styles';
 import StatusBadge from '@app/components/badge/status-badge';
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import EmptyState from '@app/components/ui/empty-state';
@@ -57,6 +57,7 @@ import { useRouter } from 'next/navigation';
 
 import { useModal } from '@app/components/modal-views/context';
 import { responsePageUrl } from '@app/utils/response-page';
+import { withDeletionRequestLayout } from './deletion-request-columns';
 
 const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage }: IResponsetableProps) => {
     const router = useRouter();
@@ -84,8 +85,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         if (!requestForDeletion) router.push(responsePageUrl(workspace?.workspaceName ?? '', response.formId ?? formId ?? '', response.responseId));
     };
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
-        <div aria-hidden className="w-fit">
-            <div className={cn('text-black-900! body3 truncate', !requestForDeletion && 'hover:text-app-primary! cursor-pointer hover:underline')}>
+        <div aria-hidden className="max-w-full min-w-0 w-fit">
+            <div title={response?.dataOwnerIdentifier ?? undefined} className={cn('text-black-900! body3', requestForDeletion ? '[overflow-wrap:anywhere]' : 'truncate', !requestForDeletion && 'hover:text-brand-500! cursor-pointer hover:underline')}>
                 {!requestForDeletion && <span onClick={() => onRowClicked(response)}>{response?.dataOwnerIdentifier ?? t('RESPONSES_STAFF.ANONYMOUS')}</span>}
                 {requestForDeletion && (response?.dataOwnerIdentifier ?? t('RESPONSES_STAFF.ANONYMOUS'))}
             </div>
@@ -97,8 +98,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         </div>
     );
     const responseFormTitle = (response: StandardFormResponseDto) => (
-        <div aria-hidden className="w-fit">
-            <div className="text-black-900! body3 truncate">
+        <div aria-hidden className="max-w-full min-w-0 w-fit">
+            <div title={response?.formTitle ?? undefined} className={cn('text-black-900! body3', requestForDeletion ? '[overflow-wrap:anywhere]' : 'truncate')}>
                 {response?.formTitle ?? t('RESPONSES_STAFF.UNTITLED')}
             </div>
         </div>
@@ -203,7 +204,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'} href={getResponseUrl(response)}>
                     <Button variant="ghost" className="p-0!">
                         {t(localesCommon.goToResponse)}
-                        <ChevronForward className={'text-app-primary h-6 w-6 ml-2'} />
+                        <ChevronForward className={'text-brand-500 h-6 w-6 ml-2'} />
                     </Button>
                 </AnchorLink>
             </div>
@@ -302,12 +303,12 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     const Cards = () => (
         <ul aria-label={t(requestForDeletion ? 'RESPONSES_STAFF.REQUEST_LIST' : 'RESPONSES_STAFF.RESPONSE_LIST')} className="flex flex-col gap-2">
             {submissions.items.map((response) => (
-                <li key={response.responseId} className="border-app-edge relative flex flex-col gap-2 rounded border bg-white p-3">
+                <li key={response.responseId} className="border-black-300 relative flex flex-col gap-2 rounded border bg-white p-3">
                     <div className="flex min-w-0 flex-col gap-0.5">
                         {requestForDeletion ? (
                             <span className="text-black-900 truncate text-sm font-medium">{response?.dataOwnerIdentifier ?? t('RESPONSES_STAFF.ANONYMOUS')}</span>
                         ) : (
-                            <Link href={responsePageUrl(workspace?.workspaceName ?? '', response.formId ?? formId ?? '', response.responseId)} className="text-black-900 focus-visible:ring-app-primary w-fit max-w-full truncate rounded text-sm font-medium after:absolute after:inset-0 after:content-[''] focus:outline-hidden focus-visible:ring-2">
+                            <Link href={responsePageUrl(workspace?.workspaceName ?? '', response.formId ?? formId ?? '', response.responseId)} className="text-black-900 focus-visible:ring-brand-500 w-fit max-w-full truncate rounded text-sm font-medium after:absolute after:inset-0 after:content-[''] focus:outline-hidden focus-visible:ring-2">
                                 {response?.dataOwnerIdentifier ?? t('RESPONSES_STAFF.ANONYMOUS')}
                             </Link>
                         )}
@@ -350,11 +351,11 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         if (submissions.items && submissions.items.length > 0)
             return (
                 <>
-                    <DataTable
+                    <ScrollTable label={t(requestForDeletion ? 'RESPONSES_STAFF.REQUEST_LIST' : 'RESPONSES_STAFF.RESPONSE_LIST')}
                         // className="p-0 mt-2 h-full overflow-auto!"
-                        columns={dataTableResponseColumns}
+                        columns={requestForDeletion ? withDeletionRequestLayout(dataTableResponseColumns, !formId) : dataTableResponseColumns}
                         data={submissions.items || []}
-                        customStyles={requestForDeletion ? dataTableCustomStyles : responseTableStyles}
+                        customStyles={requestForDeletion ? deletionRequestTableStyles : responseTableStyles}
                         highlightOnHover={false}
                         pointerOnHover={false}
                         onRowClicked={onRowClicked}

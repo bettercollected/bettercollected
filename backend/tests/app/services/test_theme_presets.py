@@ -238,7 +238,7 @@ def test_the_spec_lists_the_same_values():
 
 
 COMPLETE_LOOKS = ("Kantlijn", "Raster")
-SCENE_PRESETS = ("Daybreak",)
+SCENE_PRESETS = ("Daybreak", "Pigment")
 
 
 def test_colour_presets_leave_type_and_shape_to_the_form():
@@ -327,7 +327,7 @@ def test_saved_themes_take_the_new_patterns_and_artwork():
         "customThemes.0",
     ) == [
         "customThemes.0.selection must be a 6-digit hex colour, e.g. #1E4D3B.",
-        "customThemes.0.background.artwork must be one of: marble, daybreak.",
+        "customThemes.0.background.artwork must be one of: marble, daybreak, pigment.",
     ]
 
 
@@ -339,7 +339,7 @@ def test_theme_problems_names_the_selection_and_artwork():
         {**LEAFLET, "selection": "cloth", "background": {"artwork": "paisley"}}
     ) == [
         "theme.selection must be a 6-digit hex colour, e.g. #1E4D3B.",
-        "theme.background.artwork must be one of: marble, daybreak.",
+        "theme.background.artwork must be one of: marble, daybreak, pigment.",
     ]
     # Stored patterns are not held to the list (older forms may carry others).
     assert theme_problems({**LEAFLET, "background": {"pattern": "waves"}}) == []

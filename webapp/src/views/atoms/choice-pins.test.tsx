@@ -19,7 +19,7 @@ import ChoiceRadioGroup from './choice-radio-group';
 const STORED_OCEAN: FormTheme = { title: 'Ocean', primary: '#111827', secondary: '#1D4ED8', tertiary: '#2563EB', accent: '#DBEAFE', titleFont: null, bodyFont: null, radius: null, buttonStyle: null, highlight: null, selection: null };
 const STORED_ROUND: FormTheme = { title: 'Mine', primary: '#16261F', secondary: '#1E4D3B', tertiary: '#7D8C84', accent: '#FFFFFF', radius: 'round', buttonStyle: 'pill', highlight: '#A3305A' };
 
-const THEMES: Array<[string, FormTheme | undefined]> = [['no theme', undefined], ['stored Ocean', STORED_OCEAN], ['stored round', STORED_ROUND], ...ThemeColors.map((theme) => [theme.title, theme] as [string, FormTheme])];
+const THEMES: Array<[string, FormTheme | undefined]> = [['no theme', undefined], ['stored Ocean', STORED_OCEAN], ['stored round', STORED_ROUND], ...ThemeColors.filter((theme) => theme.choiceKeys == null).map((theme) => [theme.title, theme] as [string, FormTheme])];
 
 const options = ['Every week', 'Every month', 'A few times a year'].map((label, index) => ({ value: `v${index}`, label, key: `k${index}` }));
 

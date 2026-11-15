@@ -51,7 +51,7 @@ const renderTab = () =>
 
 describe('the Design tab', () => {
     it('offers Daybreak while the server\'s switch is on, and picking it dresses the form', () => {
-        served.offeredGatedPresets = ['Daybreak'];
+        served.offeredGatedPresets = [...GATED_PRESETS];
         try {
             renderTab();
             const gallery = screen.getByRole('radiogroup', { name: 'Theme' });
