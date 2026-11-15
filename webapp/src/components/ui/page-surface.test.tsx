@@ -73,6 +73,18 @@ describe('the workspace pages', () => {
         expect(layout).toContain('tabs.some((tab) => pathname.endsWith(tab.path)) ? <PageSurface>{children}</PageSurface> : children');
     });
 
+    it('the top bar titles Account settings and Templates for themselves (the Site item\'s address would claim them), and Delete account is a danger card', () => {
+        const layout = readFileSync(resolve(dashboard, '_components/workspace-dashboard-layout.tsx'), 'utf8');
+        const body = layout.slice(layout.indexOf('const getHeader'));
+        expect(body.indexOf("'/dashboard/account-settings'")).toBeGreaterThan(-1);
+        expect(body.indexOf("'/dashboard/account-settings'")).toBeLessThan(body.indexOf('navItemForPath('));
+        expect(body.indexOf("'/dashboard/templates'")).toBeLessThan(body.indexOf('navItemForPath('));
+        const account = readFileSync(resolve(dashboard, 'account-settings/_components/account-settings-client.tsx'), 'utf8');
+        expect(account).toContain("t('DELETE_ACCOUNT.TITLE')");
+        expect(account).toContain("t('DELETE_ACCOUNT.DESCRIPTION')");
+        expect(account).toContain('variant="danger"');
+    });
+
     it('the layout gives the last card room below it', () => {
         expect(readFileSync(resolve(dashboard, '_components/workspace-dashboard-layout.tsx'), 'utf8')).toContain('px-5 lg:px-10 pt-10 pb-10');
     });
