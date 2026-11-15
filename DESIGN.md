@@ -141,6 +141,20 @@ urgency or pressure (§5). Neither accent is used for body text, and neither
 appears inside a respondent form, whose colours are the form's own theme (§9).
 Coral is the single exception to "no orange", and it is kept to one role.
 
+**What reads the semantic roles, and what still reads the ramps.** The roles are
+adopted surface by surface, not by renaming the ramps (`brand-*` and `black-*`
+utilities appear in some three hundred files and stay as they are). Today these
+read roles: the app ground and the builder mat, active navigation, the selected
+option or row, status pills, the creator's "why we ask" note, and the report
+series, tracks and grid. Everything else in the creator app still reads the
+ramps: card edges and dividers (`border-black-300/400`), text steps
+(`text-black-600/700/900`), wells and hover fills (`bg-black-100/200`), control
+edges (`border-control`), the blue selection and link steps (`bg-brand-100`,
+`text-brand-500/600`), the shadcn inputs, menus and dialogs, tables, the flow
+view's nodes, and the status and AI chips that still carry a literal hex. A
+later app theme can only restyle what reads roles, so those are the next
+surfaces to move; the ramps themselves stay frozen for respondent routes.
+
 **Respondent routes keep paper mist.** `data-app-theme` is set by the creator
 app's layouts only: the admin portal (dashboard, builder, settings, the Report
 page, the workspace picker) and the sign-in routes. The variables are also
