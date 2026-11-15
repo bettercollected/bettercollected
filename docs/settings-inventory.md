@@ -91,6 +91,7 @@ environment, whatever the tier.
 | `CHOICE_LOGIC_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `COUPON_ENABLED` | features | backend | bool |  | R | T1 | `false` |
 | `CSV_IMPORT_ENABLED` | features | backend | bool |  | R | T2 | `false` |
+| `DAYBREAK_PRESET_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `ENABLE_SUGGEST_PRICE` | features | backend | bool |  | R | T1 | `false` |
 | `FIELD_RULES_ENABLED` | features | backend | bool |  | R | T2 | `false` |
 | `FORM_EMBED_ENABLED` | features | backend, webapp | bool |  | R | T2 | `false` |

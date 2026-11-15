@@ -95,7 +95,7 @@ export default function WelcomeBand() {
     }
 
     return (
-        <section aria-labelledby="welcome-band-title" data-testid="welcome-band" data-state={state.kind} className="relative mb-6 overflow-hidden rounded border border-hairline-strong bg-brand-tint">
+        <section aria-labelledby="welcome-band-title" data-testid="welcome-band" data-state={state.kind} className={`relative mb-6 overflow-hidden rounded border border-hairline-strong bg-brand-tint ${state.kind === 'no-forms' ? '' : 'sm:min-h-[172px]'}`}>
             {/* the picture lives in the empty state below when there are no forms yet: once is enough */}
             {state.kind !== 'no-forms' && (
                 <div className="absolute inset-0 hidden sm:block" aria-hidden="true">

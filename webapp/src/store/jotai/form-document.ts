@@ -61,6 +61,17 @@ export const setLayoutContainersSwitch = (enabled: boolean | undefined) => {
     layoutContainersSwitch = enabled;
 };
 
+/**
+ * The gated theme presets the server offers (its switches, from the
+ * permissions answer's `offeredGatedPresets`): the engine refuses
+ * `set_theme_preset` for a gated preset that is not on the list, as an unknown
+ * name. `undefined` (not known yet) checks nothing. Set by the editor page.
+ */
+let offeredGatedPresetsSwitch: ReadonlyArray<string> | undefined;
+export const setOfferedGatedPresets = (offered: ReadonlyArray<string> | undefined) => {
+    offeredGatedPresetsSwitch = offered;
+};
+
 export const SET_FORM_KEYS = 'local_set_form_keys';
 export const SET_FIELDS = 'local_set_fields';
 
@@ -196,7 +207,7 @@ export function applyDocOps(doc: FormDocument, ops: DocOp[], withInverse = true)
         const batch = ops.slice(i, j) as FormOp[];
         let result;
         try {
-            result = applyOps(current, batch, { atomic: true, skipInverse: !withInverse, isStorageImageUrl, layoutContainers: layoutContainersSwitch });
+            result = applyOps(current, batch, { atomic: true, skipInverse: !withInverse, isStorageImageUrl, layoutContainers: layoutContainersSwitch, offeredGatedPresets: offeredGatedPresetsSwitch });
         } catch {
             return { ok: false, doc, inverse: [] };
         }

@@ -33,7 +33,7 @@ from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from backend.app.constants.themes import NEW_FORM_THEME, preset_name, theme_dict
+from backend.app.constants.themes import NEW_FORM_THEME, offered_presets, preset_name
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import AI_PROMPT_MAX_LENGTH
 from backend.app.models.enum.permission import Permission
@@ -94,7 +94,16 @@ UNUSABLE_GAPS = (
 
 
 def _presets() -> str:
-    return ", ".join(theme_dict)
+    return ", ".join(offered_presets())
+
+
+_PRESETS_PLACEHOLDER = "{{PRESETS}}"
+
+
+def outline_system_prompt() -> str:
+    """OUTLINE_SYSTEM_PROMPT with the presets that are offered now (the switches
+    of the gated presets), not as they were at import."""
+    return OUTLINE_SYSTEM_PROMPT.replace(_PRESETS_PLACEHOLDER, _presets())
 
 
 OUTLINE_SYSTEM_PROMPT = (
@@ -168,7 +177,7 @@ written. Reply with one JSON object and nothing else.
   branching.
 - theme: null (the Leaflet look new forms use) unless the request asks for
   other colours or a mood; then one of: """
-    + _presets()
+    + _PRESETS_PLACEHOLDER
     + """.
 - validation: only when the request implies limits (lengths of text answers,
   number ranges, digits only); otherwise null.
@@ -261,7 +270,7 @@ async def request_outline(provider, grounded_prompt: str) -> FormOutline:
     return await call_provider(
         lambda: chat_structured(
             provider,
-            OUTLINE_SYSTEM_PROMPT,
+            outline_system_prompt(),
             [{"role": "user", "content": grounded_prompt}],
             parse_outline,
             max_output_tokens=settings.ai.MAX_OUTPUT_TOKENS_GENERATE,

@@ -6573,7 +6573,8 @@
           "anyOf": [
             {
               "enum": [
-                "marble"
+                "marble",
+                "daybreak"
               ],
               "type": "string"
             },
@@ -6582,7 +6583,7 @@
             }
           ],
           "default": null,
-          "description": "Built-in artwork beside the welcome page (marble: a marbled endpaper), served by the app. Absent: none.",
+          "description": "Built-in artwork served by the app (marble: a marbled endpaper beside the welcome page; daybreak: a sun in the corner of the page and a sunrise on the ending). Absent: none.",
           "title": "Artwork"
         }
       },
