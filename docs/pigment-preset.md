@@ -104,6 +104,10 @@ that takes a name or an inline theme.
   a new theme that names `background.artwork: "pigment"` is refused as an unlisted artwork is
   (422 `theme_not_allowed` or an operation error) in a whole-form save, a new form, `update_theme`,
   `update_page`, the one write path of the AI and MCP writers and a workspace's saved themes.
+  The same switch gates the `choiceKeys` theme key the preset carries (`GATED_THEME_KEYS`,
+  `unofferedThemeKeyProblem` in the webapp): a new theme that sets it is refused the same way,
+  so a write of the whole look names both the artwork and the keys, and with the switch on it
+  passes both checks. The AI's guide and the MCP text never name the key.
 - **Stored values never depend on it.** A form that stores the preset, or the artwork at
   the same place of the stored form, renders, publishes and saves as before, and the builder
   keeps it in the picker as the form's current look. A copy of a form keeps what its source has.
@@ -112,7 +116,7 @@ that takes a name or an inline theme.
 ## Where to look
 
 - Backend: `backend/backend/app/constants/themes.py` (`theme_dict`, `GATED_PRESETS`,
-  `GATED_ARTWORKS`), `services/form_themes.py` (the artwork gate).
+  `GATED_ARTWORKS`, `GATED_THEME_KEYS`), `services/form_themes.py` (the artwork and key gate).
 - Webapp: `constants/theme.ts`, `views/molecules/theme/pigment-art.tsx`, `views/atoms/choice.tsx`
   (the keys), `views/organism/form/form-slide.tsx` (the band), `theme-artwork.tsx` (the ending).
 - Tests: `backend/tests/app/services/test_pigment_preset.py`,
