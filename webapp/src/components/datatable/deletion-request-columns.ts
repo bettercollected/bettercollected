@@ -6,7 +6,7 @@
  * equally, so the email, the form name and the date were cut with room to spare and the last column ran off the edge.
  * Each column therefore says what it needs (`minWidth`) and who gets the rest (`grow`); a date or a long address
  * wraps where it must instead of being cut (`wrap`: a nowrap cell would count its whole text into the table's
- * fit-content width again), and the smallest the table gets (about 1040 px; the rest goes to the address and the form name, which then fit on one line) fits the card at 1440.
+ * fit-content width again), and the smallest the table gets (about 1055 px; the rest goes to the address and the form name, which then fit on one line) fits the card at 1440.
  *
  * One left padding for the header and the cells (`DELETION_TABLE_PADDING`), so a column's text starts under its title.
  */
@@ -21,7 +21,7 @@ export interface ColumnLayout {
 /** In column order: requested by, [form], requested on, status, deleted on, actions. */
 export function deletionRequestColumnLayout(withFormColumn: boolean): ColumnLayout[] {
     const requestedBy: ColumnLayout = { minWidth: '225px', grow: 2, wrap: true };
-    const form: ColumnLayout = { minWidth: '200px', grow: 2, wrap: true };
+    const form: ColumnLayout = { minWidth: '215px', grow: 2, wrap: true };
     const requestedOn: ColumnLayout = { minWidth: '200px', grow: 1, wrap: true };
     // room for a declined request's reason under the chip
     const status: ColumnLayout = { minWidth: '105px', grow: 1 };
