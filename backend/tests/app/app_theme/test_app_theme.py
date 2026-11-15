@@ -401,7 +401,7 @@ async def test_the_permissions_answer_says_whether_the_switch_is_on(
         assert permissions.json()["appThemeEnabled"] is enabled
 
 
-def test_the_switch_is_off_by_default_and_read_from_the_environment_only(monkeypatch):
+def test_the_switch_is_off_by_default_and_read_from_the_environment_or_the_store(monkeypatch):
     from backend.config.app_theme_settings import AppThemeSettings
 
     monkeypatch.delenv("APP_THEME_PIGMENT_ENABLED", raising=False)
@@ -409,7 +409,11 @@ def test_the_switch_is_off_by_default_and_read_from_the_environment_only(monkeyp
     monkeypatch.setenv("APP_THEME_PIGMENT_ENABLED", "true")
     assert AppThemeSettings().ENABLED is True
 
-    from common.settings.inventory import T5, all_specs
+    from common.settings.inventory import T2, all_specs
 
     (spec,) = [s for s in all_specs() if s.key == "APP_THEME_PIGMENT_ENABLED"]
-    assert spec.tier == T5 and spec.default is False
+    # a stored setting (the admin portal), like CAPTCHA_ENABLED and DAYBREAK_PRESET_ENABLED
+    # (test_app_theme_stored_switch.py turns it on and off through the stored value)
+    assert spec.tier == T2 and spec.default is False
+    # and still read by the backend only: no other service reads it
+    assert spec.readers == ("backend",)
