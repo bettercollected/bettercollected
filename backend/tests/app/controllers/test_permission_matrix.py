@@ -291,6 +291,16 @@ CASES = [
         W + "/custom-domain/recheck",
         P.WORKSPACE_MANAGE,
     ),
+    # the app theme: daybreak is what every workspace has, so the call is no
+    # change for an allowed role (and passes while APP_THEME_PIGMENT_ENABLED is off)
+    Case(
+        "workspace.app_theme.put",
+        "PUT",
+        W + "/app-theme",
+        P.WORKSPACE_MANAGE,
+        lambda c: {"json": {"appTheme": "daybreak"}},
+        ok=200,
+    ),
     Case("workspace.stats", "GET", W + "/stats", P.ANALYTICS_READ),
     # --- AI settings, profile, keys
     Case("ai.settings.get", "GET", W + "/ai-settings", P.FORM_READ),
