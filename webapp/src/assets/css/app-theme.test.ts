@@ -136,6 +136,7 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
         ['primary-soft', '--color-brand-200'],
         ['primary-edge', '--color-brand-300'],
         ['primary-edge-strong', '--color-brand-400'],
+        ['chrome', '--color-brand-500'],
         ['edge', '--color-black-300'],
         ['edge-strong', '--color-black-400'],
         ['wash', '--color-black-100'],
@@ -154,7 +155,7 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
     });
 
     it('are different values in Pigment (iris and warm paper), never a ramp reference', () => {
-        for (const name of ['primary', 'primary-deep', 'primary-soft', 'primary-edge', 'primary-edge-strong', 'edge', 'edge-strong', 'wash', 'wash-strong', 'control']) {
+        for (const name of ['primary', 'primary-deep', 'primary-soft', 'primary-edge', 'primary-edge-strong', 'chrome', 'edge', 'edge-strong', 'wash', 'wash-strong', 'control']) {
             expect(rule('pigment', 'scope')[`--app-${name}`], name).toMatch(/^#[0-9A-F]{6}$/i);
             expect(role('pigment', name), name).not.toBe(role('daybreak', name));
         }
@@ -169,6 +170,7 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
             ['app-primary-tint', 'app-primary-tint', 'color-brand-100'],
             ['app-primary-edge', 'app-primary-edge', 'color-brand-300'],
             ['app-primary-edge-strong', 'app-primary-edge-strong', 'color-brand-400'],
+            ['app-chrome', 'app-chrome', 'color-brand-500'],
             ['app-edge', 'app-edge', 'color-black-300'],
             ['app-edge-strong', 'app-edge-strong', 'color-black-400'],
             ['app-wash', 'app-wash', 'color-black-100'],
@@ -346,6 +348,9 @@ const PAIRS: Array<[string, string, number, string]> = [
     ['ink-muted', 'canvas', 4.5, 'Labels and captions on the canvas'],
     ['ink-muted', 'surface', 4.5, 'Labels and captions on a card'],
     ['ink-muted', 'sunken', 4.5, 'Neutral status pill'],
+    ['ink-muted', 'wash', 4.5, 'A pill or label on the wash (text-black-600 bg-app-wash, in a Pigment scope)'],
+    ['ink-muted', 'edge', 4.5, 'A label on the edge colour used as a fill (text-black-600 bg-app-edge, in a Pigment scope)'],
+    ['ink-muted', 'brand-tint', 4.5, 'A label on the selected tint (text-black-600 bg-app-primary-tint, in a Pigment scope)'],
     ['on-action', 'action', 4.5, 'Primary button text on its face'],
     ['on-action', 'action-hover', 4.5, 'Primary button text on hover'],
     ['on-action', 'action-pressed', 4.5, 'Primary button text pressed'],
@@ -553,3 +558,65 @@ describe('the previews on the Appearance card', () => {
         expect(p.tiles).toEqual([0, 1, 2, 3, 4].map((index) => role(theme, `form-hue-${index}-bg`)));
     });
 });
+
+describe('what a Pigment workspace still drew in the frozen blue, and the one place a text pair fell under 4.5', () => {
+    it('gives a checked native checkbox or radio the action role, with the forms plugin blue as the fallback', () => {
+        // the forms plugin fills a checked one with `currentColor` (#2563eb) after `appearance: none`, so `accent-color` never reached it
+        for (const selector of ["[data-app-theme='pigment'] :where(input[type='checkbox'], input[type='radio'])", "html:has([data-app-theme='pigment']) :where(input[type='checkbox'], input[type='radio'])"]) {
+            expect(css, selector).toContain(selector);
+        }
+        const rule = css.match(/html:has\(\[data-app-theme='pigment'\]\) :where\(input\[type='checkbox'\], input\[type='radio'\]\) \{([^}]*)\}/)?.[1] ?? '';
+        expect(rule).toContain('color: var(--app-action, #2563eb);');
+        expect(rule).toContain('--tw-ring-color: var(--app-focus-ring, #2563eb);');
+        // Daybreak has no such rule: its controls are drawn by the plugin as they always were
+        expect(css).not.toMatch(/\[data-app-theme='daybreak'\][^{]*input\[type='checkbox'\]/);
+    });
+
+    it('keeps the builder chrome inside a form root on a role that the form root does not reset', () => {
+        expect(rule('daybreak', 'scope')['--app-chrome']).toBe('var(--color-brand-500)');
+        expect(role('pigment', 'chrome')).toBe(role('pigment', 'primary'));
+        const reset = readFileSync(resolve(SRC, 'lib/app-theme.ts'), 'utf8');
+        expect(reset).not.toContain("'--app-chrome'");
+        // and the canvas chrome no longer carries the literal blue
+        for (const file of ['views/organism/form-builder/slide-builder.tsx', 'views/molecules/form-builder/move-up-down.tsx']) {
+            expect(readFileSync(resolve(SRC, file), 'utf8'), file).not.toMatch(/#123FC9/i);
+        }
+    });
+
+    it('gives the frozen leading header cells of the responses table the wash in a Pigment scope only', () => {
+        expect(css.length).toBeGreaterThan(0);
+        const globals = readFileSync(resolve(__dirname, 'globals.css'), 'utf8');
+        expect(globals).toMatch(/\.responders-frozen-table \.rdt_TableCol:nth-child\(-n \+ 2\) \{\s*background-color: var\(--color-black-200\);/);
+        expect(globals).toMatch(/\[data-app-theme='pigment'\] \.responders-frozen-table \.rdt_TableCol:nth-child\(-n \+ 2\) \{\s*background-color: var\(--app-wash\);/);
+    });
+
+    it("draws a group page's active tab underline in the action colour in a Pigment scope only, and keeps Daybreak's own", () => {
+        expect(css).toMatch(/\[data-app-theme='pigment'\] \[data-tab-active\] \{\s*border-color: var\(--app-primary\);/);
+        const tabs = readFileSync(resolve(SRC, 'app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/responders-groups/[group_id]/_components/group-preview-layout-client.tsx'), 'utf8');
+        expect(tabs).toContain("'border-gray-900 text-gray-900'");
+        expect(tabs).toContain("data-tab-active={isActive ? '' : undefined}");
+    });
+
+    it('stops the Insert search field showing two outlines in a Pigment scope only', () => {
+        expect(css).toMatch(/\[data-app-theme='pigment'\] \[data-insert-search\]:focus-within,\s*html:has\(\[data-app-theme='pigment'\]\) \[data-insert-search\]:focus-within \{\s*border-color: var\(--app-edge\);/);
+        expect(readFileSync(resolve(SRC, 'views/molecules/dialogs/insert-field-modal.tsx'), 'utf8')).toContain('data-insert-search');
+    });
+
+    it('moves the frozen neutral text (#667085) to the theme muted ink on a quiet fill, where it falls under 4.5:1', () => {
+        // the pair that failed: black-600 on each quiet fill of Pigment, against the muted ink that replaces it there
+        const frozen = themeToken('black-600')!.toUpperCase();
+        for (const fill of ['wash', 'sunken', 'edge', 'brand-tint']) {
+            expect(contrast(frozen, role('pigment', fill)), `black-600 on ${fill}`).toBeLessThan(4.5);
+            expect(contrast(role('pigment', 'ink-muted'), role('pigment', fill)), `ink-muted on ${fill}`).toBeGreaterThanOrEqual(4.5);
+        }
+        // on the canvas and a card the frozen colour passes, so it is left alone
+        expect(contrast(frozen, role('pigment', 'canvas'))).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(frozen, role('pigment', 'surface'))).toBeGreaterThanOrEqual(4.5);
+        // the rule names only same-element pairs and is Pigment's; the soft fill, where the muted ink is under 4.5, is not in it
+        const block = css.match(/\[data-app-theme='pigment'\] :is\(([^)]*)\)\.text-black-600:not\(:hover\)/)?.[1] ?? '';
+        expect(block.split(',').map((name) => name.trim()).sort()).toEqual(['.bg-app-edge', '.bg-app-primary-tint', '.bg-app-wash', '.bg-app-wash-strong', '.bg-sunken']);
+        expect(contrast(role('pigment', 'ink-muted'), role('pigment', 'primary-soft'))).toBeLessThan(4.5);
+        expect(css).toMatch(/color: var\(--app-ink-muted\);/);
+    });
+});
+

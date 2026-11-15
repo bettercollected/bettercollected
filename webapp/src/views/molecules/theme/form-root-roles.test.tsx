@@ -143,6 +143,13 @@ describe('the app roles on a form root', () => {
         const inForm = screen.getByTestId('in-form');
         const inScope = screen.getByTestId('in-scope');
         for (const entry of entries) {
+            // the builder chrome role is the one on purpose not reset on a form root: the selection frame and the add and move
+            // controls are drawn inside it and must follow the app (tailwind.css, `--app-chrome`)
+            if (entry === '--color-app-chrome') {
+                expect(colourAt(inForm, entry), 'builder chrome on a form root').toBe(colourAt(inScope, entry));
+                expect(colourAt(inForm, entry)).not.toBe(real[entry]);
+                continue;
+            }
             expect(colourAt(inForm, entry), `${entry} on a form root`).toBe(real[entry]);
             // the harness sees the leak: in the scope but outside a form, the roles that differ in Pigment are Pigment's
             if (entry !== '--color-app-on-action') expect(colourAt(inScope, entry), `${entry} in the scope`).not.toBe(real[entry]);
@@ -176,7 +183,7 @@ describe('the list of roles a form root resets', () => {
     // a role read with a fallback is meant to be readable outside a scope, so a respondent component could read it
     const readWithFallback = [...new Set([...(CSS_FILE + globals).matchAll(/var\((--app-[\w-]+),/g)].map((m) => m[1]))];
     // read by html and body only, which sit above every form root (a form root cannot reset what its ancestors paint)
-    const ABOVE_THE_FORM = ['--app-canvas'];
+    const ABOVE_THE_FORM = ['--app-canvas', '--app-chrome'];
 
     it('covers every app role the stylesheet reads with a frozen fallback', () => {
         const missing = readWithFallback.filter((name) => !ABOVE_THE_FORM.includes(name) && !(APP_ROLES_RESET_ON_FORMS as readonly string[]).includes(name));

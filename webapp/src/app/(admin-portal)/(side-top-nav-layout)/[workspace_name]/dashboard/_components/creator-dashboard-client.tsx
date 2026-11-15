@@ -16,10 +16,12 @@ import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
+import { useInAppThemeScope } from '@app/lib/app-theme-context';
 import { useAppSelector } from '@app/store/hooks';
 import { useWorkspaceSettingsView } from '@app/store/jotai/workspace-settings-view';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getWorkspaceShareURL } from '@app/utils/workspace-utils';
+import { formRootProps } from '@app/views/molecules/theme/theme-root';
 import { FormIcon } from '@Components/icons/form-icon';
 import OpenLinkIcon from '@Components/icons/open-link';
 import SearchBySubmissionNumber from '@Components/responder-portal/search-by-submission-number';
@@ -45,6 +47,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
     // strict-mode double effects and close the view it just opened).
     const { settingsViewOpen, setSettingsViewOpen } = useWorkspaceSettingsView();
     const [activeTab, setActiveTab] = useState<'forms' | 'my-submissions' | 'deletion-requests'>('forms');
+    const previewRoot = formRootProps(null, useInAppThemeScope());
 
     const publicUrl = getWorkspaceShareURL(workspace);
 
@@ -126,7 +129,9 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
             {/* The "page": the portal's surface colour and content. Like the
                 portal, the left column and the tabs stay affixed — only the
                 tab content scrolls inside the frame (desktop); mobile flows. */}
-            <div className={cn('flex-col gap-4 bg-canvas p-5 md:flex-row md:p-8 lg:min-h-0 lg:flex-1 lg:overflow-hidden', settingsViewOpen ? 'hidden' : 'flex')}>
+            {/* It is the public page, so it wears the public page's colours: the app roles are reset on its root, as on a form's
+                (`formRootProps`), and the tabs, the card and the search read the frozen blue in a Pigment workspace too. */}
+            <div style={previewRoot.style} className={cn('flex-col gap-4 bg-canvas p-5 md:flex-row md:p-8 lg:min-h-0 lg:flex-1 lg:overflow-hidden', settingsViewOpen ? 'hidden' : 'flex')}>
                 <div className="flex flex-col gap-4 md:w-[320px] md:max-w-[320px] lg:min-h-0 lg:overflow-y-auto">
                     <WorkspaceDetailsCard workspace={workspace} />
                     {/* Same sidebar placement as the portal: one utility

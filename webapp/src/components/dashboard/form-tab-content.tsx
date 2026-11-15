@@ -115,7 +115,7 @@ const PreviewCard = ({ label, empty, width, onClick, children }: { label: string
                 onClick();
             }
         }}
-        className="group flex w-min cursor-pointer flex-col gap-1.5 text-left focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-[#123FC9]"
+        className="group flex w-min cursor-pointer flex-col gap-1.5 text-left focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-app-primary"
         aria-label={t('STAFF.FORM_PAGES.OPEN_AT', { label })}
     >
         <span className="text-black-700 flex items-center gap-2 text-[13px] font-medium">

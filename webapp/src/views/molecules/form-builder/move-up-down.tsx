@@ -7,7 +7,7 @@ import { useDocValue } from '@app/store/jotai/entity-hooks';
 import { useBuilderActions } from '@app/store/jotai/field-selectors';
 import { locateField } from '@app/utils/form-outline';
 
-const BUTTON = 'flex items-center justify-center hover:bg-app-edge-strong hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9]';
+const BUTTON = 'flex items-center justify-center hover:bg-app-edge-strong hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-app-chrome';
 
 /** Move a question up or down on its page, found by id (where it is now, not where it was rendered). */
 export default function MoveUpDown({ fieldId }: { fieldId: string }) {
