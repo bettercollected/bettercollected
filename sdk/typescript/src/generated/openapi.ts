@@ -1225,9 +1225,9 @@ export interface components {
             imageUrl?: string | null;
             /**
              * Artwork
-             * @description Built-in artwork served by the app. marble: a marbled endpaper that fills the picture half of a welcome or ending page whose layout has one and no image of its own. daybreak: a sun in the corner of the page and a sunrise over two hills on the ending. Absent: none.
+             * @description Built-in artwork served by the app. marble: a marbled endpaper that fills the picture half of a welcome or ending page whose layout has one and no image of its own. daybreak: a sun in the corner of the page and a sunrise over two hills on the ending. pigment: a sun-yellow band over the questions and five flat shapes around the check on the ending. Absent: none.
              */
-            artwork?: "marble" | "daybreak" | null;
+            artwork?: "marble" | "daybreak" | "pigment" | null;
         };
         /**
          * Trust

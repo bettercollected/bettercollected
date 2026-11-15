@@ -33,8 +33,8 @@ function resolve(value: unknown, vars: Record<string, string>): unknown {
 const STORED_WITHOUT_KEYS = (theme: FormTheme): FormTheme => ({ ...theme, titleFont: null, bodyFont: null, dataFont: null, titleWidth: null, radius: null, buttonStyle: null, highlight: null, selection: null });
 
 // The colour presets; the complete looks (Kantlijn, Raster) set type and shape.
-// (Daybreak, a scene preset, sets the rule variable of its sun: daybreak.test.tsx.)
-const COLOUR_PRESETS = ThemeColors.filter((theme) => theme.titleFont == null && theme.background?.artwork !== 'daybreak');
+// (Daybreak and Pigment, the scene presets, set the rule variable of their scene: daybreak.test.tsx, pigment.test.tsx.)
+const COLOUR_PRESETS = ThemeColors.filter((theme) => theme.titleFont == null && !['daybreak', 'pigment'].includes(theme.background?.artwork ?? ''));
 
 const wrap = (node: React.ReactNode) =>
     render(

@@ -61,18 +61,18 @@ export default function AISettingsPage() {
     };
 
     if (isLoading || !settings) {
-        return <div className="pb-10 text-sm text-black-600">{t('STAFF.COMMON.LOADING')}</div>;
+        return <div className="text-sm text-black-600">{t('STAFF.COMMON.LOADING')}</div>;
     }
 
     return (
-        <div className="flex w-full max-w-[760px] flex-col gap-8 pb-10">
+        <div className="flex w-full flex-col gap-8">
             <div className="flex flex-col gap-2">
                 <p className="max-w-[62ch] text-sm leading-relaxed text-black-600">
                     {t('STAFF.AI_SETTINGS.INTRO')}
                 </p>
             </div>
 
-            <section className="flex flex-col gap-3 rounded-lg border border-app-edge-strong p-4" aria-labelledby="ai-workspace-heading">
+            <section className="flex flex-col gap-3 border-t border-hairline-strong pt-6" aria-labelledby="ai-workspace-heading">
                 <h2 id="ai-workspace-heading" className="text-sm font-semibold text-black-900">
                     {t('STAFF.AI_SETTINGS.WORKSPACE_TITLE')}
                 </h2>
@@ -131,7 +131,7 @@ export default function AISettingsPage() {
                 )}
             </section>
 
-            <section className="flex flex-col gap-2 rounded-lg border border-app-edge-strong p-4" aria-labelledby="ai-learning-heading">
+            <section className="flex flex-col gap-2 border-t border-hairline-strong pt-6" aria-labelledby="ai-learning-heading">
                 <h2 id="ai-learning-heading" className="text-sm font-semibold text-black-900">
                     {t('STAFF.AI_SETTINGS.LEARN_TITLE')}
                 </h2>

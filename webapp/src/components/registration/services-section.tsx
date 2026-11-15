@@ -72,7 +72,7 @@ export default function ServicesSection() {
     };
 
     return (
-        <div className="flex w-full max-w-[860px] flex-col gap-6 pb-10">
+        <div className="flex w-full flex-col gap-6">
             <div className="flex flex-col gap-3">
                 <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('REGISTRATION.SERVICES.INTRO')}</p>
                 <p className="max-w-[62ch] rounded-md border border-app-edge bg-app-wash px-3 py-2 text-xs leading-relaxed text-black-700">{t('REGISTRATION.NOTICE')}</p>

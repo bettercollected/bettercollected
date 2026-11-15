@@ -8,7 +8,7 @@ import Tooltip from '@app/shadcn/components/ui/tooltip';
 import StyledPagination from '@Components/common/pagination';
 import SearchInput from '@Components/common/search-input';
 import cn from 'classnames';
-import DataTable from 'react-data-table-component';
+import ScrollTable from '@app/components/datatable/scroll-table';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
@@ -195,7 +195,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
         if (data?.items && data?.items.length > 0)
             return (
                 <>
-                    <DataTable className="mt-4 overflow-auto! p-0" columns={dataTableResponseColumns} data={data?.items || []} customStyles={customStyles} highlightOnHover={false} pointerOnHover={false} />
+                    <ScrollTable label={t(workspaceConstant.allResponders)} className="mt-4 p-0" columns={dataTableResponseColumns} data={data?.items || []} customStyles={customStyles} highlightOnHover={false} pointerOnHover={false} />
                     {Array.isArray(data?.items) && data?.total > globalConstants.pageSize && (
                         <div className="mt-8 flex justify-center">
                             <StyledPagination shape="rounded" count={data?.pages || 0} page={query.page || 1} onChange={handlePageChange} />

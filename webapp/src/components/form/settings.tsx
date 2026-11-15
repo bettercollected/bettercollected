@@ -16,6 +16,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getEditFormURL } from '@app/utils/url-utils';
 
+import { FORM_ROWS, FormPage } from './form-page';
 import { SettingsPageKey } from './settings-pages';
 
 /** A settings section of the page: sentence-case h2, one line of what it covers, then its groups of rows. */
@@ -25,7 +26,7 @@ const Section = ({ id, title, intro, children }: { id: string; title: string; in
             {title}
         </h2>
         {intro && <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{intro}</p>}
-        <div className="mt-2 flex flex-col gap-8">{children}</div>
+        <div className="mt-4 flex flex-col gap-8">{children}</div>
     </section>
 );
 
@@ -45,14 +46,14 @@ export default function FormSettingsPage({ page }: { page: SettingsPageKey }) {
     }
 
     return (
-        <div className="flex flex-col gap-12 pb-6 md:max-w-[760px]">
+        <FormPage>
             {page === 'access' && <AccessPage />}
             {page === 'availability' && <AvailabilityPage />}
             {page === 'experience' && <ExperiencePage />}
             {/* Email, webhooks, a case system and the integration actions: one card each, their settings in side sheets. */}
             {page === 'automations' && <AutomationsSection />}
             {page === 'advanced' && <AdvancedPage />}
-        </div>
+        </FormPage>
     );
 }
 
@@ -111,8 +112,8 @@ function AdvancedPage() {
             {canOpenBuilder && (
                 <div>
                     <GroupHeading>{t('STAFF.FORM_SETTINGS.ADVANCED_PRIVACY')}</GroupHeading>
-                    <div className="flex flex-col divide-y divide-app-edge">
-                        <SettingRow title={t('STAFF.FORM_SETTINGS.PRIVACY_TITLE')} description={t('STAFF.FORM_SETTINGS.PRIVACY_DESC')}>
+                    <div className={FORM_ROWS}>
+                        <SettingRow stacked title={t('STAFF.FORM_SETTINGS.PRIVACY_TITLE')} description={t('STAFF.FORM_SETTINGS.PRIVACY_DESC')}>
                             <Link
                                 data-testid="open-builder-privacy"
                                 href={`${getEditFormURL(workspace, form)}?tab=form`}
@@ -129,7 +130,7 @@ function AdvancedPage() {
             {canDelete && (
                 <div>
                     <GroupHeading>{t('STAFF.FORM_SETTINGS.DANGER')}</GroupHeading>
-                    <div className="flex items-start justify-between gap-6 rounded-lg border border-[#E5B9B9] p-5">
+                    <div className="flex flex-col items-start justify-between gap-4 rounded-lg border border-[#E5B9B9] bg-surface p-4 sm:flex-row sm:gap-6 sm:p-6">
                         <div className="flex max-w-[520px] flex-col gap-1">
                             <div className="text-[15px] font-semibold text-black-900">{t('STAFF.FORM_SETTINGS.DELETE_TITLE')}</div>
                             <div className="text-sm leading-relaxed text-black-700">

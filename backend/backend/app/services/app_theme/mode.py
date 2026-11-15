@@ -6,7 +6,13 @@ Off means all of these: choosing ``pigment`` answers 422 ``app_theme_disabled``
 workspace has ``pigment`` stored, and no change when it has nothing or
 ``daybreak`` stored); a stored ``pigment`` is kept until then, but the workspace
 is served ``daybreak`` (``effective_theme``); the permissions answer says
-``appThemeEnabled: false``. Nothing else is gated.
+``appThemeEnabled: false``. The same switch also gates the form side of the Pigment
+theme: the ``Pigment`` theme preset's name is not offered, a new theme that names the
+``pigment`` background artwork or sets the ``choiceKeys`` theme key is refused, and
+the same names are unknown to the edit operations, the AI and the MCP server
+(``constants/themes.py``: ``GATED_PRESETS``, ``GATED_ARTWORKS``, ``GATED_THEME_KEYS``;
+``docs/pigment-preset.md``). A form that already stores the preset, the artwork or the
+keys keeps rendering, publishing and saving as before. Nothing else is gated.
 """
 
 from http import HTTPStatus

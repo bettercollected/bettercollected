@@ -19,6 +19,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetRespondersGroupQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { Users } from 'lucide-react';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 interface GroupPreviewLayoutClientProps {
     children: React.ReactNode;
@@ -78,7 +79,7 @@ export default function GroupPreviewLayoutClient({ children, workspaceName, grou
     }
 
     return (
-        <div className="flex flex-col -mt-6">
+        <div className="flex flex-col">
             <BreadcrumbsRenderer items={breadcrumbsItem} />
             <div className="flex items-center space-x-8 border-b border-gray-200 mb-8 mt-4">
                 {tabs.map((tab) => {
@@ -100,7 +101,7 @@ export default function GroupPreviewLayoutClient({ children, workspaceName, grou
                     );
                 })}
             </div>
-            {children}
+            <PageSurface narrow>{children}</PageSurface>
         </div>
     );
 }

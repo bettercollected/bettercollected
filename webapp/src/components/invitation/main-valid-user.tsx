@@ -1,13 +1,15 @@
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React from 'react';
 
 import AuthNavbar from '@app/components/auth/auth-navbar';
 import { buttonConstant } from '@app/constants/locales/button';
 import { invitationConstant } from '@app/constants/locales/invitations';
 import { UserStatus } from '@app/models/dtos/user-status';
 import { WorkspaceDto, WorkspaceInvitationDto } from '@app/models/dtos/workspace-dto';
+import { PAGE_CARD } from '@app/components/ui/page-surface';
 import { Button } from '@app/shadcn/components/ui/button';
+import { cn } from '@app/shadcn/util/lib';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { useRespondToWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
@@ -25,12 +27,6 @@ const MainValidUser: React.FC<Props> = ({ workspace, user, invitation }: Props) 
     const router = useRouter();
     const { toast } = useToast();
     const { workspaceName } = useAppSelector(selectWorkspace);
-
-    const [isSwitchOn, setSwitchOn] = useState(false);
-
-    const toggleSwitch = () => {
-        setSwitchOn(!isSwitchOn);
-    };
 
     const onAccept = async () => {
         await handleResponse('ACCEPTED');
@@ -65,38 +61,30 @@ const MainValidUser: React.FC<Props> = ({ workspace, user, invitation }: Props) 
     };
 
     return (
-        <div className="absolute w-full px-4 py-10">
+        <div className="min-h-screen w-full">
             <AuthNavbar showHamburgerIcon={false} showPlans={false} />
 
-            <div className="mt-36 flex w-full flex-col items-center rounded">
-                <div className="flex flex-col md:max-w-[620px]">
-                    <div className="flex flex-col items-center justify-center rounded bg-white p-10 md:max-w-[620px]">
-                        <div className="sh3 text-black-700! mb-4 mt-6 text-center text-2xl font-normal!">
+            <div className="mx-auto flex w-full max-w-[620px] flex-col px-4 pb-10 pt-24 sm:pt-28">
+                <div className={cn(PAGE_CARD, 'flex flex-col sm:p-10')}>
+                    {/* heading, sentence, the two actions, the expiry line: one gap between each */}
+                    <div className="flex flex-col items-center justify-center gap-6 text-center">
+                        <div className="sh3 text-black-700! text-2xl font-normal!">
                             {t(invitationConstant.title1)}
                             <span className="text-black-900 font-bold">{` ${workspace?.title || 'Untitled'}`}</span>
                         </div>
-                        <div className="body3 text-black-700! mb-10">{t(invitationConstant.title2)}</div>
-
-                        <div className="mb-4">
-                            <button className={`rounded-md px-4 py-2 text-white ${isSwitchOn ? 'bg-blue-500' : 'bg-gray-500'}`} onClick={toggleSwitch}>
-                                {isSwitchOn ? 'Switch is ON' : 'Switch is OFF'}
-                            </button>
+                        <div className="body3 text-black-700!">{t(invitationConstant.title2)}</div>
+                        <div className="flex flex-col items-center justify-between gap-5 sm:flex-row">
+                            <Button disabled={isLoading} size="lg" onClick={onAccept}>
+                                {t(buttonConstant.joinWorkspace)}
+                            </Button>
+                            <Button variant="secondary" disabled={isLoading} size="lg" onClick={onDecline}>
+                                {t(buttonConstant.decline)}
+                            </Button>
                         </div>
-
-                        <div className="flex flex-col items-center space-y-4">
-                            <div className="flex flex-col items-center justify-between gap-5 sm:flex-row">
-                                <Button disabled={isLoading} size="lg" onClick={onAccept}>
-                                    {t(buttonConstant.joinWorkspace)}
-                                </Button>
-                                <Button variant="secondary" disabled={isLoading} size="lg" onClick={onDecline}>
-                                    {t(buttonConstant.decline)}
-                                </Button>
-                            </div>
-                            <div className="body3 text-black-700! mt-5">{t(invitationConstant.expiryLink)}</div>
-                        </div>
+                        <div className="body3 text-black-700!">{t(invitationConstant.expiryLink)}</div>
                     </div>
-                    <div className="ml-10 mt-8">
-                        <div className="body1 mb-6">{t(invitationConstant.list.title)}</div>
+                    <div className="mt-8 border-t border-hairline-strong pt-8">
+                        <div className="body1 mb-4">{t(invitationConstant.list.title)}</div>
                         <ul className="body2 flex list-disc flex-col space-y-3 pl-5">
                             <li>{t(invitationConstant.list.item1)}</li>
                             <li>{t(invitationConstant.list.item2)}</li>

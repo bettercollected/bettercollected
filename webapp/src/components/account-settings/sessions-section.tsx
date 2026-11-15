@@ -7,6 +7,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useGetSessionsQuery, useRevokeOtherSessionsMutation, useRevokeSessionMutation } from '@app/store/auth/api';
 import { AuthSession } from '@app/store/auth/types';
+import { PAGE_CARD } from '@app/components/ui/page-surface';
 
 /** A short, human label for a browser's user agent ("Firefox on Linux"). */
 export function describeUserAgent(userAgent?: string, t?: (key: string, options?: Record<string, string>) => string): string {
@@ -73,7 +74,7 @@ export default function SessionsSection() {
     };
 
     return (
-        <div className="border-hairline-strong flex max-w-[640px] flex-col gap-4 rounded border bg-white p-6">
+        <div className={`flex flex-col gap-4 ${PAGE_CARD}`}>
             <div className="flex flex-col gap-1">
                 <h2 className="text-black-900 text-sm font-semibold">{t('STAFF.SESSIONS.TITLE')}</h2>
                 <p className="text-black-600 text-xs leading-relaxed">{t('STAFF.SESSIONS.INTRO')}</p>

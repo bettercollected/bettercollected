@@ -190,6 +190,24 @@ theme_dict = {
             "artwork": "daybreak",
         },
     },
+    # A scene preset: iris on warm cream paper, a sun-yellow band over the questions,
+    # lettered answer keys in five flat pigments and, on the ending, five flat shapes
+    # that pop around the check (background.artwork "pigment", drawn by the webapp).
+    # Colours and the scene only: faces, corners and buttons stay the form's own.
+    # Offered while APP_THEME_PIGMENT_ENABLED is on (GATED_PRESETS below).
+    "Pigment": {
+        "title": "Pigment",
+        "primary": "#1A1238",
+        "secondary": "#4B35DB",
+        "tertiary": "#7C7396",
+        "accent": "#FBF7F1",
+        "style": "classic",
+        "choiceKeys": "letters",
+        "background": {
+            "type": "color",
+            "artwork": "pigment",
+        },
+    },
 }
 
 # Presets that are offered only while their switch (a backend setting) is on.
@@ -198,8 +216,11 @@ theme_dict = {
 # *offered*: by the builder's picker (the permissions answer carries it), by the
 # edit operations, the AI and the MCP server, which refuse an unoffered name as
 # they refuse an unknown one. A later preset joins here with its own switch.
+# The value names the backend setting (an attribute of ``backend.config.settings``,
+# dotted for a settings group): the Pigment preset follows the app theme switch.
 GATED_PRESETS = {
     "Daybreak": "DAYBREAK_PRESET_ENABLED",
+    "Pigment": "app_theme.ENABLED",
 }
 
 # Artwork that fills the picture half of a welcome or ending page (a page set
@@ -324,6 +345,12 @@ theme_descriptions = {
         "ending. Calm and friendly; suits community, health, education and "
         "neighbourhood forms that should feel welcoming."
     ),
+    "Pigment": (
+        "Iris on warm cream paper with a sun-yellow band over the questions, "
+        "answer keys in five flat colours with their letters, and five flat "
+        "shapes that pop around the check when the form is sent. Lively and "
+        "friendly; suits associations, schools, events and community forms."
+    ),
 }
 
 themes = {title: Theme(**colors) for title, colors in theme_dict.items()}
@@ -395,6 +422,7 @@ def offered_theme_keys() -> list[str]:
 # as it refuses an unlisted one, unless the stored value already has it.
 GATED_ARTWORKS = {
     "daybreak": "Daybreak",
+    "pigment": "Pigment",
 }
 
 

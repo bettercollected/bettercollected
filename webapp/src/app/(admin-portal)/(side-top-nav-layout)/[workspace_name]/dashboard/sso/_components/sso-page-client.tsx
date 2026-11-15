@@ -19,14 +19,14 @@ export default function WorkspaceSsoPage() {
 
     if (!can(WorkspacePermission.SECURITY_MANAGE)) {
         return (
-            <div className="pb-10">
+            <div>
                 <p className="text-sm text-black-600">{t('SSO_UI.ONLY_ADMINS')}</p>
             </div>
         );
     }
 
     return (
-        <div className="flex w-full max-w-[860px] flex-col gap-8 pb-10">
+        <div className="flex w-full flex-col gap-8">
             <p className="max-w-[62ch] text-sm leading-relaxed text-black-600">
                 {t('SSO_UI.PAGE_INTRO')}
             </p>

@@ -1,4 +1,4 @@
-import { type FormTheme, isHexColour } from '@app/constants/theme';
+import { type FormTheme, PIGMENT_BAND, isHexColour } from '@app/constants/theme';
 
 import { AA_NON_TEXT, AA_TEXT, contrast, hexChannels, legibleOn, mixColours } from './color-contrast';
 
@@ -92,7 +92,7 @@ export interface ContrastCheck {
  * (theme-shared softInk / requiredMarkColour, 7:1 and 4.5:1), the Leaflet
  * band (leafletColours, 7:1), and actionInk (the button colour or the ink).
  */
-export function themeContrastChecks(theme: ThemeColours & Partial<Pick<FormTheme, 'buttonStyle' | 'choiceKeys'>>): ContrastCheck[] {
+export function themeContrastChecks(theme: ThemeColours & Partial<Pick<FormTheme, 'buttonStyle' | 'choiceKeys' | 'background'>>): ContrastCheck[] {
     const calendar = calendarColours(theme);
     // An outlined button is its ink on the page colour, not white text on the button colour.
     const ink = outlinedButtonInk(theme);
@@ -107,6 +107,8 @@ export function themeContrastChecks(theme: ThemeColours & Partial<Pick<FormTheme
             : []),
         // white text on the button colour: on the buttons, and on the chosen row of a theme with choice keys, whatever the button style
         ...(whiteOnSecondary(theme) ? [{ key: 'button', kind: 'role' as const, label: 'White text on buttons', foreground: '#FFFFFF', background: theme.secondary, minimum: AA_TEXT }] : []),
+        // the Pigment scene's yellow band carries the questions' ink (the page count, the Back control)
+        ...(hasPigmentBand(theme) ? [{ key: 'band', kind: 'role' as const, label: 'Text on the Pigment band', foreground: theme.primary, background: PIGMENT_BAND, minimum: AA_TEXT }] : []),
         { key: 'border', kind: 'role', label: 'Input borders on the background', foreground: theme.tertiary, background: theme.accent, minimum: AA_NON_TEXT },
         { key: 'action', kind: 'role', label: 'Chosen answers, icons and progress on the background', foreground: theme.secondary, background: theme.accent, minimum: AA_NON_TEXT },
         { key: 'muted-label', kind: 'derived', label: 'Optional and read-only labels on the background', foreground: mutedLabelInk(theme), background: theme.accent, minimum: AA_TEXT },
@@ -126,7 +128,7 @@ export function themeContrastChecks(theme: ThemeColours & Partial<Pick<FormTheme
 }
 
 /** A pairing the creator chose that fails AA, by the role that would fix it. */
-export type ContrastIssueKey = 'text' | 'answer' | 'button' | 'outlined' | 'border' | 'action';
+export type ContrastIssueKey = 'text' | 'answer' | 'button' | 'outlined' | 'border' | 'action' | 'band';
 
 export interface ContrastIssue {
     key: ContrastIssueKey;
@@ -166,6 +168,14 @@ function pageGrounds(theme: GuardedTheme): string[] {
     if (bg?.type === 'pattern' && bg.pattern === 'margin' && contrast(theme.primary, WHITE) >= AA_TEXT) grounds.push(WHITE);
     return grounds;
 }
+
+/**
+ * Does the theme draw the Pigment scene's sun-yellow band behind the header text of a question page (background artwork
+ * `pigment`)? Then the questions' ink is also held to 4.5:1 on the band (key `band`); the form falls back to a dark ink
+ * where it does not read (`pigmentBandInk`, views/molecules/theme/pigment-art.tsx). The server's `has_pigment_band`
+ * (services/theme_contrast.py) is the same.
+ */
+export const hasPigmentBand = (theme: { background?: FormTheme['background'] } | null | undefined) => theme?.background?.artwork === 'pigment';
 
 /**
  * Does the theme draw its buttons outlined (text and edge, no fill)? Such a
@@ -241,10 +251,10 @@ export function mutedLabelInk(theme?: Partial<FormTheme> | null): string {
  * real colours are measured by `outlinedRules`. `input` is the colour of the
  * answers (`inputText`, else `primary`) in the white input box.
  */
-function roleRules(grounds: string[], skipButton = false) {
+function roleRules(grounds: string[], skipButton = false, band = false) {
     return {
-        // questions on the page
-        primary: grounds.map((ground) => ({ key: 'text' as ContrastIssueKey, ground, minimum: AA_TEXT })),
+        // questions on the page, and (the Pigment scene) the page count and Back control on the yellow band
+        primary: [...grounds.map((ground) => ({ key: 'text' as ContrastIssueKey, ground, minimum: AA_TEXT })), ...(band ? [{ key: 'band' as ContrastIssueKey, ground: PIGMENT_BAND, minimum: AA_TEXT }] : [])],
         // answers in the white input boxes
         input: [{ key: 'answer' as ContrastIssueKey, ground: WHITE, minimum: AA_TEXT }],
         // white text on the button; the chosen answer, icons and progress on the page
@@ -264,11 +274,11 @@ function outlinedRules(theme: GuardedTheme, grounds: string[]) {
     return [{ key: 'outlined' as ContrastIssueKey, colour, ground: theme.accent, minimum: AA_TEXT }, ...grounds.map((ground) => ({ key: 'outlined' as ContrastIssueKey, colour, ground, minimum: AA_NON_TEXT }))];
 }
 
-const ISSUE_ORDER: ContrastIssueKey[] = ['text', 'answer', 'button', 'outlined', 'border', 'action'];
+const ISSUE_ORDER: ContrastIssueKey[] = ['text', 'answer', 'button', 'outlined', 'border', 'action', 'band'];
 
 function failures(theme: GuardedTheme, grounds: string[]): ContrastIssue[] {
     const outlined = isOutlined(theme);
-    const rules = roleRules(grounds, !whiteOnSecondary(theme));
+    const rules = roleRules(grounds, !whiteOnSecondary(theme), hasPigmentBand(theme));
     const checks = [
         ...(['primary', 'secondary', 'tertiary'] as const).flatMap((role) => rules[role].map((rule) => ({ ...rule, colour: theme[role] }))),
         ...rules.input.map((rule) => ({ ...rule, colour: inputTextColour(theme) })),
@@ -366,7 +376,7 @@ export function themeContrastGuard(theme: GuardedTheme): ContrastGuard {
     for (const weight of [0, 0.85, 0.92, 1]) {
         const ground = weight === 0 ? { accent: theme.accent, background: theme.background } : lightenGround(theme, weight);
         const candidate: GuardedTheme = { ...theme, ...ground };
-        const rules = roleRules(pageGrounds(candidate), !whiteOnSecondary(theme));
+        const rules = roleRules(pageGrounds(candidate), !whiteOnSecondary(theme), hasPigmentBand(theme));
         const primary = nearestPassing(theme.primary, rules.primary);
         const secondary = nearestPassing(theme.secondary, rules.secondary);
         const tertiary = nearestPassing(theme.tertiary, rules.tertiary);
@@ -404,6 +414,7 @@ const upper = (value: unknown) => (typeof value === 'string' ? value.toUpperCase
  * the white sheet of the `margin` pattern; anything else, an absent background
  * or type, `color` and other patterns included, is the plain page colour).
  * Gradient stops count only for a gradient, the image's address never does.
+ * A Pigment theme (the yellow band) adds a last element `band`, so every other key is as it was.
  * Two themes with the same key get the same verdict, so "the theme changed"
  * (publish-checks.ts `themeContrastGate`) compares keys. The server's
  * `contrast_key` (services/theme_contrast.py) is the same; the `keys` section
@@ -413,5 +424,5 @@ const upper = (value: unknown) => (typeof value === 'string' ? value.toUpperCase
 export function contrastKey(theme: Partial<FormTheme> | null | undefined): string {
     const bg = theme?.background;
     const ground = bg?.type === 'image' && bg.imageUrl ? ['image'] : bg?.type === 'gradient' && bg.gradientFrom && bg.gradientTo ? ['gradient', upper(bg.gradientFrom), upper(bg.gradientTo)] : bg?.type === 'pattern' && bg.pattern === 'margin' ? ['margin'] : ['plain'];
-    return JSON.stringify([upper(theme?.primary) ?? null, upper(theme?.secondary) ?? null, upper(theme?.tertiary) ?? null, upper(theme?.accent) ?? null, upper(isHexColour(theme?.inputText) ? theme!.inputText : theme?.primary) ?? null, isOutlined(theme), whiteOnSecondary(theme), ...ground]);
+    return JSON.stringify([upper(theme?.primary) ?? null, upper(theme?.secondary) ?? null, upper(theme?.tertiary) ?? null, upper(theme?.accent) ?? null, upper(isHexColour(theme?.inputText) ? theme!.inputText : theme?.primary) ?? null, isOutlined(theme), whiteOnSecondary(theme), ...ground, ...(hasPigmentBand(theme) ? ['band'] : [])]);
 }

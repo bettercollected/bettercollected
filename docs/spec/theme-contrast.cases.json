@@ -1,5 +1,5 @@
 {
-  "description": "WCAG 2.2 AA contrast of form themes: colour pairs with their contrast ratio, and themes with the pairings that fail and the nearest colours that pass. Run by backend/tests/app/services/test_theme_contrast.py (services/theme_contrast.py, the publish check theme_contrast) and webapp src/utils/theme-contrast-cases.test.ts (utils/color-contrast.ts, themeContrastGuard in utils/theme-contrast.ts), so the builder's guard and the server's publish check can't drift. 'ratio' to 6 decimals (null: a colour that is not hex, which fails every check); 'display' is the ratio as shown, one decimal rounded down. Text needs 4.5:1, controls 3:1. A theme's 'issues' are in the order text, answer, button, outlined, border, action, each at its lowest ratio; 'fix' holds only the keys that change (null when nothing fails); an image page can't be measured ('imageGround'). Every preset is listed and passes. An outlined button (buttonStyle 'outlined') is not white text on the button colour: its ink (the button colour where it reads at 4.5:1 on the page, else the questions' colour) is measured against the page colour (text 4.5:1) and against every page ground (its edge, 3:1), key 'outlined'; the white-on-button rule (key 'button') does not apply to it. 'keys': pairs of themes that must ('same': true) or must not ('same': false) produce the same contrast key, the key publishing compares to tell whether an older live form's colours changed (backend theme_contrast.contrast_key, webapp contrastKey): it holds the four colours (hex case ignored), whether buttons are outlined, and the ground the guard reads (an image with an address; both stops of a gradient; the white sheet of the margin pattern; else the plain page), so a re-saved or leftover background that shows no difference is no change. Keys are compared within a language, never across. 'inputText' (optional, 6-digit hex; the colour of the answers typed in the white input boxes) takes the place of 'primary' for the 'answer' check, 4.5:1 on white; absent, the answers are in 'primary' as before. A fix for answers that fail on white sets 'inputText' to the nearest shade that passes, so a dark page stays dark. The contrast key holds the colour of the answers (inputText, else primary). 'muted': themes with the colour of the muted labels beside a question (\"Optional\", \"Read only\"): the questions' ink softened 18% towards the page where that reads at 4.5:1 on every page ground, else the ink itself (backend muted_label_ink, webapp mutedLabelInk); the guard measures it as 'text', and it passes whenever the questions do. A theme with 'choiceKeys' ('letters') also draws the chosen answer as a solid row of the button colour with white text, so the white-on-button rule (key 'button') applies to it whatever the button style, an outlined one included; the contrast key then also tells whether white text sits on the button colour (so 'choiceKeys' on an outlined theme changes the key, on a filled one it does not).",
+  "description": "WCAG 2.2 AA contrast of form themes: colour pairs with their contrast ratio, and themes with the pairings that fail and the nearest colours that pass. Run by backend/tests/app/services/test_theme_contrast.py (services/theme_contrast.py, the publish check theme_contrast) and webapp src/utils/theme-contrast-cases.test.ts (utils/color-contrast.ts, themeContrastGuard in utils/theme-contrast.ts), so the builder's guard and the server's publish check can't drift. 'ratio' to 6 decimals (null: a colour that is not hex, which fails every check); 'display' is the ratio as shown, one decimal rounded down. Text needs 4.5:1, controls 3:1. A theme's 'issues' are in the order text, answer, button, outlined, border, action, each at its lowest ratio; 'fix' holds only the keys that change (null when nothing fails); an image page can't be measured ('imageGround'). Every preset is listed and passes. An outlined button (buttonStyle 'outlined') is not white text on the button colour: its ink (the button colour where it reads at 4.5:1 on the page, else the questions' colour) is measured against the page colour (text 4.5:1) and against every page ground (its edge, 3:1), key 'outlined'; the white-on-button rule (key 'button') does not apply to it. 'keys': pairs of themes that must ('same': true) or must not ('same': false) produce the same contrast key, the key publishing compares to tell whether an older live form's colours changed (backend theme_contrast.contrast_key, webapp contrastKey): it holds the four colours (hex case ignored), whether buttons are outlined, and the ground the guard reads (an image with an address; both stops of a gradient; the white sheet of the margin pattern; else the plain page), so a re-saved or leftover background that shows no difference is no change. Keys are compared within a language, never across. 'inputText' (optional, 6-digit hex; the colour of the answers typed in the white input boxes) takes the place of 'primary' for the 'answer' check, 4.5:1 on white; absent, the answers are in 'primary' as before. A fix for answers that fail on white sets 'inputText' to the nearest shade that passes, so a dark page stays dark. The contrast key holds the colour of the answers (inputText, else primary). 'muted': themes with the colour of the muted labels beside a question (\"Optional\", \"Read only\"): the questions' ink softened 18% towards the page where that reads at 4.5:1 on every page ground, else the ink itself (backend muted_label_ink, webapp mutedLabelInk); the guard measures it as 'text', and it passes whenever the questions do. A theme with 'choiceKeys' ('letters') also draws the chosen answer as a solid row of the button colour with white text, so the white-on-button rule (key 'button') applies to it whatever the button style, an outlined one included; the contrast key then also tells whether white text sits on the button colour (so 'choiceKeys' on an outlined theme changes the key, on a filled one it does not). A theme whose background artwork is 'pigment' draws the header bar of a question page as the sun-yellow band (#FFC62E, always), so its 'primary' (the page count and the Back control) is also held to 4.5:1 on the band: key 'band', reported last (backend has_pigment_band, PIGMENT_BAND; webapp hasPigmentBand, PIGMENT_BAND); the contrast key of such a theme ends with an element 'band' (no other theme's key changes).",
   "pairs": [
     {
       "name": "black on white",
@@ -402,6 +402,22 @@
         "background": {
           "type": "color",
           "artwork": "daybreak"
+        }
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
+      "name": "preset Pigment",
+      "theme": {
+        "primary": "#1A1238",
+        "secondary": "#4B35DB",
+        "tertiary": "#7C7396",
+        "accent": "#FBF7F1",
+        "background": {
+          "type": "color",
+          "artwork": "pigment"
         }
       },
       "issues": [],
@@ -1121,6 +1137,46 @@
       "issues": [],
       "fix": null,
       "imageGround": false
+    },
+    {
+      "name": "Pigment artwork: a primary that reads on the cream page (5.1:1) but not on the yellow band (3.46:1) is reported as the band pair",
+      "theme": {
+        "primary": "#6E6585",
+        "secondary": "#4B35DB",
+        "tertiary": "#7C7396",
+        "accent": "#FBF7F1",
+        "background": {
+          "type": "color",
+          "artwork": "pigment"
+        }
+      },
+      "issues": [
+        {
+          "key": "band",
+          "ratio": 3.460658,
+          "display": "3.4",
+          "minimum": 4.5
+        }
+      ],
+      "fix": {
+        "primary": "#5C546F"
+      },
+      "imageGround": false
+    },
+    {
+      "name": "the same colours without the Pigment artwork have no band, so they pass",
+      "theme": {
+        "primary": "#6E6585",
+        "secondary": "#4B35DB",
+        "tertiary": "#7C7396",
+        "accent": "#FBF7F1",
+        "background": {
+          "type": "color"
+        }
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
     }
   ],
   "keys": [
@@ -1779,6 +1835,54 @@
         "choiceKeys": "letters"
       },
       "same": false
+    },
+    {
+      "name": "the Pigment artwork adds the band to what is measured, so the key differs from the same colours without it",
+      "a": {
+        "primary": "#6E6585",
+        "secondary": "#4B35DB",
+        "tertiary": "#7C7396",
+        "accent": "#FBF7F1",
+        "background": {
+          "type": "color",
+          "artwork": "pigment"
+        }
+      },
+      "b": {
+        "primary": "#6E6585",
+        "secondary": "#4B35DB",
+        "tertiary": "#7C7396",
+        "accent": "#FBF7F1",
+        "background": {
+          "type": "color"
+        }
+      },
+      "same": false
+    },
+    {
+      "name": "two Pigment themes with the same colours share a key",
+      "a": {
+        "primary": "#6E6585",
+        "secondary": "#4B35DB",
+        "tertiary": "#7C7396",
+        "accent": "#FBF7F1",
+        "background": {
+          "type": "color",
+          "artwork": "pigment"
+        }
+      },
+      "b": {
+        "primary": "#6E6585",
+        "secondary": "#4B35DB",
+        "tertiary": "#7C7396",
+        "accent": "#FBF7F1",
+        "background": {
+          "type": "color",
+          "artwork": "pigment"
+        },
+        "style": "classic"
+      },
+      "same": true
     }
   ],
   "muted": [

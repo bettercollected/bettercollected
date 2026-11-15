@@ -32,6 +32,13 @@ A theme with ``choiceKeys`` also draws the chosen answer as a solid row of the
 button colour with white text, so the white-on-button rule (``button``) stays
 for it whatever the button style (``white_on_secondary``).
 
+A theme whose background artwork is ``pigment`` draws the header bar of a question
+page as a sun-yellow band (``PIGMENT_BAND``, always the same yellow) with the
+questions' ink on it (the page count, the Back control), so ``primary`` is also
+held to 4.5:1 on the band (``band``). The respondent form falls back to a dark ink
+where ``primary`` does not read on the band (the webapp's ``pigmentBandInk``), so
+nothing is unreadable, but a creator is told, as for every other pairing.
+
 "The page" is the background colour (``accent``), both stops of a gradient
 and the white sheet of the ``margin`` pattern. Text over an image can't be
 measured, so an image page has none (the input boxes and the buttons are
@@ -47,6 +54,8 @@ AA_NON_TEXT = 3.0
 
 WHITE = "#FFFFFF"
 BLACK = "#000000"
+# The sun-yellow band of the Pigment scene (webapp constants/theme.ts PIGMENT_BAND).
+PIGMENT_BAND = "#FFC62E"
 _HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
 
 # Issue keys, in the order they are reported.
@@ -56,7 +65,8 @@ BUTTON = "button"
 OUTLINED = "outlined"
 BORDER = "border"
 ACTION = "action"
-ISSUE_ORDER = (TEXT, ANSWER, BUTTON, OUTLINED, BORDER, ACTION)
+BAND = "band"
+ISSUE_ORDER = (TEXT, ANSWER, BUTTON, OUTLINED, BORDER, ACTION, BAND)
 # The ink of an outlined button when the theme gives none of its own (the
 # webapp's theme-root.ts inkOf / pageOf fallbacks).
 DEFAULT_INK = "#101828"
@@ -179,6 +189,13 @@ def _page_grounds(theme: Dict[str, Any]) -> List[str]:
     return grounds
 
 
+def has_pigment_band(theme: Any) -> bool:
+    """Does the theme draw the Pigment scene's sun-yellow band behind the header
+    text of a question page (background artwork ``pigment``)? Mirrored by the
+    webapp's ``hasPigmentBand`` (utils/theme-contrast.ts)."""
+    return _get(_get(theme, "background"), "artwork") == "pigment"
+
+
 def is_outlined(theme: Any) -> bool:
     """Does the theme draw its buttons outlined (text and edge, no fill)?"""
     return _get(theme, "buttonStyle") == "outlined"
@@ -259,15 +276,17 @@ def input_text_colour(theme: Any) -> Any:
 
 
 def _role_rules(
-    grounds: List[str], skip_button: bool = False
+    grounds: List[str], skip_button: bool = False, band: bool = False
 ) -> Dict[str, List[Tuple[str, str, float]]]:
     """What each role must reach, and on what: ``(issue key, ground, minimum)``.
     An outlined button has no white text on the button colour (unless choice
     keys put a solid chosen row there, ``white_on_secondary``); its real
     colours are measured by ``_outlined_failures``. ``input`` is the colour of
-    the answers (``inputText``, else ``primary``) on the white input box."""
+    the answers (``inputText``, else ``primary``) on the white input box. With the
+    Pigment ``band`` the questions' ink is also held to 4.5:1 on the yellow band."""
     return {
-        "primary": [(TEXT, ground, AA_TEXT) for ground in grounds],
+        "primary": [(TEXT, ground, AA_TEXT) for ground in grounds]
+        + ([(BAND, PIGMENT_BAND, AA_TEXT)] if band else []),
         INPUT_ROLE: [(ANSWER, WHITE, AA_TEXT)],
         "secondary": ([] if skip_button else [(BUTTON, WHITE, AA_TEXT)])
         + [(ACTION, ground, AA_NON_TEXT) for ground in grounds],
@@ -291,7 +310,7 @@ def _outlined_rules(
 
 def _failures(theme: Dict[str, Any], grounds: List[str]) -> List[ContrastIssue]:
     outlined = is_outlined(theme)
-    rules = _role_rules(grounds, not white_on_secondary(theme))
+    rules = _role_rules(grounds, not white_on_secondary(theme), has_pigment_band(theme))
     checks = [
         (key, theme.get(role), ground, minimum)
         for role in ROLES
@@ -446,7 +465,11 @@ def theme_contrast_guard(theme: Any) -> ContrastGuard:
         return ContrastGuard(issues, None, image_ground)
     for weight in (0, 0.85, 0.92, 1):
         candidate = {**plain, **(_lighten_ground(plain, weight) if weight else {})}
-        rules = _role_rules(_page_grounds(candidate), not white_on_secondary(plain))
+        rules = _role_rules(
+            _page_grounds(candidate),
+            not white_on_secondary(plain),
+            has_pigment_band(plain),
+        )
         moved = {role: _nearest_passing(plain[role], rules[role]) for role in ROLES}
         if None in moved.values():
             continue
@@ -496,7 +519,8 @@ def contrast_key(theme: Any) -> Tuple[Any, ...]:
     """Everything the contrast check reads from a theme: its four colours, the
     colour of the answers (``inputText``, else ``primary``), whether its
     buttons are outlined, whether white text sits on the button colour
-    (``white_on_secondary``: choice keys do it for an outlined style too), and the ground the page puts behind the text, as
+    (``white_on_secondary``: choice keys do it for an outlined style too), a final ``band`` for the Pigment artwork
+    (the ink on the yellow band: only a Pigment theme has the element, so every other key is as it was), and the ground the page puts behind the text, as
     ``_page_grounds`` reads it (an image with an address; both stops
     of a gradient; the white sheet of the ``margin`` pattern; anything else,
     an absent background or type, ``color`` and other patterns included, is
@@ -530,4 +554,5 @@ def contrast_key(theme: Any) -> Tuple[Any, ...]:
         is_outlined(theme),
         white_on_secondary(theme),
         *ground,
+        *(("band",) if has_pigment_band(theme) else ()),
     )

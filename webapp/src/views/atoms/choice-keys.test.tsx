@@ -33,10 +33,11 @@ describe('the key', () => {
         expect(themeProblems({ ...PLAIN, choiceKeys: 'numbers' })).toEqual(['theme.choiceKeys must be one of: letters.']);
     });
 
-    it('is carried over when a custom theme is made from this one, and no preset sets it yet', () => {
+    it('is carried over when a custom theme is made from this one, and only the Pigment preset sets it', () => {
         expect(themeTypeShape(LETTERED)).toEqual({ choiceKeys: 'letters' });
         expect(themeTypeShape(PLAIN)).toEqual({});
-        expect(ThemeColors.every((preset) => preset.choiceKeys == null)).toBe(true);
+        // only the Pigment preset sets it (behind its switch)
+        expect(ThemeColors.filter((preset) => preset.choiceKeys != null).map((preset) => preset.title)).toEqual(['Pigment']);
     });
 
     it('is taken or refused by the edit engine, as the backend does', () => {

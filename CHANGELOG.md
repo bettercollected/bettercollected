@@ -13,6 +13,24 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ## [Unreleased]
 
+## [5.0.2] - 2026-11-15
+
+5.0.2 fixes the spacing of the creator app in the Daybreak look. In 5.0.1 many pages sat on the new blue-tinted background but were still laid out for a white page, so text, inputs and tables touched the edges of the page, floated without a panel or were cut off on the right. A form's Share and Settings pages, the pages in the workspace sidebar (with their tables), the invitation page, the security check page and the "Your form is live" dialog now sit on white cards with an even edge, the same width and the same padding on a phone and on a computer, and a leftover test button is gone from the invitation page. Nothing changes in what the pages say or do, and respondent pages and published forms are not affected.
+
+**Upgrading from 5.0.1:** nothing to configure. The changes that need your attention:
+
+- **Image tag only.** Set `BC_IMAGE_TAG` to `v5.0.2` (the default in `docker-compose.deployment.yml` is now `v5.0.2`). A stack that sets its image tags itself moves every first-party service (backend, auth, webapp, jobs worker and the others) to `v5.0.2` together. The fixes are in the webapp; the other services only change their tag.
+- **No database migration.** The alembic head stays `0041`.
+- **No setting, switch, secret or service changes.** `DAYBREAK_PRESET_ENABLED` and `APP_THEME_PIGMENT_ENABLED` keep their meaning and defaults from 5.0.1 (both off).
+- **Nothing to do for existing forms.** Published forms and the respondent pages look exactly as before; only the creator app's pages change.
+- **Rolling back to 5.0.1:** nothing stored changes, so there is nothing to undo; the creator app goes back to the 5.0.1 spacing.
+
+### Fixed
+
+- **Spacing on a form's Share and Settings pages.** Since the Daybreak colours, these pages sat on the new blue-tinted background but were still laid out for a white page, so text, inputs and rows touched the edges of white panels or floated with no panel at all. Share and every Settings page (Access, Availability, Respondent experience, Advanced) now use one layout: a column of the same width, with each group of settings on a white card with an even edge and the same padding on a phone and on a computer. The form link no longer makes the Share page scroll sideways on a phone. Nothing changes in what the pages say or do, and published forms look exactly the same.
+- **Spacing on the invitation, security check and publish screens.** Since the Daybreak colours, the page that invites someone to a workspace had its top bar start a little in from the left edge and its list of what the person will have access to floating on the blue-tinted background outside the card. The invitation (and its "not found" and "expired" variants) now sits in one card under a full-width top bar, the security check page (where a member enters the code from an authenticator app) is a card on the page, and the "Your form is live" dialog no longer leaves an empty gap above its two buttons; its "copied" confirmation no longer sits on the dialog's edge or moves the buttons when it appears. A leftover test button ("Switch is OFF") that every invited person saw on the invitation page is gone. Nothing else changes in what these screens say or do.
+- **Spacing on the workspace pages.** Since the Daybreak colours, the pages in the workspace sidebar (Members, Responders and Groups, Deletion requests, Themes, Single sign-on, Case system, Lists, Reusable sections, Embedding, Spam protection, Activity, AI, Account settings, Custom domain, Templates) sat on the new blue-tinted background but were still laid out for a white page, so text, inputs and tables floated on it with no panel, touched the edges of the page or were cut off on the right. Each page now sits on one white panel with an even edge and the same padding on a phone and on a computer, tables stay inside it, the extra inset some pages had is gone, and the last panel has room below it. The page of a submission opened from the workspace now has the same background as the pages around it. The Deletion requests table shows every column: the email, the form, the date and the "Delete response" action were cut off at common screen widths. "Delete account" on Account settings sits in its own card, as it does in a form's Settings. The top bar no longer says "Your site" on Account settings and Templates, and a submission opened from the workspace is titled "Submissions". On a phone, a table that scrolls sideways shades the edge that has more behind it, and its scroll area can be reached with the keyboard (it has a name and takes the arrow keys). Nothing changes in what the pages say or do.
+
 ## [5.0.1] - 2026-11-15
 
 5.0.1 gives the creator app a new look, Daybreak. The dashboard, the form builder, settings, the Report page and sign-in sit on a soft periwinkle page with white cards; the forms page opens with a short welcome, every form has its own coloured tile, empty pages show a picture with one next step, and publishing a form ends with a "Your form is live" dialog. Report charts have colours that are easier to tell apart, and no longer turn dark on a device in dark mode. A new Daybreak form preset is offered behind a switch, and the groundwork for a second dashboard theme is in, switched off and without its colours. Respondent forms are unchanged unless a creator picks the new preset, and there is no database migration.
@@ -3982,7 +4000,8 @@ form building, form theming, and self-hosted analytics.
   [v2.2.0 release](https://github.com/bettercollected/bettercollected/releases/tag/v2.2.0)
   and earlier tags for prior history.
 
-[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v5.0.1...HEAD
+[Unreleased]: https://github.com/bettercollected/bettercollected/compare/v5.0.2...HEAD
+[5.0.2]: https://github.com/bettercollected/bettercollected/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/bettercollected/bettercollected/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/bettercollected/bettercollected/compare/v4.4.0...v5.0.0
 [4.4.0]: https://github.com/bettercollected/bettercollected/compare/v4.3.0...v4.4.0

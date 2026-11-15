@@ -53,13 +53,14 @@ describe('the Daybreak preset', () => {
     });
 
     it('is offered only when the server says so, and a form that wears it keeps it either way', () => {
-        expect(GATED_PRESETS).toEqual(['Daybreak']);
+        expect(GATED_PRESETS).toEqual(['Daybreak', 'Pigment']);
         expect(isPresetOffered('Daybreak', [])).toBe(false);
         expect(isPresetOffered('Daybreak', undefined)).toBe(false);
         expect(isPresetOffered('Daybreak', ['Daybreak'])).toBe(true);
         expect(isPresetOffered('Ocean', [])).toBe(true);
-        expect(offeredPresets([]).map((p) => p.title)).toEqual(ThemeColors.map((p) => p.title).filter((t) => t !== 'Daybreak'));
-        expect(offeredPresets(['Daybreak'])).toHaveLength(ThemeColors.length);
+        expect(offeredPresets([]).map((p) => p.title)).toEqual(ThemeColors.map((p) => p.title).filter((t) => !GATED_PRESETS.includes(t)));
+        expect(offeredPresets(['Daybreak']).map((p) => p.title)).toEqual(ThemeColors.map((p) => p.title).filter((t) => !GATED_PRESETS.includes(t) || t === 'Daybreak'));
+        expect(offeredPresets([...GATED_PRESETS])).toHaveLength(ThemeColors.length);
         // stored values never depend on the switch
         expect(themeRootProps(DAYBREAK).style).toEqual({ '--form-highlight-rule': DAYBREAK_RULE });
         expect(themeBackgroundStyle(DAYBREAK).backgroundImage).toContain('data:image/svg+xml');
@@ -85,9 +86,10 @@ describe('the artwork is gated like the preset (backend _check_artwork_offered)'
     const doc = (extra: Record<string, unknown> = {}) => ({ title: 'F', builderVersion: 'v2', fields: [{ id: 'p1', index: 0, type: 'slide', properties: { fields: [] } }], ...extra }) as any;
 
     it('lists the artworks a new theme may name', () => {
-        expect(GATED_ARTWORKS).toEqual({ daybreak: 'Daybreak' });
+        expect(GATED_ARTWORKS).toEqual({ daybreak: 'Daybreak', pigment: 'Pigment' });
         expect(offeredArtworks([])).toEqual(['marble']);
         expect(offeredArtworks(['Daybreak'])).toEqual(['marble', 'daybreak']);
+        expect(offeredArtworks(['Daybreak', 'Pigment'])).toEqual(['marble', 'daybreak', 'pigment']);
         expect(unofferedArtworkProblem(THEME, null, 'theme', [])).toBe(`theme.${REFUSED}`);
         expect(unofferedArtworkProblem(THEME, null, 'theme', ['Daybreak'])).toBeNull();
         // not asked while the server's list is not known
