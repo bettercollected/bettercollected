@@ -1090,9 +1090,11 @@ html:has([data-app-theme='pigment']) {
 
 /*
  * Native controls (a plain radio button or checkbox, a range) take the theme's iris in a Pigment scope. Daybreak keeps
- * the browser's own accent, as it always had, so its pixels are unchanged.
+ * the browser's own accent, as it always had, so its pixels are unchanged. The rule names the controls and not the scope
+ * root: `accent-color` is inherited as a computed value, so a value on the root could not be undone below it, while
+ * `--app-primary` is reset on a form root, so a control inside a form falls back to the browser's own accent.
  */
-[data-app-theme='pigment'] {
+[data-app-theme='pigment'] :where(input[type='checkbox'], input[type='radio'], input[type='range']) {
     accent-color: var(--app-primary);
 }
 
