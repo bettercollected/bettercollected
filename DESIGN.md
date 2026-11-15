@@ -325,6 +325,21 @@ pigment chip before its label (tomato, sky, mint). It is a `::before` of the
 label, drawn only inside a Pigment scope: Daybreak gets no element and no pixel.
 It is decorative and carries no text.
 
+**Its pictures are the flat shapes; the sun and the hills are Daybreak's.** The
+three places that draw a picture in the creator app (the dashboard welcome band,
+the empty states and the "Your form is live" dialog) show Pigment's own flat
+shapes in a Pigment scope: the circle, square, triangle, half-circle and ring of
+the respondent ending around an iris disc (`components/ui/pigment-app-art.tsx`),
+standing still. They are opaque fills in the five pigments and iris, with no halo,
+no gradient and no translucent overlap that could mix into a brown or a grey, and
+they carry no text. On the welcome band they sit in a box on the right and the
+text column gives up that width, so a shape never meets the greeting or the
+button; they are left out on a phone as the sun and hills are. In Daybreak, and on
+any page without a scope, the same three places draw the sun and the hills
+exactly as before (`components/ui/daybreak-art.tsx`, which Pigment never
+recolours). `AppArt` chooses from the scope; the publish dialog is portalled out
+of the scope and reads the workspace's theme from the store.
+
 **A form is never in the app's colours.** The builder canvas, the preview page and
 the preview dialog sit inside the scope of a workspace, but they show the form as a
 respondent sees it. The root of the form (`LayoutWrapper`, `formRootProps`) therefore

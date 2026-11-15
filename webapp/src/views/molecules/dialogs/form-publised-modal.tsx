@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import DaybreakArt from '@app/components/ui/daybreak-art';
+import AppArt from '@app/components/ui/app-art';
+import { asAppTheme } from '@app/lib/app-theme';
 import { Button, buttonClassName } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -26,6 +27,9 @@ export const PUBLISHED_TITLE_ID = 'published-dialog-title';
 export default function FormPublishedModal(props: any) {
     const { t } = useTranslation('builder');
     const workspace = useAppSelector(selectWorkspace);
+    // the dialog is portalled out of the workspace layout, so the scope is out of reach: the store holds the workspace's theme
+    const appTheme = asAppTheme(workspace?.appTheme);
+    const pigment = appTheme === 'pigment';
     const standardForm = useAppSelector(selectForm);
     // '' nothing yet, 'copied', or 'failed' (the browser refused the clipboard)
     const [copyState, setCopyState] = useState<'' | 'copied' | 'failed'>('');
@@ -52,8 +56,8 @@ export default function FormPublishedModal(props: any) {
     // width, overflowing the dialog instead of truncating.
     return (
         <div className="flex w-full max-w-full min-w-0 flex-col overflow-hidden sm:rounded">
-            <div className="relative h-[96px] bg-brand-tint sm:h-[112px]">
-                <DaybreakArt spark={false} />
+            <div className={`relative h-[96px] ${pigment ? 'bg-sunken' : 'bg-brand-tint'} sm:h-[112px]`}>
+                <AppArt spark={false} theme={appTheme} />
                 <span
                     data-testid="published-mark"
                     className="absolute bottom-0 left-6 flex h-12 w-12 translate-y-1/2 items-center justify-center rounded-full border border-hairline-strong bg-surface text-ok motion-safe:animate-in motion-safe:duration-500 motion-safe:fade-in-0 motion-safe:zoom-in-50 sm:left-8"

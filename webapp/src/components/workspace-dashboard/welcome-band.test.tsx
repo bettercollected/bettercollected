@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AppTheme } from '@app/lib/app-theme';
+import { AppThemeContext } from '@app/lib/app-theme-context';
 import I18nProvider from '@app/shared/hocs/i18n-provider';
 import { selectAuth } from '@app/store/auth/slice';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -153,5 +155,48 @@ describe('the welcome band', () => {
             render_();
             expect(screen.getByTestId('welcome-band')).toHaveAttribute('data-state', 'ready');
         });
+    });
+});
+
+describe('the welcome band picture follows the app theme', () => {
+    const renderIn = (theme: AppTheme | null) =>
+        render(
+            <AppThemeContext.Provider value={theme}>
+                <I18nProvider>
+                    <WelcomeBand />
+                </I18nProvider>
+            </AppThemeContext.Provider>
+        );
+    const textColumn = () => screen.getByRole('heading', { level: 2 }).parentElement as HTMLElement;
+    const artBox = () => screen.getByTestId('welcome-band').querySelector('[aria-hidden="true"]') as HTMLElement;
+
+    it('in a Pigment scope draws the flat shapes in a box on the right, and the text column gives up that width', () => {
+        state.forms = forms([DRAFT]);
+        renderIn('pigment');
+        expect(screen.getByTestId('pigment-app-art')).toHaveAttribute('data-variant', 'band');
+        expect(artBox().className).toContain('right-0');
+        expect(artBox().className).toContain('w-[200px]');
+        expect(artBox().className).toContain('hidden'); // left out on a phone, as the sun and hills are
+        expect(textColumn().className).toContain('sm:max-w-[min(52ch,calc(100%_-_216px))]');
+        expect(textColumn().className).toContain('lg:max-w-[min(52ch,calc(100%_-_296px))]');
+        expect(screen.getByTestId('welcome-band').querySelector('circle.fill-sun')).toBeNull();
+    });
+
+    it('in Daybreak and with no scope is what it always was: the sun and hills fill the band behind a text column that is not narrowed', () => {
+        for (const theme of ['daybreak', null] as const) {
+            state.forms = forms([DRAFT]);
+            const { unmount } = renderIn(theme);
+            expect(screen.queryByTestId('pigment-app-art')).toBeNull();
+            expect(artBox().className).toBe('absolute inset-0 hidden sm:block');
+            expect(artBox().querySelector('circle.fill-sun')).not.toBeNull();
+            expect(textColumn().className).toBe('relative flex max-w-[52ch] flex-col items-start gap-2 sm:gap-3 p-4 sm:p-7');
+            unmount();
+        }
+    });
+
+    it('draws no picture in the greeting-only state in Pigment either (the empty state below carries it)', () => {
+        state.forms = forms([], 0);
+        renderIn('pigment');
+        expect(screen.queryByTestId('pigment-app-art')).toBeNull();
     });
 });
