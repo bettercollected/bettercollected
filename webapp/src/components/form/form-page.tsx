@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { PAGE_CARD, PAGE_ROWS } from '@app/components/ui/page-surface';
 import { cn } from '@app/shadcn/util/lib';
 
 /**
@@ -14,8 +15,9 @@ import { cn } from '@app/shadcn/util/lib';
  *  - `FORM_ROWS`: a card of rows, one divider (the hairline) between them. The padding is the card's, so a row's own
  *    top and bottom padding gives the rhythm and the divider runs edge to edge.
  */
-export const FORM_CARD = 'rounded-lg border border-hairline-strong bg-surface p-4 sm:p-6';
-export const FORM_ROWS = 'flex flex-col divide-y divide-hairline-strong rounded-lg border border-hairline-strong bg-surface px-4 sm:px-6';
+// the card and rows classes are the app's (components/ui/page-surface.tsx), shared with the workspace pages
+export const FORM_CARD = PAGE_CARD;
+export const FORM_ROWS = PAGE_ROWS;
 
 export function FormPage({ children, className }: { children: React.ReactNode; className?: string }) {
     return <div className={cn('flex w-full min-w-0 max-w-[760px] flex-col gap-8 pb-6', className)}>{children}</div>;
