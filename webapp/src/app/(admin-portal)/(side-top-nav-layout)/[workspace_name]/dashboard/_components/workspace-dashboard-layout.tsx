@@ -148,16 +148,18 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                 {
                     key: 'custom-domain',
                     name: (
-                        <div className="flex items-center gap-2">
+                        // a span, not a div: the name sits inside a link or a button (phrasing content only)
+                        <span className="flex items-center gap-2">
                             {t('STAFF.NAV.CUSTOM_DOMAIN')} <ProLogo />
-                        </div>
+                        </span>
                     ),
                     icon: <Globe />,
                     url: `${commonWorkspaceUrl}/custom-domain`,
                     // setting the domain is the workspace PATCH (workspace.manage)
                     permission: WorkspacePermission.WORKSPACE_MANAGE,
-                    // opens the upgrade dialog unless the workspace is Pro: a button, so a new tab cannot skip it
-                    opensInPlace: true,
+                    // Without Pro the click opens the upgrade dialog: a button, so a new tab cannot skip it. A Pro
+                    // workspace goes to the page: a link (the click still runs onClick below, as before).
+                    opensInPlace: !workspace?.isPro,
                     onClick: () => {
                         if (workspace?.isPro) {
                             router.push(`${commonWorkspaceUrl}/custom-domain`);

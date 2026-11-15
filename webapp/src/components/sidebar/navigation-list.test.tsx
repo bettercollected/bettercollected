@@ -115,6 +115,28 @@ describe('the sidebar rows', () => {
         expect(button).toHaveClass(...box, 'text-copy', 'hover:bg-sunken', 'hover:text-ink', 'text-start');
     });
 
+    it('open Custom domain as a link on a Pro workspace and as a button (upgrade dialog) without Pro', () => {
+        const onClick = vi.fn();
+        const custom = (isPro: boolean): INavbarItem => ({ key: 'custom-domain', name: <span className="flex">Custom domain <span>Pro</span></span>, url: '/acme/dashboard/custom-domain', opensInPlace: !isPro, onClick });
+        pathname = '/acme/dashboard/custom-domain';
+        const { unmount } = render(<NavigationList navigationList={[custom(true)]} />);
+        const link = screen.getByRole('link', { name: /Custom domain/ });
+        expect(link).toHaveAttribute('href', '/acme/dashboard/custom-domain');
+        expect(link).toHaveAttribute('aria-current', 'page');
+        expect(screen.queryByRole('button')).toBeNull();
+        expect(fireEvent.click(link, { ctrlKey: true })).toBe(true); // a new tab goes to the page
+        expect(onClick).not.toHaveBeenCalled();
+        fireEvent.click(link);
+        expect(onClick).toHaveBeenCalledTimes(1);
+        unmount();
+
+        onClick.mockClear();
+        render(<NavigationList navigationList={[custom(false)]} />);
+        expect(screen.queryByRole('link')).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: /Custom domain/ }));
+        expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
     it('have no list item or div that is clickable without a role', () => {
         const { container } = render(<NavigationList navigationList={items()} />);
         // React puts no onclick attribute in the DOM, so the tree is checked instead: each li holds exactly one

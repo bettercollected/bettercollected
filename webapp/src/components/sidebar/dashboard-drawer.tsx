@@ -24,7 +24,7 @@ const Drawer = ({ navGroups, can }: any) => {
             </div>
             <div className="flex-1 overflow-auto h-full scrollbar-hide">
                 <div className="flex min-h-full flex-col justify-between">
-                    <nav aria-label={t('STAFF.NAV.WORKSPACE')} className="px-4 pt-2">
+                    <nav aria-label={t('STAFF.SHELL.WORKSPACE_MENU')} className="px-4 pt-2">
                         {/* Nav grouped by meaning (Collection · Your site ·
                             Workspace), not by permission — the old split was
                             "everyone" vs "admins", which separated Site from
