@@ -43,6 +43,8 @@ describe('the published dialog', () => {
         const art = container.querySelectorAll('svg[viewBox="-360 0 1000 148"]');
         expect(art).toHaveLength(1);
         expect(art[0]).toHaveAttribute('aria-hidden', 'true');
+        // no coral dot beside the dialog's close button: it would read as a notification
+        expect(container.querySelector('circle.fill-coral')).toBeNull();
     });
 
     it('settles the check once and only for people who have not asked for less motion', () => {

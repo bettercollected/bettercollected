@@ -24,7 +24,7 @@ const renderClient = () => {
 describe('the first run of a new workspace', () => {
     it("welcomes the creator on the empty states' card: the one heading, one sentence, one next step, the motif once", () => {
         const { container } = renderClient();
-        expect(screen.getByRole('heading', { level: 1, name: 'Hey Dora!' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { level: 1, name: 'Hey Dora' })).toBeInTheDocument();
         expect(screen.getAllByRole('heading')).toHaveLength(1);
         const card = screen.getByTestId('empty-state');
         expect(card).toHaveAttribute('data-illustration', 'true');
@@ -42,6 +42,6 @@ describe('the first run of a new workspace', () => {
         renderClient();
         fireEvent.click(screen.getByRole('button', { name: 'Create your workspace' }));
         expect(screen.getByText('workspace form')).toBeInTheDocument();
-        expect(screen.queryByRole('heading', { name: 'Hey Dora!' })).toBeNull();
+        expect(screen.queryByRole('heading', { name: 'Hey Dora' })).toBeNull();
     });
 });

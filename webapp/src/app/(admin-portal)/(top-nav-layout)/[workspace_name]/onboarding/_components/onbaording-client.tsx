@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 
-import { Button } from '@app/shadcn/components/ui/button';
 import { useTranslation } from 'react-i18next';
 
 import EmptyState from '@app/components/ui/empty-state';
@@ -12,6 +11,7 @@ import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import OnboardingContainer from '@app/containers/onboarding';
 import { UserStatus } from '@app/models/dtos/user-status';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import { Button } from '@app/shadcn/components/ui/button';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -35,13 +35,13 @@ export default function OnboardingClient({ workspace, createWorkspace }: onBoard
         <>
             <div className="mt-[60px] flex flex-col items-center justify-center gap-2">
                 <Logo isLink={false} />
-                <p className="text-copy text-xs">{t(onBoarding.privacyFriendly)}</p>
+                <p className="text-xs text-copy">{t(onBoarding.privacyFriendly)}</p>
             </div>
             <div className="mt-12 flex w-full justify-center px-4 sm:mt-16">
                 <EmptyState
                     headingLevel={1}
                     className="max-w-[480px]"
-                    title={`${t(localesCommon.hey)} ${user?.firstName || user?.email}!`}
+                    title={`${t(localesCommon.hey)} ${user?.firstName || user?.email}`}
                     description={t(onBoarding.welcomeMessage)}
                     action={
                         <Button size="medium" onClick={increaseStep}>

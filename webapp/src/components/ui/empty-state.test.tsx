@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import DaybreakArt from './daybreak-art';
 import EmptyState from './empty-state';
 
 afterEach(cleanup);
@@ -17,6 +18,21 @@ describe('EmptyState', () => {
         const art = container.querySelector('svg');
         expect(art).not.toBeNull();
         expect(art).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    it('can be the page heading, for a page whose card is all there is (the first run)', () => {
+        render(<EmptyState headingLevel={1} title="Hey Dora" />);
+        expect(screen.getByRole('heading', { level: 1, name: 'Hey Dora' })).toBeInTheDocument();
+    });
+
+    it('draws the coral spark, and leaves it out where a control sits at the corner of the panel', () => {
+        const { container, rerender } = render(<DaybreakArt />);
+        expect(container.querySelector('circle.fill-coral')).not.toBeNull();
+        rerender(<DaybreakArt spark={false} />);
+        expect(container.querySelector('circle.fill-coral')).toBeNull();
+        // the sun and the hills stay
+        expect(container.querySelector('circle.fill-sun')).not.toBeNull();
+        expect(container.querySelectorAll('path')).toHaveLength(2);
     });
 
     it('leaves the picture out for a search or a filter with no match', () => {

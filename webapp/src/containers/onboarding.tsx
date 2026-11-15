@@ -180,7 +180,7 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
         <div className="flex w-full flex-col items-center bg-canvas px-4 min-h-screen md:px-0">
             <AuthNavbar showPlans={false} showHamburgerIcon />
             {/* The form sits in the empty states' card on the canvas: the motif once, then the work */}
-            <section aria-labelledby="onboarding-title" className="mt-32 mb-16 flex w-full flex-col overflow-hidden rounded border border-hairline-strong bg-surface md:w-[605px]">
+            <section aria-labelledby="onboarding-title" className="mt-32 mb-16 flex w-full shrink-0 flex-col overflow-hidden rounded border border-hairline-strong bg-surface md:w-[605px]">
                 <div className="h-[96px] bg-brand-tint sm:h-[120px]">
                     <DaybreakArt />
                 </div>

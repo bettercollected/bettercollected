@@ -62,7 +62,7 @@ export default function LoginView() {
 
     const creatorPage = (
         <TopNavLayout className="mt-0! min-h-screen p-0!">
-            <div className="flex min-h-screen w-full flex-col items-center gap-8 py-8 sm:py-12">
+            <div className="flex min-h-screen w-full flex-col items-center gap-8 px-4 py-8 sm:py-12">
                 <header className="flex flex-col items-center gap-1.5 text-center">
                     <Logo isLink={false} />
                     <p className="m-0 text-sm text-copy">{t(signUpScreen.logoDescription)}</p>

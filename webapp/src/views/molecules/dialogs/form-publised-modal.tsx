@@ -50,7 +50,7 @@ export default function FormPublishedModal(props: any) {
     return (
         <div className="flex w-full max-w-full min-w-0 flex-col overflow-hidden sm:rounded">
             <div className="relative h-[96px] bg-brand-tint sm:h-[112px]">
-                <DaybreakArt />
+                <DaybreakArt spark={false} />
                 <span
                     data-testid="published-mark"
                     className="absolute bottom-0 left-6 flex h-12 w-12 translate-y-1/2 items-center justify-center rounded-full border border-hairline-strong bg-surface text-ok motion-safe:animate-in motion-safe:duration-500 motion-safe:fade-in-0 motion-safe:zoom-in-50 sm:left-8"
@@ -59,7 +59,7 @@ export default function FormPublishedModal(props: any) {
                 </span>
             </div>
 
-            <div className="flex flex-col gap-5 p-6 pt-10 sm:p-8 sm:pt-11">
+            <div className="flex flex-col gap-4 p-6 pt-10 sm:p-8 sm:pt-11">
                 <div className="flex flex-col gap-1.5">
                     <h2 className="m-0 text-xl leading-snug font-semibold tracking-title-sm text-ink">{t('PUBLISHED_MODAL.TITLE')}</h2>
                     {/* Honest about what publishing means: the same line the Share modal uses. */}
@@ -91,12 +91,12 @@ export default function FormPublishedModal(props: any) {
                 </div>
 
                 <div className="flex flex-col gap-3 sm:flex-row">
-                    <a href={shareUrl} target="_blank" rel="noopener noreferrer" data-umami-event={'PublishModal Open Form Link'} className={buttonClassName({ variant: 'tertiary', size: 'medium', className: 'flex-1' })}>
+                    <a href={shareUrl} target="_blank" rel="noopener noreferrer" data-umami-event={'PublishModal Open Form Link'} className={buttonClassName({ variant: 'tertiary', size: 'medium', className: 'sm:flex-1' })}>
                         <ExternalLink className="h-4 w-4" aria-hidden="true" />
                         {t('PUBLISHED_MODAL.OPEN_FORM')}
                         <span className="sr-only"> ({t('PUBLISHED_MODAL.NEW_TAB')})</span>
                     </a>
-                    <a href={sharingUrl} data-umami-event={'PublishModal Goto Settings Link'} className={buttonClassName({ variant: 'tertiary', size: 'medium', className: 'flex-1' })}>
+                    <a href={sharingUrl} data-umami-event={'PublishModal Goto Settings Link'} className={buttonClassName({ variant: 'tertiary', size: 'medium', className: 'sm:flex-1' })}>
                         {t('PUBLISHED_MODAL.MORE_SHARE')}
                     </a>
                 </div>
