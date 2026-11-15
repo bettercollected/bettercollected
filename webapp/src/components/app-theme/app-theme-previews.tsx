@@ -10,7 +10,7 @@ import type { AppTheme } from '@app/lib/app-theme';
 // fails there until the picture follows.
 export const THEME_PICTURES: Record<AppTheme, { ground: string; card: string; edge: string; ink: string; line: string; action: string; tiles: string[] }> = {
     // canvas, surface, hairline-strong, ink, hairline, app-action, form-hue-0..4-bg
-    daybreak: { ground: '#F3F6FF', card: '#FFFFFF', edge: '#BDC8E8', ink: '#0E1737', line: '#DCE2F5', action: '#1649E2', tiles: ['#FFE4DC', '#FFF1C7', '#DDF5EA', '#E0E8FF', '#EEE8FC'] },
+    daybreak: { ground: '#F3F6FF', card: '#FFFFFF', edge: '#BDC8E8', ink: '#0E1737', line: '#DCE2F5', action: '#1649E2', tiles: ['#D4EFF0', '#FFF1C7', '#F3E8D8', '#E0E8FF', '#EEE8FC'] },
     pigment: { ground: '#FBF7F1', card: '#FFFFFF', edge: '#CFC4B1', ink: '#1A1238', line: '#E9E1D4', action: '#4B35DB', tiles: ['#FF8A73', '#FFC62E', '#5FD9B0', '#6BBEF7', '#D9A0FF'] }
 };
 
