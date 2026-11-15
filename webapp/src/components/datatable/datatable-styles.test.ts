@@ -9,22 +9,24 @@ import { TABLE_EDGE, TABLE_EDGE_STRONG, TABLE_WASH, dataTableCustomStyles, delet
 
 // The admin tables take their edges and header band from the app theme's roles, with the frozen value as the fallback:
 // Daybreak (where each role is exactly that value) and a page with no scope draw what they always drew, and a table in a
-// Pigment workspace is warm. No literal colour is left in the shared style objects.
+// Pigment workspace is warm. The neutral text colours stay literal (a `color: <hex> !important` is applied by the table
+// library differently from a `var()`, which changed the drawn text in a first attempt).
 
 const strings = (value: unknown): string[] => (typeof value === 'string' ? [value] : value && typeof value === 'object' ? Object.values(value).flatMap(strings) : []);
 // `var(--name, <fallback>)` is the way a frozen value is written; it is cut out before a literal colour is looked for
 const withoutFallbacks = (text: string) => text.replace(/var\(--[\w-]+,\s*#[0-9a-fA-F]{3,8}\)/g, 'var()');
-const LITERAL_COLOUR = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/;
 
 describe('the shared table styles', () => {
     it.each([
         ['dataTableCustomStyles', dataTableCustomStyles],
         ['deletionRequestTableStyles', deletionRequestTableStyles]
-    ])('%s holds no literal colour', (_name, styles) => {
+    ])('%s holds no literal edge, fill or border colour, and only the three neutral text colours', (_name, styles) => {
         const literals = strings(styles)
             .map(withoutFallbacks)
-            .filter((text) => LITERAL_COLOUR.test(text));
-        expect(literals).toEqual([]);
+            .flatMap((text) => text.match(/#[0-9a-fA-F]{3,8}\b/g) ?? []);
+        // the text colours stay literal on purpose (see datatable-styles.ts); every edge, fill and border reads a role
+        expect([...new Set(literals)].sort()).toEqual(['#101828', '#344054', '#667085']);
+        expect(strings(styles).filter((text) => /\b(rgba?|hsla?)\(/.test(text))).toEqual([]);
     });
 
     it('draws the header band, the outer edges and the cell lines from the wash and the edge roles', () => {

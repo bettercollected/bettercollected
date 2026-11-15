@@ -7,13 +7,14 @@ import { DELETION_TABLE_PADDING } from './deletion-request-columns';
 // frozen value as the fallback, so a table in a Pigment workspace has warm edges and a warm header band while Daybreak
 // (where each role is exactly that value) and any page without a theme scope draw what they always drew. In Daybreak
 // `--app-wash` is black-100 (#F5F7FB), `--app-edge` black-300 (#EAECF0) and `--app-edge-strong` black-400 (#D0D5DD): no
-// approximation. The neutral text steps stay on the frozen ramp (`--color-black-600/700/900`), as everywhere in the app.
+// approximation. The neutral text colours stay literal on purpose: react-data-table-component applies a `color: <hex>
+// !important` from these objects differently from a `var()`, so moving them would change the drawn text in Daybreak.
 export const TABLE_WASH = 'var(--app-wash, #F5F7FB)';
 export const TABLE_EDGE = 'var(--app-edge, #EAECF0)';
 export const TABLE_EDGE_STRONG = 'var(--app-edge-strong, #D0D5DD)';
-export const TEXT_STRONG = 'var(--color-black-700, #344054)';
-export const TEXT_INK = 'var(--color-black-900, #101828)';
-const TEXT_MUTED = 'var(--color-black-600, #667085)';
+export const TEXT_STRONG = '#344054';
+export const TEXT_INK = '#101828';
+const TEXT_MUTED = '#667085';
 
 export const dataTableCustomStyles = {
     table: {
