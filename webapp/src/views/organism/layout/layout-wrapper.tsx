@@ -16,7 +16,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { ResolvedFormLogo } from '@app/utils/form-logo';
 import FormLogoStrip from '@app/views/molecules/form/form-logo-strip';
-import { ThemeArtworkBand, ThemeArtworkPanel, themeArtwork } from '@app/views/molecules/theme/theme-artwork';
+import { ThemeArtworkBand, ThemeArtworkPanel, themeArtwork, themePictureArtwork } from '@app/views/molecules/theme/theme-artwork';
 import { themeRootProps } from '@app/views/molecules/theme/theme-root';
 import { themeBackgroundStyle } from '@app/views/molecules/theme/theme-shared';
 import { FORM_GUTTER, isLeftAligned } from '@app/views/organism/layout/form-column';
@@ -70,7 +70,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
     // A picture half without an image of its own shows the theme's built-in
     // artwork, if it has one (theme-artwork.tsx), instead of an empty half.
     const art = artworkTheme ?? theme;
-    const artwork = !imageUrl && layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && !!themeArtwork(art);
+    const artwork = !imageUrl && layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && !!themePictureArtwork(art);
     const band = artworkBand && !!themeArtwork(art);
 
     const handleGridClick = () => {

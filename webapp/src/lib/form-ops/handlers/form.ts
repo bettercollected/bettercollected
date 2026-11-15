@@ -1,5 +1,5 @@
 /** Form-level ops: title, settings, theme. */
-import { type FormTheme, THEME_STYLES, THEME_TYPE_SHAPE_KEYS, ThemeColors, themeProblems, welcomeLayoutAfterPreset } from '@app/constants/theme';
+import { type FormTheme, THEME_STYLES, THEME_TYPE_SHAPE_KEYS, ThemeColors, isPresetOffered, offeredPresets, themeProblems, welcomeLayoutAfterPreset } from '@app/constants/theme';
 
 import { IMAGE_URL_ERROR, firstPartyImageUrl } from '../images';
 import { checkedFormLanguage, formLanguageName } from '../languages';
@@ -153,20 +153,29 @@ export const updateTheme: Handler<UpdateThemeOp> = (ctx, op) => {
 /** Old preset names and the preset each now means (backend LEGACY_PRESET_NAMES). */
 const LEGACY_PRESET_NAMES: Record<string, string> = { Blue: 'Ocean', Green: 'Forest', Red: 'Cherry', Black: 'Mono', Orange: 'Sunset', Purple: 'Lavender' };
 
-/** The preset a name means, in any case (backend `preset_name`). */
-export function presetByName(name: string | null | undefined): FormTheme | undefined {
+/**
+ * The preset a name means, in any case (backend `preset_name`). With
+ * `offeredGated` (the server's list of switched-on gated presets), a gated
+ * preset that is not on it means no preset, as it does on the server.
+ */
+export function presetByName(name: string | null | undefined, offeredGated?: ReadonlyArray<string>): FormTheme | undefined {
     if (typeof name !== 'string') return undefined;
     const key = name.trim().toLowerCase();
     const legacy = Object.entries(LEGACY_PRESET_NAMES).find(([old]) => old.toLowerCase() === key);
     const wanted = legacy ? legacy[1].toLowerCase() : key;
-    return ThemeColors.find((preset) => preset.title.toLowerCase() === wanted);
+    const found = ThemeColors.find((preset) => preset.title.toLowerCase() === wanted);
+    return found && (offeredGated === undefined || isPresetOffered(found.title, offeredGated)) ? found : undefined;
 }
 
 export const setThemePreset: Handler<SetThemePresetOp> = (ctx, op) => {
     checkMaxLength(op.name, 60);
     checkMaxLength(op.style, 30);
-    const preset = presetByName(op.name);
-    if (!preset) throw new OpError(`There is no theme preset named '${op.name}'. Pick one of: ${ThemeColors.map((t) => t.title).join(', ')}.`);
+    const offered = ctx.options.offeredGatedPresets;
+    const preset = presetByName(op.name, offered);
+    if (!preset) {
+        const pickable = offered === undefined ? ThemeColors : offeredPresets(offered);
+        throw new OpError(`There is no theme preset named '${op.name}'. Pick one of: ${pickable.map((t) => t.title).join(', ')}.`);
+    }
     // The preset's own keys (colours, and type and shape once presets carry them).
     const theme: FormTheme = clone(preset);
     if (op.style != null) {

@@ -47,8 +47,12 @@ export const THEME_PATTERNS: ReadonlyArray<ThemePattern> = ['dots', 'grid', 'str
 // third party. It fills the picture half of a welcome or ending page whose
 // layout has one and no image of its own, and runs as a band along the top
 // of the other pages that end the form. `marble`: a marbled endpaper.
-export type ThemeArtwork = 'marble';
-export const THEME_ARTWORKS: ReadonlyArray<ThemeArtwork> = ['marble'];
+// `daybreak`: a scene drawn on the page itself: a sun in the corner of every
+// page and, on the ending, a sun that rises behind two hills.
+export type ThemeArtwork = 'marble' | 'daybreak';
+export const THEME_ARTWORKS: ReadonlyArray<ThemeArtwork> = ['marble', 'daybreak'];
+/** The artwork that fills a picture half (a page set beside an image); the others are drawn on the page and leave its layout alone. */
+export const PICTURE_ARTWORKS: ReadonlyArray<ThemeArtwork> = ['marble'];
 
 // Optional decoration for the page ground. `accent` stays the base colour
 // everywhere (inputs, sticky surfaces, fallbacks) — the background only
@@ -325,8 +329,44 @@ export const ThemeColors: Array<FormTheme> = [
             type: 'pattern',
             pattern: 'columns'
         }
+    },
+    {
+        // The blue you know with the sun coming up behind it: the Default
+        // preset's blue on a periwinkle page, a sun in the corner of every
+        // page and a sunrise on the ending (background.artwork 'daybreak').
+        // Colours and the scene only: faces, corners and buttons stay the
+        // form's own. Ink 16.3:1 on the page, action blue 6.3:1 on the page
+        // and 6.8:1 with white text, input edge 3.8:1 on the page (4.1:1 on
+        // white). Offered while the server's switch is on (GATED_PRESETS).
+        title: 'Daybreak',
+        primary: '#0E1737',
+        secondary: '#1649E2',
+        tertiary: '#6E7CA8',
+        accent: '#F3F6FF',
+        style: 'classic',
+        background: {
+            type: 'color',
+            artwork: 'daybreak'
+        }
     }
 ];
+
+// Presets offered only while the server's switch for them is on (backend
+// constants/themes.py GATED_PRESETS, a test keeps the two together): the
+// permissions answer lists the ones that are on (`offeredGatedPresets`). A
+// later preset joins here with its own switch. A form that stores one keeps
+// rendering whatever the switch says; only picking it anew is gated.
+export const GATED_PRESETS: ReadonlyArray<string> = ['Daybreak'];
+
+/** Is the preset offered: it has no switch, or the server says its switch is on. */
+export function isPresetOffered(title: string, offeredGated: ReadonlyArray<string> | null | undefined): boolean {
+    return !GATED_PRESETS.includes(title) || !!offeredGated?.includes(title);
+}
+
+/** The presets to offer for the server's list of switched-on gated presets, in the picker's order. */
+export function offeredPresets(offeredGated: ReadonlyArray<string> | null | undefined): Array<FormTheme> {
+    return ThemeColors.filter((preset) => isPresetOffered(preset.title, offeredGated));
+}
 
 /**
  * The welcome page layout a complete-look preset is made for: Kantlijn sets
@@ -337,6 +377,8 @@ export const PRESET_WELCOME_LAYOUTS: Readonly<Record<string, FormSlideLayout>> =
     Kantlijn: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
     Raster: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
 };
+
+const isPictureArtwork = (artwork?: string | null) => !!artwork && (PICTURE_ARTWORKS as ReadonlyArray<string>).includes(artwork);
 
 const IMAGE_LAYOUTS: ReadonlyArray<string> = [FormSlideLayout.TWO_COLUMN_IMAGE_LEFT, FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT, FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND];
 
@@ -354,7 +396,7 @@ export function welcomeLayoutAfterPreset(welcomePage: { layout?: string | null; 
     if (welcomePage == null || welcomePage.imageUrl?.trim()) return undefined;
     const suggested = next.title ? PRESET_WELCOME_LAYOUTS[next.title] : undefined;
     if (suggested) return welcomePage.layout === suggested ? undefined : suggested;
-    if (previous?.background?.artwork && !next.background?.artwork && welcomePage.layout && IMAGE_LAYOUTS.includes(welcomePage.layout)) return FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND;
+    if (isPictureArtwork(previous?.background?.artwork) && !isPictureArtwork(next.background?.artwork) && welcomePage.layout && IMAGE_LAYOUTS.includes(welcomePage.layout)) return FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND;
     return undefined;
 }
 
