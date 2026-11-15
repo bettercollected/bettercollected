@@ -295,6 +295,7 @@ _CONTRAST_WORDS = {
     "outlined": "text and edges of outlined buttons",
     "border": "input borders",
     "action": "chosen answers and progress",
+    "band": "text on the yellow band of the Pigment look",
 }
 _FIX_ORDER = ("primary", "secondary", "tertiary", "accent", "inputText")
 # How a role is named in the message (the others by their own name).

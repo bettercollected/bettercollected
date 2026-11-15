@@ -6,6 +6,7 @@ import { APP_ROLES_RESET_ON_FORMS } from '@app/lib/app-theme';
 import { contrast } from '@app/utils/color-contrast';
 import { outlinedButtonInk } from '@app/utils/theme-contrast';
 import { daybreakRule, hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
+import { hasPigmentScene, pigmentRule } from '@app/views/molecules/theme/pigment-art';
 
 /**
  * A theme's type, shape and highlight as CSS custom properties and data
@@ -191,6 +192,8 @@ export function themeRootProps(theme?: Partial<FormTheme> | null, { typeOnly = f
     // on the page. The highlight, if the form has one, wins; the focus ring
     // and the chosen answer stay in the action colour.
     if (hasDaybreakScene(theme) && !isHexColour(theme.highlight)) style['--form-highlight-rule'] = daybreakRule(theme);
+    // The Pigment scene: the same, in a deep tomato.
+    if (hasPigmentScene(theme) && !isHexColour(theme.highlight)) style['--form-highlight-rule'] = pigmentRule(theme);
 
     const highlight = highlightColours(theme);
     if (highlight) {

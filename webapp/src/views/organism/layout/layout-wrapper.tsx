@@ -16,7 +16,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { ResolvedFormLogo } from '@app/utils/form-logo';
 import FormLogoStrip from '@app/views/molecules/form/form-logo-strip';
-import { hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
+import { hasEndingScene } from '@app/views/molecules/theme/pigment-art';
 import { ThemeArtworkBand, ThemeArtworkPanel, themeArtwork, themePictureArtwork } from '@app/views/molecules/theme/theme-artwork';
 import { useInAppThemeScope } from '@app/lib/app-theme-context';
 import { formRootProps } from '@app/views/molecules/theme/theme-root';
@@ -75,7 +75,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
     const artwork = !imageUrl && layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && !!themePictureArtwork(art);
     const band = artworkBand && !!themeArtwork(art);
     // The Daybreak ending is one composition: the sunrise, then the message directly under it, not centred in the room left.
-    const sceneEnding = band && hasDaybreakScene(art);
+    const sceneEnding = band && hasEndingScene(art);
 
     const handleGridClick = () => {
         setShowControls(!showControls);

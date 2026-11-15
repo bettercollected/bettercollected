@@ -306,3 +306,30 @@ describe('contrastKey', () => {
         }
     });
 });
+
+describe('the Pigment band', () => {
+    // The Pigment artwork draws the header bar of a question page as a sun-yellow band with the questions' ink on it.
+    // The guard measures `primary` there too (key `band`); the server's guard does the same (docs/spec/theme-contrast.cases.json).
+    const pigment = { primary: '#1A1238', secondary: '#4B35DB', tertiary: '#7C7396', accent: '#FBF7F1', background: { type: 'color', artwork: 'pigment' } } as const;
+    const lowBand = { ...pigment, primary: '#6E6585' };
+
+    it('passes the preset, and reports a primary that reads on the page (5.1:1) but not on the band (3.46:1) as the band pair', () => {
+        expect(themeContrastGuard(pigment as any).issues).toEqual([]);
+        const guard = themeContrastGuard(lowBand as any);
+        expect(guard.issues.map((issue) => [issue.key, issue.minimum])).toEqual([['band', AA_TEXT]]);
+        expect(guard.issues[0].ratio).toBeCloseTo(3.46, 2);
+        expect(guard.fix).toEqual({ primary: '#5C546F' });
+    });
+
+    it('lists the pair among the checks, only with the artwork', () => {
+        const band = themeContrastChecks(lowBand as any).find((check) => check.key === 'band')!;
+        expect(band).toMatchObject({ foreground: '#6E6585', background: '#FFC62E', minimum: AA_TEXT, passes: false });
+        expect(themeContrastChecks({ ...lowBand, background: { type: 'color' } } as any).some((check) => check.key === 'band')).toBe(false);
+        expect(themeContrastChecks(pigment as any).find((check) => check.key === 'band')!.passes).toBe(true);
+    });
+
+    it('is not measured without the artwork, and is part of the contrast key with it', () => {
+        expect(themeContrastGuard({ ...lowBand, background: { type: 'color' } } as any).issues).toEqual([]);
+        expect(contrastKey(lowBand as any)).not.toBe(contrastKey({ ...lowBand, background: { type: 'color' } } as any));
+    });
+});
