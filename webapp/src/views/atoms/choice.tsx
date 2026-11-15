@@ -7,7 +7,7 @@ import { FieldChoice } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
 import { themed } from '@app/views/molecules/theme/theme-root';
-import { leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
+import { contrast, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 import useJustChosen from './use-just-chosen';
 
@@ -64,7 +64,8 @@ export function ChoiceIndicator({ kind, selected, theme, inverted = false }: { k
  */
 export function choiceRowStyle(theme: Partial<FormTheme> | undefined, selected: boolean): { className: string; style: CSSProperties; solid: boolean } {
     const tokens = styleTokens(theme?.style);
-    const solid = tokens.solidSelection && selected;
+    // lettered keys (choiceKeys) go with a solid chosen row: the action colour with white text and a check
+    const solid = (tokens.solidSelection || hasChoiceKeys(theme)) && selected;
     // The chosen option in the theme's highlight where it sets one
     // (theme-root.ts highlightColours), else the secondary as before.
     const chosenEdge = themed('--form-highlight-edge', theme?.secondary);
@@ -112,7 +113,26 @@ export function choiceRowStyle(theme: Partial<FormTheme> | undefined, selected: 
  * ring and box it always had, so stored forms don't change.
  */
 export function showsOptionKeys(theme?: Partial<FormTheme> | null): boolean {
-    return !!theme?.radius && (THEME_RADII as readonly string[]).includes(theme.radius);
+    return hasChoiceKeys(theme) || (!!theme?.radius && (THEME_RADII as readonly string[]).includes(theme.radius));
+}
+
+/** Does the theme ask for lettered choice keys (`choiceKeys: 'letters'`)? */
+export const hasChoiceKeys = (theme?: Partial<FormTheme> | null): boolean => theme?.choiceKeys === 'letters';
+
+/**
+ * The flat fills of the lettered choice keys, in turn (A tomato, B sun, C mint,
+ * D sky, E orchid, then again). The form carries them, not the app: a respondent
+ * page never reads the app's colour variables. Each holds 4.5:1 or more with the
+ * theme's ink (7.7 to 11.3 with #1A1238), else the letter is black.
+ */
+export const CHOICE_KEY_FILLS: ReadonlyArray<string> = ['#FF8A73', '#FFC62E', '#5FD9B0', '#6BBEF7', '#D9A0FF'];
+
+/** The fill and the letter colour of the key of the option at `index` on a theme with `choiceKeys`. */
+export function choiceKeyColours(theme: Partial<FormTheme> | null | undefined, index: number): { fill: string; ink: string } {
+    const fill = CHOICE_KEY_FILLS[((index % CHOICE_KEY_FILLS.length) + CHOICE_KEY_FILLS.length) % CHOICE_KEY_FILLS.length];
+    const primary = theme?.primary;
+    const ink = primary && /^#[0-9a-fA-F]{6}$/.test(primary) && contrast(primary, fill) >= 4.5 ? primary : '#000000';
+    return { fill, ink };
 }
 
 /** The key letters of `count` options: A to Z, none past the 26th. */
@@ -154,8 +174,17 @@ const KEY_CORNER: Record<string, string> = { sharp: '0px', soft: '4px', round: '
  * On a solid chosen row (studio) it is drawn in the row's ink instead.
  * Decorative for assistive tech: the option carries `aria-keyshortcuts`.
  */
-export function OptionKeyHint({ letter, selected, theme, inverted = false }: { letter: string; selected?: boolean; theme?: Partial<FormTheme>; inverted?: boolean }) {
+export function OptionKeyHint({ letter, selected, theme, inverted = false, keyIndex }: { letter: string; selected?: boolean; theme?: Partial<FormTheme>; inverted?: boolean; /** The option's place in its list: picks its pigment on a theme with `choiceKeys`. */ keyIndex?: number }) {
     const solidInk = 'var(--form-highlight-solid-ink, #ffffff)';
+    if (hasChoiceKeys(theme) && keyIndex !== undefined) {
+        // a flat pigment with an ink letter, chosen or not (4.5:1 or more, see CHOICE_KEY_FILLS)
+        const { fill, ink } = choiceKeyColours(theme, keyIndex);
+        return (
+            <span aria-hidden="true" data-option-key-hint data-choice-key className="flex h-7 w-7 shrink-0 items-center justify-center font-mono text-[13px] leading-none font-semibold" style={{ background: fill, color: ink, borderRadius: KEY_CORNER[theme?.radius ?? 'soft'] ?? '4px' }}>
+                {letter}
+            </span>
+        );
+    }
     const colours: CSSProperties = inverted
         ? { borderColor: solidInk, color: solidInk }
         : selected
@@ -180,11 +209,11 @@ export function OptionKeyHint({ letter, selected, theme, inverted = false }: { l
  * in colour and weight; the mark pops in gently unless reduced motion is
  * asked for (`form-choice-pop`, tailwind.css).
  */
-export function ChoiceContent({ kind, selected, theme, solid, lang, keyHint, children }: { kind: ChoiceKind; selected?: boolean; theme?: Partial<FormTheme>; solid?: boolean; lang?: string; keyHint?: string; children: ReactNode }) {
+export function ChoiceContent({ kind, selected, theme, solid, lang, keyHint, keyIndex, children }: { kind: ChoiceKind; selected?: boolean; theme?: Partial<FormTheme>; solid?: boolean; lang?: string; keyHint?: string; /** The option's place in its list, for its key's pigment. */ keyIndex?: number; children: ReactNode }) {
     const justChosen = useJustChosen(!!selected);
     return (
         <>
-            {keyHint ? <OptionKeyHint letter={keyHint} selected={selected} theme={theme} inverted={solid} /> : <ChoiceIndicator kind={kind} selected={selected} theme={theme} inverted={solid} />}
+            {keyHint ? <OptionKeyHint letter={keyHint} selected={selected} theme={theme} inverted={solid} keyIndex={keyIndex} /> : <ChoiceIndicator kind={kind} selected={selected} theme={theme} inverted={solid} />}
             <span className="min-w-0 flex-1 [overflow-wrap:anywhere]" lang={lang}>
                 {children}
             </span>
@@ -226,7 +255,7 @@ const Choice = forwardRef<HTMLButtonElement, ChoiceProps>(({ isSelected = false,
     const semantics = kind === 'checkbox' ? { role: 'checkbox', 'aria-checked': isSelected } : { 'aria-pressed': isSelected };
     return (
         <button ref={ref} type="button" {...semantics} aria-keyshortcuts={keyHint} data-option-key={keyHint} style={row.style} className={row.className} key={choice.id} onClick={() => onClick && onClick(choice.id || '')} onKeyDown={onKeyDown}>
-            <ChoiceContent kind={kind} selected={isSelected} theme={theme} solid={row.solid} lang={choice.value ? lang : undefined} keyHint={keyHint}>
+            <ChoiceContent kind={kind} selected={isSelected} theme={theme} solid={row.solid} lang={choice.value ? lang : undefined} keyHint={keyHint} keyIndex={index}>
                 {choice.value ? choice.value : `Item ${index + 1}`}
             </ChoiceContent>
         </button>

@@ -81,6 +81,14 @@ export type ThemeTitleWidth = 'normal' | 'expanded';
 export type ThemeRadius = 'sharp' | 'soft' | 'round';
 export type ThemeButtonStyle = 'filled' | 'outlined' | 'pill';
 
+// Lettered choice keys: each answer option of a choice question carries a small
+// square with its letter (A, B, C...) in ink on a flat pigment, and the chosen
+// option fills with the action colour and ends in a check. Absent: the options as
+// before (a theme that sets a radius already shows plain outlined keys). The
+// backend keeps the same list (common models/standard_form.py THEME_CHOICE_KEYS).
+export type ThemeChoiceKeys = 'letters';
+export const THEME_CHOICE_KEYS: ReadonlyArray<ThemeChoiceKeys> = ['letters'];
+
 export const THEME_FONTS: ReadonlyArray<ThemeFontId> = ['public-sans', 'atkinson-next', 'archivo', 'besley', 'rubik', 'atkinson-mono'];
 // `expanded` sets display titles at 125% width on a face with a width axis (Archivo).
 export const THEME_TITLE_WIDTHS: ReadonlyArray<ThemeTitleWidth> = ['normal', 'expanded'];
@@ -91,13 +99,14 @@ export const THEME_BUTTON_STYLES: ReadonlyArray<ThemeButtonStyle> = ['filled', '
 /** The theme keys that dress type and shape: a colour preset without them keeps the form's own. */
 export const THEME_TYPE_SHAPE_KEYS = ['titleFont', 'bodyFont', 'dataFont', 'titleWidth', 'radius', 'buttonStyle'] as const;
 
-const THEME_CHOICES: Array<[(typeof THEME_TYPE_SHAPE_KEYS)[number], ReadonlyArray<string>]> = [
+const THEME_CHOICES: Array<[string, ReadonlyArray<string>]> = [
     ['titleFont', THEME_FONTS],
     ['bodyFont', THEME_FONTS],
     ['dataFont', THEME_FONTS],
     ['titleWidth', THEME_TITLE_WIDTHS],
     ['radius', THEME_RADII],
-    ['buttonStyle', THEME_BUTTON_STYLES]
+    ['buttonStyle', THEME_BUTTON_STYLES],
+    ['choiceKeys', THEME_CHOICE_KEYS]
 ];
 
 /** A #rrggbb colour. */
@@ -132,7 +141,7 @@ export function themeProblems(theme: unknown, path = 'theme'): string[] {
  */
 export function themeTypeShape(theme?: Partial<FormTheme> | null): Partial<FormTheme> {
     const kept: Record<string, unknown> = {};
-    for (const key of [...THEME_TYPE_SHAPE_KEYS, 'highlight', 'selection', 'inputText'] as const) if (theme?.[key] != null) kept[key] = theme[key];
+    for (const key of [...THEME_TYPE_SHAPE_KEYS, 'choiceKeys', 'highlight', 'selection', 'inputText'] as const) if (theme?.[key] != null) kept[key] = theme[key];
     return kept as Partial<FormTheme>;
 }
 
@@ -153,6 +162,8 @@ export interface FormTheme {
     titleWidth?: ThemeTitleWidth | null;
     radius?: ThemeRadius | null;
     buttonStyle?: ThemeButtonStyle | null;
+    /** `letters`: lettered keys on the answer options (see THEME_CHOICE_KEYS). Absent: the options as before. */
+    choiceKeys?: ThemeChoiceKeys | null;
     /** #rrggbb: the chosen answer, the "why we ask" and "optional" notes, the focus ring where it reads. Absent: secondary. */
     highlight?: string | null;
     /** #rrggbb: the chosen answer alone, when it should differ from the highlight. Absent: the highlight, else secondary. */
