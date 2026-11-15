@@ -15,7 +15,8 @@ export default async function AdminPortalLayout({ children }: { children: React.
 
     return (
         <StaffLanguageProvider>
-            <div>
+            {/* The creator app's colour theme (tailwind.css, "App theme scope"); respondent routes never carry it. */}
+            <div data-app-theme="daybreak">
                 {children}
             </div>
         </StaffLanguageProvider>

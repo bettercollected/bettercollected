@@ -1,13 +1,15 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+
+import { useRouter, useSearchParams } from 'next/navigation';
+
 import type { TFunction } from 'i18next';
+import { Globe, ShieldCheck, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { Globe, ShieldCheck, Trash2 } from 'lucide-react';
-
 import SiretoFooter from '@app/components/layout/sireto-footer';
+import MfaCodeForm from '@app/components/mfa/mfa-code-form';
 import { useMfaT } from '@app/components/mfa/use-mfa-t';
 import Logo from '@app/components/ui/logo';
 import { localesCommon } from '@app/constants/locales/common';
@@ -17,7 +19,6 @@ import TopNavLayout from '@app/layouts/top-navbar-layout';
 import { navigateTo } from '@app/utils/browser-navigation';
 import { safeNextPath } from '@app/utils/mfa';
 
-import MfaCodeForm from '@app/components/mfa/mfa-code-form';
 import OtpCodeForm from './otp-code-form';
 import OtpEmailForm from './otp-email-form';
 
@@ -75,45 +76,49 @@ export default function LoginView() {
     };
 
     return (
-        <TopNavLayout className="min-h-screen mt-0! p-0!">
-            <div className="flex h-full w-full flex-col lg:flex-row">
-                <div className="order-2 flex w-full flex-col justify-center gap-8 bg-[#101828] px-8 py-14 lg:order-1 lg:min-h-screen lg:w-1/2 lg:px-16">
-                    <h1 className="tracking-title max-w-[480px] text-[26px] font-semibold leading-snug text-white lg:text-[32px]">{panel.title}</h1>
-                    <p className="max-w-[440px] text-[15px] leading-relaxed text-[#A8B3C4]">{panel.description}</p>
-                    {panel.bullets && (
-                        <ul className="flex max-w-[460px] flex-col gap-5">
-                            {panel.bullets.map(({ icon: Icon, text }) => (
-                                <li key={text} className="flex items-start gap-3 text-[15px] leading-relaxed text-[#DFE5EE]">
-                                    <Icon className="mt-0.5 h-5 w-5 shrink-0 text-[#A8C0EA]" strokeWidth={1.8} aria-hidden="true" />
-                                    {text}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-                <div className="relative order-1 flex min-h-fit w-full flex-col items-start justify-between px-8 py-7 sm:min-h-screen lg:order-2 lg:max-w-[50%] lg:py-8 xl:pl-[90px] xl:pr-28">
-                    <div className="mb-20 lg:mb-0">
-                        <Logo isLink={false} />
-                        <h1 className="body4 text-black-800! mt-2">{t(signUpScreen.logoDescription)}</h1>
-                    </div>
-
-                    <div className="w-full">
-                        {arrivedForSecondFactor ? (
-                            <MfaCodeForm onSignedIn={finishSignIn} onBack={() => router.replace('/login')} />
-                        ) : !email ? (
-                            <OtpEmailForm setEmail={setEmail} isSignup={isSignup} />
-                        ) : (
-                            <OtpCodeForm email={email} setEmail={setEmail} onMfaChange={setSecondFactorAfterEmail} />
+        // The creator's sign-in wears the app theme. The respondent's (`?type=responder`, also served on custom
+        // domains) is a respondent route: no attribute, so it keeps paper mist.
+        <div data-app-theme={isResponder ? undefined : 'daybreak'}>
+            <TopNavLayout className="mt-0! min-h-screen p-0!">
+                <div className="flex h-full w-full flex-col lg:flex-row">
+                    <div className="order-2 flex w-full flex-col justify-center gap-8 bg-[#101828] px-8 py-14 lg:order-1 lg:min-h-screen lg:w-1/2 lg:px-16">
+                        <h1 className="max-w-[480px] text-[26px] leading-snug font-semibold tracking-title text-white lg:text-[32px]">{panel.title}</h1>
+                        <p className="max-w-[440px] text-[15px] leading-relaxed text-[#A8B3C4]">{panel.description}</p>
+                        {panel.bullets && (
+                            <ul className="flex max-w-[460px] flex-col gap-5">
+                                {panel.bullets.map(({ icon: Icon, text }) => (
+                                    <li key={text} className="flex items-start gap-3 text-[15px] leading-relaxed text-[#DFE5EE]">
+                                        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-[#A8C0EA]" strokeWidth={1.8} aria-hidden="true" />
+                                        {text}
+                                    </li>
+                                ))}
+                            </ul>
                         )}
                     </div>
+                    <div className="relative order-1 flex min-h-fit w-full flex-col items-start justify-between px-8 py-7 sm:min-h-screen lg:order-2 lg:max-w-[50%] lg:py-8 xl:pr-28 xl:pl-[90px]">
+                        <div className="mb-20 lg:mb-0">
+                            <Logo isLink={false} />
+                            <h1 className="body4 mt-2 text-black-800!">{t(signUpScreen.logoDescription)}</h1>
+                        </div>
 
-                    <div className="mt-24 flex w-full flex-col gap-4 lg:mt-0">
-                        <TermsAndCondition isSignup={isSignup} translate={secondFactor ? tMfa : undefined} language={secondFactor ? mfaLanguage : undefined} />
-                        <SiretoFooter className="text-left" language={secondFactor ? mfaLanguage : undefined} />
+                        <div className="w-full">
+                            {arrivedForSecondFactor ? (
+                                <MfaCodeForm onSignedIn={finishSignIn} onBack={() => router.replace('/login')} />
+                            ) : !email ? (
+                                <OtpEmailForm setEmail={setEmail} isSignup={isSignup} />
+                            ) : (
+                                <OtpCodeForm email={email} setEmail={setEmail} onMfaChange={setSecondFactorAfterEmail} />
+                            )}
+                        </div>
+
+                        <div className="mt-24 flex w-full flex-col gap-4 lg:mt-0">
+                            <TermsAndCondition isSignup={isSignup} translate={secondFactor ? tMfa : undefined} language={secondFactor ? mfaLanguage : undefined} />
+                            <SiretoFooter className="text-left" language={secondFactor ? mfaLanguage : undefined} />
+                        </div>
                     </div>
                 </div>
-            </div>
-        </TopNavLayout>
+            </TopNavLayout>
+        </div>
     );
 }
 
@@ -124,11 +129,11 @@ const TermsAndCondition = ({ isSignup, translate, language }: { isSignup: boolea
     return (
         <div className="body4" lang={language}>
             {t(isSignup ? signUpScreen.signUpAgreementDescription : signInScreen.signinAgreementDescription)}
-            <a href="https://bettercollected.com/terms-of-service" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
+            <a href="https://bettercollected.com/terms-of-service" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer text-brand-500 underline hover:text-brand-600">
                 {t(localesCommon.termsOfServices.title)}
             </a>
             {t(localesCommon.and)}
-            <a href="https://bettercollected.com/privacy-policy" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer underline text-brand-500 hover:text-brand-600">
+            <a href="https://bettercollected.com/privacy-policy" target="_blank" rel="noreferrer" className="mx-1 cursor-pointer text-brand-500 underline hover:text-brand-600">
                 {t(localesCommon.privacyPolicy.title)}
             </a>
             .

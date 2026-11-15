@@ -338,7 +338,8 @@ export function WhyWeAskSetting({ value, required, onChange }: { value: string; 
                 onChange={(e) => onChange(e.target.value)}
                 className={`w-full rounded-lg border p-2 text-xs ${missing ? 'border-amber-500' : 'border-control focus:border-brand-500'}`}
             />
-            <span id="why-we-ask-help" className={`text-[11px] leading-relaxed ${missing ? 'text-amber-700' : 'text-black-600'}`}>
+            {/* The creator's own "why we ask this" note keeps its sun rule (DESIGN.md §1); the words say the same thing, the rule is only the second cue. */}
+            <span id="why-we-ask-help" className={`border-l-2 pl-2 text-[11px] leading-relaxed ${missing ? 'border-warn-fill text-warn' : 'border-sun text-ink-muted'}`}>
                 {missing ? t('INSPECTOR.WHY_MISSING') : t('INSPECTOR.WHY_HELP')}
             </span>
         </div>

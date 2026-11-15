@@ -87,13 +87,13 @@ function RailLink({ item, mode, collapsed, child }: { item: FormNavItem; mode: R
                 'flex min-h-10 items-center gap-2.5 rounded px-2.5 text-sm',
                 byMode(mode, { collapsed: 'justify-center px-0', expanded: '', auto: 'justify-center px-0 xl:justify-start xl:px-2.5' }),
                 child && byMode(mode, { collapsed: '', expanded: 'pl-9', auto: 'xl:pl-9' }),
-                isCurrent ? 'bg-brand-100 font-semibold text-brand-700' : item.active ? 'font-semibold text-black-900' : 'font-medium text-black-700 hover:bg-black-200 hover:text-black-900'
+                isCurrent ? 'bg-brand-tint font-semibold text-link' : item.active ? 'font-semibold text-ink' : 'font-medium text-copy hover:bg-sunken hover:text-ink'
             )}
         >
             <Icon aria-hidden="true" className={cn('h-[18px] w-[18px] shrink-0', child && byMode(mode, { collapsed: '', expanded: 'hidden', auto: 'xl:hidden' }))} />
             <span className={cn('min-w-0 flex-1 truncate', byMode(mode, { collapsed: 'sr-only', expanded: '', auto: 'sr-only xl:not-sr-only' }))}>{item.label}</span>
             {typeof item.count === 'number' && (
-                <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium tabular-nums', isCurrent ? 'bg-white text-brand-700' : 'bg-black-200 text-black-700', byMode(mode, { collapsed: 'hidden', expanded: '', auto: 'hidden xl:inline' }))}>
+                <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium tabular-nums', isCurrent ? 'bg-white text-link' : 'bg-sunken text-ink-muted', byMode(mode, { collapsed: 'hidden', expanded: '', auto: 'hidden xl:inline' }))}>
                     {item.count}
                 </span>
             )}
@@ -165,11 +165,11 @@ function SheetLink({ item, child, onNavigate }: { item: FormNavItem; child?: boo
             href={item.href}
             onClick={onNavigate}
             aria-current={isCurrent ? 'page' : undefined}
-            className={cn('flex min-h-11 items-center gap-3 rounded px-3 text-[15px]', child && 'pl-10', isCurrent ? 'bg-brand-100 font-semibold text-brand-700' : item.active ? 'font-semibold text-black-900' : 'text-black-800 hover:bg-black-200')}
+            className={cn('flex min-h-11 items-center gap-3 rounded px-3 text-[15px]', child && 'pl-10', isCurrent ? 'bg-brand-tint font-semibold text-link' : item.active ? 'font-semibold text-ink' : 'text-copy hover:bg-sunken')}
         >
             {!child && <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />}
             <span className="min-w-0 flex-1 truncate">{item.label}</span>
-            {typeof item.count === 'number' && <span className="rounded-full bg-black-200 px-2 py-0.5 text-xs font-medium text-black-700 tabular-nums">{item.count}</span>}
+            {typeof item.count === 'number' && <span className="rounded-full bg-sunken px-2 py-0.5 text-xs font-medium text-ink-muted tabular-nums">{item.count}</span>}
             {isCurrent && <Check aria-hidden="true" className="h-4 w-4 shrink-0 text-brand-600" />}
         </Link>
     );

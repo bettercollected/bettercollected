@@ -26,6 +26,21 @@ vi.mock('@app/store/auth/api', async (importOriginal) => {
 const assign = vi.fn();
 vi.mock('@app/utils/browser-navigation', () => ({ reloadPage: vi.fn(), navigateTo: (path: string) => assign(path) }));
 
+describe('which sign-in wears the app theme', () => {
+    it("the creator's sign-in carries the theme attribute", () => {
+        searchParams = new URLSearchParams();
+        const { container } = render(<LoginView />);
+        expect(container.querySelector('[data-app-theme="daybreak"]')).not.toBeNull();
+    });
+
+    it("the respondent's sign-in (?type=responder, also served on custom domains) does not: it keeps paper mist", () => {
+        searchParams = new URLSearchParams({ type: 'responder' });
+        const { container } = render(<LoginView />);
+        expect(screen.getByRole('heading', { name: 'See your submissions' })).toBeInTheDocument();
+        expect(container.querySelector('[data-app-theme]')).toBeNull();
+    });
+});
+
 describe('LoginView after a provider sign-in that needs the second factor', () => {
     beforeEach(() => {
         challengeMock.mockReset().mockResolvedValue({ data: { loggedIn: true } });
