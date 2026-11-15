@@ -242,6 +242,13 @@ interface ChoiceProps {
     lang?: string;
     /** Its key letter, on a theme that shows option keys (showsOptionKeys). */
     keyHint?: string;
+    /**
+     * Where the option stands among those shown (its key letter's place): picks
+     * its pigment on a theme with `choiceKeys`. Defaults to `index`, which is
+     * right while every option is shown; when option logic hides some, the
+     * shown ones pass their position so the letter and the pigment keep step.
+     */
+    keyIndex?: number;
     onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
 }
 
@@ -250,12 +257,12 @@ interface ChoiceProps {
  * (role="checkbox" + aria-checked); single-answer lists outside a radio group
  * (the dropdown's options) stay toggle buttons with aria-pressed.
  */
-const Choice = forwardRef<HTMLButtonElement, ChoiceProps>(({ isSelected = false, theme, index, choice, onClick, kind = 'radio', lang, keyHint, onKeyDown }, ref) => {
+const Choice = forwardRef<HTMLButtonElement, ChoiceProps>(({ isSelected = false, theme, index, choice, onClick, kind = 'radio', lang, keyHint, keyIndex, onKeyDown }, ref) => {
     const row = choiceRowStyle(theme, isSelected);
     const semantics = kind === 'checkbox' ? { role: 'checkbox', 'aria-checked': isSelected } : { 'aria-pressed': isSelected };
     return (
         <button ref={ref} type="button" {...semantics} aria-keyshortcuts={keyHint} data-option-key={keyHint} style={row.style} className={row.className} key={choice.id} onClick={() => onClick && onClick(choice.id || '')} onKeyDown={onKeyDown}>
-            <ChoiceContent kind={kind} selected={isSelected} theme={theme} solid={row.solid} lang={choice.value ? lang : undefined} keyHint={keyHint} keyIndex={index}>
+            <ChoiceContent kind={kind} selected={isSelected} theme={theme} solid={row.solid} lang={choice.value ? lang : undefined} keyHint={keyHint} keyIndex={keyIndex ?? index}>
                 {choice.value ? choice.value : `Item ${index + 1}`}
             </ChoiceContent>
         </button>
