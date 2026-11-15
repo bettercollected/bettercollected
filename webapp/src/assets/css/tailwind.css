@@ -1167,15 +1167,22 @@ html:has([data-app-theme='pigment']) [data-insert-search]:focus-within {
 }
 
 /*
- * Text on a quiet fill: the frozen neutral text colour (`text-black-600`, #667085) is 4.66:1 on the Pigment canvas but
- * falls under 4.5:1 on its quiet fills (4.43 on the wash, 4.20 on the sunken fill and the tracks, 3.83 on the edge colour,
- * 4.02 on the selected tint). A pill, badge or label that carries both classes on one element takes the theme's muted ink
- * there (5.1:1 or more on each of them). Only an element that is on such a fill is touched, only in a Pigment scope
- * (portalled dialogs through the `html:has(...)` mirror); Daybreak, where the pair is 4.5:1 or more, is not.
- * Unlayered on purpose: it is meant to win over the element's `text-black-600` utility (not while hovered).
+ * Text on the wash: the frozen neutral text colour (`text-black-600`, #667085) is 4.66:1 on the Pigment canvas but 4.43:1
+ * on the wash (`bg-app-wash`, #F7F1E7), under 4.5. Two shapes of the pair exist in the app, and these rules take both to
+ * the theme's muted ink (5.92:1 on the wash): (1) one element that carries both classes (a pill, a badge, a chip), and
+ * (2) a `p` or `span` that is a DIRECT child of a wash element (a note, a label or a caption inside a wash box, such as
+ * "Only owners and admins ..." in the add-access form). Child combinator and element names are deliberate: a descendant
+ * rule would recolour unrelated text, and an icon link (`a`, an svg) keeps its own colour. Only the wash is named
+ * because it is the only fill the pair occurs on in the app (the sunken fill, the edge colour and the selected tint have
+ * the same under-4.5 pair as tokens but no element carries it). Only in a Pigment scope (portalled dialogs through the
+ * `html:has(...)` mirror); Daybreak, where the pair is 4.5:1 or more, is not touched. Not while hovered. Disabled
+ * controls (the disabled button label on the edge colour) are exempt from the contrast rule and are left as they are.
+ * Unlayered on purpose: it is meant to win over the element's `text-black-600` utility.
  */
-[data-app-theme='pigment'] :is(.bg-app-wash, .bg-app-wash-strong, .bg-sunken, .bg-app-edge, .bg-app-primary-tint).text-black-600:not(:hover),
-html:has([data-app-theme='pigment']) :is(.bg-app-wash, .bg-app-wash-strong, .bg-sunken, .bg-app-edge, .bg-app-primary-tint).text-black-600:not(:hover) {
+[data-app-theme='pigment'] .bg-app-wash.text-black-600:not(:hover),
+[data-app-theme='pigment'] .bg-app-wash > :is(p, span).text-black-600:not(:hover),
+html:has([data-app-theme='pigment']) .bg-app-wash.text-black-600:not(:hover),
+html:has([data-app-theme='pigment']) .bg-app-wash > :is(p, span).text-black-600:not(:hover) {
     color: var(--app-ink-muted);
 }
 

@@ -624,21 +624,43 @@ describe('what a Pigment workspace still drew in the frozen blue, and the one pl
         expect(readFileSync(resolve(SRC, 'views/molecules/dialogs/insert-field-modal.tsx'), 'utf8')).toContain('data-insert-search');
     });
 
-    it('moves the frozen neutral text (#667085) to the theme muted ink on a quiet fill, where it falls under 4.5:1', () => {
-        // the pair that failed: black-600 on each quiet fill of Pigment, against the muted ink that replaces it there
+    it('moves the frozen neutral text (#667085) to the theme muted ink on the wash, for the same element and for a direct p or span child', () => {
+        // the pair that fails: black-600 on the wash of Pigment, against the muted ink that replaces it there
         const frozen = themeToken('black-600')!.toUpperCase();
-        for (const fill of ['wash', 'sunken', 'edge', 'brand-tint']) {
-            expect(contrast(frozen, role('pigment', fill)), `black-600 on ${fill}`).toBeLessThan(4.5);
-            expect(contrast(role('pigment', 'ink-muted'), role('pigment', fill)), `ink-muted on ${fill}`).toBeGreaterThanOrEqual(4.5);
-        }
+        expect(contrast(frozen, role('pigment', 'wash')), 'black-600 on wash').toBeLessThan(4.5);
+        expect(contrast(role('pigment', 'ink-muted'), role('pigment', 'wash')), 'ink-muted on wash').toBeGreaterThanOrEqual(4.5);
         // on the canvas and a card the frozen colour passes, so it is left alone
         expect(contrast(frozen, role('pigment', 'canvas'))).toBeGreaterThanOrEqual(4.5);
         expect(contrast(frozen, role('pigment', 'surface'))).toBeGreaterThanOrEqual(4.5);
-        // the rule names only same-element pairs and is Pigment's; the soft fill, where the muted ink is under 4.5, is not in it
-        const block = css.match(/\[data-app-theme='pigment'\] :is\(([^)]*)\)\.text-black-600:not\(:hover\)/)?.[1] ?? '';
-        expect(block.split(',').map((name) => name.trim()).sort()).toEqual(['.bg-app-edge', '.bg-app-primary-tint', '.bg-app-wash', '.bg-app-wash-strong', '.bg-sunken']);
-        expect(contrast(role('pigment', 'ink-muted'), role('pigment', 'primary-soft'))).toBeLessThan(4.5);
-        expect(css).toMatch(/color: var\(--app-ink-muted\);/);
+        const rule = css.match(/(\[data-app-theme='pigment'\] \.bg-app-wash\.text-black-600:not\(:hover\),[^{]*)\{([^}]*)\}/);
+        expect(rule?.[1].split(',\n').map((selector) => selector.trim())).toEqual([
+            "[data-app-theme='pigment'] .bg-app-wash.text-black-600:not(:hover)",
+            "[data-app-theme='pigment'] .bg-app-wash > :is(p, span).text-black-600:not(:hover)",
+            "html:has([data-app-theme='pigment']) .bg-app-wash.text-black-600:not(:hover)",
+            "html:has([data-app-theme='pigment']) .bg-app-wash > :is(p, span).text-black-600:not(:hover)"
+        ]);
+        expect(rule?.[2]).toContain('color: var(--app-ink-muted);');
+        // the selectors match the same element and a direct p or span child, and nothing else
+        const selectors = rule![1].split(',\n').map((selector) => selector.trim()).filter((selector) => selector.startsWith("[data-app-theme='pigment']"));
+        document.body.innerHTML = `
+            <div data-app-theme="pigment">
+                <span id="pill" class="bg-app-wash text-black-600">pill</span>
+                <form class="bg-app-wash">
+                    <p id="note" class="text-xs text-black-600">note</p>
+                    <label><span id="nested" class="text-black-600">nested</span></label>
+                    <a id="icon" class="text-black-600">icon</a>
+                    <p id="plain" class="text-black-800">plain</p>
+                </form>
+                <p id="cream" class="text-black-600">cream</p>
+                <div class="bg-sunken"><span id="sunken" class="text-black-600">sunken</span></div>
+            </div>
+            <span id="outside" class="bg-app-wash text-black-600">outside</span>`;
+        const matched = [...document.querySelectorAll(selectors.join(','))].map((el) => el.id).sort();
+        expect(matched).toEqual(['note', 'pill']);
+        document.body.innerHTML = '';
+        // no quiet-fill rule in Daybreak, and the fills that no element pairs with this text are not named
+        expect(css).not.toMatch(/\[data-app-theme='daybreak'\][^{]*text-black-600/);
+        expect(css).not.toMatch(/\.bg-sunken\.text-black-600|\.bg-app-edge\.text-black-600|\.bg-app-primary-tint\.text-black-600/);
     });
 });
 
