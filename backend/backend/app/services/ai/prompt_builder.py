@@ -346,6 +346,9 @@ def ops_guide() -> str:
 
     if layout_containers_enabled() and _JUMPS_END in guide:
         guide = guide.replace(_JUMPS_END, _JUMPS_END + _CONTAINERS_OP, 1)
+    # The looks are the last section; the presets it lists follow the switches of the
+    # gated presets as they are now (OPS_GUIDE itself holds them as at import).
+    guide = guide[: guide.index("## Looks")] + _looks_guide()
     return guide
 
 
