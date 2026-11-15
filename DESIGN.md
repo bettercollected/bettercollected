@@ -286,6 +286,15 @@ edges, many text steps, shadcn inputs and menus, tables) keep their blue-grey in
 a Pigment workspace until they move onto roles. The ramps stay frozen for the
 respondent routes either way.
 
+**A form is never in the app's colours.** The builder canvas, the preview page and
+the preview dialog sit inside the scope of a workspace, but they show the form as a
+respondent sees it. The root of the form (`LayoutWrapper`, `formRootProps`) therefore
+sets every app role that a form component reads with a frozen fallback
+(`--app-action`, its hover and pressed steps, `--app-on-action`, `--app-focus-ring`;
+the list is `APP_ROLES_RESET_ON_FORMS` in `lib/app-theme.ts`) to `initial`, so the
+button and the focus ring are the form's own or the frozen blue, in Pigment too. Outside
+a scope (the real respondent page) nothing is set.
+
 `assets/css/app-theme.test.ts` holds the two blocks: Pigment sets every variable
 Daybreak sets (and the pigments); every text and control pair of both themes passes
 WCAG from the values in the CSS; no theme block declares a ramp; and the previews

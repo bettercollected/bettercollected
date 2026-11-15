@@ -18,7 +18,8 @@ import { ResolvedFormLogo } from '@app/utils/form-logo';
 import FormLogoStrip from '@app/views/molecules/form/form-logo-strip';
 import { hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
 import { ThemeArtworkBand, ThemeArtworkPanel, themeArtwork, themePictureArtwork } from '@app/views/molecules/theme/theme-artwork';
-import { themeRootProps } from '@app/views/molecules/theme/theme-root';
+import { useInAppThemeScope } from '@app/lib/app-theme-context';
+import { formRootProps } from '@app/views/molecules/theme/theme-root';
 import { themeBackgroundStyle } from '@app/views/molecules/theme/theme-shared';
 import { FORM_GUTTER, isLeftAligned } from '@app/views/organism/layout/form-column';
 
@@ -67,7 +68,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
     const { openDialogModal } = useDialogModal();
     // The theme's type, shape and highlight (theme-root.ts): nothing for a
     // theme without them, so such a form renders as before.
-    const themeRoot = themeRootProps(theme);
+    const themeRoot = formRootProps(theme, useInAppThemeScope());
     // A picture half without an image of its own shows the theme's built-in
     // artwork, if it has one (theme-artwork.tsx), instead of an empty half.
     const art = artworkTheme ?? theme;
