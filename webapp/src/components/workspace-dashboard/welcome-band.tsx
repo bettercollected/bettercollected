@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation';
 
 import { useTranslation } from 'react-i18next';
 
-import DaybreakArt from '@app/components/ui/daybreak-art';
+import AppArt from '@app/components/ui/app-art';
 import globalConstants from '@app/constants/global';
+import { useAppTheme } from '@app/lib/app-theme-context';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { GreetingPeriod, WelcomeState, greetingPeriod, welcomeState } from '@app/lib/welcome-band';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -39,6 +40,7 @@ export default function WelcomeBand() {
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
     const { can } = useWorkspacePermissions();
+    const pigment = useAppTheme() === 'pigment';
     const canCreateForms = can(WorkspacePermission.FORM_CREATE);
     const canEditForms = can(WorkspacePermission.FORM_EDIT);
     const canReviewRequests = can(WorkspacePermission.PRIVACY_MANAGE);
@@ -61,6 +63,10 @@ export default function WelcomeBand() {
         canReviewRequests
     });
     if (state.kind === 'loading') return null;
+
+    // Pigment's shapes sit in a box on the right; the text column gives up that width, so a shape never meets the greeting
+    // or the button (a long Dutch greeting wraps instead). Daybreak's art fills the band behind the text, as it always did.
+    const textClearOfArt = pigment && state.kind !== 'no-forms' ? ' sm:max-w-[min(52ch,calc(100%_-_216px))] lg:max-w-[min(52ch,calc(100%_-_296px))]' : '';
 
     const name = (auth?.firstName ?? '').trim();
     const greeting = period ? t(GREETING_KEYS[period]) : t('STAFF.WELCOME.GREETING_NEUTRAL');
@@ -98,11 +104,11 @@ export default function WelcomeBand() {
         <section aria-labelledby="welcome-band-title" data-testid="welcome-band" data-state={state.kind} className={`relative mb-6 overflow-hidden rounded border border-hairline-strong bg-brand-tint ${state.kind === 'no-forms' ? '' : 'sm:min-h-[172px]'}`}>
             {/* the picture lives in the empty state below when there are no forms yet: once is enough */}
             {state.kind !== 'no-forms' && (
-                <div className="absolute inset-0 hidden sm:block" aria-hidden="true">
-                    <DaybreakArt />
+                <div className={pigment ? 'absolute inset-y-0 right-0 hidden w-[200px] sm:block lg:w-[280px]' : 'absolute inset-0 hidden sm:block'} aria-hidden="true">
+                    <AppArt variant="band" />
                 </div>
             )}
-            <div className={`relative flex max-w-[52ch] flex-col items-start gap-2 sm:gap-3 ${state.kind === 'no-forms' ? 'px-4 py-3 sm:px-7 sm:py-5' : 'p-4 sm:p-7'}`}>
+            <div className={`relative flex max-w-[52ch] flex-col items-start gap-2 sm:gap-3 ${state.kind === 'no-forms' ? 'px-4 py-3 sm:px-7 sm:py-5' : 'p-4 sm:p-7'}${textClearOfArt}`}>
                 <h2 id="welcome-band-title" className="m-0 text-xl leading-tight font-semibold tracking-title text-ink sm:text-2xl">
                     {name ? t('STAFF.WELCOME.WITH_NAME', { greeting, name }) : greeting}
                 </h2>

@@ -10,9 +10,9 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 
 import FormPublishedModal from './form-publised-modal';
 
-const renderModal = () => {
+const renderModal = (appTheme = 'daybreak') => {
     (window as any).PUBLIC_CONFIG = { HTTP_SCHEME: 'https://', FORM_DOMAIN: 'forms.example.test', DASHBOARD_DOMAIN: 'admin.example.test' };
-    store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'acme' } as any));
+    store.dispatch(setWorkspace({ id: 'ws-1', workspaceName: 'acme', appTheme } as any));
     store.dispatch(setForm({ formId: 'f-123', builderVersion: 'v2', settings: {} } as any));
     return render(
         <ReduxProvider store={store}>
@@ -28,6 +28,22 @@ describe('the published dialog', () => {
         Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     });
     afterEach(() => vi.useRealTimers());
+
+    it("draws Pigment's flat shapes when the workspace is in Pigment (the dialog is portalled out of the scope, so the store tells), and the sun and hills otherwise", () => {
+        const { container, unmount } = renderModal('pigment');
+        expect(screen.getByTestId('pigment-app-art')).toHaveAttribute('data-variant', 'panel');
+        expect(container.querySelector('circle.fill-sun')).toBeNull();
+        expect(screen.getByTestId('published-mark').parentElement?.className).toContain('bg-sunken');
+        unmount();
+        {
+            const view = renderModal('daybreak');
+            expect(screen.queryByTestId('pigment-app-art')).toBeNull();
+            expect(view.container.querySelector('circle.fill-sun')).not.toBeNull();
+            expect(view.container.querySelector('circle.fill-coral')).toBeNull(); // spark off in this dialog, as before
+            expect(screen.getByTestId('published-mark').parentElement?.className).toBe('relative h-[96px] bg-brand-tint sm:h-[112px]');
+            view.unmount();
+        }
+    });
 
     it('says the form is live with a mark that is a shape, and shows the link in full view', () => {
         renderModal();

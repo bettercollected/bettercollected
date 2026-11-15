@@ -10,3 +10,9 @@ import { AppTheme } from '@app/lib/app-theme';
 export const AppThemeContext = createContext<AppTheme | null>(null);
 
 export const useInAppThemeScope = (): boolean => useContext(AppThemeContext) !== null;
+
+/**
+ * The app theme in scope: `null` outside any scope. `AppThemeScope` renders on the server with the value the server
+ * read, so a component that reads this draws the right theme in the first HTML, with no frame in the wrong one.
+ */
+export const useAppTheme = (): AppTheme | null => useContext(AppThemeContext);
