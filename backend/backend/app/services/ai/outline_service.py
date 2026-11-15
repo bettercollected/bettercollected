@@ -33,7 +33,7 @@ from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from backend.app.constants.themes import NEW_FORM_THEME, preset_name, theme_dict
+from backend.app.constants.themes import NEW_FORM_THEME, offered_presets, preset_name
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import AI_PROMPT_MAX_LENGTH
 from backend.app.models.enum.permission import Permission
@@ -94,7 +94,7 @@ UNUSABLE_GAPS = (
 
 
 def _presets() -> str:
-    return ", ".join(theme_dict)
+    return ", ".join(offered_presets())
 
 
 OUTLINE_SYSTEM_PROMPT = (

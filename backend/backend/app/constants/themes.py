@@ -173,7 +173,39 @@ theme_dict = {
             "pattern": "columns",
         },
     },
+    # A scene preset: the Default preset's blue on a periwinkle page, a sun in
+    # the corner of the page and a sunrise on the ending (background.artwork
+    # "daybreak", drawn by the webapp). Colours only: it keeps the form's
+    # faces, corners and buttons. Offered while DAYBREAK_PRESET_ENABLED is on
+    # (GATED_PRESETS below).
+    "Daybreak": {
+        "title": "Daybreak",
+        "primary": "#0E1737",
+        "secondary": "#1649E2",
+        "tertiary": "#6E7CA8",
+        "accent": "#F3F6FF",
+        "style": "classic",
+        "background": {
+            "type": "color",
+            "artwork": "daybreak",
+        },
+    },
 }
+
+# Presets that are offered only while their switch (a backend setting) is on.
+# `theme_dict` always lists them, so the two sides stay in step and a form that
+# stores one keeps rendering; what the switch decides is whether the name is
+# *offered*: by the builder's picker (the permissions answer carries it), by the
+# edit operations, the AI and the MCP server, which refuse an unoffered name as
+# they refuse an unknown one. A later preset joins here with its own switch.
+GATED_PRESETS = {
+    "Daybreak": "DAYBREAK_PRESET_ENABLED",
+}
+
+# Artwork that fills the picture half of a welcome or ending page (a page set
+# beside an image). Other artwork (the Daybreak scene) is drawn on the page
+# itself and does not change a page's layout.
+PICTURE_ARTWORKS = ("marble",)
 
 # The welcome page layout a complete-look preset is made for. Same list as
 # the webapp's PRESET_WELCOME_LAYOUTS (webapp/src/constants/theme.ts); a test
@@ -286,6 +318,12 @@ theme_descriptions = {
         "ultramarine for the respondent's own answers. Suits design, "
         "architecture, events, research and confident, modern organisations."
     ),
+    "Daybreak": (
+        "The blue you know with the sun coming up behind it: a soft periwinkle "
+        "page, a small sun in the corner and a sun rising over two hills on the "
+        "ending. Calm and friendly; suits community, health, education and "
+        "neighbourhood forms that should feel welcoming."
+    ),
 }
 
 themes = {title: Theme(**colors) for title, colors in theme_dict.items()}
@@ -311,19 +349,40 @@ _PRESET_NAMES_BY_KEY = {
 }
 
 
+def preset_offered(name: str) -> bool:
+    """Is the preset (its own name) offered: it has no switch, or its switch
+    (GATED_PRESETS, a backend setting) is on? A form that stores an unoffered
+    preset still renders and saves; only picking it anew is refused."""
+    switch = GATED_PRESETS.get(name)
+    if switch is None:
+        return True
+    from backend.config import settings
+
+    return bool(getattr(settings, switch, False))
+
+
+def offered_presets() -> list[str]:
+    """The presets' names that are offered now, in the picker's order."""
+    return [name for name in theme_dict if preset_offered(name)]
+
+
 def preset_name(name: Optional[str]) -> Optional[str]:
     """The preset a name means, in any case and with surrounding spaces: a
     preset's own name, or a legacy name (LEGACY_PRESET_NAMES) for the nearest
-    preset. None when the name means no preset."""
+    preset. None when the name means no preset, or a preset that is not
+    offered (its switch is off): it is refused as an unknown one is."""
     if not isinstance(name, str):
         return None
-    return _PRESET_NAMES_BY_KEY.get(name.strip().lower())
+    found = _PRESET_NAMES_BY_KEY.get(name.strip().lower())
+    return found if found is not None and preset_offered(found) else None
 
 
 def get_themes_for_ai() -> list[dict]:
-    """Return themes with descriptions for use in AI tool calls."""
+    """Return the offered themes with descriptions for use in AI tool calls."""
     result = []
     for name, colors in theme_dict.items():
+        if not preset_offered(name):
+            continue
         result.append(
             {
                 "name": name,

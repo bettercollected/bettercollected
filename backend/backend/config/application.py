@@ -128,6 +128,12 @@ class Application(StoreBackedSettings):
     # those saves are refused with 422 layout_containers_disabled; containers a
     # form already has keep being shown and may lose questions or be removed.
     LAYOUT_CONTAINERS_ENABLED: bool = False
+    # The "Daybreak" theme preset (constants/themes.py GATED_PRESETS). Off (the
+    # default, until the release that turns it on): the builder's picker does
+    # not offer it and the edit operations, the AI and the MCP server refuse
+    # the name as they refuse an unknown preset. A form that already stores
+    # the theme keeps rendering and saving as it is.
+    DAYBREAK_PRESET_ENABLED: bool = False
     # The public API's submissions endpoints (services/submissions_api): a
     # workspace API key with the submissions:write scope creates and updates
     # responses through the respondent's own submit path. Off (the default,

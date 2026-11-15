@@ -124,8 +124,10 @@ from pydantic import (
 from pydantic_core import PydanticCustomError
 
 from backend.app.constants.themes import (
+    PICTURE_ARTWORKS,
     PRESET_WELCOME_LAYOUTS,
     THEME_STYLES,
+    offered_presets,
     preset_name,
     themes as THEME_PRESETS,
 )
@@ -2693,7 +2695,7 @@ def _apply_set_theme_preset(form: StandardForm, op: SetThemePresetOp) -> str:
     if preset is None:
         raise OpError(
             f"There is no theme preset named '{op.name}'. "
-            f"Pick one of: {', '.join(THEME_PRESETS)}."
+            f"Pick one of: {', '.join(offered_presets())}."
         )
     theme = preset.model_copy(deep=True)
     if op.style is not None:
@@ -2728,8 +2730,11 @@ _IMAGE_LAYOUTS = {
 
 
 def _artwork(theme: Optional[Theme]) -> Optional[str]:
+    """The theme's artwork that fills a picture half (marble), else None: the
+    Daybreak scene is drawn on the page itself and leaves a layout alone."""
     background = theme.background if theme is not None else None
-    return background.artwork if background is not None else None
+    artwork = background.artwork if background is not None else None
+    return artwork if artwork in PICTURE_ARTWORKS else None
 
 
 def _welcome_layout_after_preset(
