@@ -83,6 +83,11 @@ THEME_RADII = ("sharp", "soft", "round")
 THEME_BUTTON_STYLES = ("filled", "outlined", "pill")
 THEME_HEX_COLOUR = re.compile(r"#[0-9a-fA-F]{6}")
 
+# Lettered choice keys (A, B, C...) on the answer options, as small squares with
+# an ink letter. Absent: today's options (a theme that sets a radius already shows
+# plain outlined keys). Same list as the webapp's THEME_CHOICE_KEYS.
+THEME_CHOICE_KEYS = ("letters",)
+
 # The theme keys that dress type and shape rather than colour: picking a
 # colour preset that leaves one out keeps the form's own value, as it keeps
 # the form's style.
@@ -102,6 +107,7 @@ _THEME_CHOICES = {
     "titleWidth": THEME_TITLE_WIDTHS,
     "radius": THEME_RADII,
     "buttonStyle": THEME_BUTTON_STYLES,
+    "choiceKeys": THEME_CHOICE_KEYS,
 }
 
 
@@ -207,6 +213,15 @@ class Theme(BaseModel):
         description=(
             "Absent: filled. outlined: the page colour with an edge and text that "
             "pass contrast. pill: filled and fully rounded."
+        ),
+    )
+    choiceKeys: Optional[_listed(THEME_CHOICE_KEYS)] = Field(
+        None,
+        description=(
+            "letters: each answer option of a choice question carries a small "
+            "square with its letter (A, B, C...) in ink on a flat pigment, the "
+            "chosen option fills with the action colour and ends in a check. "
+            "Absent: the options as before."
         ),
     )
     highlight: Optional[ThemeHexColour] = Field(

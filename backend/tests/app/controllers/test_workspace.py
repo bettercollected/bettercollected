@@ -118,6 +118,7 @@ class TestWorkspaces:
                 "titleWidth": None,
                 "radius": None,
                 "buttonStyle": None,
+                "choiceKeys": None,
                 "highlight": None,
                 "selection": None,
                 "inputText": None,

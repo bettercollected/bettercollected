@@ -129,6 +129,8 @@ class WorkspaceThemeDto(BaseModel):
     titleWidth: Optional[str] = None
     radius: Optional[str] = None
     buttonStyle: Optional[str] = None
+    # Lettered choice keys (THEME_CHOICE_KEYS); absent: the options as before.
+    choiceKeys: Optional[str] = None
     highlight: Optional[str] = None
     selection: Optional[str] = None
     # The answers typed in the white input boxes; absent: primary.
