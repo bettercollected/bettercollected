@@ -87,7 +87,7 @@ describe("Pigment's picture", () => {
         // the other shapes stay: the iris disc, the triangle, the half-circle and the squares
         expect(without.querySelectorAll('.fill-app-action')).toHaveLength(1);
         expect(without.querySelectorAll('path')).toHaveLength(2);
-        expect(without.querySelectorAll('rect')).toHaveLength(2);
+        expect(without.querySelectorAll('rect')).toHaveLength(1);
     });
 
     it('keeps every shape inside the safe zone: the panel survives the phone crop, the band stays off its edges', () => {

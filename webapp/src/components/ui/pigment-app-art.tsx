@@ -49,7 +49,6 @@ export default function PigmentAppArt({
             <circle cx="336" cy="74" r="42" className="fill-app-action" />
             <path d="M404 124H456L430 62Z" fill={PIGMENT_MINT} />
             <path d="M478 128a30 30 0 0 1 60 0Z" fill={PIGMENT_SKY} />
-            <rect x="520" y="112" width="16" height="16" rx="3" fill={PIGMENT_TOMATO} />
             {corner && <circle cx="526" cy="46" r="17" fill="none" stroke={PIGMENT_ORCHID} strokeWidth="9" />}
         </svg>
     );
