@@ -498,9 +498,17 @@ async def test_a_hostile_form_title_cannot_split_the_header(client, workspace):
 def test_an_unbroken_answer_is_wrapped_in_linear_time():
     import time
 
-    started = time.monotonic()
-    pieces = render.wrap("W" * render.MAX_VALUE_CHARS, render.REGULAR, render.BODY_SIZE, render.CONTENT_WIDTH)
-    assert time.monotonic() - started < 1.0
+    # The wrap itself takes a few milliseconds. The clock must not count the bundled fonts
+    # being loaded by the first measurement in a process, nor one stall of a busy runner
+    # (this failed at 1.04 s and 1.005 s on unrelated changes): the fonts load first, and
+    # the fastest of three runs is the one that is held to the bound.
+    render.text_width("W", render.REGULAR, render.BODY_SIZE)
+    fastest = float("inf")
+    for _ in range(3):
+        started = time.monotonic()
+        pieces = render.wrap("W" * render.MAX_VALUE_CHARS, render.REGULAR, render.BODY_SIZE, render.CONTENT_WIDTH)
+        fastest = min(fastest, time.monotonic() - started)
+    assert fastest < 1.0
     assert "".join(pieces) == "W" * render.MAX_VALUE_CHARS
     assert all(render.text_width(p, render.REGULAR, render.BODY_SIZE) <= render.CONTENT_WIDTH for p in pieces)
     # one character wider than a line is still one character per piece
@@ -530,9 +538,14 @@ def test_a_document_of_unbroken_answers_is_refused_quickly_not_laid_out_for_ever
 def test_a_long_title_is_cut_for_the_footer_in_linear_time():
     import time
 
-    started = time.monotonic()
-    cut = render.ellipsize("W" * 200_000, render.REGULAR, render.FOOTER_SIZE, render.CONTENT_WIDTH - 90)
-    assert time.monotonic() - started < 1.0
+    # as above: the fonts load first, and the fastest of three runs is held to the bound
+    render.text_width("W", render.REGULAR, render.FOOTER_SIZE)
+    fastest = float("inf")
+    for _ in range(3):
+        started = time.monotonic()
+        cut = render.ellipsize("W" * 200_000, render.REGULAR, render.FOOTER_SIZE, render.CONTENT_WIDTH - 90)
+        fastest = min(fastest, time.monotonic() - started)
+    assert fastest < 1.0
     assert cut.endswith("\u2026") and cut[:-1] == "W" * (len(cut) - 1)
     assert render.text_width(cut, render.REGULAR, render.FOOTER_SIZE) <= render.CONTENT_WIDTH - 90
     assert render.ellipsize("short", render.REGULAR, render.FOOTER_SIZE, 200) == "short"
