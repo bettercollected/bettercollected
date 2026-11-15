@@ -8,6 +8,7 @@ from common.form_spec.models import Theme as SpecTheme
 from common.models.standard_form import (
     THEME_ARTWORKS,
     THEME_BUTTON_STYLES,
+    THEME_CHOICE_KEYS,
     THEME_FONTS,
     THEME_PATTERNS,
     THEME_RADII,
@@ -206,6 +207,7 @@ def test_new_forms_start_with_the_same_preset_as_the_webapp():
         ("THEME_TITLE_WIDTHS", THEME_TITLE_WIDTHS),
         ("THEME_RADII", THEME_RADII),
         ("THEME_BUTTON_STYLES", THEME_BUTTON_STYLES),
+        ("THEME_CHOICE_KEYS", THEME_CHOICE_KEYS),
     ],
 )
 def test_type_and_shape_lists_match_the_webapp(name, values):
@@ -230,6 +232,9 @@ def test_the_spec_lists_the_same_values():
     assert listed("titleWidth") == THEME_TITLE_WIDTHS
     assert listed("radius") == THEME_RADII
     assert listed("buttonStyle") == THEME_BUTTON_STYLES
+    # a single value is a const in the JSON Schema
+    keys = schema["choiceKeys"]["anyOf"][0]
+    assert (keys.get("enum") or [keys["const"]]) == list(THEME_CHOICE_KEYS)
 
 
 COMPLETE_LOOKS = ("Kantlijn", "Raster")

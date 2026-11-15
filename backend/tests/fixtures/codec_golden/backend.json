@@ -3179,7 +3179,7 @@
   "document": "FormResponseDocument"
  },
  "form_templates/full": {
-  "checksum": "sha256:1a0bc15f0a80744b18e70aaeb70144855aa3a5fe6b7d6c56c0103ec8854ef3a9",
+  "checksum": "sha256:92a2179ca266458ef0f6e8edadd224ca1f853b2f61422bb5708c39c293301ffa",
   "doc": {
    "_id": {
     "$oid": "081f1de730ff4503d0f47270"
@@ -3407,6 +3407,7 @@
     },
     "bodyFont": "FormTemplateDocument.theme.bodyFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "buttonStyle": "FormTemplateDocument.theme.buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
+    "choiceKeys": "FormTemplateDocument.theme.choiceKeys tëxt ✓ \"quoted\" \\ line\nbreak",
     "dataFont": "FormTemplateDocument.theme.dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "highlight": "FormTemplateDocument.theme.highlight tëxt ✓ \"quoted\" \\ line\nbreak",
     "inputText": "FormTemplateDocument.theme.inputText tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -3474,7 +3475,7 @@
   "document": "FormTemplateDocument"
  },
  "form_templates/naive": {
-  "checksum": "sha256:bc98338dc68db07ba12236fca3188f052b1dad33d7d32f9edc08f7a8ae17f51a",
+  "checksum": "sha256:29d69b7710b0c3061c31186b5cac118aefd5d4731e0b8eceecd3835b5ff3c75e",
   "doc": {
    "_id": {
     "$oid": "e059e369c6a20f3d47778cec"
@@ -3702,6 +3703,7 @@
     },
     "bodyFont": "FormTemplateDocument.theme.bodyFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "buttonStyle": "FormTemplateDocument.theme.buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
+    "choiceKeys": "FormTemplateDocument.theme.choiceKeys tëxt ✓ \"quoted\" \\ line\nbreak",
     "dataFont": "FormTemplateDocument.theme.dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "highlight": "FormTemplateDocument.theme.highlight tëxt ✓ \"quoted\" \\ line\nbreak",
     "inputText": "FormTemplateDocument.theme.inputText tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -3764,7 +3766,7 @@
   "document": "FormTemplateDocument"
  },
  "form_versions/full": {
-  "checksum": "sha256:703a3456ae976a31ef48cae971f5c270d7c39245d2ced817f777a82642280bd0",
+  "checksum": "sha256:99d1984acf379cc571db6ac1139e52554768fcdadfe3638b3b6ca662b6d66578",
   "doc": {
    "_id": {
     "$oid": "4dba015f9787ef732cba733e"
@@ -4240,6 +4242,7 @@
     },
     "bodyFont": "FormVersionsDocument.theme.bodyFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "buttonStyle": "FormVersionsDocument.theme.buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
+    "choiceKeys": "FormVersionsDocument.theme.choiceKeys tëxt ✓ \"quoted\" \\ line\nbreak",
     "dataFont": "FormVersionsDocument.theme.dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "highlight": "FormVersionsDocument.theme.highlight tëxt ✓ \"quoted\" \\ line\nbreak",
     "inputText": "FormVersionsDocument.theme.inputText tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -4328,7 +4331,7 @@
   "document": "FormVersionsDocument"
  },
  "form_versions/naive": {
-  "checksum": "sha256:8342b227b966d47d64c4231ce5c499fa26442d627b0bcec763b6376f2fa031a6",
+  "checksum": "sha256:1b67e96e31f73d618345c60a40b99db498797827bf66dc9aaeaf7647fd9b039a",
   "doc": {
    "_id": {
     "$oid": "43be05d1a65c7a21699ae9d8"
@@ -4804,6 +4807,7 @@
     },
     "bodyFont": "FormVersionsDocument.theme.bodyFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "buttonStyle": "FormVersionsDocument.theme.buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
+    "choiceKeys": "FormVersionsDocument.theme.choiceKeys tëxt ✓ \"quoted\" \\ line\nbreak",
     "dataFont": "FormVersionsDocument.theme.dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "highlight": "FormVersionsDocument.theme.highlight tëxt ✓ \"quoted\" \\ line\nbreak",
     "inputText": "FormVersionsDocument.theme.inputText tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -4873,7 +4877,7 @@
   "document": "FormVersionsDocument"
  },
  "forms/full": {
-  "checksum": "sha256:4c7144e3d1cbc8476bd426047ba57011e94eef793ad903ac214668e471936976",
+  "checksum": "sha256:b8b4382d92ae112f92acd8e4cad1da961574d663ed005997f35b2e93a4f724b4",
   "doc": {
    "_id": {
     "$oid": "59514663b83c1ab0eecfa44a"
@@ -5348,6 +5352,7 @@
     },
     "bodyFont": "FormDocument.theme.bodyFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "buttonStyle": "FormDocument.theme.buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
+    "choiceKeys": "FormDocument.theme.choiceKeys tëxt ✓ \"quoted\" \\ line\nbreak",
     "dataFont": "FormDocument.theme.dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "highlight": "FormDocument.theme.highlight tëxt ✓ \"quoted\" \\ line\nbreak",
     "inputText": "FormDocument.theme.inputText tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -5433,7 +5438,7 @@
   "document": "FormDocument"
  },
  "forms/naive": {
-  "checksum": "sha256:9b5ae7d7524c587820cb8f3fc8bbedb71afad4dcee17bf482e91d0f64743bbad",
+  "checksum": "sha256:66ade3ce363e8e83f7ea0d2da53dd616a4edd02ae5e42a0eecf29cd5d52d13ab",
   "doc": {
    "_id": {
     "$oid": "a3e31dcf7bba394ece4402b6"
@@ -5908,6 +5913,7 @@
     },
     "bodyFont": "FormDocument.theme.bodyFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "buttonStyle": "FormDocument.theme.buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
+    "choiceKeys": "FormDocument.theme.choiceKeys tëxt ✓ \"quoted\" \\ line\nbreak",
     "dataFont": "FormDocument.theme.dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
     "highlight": "FormDocument.theme.highlight tëxt ✓ \"quoted\" \\ line\nbreak",
     "inputText": "FormDocument.theme.inputText tëxt ✓ \"quoted\" \\ line\nbreak",
@@ -9205,7 +9211,7 @@
   "document": "WorkspaceUserDocument"
  },
  "workspaces/full": {
-  "checksum": "sha256:b3a24656b51f4d194dc4d6fa7bddf0608f5a54665b00e4dbcc665d105be695c8",
+  "checksum": "sha256:952153c588616d07e839874d6a5541137339abd4f58ed3f01908377599f9d496",
   "doc": {
    "_id": {
     "$oid": "a809c17de9bfb723bacb0d11"
@@ -9398,6 +9404,7 @@
      },
      "bodyFont": "WorkspaceDocument.custom_themes[0].bodyFont tëxt ✓ \"quoted\" \\ line\nbreak",
      "buttonStyle": "WorkspaceDocument.custom_themes[0].buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
+     "choiceKeys": "WorkspaceDocument.custom_themes[0].choiceKeys tëxt ✓ \"quoted\" \\ line\nbreak",
      "dataFont": "WorkspaceDocument.custom_themes[0].dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
      "highlight": "WorkspaceDocument.custom_themes[0].highlight tëxt ✓ \"quoted\" \\ line\nbreak",
      "inputText": "#1a2b3c",
@@ -9424,6 +9431,7 @@
      },
      "bodyFont": "WorkspaceDocument.custom_themes[1].bodyFont tëxt ✓ \"quoted\" \\ line\nbreak",
      "buttonStyle": "WorkspaceDocument.custom_themes[1].buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
+     "choiceKeys": "WorkspaceDocument.custom_themes[1].choiceKeys tëxt ✓ \"quoted\" \\ line\nbreak",
      "dataFont": "WorkspaceDocument.custom_themes[1].dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
      "highlight": "WorkspaceDocument.custom_themes[1].highlight tëxt ✓ \"quoted\" \\ line\nbreak",
      "inputText": "#1a2b3c",
@@ -9509,7 +9517,7 @@
   "document": "WorkspaceDocument"
  },
  "workspaces/naive": {
-  "checksum": "sha256:9f8989fa0d5c19ab139e1a3d7b0027b3fa4f890223bdb1026f4f06a5c0c51a83",
+  "checksum": "sha256:886e59e82a66223ee8bdaef47bad279d01fb0ee65b6a6d01878bab67e6e2e6cf",
   "doc": {
    "_id": {
     "$oid": "89649ece376f31ff66edc1a2"
@@ -9702,6 +9710,7 @@
      },
      "bodyFont": "WorkspaceDocument.custom_themes[0].bodyFont tëxt ✓ \"quoted\" \\ line\nbreak",
      "buttonStyle": "WorkspaceDocument.custom_themes[0].buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
+     "choiceKeys": "WorkspaceDocument.custom_themes[0].choiceKeys tëxt ✓ \"quoted\" \\ line\nbreak",
      "dataFont": "WorkspaceDocument.custom_themes[0].dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
      "highlight": "WorkspaceDocument.custom_themes[0].highlight tëxt ✓ \"quoted\" \\ line\nbreak",
      "inputText": "#1a2b3c",
@@ -9728,6 +9737,7 @@
      },
      "bodyFont": "WorkspaceDocument.custom_themes[1].bodyFont tëxt ✓ \"quoted\" \\ line\nbreak",
      "buttonStyle": "WorkspaceDocument.custom_themes[1].buttonStyle tëxt ✓ \"quoted\" \\ line\nbreak",
+     "choiceKeys": "WorkspaceDocument.custom_themes[1].choiceKeys tëxt ✓ \"quoted\" \\ line\nbreak",
      "dataFont": "WorkspaceDocument.custom_themes[1].dataFont tëxt ✓ \"quoted\" \\ line\nbreak",
      "highlight": "WorkspaceDocument.custom_themes[1].highlight tëxt ✓ \"quoted\" \\ line\nbreak",
      "inputText": "#1a2b3c",

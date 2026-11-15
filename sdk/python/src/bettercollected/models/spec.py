@@ -981,6 +981,12 @@ class Theme(BaseModel):
     button_style: Literal["filled", "outlined", "pill"] | None = Field(
         None, alias="buttonStyle", description="Absent: filled.", title="Buttonstyle"
     )
+    choice_keys: Literal["letters"] | None = Field(
+        None,
+        alias="choiceKeys",
+        description="letters: each option of a choice question carries a small square with its letter (A, B, C...) in ink on a flat pigment; the chosen option fills with the action colour and ends in a check. Absent: the options as before.",
+        title="Choicekeys",
+    )
     highlight: Highlight | None = Field(
         None,
         description="The chosen answer, the 'why we ask' and 'optional' notes and, where it reads, the focus ring. Absent: secondary.",

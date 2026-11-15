@@ -88,7 +88,7 @@ export default function ChoiceRadioGroup<T>({
                         className={row.className}
                         style={row.style}
                     >
-                        <ChoiceContent kind="radio" selected={checked} theme={theme} solid={row.solid} lang={option.lang} keyHint={keys[index]}>
+                        <ChoiceContent kind="radio" selected={checked} theme={theme} solid={row.solid} lang={option.lang} keyHint={keys[index]} keyIndex={index}>
                             {option.label}
                         </ChoiceContent>
                     </button>

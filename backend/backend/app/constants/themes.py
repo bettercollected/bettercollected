@@ -1,5 +1,5 @@
 # Theme colors dictionary
-from typing import Optional
+from typing import Any, Optional
 
 from common.models.standard_form import THEME_ARTWORKS, Theme
 
@@ -354,11 +354,39 @@ def preset_offered(name: str) -> bool:
     (GATED_PRESETS, a backend setting) is on? A form that stores an unoffered
     preset still renders and saves; only picking it anew is refused."""
     switch = GATED_PRESETS.get(name)
-    if switch is None:
-        return True
+    return True if switch is None else switch_on(switch)
+
+
+def switch_on(switch: str) -> bool:
+    """Is a backend setting on? ``switch`` is a setting's name, or a dotted
+    name for one in a settings group (``app_theme.ENABLED``)."""
     from backend.config import settings
 
-    return bool(getattr(settings, switch, False))
+    value: Any = settings
+    for part in switch.split("."):
+        value = getattr(value, part, False)
+    return bool(value)
+
+
+# Theme keys that are offered while a switch is on: a new theme that sets one
+# (any value) while it is off is refused as a gated artwork is, unless the
+# stored theme at the same place already has it. The choice keys belong to the
+# Pigment theme, so they follow its one switch (APP_THEME_PIGMENT_ENABLED).
+GATED_THEME_KEYS = {
+    "choiceKeys": "app_theme.ENABLED",
+}
+
+
+def theme_key_offered(key: str) -> bool:
+    """Is the theme key (``GATED_THEME_KEYS``) offered now: it has no switch,
+    or its switch is on?"""
+    switch = GATED_THEME_KEYS.get(key)
+    return True if switch is None else switch_on(switch)
+
+
+def offered_theme_keys() -> list[str]:
+    """The gated theme keys a new theme may set now."""
+    return [key for key in GATED_THEME_KEYS if theme_key_offered(key)]
 
 
 # Artwork that belongs to a gated preset: it is offered while that preset is.

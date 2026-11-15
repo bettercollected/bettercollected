@@ -93,7 +93,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                             <div className="group relative" key={choice.id ?? index}>
                                 {isChoiceList ? (
                                     <div className={cn(row.className, 'cursor-text pr-10')} style={row.style}>
-                                        {keys[index] ? <OptionKeyHint letter={keys[index]!} theme={rowTheme} /> : <ChoiceIndicator kind={field.properties?.allowMultipleSelection ? 'checkbox' : 'radio'} theme={rowTheme} />}
+                                        {keys[index] ? <OptionKeyHint letter={keys[index]!} theme={rowTheme} keyIndex={index} /> : <ChoiceIndicator kind={field.properties?.allowMultipleSelection ? 'checkbox' : 'radio'} theme={rowTheme} />}
                                         {input}
                                     </div>
                                 ) : (

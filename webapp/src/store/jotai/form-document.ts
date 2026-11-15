@@ -72,6 +72,17 @@ export const setOfferedGatedPresets = (offered: ReadonlyArray<string> | undefine
     offeredGatedPresetsSwitch = offered;
 };
 
+/**
+ * The gated theme keys the server offers (the choice keys follow the Pigment
+ * switch, from the permissions answer's `appThemeEnabled`): the engine refuses
+ * an inline theme that sets one that is not on the list, unless the stored
+ * theme already has it. `undefined` (not known yet) checks nothing.
+ */
+let offeredThemeKeysSwitch: ReadonlyArray<string> | undefined;
+export const setOfferedThemeKeys = (offered: ReadonlyArray<string> | undefined) => {
+    offeredThemeKeysSwitch = offered;
+};
+
 export const SET_FORM_KEYS = 'local_set_form_keys';
 export const SET_FIELDS = 'local_set_fields';
 
@@ -207,7 +218,7 @@ export function applyDocOps(doc: FormDocument, ops: DocOp[], withInverse = true)
         const batch = ops.slice(i, j) as FormOp[];
         let result;
         try {
-            result = applyOps(current, batch, { atomic: true, skipInverse: !withInverse, isStorageImageUrl, layoutContainers: layoutContainersSwitch, offeredGatedPresets: offeredGatedPresetsSwitch });
+            result = applyOps(current, batch, { atomic: true, skipInverse: !withInverse, isStorageImageUrl, layoutContainers: layoutContainersSwitch, offeredGatedPresets: offeredGatedPresetsSwitch, offeredThemeKeys: offeredThemeKeysSwitch });
         } catch {
             return { ok: false, doc, inverse: [] };
         }

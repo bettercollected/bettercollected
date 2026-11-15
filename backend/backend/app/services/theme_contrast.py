@@ -28,6 +28,9 @@ colour) on the page colour. So for an outlined theme the white-on-button rule
 is replaced by measuring those real colours (``outlined``: the ink on the page
 colour 4.5:1, its edge on the page 3:1); the chosen answer, icons and progress
 (``action``) stay as they are.
+A theme with ``choiceKeys`` also draws the chosen answer as a solid row of the
+button colour with white text, so the white-on-button rule (``button``) stays
+for it whatever the button style (``white_on_secondary``).
 
 "The page" is the background colour (``accent``), both stops of a gradient
 and the white sheet of the ``margin`` pattern. Text over an image can't be
@@ -181,6 +184,15 @@ def is_outlined(theme: Any) -> bool:
     return _get(theme, "buttonStyle") == "outlined"
 
 
+def white_on_secondary(theme: Any) -> bool:
+    """Is there white text on the button colour (``secondary``) anywhere on the
+    form? On a filled button, and on the chosen row of a theme with choice keys
+    (a solid row of the button colour with white text), which an outlined
+    button style does not change. Mirrored by the webapp's ``whiteOnSecondary``
+    (utils/theme-contrast.ts)."""
+    return not is_outlined(theme) or _get(theme, "choiceKeys") == "letters"
+
+
 def outlined_button_ink(theme: Any) -> str:
     """The text and 2px edge of an outlined button, on the page colour: the
     button colour where it reads as text there (4.5:1, which also clears the
@@ -247,16 +259,17 @@ def input_text_colour(theme: Any) -> Any:
 
 
 def _role_rules(
-    grounds: List[str], outlined: bool = False
+    grounds: List[str], skip_button: bool = False
 ) -> Dict[str, List[Tuple[str, str, float]]]:
     """What each role must reach, and on what: ``(issue key, ground, minimum)``.
-    An outlined button has no white text on the button colour; its real
+    An outlined button has no white text on the button colour (unless choice
+    keys put a solid chosen row there, ``white_on_secondary``); its real
     colours are measured by ``_outlined_failures``. ``input`` is the colour of
     the answers (``inputText``, else ``primary``) on the white input box."""
     return {
         "primary": [(TEXT, ground, AA_TEXT) for ground in grounds],
         INPUT_ROLE: [(ANSWER, WHITE, AA_TEXT)],
-        "secondary": ([] if outlined else [(BUTTON, WHITE, AA_TEXT)])
+        "secondary": ([] if skip_button else [(BUTTON, WHITE, AA_TEXT)])
         + [(ACTION, ground, AA_NON_TEXT) for ground in grounds],
         "tertiary": [(BORDER, ground, AA_NON_TEXT) for ground in grounds],
     }
@@ -278,7 +291,7 @@ def _outlined_rules(
 
 def _failures(theme: Dict[str, Any], grounds: List[str]) -> List[ContrastIssue]:
     outlined = is_outlined(theme)
-    rules = _role_rules(grounds, outlined)
+    rules = _role_rules(grounds, not white_on_secondary(theme))
     checks = [
         (key, theme.get(role), ground, minimum)
         for role in ROLES
@@ -412,6 +425,7 @@ def _plain(theme: Any) -> Dict[str, Any]:
             "background",
             "buttonStyle",
             "inputText",
+            "choiceKeys",
         )
     }
 
@@ -432,7 +446,7 @@ def theme_contrast_guard(theme: Any) -> ContrastGuard:
         return ContrastGuard(issues, None, image_ground)
     for weight in (0, 0.85, 0.92, 1):
         candidate = {**plain, **(_lighten_ground(plain, weight) if weight else {})}
-        rules = _role_rules(_page_grounds(candidate), is_outlined(plain))
+        rules = _role_rules(_page_grounds(candidate), not white_on_secondary(plain))
         moved = {role: _nearest_passing(plain[role], rules[role]) for role in ROLES}
         if None in moved.values():
             continue
@@ -481,7 +495,8 @@ def _colour(value: Any) -> Any:
 def contrast_key(theme: Any) -> Tuple[Any, ...]:
     """Everything the contrast check reads from a theme: its four colours, the
     colour of the answers (``inputText``, else ``primary``), whether its
-    buttons are outlined, and the ground the page puts behind the text, as
+    buttons are outlined, whether white text sits on the button colour
+    (``white_on_secondary``: choice keys do it for an outlined style too), and the ground the page puts behind the text, as
     ``_page_grounds`` reads it (an image with an address; both stops
     of a gradient; the white sheet of the ``margin`` pattern; anything else,
     an absent background or type, ``color`` and other patterns included, is
@@ -513,5 +528,6 @@ def contrast_key(theme: Any) -> Tuple[Any, ...]:
         ),
         _colour(input_text_colour(theme)),
         is_outlined(theme),
+        white_on_secondary(theme),
         *ground,
     )
