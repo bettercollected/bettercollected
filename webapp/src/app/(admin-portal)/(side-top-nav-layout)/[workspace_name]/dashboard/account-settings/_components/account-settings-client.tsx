@@ -18,6 +18,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { getFullNameFromUser } from '@app/utils/user-utils';
 import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 export default function AccountSettingsClient() {
     const { t } = useTranslation();
@@ -29,22 +30,24 @@ export default function AccountSettingsClient() {
     const displayName = getFullNameFromUser(authStatus);
 
     return (
-        <div className="my-4">
+        <div className="flex w-full max-w-[760px] flex-col gap-6">
+            <PageSurface>
             <h4 className="h4">{t(profileMenu.accountSettings)}</h4>
-            <div className="mt-[30px] flex gap-4 mb-10">
+            <div className="flex gap-4">
                 <AuthAccountProfileImage size={80} image={authStatus.profileImage} name={displayName} />
                 <div className="flex flex-col gap-2 justify-center">
                     <p className="h4 leading-none!">{displayName}</p>
                     {hasName && <p className="body4 text-black-700 leading-none!">{authStatus.email}</p>}
                 </div>
-            </div>
+                </div>
+            </PageSurface>
             <div className="flex flex-col gap-6">
                 <SettingCard title={t(localesCommon.privacyPolicy.title)} description={t(localesCommon.privacyPolicy.description)} link="https://bettercollected.com/privacy-policy" />
                 <SettingCard title={t(localesCommon.termsOfServices.title)} description={t(localesCommon.termsOfServices.description)} link="https://bettercollected.com/terms-of-service" />
                 <AIMemorySection />
                 <SecuritySection />
                 <SessionsSection />
-                <div className="my-6">
+                <div>
                     <Button
                         variant="ghost"
                         className="bg-red-100 px-4 leading-none! py-3 body6 rounded hover:bg-red-200 text-red-500!"

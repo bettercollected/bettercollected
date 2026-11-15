@@ -3,6 +3,7 @@
 import React from 'react';
 
 import MembersIcon from '@Components/icons/members';
+import { usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 
 import RouteTabBar from '@app/components/ui/route-tab-bar';
@@ -10,9 +11,11 @@ import { members } from '@app/constants/locales/members';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { workspaceSectionLabels } from '@app/lib/workspace-sections';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 export default function MembersLayout({ children, params }: { children: React.ReactNode; params: { workspace_name: string } }) {
     const { t } = useTranslation();
+    const pathname = usePathname();
     const base = `/${params?.workspace_name}/dashboard/members`;
     // Teams: named groups of members that a form's access can name. Owners and admins, and only while the server has form-level access on.
     const { can, formAccessEnabled } = useWorkspacePermissions();
@@ -49,7 +52,8 @@ export default function MembersLayout({ children, params }: { children: React.Re
     return (
         <div className="flex min-w-0 flex-col">
             <RouteTabBar ariaLabel={t(workspaceSectionLabels.membersSections)} tabs={tabs} />
-            <div>{children}</div>
+            {/* tables take the whole width; the teams page is a column of text and inputs */}
+            <PageSurface narrow={pathname?.endsWith('/teams')}>{children}</PageSurface>
         </div>
     );
 }

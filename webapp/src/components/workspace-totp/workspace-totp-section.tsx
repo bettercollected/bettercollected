@@ -40,9 +40,9 @@ export default function WorkspaceTotpSection() {
     const [error, setError] = useState('');
 
     if (!canSee) {
-        return <p className="pb-10 text-sm text-black-600">{t('STAFF.MFA.POLICY.ONLY_ADMINS')}</p>;
+        return <p className="text-sm text-black-600">{t('STAFF.MFA.POLICY.ONLY_ADMINS')}</p>;
     }
-    if (isLoading) return <p className="pb-10 text-sm text-black-600">{t('STAFF.MFA.POLICY.LOADING')}</p>;
+    if (isLoading) return <p className="text-sm text-black-600">{t('STAFF.MFA.POLICY.LOADING')}</p>;
     if (!policy?.available) return null;
 
     const change = async (required: boolean) => {
@@ -65,7 +65,7 @@ export default function WorkspaceTotpSection() {
     };
 
     return (
-        <section aria-labelledby="totp-policy-title" className="flex w-full max-w-[760px] flex-col gap-4 pb-10">
+        <section aria-labelledby="totp-policy-title" className="flex w-full flex-col gap-4">
             <div className="flex flex-col gap-1">
                 <h2 id="totp-policy-title" className="text-sm font-semibold text-black-900">
                     {t('STAFF.MFA.POLICY.TITLE')}

@@ -13,6 +13,7 @@ import { groupConstant } from '@app/constants/locales/group';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import ResponderIcon from '@Components/icons/responder';
 import UserMore from '@Components/icons/user-more';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 interface RespondersGroupsLayoutClientProps {
     children: React.ReactNode;
@@ -70,7 +71,7 @@ export default function RespondersGroupsLayoutClient({ children, workspaceName }
                     );
                 })}
             </div>
-            {children}
+            <PageSurface>{children}</PageSurface>
         </div>
     );
 }

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 
 import SectionsClient from './_components/sections-client';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 /**
  * Reusable sections: groups of questions saved once (from the form builder's "Save as section") and copied into
@@ -14,7 +15,6 @@ import SectionsClient from './_components/sections-client';
 export default function SectionsPage() {
     const { t } = useTranslation('builder');
     const { ready, reusableSectionsEnabled } = useWorkspacePermissions();
-    if (!ready) return <div className="pb-10 text-sm text-black-600">{t('SECTIONS_LIB.PAGE.LOADING')}</div>;
-    if (!reusableSectionsEnabled) return <p className="pb-10 text-sm text-black-700">{t('SECTIONS_LIB.PAGE.TURNED_OFF')}</p>;
-    return <SectionsClient />;
+    const content = !ready ? <p className="text-sm text-black-600">{t('SECTIONS_LIB.PAGE.LOADING')}</p> : !reusableSectionsEnabled ? <p className="text-sm text-black-700">{t('SECTIONS_LIB.PAGE.TURNED_OFF')}</p> : <SectionsClient />;
+    return <PageSurface>{content}</PageSurface>;
 }

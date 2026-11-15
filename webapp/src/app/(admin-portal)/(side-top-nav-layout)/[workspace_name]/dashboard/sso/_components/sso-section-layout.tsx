@@ -9,6 +9,7 @@ import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permission
 import { ssoTabs, workspaceSectionLabels } from '@app/lib/workspace-sections';
 import { useSsoEnabled } from '@app/shared/hocs/runtime-flags-provider';
 import { useGetMfaStatusQuery } from '@app/store/auth/api';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 /**
  * The Single sign-on section: Single sign-on, then Domains (SSO only works
@@ -26,7 +27,7 @@ export default function SSOSectionLayout({ workspaceName, children }: { workspac
     return (
         <div className="flex min-w-0 flex-col">
             <RouteTabBar ariaLabel={t(workspaceSectionLabels.ssoSections)} tabs={tabs} />
-            <div>{children}</div>
+            <PageSurface narrow>{children}</PageSurface>
         </div>
     );
 }

@@ -7,6 +7,7 @@ import { useGetTemplatesQuery } from '@app/store/template/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { LayoutTemplate } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 export default function TemplatesClient({ predefined_templates }: { predefined_templates: any[] }) {
     const { t } = useTranslation();
@@ -25,7 +26,7 @@ export default function TemplatesClient({ predefined_templates }: { predefined_t
     const isEmpty = predefined.length === 0 && v2.length === 0;
 
     return (
-        <>
+        <PageSurface>
             {predefined.length > 0 && (
                 <TemplateSection title={t('TEMPLATE.DEFAULT')} templates={predefined} variant="predefined" />
             )}
@@ -41,6 +42,6 @@ export default function TemplatesClient({ predefined_templates }: { predefined_t
                     </p>
                 </div>
             )}
-        </>
+        </PageSurface>
     );
 }

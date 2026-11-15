@@ -10,9 +10,11 @@ import { useIntlLocale } from '@app/lib/hooks/use-intl-locale';
 
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { cn } from '@app/shadcn/util/lib';
 import { useAppSelector } from '@app/store/hooks';
 import { useAddAIMemoryEntryMutation, useDeleteAIMemoryEntryMutation, useGetAIMemoryQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { PAGE_CARD } from '@app/components/ui/page-surface';
 
 interface MemoryEntry {
     id: string;
@@ -26,7 +28,8 @@ interface MemoryEntry {
  * Transparency is the contract: every line the AI remembers is visible here,
  * deletable, and the user can add their own. Nothing hidden, no embeddings.
  */
-export default function AIMemorySection() {
+/** `bare`: no card of its own, for a page that already puts it on the page surface (the AI Memory tab). */
+export default function AIMemorySection({ bare = false }: { bare?: boolean }) {
     const { t } = useTranslation();
     const locale = useIntlLocale();
     const workspace = useAppSelector(selectWorkspace);
@@ -48,7 +51,7 @@ export default function AIMemorySection() {
     };
 
     return (
-        <div className="border-hairline-strong flex max-w-[640px] flex-col gap-4 rounded border bg-white p-6">
+        <div className={cn('flex flex-col gap-4', !bare && PAGE_CARD)}>
             <div className="flex flex-col gap-1">
                 <h2 className="text-black-900 text-sm font-semibold">{t('STAFF.AI_MEMORY.TITLE')}</h2>
                 <p className="text-black-600 text-xs leading-relaxed">

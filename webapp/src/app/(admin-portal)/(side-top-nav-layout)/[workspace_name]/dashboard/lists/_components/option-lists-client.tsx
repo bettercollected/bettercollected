@@ -42,7 +42,7 @@ export default function OptionListsClient() {
     if (opened) return <OptionListEditor listId={opened} canEdit={canEdit} onClose={() => setOpened(null)} />;
 
     return (
-        <div className="flex w-full max-w-[860px] flex-col gap-6 pb-10">
+        <div className="flex w-full flex-col gap-6">
             <p className="max-w-[62ch] text-sm leading-relaxed text-black-600">{t('LISTS.INTRO')}</p>
 
             {canEdit && (

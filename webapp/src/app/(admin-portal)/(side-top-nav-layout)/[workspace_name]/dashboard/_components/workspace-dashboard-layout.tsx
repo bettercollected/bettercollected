@@ -221,7 +221,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     </div>
 
                     <div
-                        className={cn("bg-canvas h-full w-full px-5 lg:px-10 pt-10")}
+                        className={cn("bg-canvas h-full w-full px-5 lg:px-10 pt-10 pb-10")}
                     >
                         {children}
                     </div>

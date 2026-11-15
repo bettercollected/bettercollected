@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 
 import OptionListsClient from './_components/option-lists-client';
+import { PageSurface } from '@app/components/ui/page-surface';
 
 /**
  * Workspace lists: reference data (municipalities, products, branches) that choice questions take their options
@@ -14,7 +15,6 @@ import OptionListsClient from './_components/option-lists-client';
 export default function ListsPage() {
     const { t } = useTranslation('builder');
     const { ready, optionSourcesEnabled } = useWorkspacePermissions();
-    if (!ready) return <div className="pb-10 text-sm text-black-600">{t('LISTS.LOADING')}</div>;
-    if (!optionSourcesEnabled) return <p className="pb-10 text-sm text-black-700">{t('LISTS.TURNED_OFF')}</p>;
-    return <OptionListsClient />;
+    const content = !ready ? <p className="text-sm text-black-600">{t('LISTS.LOADING')}</p> : !optionSourcesEnabled ? <p className="text-sm text-black-700">{t('LISTS.TURNED_OFF')}</p> : <OptionListsClient />;
+    return <PageSurface>{content}</PageSurface>;
 }
