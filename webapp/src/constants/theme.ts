@@ -383,6 +383,15 @@ export const ThemeColors: Array<FormTheme> = [
     }
 ];
 
+/**
+ * The sun-yellow band of the Pigment scene (`background.artwork: 'pigment'`): the header bar of a question page, always this
+ * yellow whatever the theme's colours are. The text drawn on it is held to 4.5:1 (utils/theme-contrast.ts, key `band`; the
+ * server's `PIGMENT_BAND` in services/theme_contrast.py is the same).
+ */
+export const PIGMENT_BAND = '#FFC62E';
+/** The ink drawn on the band where the theme's own `primary` does not read on it (the preset's own ink, 11.3:1 on the band). */
+export const PIGMENT_BAND_FALLBACK_INK = '#1A1238';
+
 // Presets offered only while the server's switch for them is on (backend
 // constants/themes.py GATED_PRESETS, a test keeps the two together): the
 // permissions answer lists the ones that are on (`offeredGatedPresets`). A

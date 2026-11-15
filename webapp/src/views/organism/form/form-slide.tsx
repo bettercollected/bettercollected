@@ -66,7 +66,7 @@ import TabularInputResponderField from '@app/views/molecules/responder-form-fiel
 import TextAreaField from '@app/views/molecules/responder-form-fields/text-area-field';
 import YesNoField from '@app/views/molecules/responder-form-fields/yes-no-field';
 import { daybreakCornerStyle, hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
-import { hasPigmentScene, pigmentBandStyle } from '@app/views/molecules/theme/pigment-art';
+import { hasPigmentScene, pigmentBandInk, pigmentBandStyle } from '@app/views/molecules/theme/pigment-art';
 import { formButtonStyle } from '@app/views/molecules/theme/theme-root';
 import { contrast, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
@@ -318,6 +318,11 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
 
     if (!formSlide) return <FullScreenLoader />;
 
+    // The Pigment band: the header bar is sun-yellow, and the text and icons on it take an ink that reads there (4.5:1).
+    const sceneTheme = formSlide?.properties?.theme?.accent ? formSlide.properties.theme : standardForm?.theme;
+    const pigmentBand = hasPigmentScene(sceneTheme);
+    const bandInk = pigmentBand ? pigmentBandInk(sceneTheme) : undefined;
+
     return (
         <Controller>
             <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled topAligned={leaflet} logo={logo}>
@@ -340,7 +345,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         // The Daybreak corner sun runs on under the header bar (its ground is the page's), so the bar does not cut it.
                         ...(hasDaybreakScene(formSlide?.properties?.theme?.accent ? formSlide.properties.theme : standardForm?.theme) ? daybreakCornerStyle() : {}),
                         // The Pigment band: the header bar is sun-yellow, the form's ink on it.
-                        ...(hasPigmentScene(formSlide?.properties?.theme?.accent ? formSlide.properties.theme : standardForm?.theme) ? pigmentBandStyle() : {}),
+                        ...(pigmentBand ? pigmentBandStyle() : {}),
                         ...(leaflet ? { borderColor: leafletColours(theme).rule, background: formSlide?.properties?.theme?.accent || theme?.accent || '#ffffff' } : {})
                     }}
                 >
@@ -360,12 +365,12 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                     background: standardForm?.theme?.accent,
                                     // The theme's ink, not a fixed grey: a fixed neutral fell
                                     // under 4.5:1 on tinted grounds (4.09:1 on Ocean).
-                                    color: leaflet ? leafletHeaderInk : standardForm?.theme?.primary
+                                    color: bandInk ?? (leaflet ? leafletHeaderInk : standardForm?.theme?.primary)
                                 }}
                             />
                             {/* Provenance + progress where the eye starts (DESIGN.md §3):
                                 who is asking, and how much is left — no surprises. */}
-                            <div className="flex items-center gap-3 text-[13px]" style={{ color: leaflet ? leafletHeaderInk : standardForm?.theme?.primary }}>
+                            <div className="flex items-center gap-3 text-[13px]" style={{ color: bandInk ?? (leaflet ? leafletHeaderInk : standardForm?.theme?.primary) }}>
                                 {workspaceDisplayName(workspace) && (
                                     <span className="hidden items-center gap-1.5 rounded-full border border-black-400 bg-white/85 px-2.5 py-0.5 font-medium text-black-800 sm:inline-flex">
                                         <Shield className="h-3.5 w-3.5 text-brand-500" strokeWidth={1.8} aria-hidden="true" />

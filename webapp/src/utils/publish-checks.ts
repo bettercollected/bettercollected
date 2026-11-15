@@ -169,7 +169,8 @@ const CONTRAST_WORDS: Record<ContrastIssueKey, string> = {
     button: 'white text on buttons',
     outlined: 'text and edges of outlined buttons',
     border: 'input borders',
-    action: 'chosen answers and progress'
+    action: 'chosen answers and progress',
+    band: 'text on the yellow band of the Pigment look'
 };
 
 /** The first publish-checks version that always holds a form's theme to the contrast rule (backend `THEME_CONTRAST_FROM_VERSION`). */

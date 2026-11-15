@@ -1,6 +1,6 @@
 import { CSSProperties } from 'react';
 
-import { FormTheme, isHexColour } from '@app/constants/theme';
+import { FormTheme, PIGMENT_BAND, PIGMENT_BAND_FALLBACK_INK, isHexColour } from '@app/constants/theme';
 import { contrast } from '@app/utils/color-contrast';
 import { hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
 
@@ -12,7 +12,8 @@ import { hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
  *
  * - a sun-yellow band over the questions: the header bar's ground
  *   (`pigmentBandStyle`, used by the question page's header), with the form's
- *   ink on it (11.3:1) and the progress line in the action colour;
+ *   ink on it (11.3:1; `pigmentBandInk` keeps every piece of text and every icon
+ *   drawn on the band at 4.5:1 for any theme) and the progress line in the action colour;
  * - on the ending, an iris disc that holds the check, and five flat shapes
  *   (circle, square, triangle, half-circle, ring) that pop in around it once,
  *   staggered over about 0.7 s, then rest (`PigmentShapes`). Under
@@ -22,14 +23,13 @@ import { hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
  */
 
 /** The band's sun-yellow, and the five pigments of the shapes (the same flat fills as the choice keys). */
-export const PIGMENT_SUN = '#FFC62E';
+export const PIGMENT_SUN = PIGMENT_BAND;
 export const PIGMENT_TOMATO = '#FF8A73';
 export const PIGMENT_SKY = '#6BBEF7';
 export const PIGMENT_MINT = '#5FD9B0';
 export const PIGMENT_ORCHID = '#D9A0FF';
 /** The "Why we ask this" rule: the tomato deepened until it reads at 3:1 on the cream page (4.1:1). */
 export const PIGMENT_RULE = '#D44A33';
-
 /** Does the theme wear the Pigment scene? */
 export const hasPigmentScene = (theme?: Partial<FormTheme> | null) => theme?.background?.artwork === 'pigment';
 
@@ -45,6 +45,20 @@ export function pigmentRule(theme?: Partial<FormTheme> | null): string {
     const page = isHexColour(theme?.accent) ? theme!.accent! : '#FFFFFF';
     const ink = isHexColour(theme?.primary) ? theme!.primary! : '#101828';
     return contrast(PIGMENT_RULE, page) >= 3 ? PIGMENT_RULE : ink;
+}
+
+/**
+ * The ink of every piece of text and every icon drawn on the sun-yellow band (the
+ * page count, the Back control and its chevron): the theme's `primary` where it
+ * reads at 4.5:1 on the band (the preset's #1A1238 does, 11.3:1), else the preset's
+ * dark ink. The same clamp as `choiceKeyColours` and `pigmentRule`: a custom theme
+ * that keeps the artwork, or `update_theme`, cannot leave grey text on the yellow.
+ * The contrast guard measures `primary` on the band too (key `band`), so a creator
+ * is told; this keeps a form that already stores such a theme readable.
+ */
+export function pigmentBandInk(theme?: Partial<FormTheme> | null): string {
+    const primary = theme?.primary;
+    return isHexColour(primary) && contrast(primary!, PIGMENT_BAND) >= 4.5 ? primary! : PIGMENT_BAND_FALLBACK_INK;
 }
 
 /** The header bar's ground on a Pigment question page: the sun-yellow band, as the comp draws it. */
@@ -82,7 +96,8 @@ const SHAPES_CSS = `
  */
 export function PigmentShapes({ theme }: { theme?: Partial<FormTheme> | null }) {
     const action = isHexColour(theme?.secondary) ? theme!.secondary! : '#4B35DB';
-    const ink = isHexColour(theme?.primary) ? theme!.primary! : '#1A1238';
+    // the ring is drawn on the yellow band: the ink that reads there (pigmentBandInk)
+    const ink = pigmentBandInk(theme);
     return (
         <div className="relative flex h-[150px] w-full shrink-0 items-center justify-center overflow-hidden sm:h-[200px]" style={{ background: PIGMENT_SUN }} data-testid="pigment-shapes" aria-hidden="true">
             <style>{SHAPES_CSS}</style>

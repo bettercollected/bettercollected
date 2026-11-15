@@ -182,7 +182,7 @@ PAIRS = [
     ("input borders on the page", PIGMENT["tertiary"], PAGE, AA_NON_TEXT),
     ("input borders on white", PIGMENT["tertiary"], "#FFFFFF", AA_NON_TEXT),
     ("the 'why we ask' rule on the page", "#D44A33", PAGE, AA_NON_TEXT),
-    ("ink on the sun-yellow band (back, chip, page count)", INK, PIGMENTS["sun"], AA_TEXT),
+    ("ink on the sun-yellow band (back, page count)", INK, PIGMENTS["sun"], AA_TEXT),
     ("the check's white on the iris disc", "#FFFFFF", PIGMENT["secondary"], AA_TEXT),
     *[(f"key letter ink on {name}", INK, fill, AA_TEXT) for name, fill in PIGMENTS.items()],
 ]
@@ -200,6 +200,42 @@ def test_the_muted_labels_read_on_the_page():
 def test_the_publish_guard_finds_nothing():
     assert theme_contrast_guard(PIGMENT).issues == []
     assert theme_contrast_problems(themes["Pigment"]) == []
+
+
+# --- the ink on the yellow band ------------------------------------------------------------------------
+# A Pigment theme draws the header bar as the sun-yellow band, always the same yellow, with the
+# questions' ink on it. The guard measures `primary` on the band (issue key `band`, shared cases in
+# docs/spec/theme-contrast.cases.json) and the webapp falls back to a dark ink where it does not read.
+
+LOW_BAND = {**PIGMENT, "primary": "#6E6585"}  # 5.1:1 on the cream page, 3.46:1 on the band
+
+
+def test_the_guard_reports_the_band_pair_for_a_primary_that_reads_on_the_page_but_not_on_the_band():
+    assert contrast(LOW_BAND["primary"], PAGE) >= AA_TEXT
+    assert contrast(LOW_BAND["primary"], PIGMENTS["sun"]) < AA_TEXT
+    guard = theme_contrast_guard(LOW_BAND)
+    assert [(issue.key, issue.minimum) for issue in guard.issues] == [("band", AA_TEXT)]
+    assert round(guard.issues[0].ratio, 2) == 3.46
+    # the nearest passing ink keeps its hue and reads on the page and on the band
+    assert guard.fix is not None and set(guard.fix) == {"primary"}
+    assert contrast(guard.fix["primary"], PAGE) >= AA_TEXT
+    assert contrast(guard.fix["primary"], PIGMENTS["sun"]) >= AA_TEXT
+
+
+def test_the_publish_message_names_the_band():
+    problems = theme_contrast_problems(LOW_BAND)
+    assert len(problems) == 1
+    assert "text on the yellow band of the Pigment look (3.4:1, needs 4.5:1)" in problems[0]["message"]
+
+
+def test_the_band_is_measured_only_with_the_pigment_artwork():
+    plain = {**LOW_BAND, "background": {"type": "color"}}
+    assert theme_contrast_guard(plain).issues == []
+
+
+def test_the_preset_keeps_its_ink_on_the_band():
+    assert contrast(PIGMENT["primary"], PIGMENTS["sun"]) >= AA_TEXT
+    assert theme_contrast_guard(PIGMENT).issues == []
 
 
 # --- the permissions answer ------------------------------------------------------------------------------

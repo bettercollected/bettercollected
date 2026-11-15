@@ -27,6 +27,7 @@
     "WORD_outlined": "text and edges of outlined buttons",
     "WORD_border": "input borders",
     "WORD_action": "chosen answers and progress",
+    "WORD_band": "text on the yellow band of the Pigment look",
     "AND": " and ",
     "BLOCK": "The theme's colours are hard to read: {{pairs}}. Use the suggested colours on the Design tab, or pick others."
   },

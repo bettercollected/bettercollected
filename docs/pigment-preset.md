@@ -35,7 +35,12 @@ no image file, no request to anyone, static. It adds no theme key of its own.
 
 - **The band.** On a question page the header bar (Back, the organisation's chip, the page
   count) is sun-yellow `#FFC62E` with the form's ink on it, 11.3:1. The progress line stays
-  iris. The comp's band is the one piece the existing header and background keys could not
+  iris. Every piece of text and every icon drawn on the band (Back and its chevron, the page
+  count) takes `pigmentBandInk`: the theme's `primary` where it reads at 4.5:1 on the yellow,
+  else the preset's dark ink `#1A1238`, the same clamp as the choice keys and the rule. So a
+  custom theme that keeps the artwork, or `update_theme`, cannot leave grey text on the
+  yellow (`#6E6585`, for instance, is 3.46:1 there, and white is 1.57:1). The
+  organisation chip has its own white ground and is not on the band. The comp's band is the one piece the existing header and background keys could not
   carry (the header's ground is derived from the page colour, and no key names it), so the
   scene draws it: no new key was needed.
 - **Choice keys.** Each option of a choice question carries a small square with its letter
@@ -81,7 +86,7 @@ Every pair is held to the same rules as the other presets (the builder's contras
 | Input edge `#7C7396` on the page | 3:1 | 4.1:1 |
 | Input edge on white | 3:1 | 4.4:1 |
 | "Why we ask this" rule `#D44A33` on the page | 3:1 | 4.1:1 |
-| Ink on the sun-yellow band | 4.5:1 | 11.3:1 |
+| Ink on the sun-yellow band (Back, the page count; guard key `band`) | 4.5:1 | 11.3:1 |
 | Key letter ink on tomato `#FF8A73` | 4.5:1 | 7.7:1 |
 | Key letter ink on sun `#FFC62E` | 4.5:1 | 11.3:1 |
 | Key letter ink on mint `#5FD9B0` | 4.5:1 | 10.1:1 |
@@ -89,6 +94,14 @@ Every pair is held to the same rules as the other presets (the builder's contras
 | Key letter ink on orchid `#D9A0FF` | 4.5:1 | 8.8:1 |
 
 A key letter is the theme's `primary` where it holds 4.5:1 on its pigment, else black.
+
+The guard measures the band too. A theme whose artwork is `pigment` has `primary` held to
+4.5:1 on `#FFC62E` (issue key `band`, last in the list, with the nearest passing `primary` as
+the fix); the contrast key of such a theme ends with `band` (no other theme's key changes).
+Both engines do it: `services/theme_contrast.py` (`has_pigment_band`, `PIGMENT_BAND`) and
+`utils/theme-contrast.ts` (`hasPigmentBand`, `PIGMENT_BAND`), with shared cases in
+`docs/spec/theme-contrast.cases.json`. The respondent form also falls back to the dark ink
+where `primary` does not read there (above), so nothing is ever unreadable.
 
 ## The switch
 

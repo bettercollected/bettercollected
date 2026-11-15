@@ -14,7 +14,7 @@ import ChoiceRadioGroup from '@app/views/atoms/choice-radio-group';
 import { CHOICE_KEY_FILLS, choiceKeyColours } from '@app/views/atoms/choice';
 import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
 
-import { PIGMENT_RULE, PIGMENT_SUN, PigmentShapes, hasEndingScene, hasPigmentScene, pigmentBandStyle, pigmentRule, pigmentThumbnailStyle } from './pigment-art';
+import { PIGMENT_RULE, PIGMENT_SUN, PigmentShapes, hasEndingScene, hasPigmentScene, pigmentBandInk, pigmentBandStyle, pigmentRule, pigmentThumbnailStyle } from './pigment-art';
 import { ThemeArtworkBand, greetingCover, themePictureArtwork } from './theme-artwork';
 import { themeRootProps } from './theme-root';
 import { themeBackgroundStyle } from './theme-shared';
@@ -93,6 +93,15 @@ describe('the question page', () => {
         expect(themeRootProps({ ...PIGMENT, highlight: '#1035A8' }).style['--form-highlight-rule' as keyof React.CSSProperties]).not.toBe(PIGMENT_RULE);
     });
 
+    it('keeps every piece of text and every icon on the band at 4.5:1: the theme ink where it reads there, else the preset ink', () => {
+        expect(pigmentBandInk(PIGMENT)).toBe(PIGMENT.primary);
+        expect(contrast('#6E6585', PIGMENT_SUN)).toBeLessThan(4.5);
+        expect(pigmentBandInk({ ...PIGMENT, primary: '#6E6585' })).toBe('#1A1238');
+        expect(pigmentBandInk({ ...PIGMENT, primary: '#FFFFFF' })).toBe('#1A1238');
+        expect(pigmentBandInk({ ...PIGMENT, primary: '#3B2F63' })).toBe('#3B2F63');
+        expect(contrast(pigmentBandInk({ ...PIGMENT, primary: '#6E6585' }), PIGMENT_SUN)).toBeGreaterThanOrEqual(4.5);
+    });
+
     it('is a plain cream ground, with the band only in the picker thumbnail', () => {
         expect(themeBackgroundStyle(PIGMENT).backgroundImage).toBeUndefined();
         expect(themeBackgroundStyle(PIGMENT).backgroundColor).toBe('#FBF7F1');
@@ -116,6 +125,12 @@ describe('the question page', () => {
 });
 
 describe('the ending', () => {
+    it('draws the ring (the one thing in ink on the yellow band) in an ink that reads on it, for any theme', () => {
+        const ring = (theme: typeof PIGMENT) => wrap(<ThemeArtworkBand theme={theme} />).container.querySelector('[data-shape="ring"]')!.getAttribute('stroke');
+        expect(ring(PIGMENT)).toBe(PIGMENT.primary);
+        expect(ring({ ...PIGMENT, primary: '#6E6585' })).toBe('#1A1238');
+    });
+
     // shapes: [name, x0, y0, x1, y1] in the 320 x 160 box (from the attributes)
     const boxes: Record<string, [number, number, number, number]> = {
         circle: [76 - 16, 50 - 16, 76 + 16, 50 + 16],

@@ -7,4 +7,7 @@
   Creators pick it in the Design tab; it is not the default for new forms. With the switch
   off the picker, the edit operations, the AI and the MCP server do not know it, a new
   theme cannot name its artwork (form saves, saved themes and operations refuse it), and
-  forms that already wear it render and save as before.
+  forms that already wear it render and save as before. Turning on
+  `APP_THEME_PIGMENT_ENABLED` also offers this preset, its artwork and the lettered choice
+  keys (the same switch covers the workspace appearance choice and these). The text on the
+  yellow band keeps 4.5:1 for any theme, and the contrast check reports it.

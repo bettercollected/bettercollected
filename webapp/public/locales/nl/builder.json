@@ -27,6 +27,7 @@
     "WORD_outlined": "tekst en randen van knoppen met een omlijning",
     "WORD_border": "randen van invulvakken",
     "WORD_action": "gekozen antwoorden en voortgang",
+    "WORD_band": "tekst op de gele balk van de Pigment-look",
     "AND": " en ",
     "BLOCK": "De kleuren van het thema zijn moeilijk leesbaar: {{pairs}}. Gebruik de voorgestelde kleuren op het tabblad Ontwerp, of kies andere."
   },
