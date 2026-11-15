@@ -67,6 +67,12 @@ describe('the workspace pages', () => {
         expect(readFileSync(resolve(dashboard, file), 'utf8')).toContain('<PageSurface');
     });
 
+    it('the account settings cards are the same card, and a group does not nest its surface in the list layout surface', () => {
+        expect(readFileSync(resolve(__dirname, '../cards/setting-card.tsx'), 'utf8')).toContain('className={PAGE_CARD}');
+        const layout = readFileSync(resolve(dashboard, 'responders-groups/_components/responders-groups-layout-client.tsx'), 'utf8');
+        expect(layout).toContain('tabs.some((tab) => pathname.endsWith(tab.path)) ? <PageSurface>{children}</PageSurface> : children');
+    });
+
     it('the layout gives the last card room below it', () => {
         expect(readFileSync(resolve(dashboard, '_components/workspace-dashboard-layout.tsx'), 'utf8')).toContain('px-5 lg:px-10 pt-10 pb-10');
     });

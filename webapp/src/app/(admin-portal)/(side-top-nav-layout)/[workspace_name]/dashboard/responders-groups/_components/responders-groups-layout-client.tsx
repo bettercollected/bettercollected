@@ -71,7 +71,8 @@ export default function RespondersGroupsLayoutClient({ children, workspaceName }
                     );
                 })}
             </div>
-            <PageSurface>{children}</PageSurface>
+            {/* the two lists sit on one surface; a group's pages bring their own (its layout), so the cards do not nest */}
+            {tabs.some((tab) => pathname.endsWith(tab.path)) ? <PageSurface>{children}</PageSurface> : children}
         </div>
     );
 }
