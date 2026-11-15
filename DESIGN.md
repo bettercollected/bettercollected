@@ -299,9 +299,13 @@ choice question, each answer keeps its own colour on every card: the series
 the question's options, so "North" is the same colour in a bar card, a donut card
 and a filtered report. The sixth option and later, "Other", a removed option and
 "no answer" share the neutral (`--app-viz-neutral`, 4.4:1 on white). Yes/no and
-rating questions, lines, tiles and tables keep one colour. Colour is never the
-only way to tell answers apart: every value is printed beside its mark, a donut
-keeps its patterns by position, and the table and the CSV are unchanged. In
+rating questions, lines, tiles and tables keep one colour. Position carries the
+identity and colour is the second cue: the answers are listed in the question's
+option order, which is the order of the colours, and every value is printed
+beside its mark. The series are chosen so that neighbours differ in lightness and
+stay apart for deuteranopia and protanopia, and none is a red (see "The
+series"). A donut keeps its patterns by position, and the table and the CSV are
+unchanged. In
 Daybreak a single-question bar stays one blue and a donut takes the series in
 turn.
 

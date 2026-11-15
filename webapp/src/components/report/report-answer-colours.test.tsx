@@ -104,6 +104,32 @@ describe('a card that gives each answer its colour', () => {
     });
 });
 
+describe('position carries the identity, so colour is a second cue', () => {
+    it('lists the answers in the order of the question\'s options, which is the order of the colours, with the neutral ones last', () => {
+        const v = view(SEVEN, true, sevenFigures, wide);
+        expect(v.rows.map((row) => row.key)).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'other', 'removed']);
+        const positions = v.rows.filter((row) => row.colour !== undefined).map((row) => row.colour);
+        expect(positions).toEqual([0, 1, 2, 3, 4]);
+        // every answer after the coloured ones is a neutral one
+        expect(v.rows.slice(5).every((row) => row.colour === undefined)).toBe(true);
+        // the card does not reorder what the server sent (by the form's option order)
+        const reversed = result(SEVEN, [...sevenFigures.groups].reverse());
+        expect(view(SEVEN, true, reversed, wide).rows.map((row) => row.key)).toEqual(['removed', 'other', 'g', 'f', 'e', 'd', 'c', 'b', 'a']);
+    });
+
+    it('draws the track under every bar and the fill as long as its value says, so a bar reads by length and by the printed value without its colour', () => {
+        const { container } = render(<BarChart view={view(card(), true)} summaryId="s" label="l" locale="en" />);
+        const bars = [...container.querySelectorAll('li')].map((item) => {
+            const rects = item.querySelectorAll('svg rect');
+            return { track: rects[0].getAttribute('width'), fill: Number(rects[1]?.getAttribute('width') ?? 0), text: item.textContent };
+        });
+        expect(bars.map((bar) => bar.track)).toEqual(['100', '100', '100', '100']);
+        // 74, 52, 41 and 31 of the largest: the lengths fall in the order of the values
+        expect(bars.map((bar) => Math.round(bar.fill))).toEqual([100, 70, 55, 42]);
+        expect(bars.map((bar) => bar.text)).toEqual(['North74 (37%)', 'South52 (26%)', 'East41 (21%)', 'West31 (16%)']);
+    });
+});
+
 describe('what keeps one colour', () => {
     it.each([
         ['a yes/no question', card({ kind: 'donut', dimension: { field: 'q:remote' } })],

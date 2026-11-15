@@ -444,6 +444,16 @@ describe('the Pigment series can be told apart without colour, and none reads as
         series('pigment', 5).forEach((colour, index) => expect(contrast(colour, role('pigment', 'sunken')), `${names[index]} on the track`).toBeGreaterThanOrEqual(3));
     });
 
+    it('keeps the neutral of an answer that has no series apart from series 1 to 5, for normal vision and for both kinds of colour blindness', () => {
+        const neutral = role('pigment', 'viz-neutral');
+        series('pigment', 5).forEach((colour, index) => {
+            expect(deltaE(neutral, colour), names[index]).toBeGreaterThanOrEqual(30);
+            for (const matrix of [DEUTERANOPIA, PROTANOPIA]) expect(deltaE(neutral, colour, matrix), `${names[index]} simulated`).toBeGreaterThanOrEqual(20);
+        });
+        // it is never a red either
+        expect(deltaE(neutral, role('pigment', 'bad'))).toBeGreaterThanOrEqual(DANGER_DELTA_E);
+    });
+
     it('simulates a known pair correctly (the old red and green of Pigment are confusable, iris and ochre are not)', () => {
         expect(deltaE('#D44A33', '#0E8C6A', DEUTERANOPIA)).toBeLessThan(60);
         expect(deltaE('#4B35DB', '#AD6E00', DEUTERANOPIA)).toBeGreaterThan(100);
