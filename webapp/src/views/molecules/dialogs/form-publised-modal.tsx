@@ -88,7 +88,7 @@ export default function FormPublishedModal(props: any) {
                         </Button>
                     </div>
                     {/* Always in the page, so the announcement reaches a screen reader when the text arrives. */}
-                    <p role="status" className="m-0 min-h-5 text-sm leading-5 text-copy">
+                    <p role="status" className="m-0 text-sm leading-5 text-copy empty:sr-only">
                         {copyState === 'copied' ? t('PUBLISHED_MODAL.COPIED_TOAST') : copyState === 'failed' ? t('PUBLISHED_MODAL.COPY_FAILED') : ''}
                     </p>
                 </div>
