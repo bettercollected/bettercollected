@@ -47,10 +47,14 @@ export default function AccountSettingsClient() {
                 <AIMemorySection />
                 <SecuritySection />
                 <SessionsSection />
-                <div>
+                {/* the same danger card as a form's Settings (components/form/settings.tsx): heading and sentence on the left, the button on the right */}
+                <div className="flex flex-col items-start justify-between gap-4 rounded-lg border border-[#E5B9B9] bg-surface p-4 sm:flex-row sm:gap-6 sm:p-6">
+                    <div className="flex max-w-[520px] flex-col gap-1">
+                        <div className="text-[15px] font-semibold text-black-900">{t('DELETE_ACCOUNT.TITLE')}</div>
+                        <div className="text-sm leading-relaxed text-black-700">{t('DELETE_ACCOUNT.DESCRIPTION')}</div>
+                    </div>
                     <Button
-                        variant="ghost"
-                        className="bg-red-100 px-4 leading-none! py-3 body6 rounded hover:bg-red-200 text-red-500!"
+                        variant="danger"
                         onClick={() => {
                             openBottomSheetModal('DELETE_ACCOUNT');
                         }}
