@@ -28,8 +28,6 @@ export const PIGMENT_TOMATO = '#FF8A73';
 export const PIGMENT_SKY = '#6BBEF7';
 export const PIGMENT_MINT = '#5FD9B0';
 export const PIGMENT_ORCHID = '#D9A0FF';
-/** The "Why we ask this" rule: the tomato deepened until it reads at 3:1 on the cream page (4.1:1). */
-export const PIGMENT_RULE = '#D44A33';
 /** Does the theme wear the Pigment scene? */
 export const hasPigmentScene = (theme?: Partial<FormTheme> | null) => theme?.background?.artwork === 'pigment';
 
@@ -37,14 +35,16 @@ export const hasPigmentScene = (theme?: Partial<FormTheme> | null) => theme?.bac
 export const hasEndingScene = (theme?: Partial<FormTheme> | null) => hasDaybreakScene(theme) || hasPigmentScene(theme);
 
 /**
- * The colour of the "why we ask" rule on a Pigment page: the deep tomato where it
- * reads at 3:1 on the page, else the ink (the same clamp as a highlight's rule,
- * theme-root.ts `highlightColours`).
+ * The colour of the "why we ask" rule on a Pigment page: the theme's button colour
+ * (iris in the preset, 7.0:1 on the cream page) where it reads at 3:1 on the page,
+ * else the ink (the same clamp as a highlight's rule, theme-root.ts
+ * `highlightColours`). Not a red: tomato is decorative here and a red beside a
+ * question reads as an error, which is `bad`'s job.
  */
 export function pigmentRule(theme?: Partial<FormTheme> | null): string {
     const page = isHexColour(theme?.accent) ? theme!.accent! : '#FFFFFF';
     const ink = isHexColour(theme?.primary) ? theme!.primary! : '#101828';
-    return contrast(PIGMENT_RULE, page) >= 3 ? PIGMENT_RULE : ink;
+    return isHexColour(theme?.secondary) && contrast(theme!.secondary!, page) >= 3 ? theme!.secondary! : ink;
 }
 
 /**

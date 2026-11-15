@@ -48,9 +48,11 @@ no image file, no request to anyone, static. It adds no theme key of its own.
   chosen option is solid iris with white text (7.4:1) and a check at its end. The pigments
   are constants of the form (`CHOICE_KEY_FILLS` in `views/atoms/choice.tsx`); a respondent
   page never reads the app's colour variables.
-- **"Why we ask this".** The rule beside the note is the tomato deepened to `#D44A33`,
-  4.1:1 on the cream page (the plain tomato is 2.4:1). The focus ring and the chosen option
-  stay iris.
+- **"Why we ask this".** The rule beside the note is the iris, the theme's button colour
+  `#4B35DB`, 7.0:1 on the cream page (and the ink where a custom page is one the iris does
+  not read on at 3:1). It is not a red: a red rule beside a question, next to the required
+  asterisk, reads as an error, which belongs to the danger colour; the tomato stays
+  decorative. The focus ring and the chosen option stay iris.
 - **The ending.** The band along the top of an ending without a picture half is sun-yellow
   with an iris disc that holds the check in white, and five flat shapes around it: circle
   (tomato), square (sky), triangle (mint), half-circle (orchid) and ring (ink). They pop in
@@ -85,7 +87,7 @@ Every pair is held to the same rules as the other presets (the builder's contras
 | Iris on the page (progress, focus ring) | 3:1 | 7.0:1 |
 | Input edge `#7C7396` on the page | 3:1 | 4.1:1 |
 | Input edge on white | 3:1 | 4.4:1 |
-| "Why we ask this" rule `#D44A33` on the page | 3:1 | 4.1:1 |
+| "Why we ask this" rule, the iris `#4B35DB`, on the page | 3:1 | 7.0:1 |
 | Ink on the sun-yellow band (Back, the page count; guard key `band`) | 4.5:1 | 11.3:1 |
 | Key letter ink on tomato `#FF8A73` | 4.5:1 | 7.7:1 |
 | Key letter ink on sun `#FFC62E` | 4.5:1 | 11.3:1 |

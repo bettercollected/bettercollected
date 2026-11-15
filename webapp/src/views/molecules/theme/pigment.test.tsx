@@ -14,7 +14,7 @@ import ChoiceRadioGroup from '@app/views/atoms/choice-radio-group';
 import { CHOICE_KEY_FILLS, choiceKeyColours } from '@app/views/atoms/choice';
 import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
 
-import { PIGMENT_RULE, PIGMENT_SUN, PigmentShapes, hasEndingScene, hasPigmentScene, pigmentBandInk, pigmentBandStyle, pigmentRule, pigmentThumbnailStyle } from './pigment-art';
+import { PIGMENT_SUN, PigmentShapes, hasEndingScene, hasPigmentScene, pigmentBandInk, pigmentBandStyle, pigmentRule, pigmentThumbnailStyle } from './pigment-art';
 import { ThemeArtworkBand, greetingCover, themePictureArtwork } from './theme-artwork';
 import { themeRootProps } from './theme-root';
 import { themeBackgroundStyle } from './theme-shared';
@@ -44,7 +44,8 @@ describe('the Pigment preset', () => {
         ['iris on the page (progress, focus ring)', PIGMENT.secondary, page, 3],
         ['input borders on the page', PIGMENT.tertiary, page, 3],
         ['input borders on white', PIGMENT.tertiary, '#FFFFFF', 3],
-        ['the why-we-ask rule on the page', PIGMENT_RULE, page, 3],
+        // the rule is the iris, not a red (a red beside a question reads as an error): 7.0:1 on the page
+        ['the why-we-ask rule on the page (iris)', pigmentRule(PIGMENT), page, 3],
         ['ink on the sun-yellow band', PIGMENT.primary, PIGMENT_SUN, 4.5],
         ...CHOICE_KEY_FILLS.map((fill, i) => [`key letter ink on pigment ${i + 1} (${fill})`, PIGMENT.primary, fill, 4.5] as [string, string, string, number])
     ])('%s reads', (_name, foreground, background, minimum) => {
@@ -82,15 +83,19 @@ describe('the Pigment preset', () => {
 });
 
 describe('the question page', () => {
-    it('has a sun-yellow header band with the form ink on it, a tomato rule and no change to the focus ring', () => {
+    it('has a sun-yellow header band with the form ink on it, an iris rule and no change to the focus ring', () => {
         expect(pigmentBandStyle()).toEqual({ background: PIGMENT_SUN });
         const root = themeRootProps(PIGMENT);
         expect(root.attributes).toEqual({});
         expect(Object.keys(root.style)).toEqual(['--form-highlight-rule']);
-        expect(pigmentRule(PIGMENT)).toBe(PIGMENT_RULE);
-        // a page the tomato does not read on gets the ink; a form's own highlight wins
-        expect(pigmentRule({ ...PIGMENT, accent: '#FF8A73' })).toBe(PIGMENT.primary);
-        expect(themeRootProps({ ...PIGMENT, highlight: '#1035A8' }).style['--form-highlight-rule' as keyof React.CSSProperties]).not.toBe(PIGMENT_RULE);
+        expect(pigmentRule(PIGMENT)).toBe('#4B35DB');
+        expect(pigmentRule(PIGMENT)).toBe(PIGMENT.secondary);
+        expect(contrast(pigmentRule(PIGMENT), PIGMENT.accent)).toBeGreaterThanOrEqual(3);
+        // never a status red: not the tomato, nor any red
+        expect(pigmentRule(PIGMENT).toUpperCase()).not.toBe('#D44A33');
+        // a page the iris does not read on (3:1) gets the ink; a form's own highlight wins
+        expect(pigmentRule({ ...PIGMENT, accent: '#6E5FE0' })).toBe(PIGMENT.primary);
+        expect(themeRootProps({ ...PIGMENT, highlight: '#1035A8' }).style['--form-highlight-rule' as keyof React.CSSProperties]).not.toBe(pigmentRule(PIGMENT));
     });
 
     it('keeps every piece of text and every icon on the band at 4.5:1: the theme ink where it reads there, else the preset ink', () => {

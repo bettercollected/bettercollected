@@ -181,7 +181,8 @@ PAIRS = [
     ("action colour on the page (progress, focus ring)", PIGMENT["secondary"], PAGE, AA_NON_TEXT),
     ("input borders on the page", PIGMENT["tertiary"], PAGE, AA_NON_TEXT),
     ("input borders on white", PIGMENT["tertiary"], "#FFFFFF", AA_NON_TEXT),
-    ("the 'why we ask' rule on the page", "#D44A33", PAGE, AA_NON_TEXT),
+    # the rule is the iris (the button colour), not a red: a red beside a question reads as an error
+    ("the 'why we ask' rule on the page (iris, 7.0:1)", PIGMENT["secondary"], PAGE, AA_NON_TEXT),
     ("ink on the sun-yellow band (back, page count)", INK, PIGMENTS["sun"], AA_TEXT),
     ("the check's white on the iris disc", "#FFFFFF", PIGMENT["secondary"], AA_TEXT),
     *[(f"key letter ink on {name}", INK, fill, AA_TEXT) for name, fill in PIGMENTS.items()],
