@@ -13,6 +13,7 @@ from common.models.standard_form import StandardForm, Theme, ThemeBackground
 from backend.app.constants.themes import (
     GATED_PRESETS,
     LEGACY_PRESET_NAMES,
+    preset_offered,
     NEW_FORM_THEME,
     THEME_STYLES,
     new_form_theme,
@@ -118,7 +119,7 @@ class TestTheGuide:
         looks = guide[guide.index("## Looks"):]
         for name in theme_dict:
             listed = f'- "{name}": ' in looks
-            assert listed is (name not in GATED_PRESETS or daybreak), name
+            assert listed is preset_offered(name), name
         assert ('- "Daybreak": ' in looks) is daybreak
         for style in THEME_STYLES:
             assert f'- "{style}": ' in looks, style

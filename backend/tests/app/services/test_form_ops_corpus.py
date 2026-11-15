@@ -155,6 +155,10 @@ def test_case(case, monkeypatch):
     monkeypatch.setattr(
         settings, "DAYBREAK_PRESET_ENABLED", case.get("daybreakPreset", True)
     )
+    # ...and the Pigment preset's (the app theme switch), the same way
+    monkeypatch.setattr(
+        settings.app_theme, "ENABLED", case.get("pigmentPreset", True)
+    )
     run_case(case, _corpus()["forms"])
 
 

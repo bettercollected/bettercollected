@@ -87,6 +87,7 @@ async def test_shared_cases_through_the_endpoint(
     # The cases are about colours; the preset with a gated artwork (Daybreak) is
     # offered here. With its switch off it is refused: test_gated_preset_off below.
     monkeypatch.setattr(settings, "DAYBREAK_PRESET_ENABLED", True)
+    monkeypatch.setattr(settings.app_theme, "ENABLED", True)
     response = await save_themes(
         client, workspace, test_user_cookies, [case_theme(case)]
     )

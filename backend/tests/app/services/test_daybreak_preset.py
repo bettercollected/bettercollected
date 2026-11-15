@@ -111,7 +111,7 @@ def test_off_it_is_not_offered_or_listed(switch_off):
     assert "Daybreak" not in [entry["name"] for entry in get_themes_for_ai()]
     assert "Daybreak" not in _looks_guide()
     # the others stay
-    assert offered_presets() == [n for n in theme_dict if n != "Daybreak"]
+    assert offered_presets() == [n for n in theme_dict if n not in GATED_PRESETS]
 
 
 def test_off_set_theme_preset_refuses_it_as_it_refuses_an_unknown_name(switch_off):
@@ -193,7 +193,10 @@ def test_it_does_not_change_the_welcome_layout_by_itself(switch_on):
 def test_the_gated_presets_name_a_real_setting_and_a_real_preset():
     for name, switch in GATED_PRESETS.items():
         assert name in theme_dict
-        assert switch in type(settings).model_fields
+        # a dotted name is a settings group (the Pigment preset follows the app theme switch)
+        group, _, attribute = switch.rpartition(".")
+        owner = getattr(settings, group) if group else settings
+        assert attribute in type(owner).model_fields
 
 
 def test_the_gated_presets_match_the_webapp():

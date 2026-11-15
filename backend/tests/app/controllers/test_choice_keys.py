@@ -77,9 +77,9 @@ def test_the_spec_and_the_saved_themes_know_it():
     ]
 
 
-def test_no_preset_sets_it_yet():
-    assert all(preset.choiceKeys is None for preset in themes.values())
-    assert all("choiceKeys" not in preset for preset in theme_dict.values())
+def test_only_the_pigment_preset_sets_it():
+    assert {name for name, preset in themes.items() if preset.choiceKeys is not None} == {"Pigment"}
+    assert {name for name, preset in theme_dict.items() if "choiceKeys" in preset} == {"Pigment"}
 
 
 def test_update_theme_takes_it_or_refuses_it():
