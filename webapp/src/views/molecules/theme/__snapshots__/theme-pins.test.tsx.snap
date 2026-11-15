@@ -32,3 +32,128 @@ exports[`a form with stored gradient > draws the same page ground 1`] = `
 `;
 
 exports[`a form with stored gradient > wraps the page in the same markup 1`] = `"<div style="background-color: rgb(245, 247, 251); --focus-ring: #1649E2;" class="grid relative w-full grow bg-transparent! font-form flex-col justify-end grid-cols-1 h-full overflow-hidden"><div dir="ltr" class="relative grow lg:min-h-[100%] [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex! [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:min-h-full [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex-col overflow-hidden" style="position: relative; --radix-scroll-area-corner-width: 0px; --radix-scroll-area-corner-height: 0px; background-color: rgb(245, 247, 251); background-image: linear-gradient(135deg, rgb(245, 247, 251), rgb(219, 234, 254));"><style>[data-radix-scroll-area-viewport]{scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;}[data-radix-scroll-area-viewport]::-webkit-scrollbar{display:none}</style><div data-radix-scroll-area-viewport="" style="overflow: hidden scroll;" class="block! h-full w-full rounded-[inherit]"><div style="min-width: 100%; display: table;"><div class="px-5 sm:px-8 @container/page flex w-full grow flex-col py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12"><h1>Title</h1></div></div></div></div></div>"`;
+
+exports[`a form with the stored Kantlijn theme (marble) > draws the same band along the top of an ending > ending with the band 1`] = `"<div data-form-body-font="atkinson-next" data-form-title-font="besley" data-form-data-font="atkinson-mono" data-form-radius="soft" data-form-buttons="filled" data-form-highlight="" style="background-color: rgb(248, 238, 236); --focus-ring: #A3305A; --font-form: 'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, sans-serif; --form-font-title: 'Besley', Georgia, 'Times New Roman', serif; --form-font-data: 'Atkinson Hyperlegible Mono', ui-monospace, monospace; --form-radius-field: 6px; --form-radius-card: 6px; --form-radius-button: 6px; --form-highlight-edge: #1E4D3B; --form-highlight-fill: #1E4D3B1A; --form-highlight-fill-ink: #16261F; --form-highlight-solid: #1E4D3B; --form-highlight-solid-ink: #FFFFFF; --form-highlight-rule: #A3305A; --form-highlight-text: #A3305A;" class="grid relative w-full grow bg-transparent! font-form flex-col justify-end grid-cols-1 h-full overflow-hidden"><div dir="ltr" class="relative grow lg:min-h-[100%] [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex! [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:min-h-full [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex-col overflow-hidden" style="position: relative; --radix-scroll-area-corner-width: 0px; --radix-scroll-area-corner-height: 0px; background-color: rgb(248, 238, 236); background-image: linear-gradient(90deg, transparent calc(50% - 392px), rgb(163, 48, 90) calc(50% - 392px), rgb(163, 48, 90) calc(50% - 391px), rgb(255, 255, 255) calc(50% - 391px));"><style>[data-radix-scroll-area-viewport]{scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;}[data-radix-scroll-area-viewport]::-webkit-scrollbar{display:none}</style><div data-radix-scroll-area-viewport="" style="overflow: hidden scroll;" class="block! h-full w-full rounded-[inherit]"><div style="min-width: 100%; display: table;"><div class="relative h-20 w-full shrink-0 overflow-hidden sm:h-[120px]" style="background-image: url(&quot;data:image/webp;base64,UklGRj4AAABXRUJQVlA4IDIAAADQAgCdASoYAAQAPu1iqk2ppaQiMAgBMB2JQBhQBaSAAP7shkuuPJzeDldujONDzoYQAA==&quot;); background-size: cover; background-position: center center;" data-testid="theme-artwork-band" aria-hidden="true"><picture><source type="image/avif" srcset="/src/assets/themes/marble/marble-strip-1560x240.avif"><img alt="" decoding="async" class="h-full w-full object-cover" src="/src/assets/themes/marble/marble-strip-1560x240.webp"></picture><span class="absolute inset-x-0 bottom-0 h-2" style="background-image: repeating-linear-gradient(to right, rgb(163, 48, 90) 0px, rgb(163, 48, 90) 6px, rgb(248, 238, 236) 6px, rgb(248, 238, 236) 10px);"></span></div><div class="px-5 sm:px-8 @container/page flex w-full grow flex-col py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12"><h1>Title</h1></div></div></div></div></div>"`;
+
+exports[`a form with the stored Kantlijn theme (marble) > draws the same band along the top of an ending 1`] = `"<div class="relative h-20 w-full shrink-0 overflow-hidden sm:h-[120px]" style="background-image: url(&quot;data:image/webp;base64,UklGRj4AAABXRUJQVlA4IDIAAADQAgCdASoYAAQAPu1iqk2ppaQiMAgBMB2JQBhQBaSAAP7shkuuPJzeDldujONDzoYQAA==&quot;); background-size: cover; background-position: center center;" data-testid="theme-artwork-band" aria-hidden="true"><picture><source type="image/avif" srcset="/src/assets/themes/marble/marble-strip-1560x240.avif"><img alt="" decoding="async" class="h-full w-full object-cover" src="/src/assets/themes/marble/marble-strip-1560x240.webp"></picture><span class="absolute inset-x-0 bottom-0 h-2" style="background-image: repeating-linear-gradient(to right, rgb(163, 48, 90) 0px, rgb(163, 48, 90) 6px, rgb(248, 238, 236) 6px, rgb(248, 238, 236) 10px);"></span></div>"`;
+
+exports[`a form with the stored Kantlijn theme (marble) > fills the picture half of a page set beside an image with the artwork > picture half left 1`] = `"<div data-form-body-font="atkinson-next" data-form-title-font="besley" data-form-data-font="atkinson-mono" data-form-radius="soft" data-form-buttons="filled" data-form-highlight="" style="background-color: rgb(248, 238, 236); --focus-ring: #A3305A; --font-form: 'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, sans-serif; --form-font-title: 'Besley', Georgia, 'Times New Roman', serif; --form-font-data: 'Atkinson Hyperlegible Mono', ui-monospace, monospace; --form-radius-field: 6px; --form-radius-card: 6px; --form-radius-button: 6px; --form-highlight-edge: #1E4D3B; --form-highlight-fill: #1E4D3B1A; --form-highlight-fill-ink: #16261F; --form-highlight-solid: #1E4D3B; --form-highlight-solid-ink: #FFFFFF; --form-highlight-rule: #A3305A; --form-highlight-text: #A3305A;" class="grid relative w-full grow bg-transparent! font-form flex-col justify-end grid-cols-2 h-full overflow-hidden"><div dir="ltr" class="relative grow lg:min-h-[100%] [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex! [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:min-h-full [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex-col overflow-hidden order-1" style="position: relative; --radix-scroll-area-corner-width: 0px; --radix-scroll-area-corner-height: 0px; background-color: rgb(248, 238, 236); background-image: linear-gradient(90deg, transparent calc(50% - 392px), rgb(163, 48, 90) calc(50% - 392px), rgb(163, 48, 90) calc(50% - 391px), rgb(255, 255, 255) calc(50% - 391px));"><style>[data-radix-scroll-area-viewport]{scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;}[data-radix-scroll-area-viewport]::-webkit-scrollbar{display:none}</style><div data-radix-scroll-area-viewport="" style="overflow: hidden scroll;" class="block! h-full w-full rounded-[inherit]"><div style="min-width: 100%; display: table;"><div class="px-5 sm:px-8 @container/page flex w-full grow flex-col py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12"><h1>Title</h1></div></div></div></div><div class="relative h-auto grid-cols-1 hover:cursor-default" tabindex="-1" aria-disabled="true"><div class="absolute inset-0 overflow-hidden" style="background-image: url(&quot;data:image/webp;base64,UklGRmgAAABXRUJQVlA4IFwAAABwBACdASoYAB4APu1oq0+ppiOiMBgIATAdiWUAwNwQ48/owPwZ43SlqtCYAAD+2OVrUuUe+F4dnqNB8WlZYmggCohJgNMt/zrBbYfV4bZOdnLG+L5vnd+EvoAAAA==&quot;); background-size: cover; background-position: center center;" data-testid="theme-artwork" aria-hidden="true"><picture><source type="image/avif" srcset="/src/assets/themes/marble/marble-panel-960x1200.avif 960w, /src/assets/themes/marble/marble-panel-1440x1800.avif 1440w" sizes="50vw"><source type="image/webp" srcset="/src/assets/themes/marble/marble-panel-960x1200.webp 960w, /src/assets/themes/marble/marble-panel-1440x1800.webp 1440w" sizes="50vw"><img alt="" decoding="async" class="h-full w-full object-cover" src="/src/assets/themes/marble/marble-panel-960x1200.webp"></picture><span class="absolute inset-y-0 w-3 right-0" style="background-image: repeating-linear-gradient(rgb(163, 48, 90) 0px, rgb(163, 48, 90) 6px, rgb(248, 238, 236) 6px, rgb(248, 238, 236) 10px);"></span></div></div></div>"`;
+
+exports[`a form with the stored Kantlijn theme (marble) > fills the picture half of a page set beside an image with the artwork > picture half right 1`] = `"<div data-form-body-font="atkinson-next" data-form-title-font="besley" data-form-data-font="atkinson-mono" data-form-radius="soft" data-form-buttons="filled" data-form-highlight="" style="background-color: rgb(248, 238, 236); --focus-ring: #A3305A; --font-form: 'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, sans-serif; --form-font-title: 'Besley', Georgia, 'Times New Roman', serif; --form-font-data: 'Atkinson Hyperlegible Mono', ui-monospace, monospace; --form-radius-field: 6px; --form-radius-card: 6px; --form-radius-button: 6px; --form-highlight-edge: #1E4D3B; --form-highlight-fill: #1E4D3B1A; --form-highlight-fill-ink: #16261F; --form-highlight-solid: #1E4D3B; --form-highlight-solid-ink: #FFFFFF; --form-highlight-rule: #A3305A; --form-highlight-text: #A3305A;" class="grid relative w-full grow bg-transparent! font-form flex-col-reverse justify-end grid-cols-2 h-full overflow-hidden"><div dir="ltr" class="relative grow lg:min-h-[100%] [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex! [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:min-h-full [&amp;&gt;[data-radix-scroll-area-viewport]&gt;div]:flex-col overflow-hidden order-0" style="position: relative; --radix-scroll-area-corner-width: 0px; --radix-scroll-area-corner-height: 0px; background-color: rgb(248, 238, 236); background-image: linear-gradient(90deg, transparent calc(50% - 392px), rgb(163, 48, 90) calc(50% - 392px), rgb(163, 48, 90) calc(50% - 391px), rgb(255, 255, 255) calc(50% - 391px));"><style>[data-radix-scroll-area-viewport]{scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;}[data-radix-scroll-area-viewport]::-webkit-scrollbar{display:none}</style><div data-radix-scroll-area-viewport="" style="overflow: hidden scroll;" class="block! h-full w-full rounded-[inherit]"><div style="min-width: 100%; display: table;"><div class="px-5 sm:px-8 @container/page flex w-full grow flex-col py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12"><h1>Title</h1></div></div></div></div><div class="relative h-auto grid-cols-1 hover:cursor-default" tabindex="-1" aria-disabled="true"><div class="absolute inset-0 overflow-hidden" style="background-image: url(&quot;data:image/webp;base64,UklGRmgAAABXRUJQVlA4IFwAAABwBACdASoYAB4APu1oq0+ppiOiMBgIATAdiWUAwNwQ48/owPwZ43SlqtCYAAD+2OVrUuUe+F4dnqNB8WlZYmggCohJgNMt/zrBbYfV4bZOdnLG+L5vnd+EvoAAAA==&quot;); background-size: cover; background-position: center center;" data-testid="theme-artwork" aria-hidden="true"><picture><source type="image/avif" srcset="/src/assets/themes/marble/marble-panel-960x1200.avif 960w, /src/assets/themes/marble/marble-panel-1440x1800.avif 1440w" sizes="50vw"><source type="image/webp" srcset="/src/assets/themes/marble/marble-panel-960x1200.webp 960w, /src/assets/themes/marble/marble-panel-1440x1800.webp 1440w" sizes="50vw"><img alt="" decoding="async" class="h-full w-full object-cover" src="/src/assets/themes/marble/marble-panel-960x1200.webp"></picture><span class="absolute inset-y-0 w-3 left-0" style="background-image: repeating-linear-gradient(rgb(163, 48, 90) 0px, rgb(163, 48, 90) 6px, rgb(248, 238, 236) 6px, rgb(248, 238, 236) 10px);"></span></div></div></div>"`;
+
+exports[`a form with the stored Kantlijn theme (marble) > makes the same cover for a welcome page set beside the artwork > cover 1`] = `
+{
+  "style": {
+    "--form-button-bg": "#F8EEEC",
+    "--form-button-edge": "none",
+    "--form-button-fg": "#1E4D3B",
+  },
+  "theme": {
+    "accent": "#1E4D3B",
+    "background": undefined,
+    "bodyFont": "atkinson-next",
+    "buttonStyle": "filled",
+    "dataFont": "atkinson-mono",
+    "highlight": null,
+    "primary": "#F8EEEC",
+    "radius": "soft",
+    "secondary": "#F8EEEC",
+    "selection": null,
+    "style": "classic",
+    "tertiary": "#F8EEEC",
+    "title": "Kantlijn",
+    "titleFont": "besley",
+    "titleWidth": "normal",
+  },
+}
+`;
+
+exports[`a form with the stored Kantlijn theme (marble) > makes the same cover for a welcome page set beside the artwork > cover left 1`] = `
+{
+  "style": {
+    "--form-button-bg": "#F8EEEC",
+    "--form-button-edge": "none",
+    "--form-button-fg": "#1E4D3B",
+  },
+  "theme": {
+    "accent": "#1E4D3B",
+    "background": undefined,
+    "bodyFont": "atkinson-next",
+    "buttonStyle": "filled",
+    "dataFont": "atkinson-mono",
+    "highlight": null,
+    "primary": "#F8EEEC",
+    "radius": "soft",
+    "secondary": "#F8EEEC",
+    "selection": null,
+    "style": "classic",
+    "tertiary": "#F8EEEC",
+    "title": "Kantlijn",
+    "titleFont": "besley",
+    "titleWidth": "normal",
+  },
+}
+`;
+
+exports[`a form with the stored Kantlijn theme (marble) > sets the same variables and page ground > compact ground 1`] = `
+{
+  "backgroundColor": "#F8EEEC",
+  "backgroundImage": "linear-gradient(90deg, transparent 22%, #A3305A 22%, #A3305A calc(22% + 1px), #FFFFFF calc(22% + 1px))",
+}
+`;
+
+exports[`a form with the stored Kantlijn theme (marble) > sets the same variables and page ground > ground 1`] = `
+{
+  "backgroundColor": "#F8EEEC",
+  "backgroundImage": "linear-gradient(90deg, transparent calc(50% - 392px), #A3305A calc(50% - 392px), #A3305A calc(calc(50% - 392px) + 1px), #FFFFFF calc(calc(50% - 392px) + 1px))",
+}
+`;
+
+exports[`a form with the stored Kantlijn theme (marble) > sets the same variables and page ground > highlight 1`] = `
+{
+  "edge": "#1E4D3B",
+  "fill": "#1E4D3B1A",
+  "fillInk": "#16261F",
+  "focus": "#A3305A",
+  "rule": "#A3305A",
+  "solid": "#1E4D3B",
+  "solidInk": "#FFFFFF",
+  "text": "#A3305A",
+}
+`;
+
+exports[`a form with the stored Kantlijn theme (marble) > sets the same variables and page ground > left aligned ground 1`] = `
+{
+  "backgroundColor": "#F8EEEC",
+  "backgroundImage": "linear-gradient(90deg, transparent -2px, #A3305A -2px, #A3305A calc(-2px + 1px), #FFFFFF calc(-2px + 1px))",
+}
+`;
+
+exports[`a form with the stored Kantlijn theme (marble) > sets the same variables and page ground > root 1`] = `
+{
+  "attributes": {
+    "data-form-body-font": "atkinson-next",
+    "data-form-buttons": "filled",
+    "data-form-data-font": "atkinson-mono",
+    "data-form-highlight": "",
+    "data-form-radius": "soft",
+    "data-form-title-font": "besley",
+  },
+  "style": {
+    "--focus-ring": "#A3305A",
+    "--font-form": "'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, sans-serif",
+    "--form-font-data": "'Atkinson Hyperlegible Mono', ui-monospace, monospace",
+    "--form-font-title": "'Besley', Georgia, 'Times New Roman', serif",
+    "--form-highlight-edge": "#1E4D3B",
+    "--form-highlight-fill": "#1E4D3B1A",
+    "--form-highlight-fill-ink": "#16261F",
+    "--form-highlight-rule": "#A3305A",
+    "--form-highlight-solid": "#1E4D3B",
+    "--form-highlight-solid-ink": "#FFFFFF",
+    "--form-highlight-text": "#A3305A",
+    "--form-radius-button": "6px",
+    "--form-radius-card": "6px",
+    "--form-radius-field": "6px",
+  },
+}
+`;
