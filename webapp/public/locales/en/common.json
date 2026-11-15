@@ -2078,6 +2078,21 @@
       "PRESETS": "Presets",
       "PRESETS_HINT": "Ready-made palettes. Every preset meets WCAG AA contrast for questions, buttons and inputs."
     },
+    "APP_THEME": {
+      "TITLE": "Appearance",
+      "HINT": "How the dashboard looks for everyone in this workspace. Your forms, and what respondents see, do not change.",
+      "DAYBREAK_NAME": "Daybreak",
+      "DAYBREAK_DESCRIPTION": "Calm blue and white. The default.",
+      "PIGMENT_NAME": "Pigment",
+      "PIGMENT_DESCRIPTION": "Warmer paper, with a colour for each form.",
+      "IN_USE": "In use",
+      "SAVE": "Save appearance",
+      "SAVED": "Saved. This workspace now uses {{name}}.",
+      "NO_CHANGE": "{{name}} is already in use.",
+      "FORBIDDEN": "You can't change the appearance. Ask an owner or admin of this workspace.",
+      "DISABLED": "Pigment is not available on this server yet. Ask whoever runs it to turn it on.",
+      "FAILED": "Could not save the appearance. Check your connection and try again."
+    },
     "WORKSPACE": {
       "DOMAIN_ACTIONS": "Domain actions",
       "DELETE": "Delete",
@@ -3047,6 +3062,9 @@
       "CAPTCHA_SETTING_CHANGED_FORM": "{{actor}} changed the spam protection of {{form}}.",
       "CAPTCHA_SETTING_CHANGED_FORM_ON": "{{actor}} turned on spam protection for {{form}}.",
       "CAPTCHA_SETTING_CHANGED_FORM_OFF": "{{actor}} turned off spam protection for {{form}}.",
+      "APP_THEME_CHANGED": "{{actor}} changed the app theme of the workspace from {{previous}} to {{theme}}.",
+      "APP_THEME_CHANGED_NO_PREVIOUS": "{{actor}} set the app theme of the workspace to {{theme}}.",
+      "APP_THEME_CHANGED_UNKNOWN": "{{actor}} changed the app theme of the workspace.",
       "CUSTOM_DOMAIN_CHANGED": "{{actor}} set or changed the web address of the workspace.",
       "CUSTOM_DOMAIN_REMOVED": "{{actor}} removed the web address of the workspace.",
       "AUDIT_RETENTION_CHANGED": "{{actor}} changed how long the activity log keeps entries from {{previous}} to {{months}} months.",

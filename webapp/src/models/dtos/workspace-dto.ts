@@ -1,5 +1,6 @@
 // src/models/dtos/workspaceDto.ts
 import { FormTheme } from '@app/constants/theme';
+import type { AppTheme } from '@app/lib/app-theme';
 
 export type CustomDomainStatus = 'pending_dns' | 'provisioning' | 'ready' | 'attention_required' | 'suspended' | 'deleting';
 
@@ -56,6 +57,9 @@ export interface WorkspaceDto {
     customDomainChecks?: CustomDomainCheck[] | null;
     // Saved custom form themes (workspace "brand kit" palettes).
     customThemes?: FormTheme[];
+    // The look of the staff dashboard, from the server's enum. Present only for a member with dashboard access, and
+    // `daybreak` whatever is stored while the server's Pigment switch is off; absent for everyone else.
+    appTheme?: AppTheme;
 }
 
 export interface WorkspaceInvitationDto {
