@@ -124,6 +124,31 @@ describe('the app roles on a form root', () => {
         expect(states(screen.getByRole('button', { name: 'Daybreak preview' }))).toEqual(BLUE);
     });
 
+    it('draws every chrome utility that has a frozen fallback as the real page does: links, edges, washes, controls, soft fills', () => {
+        const inline = CSS_FILE.match(/@theme inline \{([^}]*)\}/)?.[1] ?? '';
+        const entries = [...inline.matchAll(/(--color-[\w-]+):\s*var\(--app-[\w-]+,/g)].map((m) => m[1]);
+        expect(entries.length).toBeGreaterThan(10);
+        // what the real page draws: a document with no scope at all
+        const frozen = wrap(<div data-testid="outside" />);
+        const real = Object.fromEntries(entries.map((entry) => [entry, colourAt(screen.getByTestId('outside'), entry)]));
+        frozen.unmount();
+        wrap(
+            <AppThemeScope workspaceId="ws-1" initial="pigment">
+                <div data-testid="in-scope" />
+                <LayoutWrapper theme={undefined} disabled showDesktopLayout>
+                    <div data-testid="in-form" />
+                </LayoutWrapper>
+            </AppThemeScope>
+        );
+        const inForm = screen.getByTestId('in-form');
+        const inScope = screen.getByTestId('in-scope');
+        for (const entry of entries) {
+            expect(colourAt(inForm, entry), `${entry} on a form root`).toBe(real[entry]);
+            // the harness sees the leak: in the scope but outside a form, the roles that differ in Pigment are Pigment's
+            if (entry !== '--color-app-on-action') expect(colourAt(inScope, entry), `${entry} in the scope`).not.toBe(real[entry]);
+        }
+    });
+
     it('adds nothing to the root of a real respondent page (no scope): its markup is what it always was', () => {
         const { container } = wrap(
             <LayoutWrapper theme={noSecondary} disabled showDesktopLayout>
