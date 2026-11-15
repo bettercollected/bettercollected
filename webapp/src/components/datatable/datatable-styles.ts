@@ -1,30 +1,43 @@
 import { DELETION_TABLE_PADDING } from './deletion-request-columns';
 
-// Shared admin-table treatment on the trust ramp: hairline borders (#EAECF0),
-// surface header (#F5F7FB), ink text — the old pure greys (#DBDBDB/#2E2E2E)
-// sat outside the blue-biased neutral system every other surface uses.
+// Shared admin-table treatment on the trust ramp: hairline borders, surface header, ink text — the old pure greys
+// (#DBDBDB/#2E2E2E) sat outside the blue-biased neutral system every other surface uses.
+//
+// The edges and the header band read the app theme's roles (`--app-edge`, `--app-edge-strong`, `--app-wash`), with the
+// frozen value as the fallback, so a table in a Pigment workspace has warm edges and a warm header band while Daybreak
+// (where each role is exactly that value) and any page without a theme scope draw what they always drew. In Daybreak
+// `--app-wash` is black-100 (#F5F7FB), `--app-edge` black-300 (#EAECF0) and `--app-edge-strong` black-400 (#D0D5DD): no
+// approximation. The neutral text colours stay literal on purpose: react-data-table-component applies a `color: <hex>
+// !important` from these objects differently from a `var()`, so moving them would change the drawn text in Daybreak.
+export const TABLE_WASH = 'var(--app-wash, #F5F7FB)';
+export const TABLE_EDGE = 'var(--app-edge, #EAECF0)';
+export const TABLE_EDGE_STRONG = 'var(--app-edge-strong, #D0D5DD)';
+export const TEXT_STRONG = '#344054';
+export const TEXT_INK = '#101828';
+const TEXT_MUTED = '#667085';
+
 export const dataTableCustomStyles = {
     table: {
         style: {
             // The table sits on the paper-mist page: its outer edges take the
             // strong hairline, inner cell lines stay on white.
-            borderTop: '1px solid #D0D5DD',
-            borderBottom: '1px solid #D0D5DD'
+            borderTop: `1px solid ${TABLE_EDGE_STRONG}`,
+            borderBottom: `1px solid ${TABLE_EDGE_STRONG}`
         }
     },
     headRow: {
         style: {
             border: 'none',
-            backgroundColor: '#F5F7FB',
+            backgroundColor: TABLE_WASH,
             fontSize: '14px',
-            color: '#344054 !important',
+            color: `${TEXT_STRONG} !important`,
             height: '50px !important'
         }
     },
     headCells: {
         style: {
-            borderRight: '1px solid #EAECF0',
-            color: '#344054 !important',
+            borderRight: `1px solid ${TABLE_EDGE}`,
+            color: `${TEXT_STRONG} !important`,
             fontSize: '14px',
             paddingTop: '5px',
             paddingBottom: '5px',
@@ -36,15 +49,15 @@ export const dataTableCustomStyles = {
         style: {
             padding: '0',
             fontSize: '18px',
-            color: '#101828 !important',
-            borderRight: '1px solid #EAECF0',
+            color: `${TEXT_INK} !important`,
+            borderRight: `1px solid ${TABLE_EDGE}`,
             paddingTop: '8px',
             paddingBottom: '8px'
         }
     },
     rows: {
         style: {
-            color: '#667085',
+            color: TEXT_MUTED,
             outlineWidth: '0',
             borderRadius: '4px',
             paddingLeft: '0',
@@ -74,6 +87,8 @@ export const deletionRequestTableStyles = {
     }
 };
 
+// The table of the custom-domain page keeps its old pure greys (#F6F6F6, #2E2E2E, #4D4D4D, #6E6E6E): none is a role or a ramp
+// step, so none is approximated. Only its header band, exactly the wash, follows the theme.
 export const simpleDataTableStyles = {
     table: {
         style: {
@@ -85,7 +100,7 @@ export const simpleDataTableStyles = {
     headRow: {
         style: {
             border: 'none',
-            backgroundColor: '#F5F7FB',
+            backgroundColor: TABLE_WASH,
             fontSize: '12px',
             padding: '0px 24px',
             color: '#2E2E2E !important',
