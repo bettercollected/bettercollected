@@ -24,7 +24,7 @@ const Drawer = ({ navGroups, can }: any) => {
             </div>
             <div className="flex-1 overflow-auto h-full scrollbar-hide">
                 <div className="flex min-h-full flex-col justify-between">
-                    <div className="px-4 pt-2">
+                    <nav aria-label={t('STAFF.NAV.WORKSPACE')} className="px-4 pt-2">
                         {/* Nav grouped by meaning (Collection · Your site ·
                             Workspace), not by permission — the old split was
                             "everyone" vs "admins", which separated Site from
@@ -40,7 +40,7 @@ const Drawer = ({ navGroups, can }: any) => {
                                 </div>
                             );
                         })}
-                    </div>
+                    </nav>
 
                     {/* Attribution, not advertisement — the same quiet caption
                         the responder surfaces carry, in place of the old

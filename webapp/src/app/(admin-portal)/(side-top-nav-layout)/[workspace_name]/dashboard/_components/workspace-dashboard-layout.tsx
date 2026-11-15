@@ -137,6 +137,8 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     permission: WorkspacePermission.WORKSPACE_MANAGE,
                     // Not a route — active while its view is open on the root.
                     isActive: pathname === commonWorkspaceUrl && settingsViewOpen,
+                    // a view on the dashboard root, not a page: a button, not a link
+                    opensInPlace: true,
                     icon: <Settings className="h-5 w-5 stroke-2" />,
                     onClick: () => {
                         setSettingsViewOpen(true);
@@ -154,6 +156,8 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     url: `${commonWorkspaceUrl}/custom-domain`,
                     // setting the domain is the workspace PATCH (workspace.manage)
                     permission: WorkspacePermission.WORKSPACE_MANAGE,
+                    // opens the upgrade dialog unless the workspace is Pro: a button, so a new tab cannot skip it
+                    opensInPlace: true,
                     onClick: () => {
                         if (workspace?.isPro) {
                             router.push(`${commonWorkspaceUrl}/custom-domain`);
