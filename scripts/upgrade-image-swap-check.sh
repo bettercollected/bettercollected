@@ -3,7 +3,7 @@
 # Such a stack never runs deploy.sh. It changes the image tags in its stack, restarts, and the services
 # migrate themselves (DB_AUTO_MIGRATE=true). This check does the same:
 #
-#   (1) old     a stack of the previous release (V4 default v4.4.0): its own docker-compose.deployment.yml
+#   (1) old     a stack of the previous release (default v5.0.0): its own docker-compose.deployment.yml
 #               (git show <tag>), its published images, installed with ITS deploy.sh (first install only),
 #               then seeded: a workspace and a user, a form with six questions and three responses (through
 #               the API), one waiting and one finished 4.1-style action job that carries its payload
@@ -24,10 +24,10 @@
 # container, network, volume and image it created when it exits. Nothing else is touched.
 #
 # Parameters (environment):
-#   SWAP_CHECK_OLD_TAG=v4.4.0       the release the stack starts on (files from `git show <tag>:...`, images
+#   SWAP_CHECK_OLD_TAG=v5.0.0       the release the stack starts on (files from `git show <tag>:...`, images
 #                                   bettercollected/{backend,auth,webapp}:<tag>)
 #   SWAP_CHECK_CANDIDATE=build      (default) images built from this checkout: bc-swapcheck-{backend,auth,
-#                                   webapp}:local. Or a published tag, e.g. v5.0.0: bettercollected/*:<tag>
+#                                   webapp}:local. Or a published tag, e.g. v5.0.1: bettercollected/*:<tag>
 #   SWAP_CHECK_WEBAPP=build         (default with =build) | an image name for the webapp only
 #   SWAP_CHECK_REUSE_IMAGES=1       use bc-swapcheck-*:local images that already exist instead of building
 #   SWAP_CHECK_KEEP_IMAGES=1        do not remove the images this run built or pulled
@@ -56,7 +56,7 @@ for tool in docker curl openssl script uv git; do
 done
 docker compose version >/dev/null 2>&1 || { echo "docker compose v2 is required" >&2; exit 2; }
 
-old_tag="${SWAP_CHECK_OLD_TAG:-v4.4.0}"
+old_tag="${SWAP_CHECK_OLD_TAG:-v5.0.0}"
 candidate="${SWAP_CHECK_CANDIDATE:-build}"
 min_free_mb="${SWAP_CHECK_MIN_FREE_MB:-2500}"
 git -C "$root" rev-parse -q --verify "refs/tags/$old_tag" >/dev/null || { echo "the tag $old_tag is not in this checkout" >&2; exit 2; }

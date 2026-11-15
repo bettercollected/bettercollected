@@ -84,8 +84,9 @@ async def test_shared_cases_through_the_endpoint(
     case: dict,
     monkeypatch,
 ):
-    # The cases are about colours; the preset with a gated artwork (Daybreak) is
-    # offered here. With its switch off it is refused: test_gated_preset_off below.
+    # The cases are about colours; the preset with a gated artwork (Daybreak) and
+    # the choice keys (the Pigment switch) are offered here. With its switch off
+    # a gated value is refused: test_gated_preset_off below, test_choice_keys_gate.py.
     monkeypatch.setattr(settings, "DAYBREAK_PRESET_ENABLED", True)
     monkeypatch.setattr(settings.app_theme, "ENABLED", True)
     response = await save_themes(

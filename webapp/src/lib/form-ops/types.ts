@@ -647,6 +647,13 @@ export interface ApplyOptions {
      */
     offeredGatedPresets?: ReadonlyArray<string>;
     /**
+     * The gated theme keys the server offers (the choice keys, while the
+     * Pigment switch is on; `offeredThemeKeys` in constants/theme.ts): default
+     * every key; a list makes an inline theme refuse a gated key that is not
+     * on it, unless the stored theme at that place already has it.
+     */
+    offeredThemeKeys?: ReadonlyArray<string>;
+    /**
      * The batch comes from the form editor (default). False applies the
      * rules for everyone else (AI, API): editor ops are refused and titles
      * must be plain text. The backend refuses those when it parses a batch,

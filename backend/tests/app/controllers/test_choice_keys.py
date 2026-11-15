@@ -1,6 +1,7 @@
 """The ``choiceKeys`` theme key (lettered keys on the answer options): absent or
 ``letters``, checked by every writer like the other listed theme keys, and
-absent leaves a theme as it was. No preset sets it yet."""
+absent leaves a theme as it was. No preset sets it yet. The key is offered while
+the Pigment switch is on (test_choice_keys_gate.py): these tests run with it on."""
 
 import json
 
@@ -20,6 +21,7 @@ from backend.app.constants.themes import theme_dict, themes
 from backend.app.container import container
 from backend.app.models.workspace import WorkspaceThemeDto
 from backend.app.services.ai.ops import apply_form_ops, parse_ops
+from backend.config import settings
 
 API = "/api/v1"
 COLOURS = {
@@ -30,6 +32,11 @@ COLOURS = {
     "accent": "#FBF7F1",
 }
 MESSAGE = "theme.choiceKeys must be one of: letters."
+
+
+@pytest.fixture(autouse=True)
+def pigment_switch_on(monkeypatch):
+    monkeypatch.setattr(settings.app_theme, "ENABLED", True)
 
 
 def _form(theme=None) -> StandardForm:

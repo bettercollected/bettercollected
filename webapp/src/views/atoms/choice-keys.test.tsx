@@ -110,6 +110,17 @@ describe('a theme with the key', () => {
         expect((chosen.querySelector('[data-choice-key]') as HTMLElement).style.background).toBe(hexToRgb('#FFC62E'));
     });
 
+    it('shows the keys with the Leaflet style but no solid chosen row: the bold label and the check mark it (documented)', () => {
+        const leaflet = { ...LETTERED, style: 'leaflet' as const };
+        const { container } = renderGroup(leaflet, 'v1');
+        const chosen = screen.getByRole('radio', { name: 'South' });
+        expect(choiceRowStyle(leaflet, true).solid).toBe(false);
+        expect(container.querySelectorAll('[data-choice-key]')).toHaveLength(6);
+        expect(chosen.style.background).not.toContain('--form-highlight-solid');
+        expect(chosen.className).toContain('font-semibold');
+        expect(chosen.querySelector('[data-choice-check]')).not.toBeNull();
+    });
+
     it('does not read the app theme: the colours are the form theme and constants only', () => {
         const { container } = renderGroup(LETTERED, 'v1');
         expect(container.innerHTML).not.toMatch(/--app-|var\(--(?:color-|pig-|action|canvas|surface)/);
