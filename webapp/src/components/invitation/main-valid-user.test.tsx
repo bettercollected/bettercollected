@@ -8,6 +8,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock('@app/components/auth/auth-navbar', () => ({ default: () => <header data-testid="navbar" /> }));
 
+import { buttonConstant } from '@app/constants/locales/button';
 import { invitationConstant } from '@app/constants/locales/invitations';
 import { store } from '@app/store/store';
 
@@ -28,6 +29,13 @@ describe('the invitation page', () => {
         const root = container.firstElementChild as HTMLElement;
         expect(root.className).not.toMatch(/\b(absolute|px-\d)\b/);
         expect(screen.getByTestId('navbar').parentElement).toBe(root);
+    });
+
+    it('offers exactly two actions, Join and Decline, and no other button', () => {
+        renderPage();
+        const buttons = screen.getAllByRole('button');
+        expect(buttons.map((button) => button.textContent)).toEqual([buttonConstant.joinWorkspace, buttonConstant.decline]);
+        expect(document.body.textContent).not.toMatch(/switch is o(n|ff)/i);
     });
 
     it('puts the heading, the answers and the access list in the same hairline card', () => {
