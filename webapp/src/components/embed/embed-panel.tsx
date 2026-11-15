@@ -76,7 +76,7 @@ export default function EmbedPanel({ url, formTitle }: { url: string; formTitle?
                 ) : (
                     <ul className="flex flex-wrap gap-1.5">
                         {origins.map((origin) => (
-                            <li key={origin} className="rounded border border-black-300 bg-white px-2 py-1 font-mono text-[12px] text-black-800">
+                            <li key={origin} className="rounded border border-app-edge bg-white px-2 py-1 font-mono text-[12px] text-black-800">
                                 {origin}
                             </li>
                         ))}
@@ -84,7 +84,7 @@ export default function EmbedPanel({ url, formTitle }: { url: string; formTitle?
                 )}
                 {!settings.isLoading &&
                     (can(WorkspacePermission.WORKSPACE_MANAGE) ? (
-                        <Link href={manageUrl} className="w-fit text-sm font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700">
+                        <Link href={manageUrl} className="w-fit text-sm font-medium text-app-primary-deep underline underline-offset-2 hover:text-app-action-pressed">
                             {origins.length === 0 ? t('STAFF.EMBED.SITES_ADD') : t('STAFF.EMBED.SITES_MANAGE')}
                         </Link>
                     ) : (
@@ -110,7 +110,7 @@ function CodeBlock({ id, label, code, copyLabel, copied, onCopy, hint }: { id: s
             </div>
             {/* focusable so that a keyboard user can scroll a long line (WCAG 2.1.1) */}
             {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
-            <pre tabIndex={0} aria-labelledby={id} className="max-w-full overflow-x-auto rounded-lg border border-black-300 bg-black-100 px-3.5 py-3 font-mono text-[12px] leading-relaxed break-all whitespace-pre-wrap text-black-800">
+            <pre tabIndex={0} aria-labelledby={id} className="max-w-full overflow-x-auto rounded-lg border border-app-edge bg-app-wash px-3.5 py-3 font-mono text-[12px] leading-relaxed break-all whitespace-pre-wrap text-black-800">
                 {code}
             </pre>
             <p className="text-xs text-black-600">{hint}</p>

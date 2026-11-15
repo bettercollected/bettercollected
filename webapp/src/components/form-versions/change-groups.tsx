@@ -19,7 +19,7 @@ export default function ChangeGroups({ entries, idPrefix = 'changes', heading: H
                     <Heading id={`${idPrefix}-${group.scope}`} className="text-xs font-semibold tracking-wide text-black-700 uppercase">
                         {t(`FORM_VERSIONS.COMPARE.SCOPE_${group.scope}`)}
                     </Heading>
-                    <ul className="flex flex-col divide-y divide-black-300 rounded border border-black-300 bg-white">
+                    <ul className="flex flex-col divide-y divide-app-edge rounded border border-app-edge bg-white">
                         {group.changes.map((change, index) => (
                             <li key={`${change.kind}-${change.ref ?? ''}-${index}`} className="px-4 py-2.5 text-sm break-words">
                                 {describeChange(t, change)}

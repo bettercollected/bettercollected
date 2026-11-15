@@ -34,7 +34,8 @@ const Drawer = ({ navGroups, can }: any) => {
                             if (!items.length) return null;
                             return (
                                 <div key={group.label} className="pb-1">
-                                    <div className="text-black-600 px-4 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider">{group.label}</div>
+                                    {/* data-nav-chip: a pigment chip before the label in the Pigment theme only (tailwind.css draws it with ::before, so no element is added and Daybreak is unchanged) */}
+                                    <div data-nav-chip={navGroups.indexOf(group) % 3} className="text-black-600 px-4 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider">{group.label}</div>
                                     <NavigationList navigationList={items} />
                                 </div>
                             );
@@ -45,7 +46,7 @@ const Drawer = ({ navGroups, can }: any) => {
                         the responder surfaces carry, in place of the old
                         upgrade upsell. */}
                     <div className="px-4 pb-6 pt-4">
-                        <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-600 hover:text-brand-600 flex items-center justify-center px-4 text-xs">
+                        <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-600 hover:text-app-primary-deep flex items-center justify-center px-4 text-xs">
                             {t('STAFF.SHELL.POWERED_BY')}&nbsp;<span className="font-semibold">bettercollected</span>
                         </a>
                         {/* The build this stack runs, for the signed-in team

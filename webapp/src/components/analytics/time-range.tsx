@@ -53,7 +53,7 @@ const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({ onRangeSelect, se
                 </svg>
             </button>
             {isOpen && (
-                <div className="absolute mt-2 w-56 origin-top-right rounded border border-black-300 bg-white shadow-large">
+                <div className="absolute mt-2 w-56 origin-top-right rounded border border-app-edge bg-white shadow-large">
                     <div className="py-1">
                         {timeRanges.map((range, index) => (
                             <button

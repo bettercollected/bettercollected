@@ -138,7 +138,7 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail, 
                 was a dead end (the only recovery was reloading the page). */}
             <p className="text-black-700 mb-3 text-sm">
                 We emailed a 6-digit code to <span className="font-medium">{email}</span>.{' '}
-                <button type="button" className="text-brand-500 hover:text-brand-600 underline underline-offset-2" onClick={() => setParentEmail('')}>
+                <button type="button" className="text-app-primary hover:text-app-primary-deep underline underline-offset-2" onClick={() => setParentEmail('')}>
                     Change email
                 </button>
             </p>
@@ -161,7 +161,7 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail, 
                     disabled={counter > 0 || proofBusy}
                     aria-disabled={counter > 0 || proofBusy}
                     aria-busy={proofBusy || undefined}
-                    className={`font-semibold ${counter === 0 && !proofBusy ? 'cursor-pointer text-brand-500 hover:text-brand-600' : 'cursor-not-allowed text-black-600'}`}
+                    className={`font-semibold ${counter === 0 && !proofBusy ? 'cursor-pointer text-app-primary hover:text-app-primary-deep' : 'cursor-not-allowed text-black-600'}`}
                 >
                     Resend {counter > 0 ? `(${counter}s)` : ''}
                 </button>

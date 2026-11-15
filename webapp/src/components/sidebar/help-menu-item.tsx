@@ -33,7 +33,7 @@ const HelpMenuItem = () => {
 const MenuItemWrapper = ({ children, href }: { children: any; href: string }) => {
     return (
         <AnchorLink href={href} target="_blank" key={href}>
-            <div className="hover:bg-black-200 hover:text-black-800 flex w-full items-center justify-start gap-2 rounded-lg p-2">{children}</div>
+            <div className="hover:bg-app-wash-strong hover:text-black-800 flex w-full items-center justify-start gap-2 rounded-lg p-2">{children}</div>
         </AnchorLink>
     );
 };

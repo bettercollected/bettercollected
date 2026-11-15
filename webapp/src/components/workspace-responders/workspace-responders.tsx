@@ -59,7 +59,7 @@ const ResponderGroupDropdown = ({
                         <div
                             key={group.id}
                             className={cn(
-                                "flex items-center justify-between px-3 py-2 hover:bg-black-100 cursor-pointer text-sm",
+                                "flex items-center justify-between px-3 py-2 hover:bg-app-wash cursor-pointer text-sm",
                                 isEmailInGroup(group, email) && "opacity-50 pointer-events-none"
                             )}
                             onClick={() => {
@@ -68,7 +68,7 @@ const ResponderGroupDropdown = ({
                             }}
                         >
                             <span className="truncate pr-2">{group.name}</span>
-                            {isEmailInGroup(group, email) && <Check className="h-4 w-4 text-brand-500 shrink-0" />}
+                            {isEmailInGroup(group, email) && <Check className="h-4 w-4 text-app-primary shrink-0" />}
                         </div>
                     ))}
                 </div>
@@ -119,7 +119,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                                     handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id })
                                 })
                             }
-                            className={cn('bg-brand-200 body5 text-brand-500! group flex w-fit cursor-pointer items-center gap-2 rounded p-1 leading-none', !canManageGroups && 'pointer-events-none')}
+                            className={cn('bg-app-primary-soft body5 text-app-primary! group flex w-fit cursor-pointer items-center gap-2 rounded p-1 leading-none', !canManageGroups && 'pointer-events-none')}
                         >
                             <span className="body5 text-black-8000">{group.name}</span>
                             {canManageGroups && <Close className="hidden h-2 w-2 group-hover:block " />}

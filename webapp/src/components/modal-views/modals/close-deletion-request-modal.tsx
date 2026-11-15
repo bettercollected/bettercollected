@@ -73,7 +73,7 @@ export default function CloseDeletionRequestModal({ workspace, formId, responseI
                                         setReason(code);
                                         setReasonMissing(false);
                                     }}
-                                    className="mt-0.5 accent-brand-500"
+                                    className="mt-0.5 accent-app-primary"
                                 />
                                 <span>{t(deletionRequestLocale.reason(code))}</span>
                             </label>

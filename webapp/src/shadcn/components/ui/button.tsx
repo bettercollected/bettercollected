@@ -14,18 +14,18 @@ import { cn } from '@app/shadcn/util/lib';
 const buttonVariants = cva('rounded gap-2 min-w-fit flex justify-center items-center px-2 sm:px-4 transition-colors', {
     variants: {
         variant: {
-            primary: 'bg-app-action text-app-on-action hover:bg-app-action-hover active:bg-app-action-pressed key-edge [--key-edge:var(--app-action-pressed,var(--color-action-pressed))] ' + 'disabled:bg-black-300 disabled:text-black-600',
-            danger: 'bg-[#C43D3D] text-white hover:bg-[#A83434] active:bg-[#8F2C2C] key-edge [--key-edge:#7A2525] disabled:bg-black-300 disabled:text-black-600',
+            primary: 'bg-app-action text-app-on-action hover:bg-app-action-hover active:bg-app-action-pressed key-edge [--key-edge:var(--app-action-pressed,var(--color-action-pressed))] ' + 'disabled:bg-app-edge disabled:text-black-600',
+            danger: 'bg-[#C43D3D] text-white hover:bg-[#A83434] active:bg-[#8F2C2C] key-edge [--key-edge:#7A2525] disabled:bg-app-edge disabled:text-black-600',
             tertiary:
-                'text-brand-500 bg-white border border-brand-500 hover:bg-brand-100 active:bg-brand-200 key-edge [--key-edge:var(--color-brand-700)] ' +
-                'disabled:bg-transparent disabled:border disabled:text-black-600 disabled:border-black-300',
-            secondary: 'bg-black-800 text-white hover:bg-black-900 active:bg-black-900 key-edge [--key-edge:#05080F] ' + 'disabled:bg-black-300 disabled:text-black-600',
-            ghost: 'text-brand-500 border border-transparent hover:bg-black-200 ' + 'active:border-brand-500 active:bg-black-300 disabled:bg-black-300 disabled:text-black-600',
-            dangerGhost: 'text-[#C43D3D] border border-transparent hover:bg-[#FBEFEF] active:bg-[#F5DFDF] ' + 'disabled:bg-black-300 disabled:text-black-600',
+                'text-app-primary bg-white border border-app-primary hover:bg-app-primary-tint active:bg-app-primary-soft key-edge [--key-edge:var(--color-brand-700)] ' +
+                'disabled:bg-transparent disabled:border disabled:text-black-600 disabled:border-app-edge',
+            secondary: 'bg-black-800 text-white hover:bg-black-900 active:bg-black-900 key-edge [--key-edge:#05080F] ' + 'disabled:bg-app-edge disabled:text-black-600',
+            ghost: 'text-app-primary border border-transparent hover:bg-app-wash-strong ' + 'active:border-app-primary active:bg-app-edge disabled:bg-app-edge disabled:text-black-600',
+            dangerGhost: 'text-[#C43D3D] border border-transparent hover:bg-[#FBEFEF] active:bg-[#F5DFDF] ' + 'disabled:bg-app-edge disabled:text-black-600',
             v2Button:
-                'border border-black-400 bg-white text-black-700 hover:bg-black-200 hover:text-black-900 active:bg-black-300 key-edge [--key-edge:var(--color-black-400)] ' +
-                'disabled:bg-black-300 disabled:text-black-600',
-            v2GhostButton: 'text-black-600 text-xs border border-transparent hover:bg-black-200 hover:text-black-800 ' + 'active:bg-black-300 active:text-black-800 disabled:bg-black-300 disabled:text-black-600'
+                'border border-app-edge-strong bg-white text-black-700 hover:bg-app-wash-strong hover:text-black-900 active:bg-app-edge key-edge [--key-edge:var(--color-black-400)] ' +
+                'disabled:bg-app-edge disabled:text-black-600',
+            v2GhostButton: 'text-black-600 text-xs border border-transparent hover:bg-app-wash-strong hover:text-black-800 ' + 'active:bg-app-edge active:text-black-800 disabled:bg-app-edge disabled:text-black-600'
         },
         size: {
             medium: 'h-[48px] text-sm font-medium',

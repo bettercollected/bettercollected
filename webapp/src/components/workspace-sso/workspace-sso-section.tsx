@@ -23,7 +23,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useCreateSsoConnectionMutation, useDeleteSsoConnectionMutation, useGetWorkspaceSsoQuery, useLazyGetSsoAuditPageQuery, useRevokeAPIKeyMutation, useSetSsoConnectionEnabledMutation, useUpdateSsoSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-export const inputClass = 'h-10 w-full rounded-md border border-control bg-white px-3.5 py-0 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-600 focus:border-brand-500';
+export const inputClass = 'h-10 w-full rounded-md border border-app-control bg-white px-3.5 py-0 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-600 focus:border-app-primary';
 
 export const ROLE_LABELS: Record<string, string> = {
     ADMIN: 'Admin',
@@ -149,8 +149,8 @@ function ConnectionCard({ connection, workspaceId, ssoRequired, canManage, domai
                     <div className="flex flex-wrap items-center gap-2">
                         <KeyRound className={cn('h-4 w-4 shrink-0', enabled ? 'text-success' : 'text-black-600')} />
                         <span className="break-all text-sm font-semibold text-black-900">{connection.name}</span>
-                        <span className="rounded bg-black-100 px-1.5 py-0.5 text-[11px] font-medium uppercase text-black-600">{connection.type}</span>
-                        <span className={cn('rounded px-1.5 py-0.5 text-[11px] font-medium', enabled ? 'bg-[#E7F6EE] text-success-700' : 'bg-black-100 text-black-600')}>{enabled ? t('SSO_UI.ENABLED') : t('SSO_UI.DISABLED')}</span>
+                        <span className="rounded bg-app-wash px-1.5 py-0.5 text-[11px] font-medium uppercase text-black-600">{connection.type}</span>
+                        <span className={cn('rounded px-1.5 py-0.5 text-[11px] font-medium', enabled ? 'bg-[#E7F6EE] text-success-700' : 'bg-app-wash text-black-600')}>{enabled ? t('SSO_UI.ENABLED') : t('SSO_UI.DISABLED')}</span>
                         {connection.tested ? (
                             <span className="rounded bg-[#E7F6EE] px-1.5 py-0.5 text-[11px] font-medium text-success-700">{t('SSO_UI.TESTED')}</span>
                         ) : (
@@ -200,7 +200,7 @@ function ConnectionCard({ connection, workspaceId, ssoRequired, canManage, domai
 function DomainsLink({ workspaceName }: { workspaceName?: string }) {
     const { t } = useTranslation();
     return (
-        <Link className="text-brand-500 underline" href={workspaceSectionUrls(workspaceName).domains}>
+        <Link className="text-app-primary underline" href={workspaceSectionUrls(workspaceName).domains}>
             {t('SSO_UI.VERIFY_DOMAIN_LINK')}
         </Link>
     );
@@ -326,7 +326,7 @@ function HelpStep({ children }: { children: React.ReactNode }) {
 }
 
 function Value({ children }: { children?: React.ReactNode }) {
-    return <code className="break-all rounded bg-black-100 px-1 py-0.5 text-[11px] text-black-800">{children}</code>;
+    return <code className="break-all rounded bg-app-wash px-1 py-0.5 text-[11px] text-black-800">{children}</code>;
 }
 
 /** Step-by-step setup for Microsoft Entra ID (and a short Keycloak note),
@@ -368,7 +368,7 @@ export function EntraSetupHelp({ sp }: { sp: SsoServiceProviderDto }) {
                 <p className="leading-relaxed">
                     {t('SSO_UI.ENTRA_NOTE')}
                 </p>
-                <div className="flex flex-col gap-1.5 border-t border-black-100 pt-3">
+                <div className="flex flex-col gap-1.5 border-t border-app-wash pt-3">
                     <h3 className="text-xs font-semibold text-black-900">{t('SSO_UI.KEYCLOAK_TITLE')}</h3>
                     <p className="leading-relaxed">
                         <Trans i18nKey="SSO_UI.KEYCLOAK_BODY" values={{ uri: sp.oidcRedirectUri }} components={v} />
@@ -398,13 +398,13 @@ function ApiKeysReview({ keys, workspaceId, canManage }: { keys: SsoApiKeyDto[];
     return (
         <div data-testid="sso-api-keys" className="mt-1 flex flex-col gap-3 rounded-md border border-[#D6E2F5] bg-[#F3F7FD] p-3 text-xs leading-relaxed text-black-700">
             <div className="flex items-start gap-2">
-                <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
+                <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-app-primary" />
                 <div className="flex flex-col gap-1">
                     <h3 className="text-xs font-semibold text-black-900">{t('SSO.KEYS_TITLE')}</h3>
                     <p>{older ? t('SSO.KEYS_INTRO', { count: older }) : t('SSO.KEYS_INTRO_NONE_OLD')}</p>
                 </div>
             </div>
-            <ul className="flex flex-col divide-y divide-black-200 rounded border border-black-200 bg-white">
+            <ul className="flex flex-col divide-y divide-app-wash-strong rounded border border-app-wash-strong bg-white">
                 {keys.map((key) => (
                     <li key={key.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
                         <div className="flex min-w-0 flex-col gap-0.5">
@@ -412,7 +412,7 @@ function ApiKeysReview({ keys, workspaceId, canManage }: { keys: SsoApiKeyDto[];
                                 {key.name} <code className="font-normal text-black-600">{key.prefix}…</code>
                             </span>
                             <span className="text-black-600">{key.scopes.join(', ')}</span>
-                            {key.createdAfterRequirement ? <span className="w-fit rounded bg-black-200 px-1.5 py-0.5 text-[11px] text-black-700">{t('SSO.KEY_CREATED_AFTER')}</span> : null}
+                            {key.createdAfterRequirement ? <span className="w-fit rounded bg-app-wash-strong px-1.5 py-0.5 text-[11px] text-black-700">{t('SSO.KEY_CREATED_AFTER')}</span> : null}
                             <span className="text-black-600">
                                 {t('SSO.KEY_CREATED_BY', { who: who(key) })}
                                 {key.createdAt ? ` ${t('SSO.KEY_CREATED_AT', { date: formatTime(key.createdAt, locale) })}` : ''}
@@ -458,13 +458,13 @@ function BreakGlassLog({ entries, nextCursor, workspaceId }: { entries: SsoAudit
     };
     const shown = [...entries, ...older];
     return (
-        <div data-testid="sso-break-glass-log" className="mt-1 flex flex-col gap-2 rounded-md border border-black-300 p-3 text-xs leading-relaxed text-black-700">
+        <div data-testid="sso-break-glass-log" className="mt-1 flex flex-col gap-2 rounded-md border border-app-edge p-3 text-xs leading-relaxed text-black-700">
             <h3 className="text-xs font-semibold text-black-900">{t('SSO.AUDIT_TITLE')}</h3>
             <p>{t('SSO.AUDIT_INTRO')}</p>
             {shown.length === 0 ? (
                 <p className="text-black-600">{t('SSO.AUDIT_EMPTY')}</p>
             ) : (
-                <ul className="flex flex-col divide-y divide-black-200 rounded border border-black-200 bg-white">
+                <ul className="flex flex-col divide-y divide-app-wash-strong rounded border border-app-wash-strong bg-white">
                     {shown.map((entry) => (
                         <li key={entry.id} className="flex flex-col gap-0.5 p-3">
                             <span className="text-[13px] font-semibold text-black-900">{entry.event === 'sso_break_glass_sign_in' ? t('SSO.AUDIT_EVENT_SIGN_IN') : t('SSO.AUDIT_EVENT_REQUEST')}</span>
@@ -542,7 +542,7 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
                     <span className="font-normal text-black-600">{t('SSO_UI.DEFAULT_ROLE_HINT')}</span>
                 </label>
 
-                <div className="flex flex-col gap-2 border-t border-black-100 pt-4">
+                <div className="flex flex-col gap-2 border-t border-app-wash pt-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-col gap-1">
                             <span className="text-sm font-semibold text-black-900">{domainList ? t('SSO_UI.REQUIRE_FOR', { domains: domainList }) : t('SSO_UI.REQUIRE')}</span>
@@ -596,7 +596,7 @@ function PolicySection({ overview, workspaceId }: { overview: SsoOverviewDto; wo
                     {settings.ssoRequired && settings.apiKeys?.length ? <ApiKeysReview keys={settings.apiKeys} workspaceId={workspaceId} canManage={canManage} /> : null}
                     <BreakGlassLog entries={overview.audit ?? []} nextCursor={overview.auditNextCursor} workspaceId={workspaceId} />
                     <div className="mt-1 flex items-start gap-2 rounded-md border border-[#D6E2F5] bg-[#F3F7FD] p-3 text-xs leading-relaxed text-black-700">
-                        <LifeBuoy className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
+                        <LifeBuoy className="mt-0.5 h-4 w-4 shrink-0 text-app-primary" />
                         <span>
                             <Trans i18nKey="SSO_UI.BREAK_GLASS" components={{ 1: <strong /> }} />
                         </span>
@@ -637,7 +637,7 @@ export default function WorkspaceSsoSection() {
         // switched on but incomplete: say so, without pointing at SSO_ENABLED
         const message = overview.reason === 'not_configured' ? sso.NOT_CONFIGURED : sso.NOT_ENABLED;
         return (
-            <p className="rounded-md border border-dashed border-black-300 px-3 py-4 text-xs text-black-600" data-testid="sso-unavailable" data-reason={overview.reason === 'not_configured' ? 'not_configured' : 'disabled'}>
+            <p className="rounded-md border border-dashed border-app-edge px-3 py-4 text-xs text-black-600" data-testid="sso-unavailable" data-reason={overview.reason === 'not_configured' ? 'not_configured' : 'disabled'}>
                 {t(message)}
                 {overview.reason === 'not_configured' && <SsoSelfHostingGuide />}
             </p>
@@ -653,7 +653,7 @@ export default function WorkspaceSsoSection() {
         <div className="flex flex-col gap-8">
             {!overview.canManage && (
                 <div role="note" className="flex items-start gap-2 rounded-md border border-[#D6E2F5] bg-[#F3F7FD] p-3 text-xs leading-relaxed text-black-700">
-                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-app-primary" />
                     <span>{t('SSO_UI.OWNERS_ONLY')}</span>
                 </div>
             )}
@@ -678,7 +678,7 @@ export default function WorkspaceSsoSection() {
                         ))}
                     </ul>
                 ) : (
-                    <p className="rounded-md border border-dashed border-black-300 px-3 py-3 text-xs text-black-600">
+                    <p className="rounded-md border border-dashed border-app-edge px-3 py-3 text-xs text-black-600">
                         {t('SSO_UI.NO_DOMAIN')} <DomainsLink workspaceName={workspace?.workspaceName} /> {t('SSO_UI.FIRST')}
                     </p>
                 )}
@@ -706,7 +706,7 @@ export default function WorkspaceSsoSection() {
                     </ul>
                 )}
                 {!overview.canManage ? null : overview.domains.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-black-300 px-3 py-3 text-xs text-black-600">
+                    <p className="rounded-md border border-dashed border-app-edge px-3 py-3 text-xs text-black-600">
                         <Trans i18nKey="SSO_UI.NEEDS_DOMAIN" components={{ 1: <DomainsLink workspaceName={workspace?.workspaceName} /> }} />
                     </p>
                 ) : adding ? (

@@ -47,7 +47,7 @@ describe('RouteTabBar', () => {
 
     it('shows the active tab by weight and underline, not colour alone', () => {
         renderBar();
-        expect(screen.getByRole('link', { name: 'Single sign-on' })).toHaveClass('font-semibold', 'border-brand-500');
+        expect(screen.getByRole('link', { name: 'Single sign-on' })).toHaveClass('font-semibold', 'border-app-primary');
         expect(screen.getByRole('link', { name: 'Domains' })).toHaveClass('font-medium', 'border-transparent');
     });
 

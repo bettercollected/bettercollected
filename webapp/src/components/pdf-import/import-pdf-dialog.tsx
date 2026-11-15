@@ -73,7 +73,7 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
                         setDragging(false);
                         choose(e.dataTransfer.files?.[0]);
                     }}
-                    className={`flex h-36 w-full flex-col items-center justify-center rounded-lg border-2 border-dashed text-sm transition ${dragging ? 'border-blue-500 bg-blue-50' : 'border-black-300 hover:border-blue-400'}`}
+                    className={`flex h-36 w-full flex-col items-center justify-center rounded-lg border-2 border-dashed text-sm transition ${dragging ? 'border-blue-500 bg-blue-50' : 'border-app-edge hover:border-blue-400'}`}
                 >
                     {file ? (
                         <>
@@ -95,7 +95,7 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
                         <p className="text-xs text-black-600">{t('PDF_IMPORT.DIALOG.BUILT_IN_ONLY')}</p>
                     </div>
                 ) : aiUsable ? (
-                    <div className="rounded-md border border-black-300 p-3">
+                    <div className="rounded-md border border-app-edge p-3">
                         <label className="flex cursor-pointer items-start gap-2 text-sm text-black-800">
                             <input type="checkbox" className="mt-0.5" checked={aiConsent} onChange={(e) => setAiConsent(e.target.checked)} />
                             <span>{t('PDF_IMPORT.DIALOG.LET_READ', { provider: ai.provider })}</span>

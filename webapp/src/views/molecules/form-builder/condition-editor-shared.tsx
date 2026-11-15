@@ -136,8 +136,8 @@ export function isConditionComplete(c: LogicCondition | undefined): boolean {
     return true;
 }
 
-export const selectClass = 'text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-control bg-white px-2 py-1.5 text-xs outline-hidden';
-const invalidSelectClass = selectClass.replace('border-control', 'border-amber-400');
+export const selectClass = 'text-black-800 focus:border-app-primary w-full min-w-0 rounded-md border border-app-control bg-white px-2 py-1.5 text-xs outline-hidden';
+const invalidSelectClass = selectClass.replace('border-app-control', 'border-amber-400');
 
 /** One condition row: [source field] [comparison] [value], with an optional remove button. */
 export function ConditionRow({ condition, sources, onChange, onRemove }: { condition: LogicCondition; sources: SourceField[]; onChange: (patch: Partial<LogicCondition>) => void; onRemove?: () => void }) {
@@ -156,7 +156,7 @@ export function ConditionRow({ condition, sources, onChange, onRemove }: { condi
     const comparisonText = (c: Comparison) => t(counting ? `CONDITION.COUNT_COMPARISON.${c}` : ranging ? `CONDITION.RANGE_COMPARISON.${c}` : `CONDITION.COMPARISON.${c}`);
     const valueMissing = needsValue(condition.comparison) && (condition.value === undefined || condition.value === null || String(condition.value).trim() === '');
     return (
-        <div className="relative flex flex-col gap-1.5 rounded-md border border-black-300 bg-black-100 p-2">
+        <div className="relative flex flex-col gap-1.5 rounded-md border border-app-edge bg-app-wash p-2">
             {onRemove && (
                 <button type="button" aria-label={t('CONDITION.REMOVE')} className="absolute top-1.5 right-1.5 text-black-600 hover:text-black-700" onClick={onRemove}>
                     <X className="h-3.5 w-3.5" />

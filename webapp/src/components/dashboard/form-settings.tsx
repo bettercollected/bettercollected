@@ -318,7 +318,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                 );
             case 'ORIGINAL':
                 return form?.importedFormId ? (
-                    <div className="divide-black-300 flex flex-col divide-y">
+                    <div className="divide-app-edge flex flex-col divide-y">
                         <SettingRow title={t('STAFF.FORM_SETTINGS.ORIGINAL_TITLE')} description={t('STAFF.FORM_SETTINGS.ORIGINAL_DESC')}>
                             <Switch
                                 data-umami-event="Show Original Google Form Switch"
@@ -335,7 +335,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                 return isSelf ? (
                     <div>
                         <GroupHeading>{t('STAFF.FORM_SETTINGS.ACCESS_IDENTITY')}</GroupHeading>
-                        <div className="divide-black-300 flex flex-col divide-y">
+                        <div className="divide-app-edge flex flex-col divide-y">
                             <SettingRow title={t('STAFF.FORM_SETTINGS.VERIFIED_TITLE')} description={t('STAFF.FORM_SETTINGS.VERIFIED_DESC')}>
                                 <Switch
                                     data-umami-event="Require Verified Identity Switch"
@@ -354,7 +354,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                 return (
                     <div className="flex flex-col">
                         <FormAvailabilityStatus form={form} />
-                        <div className="divide-black-300 flex flex-col divide-y">
+                        <div className="divide-app-edge flex flex-col divide-y">
                             <SettingRow stacked title={t('FORM_PAGE.SETTINGS.OPEN_DATE.TITLE')} description={t('FORM_PAGE.SETTINGS.OPEN_DATE.DESCRIPTION')}>
                                 <OpenDateControl
                                     key={`open-${form.formId}`}
@@ -395,11 +395,11 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                                         </Button>
                                     )}
                                     {form?.settings?.formCloseDate && moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
-                                        <div className="bg-black-200 mb-4 flex w-full items-center justify-between gap-2 rounded-md p-5">
+                                        <div className="bg-app-wash-strong mb-4 flex w-full items-center justify-between gap-2 rounded-md p-5">
                                             <div>
                                                 {t(formPage.automaticallyCloseOn)} {utcToLocalDateTimeIn(form?.settings?.formCloseDate, i18n.language)}
                                             </div>
-                                            <button type="button" data-testid="remove-close-date" aria-label={t('STAFF.FORM_SETTINGS.CLOSE_DATE_REMOVE')} onClick={reopenForm} className="text-black-800 hover:bg-black-300 shrink-0 rounded p-1">
+                                            <button type="button" data-testid="remove-close-date" aria-label={t('STAFF.FORM_SETTINGS.CLOSE_DATE_REMOVE')} onClick={reopenForm} className="text-black-800 hover:bg-app-edge shrink-0 rounded p-1">
                                                 <Close width="24px" height="24px" className="text-black-800" aria-hidden="true" />
                                             </button>
                                         </div>
@@ -418,7 +418,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                         {isSelf && (
                             <div>
                                 <GroupHeading>{t('STAFF.FORM_SETTINGS.GROUP_FILLING')}</GroupHeading>
-                                <div className="divide-black-300 flex flex-col divide-y">
+                                <div className="divide-app-edge flex flex-col divide-y">
                                     <SettingRow title={t(formPage.reviewPageTitle)} description={t(formPage.reviewPageDescription)}>
                                         <Switch
                                             data-umami-event="Show Review Page Switch"
@@ -470,7 +470,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                         {isSelf && (
                             <div>
                                 <GroupHeading>{t('STAFF.FORM_SETTINGS.GROUP_AFTER')}</GroupHeading>
-                                <div className="divide-black-300 flex flex-col divide-y">
+                                <div className="divide-app-edge flex flex-col divide-y">
                                     <SettingRow title={t('STAFF.FORM_SETTINGS.NUMBER_TITLE')} description={t('STAFF.FORM_SETTINGS.NUMBER_DESC')}>
                                         <Switch
                                             data-umami-event="Show Submission Number Switch"
@@ -489,7 +489,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                                                 // It needs verified identity, which is set under Access: say so, and point there.
                                                 <span data-testid="editing-needs-identity" className="text-black-600 flex flex-wrap items-center gap-x-2 text-xs">
                                                     <Lock className="h-3 w-3" aria-hidden="true" /> {t('STAFF.FORM_SETTINGS.EDITING_NEEDS_IDENTITY')}
-                                                    <Link href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/settings/access`} className="text-brand-500 underline">
+                                                    <Link href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/settings/access`} className="text-app-primary underline">
                                                         {t('STAFF.FORM_SETTINGS.EDITING_GO_ACCESS')}
                                                     </Link>
                                                 </span>
@@ -528,7 +528,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                         {form?.isPublished && (
                             <div>
                                 <GroupHeading>{t('STAFF.FORM_SETTINGS.GROUP_BRANDING')}</GroupHeading>
-                                <div className="divide-black-300 flex flex-col divide-y">
+                                <div className="divide-app-edge flex flex-col divide-y">
                                     <SettingRow
                                         title={t(formPage.brandingTitle)}
                                         titleExtra={<ProLogo />}
@@ -610,7 +610,7 @@ const FormGroups = ({ groups }: { groups: ResponderGroupDto[] }) => {
         <div className={'mt-2 flex flex-col gap-0.5'}>
             {groups.map((group: ResponderGroupDto) => {
                 return (
-                    <div key={group.id} className={'bg-black-200 flex flex-row px-6 py-[18px]'}>
+                    <div key={group.id} className={'bg-app-wash-strong flex flex-row px-6 py-[18px]'}>
                         <div className={'w-full md:w-[400px]'}>
                             <h1 className={'text-black-800 text-base font-semibold'}>{group.name}</h1>
                             <p className={'text-black-700 text-sm font-normal'}>{group.description}</p>

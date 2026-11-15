@@ -76,7 +76,7 @@ export default function FormVersionsPage() {
                 </div>
 
                 {/* what a screen reader hears after a restore or a failed one */}
-                <div role="status" aria-live="polite" className={restored !== null || failure ? 'rounded border border-black-300 bg-white px-3 py-2 text-sm' : 'sr-only'}>
+                <div role="status" aria-live="polite" className={restored !== null || failure ? 'rounded border border-app-edge bg-white px-3 py-2 text-sm' : 'sr-only'}>
                     {restored !== null && (
                         <p>
                             {t('FORM_VERSIONS.RESTORED', { n: restored })}{' '}
@@ -105,7 +105,7 @@ export default function FormVersionsPage() {
                 {!isLoading && !isError && (
                     <>
                         {draft && (
-                            <div className="flex flex-col gap-2 rounded border border-black-300 bg-white p-4" data-testid="draft-row">
+                            <div className="flex flex-col gap-2 rounded border border-app-edge bg-white p-4" data-testid="draft-row">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <h3 className="font-medium">{t('FORM_VERSIONS.DRAFT')}</h3>
                                     <span className="text-sm text-black-700">{draft.hasUnpublishedChanges ? t('FORM_VERSIONS.DRAFT_CHANGED') : t('FORM_VERSIONS.DRAFT_SAME')}</span>
@@ -128,7 +128,7 @@ export default function FormVersionsPage() {
                                 {versions.map((item, index) => {
                                     const previous = versions[index + 1];
                                     return (
-                                        <li key={item.version} className="flex flex-col gap-2 rounded border border-black-300 bg-white p-4" data-testid={`version-${item.version}`}>
+                                        <li key={item.version} className="flex flex-col gap-2 rounded border border-app-edge bg-white p-4" data-testid={`version-${item.version}`}>
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <h3 className="font-medium">{t('FORM_VERSIONS.VERSION_N', { n: item.version })}</h3>
                                                 {item.current && <span className="bg-success-100 rounded-full px-2 py-0.5 text-xs font-semibold text-success-700">{t('FORM_VERSIONS.LIVE')}</span>}

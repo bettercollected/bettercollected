@@ -120,9 +120,9 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
     return (
         <div className="min-h-dvh bg-white text-black-900 print:min-h-0">
             {/* opaque: the page scrolls under it */}
-            <header className={`sticky top-0 z-30 border-b border-black-300 bg-white print:hidden ${pageGutter}`}>
+            <header className={`sticky top-0 z-30 border-b border-app-edge bg-white print:hidden ${pageGutter}`}>
                 <nav aria-label={t('RESPONSE_PAGE.ACTIONS')} className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
-                    <Link href={listUrl} className="flex min-w-0 items-center gap-2 rounded text-sm font-medium text-black-700 hover:text-black-900 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500">
+                    <Link href={listUrl} className="flex min-w-0 items-center gap-2 rounded text-sm font-medium text-black-700 hover:text-black-900 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-app-primary">
                         <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>{listName}</span>
                         {form && !wrongForm && <span className="max-w-[40vw] truncate font-normal text-black-600 sm:max-w-[320px]">· {formTitle}</span>}
@@ -148,7 +148,7 @@ export default function ResponsePage({ formId, responseId, origin }: { formId: s
                                 href={`#${CONTENTS_ID}`}
                                 onClick={(event) => followInPageLink(event, CONTENTS_ID, CONTENTS_HEADING_ID)}
                                 title={t('RESPONSE_PAGE.CONTENTS')}
-                                className="flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-md px-2 text-sm font-medium text-black-700 hover:bg-black-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                                className="flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-md px-2 text-sm font-medium text-black-700 hover:bg-app-wash-strong focus:outline-hidden focus-visible:ring-2 focus-visible:ring-app-primary"
                             >
                                 <ListOrdered className="h-4 w-4 shrink-0" aria-hidden="true" />
                                 <span className="sr-only sm:not-sr-only">{t('RESPONSE_PAGE.CONTENTS')}</span>
@@ -240,7 +240,7 @@ function NeighbourLink({ targetId, href, label, icon }: { targetId?: string; hre
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         focusDetailsOf = targetId ?? null;
     };
-    const classes = 'focus-visible:ring-brand-500 flex h-9 w-9 items-center justify-center rounded-md focus:outline-hidden focus-visible:ring-2';
+    const classes = 'focus-visible:ring-app-primary flex h-9 w-9 items-center justify-center rounded-md focus:outline-hidden focus-visible:ring-2';
     if (!href) {
         return (
             <button type="button" disabled aria-label={label} className={`${classes} cursor-default text-black-400`}>
@@ -249,7 +249,7 @@ function NeighbourLink({ targetId, href, label, icon }: { targetId?: string; hre
         );
     }
     return (
-        <Link href={href} aria-label={label} title={label} onClick={announce} className={`${classes} text-black-700 hover:bg-black-200`}>
+        <Link href={href} aria-label={label} title={label} onClick={announce} className={`${classes} text-black-700 hover:bg-app-wash-strong`}>
             {icon}
         </Link>
     );
@@ -274,7 +274,7 @@ const ResponseSummary = forwardRef<HTMLElement, { response: any; source?: { chan
             <dl className="flex flex-wrap items-start gap-x-10 gap-y-4">
                 <div className="flex min-w-0 flex-col gap-1">
                     <dt className="text-xs font-medium text-black-600">{t('RESPONSE_PAGE.RESPONDER')}</dt>
-                    <dd className="flex min-w-0 flex-wrap items-center gap-2 text-base font-medium text-black-900">{response?.dataOwnerIdentifier ? <span className="truncate [overflow-wrap:anywhere]">{response.dataOwnerIdentifier}</span> : source ? <span data-testid="response-source-badge" className="w-fit rounded-full bg-black-100 px-2 py-0.5 text-xs font-medium text-black-700">{t('RESPONSE_PAGE.SOURCE_API_RESPONDER')}</span> : <AnonymousBadge />}{response?.csvImportId && <ImportedBadge />}</dd>
+                    <dd className="flex min-w-0 flex-wrap items-center gap-2 text-base font-medium text-black-900">{response?.dataOwnerIdentifier ? <span className="truncate [overflow-wrap:anywhere]">{response.dataOwnerIdentifier}</span> : source ? <span data-testid="response-source-badge" className="w-fit rounded-full bg-app-wash px-2 py-0.5 text-xs font-medium text-black-700">{t('RESPONSE_PAGE.SOURCE_API_RESPONDER')}</span> : <AnonymousBadge />}{response?.csvImportId && <ImportedBadge />}</dd>
                 </div>
                 <div className="flex flex-col gap-1">
                     <dt className="text-xs font-medium text-black-600">{t('RESPONSE_PAGE.SUBMITTED')}</dt>
@@ -328,8 +328,8 @@ function LoadingState() {
             <div className="mt-6 flex max-w-2xl animate-pulse flex-col gap-6" aria-hidden="true">
                 {[0, 1, 2].map((row) => (
                     <div key={row} className="flex flex-col gap-2">
-                        <div className="h-4 w-1/3 rounded bg-black-200" />
-                        <div className="h-12 w-full rounded bg-black-200" />
+                        <div className="h-4 w-1/3 rounded bg-app-wash-strong" />
+                        <div className="h-12 w-full rounded bg-app-wash-strong" />
                     </div>
                 ))}
             </div>
@@ -341,7 +341,7 @@ function FailureState({ failure, listUrl, listName, onRetry }: { failure: Return
     const { t } = useTranslation();
     return (
         <div role="alert" className={`${pageGutter} py-16`}>
-            <div className="mx-auto flex max-w-xl flex-col gap-3 rounded-lg border border-black-300 p-6">
+            <div className="mx-auto flex max-w-xl flex-col gap-3 rounded-lg border border-app-edge p-6">
                 <h1 className="text-lg font-semibold">{t(failure.title)}</h1>
                 <p className="text-sm text-black-700">{t(failure.detail)}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -350,7 +350,7 @@ function FailureState({ failure, listUrl, listName, onRetry }: { failure: Return
                             {t('RESPONSE_PAGE.RETRY')}
                         </Button>
                     )}
-                    <Link href={listUrl} className="inline-flex min-h-9 items-center rounded px-2 text-sm font-medium text-brand-500 underline underline-offset-2">
+                    <Link href={listUrl} className="inline-flex min-h-9 items-center rounded px-2 text-sm font-medium text-app-primary underline underline-offset-2">
                         {t('RESPONSE_PAGE.BACK_TO', { list: listName.toLowerCase() })}
                     </Link>
                 </div>

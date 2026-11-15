@@ -75,12 +75,12 @@ function Checklist({ report, onDismiss: dismiss }: { report: BuildReport; onDism
     };
 
     return (
-        <section aria-labelledby="ai-build-checklist-title" className="w-[min(360px,calc(100vw-2rem))] rounded-lg border border-black-300 bg-white p-4 text-sm shadow-large">
+        <section aria-labelledby="ai-build-checklist-title" className="w-[min(360px,calc(100vw-2rem))] rounded-lg border border-app-edge bg-white p-4 text-sm shadow-large">
             <div className="flex items-start justify-between gap-2">
                 <h2 id="ai-build-checklist-title" className="font-semibold text-black-900">
                     {t('BUILD_CHECK.TITLE')}
                 </h2>
-                <button type="button" className="rounded p-1 text-black-600 hover:bg-black-200" aria-label={t('BUILD_CHECK.DISMISS')} onClick={dismiss}>
+                <button type="button" className="rounded p-1 text-black-600 hover:bg-app-wash-strong" aria-label={t('BUILD_CHECK.DISMISS')} onClick={dismiss}>
                     <X size={16} aria-hidden="true" />
                 </button>
             </div>
@@ -95,7 +95,7 @@ function Checklist({ report, onDismiss: dismiss }: { report: BuildReport; onDism
                                 {targets.length > 0 && (
                                     <span className="ml-1 inline-flex flex-wrap gap-x-2">
                                         {targets.map((target) => (
-                                            <button key={`${target.slide.id}-${target.field?.id ?? ''}`} type="button" className="text-brand-600 underline" onClick={() => go(target)}>
+                                            <button key={`${target.slide.id}-${target.field?.id ?? ''}`} type="button" className="text-app-primary-deep underline" onClick={() => go(target)}>
                                                 {t('BUILD_CHECK.GO_TO', { label: target.label })}
                                             </button>
                                         ))}

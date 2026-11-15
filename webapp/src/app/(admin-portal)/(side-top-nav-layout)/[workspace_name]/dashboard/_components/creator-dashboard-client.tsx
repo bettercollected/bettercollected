@@ -59,15 +59,15 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
         // (77px top bar + 40px top/bottom gaps) with fixed chrome and the site
         // content scrolling INSIDE it, so the page itself never scrolls. Mobile
         // keeps natural flow (mobile viewport height is unreliable).
-        <div className="border-black-300 flex flex-col overflow-hidden rounded border bg-white lg:h-[calc(100vh-157px)]">
+        <div className="border-app-edge flex flex-col overflow-hidden rounded border bg-white lg:h-[calc(100vh-157px)]">
             {/* Browser chrome: dots · address pill (globe + URL + copy) · open · settings gear */}
-            <div className="border-black-300 flex shrink-0 items-center gap-3 border-b bg-white px-4 py-2.5">
+            <div className="border-app-edge flex shrink-0 items-center gap-3 border-b bg-white px-4 py-2.5">
                 <div className="hidden items-center gap-1.5 sm:flex" aria-hidden="true">
-                    <span className="bg-black-300 h-2.5 w-2.5 rounded-full" />
-                    <span className="bg-black-300 h-2.5 w-2.5 rounded-full" />
-                    <span className="bg-black-300 h-2.5 w-2.5 rounded-full" />
+                    <span className="bg-app-edge h-2.5 w-2.5 rounded-full" />
+                    <span className="bg-app-edge h-2.5 w-2.5 rounded-full" />
+                    <span className="bg-app-edge h-2.5 w-2.5 rounded-full" />
                 </div>
-                <div className="bg-black-100 flex min-w-0 flex-1 items-center gap-2 rounded-full px-3 py-1.5">
+                <div className="bg-app-wash flex min-w-0 flex-1 items-center gap-2 rounded-full px-3 py-1.5">
                     <Globe width={14} height={14} className="text-black-600 shrink-0" />
                     <span className="text-black-700 truncate font-mono text-xs" title={publicUrl}>
                         {publicUrl}
@@ -91,7 +91,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                     rel="noopener noreferrer"
                     title={t('STAFF.SITE.OPEN_LIVE')}
                     aria-label={t('STAFF.SITE.OPEN_LIVE_ARIA')}
-                    className="text-black-600 hover:text-black-900 hover:bg-black-100 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                    className="text-black-600 hover:text-black-900 hover:bg-app-wash flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
                 >
                     <OpenLinkIcon />
                 </a>
@@ -103,7 +103,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                     onClick={() => setSettingsViewOpen(!settingsViewOpen)}
                     className={cn(
                         'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-                        settingsViewOpen ? 'bg-brand-100 text-brand-500' : 'text-black-600 hover:text-black-900 hover:bg-black-100'
+                        settingsViewOpen ? 'bg-app-primary-tint text-app-primary' : 'text-black-600 hover:text-black-900 hover:bg-app-wash'
                     )}
                 >
                     <Settings className="h-[18px] w-[18px]" />
@@ -134,7 +134,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                     <SearchBySubmissionNumber className="w-full" audience="team" />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col lg:min-h-0">
-                    <div className="border-black-300 flex shrink-0 space-x-1 overflow-x-auto border-b pb-0">
+                    <div className="border-app-edge flex shrink-0 space-x-1 overflow-x-auto border-b pb-0">
                         {tabs.map((tab) => {
                             const isActive = activeTab === tab.key;
                             return (
@@ -144,7 +144,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                                     onClick={() => setActiveTab(tab.key)}
                                     className={cn(
                                         'mb-[-1px] flex cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors focus:outline-hidden',
-                                        isActive ? 'border-brand-500 text-black-900' : 'text-black-600 hover:text-black-900 border-transparent'
+                                        isActive ? 'border-app-primary text-black-900' : 'text-black-600 hover:text-black-900 border-transparent'
                                     )}
                                 >
                                     {tab.icon}

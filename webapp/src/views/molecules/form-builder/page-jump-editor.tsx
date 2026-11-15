@@ -82,7 +82,7 @@ export default function PageJumpEditor() {
                 const targetValid = isJumpTargetValid(jump.target, slideIds) && !endingMissing;
                 const isNoOp = targetValid && jump.target === nextPageId;
                 return (
-                    <div key={jIdx} className="border-black-300 relative flex flex-col gap-2 rounded-md border p-2">
+                    <div key={jIdx} className="border-app-edge relative flex flex-col gap-2 rounded-md border p-2">
                         <div className="text-black-600 flex items-center gap-1">
                             {jumps.length > 1 && (
                                 <>
@@ -125,14 +125,14 @@ export default function PageJumpEditor() {
                             />
                         ))}
 
-                        <button className="text-brand-500 hover:text-brand-600 w-fit text-xs font-medium" onClick={() => patchJump(jIdx, { conditions: [...jump.conditions, newConditionFor(sources)] })}>
+                        <button className="text-app-primary hover:text-app-primary-deep w-fit text-xs font-medium" onClick={() => patchJump(jIdx, { conditions: [...jump.conditions, newConditionFor(sources)] })}>
                             {t('LOGIC.ADD_CONDITION')}
                         </button>
 
                         <div className="text-black-600 flex items-center gap-1 text-xs">
                             <span className="shrink-0">{t('LOGIC.GO_TO')}</span>
                             <select
-                                className={targetValid ? selectClass : selectClass.replace('border-control', 'border-amber-400')}
+                                className={targetValid ? selectClass : selectClass.replace('border-app-control', 'border-amber-400')}
                                 aria-label={t('LOGIC.DESTINATION', { n: jIdx + 1 })}
                                 aria-invalid={targetValid ? undefined : true}
                                 aria-describedby={targetValid ? undefined : `jump-target-hint-${activeSlide.id}-${jIdx}`}
@@ -172,7 +172,7 @@ export default function PageJumpEditor() {
                 );
             })}
 
-            <button className="text-brand-500 hover:text-brand-600 w-fit text-xs font-medium" onClick={addJump}>
+            <button className="text-app-primary hover:text-app-primary-deep w-fit text-xs font-medium" onClick={addJump}>
                 {t('LOGIC.ADD_RULE')}
             </button>
         </div>

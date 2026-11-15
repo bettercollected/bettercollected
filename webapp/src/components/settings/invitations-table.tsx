@@ -66,7 +66,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
                 <StatusBadge status={status} />
                 {status.toLowerCase() === 'expired' && (
                     <div className="truncate">
-                        <span className="body4 text-brand-500! cursor-pointer" onClick={() => handleInvitation({ email, role })}>
+                        <span className="body4 text-app-primary! cursor-pointer" onClick={() => handleInvitation({ email, role })}>
                             {t('STAFF.MEMBERS.RESEND')}
                         </span>
                     </div>

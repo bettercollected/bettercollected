@@ -129,7 +129,7 @@ export default function CalculatedFieldSettings({
                 help={t('CALC.FORMULA_HELP')}
             />
 
-            <div className="flex flex-col gap-1 rounded-lg bg-black-100 px-3 py-2">
+            <div className="flex flex-col gap-1 rounded-lg bg-app-wash px-3 py-2">
                 <span className="text-[11px] text-black-600">{t('CALC.PREVIEW')}</span>
                 <span className="text-sm font-semibold text-black-800 tabular-nums" data-testid="calculation-preview">
                     {previewText || '—'}
@@ -149,7 +149,7 @@ export default function CalculatedFieldSettings({
                     id={`${id}-style`}
                     value={style}
                     onChange={(event) => setFormat({ style: event.target.value as CalculationFormat['style'], currency: event.target.value === 'currency' ? (format.currency ?? DEFAULT_CURRENCY) : undefined })}
-                    className="h-8 rounded border border-control px-2 py-0 text-xs"
+                    className="h-8 rounded border border-app-control px-2 py-0 text-xs"
                 >
                     {CALCULATION_STYLES.map((option) => (
                         <option key={option} value={option}>

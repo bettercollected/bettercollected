@@ -80,7 +80,7 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
         // Nothing to authorize here, so the view can always be closed (the
         // OAUTH_ERROR_VIEW modal passes closable={false} while a connection is due).
         return (
-            <div className="relative w-full rounded border border-black-300 bg-white px-6 pb-6 pt-14 md:max-w-[560px]">
+            <div className="relative w-full rounded border border-app-edge bg-white px-6 pb-6 pt-14 md:max-w-[560px]">
                 <CloseModal />
                 <GoogleFormsImportNotice mode={mode} />
             </div>
@@ -88,7 +88,7 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
     }
 
     return (
-        <div className="relative flex w-full flex-col items-center justify-center space-y-5 rounded border border-black-300 bg-white py-10 text-sm md:max-w-[560px]">
+        <div className="relative flex w-full flex-col items-center justify-center space-y-5 rounded border border-app-edge bg-white py-10 text-sm md:max-w-[560px]">
             {closable && <CloseModal />}
             <div className="mt-0! flex flex-col items-center justify-between">
                 <CheckedCircle />

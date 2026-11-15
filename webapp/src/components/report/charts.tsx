@@ -38,7 +38,7 @@ export function ScrollBox({ label, className, children, boxRef }: { label: strin
         return () => observer.disconnect();
     }, [ref]);
     return (
-        <div ref={ref} role={scrolls ? 'region' : undefined} aria-label={scrolls ? label : undefined} tabIndex={scrolls ? 0 : undefined} className={cn('overflow-x-auto rounded focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden', className)}>
+        <div ref={ref} role={scrolls ? 'region' : undefined} aria-label={scrolls ? label : undefined} tabIndex={scrolls ? 0 : undefined} className={cn('overflow-x-auto rounded focus-visible:ring-2 focus-visible:ring-app-primary focus-visible:outline-hidden', className)}>
             {children}
         </div>
     );
@@ -291,7 +291,7 @@ export function DataTable({ view, caption, srOnly = false, onOpen }: { view: Car
         <table className="w-full border-collapse text-left text-sm">
             <caption className="sr-only">{caption}</caption>
             <thead>
-                <tr className="border-b border-black-300">
+                <tr className="border-b border-app-edge">
                     <th scope="col" className="min-w-24 py-2 pr-4 font-semibold text-black-800">
                         {view.groupHeader}
                     </th>
@@ -319,7 +319,7 @@ export function DataTable({ view, caption, srOnly = false, onOpen }: { view: Car
             </thead>
             <tbody>
                 {view.rows.map((row: ReportRow) => (
-                    <tr key={row.key} className="border-b border-black-200 last:border-0">
+                    <tr key={row.key} className="border-b border-app-wash-strong last:border-0">
                         <th scope="row" className="min-w-24 py-2 pr-4 font-normal text-black-900 [overflow-wrap:anywhere]">
                             {row.label}
                         </th>
@@ -337,7 +337,7 @@ export function DataTable({ view, caption, srOnly = false, onOpen }: { view: Car
                                         type="button"
                                         onClick={() => onOpen(row)}
                                         aria-label={t('REPORT.OPEN_RESPONSES_OF', { group: row.label })}
-                                        className="min-h-9 rounded px-1 text-right text-sm font-medium text-brand-600 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden"
+                                        className="min-h-9 rounded px-1 text-right text-sm font-medium text-app-primary-deep underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-app-primary focus-visible:outline-hidden"
                                     >
                                         {t('REPORT.OPEN_RESPONSES')}
                                     </button>
@@ -347,7 +347,7 @@ export function DataTable({ view, caption, srOnly = false, onOpen }: { view: Car
                     </tr>
                 ))}
                 {view.otherGroups && (
-                    <tr className="border-b border-black-200 last:border-0">
+                    <tr className="border-b border-app-wash-strong last:border-0">
                         <th scope="row" className="py-2 pr-4 font-normal text-black-900">
                             {view.otherGroups.label}
                         </th>

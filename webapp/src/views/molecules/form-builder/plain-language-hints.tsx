@@ -136,14 +136,14 @@ export default function PlainLanguageHints({ id, value, formId, formLanguage, de
                     <p className="text-xs text-black-600">{t('PLAIN_LANGUAGE.INTRO')}</p>
                     <ul aria-label={t('PLAIN_LANGUAGE.LABEL')} className="flex flex-col gap-1">
                         {visible.map((hint, index) => (
-                            <li key={hint.id} className="flex items-start gap-2 rounded-md bg-black-100 px-2.5 py-1.5 text-sm leading-snug text-black-700">
-                                <Lightbulb aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
+                            <li key={hint.id} className="flex items-start gap-2 rounded-md bg-app-wash px-2.5 py-1.5 text-sm leading-snug text-black-700">
+                                <Lightbulb aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-app-primary" />
                                 <span className="min-w-0 flex-1">{messages[index]}</span>
                                 <button
                                     type="button"
                                     aria-label={t('PLAIN_LANGUAGE.DISMISS')}
                                     title={t('PLAIN_LANGUAGE.DISMISS')}
-                                    className="-mr-1 shrink-0 rounded p-0.5 text-black-600 hover:bg-black-200 hover:text-black-800"
+                                    className="-mr-1 shrink-0 rounded p-0.5 text-black-600 hover:bg-app-wash-strong hover:text-black-800"
                                     onClick={() => dismiss(hint.id)}
                                 >
                                     <X aria-hidden="true" className="h-3.5 w-3.5" />

@@ -34,7 +34,7 @@ export default function GroupMember({ group, emails, handleSearch, handleAddMemb
                     <SearchInput handleSearch={handleSearch} />
                 </div>
             )}
-            <div className="flex flex-col gap-[1px] rounded-md bg-black-200">
+            <div className="flex flex-col gap-[1px] rounded-md bg-app-wash-strong">
                 {emails.map((email) => (
                     <MemberCard bg={handleSearch ? 'white' : 'black-100'} key={email} email={email} onDeleteClick={() => handleRemoveMember(email)} />
                 ))}

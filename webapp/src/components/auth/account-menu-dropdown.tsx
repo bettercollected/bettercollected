@@ -70,7 +70,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
         openModal('LOGOUT_VIEW', { workspace, isClientDomain: isClientDomain });
     };
 
-    if (user?.isLoading) return <div className="bg-black-300 h-9 w-9 animate-pulse rounded-[4px] sm:w-32" />;
+    if (user?.isLoading) return <div className="bg-app-edge h-9 w-9 animate-pulse rounded-[4px] sm:w-32" />;
     if ((!user?.isLoading && !user?.id) || hideMenu) return null;
 
     const profileName = user?.firstName || user?.lastName ? _.capitalize(user?.firstName) + ' ' + _.capitalize(user?.lastName) : null;
@@ -86,7 +86,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                 <div
-                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex cursor-pointer items-center justify-between gap-2 rounded p-2 hover:rounded hover:bg-brand-100 body3 ${className}`}
+                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex cursor-pointer items-center justify-between gap-2 rounded p-2 hover:rounded hover:bg-app-primary-tint body3 ${className}`}
                     id="account-menu"
                     role="button"
                     title={t(profileMenu.accountSettings)}
@@ -106,7 +106,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                 onInteractOutside={() => setOpen(false)}
             >
                 <ul className="list-none m-0 p-0">
-                    <li className="flex items-center px-5 py-3 hover:bg-brand-100 gap-4">
+                    <li className="flex items-center px-5 py-3 hover:bg-app-primary-tint gap-4">
                         <div className="m-0">
                             {/* Fall back to the email for the avatar initial — a
                                 name-less account rendered an empty square. */}
@@ -127,7 +127,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                                     href={`${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${window?.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard`}
                                     referrerPolicy="no-referrer"
                                 >
-                                    <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer">
+                                    <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-app-primary-tint cursor-pointer">
                                         <div className="text-black-900 flex items-center justify-center">
                                             <DashboardIcon width={20} height={20} />
                                         </div>
@@ -147,7 +147,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                         {user.stripeCustomerId && workspace?.ownerId === user.id && (
                             <li className="list-none">
                                 <ActiveLink href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer">
-                                    <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer">
+                                    <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-app-primary-tint cursor-pointer">
                                         <div className="text-black-900 flex items-center justify-center">
                                             <Billing width={20} height={20} />
                                         </div>
@@ -162,7 +162,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                             href={`${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/account-settings`}
                             referrerPolicy="no-referrer"
                         >
-                            <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer">
+                            <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-app-primary-tint cursor-pointer">
                                 <div className="text-black-900 flex items-center justify-center">
                                     <Settings width={20} height={20} />
                                 </div>

@@ -53,7 +53,7 @@ export default function RepeatingGroupSettings({ field, slide }: { field: Standa
     const autoLayout = settings.maxItems <= REPEAT_COLUMNS_EXPORT_MAX ? 'columns' : 'rows';
 
     return (
-        <div className="border-black-300 flex flex-col gap-3 border-t pt-4">
+        <div className="border-app-edge flex flex-col gap-3 border-t pt-4">
             <div>
                 <div className="text-black-700 text-xs font-medium">{t('GROUP_SETTINGS.TITLE')}</div>
                 <div className="text-black-600 text-[11px]">{t('GROUP_SETTINGS.INTRO')}</div>

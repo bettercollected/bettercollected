@@ -223,11 +223,11 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 )}
                 {inHeader && (hasVersion || provenance) && (
                     <>
-                        <DropdownMenuSeparator className="bg-black-300 my-0" />
+                        <DropdownMenuSeparator className="bg-app-edge my-0" />
                         <div className="text-black-600 flex flex-col gap-1 px-[20px] py-3 text-[13px]">
                             {hasVersion &&
                                 (canOpenVersions ? (
-                                    <DropdownMenuItem asChild className="hover:bg-brand-100 focus:bg-brand-100 -mx-2 w-fit cursor-pointer rounded px-2 py-1 underline decoration-dotted underline-offset-2">
+                                    <DropdownMenuItem asChild className="hover:bg-app-primary-tint focus:bg-app-primary-tint -mx-2 w-fit cursor-pointer rounded px-2 py-1 underline decoration-dotted underline-offset-2">
                                         <Link href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/versions`}>{t('FORM_SHELL.VERSION', { n: version })}</Link>
                                     </DropdownMenuItem>
                                 ) : (
@@ -244,7 +244,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     );
 }
 
-const ITEM = 'hover:bg-brand-100 focus:bg-brand-100 body4 flex min-h-[44px] cursor-pointer items-center gap-2 rounded-none md:min-h-[36px] px-[20px] py-[10px]';
+const ITEM = 'hover:bg-app-primary-tint focus:bg-app-primary-tint body4 flex min-h-[44px] cursor-pointer items-center gap-2 rounded-none md:min-h-[36px] px-[20px] py-[10px]';
 
 /** A menu item that acts (a real menu item: arrow keys, Enter and Space, closes the menu); `hint` is why it is off. */
 function Item({ icon, children, onSelect, disabled, hint }: { icon: React.ReactNode; children: React.ReactNode; onSelect: () => void; disabled?: boolean; hint?: string }) {

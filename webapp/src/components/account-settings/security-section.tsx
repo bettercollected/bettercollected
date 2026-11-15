@@ -58,7 +58,7 @@ export default function SecuritySection() {
                 <p className="text-xs leading-relaxed text-black-600">{t('STAFF.MFA.CARD.INTRO')}</p>
             </div>
 
-            <div className="flex flex-col gap-3 rounded-md border border-black-300 px-3 py-3">
+            <div className="flex flex-col gap-3 rounded-md border border-app-edge px-3 py-3">
                 <div className="flex flex-col gap-0.5">
                     <p className="text-[13px] font-medium text-black-800">{t('STAFF.MFA.CARD.APP')}</p>
                     <p data-testid="totp-state" className="text-xs leading-relaxed text-black-700">

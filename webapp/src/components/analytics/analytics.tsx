@@ -282,7 +282,7 @@ const AnalyticsErrorComponent = ({ onRetry }: { onRetry: () => void }) => {
                 <button
                     type="button"
                     onClick={onRetry}
-                    className="text-brand-500 border-brand-500 mt-1 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-blue-50"
+                    className="text-app-primary border-app-primary mt-1 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-blue-50"
                 >
                     {t('ANALYTICS.TRY_AGAIN')}
                 </button>

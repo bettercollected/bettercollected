@@ -142,7 +142,7 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
                                 openBottomSheetModal('CREATE_GROUP');
                             }}
                         >
-                            <span className="text-brand-500!  body6"> {t(groupConstant.createGroup)}</span>
+                            <span className="text-app-primary!  body6"> {t(groupConstant.createGroup)}</span>
                         </Button>
                     )}
                 </div>

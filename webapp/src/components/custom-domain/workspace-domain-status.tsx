@@ -138,7 +138,7 @@ const DomainVerifiedStatus = ({ workspace, txtRecord }: { workspace: WorkspaceDt
         <div className="flex flex-col">
             <span className="mt-4 text-xs text-black-700">{t('CUSTOM_DOMAIN_UI.VERIFIED_INTRO')}</span>
             <div className="mt-4 flex flex-wrap gap-2">
-                <div className="flex flex-1 items-center rounded-lg bg-black-100 px-3 py-2 text-xs text-black-800">
+                <div className="flex flex-1 items-center rounded-lg bg-app-wash px-3 py-2 text-xs text-black-800">
                     {environments.HTTP_SCHEME}
                     {workspace.customDomain}
                 </div>

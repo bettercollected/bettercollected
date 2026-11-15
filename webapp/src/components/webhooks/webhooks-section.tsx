@@ -133,7 +133,7 @@ export function WebhooksSettings({ workspaceId, formId, headless = false }: { wo
                         <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('WEBHOOKS.INTRO')}</p>
                     </>
                 )}
-                <p className="max-w-[62ch] rounded-md border border-black-300 bg-black-100 px-3 py-2 text-xs leading-relaxed text-black-700">{t('WEBHOOKS.NOTICE')}</p>
+                <p className="max-w-[62ch] rounded-md border border-app-edge bg-app-wash px-3 py-2 text-xs leading-relaxed text-black-700">{t('WEBHOOKS.NOTICE')}</p>
 
                 {loading && <p className="text-sm text-black-600">{t('WEBHOOKS.LOADING')}</p>}
                 {failed && (
@@ -174,7 +174,7 @@ export function WebhooksSettings({ workspaceId, formId, headless = false }: { wo
                                                     <div className="flex min-w-0 flex-col">
                                                         <span className="text-sm font-semibold break-all text-black-900">{hook.host}</span>
                                                         {hook.format && hook.format !== 'envelope' && (
-                                                            <span className="mt-1 inline-flex w-fit rounded-full border border-black-400 bg-black-100 px-2 py-0.5 text-xs font-medium text-black-800" data-testid={`webhook-format-${hook.id}`}>
+                                                            <span className="mt-1 inline-flex w-fit rounded-full border border-app-edge-strong bg-app-wash px-2 py-0.5 text-xs font-medium text-black-800" data-testid={`webhook-format-${hook.id}`}>
                                                                 {t(`WEBHOOKS.LIST.FORMAT_${hook.format.toUpperCase()}`)}
                                                             </span>
                                                         )}

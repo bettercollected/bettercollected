@@ -223,7 +223,7 @@ export default function WorkspaceDomainsSection() {
                             setDraft(e.target.value);
                             setClaimError(null);
                         }}
-                        className="h-10 w-full rounded-md border border-control bg-white px-3.5 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-600 focus:border-brand-500 sm:max-w-[360px]"
+                        className="h-10 w-full rounded-md border border-app-control bg-white px-3.5 text-sm text-black-900 outline-hidden transition duration-150 placeholder:text-black-600 focus:border-app-primary sm:max-w-[360px]"
                     />
                     <Button type="submit" size="sm" variant="primary" isLoading={isClaiming} disabled={!draft.trim()}>
                         {t('DOMAINS_UI.ADD_DOMAIN')}
@@ -250,7 +250,7 @@ export default function WorkspaceDomainsSection() {
                         </Button>
                     </div>
                 ) : domains.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-black-300 px-3 py-4 text-center text-xs text-black-600">{t('DOMAINS_UI.NONE')}</p>
+                    <p className="rounded-md border border-dashed border-app-edge px-3 py-4 text-center text-xs text-black-600">{t('DOMAINS_UI.NONE')}</p>
                 ) : (
                     <ul className="flex flex-col gap-3">
                         {domains.map((domain) => (

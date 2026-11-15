@@ -424,7 +424,7 @@ const InsertPipeMenu = ({ editor, field, slide }: { editor: Editor; field: Stand
                 {t('RTE.PIPE_BUTTON')}
             </button>
             {open && (
-                <div id={menuId} role="group" aria-label={t('RTE.PIPE_MENU')} className="absolute left-0 top-full z-50 mt-1 max-h-64 w-72 overflow-auto rounded border border-black-300 bg-white py-1 text-left shadow-large">
+                <div id={menuId} role="group" aria-label={t('RTE.PIPE_MENU')} className="absolute left-0 top-full z-50 mt-1 max-h-64 w-72 overflow-auto rounded border border-app-edge bg-white py-1 text-left shadow-large">
                     {items.map((item) => {
                         const header = item.group !== lastGroup ? t(`RTE.GROUP_${item.group}`) : null;
                         lastGroup = item.group;
@@ -464,7 +464,7 @@ const ToolbarButton = ({ label, pressed, onClick, children, className }: { label
 const HeadingButtons = ({ editor }: { editor: Editor }) => {
     const { t } = useTranslation('builder');
     return (
-        <div className="flex items-center gap-1 border-l border-black-300 pl-3" role="group" aria-label={t('RTE.HEADING_LEVEL')}>
+        <div className="flex items-center gap-1 border-l border-app-edge pl-3" role="group" aria-label={t('RTE.HEADING_LEVEL')}>
             {TEXT_BLOCK_HEADING_LEVELS.map((level) => (
                 <ToolbarButton key={level} label={t('RTE.HEADING_N', { level })} pressed={editor.isActive('heading', { level })} onClick={() => editor.chain().focus().toggleHeading({ level }).run()} className="px-1 text-sm font-semibold text-black-700">
                     <span aria-hidden="true">H{level}</span>
@@ -496,7 +496,7 @@ const TiptapMenuBar = ({ field, slide }: { field: StandardFormFieldDto; slide: S
 
     return (
         // Shown while the title (or this bar) has focus.
-        <div role="toolbar" aria-label={t('RTE.FORMATTING')} className={cn(`absolute -top-14 mb-2 hidden items-center rounded border border-black-300 bg-white px-4 py-1 shadow-large`, 'group-focus-within:flex')}>
+        <div role="toolbar" aria-label={t('RTE.FORMATTING')} className={cn(`absolute -top-14 mb-2 hidden items-center rounded border border-app-edge bg-white px-4 py-1 shadow-large`, 'group-focus-within:flex')}>
             <div className="flex flex-row items-center justify-center gap-4">
                 <span className="p3-new font-medium" aria-hidden="true">
                     {t('RTE.TEXT_LABEL')}

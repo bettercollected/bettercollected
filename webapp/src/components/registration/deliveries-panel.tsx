@@ -85,7 +85,7 @@ export function Deliveries({ workspaceId, formId, canRetry, headless = false }: 
     const reason = (delivery: RegistrationDelivery) => t(deliveryErrorKey(delivery.lastErrorCode, { objectsApi, httpStatus: delivery.lastHttpStatus }), { status: delivery.lastHttpStatus ?? '' });
 
     return (
-        <section className="mb-6 flex flex-col gap-4 rounded-lg border border-black-300 bg-white p-4 md:p-5" aria-labelledby={headless ? undefined : 'registration-deliveries-title'} data-testid="registration-deliveries">
+        <section className="mb-6 flex flex-col gap-4 rounded-lg border border-app-edge bg-white p-4 md:p-5" aria-labelledby={headless ? undefined : 'registration-deliveries-title'} data-testid="registration-deliveries">
             <div className="flex flex-col gap-1">
                 {!headless && (
                     <h2 id="registration-deliveries-title" className="text-sm font-semibold text-black-900">
@@ -125,7 +125,7 @@ export function Deliveries({ workspaceId, formId, canRetry, headless = false }: 
                     <p role="alert" className="text-sm font-medium text-[#7A2525]">
                         {t('REGISTRATION.DELIVERY.FAILED_BANNER', { count: failedTotal })}
                     </p>
-                    <ul className="flex flex-col divide-y divide-black-200 rounded-md border border-black-300" aria-label={t('REGISTRATION.DELIVERY.NOT_SENT')}>
+                    <ul className="flex flex-col divide-y divide-app-wash-strong rounded-md border border-app-edge" aria-label={t('REGISTRATION.DELIVERY.NOT_SENT')}>
                         {failed.map((delivery) => (
                             <li key={delivery.id} className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-start sm:justify-between" data-testid={`registration-delivery-${delivery.id}`}>
                                 <div className="flex min-w-0 flex-col gap-1">
@@ -184,7 +184,7 @@ export function Deliveries({ workspaceId, formId, canRetry, headless = false }: 
                             </p>
                         )}
                         {showSent && (sent.data?.items.length ?? 0) > 0 && (
-                            <ul className="flex flex-col divide-y divide-black-200 rounded-md border border-black-300" aria-label={t('REGISTRATION.DELIVERY.DELIVERED_LIST')}>
+                            <ul className="flex flex-col divide-y divide-app-wash-strong rounded-md border border-app-edge" aria-label={t('REGISTRATION.DELIVERY.DELIVERED_LIST')}>
                                 {sent.data!.items.map((delivery) => (
                                     <li key={delivery.id} className="flex flex-col gap-1 px-3 py-3" data-testid={`registration-sent-${delivery.id}`}>
                                         <span className="text-sm text-black-900">

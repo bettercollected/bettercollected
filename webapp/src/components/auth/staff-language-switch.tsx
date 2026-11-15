@@ -37,7 +37,7 @@ export default function StaffLanguageSwitch() {
             <span id={labelId} className="text-black-600 mb-1 block text-xs">
                 {t('STAFF_LANGUAGE.LABEL')}
             </span>
-            <div role="radiogroup" aria-labelledby={labelId} className="border-black-400 inline-flex rounded border bg-white p-0.5">
+            <div role="radiogroup" aria-labelledby={labelId} className="border-app-edge-strong inline-flex rounded border bg-white p-0.5">
                 {STAFF_LANGUAGES.map(({ code, label }, index) => {
                     const selected = staff.language === code;
                     return (
@@ -53,7 +53,7 @@ export default function StaffLanguageSwitch() {
                             tabIndex={selected ? 0 : -1}
                             onKeyDown={(event) => move(event, index)}
                             onClick={() => staff.setLanguage(code)}
-                            className={cn('rounded-md px-3 py-1 text-sm', selected ? 'bg-brand-100 text-black-900 font-semibold' : 'text-black-700 hover:bg-black-200 font-medium')}
+                            className={cn('rounded-md px-3 py-1 text-sm', selected ? 'bg-app-primary-tint text-black-900 font-semibold' : 'text-black-700 hover:bg-app-wash-strong font-medium')}
                         >
                             {label}
                         </button>

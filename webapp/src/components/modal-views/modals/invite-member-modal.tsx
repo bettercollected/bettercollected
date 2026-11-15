@@ -25,7 +25,7 @@ import { useGetWorkspaceMembersQuery, useInviteToWorkspaceMutation } from '@app/
 import { MAIL_LOCALES, MailLocale, browserMailLocale } from '@app/utils/mail-locale';
 
 // Shared by the email input and the role select so the two line up.
-export const INVITE_FIELD_CLASS = 'h-10 w-full rounded border-control px-3 text-sm';
+export const INVITE_FIELD_CLASS = 'h-10 w-full rounded border-app-control px-3 text-sm';
 
 export default function InviteMemberModal() {
     const { toast } = useToast();

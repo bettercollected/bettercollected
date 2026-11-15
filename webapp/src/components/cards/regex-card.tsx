@@ -48,7 +48,7 @@ export default function RegexCard({ handleRegex, regex }: IRegexCardProps) {
                 {!!regex && !isEmptyString(regex) && (
                     <>
                         <p className="body1 mt-7 mb-3">{t(localesCommon.added)}</p>
-                        <div className="px-2 py-3 border-2 border-black-400  rounded flex items-center justify-between md:w-[400px] body4">
+                        <div className="px-2 py-3 border-2 border-app-edge-strong  rounded flex items-center justify-between md:w-[400px] body4">
                             <p className="text-black-800! truncate">
                                 {regex}
                             </p>

@@ -90,7 +90,7 @@ export default function ReportDrill({ workspaceId, workspaceName, formId, defini
     const message = failure ? (failure.status === 429 ? (failure.code === 'report_busy' ? t('REPORT.BUSY') : t('REPORT.RATE_LIMITED')) : failure.code === 'report_timeout' ? t('REPORT.TIMEOUT') : t('REPORT.ERROR')) : '';
 
     return (
-        <section aria-labelledby="report-drill-title" className="flex flex-col gap-3 rounded border border-black-300 bg-white p-4">
+        <section aria-labelledby="report-drill-title" className="flex flex-col gap-3 rounded border border-app-edge bg-white p-4">
             <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                     <h3 id="report-drill-title" ref={headingRef} tabIndex={-1} className="m-0 text-base font-semibold text-black-900 outline-none [overflow-wrap:anywhere]">
@@ -98,14 +98,14 @@ export default function ReportDrill({ workspaceId, workspaceName, formId, defini
                     </h3>
                     <p className="m-0 text-xs text-black-600">{t('REPORT.DRILL_NOTE')}</p>
                 </div>
-                <button type="button" onClick={onClose} aria-label={t('REPORT.DRILL_CLOSE')} title={t('REPORT.DRILL_CLOSE')} className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded text-black-700 hover:bg-black-200 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden">
+                <button type="button" onClick={onClose} aria-label={t('REPORT.DRILL_CLOSE')} title={t('REPORT.DRILL_CLOSE')} className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded text-black-700 hover:bg-app-wash-strong focus-visible:ring-2 focus-visible:ring-app-primary focus-visible:outline-hidden">
                     <X aria-hidden="true" className="h-4 w-4" />
                 </button>
             </div>
 
             {listHref && (
                 <p className="m-0 text-sm">
-                    <Link href={listHref} className="rounded font-medium text-brand-600 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden">
+                    <Link href={listHref} className="rounded font-medium text-app-primary-deep underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-app-primary focus-visible:outline-hidden">
                         {t('REPORT.DRILL_LIST')}
                     </Link>
                 </p>
@@ -125,7 +125,7 @@ export default function ReportDrill({ workspaceId, workspaceName, formId, defini
                     <table className="w-full border-collapse text-left text-sm">
                         <caption className="sr-only">{t('REPORT.DRILL_TITLE', { group: group.label })}</caption>
                         <thead>
-                            <tr className="border-b border-black-300">
+                            <tr className="border-b border-app-edge">
                                 <th scope="col" className="py-2 pr-4 font-semibold text-black-800">
                                     {t('REPORT.DRILL_SUBMITTED')}
                                 </th>
@@ -144,7 +144,7 @@ export default function ReportDrill({ workspaceId, workspaceName, formId, defini
                             {rows.map((row) => {
                                 const when = row.submittedAt ? date.format(new Date(row.submittedAt)) : '–';
                                 return (
-                                    <tr key={row.id} className="border-b border-black-200 last:border-0">
+                                    <tr key={row.id} className="border-b border-app-wash-strong last:border-0">
                                         <th scope="row" className="py-2 pr-4 font-normal text-black-900 tabular-nums">
                                             {when}
                                         </th>
@@ -154,7 +154,7 @@ export default function ReportDrill({ workspaceId, workspaceName, formId, defini
                                             <Link
                                                 href={responsePageUrl(workspaceName, formId, row.id)}
                                                 aria-label={t('REPORT.DRILL_OPEN_ONE', { when })}
-                                                className="inline-flex min-h-9 items-center rounded px-1 font-medium text-brand-600 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden"
+                                                className="inline-flex min-h-9 items-center rounded px-1 font-medium text-app-primary-deep underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-app-primary focus-visible:outline-hidden"
                                             >
                                                 {t('REPORT.DRILL_OPEN')}
                                             </Link>

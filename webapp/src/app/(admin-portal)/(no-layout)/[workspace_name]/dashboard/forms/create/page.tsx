@@ -39,9 +39,9 @@ import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
 // One quiet card for every way to start a form: Sireto blue icons, a hairline
 // edge that turns blue on hover. No per-card accent colours (see DESIGN.md).
 const CardVariants = {
-    blue: 'text-brand-500 hover:border-brand-500 hover:bg-black-100 transition-colors',
-    purple: 'text-brand-500 hover:border-brand-500 hover:bg-black-100 transition-colors',
-    pink: 'text-brand-500 hover:border-brand-500 hover:bg-black-100 transition-colors'
+    blue: 'text-app-primary hover:border-app-primary hover:bg-app-wash transition-colors',
+    purple: 'text-app-primary hover:border-app-primary hover:bg-app-wash transition-colors',
+    pink: 'text-app-primary hover:border-app-primary hover:bg-app-wash transition-colors'
 };
 
 export default function CreateFormPage(props: { searchParams: Promise<{ modal?: string }> }) {
@@ -144,7 +144,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                         {showGoogleImport && (
                             <Card
                                 variant={'purple'}
-                                icon={<GoogleFormIcon width={30} height={30} className="mb-2 w-full text-brand-500" />}
+                                icon={<GoogleFormIcon width={30} height={30} className="mb-2 w-full text-app-primary" />}
                                 content={t('STAFF.CREATE.IMPORT_GOOGLE')}
                                 eventName="Import Google Form"
                                 onClick={() => {
@@ -152,13 +152,13 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                 }}
                             />
                         )}
-                        <Card variant={'blue'} icon={<FileText className="mb-2 h-[30px] w-full text-brand-500" />} content={t('STAFF.CREATE.IMPORT_PDF')} eventName="Import a PDF form" onClick={() => setPdfImportOpen(true)} />
+                        <Card variant={'blue'} icon={<FileText className="mb-2 h-[30px] w-full text-app-primary" />} content={t('STAFF.CREATE.IMPORT_PDF')} eventName="Import a PDF form" onClick={() => setPdfImportOpen(true)} />
                         {showOpenFormulierenImport && (
-                            <Card variant={'blue'} icon={<FileArchive aria-hidden className="mb-2 h-[30px] w-full text-brand-500" />} content={importText('CARD.TITLE')} onClick={() => setOpenFormulierenImportOpen(true)} />
+                            <Card variant={'blue'} icon={<FileArchive aria-hidden className="mb-2 h-[30px] w-full text-app-primary" />} content={importText('CARD.TITLE')} onClick={() => setOpenFormulierenImportOpen(true)} />
                         )}
                         <Card
                             variant={'pink'}
-                            icon={<AIIcon className="text-brand-500" />}
+                            icon={<AIIcon className="text-app-primary" />}
                             content={t('STAFF.CREATE.START_AI')}
                             eventName="Start with AI"
                             // The dialog and its outline review fit a 375px screen.
@@ -182,7 +182,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                             <div
                                                 data-umami-event={'Create Form With Template'}
                                                
-                                                className="relative h-[157px] w-[281px] cursor-pointer overflow-hidden rounded-md border border-black-300"
+                                                className="relative h-[157px] w-[281px] cursor-pointer overflow-hidden rounded-md border border-app-edge"
                                                 onClick={() => createFormFromTemplate(template.id)}
                                             >
                                                 <div className="pointer-events-none h-[810px] w-[1440px] scale-[0.195]" style={{ transformOrigin: 'top left' }}>
@@ -225,7 +225,7 @@ const Card = ({ icon, content, onClick, variant, addSoon, soonMsg, desktopOnly, 
         <div
             data-umami-event={eventName ?? (typeof content === 'string' ? content : undefined)}
            
-            className={cn('relative flex h-[170px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded border border-black-400 bg-white lg:h-[117px] lg:w-[220px]', CardVariants[variant])}
+            className={cn('relative flex h-[170px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded border border-app-edge-strong bg-white lg:h-[117px] lg:w-[220px]', CardVariants[variant])}
             onClick={onClick}
             // A card is a button: reachable and usable from the keyboard.
             role="button"
@@ -241,7 +241,7 @@ const Card = ({ icon, content, onClick, variant, addSoon, soonMsg, desktopOnly, 
             <span className="p3-new mb-1 mt-2 text-black-800">{content}</span>
             {desktopOnly && <OnlyAvailableInDesktopVersion />}
             {addSoon && <SoonComponent msg={soonMsg} />}
-            {eventName === 'Start with AI' && <div className="absolute right-2 top-2 flex rounded bg-brand-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-brand-600">{t('STAFF.CREATE.BETA')}</div>}
+            {eventName === 'Start with AI' && <div className="absolute right-2 top-2 flex rounded bg-app-primary-tint px-1.5 py-0.5 font-mono text-[11px] font-semibold text-app-primary-deep">{t('STAFF.CREATE.BETA')}</div>}
         </div>
     );
 };
@@ -249,7 +249,7 @@ const Card = ({ icon, content, onClick, variant, addSoon, soonMsg, desktopOnly, 
 const SoonComponent = ({ msg }: { msg?: string }) => {
     const { t } = useTranslation();
     return (
-        <div className="absolute right-2 top-2 rounded bg-black-200 px-1.5 py-0.5 text-[11px] font-medium text-black-700">{msg || t('STAFF.CREATE.SOON')}</div>
+        <div className="absolute right-2 top-2 rounded bg-app-wash-strong px-1.5 py-0.5 text-[11px] font-medium text-black-700">{msg || t('STAFF.CREATE.SOON')}</div>
     );
 };
 

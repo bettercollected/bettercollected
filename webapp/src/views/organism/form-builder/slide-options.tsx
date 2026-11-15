@@ -19,7 +19,7 @@ import { MoveOutcome, useOutlineMoves } from './outline/use-outline-moves';
 /** The outline's "…" trigger: shown on row hover, on focus, while open and on the selected row. */
 export const outlineMenuTriggerClass = (visible: boolean) =>
     cn(
-        'text-black-600 hover:bg-black-300 hover:text-black-900 flex h-6 w-6 shrink-0 items-center justify-center rounded-sm transition-opacity',
+        'text-black-600 hover:bg-app-edge hover:text-black-900 flex h-6 w-6 shrink-0 items-center justify-center rounded-sm transition-opacity',
         'focus-visible:opacity-100 group-hover/row:opacity-100 data-[state=open]:opacity-100 pointer-coarse:opacity-100',
         visible ? 'opacity-100' : 'opacity-0'
     );

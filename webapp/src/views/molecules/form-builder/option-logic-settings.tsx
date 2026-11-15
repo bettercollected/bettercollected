@@ -76,7 +76,7 @@ export default function OptionLogicSettings() {
     if (!editable && !field.properties?.optionFilter && !choices.some((choice) => !!choice.logic)) return null;
 
     return (
-        <div className="flex flex-col gap-4 border-t border-black-300 pt-4" data-testid="option-logic-settings">
+        <div className="flex flex-col gap-4 border-t border-app-edge pt-4" data-testid="option-logic-settings">
             <div>
                 <div className="text-xs font-medium text-black-700">{t('OPTION_LOGIC.TITLE')}</div>
                 <div className="text-[11px] text-black-600">{t('OPTION_LOGIC.HINT')}</div>
@@ -91,7 +91,7 @@ export default function OptionLogicSettings() {
                     {choices.map((choice, index) =>
                         choice.logic ? (
                             <li key={choice.id}>
-                                <button type="button" className="text-xs font-medium text-brand-500 hover:text-brand-600" onClick={() => updateChoiceLogic(field.id, choice.id, undefined)}>
+                                <button type="button" className="text-xs font-medium text-app-primary hover:text-app-primary-deep" onClick={() => updateChoiceLogic(field.id, choice.id, undefined)}>
                                     {t('OPTION_LOGIC.REMOVE_OPTION', { option: optionLabel(choice, index, t) })}
                                 </button>
                             </li>
@@ -99,7 +99,7 @@ export default function OptionLogicSettings() {
                     )}
                     {field.properties?.optionFilter && (
                         <li>
-                            <button type="button" className="text-xs font-medium text-brand-500 hover:text-brand-600" onClick={() => updateOptionFilter(field.id, undefined)}>
+                            <button type="button" className="text-xs font-medium text-app-primary hover:text-app-primary-deep" onClick={() => updateOptionFilter(field.id, undefined)}>
                                 {t('OPTION_LOGIC.REMOVE_FILTER')}
                             </button>
                         </li>
@@ -133,7 +133,7 @@ function OptionLogicRow({ label, logic, sources, onChange, t }: { label: string;
     const enabled = !!logic;
     const patchCondition = (idx: number, patch: Partial<LogicCondition>) => logic && onChange({ ...logic, conditions: logic.conditions.map((c, i) => (i === idx ? { ...c, ...patch } : c)) });
     return (
-        <div className="flex flex-col gap-2 rounded-md border border-black-300 p-2" role="group" aria-labelledby={labelId}>
+        <div className="flex flex-col gap-2 rounded-md border border-app-edge p-2" role="group" aria-labelledby={labelId}>
             <div className="flex w-full items-center justify-between gap-3">
                 <span id={labelId} className="min-w-0 truncate text-xs font-medium text-black-800">
                     {label}
@@ -168,7 +168,7 @@ function OptionLogicRow({ label, logic, sources, onChange, t }: { label: string;
                         />
                     ))}
                     {logic.conditions.length < OPTION_CONDITIONS_MAX && (
-                        <button type="button" className="w-fit text-xs font-medium text-brand-500 hover:text-brand-600" onClick={() => onChange({ ...logic, conditions: [...logic.conditions, newConditionFor(sources)] })}>
+                        <button type="button" className="w-fit text-xs font-medium text-app-primary hover:text-app-primary-deep" onClick={() => onChange({ ...logic, conditions: [...logic.conditions, newConditionFor(sources)] })}>
                             {t('OPTION_LOGIC.ADD_CONDITION')}
                         </button>
                     )}
@@ -265,7 +265,7 @@ function OptionFilterEditor({
                                 </thead>
                                 <tbody>
                                     {choices.map((own, ownIndex) => (
-                                        <tr key={own.id} className="border-t border-black-300">
+                                        <tr key={own.id} className="border-t border-app-edge">
                                             <th scope="row" className="max-w-[8rem] truncate p-1 text-left font-normal text-black-800">
                                                 {optionLabel(own, ownIndex, t)}
                                             </th>
@@ -273,7 +273,7 @@ function OptionFilterEditor({
                                                 <td key={answer.id} className="p-1 text-center">
                                                     <input
                                                         type="checkbox"
-                                                        className="h-4 w-4 accent-brand-500"
+                                                        className="h-4 w-4 accent-app-primary"
                                                         checked={shown(answer.id, own.id)}
                                                         aria-label={t('OPTION_LOGIC.FILTER_CELL', { option: optionLabel(own, ownIndex, t), source: questionText(source, t), answer: optionLabel(answer, answerIndex, t) })}
                                                         onChange={(e) => toggleCell(answer.id, own.id, e.target.checked)}

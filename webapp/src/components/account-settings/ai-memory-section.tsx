@@ -59,11 +59,11 @@ export default function AIMemorySection() {
             {isLoading ? (
                 <p className="text-black-600 text-xs">{t('STAFF.SESSIONS.LOADING')}</p>
             ) : entries.length === 0 ? (
-                <p className="text-black-600 border-black-400 rounded-md border border-dashed px-3 py-4 text-center text-xs">{t('STAFF.AI_MEMORY.EMPTY')}</p>
+                <p className="text-black-600 border-app-edge-strong rounded-md border border-dashed px-3 py-4 text-center text-xs">{t('STAFF.AI_MEMORY.EMPTY')}</p>
             ) : (
                 <ul className="flex flex-col gap-1.5">
                     {(entries as MemoryEntry[]).map((entry) => (
-                        <li key={entry.id} className="group border-black-300 flex items-start justify-between gap-3 rounded-md border px-3 py-2">
+                        <li key={entry.id} className="group border-app-edge flex items-start justify-between gap-3 rounded-md border px-3 py-2">
                             <div className="min-w-0">
                                 <p className="text-black-800 text-[13px] leading-relaxed">{entry.text}</p>
                                 <p className="text-black-600 text-[10.5px]">
@@ -93,7 +93,7 @@ export default function AIMemorySection() {
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') handleAdd();
                     }}
-                    className="border-control text-black-900 placeholder:text-black-600 focus:border-brand-500 h-9 w-full rounded-md border bg-white px-3 text-[13px] outline-hidden transition duration-150"
+                    className="border-app-control text-black-900 placeholder:text-black-600 focus:border-app-primary h-9 w-full rounded-md border bg-white px-3 text-[13px] outline-hidden transition duration-150"
                 />
                 <Button size="sm" variant="v2Button" isLoading={isAdding} disabled={!draft.trim()} onClick={handleAdd} icon={<Plus className="h-4 w-4" />}>
                     {t('STAFF.AI_MEMORY.ADD')}

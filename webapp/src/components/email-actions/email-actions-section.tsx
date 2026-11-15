@@ -101,7 +101,7 @@ export function EmailActionsSettings({ workspaceId, formId, configured, headless
                         <p className="max-w-[62ch] text-sm leading-relaxed text-black-700">{t('EMAIL_ACTIONS.INTRO')}</p>
                     </>
                 )}
-                <p className="max-w-[62ch] rounded-md border border-black-300 bg-black-100 px-3 py-2 text-xs leading-relaxed text-black-700">{t('EMAIL_ACTIONS.NOTICE')}</p>
+                <p className="max-w-[62ch] rounded-md border border-app-edge bg-app-wash px-3 py-2 text-xs leading-relaxed text-black-700">{t('EMAIL_ACTIONS.NOTICE')}</p>
                 {!configured && (
                     <p role="alert" className="max-w-[62ch] text-sm font-medium text-[#A83434]">
                         {t('EMAIL_ACTIONS.NOT_CONFIGURED')}

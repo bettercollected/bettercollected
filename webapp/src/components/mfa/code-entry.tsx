@@ -64,7 +64,7 @@ export default function CodeEntry({
                 aria-describedby={[describedBy, hintId, error ? errorId : undefined].filter(Boolean).join(' ')}
                 aria-invalid={error ? true : undefined}
                 onChange={(event) => onChange(event.target.value)}
-                className={cn('font-mono tracking-widest lg:text-base', error ? 'border-[#C43D3D]' : 'border-control')}
+                className={cn('font-mono tracking-widest lg:text-base', error ? 'border-[#C43D3D]' : 'border-app-control')}
             />
             <p id={hintId} className="text-xs leading-relaxed text-black-700">
                 {t(recovery ? 'STAFF.MFA.CODE.RECOVERY_HINT' : 'STAFF.MFA.CODE.HINT')}

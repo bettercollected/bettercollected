@@ -203,10 +203,10 @@ export default function FormulaInput({
                         setSettled(true);
                         window.setTimeout(() => setDismissed(true), 150);
                     }}
-                    className={`w-full rounded-lg border p-2 font-mono text-xs ${bad ? 'border-[#C43D3D]' : 'border-control focus:border-brand-500'}`}
+                    className={`w-full rounded-lg border p-2 font-mono text-xs ${bad ? 'border-[#C43D3D]' : 'border-app-control focus:border-app-primary'}`}
                 />
                 {listOpen && (
-                    <ul id={listId} role="listbox" aria-label={tf('FORMULA.FIELDS')} className="mt-1 max-h-[148px] overflow-auto rounded border border-black-300 bg-white py-1">
+                    <ul id={listId} role="listbox" aria-label={tf('FORMULA.FIELDS')} className="mt-1 max-h-[148px] overflow-auto rounded border border-app-edge bg-white py-1">
                         {suggestions.map((variable, index) => (
                             <li
                                 key={variable.key}
@@ -216,7 +216,7 @@ export default function FormulaInput({
                                 onMouseDown={(event) => event.preventDefault()}
                                 onClick={() => choose(variable)}
                                 onKeyDown={(event) => event.key === 'Enter' && choose(variable)}
-                                className={`flex cursor-pointer items-center justify-between gap-2 px-2 py-1.5 text-xs ${index === active ? 'bg-brand-100 text-brand-600' : 'text-black-800'}`}
+                                className={`flex cursor-pointer items-center justify-between gap-2 px-2 py-1.5 text-xs ${index === active ? 'bg-app-primary-tint text-app-primary-deep' : 'text-black-800'}`}
                             >
                                 <span className="truncate">{variable.label}</span>
                                 <span className="shrink-0 text-[10px] text-black-600">{KIND_LABELS[variable.kind]}</span>

@@ -48,7 +48,7 @@ export default function RecoveryCodes({ codes, acknowledged, onAcknowledge }: { 
     return (
         <div className="flex flex-col gap-4">
             <p className="text-sm leading-relaxed text-black-800">{t('STAFF.MFA.CODES.INTRO')}</p>
-            <ol ref={list} aria-label={t('STAFF.MFA.CODES.LIST_LABEL')} className="grid grid-cols-1 gap-x-6 gap-y-1.5 rounded border border-black-300 bg-black-100 p-4 font-mono text-sm sm:grid-cols-2">
+            <ol ref={list} aria-label={t('STAFF.MFA.CODES.LIST_LABEL')} className="grid grid-cols-1 gap-x-6 gap-y-1.5 rounded border border-app-edge bg-app-wash p-4 font-mono text-sm sm:grid-cols-2">
                 {codes.map((code) => (
                     <li key={code} className="tracking-wider text-black-900">
                         {code}

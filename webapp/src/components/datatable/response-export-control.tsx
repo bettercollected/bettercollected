@@ -321,7 +321,7 @@ export default function ResponseExportControl({ workspaceId, formId, formTitle, 
                     <div className="flex flex-col items-start gap-1 sm:items-end">
                         {phase === 'done' && <span>{t(responseExportLocale.downloaded)}</span>}
                         {message && <span>{t(message.key, message.values)}</span>}
-                        <button type="button" onClick={handleDismiss} className="text-xs text-brand-500 underline">
+                        <button type="button" onClick={handleDismiss} className="text-xs text-app-primary underline">
                             {t(responseExportLocale.dismiss)}
                         </button>
                     </div>

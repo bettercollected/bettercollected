@@ -20,7 +20,7 @@ export default function AISectionLayout({ workspaceName, children }: { workspace
     return (
         <div className="flex min-w-0 flex-col">
             {/* Wait for the permissions, so admin tabs don't pop in after the rest. */}
-            {!ready ? <div aria-hidden="true" className="mb-[38px] h-[45px] border-b border-black-400" /> : <RouteTabBar ariaLabel={t(workspaceSectionLabels.aiSections)} tabs={tabs} />}
+            {!ready ? <div aria-hidden="true" className="mb-[38px] h-[45px] border-b border-app-edge-strong" /> : <RouteTabBar ariaLabel={t(workspaceSectionLabels.aiSections)} tabs={tabs} />}
             <div>{children}</div>
         </div>
     );

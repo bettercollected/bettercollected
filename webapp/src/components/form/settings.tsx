@@ -111,7 +111,7 @@ function AdvancedPage() {
             {canOpenBuilder && (
                 <div>
                     <GroupHeading>{t('STAFF.FORM_SETTINGS.ADVANCED_PRIVACY')}</GroupHeading>
-                    <div className="flex flex-col divide-y divide-black-300">
+                    <div className="flex flex-col divide-y divide-app-edge">
                         <SettingRow title={t('STAFF.FORM_SETTINGS.PRIVACY_TITLE')} description={t('STAFF.FORM_SETTINGS.PRIVACY_DESC')}>
                             <Link
                                 data-testid="open-builder-privacy"

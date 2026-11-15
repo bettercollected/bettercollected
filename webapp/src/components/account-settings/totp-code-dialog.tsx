@@ -120,7 +120,7 @@ export default function TotpCodeDialog({ action, onClose, onDisabled }: { action
                         />
                         <button
                             type="button"
-                            className="w-fit text-sm font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700"
+                            className="w-fit text-sm font-medium text-app-primary-deep underline underline-offset-2 hover:text-app-action-pressed"
                             onClick={() => {
                                 setRecovery(!recovery);
                                 setCode('');

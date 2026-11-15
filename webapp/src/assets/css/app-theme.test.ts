@@ -106,6 +106,92 @@ describe('both themes set the same variables', () => {
     });
 });
 
+describe('the chrome roles stand for the ramp steps they replace in Daybreak', () => {
+    it.each([
+        ['primary', '--color-brand-500'],
+        ['primary-deep', '--color-brand-600'],
+        ['primary-soft', '--color-brand-200'],
+        ['edge', '--color-black-300'],
+        ['edge-strong', '--color-black-400'],
+        ['wash', '--color-black-100'],
+        ['wash-strong', '--color-black-200'],
+        ['control', '--color-control']
+    ])('--app-%s is %s in Daybreak', (name, ramp) => {
+        expect(rule('daybreak', 'scope')[`--app-${name}`]).toBe(`var(${ramp})`);
+        expect(role('daybreak', name)).toBe(colour('daybreak', ramp));
+    });
+
+    it('are different values in Pigment (iris and warm paper), never a ramp reference', () => {
+        for (const name of ['primary', 'primary-deep', 'primary-soft', 'edge', 'edge-strong', 'wash', 'wash-strong', 'control']) {
+            expect(rule('pigment', 'scope')[`--app-${name}`], name).toMatch(/^#[0-9A-F]{6}$/i);
+            expect(role('pigment', name), name).not.toBe(role('daybreak', name));
+        }
+    });
+
+    it('become utilities that fall back to the frozen ramp where no scope is around, so a respondent route is unchanged', () => {
+        const inline = css.match(/@theme inline \{([^}]*)\}/)?.[1] ?? '';
+        for (const [util, variable, ramp] of [
+            ['app-primary', 'app-primary', 'color-brand-500'],
+            ['app-primary-deep', 'app-primary-deep', 'color-brand-600'],
+            ['app-primary-soft', 'app-primary-soft', 'color-brand-200'],
+            ['app-primary-tint', 'app-brand-tint', 'color-brand-100'],
+            ['app-edge', 'app-edge', 'color-black-300'],
+            ['app-edge-strong', 'app-edge-strong', 'color-black-400'],
+            ['app-wash', 'app-wash', 'color-black-100'],
+            ['app-wash-strong', 'app-wash-strong', 'color-black-200'],
+            ['app-control', 'app-control', 'color-control']
+        ]) {
+            expect(inline).toContain(`--color-${util}: var(--${variable}, var(--${ramp}));`);
+        }
+    });
+});
+
+describe('the shared controls read the chrome roles, and the frozen files do not', () => {
+    const read = (path: string) => readFileSync(resolve(SRC, path), 'utf8');
+
+    it.each(['shadcn/components/ui/switch.tsx', 'shadcn/components/ui/checkbox.tsx', 'shadcn/components/ui/radio-group.tsx', 'shadcn/components/ui/tabs.tsx', 'shadcn/components/ui/button.tsx', 'shadcn/components/ui/input.tsx', 'components/ui/route-tab-bar.tsx'])('%s has no blue ramp step', (file) => {
+        expect(read(file)).not.toMatch(/(?<![\w-])(?:bg|text|border|ring|outline)-brand-\d/);
+    });
+
+    it('keeps every respondent-facing file on the frozen ramps, so a form inside the builder keeps its own look', () => {
+        for (const file of ['views/molecules/form/trust-layer.tsx', 'components/ui/powered-by.tsx', 'layouts/top-navbar-layout.tsx', 'app/(auth)/_components/login-view.tsx']) {
+            expect(read(file), file).not.toMatch(/(?<![\w-])(?:bg|text|border|ring|outline)-app-(?:primary|edge|wash|control)/);
+        }
+        const walk = (dir: string): string[] => readdirSync(dir).flatMap((entry) => (statSync(join(dir, entry)).isDirectory() ? walk(join(dir, entry)) : [join(dir, entry)]));
+        for (const dir of ['views/molecules/responder-form-fields', 'components/responder-portal', 'views/molecules/theme']) {
+            for (const file of walk(resolve(SRC, dir)).filter((path) => /\.tsx?$/.test(path) && !/\.test\./.test(path))) {
+                expect(readFileSync(file, 'utf8'), file).not.toMatch(/(?<![\w-])(?:bg|text|border|ring|outline|divide)-app-(?:primary|edge|wash|control)/);
+            }
+        }
+    });
+});
+
+describe('the nav group chips', () => {
+    it('are drawn by a pseudo-element that only exists inside a Pigment scope, so Daybreak gets no element and no pixel', () => {
+        const rules = [...css.matchAll(/^([^\n{}]*data-nav-chip[^\n{]*)\{/gm)].map((match) => match[1].trim());
+        expect(rules.length).toBeGreaterThanOrEqual(4);
+        for (const selector of rules) expect(selector).toMatch(/^\[data-app-theme='pigment'\] \[data-nav-chip/);
+        // the Daybreak scope never sets the chip variable: the chip would be unpainted there even if it matched
+        expect(rule('daybreak', 'scope')['--app-nav-chip']).toBeUndefined();
+        const drawer = readFileSync(resolve(SRC, 'components/sidebar/dashboard-drawer.tsx'), 'utf8');
+        // only an attribute on the label that exists today: no element, no text
+        expect(drawer).toMatch(/data-nav-chip=\{navGroups\.indexOf\(group\) % 3\}/);
+        expect(drawer).not.toMatch(/data-nav-chip[^>]*>\s*<(?:span|i|svg)/);
+    });
+
+    it('use three of the five pigments, fills only', () => {
+        for (const [index, pigment] of [
+            ['0', 'tomato'],
+            ['1', 'sky'],
+            ['2', 'mint']
+        ]) {
+            expect(css).toMatch(new RegExp(`\\[data-nav-chip='${index}'\\] \\{\\s*--app-nav-chip: var\\(--app-pig-${pigment}\\);`));
+        }
+        expect(css).toMatch(/\[data-nav-chip\]::before \{[^}]*background: var\(--app-nav-chip\);/);
+        expect(css).not.toMatch(/\[data-nav-chip\][^{]*\{[^}]*\bcolor:/);
+    });
+});
+
 describe('Daybreak keeps its look through the new roles', () => {
     it('maps each app role to the value it had before', () => {
         expect(role('daybreak', 'action')).toBe('#1649E2');
@@ -156,6 +242,17 @@ const PAIRS: Array<[string, string, number, string]> = [
     ['action', 'brand-tint', 3, 'Selected option edge on its tint'],
     ['focus-ring', 'surface', 3, 'Keyboard focus ring on a card'],
     ['focus-ring', 'canvas', 3, 'Keyboard focus ring on the canvas'],
+    ['primary', 'surface', 4.5, 'Blue text actions and icons on a card (text-app-primary)'],
+    ['primary', 'canvas', 4.5, 'Text actions on the canvas'],
+    ['primary', 'brand-tint', 4.5, 'Text actions on the tint (avatar letters, chips)'],
+    ['primary', 'wash', 4.5, 'Text actions on a hover wash'],
+    ['primary-deep', 'surface', 4.5, 'Text links on a card (text-app-primary-deep)'],
+    ['primary-deep', 'canvas', 4.5, 'Text links on the canvas'],
+    ['primary-deep', 'brand-tint', 4.5, 'Text links on the tint'],
+    ['primary-deep', 'wash', 4.5, 'Text links on a hover wash'],
+    ['control', 'surface', 3, 'Edge of a control on a card (border-app-control)'],
+    ['control', 'canvas', 3, 'Edge of a control on the canvas'],
+    ['primary', 'surface', 3, 'Switch face, checked box and radio dot on a card'],
     ['link', 'surface', 4.5, 'Links on a card'],
     ['link', 'brand-tint', 4.5, 'Active nav item, link on the tint'],
     ['ink', 'brand-tint', 4.5, 'Selected option label'],

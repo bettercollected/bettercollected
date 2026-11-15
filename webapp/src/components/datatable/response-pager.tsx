@@ -22,8 +22,8 @@ interface Props {
     onSizeChange?: (size: PageSize) => void;
 }
 
-const base = 'focus-visible:ring-brand-500 inline-flex h-9 min-w-9 items-center justify-center rounded px-2 text-sm focus:outline-hidden focus-visible:ring-2';
-const idle = 'text-black-800 hover:bg-black-200';
+const base = 'focus-visible:ring-app-primary inline-flex h-9 min-w-9 items-center justify-center rounded px-2 text-sm focus:outline-hidden focus-visible:ring-2';
+const idle = 'text-black-800 hover:bg-app-wash-strong';
 const current = 'bg-black-900 font-semibold text-white';
 const off = 'text-black-400 cursor-not-allowed';
 
@@ -74,7 +74,7 @@ export default function ResponsePager({ label, page, size, total, totalExact, ha
                 <label className="text-black-700 flex items-center gap-2 text-sm">
                     {t(text.pageSize)}
                     <select
-                        className="border-black-300 text-black-900 focus-visible:ring-brand-500 h-9 w-20 rounded border bg-white py-0 pl-3 pr-8 text-sm focus:outline-hidden focus-visible:ring-2"
+                        className="border-app-edge text-black-900 focus-visible:ring-app-primary h-9 w-20 rounded border bg-white py-0 pl-3 pr-8 text-sm focus:outline-hidden focus-visible:ring-2"
                         value={size}
                         onChange={(event) => onSizeChange(Number(event.target.value) as PageSize)}
                     >

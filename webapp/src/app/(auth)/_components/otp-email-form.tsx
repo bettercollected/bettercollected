@@ -144,9 +144,9 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
                             </div>
                         </div>
                         <div className="my-10 flex w-full items-center gap-4 pt-8">
-                            <Separator className="flex-1 shrink-0 bg-black-400" />
+                            <Separator className="flex-1 shrink-0 bg-app-edge-strong" />
                             <span className="body4 whitespace-nowrap text-black-700!">{constants.orSignInUsing}</span>
-                            <Separator className="flex-1 shrink-0 bg-black-400" />
+                            <Separator className="flex-1 shrink-0 bg-app-edge-strong" />
                         </div>
                     </>
                 )}

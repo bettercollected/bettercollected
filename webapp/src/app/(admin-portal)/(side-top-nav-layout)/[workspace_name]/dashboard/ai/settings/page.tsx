@@ -72,7 +72,7 @@ export default function AISettingsPage() {
                 </p>
             </div>
 
-            <section className="flex flex-col gap-3 rounded-lg border border-black-400 p-4" aria-labelledby="ai-workspace-heading">
+            <section className="flex flex-col gap-3 rounded-lg border border-app-edge-strong p-4" aria-labelledby="ai-workspace-heading">
                 <h2 id="ai-workspace-heading" className="text-sm font-semibold text-black-900">
                     {t('STAFF.AI_SETTINGS.WORKSPACE_TITLE')}
                 </h2>
@@ -131,7 +131,7 @@ export default function AISettingsPage() {
                 )}
             </section>
 
-            <section className="flex flex-col gap-2 rounded-lg border border-black-400 p-4" aria-labelledby="ai-learning-heading">
+            <section className="flex flex-col gap-2 rounded-lg border border-app-edge-strong p-4" aria-labelledby="ai-learning-heading">
                 <h2 id="ai-learning-heading" className="text-sm font-semibold text-black-900">
                     {t('STAFF.AI_SETTINGS.LEARN_TITLE')}
                 </h2>

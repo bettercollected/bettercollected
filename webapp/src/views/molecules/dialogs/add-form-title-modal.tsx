@@ -48,7 +48,7 @@ export default function AddFormTitleModal() {
                 <Input
                     type="text"
                     value={title}
-                    className="text-brand-500 placeholder-brand-500/20"
+                    className="text-app-primary placeholder-brand-500/20"
                     placeholder={t('NEW_FORM_MODAL.PLACEHOLDER')}
                     onChange={(event) => {
                         setTitle(event.target.value);

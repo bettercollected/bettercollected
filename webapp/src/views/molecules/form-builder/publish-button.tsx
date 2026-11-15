@@ -264,7 +264,7 @@ export function PublishProblemsDialog({
     const list = (items: PublishProblem[], testId: string) => (
         <ul className="flex flex-col gap-2" data-testid={testId}>
             {items.map((problem) => (
-                <li key={`${problem.code}-${problem.fieldId}`} className="flex flex-col gap-1.5 rounded-lg border border-black-300 p-3 text-sm">
+                <li key={`${problem.code}-${problem.fieldId}`} className="flex flex-col gap-1.5 rounded-lg border border-app-edge p-3 text-sm">
                     {/* the workspace's problem is worded here (translated, and by who the reader is), not by the server's sentence */}
                     <span className="text-black-800">
                         {problem.code === 'workspace_title_missing'
@@ -277,12 +277,12 @@ export function PublishProblemsDialog({
                     {/* beside the colour advice the description is about that, so the reason item says its own context */}
                     {problem.code === 'missing_why_we_ask' && advisoryColours && <span className="text-xs text-black-600">{t('PUBLISH_CONTRAST.WHY_WE_ASK_CONTEXT')}</span>}
                     {problem.code === 'workspace_title_missing' && canSetWorkspaceTitle && onSetWorkspaceTitle && (
-                        <button type="button" onClick={onSetWorkspaceTitle} className="w-fit text-xs font-semibold text-brand-600 underline underline-offset-2 hover:text-brand-700">
+                        <button type="button" onClick={onSetWorkspaceTitle} className="w-fit text-xs font-semibold text-app-primary-deep underline underline-offset-2 hover:text-app-action-pressed">
                             {t('PUBLISH_WORKSPACE_TITLE.ACTION')}
                         </button>
                     )}
                     {problem.code !== 'workspace_title_missing' && canShowQuestion(problem.fieldId) && (
-                        <button type="button" onClick={() => onShowQuestion(problem.fieldId)} className="w-fit text-xs font-semibold text-brand-600 underline underline-offset-2 hover:text-brand-700">
+                        <button type="button" onClick={() => onShowQuestion(problem.fieldId)} className="w-fit text-xs font-semibold text-app-primary-deep underline underline-offset-2 hover:text-app-action-pressed">
                             {problem.code === 'missing_ending' ? t('PUBLISH_PROBLEM.SHOW_PAGE') : problem.code === 'theme_contrast' ? (problem.advisory ? t('PUBLISH_CONTRAST.SHOW') : t('PUBLISH_PROBLEM.SHOW_THEME')) : t('PUBLISH_PROBLEM.SHOW_QUESTION')}
                         </button>
                     )}

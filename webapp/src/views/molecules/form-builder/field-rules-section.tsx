@@ -47,7 +47,7 @@ export default function FieldRulesSection({ field }: { field: StandardFormFieldD
                         type="button"
                         data-field-rules-add=""
                         onClick={() => setOpened(field.id)}
-                        className="inline-flex w-fit items-center gap-1 rounded text-xs font-medium text-brand-500 hover:text-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:outline-hidden"
+                        className="inline-flex w-fit items-center gap-1 rounded text-xs font-medium text-app-primary hover:text-app-primary-deep focus-visible:ring-2 focus-visible:ring-app-primary focus-visible:outline-hidden"
                     >
                         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                         {t('FIELD_RULES.ADD')}

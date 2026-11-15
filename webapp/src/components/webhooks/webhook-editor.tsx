@@ -119,7 +119,7 @@ export default function WebhookEditor({ workspaceId, formId, variables, webhook,
     };
 
     return (
-        <form onSubmit={submit} noValidate className="flex flex-col gap-5 rounded-lg border border-black-300 bg-white p-4 md:p-5" aria-labelledby="webhook-editor-title" data-testid="webhook-editor">
+        <form onSubmit={submit} noValidate className="flex flex-col gap-5 rounded-lg border border-app-edge bg-white p-4 md:p-5" aria-labelledby="webhook-editor-title" data-testid="webhook-editor">
             <h3 id="webhook-editor-title" ref={heading} tabIndex={-1} className="text-sm font-semibold text-black-900 outline-hidden">
                 {t(webhook ? 'WEBHOOKS.EDITOR.TITLE_EDIT' : 'WEBHOOKS.EDITOR.TITLE_ADD')}
             </h3>
@@ -147,7 +147,7 @@ export default function WebhookEditor({ workspaceId, formId, variables, webhook,
             </Field>
 
             {everyByFormat && (
-                <p className="max-w-[62ch] rounded-md border border-black-300 bg-black-100 px-3 py-2 text-sm leading-relaxed text-black-800" data-testid="webhook-sends-every-question">
+                <p className="max-w-[62ch] rounded-md border border-app-edge bg-app-wash px-3 py-2 text-sm leading-relaxed text-black-800" data-testid="webhook-sends-every-question">
                     {t('WEBHOOKS.EDITOR.SENDS_EVERY_QUESTION')}
                 </p>
             )}
@@ -163,7 +163,7 @@ export default function WebhookEditor({ workspaceId, formId, variables, webhook,
                         {t('WEBHOOKS.EDITOR.FIELDS_HINT')}
                     </p>
                     {names.length === 0 && <p className="text-sm text-black-700">{t('WEBHOOKS.EDITOR.NO_FIELDS')}</p>}
-                    <ul className="flex flex-col divide-y divide-black-200 rounded-md border border-black-300">
+                    <ul className="flex flex-col divide-y divide-app-wash-strong rounded-md border border-app-edge">
                         {variables.map((variable, index) => {
                             const key = chosen[variable.source];
                             const id = `webhook-var-${index}`;
@@ -177,7 +177,7 @@ export default function WebhookEditor({ workspaceId, formId, variables, webhook,
                                             <input
                                                 id={id}
                                                 type="checkbox"
-                                                className="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
+                                                className="mt-0.5 h-4 w-4 shrink-0 accent-app-primary"
                                                 checked={key !== undefined}
                                                 disabled={!can}
                                                 aria-describedby={!can ? `${id}-reason` : undefined}

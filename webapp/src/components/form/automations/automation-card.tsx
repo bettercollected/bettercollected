@@ -13,9 +13,9 @@ import { Chip } from './summary';
 
 const TONE: Record<Chip['kind'], string> = {
     on: 'border-green-300 bg-green-100 text-green-900',
-    off: 'border-black-400 bg-black-100 text-black-800',
+    off: 'border-app-edge-strong bg-app-wash text-black-800',
     'not-sent': 'border-amber-300 bg-amber-100 text-amber-900',
-    'not-set-up': 'border-black-400 bg-black-100 text-black-800',
+    'not-set-up': 'border-app-edge-strong bg-app-wash text-black-800',
     unavailable: 'border-amber-300 bg-amber-100 text-amber-900',
     reconnect: 'border-amber-300 bg-amber-100 text-amber-900'
 };
@@ -61,7 +61,7 @@ export default function AutomationCard({ id, title, summary, icon, chip, manage,
     return (
         <li data-testid={`automation-card-${id}`} className="flex flex-col gap-4 rounded-lg border border-hairline-strong bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-4">
-                <div aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-black-300 bg-black-100 text-black-800">
+                <div aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-app-edge bg-app-wash text-black-800">
                     {icon}
                 </div>
                 <div className="flex min-w-0 flex-col gap-1">

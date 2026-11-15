@@ -28,7 +28,7 @@ export default function AddSlidePopover() {
                         setOpen(open);
                     }}
                 >
-                    <PopoverTrigger aria-label={t('ADD_PAGE.LABEL')} className="hover:bg-black-200 flex h-7 w-7 items-center justify-center rounded-sm">
+                    <PopoverTrigger aria-label={t('ADD_PAGE.LABEL')} className="hover:bg-app-wash-strong flex h-7 w-7 items-center justify-center rounded-sm">
                         <PlusIcon className=" text-black-600 hover:text-black-800 h-5 w-5 " strokeWidth={'1.5'} aria-hidden="true" />
                     </PopoverTrigger>
                     <PopoverContent side="right" align="start" asChild className="w-[391px] p-0">
@@ -41,7 +41,7 @@ export default function AddSlidePopover() {
                                     transition: { duration: 0.2 }
                                 } as any)}
                             >
-                                <div className="z-1000! max-h-[640px] w-full rounded border border-black-300 bg-white shadow-large">
+                                <div className="z-1000! max-h-[640px] w-full rounded border border-app-edge bg-white shadow-large">
                                     <Tabs defaultValue="layout" className="h-full w-full">
                                         <TabsList className=" flex h-auto w-full gap-2 p-4">
                                             <TabsTrigger value="layout">{t('ADD_PAGE.TAB_LAYOUT')}</TabsTrigger>

@@ -34,7 +34,7 @@ import PageJumpEditor from '@app/views/molecules/form-builder/page-jump-editor';
 
 const NO_IMAGE_LAYOUTS = [FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND, FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN];
 
-const inputClass = 'border-control focus:border-brand-500 rounded border p-2 text-xs';
+const inputClass = 'border-app-control focus:border-app-primary rounded border p-2 text-xs';
 
 /**
  * Page-level settings: the section title, the layout and its image, the
@@ -198,8 +198,8 @@ export default function PagePropertiesTab({}: {}) {
                                 <span
                                     aria-hidden="true"
                                     className={cn(
-                                        'relative flex h-[50px] w-20 items-center justify-center rounded-lg border p-2 transition-colors group-hover:border-brand-500 group-hover:bg-brand-tint',
-                                        selected ? 'option-selected' : 'border-black-300 bg-white'
+                                        'relative flex h-[50px] w-20 items-center justify-center rounded-lg border p-2 transition-colors group-hover:border-app-primary group-hover:bg-brand-tint',
+                                        selected ? 'option-selected' : 'border-app-edge bg-white'
                                     )}
                                 >
                                     {item.Icon && <item.Icon />}
@@ -225,7 +225,7 @@ export default function PagePropertiesTab({}: {}) {
                             <Image style={{ objectFit: 'contain', width: 'fit-content', maxHeight: '168px' }} sizes="100vw" {...firstPartyImageProps(slide.imageUrl)} alt="" height={0} width={0} priority />
                         </div>
                     ) : (
-                        <button type="button" aria-label={t('PAGE_PROPS.ADD_IMAGE')} className="rounded border border-black-300 p-1 hover:bg-black-200" onClick={pickImage}>
+                        <button type="button" aria-label={t('PAGE_PROPS.ADD_IMAGE')} className="rounded border border-app-edge p-1 hover:bg-app-wash-strong" onClick={pickImage}>
                             <PlusIcon className="h-4 w-4" aria-hidden="true" />
                         </button>
                     )}
@@ -301,7 +301,7 @@ export default function PagePropertiesTab({}: {}) {
                             const typeName = knownName ? fieldTypeChip(t, field.type, knownName) : '';
                             return (
                                 <li key={field.id}>
-                                    <button type="button" onClick={() => selectQuestion(field)} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-black-200">
+                                    <button type="button" onClick={() => selectQuestion(field)} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-app-wash-strong">
                                         <span className="min-w-0 flex-1 truncate text-black-800">{title || typeName || t('PAGE_PROPS.UNTITLED')}</span>
                                         {isAnswerableField(field) && field.validations?.required && <span className="shrink-0 text-[10px] text-black-600">{t('PAGE_PROPS.REQUIRED')}</span>}
                                     </button>

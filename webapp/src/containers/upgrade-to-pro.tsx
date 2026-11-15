@@ -78,7 +78,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                     upgrade has no expiry in code, so the 90-day line was a
                     surprise waiting to be discovered (DESIGN.md §5). */}
                 <div className="h2-new mb-2 text-center">
-                    <Trans i18nKey="STAFF.UPGRADE.TITLE" components={{ 1: <span className="text-brand-500" /> }} />
+                    <Trans i18nKey="STAFF.UPGRADE.TITLE" components={{ 1: <span className="text-app-primary" /> }} />
                 </div>
                 <div className="p2-new text-black-700 max-w-[426px] text-center">{t('STAFF.UPGRADE.NOTE')}</div>
                 {/* An owner who isn't the billing owner upgrades only their
@@ -95,16 +95,16 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                                     setCustomPrice('');
                                 }}
                                 className={cn(
-                                    'bg-black-100 hover:text-black-800 flex h-10 w-[70px] cursor-pointer items-center justify-center font-medium ' + 'text-black-600 rounded-lg hover:border hover:border-[#A8C0EA]' + ' hover:bg-white',
-                                    price === activeSuggestion && 'ring-2 ring-brand-500 text-black-800! bg-white'
+                                    'bg-app-wash hover:text-black-800 flex h-10 w-[70px] cursor-pointer items-center justify-center font-medium ' + 'text-black-600 rounded-lg hover:border hover:border-[#A8C0EA]' + ' hover:bg-white',
+                                    price === activeSuggestion && 'ring-2 ring-app-primary text-black-800! bg-white'
                                 )}
                             >
                                 ${price}
                             </div>
                         );
                     })}
-                    <div className={cn('focus-within:border-brand-500 hidden h-10 rounded-lg border border-black-300 lg:flex', customPrice && 'border-brand-500')}>
-                        <div className="bg-black-100 text-black-600 flex h-full w-full items-center justify-center rounded-l-lg px-2">$</div>
+                    <div className={cn('focus-within:border-app-primary hidden h-10 rounded-lg border border-app-edge lg:flex', customPrice && 'border-app-primary')}>
+                        <div className="bg-app-wash text-black-600 flex h-full w-full items-center justify-center rounded-l-lg px-2">$</div>
                         <input
                             type="number"
                             value={customPrice || ''}
@@ -169,7 +169,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                 <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
                     {features.map((feature: any, idx: number) => {
                         return (
-                            <div key={feature.title + idx} className="border-black-300 bg-black-100 flex flex-col rounded-lg border p-4">
+                            <div key={feature.title + idx} className="border-app-edge bg-app-wash flex flex-col rounded-lg border p-4">
                                 <div className="h4-new font-medium ">{feature.title}</div>
 
                                 <div className="p2-new text-black-700 mt-2">{feature.description}</div>

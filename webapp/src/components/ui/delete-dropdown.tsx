@@ -33,7 +33,7 @@ export default function DeleteDropDown({ onDropDownItemClick, className, label, 
                 <button
                     type="button"
                     aria-label={itemName ? t(localesCommon.moreActionsFor, { name: itemName }) : t(localesCommon.moreActions)}
-                    className={cn('text-black-600 hover:bg-black-100 inline-flex cursor-pointer items-center justify-center rounded p-1', className)}
+                    className={cn('text-black-600 hover:bg-app-wash inline-flex cursor-pointer items-center justify-center rounded p-1', className)}
                     // Call sites sit inside clickable cards and table rows: opening
                     // the menu must not also open the card or row.
                     onClick={(e) => {
@@ -46,7 +46,7 @@ export default function DeleteDropDown({ onDropDownItemClick, className, label, 
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-[200px] rounded bg-white p-0" align="end">
                 <DropdownMenuItem
-                    className="hover:bg-black-100 flex cursor-pointer items-center gap-4 px-4 py-3 text-sm"
+                    className="hover:bg-app-wash flex cursor-pointer items-center gap-4 px-4 py-3 text-sm"
                     onClick={(event) => {
                         // Close explicitly: call sites call preventDefault, which
                         // would otherwise keep the menu open.

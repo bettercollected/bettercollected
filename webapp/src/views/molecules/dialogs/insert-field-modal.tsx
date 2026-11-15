@@ -120,11 +120,11 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
 
     return (
         <div id="fields-option" className="flex max-h-[min(560px,80vh)] w-[380px] flex-col bg-white">
-            <div className="border-b border-black-300 p-3">
+            <div className="border-b border-app-edge p-3">
                 <label htmlFor={`${baseId}-search`} className="sr-only">
                     {t('INSERT_UI.SEARCH')}
                 </label>
-                <div className="flex items-center gap-2 rounded border border-black-300 px-2.5 focus-within:border-brand-500">
+                <div className="flex items-center gap-2 rounded border border-app-edge px-2.5 focus-within:border-app-primary">
                     <Search className="h-4 w-4 shrink-0 text-black-600" aria-hidden="true" />
                     <input
                         id={`${baseId}-search`}
@@ -181,7 +181,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
                                         onKeyDown={(event) => event.key === 'Enter' && pick(item, 'page')}
                                         className={cn('mx-1 flex cursor-pointer items-center gap-3 rounded px-3 py-2', selected ? 'bg-[#F4F7FD] text-black-900' : 'text-[#344054]')}
                                     >
-                                        <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded border bg-white', selected ? 'border-brand-500' : 'border-black-300')}>{item.icon}</span>
+                                        <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded border bg-white', selected ? 'border-app-primary' : 'border-app-edge')}>{item.icon}</span>
                                         <span className="min-w-0">
                                             <span id={`${optionId(index)}-name`} className="block text-sm font-medium">
                                                 {item.name}
@@ -198,15 +198,15 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
                 })}
             </div>
             {/* The two ways to add, as separate actions on the highlighted type. */}
-            <div className="flex items-center gap-2 border-t border-black-300 bg-black-100 p-3">
-                <button type="button" disabled={!active} onClick={() => pick(active, 'page')} className="flex-1 rounded bg-brand-500 px-3 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-40">
+            <div className="flex items-center gap-2 border-t border-app-edge bg-app-wash p-3">
+                <button type="button" disabled={!active} onClick={() => pick(active, 'page')} className="flex-1 rounded bg-app-primary px-3 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-40">
                     {hasPage ? (target ? t('INSERT_UI.ADD_HERE') : t('INSERT_UI.ADD_TO_PAGE')) : t('INSERT_UI.ADD_NEW_PAGE')}
                     <kbd aria-hidden="true" className="ml-2 font-sans text-xs opacity-80">
                         {t('INSERT_UI.ENTER')}
                     </kbd>
                 </button>
                 {hasPage && !target && (
-                    <button type="button" disabled={!active} onClick={() => pick(active, 'new-page')} className="flex-1 rounded border border-black-400 bg-white px-3 py-2 text-sm font-medium text-black-800 hover:bg-black-200 disabled:opacity-40">
+                    <button type="button" disabled={!active} onClick={() => pick(active, 'new-page')} className="flex-1 rounded border border-app-edge-strong bg-white px-3 py-2 text-sm font-medium text-black-800 hover:bg-app-wash-strong disabled:opacity-40">
                         {t('INSERT_UI.ADD_NEW_PAGE')}
                         <kbd aria-hidden="true" className="ml-2 font-sans text-xs text-black-600">
                             {t('INSERT_UI.SHIFT_ENTER')}

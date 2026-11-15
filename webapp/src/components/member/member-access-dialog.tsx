@@ -48,7 +48,7 @@ export default function MemberAccessDialog({ workspaceId, member, onClose }: { w
                                 {data.teams.length === 0 ? (
                                     <p className="text-sm text-black-700">{t('STAFF.TEAMS.ACCESS.NO_TEAMS')}</p>
                                 ) : (
-                                    <ul aria-labelledby="member-access-teams" className="flex flex-col divide-y divide-black-300 rounded border border-black-300">
+                                    <ul aria-labelledby="member-access-teams" className="flex flex-col divide-y divide-app-edge rounded border border-app-edge">
                                         {data.teams.map((team) => (
                                             <li key={team.id} className="px-3 py-2 text-sm text-black-900">
                                                 {team.name}
@@ -65,7 +65,7 @@ export default function MemberAccessDialog({ workspaceId, member, onClose }: { w
                                 {data.grants.length === 0 ? (
                                     <p className="text-sm text-black-700">{t('STAFF.TEAMS.ACCESS.NO_GRANTS')}</p>
                                 ) : (
-                                    <ul aria-labelledby="member-access-grants" className="flex flex-col divide-y divide-black-300 rounded border border-black-300">
+                                    <ul aria-labelledby="member-access-grants" className="flex flex-col divide-y divide-app-edge rounded border border-app-edge">
                                         {data.grants.map((grant) => (
                                             <li key={grant.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm text-black-900">
                                                 <span className="min-w-0 truncate">{grant.formTitle || t('STAFF.TEAMS.ACCESS.A_FORM')}</span>
@@ -82,7 +82,7 @@ export default function MemberAccessDialog({ workspaceId, member, onClose }: { w
                         </>
                     )}
 
-                    <div className="flex justify-end border-t border-black-300 pt-4">
+                    <div className="flex justify-end border-t border-app-edge pt-4">
                         <Button type="button" variant="v2Button" className="min-h-11 md:min-h-10" onClick={onClose}>
                             {t('STAFF.TEAMS.CLOSE')}
                         </Button>

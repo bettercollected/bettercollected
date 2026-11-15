@@ -90,7 +90,7 @@ export function RestrictTargetAlert({ accessUrl, onReviewAgain, busy }: { access
                 </a>
             )}
             {onReviewAgain && (
-                <button type="button" onClick={onReviewAgain} disabled={busy} className="mt-1 min-h-[44px] w-fit rounded border border-black-400 bg-white px-4 text-sm font-medium hover:bg-black-200 sm:min-h-[36px]">
+                <button type="button" onClick={onReviewAgain} disabled={busy} className="mt-1 min-h-[44px] w-fit rounded border border-app-edge-strong bg-white px-4 text-sm font-medium hover:bg-app-wash-strong sm:min-h-[36px]">
                     {t('FORM_PROMOTION.ERROR.REVIEW_AGAIN')}
                 </button>
             )}
@@ -121,7 +121,7 @@ export default function ReviewStep(props: ReviewStepProps) {
             </div>
 
             {notice && (
-                <p role="status" data-testid={`promotion-notice-${notice}`} className="rounded border border-black-300 bg-black-100 p-3 text-sm">
+                <p role="status" data-testid={`promotion-notice-${notice}`} className="rounded border border-app-edge bg-app-wash p-3 text-sm">
                     {t(failureKey(notice))}
                 </p>
             )}
@@ -205,7 +205,7 @@ export default function ReviewStep(props: ReviewStepProps) {
             )}
 
             {targetForm && preview.targetChangedSinceLastPromotion && (
-                <div className="flex flex-col gap-1 rounded border border-black-300 bg-black-100 p-3">
+                <div className="flex flex-col gap-1 rounded border border-app-edge bg-app-wash p-3">
                     <p className="text-sm">{t('FORM_PROMOTION.REVIEW.TARGET_CHANGED')}</p>
                     <label htmlFor="promotion-overwrite" className={`${ROW} cursor-pointer items-center`}>
                         <Checkbox id="promotion-overwrite" checked={props.overwrite} disabled={props.busy} onCheckedChange={(value: boolean | 'indeterminate') => props.onOverwrite(value === true)} className="shrink-0" />
@@ -220,7 +220,7 @@ export default function ReviewStep(props: ReviewStepProps) {
                 <div role="alert" data-testid={`promotion-error-${failure}`} className="flex flex-col items-start gap-2 rounded border border-[#E5B9B9] bg-[#FBEFEF] p-3 text-sm">
                     <p>{t(failureKey(failure))}</p>
                     {(failure === 'target_changed' || failure === 'idempotency_in_progress' || failure === 'unknown') && (
-                        <button type="button" onClick={props.onReviewAgain} disabled={props.busy} className="min-h-[44px] rounded border border-black-400 bg-white px-4 text-sm font-medium hover:bg-black-200 sm:min-h-[36px]">
+                        <button type="button" onClick={props.onReviewAgain} disabled={props.busy} className="min-h-[44px] rounded border border-app-edge-strong bg-white px-4 text-sm font-medium hover:bg-app-wash-strong sm:min-h-[36px]">
                             {t('FORM_PROMOTION.ERROR.REVIEW_AGAIN')}
                         </button>
                     )}

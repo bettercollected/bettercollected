@@ -53,13 +53,13 @@ export function AuditExportMenu({ workspaceId, formId, query }: { workspaceId: s
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[260px] rounded bg-white p-0" align="start">
-                    <DropdownMenuItem className="hover:bg-black-100 flex min-h-11 cursor-pointer items-center px-4 py-3 text-sm" onSelect={() => void run('csv')}>
+                    <DropdownMenuItem className="hover:bg-app-wash flex min-h-11 cursor-pointer items-center px-4 py-3 text-sm" onSelect={() => void run('csv')}>
                         {t('AUDIT_LOG.EXPORT.CSV')}
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-black-100 flex min-h-11 cursor-pointer items-center px-4 py-3 text-sm" onSelect={() => void run('json')}>
+                    <DropdownMenuItem className="hover:bg-app-wash flex min-h-11 cursor-pointer items-center px-4 py-3 text-sm" onSelect={() => void run('json')}>
                         {t('AUDIT_LOG.EXPORT.JSON')}
                     </DropdownMenuItem>
-                    <p className="border-black-200 text-black-700 border-t px-4 py-3 text-xs leading-relaxed">{t('AUDIT_LOG.EXPORT.NOTE')}</p>
+                    <p className="border-app-wash-strong text-black-700 border-t px-4 py-3 text-xs leading-relaxed">{t('AUDIT_LOG.EXPORT.NOTE')}</p>
                 </DropdownMenuContent>
             </DropdownMenu>
             <div role="status" aria-live="polite" className="max-w-[62ch] text-sm">

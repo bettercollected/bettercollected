@@ -19,8 +19,8 @@ import { useTargetWorkspaces } from './use-target-workspaces';
 import WhereStep, { Mode } from './where-step';
 
 const BUTTON = 'flex min-h-[44px] items-center justify-center rounded px-4 text-sm font-medium disabled:cursor-not-allowed sm:min-h-[36px]';
-const PRIMARY = `${BUTTON} bg-app-action text-white hover:bg-app-action-hover disabled:bg-black-300 disabled:text-black-600`;
-const SECONDARY = `${BUTTON} border border-black-400 bg-white text-black-700 hover:bg-black-200 disabled:bg-black-300 disabled:text-black-600`;
+const PRIMARY = `${BUTTON} bg-app-action text-white hover:bg-app-action-hover disabled:bg-app-edge disabled:text-black-600`;
+const SECONDARY = `${BUTTON} border border-app-edge-strong bg-white text-black-700 hover:bg-app-wash-strong disabled:bg-app-edge disabled:text-black-600`;
 
 const TOTAL_STEPS = 3;
 
@@ -186,9 +186,9 @@ function Body({ onOpenChange, workspace, form }: Omit<FormPromotionDialogProps, 
                             event.preventDefault();
                             headingRef.current?.focus();
                         }}
-                        className="fixed inset-x-0 bottom-0 z-modal flex max-h-[92dvh] w-full flex-col rounded-t-lg border border-black-300 bg-white shadow-large sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:max-h-[88dvh] sm:max-w-[640px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded"
+                        className="fixed inset-x-0 bottom-0 z-modal flex max-h-[92dvh] w-full flex-col rounded-t-lg border border-app-edge bg-white shadow-large sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:max-h-[88dvh] sm:max-w-[640px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded"
                     >
-                        <div className="flex items-start justify-between gap-4 border-b border-black-300 p-4 sm:px-6">
+                        <div className="flex items-start justify-between gap-4 border-b border-app-edge p-4 sm:px-6">
                             <div className="flex flex-col gap-1">
                                 <DialogPrimitive.Title className="text-lg leading-snug font-semibold">{t('FORM_PROMOTION.TITLE')}</DialogPrimitive.Title>
                                 <DialogPrimitive.Description id="promotion-lead" className="text-sm text-black-700">
@@ -196,7 +196,7 @@ function Body({ onOpenChange, workspace, form }: Omit<FormPromotionDialogProps, 
                                     {t('FORM_PROMOTION.LEAD')}
                                 </DialogPrimitive.Description>
                             </div>
-                            <DialogPrimitive.Close className="-mt-1 -mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-md hover:bg-black-200 sm:h-9 sm:w-9">
+                            <DialogPrimitive.Close className="-mt-1 -mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-md hover:bg-app-wash-strong sm:h-9 sm:w-9">
                                 <X className="h-5 w-5" aria-hidden="true" />
                                 <span className="sr-only">{t('FORM_PROMOTION.CLOSE')}</span>
                             </DialogPrimitive.Close>
@@ -278,7 +278,7 @@ function Body({ onOpenChange, workspace, form }: Omit<FormPromotionDialogProps, 
                             )}
                         </div>
 
-                        <div className="flex flex-col-reverse gap-2 border-t border-black-300 p-4 sm:flex-row sm:justify-end sm:px-6">
+                        <div className="flex flex-col-reverse gap-2 border-t border-app-edge p-4 sm:flex-row sm:justify-end sm:px-6">
                             {step === 1 && (
                                 <>
                                     <DialogPrimitive.Close className={SECONDARY}>{t('FORM_PROMOTION.CANCEL')}</DialogPrimitive.Close>

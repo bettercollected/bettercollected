@@ -56,7 +56,7 @@ function OpenCanvasInsertMenu({ target: insertTarget }: { target: InsertTarget }
                     sideOffset={6}
                     collisionPadding={12}
                     aria-label={t('INSERT_MENU_ARIA')}
-                    className="z-popover overflow-hidden rounded border border-black-300 bg-white shadow-large outline-hidden"
+                    className="z-popover overflow-hidden rounded border border-app-edge bg-white shadow-large outline-hidden"
                     onCloseAutoFocus={(event) => {
                         // Inserting focuses the new field; cancelling goes back
                         // to where "/" or the shortcut was pressed.

@@ -9,7 +9,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { calendarDayIn } from '@app/utils/date-utils';
 import { DELETION_STATUSES, RESPONDENTS, ResponseListState, ResponseSort, SORTS, activeFilterCount } from '@app/utils/response-list-state';
 
-const control = 'border-black-300 text-black-900 focus-visible:ring-brand-500 h-10 w-full rounded border bg-white px-3 py-0 text-sm focus:outline-hidden focus-visible:ring-2';
+const control = 'border-app-edge text-black-900 focus-visible:ring-app-primary h-10 w-full rounded border bg-white px-3 py-0 text-sm focus:outline-hidden focus-visible:ring-2';
 
 const STATUS_LABEL = { none: text.statusNone, pending: text.statusPending, declined: text.statusDeclined } as const;
 const WHO_LABEL = { anonymous: text.whoAnonymous, known: text.whoKnown } as const;
@@ -96,7 +96,7 @@ export default function ResponseFilters({ state, currentVersion, onChange, onCle
                         {t('RESPONSES_STAFF.FILTERS_BUTTON')}
                         {active > 0 && (
                             <>
-                                <span aria-hidden="true" className="min-w-5 rounded-full bg-brand-100 px-1.5 text-xs font-semibold text-brand-600 tabular-nums">
+                                <span aria-hidden="true" className="min-w-5 rounded-full bg-app-primary-tint px-1.5 text-xs font-semibold text-app-primary-deep tabular-nums">
                                     {active}
                                 </span>
                                 <span className="sr-only">
@@ -133,7 +133,7 @@ export default function ResponseFilters({ state, currentVersion, onChange, onCle
                         }
                     }}
                     aria-label={t('RESPONSES_STAFF.FILTERS_PANEL')}
-                    className="grid grid-cols-1 gap-3 rounded border border-black-300 bg-white p-4 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
+                    className="grid grid-cols-1 gap-3 rounded border border-app-edge bg-white p-4 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
                 >
                     <Field id={`${id}-from`} label={t(text.from)}>
                         <input ref={fromRef} id={`${id}-from`} type="date" className={control} value={state.from ?? ''} max={state.to} onChange={(event) => onChange({ from: event.target.value || undefined })} />
@@ -176,12 +176,12 @@ export default function ResponseFilters({ state, currentVersion, onChange, onCle
             {chips.length > 0 && (
                 <ul aria-label={t('RESPONSES_STAFF.ACTIVE_FILTERS')} className="flex flex-wrap items-center gap-2">
                     {chips.map((chip) => (
-                        <li key={chip.key} className="flex items-center gap-1 rounded-full bg-brand-100 py-0.5 pr-1 pl-3 text-sm text-black-900">
+                        <li key={chip.key} className="flex items-center gap-1 rounded-full bg-app-primary-tint py-0.5 pr-1 pl-3 text-sm text-black-900">
                             <span>{chip.label}</span>
                             <button
                                 type="button"
                                 aria-label={t('RESPONSES_STAFF.REMOVE_FILTER', { filter: chip.label })}
-                                className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-brand-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                                className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-app-primary-soft focus:outline-hidden focus-visible:ring-2 focus-visible:ring-app-primary"
                                 onClick={() => {
                                     onChange(chip.remove);
                                     toggleRef.current?.focus();
@@ -198,7 +198,7 @@ export default function ResponseFilters({ state, currentVersion, onChange, onCle
                                 onClear();
                                 toggleRef.current?.focus();
                             }}
-                            className="rounded text-sm font-medium text-brand-500 underline-offset-2 hover:underline focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                            className="rounded text-sm font-medium text-app-primary underline-offset-2 hover:underline focus:outline-hidden focus-visible:ring-2 focus-visible:ring-app-primary"
                         >
                             {t(text.clear)}
                         </button>

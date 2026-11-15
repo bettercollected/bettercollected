@@ -274,13 +274,13 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                         </div>
                     )}
                     {!isScaledDown && field.internal && (
-                        <div className="absolute -top-6 left-0 z-10 inline-flex items-center gap-1 rounded bg-black-200 px-1.5 py-[2px] text-[10px] font-semibold text-black-700" title={t('CANVAS.INTERNAL_TITLE')}>
+                        <div className="absolute -top-6 left-0 z-10 inline-flex items-center gap-1 rounded bg-app-wash-strong px-1.5 py-[2px] text-[10px] font-semibold text-black-700" title={t('CANVAS.INTERNAL_TITLE')}>
                             <LockIcon className="h-3 w-3" aria-hidden="true" />
                             {t('CANVAS.INTERNAL')}
                         </div>
                     )}
                     {!isScaledDown && !field.internal && fieldHasLogic(field) && (
-                        <div className="absolute -top-6 left-0 z-10 inline-flex items-center gap-1 rounded bg-brand-100 px-1.5 py-[2px] text-[10px] font-semibold text-brand-500" title={t('CANVAS.LOGIC_TITLE')}>
+                        <div className="absolute -top-6 left-0 z-10 inline-flex items-center gap-1 rounded bg-app-primary-tint px-1.5 py-[2px] text-[10px] font-semibold text-app-primary" title={t('CANVAS.LOGIC_TITLE')}>
                             <LogicOutlinedIcon className="h-3 w-3" aria-hidden="true" />
                             {t('CANVAS.LOGIC')}
                         </div>
@@ -289,16 +289,16 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                         // Selection toolbar: what this field is, then what you can do
                         // with it. Delete is last and quiet-red — a destructive action
                         // shouldn't be the selection's only (or loudest) affordance.
-                        <div role="toolbar" aria-label={t('CANVAS.ACTIONS')} className="absolute -top-12 right-0 z-20 flex items-center overflow-hidden rounded border border-black-300 bg-white shadow-large">
+                        <div role="toolbar" aria-label={t('CANVAS.ACTIONS')} className="absolute -top-12 right-0 z-20 flex items-center overflow-hidden rounded border border-app-edge bg-white shadow-large">
                             <span className="px-2.5 text-[11px] font-semibold tracking-wide text-black-600 uppercase">{fieldTypeLabel(field.type)}</span>
-                            <span className="h-5 w-px bg-black-400" aria-hidden="true" />
+                            <span className="h-5 w-px bg-app-edge-strong" aria-hidden="true" />
                             <button
                                 type="button"
                                 aria-label={t('CANVAS.DUPLICATE')}
                                 aria-keyshortcuts="Control+D Meta+D"
                                 title={copyBlockedByLayout ? i18n.t('builder:LAYOUT.CANNOT_COPY_QUESTION') : cannotCopy ? i18n.t('builder:NEW_TYPES.CANNOT_COPY') : t('CANVAS.DUPLICATE_TITLE')}
                                 disabled={cannotCopy}
-                                className="p-2 text-black-700 hover:bg-black-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                                className="p-2 text-black-700 hover:bg-app-wash focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#123FC9] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                                 onClick={(event) => {
                                     event.stopPropagation();
                                     const at = locate();
@@ -518,7 +518,7 @@ const SlideBuilder = ({ pageId, slide: given, isScaledDown = false, disabled = f
                                     type="button"
                                     id={`canvas-end-${slide.id}`}
                                     aria-keyshortcuts="/"
-                                    className="flex flex-col items-center gap-2 rounded border border-dashed border-black-400 bg-white/60 px-10 py-8 text-sm font-medium text-black-700 transition-colors hover:border-black-600 hover:text-black-900"
+                                    className="flex flex-col items-center gap-2 rounded border border-dashed border-app-edge-strong bg-white/60 px-10 py-8 text-sm font-medium text-black-700 transition-colors hover:border-black-600 hover:text-black-900"
                                     onClick={(event) => {
                                         event.stopPropagation();
                                         setInsertTarget({ slideId: slide.id, slideIndex: slide.index, fieldIndex: 0, anchorId: `canvas-end-${slide.id}`, returnFocusId: `canvas-end-${slide.id}` });

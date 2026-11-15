@@ -38,7 +38,7 @@ export default function EmailDeliveries({ workspaceId, formId, headless = false 
     if (!settled || (waiting.error as any)?.status === 403) return null;
 
     return (
-        <section className="flex flex-col gap-4 rounded-lg border border-black-300 bg-white p-4 md:p-5" aria-labelledby={headless ? undefined : 'email-deliveries-title'} data-testid="email-deliveries">
+        <section className="flex flex-col gap-4 rounded-lg border border-app-edge bg-white p-4 md:p-5" aria-labelledby={headless ? undefined : 'email-deliveries-title'} data-testid="email-deliveries">
             {!headless && (
                 <div className="flex flex-col gap-1">
                     <h2 id="email-deliveries-title" className="text-sm font-semibold text-black-900">
@@ -73,7 +73,7 @@ export default function EmailDeliveries({ workspaceId, formId, headless = false 
                 </p>
             )}
             {items.length > 0 && (
-                <ul className="flex flex-col divide-y divide-black-200 rounded-md border border-black-300" aria-label={t('EMAIL_ACTIONS.DELIVERIES.LIST')}>
+                <ul className="flex flex-col divide-y divide-app-wash-strong rounded-md border border-app-edge" aria-label={t('EMAIL_ACTIONS.DELIVERIES.LIST')}>
                     {items.map((delivery) => (
                         <Row key={delivery.id} delivery={delivery} language={i18n.language} />
                     ))}

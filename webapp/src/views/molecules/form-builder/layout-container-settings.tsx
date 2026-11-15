@@ -114,7 +114,7 @@ export default function LayoutContainerSettings() {
                                 ))}
                                 {!complete && <p className="text-[11px] text-black-600">{t('LAYOUT.COMPLETE_RULE')}</p>}
                                 {editable && logic.conditions.length < CONTAINER_CONDITIONS_MAX && (
-                                    <button type="button" className="w-fit text-xs font-medium text-brand-500 hover:text-brand-600" onClick={() => commit({ ...logic, conditions: [...logic.conditions, newConditionFor(sources)] })}>
+                                    <button type="button" className="w-fit text-xs font-medium text-app-primary hover:text-app-primary-deep" onClick={() => commit({ ...logic, conditions: [...logic.conditions, newConditionFor(sources)] })}>
                                         {t('LAYOUT.ADD_CONDITION')}
                                     </button>
                                 )}

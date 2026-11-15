@@ -21,7 +21,7 @@ const Layout = (props: { Icon: any; name: string; label: string; image: string; 
         <button data-umami-event={`${props.name} Button`}>
             <div className="cursor-pointer rounded-lg border border-transparent" onClick={props.onClick}>
                 <div
-                    className="border-black-300 relative mb-1 overflow-hidden rounded border "
+                    className="border-app-edge relative mb-1 overflow-hidden rounded border "
                     style={{
                         width: '168px',
                         height: '94px'
@@ -89,7 +89,7 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
                 <div className="mb-2 text-sm font-medium">{t('ADD_PAGE.BLANK')}</div>
                 <button data-umami-event={'Add Blank Page Button'}>
                     <div
-                        className="hover:bg-black-200 border-black-300 w-fit cursor-pointer rounded-lg border px-[70px] py-8 transition-all"
+                        className="hover:bg-app-wash-strong border-app-edge w-fit cursor-pointer rounded-lg border px-[70px] py-8 transition-all"
                         onClick={() => {
                             addSlideOfStyle(FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN, true);
                         }}

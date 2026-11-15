@@ -55,7 +55,7 @@ export default function FieldConditionalLogicEditor() {
 
     if (sources.length === 0) {
         return (
-            <div className="border-black-300 flex flex-col gap-1 border-t pt-4">
+            <div className="border-app-edge flex flex-col gap-1 border-t pt-4">
                 <div className="text-black-700 text-xs font-medium">{t('LOGIC.TITLE')}</div>
                 <div className="text-black-600 text-xs">{t('LOGIC.FIELD_NEED_EARLIER')}</div>
             </div>
@@ -63,7 +63,7 @@ export default function FieldConditionalLogicEditor() {
     }
 
     return (
-        <div className="border-black-300 flex flex-col gap-3 border-t pt-4">
+        <div className="border-app-edge flex flex-col gap-3 border-t pt-4">
             <div className="flex w-full items-center justify-between">
                 <div>
                     <div className="text-black-700 text-xs font-medium">{t('LOGIC.TITLE')}</div>
@@ -101,7 +101,7 @@ export default function FieldConditionalLogicEditor() {
                         />
                     ))}
 
-                    <button className="text-brand-500 hover:text-brand-600 w-fit text-xs font-medium" onClick={() => commit({ ...logic, conditions: [...logic.conditions, newConditionFor(sources)] })}>
+                    <button className="text-app-primary hover:text-app-primary-deep w-fit text-xs font-medium" onClick={() => commit({ ...logic, conditions: [...logic.conditions, newConditionFor(sources)] })}>
                         {t('LOGIC.ADD_CONDITION')}
                     </button>
                 </div>

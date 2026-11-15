@@ -84,7 +84,7 @@ function AllowedSites() {
                 ) : origins.length === 0 ? (
                     <p className="text-sm text-black-700">{t('STAFF.EMBED.NONE')}</p>
                 ) : (
-                    <ul className="flex flex-col divide-y divide-black-300 rounded border border-hairline-strong bg-white">
+                    <ul className="flex flex-col divide-y divide-app-edge rounded border border-hairline-strong bg-white">
                         {origins.map((origin) => (
                             <li key={origin} className="flex items-center justify-between gap-3 px-3 py-2">
                                 <span className="min-w-0 truncate font-mono text-[13px] text-black-800">{origin}</span>
@@ -93,7 +93,7 @@ function AllowedSites() {
                                     disabled={saving}
                                     aria-label={t('STAFF.EMBED.REMOVE_ARIA', { site: origin })}
                                     onClick={() => remove(origin)}
-                                    className="shrink-0 rounded p-1.5 text-black-600 transition-colors hover:bg-black-100 hover:text-black-800 disabled:opacity-50"
+                                    className="shrink-0 rounded p-1.5 text-black-600 transition-colors hover:bg-app-wash hover:text-black-800 disabled:opacity-50"
                                 >
                                     <X className="h-4 w-4" aria-hidden="true" />
                                 </button>

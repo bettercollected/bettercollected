@@ -93,12 +93,12 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
 
     return (
         // On the app canvas a card's edge is the strong hairline (the responder portal has no app theme and keeps its own)
-        <div className={`hover:border-brand-500 flex h-full cursor-pointer flex-col items-start justify-between rounded border transition ${isResponderPortal ? 'border-black-300 bg-white' : 'border-hairline-strong bg-surface'} ${className}`}>
+        <div className={`hover:border-app-primary flex h-full cursor-pointer flex-col items-start justify-between rounded border transition ${isResponderPortal ? 'border-app-edge bg-white' : 'border-hairline-strong bg-surface'} ${className}`}>
             <div className="group flex w-full items-center justify-between rounded px-5 py-4">
                 {!isResponderPortal &&
                     (form?.coverImage || form?.logo ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={firstPartyImageUrl(form.coverImage || form.logo)} alt="" className="border-black-300 mr-3 h-9 w-9 shrink-0 rounded-md border object-cover sm:mr-4 sm:h-11 sm:w-11" />
+                        <img src={firstPartyImageUrl(form.coverImage || form.logo)} alt="" className="border-app-edge mr-3 h-9 w-9 shrink-0 rounded-md border object-cover sm:mr-4 sm:h-11 sm:w-11" />
                     ) : (
                         <FormAvatar formId={form?.formId} title={form?.title} className="mr-3 h-9 w-9 sm:mr-4 sm:h-11 sm:w-11" />
                     ))}
@@ -193,7 +193,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                         {(form?.isPublished || isResponderPortal) && showPinned && form?.settings?.pinned && (
                             <>
                                 <DotIcon />
-                                <span className="text-brand-600 text-sm">{t('FORM.PINNED')}</span>
+                                <span className="text-app-primary-deep text-sm">{t('FORM.PINNED')}</span>
                             </>
                         )}
                     </div>

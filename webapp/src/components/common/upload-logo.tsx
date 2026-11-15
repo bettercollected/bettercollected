@@ -51,7 +51,7 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = 
             <div className={cn('rounded-lg w-[72px] h-[72px] flex flex-col justify-center items-center gap-1 cursor-pointer hover:ring-1 hover:ring-black-400', logoUrl ? '' : 'bg-black-900')} onClick={() => setShowDropdown(!showDropdown)}>
                 <input ref={logoRef} id="form_logo" type="file" hidden onChange={handleFileChange} />
                 {logoUrl ? (
-                    <Image height={72} width={72} objectFit="cover" src={logoUrl} alt="logo" className="rounded-image hover:bg-black-100" />
+                    <Image height={72} width={72} objectFit="cover" src={logoUrl} alt="logo" className="rounded-image hover:bg-app-wash" />
                 ) : (
                     <>
                         <Camera className="text-white!" />
@@ -61,7 +61,7 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = 
             </div>
             {showDropdown && (
                 <div
-                    className={`flex flex-col absolute z-40 shadow-large border border-black-300 h-auto w-full sm:w-[330px] bg-white p-4 rounded gap-2`}
+                    className={`flex flex-col absolute z-40 shadow-large border border-app-edge h-auto w-full sm:w-[330px] bg-white p-4 rounded gap-2`}
                     style={{
                         top: dropdownTopPosition
                     }}
@@ -79,7 +79,7 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = 
                         <span className="text-black-100 text-xs sm:text-sm">{t('LOGO.UPDATE')}</span>
                     </label>
                     {showRemove && (
-                        <Button className="text-black-900! font-semibold bg-black-300! hover:bg-black-400! " onClick={onRemoveLogo}>
+                        <Button className="text-black-900! font-semibold bg-app-edge! hover:bg-app-edge-strong! " onClick={onRemoveLogo}>
                             {t('LOGO.REMOVE')}
                         </Button>
                     )}

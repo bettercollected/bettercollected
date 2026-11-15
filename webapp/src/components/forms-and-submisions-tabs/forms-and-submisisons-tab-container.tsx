@@ -62,7 +62,7 @@ export default function FormsAndSubmissionsTabContainer({ showResponseBar, works
 
     return (
         <div className="flex flex-col md:pl-12 pb-4!">
-            <div className="flex space-x-1 border-b border-black-400 overflow-x-auto pb-0">
+            <div className="flex space-x-1 border-b border-app-edge-strong overflow-x-auto pb-0">
                 {paramTabs.map((tab) => {
                     const isActive = activeTab === tab.path;
                     return (
@@ -70,7 +70,7 @@ export default function FormsAndSubmissionsTabContainer({ showResponseBar, works
                             key={tab.path}
                             onClick={() => handleTabChange(tab.path)}
                             className={cn(
-                                'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap focus:outline-hidden',
+                                'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-app-wash-strong hover:rounded whitespace-nowrap focus:outline-hidden',
                                 isActive
                                     ? 'border-b-2 border-black-900 text-black-900'
                                     : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'

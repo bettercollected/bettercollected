@@ -95,7 +95,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
             <AlertDialog open={openConfirmDialog} onOpenChange={setOpenConfirmDialog}>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-black-200">
+                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-app-wash-strong">
                             <span className="sr-only">{member?.email || invitation?.email ? t(localesCommon.moreActionsFor, { name: member?.email || invitation?.email }) : t(localesCommon.moreActions)}</span>
                             <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                         </Button>

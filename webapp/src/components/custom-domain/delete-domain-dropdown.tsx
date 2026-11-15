@@ -18,7 +18,7 @@ const DeleteDomainDropdown = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-white">
                     <DropdownMenuItem
-                        className="hover:bg-black-200 flex cursor-pointer items-center gap-2 outline-hidden"
+                        className="hover:bg-app-wash-strong flex cursor-pointer items-center gap-2 outline-hidden"
                         onClick={() => {
                             openModal('DELETE_CUSTOM_DOMAIN');
                         }}

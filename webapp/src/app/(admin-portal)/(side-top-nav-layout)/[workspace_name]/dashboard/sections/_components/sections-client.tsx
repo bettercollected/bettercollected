@@ -66,7 +66,7 @@ function Row({ section, workspaceId, canEdit, open, onToggle }: { section: Secti
     };
 
     return (
-        <li className="flex flex-col gap-2 border-t border-black-300 py-3 first:border-t-0">
+        <li className="flex flex-col gap-2 border-t border-app-edge py-3 first:border-t-0">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 {/* the name gets the whole line on a phone, and is never cut */}
                 <button type="button" onClick={onToggle} aria-expanded={open} className="flex min-h-11 w-full min-w-0 items-center gap-2 text-left sm:w-auto sm:flex-1" aria-label={t('SECTIONS_LIB.PAGE.PREVIEW_NAMED', { name: section.name })}>
@@ -88,7 +88,7 @@ function Row({ section, workspaceId, canEdit, open, onToggle }: { section: Secti
                                 setError('');
                                 setEditing((value) => !value);
                             }}
-                            className="flex min-h-11 min-w-11 items-center justify-center rounded-md hover:bg-black-100"
+                            className="flex min-h-11 min-w-11 items-center justify-center rounded-md hover:bg-app-wash"
                             aria-label={t('SECTIONS_LIB.PAGE.RENAME_NAMED', { name: section.name })}
                         >
                             <Pencil className="h-4 w-4" aria-hidden="true" />
@@ -140,7 +140,7 @@ function Row({ section, workspaceId, canEdit, open, onToggle }: { section: Secti
                 </AlertDialogContent>
             </AlertDialog>
             {open && (
-                <div className="rounded-lg bg-black-100 p-4">
+                <div className="rounded-lg bg-app-wash p-4">
                     <SectionPreview workspaceId={workspaceId} sectionId={section.id} />
                 </div>
             )}
@@ -169,7 +169,7 @@ export default function SectionsClient() {
             {isLoading ? (
                 <p className="text-sm text-black-600">{t('SECTIONS_LIB.PAGE.LOADING')}</p>
             ) : !sections?.length ? (
-                <p className="rounded-lg border border-dashed border-black-400 p-6 text-sm text-black-700">{t('SECTIONS_LIB.PAGE.EMPTY')}</p>
+                <p className="rounded-lg border border-dashed border-app-edge-strong p-6 text-sm text-black-700">{t('SECTIONS_LIB.PAGE.EMPTY')}</p>
             ) : (
                 <>
                     <label className="flex max-w-sm flex-col gap-1 text-sm text-black-800">

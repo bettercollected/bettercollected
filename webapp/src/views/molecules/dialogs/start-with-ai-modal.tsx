@@ -148,7 +148,7 @@ export default function StartWithAi() {
                         <label htmlFor="outline-title" className="text-xs text-black-700">
                             {t('START_AI.FORM_TITLE')}
                         </label>
-                        <input id="outline-title" className="w-full rounded-md border border-black-300 px-2 py-1.5 text-sm" value={outline.title} maxLength={200} onChange={(event) => setOutline({ ...outline, title: event.target.value })} />
+                        <input id="outline-title" className="w-full rounded-md border border-app-edge px-2 py-1.5 text-sm" value={outline.title} maxLength={200} onChange={(event) => setOutline({ ...outline, title: event.target.value })} />
                     </div>
                 </div>
                 <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-4 sm:px-10" data-testid="outline-scroll">
@@ -172,7 +172,7 @@ export default function StartWithAi() {
                             </ul>
                         )}
                         {gapPages > 0 && aiEnabled && (
-                            <div className="flex flex-col gap-1 rounded-md bg-black-100 px-3 py-2 text-xs text-black-700">
+                            <div className="flex flex-col gap-1 rounded-md bg-app-wash px-3 py-2 text-xs text-black-700">
                                 <label htmlFor="outline-fill-gaps" className="flex items-center gap-2 font-medium text-black-800">
                                     <input id="outline-fill-gaps" type="checkbox" aria-describedby="outline-fill-gaps-notice" checked={fillGaps} onChange={(event) => setFillGaps(event.target.checked)} />
                                     {t('START_AI.FILL_GAPS')}
@@ -215,7 +215,7 @@ export default function StartWithAi() {
                 <div className="text-black-800 text-normal font-medium">{t('START_AI.CREATE')}</div>
                 <ErrorNotice message={shownError} />
                 {aiSettings && !aiEnabled && <AIOptIn feature={t('START_AI.OPT_IN_FEATURE')} sends={t('START_AI.OPT_IN_SENDS')} onEnabled={() => setError(null)} />}
-                <div className="prompt-input-wrapper rounded-lg bg-black-200 p-[1px]">
+                <div className="prompt-input-wrapper rounded-lg bg-app-wash-strong p-[1px]">
                     <div className="rounded-lg bg-white">
                         <label htmlFor="start-with-ai-prompt" className="sr-only">
                             {t('START_AI.PROMPT_LABEL')}
@@ -253,7 +253,7 @@ export default function StartWithAi() {
                                                 setIsOpen(false);
                                             }}
                                         >
-                                            <div className="cursor-pointer rounded-lg bg-black-200 p-4 text-sm text-black-600 hover:text-black-800">{example}</div>
+                                            <div className="cursor-pointer rounded-lg bg-app-wash-strong p-4 text-sm text-black-600 hover:text-black-800">{example}</div>
                                         </GradiantBorderDiv>
                                     );
                                 })}

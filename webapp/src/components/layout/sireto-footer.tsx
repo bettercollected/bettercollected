@@ -18,7 +18,7 @@ export default function SiretoFooter({ className, language }: { className?: stri
     const { t } = useTranslation('respondent', { lng: language ?? 'en' });
     return (
         <footer className={cn('text-black-600 text-center text-xs leading-5', className)} lang={language}>
-            <a href="https://sireto.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-brand-600">
+            <a href="https://sireto.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-app-primary-deep">
                 {t('SIRETO_FOOTER.PRODUCT_OF')}
             </a>
             <span aria-hidden="true"> · </span>

@@ -16,7 +16,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { useCreateReportViewMutation, useDeleteReportViewMutation, useUpdateReportViewMutation } from '@app/store/workspaces/api';
 import { ReportDefinition, ReportView, ReportViewList, ReportViewScope, reportErrorOf } from '@app/utils/report';
 
-const control = 'border-black-300 text-black-900 focus-visible:ring-brand-500 h-10 w-full rounded border bg-white py-0 pr-9 pl-3 text-sm text-ellipsis focus:outline-hidden focus-visible:ring-2';
+const control = 'border-app-edge text-black-900 focus-visible:ring-app-primary h-10 w-full rounded border bg-white py-0 pr-9 pl-3 text-sm text-ellipsis focus:outline-hidden focus-visible:ring-2';
 
 type Panel = 'save' | 'details' | 'delete' | null;
 
@@ -252,7 +252,7 @@ export default function ReportViews({ workspaceId, formId, list, loading, failed
                     onKeyDown={(event) => {
                         if (event.key === 'Escape') close(panel === 'save' ? saveRef : detailsRef);
                     }}
-                    className="flex max-w-xl flex-col gap-3 rounded border border-black-300 bg-white p-4"
+                    className="flex max-w-xl flex-col gap-3 rounded border border-app-edge bg-white p-4"
                 >
                     <div className="flex flex-col gap-1">
                         <label htmlFor={`${id}-name`} className="p4-new text-black-700">
@@ -297,7 +297,7 @@ export default function ReportViews({ workspaceId, formId, list, loading, failed
                     onKeyDown={(event) => {
                         if (event.key === 'Escape') close(deleteRef);
                     }}
-                    className="flex max-w-xl flex-col gap-3 rounded border border-black-300 bg-white p-4"
+                    className="flex max-w-xl flex-col gap-3 rounded border border-app-edge bg-white p-4"
                 >
                     <p className="m-0 text-sm text-black-900">{t('REPORT.VIEW_DELETE_CONFIRM', { name: current.name })}</p>
                     {current.scope === 'form' && <p className="m-0 text-xs text-black-600">{t('REPORT.VIEW_DELETE_SHARED')}</p>}
