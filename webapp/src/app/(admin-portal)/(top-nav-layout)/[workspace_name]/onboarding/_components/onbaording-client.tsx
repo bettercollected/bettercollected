@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 
 import EmptyState from '@app/components/ui/empty-state';
 import Logo from '@app/components/ui/logo';
-import { localesCommon } from '@app/constants/locales/common';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import OnboardingContainer from '@app/containers/onboarding';
 import { UserStatus } from '@app/models/dtos/user-status';
@@ -41,7 +40,7 @@ export default function OnboardingClient({ workspace, createWorkspace }: onBoard
                 <EmptyState
                     headingLevel={1}
                     className="max-w-[480px]"
-                    title={`${t(localesCommon.hey)} ${user?.firstName || user?.email}`}
+                    title={t(onBoarding.welcomeName, { name: user?.firstName || user?.email })}
                     description={t(onBoarding.welcomeMessage)}
                     action={
                         <Button size="medium" onClick={increaseStep}>

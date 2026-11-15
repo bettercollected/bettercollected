@@ -27,21 +27,31 @@ const DialogContent = React.forwardRef<
         onClickCloseIcon?: () => void;
         /** Accessible title for the dialog; rendered visually hidden. */
         title?: string;
+        /**
+         * Opt in: the id of a visible heading inside the dialog that names it. The dialog is then named by that heading
+         * (announced once) and the hidden `title` is hidden from assistive technology too (it stays in the markup, which
+         * Radix asks for). Without it nothing changes: the hidden title names the dialog.
+         */
+        labelledBy?: string;
     }
->(({ className, children, title = 'Dialog', onClickCloseIcon = () => {}, ...props }, ref) => (
+>(({ className, children, title = 'Dialog', onClickCloseIcon = () => {}, labelledBy, ...props }, ref) => (
     <DialogPortal>
         <DialogOverlay />
         <DialogPrimitive.Content
             ref={ref}
             // Radix requires an accessible title + acknowledged description.
             aria-describedby={undefined}
+            // only when asked: an explicit `undefined` here would replace the title id Radix sets
+            {...(labelledBy ? { 'aria-labelledby': labelledBy } : {})}
             className={cn(
                 'bg-white data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] fixed left-[50%] top-[50%] z-modal grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-black-300 p-6 shadow-large duration-200 sm:rounded',
                 className
             )}
             {...props}
         >
-            <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
+            <DialogPrimitive.Title className="sr-only" {...(labelledBy ? { 'aria-hidden': true } : {})}>
+                {title}
+            </DialogPrimitive.Title>
             {children}
             {
                 <DialogPrimitive.Close

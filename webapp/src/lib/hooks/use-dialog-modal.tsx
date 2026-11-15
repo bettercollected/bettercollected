@@ -14,7 +14,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import AddFormTitleModal from '@app/views/molecules/dialogs/add-form-title-modal';
-import FormPublishedModal from '@app/views/molecules/dialogs/form-publised-modal';
+import FormPublishedModal, { PUBLISHED_TITLE_ID } from '@app/views/molecules/dialogs/form-publised-modal';
 import StartWithAi from '@app/views/molecules/dialogs/start-with-ai-modal';
 import UnsplashImagePicker from '@app/views/molecules/unsplash-image-picker';
 
@@ -136,7 +136,7 @@ export function DialogModalContainer() {
                 closeDialogModal();
             }}
         >
-            <DialogContent onClickCloseIcon={closeDialogModal} title={getTitle(view, t)} className={cn('bg-white! p-0!', getClassName(view))}>
+            <DialogContent onClickCloseIcon={closeDialogModal} title={getTitle(view, t)} labelledBy={view === 'FORM_PUBLISHED' ? PUBLISHED_TITLE_ID : undefined} className={cn('bg-white! p-0!', getClassName(view))}>
                 {GetModalToRender(view, props)}
             </DialogContent>
         </Dialog>

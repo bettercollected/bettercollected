@@ -20,6 +20,9 @@ import getFormShareURL from '@app/utils/form-utils';
  * line a screen reader announces, not only in a toast that disappears.
  * No confetti: the check settles once, and not at all under reduced motion.
  */
+/** The visible heading, which names the dialog (the dialog's `labelledBy`): it is announced once. */
+export const PUBLISHED_TITLE_ID = 'published-dialog-title';
+
 export default function FormPublishedModal(props: any) {
     const { t } = useTranslation('builder');
     const workspace = useAppSelector(selectWorkspace);
@@ -61,7 +64,7 @@ export default function FormPublishedModal(props: any) {
 
             <div className="flex flex-col gap-4 p-6 pt-10 sm:p-8 sm:pt-11">
                 <div className="flex flex-col gap-1.5">
-                    <h2 className="m-0 text-xl leading-snug font-semibold tracking-title-sm text-ink">{t('PUBLISHED_MODAL.TITLE')}</h2>
+                    <h2 id={PUBLISHED_TITLE_ID} className="m-0 text-xl leading-snug font-semibold tracking-title-sm text-ink">{t('PUBLISHED_MODAL.TITLE')}</h2>
                     {/* Honest about what publishing means: the same line the Share modal uses. */}
                     <p className="m-0 text-sm leading-relaxed text-copy">{t('PUBLISHED_MODAL.BODY')}</p>
                 </div>

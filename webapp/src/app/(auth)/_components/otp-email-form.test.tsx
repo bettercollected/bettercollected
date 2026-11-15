@@ -292,6 +292,7 @@ describe('in the creator sign-in card', () => {
         expect(document.body.textContent).not.toContain('Welcome back');
         expect(document.querySelector('label[for="signin-email"]')?.textContent).toBe('Email');
         expect(document.querySelector('input[type="email"]')?.getAttribute('id')).toBe('signin-email');
+        expect(document.querySelector('input[type="email"]')?.getAttribute('autocomplete')).toBe('email');
     });
 
     it('keeps the heading and the plain label everywhere else (the respondent sign-in, the modal)', () => {
@@ -300,5 +301,6 @@ describe('in the creator sign-in card', () => {
         expect(document.body.textContent).toContain('Welcome back');
         expect(document.querySelector('label[for="signin-email"]')).toBeNull();
         expect(document.querySelector('input[type="email"]')?.hasAttribute('id')).toBe(false);
+        expect(document.querySelector('input[type="email"]')?.hasAttribute('autocomplete')).toBe(false);
     });
 });

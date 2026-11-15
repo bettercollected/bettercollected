@@ -162,7 +162,7 @@ export default function OtpEmailForm({ isModal, card, isSignup, setEmail: setPar
                 ) : (
                     <p className="mb-3 mt-[44px] text-base font-semibold text-black-900">{constants.emailInputLabel}</p>
                 )}
-                <Input id={card ? 'signin-email' : undefined} autoFocus type="email" required placeholder={constants.enterYourEmail} value={email} onChange={(e) => setEmail(e.target.value)} className="text-base! lg:text-base!" />
+                <Input id={card ? 'signin-email' : undefined} autoComplete={card ? 'email' : undefined} autoFocus type="email" required placeholder={constants.enterYourEmail} value={email} onChange={(e) => setEmail(e.target.value)} className="text-base! lg:text-base!" />
                 <Button type="submit" variant="primary" isLoading={isLoading || proofBusy} disabled={holdSeconds > 0} aria-disabled={holdSeconds > 0} className={`mt-6 w-full ${isModal ? 'mb-10' : ''}`} size="medium">
                     {constants.sendCodeButton}
                     {holdSeconds > 0 ? ` (${holdSeconds}s)` : ''}

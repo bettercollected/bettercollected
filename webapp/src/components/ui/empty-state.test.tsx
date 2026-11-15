@@ -21,8 +21,8 @@ describe('EmptyState', () => {
     });
 
     it('can be the page heading, for a page whose card is all there is (the first run)', () => {
-        render(<EmptyState headingLevel={1} title="Hey Dora" />);
-        expect(screen.getByRole('heading', { level: 1, name: 'Hey Dora' })).toBeInTheDocument();
+        render(<EmptyState headingLevel={1} title="Welcome, Dora" />);
+        expect(screen.getByRole('heading', { level: 1, name: 'Welcome, Dora' })).toBeInTheDocument();
     });
 
     it('draws the coral spark, and leaves it out where a control sits at the corner of the panel', () => {

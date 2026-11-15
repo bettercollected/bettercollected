@@ -144,7 +144,7 @@ export default function OtpCodeForm({ email, isModal, card, setEmail: setParentE
             )}
             {/* Say where the code went and offer a way back — a mistyped email
                 was a dead end (the only recovery was reloading the page). */}
-            <p className="text-black-700 mb-3 text-sm">
+            <p id={card ? 'signin-code-sent' : undefined} className="text-black-700 mb-3 text-sm">
                 We emailed a 6-digit code to <span className="font-medium">{email}</span>.{' '}
                 <button type="button" className="text-brand-500 hover:text-brand-600 underline underline-offset-2" onClick={() => setParentEmail('')}>
                     Change email
@@ -154,6 +154,7 @@ export default function OtpCodeForm({ email, isModal, card, setEmail: setParentE
                 id={card ? 'signin-code' : undefined}
                 autoFocus
                 inputMode={card ? 'numeric' : undefined}
+                aria-describedby={card ? 'signin-code-sent' : undefined}
                 autoComplete={card ? 'one-time-code' : undefined}
                 placeholder={constants.enterOtpCodePlaceholder}
                 value={otp}
