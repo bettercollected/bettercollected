@@ -4,6 +4,7 @@ import { themeFaces } from '@app/assets/fonts/theme-faces';
 import { FormTheme, THEME_BUTTON_STYLES, THEME_FONTS, THEME_RADII, ThemeFontId, ThemeRadius, isHexColour } from '@app/constants/theme';
 import { contrast } from '@app/utils/color-contrast';
 import { daybreakRule, hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
+import { hasPigmentScene, pigmentRule } from '@app/views/molecules/theme/pigment-art';
 import { outlinedButtonInk } from '@app/utils/theme-contrast';
 
 /**
@@ -190,6 +191,8 @@ export function themeRootProps(theme?: Partial<FormTheme> | null, { typeOnly = f
     // on the page. The highlight, if the form has one, wins; the focus ring
     // and the chosen answer stay in the action colour.
     if (hasDaybreakScene(theme) && !isHexColour(theme.highlight)) style['--form-highlight-rule'] = daybreakRule(theme);
+    // The Pigment scene: the same, in a deep tomato.
+    if (hasPigmentScene(theme) && !isHexColour(theme.highlight)) style['--form-highlight-rule'] = pigmentRule(theme);
 
     const highlight = highlightColours(theme);
     if (highlight) {

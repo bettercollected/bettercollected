@@ -49,8 +49,8 @@ export const THEME_PATTERNS: ReadonlyArray<ThemePattern> = ['dots', 'grid', 'str
 // of the other pages that end the form. `marble`: a marbled endpaper.
 // `daybreak`: a scene drawn on the page itself: a sun in the corner of every
 // page and, on the ending, a sun that rises behind two hills.
-export type ThemeArtwork = 'marble' | 'daybreak';
-export const THEME_ARTWORKS: ReadonlyArray<ThemeArtwork> = ['marble', 'daybreak'];
+export type ThemeArtwork = 'marble' | 'daybreak' | 'pigment';
+export const THEME_ARTWORKS: ReadonlyArray<ThemeArtwork> = ['marble', 'daybreak', 'pigment'];
 /** The artwork that fills a picture half (a page set beside an image); the others are drawn on the page and leave its layout alone. */
 export const PICTURE_ARTWORKS: ReadonlyArray<ThemeArtwork> = ['marble'];
 
@@ -359,6 +359,27 @@ export const ThemeColors: Array<FormTheme> = [
             type: 'color',
             artwork: 'daybreak'
         }
+    },
+    {
+        // Iris on warm cream paper: a sun-yellow band over the questions,
+        // lettered answer keys in five flat pigments (choiceKeys) with the
+        // chosen option solid iris, and five flat shapes that pop around the
+        // check on the ending (background.artwork 'pigment'). Colours and the
+        // scene only: faces, corners and buttons stay the form's own. Ink 16.6:1
+        // on the page and 11.3:1 on the band, white on iris 7.4:1, iris 7.0:1 on
+        // the page, input edge 4.1:1 on the page (4.4:1 on white). Offered
+        // while the server's Pigment switch is on (GATED_PRESETS).
+        title: 'Pigment',
+        primary: '#1A1238',
+        secondary: '#4B35DB',
+        tertiary: '#7C7396',
+        accent: '#FBF7F1',
+        style: 'classic',
+        choiceKeys: 'letters',
+        background: {
+            type: 'color',
+            artwork: 'pigment'
+        }
     }
 ];
 
@@ -367,13 +388,13 @@ export const ThemeColors: Array<FormTheme> = [
 // permissions answer lists the ones that are on (`offeredGatedPresets`). A
 // later preset joins here with its own switch. A form that stores one keeps
 // rendering whatever the switch says; only picking it anew is gated.
-export const GATED_PRESETS: ReadonlyArray<string> = ['Daybreak'];
+export const GATED_PRESETS: ReadonlyArray<string> = ['Daybreak', 'Pigment'];
 
 // Artwork that belongs to a gated preset (backend constants/themes.py
 // GATED_ARTWORKS, a test keeps the two together): offered while the preset is.
 // A new theme that names an unoffered artwork is refused as an unlisted one is,
 // unless the stored theme at the same place already has it.
-export const GATED_ARTWORKS: Readonly<Record<string, string>> = { daybreak: 'Daybreak' };
+export const GATED_ARTWORKS: Readonly<Record<string, string>> = { daybreak: 'Daybreak', pigment: 'Pigment' };
 
 /** The `background.artwork` values a new theme may name, for the server's list of switched-on gated presets. */
 export function offeredArtworks(offeredGated: ReadonlyArray<string> | null | undefined): ThemeArtwork[] {

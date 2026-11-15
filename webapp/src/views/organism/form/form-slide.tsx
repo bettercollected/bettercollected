@@ -66,6 +66,7 @@ import TabularInputResponderField from '@app/views/molecules/responder-form-fiel
 import TextAreaField from '@app/views/molecules/responder-form-fields/text-area-field';
 import YesNoField from '@app/views/molecules/responder-form-fields/yes-no-field';
 import { daybreakCornerStyle, hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
+import { hasPigmentScene, pigmentBandStyle } from '@app/views/molecules/theme/pigment-art';
 import { formButtonStyle } from '@app/views/molecules/theme/theme-root';
 import { contrast, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
@@ -338,6 +339,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         background: headerGround(formSlide?.properties?.theme?.accent || standardForm?.theme?.accent, (formSlide?.properties?.theme || standardForm?.theme)?.background),
                         // The Daybreak corner sun runs on under the header bar (its ground is the page's), so the bar does not cut it.
                         ...(hasDaybreakScene(formSlide?.properties?.theme?.accent ? formSlide.properties.theme : standardForm?.theme) ? daybreakCornerStyle() : {}),
+                        // The Pigment band: the header bar is sun-yellow, the form's ink on it.
+                        ...(hasPigmentScene(formSlide?.properties?.theme?.accent ? formSlide.properties.theme : standardForm?.theme) ? pigmentBandStyle() : {}),
                         ...(leaflet ? { borderColor: leafletColours(theme).rule, background: formSlide?.properties?.theme?.accent || theme?.accent || '#ffffff' } : {})
                     }}
                 >

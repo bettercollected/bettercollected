@@ -12,6 +12,7 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { cn } from '@app/shadcn/util/lib';
 import { contrast } from '@app/utils/color-contrast';
 import { DaybreakSunrise } from '@app/views/molecules/theme/daybreak-art';
+import { PigmentShapes } from '@app/views/molecules/theme/pigment-art';
 
 /**
  * Built-in theme artwork (`background.artwork`): first-party images bundled
@@ -97,6 +98,8 @@ export function ThemeArtworkPanel({ theme, layout, desktop = false }: { theme?: 
 export function ThemeArtworkBand({ theme }: { theme?: Partial<FormTheme> | null }) {
     // The Daybreak ending: the sun rises behind two hills (daybreak-art.tsx).
     if (themeArtwork(theme) === 'daybreak') return <DaybreakSunrise theme={theme} />;
+    // The Pigment ending: an iris disc with the check, five flat shapes pop in around it (pigment-art.tsx).
+    if (themeArtwork(theme) === 'pigment') return <PigmentShapes theme={theme} />;
     if (themeArtwork(theme) !== 'marble') return null;
     return (
         <div className="relative h-20 w-full shrink-0 overflow-hidden sm:h-[120px]" style={{ backgroundImage: `url(${marblePlaceholders.strip})`, backgroundSize: 'cover', backgroundPosition: 'center' }} data-testid="theme-artwork-band" aria-hidden="true">

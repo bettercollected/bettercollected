@@ -554,6 +554,8 @@
     "GALLERY_LOW_CONTRAST": "Slecht leesbaar",
     "PRESET_DAYBREAK_NAME": "Dageraad",
     "PRESET_DAYBREAK_HINT": "Een zachte paarsblauwe pagina met een zonnetje in de hoek, en een zon die boven twee heuvels opkomt als het formulier is verstuurd. Uw lettertypen, hoeken en knoppen blijven zoals ze zijn.",
+    "PRESET_PIGMENT_NAME": "Pigment",
+    "PRESET_PIGMENT_HINT": "Irisblauw op warm crèmepapier, een zonnegele balk boven de vragen, antwoordtoetsen met hun letter in vijf egale kleuren, en vijf egale vormen die rond het vinkje verschijnen als het formulier is verstuurd. Uw lettertypen, hoeken en knoppen blijven zoals ze zijn.",
     "GALLERY_HINT": "Elk kant-en-klaar thema haalt het WCAG AA-contrast. Kies er een om het op het formulier te zien.",
     "CONTRAST_PASSES": "Goed leesbaar: tekst haalt 4,5:1 en bedieningselementen 3:1 (WCAG AA).",
     "CONTRAST_FAILS_one": "Eén kleurcombinatie is slecht leesbaar. Pas die aan voordat u dit thema opslaat of publiceert.",

@@ -2,6 +2,7 @@ import { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { daybreakCornerStyle, hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
+import { hasPigmentScene, pigmentThumbnailStyle } from '@app/views/molecules/theme/pigment-art';
 import { FormTheme, ThemeArtwork, ThemeBackground, ThemePattern, ThemeStyle, isHexColour } from '@app/constants/theme';
 import { leafletSerif } from '@app/assets/fonts/leaflet-serif';
 import { cn } from '@app/shadcn/util/lib';
@@ -50,6 +51,8 @@ export function themeBackgroundStyle(theme?: Partial<FormTheme>, options: { comp
     const ground = plainBackgroundStyle(theme, options);
     // The Daybreak scene's corner sun is an image under everything else; it
     // only joins a ground that draws no image of its own (a colour).
+    // The Pigment band shows in the picker's thumbnail only; on a page the header bar carries it.
+    if (options.compact && hasPigmentScene(theme) && !ground.backgroundImage) return { ...ground, ...pigmentThumbnailStyle() };
     return options.corner !== false && hasDaybreakScene(theme) && !ground.backgroundImage ? { ...ground, ...daybreakCornerStyle(options.compact) } : ground;
 }
 
