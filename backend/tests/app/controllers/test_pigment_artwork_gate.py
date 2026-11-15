@@ -32,6 +32,13 @@ API = "/api/v1"
 PIGMENT = dict(theme_dict["Pigment"])
 PLAIN = {k: PIGMENT[k] for k in ("title", "primary", "secondary", "tertiary", "accent")}
 REFUSED = "background.artwork must be one of: marble."
+KEYS = "choiceKeys is not available yet."
+
+
+def both(path: str) -> str:
+    """The Pigment look sets the artwork and the choice keys, both on the one switch:
+    a whole-form write that brings it while the switch is off names both."""
+    return f"{path}.{REFUSED} {path}.{KEYS}"
 
 
 def _page(theme=None):
@@ -86,7 +93,7 @@ async def test_save_off_a_new_artwork_is_refused(
     response = await _save(client, workspace, workspace_form, test_user_cookies, _body(PIGMENT))
     assert response.status_code == 422, response.text
     assert response.json()["code"] == "theme_not_allowed"
-    assert response.json()["message"] == f"theme.{REFUSED}"
+    assert response.json()["message"] == both("theme")
     stored = await container.form_service().get_form_document_by_id(workspace_form.form_id)
     assert stored.theme is None or (stored.theme.background or None) is None
 
@@ -98,7 +105,7 @@ async def test_save_off_a_new_artwork_on_a_page_is_refused(
         client, workspace, workspace_form, test_user_cookies, _body(PLAIN, page_theme=PIGMENT)
     )
     assert response.status_code == 422, response.text
-    assert response.json()["message"] == f"fields.0.properties.theme.{REFUSED}"
+    assert response.json()["message"] == both("fields.0.properties.theme")
 
 
 async def test_save_off_a_stored_artwork_still_saves(
@@ -136,7 +143,7 @@ async def test_create_off_a_new_artwork_is_refused_and_a_copy_keeps_it(workspace
         await service.create_form(workspace.id, _form(PIGMENT), testUser)
     assert error.value.status_code == 422
     assert error.value.content["code"] == "theme_not_allowed"
-    assert error.value.content["message"] == f"theme.{REFUSED}"
+    assert error.value.content["message"] == both("theme")
     # a copy of a form (or a template) keeps what its source has
     copy = await service.create_form(
         workspace.id, _form(PIGMENT), testUser, drop_unusable_settings=True, keep_theme=True
@@ -203,7 +210,7 @@ async def test_persist_form_off_a_new_artwork_is_refused_and_a_stored_one_kept(w
     with pytest.raises(HTTPException) as error:
         await persist_form(repo, document, _form(PIGMENT, page_theme=PIGMENT), parts=["theme", "fields"])
     assert error.value.content["code"] == "theme_not_allowed"
-    assert error.value.content["message"] == f"fields.0.properties.theme.{REFUSED}"
+    assert error.value.content["message"] == both("fields.0.properties.theme")
 
 
 # --- a workspace's saved themes ---------------------------------------------------------------------------
@@ -217,7 +224,7 @@ async def test_saved_themes_off_a_new_artwork_is_refused_and_a_stored_one_kept(
     response = await client.patch(url, cookies=test_user_cookies, json=[PIGMENT])
     assert response.status_code == 422, response.text
     assert response.json()["code"] == "theme_not_allowed"
-    assert response.json()["message"] == f"customThemes.0.{REFUSED}"
+    assert response.json()["message"] == both("customThemes.0")
     monkeypatch.setattr(settings.app_theme, "ENABLED", True)
     response = await client.patch(url, cookies=test_user_cookies, json=[PIGMENT])
     assert response.status_code == 200, response.text
@@ -231,4 +238,35 @@ async def test_saved_themes_off_a_new_artwork_is_refused_and_a_stored_one_kept(
         url, cookies=test_user_cookies, json=[other, PIGMENT, {**PIGMENT, "title": "Dawn"}]
     )
     assert response.status_code == 422
-    assert response.json()["message"] == f"customThemes.2.{REFUSED}"
+    assert response.json()["message"] == both("customThemes.2")
+
+
+# --- one switch -------------------------------------------------------------------------------------------
+
+
+def test_the_preset_the_artwork_and_the_keys_are_one_switch(monkeypatch):
+    from backend.app.constants.themes import (
+        GATED_ARTWORKS,
+        GATED_PRESETS,
+        GATED_THEME_KEYS,
+        artwork_offered,
+        preset_offered,
+        theme_key_offered,
+    )
+
+    assert GATED_PRESETS["Pigment"] == GATED_THEME_KEYS["choiceKeys"] == "app_theme.ENABLED"
+    assert GATED_ARTWORKS["pigment"] == "Pigment"
+    for switch in (False, True):
+        monkeypatch.setattr(settings.app_theme, "ENABLED", switch)
+        assert preset_offered("Pigment") is artwork_offered("pigment") is theme_key_offered("choiceKeys") is switch
+    # the Pigment preset carries both gated values, so with the switch on one write passes both checks
+    assert PIGMENT["background"]["artwork"] == "pigment" and PIGMENT["choiceKeys"] == "letters"
+
+
+def test_off_the_preset_write_names_the_artwork_and_the_keys_and_on_it_is_clean(monkeypatch):
+    from backend.app.services.form_themes import unoffered_theme_problems
+
+    monkeypatch.setattr(settings.app_theme, "ENABLED", False)
+    assert unoffered_theme_problems(_form(PIGMENT)) == [f"theme.{REFUSED}", f"theme.{KEYS}"]
+    monkeypatch.setattr(settings.app_theme, "ENABLED", True)
+    assert unoffered_theme_problems(_form(PIGMENT)) == []
