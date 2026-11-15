@@ -122,7 +122,7 @@ export function EmailActionsSettings({ workspaceId, formId, configured, headless
                         {list.length === 0 && editing?.kind !== 'add' && <p className="text-sm text-black-700">{t('EMAIL_ACTIONS.LIST.NONE')}</p>}
                         <ul className="flex flex-col gap-3" aria-label={t('EMAIL_ACTIONS.LIST.LABEL')}>
                             {list.map((action) => (
-                                <li key={action.id} className="flex flex-col gap-3 rounded-lg border border-black-300 bg-white p-4" data-testid={`email-action-${action.id}`}>
+                                <li key={action.id} className="flex flex-col gap-3 rounded-lg border border-hairline-strong bg-white p-4" data-testid={`email-action-${action.id}`}>
                                     {editing?.kind === 'edit' && editing.id === action.id && editingAction ? (
                                         <EmailActionEditor
                                             workspaceId={workspaceId}

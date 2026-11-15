@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 
-export default function NewFormButton() {
+export default function NewFormButton({ label }: { /** Replaces "New form", e.g. "Create your first form". */ label?: string } = {}) {
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
     const { t } = useTranslation();
@@ -28,7 +28,7 @@ export default function NewFormButton() {
                 router.push(`${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}/${workspace?.workspaceName}/dashboard/forms/create`);
             }}
         >
-            {t(buttonConstant.newForm)}
+            {label ?? t(buttonConstant.newForm)}
         </Button>
     );
 }

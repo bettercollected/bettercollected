@@ -48,7 +48,7 @@ export default function AIMemorySection() {
     };
 
     return (
-        <div className="border-black-300 flex max-w-[640px] flex-col gap-4 rounded border bg-white p-6">
+        <div className="border-hairline-strong flex max-w-[640px] flex-col gap-4 rounded border bg-white p-6">
             <div className="flex flex-col gap-1">
                 <h2 className="text-black-900 text-sm font-semibold">{t('STAFF.AI_MEMORY.TITLE')}</h2>
                 <p className="text-black-600 text-xs leading-relaxed">

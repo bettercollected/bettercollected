@@ -61,8 +61,10 @@ vi.mock('next/navigation', () => ({
     }
 }));
 vi.mock('next/link', () => ({ default: ({ href, children, ...rest }: any) => <a href={href}>{children}</a> }));
+// the form the page reads from the store; a test swaps it for a published, hidden or closed one
+const formInStore: { form: Record<string, unknown> } = { form: { formId: 'form-1', version: 3, title: 'Staff survey' } };
 vi.mock('@app/store/hooks', () => ({
-    useAppSelector: (selector: (state: unknown) => unknown) => selector({ form: { formId: 'form-1', version: 3, title: 'Staff survey' }, workspace: { id: 'ws-1', workspaceName: 'acme' } })
+    useAppSelector: (selector: (state: unknown) => unknown) => selector({ form: formInStore.form, workspace: { id: 'ws-1', workspaceName: 'acme' } })
 }));
 vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
     useWorkspacePermissions: () => ({ can: (permission: string) => server.permissions.has(permission), reportingEnabled: server.enabled, ready: true })
@@ -96,6 +98,7 @@ const cardsInUrl = (url: string): ReportCardDef[] | undefined => parseCardsParam
 const lastAsked = () => server.asked.filter((call) => !call.skip).at(-1)?.definition as ReportDefinition;
 
 beforeEach(() => {
+    formInStore.form = { formId: 'form-1', version: 3, title: 'Staff survey' };
     server.permissions = new Set([WorkspacePermission.RESPONSE_READ, WorkspacePermission.ANALYTICS_READ]);
     server.enabled = true;
     server.catalogue = catalogue;
@@ -281,6 +284,47 @@ describe('refusals and notices', () => {
         renderPage();
         expect(screen.getByText('No responses match these filters.')).toBeInTheDocument();
         expect(screen.queryByText('No responses yet')).toBeNull();
+    });
+
+    describe('the next step of an empty report', () => {
+        const emptyReport = () => {
+            server.result = (definition) => figures(definition, 0);
+            renderPage();
+        };
+
+        it('offers to share a published, open form', () => {
+            formInStore.form = { ...formInStore.form, isPublished: true, settings: {} };
+            emptyReport();
+            expect(screen.getByRole('button', { name: 'Share the form' })).toBeInTheDocument();
+        });
+
+        it.each([
+            ['a draft', { isPublished: false, settings: {} }],
+            ['a hidden form', { isPublished: true, settings: { hidden: true } }],
+            ['a closed form', { isPublished: true, settings: { formCloseDate: '2020-01-01T00:00:00Z' } }]
+        ])('does not offer to share %s', (_name, change) => {
+            formInStore.form = { ...formInStore.form, ...change };
+            emptyReport();
+            expect(screen.getByText('No responses yet')).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Share the form' })).toBeNull();
+        });
+    });
+
+    describe('a form with no reportable question', () => {
+        it('offers the editor only to a member who may edit forms', () => {
+            server.catalogue = { ...catalogue, fields: [] };
+            server.permissions.add(WorkspacePermission.FORM_EDIT);
+            renderPage();
+            fireEvent.click(screen.getByRole('button', { name: 'Edit the form' }));
+            expect(nav.pushes.at(-1)).toBe('/acme/dashboard/forms/form-1/edit');
+        });
+
+        it('offers nothing to a member who may not', () => {
+            server.catalogue = { ...catalogue, fields: [] };
+            renderPage();
+            expect(screen.getByText('Nothing to report yet')).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Edit the form' })).toBeNull();
+        });
     });
 
     it('a form with no reportable question says so', () => {

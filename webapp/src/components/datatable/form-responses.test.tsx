@@ -257,6 +257,29 @@ describe('responses table: search and honest states', () => {
         expect(screen.queryByText('No responses match')).toBeNull();
     });
 
+    describe('the next step of an empty responses list', () => {
+        const emptyWith = (change: Record<string, unknown>) => {
+            server.items = [];
+            store.dispatch(setForm({ ...store.getState().form, responses: 0, ...change } as any));
+            renderTable();
+            expect(screen.getByText('No responses yet')).toBeInTheDocument();
+        };
+
+        it('links to the share page for a published, open form', () => {
+            emptyWith({ isPublished: true, settings: { provider: 'self' } });
+            expect(screen.getByRole('link', { name: 'Share the form' })).toHaveAttribute('href', expect.stringContaining('/forms/form-1/links'));
+        });
+
+        it.each([
+            ['a draft', { isPublished: false, settings: { provider: 'self' } }],
+            ['a hidden form', { isPublished: true, settings: { provider: 'self', hidden: true } }],
+            ['a closed form', { isPublished: true, settings: { provider: 'self', formCloseDate: '2020-01-01T00:00:00Z' } }]
+        ])('offers no share link for %s', (_name, change) => {
+            emptyWith(change);
+            expect(screen.queryByRole('link', { name: 'Share the form' })).toBeNull();
+        });
+    });
+
     it('shows an error with Retry for a failed or refused request, never "No responses yet"', () => {
         server.error = true;
         renderTable();

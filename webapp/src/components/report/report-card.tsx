@@ -91,7 +91,7 @@ export default function ReportCard({ def, result, catalogue, loading, blocked, f
     );
 
     return (
-        <figure aria-labelledby={`${id}-title`} className={cn('report-viz m-0 flex min-w-0 flex-col gap-3 rounded border border-black-300 bg-white p-4', isTile ? 'md:col-span-2' : wide ? 'md:col-span-6' : 'md:col-span-3')}>
+        <figure aria-labelledby={`${id}-title`} className={cn('report-viz m-0 flex min-w-0 flex-col gap-3 rounded border border-hairline-strong bg-white p-4', isTile ? 'md:col-span-2' : wide ? 'md:col-span-6' : 'md:col-span-3')}>
             <figcaption className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
                 <div className="min-w-0">
                     <span id={`${id}-title`} className="block text-sm leading-snug font-semibold text-black-900 [overflow-wrap:anywhere]">

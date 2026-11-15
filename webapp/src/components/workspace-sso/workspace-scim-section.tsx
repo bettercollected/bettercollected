@@ -70,7 +70,7 @@ function CreateDirectoryForm({ overview, workspaceId, workspaceName, onCreated }
     };
 
     return (
-        <form onSubmit={submit} className="flex flex-col gap-3 rounded border border-black-300 bg-white p-4" noValidate>
+        <form onSubmit={submit} className="flex flex-col gap-3 rounded border border-hairline-strong bg-white p-4" noValidate>
             <label className="flex flex-col gap-1 text-xs font-medium text-black-800">
                 {t(scim.IDENTITY_PROVIDER)}
                 <select className={cn(inputClass, 'sm:max-w-[280px]')} value={type} onChange={(e) => setType(e.target.value)}>
@@ -245,7 +245,7 @@ export default function WorkspaceScimSection() {
                 )
             ) : (
                 <>
-                    <div className="flex flex-col gap-3 rounded border border-black-300 bg-white p-4" data-testid="scim-directory">
+                    <div className="flex flex-col gap-3 rounded border border-hairline-strong bg-white p-4" data-testid="scim-directory">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="flex min-w-0 flex-col gap-1">
                                 <div className="flex flex-wrap items-center gap-2">
@@ -303,7 +303,7 @@ export default function WorkspaceScimSection() {
                             <h3 className="text-xs font-semibold text-black-800">{t(scim.NEEDS_ATTENTION)}</h3>
                             <ul className="flex flex-col gap-1.5" data-testid="scim-issues">
                                 {overview.issues.map((issue) => (
-                                    <li key={`${issue.email}-${issue.reason}`} className={cn('flex flex-col gap-0.5 rounded-md border px-3 py-2 text-xs', issue.state === 'failed' ? 'border-[#F3D1D1] bg-[#FBEFEF]' : 'border-black-300 bg-white')}>
+                                    <li key={`${issue.email}-${issue.reason}`} className={cn('flex flex-col gap-0.5 rounded-md border px-3 py-2 text-xs', issue.state === 'failed' ? 'border-[#F3D1D1] bg-[#FBEFEF]' : 'border-hairline-strong bg-white')}>
                                         <span className="break-all font-medium text-black-900">{issue.email || t(scim.UNKNOWN_USER)}</span>
                                         <span className="text-black-700">{issue.message}</span>
                                     </li>
