@@ -1,7 +1,7 @@
 import UserDetails from '@Components/common/user-details';
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import MemberOptions from '@Components/datatable/member-options';
-import DataTable from 'react-data-table-component';
+import ScrollTable from '@app/components/datatable/scroll-table';
 import { useTranslation } from 'react-i18next';
 
 import RoleSelect from '@app/components/member/role-select';
@@ -168,7 +168,7 @@ export default function MembersTable({ data }: any) {
 
     return (
         <>
-            <DataTable className="mt-2 overflow-auto! p-0" columns={dataTableResponseColumns} data={data || []} customStyles={customDataTableStyles} highlightOnHover={false} pointerOnHover={false} />
+            <ScrollTable label={t(members.collaborators.default)} className="mt-2 p-0" columns={dataTableResponseColumns} data={data || []} customStyles={customDataTableStyles} highlightOnHover={false} pointerOnHover={false} />
         </>
     );
 }
