@@ -271,9 +271,9 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                 return (
                     <FormSettingsCard>
                         <p className="body4 text-black-700! w-full lg:max-w-[564px]">{t(formPage.linksDescription)}</p>
-                        <div className={'flex min-w-0 flex-col items-stretch gap-2'}>
+                        <div className={'flex min-w-0 flex-col items-stretch gap-4'}>
                             <Tooltip label={t('CLICK_TO_COPY')}>
-                                <p className="body4 text-black-700! max-w-full cursor-pointer truncate" onClick={handleOnCopy}>
+                                <p className="body4 text-black-700! w-full max-w-full cursor-pointer truncate text-left" onClick={handleOnCopy}>
                                     {firstPart}/ <span className="text-black-900 font-medium">{lastPart}</span>
                                 </p>
                             </Tooltip>
@@ -309,7 +309,7 @@ export default function FormSettingsTab({ view = 'EXPERIENCE' }: IFormSettingsTa
                                 )}
                             </div>
                         </div>
-                        <div className="flex flex-col gap-6 pt-4">
+                        <div className="flex flex-col gap-4">
                             <FormLinkUpdateView isCustomDomain={false} link={getFormShareURL(form, workspace, true)} isDisable={(!isProPlan && !isAdmin) || !canEditForm} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />
                             {isCustomDomain && <FormLinkUpdateView isDisable={!canEditForm} isCustomDomain={isCustomDomain} link={getFormShareURL(form, workspace)} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />}
                         </div>
