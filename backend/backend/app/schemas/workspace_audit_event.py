@@ -173,6 +173,10 @@ AUDIT_RETENTION_CHANGED = "audit_retention_changed"
 # the automatic spam check turned on or off for the workspace (its default, no
 # ``form_id``) or for one form (``form_id``): ``enabled`` is the value it has now
 CAPTCHA_SETTING_CHANGED = "captcha_setting_changed"
+# the workspace's app theme changed by an owner or admin (``app_theme`` is the
+# theme now, ``previous_app_theme`` the one it replaced: ``daybreak`` /
+# ``pigment``)
+APP_THEME_CHANGED = "app_theme_changed"
 SETTINGS_EVENTS = (
     SSO_CONNECTION_CREATED,
     SSO_CONNECTION_ENABLED,
@@ -192,6 +196,7 @@ SETTINGS_EVENTS = (
     CUSTOM_DOMAIN_REMOVED,
     AUDIT_RETENTION_CHANGED,
     CAPTCHA_SETTING_CHANGED,
+    APP_THEME_CHANGED,
 )
 # a form's integrations (email actions and the case-system registration): the
 # action, service or form, never an address, a URL, a template, a name or a
@@ -386,6 +391,9 @@ class WorkspaceAuditEventDocument(Record):
     # whole months (one of the choices of ``services/audit_log/retention.py``)
     retention_months: Optional[int] = None
     previous_retention_months: Optional[int] = None
+    # APP_THEME_CHANGED: the theme now and the one it replaced (enum values)
+    app_theme: Optional[str] = None
+    previous_app_theme: Optional[str] = None
     # AUTOMATION_EVENTS: the email action or case-system service (ids), and
     # which parts of the configuration changed (``AUTOMATION_PARTS``)
     action_id: Optional[str] = None
