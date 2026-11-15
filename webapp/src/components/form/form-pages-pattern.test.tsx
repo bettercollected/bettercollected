@@ -81,4 +81,23 @@ describe('the form page pattern', () => {
         expect(card).toContainElement(screen.getByRole('button', { name: /copy link/i }));
         expect(screen.getByText('Form Link')).toBeInTheDocument();
     });
+
+    it('left-aligns the link line with the card text, and keeps one spacing scale between the parts of the card', () => {
+        const { container } = render(
+            <ReduxProvider store={store}>
+                <FormLinks />
+            </ReduxProvider>
+        );
+        // the slug line is as wide as the card's text and starts at its left edge (it truncates there, so a phone does not scroll sideways)
+        const line = container.querySelector('p.truncate') as HTMLElement;
+        expect(line).toHaveClass('w-full', 'text-left', 'max-w-full');
+        expect(line.className).not.toMatch(/text-center|justify-center|mx-auto/);
+        // the card and the blocks inside it are 16 px apart, with no extra top padding or margin before "Default Link"
+        const card = container.querySelector('.bg-surface.border-hairline-strong') as HTMLElement;
+        expect(card).toHaveClass('gap-4');
+        for (const child of Array.from(card.children)) {
+            expect(child.className).not.toMatch(/(^|\s)(pt|mt|my|py)-\d/);
+            if (child.className.includes('flex-col') && !child.className.includes('p-')) expect(child.className).toMatch(/gap-4/);
+        }
+    });
 });
