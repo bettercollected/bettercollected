@@ -65,6 +65,7 @@ import RepeatingGroupField from '@app/views/molecules/responder-form-fields/repe
 import TabularInputResponderField from '@app/views/molecules/responder-form-fields/tabular-input-responder-field';
 import TextAreaField from '@app/views/molecules/responder-form-fields/text-area-field';
 import YesNoField from '@app/views/molecules/responder-form-fields/yes-no-field';
+import { daybreakCornerStyle, hasDaybreakScene } from '@app/views/molecules/theme/daybreak-art';
 import { formButtonStyle } from '@app/views/molecules/theme/theme-root';
 import { contrast, leafletColours, styleTokens } from '@app/views/molecules/theme/theme-shared';
 
@@ -335,6 +336,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     className={cn('backdrop-blur-sm absolute top-0 right-0 left-0 z-10 mx-auto w-full', leaflet ? 'flex h-14 items-center border-b' : 'pt-5 pb-3')}
                     style={{
                         background: headerGround(formSlide?.properties?.theme?.accent || standardForm?.theme?.accent, (formSlide?.properties?.theme || standardForm?.theme)?.background),
+                        // The Daybreak corner sun runs on under the header bar (its ground is the page's), so the bar does not cut it.
+                        ...(hasDaybreakScene(formSlide?.properties?.theme?.accent ? formSlide.properties.theme : standardForm?.theme) ? daybreakCornerStyle() : {}),
                         ...(leaflet ? { borderColor: leafletColours(theme).rule, background: formSlide?.properties?.theme?.accent || theme?.accent || '#ffffff' } : {})
                     }}
                 >

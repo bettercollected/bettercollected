@@ -8,7 +8,6 @@ export const localesCommon = {
     email: 'EMAIL',
     enterEmail: 'ENTER_EMAIL',
     emailAddress: 'EMAIL_ADDRESS',
-    hey: 'HEY',
     logoutMessage: 'LOGOUT_MESSAGE',
     confirm: 'CONFIRM',
     of: 'OF',

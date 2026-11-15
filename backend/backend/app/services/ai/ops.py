@@ -124,8 +124,12 @@ from pydantic import (
 from pydantic_core import PydanticCustomError
 
 from backend.app.constants.themes import (
+    PICTURE_ARTWORKS,
     PRESET_WELCOME_LAYOUTS,
     THEME_STYLES,
+    artwork_offered,
+    offered_artworks,
+    offered_presets,
     preset_name,
     themes as THEME_PRESETS,
 )
@@ -2662,6 +2666,26 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
     return f"Duplicated page '{op.page_id}' ({field_count} fields) as '{clone.id}'"
 
 
+def _check_artwork_offered(
+    theme: Optional[Theme], stored: Optional[Theme], path: str
+) -> None:
+    """While the switch of a gated artwork (Daybreak) is off, a theme may
+    name it only as the stored theme at that place already does."""
+    artwork = _artwork_value(theme)
+    if artwork is None or artwork_offered(artwork):
+        return
+    if _artwork_value(stored) == artwork:
+        return
+    raise OpError(
+        f"{path}.background.artwork must be one of: {', '.join(offered_artworks())}."
+    )
+
+
+def _artwork_value(theme: Optional[Theme]) -> Optional[str]:
+    background = theme.background if theme is not None else None
+    return background.artwork if background is not None else None
+
+
 def _check_theme(theme: Optional[Theme], path: str) -> None:
     """Refuse a theme whose type, shape or highlight keys are not on their
     lists (common.models.standard_form.theme_problems)."""
@@ -2672,6 +2696,7 @@ def _check_theme(theme: Optional[Theme], path: str) -> None:
 
 def _apply_update_theme(form: StandardForm, op: UpdateThemeOp) -> str:
     _check_theme(op.theme, "theme")
+    _check_artwork_offered(op.theme, form.theme, "theme")
     theme = op.theme.model_copy(deep=True)
     background = theme.background
     if background is not None and background.imageUrl is not None:
@@ -2693,7 +2718,7 @@ def _apply_set_theme_preset(form: StandardForm, op: SetThemePresetOp) -> str:
     if preset is None:
         raise OpError(
             f"There is no theme preset named '{op.name}'. "
-            f"Pick one of: {', '.join(THEME_PRESETS)}."
+            f"Pick one of: {', '.join(offered_presets())}."
         )
     theme = preset.model_copy(deep=True)
     if op.style is not None:
@@ -2728,8 +2753,11 @@ _IMAGE_LAYOUTS = {
 
 
 def _artwork(theme: Optional[Theme]) -> Optional[str]:
+    """The theme's artwork that fills a picture half (marble), else None: the
+    Daybreak scene is drawn on the page itself and leaves a layout alone."""
     background = theme.background if theme is not None else None
-    return background.artwork if background is not None else None
+    artwork = background.artwork if background is not None else None
+    return artwork if artwork in PICTURE_ARTWORKS else None
 
 
 def _welcome_layout_after_preset(
@@ -3382,8 +3410,14 @@ def _editor_attachment(attachment: Any, keep: "_KeptImages") -> None:
         attachment.href = _editor_image(attachment.href, keep)
 
 
-def _editor_theme(theme: Optional[Theme], keep: "_KeptImages", path: str = "properties.theme") -> None:
+def _editor_theme(
+    theme: Optional[Theme],
+    keep: "_KeptImages",
+    path: str = "properties.theme",
+    stored: Optional[Theme] = None,
+) -> None:
     _check_theme(theme, path)
+    _check_artwork_offered(theme, stored, path)
     if theme is not None and theme.background is not None:
         theme.background.imageUrl = _editor_image(theme.background.imageUrl, keep)
 
@@ -3752,7 +3786,9 @@ def _apply_update_page(form: StandardForm, op: UpdatePageOp) -> str:
     # Checked first: a refused value leaves the page as it was.
     image_url = _editor_image(patch.image_url, keep) if "image_url" in given else None
     theme = patch.theme.model_copy(deep=True) if patch.theme is not None else None
-    _editor_theme(theme, keep, "theme")
+    _editor_theme(
+        theme, keep, "theme", properties.theme if properties is not None else None
+    )
     section_title = None
     if "section_title" in given and patch.section_title is not None:
         section_title = patch.section_title.strip() or None

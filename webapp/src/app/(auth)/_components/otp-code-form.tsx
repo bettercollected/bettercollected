@@ -27,12 +27,14 @@ import MfaCodeForm from '@app/components/mfa/mfa-code-form';
 interface OtpCodeFormProps {
     email: string;
     isModal?: boolean;
+    /** Inside the creator sign-in card: the card supplies the heading ("Check your email"), so the form leads with where the code went. */
+    card?: boolean;
     setEmail: Dispatch<SetStateAction<string>>;
     // told when the sign-in turns out to need a second factor (true) and when the person goes back (false)
     onMfaChange?: (active: boolean) => void;
 }
 
-export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail, onMfaChange }: OtpCodeFormProps) {
+export default function OtpCodeForm({ email, isModal, card, setEmail: setParentEmail, onMfaChange }: OtpCodeFormProps) {
     const { t } = useTranslation();
     const { toast } = useToast();
     const { closeModal } = useFullScreenModal();
@@ -133,17 +135,27 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail, 
 
     return (
         <form onSubmit={handleOtpPost} className="w-full">
-            <p className="text-black-900 mb-1 text-base font-semibold">{constants.enterOtpCode}</p>
+            {card ? (
+                <label htmlFor="signin-code" className="mb-1 block text-base font-semibold text-ink">
+                    {constants.enterOtpCode}
+                </label>
+            ) : (
+                <p className="text-black-900 mb-1 text-base font-semibold">{constants.enterOtpCode}</p>
+            )}
             {/* Say where the code went and offer a way back — a mistyped email
                 was a dead end (the only recovery was reloading the page). */}
-            <p className="text-black-700 mb-3 text-sm">
+            <p id={card ? 'signin-code-sent' : undefined} className="text-black-700 mb-3 text-sm">
                 We emailed a 6-digit code to <span className="font-medium">{email}</span>.{' '}
                 <button type="button" className="text-brand-500 hover:text-brand-600 underline underline-offset-2" onClick={() => setParentEmail('')}>
                     Change email
                 </button>
             </p>
             <Input
+                id={card ? 'signin-code' : undefined}
                 autoFocus
+                inputMode={card ? 'numeric' : undefined}
+                aria-describedby={card ? 'signin-code-sent' : undefined}
+                autoComplete={card ? 'one-time-code' : undefined}
                 placeholder={constants.enterOtpCodePlaceholder}
                 value={otp}
                 onChange={(e) => {
