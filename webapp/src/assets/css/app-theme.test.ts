@@ -391,7 +391,9 @@ const PAIRS: Array<[string, string, number, string]> = [
     ['series-4', 'surface', 3, 'Chart series 4'],
     ['series-5', 'surface', 3, 'Chart series 5'],
     ['series-6', 'surface', 3, 'Chart series 6'],
-    ['series-1', 'sunken', 3, 'Bar on its track']
+    ['series-1', 'sunken', 3, 'Bar on its track'],
+    ['viz-neutral', 'surface', 3, 'The mark of an answer that has no series of its own'],
+    ['viz-neutral', 'sunken', 3, 'That mark on its track']
 ];
 
 describe.each(THEMES)('%s contrast', (theme) => {
@@ -503,6 +505,16 @@ describe('the Pigment series can be told apart without colour, and none reads as
     it('draws every series at least 3:1 on a white card, and series 1 to 5 on a bar track too, so a bar is not only told by colour', () => {
         series('pigment', 6).forEach((colour, index) => expect(contrast(colour, role('pigment', 'surface')), names[index]).toBeGreaterThanOrEqual(3));
         series('pigment', 5).forEach((colour, index) => expect(contrast(colour, role('pigment', 'sunken')), `${names[index]} on the track`).toBeGreaterThanOrEqual(3));
+    });
+
+    it('keeps the neutral of an answer that has no series apart from series 1 to 5, for normal vision and for both kinds of colour blindness', () => {
+        const neutral = role('pigment', 'viz-neutral');
+        series('pigment', 5).forEach((colour, index) => {
+            expect(deltaE(neutral, colour), names[index]).toBeGreaterThanOrEqual(30);
+            for (const matrix of [DEUTERANOPIA, PROTANOPIA]) expect(deltaE(neutral, colour, matrix), `${names[index]} simulated`).toBeGreaterThanOrEqual(20);
+        });
+        // it is never a red either
+        expect(deltaE(neutral, role('pigment', 'bad'))).toBeGreaterThanOrEqual(DANGER_DELTA_E);
     });
 
     it('simulates a known pair correctly (the old red and green of Pigment are confusable, iris and ochre are not)', () => {

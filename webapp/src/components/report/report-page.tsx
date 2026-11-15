@@ -25,6 +25,7 @@ import { useIntlLocale } from '@app/lib/hooks/use-intl-locale';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { Button } from '@app/shadcn/components/ui/button';
+import { asAppTheme } from '@app/lib/app-theme';
 import { useAppSelector } from '@app/store/hooks';
 import { selectForm } from '@app/store/forms/slice';
 import { useExportReportCardMutation, useGetReportFieldsQuery, useGetReportViewsQuery, useQueryReportQuery } from '@app/store/workspaces/api';
@@ -365,6 +366,7 @@ export default function ReportPage() {
                                     blocked={askedWhere.length > 0 && needsNoCondition(card)}
                                     first={index === 0}
                                     last={index === cards.length - 1}
+                                    perAnswer={asAppTheme(workspace?.appTheme) === 'pigment'}
                                     onChange={(next) => change(index, next)}
                                     onRemove={() => remove(index)}
                                     onMove={(delta) => move(index, delta)}

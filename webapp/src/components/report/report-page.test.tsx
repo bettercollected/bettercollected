@@ -63,8 +63,10 @@ vi.mock('next/navigation', () => ({
 vi.mock('next/link', () => ({ default: ({ href, children, ...rest }: any) => <a href={href}>{children}</a> }));
 // the form the page reads from the store; a test swaps it for a published, hidden or closed one
 const formInStore: { form: Record<string, unknown> } = { form: { formId: 'form-1', version: 3, title: 'Staff survey' } };
+// the workspace's app theme, as the store holds it for a member (absent: Daybreak)
+const workspaceTheme: { appTheme?: string } = {};
 vi.mock('@app/store/hooks', () => ({
-    useAppSelector: (selector: (state: unknown) => unknown) => selector({ form: formInStore.form, workspace: { id: 'ws-1', workspaceName: 'acme' } })
+    useAppSelector: (selector: (state: unknown) => unknown) => selector({ form: formInStore.form, workspace: { id: 'ws-1', workspaceName: 'acme', appTheme: workspaceTheme.appTheme } })
 }));
 vi.mock('@app/lib/hooks/use-workspace-permissions', () => ({
     useWorkspacePermissions: () => ({ can: (permission: string) => server.permissions.has(permission), reportingEnabled: server.enabled, ready: true })
@@ -99,6 +101,7 @@ const lastAsked = () => server.asked.filter((call) => !call.skip).at(-1)?.defini
 
 beforeEach(() => {
     formInStore.form = { formId: 'form-1', version: 3, title: 'Staff survey' };
+    workspaceTheme.appTheme = undefined;
     server.permissions = new Set([WorkspacePermission.RESPONSE_READ, WorkspacePermission.ANALYTICS_READ]);
     server.enabled = true;
     server.catalogue = catalogue;
@@ -129,6 +132,31 @@ afterEach(async () => {
 });
 
 const renderPage = () => render(<ReportPage />);
+
+describe('the colours of the answers', () => {
+    const teamBars = () => {
+        const figure = screen.getAllByRole('figure').find((item) => document.getElementById(item.getAttribute('aria-labelledby') as string)?.textContent === 'Which team are you in?') as HTMLElement;
+        return [...figure.querySelectorAll('rect[data-answer-colour]')].map((rect) => rect.getAttribute('data-answer-colour'));
+    };
+
+    it('are one blue for a Daybreak workspace, and one colour for each answer of a choice question in a Pigment workspace', () => {
+        const daybreak = renderPage();
+        expect(teamBars()).toEqual(['var(--series-1)', 'var(--series-1)', 'var(--series-1)', 'var(--series-1)']);
+        daybreak.unmount();
+        workspaceTheme.appTheme = 'pigment';
+        renderPage();
+        expect(teamBars()).toEqual(['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)']);
+    });
+
+    it('stay one blue when the server serves Daybreak (the Pigment switch off) or an unknown theme', () => {
+        for (const appTheme of ['daybreak', 'sepia', undefined]) {
+            workspaceTheme.appTheme = appTheme;
+            const { unmount } = renderPage();
+            expect(teamBars()).toEqual(['var(--series-1)', 'var(--series-1)', 'var(--series-1)', 'var(--series-1)']);
+            unmount();
+        }
+    });
+});
 
 describe('the Overview', () => {
     it('shows a card per reportable question after the response count and the responses over time, and asks for them all at once', () => {

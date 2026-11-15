@@ -304,6 +304,7 @@ html[data-bc-embed] [data-slide] [data-radix-scroll-area-viewport] > div > div {
     --viz-surface: var(--app-surface);
     --viz-track: var(--app-sunken);
     --viz-grid: var(--app-hairline-strong);
+    --viz-neutral: var(--app-viz-neutral);
 }
 
 @media print {

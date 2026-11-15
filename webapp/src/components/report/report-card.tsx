@@ -31,6 +31,8 @@ interface Props {
     blocked?: boolean;
     first: boolean;
     last: boolean;
+    /** Each answer of a choice question keeps its own colour on every card (the Pigment theme); otherwise one blue for a bar and the series in turn for a donut. */
+    perAnswer?: boolean;
     onChange: (card: ReportCardDef) => void;
     onRemove: () => void;
     onMove: (delta: -1 | 1) => void;
@@ -43,7 +45,7 @@ interface Props {
     onDownload?: (card: ReportCardDef) => Promise<string | undefined>;
 }
 
-export default function ReportCard({ def, result, catalogue, loading, blocked, first, last, onChange, onRemove, onMove, onDrill, onDownload }: Props) {
+export default function ReportCard({ def, result, catalogue, loading, blocked, first, last, perAnswer = false, onChange, onRemove, onMove, onDrill, onDownload }: Props) {
     const { t } = useTranslation();
     const locale = useIntlLocale();
     const id = useId().replace(/:/g, '');
@@ -61,7 +63,7 @@ export default function ReportCard({ def, result, catalogue, loading, blocked, f
     const shape = JSON.stringify(def);
     useEffect(() => setDownload({ phase: 'idle' }), [shape]);
     const problem = cardProblem(def, catalogue);
-    const view = buildCardView(def, result, catalogue, t, locale);
+    const view = buildCardView(def, result, catalogue, t, locale, { perAnswer });
     const title = cardTitle(def, catalogue, t);
     const summaryId = `${id}-summary`;
     const label = t('REPORT.A11Y_CHART', { title });
