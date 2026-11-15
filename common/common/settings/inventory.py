@@ -229,6 +229,10 @@ SERVER: Tuple[SettingSpec, ...] = (
           "Offers the Daybreak theme preset (off: the picker, edit operations, AI and MCP "
           "do not know it; forms that wear it are unchanged).",
           tier=T2),
+    _bool("APP_THEME_PIGMENT_ENABLED", "features", (BACKEND,), False,
+          "Offers the Pigment app theme and the Pigment preset (off: choosing them answers 422, "
+          "workspaces show the default; stored choices are kept).",
+          tier=T2),
     _bool("SUBMISSIONS_API_ENABLED", "features", (BACKEND,), False,
           "Lets API keys submit and update responses (off: 404, the scope can't be granted).",
           tier=T2),
@@ -847,10 +851,6 @@ ENV_ONLY_INVENTORY: Tuple[SettingSpec, ...] = (
     _bool("REPORTING_ENABLED", "features", (BACKEND,), False,
           "Reports on a form's answers (counts and averages computed on request): on, or "
           "off (the routes answer 422). Environment only until released.", tier=T5),
-    # Held in the environment while the feature is built up, like FORM_ACCESS_ENABLED.
-    _bool("APP_THEME_PIGMENT_ENABLED", "features", (BACKEND,), False,
-          "The Pigment app theme a workspace can choose: on, or off (choosing it answers 422, "
-          "every workspace shows the default). Environment only until released.", tier=T5),
     _url("AUTH_BASE_URL", "services", (BACKEND,),
          "Address of the auth service. Code default: http://localhost:8001/api/v1.", tier=T5),
     _url("AUTH_SERVER_URL", "services", (GOOGLE,), "Address of the auth service.",

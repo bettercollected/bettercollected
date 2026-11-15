@@ -1,5 +1,5 @@
-"""The switch of the second app theme, ``APP_THEME_PIGMENT_ENABLED`` (default off
-until it is released).
+"""The switch of the second app theme, ``APP_THEME_PIGMENT_ENABLED`` (default off, an
+instance setting an admin can turn on in the admin portal).
 
 Off means all of these: choosing ``pigment`` answers 422 ``app_theme_disabled``
 (``daybreak`` is never refused: it is a change, stored and recorded, when the
