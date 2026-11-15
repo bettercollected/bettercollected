@@ -7,7 +7,9 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { invitationConstant } from '@app/constants/locales/invitations';
 import { UserStatus } from '@app/models/dtos/user-status';
 import { WorkspaceDto, WorkspaceInvitationDto } from '@app/models/dtos/workspace-dto';
+import { PAGE_CARD } from '@app/components/ui/page-surface';
 import { Button } from '@app/shadcn/components/ui/button';
+import { cn } from '@app/shadcn/util/lib';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { useRespondToWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
@@ -65,12 +67,12 @@ const MainValidUser: React.FC<Props> = ({ workspace, user, invitation }: Props) 
     };
 
     return (
-        <div className="absolute w-full px-4 py-10">
+        <div className="min-h-screen w-full">
             <AuthNavbar showHamburgerIcon={false} showPlans={false} />
 
-            <div className="mt-36 flex w-full flex-col items-center rounded">
-                <div className="flex flex-col md:max-w-[620px]">
-                    <div className="flex flex-col items-center justify-center rounded bg-white p-10 md:max-w-[620px]">
+            <div className="mx-auto flex w-full max-w-[620px] flex-col px-4 pb-10 pt-12 sm:pt-20">
+                <div className={cn(PAGE_CARD, 'flex flex-col sm:p-10')}>
+                    <div className="flex flex-col items-center justify-center">
                         <div className="sh3 text-black-700! mb-4 mt-6 text-center text-2xl font-normal!">
                             {t(invitationConstant.title1)}
                             <span className="text-black-900 font-bold">{` ${workspace?.title || 'Untitled'}`}</span>
@@ -95,7 +97,7 @@ const MainValidUser: React.FC<Props> = ({ workspace, user, invitation }: Props) 
                             <div className="body3 text-black-700! mt-5">{t(invitationConstant.expiryLink)}</div>
                         </div>
                     </div>
-                    <div className="ml-10 mt-8">
+                    <div className="mt-8 border-t border-hairline-strong pt-6">
                         <div className="body1 mb-6">{t(invitationConstant.list.title)}</div>
                         <ul className="body2 flex list-disc flex-col space-y-3 pl-5">
                             <li>{t(invitationConstant.list.item1)}</li>
