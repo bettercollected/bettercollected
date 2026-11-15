@@ -2256,6 +2256,20 @@
           "description": "Absent: filled.",
           "title": "Buttonstyle"
         },
+        "choiceKeys": {
+          "anyOf": [
+            {
+              "const": "letters",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "letters: each option of a choice question carries a small square with its letter (A, B, C...) in ink on a flat pigment; the chosen option fills with the action colour and ends in a check. Absent: the options as before.",
+          "title": "Choicekeys"
+        },
         "highlight": {
           "anyOf": [
             {

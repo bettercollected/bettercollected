@@ -92,13 +92,9 @@ describe('both themes set the same variables', () => {
     });
 
     it('keeps respondent-facing components off the semantic roles (the trust strip and the "Powered by" badge)', () => {
-        for (const file of ['views/molecules/trust-layer.tsx', 'components/powered-by.tsx']) {
-            let text = '';
-            try {
-                text = readFileSync(resolve(SRC, file), 'utf8');
-            } catch {
-                continue;
-            }
+        // a missing file fails the test: a guard on a path that does not exist guards nothing
+        for (const file of ['views/molecules/form/trust-layer.tsx', 'components/ui/powered-by.tsx']) {
+            const text = readFileSync(resolve(SRC, file), 'utf8');
             expect(text, file).not.toMatch(/\b(bg|text|border|fill|ring|outline)-(canvas|surface|sunken|hairline|ink|copy|app-|series-|sun|coral)/);
         }
     });
@@ -123,6 +119,8 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
         ['primary', '--color-brand-500'],
         ['primary-deep', '--color-brand-600'],
         ['primary-soft', '--color-brand-200'],
+        ['primary-edge', '--color-brand-300'],
+        ['primary-edge-strong', '--color-brand-400'],
         ['edge', '--color-black-300'],
         ['edge-strong', '--color-black-400'],
         ['wash', '--color-black-100'],
@@ -141,7 +139,7 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
     });
 
     it('are different values in Pigment (iris and warm paper), never a ramp reference', () => {
-        for (const name of ['primary', 'primary-deep', 'primary-soft', 'edge', 'edge-strong', 'wash', 'wash-strong', 'control']) {
+        for (const name of ['primary', 'primary-deep', 'primary-soft', 'primary-edge', 'primary-edge-strong', 'edge', 'edge-strong', 'wash', 'wash-strong', 'control']) {
             expect(rule('pigment', 'scope')[`--app-${name}`], name).toMatch(/^#[0-9A-F]{6}$/i);
             expect(role('pigment', name), name).not.toBe(role('daybreak', name));
         }
@@ -154,6 +152,8 @@ describe('the chrome roles stand for the ramp steps they replace in Daybreak', (
             ['app-primary-deep', 'app-primary-deep', 'color-brand-600'],
             ['app-primary-soft', 'app-primary-soft', 'color-brand-200'],
             ['app-primary-tint', 'app-primary-tint', 'color-brand-100'],
+            ['app-primary-edge', 'app-primary-edge', 'color-brand-300'],
+            ['app-primary-edge-strong', 'app-primary-edge-strong', 'color-brand-400'],
             ['app-edge', 'app-edge', 'color-black-300'],
             ['app-edge-strong', 'app-edge-strong', 'color-black-400'],
             ['app-wash', 'app-wash', 'color-black-100'],
@@ -173,23 +173,51 @@ describe('the shared controls read the chrome roles, and the frozen files do not
     });
 
     it('keeps every respondent-facing file on the frozen ramps, so a form inside the builder keeps its own look', () => {
-        for (const file of ['views/molecules/form/trust-layer.tsx', 'components/ui/powered-by.tsx', 'layouts/top-navbar-layout.tsx', 'app/(auth)/_components/login-view.tsx']) {
-            expect(read(file), file).not.toMatch(/(?<![\w-])(?:bg|text|border|ring|outline)-app-(?:primary|edge|wash|control)/);
-        }
+        // every utility form that can carry a role: plain and side-specific borders, fills, strokes, accents, placeholders
+        const ROLE_UTILITY = /(?<![\w-])(?:bg|text|border|ring|outline|divide|fill|stroke|accent|placeholder|border-[tblrxyse]|divide-[xy])-app-(?:primary|edge|wash|control|action)/;
+        const walk = (dir: string): string[] => (statSync(dir).isDirectory() ? readdirSync(dir).flatMap((entry) => walk(join(dir, entry))) : [dir]);
+        const files = [
+            // single files: they must exist
+            ...['views/molecules/form/trust-layer.tsx', 'components/ui/powered-by.tsx', 'layouts/top-navbar-layout.tsx', 'app/(auth)/_components/login-view.tsx', 'app/error.tsx', 'app/not-found.tsx', 'app/global-error.tsx'].map((file) => resolve(SRC, file)),
+            ...['views/molecules/responder-form-fields', 'views/organism/form', 'views/organism/form-builder/fields', 'components/responder-portal', 'views/molecules/theme', 'app/(user-portal)', 'app/(custom-domain)'].flatMap((dir) => walk(resolve(SRC, dir)))
+        ].filter((path) => /\.tsx?$/.test(path) && !/\.test\./.test(path));
+        expect(files.length).toBeGreaterThan(60);
+        for (const file of files) expect(readFileSync(file, 'utf8'), file.slice(SRC.length + 1)).not.toMatch(ROLE_UTILITY);
+    });
+
+    it('leaves no ramp step of the creator app on a ramp in any of the forms it can be written in', () => {
+        // the files the codemod leaves alone: what draws a respondent's form or page, and the theme gallery
+        const FROZEN = ['views/molecules/responder-form-fields/', 'views/molecules/form/', 'views/organism/form/', 'views/organism/layout/', 'views/organism/form-builder/fields/', 'views/atoms/', 'components/responder-portal/', 'views/molecules/theme/', 'app/(user-portal)/', 'app/(custom-domain)/', 'components/form/form-renderer', 'components/form/individual-form-response', 'components/form/respondent', 'components/form/feedback-status-chip', 'components/drafts/', 'components/ui/powered-by', 'components/captcha/', 'components/response-page/signature-image', 'layouts/top-navbar-layout.tsx', 'app/(auth)/_components/login-view.tsx', 'app/error.tsx', 'app/not-found.tsx', 'app/global-error.tsx', 'utils/theme-contrast'];
+        // the blue steps and the edges, washes and rings of the neutrals; the neutral text steps, dark fills and placeholders stay
+        const ON_A_RAMP = /(?<![\w-])(?:[\w[\]:.&>*()=-]+:)*(?:(?:text|bg|border|ring|outline|placeholder)-brand-\d{2,3}|(?:border|divide)(?:-[tblrxyse])?-black-[1-4]00|ring-black-[1-4]00|bg-black-[1-4]00)(?![\w-])|var\(--color-brand-\d{3}\)/;
         const walk = (dir: string): string[] => readdirSync(dir).flatMap((entry) => (statSync(join(dir, entry)).isDirectory() ? walk(join(dir, entry)) : [join(dir, entry)]));
-        for (const dir of ['views/molecules/responder-form-fields', 'components/responder-portal', 'views/molecules/theme']) {
-            for (const file of walk(resolve(SRC, dir)).filter((path) => /\.tsx?$/.test(path) && !/\.test\./.test(path))) {
-                expect(readFileSync(file, 'utf8'), file).not.toMatch(/(?<![\w-])(?:bg|text|border|ring|outline|divide)-app-(?:primary|edge|wash|control)/);
-            }
+        const left: string[] = [];
+        for (const file of walk(SRC).filter((path) => /\.tsx?$/.test(path) && !/\.test\./.test(path) && !path.includes(`${SRC}/test/`))) {
+            const rel = file.slice(SRC.length + 1);
+            if (FROZEN.some((prefix) => rel.startsWith(prefix))) continue;
+            readFileSync(file, 'utf8')
+                .split('\n')
+                .forEach((line, index) => {
+                    // a role's own fallback (`var(--app-primary,var(--color-brand-500))`) is the way a ramp is named on purpose
+                    const match = line.replace(/var\(--app-[\w-]+,\s*var\(--color-[\w-]+\)\)/g, '').match(ON_A_RAMP);
+                    if (match) left.push(`${rel}:${index + 1}: ${match[0]}`);
+                });
         }
+        expect(left).toEqual([]);
     });
 });
 
 describe('the nav group chips', () => {
     it('are drawn by a pseudo-element that only exists inside a Pigment scope, so Daybreak gets no element and no pixel', () => {
-        const rules = [...css.matchAll(/^([^\n{}]*data-nav-chip[^\n{]*)\{/gm)].map((match) => match[1].trim());
-        expect(rules.length).toBeGreaterThanOrEqual(4);
-        for (const selector of rules) expect(selector).toMatch(/^\[data-app-theme='pigment'\] \[data-nav-chip/);
+        // every rule is a pair: the Pigment scope and the `<html>` mirror (the mobile menu is a sheet portalled to <body>,
+        // outside the scope); nothing else draws a chip, so Daybreak, which has neither, gets none
+        const rules = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]*data-nav-chip[^{}]*)\{/g)].map((match) => match[1].trim());
+        expect(rules.length).toBe(4);
+        for (const selector of rules) {
+            const [scope, mirror] = selector.split(/,\s*/);
+            expect(scope, selector).toMatch(/^\[data-app-theme='pigment'\] \[data-nav-chip/);
+            expect(mirror, selector).toBe(scope.replace("[data-app-theme='pigment'] ", "html:has([data-app-theme='pigment']) "));
+        }
         // the Daybreak scope never sets the chip variable: the chip would be unpainted there even if it matched
         expect(rule('daybreak', 'scope')['--app-nav-chip']).toBeUndefined();
         const drawer = readFileSync(resolve(SRC, 'components/sidebar/dashboard-drawer.tsx'), 'utf8');

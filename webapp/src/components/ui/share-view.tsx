@@ -34,7 +34,7 @@ interface Props {
 const SocialButton = ({ children }: { children: ReactNode }) => (
     <span
         aria-hidden="true"
-        className="border-app-edge text-black-700 hover:border-brand-300 hover:bg-app-primary-tint flex h-10 w-10 items-center justify-center rounded-full border bg-white transition-colors"
+        className="border-app-edge text-black-700 hover:border-app-primary-edge hover:bg-app-primary-tint flex h-10 w-10 items-center justify-center rounded-full border bg-white transition-colors"
     >
         {children}
     </span>

@@ -23,7 +23,7 @@ const YesNoField = ({ field, slide }: { field: StandardFormFieldDto; slide: Stan
                     const row = choiceRowStyle(rowTheme, false);
                     return (
                         <div key={index} className={row.className} style={row.style}>
-                            <ChoiceContent kind="radio" theme={rowTheme} solid={row.solid} keyHint={keys[index]}>
+                            <ChoiceContent kind="radio" theme={rowTheme} solid={row.solid} keyHint={keys[index]} keyIndex={index}>
                                 {choice.value}
                             </ChoiceContent>
                         </div>

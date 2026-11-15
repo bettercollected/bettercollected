@@ -165,7 +165,7 @@ const Navbar = () => {
     };
 
     return (
-        <div id="navbar" className="border-b-black-300 flex h-16 w-full justify-between border-b p-4">
+        <div id="navbar" className="border-b-app-edge flex h-16 w-full justify-between border-b p-4">
             <div className={'flex flex-1 items-center gap-[2px]'}>
                 {/* Workspace identity, not the product logo (de-brand decision —
                     same rule as the top navbar). Still the "back to forms" target. */}

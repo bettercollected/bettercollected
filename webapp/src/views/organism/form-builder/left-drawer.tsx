@@ -614,7 +614,7 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
     const pageCount = entries.length;
 
     return (
-        <aside id="slides-preview" aria-label={t('OUTLINE.LABEL')} className="h-body-content border-r-black-300 flex w-[256px] shrink-0 flex-col overflow-hidden border-r bg-white">
+        <aside id="slides-preview" aria-label={t('OUTLINE.LABEL')} className="h-body-content border-r-app-edge flex w-[256px] shrink-0 flex-col overflow-hidden border-r bg-white">
             <div className="flex w-full items-center justify-between px-4 pb-2 pt-4">
                 <h2 className="text-black-900 text-sm font-semibold">{t('OUTLINE.TITLE')}</h2>
                 <AddSlidePopover />
@@ -634,7 +634,7 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
                 {filtering ? t('OUTLINE.MATCH', { count: matchCount }) : message}
             </div>
 
-            <div className="border-t-black-300 flex-1 overflow-y-auto overflow-x-hidden border-t px-2 py-2">
+            <div className="border-t-app-edge flex-1 overflow-y-auto overflow-x-hidden border-t px-2 py-2">
                 {!filtering && (
                     <StaticRow
                         label={t('OUTLINE.WELCOME')}
@@ -690,7 +690,7 @@ function LeftDrawer({ activeSlideComponent }: { activeSlideComponent: ActiveForm
                 </DndContext>
 
                 {!filtering && (
-                    <div className="border-t-black-300 mt-1 border-t pt-2">
+                    <div className="border-t-app-edge mt-1 border-t pt-2">
                         <div className="flex items-center justify-between px-2 pb-1">
                             <h3 className="text-black-600 text-xs font-medium">{endings.length > 1 ? t('OUTLINE.ENDINGS') : t('OUTLINE.ENDING')}</h3>
                             <button

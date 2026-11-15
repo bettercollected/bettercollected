@@ -29,7 +29,7 @@ const GradiantBorderDiv = styled.div`
         z-index: -1;
         inset: 0;
         position: absolute;
-        background: var(--color-brand-500);
+        background: var(--app-primary,var(--color-brand-500));
         transition: opacity 0.25s linear;
     }
 
@@ -135,7 +135,7 @@ export default function StartWithAi() {
             // Header and footer stay put; only the outline list scrolls, so
             // the dialog fits the screen (its max height: use-dialog-modal).
             <div className="flex min-h-0 flex-1 flex-col" data-testid="start-with-ai-review">
-                <div className="p2-new shrink-0 border-b border-b-black-300 p-4">{t('START_AI.TITLE')}</div>
+                <div className="p2-new shrink-0 border-b border-b-app-edge p-4">{t('START_AI.TITLE')}</div>
                 <div className="flex shrink-0 flex-col gap-3 px-4 pt-4 sm:px-10">
                     <div>
                         <div className="text-black-800 text-normal font-medium">{t('START_AI.REVIEW')}</div>
@@ -154,7 +154,7 @@ export default function StartWithAi() {
                 <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-4 sm:px-10" data-testid="outline-scroll">
                     <OutlineReview outline={outline} onChange={setOutline} onDeleted={setDeletion} onEdited={() => setDeletion(null)} aiFillsGaps={fillGaps && aiEnabled} />
                 </div>
-                <div className="shrink-0 border-t border-t-black-300 px-4 py-4 sm:px-10">
+                <div className="shrink-0 border-t border-t-app-edge px-4 py-4 sm:px-10">
                     {/* outside the spaced column: no gap while it is empty */}
                     <UndoNotice
                         deletion={deletion}
@@ -210,7 +210,7 @@ export default function StartWithAi() {
 
     return (
         <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto">
-            <div className="p2-new border-b border-b-black-300 p-4">{t('START_AI.TITLE')}</div>
+            <div className="p2-new border-b border-b-app-edge p-4">{t('START_AI.TITLE')}</div>
             <div className="flex flex-col gap-4 px-4 py-6 sm:px-10">
                 <div className="text-black-800 text-normal font-medium">{t('START_AI.CREATE')}</div>
                 <ErrorNotice message={shownError} />

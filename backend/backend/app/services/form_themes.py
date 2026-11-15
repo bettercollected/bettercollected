@@ -17,7 +17,13 @@ from typing import Any, Dict, FrozenSet, Iterable, Iterator, List, Optional, Tup
 
 from common.models.standard_form import theme_problems
 
-from backend.app.constants.themes import GATED_ARTWORKS, artwork_offered, offered_artworks
+from backend.app.constants.themes import (
+    GATED_ARTWORKS,
+    GATED_THEME_KEYS,
+    artwork_offered,
+    offered_artworks,
+    theme_key_offered,
+)
 from backend.app.exceptions import HTTPException
 from backend.app.services.publish_checks import (
     THEME_CONTRAST,
@@ -65,67 +71,80 @@ def _artwork(theme: Any) -> Optional[str]:
     return artwork if isinstance(artwork, str) else None
 
 
-def _unoffered(artwork: Optional[str]) -> bool:
-    return artwork is not None and artwork in GATED_ARTWORKS and not artwork_offered(artwork)
+def _gated(theme: Any) -> Dict[str, Tuple[Any, str]]:
+    """What the theme sets that the server does not offer now, by name: a gated
+    artwork (``GATED_ARTWORKS``, off) under ``background.artwork``, and each gated
+    key (``GATED_THEME_KEYS``, off) it sets, with the problem each earns."""
+    found: Dict[str, Tuple[Any, str]] = {}
+    artwork = _artwork(theme)
+    if artwork is not None and artwork in GATED_ARTWORKS and not artwork_offered(artwork):
+        found["background.artwork"] = (
+            artwork,
+            f"background.artwork must be one of: {', '.join(offered_artworks())}.",
+        )
+    for key in GATED_THEME_KEYS:
+        value = _get(theme, key)
+        if value is not None and not theme_key_offered(key):
+            found[key] = (value, f"{key} is not available yet.")
+    return found
 
 
-def _artwork_message(path: str) -> str:
-    # word for word what an unlisted artwork earns (common theme_problems)
-    return f"{path}.background.artwork must be one of: {', '.join(offered_artworks())}."
+def _any_gate_closed() -> bool:
+    return any(not artwork_offered(a) for a in GATED_ARTWORKS) or any(
+        not theme_key_offered(k) for k in GATED_THEME_KEYS
+    )
 
 
-def unoffered_artwork_problems(form: Any, stored: Any = None) -> List[str]:
-    """While the switch of a gated artwork (``GATED_ARTWORKS``) is off, one
-    problem for each theme of the form, and of its pages and questions, that
-    names it, unless the stored form has the same artwork at the same path:
-    a form that already wears it stays saveable. ``stored`` None: nothing is
-    stored (a new form)."""
-    if not any(_unoffered(a) for a in GATED_ARTWORKS):
+def unoffered_theme_problems(form: Any, stored: Any = None) -> List[str]:
+    """While the switch of a gated artwork (``GATED_ARTWORKS``) or of a gated
+    theme key (``GATED_THEME_KEYS``) is off, one problem for each such value in
+    a theme of the form, and of its pages and questions, unless the stored form
+    has the same value at the same path: a form that already wears it stays
+    saveable. ``stored`` None: nothing is stored (a new form)."""
+    if not _any_gate_closed():
         return []
     problems: List[str] = []
-    kept: Optional[Dict[str, Optional[str]]] = None
+    kept: Optional[Dict[str, Dict[str, Tuple[Any, str]]]] = None
     for path, theme in _themes(form):
-        artwork = _artwork(theme)
-        if not _unoffered(artwork):
-            continue
-        if stored is not None:
-            if kept is None:
-                kept = {p: _artwork(t) for p, t in _themes(stored)}
-            if kept.get(path) == artwork:
-                continue
-        problems.append(_artwork_message(path))
+        for name, (value, message) in _gated(theme).items():
+            if stored is not None:
+                if kept is None:
+                    kept = {p: _gated(t) for p, t in _themes(stored)}
+                if kept.get(path, {}).get(name, (None,))[0] == value:
+                    continue
+            problems.append(f"{path}.{message}")
     return problems
 
 
-def ensure_artwork_offered(form: Any, stored: Any = None) -> None:
-    """422 ``theme_not_allowed`` for a theme that brings a gated artwork the
-    server does not offer (see ``unoffered_artwork_problems``)."""
-    refuse_theme_problems(unoffered_artwork_problems(form, stored))
+def ensure_theme_offered(form: Any, stored: Any = None) -> None:
+    """422 ``theme_not_allowed`` for a theme that brings a gated artwork or key
+    the server does not offer (see ``unoffered_theme_problems``)."""
+    refuse_theme_problems(unoffered_theme_problems(form, stored))
 
 
-async def ensure_artwork_offered_for_save(form: Any, load_stored: Any) -> None:
+async def ensure_theme_offered_for_save(form: Any, load_stored: Any) -> None:
     """The same for a save of an existing form: the stored draft (``load_stored``,
-    an async callable) is read only when a theme names an artwork that is off."""
-    problems = unoffered_artwork_problems(form)
+    an async callable) is read only when a theme sets something that is off."""
+    problems = unoffered_theme_problems(form)
     if problems:
-        problems = unoffered_artwork_problems(form, await load_stored())
+        problems = unoffered_theme_problems(form, await load_stored())
     refuse_theme_problems(problems)
 
 
-def ensure_saved_artwork_offered(themes: List[Any], stored: Optional[Iterable[Any]] = None) -> None:
-    """The same for a workspace's saved themes (``customThemes.<i>``): one a
-    stored theme of the same title already has is kept."""
-    if not any(_unoffered(a) for a in GATED_ARTWORKS):
+def ensure_saved_theme_offered(themes: List[Any], stored: Optional[Iterable[Any]] = None) -> None:
+    """The same for a workspace's saved themes (``customThemes.<i>``): a value
+    a stored theme of the same title already has is kept."""
+    if not _any_gate_closed():
         return
     kept = {
-        str(_get(theme, "title")).casefold(): _artwork(theme) for theme in (stored or [])
+        str(_get(theme, "title")).casefold(): _gated(theme) for theme in (stored or [])
     }
-    problems = [
-        _artwork_message(f"customThemes.{i}")
-        for i, theme in enumerate(themes or [])
-        if _unoffered(_artwork(theme))
-        and kept.get(str(_get(theme, "title")).casefold()) != _artwork(theme)
-    ]
+    problems: List[str] = []
+    for i, theme in enumerate(themes or []):
+        before = kept.get(str(_get(theme, "title")).casefold(), {})
+        for name, (value, message) in _gated(theme).items():
+            if before.get(name, (None,))[0] != value:
+                problems.append(f"customThemes.{i}.{message}")
     refuse_theme_problems(problems)
 
 

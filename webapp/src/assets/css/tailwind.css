@@ -707,6 +707,8 @@
     --color-app-primary-deep: var(--app-primary-deep, var(--color-brand-600));
     --color-app-primary-soft: var(--app-primary-soft, var(--color-brand-200));
     --color-app-primary-tint: var(--app-primary-tint, var(--color-brand-100));
+    --color-app-primary-edge: var(--app-primary-edge, var(--color-brand-300));
+    --color-app-primary-edge-strong: var(--app-primary-edge-strong, var(--color-brand-400));
     --color-app-edge: var(--app-edge, var(--color-black-300));
     --color-app-edge-strong: var(--app-edge-strong, var(--color-black-400));
     --color-app-wash: var(--app-wash, var(--color-black-100));
@@ -790,6 +792,8 @@
     --app-primary-deep: var(--color-brand-600); /* text links and their hover */
     --app-primary-soft: var(--color-brand-200); /* soft fills and borders */
     --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
+    --app-primary-edge: var(--color-brand-300); /* hover edge of a card (the old brand-300) */
+    --app-primary-edge-strong: var(--color-brand-400); /* hover edge of a workspace or theme card (the old brand-400) */
     --app-edge: var(--color-black-300); /* card, table and row edges, quiet fills */
     --app-edge-strong: var(--color-black-400); /* heavier edges */
     --app-wash: var(--color-black-100); /* hover and quiet fills */
@@ -868,6 +872,8 @@ html:has([data-app-theme='daybreak']) {
     --app-primary-deep: var(--color-brand-600); /* text links and their hover */
     --app-primary-soft: var(--color-brand-200); /* soft fills and borders */
     --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
+    --app-primary-edge: var(--color-brand-300); /* hover edge of a card (the old brand-300) */
+    --app-primary-edge-strong: var(--color-brand-400); /* hover edge of a workspace or theme card (the old brand-400) */
     --app-edge: var(--color-black-300); /* card, table and row edges, quiet fills */
     --app-edge-strong: var(--color-black-400); /* heavier edges */
     --app-wash: var(--color-black-100); /* hover and quiet fills */
@@ -949,6 +955,8 @@ html:has([data-app-theme='daybreak']) {
     --app-primary-deep: #3E29C4; /* text links and their hover */
     --app-primary-soft: #C8BFF7; /* soft fills and borders */
     --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
+    --app-primary-edge: #B0A4F0; /* iris, light: hover edge of a card */
+    --app-primary-edge-strong: #8575E8; /* iris, mid: hover edge of a workspace or theme card */
     --app-edge: #E9E1D4; /* card, table and row edges, quiet fills */
     --app-edge-strong: #CFC4B1; /* heavier edges */
     --app-wash: #F7F1E7; /* hover and quiet fills */
@@ -1032,6 +1040,8 @@ html:has([data-app-theme='pigment']) {
     --app-primary-deep: #3E29C4; /* text links and their hover */
     --app-primary-soft: #C8BFF7; /* soft fills and borders */
     --app-primary-tint: var(--app-brand-tint); /* soft blue fills (utility bg-app-primary-tint) */
+    --app-primary-edge: #B0A4F0; /* iris, light: hover edge of a card */
+    --app-primary-edge-strong: #8575E8; /* iris, mid: hover edge of a workspace or theme card */
     --app-edge: #E9E1D4; /* card, table and row edges, quiet fills */
     --app-edge-strong: #CFC4B1; /* heavier edges */
     --app-wash: #F7F1E7; /* hover and quiet fills */
@@ -1094,9 +1104,11 @@ html:has([data-app-theme='pigment']) {
 
 /*
  * Native controls (a plain radio button or checkbox, a range) take the theme's iris in a Pigment scope. Daybreak keeps
- * the browser's own accent, as it always had, so its pixels are unchanged.
+ * the browser's own accent, as it always had, so its pixels are unchanged. The rule names the controls and not the scope
+ * root: `accent-color` is inherited as a computed value, so a value on the root could not be undone below it, while
+ * `--app-primary` is reset on a form root, so a control inside a form falls back to the browser's own accent.
  */
-[data-app-theme='pigment'] {
+[data-app-theme='pigment'] :where(input[type='checkbox'], input[type='radio'], input[type='range']) {
     accent-color: var(--app-primary);
 }
 
@@ -1104,9 +1116,11 @@ html:has([data-app-theme='pigment']) {
  * Nav group chips (Pigment only): a small pigment square before each group label of the dashboard menu (Collection,
  * Your site, Workspace: tomato, sky, mint). Decorative, so it is a pseudo-element, which has no accessibility
  * name and adds no element: Daybreak's markup and pixels are unchanged because the rule only matches inside a Pigment
- * scope. The pigment is a fill that carries no text.
+ * scope. The pigment is a fill that carries no text. The mobile menu is a sheet that is portalled to <body>, outside the
+ * scope, so each rule has a twin under the `html:has(...)` mirror, which is there whenever a page has a Pigment scope.
  */
-[data-app-theme='pigment'] [data-nav-chip]::before {
+[data-app-theme='pigment'] [data-nav-chip]::before,
+html:has([data-app-theme='pigment']) [data-nav-chip]::before {
     content: '';
     display: inline-block;
     width: 8px;
@@ -1116,15 +1130,18 @@ html:has([data-app-theme='pigment']) {
     background: var(--app-nav-chip);
 }
 
-[data-app-theme='pigment'] [data-nav-chip='0'] {
+[data-app-theme='pigment'] [data-nav-chip='0'],
+html:has([data-app-theme='pigment']) [data-nav-chip='0'] {
     --app-nav-chip: var(--app-pig-tomato);
 }
 
-[data-app-theme='pigment'] [data-nav-chip='1'] {
+[data-app-theme='pigment'] [data-nav-chip='1'],
+html:has([data-app-theme='pigment']) [data-nav-chip='1'] {
     --app-nav-chip: var(--app-pig-sky);
 }
 
-[data-app-theme='pigment'] [data-nav-chip='2'] {
+[data-app-theme='pigment'] [data-nav-chip='2'],
+html:has([data-app-theme='pigment']) [data-nav-chip='2'] {
     --app-nav-chip: var(--app-pig-mint);
 }
 

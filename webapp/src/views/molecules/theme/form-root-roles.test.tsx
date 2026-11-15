@@ -187,3 +187,25 @@ describe('the list of roles a form root resets', () => {
         for (const theme of ['daybreak', 'pigment']) for (const role of APP_ROLES_RESET_ON_FORMS) expect(scopeRule(theme), `${theme} ${role}`).toHaveProperty([role]);
     });
 });
+
+describe('native controls in a Pigment scope', () => {
+    it('take the iris on the control itself, not on the scope root, so a form root can undo it', () => {
+        // the rule names the controls; the scope's own block never carries `accent-color`
+        expect(CSS_FILE).toMatch(/\[data-app-theme='pigment'\] :where\(input\[type='checkbox'\], input\[type='radio'\], input\[type='range'\]\) \{\s*accent-color: var\(--app-primary\);/);
+        expect(CSS_FILE).not.toMatch(/^\[data-app-theme='pigment'\] \{[^}]*accent-color/m);
+    });
+
+    it('draw a checkbox inside a form root with the browser accent, and one in the app with iris', () => {
+        wrap(
+            <AppThemeScope workspaceId="ws-1" initial="pigment">
+                <input type="checkbox" aria-label="App checkbox" />
+                <LayoutWrapper theme={undefined} disabled showDesktopLayout>
+                    <input type="checkbox" aria-label="Form checkbox" />
+                </LayoutWrapper>
+            </AppThemeScope>
+        );
+        // the control's accent-color is `var(--app-primary)`: iris where the variable is set, invalid (so the browser's own accent) where the form root reset it
+        expect(resolveValue('var(--app-primary)', screen.getByLabelText('App checkbox')).toUpperCase()).toBe(IRIS);
+        expect(resolveValue('var(--app-primary)', screen.getByLabelText('Form checkbox'))).toBe('');
+    });
+});

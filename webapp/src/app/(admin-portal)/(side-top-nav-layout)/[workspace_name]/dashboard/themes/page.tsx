@@ -138,7 +138,7 @@ export default function ThemesPage() {
                                         {t('THEME.GALLERY_LOW_CONTRAST')}
                                     </span>
                                 )}
-                                <div className="border-t-black-300 flex items-center justify-between border-t px-3 py-2">
+                                <div className="border-t-app-edge flex items-center justify-between border-t px-3 py-2">
                                     <span className="text-black-800 truncate text-xs font-medium">{theme.title}</span>
                                     <span className="flex shrink-0 items-center gap-1">
                                         <button
@@ -166,7 +166,7 @@ export default function ThemesPage() {
                                 setNameError('');
                                 edit({ index: 'new', draft: { title: '', ...NEW_THEME_SEED } });
                             }}
-                            className="border-app-edge-strong text-black-600 hover:border-brand-400 hover:text-app-primary-deep flex min-h-[120px] flex-col items-center justify-center gap-2 rounded border border-dashed bg-white text-sm font-medium transition-colors"
+                            className="border-app-edge-strong text-black-600 hover:border-app-primary-edge-strong hover:text-app-primary-deep flex min-h-[120px] flex-col items-center justify-center gap-2 rounded border border-dashed bg-white text-sm font-medium transition-colors"
                         >
                             <Plus className="h-5 w-5" />
                             {tc('STAFF.THEMES.NEW')}
@@ -261,7 +261,7 @@ export default function ThemesPage() {
                     {offeredPresets(offeredGatedPresets).map((theme) => (
                         <div key={theme.title} className="border-app-edge flex flex-col overflow-hidden rounded border bg-white">
                             <ThemePreview color={theme} />
-                            <div className="border-t-black-300 border-t px-3 py-2">
+                            <div className="border-t-app-edge border-t px-3 py-2">
                                 <span className="text-black-800 text-xs font-medium">{theme.title}</span>
                             </div>
                         </div>

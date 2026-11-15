@@ -6,7 +6,7 @@
  * whole-form save (ids unique in the form, size limits, image addresses,
  * answer patterns, repeating group rules).
  */
-import { themeProblems, unofferedArtworkProblem } from '@app/constants/theme';
+import { themeProblems, unofferedArtworkProblem, unofferedThemeKeyProblem } from '@app/constants/theme';
 import { FieldTypes } from '@app/models/dtos/form';
 import { isCountryCode } from '@app/utils/countries';
 import { isCurrencyCode } from '@app/utils/currency';
@@ -207,8 +207,8 @@ function editorTheme(theme: any, keep: Set<string>, options: ApplyOptions, path 
     // type, shape and highlight on their lists (backend _check_theme)
     const problems = themeProblems(theme, path);
     if (problems.length) throw new OpError(problems.join(' '));
-    // a gated artwork (Daybreak) only while its switch is on, or as the stored theme here has it (backend _check_artwork_offered)
-    const unoffered = unofferedArtworkProblem(theme, stored, path, options.offeredGatedPresets);
+    // a gated artwork (Daybreak, Pigment) or key (the choice keys) only while its switch is on, or as the stored theme here has it (backend _check_theme_offered)
+    const unoffered = unofferedArtworkProblem(theme, stored, path, options.offeredGatedPresets) ?? unofferedThemeKeyProblem(theme, stored, path, options.offeredThemeKeys);
     if (unoffered) throw new OpError(unoffered);
     if (theme?.background) setKey(theme.background, 'imageUrl', editorImage(theme.background.imageUrl, keep, options));
 }

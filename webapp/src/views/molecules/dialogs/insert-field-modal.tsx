@@ -199,7 +199,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown,
             </div>
             {/* The two ways to add, as separate actions on the highlighted type. */}
             <div className="flex items-center gap-2 border-t border-app-edge bg-app-wash p-3">
-                <button type="button" disabled={!active} onClick={() => pick(active, 'page')} className="flex-1 rounded bg-app-primary px-3 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-40">
+                <button type="button" disabled={!active} onClick={() => pick(active, 'page')} className="flex-1 rounded bg-app-primary px-3 py-2 text-sm font-medium text-white hover:bg-app-primary-deep disabled:opacity-40">
                     {hasPage ? (target ? t('INSERT_UI.ADD_HERE') : t('INSERT_UI.ADD_TO_PAGE')) : t('INSERT_UI.ADD_NEW_PAGE')}
                     <kbd aria-hidden="true" className="ml-2 font-sans text-xs opacity-80">
                         {t('INSERT_UI.ENTER')}

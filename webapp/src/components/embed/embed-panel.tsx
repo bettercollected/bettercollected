@@ -65,7 +65,7 @@ export default function EmbedPanel({ url, formTitle }: { url: string; formTitle?
                 hint={t('STAFF.EMBED.IFRAME_HINT')}
             />
 
-            <div className="flex flex-col gap-2 border-t border-t-black-300 pt-4">
+            <div className="flex flex-col gap-2 border-t border-t-app-edge pt-4">
                 <span className="text-sm font-semibold text-black-900">{t('STAFF.EMBED.SITES_TITLE')}</span>
                 {settings.isLoading ? (
                     <p className="text-sm text-black-600" role="status">

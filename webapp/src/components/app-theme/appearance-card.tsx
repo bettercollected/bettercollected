@@ -141,7 +141,7 @@ function Appearance() {
                         busy={saving}
                         aria-disabled={unchanged || saving ? true : undefined}
                         onClick={onSave}
-                        className="aria-disabled:bg-app-edge aria-disabled:text-black-600 aria-disabled:hover:bg-app-edge aria-disabled:[--key-edge:var(--color-black-400)] aria-disabled:cursor-not-allowed"
+                        className="aria-disabled:bg-app-edge aria-disabled:text-black-600 aria-disabled:hover:bg-app-edge aria-disabled:[--key-edge:var(--app-edge-strong,var(--color-black-400))] aria-disabled:cursor-not-allowed"
                     >
                         {t('STAFF.APP_THEME.SAVE')}
                     </Button>

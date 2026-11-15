@@ -20,7 +20,8 @@ import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permission
 import { usePageIds } from '@app/store/jotai/entity-hooks';
 import { initialFieldsState } from '@app/store/jotai/field-selectors';
 import { initialFormState, useFormState } from '@app/store/jotai/form';
-import { resetFromServerAtom, setLayoutContainersSwitch, setOfferedGatedPresets } from '@app/store/jotai/form-document';
+import { offeredThemeKeys } from '@app/constants/theme';
+import { resetFromServerAtom, setLayoutContainersSwitch, setOfferedGatedPresets, setOfferedThemeKeys } from '@app/store/jotai/form-document';
 import { useFormLanguageSync } from '@app/store/jotai/form-language';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { withEndingIds } from '@app/utils/endings';
@@ -47,7 +48,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     const { formState } = useFormState();
     const resetFromServer = useSetAtom(resetFromServerAtom);
     // The server's say on layout containers reaches the ops engine: while it is off, an edit that would add or change one is refused here too.
-    const { layoutContainersEnabled, offeredGatedPresets, answered: permissionsAnswered } = useWorkspacePermissions();
+    const { layoutContainersEnabled, offeredGatedPresets, appThemeEnabled, answered: permissionsAnswered } = useWorkspacePermissions();
     useEffect(() => {
         setLayoutContainersSwitch(permissionsAnswered ? layoutContainersEnabled : undefined);
         return () => setLayoutContainersSwitch(undefined);
@@ -57,6 +58,11 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
         setOfferedGatedPresets(permissionsAnswered ? offeredGatedPresets : undefined);
         return () => setOfferedGatedPresets(undefined);
     }, [permissionsAnswered, offeredGatedPresets]);
+    // ...and its gated theme keys (the choice keys follow the Pigment switch).
+    useEffect(() => {
+        setOfferedThemeKeys(permissionsAnswered ? offeredThemeKeys(appThemeEnabled) : undefined);
+        return () => setOfferedThemeKeys(undefined);
+    }, [permissionsAnswered, appThemeEnabled]);
     const { setHydratedFormId } = useBuilderHydration();
     // The respondent views and the plain-language tips read the form's language from Redux.
     useFormLanguageSync();
@@ -272,7 +278,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                         </button>
                     </div>
                 </div>
-                <div id="slide-element-properties" className="border-l-black-300 h-full w-[300px] self-stretch overflow-auto bg-white">
+                <div id="slide-element-properties" className="border-l-app-edge h-full w-[300px] self-stretch overflow-auto bg-white">
                     <PropertiesDrawer />
                 </div>
                 <FloatingPopOverButton content={<HelpMenuComponent />}>
