@@ -90,6 +90,8 @@ describe('the published dialog', () => {
         expect(status.parentElement).toBe(buttons.parentElement);
         expect(status.className).toContain('min-h-5');
         expect(status.className).not.toMatch(/sr-only|hidden/);
+        // the status line sits inside the dialog's own padding: the bottom matches the sides (24 px, 32 px from sm)
+        expect(status.parentElement!.className).toMatch(/\bp-6\b.*\bpb-6\b.*\bsm:p-8\b.*\bsm:pb-8\b/);
         const before = Array.from(buttons.parentElement!.children).indexOf(buttons);
         fireEvent.click(screen.getByRole('button', { name: /Copy link/ }));
         await waitFor(() => expect(status).toHaveTextContent('Link copied to clipboard'));
