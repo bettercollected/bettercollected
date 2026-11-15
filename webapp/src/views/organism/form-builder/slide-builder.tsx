@@ -85,6 +85,7 @@ function InsertSlot({ slide, index, edge }: { slide: StandardFormFieldDto; index
                 id={id}
                 aria-label={edge === 'after' ? t('CANVAS.ADD_END') : t('CANVAS.ADD_BEFORE', { n: index + 1 })}
                 title={t('CANVAS.ADD_HERE')}
+                data-chrome-focus=""
                 className="relative flex h-6 w-6 items-center justify-center rounded-full border border-app-chrome bg-white text-app-chrome opacity-0 transition-opacity group-hover/slot:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-chrome"
                 onClick={(event) => {
                     event.stopPropagation();
@@ -263,6 +264,7 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                 // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
                 tabIndex={editable ? 0 : -1}
                 data-canvas-field={editable ? field.id : undefined}
+                data-chrome-focus=""
                 className={cn('w-full cursor-pointer rounded-lg p-1 outline-hidden focus-visible:ring-2 focus-visible:ring-app-chrome focus-visible:ring-offset-2', active && 'ring-2 ring-app-chrome', mark && mark.ring)}
                 onFocus={select}
                 onClick={select}
@@ -298,6 +300,7 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                                 aria-keyshortcuts="Control+D Meta+D"
                                 title={copyBlockedByLayout ? i18n.t('builder:LAYOUT.CANNOT_COPY_QUESTION') : cannotCopy ? i18n.t('builder:NEW_TYPES.CANNOT_COPY') : t('CANVAS.DUPLICATE_TITLE')}
                                 disabled={cannotCopy}
+                                data-chrome-focus=""
                                 className="p-2 text-black-700 hover:bg-app-wash focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-app-chrome disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                                 onClick={(event) => {
                                     event.stopPropagation();
@@ -312,6 +315,7 @@ const CanvasField = memo(function CanvasField({ fieldId, field: given, slide, in
                                 aria-label={t('CANVAS.DELETE')}
                                 aria-keyshortcuts="Delete"
                                 title={t('CANVAS.DELETE_TITLE')}
+                                data-chrome-focus=""
                                 className="p-2 text-[#C43D3D] hover:bg-[#FBEFEF] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-app-chrome"
                                 onClick={(event) => {
                                     event.stopPropagation();

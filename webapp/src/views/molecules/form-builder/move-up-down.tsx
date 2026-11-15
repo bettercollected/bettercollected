@@ -33,13 +33,13 @@ export default function MoveUpDown({ fieldId }: { fieldId: string }) {
     return (
         <div className="relative flex flex-col rounded border border-app-edge-strong" role="group" aria-label={t('MOVE.ORDER')}>
             {canMoveUp && (
-                <button type="button" aria-label={t('MOVE.UP')} aria-keyshortcuts="Alt+ArrowUp" title={t('MOVE.UP_TITLE')} className={BUTTON} onClick={() => moveFieldInASlide(at.pageIndex, at.fieldIndex, at.fieldIndex - 1)}>
+                <button type="button" aria-label={t('MOVE.UP')} aria-keyshortcuts="Alt+ArrowUp" title={t('MOVE.UP_TITLE')} data-chrome-focus="" className={BUTTON} onClick={() => moveFieldInASlide(at.pageIndex, at.fieldIndex, at.fieldIndex - 1)}>
                     <ChevronUp aria-hidden="true" />
                 </button>
             )}
             {canMoveUp && canMoveDown && <Divider />}
             {canMoveDown && (
-                <button type="button" aria-label={t('MOVE.DOWN')} aria-keyshortcuts="Alt+ArrowDown" title={t('MOVE.DOWN_TITLE')} className={BUTTON} onClick={() => moveFieldInASlide(at.pageIndex, at.fieldIndex, at.fieldIndex + 1)}>
+                <button type="button" aria-label={t('MOVE.DOWN')} aria-keyshortcuts="Alt+ArrowDown" title={t('MOVE.DOWN_TITLE')} data-chrome-focus="" className={BUTTON} onClick={() => moveFieldInASlide(at.pageIndex, at.fieldIndex, at.fieldIndex + 1)}>
                     <ChevronDown aria-hidden="true" />
                 </button>
             )}

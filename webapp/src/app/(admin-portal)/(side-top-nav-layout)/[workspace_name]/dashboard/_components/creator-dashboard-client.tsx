@@ -131,7 +131,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                 tab content scrolls inside the frame (desktop); mobile flows. */}
             {/* It is the public page, so it wears the public page's colours: the app roles are reset on its root, as on a form's
                 (`formRootProps`), and the tabs, the card and the search read the frozen blue in a Pigment workspace too. */}
-            <div style={previewRoot.style} className={cn('flex-col gap-4 bg-canvas p-5 md:flex-row md:p-8 lg:min-h-0 lg:flex-1 lg:overflow-hidden', settingsViewOpen ? 'hidden' : 'flex')}>
+            <div {...previewRoot.attributes} style={previewRoot.style} className={cn('flex-col gap-4 bg-canvas p-5 md:flex-row md:p-8 lg:min-h-0 lg:flex-1 lg:overflow-hidden', settingsViewOpen ? 'hidden' : 'flex')}>
                 <div className="flex flex-col gap-4 md:w-[320px] md:max-w-[320px] lg:min-h-0 lg:overflow-y-auto">
                     <WorkspaceDetailsCard workspace={workspace} />
                     {/* Same sidebar placement as the portal: one utility

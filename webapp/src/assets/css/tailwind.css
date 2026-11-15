@@ -1175,14 +1175,16 @@ html:has([data-app-theme='pigment']) [data-insert-search]:focus-within {
  * rule would recolour unrelated text, and an icon link (`a`, an svg) keeps its own colour. Only the wash is named
  * because it is the only fill the pair occurs on in the app (the sunken fill, the edge colour and the selected tint have
  * the same under-4.5 pair as tokens but no element carries it). Only in a Pigment scope (portalled dialogs through the
- * `html:has(...)` mirror); Daybreak, where the pair is 4.5:1 or more, is not touched. Not while hovered. Disabled
+ * `html:has(...)` mirror); Daybreak, where the pair is 4.5:1 or more, is not touched. Not while hovered, and not
+ * inside a form root (`data-form-root`: a form, the "Your site" preview of the public page), which draws the colours a
+ * respondent sees, so a wash pill there keeps the frozen text. Disabled
  * controls (the disabled button label on the edge colour) are exempt from the contrast rule and are left as they are.
  * Unlayered on purpose: it is meant to win over the element's `text-black-600` utility.
  */
-[data-app-theme='pigment'] .bg-app-wash.text-black-600:not(:hover),
-[data-app-theme='pigment'] .bg-app-wash > :is(p, span).text-black-600:not(:hover),
-html:has([data-app-theme='pigment']) .bg-app-wash.text-black-600:not(:hover),
-html:has([data-app-theme='pigment']) .bg-app-wash > :is(p, span).text-black-600:not(:hover) {
+[data-app-theme='pigment'] .bg-app-wash.text-black-600:not(:hover):not([data-form-root] *),
+[data-app-theme='pigment'] .bg-app-wash > :is(p, span).text-black-600:not(:hover):not([data-form-root] *),
+html:has([data-app-theme='pigment']) .bg-app-wash.text-black-600:not(:hover):not([data-form-root] *),
+html:has([data-app-theme='pigment']) .bg-app-wash > :is(p, span).text-black-600:not(:hover):not([data-form-root] *) {
     color: var(--app-ink-muted);
 }
 
@@ -1459,6 +1461,18 @@ input[type='number']::-webkit-outer-spin-button {
 :where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex='-1']), [role='button'], [role='checkbox'], [role='radio'], [role='switch'], [role='tab'], [role='combobox'], [role='slider']):focus-visible {
     outline: 2px solid var(--focus-ring, var(--app-focus-ring, var(--color-brand-500))) !important;
     outline-offset: 3px !important;
+}
+
+/*
+ * The builder canvas controls (the add button between questions, the move, copy and delete buttons, the selected
+ * question's frame) are chrome drawn inside the form root, where `--app-focus-ring` is reset, so the global ring above
+ * falls back to Sireto blue and `focus-visible:outline-app-chrome` on them is overridden by its `!important`. In a
+ * Pigment scope the ring on those controls is the chrome role (iris, like the selection frame); `data-chrome-focus`
+ * is the hook and Daybreak has no rule on it, so its ring is whatever it always was (the form theme's `--focus-ring`
+ * when it sets one, else #123FC9).
+ */
+[data-app-theme='pigment'] [data-chrome-focus]:focus-visible {
+    --focus-ring: var(--app-chrome);
 }
 
 /*

@@ -39,6 +39,11 @@ describe('the "Your site" preview', () => {
         for (const role of APP_ROLES_RESET_ON_FORMS) expect(root.style.getPropertyValue(role), role).toBe('initial');
     });
 
+    it('carries the form-root marker, so rules that stay out of a form (the wash text colour, the native checkbox colour) stay out of the preview', () => {
+        show('pigment');
+        expect(previewRoot().hasAttribute('data-form-root')).toBe(true);
+    });
+
     it('draws its tabs in the public page blue inside a Pigment scope, not in iris', () => {
         show('pigment');
         const tab = screen.getAllByRole('button').find((button) => button.className.includes('border-app-primary'))!;
@@ -64,6 +69,7 @@ describe('the "Your site" preview', () => {
 
     it('adds nothing when there is no scope', () => {
         show(null);
+        expect(previewRoot().hasAttribute('data-form-root')).toBe(false);
         expect(previewRoot().getAttribute('style') ?? '').not.toContain('--app-');
     });
 });
