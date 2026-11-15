@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { greetingPeriod, welcomeState } from './welcome-band';
 
-const base = { formsTotal: 3, drafts: [], pendingRequests: 0, canCreateForms: true, canReviewRequests: true };
+const base = { formsTotal: 3, drafts: [], pendingRequests: 0, canEditForms: true, canReviewRequests: true };
 
 describe('greetingPeriod', () => {
     it.each([
@@ -23,12 +23,14 @@ describe('welcomeState', () => {
         expect(welcomeState({ ...base, formsTotal: undefined })).toEqual({ kind: 'loading' });
     });
 
-    it('offers the first form when there are none', () => {
+    it('only greets when there are no forms: the empty state below has the one action', () => {
         expect(welcomeState({ ...base, formsTotal: 0 })).toEqual({ kind: 'no-forms' });
+        expect(welcomeState({ ...base, formsTotal: 0, canEditForms: false, canReviewRequests: false })).toEqual({ kind: 'no-forms' });
     });
 
-    it('does not send a member who cannot create forms to create one', () => {
-        expect(welcomeState({ ...base, formsTotal: 0, canCreateForms: false })).toEqual({ kind: 'ready' });
+    it('does not offer to finish a draft to a member who cannot edit forms', () => {
+        const drafts = [{ formId: 'f1', title: 'Open day' }];
+        expect(welcomeState({ ...base, drafts, canEditForms: false })).toEqual({ kind: 'ready' });
     });
 
     it('puts what is waiting for the person before a draft', () => {

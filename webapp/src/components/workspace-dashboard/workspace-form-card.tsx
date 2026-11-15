@@ -98,7 +98,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                 {!isResponderPortal &&
                     (form?.coverImage || form?.logo ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={firstPartyImageUrl(form.coverImage || form.logo)} alt="" className="border-black-300 mr-4 hidden h-11 w-11 shrink-0 rounded-md border object-cover sm:block" />
+                        <img src={firstPartyImageUrl(form.coverImage || form.logo)} alt="" className="border-black-300 mr-3 h-9 w-9 shrink-0 rounded-md border object-cover sm:mr-4 sm:h-11 sm:w-11" />
                     ) : (
                         <FormAvatar formId={form?.formId} title={form?.title} className="mr-3 h-9 w-9 sm:mr-4 sm:h-11 sm:w-11" />
                     ))}

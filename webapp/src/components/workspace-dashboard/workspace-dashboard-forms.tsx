@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -69,11 +69,20 @@ export default function WorkspaceDashboardForms({ showButtons, hasCustomDomain, 
     // read-only or turns them off; say why they no longer sync.
     const { mode: googleImportMode } = useGoogleFormsImportMode();
     const listsGoogleForms = (workspaceForms?.data?.items ?? []).some(isGoogleForm);
+    const searchBoxRef = useRef<HTMLDivElement>(null);
+    const focusSearchBox = useRef(false);
     const clearSearch = () => {
         setShowSearchedResults(false);
         setSearchedForms([]);
+        focusSearchBox.current = true;
         setSearchBoxKey((key) => key + 1);
     };
+    // the box is remounted empty; focus goes back into it, not to the page
+    useEffect(() => {
+        if (!focusSearchBox.current) return;
+        focusSearchBox.current = false;
+        searchBoxRef.current?.querySelector('input')?.focus();
+    }, [searchBoxKey]);
     const handleSearch = async (event: any) => {
         if (!event.target.value) {
             setShowSearchedResults(false);
@@ -113,7 +122,7 @@ export default function WorkspaceDashboardForms({ showButtons, hasCustomDomain, 
                         as a quiet, search-aware suffix aligned to the control. */}
                     <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div className="flex w-full min-w-0 flex-1 items-center gap-3">
-                            <div className="w-full max-w-[420px]">
+                            <div ref={searchBoxRef} className="w-full max-w-[420px]">
                                 <SearchInput key={searchBoxKey} placeholder={t(formConstant.toolbar.searchPlaceholder)} handleSearch={handleSearch} />
                             </div>
                             {showPagination && (

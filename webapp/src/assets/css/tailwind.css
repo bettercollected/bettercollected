@@ -781,6 +781,18 @@
     --series-4: #C93A21;
     --series-5: #7447CF;
     --series-6: #5C6788;
+    /* Form avatar pairs: a tint and its ink, picked by a form's hue index (lib/form-hue.ts); each pair is at least 4.5:1.
+       None is a signal colour: coral means "waiting for you" and green, amber and red are status, so tiles use teal, sun, sand, blue and violet. */
+    --form-hue-0-bg: #D4EFF0; /* teal tint and ink, 6.5:1 */
+    --form-hue-0-ink: #0A5B61;
+    --form-hue-1-bg: var(--app-sun-tint); /* sun: the sun pair */
+    --form-hue-1-ink: var(--app-sun-ink);
+    --form-hue-2-bg: #F3E8D8; /* sand tint and ink, 6.7:1 */
+    --form-hue-2-ink: #6A4A16;
+    --form-hue-3-bg: var(--app-brand-tint); /* sky: the blue pair */
+    --form-hue-3-ink: var(--app-link);
+    --form-hue-4-bg: #EEE8FC; /* orchid: violet tint and ink, 7.7:1 */
+    --form-hue-4-ink: #52309F;
 }
 
 /* The same variables on <html>, in a rule of its own: a browser without `:has` drops this rule alone and the
@@ -821,13 +833,14 @@ html:has([data-app-theme='daybreak']) {
     --series-4: #C93A21;
     --series-5: #7447CF;
     --series-6: #5C6788;
-    /* Form avatar pairs: a tint and its ink, picked by a form's hue index (lib/form-hue.ts); each pair is at least 4.5:1 */
-    --form-hue-0-bg: var(--app-coral-tint); /* tomato: the coral pair */
-    --form-hue-0-ink: var(--app-coral-ink);
+    /* Form avatar pairs: a tint and its ink, picked by a form's hue index (lib/form-hue.ts); each pair is at least 4.5:1.
+       None is a signal colour: coral means "waiting for you" and green, amber and red are status, so tiles use teal, sun, sand, blue and violet. */
+    --form-hue-0-bg: #D4EFF0; /* teal tint and ink, 6.5:1 */
+    --form-hue-0-ink: #0A5B61;
     --form-hue-1-bg: var(--app-sun-tint); /* sun: the sun pair */
     --form-hue-1-ink: var(--app-sun-ink);
-    --form-hue-2-bg: var(--app-ok-tint); /* mint: the success pair */
-    --form-hue-2-ink: var(--app-ok);
+    --form-hue-2-bg: #F3E8D8; /* sand tint and ink, 6.7:1 */
+    --form-hue-2-ink: #6A4A16;
     --form-hue-3-bg: var(--app-brand-tint); /* sky: the blue pair */
     --form-hue-3-ink: var(--app-link);
     --form-hue-4-bg: #EEE8FC; /* orchid: violet tint and ink, 7.7:1 */

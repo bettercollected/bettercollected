@@ -137,21 +137,26 @@ components.
 
 - **Moments.** One tinted band tops the forms dashboard: the person's first name
   and the time of day, one sentence about where things stand and one next step
-  (the first form, the requests waiting, a draft to finish), with the sun and
-  hills motif (`DaybreakArt`, inline SVG, the action blue and the sun accent).
-  The same motif sits, still, in a tinted panel on the empty states. No other
+  (the requests waiting, a draft to finish), with the sun and hills motif (`DaybreakArt`, inline SVG, the action blue and the sun accent).
+  A step a member's role cannot take (reviewing requests, finishing a draft, creating a form) is
+  not offered, and a Viewer gets a neutral line and no button. With no forms the
+  band only greets: the empty state below carries the one sentence and the one
+  action, so the screen never has two buttons doing the same thing. The same motif sits, still, in a tinted panel on the empty states. No other
   surface carries it: never inside the builder canvas, a table or a respondent form.
 - **Empty states** are one component (`EmptyState`): a white card on the canvas
   with the motif in a tinted panel, a title, one plain sentence and at most one
-  primary action (blue). A search or a filter with no match leaves the picture
-  out and offers a way back ("Clear search", "Clear filters"). Copy is calm: it
+  primary action (blue), offered only when the member may take it and, for
+  "Share the form", only for a form that is published, open and not hidden. A
+  search or a filter with no match leaves the picture out and offers a way back
+  ("Clear search", which puts focus back in the search box, and "Clear filters"). Copy is calm: it
   says nothing is wrong and what to do, with no exclamation marks.
 - **Forms tell apart.** Each form has a tile in lists and headers: its initial
   in a tint with its ink, from a pair picked by the form's id (`formHueIndex`,
   FNV-1a over the trimmed, lower-cased id, modulo five; `FormAvatar`). The pairs
-  are scope variables `--form-hue-0-bg/-ink` to `--form-hue-4-bg/-ink` (coral,
-  sun, success, blue and violet tints, each pair at least 4.5:1), so a later
-  theme supplies its own five. The tile is decoration beside the title; the
+  are scope variables `--form-hue-0-bg/-ink` to `--form-hue-4-bg/-ink` (teal,
+  sun, sand, blue and violet tints, each pair at least 4.5:1), so a later
+  theme supplies its own five. No tile is a signal colour: coral means "waiting
+  for you" and green, amber and red are status, so none of them is a form's colour. The tile is decoration beside the title; the
   responder portal does not show it.
 - **Something is waiting for you.** A coral count badge (`CountBadge`: the
   number on coral tint in coral ink, with the whole phrase as its accessible

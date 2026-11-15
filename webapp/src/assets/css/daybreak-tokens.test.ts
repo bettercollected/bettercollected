@@ -197,9 +197,9 @@ const PAIRS: Array<[string, string, number, string]> = [
     ['copy', 'surface', 4.5, 'Empty-state sentence on its white card'],
     ['ink', 'surface', 4.5, 'Empty-state title on its white card'],
     ['coral-ink', 'coral-tint', 4.5, 'Count badge: the number on coral tint'],
-    ['form-hue-0-ink', 'form-hue-0-bg', 4.5, 'Form tile 0 (coral pair)'],
+    ['form-hue-0-ink', 'form-hue-0-bg', 4.5, 'Form tile 0 (teal pair)'],
     ['form-hue-1-ink', 'form-hue-1-bg', 4.5, 'Form tile 1 (sun pair)'],
-    ['form-hue-2-ink', 'form-hue-2-bg', 4.5, 'Form tile 2 (success pair)'],
+    ['form-hue-2-ink', 'form-hue-2-bg', 4.5, 'Form tile 2 (sand pair)'],
     ['form-hue-3-ink', 'form-hue-3-bg', 4.5, 'Form tile 3 (blue pair)'],
     ['form-hue-4-ink', 'form-hue-4-bg', 4.5, 'Form tile 4 (violet pair)']
 ];
@@ -210,6 +210,17 @@ describe('form tile pairs', () => {
         expect(scope).toMatch(new RegExp(`--form-hue-${n}-ink:`));
         expect(inline).toContain(`--color-form-hue-${n}-bg: var(--form-hue-${n}-bg);`);
         expect(inline).toContain(`--color-form-hue-${n}-ink: var(--form-hue-${n}-ink);`);
+    });
+
+    it('uses no signal colour for a form: coral (waiting for you) and the success, warning and danger colours stay status', () => {
+        for (const n of [0, 1, 2, 3, 4]) {
+            for (const part of ['bg', 'ink']) {
+                const raw = scope.match(new RegExp(`--form-hue-${n}-${part}:\\s*([^;]+);`))?.[1] ?? '';
+                expect(raw, `--form-hue-${n}-${part}`).not.toMatch(/coral|--app-(ok|warn|bad)\b/);
+                const hex = colour(`form-hue-${n}-${part}`);
+                for (const signal of ['coral', 'coral-tint', 'coral-ink', 'ok', 'ok-tint', 'ok-fill', 'warn', 'warn-tint', 'warn-fill', 'bad', 'bad-tint', 'bad-fill']) expect(hex, `tile ${n} ${part} is the ${signal} colour`).not.toBe(colour(signal));
+            }
+        }
     });
 
     it('has exactly as many pairs as the hash has indexes', () => {
@@ -248,6 +259,12 @@ describe('where colour goes', () => {
             .map((path) => path.slice(SRC.length + 1))
             .sort();
         expect(carriers).toEqual(['app/(admin-portal)/layout.tsx', 'app/(auth)/_components/login-view.tsx']);
+    });
+
+    it('lets the shared sign-in layout take the canvas only inside the scope, so the respondent sign-in keeps paper mist', () => {
+        const layout = readFileSync(resolve(SRC, 'layouts/top-navbar-layout.tsx'), 'utf8');
+        expect(layout).toMatch(/bg-black-100 in-data-\[app-theme\]:bg-canvas/);
+        expect(layout).not.toMatch(/"bg-canvas /);
     });
 
     it('never gives sun or coral to a button; the primary stays blue', () => {

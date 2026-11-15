@@ -10,12 +10,14 @@ import DaybreakArt from '@app/components/ui/daybreak-art';
 import globalConstants from '@app/constants/global';
 import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import { GreetingPeriod, WelcomeState, greetingPeriod, welcomeState } from '@app/lib/welcome-band';
+import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspacePermission } from '@app/models/enums/workspace-permission';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormsQuery, useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { getEditFormURL } from '@app/utils/url-utils';
 import NewFormButton from '@app/views/atoms/new-form-button';
 
 const GREETING_KEYS: Record<GreetingPeriod, string> = {
@@ -38,6 +40,7 @@ export default function WelcomeBand() {
     const auth = useAppSelector(selectAuth);
     const { can } = useWorkspacePermissions();
     const canCreateForms = can(WorkspacePermission.FORM_CREATE);
+    const canEditForms = can(WorkspacePermission.FORM_EDIT);
     const canReviewRequests = can(WorkspacePermission.PRIVACY_MANAGE);
 
     // the same arguments as the list below, so this reads its cached answer instead of asking again
@@ -48,12 +51,13 @@ export default function WelcomeBand() {
     const [period, setPeriod] = useState<GreetingPeriod | null>(null);
     useEffect(() => setPeriod(greetingPeriod(new Date().getHours())), []);
 
-    const items: Array<{ formId: string; title?: string; isPublished?: boolean }> = forms.data?.items ?? [];
+    const items: Array<StandardFormDto> = forms.data?.items ?? [];
     const state: WelcomeState = welcomeState({
         formsTotal: forms.isLoading || forms.isError || !forms.data ? undefined : (forms.data.total ?? items.length),
-        drafts: items.filter((form) => !form.isPublished),
+        // a draft the builder can open (imported forms and the old builder have no editor to go to)
+        drafts: items.filter((form) => !form.isPublished && form.settings?.provider === 'self' && form.builderVersion === 'v2'),
         pendingRequests: stats.data?.deletionRequests?.pending,
-        canCreateForms,
+        canEditForms,
         canReviewRequests
     });
     if (state.kind === 'loading') return null;
@@ -62,12 +66,11 @@ export default function WelcomeBand() {
     const greeting = period ? t(GREETING_KEYS[period]) : t('STAFF.WELCOME.GREETING_NEUTRAL');
     const dashboard = `/${workspace.workspaceName}/dashboard`;
 
-    let text: string;
-    let action: React.ReactNode;
+    let text: string | null = null;
+    let action: React.ReactNode = null;
     switch (state.kind) {
         case 'no-forms':
-            text = t('STAFF.WELCOME.NO_FORMS_TEXT');
-            action = <NewFormButton label={t('STAFF.WELCOME.NO_FORMS_ACTION')} />;
+            // only the greeting: the empty state below carries the one sentence and the one action
             break;
         case 'requests':
             text = t('STAFF.WELCOME.REQUESTS_TEXT', { count: state.count });
@@ -80,14 +83,15 @@ export default function WelcomeBand() {
         case 'draft':
             text = state.count === 1 && state.title ? t('STAFF.WELCOME.DRAFT_TEXT', { title: state.title }) : t('STAFF.WELCOME.DRAFTS_TEXT', { count: state.count });
             action = (
-                <Button size="medium" onClick={() => router.push(`${dashboard}/forms/${state.formId}/edit`)}>
+                <Button size="medium" onClick={() => router.push(getEditFormURL(workspace, { formId: state.formId } as StandardFormDto))}>
                     {t('STAFF.WELCOME.DRAFT_ACTION')}
                 </Button>
             );
             break;
         default:
-            text = t('STAFF.WELCOME.READY_TEXT');
-            action = <NewFormButton />;
+            // someone who cannot create forms is not told to start one, and gets no empty action area
+            text = canCreateForms ? t('STAFF.WELCOME.READY_TEXT') : t('STAFF.WELCOME.READY_VIEW_TEXT');
+            action = canCreateForms ? <NewFormButton /> : null;
     }
 
     return (
@@ -98,12 +102,12 @@ export default function WelcomeBand() {
                     <DaybreakArt />
                 </div>
             )}
-            <div className="relative flex max-w-[52ch] flex-col items-start gap-2 p-4 sm:gap-3 sm:p-7">
+            <div className={`relative flex max-w-[52ch] flex-col items-start gap-2 sm:gap-3 ${state.kind === 'no-forms' ? 'px-4 py-3 sm:px-7 sm:py-5' : 'p-4 sm:p-7'}`}>
                 <h2 id="welcome-band-title" className="m-0 text-xl leading-tight font-semibold tracking-title text-ink sm:text-2xl">
                     {name ? t('STAFF.WELCOME.WITH_NAME', { greeting, name }) : greeting}
                 </h2>
-                <p className="m-0 text-sm leading-relaxed text-copy sm:text-base">{text}</p>
-                <div className="mt-1">{action}</div>
+                {text && <p className="m-0 text-sm leading-relaxed text-copy sm:text-base">{text}</p>}
+                {action && <div className="mt-1">{action}</div>}
             </div>
         </section>
     );
