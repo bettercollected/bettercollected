@@ -11,8 +11,8 @@ interface EmptyStateProps {
     action?: React.ReactNode;
     /** The sun-and-hills motif in a tinted panel. Off for a search or a filter with no match: a clear line and a way back is enough. */
     illustration?: boolean;
-    /** The title's heading level; pages that already have an h1 pass 2 (the default) or 3. */
-    headingLevel?: 2 | 3;
+    /** The title's heading level; pages that already have an h1 pass 2 (the default) or 3. A page whose card is its whole content (the first run) passes 1. */
+    headingLevel?: 1 | 2 | 3;
     className?: string;
 }
 
@@ -23,7 +23,7 @@ interface EmptyStateProps {
  */
 export default function EmptyState({ title, description, action, illustration = true, headingLevel = 2, className }: EmptyStateProps) {
     const id = useId();
-    const Heading = `h${headingLevel}` as 'h2' | 'h3';
+    const Heading = `h${headingLevel}` as 'h1' | 'h2' | 'h3';
     return (
         <section aria-labelledby={id} data-testid="empty-state" data-illustration={illustration ? 'true' : 'false'} className={cn('flex w-full max-w-[640px] flex-col overflow-hidden rounded border border-hairline-strong bg-surface', className)}>
             {illustration && (

@@ -78,7 +78,7 @@ field is there; hairlines are for separating surfaces, not for controls.
 | `success-700` | `#027A48` | Success text (`success` is 3.7:1 on white, too light for text) |
 | `#C43D3D` | — | Danger text and destructive buttons |
 
-No pink, no gradients, and no orange except the single coral accent below (and the red-orange report series).
+No pink, no gradients, and no orange except the single coral accent below.
 Both rules hold for Daybreak and for respondent forms; the Pigment theme (below) is
 the one place they are set aside, for the creator app of a workspace that chose it.
 The old bright blue (`#0764EB`), the old trust blue (`#2456CC`) and the
@@ -110,7 +110,7 @@ read those variables through an `@theme inline` block. The default theme is
 | `sun`, `sun-tint`, `sun-ink` | `#FFB400`, `#FFF1C7`, `#6B4700` | The sun accent: a moment, a highlight, a "why we ask" rule. Fill only; text uses `sun-ink` on the tint |
 | `coral`, `coral-tint`, `coral-ink` | `#FF6A48`, `#FFE4DC`, `#A22F14` | The one coral accent: something is waiting for you. Fill only; text uses `coral-ink` on the tint |
 | `ok`, `warn`, `bad`, `info` | `#0A6F45`, `#7A4B00`, `#B42B2B`, `#1035A8` | Status text. Each has a `-fill` for icons and a `-tint` for backgrounds |
-| `series-1` … `series-6` | `#2A55E0`, `#A86400`, `#0E7F86`, `#C93A21`, `#7447CF`, `#5C6788` | Report series: blue, ochre, teal, red-orange, violet, slate |
+| `series-1` … `series-6` | `#2A55E0`, `#158591`, `#12471D`, `#6C2FBC`, `#BB7A0A`, `#5B6888` | Report series: blue, teal, deep green, violet, ochre, slate. Light and dark steps alternate, no red, and none is near `bad` |
 
 The names `muted` and `accent` are left alone on purpose: shadcn components
 already use those utility names, and defining them would paint those
@@ -136,7 +136,10 @@ components.
 - **Charts.** One blue (`series-1`) for single-question bars and lines; the six
   series for donuts and multi-series, each at least 3:1 on the white card, with
   a value written beside every mark and a pattern on every donut slice after
-  the first, so colour is never the only code. The tracks behind bars are
+  the first, so colour is never the only code. The series also hold when seen
+  with deuteranopia or protanopia: neighbouring series (and the next but one)
+  differ in lightness and in simulated colour, and none is near the danger red
+  (`daybreak-tokens.test.ts` states the thresholds and measures them). The tracks behind bars are
   `sunken`.
 
 - **Moments.** One tinted band tops the forms dashboard: the person's first name
@@ -248,7 +251,16 @@ switched it on. Respondent forms never wear it: they carry no theme attribute, a
 | Accent (`app-accent`, tint, ink) | sun `#FFB400`, `#FFF1C7`, `#6B4700` | sun `#FFC62E`, `#FFF0C2`, `#664600` |
 | Attention (`app-attention`, tint, ink) | coral `#FF6A48`, `#FFE4DC`, `#A22F14` | coral `#FF7A61`, `#FFE2DC`, `#A3301A` |
 | Status (`ok`, `warn`, `bad`, `info`) | as in the table above | `#0B6B4A`, `#7A4B00`, `#B0302A`, `#1B5FA8` (each with fill and tint) |
-| Chart series 1 to 6 | blue, ochre, teal, red-orange, violet, slate | iris, coral, ochre, green, blue, orchid |
+| Chart series 1 to 6 | blue, teal, deep green, violet, ochre, slate | iris, deep green, ochre, orchid, warm dark neutral, teal (no red; see below) |
+
+**The series.** Pigment's six chart series are chosen to be told apart without
+colour: neighbours differ in lightness and not only in hue (the relative
+luminance of series *i* and *i+1* is at least 1.3 times apart, and of *i* and
+*i+2* at least 1.5), they stay at least 40 apart (CIE76 ΔE) when simulated for
+deuteranopia and protanopia, each is at least 3:1 on a white card and on a
+track, and none is a red: every series keeps a hue and lightness distance from
+`bad` (ΔE of at least 40), so no answer reads as a warning. Red and green are
+never neighbours.
 
 **The chrome roles.** The primary button, the edge of a chosen option and the
 keyboard focus ring of the creator app read `app-action`, `app-on-action` and
@@ -883,4 +895,4 @@ control boundaries and meaningful icons.
 | Control edge `#6E7CA8` on white / canvas | 4.1:1 / 3.8:1 |
 | `sun-ink` on `sun-tint`; `coral-ink` on `coral-tint` | 7.4:1; 5.9:1 |
 | `ok`, `warn`, `bad`, `info` text on their tints | 5.4:1, 6.6:1, 5.3:1, 8.2:1 |
-| Series 1 to 6 as marks on white | 6.0, 4.7, 4.8, 5.1, 5.9, 5.6 (all at least 3:1) |
+| Series 1 to 6 as marks on white | 6.0, 4.4, 10.8, 7.6, 3.6, 5.6 (all at least 3:1; series 1 to 5 also at least 3:1 on the `sunken` bar track) |

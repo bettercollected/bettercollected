@@ -120,6 +120,7 @@ describe('the Appearance card', () => {
         [{ status: 503, data: { code: 'audit_unavailable' } }, 'Could not save the appearance. Check your connection and try again.'],
         [{ status: 'FETCH_ERROR', error: 'down' }, 'Could not save the appearance. Check your connection and try again.']
     ])('says in words why a save failed (%j)', async (error, words) => {
+        const status = (error as { status?: unknown }).status;
         save.mockResolvedValue({ error });
         render(<AppearanceCard />);
         fireEvent.click(radio(/^Pigment$/));
@@ -131,8 +132,13 @@ describe('the Appearance card', () => {
         expect(radio(/^Daybreak$/).closest('label')?.textContent).toContain('In use');
         expect(screen.getByRole('status').textContent).toBe('');
         expect(document.activeElement).toBe(saveButton());
+        // a refusal (403, 422) puts the choice back on the theme the workspace has; another failure keeps the choice for a retry
+        const refused = status === 403 || status === 422;
+        expect(radio(/^Daybreak$/).getAttribute('aria-checked')).toBe(refused ? 'true' : 'false');
+        expect(radio(/^Pigment$/).getAttribute('aria-checked')).toBe(refused ? 'false' : 'true');
+        expect(saveButton().getAttribute('aria-disabled')).toBe(refused ? 'true' : null);
         // the next choice clears the message
-        fireEvent.click(radio(/^Daybreak$/));
+        fireEvent.click(radio(refused ? /^Pigment$/ : /^Daybreak$/));
         expect(screen.queryByRole('alert')).toBeNull();
     });
 

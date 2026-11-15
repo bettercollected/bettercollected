@@ -393,6 +393,22 @@
       "imageGround": false
     },
     {
+      "name": "preset Daybreak",
+      "theme": {
+        "primary": "#0E1737",
+        "secondary": "#1649E2",
+        "tertiary": "#6E7CA8",
+        "accent": "#F3F6FF",
+        "background": {
+          "type": "color",
+          "artwork": "daybreak"
+        }
+      },
+      "issues": [],
+      "fix": null,
+      "imageGround": false
+    },
+    {
       "name": "pale on white",
       "theme": {
         "primary": "#9CA3AF",

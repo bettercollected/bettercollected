@@ -59,7 +59,11 @@ from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_images import check_form_images
 from backend.app.services.form_patterns import check_form_patterns
-from backend.app.services.form_themes import ensure_valid_themes
+from backend.app.services.form_themes import (
+    ensure_artwork_offered,
+    ensure_artwork_offered_for_save,
+    ensure_valid_themes,
+)
 from backend.app.services.rich_text import sanitise_form_titles
 from backend.app.services.form_logo import (
     CheckedLogo,
@@ -350,6 +354,8 @@ async def check_form_content_early(form, load_stored) -> None:
     ensure_valid_date_rules(form)
     ensure_valid_calculations(form)
     ensure_valid_themes(form)
+    # a gated artwork (Daybreak) only while its switch is on, or as the stored form has it
+    await ensure_artwork_offered_for_save(form, load_stored)
     try:
         _check_ending_links(form, drop_unusable=False)
     except HTTPException:
@@ -947,6 +953,9 @@ class WorkspaceFormService:
                     workspace_id, form, None, user
                 )
         ensure_valid_themes(form)
+        # a new form needs the switch; a copy of a form or template keeps what its source has
+        if not drop_unusable_settings:
+            ensure_artwork_offered(form)
         _check_ending_links(form, drop_unusable=drop_unusable_settings)
         # first-party images only (services/form_images.py); a copy drops
         # the others instead of refusing

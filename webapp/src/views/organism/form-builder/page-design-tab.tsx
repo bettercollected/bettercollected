@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 
 import Link from 'next/link';
 
-import { FormTheme, THEME_TYPE_SHAPE_KEYS, ThemeColors, findPreset, themeTypeShape, welcomeLayoutAfterPreset } from '@app/constants/theme';
+import { FormTheme, THEME_TYPE_SHAPE_KEYS, ThemeColors, findPreset, isPresetOffered, themeTypeShape, welcomeLayoutAfterPreset } from '@app/constants/theme';
+import { useWorkspacePermissions } from '@app/lib/hooks/use-workspace-permissions';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FieldTypes } from '@app/models/dtos/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
@@ -39,6 +40,8 @@ function formSample(pages: Array<any> | undefined): ThemePreviewSample {
 export default function PageDesignTab() {
     const { t } = useBuilderTranslation();
     const { updateFormTheme, updateWelcomePageLayout, formState, theme } = useFormState();
+    // The presets with a switch (Daybreak) are offered while the server's switch is on; one the form already wears stays in the list.
+    const { offeredGatedPresets } = useWorkspacePermissions();
     const { getFormFields } = useBuilderActions();
     // Read once when the tab opens: thumbnails don't follow every keystroke.
     const sample = useMemo(() => formSample(getFormFields()), [getFormFields]);
@@ -110,7 +113,14 @@ export default function PageDesignTab() {
     const activeFails = themeContrastGuard(activeTheme).issues.length > 0;
     const sections: ThemeGallerySection[] = [
         { key: 'saved', label: t('THEME.GALLERY_SAVED'), entries: savedThemes.map((saved) => ({ value: `saved:${saved.title}`, label: saved.title, theme: saved })) },
-        { key: 'presets', label: t('THEME.GALLERY_PRESETS'), entries: ThemeColors.map((preset) => ({ value: `preset:${preset.title}`, label: preset.title, theme: preset })) },
+        {
+            key: 'presets',
+            label: t('THEME.GALLERY_PRESETS'),
+            entries: ThemeColors.filter((preset) => isPresetOffered(preset.title, offeredGatedPresets) || preset.title === theme?.title).map((preset) => {
+                const key = preset.title.toUpperCase();
+                return { value: `preset:${preset.title}`, label: t(`THEME.PRESET_${key}_NAME`, { defaultValue: preset.title }), theme: preset, hint: t(`THEME.PRESET_${key}_HINT`, { defaultValue: '' }) || undefined };
+            })
+        },
         { key: 'custom', label: t('THEME.GALLERY_ONE_OFF'), entries: [{ value: 'custom', label: t('THEME.GALLERY_CUSTOM'), theme: custom }] }
     ];
 

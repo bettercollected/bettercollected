@@ -29,6 +29,8 @@ import SsoSignIn from './sso-sign-in';
 
 interface OtpEmailFormProps {
     isModal?: boolean;
+    /** Inside the creator sign-in card: the card supplies the heading and the line under it, and the spacing is tighter. */
+    card?: boolean;
     isSignup?: string | boolean;
     setEmail: Dispatch<SetStateAction<string>>;
 }
@@ -37,7 +39,7 @@ const providers: Array<string> = ['google'];
 
 const loginProviderNames = new Map<string, string>([['google', 'Google']]);
 
-export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEmail }: OtpEmailFormProps) {
+export default function OtpEmailForm({ isModal, card, isSignup, setEmail: setParentEmail }: OtpEmailFormProps) {
     const ssoEnabled = useSsoEnabled();
     const { t } = useTranslation();
     const { toast } = useToast();
@@ -129,30 +131,38 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
                         {loginErrorMessage}
                     </p>
                 )}
-                <div className="flex flex-col gap-3">
-                    <span className="h4">{isSignup || isModal ? constants.signUp : constants.welcomeBack}</span>
-                    {isModal ? <span className="body4 sm:w-[410px]">{constants.descriptionInModal}</span> : <span className="body4 text-black-800">{isSignup ? constants.signUpToContinue : constants.signInToContinue}</span>}
-                </div>
+                {!card && (
+                    <div className="flex flex-col gap-3">
+                        <span className="h4">{isSignup || isModal ? constants.signUp : constants.welcomeBack}</span>
+                        {isModal ? <span className="body4 sm:w-[410px]">{constants.descriptionInModal}</span> : <span className="body4 text-black-800">{isSignup ? constants.signUpToContinue : constants.signInToContinue}</span>}
+                    </div>
+                )}
 
                 {providers.length > 0 && (
                     <>
-                        <div className="mt-10 flex w-full gap-[20px]">
+                        <div className={`flex w-full gap-[20px] ${card ? '' : 'mt-10'}`}>
                             <div className="flex w-full flex-col items-center justify-center gap-4 sm:flex-row lg:gap-6">
                                 {providers.map((provider) => (
                                     <ConnectWithProviderButton key={provider} type="dark" url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/basic`} text={`Sign in with ${capitalize(provider)}`} creator={isCreator} fromProPlan={fromProPlan!} />
                                 ))}
                             </div>
                         </div>
-                        <div className="my-10 flex w-full items-center gap-4 pt-8">
-                            <Separator className="flex-1 shrink-0 bg-app-edge-strong" />
-                            <span className="body4 whitespace-nowrap text-black-700!">{constants.orSignInUsing}</span>
-                            <Separator className="flex-1 shrink-0 bg-app-edge-strong" />
+                        <div className={`flex w-full items-center gap-4 ${card ? 'my-6' : 'my-10 pt-8'}`}>
+                            <Separator className={`flex-1 shrink-0 ${card ? 'bg-hairline-strong' : 'bg-black-400'}`} />
+                            <span className={`body4 whitespace-nowrap ${card ? 'text-copy!' : 'text-black-700!'}`}>{constants.orSignInUsing}</span>
+                            <Separator className={`flex-1 shrink-0 ${card ? 'bg-hairline-strong' : 'bg-black-400'}`} />
                         </div>
                     </>
                 )}
 
-                <p className="mb-3 mt-[44px] text-base font-semibold text-black-900">{constants.emailInputLabel}</p>
-                <Input autoFocus type="email" required placeholder={constants.enterYourEmail} value={email} onChange={(e) => setEmail(e.target.value)} className="text-base! lg:text-base!" />
+                {card ? (
+                    <label htmlFor="signin-email" className="mb-2 block text-base font-semibold text-ink">
+                        {constants.emailInputLabel}
+                    </label>
+                ) : (
+                    <p className="mb-3 mt-[44px] text-base font-semibold text-black-900">{constants.emailInputLabel}</p>
+                )}
+                <Input id={card ? 'signin-email' : undefined} autoComplete={card ? 'email' : undefined} autoFocus type="email" required placeholder={constants.enterYourEmail} value={email} onChange={(e) => setEmail(e.target.value)} className="text-base! lg:text-base!" />
                 <Button type="submit" variant="primary" isLoading={isLoading || proofBusy} disabled={holdSeconds > 0} aria-disabled={holdSeconds > 0} className={`mt-6 w-full ${isModal ? 'mb-10' : ''}`} size="medium">
                     {constants.sendCodeButton}
                     {holdSeconds > 0 ? ` (${holdSeconds}s)` : ''}

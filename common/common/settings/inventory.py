@@ -225,6 +225,10 @@ SERVER: Tuple[SettingSpec, ...] = (
           "Allows adding or changing layout containers (panels, tabs, field sets); "
           "containers a form already has keep working either way.",
           tier=T2),
+    _bool("DAYBREAK_PRESET_ENABLED", "features", (BACKEND,), False,
+          "Offers the Daybreak theme preset (off: the picker, edit operations, AI and MCP "
+          "do not know it; forms that wear it are unchanged).",
+          tier=T2),
     _bool("SUBMISSIONS_API_ENABLED", "features", (BACKEND,), False,
           "Lets API keys submit and update responses (off: 404, the scope can't be granted).",
           tier=T2),

@@ -14,6 +14,8 @@ export interface ThemeGalleryEntry {
     value: string;
     label: string;
     theme: FormTheme;
+    /** A sentence about the theme, read out with its name. */
+    hint?: string;
 }
 
 export interface ThemeGallerySection {
@@ -62,6 +64,8 @@ export default function ThemeGallery({ sections, value, onSelect, sample }: { se
                                 const failing = themeContrastGuard(entry.theme).issues.length > 0;
                                 const nameId = `${idBase}-${entry.value}-name`;
                                 const flagId = `${idBase}-${entry.value}-flag`;
+                                const hintId = `${idBase}-${entry.value}-hint`;
+                                const describedBy = [entry.hint ? hintId : null, failing ? flagId : null].filter(Boolean).join(' ') || undefined;
                                 return (
                                     <button
                                         key={entry.value}
@@ -71,7 +75,8 @@ export default function ThemeGallery({ sections, value, onSelect, sample }: { se
                                         tabIndex={entry.value === focusable ? 0 : -1}
                                         data-theme-value={entry.value}
                                         aria-labelledby={nameId}
-                                        aria-describedby={failing ? flagId : undefined}
+                                        aria-describedby={describedBy}
+                                        title={entry.hint}
                                         onClick={() => onSelect(entry.value)}
                                         onKeyDown={(event) => move(event, all.indexOf(entry))}
                                         className={cn(
@@ -88,6 +93,11 @@ export default function ThemeGallery({ sections, value, onSelect, sample }: { se
                                             </span>
                                             {checked && <Check className="h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden="true" />}
                                         </span>
+                                        {entry.hint && (
+                                            <span id={hintId} className="sr-only">
+                                                {entry.hint}
+                                            </span>
+                                        )}
                                         {failing && (
                                             <span id={flagId} className="flex items-center gap-1 bg-brand-accent-100 px-2 py-0.5 text-[10px] font-semibold text-brand-olive">
                                                 <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden="true" />

@@ -313,20 +313,67 @@ async def test_off_a_stored_pigment_is_kept_but_served_as_daybreak(
     assert member.status_code == 200 and member.json()["appTheme"] == "daybreak"
     # kept, neither enforced nor shown
     assert await stored_theme(workspace) == "pigment"
-    # asking for what it is served is no change, so the stored value stays too
-    same = await choose(client, workspace, test_user_cookies, "daybreak")
-    assert same.status_code == 200
-    assert await stored_theme(workspace) == "pigment"
-    assert len(await entries()) == 1
-    # asking for pigment again is a change the switch refuses
+    # asking for pigment is a change the switch refuses
     refused = await choose(client, workspace, test_user_cookies, "pigment")
     assert refused.status_code == 422 and refused.json()["code"] == "app_theme_disabled"
+    assert await stored_theme(workspace) == "pigment"
+    assert len(await entries()) == 1
     # the public answer has no theme either way
     assert not has_theme_key((await lookup(client, workspace)).json())
     assert not has_theme_key((await lookup(client, workspace, _cookies(testUser1))).json())
 
     monkeypatch.setattr(settings.app_theme, "ENABLED", True)
     assert (await lookup(client, workspace, test_user_cookies)).json()["appTheme"] == "pigment"
+
+
+async def test_off_choosing_daybreak_over_a_stored_pigment_changes_what_comes_back(
+    client, workspace, test_user_cookies, monkeypatch
+):
+    """The decision is made on what is stored, not on what is served: stored pigment, switch off, an admin
+    chooses daybreak. It is a change (stored and recorded with the theme it replaced), and when the switch
+    comes back on the workspace is daybreak, not pigment again."""
+    monkeypatch.setattr(settings.app_theme, "ENABLED", True)
+    assert (await choose(client, workspace, test_user_cookies, "pigment")).status_code == 200
+    assert len(await entries()) == 1
+
+    monkeypatch.setattr(settings.app_theme, "ENABLED", False)
+    assert (await lookup(client, workspace, test_user_cookies)).json()["appTheme"] == "daybreak"
+    chosen = await choose(client, workspace, test_user_cookies, "daybreak")
+    # daybreak is never refused, even with the switch off
+    assert chosen.status_code == 200 and chosen.json() == {"appTheme": "daybreak"}
+    assert await stored_theme(workspace) == "daybreak"
+    events = await entries()
+    assert len(events) == 2
+    last = max(events, key=lambda e: e.created_at)
+    assert (last.previous_app_theme, last.app_theme) == ("pigment", "daybreak")
+    assert str(last.workspace_id) == str(workspace.id) and last.user_id
+
+    # the same again is no change: nothing more is stored or recorded
+    assert (await choose(client, workspace, test_user_cookies, "daybreak")).status_code == 200
+    assert len(await entries()) == 2
+
+    monkeypatch.setattr(settings.app_theme, "ENABLED", True)
+    assert (await lookup(client, workspace, test_user_cookies)).json()["appTheme"] == "daybreak"
+    assert await stored_theme(workspace) == "daybreak"
+
+
+async def test_a_workspace_that_never_chose_is_daybreak_and_choosing_it_is_no_change(
+    client, workspace, test_user_cookies, on
+):
+    assert await stored_theme(workspace) is None
+    assert (await choose(client, workspace, test_user_cookies, "daybreak")).status_code == 200
+    assert await stored_theme(workspace) is None
+    assert await entries() == []
+
+
+async def test_the_body_takes_the_camel_case_name_only(client, workspace, test_user_cookies, on):
+    # the docs say appTheme: the snake_case spelling of the same field is not accepted
+    refused = await client.put(theme_url(workspace), json={"app_theme": "pigment"}, cookies=test_user_cookies)
+    assert refused.status_code == 422, refused.text
+    assert await stored_theme(workspace) is None
+    assert await entries() == []
+    ok = await client.put(theme_url(workspace), json={"appTheme": "pigment"}, cookies=test_user_cookies)
+    assert ok.status_code == 200 and ok.json() == {"appTheme": "pigment"}
 
 
 async def test_off_the_member_answer_says_daybreak_for_every_workspace(

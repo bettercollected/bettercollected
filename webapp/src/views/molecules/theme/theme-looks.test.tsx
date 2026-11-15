@@ -222,13 +222,19 @@ describe('the colour presets stay as they were', () => {
         for (const key of THEME_TYPE_SHAPE_KEYS) expect(t[key]).toBeUndefined();
         expect(t.highlight).toBeUndefined();
         expect(t.selection).toBeUndefined();
+        if (t.title === 'Daybreak') {
+            // a scene preset: its artwork on a plain ground, nothing else
+            expect(t.background).toEqual({ type: 'color', artwork: 'daybreak' });
+            expect(greetingCover(t, FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT)).toBeNull();
+            return;
+        }
         expect(t.background).toBeUndefined();
         expect(themeArtwork(t)).toBeNull();
         expect(greetingCover(t, FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT)).toBeNull();
     });
 
     it('validates the selection and artwork, word for word with the backend', () => {
-        expect(themeProblems({ ...KANTLIJN, selection: 'cloth', background: { type: 'color', artwork: 'photo' as any } })).toEqual(['theme.selection must be a 6-digit hex colour, e.g. #1E4D3B.', 'theme.background.artwork must be one of: marble.']);
+        expect(themeProblems({ ...KANTLIJN, selection: 'cloth', background: { type: 'color', artwork: 'photo' as any } })).toEqual(['theme.selection must be a 6-digit hex colour, e.g. #1E4D3B.', 'theme.background.artwork must be one of: marble, daybreak.']);
         // stored patterns are not held to the list
         expect(themeProblems({ ...KANTLIJN, background: { type: 'pattern', pattern: 'waves' as any } })).toEqual([]);
     });

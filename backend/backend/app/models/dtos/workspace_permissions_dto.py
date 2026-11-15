@@ -30,6 +30,10 @@ class WorkspacePermissionsDto(CamelModel):
     and the workspace its library page, from it.
     ``layout_containers_enabled`` is the same for panels, tabs and field sets
     (``LAYOUT_CONTAINERS_ENABLED``).
+    ``offered_gated_presets`` names the theme presets that have a switch
+    (``constants/themes.py`` GATED_PRESETS) and whose switch is on (today
+    Daybreak, ``DAYBREAK_PRESET_ENABLED``): the builder's picker lists only
+    those of the gated presets.
     ``submissions_api_enabled`` is the same for ``SUBMISSIONS_API_ENABLED``
     (the API key dialog offers the ``submissions:write`` scope from it).
     ``save_drafts_enabled`` is the same for ``SAVE_DRAFTS_ENABLED`` ("Let
@@ -77,6 +81,7 @@ class WorkspacePermissionsDto(CamelModel):
     option_sources_enabled: bool = False
     reusable_sections_enabled: bool = False
     layout_containers_enabled: bool = False
+    offered_gated_presets: List[str] = []
     form_revisions_ui_enabled: bool = False
     audit_log_ui_enabled: bool = False
     response_revisions_enabled: bool = False

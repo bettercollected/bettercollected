@@ -5,6 +5,18 @@ import { describe, expect, it } from 'vitest';
 
 import { THEME_PICTURES } from '@app/components/app-theme/app-theme-previews';
 import { PIGMENTS } from '@app/lib/form-hue';
+import {
+    DANGER_DELTA_E,
+    DANGER_HUE,
+    DEUTERANOPIA,
+    NEIGHBOUR_LUMINANCE,
+    PROTANOPIA,
+    SECOND_NEIGHBOUR_LUMINANCE,
+    SIMULATED_DELTA_E,
+    deltaE,
+    hueAndSaturation,
+    hueDistance
+} from '@app/test/colour-vision';
 import { contrast } from '@app/utils/color-contrast';
 
 // The two app themes, Daybreak and Pigment (DESIGN.md §1 and "Pigment theme"), held to the stylesheet that implements
@@ -335,6 +347,79 @@ describe('the pigments', () => {
         const tomato = colour('pigment', '--app-pig-tomato');
         for (const name of ['bad', 'bad-fill', 'bad-tint']) expect(role('pigment', name), name).not.toBe(tomato);
         expect(contrast(role('pigment', 'bad-fill'), '#FFFFFF')).toBeGreaterThan(contrast(tomato, '#FFFFFF'));
+    });
+});
+
+// ------------------------------------------------------------------------------------------ colour-blind reading
+
+// The simulation, the thresholds and their method are shared with Daybreak's test (test/colour-vision.ts).
+
+describe('the Pigment series can be told apart without colour, and none reads as a warning', () => {
+    const series = (theme: Theme, count: number) => Array.from({ length: count }, (_, i) => role(theme, `series-${i + 1}`));
+    const names = ['iris', 'deep green', 'ochre', 'orchid', 'warm dark neutral', 'teal'];
+
+    it('has no red, and keeps every series a clear distance from the danger colour in hue and in colour', () => {
+        const bad = role('pigment', 'bad');
+        series('pigment', 6).forEach((colour, index) => {
+            const { saturation } = hueAndSaturation(colour);
+            expect(deltaE(colour, bad), `${names[index]} ${colour} against bad ${bad}`).toBeGreaterThanOrEqual(DANGER_DELTA_E);
+            if (saturation >= 0.2) expect(hueDistance(colour, bad), `${names[index]} hue`).toBeGreaterThanOrEqual(DANGER_HUE);
+        });
+        // the tomato and coral pigments are identity colours, never a series
+        for (const pigment of ['tomato']) expect(series('pigment', 6)).not.toContain(colour('pigment', `--app-pig-${pigment}`));
+        expect(series('pigment', 6)).not.toContain(role('pigment', 'attention'));
+    });
+
+    it('gives neighbouring series different lightness, not only a different hue (series 1 to 5, one per answer)', () => {
+        const five = series('pigment', 5);
+        for (let i = 0; i + 1 < five.length; i++) expect(contrast(five[i], five[i + 1]), `series ${i + 1} and ${i + 2}`).toBeGreaterThanOrEqual(NEIGHBOUR_LUMINANCE);
+        for (let i = 0; i + 2 < five.length; i++) expect(contrast(five[i], five[i + 2]), `series ${i + 1} and ${i + 3}`).toBeGreaterThanOrEqual(SECOND_NEIGHBOUR_LUMINANCE);
+        // the sixth, used only by the sixth slice of a donut, still differs from the fifth in lightness
+        expect(contrast(role('pigment', 'series-5'), role('pigment', 'series-6'))).toBeGreaterThanOrEqual(NEIGHBOUR_LUMINANCE);
+    });
+
+    it.each([
+        ['deuteranopia', DEUTERANOPIA],
+        ['protanopia', PROTANOPIA]
+    ])('keeps series 1 to 5 apart for %s (CIE76 ΔE at least 40 between neighbours and second neighbours)', (_, matrix) => {
+        const five = series('pigment', 5);
+        for (let i = 0; i + 1 < five.length; i++) expect(deltaE(five[i], five[i + 1], matrix), `series ${i + 1} and ${i + 2}`).toBeGreaterThanOrEqual(SIMULATED_DELTA_E);
+        for (let i = 0; i + 2 < five.length; i++) expect(deltaE(five[i], five[i + 2], matrix), `series ${i + 1} and ${i + 3}`).toBeGreaterThanOrEqual(SIMULATED_DELTA_E);
+    });
+
+    it.each([
+        ['deuteranopia', DEUTERANOPIA],
+        ['protanopia', PROTANOPIA]
+    ])('keeps the sixth series from the fifth for %s (ΔE at least 25: the sixth slice of a donut also has a pattern and a label)', (_, matrix) => {
+        expect(deltaE(role('pigment', 'series-5'), role('pigment', 'series-6'), matrix)).toBeGreaterThanOrEqual(25);
+    });
+
+    it('draws every series at least 3:1 on a white card, and series 1 to 5 on a bar track too, so a bar is not only told by colour', () => {
+        series('pigment', 6).forEach((colour, index) => expect(contrast(colour, role('pigment', 'surface')), names[index]).toBeGreaterThanOrEqual(3));
+        series('pigment', 5).forEach((colour, index) => expect(contrast(colour, role('pigment', 'sunken')), `${names[index]} on the track`).toBeGreaterThanOrEqual(3));
+    });
+
+    it('simulates a known pair correctly (the old red and green of Pigment are confusable, iris and ochre are not)', () => {
+        expect(deltaE('#D44A33', '#0E8C6A', DEUTERANOPIA)).toBeLessThan(60);
+        expect(deltaE('#4B35DB', '#AD6E00', DEUTERANOPIA)).toBeGreaterThan(100);
+        expect(deltaE('#FFFFFF', '#FFFFFF', DEUTERANOPIA)).toBeLessThan(0.5);
+    });
+});
+
+describe('Daybreak\'s six series, held to the same simulation', () => {
+    const daybreak = Array.from({ length: 6 }, (_, i) => role('daybreak', `series-${i + 1}`));
+
+    it('are each at least 3:1 on a white card', () => {
+        daybreak.forEach((colour) => expect(contrast(colour, role('daybreak', 'surface'))).toBeGreaterThanOrEqual(3));
+    });
+
+    it('keep series 2 and 4 apart for deuteranopia', () => {
+        expect(deltaE(daybreak[1], daybreak[3], DEUTERANOPIA)).toBeGreaterThanOrEqual(SIMULATED_DELTA_E);
+    });
+
+    it('keep every series a clear distance from the danger colour', () => {
+        const bad = role('daybreak', 'bad');
+        daybreak.forEach((colour) => expect(deltaE(colour, bad)).toBeGreaterThanOrEqual(DANGER_DELTA_E));
     });
 });
 

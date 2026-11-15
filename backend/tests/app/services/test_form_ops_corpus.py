@@ -151,6 +151,10 @@ def test_case(case, monkeypatch):
         settings, "LAYOUT_CONTAINERS_ENABLED", case.get("layoutContainers", True)
     )
     monkeypatch.setattr(settings, "CHOICE_LOGIC_ENABLED", True)
+    # the Daybreak preset's switch, on unless a case says so
+    monkeypatch.setattr(
+        settings, "DAYBREAK_PRESET_ENABLED", case.get("daybreakPreset", True)
+    )
     run_case(case, _corpus()["forms"])
 
 
