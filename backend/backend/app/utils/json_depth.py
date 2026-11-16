@@ -65,6 +65,57 @@ def too_deep(raw: Union[bytes, bytearray, str], limit: int = MAX_JSON_DEPTH) -> 
     return False
 
 
+_OUTSIDE = re.compile(rb'["\[\]{}]')
+_INSIDE = re.compile(rb'[^"\\]*+(?:\\.[^"\\]*+)*+', re.DOTALL)
+
+
+class DepthScanner:
+    """The same scan for a body that arrives in pieces: ``feed`` each piece in
+    order, and it says as soon as the nesting passes the limit. Keeps only a
+    counter and whether it is inside a string (or just after the backslash
+    that ends a piece), so a body of any size costs no memory here."""
+
+    def __init__(self, limit: int = MAX_JSON_DEPTH) -> None:
+        self.limit = limit
+        self.depth = 0
+        self.in_string = False
+        self.escaped = False  # the last piece ended on a backslash inside a string
+
+    def feed(self, chunk: Union[bytes, bytearray]) -> bool:
+        """Whether the body so far nests deeper than the limit."""
+        pos, end = 0, len(chunk)
+        while pos < end:
+            if self.in_string:
+                if self.escaped:
+                    self.escaped = False
+                    pos += 1
+                    continue
+                pos = _INSIDE.match(chunk, pos).end()
+                if pos >= end:
+                    break
+                if chunk[pos] == 0x22:  # the closing quote
+                    self.in_string = False
+                    pos += 1
+                else:  # a backslash with nothing after it in this piece
+                    self.escaped = True
+                    pos += 1
+                continue
+            found = _OUTSIDE.search(chunk, pos)
+            if found is None:
+                break
+            pos = found.end()
+            char = chunk[found.start()]
+            if char == 0x22:
+                self.in_string = True
+            elif char in (0x5B, 0x7B):
+                self.depth += 1
+                if self.depth > self.limit:
+                    return True
+            elif self.depth:
+                self.depth -= 1
+        return False
+
+
 def body_too_deep() -> HTTPException:
     """The refusal, 422 like the other answers to a body that cannot be
     parsed (``{"code", "message"}``, which both error shapes of the API

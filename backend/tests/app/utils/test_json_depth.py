@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from backend.app.exceptions import HTTPException
-from backend.app.utils.json_depth import MAX_JSON_DEPTH, loads, too_deep
+from backend.app.utils.json_depth import MAX_JSON_DEPTH, DepthScanner, loads, too_deep
 from backend.app.services.ai.ops import TITLE_JSON_MAX_DEPTH
 from backend.app.services.form_spec.service import parse_json_document
 from backend.app.services.idempotency import request_hash
@@ -155,6 +155,60 @@ def test_a_body_with_fewer_openers_than_the_limit_is_not_scanned_at_all():
     # (the count is a shortcut: the answer is the same as the full scan's)
     assert both(json.dumps({"a": [1, 2, 3]})) is False
     assert both("[" * LIMIT) is False
+
+
+# -- the scan of a body that arrives in pieces -----------------------------------------
+
+
+def scan_in_pieces(data: bytes, cuts, limit: int = LIMIT) -> bool:
+    scanner, previous = DepthScanner(limit), 0
+    for cut in sorted(cuts) + [len(data)]:
+        if scanner.feed(data[previous:cut]):
+            return True
+        previous = cut
+    return False
+
+
+@pytest.mark.parametrize("shape", [arrays, objects, mixed])
+def test_pieces_of_any_size_give_the_answer_of_the_whole(shape):
+    for levels in (LIMIT - 1, LIMIT, LIMIT + 1, 5000):
+        data = shape(levels).encode()
+        expected = levels > LIMIT
+        assert scan_in_pieces(data, []) is expected
+        assert scan_in_pieces(data, range(len(data))) is expected  # one byte at a time
+        assert scan_in_pieces(data, range(0, len(data), 7)) is expected
+
+
+def test_a_piece_may_end_inside_an_escape_or_a_string():
+    # the cut falls between a backslash and the quote it escapes
+    data = b'["\\"' + b"[" * 200 + b'"]'
+    for cut in range(len(data) + 1):
+        assert scan_in_pieces(data, [cut]) is too_deep(data)
+    data = b'["a\\\"b"' + b"[" * 200 + b"]"
+    for cut in range(len(data) + 1):
+        assert scan_in_pieces(data, [cut]) is too_deep(data)
+
+
+def test_pieces_agree_with_the_whole_on_random_text():
+    import random
+
+    rng = random.Random(7)
+    parts = [b"[", b"]", b"{", b"}", b'"', b"\\", b"a", b" ", b"[[[[", b"]]]]", b'\\"', b'"[', b":"]
+    for _ in range(3000):
+        data = b"".join(rng.choice(parts) for _ in range(rng.randint(0, 60)))
+        limit = rng.randint(1, 6)
+        cuts = [rng.randint(0, len(data)) for _ in range(rng.randint(0, 5))]
+        expected = too_deep(data, limit)
+        assert scan_in_pieces(data, cuts, limit) is expected, (data, cuts, limit)
+        assert scan_in_pieces(data, range(len(data)), limit) is expected, (data, limit)
+
+
+def test_the_piece_scan_stops_at_the_first_byte_past_the_limit_and_keeps_no_body():
+    scanner = DepthScanner(LIMIT)
+    assert scanner.feed(b"[" * LIMIT) is False
+    assert scanner.feed(b" " * 3_000_000) is False  # padding costs a counter, not memory
+    assert scanner.feed(b"[") is True
+    assert vars(scanner).keys() == {"limit", "depth", "in_string", "escaped"}
 
 
 # -- the limit against what clients really send -------------------------------------

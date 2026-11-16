@@ -18,7 +18,7 @@ from httpx import AsyncClient
 
 from backend.app.container import container
 from backend.app.middlewares.json_depth import (
-    MAX_SCANNED_BYTES,
+    MAX_BUFFERED_BYTES,
     JsonDepthMiddleware,
 )
 from backend.app.utils.json_depth import MAX_JSON_DEPTH
@@ -217,27 +217,78 @@ async def test_an_empty_body_passes():
     assert (await harness.call([b""]))[0] == 200 and harness.seen == b""
 
 
-async def test_a_body_that_declares_more_than_the_cap_is_not_read_here():
-    """The route's own size limit answers (413) without the body being read
-    here first: it is handed on untouched."""
-    harness = Harness()
-    document = arrays(5000)
-    status, _ = await harness.call([document], length=MAX_SCANNED_BYTES + 1)
-    assert status == 200 and harness.seen == document
+PAD = b" " * (2 * MAX_BUFFERED_BYTES)
 
 
-async def test_a_chunked_body_past_the_cap_is_checked_up_to_the_cap_and_handed_on():
+async def test_a_body_that_declares_more_than_the_cap_is_scanned_as_it_is_read():
+    """Past the reading cap the pieces go straight on, each scanned: a shallow
+    one reaches the app unchanged, a deep one (before or after the padding) is
+    refused in place of whatever the app answers."""
     harness = Harness()
-    piece = b"[1]," * (MAX_SCANNED_BYTES // 8)
-    chunks = [b"[" + piece, piece, piece, b"0]"]
-    status, _ = await harness.call(chunks, length="chunked")
-    assert status == 200
-    assert harness.seen == b"".join(chunks)
-    # a deep start is still caught
+    shallow = arrays(LIMIT)
+    status, _ = await harness.call([shallow], length=MAX_BUFFERED_BYTES + 1)
+    assert status == 200 and harness.seen == shallow
+    for chunks in (
+        [arrays(LIMIT + 1)],  # deep, then nothing
+        [arrays(LIMIT + 1), PAD],  # deep prefix, then padding
+        [PAD, arrays(LIMIT + 1)],  # padding, then deep
+        [PAD, PAD, arrays(LIMIT + 1)],
+    ):
+        harness = Harness()
+        status, body = await harness.call(chunks, length=MAX_BUFFERED_BYTES + 1)
+        assert status == 422 and json.loads(body)["code"] == "body_too_deep"
+
+
+async def test_a_route_that_answers_before_reading_keeps_its_answer():
+    """A route's own 413 on a declared size comes before any body is read:
+    nothing was scanned, nothing replaces it."""
+
+    async def refuses(scope, receive, send):
+        await send({"type": "http.response.start", "status": 413, "headers": []})
+        await send({"type": "http.response.body", "body": b"too large"})
+
+    sent = []
+
+    async def send(message):
+        sent.append(message)
+
+    scope = {
+        "type": "http", "method": "POST", "path": "/x",
+        "headers": [(b"content-type", b"application/json"),
+                    (b"content-length", str(len(PAD)).encode())],
+    }
+
+    async def receive():
+        raise AssertionError("the body was read")
+
+    await JsonDepthMiddleware(refuses)(scope, receive, send)
+    assert [m.get("status") for m in sent if m["type"] == "http.response.start"] == [413]
+
+
+async def test_a_chunked_body_past_the_cap_is_scanned_all_the_way():
+    piece = b"[1]," * (MAX_BUFFERED_BYTES // 8)
+    shallow = [b"[" + piece, piece, piece, b"0]"]
     harness = Harness()
-    status, _ = await harness.call([arrays(LIMIT + 1) + b" " * 10, piece, piece, piece],
-                                   length="chunked")
+    status, _ = await harness.call(shallow, length="chunked")
+    assert status == 200 and harness.seen == b"".join(shallow)
+    # a deep start is refused without reading on
+    harness = Harness()
+    status, _ = await harness.call([arrays(LIMIT + 1) + b" " * 10, piece, piece, piece], length="chunked")
     assert status == 422 and harness.seen is None
+    # a deep end, after more than the cap of padding, in the pieces the app reads on its own
+    for tail in (arrays(LIMIT + 1), b'"' + b"x" * 100 + b'"' + arrays(LIMIT + 1)):
+        harness = Harness()
+        status, body = await harness.call([PAD, PAD, tail], length="chunked")
+        assert status == 422 and json.loads(body)["code"] == "body_too_deep"
+        assert harness.messages[-1] == "http.disconnect"
+
+
+async def test_a_deep_body_split_across_the_cap_and_a_string_is_still_found():
+    harness = Harness()
+    # the cap falls inside a string that holds brackets, the nesting follows it
+    chunks = [b'["' + b"[" * (MAX_BUFFERED_BYTES + 10) + b"\\", b'"', b'"' + b"[" * (LIMIT + 1)]
+    status, _ = await harness.call(chunks, length="chunked")
+    assert status == 422
 
 
 async def test_the_mcp_endpoint_gets_its_own_error_key():
@@ -319,6 +370,95 @@ class TestPublicApi:
         token = await _token(workspace.id)
         response = await client.post(
             f"{BASE}/forms", json=SPEC, headers=_auth(token, **{"Idempotency-Key": "fine"})
+        )
+        assert response.status_code == 201, response.text
+
+
+# -- a body padded past the reading cap ----------------------------------------------
+
+DEEP = arrays(LIMIT + 1)
+PADDING = b" " * (2 * MAX_BUFFERED_BYTES)
+LONG_STRING = b'"' + b"x" * (2 * MAX_BUFFERED_BYTES) + b'"'
+
+# (name, the body): the nesting before the padding, after it, behind a long string
+PADDED = {
+    "deep then padding": DEEP + PADDING,
+    "padding then deep": PADDING + DEEP,
+    "deep object then a long string": b'{"deep":' + DEEP + b',"pad":' + LONG_STRING + b"}",
+    "a long string then the deep object": b'{"pad":' + LONG_STRING + b',"deep":' + DEEP + b"}",
+}
+
+
+async def pieces(body: bytes, size: int = 256 * 1024):
+    for start in range(0, len(body), size):
+        yield body[start : start + size]
+
+
+class TestPaddedBodies:
+    """A body over 1 MiB used to pass the scan untouched: a few KB of nesting
+    plus padding reached the parser."""
+
+    @pytest.mark.parametrize("name", PADDED)
+    @pytest.mark.parametrize("chunked", [False, True])
+    async def test_the_main_api_refuses_it(
+        self, client: AsyncClient, workspace, directory, name, chunked
+    ):
+        body = PADDED[name]
+        response = await client.post(
+            f"/api/v1/workspaces/{workspace.id}/scim/resync",
+            content=pieces(body) if chunked else body,
+            headers=JSON,
+            cookies=OWNER,
+        )
+        refused(response)
+
+    @pytest.mark.parametrize("name", PADDED)
+    async def test_the_public_api_refuses_a_chunked_body_with_the_deep_part_in_the_first_mib(
+        self, client: AsyncClient, workspace, name
+    ):
+        """No Content-Length: the first MiB is read and scanned before the
+        route runs."""
+        if not PADDED[name].startswith((b"{\"deep", b"[")):
+            pytest.skip("the nesting comes after the first MiB: see the next test")
+        token = await _token(workspace.id)
+        for key in (None, "padded"):
+            headers = _auth(token, **JSON, **({"Idempotency-Key": key} if key else {}))
+            response = await client.post(
+                f"{BASE}/forms", content=pieces(PADDED[name]), headers=headers
+            )
+            _is_error(response, 422, "body_too_deep")
+
+    @pytest.mark.parametrize("name", PADDED)
+    @pytest.mark.parametrize("chunked", [False, True])
+    async def test_the_public_api_keeps_its_own_size_limit_whatever_the_nesting(
+        self, client: AsyncClient, workspace, name, chunked
+    ):
+        """Its readers stop at 1 MiB with a 413 before any parse (on the
+        declared length, or on the running total of a chunked body), so a
+        body over that is a 413, never a 500, whether or not it is deep."""
+        token = await _token(workspace.id)
+        body = PADDED[name]
+        response = await client.post(
+            f"{BASE}/forms",
+            content=pieces(body) if chunked else body,
+            headers=_auth(token, **JSON, **{"Idempotency-Key": f"big-{name}-{chunked}"}),
+        )
+        if response.status_code == 422:  # (the deep part was in the first MiB)
+            _is_error(response, 422, "body_too_deep")
+        else:
+            _is_error(response, 413, "payload_too_large")
+
+    async def test_a_big_body_that_is_not_deep_is_still_a_413_and_a_small_one_still_works(
+        self, client: AsyncClient, workspace
+    ):
+        token = await _token(workspace.id)
+        padded = b'{"pad":' + LONG_STRING + b"}"
+        response = await client.post(
+            f"{BASE}/forms", content=padded, headers=_auth(token, **JSON)
+        )
+        _is_error(response, 413, "payload_too_large")
+        response = await client.post(
+            f"{BASE}/forms", json=SPEC, headers=_auth(token, **{"Idempotency-Key": "ok"})
         )
         assert response.status_code == 201, response.text
 
