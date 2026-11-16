@@ -667,7 +667,11 @@ def loads_vectors() -> list:
     Python raises ``ValueError``; ``rust_declines`` marks what Python reads and
     the Rust reader leaves to the raw-bytes fallback."""
     bodies = [t.encode() for t in NUMBER_BODIES]
-    bodies += [b"\xef\xbb\xbf{}", b"\xef\xbb\xbf", b"\xff\xfe", b"\xfe\xff", b'{"a":"\xff"}', b"\xc3\xa9", "[1]".encode("utf-16"), "[1]".encode("utf-16-le"), "[1]".encode("utf-32"), b"[" * 600 + b"]" * 600]
+    bodies += [b"\xef\xbb\xbf{}", b"\xef\xbb\xbf", b"\xff\xfe", b"\xfe\xff", b'{"a":"\xff"}', b"\xc3\xa9", "[1]".encode("utf-16"), "[1]".encode("utf-16-le"), "[1]".encode("utf-32"), b"[" * 600 + b"]" * 600,
+        b"[" * 9998 + b"]" * 9998, b"[" * 9999 + b"]" * 9999,
+        b'{"a":' * 9998 + b"1" + b"}" * 9998, b'{"a":' * 9999 + b"1" + b"}" * 9999,
+        b"[" * 9997 + b'{"a":[]}' + b"]" * 9997, b"[" * 9998 + b'{}' + b"]" * 9998,
+    ]
     out = []
     for body in bodies:
         try:
@@ -677,7 +681,7 @@ def loads_vectors() -> list:
         except RecursionError:
             expect = None
         encoding_declined = body[:2] in (b"\xff\xfe", b"\xfe\xff") or (len(body) > 1 and (body[0] == 0 or body[1] == 0)) and True
-        deep = body.count(b"[") > 500
+        deep = False  # Rust reads to the same depth limit as Python
         out.append({"body_b64": b64(body), "expect": expect, "rust_declines": bool(expect is not None and (encoding_declined or deep))})
     return out
 

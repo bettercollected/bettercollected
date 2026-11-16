@@ -170,15 +170,20 @@ pub fn scim_event_key(
     timestamp_ms: i64,
     index: i64,
 ) -> String {
-    use pyjson::Json;
-    let list = Json::Array(vec![
-        Json::str(directory_id),
-        event.get("event").cloned().unwrap_or(Json::Null),
-        event.get("data").cloned().unwrap_or(Json::Null),
-        Json::Int(timestamp_ms.to_string()),
-        Json::Int(index.to_string()),
-    ]);
-    sha256_hex(list.canonical().as_bytes())
+    // the canonical text of the list, written from the canonical text of its
+    // parts (no copy of the event, which may be nested to the parser's limit)
+    let part = |name: &str| {
+        event
+            .get(name)
+            .map_or_else(|| "null".to_string(), pyjson::Json::canonical)
+    };
+    let text = format!(
+        "[{},{},{},{timestamp_ms},{index}]",
+        pyjson::quote(directory_id),
+        part("event"),
+        part("data")
+    );
+    sha256_hex(text.as_bytes())
 }
 
 /// The component id of an Open Formulieren export: `e` + 6 hex characters of

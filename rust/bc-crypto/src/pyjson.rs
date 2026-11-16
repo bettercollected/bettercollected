@@ -17,10 +17,14 @@
 //! - a repeated key keeps its first position with its last value;
 //! - the input is UTF-8, a leading byte order mark is skipped.
 //!
-//! What it refuses where Python reads: a UTF-16 or UTF-32 body, and nesting
-//! deeper than 500 levels (Python raises `RecursionError` at about a thousand).
-//! A caller that gets `None` hashes the raw bytes, as `request_hash` does when
-//! Python's parser raises `ValueError`.
+//! What it refuses where Python reads: a UTF-16 or UTF-32 body. Nesting is
+//! limited as Python 3.13's C scanner limits it ([`MAX_DEPTH`], 9998 levels,
+//! where Python raises `RecursionError`, which is not a `ValueError`). A caller
+//! that gets `None` hashes the raw bytes, as `request_hash` does when Python's
+//! parser raises `ValueError`. Reading, writing and dropping a value never
+//! recurse, so a body nested to the limit cannot overflow the stack, and no
+//! step is slower than linear in the body (an object with many keys uses a
+//! keyed hash index for repeated keys, not a scan).
 //!
 //! Output is ASCII only (`ensure_ascii`), with either the default separators
 //! (`", "`, `": "`) or the compact ones, keys in insertion order or sorted by
@@ -60,14 +64,17 @@ pub const CANONICAL: Options = Options {
     compact: true,
 };
 
-/// The deepest nesting [`parse`] reads.
-pub const MAX_DEPTH: usize = 500;
+/// The deepest nesting [`parse`] reads: what `json.loads` of Python 3.13
+/// reads (measured: 9998 nested arrays or objects parse, 9999 raise
+/// `RecursionError`; the limit is the C recursion limit of the interpreter, so
+/// it is a property of the Python version the backend runs on).
+pub const MAX_DEPTH: usize = 9998;
 /// Python 3.11+ `int()` refuses a decimal string longer than this.
 const MAX_INT_DIGITS: usize = 4300;
 
 /// A Python JSON value. A string is a list of code points (a lone surrogate
 /// is one, as in a Python `str`).
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Json {
     Null,
     Bool(bool),
@@ -130,46 +137,84 @@ impl Json {
         self.dumps(CANONICAL)
     }
 
+    /// Writes the value with an explicit work list, not recursion.
     fn write(&self, options: Options, out: &mut String) {
+        enum Task<'a> {
+            Value(&'a Json),
+            Text(&'static str),
+            Key(&'a [u32]),
+        }
         let (item, key) = if options.compact {
             (",", ":")
         } else {
             (", ", ": ")
         };
-        match self {
-            Json::Null => out.push_str("null"),
-            Json::Bool(true) => out.push_str("true"),
-            Json::Bool(false) => out.push_str("false"),
-            Json::Int(digits) => out.push_str(digits),
-            Json::Float(f) => out.push_str(&float_repr(*f)),
-            Json::Str(chars) => code_points(chars, out),
-            Json::Array(items) => {
-                out.push('[');
-                for (i, v) in items.iter().enumerate() {
-                    if i > 0 {
-                        out.push_str(item);
+        let mut work = vec![Task::Value(self)];
+        while let Some(task) = work.pop() {
+            let value = match task {
+                Task::Text(text) => {
+                    out.push_str(text);
+                    continue;
+                }
+                Task::Key(points) => {
+                    code_points(points, out);
+                    continue;
+                }
+                Task::Value(value) => value,
+            };
+            match value {
+                Json::Null => out.push_str("null"),
+                Json::Bool(true) => out.push_str("true"),
+                Json::Bool(false) => out.push_str("false"),
+                Json::Int(digits) => out.push_str(digits),
+                Json::Float(f) => out.push_str(&float_repr(*f)),
+                Json::Str(chars) => code_points(chars, out),
+                Json::Array(items) => {
+                    out.push('[');
+                    work.push(Task::Text("]"));
+                    for (i, v) in items.iter().enumerate().rev() {
+                        work.push(Task::Value(v));
+                        if i > 0 {
+                            work.push(Task::Text(item));
+                        }
                     }
-                    v.write(options, out);
                 }
-                out.push(']');
-            }
-            Json::Object(entries) => {
-                out.push('{');
-                let mut order: Vec<&(Vec<u32>, Json)> = entries.iter().collect();
-                if options.sort_keys {
-                    // code point order, as Python sorts `str`
-                    order.sort_by(|a, b| a.0.cmp(&b.0));
-                }
-                for (i, (k, v)) in order.into_iter().enumerate() {
-                    if i > 0 {
-                        out.push_str(item);
+                Json::Object(entries) => {
+                    out.push('{');
+                    work.push(Task::Text("}"));
+                    let mut order: Vec<&(Vec<u32>, Json)> = entries.iter().collect();
+                    if options.sort_keys {
+                        // code point order, as Python sorts `str`
+                        order.sort_by(|a, b| a.0.cmp(&b.0));
                     }
-                    code_points(k, out);
-                    out.push_str(key);
-                    v.write(options, out);
+                    for (i, (k, v)) in order.into_iter().enumerate().rev() {
+                        work.push(Task::Value(v));
+                        work.push(Task::Text(key));
+                        work.push(Task::Key(k));
+                        if i > 0 {
+                            work.push(Task::Text(item));
+                        }
+                    }
                 }
-                out.push('}');
             }
+        }
+    }
+}
+
+/// A value nested to the depth limit is dropped without recursing.
+impl Drop for Json {
+    fn drop(&mut self) {
+        fn children(value: &mut Json, into: &mut Vec<Json>) {
+            match value {
+                Json::Array(items) => into.append(items),
+                Json::Object(entries) => into.extend(entries.drain(..).map(|(_, v)| v)),
+                _ => {}
+            }
+        }
+        let mut pending = Vec::new();
+        children(self, &mut pending);
+        while let Some(mut value) = pending.pop() {
+            children(&mut value, &mut pending);
         }
     }
 }
@@ -284,9 +329,66 @@ pub fn parse(body: &[u8]) -> Option<Json> {
         at: 0,
     };
     parser.skip_ws();
-    let value = parser.value(0)?;
+    let value = parser.value()?;
     parser.skip_ws();
     (parser.at == parser.text.len()).then_some(value)
+}
+
+/// A container being read.
+enum Frame {
+    Array(Vec<Json>),
+    /// The members so far and the name whose value is being read.
+    Object(ObjectBuilder, Option<Vec<u32>>),
+}
+
+/// The members of an object under construction: a repeated name keeps its
+/// first place and takes its last value. A small object is searched; a large
+/// one is indexed by a hash map with the standard library's keyed hasher
+/// (`RandomState`), so reading is linear in the body and a crafted set of keys
+/// cannot force collisions.
+struct ObjectBuilder {
+    entries: Vec<(Vec<u32>, Json)>,
+    index: Option<std::collections::HashMap<Vec<u32>, usize>>,
+}
+
+/// Members searched one by one before an index is built.
+const SCAN_LIMIT: usize = 8;
+
+impl ObjectBuilder {
+    fn new() -> ObjectBuilder {
+        ObjectBuilder {
+            entries: Vec::new(),
+            index: None,
+        }
+    }
+
+    fn insert(&mut self, key: Vec<u32>, value: Json) {
+        let position = match &self.index {
+            Some(index) => index.get(&key).copied(),
+            None => self.entries.iter().position(|(k, _)| *k == key),
+        };
+        if let Some(position) = position {
+            self.entries[position].1 = value;
+            return;
+        }
+        if let Some(index) = &mut self.index {
+            index.insert(key.clone(), self.entries.len());
+        } else if self.entries.len() >= SCAN_LIMIT {
+            let mut index: std::collections::HashMap<Vec<u32>, usize> = self
+                .entries
+                .iter()
+                .enumerate()
+                .map(|(i, (k, _))| (k.clone(), i))
+                .collect();
+            index.insert(key.clone(), self.entries.len());
+            self.index = Some(index);
+        }
+        self.entries.push((key, value));
+    }
+
+    fn into_entries(self) -> Vec<(Vec<u32>, Json)> {
+        self.entries
+    }
 }
 
 struct Parser<'a> {
@@ -315,14 +417,10 @@ impl Parser<'_> {
         }
     }
 
-    fn value(&mut self, depth: usize) -> Option<Json> {
-        if depth > MAX_DEPTH {
-            return None;
-        }
+    /// One scalar, or `None`. A container start is not handled here.
+    fn scalar(&mut self) -> Option<Json> {
         match self.peek()? {
             b'"' => self.string().map(Json::Str),
-            b'{' => self.object(depth),
-            b'[' => self.array(depth),
             b'n' => self.eat(b"null").then_some(Json::Null),
             b't' => self.eat(b"true").then_some(Json::Bool(true)),
             b'f' => self.eat(b"false").then_some(Json::Bool(false)),
@@ -335,6 +433,105 @@ impl Parser<'_> {
             b'-' | b'0'..=b'9' => self.number(),
             _ => None,
         }
+    }
+
+    /// A value, with an explicit stack of the containers being read.
+    fn value(&mut self) -> Option<Json> {
+        let mut stack: Vec<Frame> = Vec::new();
+        loop {
+            self.skip_ws();
+            let mut done = match self.peek()? {
+                b'[' => {
+                    self.at += 1;
+                    if stack.len() >= MAX_DEPTH {
+                        return None;
+                    }
+                    self.skip_ws();
+                    if self.peek() == Some(b']') {
+                        self.at += 1;
+                        Json::Array(Vec::new())
+                    } else {
+                        stack.push(Frame::Array(Vec::new()));
+                        continue;
+                    }
+                }
+                b'{' => {
+                    self.at += 1;
+                    if stack.len() >= MAX_DEPTH {
+                        return None;
+                    }
+                    self.skip_ws();
+                    if self.peek() == Some(b'}') {
+                        self.at += 1;
+                        Json::Object(Vec::new())
+                    } else {
+                        let key = self.member_key()?;
+                        stack.push(Frame::Object(ObjectBuilder::new(), Some(key)));
+                        continue;
+                    }
+                }
+                _ => self.scalar()?,
+            };
+            // attach the finished value to its parent, closing what it ends
+            loop {
+                match stack.last_mut() {
+                    None => return Some(done),
+                    Some(Frame::Array(items)) => {
+                        items.push(done);
+                        self.skip_ws();
+                        match self.peek()? {
+                            b',' => {
+                                self.at += 1;
+                                break;
+                            }
+                            b']' => {
+                                self.at += 1;
+                                let Some(Frame::Array(items)) = stack.pop() else {
+                                    return None;
+                                };
+                                done = Json::Array(items);
+                            }
+                            _ => return None,
+                        }
+                    }
+                    Some(Frame::Object(members, key)) => {
+                        members.insert(key.take()?, done);
+                        self.skip_ws();
+                        match self.peek()? {
+                            b',' => {
+                                self.at += 1;
+                                self.skip_ws();
+                                *key = Some(self.member_key()?);
+                                break;
+                            }
+                            b'}' => {
+                                self.at += 1;
+                                let Some(Frame::Object(members, _)) = stack.pop() else {
+                                    return None;
+                                };
+                                done = Json::Object(members.into_entries());
+                            }
+                            _ => return None,
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// A member name and its colon.
+    fn member_key(&mut self) -> Option<Vec<u32>> {
+        self.skip_ws();
+        if self.peek()? != b'"' {
+            return None;
+        }
+        let key = self.string()?;
+        self.skip_ws();
+        if self.peek()? != b':' {
+            return None;
+        }
+        self.at += 1;
+        Some(key)
     }
 
     fn number(&mut self) -> Option<Json> {
@@ -455,66 +652,6 @@ impl Parser<'_> {
                     self.at += c.len_utf8();
                     out.push(u32::from(c));
                 }
-            }
-        }
-    }
-
-    fn array(&mut self, depth: usize) -> Option<Json> {
-        self.at += 1;
-        let mut items = Vec::new();
-        self.skip_ws();
-        if self.peek() == Some(b']') {
-            self.at += 1;
-            return Some(Json::Array(items));
-        }
-        loop {
-            self.skip_ws();
-            items.push(self.value(depth + 1)?);
-            self.skip_ws();
-            match self.peek()? {
-                b',' => self.at += 1,
-                b']' => {
-                    self.at += 1;
-                    return Some(Json::Array(items));
-                }
-                _ => return None,
-            }
-        }
-    }
-
-    fn object(&mut self, depth: usize) -> Option<Json> {
-        self.at += 1;
-        let mut entries: Vec<(Vec<u32>, Json)> = Vec::new();
-        self.skip_ws();
-        if self.peek() == Some(b'}') {
-            self.at += 1;
-            return Some(Json::Object(entries));
-        }
-        loop {
-            self.skip_ws();
-            if self.peek()? != b'"' {
-                return None;
-            }
-            let key = self.string()?;
-            self.skip_ws();
-            if self.peek()? != b':' {
-                return None;
-            }
-            self.at += 1;
-            self.skip_ws();
-            let value = self.value(depth + 1)?;
-            match entries.iter_mut().find(|(k, _)| *k == key) {
-                Some(slot) => slot.1 = value, // a repeated key: first place, last value
-                None => entries.push((key, value)),
-            }
-            self.skip_ws();
-            match self.peek()? {
-                b',' => self.at += 1,
-                b'}' => {
-                    self.at += 1;
-                    return Some(Json::Object(entries));
-                }
-                _ => return None,
             }
         }
     }

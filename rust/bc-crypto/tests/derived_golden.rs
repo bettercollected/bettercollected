@@ -813,7 +813,7 @@ fn json_bodies_are_read_and_written_as_python_does() {
     );
     // a deep but legal nesting must not overflow the stack
     let deep = format!("{}{}", "[".repeat(5000), "]".repeat(5000));
-    assert!(pyjson::parse(deep.as_bytes()).is_none());
+    assert!(pyjson::parse(deep.as_bytes()).is_some());
     assert_eq!(pyjson::parse(b"[[1]]").unwrap().canonical(), "[[1]]");
     assert!(
         pyjson::parse(br#"{"a":[1,{"b":null}]}"#)
@@ -821,6 +821,103 @@ fn json_bodies_are_read_and_written_as_python_does() {
             .get("a")
             .is_some()
     );
+}
+
+/// How long a thing takes, for the bounds below.
+fn timed<T>(work: impl FnOnce() -> T) -> (T, std::time::Duration) {
+    let start = std::time::Instant::now();
+    let out = work();
+    (out, start.elapsed())
+}
+
+/// Bound for the many-keys bodies, chosen from measurements in the unoptimised
+/// test profile (the profile CI runs): 80,000 distinct keys read in about 0.26 s
+/// with the hash index and in about 44 s when the keys seen so far are scanned
+/// (3.2 billion comparisons; the `--nocapture` lines print the figure). Four
+/// seconds is 15 times the linear time, so a loaded shared runner that is several
+/// times slower still passes, and a tenth of the quadratic time, so the scan
+/// cannot.
+const MANY_KEYS_BOUND: std::time::Duration = std::time::Duration::from_secs(4);
+
+#[test]
+fn a_body_with_many_keys_is_read_in_linear_time() {
+    // 80,000 distinct keys (about 850 KB)
+    let distinct = {
+        let members: Vec<String> = (0..80_000).map(|i| format!("\"key{i}\":{i}")).collect();
+        format!("{{{}}}", members.join(","))
+    };
+    let (hash, took) = timed(|| ids::request_hash("POST", "/x", distinct.as_bytes(), &[]));
+    eprintln!("80000 distinct keys: {took:?}");
+    assert!(took < MANY_KEYS_BOUND, "{took:?}");
+    assert_eq!(hash.len(), 64);
+    let parsed = pyjson::parse(distinct.as_bytes()).unwrap();
+    assert_eq!(
+        parsed
+            .get("key79999")
+            .map(pyjson::Json::canonical)
+            .as_deref(),
+        Some("79999")
+    );
+
+    // 80,000 repeats of one key: first place, last value
+    let repeats = {
+        let members: Vec<String> = (0..80_000).map(|i| format!("\"k\":{i}")).collect();
+        format!("{{\"first\":0,{}}}", members.join(","))
+    };
+    let (parsed, took) = timed(|| pyjson::parse(repeats.as_bytes()).unwrap());
+    eprintln!("80000 repeats of one key: {took:?}");
+    assert!(took < MANY_KEYS_BOUND, "{took:?}");
+    assert_eq!(parsed.canonical(), r#"{"first":0,"k":79999}"#);
+    assert_eq!(parsed.dumps(pyjson::COMPACT), r#"{"first":0,"k":79999}"#);
+
+    // distinct keys, each repeated once: 40,000 keys twice (80,000 members)
+    let pairs = {
+        let mut members: Vec<String> = (0..40_000).map(|i| format!("\"p{i}\":1")).collect();
+        members.extend((0..40_000).map(|i| format!("\"p{i}\":2")));
+        format!("{{{}}}", members.join(","))
+    };
+    let (parsed, took) = timed(|| pyjson::parse(pairs.as_bytes()).unwrap());
+    eprintln!("40000 keys twice: {took:?}");
+    assert!(took < MANY_KEYS_BOUND, "{took:?}");
+    assert_eq!(
+        parsed.get("p39999").map(pyjson::Json::canonical).as_deref(),
+        Some("2")
+    );
+
+    // a long array and a long string are linear too
+    let array = format!("[{}]", vec!["1"; 200_000].join(","));
+    let (_, took) = timed(|| pyjson::parse(array.as_bytes()).unwrap().canonical());
+    assert!(took < MANY_KEYS_BOUND, "{took:?}");
+    let long = format!("\"{}\"", "é".repeat(400_000));
+    let (_, took) = timed(|| pyjson::parse(long.as_bytes()).unwrap().canonical());
+    assert!(took < MANY_KEYS_BOUND, "{took:?}");
+}
+
+#[test]
+fn nesting_is_read_to_exactly_pythons_limit_without_recursion() {
+    assert_eq!(pyjson::MAX_DEPTH, 9998);
+    let nested = |n: usize| format!("{}{}", "[".repeat(n), "]".repeat(n));
+    let objects = |n: usize| format!("{}1{}", "{\"a\":".repeat(n), "}".repeat(n));
+    let limit = pyjson::MAX_DEPTH;
+    // the limit itself reads (and writes, and drops) on this test's small stack
+    let at = pyjson::parse(nested(limit).as_bytes()).unwrap();
+    assert_eq!(at.canonical(), nested(limit));
+    drop(at);
+    assert!(pyjson::parse(objects(limit).as_bytes()).is_some());
+    // one more level does not
+    assert!(pyjson::parse(nested(limit + 1).as_bytes()).is_none());
+    assert!(pyjson::parse(objects(limit + 1).as_bytes()).is_none());
+    // an empty container counts as a level too
+    assert!(
+        pyjson::parse(format!("{}[]{}", "[".repeat(limit - 1), "]".repeat(limit - 1)).as_bytes())
+            .is_some()
+    );
+    assert!(
+        pyjson::parse(format!("{}[]{}", "[".repeat(limit), "]".repeat(limit)).as_bytes()).is_none()
+    );
+    // unbalanced, and far too deep (no recursion to overflow)
+    assert!(pyjson::parse("[".repeat(1_000_000).as_bytes()).is_none());
+    assert!(pyjson::parse(nested(limit + 5000).as_bytes()).is_none());
 }
 
 #[test]
