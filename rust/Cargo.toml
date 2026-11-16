@@ -32,6 +32,8 @@ axum = { version = "0.8", default-features = false, features = ["http1", "json",
 base64 = "0.22"
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 hex = "0.4"
+hkdf = "0.12"
+hmac = "0.12"
 http-body-util = "0.1"
 hyper = { version = "1", default-features = false, features = ["http1", "client", "server"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy", "http1", "tokio"] }

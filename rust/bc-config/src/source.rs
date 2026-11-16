@@ -3,9 +3,9 @@
 //! The Python services resolve a setting as: a non-empty environment value,
 //! then the verified row of the settings store, then the code default. This
 //! module is the seam for that order. [`Settings`] holds layers, first one
-//! wins; only the environment layer exists. The settings-store reader will be
-//! another [`SettingsSource`] pushed after [`EnvSource`], so no reader of a
-//! single setting changes when it arrives.
+//! wins: [`EnvSource`], then [`StoreSource`] (the values the verified settings
+//! store holds, read once at start, see `crate::store`), so no reader of a single
+//! setting knows where its value came from.
 
 use std::collections::HashMap;
 use std::fmt;
@@ -16,6 +16,42 @@ use crate::ConfigError;
 pub trait SettingsSource: Send + Sync {
     /// The raw value of `name`, if this layer has one.
     fn get(&self, name: &str) -> Option<String>;
+
+    /// Whether [`Settings`] trims the value and removes one pair of quotes (what
+    /// an env file means), and counts an empty result as unset. True for values a
+    /// person typed into the environment; false for the settings store, whose
+    /// values the Python loader hands over as stored.
+    fn trims(&self) -> bool {
+        true
+    }
+}
+
+/// The values of the verified settings store, resolved once at start (a class R
+/// setting keeps its value until restart). Debug shows a count, never a value.
+pub struct StoreSource(HashMap<String, String>);
+
+impl StoreSource {
+    pub fn new(values: HashMap<String, String>) -> StoreSource {
+        StoreSource(values)
+    }
+}
+
+impl fmt::Debug for StoreSource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("StoreSource")
+            .field("values", &self.0.len())
+            .finish()
+    }
+}
+
+impl SettingsSource for StoreSource {
+    fn get(&self, name: &str) -> Option<String> {
+        self.0.get(name).cloned()
+    }
+
+    fn trims(&self) -> bool {
+        false
+    }
 }
 
 /// The process environment, read once.
@@ -123,9 +159,14 @@ impl Settings {
 
     /// The first layer's non-empty, normalised value.
     pub fn get(&self, name: &str) -> Option<String> {
-        self.layers
-            .iter()
-            .find_map(|layer| normalize(layer.get(name).as_deref()))
+        self.layers.iter().find_map(|layer| {
+            let raw = layer.get(name)?;
+            if layer.trims() {
+                normalize(Some(&raw))
+            } else {
+                Some(raw)
+            }
+        })
     }
 
     /// The first of several names that has a value (an alias list).
@@ -185,6 +226,51 @@ mod tests {
         ]);
         assert_eq!(settings.get("A").as_deref(), Some("from the second layer"));
         assert_eq!(settings.get("B"), None);
+    }
+
+    #[test]
+    fn a_store_value_is_not_trimmed_and_the_environment_wins_when_it_has_a_value() {
+        let store = |v: &str| {
+            Box::new(StoreSource::new(HashMap::from([(
+                "A".to_string(),
+                v.to_string(),
+            )]))) as Box<dyn SettingsSource>
+        };
+        let env = |v: &str| {
+            Box::new(Fixed("A", Box::leak(v.to_string().into_boxed_str())))
+                as Box<dyn SettingsSource>
+        };
+        // trimmed only when it comes from the environment
+        assert_eq!(
+            Settings::new(vec![store("  x  ")]).get("A").as_deref(),
+            Some("  x  ")
+        );
+        // an empty or quote-only environment value does not shadow the store
+        assert_eq!(
+            Settings::new(vec![env("\"\""), store("s")])
+                .get("A")
+                .as_deref(),
+            Some("s")
+        );
+        assert_eq!(
+            Settings::new(vec![env("  "), store("s")])
+                .get("A")
+                .as_deref(),
+            Some("s")
+        );
+        assert_eq!(
+            Settings::new(vec![env("e"), store("s")])
+                .get("A")
+                .as_deref(),
+            Some("e")
+        );
+        assert!(
+            !format!(
+                "{:?}",
+                StoreSource::new(HashMap::from([("A".into(), "secret".into())]))
+            )
+            .contains("secret")
+        );
     }
 
     #[test]

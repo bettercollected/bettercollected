@@ -183,9 +183,19 @@ dependencies = [
 name = "bc-config"
 version = "0.1.0"
 dependencies = [
+ "aes-gcm",
  "base64",
  "hex",
+ "hkdf",
+ "hmac",
+ "ipnet",
+ "serde",
+ "serde_json",
  "sha2",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

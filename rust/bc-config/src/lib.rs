@@ -3,12 +3,14 @@
 //!
 //! The pieces:
 //!
-//! * [`source`]: where a value comes from. Today only the process environment
-//!   ([`source::EnvSource`]); the settings store of the Python services (a
-//!   verified, signed row in the admin settings store, read after the
-//!   environment and before the default) plugs in as one more
-//!   [`source::SettingsSource`] layer of [`source::Settings`] without touching
-//!   any reader below it. It is not implemented here.
+//! * [`source`]: where a value comes from: the process environment, then the
+//!   settings store of the Python services ([`source::StoreSource`]), then the
+//!   caller's default. Layers of [`source::Settings`]; no reader below knows which
+//!   one answered.
+//! * [`store`]: the settings store reader: verified, signed rows of the admin
+//!   settings store (schema `settings`), secrets opened with keys derived from
+//!   `SETTINGS_MASTER_KEY`, exactly as `common/settings` does for the backend.
+//!   [`Config::load`] reads it at start; class H values stay readable live.
 //! * [`secrets`]: key rings and the refusal of unset or published secrets, the
 //!   rules of `common/configs/shipped_secrets.py` and
 //!   `common/settings/key_ring.py`.
@@ -25,14 +27,18 @@ pub mod flags;
 pub mod network;
 pub mod secrets;
 pub mod source;
+pub mod store;
 
+use std::collections::HashMap;
 use std::fmt;
+use std::sync::Arc;
 
 pub use edge::EdgeConfig;
 pub use flags::Flags;
 pub use network::NetworkConfig;
 pub use secrets::{KeyRing, Secret};
-pub use source::{EnvSource, MapSource, Settings, SettingsSource};
+pub use source::{EnvSource, MapSource, Settings, SettingsSource, StoreSource};
+pub use store::{StoreError, StoreRuntime};
 
 /// A configuration problem. The text names a variable, never a value.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -60,13 +66,10 @@ pub struct Config {
     pub flags: Flags,
     pub sso_enabled: bool,
     pub totp_enabled: bool,
-    /// Whether `SSO_ENABLED` and `TOTP_ENABLED` were BOTH set in the
-    /// environment (to any value the Python parser accepts). In the Python
-    /// backend these two switches are also read from the settings store, which
-    /// this service does not read yet: an unset one may be on in the store, and
-    /// a route group that depends on the policies they switch must then not be
-    /// served from here (see `bc_api::groups::Group::needs_policy_switches`).
-    pub policy_switches_explicit: bool,
+    /// The settings store this configuration was read with; `None` when the
+    /// store is off. Class H settings are read live through
+    /// [`StoreRuntime::live_value`].
+    pub store: Option<Arc<StoreRuntime>>,
     pub network: NetworkConfig,
     pub edge: EdgeConfig,
     pub bind: String,
@@ -79,7 +82,7 @@ impl fmt::Debug for Config {
         f.debug_struct("Config")
             .field("jwt_ring_members", &self.jwt_ring.len())
             .field("flags", &self.flags)
-            .field("policy_switches_explicit", &self.policy_switches_explicit)
+            .field("store", &self.store)
             .field("network", &self.network)
             .field("edge", &self.edge)
             .field("bind", &self.bind)
@@ -103,10 +106,54 @@ pub fn sqlx_url(url: &str) -> String {
     }
 }
 
+/// What the backend cannot start without when its store is `required` and empty
+/// (`backend/config/application.py`).
+pub const REQUIRED_ENV_KEYS: &[&str] = &["AUTH_JWT_SECRET", "AUTH_AES_HEX_KEY"];
+
 impl Config {
-    /// From the process environment.
+    /// From the process environment only: the settings store is not read.
     pub fn from_env() -> Result<Config, ConfigError> {
         Config::from_settings(&Settings::from_env())
+    }
+
+    /// From the process environment and the settings store, as the Python backend
+    /// resolves its settings: a non-empty environment value, then the verified
+    /// store value, then the default. Refuses to start where Python does
+    /// (`SETTINGS_STORE=required` and a store that cannot be trusted).
+    pub async fn load() -> Result<Config, ConfigError> {
+        Config::load_with(
+            std::env::vars().collect(),
+            None,
+            secrets::SHIPPED_SECRET_SHA256,
+        )
+        .await
+    }
+
+    /// `load` with the environment, the store's source and the list of published
+    /// secrets given (tests, the harness).
+    pub async fn load_with(
+        env: HashMap<String, String>,
+        source: Option<Box<dyn store::SnapshotSource>>,
+        denylist: &[&str],
+    ) -> Result<Config, ConfigError> {
+        let runtime = store::load(
+            &env,
+            store::registry::Registry::shipped(),
+            source,
+            REQUIRED_ENV_KEYS,
+        )
+        .await
+        .map_err(|e| ConfigError(format!("settings store: {e}")))?;
+        let mut layers: Vec<Box<dyn SettingsSource>> = vec![Box::new(MapSource::new(env))];
+        if let Some(runtime) = &runtime {
+            let values = runtime
+                .freeze()
+                .map_err(|e| ConfigError(format!("settings store: {e}")))?;
+            layers.push(Box::new(StoreSource::new(values)));
+        }
+        let mut cfg = Config::from_settings_with_denylist(&Settings::new(layers), denylist)?;
+        cfg.store = runtime;
+        Ok(cfg)
     }
 
     pub fn from_settings(settings: &Settings) -> Result<Config, ConfigError> {
@@ -152,16 +199,14 @@ impl Config {
                 })?,
                 None => 10,
             };
-        let sso = settings.flag("SSO_ENABLED")?;
-        let totp = settings.flag("TOTP_ENABLED")?;
         Ok(Config {
             database_url: Secret::new(sqlx_url(&database_url)),
             jwt_ring,
             fernet_ring,
             flags: Flags::from_settings(settings)?,
-            sso_enabled: sso.unwrap_or(false),
-            totp_enabled: totp.unwrap_or(false),
-            policy_switches_explicit: sso.is_some() && totp.is_some(),
+            sso_enabled: settings.flag("SSO_ENABLED")?.unwrap_or(false),
+            totp_enabled: settings.flag("TOTP_ENABLED")?.unwrap_or(false),
+            store: None,
             network: NetworkConfig::from_settings(settings)?,
             edge: EdgeConfig::from_settings(settings)?,
             bind: settings
@@ -274,25 +319,6 @@ mod tests {
         let shown = format!("{cfg:?}");
         assert!(!shown.contains("hunter2"), "{shown}");
         assert!(!shown.contains("0123456789abcdef"), "{shown}");
-    }
-
-    #[test]
-    fn the_policy_switches_count_as_explicit_only_when_both_are_set() {
-        let explicit = |extra: &[(&str, &str)]| {
-            Config::from_settings(&settings(&valid(extra)))
-                .unwrap()
-                .policy_switches_explicit
-        };
-        assert!(!explicit(&[]));
-        assert!(!explicit(&[("SSO_ENABLED", "false")]));
-        assert!(!explicit(&[("TOTP_ENABLED", "true")]));
-        // empty counts as unset, as in the Python settings loader
-        assert!(!explicit(&[("SSO_ENABLED", "false"), ("TOTP_ENABLED", "")]));
-        assert!(explicit(&[
-            ("SSO_ENABLED", "false"),
-            ("TOTP_ENABLED", "off")
-        ]));
-        assert!(explicit(&[("SSO_ENABLED", "yes"), ("TOTP_ENABLED", "1")]));
     }
 
     #[test]
