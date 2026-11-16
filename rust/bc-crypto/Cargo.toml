@@ -1,6 +1,6 @@
 [package]
 name = "bc-crypto"
-description = "Opening and sealing of the Python backend's Tink AES-GCM ciphertext (v1: prefix)"
+description = "Byte-compatible ports of the Python backend's cryptography: Tink AES-GCM, the Fernet key ring, HMAC-derived tokens and identifiers"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,9 +8,24 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+bc-config = { workspace = true }
 aes-gcm = { workspace = true }
 base64 = { workspace = true }
-serde_json = { workspace = true }
+getrandom = "0.2"
+hex = { workspace = true }
+# float_roundtrip: floats are parsed correctly rounded, as Python does
+serde_json = { workspace = true, features = ["float_roundtrip"] }
+sha2 = { workspace = true }
+# RustCrypto primitives for Fernet, HMAC and the legacy identifiers; versions
+# are chosen here (not in the workspace table) to keep the shared manifest free
+# of conflicts while the crates are developed side by side
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc"] }
+hmac = "0.12"
+md-5 = "0.10"
+sha1 = "0.10"
+subtle = "2"
+zeroize = "1"
 
 [lints]
 workspace = true
