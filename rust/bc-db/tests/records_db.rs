@@ -27,7 +27,7 @@ use bc_db::repo::to_ms;
 use bc_db::{Db, DbError, DbSettings, Filter, FixedClock, Keyset, Page, Record, connect_with};
 use chrono::{Duration, Utc};
 use serde_json::{Value, json};
-use sqlx::PgConnection;
+use sqlx::{AssertSqlSafe, PgConnection};
 
 use common::{instant, now, vectors};
 
@@ -65,9 +65,9 @@ async fn row_json(conn: &mut PgConnection, table: &str, id: &str) -> Value {
         .execute(&mut *conn)
         .await
         .unwrap();
-    sqlx::query_scalar(&format!(
+    sqlx::query_scalar(AssertSqlSafe(format!(
         "SELECT to_jsonb(t.*) FROM app.{table} t WHERE id = $1"
-    ))
+    )))
     .bind(id)
     .fetch_one(conn)
     .await
@@ -75,11 +75,13 @@ async fn row_json(conn: &mut PgConnection, table: &str, id: &str) -> Value {
 }
 
 async fn clear(conn: &mut PgConnection, table: &str, id: &str) {
-    sqlx::query(&format!("DELETE FROM app.{table} WHERE id = $1"))
-        .bind(id)
-        .execute(conn)
-        .await
-        .unwrap();
+    sqlx::query(AssertSqlSafe(format!(
+        "DELETE FROM app.{table} WHERE id = $1"
+    )))
+    .bind(id)
+    .execute(conn)
+    .await
+    .unwrap();
 }
 
 async fn write_and_compare<T: Record>(env: &Env, table: &str, case: &Value) {
@@ -121,9 +123,9 @@ async fn insert_python_row_and_read<T: Record>(env: &Env, table: &str, case: &Va
     let mut tx = env.db.pool().begin().await.unwrap();
     clear(&mut tx, table, id).await;
     // the columns exactly as Python stored them
-    sqlx::query(&format!(
+    sqlx::query(AssertSqlSafe(format!(
         "INSERT INTO app.{table} (id, doc, created_at, updated_at, _bc_source, _bc_checksum) VALUES ($1, $2, $3, $4, $5, $6)"
-    ))
+    )))
     .bind(id)
     .bind(&row["doc"])
     .bind(instant(&row["created_at"]))
@@ -505,7 +507,7 @@ async fn a_duplicate_is_a_conflict_and_the_python_timeouts_apply() {
         ("lock_timeout", "5s"),
         ("idle_in_transaction_session_timeout", "1min"),
     ] {
-        let got: String = sqlx::query_scalar(&format!("SHOW {name}"))
+        let got: String = sqlx::query_scalar(AssertSqlSafe(format!("SHOW {name}")))
             .fetch_one(&mut *conn)
             .await
             .unwrap();

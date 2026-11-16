@@ -26,7 +26,7 @@ use chrono::{DateTime, Duration, Timelike, Utc};
 use serde_json::Value;
 use sha1::{Digest, Sha1};
 use sqlx::postgres::{PgPool, Postgres};
-use sqlx::{PgConnection, QueryBuilder};
+use sqlx::{AssertSqlSafe, PgConnection, QueryBuilder};
 
 use crate::clock::SharedClock;
 use crate::codec::{self, Record, RowValues};
@@ -155,13 +155,13 @@ fn ident(name: &str) -> Result<&str, DbError> {
     }
 }
 
-fn push_where<'a>(
-    qb: &mut QueryBuilder<'a, Postgres>,
+fn push_where(
+    qb: &mut QueryBuilder<Postgres>,
     filter: &Filter,
     keyset: Option<(&Keyset, Order)>,
 ) -> Result<(), DbError> {
     let mut first = true;
-    let mut glue = |qb: &mut QueryBuilder<'a, Postgres>| {
+    let mut glue = |qb: &mut QueryBuilder<Postgres>| {
         qb.push(if first { " WHERE " } else { " AND " });
         first = false;
     };
@@ -349,7 +349,8 @@ impl Db {
         conn: &mut PgConnection,
         ms: u64,
     ) -> Result<(), DbError> {
-        sqlx::query(&format!("SET LOCAL lock_timeout = '{ms}ms'"))
+        // `ms` is a `u64`: nothing to inject.
+        sqlx::query(AssertSqlSafe(format!("SET LOCAL lock_timeout = '{ms}ms'")))
             .execute(conn)
             .await?;
         Ok(())
@@ -465,7 +466,9 @@ impl Db {
              _bc_source = EXCLUDED._bc_source, _bc_checksum = EXCLUDED._bc_checksum",
             t = table_of::<T>()?
         );
-        bind_row(sqlx::query(&sql), &row).execute(conn).await?;
+        bind_row(sqlx::query(AssertSqlSafe(sql)), &row)
+            .execute(conn)
+            .await?;
         Ok(row)
     }
 
@@ -483,7 +486,9 @@ impl Db {
              VALUES ($1, $2, $3, $4, $5, $6)",
             t = table_of::<T>()?
         );
-        bind_row(sqlx::query(&sql), &row).execute(conn).await?;
+        bind_row(sqlx::query(AssertSqlSafe(sql)), &row)
+            .execute(conn)
+            .await?;
         Ok(row)
     }
 
@@ -537,7 +542,7 @@ impl Db {
             "SELECT doc FROM {SCHEMA}.{} WHERE id = $1 FOR UPDATE",
             table_of::<T>()?
         );
-        let doc: Option<Value> = sqlx::query_scalar(&sql)
+        let doc: Option<Value> = sqlx::query_scalar(AssertSqlSafe(sql))
             .bind(id)
             .fetch_optional(&mut *conn)
             .await?;
@@ -642,7 +647,7 @@ impl Db {
             "DELETE FROM {SCHEMA}.deletion_tombstones WHERE (collection, row_id) IN \
              (SELECT collection, row_id FROM {SCHEMA}.deletion_tombstones WHERE deleted_at < $1 LIMIT $2)"
         );
-        if let Err(error) = sqlx::query(&sql)
+        if let Err(error) = sqlx::query(AssertSqlSafe(sql))
             .bind(cut)
             .bind(PRUNE_BATCH)
             .execute(&self.pool)
