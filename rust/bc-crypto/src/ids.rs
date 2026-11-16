@@ -71,7 +71,9 @@ pub fn new_item_id() -> String {
 pub fn is_source_id(value: &str) -> bool {
     value.len() == 2 + ID_BODY
         && (value.starts_with(LIST_PREFIX) || value.starts_with(ANSWER_PREFIX))
-        && value[2..]
+        && value
+            .get(2..)
+            .unwrap_or("")
             .bytes()
             .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
 }
@@ -80,7 +82,8 @@ pub fn is_source_id(value: &str) -> bool {
 
 /// The first `n` hex characters of the SHA-256 of `text`.
 pub fn sha256_prefix(text: &str, n: usize) -> String {
-    sha256_hex(text.as_bytes())[..n].to_string()
+    let full = sha256_hex(text.as_bytes());
+    full.get(..n).unwrap_or(&full).to_string()
 }
 
 /// The fingerprint of the set of visible report questions
@@ -118,14 +121,14 @@ pub fn idempotency_record_id(key_id: &str, idempotency_key: &str) -> String {
 }
 
 /// `request_hash`: the fingerprint of a request. A JSON body is compared by
-/// value (canonical form), anything else byte for byte; every part is followed
-/// by a NUL. A body Python's parser accepts but this one does not (`NaN`,
-/// numbers beyond 64 bits) is hashed as bytes here and would differ.
+/// value (the canonical form of what `json.loads` reads: integers of any size
+/// exact, `-0` is `0`, floats correctly rounded, `NaN` accepted), anything
+/// else byte for byte; every part is followed by a NUL. A body that is JSON for
+/// Python but that [`pyjson::parse`] declines (UTF-16, nesting beyond 500) is
+/// hashed as bytes here.
 pub fn request_hash(method: &str, path: &str, body: &[u8], extra: &[&str]) -> String {
-    let canonical = serde_json::from_slice::<Value>(body).map_or_else(
-        |_| body.to_vec(),
-        |v| pyjson::dumps(&v, pyjson::CANONICAL).into_bytes(),
-    );
+    let canonical =
+        pyjson::parse(body).map_or_else(|| body.to_vec(), |v| v.canonical().into_bytes());
     let mut hash = Sha256::new();
     let upper = method.to_uppercase();
     let parts: Vec<&[u8]> = [upper.as_bytes(), path.as_bytes(), &canonical]
@@ -141,8 +144,15 @@ pub fn request_hash(method: &str, path: &str, body: &[u8], extra: &[&str]) -> St
 
 /// The hex SHA-256 of the canonical JSON of `value`
 /// (`json.dumps(value, sort_keys=True, separators=(",", ":"))`), cut to `n`.
+/// `value` is a document already parsed by `serde_json` (an integer beyond 64
+/// bits is already a float there): for a request body use [`canonical_hash_json`].
 pub fn canonical_hash(value: &Value, n: usize) -> String {
-    sha256_prefix(&pyjson::dumps(value, pyjson::CANONICAL), n)
+    canonical_hash_json(&pyjson::Json::from_value(value), n)
+}
+
+/// [`canonical_hash`] of a value read with [`pyjson::parse`].
+pub fn canonical_hash_json(value: &pyjson::Json, n: usize) -> String {
+    sha256_prefix(&value.canonical(), n)
 }
 
 /// `form_etag`: `"<updated ms as lower hex>-<16 hex of the canonical hash>"`,
@@ -151,17 +161,24 @@ pub fn form_etag(updated_at_ms: u64, document: &Value) -> String {
     format!("\"{updated_at_ms:x}-{}\"", canonical_hash(document, 16))
 }
 
-/// `event_key` of a SCIM webhook event: SHA-256 hex of the canonical JSON of
+/// `event_key` of a SCIM webhook event (the parsed body of the request):
+/// SHA-256 hex of the canonical JSON of
 /// `[directory id, event name, data, timestamp ms, index]`.
-pub fn scim_event_key(directory_id: &str, event: &Value, timestamp_ms: i64, index: i64) -> String {
-    let list = Value::Array(vec![
-        Value::from(directory_id),
-        event.get("event").cloned().unwrap_or(Value::Null),
-        event.get("data").cloned().unwrap_or(Value::Null),
-        Value::from(timestamp_ms),
-        Value::from(index),
+pub fn scim_event_key(
+    directory_id: &str,
+    event: &pyjson::Json,
+    timestamp_ms: i64,
+    index: i64,
+) -> String {
+    use pyjson::Json;
+    let list = Json::Array(vec![
+        Json::str(directory_id),
+        event.get("event").cloned().unwrap_or(Json::Null),
+        event.get("data").cloned().unwrap_or(Json::Null),
+        Json::Int(timestamp_ms.to_string()),
+        Json::Int(index.to_string()),
     ]);
-    sha256_hex(pyjson::dumps(&list, pyjson::CANONICAL).as_bytes())
+    sha256_hex(list.canonical().as_bytes())
 }
 
 /// The component id of an Open Formulieren export: `e` + 6 hex characters of

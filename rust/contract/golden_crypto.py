@@ -259,6 +259,8 @@ def main() -> None:
     command, *args = sys.argv[1:]
     if command == "fernet":
         Path(args[0]).parent.mkdir(parents=True, exist_ok=True)
+        # throw-away keys generated for this vector (the Rust tests need them to
+        # open the tokens); test data, replaced on every regeneration
         Path(args[0]).write_text(json.dumps(fernet_vector(), indent=1, ensure_ascii=True))
         print("wrote", args[0])
     elif command == "check-fernet":

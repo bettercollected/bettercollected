@@ -99,13 +99,15 @@ pub fn compose(draft_id: &str, secret: &str) -> String {
 }
 
 /// `split`: (draft id, secret) of a value shaped like `<24 hex>.<43 url-safe>`,
-/// else `None` (nothing is looked up then).
+/// else `None` (nothing is looked up then). Only ASCII can match, so anything
+/// else is refused before the text is cut (a request value may have a
+/// multi-byte character at any offset).
 pub fn split(value: &str) -> Option<(&str, &str)> {
-    if value.len() != 24 + 1 + 43 {
+    if !value.is_ascii() || value.len() != 24 + 1 + 43 {
         return None;
     }
-    let (id, rest) = value.split_at(24);
-    let secret = rest.strip_prefix('.')?;
+    let id = value.get(..24)?;
+    let secret = value.get(24..)?.strip_prefix('.')?;
     (id.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
         && secret
             .bytes()

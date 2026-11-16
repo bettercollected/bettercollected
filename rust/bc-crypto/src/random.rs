@@ -1,23 +1,36 @@
 //! Random values from the operating system's CSPRNG, in the shapes the Python
 //! backend's `secrets` module produces.
+//!
+//! The buffers are never initialised with a value of ours: the generator fills
+//! uninitialised memory (`getrandom_uninit`), so no constant can end up as an
+//! IV, a nonce or a key by a path that skips the fill. A failure of the
+//! operating system's generator is fatal (as in `rand`'s `OsRng`): nothing is
+//! ever returned that is not random.
 
-use aes_gcm::aead::OsRng;
-use aes_gcm::aead::rand_core::RngCore;
+use std::mem::MaybeUninit;
 
 use crate::prim::b64url;
 
+fn fill(buffer: &mut [MaybeUninit<u8>]) -> &[u8] {
+    let Ok(filled) = getrandom::getrandom_uninit(buffer) else {
+        panic!("the operating system's random generator failed");
+    };
+    filled
+}
+
 /// `secrets.token_bytes(N)`.
 pub fn bytes<const N: usize>() -> [u8; N] {
-    let mut out = [0u8; N];
-    OsRng.fill_bytes(&mut out);
+    let mut buffer = [MaybeUninit::<u8>::uninit(); N];
+    let Ok(out) = <[u8; N]>::try_from(fill(&mut buffer)) else {
+        unreachable!("the buffer is N bytes");
+    };
     out
 }
 
 /// `secrets.token_bytes(n)` for a run-time length.
 pub fn vec(n: usize) -> Vec<u8> {
-    let mut out = vec![0u8; n];
-    OsRng.fill_bytes(&mut out);
-    out
+    let mut buffer = vec![MaybeUninit::<u8>::uninit(); n];
+    fill(&mut buffer).to_vec()
 }
 
 /// `secrets.token_hex(n)`: `2n` lower-case hex digits.

@@ -197,6 +197,7 @@ dependencies = [
  "base64",
  "bc-config",
  "cbc",
+ "getrandom",
  "hex",
  "hmac",
  "md-5",

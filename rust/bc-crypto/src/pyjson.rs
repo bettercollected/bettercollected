@@ -1,15 +1,37 @@
-//! `json.dumps` as Python writes it, for the values whose text is hashed or
-//! signed: ASCII only (`ensure_ascii`), optional key sorting, and either the
-//! default separators (`", "` and `": "`) or the compact ones (`","`, `":"`).
+//! Python's `json`, for the values whose text is hashed, signed or compared:
+//! `json.loads` of a request body ([`parse`]) and `json.dumps` of the result
+//! ([`Json::dumps`], [`dumps`]), reproduced so that a Rust and a Python writer
+//! produce the same bytes for the same input and, as important, never the same
+//! bytes for two inputs Python tells apart.
 //!
-//! An object's keys come out sorted (a `serde_json` map is ordered by key), so
+//! What [`parse`] reads exactly as `json.loads` does:
+//!
+//! - integers of any size are exact (`18446744073709551616` and `...617` stay
+//!   two values) and `-0` is the integer `0`; an integer of more than 4300
+//!   digits is refused, as Python 3.11+ refuses it;
+//! - a number with a fraction or an exponent is a float, correctly rounded
+//!   (`9007199254740993.0` is `9007199254740992.0`, `1e400` is infinity);
+//! - `NaN`, `Infinity` and `-Infinity` are accepted;
+//! - strings keep lone surrogate escapes (`"\ud800"`), and a high and a low
+//!   surrogate escape in a row make one character;
+//! - a repeated key keeps its first position with its last value;
+//! - the input is UTF-8, a leading byte order mark is skipped.
+//!
+//! What it refuses where Python reads: a UTF-16 or UTF-32 body, and nesting
+//! deeper than 500 levels (Python raises `RecursionError` at about a thousand).
+//! A caller that gets `None` hashes the raw bytes, as `request_hash` does when
+//! Python's parser raises `ValueError`.
+//!
+//! Output is ASCII only (`ensure_ascii`), with either the default separators
+//! (`", "`, `": "`) or the compact ones, keys in insertion order or sorted by
+//! code point. Floats follow `repr(float)` (shortest round-trip digits, an
+//! exponent below 1e-4 and from 1e16 on, `NaN`/`Infinity`).
+//!
+//! [`dumps`] writes a `serde_json::Value`, whose objects are ordered by key (so
 //! `DEFAULT` and `COMPACT` differ from Python for an object written in another
-//! order; anything hashed or signed from an object uses `CANONICAL`, which sorts
-//! in Python too. Lists are written in order.
-//!
-//! Floats follow `repr(float)` (shortest round-trip digits, an exponent below
-//! 1e-4 and from 1e16 on). Integers beyond 64 bits are not representable in a
-//! `serde_json::Value` and are not supported.
+//! order; `CANONICAL` sorts in Python too) and whose integers beyond 64 bits
+//! have already become floats: a body is parsed with [`parse`], never with
+//! `serde_json`, before it is hashed.
 
 use std::fmt::Write as _;
 
@@ -38,80 +60,154 @@ pub const CANONICAL: Options = Options {
     compact: true,
 };
 
-pub fn dumps(value: &Value, options: Options) -> String {
-    let mut out = String::new();
-    write(value, options, &mut out);
-    out
+/// The deepest nesting [`parse`] reads.
+pub const MAX_DEPTH: usize = 500;
+/// Python 3.11+ `int()` refuses a decimal string longer than this.
+const MAX_INT_DIGITS: usize = 4300;
+
+/// A Python JSON value. A string is a list of code points (a lone surrogate
+/// is one, as in a Python `str`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum Json {
+    Null,
+    Bool(bool),
+    /// Decimal digits, a `-` only for a non-zero negative number.
+    Int(String),
+    Float(f64),
+    Str(Vec<u32>),
+    Array(Vec<Json>),
+    /// Keys are unique; insertion order.
+    Object(Vec<(Vec<u32>, Json)>),
 }
 
-fn write(value: &Value, options: Options, out: &mut String) {
-    let (item, key) = if options.compact {
-        (",", ":")
-    } else {
-        (", ", ": ")
-    };
-    match value {
-        Value::Null => out.push_str("null"),
-        Value::Bool(true) => out.push_str("true"),
-        Value::Bool(false) => out.push_str("false"),
-        Value::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                out.push_str(&i.to_string());
-            } else if let Some(u) = n.as_u64() {
-                out.push_str(&u.to_string());
-            } else {
-                out.push_str(&float_repr(n.as_f64().unwrap_or(f64::NAN)));
-            }
-        }
-        Value::String(s) => string(s, out),
-        Value::Array(items) => {
-            out.push('[');
-            for (i, v) in items.iter().enumerate() {
-                if i > 0 {
-                    out.push_str(item);
+impl Json {
+    /// A value `serde_json` already parsed (an integer beyond 64 bits is
+    /// already a float there).
+    pub fn from_value(value: &Value) -> Json {
+        match value {
+            Value::Null => Json::Null,
+            Value::Bool(b) => Json::Bool(*b),
+            Value::Number(n) => {
+                if let Some(i) = n.as_i64() {
+                    Json::Int(i.to_string())
+                } else if let Some(u) = n.as_u64() {
+                    Json::Int(u.to_string())
+                } else {
+                    Json::Float(n.as_f64().unwrap_or(f64::NAN))
                 }
-                write(v, options, out);
             }
-            out.push(']');
+            Value::String(s) => Json::Str(s.chars().map(u32::from).collect()),
+            Value::Array(items) => Json::Array(items.iter().map(Json::from_value).collect()),
+            Value::Object(map) => Json::Object(
+                map.iter()
+                    .map(|(k, v)| (k.chars().map(u32::from).collect(), Json::from_value(v)))
+                    .collect(),
+            ),
         }
-        Value::Object(map) => {
-            out.push('{');
-            let mut entries: Vec<(&String, &Value)> = map.iter().collect();
-            if options.sort_keys {
-                // code point order, which is UTF-8 byte order
-                entries.sort_by(|a, b| a.0.cmp(b.0));
-            }
-            for (i, (k, v)) in entries.into_iter().enumerate() {
-                if i > 0 {
-                    out.push_str(item);
+    }
+
+    pub fn str(text: &str) -> Json {
+        Json::Str(text.chars().map(u32::from).collect())
+    }
+
+    /// `value.get(key)` of an object.
+    pub fn get(&self, key: &str) -> Option<&Json> {
+        let Json::Object(entries) = self else {
+            return None;
+        };
+        let wanted: Vec<u32> = key.chars().map(u32::from).collect();
+        entries.iter().find(|(k, _)| *k == wanted).map(|(_, v)| v)
+    }
+
+    pub fn dumps(&self, options: Options) -> String {
+        let mut out = String::new();
+        self.write(options, &mut out);
+        out
+    }
+
+    /// `json.dumps(value, sort_keys=True, separators=(",", ":"))`.
+    pub fn canonical(&self) -> String {
+        self.dumps(CANONICAL)
+    }
+
+    fn write(&self, options: Options, out: &mut String) {
+        let (item, key) = if options.compact {
+            (",", ":")
+        } else {
+            (", ", ": ")
+        };
+        match self {
+            Json::Null => out.push_str("null"),
+            Json::Bool(true) => out.push_str("true"),
+            Json::Bool(false) => out.push_str("false"),
+            Json::Int(digits) => out.push_str(digits),
+            Json::Float(f) => out.push_str(&float_repr(*f)),
+            Json::Str(chars) => code_points(chars, out),
+            Json::Array(items) => {
+                out.push('[');
+                for (i, v) in items.iter().enumerate() {
+                    if i > 0 {
+                        out.push_str(item);
+                    }
+                    v.write(options, out);
                 }
-                string(k, out);
-                out.push_str(key);
-                write(v, options, out);
+                out.push(']');
             }
-            out.push('}');
+            Json::Object(entries) => {
+                out.push('{');
+                let mut order: Vec<&(Vec<u32>, Json)> = entries.iter().collect();
+                if options.sort_keys {
+                    // code point order, as Python sorts `str`
+                    order.sort_by(|a, b| a.0.cmp(&b.0));
+                }
+                for (i, (k, v)) in order.into_iter().enumerate() {
+                    if i > 0 {
+                        out.push_str(item);
+                    }
+                    code_points(k, out);
+                    out.push_str(key);
+                    v.write(options, out);
+                }
+                out.push('}');
+            }
         }
     }
 }
 
+/// `json.dumps(value, ...)` of a `serde_json::Value`.
+pub fn dumps(value: &Value, options: Options) -> String {
+    Json::from_value(value).dumps(options)
+}
+
 /// A JSON string with everything outside space..`~` escaped (`ensure_ascii`).
 pub fn string(s: &str, out: &mut String) {
+    let points: Vec<u32> = s.chars().map(u32::from).collect();
+    code_points(&points, out);
+}
+
+fn code_points(points: &[u32], out: &mut String) {
     out.push('"');
-    for c in s.chars() {
-        match c {
-            '"' => out.push_str("\\\""),
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            '\u{8}' => out.push_str("\\b"),
-            '\u{c}' => out.push_str("\\f"),
-            ' '..='~' => out.push(c),
+    for &cp in points {
+        match cp {
+            0x22 => out.push_str("\\\""),
+            0x5c => out.push_str("\\\\"),
+            0x0a => out.push_str("\\n"),
+            0x0d => out.push_str("\\r"),
+            0x09 => out.push_str("\\t"),
+            0x08 => out.push_str("\\b"),
+            0x0c => out.push_str("\\f"),
+            0x20..=0x7e => out.push(char::from(u8::try_from(cp).unwrap_or(b'?'))),
+            0x10000.. => {
+                let v = cp - 0x10000;
+                let _ = write!(
+                    out,
+                    "\\u{:04x}\\u{:04x}",
+                    0xd800 + (v >> 10),
+                    0xdc00 + (v & 0x3ff)
+                );
+            }
             _ => {
-                let mut units = [0u16; 2];
-                for unit in c.encode_utf16(&mut units) {
-                    let _ = write!(out, "\\u{unit:04x}");
-                }
+                let _ = write!(out, "\\u{cp:04x}");
             }
         }
     }
@@ -125,7 +221,7 @@ pub fn quote(s: &str) -> String {
     out
 }
 
-/// `repr(float)`.
+/// `repr(float)`, which is also what `json.dumps` writes for a float.
 pub fn float_repr(f: f64) -> String {
     if f.is_nan() {
         return "NaN".into();
@@ -167,5 +263,259 @@ pub fn float_repr(f: f64) -> String {
         };
         let esign = if exp < 0 { '-' } else { '+' };
         format!("{sign}{head}{point}e{esign}{:02}", exp.abs())
+    }
+}
+
+// ---------------------------------------------------------------- parse ----
+
+/// `json.loads(body)` of a request body; `None` where Python raises
+/// `ValueError` and where this reader declines (see the module notes).
+pub fn parse(body: &[u8]) -> Option<Json> {
+    // `json.detect_encoding`: UTF-16 and UTF-32 bodies are not read here
+    match body {
+        [0xff, 0xfe, ..] | [0xfe, 0xff, ..] | [0, ..] | [_, 0, ..] => return None,
+        _ => {}
+    }
+    let body = body.strip_prefix(&[0xef, 0xbb, 0xbf]).unwrap_or(body);
+    let text = std::str::from_utf8(body).ok()?;
+    let mut parser = Parser {
+        src: text,
+        text: text.as_bytes(),
+        at: 0,
+    };
+    parser.skip_ws();
+    let value = parser.value(0)?;
+    parser.skip_ws();
+    (parser.at == parser.text.len()).then_some(value)
+}
+
+struct Parser<'a> {
+    src: &'a str,
+    text: &'a [u8],
+    at: usize,
+}
+
+impl Parser<'_> {
+    fn skip_ws(&mut self) {
+        while matches!(self.text.get(self.at), Some(b' ' | b'\t' | b'\n' | b'\r')) {
+            self.at += 1;
+        }
+    }
+
+    fn peek(&self) -> Option<u8> {
+        self.text.get(self.at).copied()
+    }
+
+    fn eat(&mut self, literal: &[u8]) -> bool {
+        if self.text[self.at..].starts_with(literal) {
+            self.at += literal.len();
+            true
+        } else {
+            false
+        }
+    }
+
+    fn value(&mut self, depth: usize) -> Option<Json> {
+        if depth > MAX_DEPTH {
+            return None;
+        }
+        match self.peek()? {
+            b'"' => self.string().map(Json::Str),
+            b'{' => self.object(depth),
+            b'[' => self.array(depth),
+            b'n' => self.eat(b"null").then_some(Json::Null),
+            b't' => self.eat(b"true").then_some(Json::Bool(true)),
+            b'f' => self.eat(b"false").then_some(Json::Bool(false)),
+            b'N' => self.eat(b"NaN").then_some(Json::Float(f64::NAN)),
+            b'I' => self.eat(b"Infinity").then_some(Json::Float(f64::INFINITY)),
+            b'-' if self.text[self.at..].starts_with(b"-Infinity") => {
+                self.at += b"-Infinity".len();
+                Some(Json::Float(f64::NEG_INFINITY))
+            }
+            b'-' | b'0'..=b'9' => self.number(),
+            _ => None,
+        }
+    }
+
+    fn number(&mut self) -> Option<Json> {
+        let start = self.at;
+        if self.peek() == Some(b'-') {
+            self.at += 1;
+        }
+        match self.peek()? {
+            b'0' => self.at += 1,
+            b'1'..=b'9' => self.digits(),
+            _ => return None,
+        }
+        let mut float = false;
+        // a fraction needs a digit after the point, else the point is left
+        // over (and the caller sees trailing data)
+        if self.peek() == Some(b'.') && self.text.get(self.at + 1).is_some_and(u8::is_ascii_digit) {
+            self.at += 1;
+            self.digits();
+            float = true;
+        }
+        if matches!(self.peek(), Some(b'e' | b'E')) {
+            let mut look = self.at + 1;
+            if matches!(self.text.get(look), Some(b'+' | b'-')) {
+                look += 1;
+            }
+            if self.text.get(look).is_some_and(u8::is_ascii_digit) {
+                self.at = look;
+                self.digits();
+                float = true;
+            }
+        }
+        let token = std::str::from_utf8(&self.text[start..self.at]).ok()?;
+        if float {
+            return token.parse::<f64>().ok().map(Json::Float);
+        }
+        let (negative, digits) = token
+            .strip_prefix('-')
+            .map_or((false, token), |d| (true, d));
+        if digits.len() > MAX_INT_DIGITS {
+            return None;
+        }
+        let zero = digits == "0";
+        Some(Json::Int(if negative && !zero {
+            format!("-{digits}")
+        } else {
+            digits.to_string()
+        }))
+    }
+
+    fn digits(&mut self) {
+        while self.peek().is_some_and(|b| b.is_ascii_digit()) {
+            self.at += 1;
+        }
+    }
+
+    fn hex4(&mut self) -> Option<u32> {
+        let slice = self.text.get(self.at..self.at + 4)?;
+        let mut value = 0u32;
+        for &b in slice {
+            value = value * 16 + char::from(b).to_digit(16)?;
+        }
+        self.at += 4;
+        Some(value)
+    }
+
+    fn string(&mut self) -> Option<Vec<u32>> {
+        self.at += 1; // the opening quote
+        let mut out: Vec<u32> = Vec::new();
+        loop {
+            let byte = self.peek()?;
+            match byte {
+                b'"' => {
+                    self.at += 1;
+                    return Some(out);
+                }
+                b'\\' => {
+                    self.at += 1;
+                    let escape = self.peek()?;
+                    self.at += 1;
+                    let cp = match escape {
+                        b'"' => 0x22,
+                        b'\\' => 0x5c,
+                        b'/' => 0x2f,
+                        b'b' => 0x08,
+                        b'f' => 0x0c,
+                        b'n' => 0x0a,
+                        b'r' => 0x0d,
+                        b't' => 0x09,
+                        b'u' => {
+                            let first = self.hex4()?;
+                            if (0xd800..=0xdbff).contains(&first)
+                                && self.text[self.at..].starts_with(b"\\u")
+                            {
+                                let saved = self.at;
+                                self.at += 2;
+                                match self.hex4() {
+                                    Some(second) if (0xdc00..=0xdfff).contains(&second) => {
+                                        0x10000 + ((first - 0xd800) << 10) + (second - 0xdc00)
+                                    }
+                                    _ => {
+                                        // not a pair: the first stands alone
+                                        self.at = saved;
+                                        first
+                                    }
+                                }
+                            } else {
+                                first
+                            }
+                        }
+                        _ => return None,
+                    };
+                    out.push(cp);
+                }
+                0..=0x1f => return None, // a control character (strict mode)
+                _ => {
+                    // the text is valid UTF-8: take one whole character
+                    let c = self.src.get(self.at..)?.chars().next()?;
+                    self.at += c.len_utf8();
+                    out.push(u32::from(c));
+                }
+            }
+        }
+    }
+
+    fn array(&mut self, depth: usize) -> Option<Json> {
+        self.at += 1;
+        let mut items = Vec::new();
+        self.skip_ws();
+        if self.peek() == Some(b']') {
+            self.at += 1;
+            return Some(Json::Array(items));
+        }
+        loop {
+            self.skip_ws();
+            items.push(self.value(depth + 1)?);
+            self.skip_ws();
+            match self.peek()? {
+                b',' => self.at += 1,
+                b']' => {
+                    self.at += 1;
+                    return Some(Json::Array(items));
+                }
+                _ => return None,
+            }
+        }
+    }
+
+    fn object(&mut self, depth: usize) -> Option<Json> {
+        self.at += 1;
+        let mut entries: Vec<(Vec<u32>, Json)> = Vec::new();
+        self.skip_ws();
+        if self.peek() == Some(b'}') {
+            self.at += 1;
+            return Some(Json::Object(entries));
+        }
+        loop {
+            self.skip_ws();
+            if self.peek()? != b'"' {
+                return None;
+            }
+            let key = self.string()?;
+            self.skip_ws();
+            if self.peek()? != b':' {
+                return None;
+            }
+            self.at += 1;
+            self.skip_ws();
+            let value = self.value(depth + 1)?;
+            match entries.iter_mut().find(|(k, _)| *k == key) {
+                Some(slot) => slot.1 = value, // a repeated key: first place, last value
+                None => entries.push((key, value)),
+            }
+            self.skip_ws();
+            match self.peek()? {
+                b',' => self.at += 1,
+                b'}' => {
+                    self.at += 1;
+                    return Some(Json::Object(entries));
+                }
+                _ => return None,
+            }
+        }
     }
 }

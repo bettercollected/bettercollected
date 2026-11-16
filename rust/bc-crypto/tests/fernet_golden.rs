@@ -16,10 +16,14 @@ fn vector() -> Value {
     serde_json::from_str(include_str!("golden/fernet_vector.json")).unwrap()
 }
 
+/// A fixed IV, on purpose: the vector pins the IV and the time Python sealed
+/// with, so that sealing here must give Python's token byte for byte. Only the
+/// test-only `seal_at` takes an IV; `seal` always draws a fresh one.
 fn iv() -> [u8; 16] {
-    let mut iv = [0u8; 16];
-    iv.copy_from_slice(&hex::decode(vector()["iv_hex"].as_str().unwrap()).unwrap());
-    iv
+    hex::decode(vector()["iv_hex"].as_str().unwrap())
+        .unwrap()
+        .try_into()
+        .unwrap()
 }
 
 #[test]

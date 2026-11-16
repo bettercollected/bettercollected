@@ -539,6 +539,20 @@ def totp_vectors() -> dict:
     return out
 
 
+# bodies whose numbers a lossy reader would merge or change; each is also
+# written inside one object below
+NUMBER_BODIES = [
+    "-0", "-0.0", "0", "0.0", "18446744073709551616", "18446744073709551617", "-18446744073709551616", "9223372036854775808", "-9223372036854775809",
+    "9007199254740993", "9007199254740993.0", "9007199254740992.0", "2.2250738585072011e-308", "2.2250738585072014e-308", "5e-324", "1.7976931348623157e308",
+    "1e400", "-1e400", "1E400", "1e-400", "NaN", "Infinity", "-Infinity", "1e22", "1e16", "1e15", "123456789012345678901234567890", "0.1", "1.0e0", "-1e-7",
+    '{"a":-0,"b":-0.0,"c":18446744073709551616,"d":18446744073709551617,"e":9007199254740993.0,"f":2.2250738585072011e-308,"g":1e400,"h":NaN,"i":-Infinity}',
+    '{"a":18446744073709551616}', '{"a":18446744073709551617}', '{"a":[-0,-0.0,0]}', '{"n":NaN}', '{"n": NaN }',
+    '"\\ud800"', '"\\udc00"', '"\\ud83d\\ude00"', '"\\ud83d\\u0041"', '"\\ude00\\ud83d"', '{"a":1,"b":2,"a":3}', '{"b":1,"a":2}', '{"\\ud800":1,"\\uffff":2,"\\ud83d\\ude00":3}',
+    "  [1 , 2]\n", "[1,]", "{,}", "01", "1.", ".5", "-", "1e", "+1", "1e+", '"\\x"', '"a\tb"', "'single'", " ", "nul", "[", "]", "{\"a\"}", '{"a":}', '{1:2}',
+    "1" * 4300, "1" * 4301, "-" + "1" * 4300, "[" * 400 + "]" * 400, '"\\u00e9\\u00E9"', '"\\/"', '"\u007f"', '"\u2028"', "true", "false", "null", "True", "[true,false,null]",
+]
+
+
 def ids_vectors(ring_a: str) -> dict:
     analytics = mod("backend.app.repositories.postgres.analytics")
     exports = mod("backend.app.repositories.postgres.response_exports")
@@ -582,7 +596,10 @@ def ids_vectors(ring_a: str) -> dict:
     out["workspace_lock"] = [
         {"kind": "export", "workspace": w, "expect": exports._workspace_lock_key(w)} for w in (WS, "x", "é")
     ] + [{"kind": "import", "workspace": w, "expect": imports._workspace_lock_key(w)} for w in (WS, "x", "é")]
-    bodies = [b'{"b":1,"a":[1,2,{"z":null,"y":"\xc3\xa9"}],"f":1.0,"g":1e2}', b'{"a":1}', b"[]", b"not json", b"", b'{"a":1,"a":2}', b'"s"', b"12", b'{"\xc3\xa9":"\xf0\x9f\x98\x80"}', b'{"x": 1.5e-7, "y": 12345678901234567890}']
+    bodies = [
+        b'{"b":1,"a":[1,2,{"z":null,"y":"\xc3\xa9"}],"f":1.0,"g":1e2}', b'{"a":1}', b"[]", b"not json", b"", b'{"a":1,"a":2}', b'"s"', b"12",
+        b'{"\xc3\xa9":"\xf0\x9f\x98\x80"}', b'{"x": 1.5e-7, "y": 12345678901234567890}',
+    ] + [t.encode() for t in NUMBER_BODIES]
     out["request_hash"] = []
     for body in bodies:
         for method, path, extra in (("post", "/api/v1/forms", ()), ("PUT", "/x", ("k1", "é"))):
@@ -590,7 +607,7 @@ def ids_vectors(ring_a: str) -> dict:
     out["record_id"] = [{"key_id": "k", "key": "idem-1", "expect": idem._record_id("k", "idem-1")}]
     out["builtin_target"] = [{"args": ["webhook", "f", "a"], "expect": str(migrate.target_id("webhook", "f", "a"))}]
     out["custom_domain_key"] = [{"args": [WS, "forms.voorbeeld.example", "attempt-1"], "expect": domains.idempotency_key(WS, "forms.voorbeeld.example", "attempt-1")}]
-    docs = [{"b": 1, "a": [1, 2.5, "é", None, True], "c": {"y": 1, "x": 2}}, {}, {"é": 1, "z": "\U0001f600", "\u0000": 1}, {"n": 1.0, "m": -0.0, "big": 2**53, "small": 1e-7}]
+    docs = [{"b": 1, "a": [1, 2.5, "é", None, True], "c": {"y": 1, "x": 2}}, {}, {"é": 1, "z": "\U0001f600", "\u0000": 1}, {"n": 1.0, "m": -0.0, "big": 2**53, "small": 1e-7}, {"a": 1e22, "b": 5e-324, "c": 1.7976931348623157e308, "d": 2.2250738585072011e-308, "e": 9007199254740993.0, "f": 0.1}, {"i": 18446744073709551615, "j": -9223372036854775808}]
     out["spec_hash"] = [{"doc": d, "expect": promotion.spec_hash(d)} for d in docs]
     out["etag"] = [{"updated_ms": ms_, "doc": d, "expect": spec.form_etag(dt.datetime.fromtimestamp(ms_ / 1000, dt.timezone.utc), d)} for ms_, d in ((1700000000123, docs[0]), (0, docs[1]), (1700000000000, docs[2]))]
     out["policy_fingerprint"] = [{"visible": v, "expect": next(c for c in vars(policy).values() if isinstance(c, type) and "fingerprint" in vars(c)).fingerprint(v)} for v in (["q:b", "q:a"], [], ["é"])]
@@ -599,6 +616,22 @@ def ids_vectors(ring_a: str) -> dict:
         for i in (0, 3)
     ]
     cls = next(v for v in vars(exporter).values() if isinstance(v, type) and "_component_id" in vars(v))
+    out["scim_event_bodies"] = []
+    for text in (
+        '{"event":"user.created","data":{"id":18446744073709551616,"n":-0,"f":9007199254740993.0}}',
+        '{"event":"user.created","data":{"id":18446744073709551617,"n":-0,"f":9007199254740993.0}}',
+        '{"event":"user.updated","data":{"x":NaN,"y":[1e400]}}',
+        '{"event":"user.updated","data":null}',
+        '{"data":{"b":1,"a":2,"\\ud800":3}}',
+    ):
+        body = text.encode()
+        out["scim_event_bodies"].append(
+            {"body_b64": b64(body), "index": 2, "expect": scim_hook.event_key(WS, json.loads(body), T0 * 1000, 2)}
+        )
+    keys = [c["expect"] for c in out["scim_event_bodies"][:2]]
+    assert keys[0] != keys[1], "distinct 64-bit-plus ids must give distinct event keys"
+    hashes = {c["body_b64"]: c["expect"] for c in out["request_hash"] if c["method"] == "post"}
+    assert hashes[b64(b"18446744073709551616")] != hashes[b64(b"18446744073709551617")]
     out["of_component"] = [
         {"seed": seed, "key": key, "expect": cls._component_id(SimpleNamespace(seed=seed), key)}
         for seed, key in (("s", "textfield"), ("seed-é", "a/b"))
@@ -626,6 +659,26 @@ def pyjson_vectors() -> list:
                 "canonical": json.dumps(value, sort_keys=True, separators=(",", ":")),
             }
         )
+    return out
+
+
+def loads_vectors() -> list:
+    """``json.loads`` of a request body and its canonical text, or None where
+    Python raises ``ValueError``; ``rust_declines`` marks what Python reads and
+    the Rust reader leaves to the raw-bytes fallback."""
+    bodies = [t.encode() for t in NUMBER_BODIES]
+    bodies += [b"\xef\xbb\xbf{}", b"\xef\xbb\xbf", b"\xff\xfe", b"\xfe\xff", b'{"a":"\xff"}', b"\xc3\xa9", "[1]".encode("utf-16"), "[1]".encode("utf-16-le"), "[1]".encode("utf-32"), b"[" * 600 + b"]" * 600]
+    out = []
+    for body in bodies:
+        try:
+            expect = json.dumps(json.loads(body), sort_keys=True, separators=(",", ":"))
+        except ValueError:
+            expect = None
+        except RecursionError:
+            expect = None
+        encoding_declined = body[:2] in (b"\xff\xfe", b"\xfe\xff") or (len(body) > 1 and (body[0] == 0 or body[1] == 0)) and True
+        deep = body.count(b"[") > 500
+        out.append({"body_b64": b64(body), "expect": expect, "rust_declines": bool(expect is not None and (encoding_declined or deep))})
     return out
 
 
@@ -688,7 +741,12 @@ def run(command: str, args: list) -> None:
     out["ids"] = ids_vectors(ring_a)
     out["pyjson"] = pyjson_vectors()
     out["b64"] = b64_vectors()
+    out["loads"] = loads_vectors()
     Path(args[0]).parent.mkdir(parents=True, exist_ok=True)
+    # The keys in this file (jwt, fernet, identity) were generated a few lines
+    # above for this vector alone: the Rust tests must hold them to reproduce
+    # the derived values. They protect nothing and are replaced on every
+    # regeneration; this is test data, not a stored credential.
     Path(args[0]).write_text(json.dumps(out, indent=1, ensure_ascii=True))
     print("wrote", args[0])
 

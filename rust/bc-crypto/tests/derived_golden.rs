@@ -360,6 +360,34 @@ fn draft_secrets_and_addresses_match_python() {
             None => assert!(got.is_none(), "{}", case["value"]),
         }
     }
+    // request input with a multi-byte character at any offset never panics
+    let id = "a".repeat(24);
+    let tail = "b".repeat(43);
+    let good = format!("{id}.{tail}");
+    assert!(drafts::split(&good).is_some());
+    let mut shapes = vec![
+        format!("{}é{}", "a".repeat(23), "b".repeat(43)),
+        format!("{}é{}", "a".repeat(22), "b".repeat(44)),
+        format!("{}é.{}", "a".repeat(23), "b".repeat(42)),
+        format!("{id}é{}", "b".repeat(42)),
+        format!("{id}.{}é", "b".repeat(41)),
+        format!("é{}", "a".repeat(67)),
+        "é".repeat(34),
+        "\u{1f600}".repeat(17),
+        String::new(),
+        id.clone(),
+        format!("{id}."),
+        format!("{id}.{}", "b".repeat(42)),
+        format!("{id}.{}", "b".repeat(44)),
+    ];
+    for offset in 0..good.len() {
+        let mut chars: Vec<char> = good.chars().collect();
+        chars[offset] = 'é';
+        shapes.push(chars.into_iter().collect());
+    }
+    for shape in &shapes {
+        assert!(drafts::split(shape).is_none(), "{shape:?}");
+    }
     let secret = drafts::new_secret();
     assert_eq!(secret.len(), 43);
     assert!(drafts::split(&drafts::compose("6a00000000000000000000aa", &secret)).is_some());
@@ -496,13 +524,18 @@ fn oauth_nonces_and_api_keys_match_python() {
             s(&case["expect"])
         );
         assert_eq!(oauth::sso_nonce_hash(s(&sso["nonce"])), s(&sso["expect"]));
+        // an absent nonce hashes as the empty text (Python's `nonce_hash(None)`): an
+        // input to a hash function, not a nonce in use
         assert_eq!(oauth::sso_nonce_hash(""), s(&sso["none_hash"]));
         let nonce = s(&sso["nonce"]);
         assert_eq!(
             oauth::sso_nonce_matches(nonce, s(&sso["expect"])),
             !nonce.is_empty()
         );
-        assert!(!oauth::sso_nonce_matches("different", s(&sso["expect"])));
+        assert!(!oauth::sso_nonce_matches(
+            &bc_crypto::random::token_urlsafe(32),
+            s(&sso["expect"])
+        ));
     }
     for case in o["api"].as_array().unwrap() {
         assert_eq!(apikey::hash(s(&case["token"])), s(&case["hash"]));
@@ -672,9 +705,21 @@ fn hashes_and_lock_keys_match_python() {
         assert_eq!(
             ids::scim_event_key(
                 s(&case["directory"]),
-                &case["event"],
+                &pyjson::Json::from_value(&case["event"]),
                 case["timestamp_ms"].as_i64().unwrap(),
                 case["index"].as_i64().unwrap()
+            ),
+            s(&case["expect"])
+        );
+    }
+    for case in i["scim_event_bodies"].as_array().unwrap() {
+        let event = pyjson::parse(&bytes(&case["body_b64"])).unwrap();
+        assert_eq!(
+            ids::scim_event_key(
+                s(&i["scim_event"][0]["directory"]),
+                &event,
+                1_700_000_000_000,
+                2
             ),
             s(&case["expect"])
         );
@@ -723,6 +768,59 @@ fn python_json_text_is_reproduced() {
     ] {
         assert_eq!(pyjson::float_repr(f), repr);
     }
+}
+
+#[test]
+fn json_bodies_are_read_and_written_as_python_does() {
+    let (mut read, mut refused, mut declined) = (0, 0, 0);
+    for case in v()["loads"].as_array().unwrap() {
+        let body = bytes(&case["body_b64"]);
+        let got = pyjson::parse(&body).map(|j| j.canonical());
+        let shown = String::from_utf8_lossy(&body[..body.len().min(60)]).to_string();
+        if case["rust_declines"].as_bool().unwrap() {
+            // Python reads it (UTF-16/32, nesting beyond 500); the caller hashes the bytes
+            assert_eq!(got, None, "{shown}");
+            declined += 1;
+        } else {
+            assert_eq!(got.as_deref(), case["expect"].as_str(), "{shown}");
+            if got.is_some() {
+                read += 1;
+            } else {
+                refused += 1;
+            }
+        }
+    }
+    assert!(
+        read >= 50 && refused >= 25 && declined >= 3,
+        "{read} {refused} {declined}"
+    );
+
+    // two integers beyond 64 bits are two values, and so are their hashes
+    let a = ids::request_hash("POST", "/x", b"18446744073709551616", &[]);
+    let b = ids::request_hash("POST", "/x", b"18446744073709551617", &[]);
+    assert_ne!(a, b);
+    let a = ids::request_hash("POST", "/x", br#"{"id":18446744073709551616}"#, &[]);
+    let b = ids::request_hash("POST", "/x", br#"{ "id": 18446744073709551617 }"#, &[]);
+    assert_ne!(a, b);
+    // the same value in another layout is one request; -0 is 0 but -0.0 is not 0.0
+    assert_eq!(
+        ids::request_hash("POST", "/x", br#"{"b":-0,"a":1}"#, &[]),
+        ids::request_hash("POST", "/x", br#" {"a": 1, "b": 0} "#, &[])
+    );
+    assert_ne!(
+        ids::request_hash("POST", "/x", b"-0.0", &[]),
+        ids::request_hash("POST", "/x", b"0.0", &[])
+    );
+    // a deep but legal nesting must not overflow the stack
+    let deep = format!("{}{}", "[".repeat(5000), "]".repeat(5000));
+    assert!(pyjson::parse(deep.as_bytes()).is_none());
+    assert_eq!(pyjson::parse(b"[[1]]").unwrap().canonical(), "[[1]]");
+    assert!(
+        pyjson::parse(br#"{"a":[1,{"b":null}]}"#)
+            .unwrap()
+            .get("a")
+            .is_some()
+    );
 }
 
 #[test]
@@ -795,7 +893,7 @@ fn rust_derived_values_for_python_to_verify() {
     let ckeys = captcha::keys(&ring);
     let day = captcha::day_number(t0);
     let claims = json!({"v": 1, "alg": "sha256-lz", "p": "submit", "w": ws, "f": form,
-        "n": b64url(&[7u8; 16]), "b": 14, "k": 8, "d": day,
+        "n": b64url(&bc_crypto::random::bytes::<16>()), "b": 14, "k": 8, "d": day,
         "t": captcha::ip_tag(&ckeys[0], day, "203.0.113.9"), "e": (t0 + 900) * 1000});
     let challenge = captcha::sign_payload(&ckeys[0], &claims.to_string());
     let counters = captcha::solve(&challenge, 14)
