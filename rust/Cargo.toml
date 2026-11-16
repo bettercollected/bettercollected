@@ -27,7 +27,7 @@ bc-crypto = { path = "bc-crypto" }
 bc-http = { path = "bc-http" }
 
 # external crates (every version is chosen here, once)
-aes-gcm = "0.10"
+aes-gcm = "0.11"
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "query"] }
 base64 = "0.22"
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
