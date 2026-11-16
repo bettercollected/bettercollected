@@ -60,6 +60,13 @@ pub struct Config {
     pub flags: Flags,
     pub sso_enabled: bool,
     pub totp_enabled: bool,
+    /// Whether `SSO_ENABLED` and `TOTP_ENABLED` were BOTH set in the
+    /// environment (to any value the Python parser accepts). In the Python
+    /// backend these two switches are also read from the settings store, which
+    /// this service does not read yet: an unset one may be on in the store, and
+    /// a route group that depends on the policies they switch must then not be
+    /// served from here (see `bc_api::groups::Group::needs_policy_switches`).
+    pub policy_switches_explicit: bool,
     pub network: NetworkConfig,
     pub edge: EdgeConfig,
     pub bind: String,
@@ -72,6 +79,7 @@ impl fmt::Debug for Config {
         f.debug_struct("Config")
             .field("jwt_ring_members", &self.jwt_ring.len())
             .field("flags", &self.flags)
+            .field("policy_switches_explicit", &self.policy_switches_explicit)
             .field("network", &self.network)
             .field("edge", &self.edge)
             .field("bind", &self.bind)
@@ -144,13 +152,16 @@ impl Config {
                 })?,
                 None => 10,
             };
+        let sso = settings.flag("SSO_ENABLED")?;
+        let totp = settings.flag("TOTP_ENABLED")?;
         Ok(Config {
             database_url: Secret::new(sqlx_url(&database_url)),
             jwt_ring,
             fernet_ring,
             flags: Flags::from_settings(settings)?,
-            sso_enabled: settings.flag("SSO_ENABLED")?.unwrap_or(false),
-            totp_enabled: settings.flag("TOTP_ENABLED")?.unwrap_or(false),
+            sso_enabled: sso.unwrap_or(false),
+            totp_enabled: totp.unwrap_or(false),
+            policy_switches_explicit: sso.is_some() && totp.is_some(),
             network: NetworkConfig::from_settings(settings)?,
             edge: EdgeConfig::from_settings(settings)?,
             bind: settings
@@ -263,6 +274,25 @@ mod tests {
         let shown = format!("{cfg:?}");
         assert!(!shown.contains("hunter2"), "{shown}");
         assert!(!shown.contains("0123456789abcdef"), "{shown}");
+    }
+
+    #[test]
+    fn the_policy_switches_count_as_explicit_only_when_both_are_set() {
+        let explicit = |extra: &[(&str, &str)]| {
+            Config::from_settings(&settings(&valid(extra)))
+                .unwrap()
+                .policy_switches_explicit
+        };
+        assert!(!explicit(&[]));
+        assert!(!explicit(&[("SSO_ENABLED", "false")]));
+        assert!(!explicit(&[("TOTP_ENABLED", "true")]));
+        // empty counts as unset, as in the Python settings loader
+        assert!(!explicit(&[("SSO_ENABLED", "false"), ("TOTP_ENABLED", "")]));
+        assert!(explicit(&[
+            ("SSO_ENABLED", "false"),
+            ("TOTP_ENABLED", "off")
+        ]));
+        assert!(explicit(&[("SSO_ENABLED", "yes"), ("TOTP_ENABLED", "1")]));
     }
 
     #[test]

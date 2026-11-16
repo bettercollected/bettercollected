@@ -3,7 +3,9 @@
  "description": "Address lookup needs both switches; presets follow their own.",
  "env": {
   "ADDRESS_QUESTION_ENABLED": "true",
-  "DAYBREAK_PRESET_ENABLED": "true"
+  "DAYBREAK_PRESET_ENABLED": "true",
+  "SSO_ENABLED": "false",
+  "TOTP_ENABLED": "false"
  },
  "cases": [
   {

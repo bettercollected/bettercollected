@@ -142,6 +142,22 @@ def make_tokens(people, workspaces):
         "owner_float_exp": {"exp": time.time() + 3600.5},
         "owner_string_exp": {"exp": "9999999999"},
         "owner_nbf_past": {"nbf": int(time.time()) - 60},
+        # the time claims PyJWT reads with int(): floats, numeric strings, booleans; null and text are refused
+        "owner_float_exp_expired": {"exp": time.time() - 60.5},
+        "owner_string_exp_expired": {"exp": "1"},
+        "owner_string_exp_junk": {"exp": "soon"},
+        "owner_string_exp_padded": {"exp": f" {int(time.time()) + 3600} "},
+        "owner_string_exp_underscore": {"exp": "9_999_999_999"},
+        "owner_string_exp_float_text": {"exp": f"{time.time() + 3600:.1f}"},
+        "owner_exp_null": {"exp": None},
+        "owner_exp_true": {"exp": True},
+        "owner_nbf_float_future": {"nbf": time.time() + 3600.5},
+        "owner_nbf_string_future": {"nbf": str(int(time.time()) + 3600)},
+        "owner_nbf_float_past": {"nbf": time.time() - 60.5},
+        "owner_nbf_string_junk": {"nbf": "later"},
+        "owner_nbf_null": {"nbf": None},
+        "owner_iat_float": {"iat": time.time() - 60.5},
+        "owner_iat_negative": {"iat": -5},
     }.items():
         tokens[name] = mint(owner["id"], owner["email"], extra=extra)
     tokens["owner_extra_header"] = jwt.encode(

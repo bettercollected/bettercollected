@@ -181,14 +181,15 @@ def rust_binary(arg: str | None) -> Path:
 class Pair:
     """A Python backend and a Rust edge in front of it, for one environment."""
 
-    def __init__(self, env_extra: dict, rust_routes: list, base_env: dict, rust_bin: Path, logdir: Path, label: str):
+    def __init__(self, env_extra: dict, python_env: dict, rust_routes: list, base_env: dict, rust_bin: Path, logdir: Path, label: str):
         self.py_port, self.rs_port = free_port(), free_port()
         env = {**base_env, **env_extra}
+        python_side = {**env, **python_env}
         self.python = Server(
             f"python[{label}]",
             ["uv", "run", "--frozen", "python", "-m", "uvicorn", "backend.app:get_application", "--factory",
              "--host", "127.0.0.1", "--port", str(self.py_port), "--no-access-log"],
-            env, REPO / "backend", logdir / f"python-{label}.log",
+            python_side, REPO / "backend", logdir / f"python-{label}.log",
         )
         self.rust = None
         self.py_url = f"http://127.0.0.1:{self.py_port}"
@@ -376,18 +377,20 @@ def main() -> int:
 
         by_env: dict = {}
         for cfile in files:
-            by_env.setdefault(json.dumps(cfile.env, sort_keys=True), []).append(cfile)
+            key = json.dumps({"env": cfile.env, "python_env": cfile.python_env}, sort_keys=True)
+            by_env.setdefault(key, []).append(cfile)
 
         tallies = []
         for n, (env_key, group_files) in enumerate(by_env.items()):
-            env_extra = json.loads(env_key)
+            env_extra = json.loads(env_key)["env"]
+            python_env = json.loads(env_key)["python_env"]
             routes = sorted({f.group for f in group_files})
             modes = [("rust", routes)]
             if args.passthrough:
                 modes.append(("passthrough", []))
             for mode, switched_on in modes:
                 label = f"{n}-{mode}"
-                pair = Pair(env_extra, switched_on, base_env, rust_bin, logdir, label)
+                pair = Pair(env_extra, python_env, switched_on, base_env, rust_bin, logdir, label)
                 pairs.append(pair)
                 pair.start()
                 tally = Tally()
@@ -396,6 +399,8 @@ def main() -> int:
                 title = f"{', '.join(Path(f.path).name for f in group_files)} [{mode}]"
                 if env_extra:
                     title += f" env={json.dumps(env_extra, sort_keys=True)[:80]}"
+                if python_env:
+                    title += f" python-only={json.dumps(python_env, sort_keys=True)[:60]}"
                 tallies.append((title, tally))
 
         total_cases = sum(t.cases for _, t in tallies)

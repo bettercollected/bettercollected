@@ -24,6 +24,10 @@ pub fn settings(upstream: &str, extra: &[(&str, &str)]) -> Settings {
         ("DATABASE_URL", "postgres://nobody@127.0.0.1:1/none"),
         ("AUTH_JWT_SECRET", SECRET),
         ("BC_PYTHON_UPSTREAM", upstream),
+        // explicit, so that a group that needs them is served; a test that wants
+        // them unset passes an empty value
+        ("SSO_ENABLED", "false"),
+        ("TOTP_ENABLED", "false"),
     ]
     .iter()
     .map(|(k, v)| ((*k).to_string(), (*v).to_string()))

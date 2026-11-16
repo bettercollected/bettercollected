@@ -2,7 +2,8 @@
  "group": "permissions",
  "description": "Single sign-on on: a workspace that requires it is decided by the Python backend, the rest by Rust.",
  "env": {
-  "SSO_ENABLED": "true"
+  "SSO_ENABLED": "true",
+  "TOTP_ENABLED": "false"
  },
  "cases": [
   {

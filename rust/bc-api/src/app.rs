@@ -40,15 +40,27 @@ pub fn router(state: AppState) -> Router {
         }),
     );
     for group in groups::ALL {
-        if state
+        if !state
             .cfg
             .edge
             .rust_routes
             .iter()
             .any(|name| name == group.name)
         {
-            router = (group.mount)(router, &state);
+            continue;
         }
+        if group.needs_policy_switches && !state.cfg.policy_switches_explicit {
+            // fail closed: the switches may be on in the settings store, which
+            // is not read here, and the answer would then be wrong
+            tracing::warn!(
+                "route group {} stays on the Python backend: it depends on SSO_ENABLED and \
+                 TOTP_ENABLED, which Python also reads from the settings store; set both in \
+                 the environment of this service to serve it from here",
+                group.name
+            );
+            continue;
+        }
+        router = (group.mount)(router, &state);
     }
     router.fallback(groups::forward).with_state(state)
 }

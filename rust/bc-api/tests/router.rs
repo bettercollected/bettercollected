@@ -88,6 +88,52 @@ async fn with_the_group_on_rust_answers_and_python_is_not_asked() {
 }
 
 #[tokio::test]
+async fn without_both_policy_switches_in_the_environment_the_group_stays_on_python() {
+    // the settings store (not read here) may hold them: fail closed
+    for extra in [
+        vec![("SSO_ENABLED", ""), ("TOTP_ENABLED", "")],
+        vec![("SSO_ENABLED", "false"), ("TOTP_ENABLED", "")],
+        vec![("SSO_ENABLED", ""), ("TOTP_ENABLED", "true")],
+    ] {
+        let (upstream, seen) = python().await;
+        let mut all = vec![
+            ("BC_RUST_ROUTES", "permissions"),
+            ("BC_SERVED_BY_HEADER", "true"),
+        ];
+        all.extend(extra.clone());
+        let edge = edge(upstream, &all).await;
+        let a = get(edge, PATH, &[]).await;
+        assert_eq!(a.status.as_u16(), 299, "{extra:?}");
+        assert_eq!(a.headers["x-bc-served-by"], "python", "{extra:?}");
+        assert_eq!(seen.load(Ordering::SeqCst), 1);
+    }
+}
+
+#[tokio::test]
+async fn with_both_policy_switches_explicit_in_any_accepted_spelling_rust_serves() {
+    for (sso, totp) in [
+        ("false", "false"),
+        ("off", "yes"),
+        ("1", "0"),
+        ("TRUE", "n"),
+    ] {
+        let (upstream, seen) = python().await;
+        let edge = edge(
+            upstream,
+            &[
+                ("BC_RUST_ROUTES", "permissions"),
+                ("SSO_ENABLED", sso),
+                ("TOTP_ENABLED", totp),
+            ],
+        )
+        .await;
+        let a = get(edge, PATH, &[]).await;
+        assert_eq!(a.status, StatusCode::UNAUTHORIZED, "{sso} {totp}");
+        assert_eq!(seen.load(Ordering::SeqCst), 0);
+    }
+}
+
+#[tokio::test]
 async fn the_marker_header_is_off_unless_asked_for() {
     let (upstream, _) = python().await;
     let edge = edge(upstream, &[("BC_RUST_ROUTES", "permissions")]).await;

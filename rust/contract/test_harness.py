@@ -186,3 +186,15 @@ def test_a_different_doc_or_spine_column_or_row_count_is_a_difference():
 def test_a_table_name_cannot_carry_sql():
     with pytest.raises(ValueError):
         dbdiff._table('workspaces"; DROP TABLE x; --')
+
+
+def test_python_only_environment_is_read_from_the_corpus_file(tmp_path):
+    path = tmp_path / "f.json"
+    path.write_text(json.dumps({
+        "group": "g", "env": {"A": "1"}, "python_env": {"B": 2},
+        "cases": [{"name": "c", "method": "GET", "path": "/"}],
+    }))
+    loaded = corpus.load_file(path, FIXTURE)
+    assert loaded.env == {"A": "1"} and loaded.python_env == {"B": "2"}
+    path.write_text(json.dumps({"group": "g", "cases": []}))
+    assert corpus.load_file(path, FIXTURE).python_env == {}

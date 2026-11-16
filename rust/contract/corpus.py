@@ -4,6 +4,8 @@
       "group": "permissions",              # the BC_RUST_ROUTES name this file exercises
       "description": "...",
       "env": {"TOTP_ENABLED": "true"},     # set for BOTH servers; files with the same env share a run
+      "python_env": {"SSO_ENABLED": "true"}, # set for the Python backend ONLY: what Python knows and the Rust
+                                           # edge cannot see (a setting held in the settings store)
       "defaults": {"served_by": "rust"},   # merged into every case
       "cases": [
         {
@@ -69,6 +71,7 @@ class CorpusFile:
     group: str
     description: str
     env: dict
+    python_env: dict
     cases: list
 
 
@@ -174,7 +177,8 @@ def load_file(path: Path, fixture: dict) -> CorpusFile:
             raise CorpusError(f"{path.name}: two cases are named {case.name!r}")
         seen.add(case.name)
     env = {str(k): str(v) for k, v in (raw.get("env") or {}).items()}
-    return CorpusFile(str(path), group, raw.get("description", ""), env, cases)
+    python_env = {str(k): str(v) for k, v in (raw.get("python_env") or {}).items()}
+    return CorpusFile(str(path), group, raw.get("description", ""), env, python_env, cases)
 
 
 def load_dir(directory: Path, fixture: dict, only_groups: Optional[set] = None) -> list:

@@ -3,6 +3,7 @@ allow-expect-in-tests = true
 allow-print-in-tests = true
 doc-valid-idents = [
     "FastAPI",
+    "PyJWT",
     "ObjectId",
     "SQLAlchemy",
     "PostgreSQL",

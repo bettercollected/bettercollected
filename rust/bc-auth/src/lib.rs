@@ -32,10 +32,76 @@ pub struct User {
     pub mfa: bool,
 }
 
+fn now_seconds() -> f64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0.0, |d| d.as_secs_f64())
+}
+
+#[cfg(test)]
 fn now() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |d| d.as_secs())
+}
+
+/// PyJWT's `int(value)` for a claim: an integer, a float (truncated toward
+/// zero), a boolean (`True` is 1) or a string `int()` reads (surrounding white
+/// space, an optional sign, ASCII digits with single underscores between
+/// them). `None` where PyJWT raises: null, arrays, objects, `"1.5"`, `"abc"`,
+/// an infinite float. (Digits of other scripts, which `int()` also reads, are
+/// refused here: a token then fails closed.) The value is returned as `f64`:
+/// it is only ever compared with the current time.
+fn py_int(value: &Value) -> Option<f64> {
+    match value {
+        Value::Bool(b) => Some(f64::from(u8::from(*b))),
+        Value::Number(n) => {
+            let f = n.as_f64()?;
+            f.is_finite().then(|| f.trunc())
+        }
+        Value::String(s) => {
+            let t = s.trim();
+            let digits = t.strip_prefix(['+', '-']).unwrap_or(t);
+            let well_formed = !digits.is_empty()
+                && digits.bytes().all(|b| b.is_ascii_digit() || b == b'_')
+                && !digits.starts_with('_')
+                && !digits.ends_with('_')
+                && !digits.contains("__");
+            if !well_formed {
+                return None;
+            }
+            let number: String = digits.chars().filter(|c| *c != '_').collect();
+            let magnitude = number.parse::<f64>().ok()?;
+            Some(if t.starts_with('-') {
+                -magnitude
+            } else {
+                magnitude
+            })
+        }
+        _ => None,
+    }
+}
+
+/// `PyJWT._validate_claims` with no leeway: `iat` and `nbf` must read as
+/// integers and not lie in the future, `exp` must read as an integer and lie in
+/// the future (`exp <= now` is expired). A claim that is absent is not checked.
+fn time_claims_hold(claims: &Map<String, Value>, now: f64) -> bool {
+    if let Some(iat) = claims.get("iat")
+        && !py_int(iat).is_some_and(|v| v <= now)
+    {
+        return false;
+    }
+    if let Some(nbf) = claims.get("nbf")
+        && !py_int(nbf).is_some_and(|v| v <= now)
+    {
+        return false;
+    }
+    if let Some(exp) = claims.get("exp")
+        && !py_int(exp).is_some_and(|v| v > now)
+    {
+        return false;
+    }
+    true
 }
 
 /// The claims of `token` when some member of the ring verifies it and the
@@ -44,8 +110,12 @@ fn now() -> u64 {
 pub fn decode_with_ring(token: &str, ring: &KeyRing) -> Option<Map<String, Value>> {
     let mut validation = Validation::new(Algorithm::HS256);
     validation.leeway = 0;
-    validation.validate_exp = true;
-    validation.validate_nbf = true;
+    // The signature and the algorithm are checked by jsonwebtoken; the time
+    // claims are checked below with PyJWT's own coercion. jsonwebtoken silently
+    // skips an `exp` or `nbf` it cannot read as an unsigned integer, which would
+    // let a validly signed token with a float or string `exp` live forever.
+    validation.validate_exp = false;
+    validation.validate_nbf = false;
     validation.validate_aud = false;
     // PyJWT does not require `exp`; it checks it when present
     validation.required_spec_claims.clear();
@@ -61,12 +131,8 @@ pub fn decode_with_ring(token: &str, ring: &KeyRing) -> Option<Map<String, Value
                 if claims.contains_key("aud") {
                     return None;
                 }
-                // PyJWT: `iat` must be an integer and not in the future
-                if let Some(iat) = claims.get("iat") {
-                    match iat.as_i64() {
-                        Some(v) if u64::try_from(v).is_ok_and(|v| v <= now()) => {}
-                        _ => return None,
-                    }
+                if !time_claims_hold(&claims, now_seconds()) {
+                    return None;
                 }
                 return Some(claims);
             }
@@ -229,6 +295,7 @@ pub fn parse_cookies(header: &str) -> std::collections::HashMap<String, String> 
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::cast_precision_loss)]
     use super::*;
     use jsonwebtoken::{EncodingKey, Header, encode};
     use serde_json::json;
@@ -297,6 +364,65 @@ mod tests {
             Algorithm::HS256,
         );
         assert!(user_from_access_token(Some(&t), &ring()).is_none());
+    }
+
+    #[test]
+    fn time_claims_are_read_as_pyjwt_reads_them() {
+        let live = now() + 3600;
+        let past = now() - 3600;
+        // (claim, value, token accepted?)
+        let cases = [
+            ("exp", json!(live as f64 + 0.5), true),
+            ("exp", json!(past as f64 + 0.5), false),
+            ("exp", json!(live.to_string()), true),
+            ("exp", json!(format!(" +{live} ")), true),
+            ("exp", json!(past.to_string()), false),
+            ("exp", json!("soon"), false),
+            ("exp", json!("1.5"), false),
+            ("exp", json!(""), false),
+            ("exp", json!(null), false),
+            ("exp", json!([live]), false),
+            ("exp", json!({"a": live}), false),
+            ("exp", json!(true), false), // int(True) = 1: long expired
+            ("exp", json!("9_999_999_999"), true),
+            ("exp", json!("_9999999999"), false),
+            ("nbf", json!(live as f64 + 0.5), false),
+            ("nbf", json!(live.to_string()), false),
+            ("nbf", json!(past as f64 + 0.5), true),
+            ("nbf", json!(past.to_string()), true),
+            ("nbf", json!("soon"), false),
+            ("nbf", json!(null), false),
+            ("iat", json!(past as f64 + 0.5), true),
+            ("iat", json!(live as f64), false),
+            ("iat", json!(-5), true), // PyJWT accepts a negative `iat`
+            ("iat", json!("now"), false),
+        ];
+        for (claim, value, accepted) in cases {
+            let t = sign(
+                base(json!({ claim: value.clone() })),
+                &members()[0],
+                Algorithm::HS256,
+            );
+            assert_eq!(
+                user_from_access_token(Some(&t), &ring()).is_some(),
+                accepted,
+                "{claim} = {value}"
+            );
+        }
+    }
+
+    #[test]
+    fn exp_equal_to_now_is_expired_and_nbf_equal_to_now_is_valid() {
+        let claims = |name: &str, v: u64| {
+            let mut c = Map::new();
+            c.insert(name.to_string(), json!(v));
+            c
+        };
+        assert!(!time_claims_hold(&claims("exp", 100), 100.0));
+        assert!(time_claims_hold(&claims("exp", 101), 100.0));
+        assert!(time_claims_hold(&claims("nbf", 100), 100.0));
+        assert!(!time_claims_hold(&claims("nbf", 101), 100.0));
+        assert!(time_claims_hold(&Map::new(), 100.0));
     }
 
     #[test]

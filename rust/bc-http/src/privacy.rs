@@ -11,6 +11,7 @@ use std::sync::LazyLock;
 
 use axum::http::{HeaderName, HeaderValue};
 use axum::response::Response;
+use percent_encoding::percent_decode_str;
 use regex::Regex;
 
 pub const REDACTED: &str = "<redacted>";
@@ -68,10 +69,35 @@ pub fn redact_receipts(text: &str) -> String {
     out
 }
 
+/// How many times a path is percent-decoded for logging. The server decodes
+/// once; more rounds also catch a path that is encoded twice, which the
+/// backend does not route but which must not carry a receipt number into a log.
+const DECODE_ROUNDS: usize = 3;
+
+/// The path as it must be logged. The backend routes on the percent-decoded
+/// path (`/submissions/by%2Duuid/<receipt>` reaches its receipt route, and so
+/// does an encoded slash), so redaction works on the decoded path: decoded up to
+/// [`DECODE_ROUNDS`] times, redacted, and stripped of control characters (a
+/// decoded `%0A` must not start a forged log line).
+pub fn loggable_path(path: &str) -> String {
+    let mut text = path.to_string();
+    for _ in 0..DECODE_ROUNDS {
+        let decoded = percent_decode_str(&text).decode_utf8_lossy().into_owned();
+        if decoded == text {
+            break;
+        }
+        text = decoded;
+    }
+    redact_receipts(&text)
+        .chars()
+        .map(|c| if c.is_control() { '?' } else { c })
+        .collect()
+}
+
 /// The request as it is logged: method and redacted path, never the query
 /// string (search text, respondent emails).
 pub fn loggable_request(method: &str, path: &str) -> String {
-    redact_receipts(&format!("{method} {path}"))
+    format!("{method} {}", loggable_path(path))
 }
 
 /// Whether the response of `path` may hold decrypted answers, and so must not
@@ -112,6 +138,43 @@ mod tests {
         assert_eq!(redact_receipts(&longer), longer);
         let id = "/submissions/6a0000000000000000000001";
         assert_eq!(redact_receipts(id), id);
+    }
+
+    #[test]
+    fn an_encoded_path_is_redacted_as_the_backend_routes_it() {
+        let uuid = "123e4567-e89b-12d3-a456-426614174000";
+        for raw in [
+            "/api/v1/workspaces/w/submissions/by%2Duuid/RECEIPT",
+            "/api/v1/workspaces/w/submissions/by%2duuid/RECEIPT",
+            "/api/v1/workspaces/w/submissions/b%79%2Duu%69d/RECEIPT",
+            "/api/v1/workspaces/w/submissions/by-uuid%2FRECEIPT",
+            "/api/v1/workspaces/w/submissions/by-uuid%2fRECEIPT",
+            "/api/v1/workspaces/w/submissions/by%252Duuid/RECEIPT",
+            "/api/v1/workspaces/w/submissions/by-uuid/RE%43EIPT",
+        ] {
+            let logged = loggable_request("GET", raw);
+            assert!(
+                !logged.contains("RECEIPT") && !logged.contains("EIPT"),
+                "{raw}: {logged}"
+            );
+            assert!(logged.ends_with("/by-uuid/<redacted>"), "{raw}: {logged}");
+        }
+        let id = format!("/api/v1/workspaces/w/submissions%2F{uuid}");
+        assert!(!loggable_request("GET", &id).contains(uuid));
+        let id = format!("/api/v1/workspaces/w/%73ubmissions/{uuid}");
+        assert!(!loggable_request("GET", &id).contains(uuid));
+    }
+
+    #[test]
+    fn a_decoded_control_character_cannot_forge_a_log_line() {
+        let logged = loggable_request("GET", "/a%0AINFO fake%0d%0aline");
+        assert!(
+            !logged.contains('\n') && !logged.contains('\r'),
+            "{logged:?}"
+        );
+        assert_eq!(loggable_request("GET", "/plain/path"), "GET /plain/path");
+        // bytes that are not UTF-8 do not stop the log line
+        assert!(loggable_request("GET", "/x%FF").contains('\u{fffd}'));
     }
 
     #[test]

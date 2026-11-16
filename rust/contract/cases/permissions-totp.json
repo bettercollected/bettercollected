@@ -2,7 +2,8 @@
  "group": "permissions",
  "description": "Authenticator-app policy on: workspaces that require it hold nothing for a session without a second factor.",
  "env": {
-  "TOTP_ENABLED": "true"
+  "TOTP_ENABLED": "true",
+  "SSO_ENABLED": "false"
  },
  "cases": [
   {

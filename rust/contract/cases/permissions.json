@@ -1,7 +1,10 @@
 {
  "group": "permissions",
- "description": "GET /workspaces/{id}/permissions with every feature switch and policy off: roles, tokens, ids, cookies, methods, paths and CORS.",
- "env": {},
+ "description": "GET /workspaces/{id}/permissions with every feature switch off and both policy switches set to off in the environment: roles, tokens, ids, cookies, methods, paths and CORS.",
+ "env": {
+  "SSO_ENABLED": "false",
+  "TOTP_ENABLED": "false"
+ },
  "cases": [
   {
    "name": "person:{who}@{ws}",
@@ -125,7 +128,22 @@
      "owner_float_exp",
      "owner_string_exp",
      "owner_nbf_past",
-     "owner_extra_header"
+     "owner_extra_header",
+     "owner_float_exp_expired",
+     "owner_string_exp_expired",
+     "owner_string_exp_junk",
+     "owner_string_exp_padded",
+     "owner_string_exp_underscore",
+     "owner_string_exp_float_text",
+     "owner_exp_null",
+     "owner_exp_true",
+     "owner_nbf_float_future",
+     "owner_nbf_string_future",
+     "owner_nbf_float_past",
+     "owner_nbf_string_junk",
+     "owner_nbf_null",
+     "owner_iat_float",
+     "owner_iat_negative"
     ],
     "w": [
      "main",
@@ -949,6 +967,23 @@
     "Origin": "https://app.example.test"
    },
    "served_by": "rust"
+  },
+  {
+   "name": "path:encoded-receipt:{v}",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/submissions/{v}",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   },
+   "matrix": {
+    "v": [
+     "by%2Duuid/abc",
+     "by%2duuid/abc",
+     "by-uuid%2Fabc",
+     "by%252Duuid/abc"
+    ]
+   },
+   "served_by": "python"
   }
  ]
 }

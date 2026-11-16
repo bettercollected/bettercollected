@@ -70,6 +70,12 @@ cargo run -p bc-api
 Settings are read from the environment only. The settings store of the Python services is not read yet, so a
 stack whose secrets live only in that store cannot run this service.
 
+`SSO_ENABLED` and `TOTP_ENABLED` are also store-backed settings in the Python backend. A route group whose answers
+depend on them (`permissions`) is therefore served by Rust only when **both** are set explicitly in the
+environment (to any value the Python parser accepts, `false` included); otherwise every request for the group is
+forwarded to Python, and the edge says so once at start. Until the settings-store reader exists, this keeps a
+switch that is on only in the store from being treated as off.
+
 ## The per-group switch
 
 A route group is a set of routes that moves from Python to Rust together. `BC_RUST_ROUTES` names the groups
@@ -121,8 +127,10 @@ The run exits non-zero on any difference. `--group NAME` runs one group, `--repo
 JSON.
 
 Cases are data, one JSON file per route group in `contract/cases/` (the format is in `contract/corpus.py`).
-A file can set environment variables for both servers (the feature switches, `TOTP_ENABLED`, ...) and says which
-side must have answered each case (`served_by`), so a group that quietly falls back to Python cannot pass.
+A file can set environment variables for both servers (`env`: the feature switches, `TOTP_ENABLED`, ...) and for the
+Python backend only (`python_env`: what Python knows and the edge cannot see, such as a setting held in the settings
+store), and says which side must have answered each case (`served_by`), so a group that quietly falls back to Python
+cannot pass.
 
 To add a route group: write its module under `bc-api/src/groups/`, add it to `groups::ALL`, add
 `contract/cases/<group>.json`, and run the harness.

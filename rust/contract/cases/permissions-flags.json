@@ -24,7 +24,9 @@
   "FORM_PROMOTION_ENABLED": "true",
   "API_KEY_ROLES_ENABLED": "true",
   "REPORTING_ENABLED": "true",
-  "APP_THEME_PIGMENT_ENABLED": "true"
+  "APP_THEME_PIGMENT_ENABLED": "true",
+  "SSO_ENABLED": "false",
+  "TOTP_ENABLED": "false"
  },
  "cases": [
   {
