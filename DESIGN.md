@@ -340,6 +340,13 @@ exactly as before (`components/ui/daybreak-art.tsx`, which Pigment never
 recolours). `AppArt` chooses from the scope; the publish dialog is portalled out
 of the scope and reads the workspace's theme from the store.
 
+**Pigment in the Leaflet style.** The Pigment Leaflet preset is the Leaflet
+structure in Pigment's colours (the same ink, iris, control edge, lettered keys
+and ending shapes), with one band instead of two: the Leaflet section bar is the
+sun band (`PIGMENT_BAND`) and its intro band a pale sun tint (`PIGMENT_BAND_TINT`),
+which the renderer chooses when the style is Leaflet and the artwork Pigment, and
+for no other theme. See `docs/pigment-preset.md`.
+
 **A form is never in the app's colours.** The builder canvas, the preview page and
 the preview dialog sit inside the scope of a workspace, but they show the form as a
 respondent sees it. The root of the form (`LayoutWrapper`, `formRootProps`) therefore
@@ -759,6 +766,14 @@ White sheet, one accent, no shadows, nothing decorative.
   of `secondary` over the page, kept light enough that the ink reads at 7:1
   or more on it. A page with a section title of its own keeps the whole
   block, heading included, in the band.
+- **The bar in the Pigment look.** The one exception to the navy bar: a form
+  whose style is Leaflet AND whose artwork is Pigment (the Pigment Leaflet
+  preset, see "Pigment theme") has one band, not two. The section bar itself
+  is the sun yellow with the ink that reads on it (the band-ink rule, 4.5:1)
+  and the intro band under it a pale sun tint; the separate Pigment band is not
+  drawn and the header row above stays the plain Leaflet row. Numerals, the
+  margin note's rule, the button and the selected state stay on `secondary`
+  (iris). Any other Leaflet form keeps the bar above.
 - **Editing the title.** In the builder the creator edits the title on the
   navy bar itself. With a section title set, or on a page without an opening
   heading, the bar holds a labelled one-line field ("Section title") whose

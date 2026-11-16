@@ -136,7 +136,7 @@ function canvasPageView(page: StandardFormFieldDto | undefined, leaflet: boolean
 }
 
 const HEADING_ON_BAR_CLASSES =
-    '[&_.ProseMirror]:leading-[1.6] [&_.ProseMirror>*:first-child]:relative [&_.ProseMirror>*:first-child]:py-3.5 [&_.ProseMirror>*:first-child]:pl-[var(--leaflet-margin,34px)] [&_.ProseMirror>*:first-child]:font-(family-name:--leaflet-serif) [&_.ProseMirror>*:first-child]:text-[22px]! [&_.ProseMirror>*:first-child]:leading-[1.25]! [&_.ProseMirror>*:first-child]:font-semibold! [&_.ProseMirror>*:first-child]:text-white [&_.ProseMirror>*:first-child]:[border-image:conic-gradient(var(--leaflet-bar)_0_0)_fill_0//0_100vmax] [&_.ProseMirror>*:first-child]:before:absolute [&_.ProseMirror>*:first-child]:before:top-3.5 [&_.ProseMirror>*:first-child]:before:left-0 [&_.ProseMirror>*:first-child]:before:text-[28px] [&_.ProseMirror>*:first-child]:before:leading-none [&_.ProseMirror>*:first-child]:before:tabular-nums [&_.ProseMirror>*:first-child]:before:content-(--leaflet-numeral) [&_.ProseMirror>*:last-child:not(:first-child)]:mb-4 [&_.ProseMirror>*:nth-child(2)]:mt-4!';
+    '[&_.ProseMirror]:leading-[1.6] [&_.ProseMirror>*:first-child]:relative [&_.ProseMirror>*:first-child]:py-3.5 [&_.ProseMirror>*:first-child]:pl-[var(--leaflet-margin,34px)] [&_.ProseMirror>*:first-child]:font-(family-name:--leaflet-serif) [&_.ProseMirror>*:first-child]:text-[22px]! [&_.ProseMirror>*:first-child]:leading-[1.25]! [&_.ProseMirror>*:first-child]:font-semibold! [&_.ProseMirror>*:first-child]:text-[color:var(--leaflet-bar-ink,#ffffff)] [&_.ProseMirror>*:first-child]:[border-image:conic-gradient(var(--leaflet-bar)_0_0)_fill_0//0_100vmax] [&_.ProseMirror>*:first-child]:before:absolute [&_.ProseMirror>*:first-child]:before:top-3.5 [&_.ProseMirror>*:first-child]:before:left-0 [&_.ProseMirror>*:first-child]:before:text-[28px] [&_.ProseMirror>*:first-child]:before:leading-none [&_.ProseMirror>*:first-child]:before:tabular-nums [&_.ProseMirror>*:first-child]:before:content-(--leaflet-numeral) [&_.ProseMirror>*:last-child:not(:first-child)]:mb-4 [&_.ProseMirror>*:nth-child(2)]:mt-4!';
 
 /** The page's opening text block on the Leaflet intro band (one editor, dressed per block). */
 const OpeningBlock = memo(function OpeningBlock({
@@ -146,6 +146,7 @@ const OpeningBlock = memo(function OpeningBlock({
     active,
     headingOnBar,
     bar,
+    barInk,
     sectionNumber
 }: {
     fieldId: string;
@@ -154,6 +155,8 @@ const OpeningBlock = memo(function OpeningBlock({
     active: boolean;
     headingOnBar: boolean;
     bar?: string;
+    /** The ink on the bar: white on the secondary, the band ink on the sun band (leafletColours). */
+    barInk?: string;
     sectionNumber: number;
 }) {
     const stored = useField(given ? null : fieldId);
@@ -177,6 +180,7 @@ const OpeningBlock = memo(function OpeningBlock({
             style={
                 {
                     '--leaflet-bar': bar,
+                    '--leaflet-bar-ink': barInk,
                     '--leaflet-serif': leafletSerif.style.fontFamily,
                     '--leaflet-numeral': `"${sectionNumber}"`
                 } as React.CSSProperties
@@ -471,10 +475,10 @@ const SlideBuilder = ({ pageId, slide: given, isScaledDown = false, disabled = f
                             // heading's navy reaches the page edges through a
                             // filled border image (no box, no shadow), clipped here.
                             className={cn('-mx-5 overflow-x-clip px-5 sm:-mx-8 sm:px-8', !headingOnBar && 'py-4')}
-                            style={{ background: leafletColours(theme).band, color: theme?.primary }}
+                            style={{ background: leafletColours(theme).band, color: leafletColours(theme).introInk }}
                             data-testid="leaflet-canvas-opening"
                         >
-                            <OpeningBlock fieldId={openingId} field={givenById.get(openingId)} slide={slide} active={activeFieldComponent?.id === openingId} headingOnBar={headingOnBar} bar={theme?.secondary} sectionNumber={sectionNumber} />
+                            <OpeningBlock fieldId={openingId} field={givenById.get(openingId)} slide={slide} active={activeFieldComponent?.id === openingId} headingOnBar={headingOnBar} bar={leafletColours(theme).bar} barInk={leafletColours(theme).barInk} sectionNumber={sectionNumber} />
                         </div>
                     )}
                 </div>

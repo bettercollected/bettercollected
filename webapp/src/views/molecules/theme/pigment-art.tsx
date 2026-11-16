@@ -31,6 +31,12 @@ export const PIGMENT_ORCHID = '#D9A0FF';
 /** Does the theme wear the Pigment scene? */
 export const hasPigmentScene = (theme?: Partial<FormTheme> | null) => theme?.background?.artwork === 'pigment';
 
+/**
+ * The Leaflet style wearing the Pigment artwork (the Pigment Leaflet preset): the one case where the Leaflet section bar is the sun
+ * band instead of a bar in the theme's `secondary`, and the separate Pigment band is not drawn. Every other theme draws what it did.
+ */
+export const hasSunBar = (theme?: Partial<FormTheme> | null) => theme?.style === 'leaflet' && hasPigmentScene(theme);
+
 /** Does the theme wear a scene that draws the ending's picture and puts its message right under it (Daybreak or Pigment)? */
 export const hasEndingScene = (theme?: Partial<FormTheme> | null) => hasDaybreakScene(theme) || hasPigmentScene(theme);
 

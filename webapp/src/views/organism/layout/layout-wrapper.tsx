@@ -16,7 +16,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { firstPartyImageProps } from '@app/utils/first-party-image';
 import { ResolvedFormLogo } from '@app/utils/form-logo';
 import FormLogoStrip from '@app/views/molecules/form/form-logo-strip';
-import { hasEndingScene } from '@app/views/molecules/theme/pigment-art';
+import { hasEndingScene, hasSunBar } from '@app/views/molecules/theme/pigment-art';
 import { ThemeArtworkBand, ThemeArtworkPanel, themeArtwork, themePictureArtwork } from '@app/views/molecules/theme/theme-artwork';
 import { useInAppThemeScope } from '@app/lib/app-theme-context';
 import { formRootProps } from '@app/views/molecules/theme/theme-root';
@@ -76,6 +76,8 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
     const band = artworkBand && !!themeArtwork(art);
     // The Daybreak ending is one composition: the sunrise, then the message directly under it, not centred in the room left.
     const sceneEnding = band && hasEndingScene(art);
+    // In the Pigment look of the Leaflet style the ending's sun bar continues the shapes band: no strip of page between the two yellows.
+    const sunEnding = sceneEnding && hasSunBar(art);
 
     const handleGridClick = () => {
         setShowControls(!showControls);
@@ -153,7 +155,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
             room it actually has (the builder canvas is narrower
             than the window). */}
             {band && <ThemeArtworkBand theme={art} />}
-            <div className={cn(FORM_GUTTER, '@container/page flex w-full grow flex-col', sceneEnding ? 'pt-4 pb-8 lg:pt-6 lg:pb-12' : topAligned ? 'pb-8 lg:pb-12' : "py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12")}>{children}</div>
+            <div className={cn(FORM_GUTTER, '@container/page flex w-full grow flex-col', sunEnding ? 'pb-8 lg:pb-12' : sceneEnding ? 'pt-4 pb-8 lg:pt-6 lg:pb-12' : topAligned ? 'pb-8 lg:pb-12' : "py-8 before:flex-[2] before:content-[''] after:flex-[3] after:content-[''] lg:py-12")}>{children}</div>
         </ScrollArea>
     );
 

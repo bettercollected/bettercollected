@@ -36,8 +36,8 @@ describe('the key', () => {
     it('is carried over when a custom theme is made from this one, and only the Pigment preset sets it', () => {
         expect(themeTypeShape(LETTERED)).toEqual({ choiceKeys: 'letters' });
         expect(themeTypeShape(PLAIN)).toEqual({});
-        // only the Pigment preset sets it (behind its switch)
-        expect(ThemeColors.filter((preset) => preset.choiceKeys != null).map((preset) => preset.title)).toEqual(['Pigment']);
+        // only the Pigment presets set it (behind their one switch): Pigment and its Leaflet blend
+        expect(ThemeColors.filter((preset) => preset.choiceKeys != null).map((preset) => preset.title)).toEqual(['Pigment', 'Pigment Leaflet']);
     });
 
     it('is taken or refused by the edit engine, as the backend does', () => {

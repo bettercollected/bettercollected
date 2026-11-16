@@ -206,7 +206,7 @@ def test_the_gated_presets_match_the_webapp():
     block = re.search(
         r"export const GATED_PRESETS: ReadonlyArray<string> = \[(.*?)\]", source, re.S
     ).group(1)
-    assert tuple(re.findall(r"'(\w+)'", block)) == tuple(GATED_PRESETS)
+    assert tuple(re.findall(r"'([\w ]+)'", block)) == tuple(GATED_PRESETS)
 
 
 def test_the_picture_artworks_match_the_webapp():

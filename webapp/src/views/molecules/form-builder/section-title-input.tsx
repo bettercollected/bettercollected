@@ -50,7 +50,7 @@ export default function SectionTitleInput({ value, placeholder, onChange, onFocu
             onBlur={() => onFocusChange?.(false)}
             className={cn(
                 'block w-full resize-none overflow-hidden rounded-[2px] border-0 bg-transparent p-0 text-balance text-inherit outline-hidden [font:inherit]',
-                'placeholder:text-white/75 hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white',
+                'placeholder:text-current/75 hover:bg-current/10 focus-visible:bg-current/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current',
                 className
             )}
         />

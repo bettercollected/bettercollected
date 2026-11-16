@@ -172,6 +172,9 @@ export interface FormTheme {
     inputText?: string | null;
 }
 
+/** The name of the Pigment Leaflet preset (the blend of the Leaflet style and the Pigment look); the backend's `PIGMENT_LEAFLET_PRESET` is the same. */
+export const PIGMENT_LEAFLET_PRESET = 'Pigment Leaflet';
+
 export const ThemeColors: Array<FormTheme> = [
     {
         title: 'Default',
@@ -380,6 +383,28 @@ export const ThemeColors: Array<FormTheme> = [
             type: 'color',
             artwork: 'pigment'
         }
+    },
+    {
+        // The Leaflet's structure in Pigment's colours: numbered section bar,
+        // numbered questions in a margin column, margin notes and ruled answer
+        // rows, on warm cream paper in aubergine ink, with lettered answer keys,
+        // the Pigment ending, and ONE band: the section bar itself is the
+        // sun-yellow band (PIGMENT_BAND) with the ink on it, and the intro
+        // band under it is a pale sun tint (PIGMENT_BAND_TINT). Iris stays the
+        // colour of what a person acts on. Same colours as Pigment, so the
+        // same contrast: ink 11.3:1 on the bar, white on iris 7.4:1. Offered
+        // while the server's Pigment switch is on (GATED_PRESETS).
+        title: 'Pigment Leaflet',
+        primary: '#1A1238',
+        secondary: '#4B35DB',
+        tertiary: '#7C7396',
+        accent: '#FBF7F1',
+        style: 'leaflet',
+        choiceKeys: 'letters',
+        background: {
+            type: 'color',
+            artwork: 'pigment'
+        }
     }
 ];
 
@@ -389,6 +414,11 @@ export const ThemeColors: Array<FormTheme> = [
  * server's `PIGMENT_BAND` in services/theme_contrast.py is the same).
  */
 export const PIGMENT_BAND = '#FFC62E';
+/**
+ * The pale sun tint of the intro band under the section bar when the Leaflet style wears the Pigment artwork (the blend's one band
+ * is darker above and lighter below). The server's `PIGMENT_BAND_TINT` in services/theme_contrast.py is the same.
+ */
+export const PIGMENT_BAND_TINT = '#FFF0C2';
 /** The ink drawn on the band where the theme's own `primary` does not read on it (the preset's own ink, 11.3:1 on the band). */
 export const PIGMENT_BAND_FALLBACK_INK = '#1A1238';
 
@@ -397,7 +427,7 @@ export const PIGMENT_BAND_FALLBACK_INK = '#1A1238';
 // permissions answer lists the ones that are on (`offeredGatedPresets`). A
 // later preset joins here with its own switch. A form that stores one keeps
 // rendering whatever the switch says; only picking it anew is gated.
-export const GATED_PRESETS: ReadonlyArray<string> = ['Daybreak', 'Pigment'];
+export const GATED_PRESETS: ReadonlyArray<string> = ['Daybreak', 'Pigment', 'Pigment Leaflet'];
 
 // Artwork that belongs to a gated preset (backend constants/themes.py
 // GATED_ARTWORKS, a test keeps the two together): offered while the preset is.

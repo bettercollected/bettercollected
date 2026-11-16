@@ -35,7 +35,7 @@ describe('backend presets', () => {
         if (!existsSync(BACKEND_THEMES)) return; // webapp checked out on its own
         const source = readFileSync(BACKEND_THEMES, 'utf-8');
         const block = source.slice(source.indexOf('theme_dict = {'), source.indexOf('LEGACY_PRESET_NAMES = {'));
-        const titles = Array.from(block.matchAll(/"title": "(\w+)"/g), (match) => match[1]);
+        const titles = Array.from(block.matchAll(/"title": "([\w ]+)"/g), (match) => match[1]);
         expect(titles).toEqual(ThemeColors.map((preset) => preset.title));
     });
 });

@@ -222,9 +222,9 @@ describe('the colour presets stay as they were', () => {
         for (const key of THEME_TYPE_SHAPE_KEYS) expect(t[key]).toBeUndefined();
         expect(t.highlight).toBeUndefined();
         expect(t.selection).toBeUndefined();
-        if (t.title === 'Daybreak' || t.title === 'Pigment') {
+        if (t.title === 'Daybreak' || t.title === 'Pigment' || t.title === 'Pigment Leaflet') {
             // a scene preset: its artwork on a plain ground, nothing else
-            expect(t.background).toEqual({ type: 'color', artwork: t.title.toLowerCase() });
+            expect(t.background).toEqual({ type: 'color', artwork: t.title === 'Pigment Leaflet' ? 'pigment' : t.title.toLowerCase() });
             expect(greetingCover(t, FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT)).toBeNull();
             return;
         }

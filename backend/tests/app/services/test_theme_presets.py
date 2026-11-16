@@ -238,7 +238,7 @@ def test_the_spec_lists_the_same_values():
 
 
 COMPLETE_LOOKS = ("Kantlijn", "Raster")
-SCENE_PRESETS = ("Daybreak", "Pigment")
+SCENE_PRESETS = ("Daybreak", "Pigment", "Pigment Leaflet")
 
 
 def test_colour_presets_leave_type_and_shape_to_the_form():
