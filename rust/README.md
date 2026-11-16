@@ -15,7 +15,7 @@ It is not part of any compose file, image or deployment yet.
 | `bc-db` | The Postgres pool and the startup check that schema `app` is at the Alembic head this build was written against |
 | `bc-auth` | Verification of the session cookie (JWT key ring, claim rules). No session refresh |
 | `bc-authz` | Roles to permissions and the effective-permissions decision, pure functions |
-| `bc-crypto` | Opening and sealing of the response ciphertext (`v1:` prefix, Tink AES-GCM), with golden tests against values the Python backend wrote |
+| `bc-crypto` | Every primitive the Python backend uses, byte-compatible and tested against vectors the Python code writes: the response ciphertext (`v1:`, Tink AES-GCM), the Fernet key ring and the envelopes sealed with it, the HMAC-derived tokens and identifiers, TOTP and recovery codes, API-key hashing, the hashes two writers must agree on (lock keys, `ETag`s, idempotency), random token shapes |
 | `bc-http` | Error shapes, CORS from the `allowed_origins` table, the client address behind trusted proxies, request privacy (what a log line may say, which responses are never cached) |
 | `bc-api` | The axum binary: `/health`, the route groups, the pass-through |
 | `contract/` | The harness that runs the Python backend and `bc-api` side by side (Python) |
@@ -75,6 +75,26 @@ depend on them (`permissions`) is therefore served by Rust only when **both** ar
 environment (to any value the Python parser accepts, `false` included); otherwise every request for the group is
 forwarded to Python, and the edge says so once at start. Until the settings-store reader exists, this keeps a
 switch that is on only in the store from being treated as off.
+
+## Golden vectors (cryptography)
+
+`bc-crypto` is proven by vectors the Python code writes with throw-away keys generated for the run, committed under
+`bc-crypto/tests/golden/` (never real keys). Regenerate from the repository root (no settings or database needed):
+
+```
+uv run --project backend python rust/contract/golden_crypto.py fernet  rust/bc-crypto/tests/golden/fernet_vector.json
+uv run --project backend python rust/contract/golden_crypto.py derived rust/bc-crypto/tests/golden/derived_vector.json
+```
+
+and check the other direction (Rust seals or derives, Python opens or verifies):
+
+```
+cd rust && RUST_SEALED_OUT=/tmp/bc-rust cargo test -p bc-crypto && cd ..
+uv run --project backend python rust/contract/golden_crypto.py check-fernet  rust/bc-crypto/tests/golden/fernet_vector.json  /tmp/bc-rust
+uv run --project backend python rust/contract/golden_crypto.py check-derived rust/bc-crypto/tests/golden/derived_vector.json /tmp/bc-rust
+```
+
+Regenerating a vector changes its keys, so run the Rust tests again before the `check-` commands.
 
 ## The per-group switch
 
