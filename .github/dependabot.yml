@@ -33,6 +33,23 @@ updates:
         update-types: ["minor", "patch"]
     labels: ["dependencies", "python"]
 
+  # Rust workspace
+  - package-ecosystem: "cargo"
+    directory: "/rust"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      rust-minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "rust"]
+    ignore:
+      # 10.x ships its algorithms only as provider bundles (rust_crypto pulls in
+      # rsa 0.9, which has an unpatched advisory) and bc-auth checks the time
+      # claims itself; stay on 9.x, take patch and minor updates.
+      - dependency-name: "jsonwebtoken"
+        update-types: ["version-update:semver-major"]
+
   # Webapp image base (pinned by tag and digest in webapp/Dockerfile). Only
   # patch and minor updates of the pinned Node major; the major follows the
   # LTS line and is moved by hand together with .nvmrc and @types/node.
