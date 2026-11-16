@@ -24,26 +24,66 @@ pub struct RecordId([u8; 12]);
 /// The message of today's 422 for a malformed id (`common/ids.py`).
 pub const INVALID_ID_MESSAGE: &str = "Id must be of type PydanticObjectId";
 
-struct Process {
+/// The system's random generator could not be read. An id is never minted
+/// without it: two processes in that state would mint the same ids and an
+/// upsert would overwrite another record's row (Python's `ObjectId` raises).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NoRandomness;
+
+impl fmt::Display for NoRandomness {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("the system random generator is unavailable: no id can be minted")
+    }
+}
+
+impl std::error::Error for NoRandomness {}
+
+/// What identifies this process in the ids it mints: 5 random bytes and a
+/// counter that starts at a random value.
+#[derive(Debug)]
+pub struct Process {
     random: [u8; 5],
     counter: AtomicU32,
 }
 
-fn process() -> &'static Process {
-    static P: OnceLock<Process> = OnceLock::new();
-    P.get_or_init(|| {
+impl Process {
+    /// Reads the process's randomness from `source` (the system generator in
+    /// production, a stand-in in tests). A failing source is an error: there is
+    /// no fallback value.
+    pub fn from_source<E>(
+        source: impl FnOnce(&mut [u8]) -> Result<(), E>,
+    ) -> Result<Self, NoRandomness> {
         let mut bytes = [0u8; 8];
-        // a failing system generator leaves zeros: ids stay unique per process
-        // through the counter, and the caller is not told to stop for it
-        let _ = getrandom::getrandom(&mut bytes);
+        source(&mut bytes).map_err(|_| NoRandomness)?;
         let mut random = [0u8; 5];
         random.copy_from_slice(&bytes[..5]);
         let start = u32::from_be_bytes([0, bytes[5], bytes[6], bytes[7]]);
-        Process {
+        Ok(Self {
             random,
             counter: AtomicU32::new(start),
-        }
-    })
+        })
+    }
+
+    /// A new id stamped with `seconds` since the epoch.
+    pub fn mint(&self, seconds: u32) -> RecordId {
+        let counter = self.counter.fetch_add(1, Ordering::Relaxed) & 0x00ff_ffff;
+        let mut bytes = [0u8; 12];
+        bytes[..4].copy_from_slice(&seconds.to_be_bytes());
+        bytes[4..9].copy_from_slice(&self.random);
+        bytes[9..].copy_from_slice(&counter.to_be_bytes()[1..]);
+        RecordId(bytes)
+    }
+}
+
+/// The process's identity, read once from the system generator. A failure is
+/// not remembered: the next call tries again, and no id is minted meanwhile.
+fn process() -> Result<&'static Process, NoRandomness> {
+    static P: OnceLock<Process> = OnceLock::new();
+    if let Some(p) = P.get() {
+        return Ok(p);
+    }
+    let fresh = Process::from_source(getrandom::getrandom)?;
+    Ok(P.get_or_init(|| fresh))
 }
 
 impl RecordId {
@@ -52,14 +92,9 @@ impl RecordId {
     }
 
     /// A new id stamped with `seconds` since the epoch (the clock's now).
-    pub fn mint(seconds: u32) -> Self {
-        let p = process();
-        let counter = p.counter.fetch_add(1, Ordering::Relaxed) & 0x00ff_ffff;
-        let mut bytes = [0u8; 12];
-        bytes[..4].copy_from_slice(&seconds.to_be_bytes());
-        bytes[4..9].copy_from_slice(&p.random);
-        bytes[9..].copy_from_slice(&counter.to_be_bytes()[1..]);
-        Self(bytes)
+    /// [`NoRandomness`] when the system generator cannot be read.
+    pub fn mint(seconds: u32) -> Result<Self, NoRandomness> {
+        Ok(process()?.mint(seconds))
     }
 
     /// The id that is a function of `parts`, for a record whose identity is a
@@ -197,11 +232,26 @@ mod tests {
 
     #[test]
     fn minted_ids_carry_the_time_and_differ() {
-        let a = RecordId::mint(1_700_000_000);
-        let b = RecordId::mint(1_700_000_000);
+        let a = RecordId::mint(1_700_000_000).unwrap();
+        let b = RecordId::mint(1_700_000_000).unwrap();
         assert_ne!(a, b);
         assert_eq!(a.seconds(), 1_700_000_000);
         assert_eq!(a.to_string().len(), 24);
+    }
+
+    #[test]
+    fn a_failing_random_source_mints_nothing() {
+        let failing = Process::from_source(|_| Err::<(), _>("no entropy"));
+        assert_eq!(failing.unwrap_err(), NoRandomness);
+        // a working source: ids differ by the counter, and carry the source's bytes
+        let source = |buf: &mut [u8]| -> Result<(), ()> {
+            buf.copy_from_slice(&[1, 2, 3, 4, 5, 0, 0, 7]);
+            Ok(())
+        };
+        let p = Process::from_source(source).unwrap();
+        let (a, b) = (p.mint(9), p.mint(9));
+        assert_eq!(a.to_string(), "000000090102030405000007");
+        assert_eq!(b.to_string(), "000000090102030405000008");
     }
 
     #[test]

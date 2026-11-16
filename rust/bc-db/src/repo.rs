@@ -304,8 +304,10 @@ impl Db {
     }
 
     /// A new id stamped from the clock.
-    pub fn new_id(&self) -> RecordId {
-        RecordId::mint(u32::try_from(self.now().timestamp().max(0)).unwrap_or(u32::MAX))
+    pub fn new_id(&self) -> Result<RecordId, DbError> {
+        Ok(RecordId::mint(
+            u32::try_from(self.now().timestamp().max(0)).unwrap_or(u32::MAX),
+        )?)
     }
 
     // -- locks ----------------------------------------------------------------
@@ -356,6 +358,10 @@ impl Db {
     // -- reads ----------------------------------------------------------------
 
     /// The record with this id.
+    ///
+    /// Looks up by id only: the id alone does not say whose record it is. A
+    /// caller that serves a request must check the record belongs to the
+    /// workspace of the request (or use `find` with the workspace in the filter).
     pub async fn get_in<T: Record>(
         &self,
         conn: &mut PgConnection,
@@ -367,6 +373,10 @@ impl Db {
 
     /// The record with this id, locked (`FOR UPDATE`) for the rest of the
     /// transaction.
+    ///
+    /// Looks up by id only: the id alone does not say whose record it is. A
+    /// caller that serves a request must check the record belongs to the
+    /// workspace of the request (or use `find` with the workspace in the filter).
     pub async fn get_locked_in<T: Record>(
         &self,
         conn: &mut PgConnection,
@@ -491,6 +501,10 @@ impl Db {
     /// updates: the row is locked, decoded, handed to `change`, and stored
     /// again (`updated_at` stays as `change` leaves it). `None` when there is no
     /// such row (nothing is written). Must run in a transaction.
+    ///
+    /// Looks up by id only: the id alone does not say whose record it is. A
+    /// caller that serves a request must check the record belongs to the
+    /// workspace of the request (or use `find` with the workspace in the filter).
     pub async fn update_in<T: Record, R>(
         &self,
         conn: &mut PgConnection,
@@ -509,6 +523,10 @@ impl Db {
     /// the result is read back as the record and written (so the stored
     /// document comes out as the model writes it). `None` for a missing row.
     /// A path through a missing or non-object parent is an error.
+    ///
+    /// Looks up by id only: the id alone does not say whose record it is. A
+    /// caller that serves a request must check the record belongs to the
+    /// workspace of the request (or use `find` with the workspace in the filter).
     pub async fn set_fields_in<T: Record>(
         &self,
         conn: &mut PgConnection,
@@ -567,6 +585,11 @@ impl Db {
         Ok(ids.len() as u64)
     }
 
+    /// Deletes the record with this id (with its tombstone).
+    ///
+    /// Looks up by id only: the id alone does not say whose record it is. A
+    /// caller that serves a request must check the record belongs to the
+    /// workspace of the request (or use `find` with the workspace in the filter).
     pub async fn delete_by_id_in<T: Record>(
         &self,
         conn: &mut PgConnection,
@@ -631,6 +654,11 @@ impl Db {
 
     // -- on the pool ----------------------------------------------------------
 
+    /// The record with this id.
+    ///
+    /// Looks up by id only: the id alone does not say whose record it is. A
+    /// caller that serves a request must check the record belongs to the
+    /// workspace of the request (or use `find` with the workspace in the filter).
     pub async fn get<T: Record>(&self, id: &str) -> Result<Option<T>, DbError> {
         let mut conn = self.pool.acquire().await?;
         self.get_in(&mut conn, id).await
@@ -666,6 +694,11 @@ impl Db {
         self.save_in(&mut conn, record).await.map(|_| ())
     }
 
+    /// `update_in` in a transaction of its own.
+    ///
+    /// Looks up by id only: the id alone does not say whose record it is. A
+    /// caller that serves a request must check the record belongs to the
+    /// workspace of the request (or use `find` with the workspace in the filter).
     pub async fn update<T: Record, R>(
         &self,
         id: &str,
@@ -677,6 +710,11 @@ impl Db {
         Ok(out)
     }
 
+    /// `set_fields_in` in a transaction of its own.
+    ///
+    /// Looks up by id only: the id alone does not say whose record it is. A
+    /// caller that serves a request must check the record belongs to the
+    /// workspace of the request (or use `find` with the workspace in the filter).
     pub async fn set_fields<T: Record>(
         &self,
         id: &str,
@@ -696,6 +734,11 @@ impl Db {
         Ok(n)
     }
 
+    /// Deletes the record with this id (with its tombstone), then prunes if due.
+    ///
+    /// Looks up by id only: the id alone does not say whose record it is. A
+    /// caller that serves a request must check the record belongs to the
+    /// workspace of the request (or use `find` with the workspace in the filter).
     pub async fn delete_by_id<T: Record>(&self, id: &str) -> Result<u64, DbError> {
         self.delete_where::<T>(&Filter::new().eq("id", id)).await
     }

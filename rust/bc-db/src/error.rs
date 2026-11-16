@@ -35,6 +35,8 @@ pub enum DbError {
     Encode(String),
     /// The record was expected and is not there.
     NotFound,
+    /// The system random generator cannot be read: no id is minted.
+    NoRandomness,
 }
 
 impl DbError {
@@ -80,6 +82,12 @@ impl From<sqlx::Error> for DbError {
     }
 }
 
+impl From<crate::id::NoRandomness> for DbError {
+    fn from(_: crate::id::NoRandomness) -> Self {
+        DbError::NoRandomness
+    }
+}
+
 impl From<crate::canonical::NotCanonical> for DbError {
     fn from(error: crate::canonical::NotCanonical) -> Self {
         DbError::Encode(error.to_string())
@@ -99,6 +107,7 @@ impl fmt::Display for DbError {
             }
             DbError::Encode(why) => write!(f, "cannot write the document: {why}"),
             DbError::NotFound => f.write_str("record not found"),
+            DbError::NoRandomness => f.write_str("no random generator: cannot mint an id"),
         }
     }
 }

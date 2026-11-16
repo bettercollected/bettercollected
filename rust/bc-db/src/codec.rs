@@ -125,7 +125,7 @@ pub fn decode<T: Record>(doc: Value, now: DateTime<Utc>) -> Result<T, DbError> {
 pub fn row_values<T: Record>(record: &mut T, now: DateTime<Utc>) -> Result<RowValues, DbError> {
     if record.id().is_none() {
         let seconds = u32::try_from(now.timestamp().max(0)).unwrap_or(u32::MAX);
-        record.set_id(RecordId::mint(seconds));
+        record.set_id(RecordId::mint(seconds)?);
     }
     record.stamp_missing(now);
     let doc = encode(record)?;
