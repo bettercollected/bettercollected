@@ -1,0 +1,15 @@
+[package]
+name = "bc-authz"
+description = "Workspace roles to permissions and the effective-permissions decision, as backend/app/services/authorization_service.py"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+bc-auth = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,16 @@
+[package]
+name = "bc-config"
+description = "Environment reading with the Python backend's variable names; refuses unset and published secrets"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+base64 = { workspace = true }
+hex = { workspace = true }
+sha2 = { workspace = true }
+
+[lints]
+workspace = true
