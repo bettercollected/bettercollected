@@ -12,5 +12,8 @@ bc-config = { workspace = true }
 jsonwebtoken = { workspace = true }
 serde_json = { workspace = true }
 
+[dev-dependencies]
+base64 = { workspace = true }
+
 [lints]
 workspace = true

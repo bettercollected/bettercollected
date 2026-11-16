@@ -344,6 +344,125 @@ mod tests {
         assert!(user_from_access_token(Some(&t), &ring()).is_none());
     }
 
+    /// A token with exactly this header text, signed (HMAC-SHA256, whatever
+    /// `alg` says) with `secret` unless `secret` is `None`.
+    fn forge(header: &str, claims: &Value, secret: Option<&str>) -> String {
+        use base64::Engine;
+        use base64::engine::general_purpose::URL_SAFE_NO_PAD as B64;
+        let input = format!(
+            "{}.{}",
+            B64.encode(header),
+            B64.encode(serde_json::to_vec(claims).unwrap())
+        );
+        let signature = secret.map_or_else(String::new, |s| {
+            jsonwebtoken::crypto::sign(
+                input.as_bytes(),
+                &EncodingKey::from_secret(s.as_bytes()),
+                Algorithm::HS256,
+            )
+            .unwrap()
+        });
+        format!("{input}.{signature}")
+    }
+
+    fn accepted(token: &str) -> bool {
+        user_from_access_token(Some(token), &ring()).is_some()
+    }
+
+    #[test]
+    fn a_valid_token_is_accepted_and_a_changed_signature_is_not() {
+        let t = sign(base(json!({})), &members()[0], Algorithm::HS256);
+        assert!(accepted(&t));
+        let (rest, sig) = t.rsplit_once('.').unwrap();
+        // a different first character is a different first byte
+        let first = if sig.starts_with('B') { "C" } else { "B" };
+        assert!(!accepted(&format!("{rest}.{first}{}", &sig[1..])));
+        // cut short, empty, and no signature part at all
+        assert!(!accepted(&format!("{rest}.{}", &sig[..sig.len() - 8])));
+        assert!(!accepted(&format!("{rest}.")));
+        assert!(!accepted(rest));
+        // the last of the 43 characters carries two unused bits: the same
+        // bytes behind a different text are refused (PyJWT 2.x refuses them too)
+        let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+        let last = sig.chars().last().unwrap();
+        let twin = alphabet
+            .chars()
+            .nth(alphabet.find(last).unwrap() ^ 1)
+            .unwrap();
+        assert!(!accepted(&format!(
+            "{rest}.{}{twin}",
+            &sig[..sig.len() - 1]
+        )));
+        // a longer signature than the MAC
+        assert!(!accepted(&format!("{t}AAAA")));
+    }
+
+    #[test]
+    fn the_previous_key_of_the_ring_verifies_and_an_unknown_key_does_not() {
+        let claims = base(json!({}));
+        let previous = sign(claims.clone(), &members()[1], Algorithm::HS256);
+        assert!(accepted(&previous));
+        let unknown = sign(claims, &"z".repeat(40), Algorithm::HS256);
+        assert!(!accepted(&unknown));
+        // a ring of one key refuses what the second key signed
+        let single = KeyRing::from_members(vec![members()[0].clone()]);
+        assert!(user_from_access_token(Some(&previous), &single).is_none());
+    }
+
+    #[test]
+    fn alg_none_is_refused_signed_or_not() {
+        let claims = base(json!({}));
+        let key = members()[0].clone();
+        for header in [
+            r#"{"alg":"none","typ":"JWT"}"#,
+            r#"{"alg":"None","typ":"JWT"}"#,
+            r#"{"alg":"NONE","typ":"JWT"}"#,
+        ] {
+            assert!(!accepted(&forge(header, &claims, None)), "{header}");
+            assert!(!accepted(&forge(header, &claims, Some(&key))), "{header}");
+        }
+    }
+
+    #[test]
+    fn a_missing_null_or_lower_case_alg_is_refused_even_with_a_valid_mac() {
+        let claims = base(json!({}));
+        let key = members()[0].clone();
+        for header in [
+            r#"{"typ":"JWT"}"#,
+            r#"{"alg":null,"typ":"JWT"}"#,
+            r#"{"alg":"hs256","typ":"JWT"}"#,
+            r#"{"alg":"","typ":"JWT"}"#,
+            "{}",
+        ] {
+            assert!(!accepted(&forge(header, &claims, Some(&key))), "{header}");
+        }
+        // control: the same bytes with the proper header are accepted
+        assert!(accepted(&forge(
+            r#"{"alg":"HS256","typ":"JWT"}"#,
+            &claims,
+            Some(&key)
+        )));
+    }
+
+    #[test]
+    fn an_asymmetric_or_other_hmac_alg_is_refused_even_with_a_valid_mac() {
+        // algorithm confusion: the MAC is valid under the real key, the header
+        // names another algorithm
+        let claims = base(json!({}));
+        let key = members()[0].clone();
+        for alg in ["RS256", "ES256", "PS256", "EdDSA", "HS384", "HS512"] {
+            let header = format!(r#"{{"alg":"{alg}","typ":"JWT"}}"#);
+            assert!(!accepted(&forge(&header, &claims, Some(&key))), "{alg}");
+        }
+        // the classic form: a public key as the HMAC secret behind alg RS256
+        let public_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA\n-----END PUBLIC KEY-----\n";
+        let t = forge(r#"{"alg":"RS256","typ":"JWT"}"#, &claims, Some(public_key));
+        assert!(!accepted(&t));
+        // and the same secret under the proper alg is simply an unknown key
+        let t = forge(r#"{"alg":"HS256","typ":"JWT"}"#, &claims, Some(public_key));
+        assert!(!accepted(&t));
+    }
+
     #[test]
     fn rejects_expired_and_not_yet_valid() {
         let t = sign(

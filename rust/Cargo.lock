@@ -166,6 +166,7 @@ dependencies = [
 name = "bc-auth"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "bc-config",
  "jsonwebtoken",
  "serde_json",

@@ -12,6 +12,9 @@ MASTER_ENCRYPTION_KEYSET and RESPONDENT_IDENTITY_KEY in the environment.
 """
 
 import asyncio
+import base64
+import hashlib
+import hmac
 import json
 import os
 import sys
@@ -55,6 +58,22 @@ def migrate() -> None:
 def _signing_members() -> list:
     ring = os.environ["AUTH_JWT_SECRET"]
     return ring.split(",") if "," in ring else [ring]
+
+
+
+ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
+
+def _b64url(raw: bytes) -> str:
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+
+def forge(header: dict, claims: dict, secret: str, *, sign: bool = True) -> str:
+    """A token with exactly this header (PyJWT would not write it) and, when
+    `sign`, an HMAC-SHA256 signature over it with `secret`, whatever `alg` says."""
+    signing_input = _b64url(json.dumps(header).encode()) + "." + _b64url(json.dumps(claims).encode())
+    signature = hmac.new(secret.encode(), signing_input.encode(), hashlib.sha256).digest() if sign else b""
+    return signing_input + "." + _b64url(signature)
 
 
 def _claims(user_id, email, *, typ="access", exp_in=4 * 3600, sid="x", extra=None):
@@ -168,6 +187,31 @@ def make_tokens(people, workspaces):
         primary, algorithm="HS256",
     )
     tokens["garbage"] = "not.a.jwt"
+    # signature handling and algorithm confusion (PyJWT is called with algorithms=["HS256"])
+    good_claims = _claims(owner["id"], owner["email"])
+    valid = jwt.encode(good_claims, primary, algorithm="HS256")
+    head, body, sig = valid.split(".")
+    flipped = ("B" if sig[0] != "B" else "C") + sig[1:]
+    # the last of the 43 characters of a 32-byte signature carries two unused bits:
+    # changing only those leaves the same bytes behind a different text
+    spare_bits = sig[:-1] + ALPHABET[ALPHABET.index(sig[-1]) ^ 1]
+    tokens["owner_sig_flipped_first"] = ".".join([head, body, flipped])
+    tokens["owner_sig_truncated"] = ".".join([head, body, sig[:-8]])
+    tokens["owner_sig_empty"] = ".".join([head, body, ""])
+    tokens["owner_sig_missing_part"] = ".".join([head, body])
+    tokens["owner_sig_spare_bits"] = ".".join([head, body, spare_bits])
+    tokens["owner_alg_none"] = forge({"alg": "none", "typ": "JWT"}, good_claims, primary, sign=False)
+    tokens["owner_alg_none_signed"] = forge({"alg": "none", "typ": "JWT"}, good_claims, primary)
+    tokens["owner_alg_none_caps"] = forge({"alg": "None", "typ": "JWT"}, good_claims, primary, sign=False)
+    tokens["owner_alg_missing"] = forge({"typ": "JWT"}, good_claims, primary)
+    tokens["owner_alg_null"] = forge({"alg": None, "typ": "JWT"}, good_claims, primary)
+    tokens["owner_alg_lowercase"] = forge({"alg": "hs256", "typ": "JWT"}, good_claims, primary)
+    # a valid HMAC under the real key, behind a header that names an asymmetric algorithm
+    for alg in ("RS256", "ES256", "PS256", "EdDSA", "HS384"):
+        tokens["owner_alg_" + alg.lower() + "_real_key"] = forge({"alg": alg, "typ": "JWT"}, good_claims, primary)
+    # the classic confusion: the public key as the HMAC secret behind alg RS256
+    public_key_like = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA\n-----END PUBLIC KEY-----\n"
+    tokens["owner_alg_rs256_public_key"] = forge({"alg": "RS256", "typ": "JWT"}, good_claims, public_key_like)
     # second factor / API key / SSO variants for the people of the policy workspaces
     for name, p in people.items():
         head = name.split("_")[0]
