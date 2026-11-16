@@ -24,6 +24,9 @@
           "headers": {"Cookie": "Authorization={token.owner}"},
           "json": {...},                   # optional request body (sent as application/json)
           "body": "raw text",              # or a raw body
+          "body_parts": ["[", ["x", 2000000], "]"],  # or a body built from pieces: a string, or [string, times]
+                                           # (a body of megabytes stays small in the file); placeholders are not filled
+          "content_type": "application/json",  # optional, with a body of either kind
           "matrix": {"who": "@people", "ws": ["main", "other"]},   # cartesian product
           "served_by": "rust" | "python",  # optional: which side must have answered
           "db": {"tables": ["workspaces"], # optional: write case, see dbdiff.py
@@ -160,8 +163,15 @@ def expand(entry: dict, defaults: dict, fixture: dict, group: str, source: str) 
             if "json" in merged:
                 body = fill(json.dumps(merged["json"]), fixture, variables).encode()
                 headers.setdefault("Content-Type", "application/json")
+            elif "body_parts" in merged:
+                body = b"".join(
+                    str(part).encode() if isinstance(part, str) else str(part[0]).encode() * int(part[1])
+                    for part in merged["body_parts"]
+                )
             elif "body" in merged:
                 body = fill(str(merged["body"]), fixture, variables).encode()
+            if body is not None and merged.get("content_type"):
+                headers.setdefault("Content-Type", fill(str(merged["content_type"]), fixture, variables))
         except _Skip:
             continue
         out.append(

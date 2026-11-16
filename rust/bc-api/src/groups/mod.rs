@@ -11,7 +11,9 @@
 //!   answers only the methods you name, forwards every other method of the
 //!   same path to Python (a `HEAD` or `OPTIONS` Python answers differently, or
 //!   a `405` with its own body), and puts the Rust-side response headers
-//!   (CORS, no-store for response data, the debug marker) on what you return;
+//!   (CORS, no-store for response data, the debug marker) on what you return,
+//!   and refuses a JSON body nested deeper than 128 levels (422 `body_too_deep`)
+//!   before your handler runs;
 //! * read the path from the request and decide what is yours: whatever you are
 //!   not sure of, return `state.proxy.forward(request).await`; the answer is
 //!   then exactly Python's;
@@ -26,7 +28,7 @@ use axum::http::{HeaderName, HeaderValue, Method, header};
 use axum::middleware::{self, Next};
 use axum::response::Response;
 use axum::routing::{MethodRouter, any};
-use bc_http::{cors, privacy};
+use bc_http::{cors, json_depth, privacy};
 
 use crate::proxy::FromUpstream;
 use crate::state::AppState;
@@ -76,16 +78,21 @@ where
     H: axum::handler::Handler<T, Shared>,
     T: 'static,
 {
-    any(handler).layer(middleware::from_fn_with_state(
-        state.clone(),
-        move |State(state): State<Shared>, request: Request, next: Next| async move {
-            if methods.contains(request.method()) {
-                rust_response(state, request, next).await
-            } else {
-                state.proxy.forward(request).await
-            }
-        },
-    ))
+    // inside the Rust-side headers, around the handler: a body nested too deeply
+    // is refused (422 `body_too_deep`) before the route is run, as the Python
+    // middleware does for every route
+    any(handler)
+        .layer(middleware::from_fn(json_depth::guard))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            move |State(state): State<Shared>, request: Request, next: Next| async move {
+                if methods.contains(request.method()) {
+                    rust_response(state, request, next).await
+                } else {
+                    state.proxy.forward(request).await
+                }
+            },
+        ))
 }
 
 /// Forwards the request to the Python backend (the router's fallback too).

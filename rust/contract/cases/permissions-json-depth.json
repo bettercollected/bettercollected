@@ -1,0 +1,788 @@
+{
+ "group": "permissions",
+ "description": "A JSON request body nested deeper than 128 levels is refused with 422 body_too_deep before any route reads it, on both servers: at, below and past the limit, every JSON-like content type, the body methods, bodies past 1 MiB with the nesting after the padding, and brackets inside strings. POST is not a served route yet, so the edge forwards and Python answers; the Rust rule itself is proven by bc-http/tests/json_depth.rs (vectors written by the Python code) and bc-api/tests/json_depth.rs.",
+ "env": {
+  "SSO_ENABLED": "false",
+  "TOTP_ENABLED": "false"
+ },
+ "defaults": {
+  "served_by": "python"
+ },
+ "cases": [
+  {
+   "name": "array:127",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     127
+    ],
+    [
+     "]",
+     127
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "array:127:owner",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     127
+    ],
+    [
+     "]",
+     127
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   }
+  },
+  {
+   "name": "object:127",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "{\"a\":",
+     127
+    ],
+    "1",
+    [
+     "}",
+     127
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "array:128",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     128
+    ],
+    [
+     "]",
+     128
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "array:128:owner",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     128
+    ],
+    [
+     "]",
+     128
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   }
+  },
+  {
+   "name": "object:128",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "{\"a\":",
+     128
+    ],
+    "1",
+    [
+     "}",
+     128
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "array:129",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "array:129:owner",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   }
+  },
+  {
+   "name": "object:129",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "{\"a\":",
+     129
+    ],
+    "1",
+    [
+     "}",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "array:130",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     130
+    ],
+    [
+     "]",
+     130
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "array:130:owner",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     130
+    ],
+    [
+     "]",
+     130
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   }
+  },
+  {
+   "name": "object:130",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "{\"a\":",
+     130
+    ],
+    "1",
+    [
+     "}",
+     130
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "array:500",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     500
+    ],
+    [
+     "]",
+     500
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "array:500:owner",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     500
+    ],
+    [
+     "]",
+     500
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   }
+  },
+  {
+   "name": "object:500",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "{\"a\":",
+     500
+    ],
+    "1",
+    [
+     "}",
+     500
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "ct:text/plain:129",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "text/plain"
+  },
+  {
+   "name": "ct:text/plain:128",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     128
+    ],
+    [
+     "]",
+     128
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "text/plain"
+  },
+  {
+   "name": "ct:application/vnd.api+json:129",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/vnd.api+json"
+  },
+  {
+   "name": "ct:application/vnd.api+json:128",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     128
+    ],
+    [
+     "]",
+     128
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/vnd.api+json"
+  },
+  {
+   "name": "ct:None:129",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python"
+  },
+  {
+   "name": "ct:None:128",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     128
+    ],
+    [
+     "]",
+     128
+    ]
+   ],
+   "served_by": "python"
+  },
+  {
+   "name": "ct:application/x-www-form-urlencoded:129",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/x-www-form-urlencoded"
+  },
+  {
+   "name": "ct:application/x-www-form-urlencoded:128",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     128
+    ],
+    [
+     "]",
+     128
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/x-www-form-urlencoded"
+  },
+  {
+   "name": "ct:multipart/form-data; boundary=x:129",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "multipart/form-data; boundary=x"
+  },
+  {
+   "name": "ct:multipart/form-data; boundary=x:128",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     128
+    ],
+    [
+     "]",
+     128
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "multipart/form-data; boundary=x"
+  },
+  {
+   "name": "method:PUT:129",
+   "method": "PUT",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "method:PUT:128",
+   "method": "PUT",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     128
+    ],
+    [
+     "]",
+     128
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "method:PATCH:129",
+   "method": "PATCH",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "method:PATCH:128",
+   "method": "PATCH",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     128
+    ],
+    [
+     "]",
+     128
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "method:DELETE:129",
+   "method": "DELETE",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "method:DELETE:128",
+   "method": "DELETE",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     128
+    ],
+    [
+     "]",
+     128
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "method:GET:129",
+   "method": "GET",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "path:unrouted:129",
+   "method": "POST",
+   "path": "/no/such/route",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "path:mcp:129",
+   "method": "POST",
+   "path": "/mcp/",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "path:public-api:129",
+   "method": "POST",
+   "path": "/public/v1/forms",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "brackets-in-a-string",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    "[\"",
+    [
+     "[",
+     5000
+    ],
+    "\"]"
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "escaped-quote",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    "[\"\\\"",
+    [
+     "[",
+     5000
+    ],
+    "\"]"
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "past-1mib:padding-before:129",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "x",
+     1052672
+    ],
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "past-1mib:string-then-129",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    "{\"p\":\"",
+    [
+     "x",
+     1052672
+    ],
+    "\",\"d\":",
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ],
+    "}"
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "past-1mib:string-then-128",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    "{\"p\":\"",
+    [
+     "x",
+     1052672
+    ],
+    "\",\"d\":",
+    [
+     "[",
+     127
+    ],
+    [
+     "]",
+     127
+    ],
+    "}"
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "past-1mib:deep-first",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ],
+    [
+     " ",
+     1052672
+    ]
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "past-1mib:brackets-in-a-string",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    "[\"",
+    [
+     "[",
+     1052672
+    ],
+    "\"]"
+   ],
+   "served_by": "python",
+   "content_type": "application/json"
+  },
+  {
+   "name": "past-1mib:129:owner",
+   "method": "POST",
+   "path": "/api/v1/workspaces/{ws.main}/forms",
+   "body_parts": [
+    "{\"p\":\"",
+    [
+     "x",
+     1052672
+    ],
+    "\",\"d\":",
+    [
+     "[",
+     129
+    ],
+    [
+     "]",
+     129
+    ],
+    "}"
+   ],
+   "served_by": "python",
+   "content_type": "application/json",
+   "headers": {
+    "Cookie": "Authorization={token.owner}"
+   }
+  }
+ ]
+}

@@ -124,14 +124,13 @@ pub fn idempotency_record_id(key_id: &str, idempotency_key: &str) -> String {
 /// value (the canonical form of what `json.loads` reads: integers of any size
 /// exact, `-0` is `0`, floats correctly rounded, `NaN` accepted), anything
 /// else byte for byte; every part is followed by a NUL. A body Python's parser
-/// raises `ValueError` for, nested deeper than the route accepts, or in UTF-16
+/// raises `ValueError` for, nested deeper than [`pyjson::MAX_DEPTH`], or in UTF-16
 /// or UTF-32 is hashed as bytes.
 pub fn request_hash(method: &str, path: &str, body: &[u8], extra: &[&str]) -> String {
     request_hash_limited(method, path, body, extra, pyjson::MAX_DEPTH)
 }
 
-/// [`request_hash`] for a route whose body nesting limit is `max_depth` (see
-/// [`pyjson::MAX_DEPTH`] and [`pyjson::MAX_DEPTH_EDITOR_OPS`]).
+/// [`request_hash`] with another body nesting limit than [`pyjson::MAX_DEPTH`].
 pub fn request_hash_limited(
     method: &str,
     path: &str,

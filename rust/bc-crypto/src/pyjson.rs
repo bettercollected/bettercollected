@@ -18,9 +18,8 @@
 //! - the input is UTF-8, a leading byte order mark is skipped.
 //!
 //! What it refuses where Python reads: a UTF-16 or UTF-32 body. Nesting is
-//! limited as the deployed backend limits it ([`MAX_DEPTH`]: the interpreter's
-//! recursion limit, less the frames the request is already deep in; Python then
-//! raises `RecursionError`, which is not a `ValueError`). A caller
+//! limited as the backend limits a request body ([`MAX_DEPTH`], 128 levels; a
+//! deeper body never reaches the parser there). A caller
 //! that gets `None` hashes the raw bytes, as `request_hash` does when Python's
 //! parser raises `ValueError`. Reading, writing and dropping a value never
 //! recurse, so a body nested to the limit cannot overflow the stack, and no
@@ -65,23 +64,13 @@ pub const CANONICAL: Options = Options {
     compact: true,
 };
 
-/// The deepest nesting [`parse`] reads, which is what the running backend
-/// accepts on its public API routes (`POST /public/v1/forms`, `.../ops`,
-/// `.../publish`, with an `Idempotency-Key`, where `request_hash` reads the body).
-///
-/// It follows the deployed interpreter, Python 3.11.12 (`backend/Dockerfile`).
-/// There `json.loads` is bounded by the recursion limit (1000), shared with
-/// every Python frame already on the stack: a bare call at module level reads
-/// 994 levels, the real server on these routes reads 982 (a deeper body is a
-/// 500, `RecursionError`), the same for arrays, objects and an innermost empty
-/// container. Measured with `rust/contract/json_depth_probe.py`, which starts
-/// `python -m backend` under 3.11.12 and searches the boundary over HTTP. It
-/// must be measured again whenever the backend image's Python version or the
-/// middleware stack (an APM agent adds frames) changes. Python 3.13 reads 9998.
-pub const MAX_DEPTH: usize = 982;
-/// The same measurement for the builder's save route
-/// (`POST /api/v1/workspaces/{id}/forms/{id}/ops`), one frame shallower.
-pub const MAX_DEPTH_EDITOR_OPS: usize = 983;
+/// The deepest nesting [`parse`] reads: `MAX_JSON_DEPTH` of the Python backend
+/// (`backend/app/utils/json_depth.py`), the limit its middleware puts on every
+/// JSON request body (a deeper one is refused with 422 `body_too_deep` before
+/// any route, and so before `request_hash`, reads it; `bc_http::json_depth` is
+/// the same rule for the routes Rust serves). A body nested deeper is declined
+/// here, and a caller hashes its bytes. Change both limits together.
+pub const MAX_DEPTH: usize = 128;
 /// Python 3.11+ `int()` refuses a decimal string longer than this.
 const MAX_INT_DIGITS: usize = 4300;
 
@@ -332,8 +321,7 @@ pub fn parse(body: &[u8]) -> Option<Json> {
     parse_limited(body, MAX_DEPTH)
 }
 
-/// [`parse`] with the nesting limit of a given route (for example
-/// [`MAX_DEPTH_EDITOR_OPS`]).
+/// [`parse`] with another nesting limit.
 pub fn parse_limited(body: &[u8], max_depth: usize) -> Option<Json> {
     // `json.detect_encoding`: UTF-16 and UTF-32 bodies are not read here
     match body {

@@ -116,6 +116,24 @@ def test_a_json_body_is_filled_and_typed():
     assert case.headers["Content-Type"] == "application/json"
 
 
+def test_a_body_can_be_built_from_repeated_pieces():
+    (case,) = corpus.expand(
+        {
+            "name": "deep",
+            "method": "POST",
+            "path": "/x",
+            "body_parts": ["[", ["[", 2], " ", ["x", 3], "]"],
+            "content_type": "application/json",
+        },
+        {},
+        FIXTURE,
+        "g",
+        "f",
+    )
+    assert case.body == b"[[[ xxx]"
+    assert case.headers["Content-Type"] == "application/json"
+
+
 def test_the_shipped_corpus_is_well_formed():
     """Every file names its group and env, every case has a name, a method and a
     path, and every placeholder is a fixture reference or a matrix variable."""

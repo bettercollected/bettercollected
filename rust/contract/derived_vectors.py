@@ -678,23 +678,27 @@ def loads_vectors() -> list:
         except RecursionError:
             expect = None
         encoding_declined = body[:2] in (b"\xff\xfe", b"\xfe\xff") or (len(body) > 1 and (body[0] == 0 or body[1] == 0)) and True
-        deep = False  # Rust reads to the same depth limit as Python
+        # a body nested past MAX_JSON_DEPTH never reaches Python's parser (the middleware answers
+        # 422 first); the Rust reader declines it and a caller hashes the bytes
+        deep = _json_depth().too_deep(body)
         out.append({"body_b64": b64(body), "expect": expect, "rust_declines": bool(expect is not None and (encoding_declined or deep))})
     return out
 
 
-# The deepest body the RUNNING backend accepts (Python 3.11.12, python -m backend,
-# measured over HTTP by rust/contract/json_depth_probe.py): the public API routes
-# read 982 levels, the builder's save route 983; a deeper body is a RecursionError
-# (a 500). Bare ``json.loads`` reads 994, so what is accepted here parses at this
-# script's own stack; only the refusals past the limit are the measured fact.
-BACKEND_DEPTH = {"public": 982, "editor": 983}
+def _json_depth():
+    """backend/app/utils/json_depth.py: the limit the middleware puts on every request body."""
+    return mod("backend.app.utils.json_depth")
 
 
 def depth_vectors() -> dict:
+    """Bodies around ``MAX_JSON_DEPTH`` (128): ``accepted`` is the Python rule's own answer
+    (``too_deep``). What Python's parser then reads is ``canonical`` (None where even
+    ``json.loads`` gives up, far beyond the limit)."""
+    rule = _json_depth()
+    limit = rule.MAX_JSON_DEPTH
     cases = []
     for kind in ("array", "object", "empty"):
-        for depth in (1, 2, 500, 981, 982, 983, 984, 1500):
+        for depth in (1, 2, 64, limit - 1, limit, limit + 1, limit + 2, 500, 982, 1500):
             if kind == "array":
                 body = "[" * depth + "]" * depth
             elif kind == "object":
@@ -711,11 +715,10 @@ def depth_vectors() -> dict:
                     "depth": depth,
                     "body_b64": b64(body.encode()),
                     "canonical": canonical,
-                    "public_accepts": depth <= BACKEND_DEPTH["public"],
-                    "editor_accepts": depth <= BACKEND_DEPTH["editor"],
+                    "accepted": not rule.too_deep(body.encode()),
                 }
             )
-    return {"limits": BACKEND_DEPTH, "cases": cases}
+    return {"limit": limit, "cases": cases}
 
 
 def b64_vectors() -> list:

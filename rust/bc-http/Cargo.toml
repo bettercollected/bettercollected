@@ -9,6 +9,7 @@ publish.workspace = true
 
 [dependencies]
 axum = { workspace = true }
+futures-util = { workspace = true }
 ipnet = { workspace = true }
 percent-encoding = { workspace = true }
 regex = { workspace = true }
@@ -18,4 +19,5 @@ serde_json = { workspace = true }
 workspace = true
 
 [dev-dependencies]
+base64 = { workspace = true }
 tokio = { workspace = true }

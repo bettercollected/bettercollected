@@ -778,7 +778,7 @@ fn json_bodies_are_read_and_written_as_python_does() {
         let got = pyjson::parse(&body).map(|j| j.canonical());
         let shown = String::from_utf8_lossy(&body[..body.len().min(60)]).to_string();
         if case["rust_declines"].as_bool().unwrap() {
-            // Python reads it (UTF-16/32, nesting beyond 500); the caller hashes the bytes
+            // Python reads it (UTF-16/32, nesting beyond 128); the caller hashes the bytes
             assert_eq!(got, None, "{shown}");
             declined += 1;
         } else {
@@ -894,63 +894,39 @@ fn a_body_with_many_keys_is_read_in_linear_time() {
 }
 
 #[test]
-fn nesting_is_read_to_the_depth_the_running_backend_accepts() {
-    // measured on the deployed interpreter (Python 3.11.12) by `json_depth_probe.py`
-    assert_eq!(pyjson::MAX_DEPTH, 982);
-    assert_eq!(pyjson::MAX_DEPTH_EDITOR_OPS, 983);
+fn nesting_is_read_to_the_depth_the_backend_accepts_in_a_request_body() {
+    // the Python middleware refuses a body nested deeper than MAX_JSON_DEPTH (128)
+    // with 422 `body_too_deep` before anything reads it
+    assert_eq!(pyjson::MAX_DEPTH, 128);
     let d = &v()["depth"];
-    assert_eq!(
-        d["limits"]["public"].as_u64().unwrap(),
-        pyjson::MAX_DEPTH as u64
-    );
-    assert_eq!(
-        d["limits"]["editor"].as_u64().unwrap(),
-        pyjson::MAX_DEPTH_EDITOR_OPS as u64
-    );
+    assert_eq!(d["limit"].as_u64().unwrap(), pyjson::MAX_DEPTH as u64);
     let mut boundary = 0;
     for case in d["cases"].as_array().unwrap() {
         let body = bytes(&case["body_b64"]);
         let name = format!("{} {}", case["kind"], case["depth"]);
-        let public = pyjson::parse(&body);
-        let editor = pyjson::parse_limited(&body, pyjson::MAX_DEPTH_EDITOR_OPS);
+        let parsed = pyjson::parse(&body);
         assert_eq!(
-            public.is_some(),
-            case["public_accepts"].as_bool().unwrap(),
+            parsed.is_some(),
+            case["accepted"].as_bool().unwrap(),
             "{name}"
         );
-        assert_eq!(
-            editor.is_some(),
-            case["editor_accepts"].as_bool().unwrap(),
-            "{name}"
-        );
-        if let (Some(parsed), Some(canonical)) = (&public, case["canonical"].as_str()) {
+        if let (Some(parsed), Some(canonical)) = (&parsed, case["canonical"].as_str()) {
             assert_eq!(parsed.canonical(), canonical, "{name}");
         }
-        if matches!(case["depth"].as_u64(), Some(982 | 983)) {
+        if matches!(case["depth"].as_u64(), Some(128 | 129)) {
             boundary += 1;
         }
     }
     assert_eq!(boundary, 6);
     // a refused body is hashed as bytes, an accepted one by value
-    let deep = format!("{}{}", "[".repeat(983), "]".repeat(983));
-    assert_ne!(
-        ids::request_hash("POST", "/x", deep.as_bytes(), &[]),
-        ids::request_hash(
-            "POST",
-            "/x",
-            format!("{}{}", "[".repeat(983), " ]".repeat(983)).as_bytes(),
-            &[]
-        )
-    );
+    let nested = |n: usize, gap: &str| format!("{}{}", "[".repeat(n), format!("{gap}]").repeat(n));
+    let at = |gap: &str| ids::request_hash("POST", "/x", nested(128, gap).as_bytes(), &[]);
+    let past = |gap: &str| ids::request_hash("POST", "/x", nested(129, gap).as_bytes(), &[]);
+    assert_eq!(at(""), at(" "));
+    assert_ne!(past(""), past(" "));
     assert_eq!(
-        ids::request_hash_limited("POST", "/x", deep.as_bytes(), &[], 983),
-        ids::request_hash_limited(
-            "POST",
-            "/x",
-            format!("{}{}", "[".repeat(983), " ]".repeat(983)).as_bytes(),
-            &[],
-            983
-        )
+        ids::request_hash_limited("POST", "/x", nested(129, "").as_bytes(), &[], 129),
+        ids::request_hash_limited("POST", "/x", nested(129, " ").as_bytes(), &[], 129)
     );
 }
 
