@@ -588,7 +588,7 @@ def test_the_private_canvas_hook_still_exists():
     import reportlab
     from reportlab.pdfgen import canvas
 
-    assert reportlab.Version == "5.0.1"
+    assert reportlab.Version == "5.1.0"
     pdf = canvas.Canvas(io.BytesIO())
     assert isinstance(pdf._code, list)
     pdf._code.append("/P << /MCID 0 >> BDC")
