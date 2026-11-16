@@ -178,7 +178,7 @@ fn keys_are_never_printed_and_errors_never_carry_a_value() {
     assert!(!err.contains("hunter2"));
     let token = ring.seal(b"plain");
     let err = ring
-        .open(&format!("{token}x"), None)
+        .open(&token[..token.len() - 4], None)
         .unwrap_err()
         .to_string();
     assert!(!err.contains(&token));

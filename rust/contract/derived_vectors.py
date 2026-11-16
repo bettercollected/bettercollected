@@ -668,9 +668,6 @@ def loads_vectors() -> list:
     the Rust reader leaves to the raw-bytes fallback."""
     bodies = [t.encode() for t in NUMBER_BODIES]
     bodies += [b"\xef\xbb\xbf{}", b"\xef\xbb\xbf", b"\xff\xfe", b"\xfe\xff", b'{"a":"\xff"}', b"\xc3\xa9", "[1]".encode("utf-16"), "[1]".encode("utf-16-le"), "[1]".encode("utf-32"), b"[" * 600 + b"]" * 600,
-        b"[" * 9998 + b"]" * 9998, b"[" * 9999 + b"]" * 9999,
-        b'{"a":' * 9998 + b"1" + b"}" * 9998, b'{"a":' * 9999 + b"1" + b"}" * 9999,
-        b"[" * 9997 + b'{"a":[]}' + b"]" * 9997, b"[" * 9998 + b'{}' + b"]" * 9998,
     ]
     out = []
     for body in bodies:
@@ -684,6 +681,41 @@ def loads_vectors() -> list:
         deep = False  # Rust reads to the same depth limit as Python
         out.append({"body_b64": b64(body), "expect": expect, "rust_declines": bool(expect is not None and (encoding_declined or deep))})
     return out
+
+
+# The deepest body the RUNNING backend accepts (Python 3.11.12, python -m backend,
+# measured over HTTP by rust/contract/json_depth_probe.py): the public API routes
+# read 982 levels, the builder's save route 983; a deeper body is a RecursionError
+# (a 500). Bare ``json.loads`` reads 994, so what is accepted here parses at this
+# script's own stack; only the refusals past the limit are the measured fact.
+BACKEND_DEPTH = {"public": 982, "editor": 983}
+
+
+def depth_vectors() -> dict:
+    cases = []
+    for kind in ("array", "object", "empty"):
+        for depth in (1, 2, 500, 981, 982, 983, 984, 1500):
+            if kind == "array":
+                body = "[" * depth + "]" * depth
+            elif kind == "object":
+                body = '{"a":' * depth + "1" + "}" * depth
+            else:
+                body = "[" * (depth - 1) + "[]" + "]" * (depth - 1)
+            try:
+                canonical = json.dumps(json.loads(body), sort_keys=True, separators=(",", ":"))
+            except RecursionError:
+                canonical = None  # beyond what the interpreter itself reads
+            cases.append(
+                {
+                    "kind": kind,
+                    "depth": depth,
+                    "body_b64": b64(body.encode()),
+                    "canonical": canonical,
+                    "public_accepts": depth <= BACKEND_DEPTH["public"],
+                    "editor_accepts": depth <= BACKEND_DEPTH["editor"],
+                }
+            )
+    return {"limits": BACKEND_DEPTH, "cases": cases}
 
 
 def b64_vectors() -> list:
@@ -709,6 +741,19 @@ def b64_vectors() -> list:
             except Exception:
                 got = None
             cases.append({"name": name, "text": text, "python": got})
+    # random inputs over the characters that matter (data, both alphabets,
+    # padding, whitespace, junk, one non-ASCII), decided by this interpreter
+    import random
+
+    rng = random.Random(20261116)
+    alphabet = "AQgw0-_+/=== \n!é"
+    for _ in range(6000):
+        text = "".join(rng.choice(alphabet) for _ in range(rng.randint(0, 14)))
+        try:
+            got = base64.urlsafe_b64decode(text).hex()
+        except Exception:
+            got = None
+        cases.append({"name": "fuzz", "text": text, "python": got})
     return cases
 
 
@@ -746,6 +791,7 @@ def run(command: str, args: list) -> None:
     out["pyjson"] = pyjson_vectors()
     out["b64"] = b64_vectors()
     out["loads"] = loads_vectors()
+    out["depth"] = depth_vectors()
     Path(args[0]).parent.mkdir(parents=True, exist_ok=True)
     # The keys in this file (jwt, fernet, identity) were generated a few lines
     # above for this vector alone: the Rust tests must hold them to reproduce
