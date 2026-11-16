@@ -14,7 +14,7 @@ use std::time::Duration;
 
 use serde_json::Value;
 use sqlx::postgres::{PgConnectOptions, PgRow};
-use sqlx::{Connection, PgConnection, Row as _};
+use sqlx::{AssertSqlSafe, Connection, PgConnection, Row as _};
 
 use super::canonical::{Manifest, Row, is_canonical_timestamp};
 use super::runtime::{Fetch, SnapshotSource, SourceUnavailable, StoreError};
@@ -77,18 +77,18 @@ impl PgSource {
             .execute(&mut *tx)
             .await
             .map_err(|_| SourceUnavailable("query"))?;
-        let manifest = sqlx::query(&format!(
+        let manifest = sqlx::query(AssertSqlSafe(format!(
             "SELECT revision, entries, sig FROM settings.v_{service}_manifest"
-        ))
+        )))
         .fetch_optional(&mut *tx)
         .await
         .map_err(|_| SourceUnavailable("query"))?;
-        let records = sqlx::query(&format!(
+        let records = sqlx::query(AssertSqlSafe(format!(
             "SELECT key, section, readers, is_secret, reload_class, value, blob, \
              version::bigint AS version, \
              to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS updated_at, \
              sig FROM settings.v_{service}"
-        ))
+        )))
         .fetch_all(&mut *tx)
         .await
         .map_err(|_| SourceUnavailable("query"))?;
@@ -180,10 +180,10 @@ impl SnapshotSource for PgSource {
         Box::pin(async move {
             let work = async {
                 let mut conn = self.connect().await?;
-                let row = sqlx::query(&format!(
+                let row = sqlx::query(AssertSqlSafe(format!(
                     "SELECT revision FROM settings.v_{}_manifest",
                     self.service
-                ))
+                )))
                 .fetch_optional(&mut conn)
                 .await
                 .map_err(|_| SourceUnavailable("query"))?;

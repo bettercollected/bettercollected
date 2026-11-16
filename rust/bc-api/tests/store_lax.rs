@@ -6,20 +6,22 @@
 
 use bc_api::store::workspaces::{StoreError, find_by_id, find_membership};
 use serde_json::{Value, json};
-use sqlx::PgPool;
+use sqlx::{AssertSqlSafe, PgPool};
 
 const USER: &str = "6d0000000000000000000002";
 
 async fn put(pool: &PgPool, table: &str, id: &str, doc: &Value) {
-    sqlx::query(&format!("DELETE FROM app.{table} WHERE id = $1"))
-        .bind(id)
-        .execute(pool)
-        .await
-        .unwrap();
-    sqlx::query(&format!(
+    sqlx::query(AssertSqlSafe(format!(
+        "DELETE FROM app.{table} WHERE id = $1"
+    )))
+    .bind(id)
+    .execute(pool)
+    .await
+    .unwrap();
+    sqlx::query(AssertSqlSafe(format!(
         "INSERT INTO app.{table} (id, doc, created_at, updated_at, _bc_source, _bc_checksum) \
          VALUES ($1, $2, now(), now(), 'app', 'sha256:test')"
-    ))
+    )))
     .bind(id)
     .bind(doc)
     .execute(pool)
