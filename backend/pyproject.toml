@@ -47,7 +47,7 @@ dependencies = [
     "pillow>=13.0.0",
     "dnspython>=2.9.2",
     "idna>=3.20",
-    "publicsuffixlist>=1.1.2.20261023",
+    "publicsuffixlist>=1.1.2.20261113",
     "google-re2==1.1.20251105",
     "segno>=1.6.6",
     "reportlab==5.0.1",
