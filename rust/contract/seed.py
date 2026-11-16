@@ -12,6 +12,9 @@ MASTER_ENCRYPTION_KEYSET and RESPONDENT_IDENTITY_KEY in the environment.
 """
 
 import asyncio
+import base64
+import hashlib
+import hmac
 import json
 import os
 import sys
@@ -61,6 +64,22 @@ def migrate() -> None:
 def _signing_members() -> list:
     ring = os.environ["AUTH_JWT_SECRET"]
     return ring.split(",") if "," in ring else [ring]
+
+
+
+ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
+
+def _b64url(raw: bytes) -> str:
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+
+def forge(header: dict, claims: dict, secret: str, *, sign: bool = True) -> str:
+    """A token with exactly this header (PyJWT would not write it) and, when
+    `sign`, an HMAC-SHA256 signature over it with `secret`, whatever `alg` says."""
+    signing_input = _b64url(json.dumps(header).encode()) + "." + _b64url(json.dumps(claims).encode())
+    signature = hmac.new(secret.encode(), signing_input.encode(), hashlib.sha256).digest() if sign else b""
+    return signing_input + "." + _b64url(signature)
 
 
 def _claims(user_id, email, *, typ="access", exp_in=4 * 3600, sid="x", extra=None):
@@ -174,6 +193,31 @@ def make_tokens(people, workspaces):
         primary, algorithm="HS256",
     )
     tokens["garbage"] = "not.a.jwt"
+    # signature handling and algorithm confusion (PyJWT is called with algorithms=["HS256"])
+    good_claims = _claims(owner["id"], owner["email"])
+    valid = jwt.encode(good_claims, primary, algorithm="HS256")
+    head, body, sig = valid.split(".")
+    flipped = ("B" if sig[0] != "B" else "C") + sig[1:]
+    # the last of the 43 characters of a 32-byte signature carries two unused bits:
+    # changing only those leaves the same bytes behind a different text
+    spare_bits = sig[:-1] + ALPHABET[ALPHABET.index(sig[-1]) ^ 1]
+    tokens["owner_sig_flipped_first"] = ".".join([head, body, flipped])
+    tokens["owner_sig_truncated"] = ".".join([head, body, sig[:-8]])
+    tokens["owner_sig_empty"] = ".".join([head, body, ""])
+    tokens["owner_sig_missing_part"] = ".".join([head, body])
+    tokens["owner_sig_spare_bits"] = ".".join([head, body, spare_bits])
+    tokens["owner_alg_none"] = forge({"alg": "none", "typ": "JWT"}, good_claims, primary, sign=False)
+    tokens["owner_alg_none_signed"] = forge({"alg": "none", "typ": "JWT"}, good_claims, primary)
+    tokens["owner_alg_none_caps"] = forge({"alg": "None", "typ": "JWT"}, good_claims, primary, sign=False)
+    tokens["owner_alg_missing"] = forge({"typ": "JWT"}, good_claims, primary)
+    tokens["owner_alg_null"] = forge({"alg": None, "typ": "JWT"}, good_claims, primary)
+    tokens["owner_alg_lowercase"] = forge({"alg": "hs256", "typ": "JWT"}, good_claims, primary)
+    # a valid HMAC under the real key, behind a header that names an asymmetric algorithm
+    for alg in ("RS256", "ES256", "PS256", "EdDSA", "HS384"):
+        tokens["owner_alg_" + alg.lower() + "_real_key"] = forge({"alg": alg, "typ": "JWT"}, good_claims, primary)
+    # the classic confusion: the public key as the HMAC secret behind alg RS256
+    public_key_like = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA\n-----END PUBLIC KEY-----\n"
+    tokens["owner_alg_rs256_public_key"] = forge({"alg": "RS256", "typ": "JWT"}, good_claims, public_key_like)
     # second factor / API key / SSO variants for the people of the policy workspaces
     for name, p in people.items():
         head = name.split("_")[0]
@@ -295,6 +339,62 @@ async def seed(out: str) -> None:
     print("seeded", len(people), "people")
 
 
+# How a policy flag may be spelled in a stored document. Python reads these the
+# way pydantic reads a bool (rust/bc-db/src/value.rs lists what it accepts); a
+# row written by an older version, an import or by hand can carry any of them.
+# `maybe` and 2 are refused by pydantic: the document cannot be read at all.
+LAX_SPELLINGS = {
+    "s_true": "true",
+    "s_Yes": "Yes",
+    "s_on": "on",
+    "s_1": "1",
+    "i_1": 1,
+    "f_1": 1.0,
+    "s_false": "false",
+    "i_0": 0,
+    "null": None,
+    "s_maybe": "maybe",
+    "i_2": 2,
+}
+LAX_FLAGS = ("disabled", "sso_required", "require_totp", "member_disabled")
+
+
+async def _write_lax(table: str, row_id: str, changes: dict) -> None:
+    """Writes `changes` into a stored document directly, as a row from before the
+    models were strict, an import or a hand edit would hold it (and the checksum,
+    so the row stays consistent)."""
+    from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from common.db.canonical import checksum
+
+    engine = create_async_engine(os.environ["DATABASE_URL"])
+    async with engine.begin() as conn:
+        doc = (await conn.execute(text(f"SELECT doc FROM app.{table} WHERE id = :i"), {"i": row_id})).scalar_one()
+        doc.update(changes)
+        await conn.execute(
+            text(f"UPDATE app.{table} SET doc = CAST(:d AS jsonb), _bc_checksum = :c WHERE id = :i"),
+            {"d": json.dumps(doc), "c": checksum(doc), "i": row_id},
+        )
+    await engine.dispose()
+
+
+async def _member_row_id(workspace_id: str, user_id: str) -> str:
+    from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    engine = create_async_engine(os.environ["DATABASE_URL"])
+    async with engine.connect() as conn:
+        row = (
+            await conn.execute(
+                text("SELECT id FROM app.workspace_users WHERE workspace_id = :w AND user_id = :u"),
+                {"w": workspace_id, "u": user_id},
+            )
+        ).scalar_one()
+    await engine.dispose()
+    return row
+
+
 async def extend(path: str) -> None:
     """Workspaces that require an authenticator app / single sign-on, for the runs
     that switch TOTP_ENABLED / SSO_ENABLED on."""
@@ -308,6 +408,7 @@ async def extend(path: str) -> None:
     from common.models.user import User
 
     fixture = json.loads(Path(path).read_text())
+    lax_ws: list = []
     app = get_application(is_test_mode=True)
     async with lifespan(app):
         repo, members = container.workspace_repo(), container.workspace_user_repo()
@@ -331,6 +432,23 @@ async def extend(path: str) -> None:
         await repo.set_fields(ws, {"require_totp": True, "sso_required": True, "disabled": True})
         fixture["people"]["dis_both_owner"] = {"id": owner_id, "email": owner.sub}
         fixture["workspaces"]["dis_both"] = str(ws.id)
+        # one workspace and its owner per flag and spelling, the stored value written directly
+        for flag in LAX_FLAGS:
+            for key, value in LAX_SPELLINGS.items():
+                label = f"lax_{flag}_{key}"
+                owner_id = str(RecordId())
+                owner = User(id=owner_id, sub=f"{label}@example.test")
+                await workspace_service.create_workspace(owner)
+                ws = await repo.get_default_workspace_by_owner_id(owner.id)
+                fixture["people"][label] = {"id": owner_id, "email": owner.sub}
+                fixture["workspaces"][label] = str(ws.id)
+                lax_ws.append((flag, str(ws.id), owner_id, value))
+    for flag, ws_id, owner_id, value in lax_ws:
+        if flag == "member_disabled":
+            member = await _member_row_id(ws_id, owner_id)
+            await _write_lax("workspace_users", member, {"disabled": value})
+        else:
+            await _write_lax("workspaces", ws_id, {flag: value})
     fixture["tokens"] = make_tokens(fixture["people"], fixture["workspaces"])
     Path(path).write_text(json.dumps(fixture, indent=1))
     print("extended")

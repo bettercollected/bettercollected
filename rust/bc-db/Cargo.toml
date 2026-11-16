@@ -1,6 +1,6 @@
 [package]
 name = "bc-db"
-description = "Postgres pool and the startup check that schema app is at the Alembic head this build was written against"
+description = "The data layer of the Postgres store: the pool, the document codec (doc bytes and checksum as the Python backend writes them), the generic record repository, locks, tombstones and the clock"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,8 +8,18 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+chrono = { workspace = true }
+getrandom = { workspace = true }
+hex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha1 = { workspace = true }
+sha2 = { workspace = true }
 sqlx = { workspace = true }
 tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
 
 [lints]
 workspace = true

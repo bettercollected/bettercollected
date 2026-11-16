@@ -33,6 +33,45 @@ updates:
         update-types: ["minor", "patch"]
     labels: ["dependencies", "python"]
 
+  # Rust workspace
+  - package-ecosystem: "cargo"
+    directory: "/rust"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      rust-minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "rust"]
+    ignore:
+      # 10.x ships its algorithms only as provider bundles (rust_crypto pulls in
+      # rsa 0.9, which has an unpatched advisory) and bc-auth checks the time
+      # claims itself; stay on 9.x, take patch and minor updates.
+      - dependency-name: "jsonwebtoken"
+        update-types: ["version-update:semver-major"]
+      # The RustCrypto crates share the digest/cipher traits, so a new 0.x
+      # generation (sha2 0.11, aes-gcm 0.11, hmac 0.13, ...) only works when
+      # all of them move together; that upgrade is done by hand in one change,
+      # with the golden vectors rerun. Patch updates still come in.
+      - dependency-name: "sha1"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "sha2"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "md-5"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "hmac"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "digest"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "aes"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "aes-gcm"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "cbc"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "cipher"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+
   # Webapp image base (pinned by tag and digest in webapp/Dockerfile). Only
   # patch and minor updates of the pinned Node major; the major follows the
   # LTS line and is moved by hand together with .nvmrc and @types/node.

@@ -41,7 +41,8 @@ fixture the seeding wrote (seed.py) and from the matrix:
 
 A matrix variable is replaced first, so `{token.{who}}` works. A placeholder
 that names nothing is an error. A token that the fixture holds as null (the
-ring has no previous key) skips the case.
+ring has no previous key) skips the case. The `@` sources leave out the names
+that start with `lax_` (rows written in odd spellings, see seed.py).
 """
 
 from __future__ import annotations
@@ -125,12 +126,15 @@ def fill(text: str, fixture: dict, variables: dict) -> str:
 def _matrix_values(spec: Any, fixture: dict) -> list:
     if isinstance(spec, list):
         return spec
+    # names starting "lax_" are the rows written in odd spellings (seed.py,
+    # LAX_SPELLINGS): only the cases that name them use them
+    plain = lambda names: [n for n in names if not n.startswith("lax_")]  # noqa: E731
     if spec == "@people":
-        return list(fixture.get("people", {}))
+        return plain(fixture.get("people", {}))
     if spec == "@workspaces":
-        return list(fixture.get("workspaces", {}))
+        return plain(fixture.get("workspaces", {}))
     if spec == "@tokens":
-        return [k for k, v in fixture.get("tokens", {}).items() if v is not None]
+        return plain(k for k, v in fixture.get("tokens", {}).items() if v is not None)
     raise CorpusError(f"unknown matrix source {spec!r}")
 
 

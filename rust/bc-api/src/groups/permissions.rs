@@ -15,7 +15,7 @@ use percent_encoding::percent_decode_str;
 use serde::Serialize;
 
 use super::{Shared, served};
-use crate::store::workspaces;
+use crate::store::workspaces::{self, StoreError};
 
 const PATH_PREFIX: &str = "/api/v1/workspaces/";
 const PATH_SUFFIX: &str = "/permissions";
@@ -177,7 +177,7 @@ async fn permissions(State(state): State<Shared>, request: Request) -> Response 
                     }
                     _ => None,
                 };
-                Ok::<_, sqlx::Error>((membership, workspace))
+                Ok::<_, StoreError>((membership, workspace))
             };
             match facts.await {
                 Ok((membership, workspace)) => finish(
@@ -187,7 +187,9 @@ async fn permissions(State(state): State<Shared>, request: Request) -> Response 
                     workspace.as_ref(),
                     policies,
                 ),
-                Err(error) => {
+                // the document is one Python cannot read either: its answer stands
+                Err(StoreError::Unreadable) => return state.proxy.forward(request).await,
+                Err(StoreError::Db(error)) => {
                     tracing::error!("permissions read failed: {error}");
                     return internal_error();
                 }

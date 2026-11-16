@@ -7,7 +7,7 @@ resolution-markers = [
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
-    "(python_full_version < '3.13' and sys_platform != 'emscripten') or (python_full_version < '3.12' and sys_platform == 'emscripten')",
+    "python_full_version < '3.12' or (python_full_version == '3.12.*' and sys_platform != 'emscripten')",
 ]
 
 [[package]]
@@ -451,7 +451,7 @@ requires-dist = [
     { name = "pdfplumber", specifier = ">=0.11" },
     { name = "pillow", specifier = ">=13.0.0" },
     { name = "procrastinate", specifier = ">=3.10.0,<4" },
-    { name = "publicsuffixlist", specifier = ">=1.1.2.20261023" },
+    { name = "publicsuffixlist", specifier = ">=1.1.2.20261113" },
     { name = "pydantic-settings", specifier = ">=2.16.1" },
     { name = "pyjwt", specifier = ">=2.15.1" },
     { name = "pymongo", specifier = ">=4.19.0" },
@@ -1293,7 +1293,7 @@ resolution-markers = [
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
-    "(python_full_version < '3.13' and sys_platform != 'emscripten') or (python_full_version < '3.12' and sys_platform == 'emscripten')",
+    "python_full_version < '3.12' or (python_full_version == '3.12.*' and sys_platform != 'emscripten')",
 ]
 dependencies = [
     { name = "google-auth" },
@@ -2594,11 +2594,11 @@ wheels = [
 
 [[package]]
 name = "publicsuffixlist"
-version = "1.1.2.20261023"
+version = "1.1.2.20261113"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d4/d0/e55a0f8c7c9b653003aa018ccf2d357f7c8f67307535158bfa9428e6aed9/publicsuffixlist-1.1.2.20261023.tar.gz", hash = "sha256:2bf96290efe1d089861e759387da6bf7b145cf8caf7c77b8548f2b657ea22139", size = 106543, upload-time = "2026-10-23T08:26:56.132Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fb/62/1cde468a0c78ae179c19fbf68c258a01ebc1764e02c743469744564b1a9e/publicsuffixlist-1.1.2.20261113.tar.gz", hash = "sha256:e35920e29b42f6c716d29814658b60ee2673bf02309cac375455b561e1d11da4", size = 107018, upload-time = "2026-11-13T10:50:34.205Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bb/bb/77b2f7ee51092056e2ec9f19f9d54ebefb8b987cb167ef1c2de26d6af829/publicsuffixlist-1.1.2.20261023-py3-none-any.whl", hash = "sha256:c792aa3fd37076c15f1c9d9897e59e9d58e8bacdf4315eb9cc10141a26d8995c", size = 109305, upload-time = "2026-10-23T08:26:54.724Z" },
+    { url = "https://files.pythonhosted.org/packages/97/96/8eff034d02051ed5bd30f0f694ab2a272272c6ad72636ea464f16fa569b9/publicsuffixlist-1.1.2.20261113-py3-none-any.whl", hash = "sha256:837494f6dcb18ccb90b104b1741b25688c07a0d34a05baa9062d74cefc0c0b6e", size = 109784, upload-time = "2026-11-13T10:50:32.941Z" },
 ]
 
 [[package]]
