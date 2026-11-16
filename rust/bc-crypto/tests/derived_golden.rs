@@ -811,9 +811,9 @@ fn json_bodies_are_read_and_written_as_python_does() {
         ids::request_hash("POST", "/x", b"-0.0", &[]),
         ids::request_hash("POST", "/x", b"0.0", &[])
     );
-    // a deep but legal nesting must not overflow the stack
+    // nesting beyond what the backend reads is hashed as bytes, never an overflow
     let deep = format!("{}{}", "[".repeat(5000), "]".repeat(5000));
-    assert!(pyjson::parse(deep.as_bytes()).is_some());
+    assert!(pyjson::parse(deep.as_bytes()).is_none());
     assert_eq!(pyjson::parse(b"[[1]]").unwrap().canonical(), "[[1]]");
     assert!(
         pyjson::parse(br#"{"a":[1,{"b":null}]}"#)
@@ -894,30 +894,84 @@ fn a_body_with_many_keys_is_read_in_linear_time() {
 }
 
 #[test]
-fn nesting_is_read_to_exactly_pythons_limit_without_recursion() {
-    assert_eq!(pyjson::MAX_DEPTH, 9998);
+fn nesting_is_read_to_the_depth_the_running_backend_accepts() {
+    // measured on the deployed interpreter (Python 3.11.12) by `json_depth_probe.py`
+    assert_eq!(pyjson::MAX_DEPTH, 982);
+    assert_eq!(pyjson::MAX_DEPTH_EDITOR_OPS, 983);
+    let d = &v()["depth"];
+    assert_eq!(
+        d["limits"]["public"].as_u64().unwrap(),
+        pyjson::MAX_DEPTH as u64
+    );
+    assert_eq!(
+        d["limits"]["editor"].as_u64().unwrap(),
+        pyjson::MAX_DEPTH_EDITOR_OPS as u64
+    );
+    let mut boundary = 0;
+    for case in d["cases"].as_array().unwrap() {
+        let body = bytes(&case["body_b64"]);
+        let name = format!("{} {}", case["kind"], case["depth"]);
+        let public = pyjson::parse(&body);
+        let editor = pyjson::parse_limited(&body, pyjson::MAX_DEPTH_EDITOR_OPS);
+        assert_eq!(
+            public.is_some(),
+            case["public_accepts"].as_bool().unwrap(),
+            "{name}"
+        );
+        assert_eq!(
+            editor.is_some(),
+            case["editor_accepts"].as_bool().unwrap(),
+            "{name}"
+        );
+        if let (Some(parsed), Some(canonical)) = (&public, case["canonical"].as_str()) {
+            assert_eq!(parsed.canonical(), canonical, "{name}");
+        }
+        if matches!(case["depth"].as_u64(), Some(982 | 983)) {
+            boundary += 1;
+        }
+    }
+    assert_eq!(boundary, 6);
+    // a refused body is hashed as bytes, an accepted one by value
+    let deep = format!("{}{}", "[".repeat(983), "]".repeat(983));
+    assert_ne!(
+        ids::request_hash("POST", "/x", deep.as_bytes(), &[]),
+        ids::request_hash(
+            "POST",
+            "/x",
+            format!("{}{}", "[".repeat(983), " ]".repeat(983)).as_bytes(),
+            &[]
+        )
+    );
+    assert_eq!(
+        ids::request_hash_limited("POST", "/x", deep.as_bytes(), &[], 983),
+        ids::request_hash_limited(
+            "POST",
+            "/x",
+            format!("{}{}", "[".repeat(983), " ]".repeat(983)).as_bytes(),
+            &[],
+            983
+        )
+    );
+}
+
+#[test]
+fn reading_writing_and_dropping_never_recurse() {
+    // far beyond any limit, on this test's small stack: the reader stops at the
+    // limit without recursing, and a value as deep as a raised limit is written
+    // and dropped without recursing either
     let nested = |n: usize| format!("{}{}", "[".repeat(n), "]".repeat(n));
     let objects = |n: usize| format!("{}1{}", "{\"a\":".repeat(n), "}".repeat(n));
-    let limit = pyjson::MAX_DEPTH;
-    // the limit itself reads (and writes, and drops) on this test's small stack
-    let at = pyjson::parse(nested(limit).as_bytes()).unwrap();
-    assert_eq!(at.canonical(), nested(limit));
-    drop(at);
-    assert!(pyjson::parse(objects(limit).as_bytes()).is_some());
-    // one more level does not
-    assert!(pyjson::parse(nested(limit + 1).as_bytes()).is_none());
-    assert!(pyjson::parse(objects(limit + 1).as_bytes()).is_none());
-    // an empty container counts as a level too
-    assert!(
-        pyjson::parse(format!("{}[]{}", "[".repeat(limit - 1), "]".repeat(limit - 1)).as_bytes())
-            .is_some()
-    );
-    assert!(
-        pyjson::parse(format!("{}[]{}", "[".repeat(limit), "]".repeat(limit)).as_bytes()).is_none()
-    );
-    // unbalanced, and far too deep (no recursion to overflow)
     assert!(pyjson::parse("[".repeat(1_000_000).as_bytes()).is_none());
-    assert!(pyjson::parse(nested(limit + 5000).as_bytes()).is_none());
+    assert!(pyjson::parse(nested(1_000_000).as_bytes()).is_none());
+    for limit in [20_000, 200_000] {
+        let at = pyjson::parse_limited(nested(limit).as_bytes(), limit).unwrap();
+        assert_eq!(at.canonical(), nested(limit));
+        drop(at);
+        let at = pyjson::parse_limited(objects(limit).as_bytes(), limit).unwrap();
+        assert_eq!(at.canonical().len(), objects(limit).len());
+        drop(at);
+        assert!(pyjson::parse_limited(nested(limit + 1).as_bytes(), limit).is_none());
+    }
 }
 
 #[test]
