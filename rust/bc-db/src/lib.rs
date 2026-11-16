@@ -1,9 +1,37 @@
 //! The database side every service of this workspace shares: the pool and the
-//! startup check of the schema revision. Nothing else yet. This workspace owns
-//! no schema and runs no migrations: the Python backend's Alembic chain does.
+//! startup check of the schema revision, the document codec, the generic record
+//! repository and the clock. This workspace owns no schema and runs no
+//! migrations: the Python backend's Alembic chain does.
+//!
+//! * [`canonical`]: the canonical bytes of a `doc` and its `_bc_checksum`, as
+//!   Python writes them;
+//! * [`codec`]: [`codec::Record`], and what a write puts in a row;
+//! * [`repo`]: [`repo::Db`], the repository (get, list with a keyset, insert,
+//!   upsert, `set_fields`, delete with tombstones, `FOR UPDATE`, advisory locks);
+//! * [`stamp`], [`id`], [`value`]: the document's datetimes, ids and lax reads;
+//! * [`clock`]: the one clock; [`settings`]: the pool and its timeouts;
+//! * [`records`]: typed documents of the tables the first route groups use.
+
+pub mod canonical;
+pub mod clock;
+pub mod codec;
+pub mod error;
+pub mod id;
+pub mod records;
+pub mod repo;
+pub mod settings;
+pub mod stamp;
+pub mod value;
+
+pub use clock::{Clock, FixedClock, SharedClock, SystemClock};
+pub use codec::Record;
+pub use error::DbError;
+pub use id::RecordId;
+pub use repo::{Db, Filter, Keyset, Order, Page};
+pub use settings::{DbSettings, connect_with};
 
 use sqlx::Row;
-use sqlx::postgres::{PgPool, PgPoolOptions};
+use sqlx::postgres::PgPool;
 
 /// The Alembic revision of schema `app` this build was written against. Move
 /// it only together with a review of every query for the migrations in
@@ -13,11 +41,14 @@ pub const EXPECTED_HEAD: &str = "0041";
 
 /// Opens the pool. The error can quote the connection string, so the caller
 /// must not print it.
+///
+/// Every connection carries the Python engine's server-side timeouts
+/// (`statement_timeout` 30 s, `lock_timeout` 5 s, `idle_in_transaction` 60 s,
+/// each overridable by the `DB_*` names through [`DbSettings`]).
 pub async fn connect(url: &str, max_connections: u32) -> Result<PgPool, sqlx::Error> {
-    PgPoolOptions::new()
-        .max_connections(max_connections)
-        .connect(url)
-        .await
+    let mut settings = DbSettings::new("bc-api");
+    settings.max_connections = max_connections;
+    connect_with(url, &settings).await
 }
 
 /// How the database's revision stands against the one this build needs.

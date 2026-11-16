@@ -12,7 +12,7 @@ It is not part of any compose file, image or deployment yet.
 | Crate | What it holds |
 |---|---|
 | `bc-config` | Environment reading by the Python names; refuses unset and published secrets; the seam for a settings-store reader (`source::SettingsSource`, not implemented) |
-| `bc-db` | The Postgres pool and the startup check that schema `app` is at the Alembic head this build was written against |
+| `bc-db` | The Postgres pool (with the Python engine's timeouts), the startup check that schema `app` is at the Alembic head, the document codec (the `doc` bytes and `_bc_checksum` exactly as the Python backend writes them), the generic record repository (get, list on a keyset, insert, upsert, `set_fields`, delete with tombstones, `FOR UPDATE`, advisory locks), the clock, and typed records for `workspaces`, `workspace_users`, `forms`, `form_responses` and `workspace_audit_events` |
 | `bc-auth` | Verification of the session cookie (JWT key ring, claim rules). No session refresh |
 | `bc-authz` | Roles to permissions and the effective-permissions decision, pure functions |
 | `bc-crypto` | Opening and sealing of the response ciphertext (`v1:` prefix, Tink AES-GCM), with golden tests against values the Python backend wrote |
@@ -105,6 +105,50 @@ Everything that is not served is forwarded to `BC_PYTHON_UPSTREAM`:
   body or client address.
 
 `Upgrade`/WebSocket requests are not proxied (the backend serves none).
+
+## The data layer (`bc-db`)
+
+Every table of schema `app` is `id`, `doc` (JSONB, the whole document), `created_at`, `updated_at`, `_bc_source`,
+`_bc_checksum` and a few columns GENERATED from `doc`. A Rust writer must produce what the Python writer
+(`common/records/codec.py`) produces:
+
+- `doc` is BSON Extended JSON (relaxed): ids `{"$oid": ...}`, binary `{"$binary": ...}`, and datetimes as ISO
+  strings (`datetime.isoformat()`) on tables whose class has `bson_encoders` (29 of them, among them `workspaces`,
+  `workspace_users`, `forms`, `form_responses`) or `{"$date": "...Z"}` (milliseconds) on those without (41, among them
+  `workspace_audit_events`, `sessions`, the newer tables). A record type picks `Stamp` or `BsonDate` accordingly.
+  Every field of the model is written (`null` for `None`, defaults written out); keys the model does not know are not.
+- `_bc_checksum` is `sha256:` + hex SHA-256 of the canonical JSON of `doc` (sorted keys, compact, not ASCII-escaped,
+  floats as Python's `repr`). `bc_db::canonical` does it; the 180 vectors of
+  `backend/tests/fixtures/codec_golden/backend.json` pass through it in the tests.
+- The write is `INSERT ... ON CONFLICT (id) DO UPDATE` of `doc`, `updated_at`, `_bc_source`, `_bc_checksum`; the
+  generated columns are never written; `updated_at` moves only through `save` (as `save_document`), never through
+  `upsert`, `update` or `set_fields`.
+- A delete also writes a tombstone (`deletion_tombstones`, milliseconds) in the same transaction.
+- A read-then-write locks the row (`FOR UPDATE`) or takes the advisory lock the Python code takes (same key, so a
+  mixed fleet serialises). A lock wait past `lock_timeout` is `DbError::Busy` (Python: 409 `busy`).
+- Every connection carries `statement_timeout` 30 s, `lock_timeout` 5 s and `idle_in_transaction_session_timeout`
+  60 s (`DB_STATEMENT_TIMEOUT_MS`, `DB_LOCK_TIMEOUT_MS`, `DB_IDLE_IN_TRANSACTION_MS`, `DB_POOL_SIZE`,
+  `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT_S` as in Python).
+
+- A new id needs the system random generator: if it cannot be read, minting fails (`DbError::NoRandomness`), never a
+  zero-randomness id (two processes in that state would mint the same ids).
+- A stored flag is read as pydantic reads a `bool`: JSON `true` / `false`, `0` and `1` (also `0.0`, `1.0`), and a string
+  that is in any letter case `0 1 f t n y no on off yes true false` (no spaces); anything else (`2`, `0.5`, `""`,
+  `"maybe"`, `" true"`, an array or object) is refused, and `null` is "not set" for an optional flag and refused for a
+  plain one. The permissions group reads `workspaces` and `workspace_users` through the typed records, so a flag
+  written `"true"` or `1` is enforced as Python enforces it, and a document Python cannot read at all is handed to
+  Python (its answer stands). The contract cases `permissions-lax-flags.json` write such rows directly.
+
+A part of a document that is a large model of its own (a form's fields, a theme, an answer set) is carried as
+`serde_json::Value` already in document form: the data layer neither validates nor normalises it.
+
+Tests: `cargo test -p bc-db` needs no database for the golden tests (`tests/records_golden.rs`: records written by
+Rust equal the documents, checksums and timestamp columns Python wrote for the same input; Rust reads every
+document Python wrote, and the old, lax or unknown-keyed documents Python reads, and refuses what Python refuses).
+`tests/records_db.rs` also needs `BC_TEST_DATABASE_URL`, a throw-away migrated database whose name contains `test`
+(`uv run --project backend python rust/contract/golden_records.py migrate`, with `DATABASE_URL` set); without it
+those tests say so and pass. `contract/golden_records.py generate FILE` regenerates `bc-db/tests/golden/records.json`
+from the Python classes.
 
 ## Contract harness
 
